@@ -63,6 +63,7 @@
     "provision:render-neo-pulse": "node scripts/render-provision-neo-pulse.mjs",
     "render:repoint-neo-pulse-static": "node scripts/render-repoint-neo-pulse-static.mjs",
     "start:ld-worker": "node scripts/local-dominator-worker-server.mjs",
+    "start:neo-pulse-api": "node scripts/neo-pulse-render-api-gateway.mjs",
     "verify:post-creator-worker": "node scripts/verify-post-creator-worker.mjs",
     "setup:game-copilot": "node scripts/setup-game-copilot.mjs",
     "setup:game-copilot:smoke": "node scripts/setup-game-copilot.mjs --smoke",

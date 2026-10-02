@@ -15,9 +15,9 @@ services:
       - key: VITE_BASE_PATH
         value: /
       - key: VITE_MCP_API_BASE
-        value: https://flowbieone.onrender.com/api/mcp
+        value: https://neo-pulse-api.onrender.com/api/mcp
       - key: NEO_PULSE_RENDER_API_BASE
-        value: https://flowbieone.onrender.com/api/mcp
+        value: https://neo-pulse-api.onrender.com/api/mcp
       - key: VITE_OPENROUTER_API_KEY
         sync: false
 
@@ -38,6 +38,41 @@ services:
       - key: LOCAL_DOMINATOR_LOGIN_URL
         value: https://app.localdominator.co/login/
       - key: OPENROUTER_API_KEY
+        sync: false
+
+  - type: web
+    name: neo-pulse-api
+    runtime: node
+    repo: https://github.com/neodigitalca/Google-Ads
+    branch: main
+    buildCommand: npm ci
+    startCommand: node scripts/neo-pulse-render-api-gateway.mjs
+    plan: starter
+    envVars:
+      - key: FLOWBIEONE_UPSTREAM
+        value: https://flowbieone.onrender.com
+      - key: OLLAMA_BASE_URL
+        value: https://neo-pulse-ollama.onrender.com
+      - key: OLLAMA_AUTH_TOKEN
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+
+  - type: web
+    name: neo-pulse-ollama
+    runtime: docker
+    dockerfilePath: ./Dockerfile.ollama
+    repo: https://github.com/neodigitalca/Google-Ads
+    branch: main
+    plan: standard
+    disk:
+      name: neo-pulse-ollama-data
+      mountPath: /root/.ollama
+      sizeGB: 20
+    envVars:
+      - key: OLLAMA_MODELS
+        value: qwen3:8b
+      - key: OLLAMA_AUTH_TOKEN
         sync: false
 
   - type: web
@@ -83,6 +118,23 @@ services:
       - key: OXYLABS_PROXY_PASSWORD
         sync: false
       - key: OPENROUTER_API_KEY
+        sync: false
+
+  - type: web
+    name: flowbie-demo-ollama
+    runtime: docker
+    dockerfilePath: ./Dockerfile.ollama
+    repo: https://github.com/neodigitalca/flowbie1
+    branch: cursor/meta-ads-visual-settings-layout
+    plan: standard
+    disk:
+      name: ollama-data-demo
+      mountPath: /root/.ollama
+      sizeGB: 20
+    envVars:
+      - key: OLLAMA_MODELS
+        value: qwen3:8b
+      - key: OLLAMA_AUTH_TOKEN
         sync: false
 
   - type: web
@@ -132,3 +184,20 @@ services:
         sync: false
     domains:
       - ld.neodigital.ca
+
+  - type: web
+    name: flowbie-prod-ollama
+    runtime: docker
+    dockerfilePath: ./Dockerfile.ollama
+    repo: https://github.com/neodigitalca/flowbie1
+    branch: main
+    plan: standard
+    disk:
+      name: ollama-data-prod
+      mountPath: /root/.ollama
+      sizeGB: 20
+    envVars:
+      - key: OLLAMA_MODELS
+        value: qwen3:8b
+      - key: OLLAMA_AUTH_TOKEN
+        sync: false

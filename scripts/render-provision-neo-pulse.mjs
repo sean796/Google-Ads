@@ -15,7 +15,8 @@ const API = "https://api.render.com/v1";
 const REPO =
   (process.env.NEO_PULSE_RENDER_REPO || "https://github.com/sean796/Google-Ads").trim();
 const BRANCH = (process.env.NEO_PULSE_RENDER_BRANCH || "main").trim();
-const RENDER_API = "https://flowbieone.onrender.com/api/mcp";
+const FLOWBIEONE_UPSTREAM = "https://flowbieone.onrender.com";
+const RENDER_API = "https://neo-pulse-api.onrender.com/api/mcp";
 
 function loadApiKey() {
   const fromEnv = (process.env.RENDER_API_KEY || "").trim();
@@ -95,6 +96,64 @@ async function ensureStaticSite(ownerId) {
   return svc;
 }
 
+async function ensureNodeApiGateway(ownerId) {
+  const name = "neo-pulse-api";
+  const existing = (await listServices()).find((s) => s.name === name);
+  if (existing?.id) {
+    console.log(`[skip] ${name} exists: ${existing.id}`);
+    await api("PATCH", `/services/${existing.id}`, { repo: REPO, branch: BRANCH });
+    return existing;
+  }
+  const created = await api("POST", "/services", {
+    type: "web_service",
+    name,
+    ownerId,
+    repo: REPO,
+    branch: BRANCH,
+    autoDeploy: "yes",
+    serviceDetails: {
+      runtime: "node",
+      plan: "starter",
+      envSpecificDetails: {
+        buildCommand: "npm ci",
+        startCommand: "node scripts/neo-pulse-render-api-gateway.mjs",
+      },
+    },
+  });
+  const svc = created.service ?? created;
+  console.log(`[created] ${name}:`, svc.id);
+  return svc;
+}
+
+async function ensureOllama(ownerId) {
+  const name = "neo-pulse-ollama";
+  const existing = (await listServices()).find((s) => s.name === name);
+  if (existing?.id) {
+    console.log(`[skip] ${name} exists: ${existing.id}`);
+    await api("PATCH", `/services/${existing.id}`, { repo: REPO, branch: BRANCH });
+    return existing;
+  }
+  const created = await api("POST", "/services", {
+    type: "web_service",
+    name,
+    ownerId,
+    repo: REPO,
+    branch: BRANCH,
+    autoDeploy: "yes",
+    serviceDetails: {
+      runtime: "docker",
+      plan: "standard",
+      envSpecificDetails: {
+        dockerfilePath: "./Dockerfile.ollama",
+        dockerContext: ".",
+      },
+    },
+  });
+  const svc = created.service ?? created;
+  console.log(`[created] ${name}:`, svc.id);
+  return svc;
+}
+
 async function ensureWorker(ownerId) {
   const name = "neo-pulse-worker";
   const existing = (await listServices()).find((s) => s.name === name);
@@ -146,6 +205,7 @@ function readRepoEnv() {
     ldPassword: readKey(".env.localdominator", "LOCAL_DOMINATOR_PASSWORD"),
     ldLoginUrl: readKey(".env.localdominator", "LOCAL_DOMINATOR_LOGIN_URL") || "https://app.localdominator.co/login/",
     workerToken: process.env.LD_WORKER_AUTH_TOKEN || crypto.randomBytes(24).toString("hex"),
+    ollamaToken: process.env.OLLAMA_AUTH_TOKEN || crypto.randomBytes(24).toString("hex"),
   };
 }
 
@@ -168,6 +228,11 @@ async function main() {
   const secrets = readRepoEnv();
   const staticSite = await ensureStaticSite(ownerId);
   const worker = await ensureWorker(ownerId);
+  const apiGateway = await ensureNodeApiGateway(ownerId);
+  const ollama = await ensureOllama(ownerId);
+
+  const ollamaUrl =
+    ollama?.serviceDetails?.url?.trim() || "https://neo-pulse-ollama.onrender.com";
 
   if (staticSite?.id) {
     await resumeIfSuspended(staticSite.id, "neo-pulse-static");
@@ -192,13 +257,36 @@ async function main() {
     await triggerDeploy(worker.id);
   }
 
+  if (apiGateway?.id) {
+    await resumeIfSuspended(apiGateway.id, "neo-pulse-api");
+    await putEnvVars(apiGateway.id, [
+      { key: "FLOWBIEONE_UPSTREAM", value: FLOWBIEONE_UPSTREAM },
+      { key: "OLLAMA_BASE_URL", value: ollamaUrl.replace(/\/+$/, "") },
+      { key: "OLLAMA_AUTH_TOKEN", value: secrets.ollamaToken },
+      { key: "OPENROUTER_API_KEY", value: secrets.openRouter },
+    ]);
+    await triggerDeploy(apiGateway.id);
+  }
+
+  if (ollama?.id) {
+    await resumeIfSuspended(ollama.id, "neo-pulse-ollama");
+    await putEnvVars(ollama.id, [
+      { key: "OLLAMA_MODELS", value: "qwen3:8b" },
+      { key: "OLLAMA_AUTH_TOKEN", value: secrets.ollamaToken },
+    ]);
+    await triggerDeploy(ollama.id);
+  }
+
   console.log("\nNEO Pulse Render URLs:");
   console.log("- UI:", staticSite?.serviceDetails?.url || "https://neo-pulse-static.onrender.com");
   console.log("- Terms:", "https://neo-pulse-static.onrender.com/terms-of-service");
   console.log("- Privacy:", "https://neo-pulse-static.onrender.com/privacy-policy");
   console.log("- Worker:", worker?.serviceDetails?.url || "https://neo-pulse-worker.onrender.com");
+  console.log("- API gateway:", apiGateway?.serviceDetails?.url || "https://neo-pulse-api.onrender.com");
   console.log("- API (UI build):", RENDER_API);
+  console.log("- Ollama:", ollamaUrl);
   console.log("- LD_WORKER_AUTH_TOKEN:", secrets.workerToken);
+  console.log("- OLLAMA_AUTH_TOKEN:", secrets.ollamaToken);
 }
 
 main().catch((err) => {

@@ -1,4 +1,5 @@
 import { getSessionToken } from "@/lib/auth-device";
+import { getOpenRouterApiKeyForApp } from "@/lib/openrouter-api-key-resolve";
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
 
 export type OpenRouterAppMessage = {
@@ -21,11 +22,56 @@ export function openRouterChatCompletionUrl(): string {
   return backendApiUrl("/openrouter/chat-completion");
 }
 
+export function openRouterModelsCatalogUrl(): string {
+  return backendApiUrl("/openrouter/models");
+}
+
+export type OpenRouterModelCatalogEntry = {
+  id: string;
+  name: string;
+  promptUsdPerToken: number | null;
+  completionUsdPerToken: number | null;
+  imageUsdPerToken: number | null;
+  contextLength: number | null;
+  textOutput: boolean;
+  imageOutput: boolean;
+  /** True when the row comes from Ollama /api/tags (local inference). */
+  local?: boolean;
+};
+
+export async function getOpenRouterModelsCatalog(_apiKey?: string): Promise<{
+  models: OpenRouterModelCatalogEntry[];
+  cachedAt: string;
+}> {
+  const response = await fetch(openRouterModelsCatalogUrl(), {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+    headers: openRouterAppApiHeaders(),
+  });
+
+  const data = (await response.json()) as {
+    ok?: boolean;
+    error?: string;
+    models?: OpenRouterModelCatalogEntry[];
+    cachedAt?: string;
+  };
+
+  if (!response.ok || !data.ok || !Array.isArray(data.models)) {
+    throw new Error(data.error?.trim() || `OpenRouter models error (${response.status})`);
+  }
+
+  return {
+    models: data.models,
+    cachedAt: typeof data.cachedAt === "string" ? data.cachedAt : new Date().toISOString(),
+  };
+}
+
 export function openRouterAppApiHeaders(apiKey?: string): Headers {
   const headers = new Headers({ "Content-Type": "application/json" });
   const token = getSessionToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  const key = apiKey?.trim();
+  const key = (apiKey ?? getOpenRouterApiKeyForApp()).trim();
   if (key) headers.set("X-OpenRouter-Api-Key", key);
   return headers;
 }
@@ -52,14 +98,15 @@ export async function postOpenRouterAppChat(args: {
   finishReason?: string;
   nativeFinishReason?: string;
 }> {
+  const apiKey = (args.apiKey ?? getOpenRouterApiKeyForApp()).trim();
   const response = await fetch(openRouterChatCompletionUrl(), {
     method: "POST",
     credentials: "include",
     cache: "no-store",
     signal: args.signal,
-    headers: openRouterAppApiHeaders(args.apiKey),
+    headers: openRouterAppApiHeaders(apiKey),
     body: JSON.stringify({
-      apiKey: args.apiKey?.trim() || undefined,
+      apiKey: apiKey || undefined,
       model: args.model,
       messages: args.messages,
       system: args.system,
@@ -117,6 +164,7 @@ export async function postOpenRouterAppChatFetch(init: RequestInit): Promise<{
   text: () => Promise<string>;
 }> {
   const parsed = JSON.parse(String(init.body ?? "{}")) as {
+    apiKey?: string;
     model?: string;
     messages?: OpenRouterAppMessage[];
     system?: string;
@@ -136,12 +184,9 @@ export async function postOpenRouterAppChatFetch(init: RequestInit): Promise<{
     webSearchOptions?: Record<string, unknown>;
     web_search_options?: Record<string, unknown>;
   };
-  const headers = new Headers(init.headers);
-  const bearer = headers.get("Authorization")?.replace(/^Bearer\s+/i, "").trim();
-  const apiKey = bearer || headers.get("X-OpenRouter-Api-Key")?.trim() || undefined;
   try {
     const result = await postOpenRouterAppChat({
-      apiKey,
+      apiKey: parsed.apiKey?.trim() || getOpenRouterApiKeyForApp() || undefined,
       model: parsed.model ?? "",
       messages: parsed.messages,
       system: parsed.system,

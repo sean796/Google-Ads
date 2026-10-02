@@ -1,0 +1,20 @@
+FROM ollama/ollama:latest
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends curl ca-certificates \
+  && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+  && apt-get install -y --no-install-recommends nodejs \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY scripts/ollama-auth-proxy.mjs ./scripts/ollama-auth-proxy.mjs
+COPY scripts/ollama-render-entry.sh /entry.sh
+RUN chmod +x /entry.sh
+
+ENV OLLAMA_HOST=127.0.0.1:11434
+ENV OLLAMA_MODELS=qwen3:8b
+
+EXPOSE 10000
+
+CMD ["/entry.sh"]

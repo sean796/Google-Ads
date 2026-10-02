@@ -13,7 +13,7 @@ class Neo_Pulse_App_Secrets {
 		return str_contains( $raw, 'flowbie-483717' ) || str_contains( $raw, 'flowbie-812@' );
 	}
 
-	private static function openrouter_key_is_invalid( string $key ): bool {
+	public static function openrouter_key_is_invalid( string $key ): bool {
 		return str_contains( $key, '0df04520eb8c0146e19f925295a5559b058f399917db3db7c0a3e3bb97361148' );
 	}
 
@@ -26,6 +26,16 @@ class Neo_Pulse_App_Secrets {
 		}
 		if ( defined( 'NEO_PULSE_WP_GSC_SERVICE_ACCOUNT_JSON' ) && NEO_PULSE_WP_GSC_SERVICE_ACCOUNT_JSON !== '' ) {
 			return (string) NEO_PULSE_WP_GSC_SERVICE_ACCOUNT_JSON;
+		}
+		$path = Neo_Pulse_App_Data_Paths::gsc_service_account_path();
+		if ( is_readable( $path ) ) {
+			$raw = file_get_contents( $path );
+			if ( is_string( $raw ) ) {
+				$raw = trim( $raw );
+				if ( $raw !== '' && ! self::gsc_json_is_legacy_flowbie( $raw ) ) {
+					return $raw;
+				}
+			}
 		}
 		return '';
 	}
@@ -45,8 +55,32 @@ class Neo_Pulse_App_Secrets {
 	 */
 	public static function dataforseo(): array {
 		$request = self::request_dataforseo_credentials();
-		if ( $request['login'] !== '' && $request['password'] !== '' ) {
-			return $request;
+		if ( $request['password'] !== '' ) {
+			$login = $request['login'];
+			if ( $login === '' ) {
+				$login = self::resolve_dataforseo_login_fallback();
+			}
+			if ( $login !== '' ) {
+				return array(
+					'login'    => $login,
+					'password' => $request['password'],
+				);
+			}
+		}
+
+		$mgr_creds = self::dataforseo_from_manager_settings();
+		if ( $mgr_creds['password'] !== '' ) {
+			$login = $mgr_creds['login'];
+			$pass  = $mgr_creds['password'];
+			if ( $login === '' ) {
+				$login = self::resolve_dataforseo_login_fallback();
+			}
+			if ( $login !== '' && $pass !== '' ) {
+				return array(
+					'login'    => $login,
+					'password' => $pass,
+				);
+			}
 		}
 
 		$login = '';
@@ -68,14 +102,6 @@ class Neo_Pulse_App_Secrets {
 		}
 		if ( $pass === '' ) {
 			$pass = self::env_string( 'DATAFORSEO_API_PASSWORD', 'NEO_PULSE_APP_DATAFORSEO_PASSWORD', 'DATAFORSEO_PASSWORD' );
-		}
-
-		$mgr_creds = self::dataforseo_from_manager_settings();
-		if ( $login === '' && $mgr_creds['login'] !== '' ) {
-			$login = $mgr_creds['login'];
-		}
-		if ( $pass === '' && $mgr_creds['password'] !== '' ) {
-			$pass = $mgr_creds['password'];
 		}
 
 		return array(
@@ -134,6 +160,22 @@ class Neo_Pulse_App_Secrets {
 	/**
 	 * @return array{login:string,password:string}
 	 */
+	private static function resolve_dataforseo_login_fallback(): string {
+		if ( defined( 'NEO_PULSE_APP_DATAFORSEO_LOGIN' ) ) {
+			$login = trim( (string) NEO_PULSE_APP_DATAFORSEO_LOGIN );
+			if ( $login !== '' ) {
+				return $login;
+			}
+		}
+		if ( defined( 'NEO_PULSE_WP_DATAFORSEO_LOGIN' ) ) {
+			$login = trim( (string) NEO_PULSE_WP_DATAFORSEO_LOGIN );
+			if ( $login !== '' ) {
+				return $login;
+			}
+		}
+		return self::env_string( 'DATAFORSEO_API_LOGIN', 'NEO_PULSE_APP_DATAFORSEO_LOGIN', 'DATAFORSEO_LOGIN' );
+	}
+
 	private static function dataforseo_from_manager_settings(): array {
 		$mgr = Neo_Pulse_App_Json_File_Store::read( Neo_Pulse_App_Data_Paths::manager_settings_path() );
 		if ( ! is_array( $mgr ) || empty( $mgr['snapshot']['keys']['dataforseo-api-key'] ) ) {
@@ -181,7 +223,33 @@ class Neo_Pulse_App_Secrets {
 		return '';
 	}
 
+	/**
+	 * Request header/body key first, then dashboard snapshot and env.
+	 *
+	 * @param array<string,mixed> $body JSON body from /api/openrouter/chat-completion.
+	 */
+	public static function openrouter_api_key_for_request( array $body = array() ): string {
+		if ( isset( $_SERVER['HTTP_X_OPENROUTER_API_KEY'] ) ) {
+			$header = trim( (string) wp_unslash( $_SERVER['HTTP_X_OPENROUTER_API_KEY'] ) );
+			if ( $header !== '' && ! self::openrouter_key_is_invalid( $header ) ) {
+				return $header;
+			}
+		}
+		if ( isset( $body['apiKey'] ) && is_string( $body['apiKey'] ) ) {
+			$key = trim( $body['apiKey'] );
+			if ( $key !== '' && ! self::openrouter_key_is_invalid( $key ) ) {
+				return $key;
+			}
+		}
+		return self::openrouter_api_key();
+	}
+
 	public static function openrouter_api_key(): string {
+		$dashboard = self::openrouter_api_key_from_dashboard_settings();
+		if ( $dashboard !== '' ) {
+			return $dashboard;
+		}
+
 		if ( defined( 'NEO_PULSE_APP_OPENROUTER_API_KEY' ) && NEO_PULSE_APP_OPENROUTER_API_KEY !== '' ) {
 			$app = trim( (string) NEO_PULSE_APP_OPENROUTER_API_KEY );
 			if ( ! self::openrouter_key_is_invalid( $app ) ) {
@@ -195,25 +263,18 @@ class Neo_Pulse_App_Secrets {
 			}
 		}
 		$env = self::env_string( 'OPEN_ROUTER_API_KEY', 'OPENROUTER_API_KEY', 'NEO_PULSE_APP_OPENROUTER_API_KEY' );
-		if ( $env !== '' ) {
+		if ( $env !== '' && ! self::openrouter_key_is_invalid( $env ) ) {
 			return $env;
 		}
-		if ( class_exists( 'Neo_Pulse_Wp_Api' ) ) {
-			$agency = trim( Neo_Pulse_Wp_Api::get_agency_openrouter_api_key() );
-			if ( $agency !== '' ) {
-				return $agency;
-			}
-		}
-		if ( class_exists( 'Neo_Pulse_Wp_OpenRouter' ) ) {
-			$wp_key = trim( Neo_Pulse_Wp_OpenRouter::get_api_key() );
-			if ( $wp_key !== '' ) {
-				return $wp_key;
-			}
-		}
+		return '';
+	}
+
+	/** Dashboard Settings sync (workspace JSON, email-worker, agency). Beats .env and generated secrets. */
+	private static function openrouter_api_key_from_dashboard_settings(): string {
 		$mgr = Neo_Pulse_App_Json_File_Store::read( Neo_Pulse_App_Data_Paths::manager_settings_path() );
 		if ( is_array( $mgr ) && isset( $mgr['snapshot']['keys']['openrouter-api-key'] ) ) {
 			$key = trim( (string) $mgr['snapshot']['keys']['openrouter-api-key'] );
-			if ( $key !== '' ) {
+			if ( $key !== '' && ! self::openrouter_key_is_invalid( $key ) ) {
 				return $key;
 			}
 		}
@@ -225,7 +286,60 @@ class Neo_Pulse_App_Secrets {
 				return $key;
 			}
 		}
+		if ( class_exists( 'Neo_Pulse_Wp_Api' ) ) {
+			$agency = trim( Neo_Pulse_Wp_Api::get_agency_openrouter_api_key() );
+			if ( $agency !== '' && ! self::openrouter_key_is_invalid( $agency ) ) {
+				return $agency;
+			}
+		}
+		if ( class_exists( 'Neo_Pulse_Wp_OpenRouter' ) ) {
+			$wp_key = trim( Neo_Pulse_Wp_OpenRouter::get_api_key() );
+			if ( $wp_key !== '' && ! self::openrouter_key_is_invalid( $wp_key ) ) {
+				return $wp_key;
+			}
+		}
 		return '';
+	}
+
+	/**
+	 * @throws Exception When OpenRouter rejects the key.
+	 */
+	public static function verify_openrouter_api_key( string $api_key ): void {
+		$key = trim( $api_key );
+		if ( $key === '' ) {
+			throw new Exception( 'OpenRouter API key is empty.' );
+		}
+		if ( self::openrouter_key_is_invalid( $key ) ) {
+			throw new Exception( 'OpenRouter API key is not allowed.' );
+		}
+		$response = wp_remote_post(
+			'https://openrouter.ai/api/v1/chat/completions',
+			array(
+				'timeout' => 45,
+				'headers' => Neo_Pulse_App_Openrouter_Attribution::request_headers( $key ),
+				'body'    => wp_json_encode(
+					array(
+						'model'      => 'google/gemini-2.5-flash-lite',
+						'messages'   => array(
+							array(
+								'role'    => 'user',
+								'content' => 'ping',
+							),
+						),
+						'max_tokens' => 1,
+					)
+				),
+			)
+		);
+		if ( is_wp_error( $response ) ) {
+			throw new Exception( $response->get_error_message() );
+		}
+		$code = (int) wp_remote_retrieve_response_code( $response );
+		$raw  = json_decode( wp_remote_retrieve_body( $response ), true );
+		if ( $code < 200 || $code >= 300 ) {
+			$msg = is_array( $raw ) ? ( $raw['error']['message'] ?? $raw['message'] ?? 'OpenRouter error' ) : 'OpenRouter error';
+			throw new Exception( 'OpenRouter ' . $code . ': ' . $msg );
+		}
 	}
 
 	/**
@@ -247,6 +361,21 @@ class Neo_Pulse_App_Secrets {
 		}
 		if ( defined( 'NEO_PULSE_WP_GA_SERVICE_ACCOUNT_JSON' ) && NEO_PULSE_WP_GA_SERVICE_ACCOUNT_JSON !== '' ) {
 			return (string) NEO_PULSE_WP_GA_SERVICE_ACCOUNT_JSON;
+		}
+		$from_env = self::env_string( 'GA_SERVICE_ACCOUNT_JSON', 'NEO_PULSE_APP_GA_SERVICE_ACCOUNT_JSON' );
+		if ( $from_env !== '' ) {
+			return $from_env;
+		}
+		$path = Neo_Pulse_App_Data_Paths::ga_service_account_path();
+		if ( is_readable( $path ) ) {
+			$raw = file_get_contents( $path );
+			if ( is_string( $raw ) && trim( $raw ) !== '' ) {
+				return trim( $raw );
+			}
+		}
+		$gsc = self::gsc_service_account_json();
+		if ( $gsc !== '' && ! self::gsc_json_is_legacy_flowbie( $gsc ) ) {
+			return $gsc;
 		}
 		return '';
 	}
@@ -397,5 +526,27 @@ class Neo_Pulse_App_Secrets {
 				)
 			)
 		);
+	}
+
+	public static function ollama_base_url(): string {
+		if ( defined( 'NEO_PULSE_APP_OLLAMA_BASE_URL' ) && NEO_PULSE_APP_OLLAMA_BASE_URL !== '' ) {
+			return rtrim( trim( (string) NEO_PULSE_APP_OLLAMA_BASE_URL ), '/' );
+		}
+		$from_env = getenv( 'NEO_PULSE_APP_OLLAMA_BASE_URL' );
+		if ( is_string( $from_env ) && trim( $from_env ) !== '' ) {
+			return rtrim( trim( $from_env ), '/' );
+		}
+		return '';
+	}
+
+	public static function ollama_auth(): string {
+		if ( defined( 'NEO_PULSE_APP_OLLAMA_AUTH' ) && NEO_PULSE_APP_OLLAMA_AUTH !== '' ) {
+			return trim( (string) NEO_PULSE_APP_OLLAMA_AUTH );
+		}
+		$from_env = getenv( 'NEO_PULSE_APP_OLLAMA_AUTH' );
+		if ( is_string( $from_env ) && trim( $from_env ) !== '' ) {
+			return trim( $from_env );
+		}
+		return '';
 	}
 }

@@ -11,6 +11,8 @@ Flowbie One uses **Render** for the React UI (static site) and the **Local Domin
 | WP API | WP Engine | `https://neodigital.ca/api/mcp` |
 | LD worker (demo) | Render Docker | `https://flowbie-demo-worker.onrender.com` |
 | LD worker (prod) | Render Docker | `https://ld.neodigital.ca` |
+| Ollama (demo) | Render Docker | `https://flowbie-demo-ollama.onrender.com` |
+| Ollama (prod) | Render Docker | `https://flowbie-prod-ollama.onrender.com` |
 
 ## Production branch note
 
@@ -86,6 +88,12 @@ Worker env (set in Render Docker service):
 - `LD_WORKER_AUTH_TOKEN` — shared secret; must match WP Engine
 - `PORT` — set automatically by Render
 
+Ollama env (Render Docker `flowbie-*-ollama`):
+
+- `OLLAMA_MODELS` — comma-separated pulls on start (e.g. `qwen3:8b`)
+- `OLLAMA_AUTH_TOKEN` — bearer token for the auth proxy; must match WP `NEO_PULSE_APP_OLLAMA_AUTH`
+- Persistent disk mounted at `/root/.ollama` (model cache)
+
 ## WP Engine (neo-pulse-app)
 
 After prod worker is live, set in `neo-pulse-app-secrets.php` or environment:
@@ -103,9 +111,33 @@ npm run deploy:neodigital-app
 
 CORS: API responses allow `*.onrender.com` and `*.neodigital.ca` origins automatically.
 
+## WP Engine (Ollama for local agent models)
+
+Add to `neo-pulse-app-secrets.php` on WP Engine (use URLs from Render after deploy):
+
+```php
+define( 'NEO_PULSE_APP_OLLAMA_BASE_URL', 'https://flowbie-prod-ollama.onrender.com' );
+define( 'NEO_PULSE_APP_OLLAMA_AUTH', '<OLLAMA_AUTH_TOKEN>' );
+```
+
+Local dev (`neo-pulse-app-secrets.php` beside local WP):
+
+```php
+define( 'NEO_PULSE_APP_OLLAMA_BASE_URL', 'http://host.docker.internal:11434' );
+define( 'NEO_PULSE_APP_OLLAMA_AUTH', '' );
+```
+
+Run Ollama on the host and `ollama pull qwen3:8b`. Agent models from Ollama appear in Dashboard with a **Local** tag; type `local` in the model filter to list them only.
+
+Smoke on host:
+
+```powershell
+node scripts/verify-ollama-chat.mjs
+```
+
 ## Blueprint
 
-[`render.yaml`](../render.yaml) defines four services. Apply from Render Dashboard → **Blueprints** → connect `neodigitalca/flowbie1`.
+[`render.yaml`](../render.yaml) defines static, LD worker, and Ollama services. Apply from Render Dashboard → **Blueprints** → connect `neodigitalca/flowbie1`.
 
 Or provision via API:
 
@@ -136,7 +168,7 @@ Enable custom domains in each Render service, then verify HTTPS.
 
 | Script | Purpose |
 |--------|---------|
-| `node scripts/render-provision.mjs` | Create or update all four Render services |
+| `node scripts/render-provision.mjs` | Create or update Render static, worker, and Ollama services |
 | `node scripts/render-patch-wp-worker-secrets.mjs` | Append LD worker URL + auth to WP Engine `neo-pulse-app-secrets.php` |
 
 ## Rollback

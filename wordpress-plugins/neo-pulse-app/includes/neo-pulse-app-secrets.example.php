@@ -64,3 +64,9 @@ if ( ! defined( 'NEO_PULSE_APP_POST_CREATOR_WORKER_AUTH' ) ) {
 if ( ! defined( 'NEO_PULSE_APP_POST_CREATOR_API_BASE' ) ) {
 	define( 'NEO_PULSE_APP_POST_CREATOR_API_BASE', 'https://neodigital.ca' );
 }
+if ( ! defined( 'NEO_PULSE_APP_OLLAMA_BASE_URL' ) ) {
+	define( 'NEO_PULSE_APP_OLLAMA_BASE_URL', 'https://flowbie-prod-ollama.onrender.com' );
+}
+if ( ! defined( 'NEO_PULSE_APP_OLLAMA_AUTH' ) ) {
+	define( 'NEO_PULSE_APP_OLLAMA_AUTH', '' );
+}
