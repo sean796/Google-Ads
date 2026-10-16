@@ -5,7 +5,7 @@ section: Teams
 method: POST
 path: /api/teams/{teamId}/tasks/templates/upsert
 auth: session-team
-order: 2380
+order: 2390
 ---
 
 POST `/api/teams/{teamId}/tasks/templates/upsert`.

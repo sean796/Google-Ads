@@ -385,8 +385,8 @@ export function OrganicSemrushSection({
                 </tr>
               </thead>
               <tbody>
-                {keywords.map((row) => (
-                  <tr key={row.phrase} className="border-t border-white/5">
+                {keywords.map((row, idx) => (
+                  <tr key={`${row.phrase}-${idx}`} className="border-t border-white/5">
                     <td className="max-w-[20rem] truncate py-2.5 pr-4 text-white">{row.phrase}</td>
                     <td className="py-2.5 pr-4 tabular-nums text-muted-foreground">{row.volume}</td>
                     <td

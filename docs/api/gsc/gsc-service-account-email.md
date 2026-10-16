@@ -5,7 +5,7 @@ section: Google Search Console
 method: GET
 path: /api/gsc/service-account-email
 auth: open
-order: 500
+order: 510
 ---
 
 GET `/api/gsc/service-account-email`.

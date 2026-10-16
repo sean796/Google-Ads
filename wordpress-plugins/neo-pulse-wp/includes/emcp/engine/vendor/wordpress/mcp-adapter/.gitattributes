@@ -1,0 +1,27 @@
+# Automatically normalize line endings.
+* text=auto
+
+# Directories to exclude from `composer require`.
+/.github        export-ignore
+/.wordpress-org export-ignore
+/tests          export-ignore
+
+# Don't include the dotfiles for distribution.
+/.* export-ignore
+
+# Root files that are not needed for distribution.
+/CHANGELOG.md      export-ignore
+/composer.lock     export-ignore
+/package-lock.json export-ignore
+/package.json      export-ignore
+/phpstan.neon.dist export-ignore
+/phpunit.xml.dist  export-ignore
+
+# Mark docs as documentation for GitHub Linguist.
+/docs/           linguist-documentation export-ignore
+/CONTRIBUTING.md linguist-documentation export-ignore
+/SECURITY.md     linguist-documentation export-ignore
+
+# Keep license and readme files.
+/LICENSE.md linguist-documentation
+/README.md linguist-documentation

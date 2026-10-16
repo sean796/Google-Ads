@@ -19,6 +19,8 @@ import { harvestWikiPoolTitlesFromGridRows } from "@/lib/wikipedia/wiki-entity-p
 import type { LocalDominatorRow } from "@/lib/local-dominator-csv";
 import { dedupeRepeatedCommaPlaceSegments } from "@/lib/comma-place-label";
 import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
+import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
+import { resolveModelForAgentCategory } from "@/lib/openrouter-agent-category-api";
 import {
   appendMasterInstructionsToSystemPrompt,
   buildSapMasterRulesKeywordMixRecap,
@@ -28,9 +30,6 @@ import {
 } from "@/lib/master-instructions-storage";
 
 export type { EntityGeographicLevel } from "@/lib/entity-geographic-level";
-
-/** SAP JSON + refine passes always use Gemini (ignore site research model override). */
-const SAP_GENERATION_MODEL = "google/gemini-2.5-flash-lite";
 
 /** Row-count hint for observability only. SAP calls do not send max_tokens. */
 export function sapJsonRowTokenFloor(targetSapCount: number): number {
@@ -1183,11 +1182,11 @@ ${gridSummaryMarkdown}`
     opts?: { temperature?: number },
   ): Promise<string> => {
     const t = opts?.temperature ?? temperature;
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const response = await postOpenRouterAppChatFetch({
       method: "POST",
       headers: openRouterWebAppHeaders(apiKey),
       body: JSON.stringify({
-        model: SAP_GENERATION_MODEL,
+        model: resolveModelForAgentCategory("research", siteId),
         messages,
         temperature: t,
         top_p: topP,

@@ -42,6 +42,16 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Script_Manager {
 		);
 	}
 
+	/**
+	 * Saving raw script code needs unfiltered_html (off for non-super-admins on multisite and
+	 * when DISALLOW_UNFILTERED_HTML is set).
+	 */
+	private static function require_unfiltered_html_for_scripts(): void {
+		if ( ! current_user_can( 'unfiltered_html' ) ) {
+			wp_die( esc_html__( 'Saving script code needs the "unfiltered_html" capability, which your account does not have on this site.', 'neo-pulse-wp' ) );
+		}
+	}
+
 	public static function handle_script_row_action(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to manage scripts.', 'neo-pulse-wp' ) );
@@ -103,6 +113,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Script_Manager {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to manage scripts.', 'neo-pulse-wp' ) );
 		}
+		self::require_unfiltered_html_for_scripts();
 		check_admin_referer( self::ACTION_SAVE_SCRIPT, 'neo_pulse_wp_script_nonce' );
 
 		$id = isset( $_POST['script_id'] ) ? (int) $_POST['script_id'] : 0;
@@ -282,76 +293,68 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Script_Manager {
 	}
 
 	public static function handle_import_scripts_hfcm_db(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'You do not have permission to manage scripts.', 'neo-pulse-wp' ) );
+		if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'activate_plugins' ) ) {
+			wp_die( esc_html__( 'You do not have permission to manage scripts and plugins.', 'neo-pulse-wp' ) );
 		}
+		self::require_unfiltered_html_for_scripts();
 		check_admin_referer( self::ACTION_IMPORT_SCRIPTS_HFCM_DB, 'neo_pulse_wp_import_scripts_hfcm_db_nonce' );
 
-		require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/super-migrate/interface-neo-pulse-wp-migrate-adapter.php';
-		require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/super-migrate/adapters/class-neo-pulse-wp-migrate-source-hfcm.php';
-		$result = Neo_Pulse_Wp_Migrate_Source_Hfcm::import_all_from_database();
+		$result = Neo_Pulse_Wp_Script_Manager_Hfcm::run();
 
-		if ( empty( $result['ok'] ) ) {
-			self::set_flash(
-				array(
-					'kind'    => 'scripts',
-					'success' => false,
-					'message' => isset( $result['error'] ) ? (string) $result['error'] : __( 'HFCM import failed.', 'neo-pulse-wp' ),
-				)
-			);
-			self::redirect_to_script_manager( 'list' );
-		}
-
-		$stats   = isset( $result['stats'] ) && is_array( $result['stats'] ) ? $result['stats'] : array( 'added' => 0, 'updated' => 0, 'skipped' => 0, 'errors' => array() );
-		$message = self::format_script_import_message(
-			$stats,
-			array(
-				'warnings' => isset( $result['warnings'] ) ? $result['warnings'] : array(),
-				'errors'   => isset( $stats['errors'] ) ? $stats['errors'] : array(),
-			)
+		$parts = array();
+		$parts[] = sprintf(
+			/* translators: %d: number of scripts imported */
+			_n( 'Imported %d script from HFCM.', 'Imported %d scripts from HFCM.', (int) $result['imported'], 'neo-pulse-wp' ),
+			(int) $result['imported']
 		);
+		if ( $result['comments'] ) {
+			$parts[] = __( 'Turned on Neo Tools "Disable comments" to replace the HFCM PHP snippet.', 'neo-pulse-wp' );
+		}
+		if ( $result['deactivated'] ) {
+			$parts[] = __( 'Header Footer Code Manager has been deactivated, so nothing runs twice. You can delete it from Plugins once you have checked the site.', 'neo-pulse-wp' );
+		} elseif ( ! empty( $result['blockers'] ) ) {
+			$parts[] = sprintf(
+				/* translators: %s: snippet names */
+				__( 'HFCM was left on because these switched-on snippets can\'t move to Script Manager: %s. Deal with them, then run the import again to finish.', 'neo-pulse-wp' ),
+				implode( ', ', $result['blockers'] )
+			);
+		}
+		if ( ! empty( $result['errors'] ) ) {
+			$parts[] = __( 'HFCM was left on because some scripts could not be saved:', 'neo-pulse-wp' ) . ' ' . implode( '; ', array_slice( $result['errors'], 0, 3 ) );
+		}
+		if ( ! empty( $result['held_inactive'] ) ) {
+			$held    = (int) $result['held_inactive'];
+			$parts[] = sprintf(
+				/* translators: %d: number of imported scripts saved switched off */
+				_n(
+					'%d imported script was saved switched off because HFCM is still active; switch it on in Script Manager after deactivating HFCM.',
+					'%d imported scripts were saved switched off because HFCM is still active; switch them on in Script Manager after deactivating HFCM.',
+					$held,
+					'neo-pulse-wp'
+				),
+				$held
+			);
+		}
 
 		self::set_flash(
 			array(
 				'kind'    => 'scripts',
-				'success' => ( (int) ( $stats['added'] ?? 0 ) + (int) ( $stats['updated'] ?? 0 ) ) > 0,
-				'message' => $message,
+				'success' => ! empty( $result['ok'] ) && empty( $result['blockers'] ),
+				'message' => implode( ' ', $parts ),
 			)
 		);
 		self::redirect_to_script_manager( 'list' );
 	}
 
 	/**
-	 * @return array{available: bool, count: int, plugin_active: bool, pending_count: int, imported_count: int}
+	 * Whether to offer the HFCM move, and what it would do.
+	 *
+	 * @return array<string, mixed>
 	 */
 	public static function hfcm_database_import_status(): array {
-		require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/super-migrate/interface-neo-pulse-wp-migrate-adapter.php';
-		require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/super-migrate/adapters/class-neo-pulse-wp-migrate-source-hfcm.php';
-
-		$plugin_active  = Neo_Pulse_Wp_Migrate_Source_Hfcm::is_hfcm_plugin_active();
-		$snippet_count  = Neo_Pulse_Wp_Migrate_Source_Hfcm::hfcm_snippet_count();
-		if ( null === $snippet_count && $plugin_active ) {
-			$snippet_count = count( Neo_Pulse_Wp_Migrate_Source_Hfcm::hfcm_fetch_db_rows() );
-		}
-		$hfcm_total     = null !== $snippet_count ? (int) $snippet_count : 0;
-		$hfcm_category  = __( 'HFCM', 'neo-pulse-wp' );
-		$imported_count = Neo_Pulse_Wp_Script_Manager::count_by_category( $hfcm_category );
-		$pending_count  = $hfcm_total > 0 ? max( 0, $hfcm_total - $imported_count ) : 0;
-
-		$available = $pending_count > 0;
-		if ( ! $available && $plugin_active && $hfcm_total === 0 && $imported_count === 0 ) {
-			// HFCM is active but snippet count could not be read — offer import once.
-			$available = true;
-		}
-
-		return array(
-			'available'      => $available,
-			'count'          => $pending_count > 0 ? $pending_count : $hfcm_total,
-			'pending_count'  => $pending_count,
-			'imported_count' => $imported_count,
-			'plugin_active'  => $plugin_active,
-			'table'          => Neo_Pulse_Wp_Migrate_Source_Hfcm::hfcm_table_name_for_display(),
-		);
+		$plan = Neo_Pulse_Wp_Script_Manager_Hfcm::plan();
+		$plan['available'] = $plan['pending'] > 0 || $plan['plugin_active'];
+		return $plan;
 	}
 
 	/**
@@ -371,6 +374,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Script_Manager {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to manage scripts.', 'neo-pulse-wp' ) );
 		}
+		self::require_unfiltered_html_for_scripts();
 		check_admin_referer( $action, $nonce_key );
 
 		if ( empty( $_FILES[ $file_field ]['tmp_name'] ) || ! is_uploaded_file( $_FILES[ $file_field ]['tmp_name'] ) ) {

@@ -9,30 +9,6 @@ defined( 'ABSPATH' ) || exit;
 
 class Neo_Pulse_Wp_Backend_Assist_Pipeline_Content_Prep {
 
-	/** @var array<int, string> */
-	private static $read_only_tools = array(
-		'get_chat_insights',
-		'get_search_insights',
-		'get_overseer_summary',
-		'list_overseer_tasks',
-		'get_site_inventory',
-		'analyze_content_gaps',
-		'grade_post_library_seo',
-		'get_gsc_context',
-		'list_posts',
-		'get_post',
-		'list_seo_blocks',
-	);
-
-	public static function page_content_mode_from_context(): string {
-		$ctx = Neo_Pulse_Wp_Backend_Assist_Context::$builder_context;
-		if ( ! is_array( $ctx ) || empty( $ctx['page_content_mode'] ) ) {
-			return 'seo_blocks';
-		}
-		$mode = sanitize_key( (string) $ctx['page_content_mode'] );
-		return $mode === 'elementor_widgets' ? 'elementor_widgets' : 'seo_blocks';
-	}
-
 	public static function prepare_tool_params( string $message, array $history, string $tool, array $params, ?array $workflow = null ): array {
 		if ( in_array( $tool, array( 'create_page', 'create_post' ), true ) ) {
 			$topic = self::create_page_title_from_message( $message );
@@ -48,22 +24,6 @@ class Neo_Pulse_Wp_Backend_Assist_Pipeline_Content_Prep {
 			);
 		}
 
-		if ( $tool === 'apply_seo_block_to_page' && self::message_requests_new_page_or_post( $message ) ) {
-			$pid = 0;
-			if ( is_array( $workflow ) && ! empty( $workflow['last_post_id'] ) ) {
-				$pid = (int) $workflow['last_post_id'];
-			}
-			if ( $pid > 0 ) {
-				$params['post_id'] = $pid;
-			} else {
-				unset( $params['post_id'] );
-			}
-			return array(
-				'tool'   => 'apply_seo_block_to_page',
-				'params' => $params,
-			);
-		}
-
 		if ( $tool === 'design_page_with_novamira' && self::message_requests_new_page_or_post( $message ) ) {
 			$pid = 0;
 			if ( is_array( $workflow ) && ! empty( $workflow['last_post_id'] ) ) {
@@ -74,19 +34,11 @@ class Neo_Pulse_Wp_Backend_Assist_Pipeline_Content_Prep {
 			} else {
 				unset( $params['post_id'] );
 			}
-			$elementor_mode = self::page_content_mode_from_context() === 'elementor_widgets';
+			$params['content_mode'] = 'elementor_widgets';
 			if ( is_array( $workflow ) && ! empty( $workflow['last_elementor_sections'] ) && is_array( $workflow['last_elementor_sections'] ) ) {
-				$elementor_mode = true;
+				$params['elementor_sections'] = $workflow['last_elementor_sections'];
 			}
-			if ( $elementor_mode ) {
-				$params['content_mode'] = 'elementor_widgets';
-				if ( ! empty( $workflow['last_elementor_sections'] ) && is_array( $workflow['last_elementor_sections'] ) ) {
-					$params['elementor_sections'] = $workflow['last_elementor_sections'];
-				}
-				unset( $params['block_ids'], $params['block_id'] );
-			} elseif ( empty( $params['block_ids'] ) && is_array( $workflow ) && ! empty( $workflow['last_block_ids'] ) && is_array( $workflow['last_block_ids'] ) ) {
-				$params['block_ids'] = array_values( array_filter( array_map( 'absint', $workflow['last_block_ids'] ) ) );
-			}
+			unset( $params['block_ids'], $params['block_id'] );
 			return array(
 				'tool'   => 'design_page_with_novamira',
 				'params' => $params,
@@ -172,23 +124,6 @@ class Neo_Pulse_Wp_Backend_Assist_Pipeline_Content_Prep {
 			);
 		}
 
-		if ( $tool === 'modify_seo_block_slots' ) {
-			if ( empty( $params['action'] ) ) {
-				$params['action'] = 'add';
-			}
-			if ( empty( $params['slot'] ) && ! empty( $params['slots'] ) && is_array( $params['slots'] ) ) {
-				$params['slot'] = $params['slots'][0];
-			}
-			if ( ( $params['action'] ?? '' ) === 'add' && empty( $params['slot'] ) ) {
-				$plan   = Neo_Pulse_Wp_Backend_Assist_Pipeline_Phases::phase_plan( $message, $history, $tool, $params );
-				$params = is_array( $plan['params'] ) ? array_merge( $params, $plan['params'] ) : $params;
-			}
-			return array(
-				'tool'   => 'modify_seo_block_slots',
-				'params' => $params,
-			);
-		}
-
 		if ( $tool === 'save_post_meta' ) {
 			$params = self::prepare_save_post_meta_params( $message, $history, $params );
 			return array(
@@ -205,51 +140,7 @@ class Neo_Pulse_Wp_Backend_Assist_Pipeline_Content_Prep {
 			);
 		}
 
-		if ( $tool === 'compose_seo_block' ) {
-			$plan   = Neo_Pulse_Wp_Backend_Assist_Pipeline_Phases::phase_plan( $message, $history, $tool, $params );
-			$params = is_array( $plan['params'] ) ? $plan['params'] : $params;
-			if ( empty( $params['prompt'] ) ) {
-				$params['prompt'] = $message;
-			}
-			if ( empty( $params['mode'] ) ) {
-				$params['mode'] = 'generate_full';
-			}
-			if ( self::message_requests_new_page_or_post( $message ) || ! empty( $params['new_block'] ) ) {
-				$pid = 0;
-				if ( isset( $params['current_block'] ) && is_array( $params['current_block'] ) ) {
-					$pid = absint( $params['current_block']['primary_post_id'] ?? 0 );
-				}
-				$params['current_block'] = $pid > 0 ? array( 'primary_post_id' => $pid ) : array();
-				unset( $params['block_id'] );
-			} elseif (
-				empty( $params['current_block'] )
-				&& is_array( Neo_Pulse_Wp_Backend_Assist_Context::$builder_context )
-				&& ! empty( Neo_Pulse_Wp_Backend_Assist_Context::$builder_context['block'] )
-				&& is_array( Neo_Pulse_Wp_Backend_Assist_Context::$builder_context['block'] )
-			) {
-				$params['current_block'] = Neo_Pulse_Wp_Backend_Assist_Context::$builder_context['block'];
-			}
-			if ( empty( $params['page_context'] ) && is_array( Neo_Pulse_Wp_Backend_Assist_Context::$builder_context ) && ! empty( Neo_Pulse_Wp_Backend_Assist_Context::$builder_context['page_context'] ) ) {
-				$params['page_context'] = sanitize_textarea_field( (string) Neo_Pulse_Wp_Backend_Assist_Context::$builder_context['page_context'] );
-			}
-			if ( empty( $params['page_context'] ) ) {
-				$block = isset( $params['current_block'] ) && is_array( $params['current_block'] ) ? $params['current_block'] : array();
-				if ( ! class_exists( 'Neo_Pulse_Wp_Seo_Blocks_Context' ) ) {
-					require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/seo-builder/class-neo-pulse-wp-seo-blocks-context.php';
-				}
-				$params['page_context'] = Neo_Pulse_Wp_Seo_Blocks_Context::prompt_for_block(
-					absint( $block['primary_post_id'] ?? 0 ),
-					absint( $block['id'] ?? 0 ),
-					$block
-				);
-			}
-			return array(
-				'tool'   => 'compose_seo_block',
-				'params' => $params,
-			);
-		}
-
-		if ( in_array( $tool, self::$read_only_tools, true ) ) {
+		if ( in_array( $tool, Neo_Pulse_Wp_Backend_Assist_Submode::READ_ONLY_TOOLS, true ) ) {
 			return array(
 				'tool'   => $tool,
 				'params' => $params,
@@ -780,17 +671,18 @@ PROMPT;
 			);
 		}
 
-		$table_html = self::faq_entries_to_table_html( $entries );
-		$submode    = 'build';
+		// Write guard first: only an explicit Build submode may write; a missing submode means Ask.
+		$submode = 'ask';
 		if (
 			is_array( Neo_Pulse_Wp_Backend_Assist_Context::$builder_context )
-			&& ! empty( Neo_Pulse_Wp_Backend_Assist_Context::$builder_context['admin_submode'] )
+			&& isset( Neo_Pulse_Wp_Backend_Assist_Context::$builder_context['admin_submode'] )
+			&& is_string( Neo_Pulse_Wp_Backend_Assist_Context::$builder_context['admin_submode'] )
 		) {
 			$submode = Neo_Pulse_Wp_Backend_Assist_Submode::normalize_submode(
-				(string) Neo_Pulse_Wp_Backend_Assist_Context::$builder_context['admin_submode']
+				Neo_Pulse_Wp_Backend_Assist_Context::$builder_context['admin_submode']
 			);
 		}
-
+		$table_html = self::faq_entries_to_table_html( $entries );
 		if ( $submode !== 'build' ) {
 			return self::build_faq_table_append_plan_card( $message, $post_id, $entries, $table_html );
 		}
@@ -1726,50 +1618,6 @@ PROMPT;
 	}
 
 	/**
-	 * @param array<int, array<string, mixed>> $ops
-	 * @param array<string, mixed>             $intent_data
-	 */
-	public static function format_plan_preview_body( string $message, int $post_id, string $tool, array $ops, array $intent_data ): string {
-		$post = get_post( $post_id );
-		$post_title = $post instanceof WP_Post ? $post->post_title : (string) $post_id;
-
-		$restatement = trim( (string) ( $intent_data['restatement'] ?? '' ) );
-		if ( $restatement === '' ) {
-			$restatement = __( 'Apply the requested in-place body edit on the target post section.', 'neo-pulse-wp' );
-		}
-
-		$lines   = array();
-		$lines[] = '**' . __( 'Your request', 'neo-pulse-wp' ) . '**';
-		$lines[] = '> ' . trim( $message );
-		$lines[] = '';
-		$lines[] = '**' . __( 'What I understood', 'neo-pulse-wp' ) . '**';
-		$lines[] = $restatement;
-		$lines[] = '';
-		$lines[] = '**' . __( 'Tools', 'neo-pulse-wp' ) . '**';
-		$lines[] = '- `' . esc_html( $tool !== '' ? $tool : 'add_content' ) . '` (' . __( 'mode: ops', 'neo-pulse-wp' ) . ', ' . __( 'no full-body LLM regen', 'neo-pulse-wp' ) . ')';
-		$lines[] = '- ' . sprintf(
-			/* translators: %s: post title */
-			__( 'Target post: %s (ID %d)', 'neo-pulse-wp' ),
-			$post_title,
-			$post_id
-		);
-		$lines[] = '';
-		$lines[] = '**' . __( 'Body operations', 'neo-pulse-wp' ) . '**';
-		foreach ( Neo_Pulse_Wp_Backend_Assist_Body_Ops::describe_ops_for_plan( $ops ) as $op_line ) {
-			$lines[] = $op_line;
-		}
-		$lines[] = '';
-		$lines[] = '**' . __( 'Unchanged', 'neo-pulse-wp' ) . '**';
-		$lines[] = '- ' . __( 'All other H2/H3 sections on this post', 'neo-pulse-wp' );
-		$lines[] = '- ' . __( 'Post title, slug, status, and SEO meta', 'neo-pulse-wp' );
-		$lines[] = '';
-		$lines[] = '**' . __( 'Approval', 'neo-pulse-wp' ) . '**';
-		$lines[] = __( 'Switch to Build to run exactly this plan.', 'neo-pulse-wp' );
-
-		return implode( "\n", $lines );
-	}
-
-	/**
 	 * Plan preview body for non-body-op write tools.
 	 *
 	 * @param array<string, mixed> $params
@@ -2194,121 +2042,6 @@ PROMPT;
 		return self::prepare_body_ops_params( $message, $history, $params );
 	}
 
-	/** @deprecated Use prepare_body_ops_params_public */
-	private static function prepare_add_content_surgical_params( string $message, array $history, array $params ): array {
-		return self::prepare_body_ops_params( $message, $history, $params );
-	}
-
-	public static function message_requests_body_edit( string $message, int $post_id ): bool {
-		if ( self::message_requests_surgical_body_edit( $message, $post_id ) ) {
-			return false;
-		}
-		if ( self::message_requests_body_schema_cleanup( $message ) ) {
-			return false;
-		}
-
-		if ( $post_id < 1 ) {
-			return false;
-		}
-		$post = get_post( $post_id );
-		if ( ! $post instanceof WP_Post || trim( (string) $post->post_content ) === '' ) {
-			return false;
-		}
-
-		$lower = strtolower( trim( $message ) );
-		if ( $lower === '' ) {
-			return false;
-		}
-
-		if ( preg_match( '/\b(add|write|create)\s+\d+\s*h[23]s?\b/i', $message ) ) {
-			return false;
-		}
-		if ( preg_match( '/\b(new section|full body|replace (?:the )?body|write (?:the )?(?:whole|entire))\b/i', $lower ) ) {
-			return false;
-		}
-
-		if ( self::message_requests_internal_links( $message ) ) {
-			return true;
-		}
-
-		$edit_markers = array(
-			'bold',
-			'italic',
-			'emphasize',
-			'emphasis',
-			'reword',
-			'wording',
-			'decoration',
-			'format',
-			'add a sentence',
-			'add sentence',
-			'tweak',
-			'polish',
-			'underline',
-			'make tone',
-			'friendlier',
-			'stronger',
-		);
-		foreach ( $edit_markers as $marker ) {
-			if ( str_contains( $lower, $marker ) ) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	/**
-	 * @param array<string, mixed> $params
-	 * @return array<string, mixed>
-	 */
-	private static function prepare_add_content_edit_params( string $message, array $history, array $params ): array {
-		$params['mode'] = 'edit';
-
-		if ( empty( $params['post_id'] ) && ! empty( $params['title'] ) ) {
-			Neo_Pulse_Wp_Site_Inventory::warm( true );
-			$item = Neo_Pulse_Wp_Site_Inventory::find_item_by_title( sanitize_text_field( (string) $params['title'] ) );
-			if ( is_array( $item ) && ! empty( $item['id'] ) ) {
-				$params['post_id'] = (int) $item['id'];
-			}
-		}
-
-		if ( empty( $params['post_id'] ) ) {
-			$plan   = Neo_Pulse_Wp_Backend_Assist_Pipeline_Phases::phase_plan( $message, $history, 'add_content', $params );
-			$params = is_array( $plan['params'] ) ? array_merge( $params, $plan['params'] ) : $params;
-		}
-
-		if ( self::message_requests_internal_links( $message ) && empty( $params['link_count'] ) ) {
-			$parsed = self::parse_link_count_from_message( $message );
-			if ( $parsed > 0 ) {
-				$params['link_count'] = $parsed;
-			}
-		}
-
-		$content = isset( $params['content'] ) ? trim( (string) $params['content'] ) : '';
-		if ( $content !== '' && self::content_looks_like_user_instruction( $content, $message ) ) {
-			$content = '';
-			unset( $params['content'] );
-		}
-
-		if ( $content === '' ) {
-			$plan = Neo_Pulse_Wp_Backend_Assist_Pipeline_Phases::phase_plan( $message, $history, 'add_content', $params );
-			if ( is_array( $plan['params'] ) ) {
-				$params = array_merge( $params, $plan['params'] );
-			}
-			$params['mode'] = 'edit';
-			$generated      = self::generate_post_body_edit( $message, $history, $params );
-			if ( ! is_wp_error( $generated ) && $generated !== '' ) {
-				$params['content'] = $generated;
-			}
-		}
-
-		$params['body_edit'] = true;
-		$params['mode']      = 'replace';
-
-		return $params;
-	}
-
 	public static function count_same_site_links( string $html ): int {
 		if ( $html === '' || ! preg_match( '/<a\s/i', $html ) ) {
 			return 0;
@@ -2388,21 +2121,6 @@ PROMPT;
 		}
 
 		return implode( "\n", $lines ) . "\n";
-	}
-
-	public static function builder_context_page_prompt( array $block ): string {
-		if ( ! class_exists( 'Neo_Pulse_Wp_Seo_Blocks_Context' ) ) {
-			require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/seo-builder/class-neo-pulse-wp-seo-blocks-context.php';
-		}
-		$formatted = Neo_Pulse_Wp_Seo_Blocks_Context::prompt_for_block(
-			absint( $block['primary_post_id'] ?? 0 ),
-			absint( $block['id'] ?? 0 ),
-			$block
-		);
-		if ( $formatted === '' ) {
-			return '';
-		}
-		return "\nLINKED PAGE CONTEXT:\n{$formatted}\n";
 	}
 
 	/**
@@ -2548,7 +2266,6 @@ PROMPT;
 				'save_post_meta',
 				'get_post',
 				'get_gsc_context',
-				'apply_seo_block_to_page',
 			),
 			true
 		);
@@ -2854,14 +2571,6 @@ PROMPT;
 		}
 
 		return null;
-	}
-
-	/**
-	 * @param array<int, array<string, mixed>> $history
-	 * @return string|WP_Error
-	 */
-	public static function generate_heading_replacement_public( string $message, int $post_id, string $current_heading, array $history ) {
-		return self::generate_heading_replacement( $message, $post_id, $current_heading, $history );
 	}
 
 	/**

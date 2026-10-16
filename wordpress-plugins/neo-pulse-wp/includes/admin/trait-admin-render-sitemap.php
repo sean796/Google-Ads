@@ -37,7 +37,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Sitemap {
 				'tabs'    => array(
 					'general'   => __( 'General', 'neo-pulse-wp' ),
 					'html'      => __( 'HTML Sitemap', 'neo-pulse-wp' ),
-					'optimizer' => __( 'Content Optimizer', 'neo-pulse-wp' ),
 				),
 			),
 			array(
@@ -53,7 +52,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Sitemap {
 		self::neo_pulse_group_shell_open( 'neo-pulse-wp-sitemap', 'neo-pulse-wp-sitemap neo-pulse-wp-panel-page' );
 
 		if ( ! empty( $conflicts ) ) : ?>
-			<div class="notice notice-warning neo-pulse-wp-acf-shell-notice">
+			<div class="notice inline notice-warning neo-pulse-wp-acf-shell-notice">
 				<p>
 					<?php
 					echo esc_html(
@@ -71,8 +70,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Sitemap {
 		self::panel_layout_start( 'neo-pulse-wp-sitemap', $nav_groups, $tab, __( 'Sitemap settings sections', 'neo-pulse-wp' ) );
 		if ( 'html' === $tab ) {
 			self::render_sitemap_section_html( $config, $tab );
-		} elseif ( 'optimizer' === $tab ) {
-			self::render_sitemap_section_optimizer( $config, $tab, $post_types );
 		} elseif ( 0 === strpos( $tab, 'pt-' ) ) {
 			$slug = sanitize_key( substr( $tab, 3 ) );
 			if ( 'rebuild-all' === $slug ) {
@@ -181,133 +178,21 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Sitemap {
 				'half'
 			);
 			?>
-			<div class="neo-pulse-schema-cell neo-pulse-schema-cell--half">
-				<div class="neo-pulse-field neo-pulse-field--select neo-pulse-field--stacked">
-					<label class="neo-pulse-field__label neo-pulse-field__label--above" for="neo-pulse_sitemap_html_page_id"><?php esc_html_e( 'Assign to page (optional)', 'neo-pulse-wp' ); ?></label>
+			<div class="neo-pulse-schema-cell neo-pulse-schema-cell--full">
+				<p class="neo-pulse-field__note">
 					<?php
-					wp_dropdown_pages(
-						array(
-							'name'              => 'neo-pulse_sitemap_html_page_id',
-							'id'                => 'neo-pulse_sitemap_html_page_id',
-							'selected'          => (int) ( $html['page_id'] ?? 0 ),
-							'show_option_none'  => __( '— None —', 'neo-pulse-wp' ),
-							'option_none_value' => '0',
-							'class'             => 'neo-pulse-field__control',
-						)
+					echo wp_kses(
+						__( 'Add the shortcode <code>[neo-pulse_sitemap]</code> to the page where the HTML sitemap should appear.', 'neo-pulse-wp' ),
+						array( 'code' => array() )
 					);
 					?>
-					<p class="neo-pulse-field__note">
-						<?php
-						echo wp_kses(
-							__( 'Add the shortcode <code>[neo-pulse_sitemap]</code> to any page. The dropdown above is for your reference when picking a dedicated sitemap page.', 'neo-pulse-wp' ),
-							array( 'code' => array() )
-						);
-						?>
-					</p>
-				</div>
+				</p>
 			</div>
 			<?php
 			self::panel_form_group_close();
 			?>
 		</form>
 		<?php self::render_sitemap_form_footer( $tab, $form_id ); ?>
-		<?php
-	}
-
-	/**
-	 * @param array<string, mixed>                    $config     Config.
-	 * @param array<string, WP_Post_Type>|\stdClass[] $post_types Post types.
-	 */
-	private static function render_sitemap_section_optimizer( array $config, string $tab, $post_types ): void {
-		$form_id = 'neo-pulse-wp-sitemap-form-' . $tab;
-		?>
-		<form id="<?php echo esc_attr( $form_id ); ?>" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="neo-pulse-wp-settings__form neo-pulse-schema-form">
-			<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_SAVE_SITEMAP ); ?>" />
-			<input type="hidden" name="neo-pulse_sitemap_tab" value="<?php echo esc_attr( $tab ); ?>" />
-			<?php wp_nonce_field( self::ACTION_SAVE_SITEMAP, 'neo_pulse_wp_sitemap_nonce' ); ?>
-
-			<?php
-			self::panel_form_group_open();
-			?>
-			<div class="neo-pulse-schema-cell neo-pulse-schema-cell--full">
-				<label class="neo-pulse-wp-panel-toggle">
-					<input type="checkbox" id="neo-pulse_sitemap_optimizer_select_all" />
-					<span class="neo-pulse-wp-panel-toggle__label"><?php esc_html_e( 'Enable for all sitemaps', 'neo-pulse-wp' ); ?></span>
-				</label>
-				<p class="neo-pulse-field__note"><?php esc_html_e( 'Quick toggle — does not save until you click Save Changes.', 'neo-pulse-wp' ); ?></p>
-			</div>
-			<?php
-			foreach ( $post_types as $slug => $obj ) {
-				$settings = isset( $config['post_types'][ $slug ] ) && is_array( $config['post_types'][ $slug ] )
-					? $config['post_types'][ $slug ]
-					: array();
-				$enabled  = ! empty( $settings['content_optimizer'] );
-				$sitemap  = Neo_Pulse_Wp_Sitemap_Settings::child_sitemap_url( $slug );
-				?>
-				<div class="neo-pulse-schema-cell neo-pulse-schema-cell--half">
-					<label class="neo-pulse-wp-panel-toggle">
-						<input
-							type="checkbox"
-							class="neo-pulse-wp-sitemap-optimizer-cb"
-							name="neo-pulse_sitemap_content_optimizer[<?php echo esc_attr( $slug ); ?>]"
-							value="1"
-							<?php checked( $enabled ); ?>
-						/>
-						<span class="neo-pulse-wp-panel-toggle__label"><?php echo esc_html( $obj->labels->name ); ?></span>
-					</label>
-					<p class="neo-pulse-field__note"><code><?php echo esc_html( $sitemap ); ?></code></p>
-				</div>
-				<?php
-			}
-			self::panel_form_group_close();
-			?>
-		</form>
-		<?php
-		self::render_sitemap_optimizer_select_all_script();
-		self::render_sitemap_form_footer( $tab, $form_id );
-		?>
-		<?php
-	}
-
-	private static function render_sitemap_optimizer_select_all_script(): void {
-		static $printed = false;
-		if ( $printed ) {
-			return;
-		}
-		$printed = true;
-		?>
-		<script>
-		(function () {
-			var master = document.getElementById('neo-pulse_sitemap_optimizer_select_all');
-			if (!master) {
-				return;
-			}
-			var boxes = document.querySelectorAll('.neo-pulse-wp-sitemap-optimizer-cb');
-			if (!boxes.length) {
-				return;
-			}
-			function syncMaster() {
-				var checked = 0;
-				boxes.forEach(function (box) {
-					if (box.checked) {
-						checked++;
-					}
-				});
-				master.checked = checked === boxes.length;
-				master.indeterminate = checked > 0 && checked < boxes.length;
-			}
-			master.addEventListener('change', function () {
-				boxes.forEach(function (box) {
-					box.checked = master.checked;
-				});
-				master.indeterminate = false;
-			});
-			boxes.forEach(function (box) {
-				box.addEventListener('change', syncMaster);
-			});
-			syncMaster();
-		}());
-		</script>
 		<?php
 	}
 
@@ -340,12 +225,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Sitemap {
 
 			<?php
 			self::panel_form_group_open();
-			self::panel_form_toggle(
-				'neo-pulse_sitemap_content_optimizer',
-				__( 'Enable Content Optimizer', 'neo-pulse-wp' ),
-				! empty( $settings['content_optimizer'] ),
-				__( 'Show NEO Pulse Content Optimizer in the editor for this post type.', 'neo-pulse-wp' )
-			);
 			self::panel_form_toggle(
 				'neo-pulse_sitemap_include_xml',
 				__( 'Include in XML sitemap', 'neo-pulse-wp' ),

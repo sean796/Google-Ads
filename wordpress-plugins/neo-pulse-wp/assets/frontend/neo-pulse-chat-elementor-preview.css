@@ -1,0 +1,61 @@
+/* NEO Pulse Chat widget: Elementor editor preview only. Mirrors neo-pulse-chat-modern.css so the
+   picture matches the live chat; the widget's controls set the --fcw-* variables on __inner. */
+/* Default colours (same on every site; the widget's colour settings override them). */
+.np-chat-mock{--fcw-accent:var(--e-global-color-primary,#2563eb);--fcw-accent-text:#fff;--fcw-bg:#fff;--fcw-bg-elevated:#f8f9fb;--fcw-card-bg:#fff;--fcw-header-bg:#fff;--fcw-text:#111827;--fcw-text-secondary:#4b5563;--fcw-text-muted:#8b93a1;--fcw-link:var(--fcw-accent);--fcw-border:#e6e8ec;--fcw-placeholder:#8b93a1;--fcw-input-bg:#f2f4f7;--fcw-input-text:#111827;--fcw-form-border:transparent;--fcw-focus-ring:var(--fcw-accent);--fcw-highlight:var(--fcw-accent);--fcw-button-bg:var(--fcw-accent);--fcw-button-text:#fff;--fcw-button-hover:color-mix(in srgb,var(--fcw-accent) 72%,#000);--fcw-button-border:transparent;--fcw-user-bubble-bg:var(--fcw-accent);--fcw-user-bubble-text:#fff;--fcw-assistant-bubble-bg:#f2f4f7;--fcw-assistant-bubble-text:#111827;--fcw-thinking-border:var(--fcw-accent);--fcw-mic-idle:var(--fcw-accent);--fcw-mic-recording:#22c55e;--fcw-send-bg:var(--fcw-accent);--fcw-launcher-bg:var(--fcw-accent);--fcw-launcher-glow:var(--fcw-launcher-bg);--fcw-launcher-text:#fff;--fcw-powered:#8b93a1;--fcw-powered-icon:var(--fcw-text)}
+.np-chat-mock{font-family:var(--fcw-font-family,inherit),-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:var(--fcw-font-size,16px);line-height:1.45;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+.np-chat-mock *,.np-chat-mock *::before,.np-chat-mock *::after{box-sizing:border-box}
+.np-chat-mock p{margin:0}
+.np-chat-mock__inner{--np-soft:color-mix(in srgb,var(--fcw-accent,#2563eb) 12%,var(--fcw-bg,#fff));--np-deep:color-mix(in srgb,var(--fcw-accent,#2563eb) 72%,#000);--np-fill:color-mix(in srgb,var(--fcw-text,#111827) 5%,var(--fcw-bg,#fff));font-family:var(--fcw-font-family,inherit),-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:var(--fcw-font-size,16px);padding:14px;border:1px dashed rgba(127,127,127,.45);border-radius:12px;background:color-mix(in srgb,var(--fcw-bd-color,#0f172a) calc(var(--fcw-bd-opacity,38%) * .35),transparent)}
+.np-chat-mock__note{margin:0 0 12px!important;font:12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#6b7280}
+.np-chat-mock__stage{position:relative;display:flex;flex-direction:column;align-items:flex-end;gap:16px;padding-bottom:var(--np-mock-offset-y,20px);padding-right:var(--np-mock-offset-x,16px)}
+.np-chat-mock--left .np-chat-mock__stage{align-items:flex-start;padding-right:0;padding-left:var(--np-mock-offset-x,16px)}
+.np-chat-mock__panel{width:min(100%,var(--np-mock-width,400px));display:flex;flex-direction:column;overflow:hidden;background:var(--fcw-bg,#fff);color:var(--fcw-text,#111827);border-radius:var(--fcw-panel-radius,24px);box-shadow:0 24px 64px rgba(15,23,42,.2)}
+.np-chat-mock__header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px 14px;background:var(--fcw-header-bg,var(--fcw-bg,#fff));border-bottom:1px solid color-mix(in srgb,var(--fcw-border,#e6e8ec) 60%,transparent)}
+.np-chat-mock__head{display:flex;align-items:center;gap:12px;min-width:0}
+.np-chat-mock__avatar{flex:none;width:40px;height:40px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;overflow:hidden;background:var(--fcw-accent,#2563eb);color:var(--fcw-accent-text,#fff);font-weight:700;font-size:16px}
+.np-chat-mock__avatar img{width:100%;height:100%;object-fit:cover}
+.np-chat-mock__headtext{display:flex;flex-direction:column;min-width:0}
+.np-chat-mock__name{font-size:var(--fcw-head-size,17px);font-weight:600;line-height:1.25;letter-spacing:-.01em;color:var(--fcw-text,#111827);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-chat-mock__status{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--fcw-text-muted,#6b7280)}
+.np-chat-mock__status::before{content:"";width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px color-mix(in srgb,#22c55e 20%,transparent)}
+.np-chat-mock__tools{display:flex;gap:6px;margin-left:auto}
+.np-chat-mock__tool{width:36px;height:36px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;color:var(--fcw-text-secondary,#4b5563)}
+.np-chat-mock__tool--close{background:var(--np-fill)}
+.np-chat-mock__heading{margin:18px 20px 0;font-size:20px;font-weight:600;font-family:inherit;color:var(--fcw-text,#111827)}
+.np-chat-mock__body{display:flex;flex-direction:column;gap:12px;padding:18px 20px 14px}
+.np-chat-mock__greeting{font-size:1.5em;font-weight:600;line-height:1.2;letter-spacing:-.015em;color:var(--fcw-text,#111827)}
+.np-chat-mock__sub{margin-top:4px!important;font-size:.95em;color:var(--fcw-text-secondary,#4b5563)}
+.np-chat-mock__chips{display:flex;flex-wrap:wrap;gap:8px}
+.np-chat-mock__chips span{padding:9px 15px;border-radius:var(--fcw-pill-radius,999px);background:var(--np-fill);color:var(--fcw-text,#111827);font-size:.875em;font-weight:500;line-height:1.3}
+.np-chat-mock__chips--in-card{margin-top:14px}
+.np-chat-mock__chips--in-card span{background:var(--fcw-bg,#fff)}
+.np-chat-mock__msg--user{align-self:flex-end;max-width:85%;padding:10px 15px;border-radius:var(--fcw-msg-radius,18px) var(--fcw-msg-radius,18px) 6px var(--fcw-msg-radius,18px);background:var(--fcw-user-bubble-bg,var(--fcw-accent,#2563eb));color:var(--fcw-user-bubble-text,#fff);font-size:.95em}
+.np-chat-mock__thinking{align-self:flex-start;padding:7px 12px;border:1.5px solid var(--fcw-thinking-border,#06b6d4);border-radius:999px;color:var(--fcw-text-secondary,#4b5563);font-size:.85em}
+.np-chat-mock__card{padding:14px 16px;border-radius:var(--fcw-msg-radius,18px) var(--fcw-msg-radius,18px) var(--fcw-msg-radius,18px) 6px;background:var(--fcw-assistant-bubble-bg,var(--np-fill));color:var(--fcw-assistant-bubble-text,var(--fcw-text,#111827));font-size:.95em;line-height:1.55}
+.np-chat-mock__title{margin-bottom:4px!important;font-weight:600}
+.np-chat-mock__card a{color:var(--fcw-link,var(--fcw-accent,#2563eb))}
+.np-chat-mock__meta{display:flex;gap:8px;align-items:center;margin-bottom:8px;font-size:.8em}
+.np-chat-mock__badge{padding:2px 9px;border-radius:999px;background:var(--fcw-highlight,#06b6d4);color:var(--fcw-accent-text,#fff)}
+.np-chat-mock__muted{color:var(--fcw-text-muted,#6b7280)}
+.np-chat-mock__pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.np-chat-mock__pills span{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--fcw-pill-radius,999px);background:var(--fcw-bg,#fff);color:var(--fcw-link,var(--fcw-accent,#2563eb));font-size:.85em;font-weight:500;box-shadow:0 1px 2px rgba(15,23,42,.06)}
+.np-chat-mock__ctas{margin-top:12px}
+.np-chat-mock__btn{display:inline-flex;padding:10px 18px;border:1px solid var(--fcw-button-border,transparent);border-radius:var(--fcw-pill-radius,999px);background:var(--fcw-button-bg,var(--fcw-accent,#2563eb));color:var(--fcw-button-text,#fff);font-size:.9em;font-weight:600}
+.np-chat-mock__composer{display:flex;align-items:center;gap:8px;margin:0 20px;padding:6px 6px 6px 18px;border:1.5px solid var(--fcw-form-border,transparent);border-radius:var(--fcw-composer-radius,26px);background:var(--fcw-input-bg,var(--np-fill))}
+.np-chat-mock__input{flex:1;padding:8px 0;color:var(--fcw-placeholder,#8b93a1);font-size:.95em}
+.np-chat-mock__mic,.np-chat-mock__send{flex:none;width:40px;height:40px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center}
+.np-chat-mock__mic{color:var(--fcw-mic-idle,var(--fcw-accent,#2563eb));background:var(--np-soft)}
+.np-chat-mock__send{background:var(--fcw-send-bg,var(--fcw-accent,#2563eb));color:var(--fcw-accent-text,#fff)}
+.np-chat-mock__powered{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px 16px;color:var(--fcw-powered,var(--fcw-text-muted,#8b93a1));font-size:12px}
+.np-chat-mock__powered strong{font-weight:600}
+.np-chat-mock__powered .np-logo{display:block;width:auto;height:14px;color:var(--fcw-powered-icon,var(--fcw-text,#111827))}
+.np-chat-mock__launcher{width:var(--fcw-bubble-size,56px);height:var(--fcw-bubble-size,56px);border-radius:var(--fcw-launcher-radius,999px);display:inline-flex;align-items:center;justify-content:center;background:var(--fcw-launcher-bg,var(--fcw-accent,#2563eb));color:var(--fcw-launcher-text,#fff);box-shadow:0 10px 28px color-mix(in srgb,var(--fcw-launcher-glow,var(--fcw-launcher-bg,#2563eb)) 38%,transparent),0 2px 6px rgba(15,23,42,.12)}
+.np-chat-mock__launcher svg,.np-chat-mock__launcher i{width:var(--fcw-launcher-icon,24px);height:var(--fcw-launcher-icon,24px);font-size:var(--fcw-launcher-icon,24px)}
+.np-chat-mock__launcher svg:not([fill="none"]){fill:currentColor}
+.np-chat-mock__launcher svg[stroke="currentColor"]{fill:none}
+.np-chat-mock__tab{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:14px 0 0 14px;background:var(--fcw-launcher-bg,var(--fcw-accent,#2563eb));color:var(--fcw-launcher-text,#fff);font-weight:600;font-size:.9em}
+.np-chat-mock--left .np-chat-mock__tab{border-radius:0 14px 14px 0}
+.np-chat-mock__tab svg{width:18px;height:18px}
+.np-chat-mock__nolauncher{font:12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#6b7280}
+/* Live site: the widget itself takes no room (the bubble is printed in the footer). */
+body:not(.elementor-editor-active) .elementor-widget-neo-pulse_chat{position:absolute!important;width:1px!important;height:1px!important;margin:0!important;padding:0!important;overflow:hidden!important;clip:rect(0,0,0,0)!important}

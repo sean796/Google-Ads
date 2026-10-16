@@ -1,192 +1,46 @@
 /**
- * NEO Pulse WP — Site Schema, Sitemap, Speed, Chat, Search, Settings + Analytics panel forms (pure black + stripe grey)
+ * NEO Pulse WP — Sitemap, robots.txt, Chat, Search, Settings + Analytics panel forms.
+ * Neo Tools palette (see admin-tokens.css): fields are dark rounded boxes with a label above,
+ * groups are panel cards. Frame, buttons, links and notices come from admin-neo-theme.css.
  */
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) {
-	--fs-black: #000000;
-	--fs-grey: #121212;
-	--fs-grey-hover: #181818;
-	--fs-grey-focus: #1a1a1a;
-	--fs-bg: #000000;
-	--fs-group-bg: #000000;
-	--fs-field-bg: #121212;
-	--fs-field-hover: #181818;
-	--fs-field-focus: #1a1a1a;
-	--fs-text: #ffffff;
-	--fs-label: #a3a3a3;
-	--fs-muted: #737373;
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) {
+	--fs-black: var(--npwp-ink, #02050a);
+	--fs-grey: var(--npwp-panel, #0a1119);
+	--fs-grey-hover: var(--npwp-panel-hover, #0e1721);
+	--fs-grey-focus: var(--npwp-panel-hover, #0e1721);
+	--fs-bg: transparent;
+	--fs-group-bg: var(--npwp-panel, #0a1119);
+	--fs-field-bg: var(--npwp-field, #05090f);
+	--fs-field-hover: var(--npwp-field, #05090f);
+	--fs-field-focus: var(--npwp-field, #05090f);
+	--fs-text: var(--npwp-text, #f7f4f2);
+	--fs-label: var(--npwp-muted, #9aa4ae);
+	--fs-muted: var(--npwp-muted, #9aa4ae);
+	--fs-border: var(--npwp-line, rgba(255, 255, 255, 0.08));
 }
 
-/* Group header — no cyan accent */
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics).neo-pulse-wp-acf-shell .neo-pulse-wp-acf-shell-header {
-	box-shadow:
-		0 1px 0 rgba(255, 255, 255, 0.12),
-		0 12px 32px -16px hsl(0 0% 0% / 0.75);
+body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) pre {
+	padding: 12px 14px;
+	border: 1px solid var(--npwp-line, rgba(255, 255, 255, 0.08));
+	border-radius: 12px;
+	background-color: var(--npwp-field, #05090f);
+	color: var(--npwp-text, #f7f4f2);
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics).neo-pulse-wp-acf-shell .neo-pulse-wp-acf-shell-header__icon svg {
-	filter: grayscale(1) brightness(1.15);
-}
-
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics).neo-pulse-wp-acf-shell .neo-pulse-wp-acf-shell-nav__item.is-active {
-	color: #ffffff !important;
-	background: transparent !important;
-	-webkit-text-fill-color: #ffffff !important;
-	box-shadow: inset 0 -2px 0 #b3b3b3 !important;
-}
-
-/* Sidebar — square, greyscale */
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-nav__item--active {
-	background: #121212;
-	color: #ffffff;
-	font-weight: 600;
-}
-
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-nav__item:hover {
-	background: #181818;
-	color: #ffffff;
-}
-
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-content,
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-nav,
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-acf-shell-header {
-	border-radius: 0 !important;
-}
-
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-content {
-	background: var(--fs-bg) !important;
-	box-shadow: none !important;
-}
-
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-nav {
-	background: var(--fs-group-bg) !important;
-	box-shadow: none !important;
-}
-
-/* Links & notices — grayscale only */
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) a:not(.button):not(.page-title-action) {
-	color: #d4d4d4 !important;
-	-webkit-text-fill-color: #d4d4d4 !important;
-}
-
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) a:not(.button):not(.page-title-action):hover,
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) a:not(.button):not(.page-title-action):focus {
-	color: #ffffff !important;
-	-webkit-text-fill-color: #ffffff !important;
-}
-
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .notice,
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .notice-warning,
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .notice-info,
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .notice-success,
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .notice-error {
-	background: #121212 !important;
-	border-left-color: #737373 !important;
-	color: #ffffff !important;
-}
-
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .notice p {
-	color: #ffffff !important;
-	-webkit-text-fill-color: #ffffff !important;
-}
-
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-settings__ai-note--ok {
-	color: #ffffff !important;
-	background: #121212 !important;
-	border: none !important;
-}
-
-/* Buttons — square, greyscale */
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .button,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .button-primary,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .button-secondary,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-settings__btn,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-footer__reset {
-	border-radius: 0 !important;
-}
-
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .button-primary,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-settings__btn.button-primary,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-settings__btn,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .button-primary:hover,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .button-primary:focus,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-settings__btn:hover,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-settings__btn:focus {
-	background: #121212 !important;
-	color: #ffffff !important;
-	-webkit-text-fill-color: #ffffff !important;
-	border: none !important;
-	box-shadow: none !important;
-}
-
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .button-secondary,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-footer__reset,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .button-secondary:hover,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .button-secondary:focus,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-footer__reset:hover,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-footer__reset:focus {
-	background: #121212 !important;
-	color: #ffffff !important;
-	-webkit-text-fill-color: #ffffff !important;
-	border: none !important;
-	box-shadow: none !important;
-}
-
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .button-primary:hover,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .button-primary:focus,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-settings__btn:hover,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-settings__btn:focus,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .button-secondary:hover,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .button-secondary:focus,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-footer__reset:hover,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-footer__reset:focus {
-	background: #181818 !important;
-}
-
-/* Form controls — super grey, borderless */
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field--stacked .neo-pulse-field__control,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field--stacked :is(input, textarea, select) {
-	background-color: transparent !important;
-	color: var(--fs-text) !important;
-	-webkit-text-fill-color: var(--fs-text) !important;
-	border: none !important;
-	box-shadow: none !important;
-	outline: none !important;
-}
-
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-settings__input.widefat,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) pre,
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) code {
-	background-color: var(--fs-field-bg) !important;
-	color: var(--fs-text) !important;
-	-webkit-text-fill-color: var(--fs-text) !important;
-	border: none !important;
-	box-shadow: none !important;
-	outline: none !important;
-}
-
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-settings__input.widefat:focus {
-	background-color: var(--fs-field-focus) !important;
-}
-
-/* —— Compact schema forms: semantic groups + grid + in-field labels —— */
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-content {
-	padding: 16px 18px;
-}
-
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-content__title {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-content__title {
 	margin: 0 0 4px;
-	font-size: 1.05rem;
+	font-size: 17px;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-content__desc {
-	margin: 0 0 14px;
-	font-size: 0.875rem;
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-content__desc {
+	margin: 0 0 18px;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-footer {
-	margin-top: 12px;
-	padding-top: 12px;
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-footer {
+	margin-top: 18px;
+	padding-top: 0;
+	border-top: none;
 }
 
 .neo-pulse-schema-form {
@@ -197,10 +51,10 @@ body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .n
 
 .neo-pulse-schema-group {
 	margin: 0;
-	padding: 16px;
-	border-radius: 0;
+	padding: 20px 22px;
+	border: 1px solid var(--fs-border, rgba(255, 255, 255, 0.08));
+	border-radius: 16px;
 	background: var(--fs-group-bg);
-	border: none;
 	box-shadow: none;
 }
 
@@ -218,8 +72,7 @@ body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .n
 	box-sizing: border-box;
 }
 
-.neo-pulse-schema-cell > .neo-pulse-field,
-.neo-pulse-schema-social__grid > .neo-pulse-field {
+.neo-pulse-schema-cell > .neo-pulse-field {
 	flex: 1 1 auto;
 	width: 100%;
 	max-width: 100%;
@@ -271,84 +124,15 @@ body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .n
 	}
 }
 
-.neo-pulse-schema-toggles {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-}
-
-/* Nested Social block */
-.neo-pulse-schema-social {
-	display: flex;
-	flex-direction: column;
-	gap: 10px;
-	width: 100%;
-	padding: 0;
-	background: transparent;
-	border: none;
-	border-radius: 0;
-}
-
-.neo-pulse-schema-social__label {
-	display: block;
-	margin: 0;
-	font-size: 0.75rem;
-	font-weight: 600;
-	line-height: 1.2;
-	color: var(--fs-label);
-}
-
-.neo-pulse-schema-social__grid {
-	display: grid;
-	gap: 16px;
-	grid-template-columns: minmax(0, 1fr);
-}
-
-.neo-pulse-schema-social__grid > .neo-pulse-field {
-	min-width: 0;
-}
-
-.neo-pulse-schema-social__cell {
-	min-width: 0;
-	max-width: 100%;
-	box-sizing: border-box;
-}
-
-.neo-pulse-schema-social__cell > .neo-pulse-field {
-	width: 100%;
-	max-width: 100%;
-}
-
-@media screen and (min-width: 782px) {
-	.neo-pulse-schema-social__grid {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		column-gap: 20px;
-		row-gap: 16px;
-	}
-}
-
-.neo-pulse-schema-social__other {
-	min-width: 0;
-}
-
-.neo-pulse-schema-preview__code {
-	min-height: 200px;
-	overflow: auto;
-	padding: 12px !important;
-	font-family: Consolas, Monaco, 'Courier New', monospace;
-	font-size: 0.875rem;
-	line-height: 1.5;
-}
-
 /* Stacked in-field labels — NEO Pulse black-grey, square, framed grid */
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field {
 	position: relative;
 	display: block;
 	width: 100%;
 	min-width: 0;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field--stacked {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field--stacked {
 	display: flex;
 	flex-direction: column;
 	align-items: stretch;
@@ -357,176 +141,113 @@ body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .n
 	width: 100%;
 	max-width: 100%;
 	box-sizing: border-box;
-	padding: 12px 14px;
-	background: var(--fs-field-bg);
+	padding: 0;
+	background: transparent;
 	border: none;
 	border-radius: 0;
-	transition: background 0.12s ease;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field--stacked:hover {
-	background: var(--fs-field-hover);
-}
-
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field--stacked:focus-within {
-	background: var(--fs-field-focus);
-}
-
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field__label--above {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field__label--above {
 	position: static;
 	display: block;
 	flex: 0 0 auto;
 	margin: 0;
 	padding: 0;
 	transform: none;
-	font-size: 0.75rem;
+	font-size: 13px;
 	font-weight: 600;
-	line-height: 1.2;
+	line-height: 1.3;
 	letter-spacing: 0;
 	text-transform: none;
-	color: var(--fs-label);
+	color: var(--fs-text);
 	pointer-events: none;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field__control {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field__control {
 	display: block;
 	width: 100%;
 	box-sizing: border-box;
 	flex: 0 0 auto;
 	margin: 0;
-	padding: 0;
 	height: auto;
-	min-height: 0;
-	font-size: 0.9375rem;
-	line-height: 1.25;
-	border: none;
-	border-radius: 0;
-	background: transparent;
-	color: var(--fs-text);
-	-webkit-text-fill-color: var(--fs-text);
-}
-
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field--text .neo-pulse-field__control,
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field--select .neo-pulse-field__control {
-	height: 1.25rem;
-	min-height: 1.25rem;
-	line-height: 1.25rem;
-}
-
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field--select .neo-pulse-field__control {
-	appearance: none;
-	padding: 0 18px 0 0;
-	background-color: transparent !important;
-	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23a3a3a3' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
-	background-repeat: no-repeat;
-	background-position: right 0 center;
-	background-size: 10px 6px;
-	cursor: pointer;
-}
-
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field--select select option {
-	background: #121212;
-	color: #ffffff;
-}
-
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field--textarea .neo-pulse-field__control {
-	height: auto;
-	min-height: 5rem;
+	min-height: 40px;
+	font-size: 14px;
 	line-height: 1.45;
-	padding: 0;
+}
+
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field--select select option {
+	background: var(--npwp-field, #05090f);
+	color: var(--npwp-text, #f7f4f2);
+}
+
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field--textarea .neo-pulse-field__control {
+	min-height: 5rem;
 	resize: vertical;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-info-box {
-	background: #121212;
-	border: none;
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-info-box {
+	background: var(--fs-grey);
+	border: 1px solid var(--fs-border);
 	box-shadow: none;
-	padding: 12px 14px;
-	border-radius: 0;
+	padding: 16px 20px;
+	border-radius: 16px;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-info-box p {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-info-box p {
 	margin: 0 0 8px;
 	color: var(--fs-text);
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-info-box__list {
-	margin: 8px 0 0 1.2em;
-	padding: 0;
-	list-style: disc;
-	color: var(--fs-text);
-}
-
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-speed-images-bulk__bar {
-	display: block;
-	width: 100%;
-	max-width: 24rem;
-	margin-top: 8px;
-}
-
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-schema-cell > .neo-pulse-wp-panel-toggle {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-schema-cell > .neo-pulse-wp-panel-toggle {
 	display: flex;
 	align-items: flex-start;
 	gap: 8px;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-schema-cell .neo-pulse-field__note code {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-schema-cell .neo-pulse-field__note code {
 	font-size: 0.6875rem;
 	color: var(--fs-muted);
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-content__title,
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-content__desc,
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-info-box {
-	color: #ffffff;
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-content__title,
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-info-box {
+	color: var(--fs-text);
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-content__desc {
-	color: #a3a3a3;
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-content__desc {
+	color: var(--fs-muted);
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-wp-panel-footer {
-	border-top: none;
-}
-
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field__note {
-	margin: 4px 0 0;
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field__note {
+	margin: 2px 0 0;
 	padding: 0;
-	font-size: 0.6875rem;
-	line-height: 1.35;
+	font-size: 12.5px;
+	line-height: 1.5;
 	color: var(--fs-muted);
 }
 
-/* Chat — training sections, KB rows, color picker */
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field__control--color {
-	width: 60px;
-	height: 36px;
-	padding: 2px;
-	cursor: pointer;
-	border: none;
-}
-
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field__control--multiselect {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-field__control--multiselect {
 	min-height: 7.5rem;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-settings-section__title {
+/* Chat — training sections, KB rows */
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-settings-section__title {
 	margin: 0 0 12px;
 	font-size: 0.875rem;
 	font-weight: 600;
 	color: var(--fs-text);
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-settings-section__intro {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-settings-section__intro {
 	margin: 0 0 12px;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table-wrap {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table-wrap {
 	margin-top: 8px;
 	overflow-x: auto;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table {
 	width: 100%;
 	border-collapse: separate;
 	border-spacing: 0;
@@ -535,7 +256,7 @@ body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .n
 	overflow: hidden;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table thead th {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table thead th {
 	padding: 10px 12px;
 	font-size: 0.75rem;
 	font-weight: 600;
@@ -545,119 +266,94 @@ body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .n
 	border-bottom: 1px solid var(--fs-border);
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table tbody td {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table tbody td {
 	padding: 8px 10px;
 	vertical-align: top;
 	border-bottom: 1px solid var(--fs-border);
 	background: var(--fs-field-bg);
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table tbody tr:last-child td {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table tbody tr:last-child td {
 	border-bottom: none;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table tbody tr:hover td {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table tbody tr:hover td {
 	background: var(--fs-field-focus);
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table__col-question {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table__col-question {
 	width: 28%;
 	min-width: 160px;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table__col-answer {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table__col-answer {
 	width: auto;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table__col-priority {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table__col-priority {
 	width: 120px;
 	min-width: 120px;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table__col-actions {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table__col-actions {
 	width: 100px;
 	min-width: 100px;
 	text-align: right;
 	white-space: nowrap;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table .neo-pulse-field__control {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table .neo-pulse-field__control {
 	width: 100%;
 	min-height: 2rem;
 	padding: 4px 0;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table textarea.neo-pulse-field__control {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-table textarea.neo-pulse-field__control {
 	min-height: 3rem;
 	resize: vertical;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-add-wrap {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-add-wrap {
 	margin: 12px 0 0;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-add {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-kb-add {
 	margin: 0;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-fieldset {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-fieldset {
 	border: none;
 	margin: 0;
 	padding: 12px 14px;
 	min-width: 0;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-index-toggle {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-index-toggle {
 	display: flex;
 	margin-bottom: 6px;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-training-cpt-code {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-robots-txt, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) .neo-pulse-chat-training-cpt-code {
 	font-size: 0.6875rem;
 	color: var(--fs-muted);
 	background: transparent;
 }
 
-/* Settings — cards, GSC panel, property details */
-.neo-pulse-wp-settings .neo-pulse-wp-settings__card {
-	background: #121212;
-	border: none;
-	border-radius: 0;
-	box-shadow: none;
-	padding: 16px;
-}
-
-.neo-pulse-wp-settings .neo-pulse-wp-settings__gsc-panel {
-	background: #0a0a0a;
-	border-radius: 0;
-}
-
-.neo-pulse-wp-settings .neo-pulse-wp-settings__gsc-status--ok,
-.neo-pulse-wp-settings .neo-pulse-wp-settings__gsc-status--error {
-	border-radius: 0;
-}
-
-.neo-pulse-wp-settings .neo-pulse-wp-settings__card-title {
-	color: #ffffff;
-	letter-spacing: 0;
-	text-transform: none;
-	font-size: 0.9375rem;
+/* Settings + Analytics — cards and GSC panel on the Neo palette */
+.neo-pulse-wp-settings .neo-pulse-wp-settings__gsc-panel,
+.neo-pulse-wp-analytics .neo-pulse-wp-settings__gsc-panel {
+	padding: 14px 16px;
+	border: 1px solid var(--npwp-line, rgba(255, 255, 255, 0.08));
+	border-radius: 12px;
+	background: var(--npwp-ink, #02050a);
 }
 
 .neo-pulse-wp-settings .neo-pulse-wp-settings__card-desc,
 .neo-pulse-wp-settings .neo-pulse-wp-settings__gsc-meta dt,
 .neo-pulse-wp-settings .neo-pulse-wp-settings__gsc-note,
-.neo-pulse-wp-settings .neo-pulse-wp-settings__gsc-hint {
-	color: #a3a3a3;
-}
-
-.neo-pulse-wp-settings .neo-pulse-wp-settings__gsc-meta code {
-	background: #121212;
-	border: none;
-}
-
-.neo-pulse-wp-settings .neo-pulse-wp-settings__card--details {
-	margin-top: 12px;
+.neo-pulse-wp-settings .neo-pulse-wp-settings__gsc-hint,
+.neo-pulse-wp-analytics .neo-pulse-wp-analytics__empty {
+	color: var(--npwp-muted, #9aa4ae);
 }
 
 .neo-pulse-wp-settings #neo-pulse-wp-settings-site-id {
@@ -665,38 +361,19 @@ body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .n
 	text-transform: uppercase;
 }
 
-/* Analytics — metrics, tables, sections */
 .neo-pulse-wp-analytics .neo-pulse-wp-analytics__section {
-	padding: 16px;
-	background: #121212;
-	border-radius: 0;
+	padding: 20px 22px;
+	border: 1px solid var(--npwp-line, rgba(255, 255, 255, 0.08));
+	border-radius: 16px;
+	background: var(--npwp-panel, #0a1119);
 }
 
 .neo-pulse-wp-analytics .neo-pulse-wp-analytics__section--metrics {
-	background: transparent;
 	padding: 0;
-}
-
-.neo-pulse-wp-analytics .neo-pulse-wp-analytics__section--table {
-	background: #121212;
+	border: 0;
+	background: transparent;
 }
 
 .neo-pulse-wp-analytics .neo-pulse-wp-analytics__table thead th {
-	color: #737373;
-}
-
-.neo-pulse-wp-analytics .neo-pulse-wp-analytics__empty,
-.neo-pulse-wp-analytics .neo-pulse-wp-analytics__hint {
-	color: #a3a3a3;
-}
-
-.neo-pulse-wp-analytics .neo-pulse-wp-settings__card,
-.neo-pulse-wp-analytics .neo-pulse-wp-settings__gsc-panel {
-	background: #121212;
-	border-radius: 0;
-	box-shadow: none;
-}
-
-.neo-pulse-wp-analytics .neo-pulse-wp-settings__gsc-panel {
-	background: #0a0a0a;
+	color: var(--npwp-muted, #9aa4ae);
 }

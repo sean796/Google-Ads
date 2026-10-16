@@ -12,6 +12,8 @@
       var wrap = wraps[i];
       if (wrap.getAttribute('data-sidebar-mode') !== '1') continue;
       if (wrap.getAttribute('data-elementor-edit-preview') === '1') continue;
+      // Only when the Search widget's "Combine with chat" switch is on.
+      if (wrap.getAttribute('data-combine-chat') !== '1') continue;
       return wrap;
     }
     return null;
@@ -208,25 +210,9 @@
     var searchLauncher = searchWrap.querySelector('.fai-sidebar-launcher, .fbs__icon-launcher');
     var mobileLauncher = document.getElementById('neo-pulse-chat-mobile-launcher');
     if (shell && searchLauncher && typeof shell.registerLauncher === 'function') {
-      var headerSearchOnly = searchWrap.classList.contains('neo-pulse-search-wrap--header-slot');
       shell.registerLauncher(searchLauncher, {
         onBeforeOpen: function () {
           setActiveTab('search');
-          if (!headerSearchOnly) {
-            return;
-          }
-          var host = document.querySelector('[data-fai-unified="1"]');
-          if (!host) {
-            return;
-          }
-          var tabs = host.querySelector('.fai-sidebar-tabs');
-          if (tabs) {
-            tabs.style.display = 'none';
-          }
-          var chatPane = host.querySelector('.fai-sidebar-tab-pane[data-fai-tab="chat"]');
-          if (chatPane) {
-            chatPane.hidden = true;
-          }
         }
       });
     }

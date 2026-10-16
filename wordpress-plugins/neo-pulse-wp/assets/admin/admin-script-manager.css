@@ -115,7 +115,7 @@
 }
 
 .neo-pulse-wp-script-manager__panel--hfcm {
-	border: 1px solid var(--fc-link, #72aee6);
+	border: 1px solid var(--fc-link, #84bd00);
 }
 
 .neo-pulse-wp-script-manager__panel {
@@ -141,11 +141,9 @@
 .neo-pulse-script-meta {
 	margin: 0 0 24px;
 	padding: 24px;
-	border-radius: 20px;
-	background: rgba(255, 255, 255, 0.04);
-	backdrop-filter: blur(20px);
-	-webkit-backdrop-filter: blur(20px);
-	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+	border-radius: 22px;
+	background: var(--npwp-panel, #fff);
+	box-shadow: var(--npwp-card-shadow);
 }
 
 .neo-pulse-script-meta__title {
@@ -204,11 +202,9 @@
 .neo-pulse-rules {
 	margin: 24px 0;
 	padding: 24px;
-	border-radius: 20px;
-	background: rgba(255, 255, 255, 0.04);
-	backdrop-filter: blur(20px);
-	-webkit-backdrop-filter: blur(20px);
-	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+	border-radius: 22px;
+	background: var(--npwp-panel, #fff);
+	box-shadow: var(--npwp-card-shadow);
 }
 
 .neo-pulse-rules__header {
@@ -251,8 +247,8 @@
 	gap: 4px;
 	margin-bottom: 16px;
 	padding: 4px;
-	border-radius: 10px;
-	background: rgba(0, 0, 0, 0.35);
+	border-radius: 999px;
+	background: #e2e8f0;
 }
 
 .neo-pulse-rules__tab {
@@ -263,7 +259,7 @@
 	color: var(--fc-text-muted, #a1a1aa);
 	background: transparent;
 	border: none;
-	border-radius: 8px;
+	border-radius: 999px;
 	cursor: pointer;
 	transition: color 0.15s ease, background 0.15s ease;
 }
@@ -273,8 +269,9 @@
 }
 
 .neo-pulse-rules__tab.is-active {
-	color: var(--fc-text, #f8fafc);
-	background: rgba(114, 174, 230, 0.22);
+	color: var(--fc-text, #02050a);
+	background: #fff;
+	box-shadow: 0 1px 3px rgba(2, 5, 10, 0.1);
 }
 
 .neo-pulse-rules__panel[hidden] {
@@ -302,12 +299,12 @@
 	padding: 22px 14px 10px;
 	font-size: 0.95rem;
 	line-height: 1.35;
-	color: #f4f4f5 !important;
-	background: rgba(12, 13, 16, 0.92) !important;
-	-webkit-text-fill-color: #f4f4f5 !important;
+	color: var(--npwp-text) !important;
+	background: var(--npwp-field) !important;
+	-webkit-text-fill-color: var(--npwp-text) !important;
 	border: none !important;
 	border-radius: 10px;
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+	box-shadow: inset 0 0 0 1px var(--npwp-line);
 	transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -318,7 +315,7 @@
 .neo-pulse-field__control:focus {
 	outline: none;
 	background: rgba(28, 30, 36, 0.98) !important;
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 0 1px rgba(114, 174, 230, 0.45);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 0 1px rgba(132, 189, 0, 0.45);
 }
 
 .neo-pulse-field__label {
@@ -339,7 +336,7 @@
 	top: 10px;
 	transform: none;
 	font-size: 0.7rem;
-	color: var(--fc-link, #72aee6);
+	color: var(--fc-link, #84bd00);
 }
 
 .neo-pulse-field--stacked .neo-pulse-field__label--above,
@@ -352,7 +349,7 @@
 	transform: none;
 	font-size: 0.7rem;
 	font-weight: 600;
-	color: var(--fc-link, #72aee6);
+	color: var(--fc-link, #84bd00);
 	pointer-events: none;
 	line-height: 1.2;
 }
@@ -382,8 +379,8 @@
 }
 
 .neo-pulse-field--select select option {
-	background: #141619;
-	color: #f8fafc;
+	background: #fff;
+	color: var(--npwp-text);
 }
 
 /* Multi-select dropdown */
@@ -399,10 +396,10 @@
 	padding: 10px 36px 10px 14px;
 	font-family: inherit;
 	font-weight: 400;
-	color: #f4f4f5 !important;
-	background: rgba(12, 13, 16, 0.92) !important;
+	color: var(--npwp-text) !important;
+	background: var(--npwp-field) !important;
 	border: none !important;
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+	box-shadow: inset 0 0 0 1px var(--npwp-line);
 }
 
 .neo-pulse-field--multiselect.neo-pulse-field--multiselect-has-tags .neo-pulse-ms__trigger {
@@ -415,7 +412,7 @@
 	transform: none;
 	font-size: 0.7rem;
 	font-weight: 600;
-	color: var(--fc-link, #72aee6);
+	color: var(--fc-link, #84bd00);
 	line-height: 1.2;
 }
 
@@ -437,9 +434,9 @@
 	font-size: 0.75rem;
 	font-weight: 500;
 	line-height: 1.2;
-	color: #f8fafc;
-	background: rgba(114, 174, 230, 0.18);
-	border: 1px solid rgba(114, 174, 230, 0.45);
+	color: var(--npwp-text);
+	background: rgba(132, 189, 0, 0.18);
+	border: 1px solid rgba(132, 189, 0, 0.45);
 	border-radius: 6px;
 	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
@@ -496,16 +493,16 @@
 }
 
 .neo-pulse-ms__option.is-selected {
-	background: rgba(114, 174, 230, 0.2);
-	color: #fff;
-	box-shadow: inset 0 0 0 1px rgba(114, 174, 230, 0.45);
+	background: rgba(132, 189, 0, 0.2);
+	color: var(--npwp-text, #f7f4f2);
+	box-shadow: inset 0 0 0 1px rgba(132, 189, 0, 0.45);
 }
 
 .neo-pulse-ms__native {
 	display: none !important;
 }
 
-/* Edit form + display rules — white copy on black (override WP admin label colors) */
+/* Edit form + display rules — dark copy on the light cards (override WP admin label colors) */
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager,
 body.neo-pulse-wp-admin-screen .neo-pulse-script-meta,
 body.neo-pulse-wp-admin-screen .neo-pulse-rules {
@@ -570,7 +567,7 @@ body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager select option {
 }
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .wp-list-table {
-	background: #000;
+	background: var(--fc-surface);
 }
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .wp-list-table thead th,
@@ -585,7 +582,7 @@ body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .wp-list-table tfoot
 }
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .wp-list-table tbody tr {
-	background: #000;
+	background: var(--fc-surface);
 }
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .wp-list-table tbody tr.alternate {
@@ -618,7 +615,7 @@ body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .row-actions a {
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .row-actions .submitdelete a,
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .row-actions a.submitdelete {
-	color: #f87171;
+	color: var(--npwp-error-ink, #b42318);
 }
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager tr:hover .row-actions,
@@ -634,11 +631,11 @@ body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .neo-pulse-script-me
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .neo-pulse-rules input[type="text"],
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .neo-pulse-rules select,
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .neo-pulse-rules button.neo-pulse-ms__trigger {
-	color: #f4f4f5 !important;
-	background-color: rgba(12, 13, 16, 0.92) !important;
-	-webkit-text-fill-color: #f4f4f5 !important;
+	color: var(--npwp-text) !important;
+	background-color: var(--npwp-field) !important;
+	-webkit-text-fill-color: var(--npwp-text) !important;
 	border: none !important;
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+	box-shadow: inset 0 0 0 1px var(--npwp-line) !important;
 }
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .neo-pulse-script-meta input[type="text"]:hover,
@@ -648,7 +645,7 @@ body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .neo-pulse-script-me
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .neo-pulse-rules input[type="text"]:hover,
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .neo-pulse-rules select:hover,
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .neo-pulse-rules button.neo-pulse-ms__trigger:hover {
-	background-color: rgba(22, 24, 28, 0.95) !important;
+	background-color: #eef2f7 !important;
 }
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .neo-pulse-script-meta input[type="text"]:focus,
@@ -658,19 +655,40 @@ body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .neo-pulse-script-me
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .neo-pulse-rules input[type="text"]:focus,
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .neo-pulse-rules select:focus,
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .neo-pulse-rules button.neo-pulse-ms__trigger:focus {
-	background-color: rgba(28, 30, 36, 0.98) !important;
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 0 1px rgba(114, 174, 230, 0.45) !important;
+	background-color: #fff !important;
+	box-shadow: inset 0 0 0 1px var(--npwp-lime), 0 0 0 3px rgba(151, 212, 0, 0.18) !important;
 	outline: none !important;
 }
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .neo-pulse-script-meta select option,
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .neo-pulse-rules select option {
-	background: #141619 !important;
-	color: #f8fafc !important;
+	background: #fff !important;
+	color: var(--npwp-text) !important;
 }
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .neo-pulse-script-meta input::placeholder,
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .neo-pulse-script-meta textarea::placeholder,
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-script-manager .neo-pulse-rules input[type="text"]::placeholder {
 	color: transparent;
+}
+
+/* "Move from HFCM" panel: on the script list and on Import & Export */
+.neo-pulse-wp-script-manager__panel--hfcm-switch {
+	margin: 16px 0 20px;
+	border: 1px solid var(--fc-link, #84bd00);
+}
+
+.neo-pulse-wp-script-manager__hfcm-details {
+	margin: 0 0 12px;
+}
+
+.neo-pulse-wp-script-manager__hfcm-details > summary {
+	cursor: pointer;
+	margin: 0 0 10px;
+	font-weight: 600;
+	color: var(--fc-text);
+}
+
+.neo-pulse-wp-script-manager__panel--hfcm-switch form p {
+	margin: 0;
 }

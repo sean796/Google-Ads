@@ -39,6 +39,9 @@ class Neo_Pulse_Wp_Image_Seo_List_Table extends WP_List_Table {
 	}
 
 	protected function get_bulk_actions(): array {
+		if ( Neo_Pulse_Wp_License::ai_needs_upgrade( false ) ) {
+			return array(); // AI optimizing is part of NEO Pulse Pro + AI; the row links show it greyed out.
+		}
 		return array(
 			'optimize_ai' => __( 'Optimize with AI', 'neo-pulse-wp' ),
 		);

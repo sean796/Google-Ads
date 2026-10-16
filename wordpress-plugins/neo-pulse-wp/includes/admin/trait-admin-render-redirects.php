@@ -27,6 +27,9 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Redirects {
 			case 'settings':
 				self::render_redirect_settings_page();
 				return;
+			case '404':
+				self::render_seo_404_page();
+				return;
 			default:
 				self::render_redirect_list_page();
 		}
@@ -45,40 +48,12 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Redirects {
 		$rank_math = self::rank_math_database_import_status();
 		self::neo_pulse_group_shell_open( 'neo-pulse-wp-redirects', 'neo-pulse-wp-redirects' );
 		?>
-			<h1 class="wp-heading-inline"><?php esc_html_e( 'Redirections', 'neo-pulse-wp' ); ?></h1>
+			<h2 class="wp-heading-inline neo-pulse-wp-panel-content__title"><?php esc_html_e( 'Redirects', 'neo-pulse-wp' ); ?></h2>
 			<a href="<?php echo esc_url( admin_url( 'admin.php?page=neo-pulse-wp-redirects&action=new' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Add New', 'neo-pulse-wp' ); ?></a>
-			<a href="<?php echo esc_url( admin_url( 'admin.php?page=neo-pulse-wp-redirects&action=import-export' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Import & Export', 'neo-pulse-wp' ); ?></a>
-			<a href="<?php echo esc_url( admin_url( 'admin.php?page=neo-pulse-wp-redirects&action=settings' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Settings', 'neo-pulse-wp' ); ?></a>
 			<hr class="wp-header-end" />
 
-			<?php if ( ! empty( $rank_math['available'] ) ) : ?>
-				<div class="notice notice-info neo-pulse-wp-redirects__rank-math-import">
-					<p>
-						<?php
-						if ( (int) $rank_math['pending_count'] > 0 ) {
-							echo esc_html(
-								sprintf(
-									/* translators: %d: Rank Math redirect count not yet imported */
-									_n(
-										'Rank Math has %d active redirect ready to import.',
-										'Rank Math has %d active redirects ready to import.',
-										(int) $rank_math['pending_count'],
-										'neo-pulse-wp'
-									),
-									(int) $rank_math['pending_count']
-								)
-							);
-						} else {
-							esc_html_e( 'Rank Math SEO is installed. Click below to import all active redirects from the Rank Math database.', 'neo-pulse-wp' );
-						}
-						?>
-					</p>
-					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:8px;">
-						<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_IMPORT_REDIRECTS_RANK_MATH_DB ); ?>" />
-						<?php wp_nonce_field( self::ACTION_IMPORT_REDIRECTS_RANK_MATH_DB, 'neo_pulse_wp_import_redirects_rank_math_db_nonce' ); ?>
-						<button type="submit" class="button button-primary"><?php esc_html_e( 'Import Rank Math Redirects', 'neo-pulse-wp' ); ?></button>
-					</form>
-				</div>
+			<?php if ( ! empty( $rank_math['available'] ) && (int) $rank_math['pending_count'] > 0 ) : ?>
+				<?php self::render_rank_math_redirect_import_panel( $rank_math, true ); ?>
 			<?php endif; ?>
 
 			<p class="description neo-pulse-wp-redirects__note">
@@ -169,7 +144,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Redirects {
 		$categories = Neo_Pulse_Wp_Redirects::distinct_categories();
 		self::neo_pulse_group_shell_open( 'neo-pulse-wp-redirects', 'neo-pulse-wp-redirects' );
 		?>
-			<h1><?php echo $is_new ? esc_html__( 'Add Redirect', 'neo-pulse-wp' ) : esc_html__( 'Edit Redirect', 'neo-pulse-wp' ); ?></h1>
+			<h2 class="neo-pulse-wp-panel-content__title"><?php echo $is_new ? esc_html__( 'Add Redirect', 'neo-pulse-wp' ) : esc_html__( 'Edit Redirect', 'neo-pulse-wp' ); ?></h2>
 			<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=neo-pulse-wp-redirects' ) ); ?>">&larr; <?php esc_html_e( 'Back to list', 'neo-pulse-wp' ); ?></a></p>
 
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="neo-pulse-wp-redirects__form">
@@ -181,25 +156,64 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Redirects {
 					<tr>
 						<th scope="row"><label for="redirect_source"><?php esc_html_e( 'Source path', 'neo-pulse-wp' ); ?></label></th>
 						<td>
-							<input name="redirect_source" id="redirect_source" type="text" class="large-text code" value="<?php echo esc_attr( $row ? (string) $row->source : '' ); ?>" placeholder="blog/old-slug/" required />
+							<input name="redirect_source" id="redirect_source" type="text" class="large-text code" value="<?php echo esc_attr( $row ? (string) $row->source : ( isset( $_GET['source'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['source'] ) ) : '' ) ); ?>" placeholder="blog/old-slug/" required />
 							<p class="description"><?php esc_html_e( 'Relative path without leading slash, with trailing slash (e.g. blog/old-slug/).', 'neo-pulse-wp' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="redirect_matching"><?php esc_html_e( 'Matching', 'neo-pulse-wp' ); ?></label></th>
+						<td>
+							<?php
+							$matching = $row ? Neo_Pulse_Wp_Redirects::normalize_matching( (string) $row->matching ) : 'exact';
+							$match_options = array(
+								'exact'    => __( 'Exact', 'neo-pulse-wp' ),
+								'contains' => __( 'Contains', 'neo-pulse-wp' ),
+								'start'    => __( 'Starts with', 'neo-pulse-wp' ),
+								'end'      => __( 'Ends with', 'neo-pulse-wp' ),
+								'regex'    => __( 'Regex', 'neo-pulse-wp' ),
+							);
+							?>
+							<select name="redirect_matching" id="redirect_matching">
+								<?php foreach ( $match_options as $match_value => $match_label ) : ?>
+									<option value="<?php echo esc_attr( $match_value ); ?>" <?php selected( $matching, $match_value ); ?>><?php echo esc_html( $match_label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+							<p>
+								<input type="hidden" name="redirect_ignore_case" value="0" />
+								<label for="redirect_ignore_case">
+									<input name="redirect_ignore_case" id="redirect_ignore_case" type="checkbox" value="1" <?php checked( $row ? ! empty( $row->ignore_case ) : false ); ?> />
+									<?php esc_html_e( 'Ignore case', 'neo-pulse-wp' ); ?>
+								</label>
+							</p>
 						</td>
 					</tr>
 					<tr>
 						<th scope="row"><label for="redirect_destination"><?php esc_html_e( 'Destination', 'neo-pulse-wp' ); ?></label></th>
 						<td>
-							<input name="redirect_destination" id="redirect_destination" type="text" class="large-text code" value="<?php echo esc_attr( $row ? (string) $row->destination : '' ); ?>" placeholder="https://example.com/blog/new-slug/" required />
+							<input name="redirect_destination" id="redirect_destination" type="text" class="large-text code" value="<?php echo esc_attr( $row ? (string) $row->destination : '' ); ?>" placeholder="https://example.com/blog/new-slug/" />
+							<p class="description" id="redirect_destination_note"><?php esc_html_e( '410 and 451 do not need a destination; it is ignored for those types.', 'neo-pulse-wp' ); ?></p>
 						</td>
 					</tr>
 					<tr>
 						<th scope="row"><label for="redirect_type"><?php esc_html_e( 'Redirect type', 'neo-pulse-wp' ); ?></label></th>
 						<td>
+							<?php
+							$type = $row ? (int) $row->type : (int) $settings['default_type'];
+							$type_options = array(
+								301 => '301',
+								302 => '302',
+								307 => '307',
+								308 => '308',
+								/* translators: HTTP 410 status label */
+								410 => __( '410 (Content deleted)', 'neo-pulse-wp' ),
+								/* translators: HTTP 451 status label */
+								451 => __( '451 (Unavailable for legal reasons)', 'neo-pulse-wp' ),
+							);
+							?>
 							<select name="redirect_type" id="redirect_type">
-								<?php
-								$type = $row ? (int) $row->type : (int) $settings['default_type'];
-								?>
-								<option value="301" <?php selected( $type, 301 ); ?>>301</option>
-								<option value="302" <?php selected( $type, 302 ); ?>>302</option>
+								<?php foreach ( $type_options as $type_value => $type_label ) : ?>
+									<option value="<?php echo esc_attr( (string) $type_value ); ?>" <?php selected( $type, $type_value ); ?>><?php echo esc_html( $type_label ); ?></option>
+								<?php endforeach; ?>
 							</select>
 						</td>
 					</tr>
@@ -232,46 +246,86 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Redirects {
 					<?php endif; ?>
 				</p>
 			</form>
+			<script>
+			(function () {
+				var type = document.getElementById('redirect_type');
+				var dest = document.getElementById('redirect_destination');
+				if (!type || !dest) { return; }
+				var sync = function () {
+					var gone = type.value === '410' || type.value === '451';
+					dest.required = !gone;
+					dest.disabled = gone;
+				};
+				type.addEventListener('change', sync);
+				sync();
+			})();
+			</script>
 		<?php
 		self::neo_pulse_group_shell_close();
+	}
+
+	/**
+	 * "Import from Rank Math" panel with the one-click import button. Shown on the redirect list
+	 * whenever Rank Math has redirects that aren't in Neo Pulse yet, and always on Import & Export.
+	 *
+	 * @param array<string, mixed> $rank_math From rank_math_database_import_status().
+	 * @param bool                 $on_list   Shown on the redirect list (highlighted, with context).
+	 */
+	private static function render_rank_math_redirect_import_panel( array $rank_math, bool $on_list ): void {
+		$pending  = (int) $rank_math['pending_count'];
+		$imported = (int) $rank_math['imported_count'];
+		?>
+		<div class="neo-pulse-wp-redirects__panel<?php echo $on_list ? ' neo-pulse-wp-redirects__panel--rank-math' : ''; ?>">
+			<h2><?php esc_html_e( 'Import from Rank Math', 'neo-pulse-wp' ); ?></h2>
+			<p>
+				<?php
+				if ( $pending > 0 ) {
+					echo esc_html(
+						sprintf(
+							/* translators: %d: pending redirect count */
+							_n(
+								'%d active Rank Math redirect is ready to import.',
+								'%d active Rank Math redirects are ready to import.',
+								$pending,
+								'neo-pulse-wp'
+							),
+							$pending
+						)
+					);
+					if ( $imported > 0 ) {
+						echo ' ' . esc_html(
+							sprintf(
+								/* translators: %d: redirects already imported */
+								_n( '%d is already in Neo Pulse and won\'t be added twice.', '%d are already in Neo Pulse and won\'t be added twice.', $imported, 'neo-pulse-wp' ),
+								$imported
+							)
+						);
+					}
+					if ( $on_list ) {
+						echo ' ' . esc_html__( 'Rank Math stops redirecting once it is deactivated, so bring them across first.', 'neo-pulse-wp' );
+					}
+				} else {
+					esc_html_e( 'Import all active redirects from Rank Math SEO (free or Pro) in one click.', 'neo-pulse-wp' );
+				}
+				?>
+			</p>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_IMPORT_REDIRECTS_RANK_MATH_DB ); ?>" />
+				<?php wp_nonce_field( self::ACTION_IMPORT_REDIRECTS_RANK_MATH_DB, 'neo_pulse_wp_import_redirects_rank_math_db_nonce' ); ?>
+				<p><button type="submit" class="button button-primary"><?php esc_html_e( 'Import Rank Math Redirects', 'neo-pulse-wp' ); ?></button></p>
+			</form>
+		</div>
+		<?php
 	}
 
 	private static function render_redirect_import_export_page(): void {
 		$rank_math = self::rank_math_database_import_status();
 		self::neo_pulse_group_shell_open( 'neo-pulse-wp-redirects', 'neo-pulse-wp-redirects' );
 		?>
-			<h1><?php esc_html_e( 'Import & Export', 'neo-pulse-wp' ); ?></h1>
-			<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=neo-pulse-wp-redirects' ) ); ?>">&larr; <?php esc_html_e( 'Back to list', 'neo-pulse-wp' ); ?></a></p>
+			<h2 class="neo-pulse-wp-panel-content__title"><?php esc_html_e( 'Import & Export', 'neo-pulse-wp' ); ?></h2>
 
 			<?php if ( ! empty( $rank_math['available'] ) ) : ?>
-				<div class="neo-pulse-wp-redirects__panel">
-					<h2><?php esc_html_e( 'Import from Rank Math', 'neo-pulse-wp' ); ?></h2>
-					<p>
-						<?php
-						if ( (int) $rank_math['pending_count'] > 0 ) {
-							echo esc_html(
-								sprintf(
-									/* translators: %d: pending redirect count */
-									_n(
-										'%d active Rank Math redirect is ready to import.',
-										'%d active Rank Math redirects are ready to import.',
-										(int) $rank_math['pending_count'],
-										'neo-pulse-wp'
-									),
-									(int) $rank_math['pending_count']
-								)
-							);
-						} else {
-							esc_html_e( 'Import all active redirects from Rank Math SEO (free or Pro) in one click.', 'neo-pulse-wp' );
-						}
-						?>
-					</p>
-					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-						<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_IMPORT_REDIRECTS_RANK_MATH_DB ); ?>" />
-						<?php wp_nonce_field( self::ACTION_IMPORT_REDIRECTS_RANK_MATH_DB, 'neo_pulse_wp_import_redirects_rank_math_db_nonce' ); ?>
-						<p><button type="submit" class="button button-primary"><?php esc_html_e( 'Import Rank Math Redirects', 'neo-pulse-wp' ); ?></button></p>
-					</form>
-				</div>
+				<?php self::render_rank_math_redirect_import_panel( $rank_math, false ); ?>
 			<?php endif; ?>
 
 			<div class="neo-pulse-wp-redirects__panels">
@@ -305,8 +359,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Redirects {
 		$settings = Neo_Pulse_Wp_Redirects::get_settings();
 		self::neo_pulse_group_shell_open( 'neo-pulse-wp-redirects', 'neo-pulse-wp-redirects' );
 		?>
-			<h1><?php esc_html_e( 'Redirect Settings', 'neo-pulse-wp' ); ?></h1>
-			<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=neo-pulse-wp-redirects' ) ); ?>">&larr; <?php esc_html_e( 'Back to list', 'neo-pulse-wp' ); ?></a></p>
+			<h2 class="neo-pulse-wp-panel-content__title"><?php esc_html_e( 'Redirect Settings', 'neo-pulse-wp' ); ?></h2>
 
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_SAVE_REDIRECT_SETTINGS ); ?>" />

@@ -13,14 +13,6 @@ class Neo_Pulse_Wp_Backend_Assist_Workflow_Builder {
 		return Neo_Pulse_Wp_Backend_Assist_Workflow_Expand::expand_create_to_full_page( $decomposed, $message, $classification );
 	}
 
-	public static function apply_heading_outline_to_steps( array $decomposed, array $sections ): array {
-		return Neo_Pulse_Wp_Backend_Assist_Workflow_Expand::apply_heading_outline_to_steps( $decomposed, $sections );
-	}
-
-	public static function attach_heading_outline( array $decomposed, string $message, array $history = array() ) {
-		return Neo_Pulse_Wp_Backend_Assist_Workflow_Expand::attach_heading_outline( $decomposed, $message, $history );
-	}
-
 	public static function build_workflow_steps( string $message, array $history, array $decomposed ): array {
 		$steps                 = array();
 		$outline               = array();

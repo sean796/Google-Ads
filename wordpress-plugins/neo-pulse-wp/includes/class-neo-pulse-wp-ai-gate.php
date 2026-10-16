@@ -21,26 +21,11 @@ class Neo_Pulse_Wp_Ai_Gate {
 	}
 
 	/**
-	 * @return array<string,mixed>|null
-	 */
-	public static function get_client(): ?array {
-		return null;
-	}
-
-	/**
 	 * @return array<int,string>
 	 */
 	public static function allowed_post_types(): array {
-		$from_sitemap = Neo_Pulse_Wp_Sitemap_Settings::content_optimizer_post_types();
-		$types        = array_values( array_unique( array_merge( array( 'post', 'page' ), $from_sitemap ) ) );
-		$client       = self::get_client();
-		if ( is_array( $client ) ) {
-			$entity = Neo_Pulse_Wp_Site_Progress::resolve_entity_post_type_for_client( $client );
-			if ( null !== $entity && ! in_array( $entity, $types, true ) ) {
-				$types[] = $entity;
-			}
-		}
-		return apply_filters( 'neo_pulse_wp_ai_allowed_post_types', $types, $client );
+		$types = Neo_Pulse_Wp_Editor_Ai_Settings::post_types();
+		return apply_filters( 'neo_pulse_wp_ai_allowed_post_types', $types, null );
 	}
 
 	public static function post_type_allowed( string $post_type ): bool {
@@ -53,8 +38,15 @@ class Neo_Pulse_Wp_Ai_Gate {
 	public static function collect_reasons( int $post_id = 0 ): array {
 		$reasons = array();
 
+		if ( ! Neo_Pulse_Wp_License::is_licensed( false ) ) {
+			$reasons[] = __( 'This site is not licensed for NEO Pulse WP. Add or renew the licence under NEO Pulse WP → Settings.', 'neo-pulse-wp' );
+		} elseif ( Neo_Pulse_Wp_License::ai_needs_upgrade( false ) ) {
+			// Pro (without AI): one clear reason, not a list of setup steps that wouldn't help.
+			return array( __( 'AI writing is part of NEO Pulse Pro + AI. This site is on NEO Pulse Pro, so the AI tools are switched off. Your SEO title, description and other settings can still be edited in the SEO box.', 'neo-pulse-wp' ) );
+		}
+
 		if ( Neo_Pulse_Wp_OpenRouter::get_api_key() === '' ) {
-			$reasons[] = __( 'Add an OpenRouter API key under NEO Pulse WP → Settings, or in the plugin .env file.', 'neo-pulse-wp' );
+			$reasons[] = __( 'Add an OpenRouter API key under NEO Pulse WP → Settings, or in wp-config.php.', 'neo-pulse-wp' );
 		}
 
 		if ( $post_id > 0 ) {
@@ -62,7 +54,7 @@ class Neo_Pulse_Wp_Ai_Gate {
 			if ( ! $post instanceof WP_Post ) {
 				$reasons[] = __( 'Post not found.', 'neo-pulse-wp' );
 			} elseif ( ! self::post_type_allowed( $post->post_type ) ) {
-				$reasons[] = __( 'Content Optimizer is not enabled for this post type. Enable it under NEO Pulse WP → Sitemap → Content Optimizer.', 'neo-pulse-wp' );
+				$reasons[] = __( 'The editor AI is not switched on for this content type. Turn it on under NEO Pulse → Settings → Editor AI.', 'neo-pulse-wp' );
 			} elseif ( ! current_user_can( 'edit_post', $post_id ) ) {
 				$reasons[] = __( 'You do not have permission to edit this post.', 'neo-pulse-wp' );
 			}
@@ -75,27 +67,12 @@ class Neo_Pulse_Wp_Ai_Gate {
 	 * @return array<string,mixed>
 	 */
 	public static function get_status( int $post_id ): array {
-		$reasons  = self::collect_reasons( $post_id );
-		$client   = self::get_client();
-		$pkg      = is_array( $client ) && isset( $client['optimizationPackage'] ) ? trim( (string) $client['optimizationPackage'] ) : '';
-		$usage    = is_array( $client ) ? Neo_Pulse_Wp_Site_Progress::optimization_usage_for_client( $client ) : null;
-		$cap      = null;
-		$used     = null;
-		$remaining = null;
+		$reasons = self::collect_reasons( $post_id );
 
-		if ( is_array( $usage ) ) {
-			$cap       = (int) $usage['cap'];
-			$used      = (int) $usage['used'];
-			$remaining = (int) $usage['remaining'];
-		}
-
-		$can_preview = empty( $reasons );
+		// No per-client optimization package/usage exists any more, so there is no cap to report.
+		$can_preview  = empty( $reasons );
 		$cap_enforced = self::cap_enforcement_enabled();
-		$can_apply     = $can_preview && ( ! $cap_enforced || null === $remaining || $remaining > 0 );
-
-		if ( $cap_enforced && $can_preview && ! $can_apply ) {
-			$reasons[] = __( 'Optimization cap reached for this period. Preview only — Apply is disabled until the next period.', 'neo-pulse-wp' );
-		}
+		$can_apply    = $can_preview;
 
 		$cap_notice = '';
 		if ( $can_preview && ! $cap_enforced ) {
@@ -131,10 +108,12 @@ class Neo_Pulse_Wp_Ai_Gate {
 			'gscAvailable'      => Neo_Pulse_Wp_Ai_Backend::is_available(),
 			'researchAvailable' => Neo_Pulse_Wp_Research_Keys::research_configured(),
 			'reasons'           => $reasons,
-			'package'           => $pkg,
-			'cap'               => $cap,
-			'used'              => $used,
-			'remaining'         => $remaining,
+			'needsUpgrade'      => Neo_Pulse_Wp_License::ai_needs_upgrade( false ),
+			'upgradeLabel'      => __( 'Pro + AI', 'neo-pulse-wp' ),
+			'package'           => '',
+			'cap'               => null,
+			'used'              => null,
+			'remaining'         => null,
 			'permalink'         => $permalink,
 			'postStatus'        => $post_status,
 			'slug'              => $slug,

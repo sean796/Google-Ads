@@ -35,10 +35,11 @@ import {
   insertFigureAfterH2,
 } from "@/lib/overview/overview-blog-in-content-image-insert";
 import { applyAiGeneratedImageDisclaimer } from "@/lib/images/ai-generated-image-disclaimer";
+import { DEFAULT_IMAGE_MODEL } from "@/lib/image-model-defaults";
 import { getImageModel, getResearchModel } from "@/lib/optimization-settings-storage";
 
 /** Default OpenRouter model constant kept for backward compatibility; runtime calls resolve getImageModel(siteId). */
-export const IN_CONTENT_IMAGE_MODEL = "google/gemini-3.1-flash-lite-image";
+export const IN_CONTENT_IMAGE_MODEL = DEFAULT_IMAGE_MODEL;
 
 export interface InContentImageResult {
   imageUrl: string;

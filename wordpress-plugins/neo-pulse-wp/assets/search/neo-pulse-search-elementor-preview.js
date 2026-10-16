@@ -28,14 +28,19 @@
     return model && typeof model.get === 'function' && model.get('widgetType') === 'neo-pulse_search';
   }
 
+  // On unless switched off (older widgets saved before the switch existed count as on).
+  function previewValueOn(value) {
+    return value === undefined || value === null || value === 'yes';
+  }
+
   function readPreviewPanelFromSettings(settings) {
     if (!settings) {
-      return false;
+      return true;
     }
     if (typeof settings.get === 'function') {
-      return settings.get('preview_panel') === 'yes';
+      return previewValueOn(settings.get('preview_panel'));
     }
-    return settings.preview_panel === 'yes';
+    return previewValueOn(settings.preview_panel);
   }
 
   function readPreviewPanelFromModel(model) {
@@ -123,7 +128,7 @@
     var data = elements.data;
     var entry = data[widgetId];
     if (entry && entry.settings) {
-      return entry.settings.preview_panel === 'yes';
+      return previewValueOn(entry.settings.preview_panel);
     }
 
     var key;
@@ -136,7 +141,7 @@
         continue;
       }
       if (normalizeWidgetId(key) === widgetId || normalizeWidgetId(item.id) === widgetId) {
-        return item.settings.preview_panel === 'yes';
+        return previewValueOn(item.settings.preview_panel);
       }
     }
 
@@ -243,21 +248,15 @@
     wrap._fbsPreviewPanel = null;
   }
 
-  function copyPreviewVars(wrap, panel) {
-    if (!wrap || !panel) {
+  // A re-rendered widget leaves its previous preview panel in <body>; keep only the current one.
+  function removeStalePanels(widgetId, keep) {
+    if (!widgetId) {
       return;
     }
-    var computed = window.getComputedStyle(wrap);
-    var vars = [
-      '--fai-sidebar-width', '--fai-sidebar-z-index', '--fbs-panel-bg', '--fai-sidebar-bg',
-      '--fbs-panel-text', '--fai-sidebar-text', '--fbs-panel-text-muted', '--fai-sidebar-text-muted',
-      '--fbs-panel-offset-top', '--fbs-radius', '--fbs-modal-max-width', '--fbs-backdrop-color', '--fbs-backdrop-opacity'
-    ];
-    for (var i = 0; i < vars.length; i++) {
-      var name = vars[i];
-      var value = computed.getPropertyValue(name);
-      if (value && value.trim() !== '') {
-        panel.style.setProperty(name, value.trim());
+    var nodes = document.body.querySelectorAll(':scope > [data-neo-pulse-el="' + widgetId + '"]');
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i] !== keep && !(nodes[i].closest && nodes[i].closest('.elementor-element'))) {
+        nodes[i].parentNode.removeChild(nodes[i]);
       }
     }
   }
@@ -275,6 +274,7 @@
     var isModal = wrap.classList.contains('fbs-modal-root');
     var isLeft = wrap.classList.contains('fai-sidebar-root--left');
 
+    removeStalePanels(widgetId, panel);
     if (panel.parentNode !== document.body) {
       document.body.appendChild(panel);
     }
@@ -291,12 +291,6 @@
       panel.classList.add('fai-sidebar-panel--editor-preview-left');
     } else {
       panel.classList.add('fai-sidebar-panel--editor-preview-right');
-    }
-
-    copyPreviewVars(wrap, panel);
-
-    if (!isModal && wrap.classList.contains('neo-pulse-search-wrap--icon-only')) {
-      panel.style.transform = 'translateX(0)';
     }
 
     wrap._fbsPreviewPanel = panel;
@@ -371,6 +365,13 @@
       applyEditorPreviewState(wrap, show);
       if (!show) {
         bindSearchWrap(wrap);
+      }
+    });
+    // Widget deleted while its preview was open.
+    document.querySelectorAll('body > .fai-sidebar-panel--elementor-editor-preview[data-neo-pulse-el]').forEach(function (panel) {
+      var id = panel.getAttribute('data-neo-pulse-el');
+      if (id && !document.querySelector('.elementor-element-' + id)) {
+        panel.parentNode.removeChild(panel);
       }
     });
   }

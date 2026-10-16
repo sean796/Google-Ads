@@ -34,6 +34,43 @@ describe("buildPlaceholderOrganicReportingHighlights", () => {
     expect(placeholder.topOpportunities).toEqual([]);
     expect(deckHighlightsNeedsAgentNarratives(placeholder)).toBe(true);
   });
+
+  it("includes factual GSC and GA4 summary takeaways when viewModel is provided", () => {
+    const vm = buildOrganicDashboardViewModel({
+      success: true,
+      meta: {
+        fetchedAt: "2026-01-01T00:00:00Z",
+        primary: { startDate: "2026-09-01", endDate: "2026-09-30" },
+        compare: { startDate: "2026-08-01", endDate: "2026-08-31" },
+      },
+      gsc: {
+        stats: {
+          currentPeriod: {
+            startDate: "2026-09-01",
+            endDate: "2026-09-30",
+            clicks: 410,
+            impressions: 12000,
+            ctr: 0.034,
+            avgPosition: 9.4,
+          },
+          comparisonPeriod: {
+            startDate: "2026-08-01",
+            endDate: "2026-08-31",
+            clicks: 380,
+            impressions: 11000,
+            ctr: 0.034,
+            avgPosition: 10.1,
+          },
+          comparisons: {},
+          topKeywords: [],
+        },
+      },
+      sources: { ga4: "skipped", gsc: "ok" },
+    });
+    const placeholder = buildPlaceholderOrganicReportingHighlights("Shutter Spot", vm);
+    expect(placeholder.keyTakeaways[0]).toContain("410 clicks");
+    expect(deckHighlightsNeedsAgentNarratives(placeholder)).toBe(true);
+  });
 });
 
 describe("resolveClientReportHighlights", () => {

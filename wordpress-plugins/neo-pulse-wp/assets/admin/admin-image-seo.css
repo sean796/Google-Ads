@@ -60,10 +60,10 @@
 }
 
 .neo-pulse-image-seo-badge--warn {
-	background: rgba(251, 146, 60, 0.18);
+	background: var(--npwp-warn-tint);
 	border-color: rgba(251, 146, 60, 0.35);
-	color: #fdba74 !important;
-	-webkit-text-fill-color: #fdba74 !important;
+	color: var(--npwp-warn-ink) !important;
+	-webkit-text-fill-color: var(--npwp-warn-ink) !important;
 }
 
 .neo-pulse-image-seo-badge--ok {

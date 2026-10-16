@@ -6,6 +6,7 @@
 import type { WordPressPostContent } from './wordpress-api';
 import { sanitizeFileName } from './file-processing';
 import { summarizeContentWithAI, type SummarizationOptions } from './content-summarizer';
+import { resolveModelForAgentCategory } from '@/lib/openrouter-agent-category-api';
 
 export interface WordPressConversionOptions {
   summarizeWithAI?: boolean;
@@ -146,7 +147,7 @@ export async function convertWordPressPostToMarkdown(
     try {
       const summarizationOptions: SummarizationOptions = {
         apiKey: options.openRouterApiKey,
-        model: "google/gemini-2.5-flash",
+        model: resolveModelForAgentCategory("research"),
         temperature: 0.7,
         maxTokens: 4000,
         topP: 0.9,

@@ -1,16 +1,16 @@
 /**
- * Tool Library — dark theme (uses admin-tokens.css variables)
+ * Tool Library — light theme (uses admin-tokens.css variables)
  * Semantic grouping: color frames only, no line borders or dividers.
  * @layer neo-pulse-wp-admin
  */
 
 .neo-pulse-wp-tool-library {
-	color: var(--fc-text, #ffffff);
-	--fc-tl-group: #121212;
-	--fc-tl-group-inner: #0a0a0a;
-	--fc-tl-card: #0d0d0d;
-	--fc-tl-card-hover: #181818;
-	--fc-tl-text-muted: #a3a3a3;
+	color: var(--fc-text, #02050a);
+	--fc-tl-group: var(--npwp-panel, #fff);
+	--fc-tl-group-inner: var(--npwp-field, #f6f8fa);
+	--fc-tl-card: var(--npwp-field, #f6f8fa);
+	--fc-tl-card-hover: #eef2f7;
+	--fc-tl-text-muted: var(--npwp-muted, #5f6b78);
 }
 
 .neo-pulse-wp-tool-library__toolbar {
@@ -30,7 +30,7 @@
 	font-size: 1rem;
 	font-family: var(--fc-font, inherit);
 	background: var(--fc-tl-group-inner, #0a0a0a);
-	color: var(--fc-text, #ffffff);
+	color: var(--fc-text, #02050a);
 }
 
 .neo-pulse-wp-tool-library__search::placeholder {
@@ -39,7 +39,7 @@
 }
 
 .neo-pulse-wp-tool-library__search:focus {
-	outline: 2px solid rgba(114, 174, 230, 0.45);
+	outline: 2px solid rgba(132, 189, 0, 0.45);
 	outline-offset: 0;
 }
 
@@ -51,7 +51,7 @@
 
 .neo-pulse-wp-tool-library__meta code {
 	background: var(--fc-tl-group-inner, #0a0a0a);
-	color: var(--fc-link, #72aee6);
+	color: var(--fc-link, #84bd00);
 	padding: 0.1rem 0.35rem;
 	border-radius: 4px;
 	font-size: 0.8125rem;
@@ -78,18 +78,18 @@
 }
 
 .neo-pulse-wp-tool-library__risk--read {
-	background: rgba(114, 174, 230, 0.12);
-	color: #72aee6;
+	background: rgba(132, 189, 0, 0.12);
+	color: var(--npwp-lime-ink);
 }
 
 .neo-pulse-wp-tool-library__risk--write {
 	background: rgba(234, 179, 8, 0.12);
-	color: #ca8a04;
+	color: #8a5a00;
 }
 
 .neo-pulse-wp-tool-library__risk--destructive {
 	background: rgba(239, 68, 68, 0.12);
-	color: #dc2626;
+	color: var(--npwp-error-ink);
 }
 
 .neo-pulse-wp-tool-library__confirm-hint {
@@ -109,7 +109,7 @@
 	margin: 0 0 0.5rem;
 	font-size: 1.05rem;
 	font-weight: 600;
-	color: var(--fc-text, #ffffff);
+	color: var(--fc-text, #02050a);
 }
 
 .neo-pulse-wp-tool-library__mcp p {
@@ -130,7 +130,7 @@
 }
 
 .neo-pulse-wp-tool-library__code code {
-	color: #e5e7eb;
+	color: var(--npwp-text);
 	font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
 }
 
@@ -151,7 +151,7 @@
 	margin: 0 0 1rem;
 	font-size: 1.15rem;
 	font-weight: 600;
-	color: var(--fc-text, #ffffff);
+	color: var(--fc-text, #02050a);
 	border: none;
 	padding: 0;
 }
@@ -197,8 +197,8 @@
 	font-size: 13px;
 	font-weight: 600;
 	word-break: break-all;
-	color: var(--fc-link, #72aee6);
-	background: rgba(114, 174, 230, 0.08);
+	color: var(--fc-link, #84bd00);
+	background: rgba(132, 189, 0, 0.08);
 	padding: 0.15rem 0.4rem;
 	border-radius: 4px;
 	border: none;
@@ -227,12 +227,12 @@
 
 .neo-pulse-wp-tool-library__meta-dl dd {
 	margin: 0;
-	color: var(--fc-text, #ffffff);
+	color: var(--fc-text, #02050a);
 }
 
 .neo-pulse-wp-tool-library__meta-dl dd code {
 	background: var(--fc-tl-group-inner, #0a0a0a);
-	color: #d1d5db;
+	color: var(--npwp-text);
 	padding: 0.05rem 0.3rem;
 	border-radius: 3px;
 	font-size: 11px;
@@ -250,12 +250,12 @@
 .neo-pulse-wp-tool-library__example summary {
 	cursor: pointer;
 	font-weight: 600;
-	color: var(--fc-link, #72aee6);
+	color: var(--fc-link, #84bd00);
 }
 
 .neo-pulse-wp-tool-library__params summary:hover,
 .neo-pulse-wp-tool-library__example summary:hover {
-	color: var(--fc-link-hover, #9ecaff);
+	color: var(--fc-link-hover, #97d400);
 }
 
 .neo-pulse-wp-tool-library__params-dl {
@@ -266,11 +266,11 @@
 
 .neo-pulse-wp-tool-library__params-dl dt {
 	font-weight: 600;
-	color: var(--fc-text, #ffffff);
+	color: var(--fc-text, #02050a);
 }
 
 .neo-pulse-wp-tool-library__params-dl dt code {
-	color: var(--fc-link, #72aee6);
+	color: var(--fc-link, #84bd00);
 	background: transparent;
 	padding: 0;
 }
@@ -290,7 +290,7 @@
 }
 
 .neo-pulse-wp-tool-library__example pre code {
-	color: #d1d5db;
+	color: var(--npwp-text);
 	font-size: 11px;
 }
 
@@ -305,7 +305,7 @@
 
 /* WP notices on dark canvas */
 .neo-pulse-wp-tool-library .notice {
-	background: #121212;
+	background: var(--npwp-panel, #0a1119);
 	border: none;
-	color: var(--fc-text, #ffffff);
+	color: var(--fc-text, #02050a);
 }

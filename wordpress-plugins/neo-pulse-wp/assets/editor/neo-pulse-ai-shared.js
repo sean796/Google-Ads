@@ -244,6 +244,4 @@
 			});
 		},
 	};
-
-	window.neoPulseWpAiApi = window.NeoPulseAiShared.api;
 })();

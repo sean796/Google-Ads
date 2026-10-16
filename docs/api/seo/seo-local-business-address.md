@@ -5,7 +5,7 @@ section: SEO
 method: POST
 path: /api/seo/local-business-address
 auth: open
-order: 1070
+order: 1080
 ---
 
 POST `/api/seo/local-business-address`.

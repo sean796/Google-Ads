@@ -17,6 +17,11 @@ class Neo_Pulse_Wp_Script_Manager_Rest {
 		$perm = function () {
 			return current_user_can( 'manage_options' );
 		};
+		// Saving raw script code needs the same right as posting unfiltered HTML (off for
+		// non-super admins on multisite and where DISALLOW_UNFILTERED_HTML is set).
+		$write_perm = function () {
+			return current_user_can( 'manage_options' ) && current_user_can( 'unfiltered_html' );
+		};
 
 		register_rest_route(
 			'neo-pulse/v1',
@@ -30,7 +35,7 @@ class Neo_Pulse_Wp_Script_Manager_Rest {
 				array(
 					'methods'             => 'POST',
 					'callback'            => array( __CLASS__, 'create_script' ),
-					'permission_callback' => $perm,
+					'permission_callback' => $write_perm,
 				),
 			)
 		);
@@ -47,7 +52,7 @@ class Neo_Pulse_Wp_Script_Manager_Rest {
 				array(
 					'methods'             => 'PUT',
 					'callback'            => array( __CLASS__, 'update_script' ),
-					'permission_callback' => $perm,
+					'permission_callback' => $write_perm,
 				),
 				array(
 					'methods'             => 'DELETE',

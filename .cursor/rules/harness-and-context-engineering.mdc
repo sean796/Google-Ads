@@ -23,6 +23,27 @@ Use this when adding or changing LLM calls, agents, tools, RAG, or prompt-shaped
 - **Budget**: prefer smaller, sufficient context over "dump everything"; summarize only when the codebase already has a trusted summarization path.
 - **Anti-patterns**: vague "be careful"; duplicating the same rule in three places; hiding JSON examples without a schema; mixing unrelated tasks in one completion.
 
+## Local Mastra Playbook Reference (offline source of truth)
+
+When building or updating agents, workflows (`createStep`, `createWorkflow`), tools, memory, durable harnesses, evals, or context engineering in NEO Pulse, source the local Mastra Playbook directly from `docs/api/mastra/`:
+
+- `docs/api/mastra/overview.md` - NEO Pulse Mastra architecture (`src/lib/agent-pipeline/index.ts`, `PULSE_AGENT_REGISTRY`, category model routing)
+- `docs/api/mastra/workflows-and-steps.md` - NEO Pulse `createStep` and `createWorkflow` Details drawer + artifact contracts
+- `docs/api/mastra/agents-and-models.md` - 7 category model variables (`research`, `blog`, `image`, `meta`, `report`, `ads`, `video`)
+- `docs/api/mastra/agent-registry.md` - Full catalog of all 37 registered NEO Pulse agents
+- `docs/api/mastra/playbook-index.md` - Complete Mastra `llms.txt` index and local playbook map
+- `docs/api/mastra/playbook/agents-and-subagents.md` - Official Mastra Agents, tools, structured output, HITL, guardrails, processors, code mode, subagents, skills
+- `docs/api/mastra/playbook/workflows.md` - Official Mastra Workflows, state, control flow, dynamic workflows, snapshots, suspend/resume, error handling
+- `docs/api/mastra/playbook/harness.md` - Official Mastra Harness, durable agents, background tasks, goals, schedules, signals, agent controller
+- `docs/api/mastra/playbook/memory.md` - Official Mastra Memory, message history, observational/working memory, semantic recall, processors
+- `docs/api/mastra/playbook/guides-and-context.md` - Official Mastra Guides: multi-agent systems, context engineering, agent lifecycle, streaming, eval loops
+- `docs/api/mastra/playbook/evals-and-observability.md` - Official Mastra Evals, scorers, datasets, experiments, tracing, logging, metrics
+- `docs/api/mastra/playbook/connections-and-sandboxes.md` - Official Mastra MCP, A2A, ACP, SDK agents, sandboxes, channels, browser
+- `docs/api/mastra/playbook/server-auth-and-deploy.md` - Official Mastra Server, storage, Studio, auth, deployment
+- `docs/api/mastra/playbook/models-and-platform.md` - Official Mastra Model Router, providers, gateways, platform
+- `docs/api/mastra/playbook/reference-agents-and-tools.md` - Official Mastra API Reference for `Agent`, `.generate()`, `.stream()`, `createTool()`, processors, streaming
+- `docs/api/mastra/playbook/reference-workflows-core-and-memory.md` - Official Mastra API Reference for `Workflow`, `createStep`, `createWorkflow`, `Mastra` core, `Memory`
+
 ## When touching prompts or harness code
 
 - Match existing project patterns (OpenRouter, schemas, agent contracts in other rules).

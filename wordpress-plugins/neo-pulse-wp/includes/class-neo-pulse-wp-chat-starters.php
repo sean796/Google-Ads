@@ -15,12 +15,16 @@ class Neo_Pulse_Wp_Chat_Starters {
 	const FAST_MODEL      = 'google/gemini-2.5-flash-lite';
 	const MAX_TOKENS      = 512;
 	const CRON_HOOK       = 'neo_pulse_wp_refresh_chat_starters';
+	const GENERATE_HOOK   = 'neo_pulse_wp_generate_chat_starters';
+	const FAIL_KEY        = 'neo_pulse_chat_starters_failed';
+	const FAIL_TTL        = HOUR_IN_SECONDS;
 	const RECENCY_DAYS    = 45;
 	const RECENCY_LIMIT   = 200;
 	const RECENCY_LINE_MAX = 240;
 
 	public static function maybe_schedule(): void {
 		add_action( self::CRON_HOOK, array( __CLASS__, 'refresh' ) );
+		add_action( self::GENERATE_HOOK, array( __CLASS__, 'generate_in_background' ) );
 		if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
 			wp_schedule_event( time(), 'daily', self::CRON_HOOK );
 		}
@@ -35,19 +39,50 @@ class Neo_Pulse_Wp_Chat_Starters {
 	 */
 	public static function refresh(): void {
 		self::invalidate_cache();
-		self::get();
+		delete_transient( self::FAIL_KEY );
+		self::generate_and_store();
 	}
 
 	/**
-	 * @param array<string,mixed> $settings Chat settings for index build.
+	 * One-off background build scheduled by get() when the cache is empty (WP-Cron).
+	 */
+	public static function generate_in_background(): void {
+		$cached = get_transient( self::CACHE_KEY );
+		if ( is_array( $cached ) && ! empty( $cached ) ) {
+			return;
+		}
+		self::generate_and_store();
+	}
+
+	/**
+	 * Starters for the chat empty state. Never calls the AI during a page render: when the cache
+	 * is empty it returns no starters and schedules one background build.
+	 *
+	 * @param array<string,mixed> $settings Chat settings (unused here; kept for call-site compat).
 	 * @return array<int,string>
 	 */
 	public static function get( array $settings = array() ): array {
+		unset( $settings );
 		$cached = get_transient( self::CACHE_KEY );
 		if ( is_array( $cached ) && ! empty( $cached ) ) {
 			return self::normalize_list( $cached );
 		}
 
+		if ( ! get_transient( self::FAIL_KEY ) && ! wp_next_scheduled( self::GENERATE_HOOK ) ) {
+			wp_schedule_single_event( time(), self::GENERATE_HOOK );
+		}
+
+		return array();
+	}
+
+	/**
+	 * Generate starters and cache them; a failure is remembered for an hour so it is not retried
+	 * on every request.
+	 *
+	 * @param array<string,mixed> $settings Chat settings for index build.
+	 * @return array<int,string>
+	 */
+	private static function generate_and_store( array $settings = array() ): array {
 		if ( empty( $settings ) ) {
 			$settings = Neo_Pulse_Wp_Chat::get_settings();
 		}
@@ -56,9 +91,11 @@ class Neo_Pulse_Wp_Chat_Starters {
 		$site_name  = get_bloginfo( 'name' );
 		$generated  = self::generate( $site_index, $site_name, $settings );
 		if ( is_wp_error( $generated ) || empty( $generated ) ) {
+			set_transient( self::FAIL_KEY, 1, self::FAIL_TTL );
 			return array();
 		}
 
+		delete_transient( self::FAIL_KEY );
 		set_transient( self::CACHE_KEY, $generated, self::CACHE_TTL );
 		return self::normalize_list( $generated );
 	}

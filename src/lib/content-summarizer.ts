@@ -1,4 +1,5 @@
 import { streamChatCompletion } from "./api";
+import { resolveModelForAgentCategory } from "@/lib/openrouter-agent-category-api";
 
 export interface SummarizationOptions {
   apiKey: string;
@@ -219,7 +220,7 @@ export async function summarizeContentWithAI(
   
   const {
     apiKey,
-    model = "google/gemini-2.5-flash",
+    model = resolveModelForAgentCategory("research"),
     temperature = 0.7,
     maxTokens = 4000,
     topP = 0.9,

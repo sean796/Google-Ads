@@ -11,6 +11,8 @@ class Neo_Pulse_Wp_Redirects_Csv {
 
 	/**
 	 * Normalize relative path: lowercase, trailing slash, no leading slash.
+	 * A query string is kept after the slash ("old/?id=5"); a bare "/?p=1"
+	 * becomes "?p=1". Fragments are dropped.
 	 */
 	public static function normalize_relative_path( string $raw ): ?string {
 		$p = trim( $raw );
@@ -18,22 +20,36 @@ class Neo_Pulse_Wp_Redirects_Csv {
 		if ( $p === '' ) {
 			return null;
 		}
+		$query = '';
 		if ( preg_match( '#^https?://#i', $p ) ) {
 			$parts = wp_parse_url( $p );
 			if ( ! is_array( $parts ) || empty( $parts['path'] ) ) {
 				return null;
 			}
 			$p = (string) $parts['path'];
+			if ( isset( $parts['query'] ) && '' !== $parts['query'] ) {
+				$query = (string) $parts['query'];
+			}
+		} else {
+			$hash = strpos( $p, '#' );
+			if ( false !== $hash ) {
+				$p = substr( $p, 0, $hash );
+			}
+			$q = strpos( $p, '?' );
+			if ( false !== $q ) {
+				$query = substr( $p, $q + 1 );
+				$p     = substr( $p, 0, $q );
+			}
 		}
 		$p = ltrim( $p, '/' );
-		$p = strtolower( preg_replace( '#/+#', '/', $p ) );
-		if ( $p === '' ) {
-			return null;
-		}
-		if ( substr( $p, -1 ) !== '/' ) {
+		$p = strtolower( (string) preg_replace( '#/+#', '/', $p ) );
+		if ( $p !== '' && substr( $p, -1 ) !== '/' ) {
 			$p .= '/';
 		}
-		return $p;
+		if ( '' !== $query ) {
+			$p .= '?' . strtolower( $query );
+		}
+		return $p === '' ? null : $p;
 	}
 
 	/**
@@ -72,11 +88,10 @@ class Neo_Pulse_Wp_Redirects_Csv {
 			if ( ! is_array( $parts ) || empty( $parts['host'] ) ) {
 				return null;
 			}
-			$path = isset( $parts['path'] ) ? (string) $parts['path'] : '/';
-			$path = preg_replace( '#/+#', '/', $path );
-			if ( $path !== '/' && substr( $path, -1 ) !== '/' ) {
-				$path .= '/';
-			}
+			// Absolute URLs are used as written (no forced trailing slash, so
+			// file URLs such as /doc.pdf on other hosts keep working).
+			$path = isset( $parts['path'] ) && '' !== $parts['path'] ? (string) $parts['path'] : '/';
+			$path = (string) preg_replace( '#/+#', '/', $path );
 			$scheme = isset( $parts['scheme'] ) ? $parts['scheme'] : 'https';
 			$host   = $parts['host'];
 			$port   = isset( $parts['port'] ) ? ':' . $parts['port'] : '';
@@ -144,43 +159,40 @@ class Neo_Pulse_Wp_Redirects_Csv {
 
 			$source_raw = self::pick_column( $row, array( 'source', 'rank_math_source', 'old_url' ) );
 			$dest_raw   = self::pick_column( $row, array( 'destination', 'rank_math_destination', 'new_url' ) );
-			if ( $source_raw === '' || $dest_raw === '' ) {
+			$type       = (int) self::pick_column( $row, array( 'type' ) );
+			if ( ! in_array( $type, Neo_Pulse_Wp_Redirects::STATUS_CODES, true ) ) {
+				$type = 301;
+			}
+			$is_gone = in_array( $type, Neo_Pulse_Wp_Redirects::GONE_CODES, true );
+			if ( $source_raw === '' || ( $dest_raw === '' && ! $is_gone ) ) {
 				continue;
 			}
 
-			$source = self::normalize_relative_path( $source_raw );
+			$matching = Neo_Pulse_Wp_Redirects::normalize_matching( self::pick_column( $row, array( 'matching' ) ) );
+			$source   = Neo_Pulse_Wp_Redirects::normalize_source( $source_raw, $matching );
 			if ( ! $source ) {
 				continue;
 			}
 
-			$dest_trimmed = trim( $dest_raw );
-			if ( ! self::destination_path_key( $dest_trimmed ) ) {
+			$dest_trimmed = $is_gone ? '' : trim( $dest_raw );
+			if ( ! $is_gone && ! self::destination_path_key( $dest_trimmed ) ) {
 				continue;
 			}
-			if ( self::source_equals_destination( $source, $dest_trimmed ) ) {
+			if ( ! $is_gone && 'exact' === $matching && self::source_equals_destination( $source, $dest_trimmed ) ) {
 				continue;
-			}
-
-			$matching = self::pick_column( $row, array( 'matching' ) );
-			if ( $matching === '' ) {
-				$matching = 'exact';
-			}
-			$type = self::pick_column( $row, array( 'type' ) );
-			if ( $type === '' ) {
-				$type = '301';
 			}
 			$category = self::pick_column( $row, array( 'category' ) );
 			if ( $category === '' ) {
 				$category = __( 'Uncategorized', 'neo-pulse-wp' );
 			}
 			$ignore_raw = strtolower( self::pick_column( $row, array( 'ignore' ) ) );
-			$ignore     = in_array( $ignore_raw, array( '1', 'yes', 'true' ), true ) ? 1 : 0;
+			$ignore     = in_array( $ignore_raw, array( '1', 'yes', 'true', 'case' ), true ) ? 1 : 0;
 
 			$out[] = array(
 				'source'      => $source,
-				'matching'    => sanitize_key( $matching ),
+				'matching'    => $matching,
 				'destination' => $dest_trimmed,
-				'type'        => in_array( (int) $type, array( 301, 302 ), true ) ? (int) $type : 301,
+				'type'        => $type,
 				'category'    => sanitize_text_field( $category ),
 				'status'      => 'active',
 				'ignore'      => $ignore,
@@ -205,17 +217,16 @@ class Neo_Pulse_Wp_Redirects_Csv {
 		$lines  = array( $header );
 		$i      = 1;
 		foreach ( $rows as $row ) {
-			$lines[] = implode(
-				',',
+			$lines[] = Neo_Pulse_Wp_Csv::row(
 				array(
-					self::csv_quote( (string) $i ),
-					self::csv_quote( isset( $row['source'] ) ? (string) $row['source'] : '' ),
-					self::csv_quote( isset( $row['matching'] ) ? (string) $row['matching'] : 'exact' ),
-					self::csv_quote( isset( $row['destination'] ) ? (string) $row['destination'] : '' ),
-					self::csv_quote( isset( $row['type'] ) ? (string) $row['type'] : '301' ),
-					self::csv_quote( isset( $row['category'] ) ? (string) $row['category'] : '' ),
-					self::csv_quote( isset( $row['status'] ) && 'inactive' === $row['status'] ? 'inactive' : 'active' ),
-					self::csv_quote( ! empty( $row['ignore'] ) ? '1' : '' ),
+					(string) $i,
+					isset( $row['source'] ) ? (string) $row['source'] : '',
+					isset( $row['matching'] ) ? (string) $row['matching'] : 'exact',
+					isset( $row['destination'] ) ? (string) $row['destination'] : '',
+					isset( $row['type'] ) ? (string) $row['type'] : '301',
+					isset( $row['category'] ) ? (string) $row['category'] : '',
+					isset( $row['status'] ) && 'inactive' === $row['status'] ? 'inactive' : 'active',
+					! empty( $row['ignore'] ) ? '1' : '',
 				)
 			);
 			++$i;
@@ -275,9 +286,5 @@ class Neo_Pulse_Wp_Redirects_Csv {
 	private static function source_equals_destination( string $source, string $destination ): bool {
 		$dest_key = self::destination_path_key( $destination );
 		return $dest_key !== null && $source === $dest_key;
-	}
-
-	private static function csv_quote( string $value ): string {
-		return '"' . str_replace( '"', '""', $value ) . '"';
 	}
 }

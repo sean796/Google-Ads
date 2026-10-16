@@ -1,6 +1,6 @@
 <?php
 /**
- * REST routes: public ping + authenticated post content for NEO Pulse server.
+ * REST routes: authenticated post content for NEO Pulse server.
  *
  * @package Neo_Pulse_Wp
  */
@@ -25,16 +25,6 @@ class Neo_Pulse_Wp_Rest {
 	public static function register_routes(): void {
 		register_rest_route(
 			'neo-pulse/v1',
-			'/ping',
-			array(
-				'methods'             => 'GET',
-				'callback'            => array( __CLASS__, 'ping' ),
-				'permission_callback' => '__return_true',
-			)
-		);
-
-		register_rest_route(
-			'neo-pulse/v1',
 			'/post-content/(?P<id>\d+)',
 			array(
 				'methods'             => 'GET',
@@ -48,93 +38,6 @@ class Neo_Pulse_Wp_Rest {
 				),
 			)
 		);
-
-		register_rest_route(
-			'neo-pulse/v1',
-			'/theme-functions-php',
-			array(
-				array(
-					'methods'             => 'GET',
-					'callback'            => array( __CLASS__, 'get_theme_functions_php' ),
-					'permission_callback' => array( __CLASS__, 'theme_functions_permission_check' ),
-				),
-				array(
-					'methods'             => 'PUT',
-					'callback'            => array( __CLASS__, 'put_theme_functions_php' ),
-					'permission_callback' => array( __CLASS__, 'theme_functions_permission_check' ),
-				),
-			)
-		);
-	}
-
-	/**
-	 * Require edit_themes for active theme functions.php read/write.
-	 *
-	 * @return bool|\WP_Error
-	 */
-	public static function theme_functions_permission_check() {
-		if ( ! is_user_logged_in() ) {
-			return new \WP_Error(
-				'rest_not_logged_in',
-				__( 'Authentication required.', 'neo-pulse-wp' ),
-				array( 'status' => 401 )
-			);
-		}
-
-		if ( ! current_user_can( 'edit_themes' ) ) {
-			return new \WP_Error(
-				'rest_forbidden',
-				__( 'edit_themes capability is required to read or write functions.php.', 'neo-pulse-wp' ),
-				array( 'status' => 403 )
-			);
-		}
-
-		return true;
-	}
-
-	/**
-	 * @return \WP_REST_Response|\WP_Error
-	 */
-	public static function get_theme_functions_php() {
-		$result = Neo_Pulse_Wp_Tools_Handlers::wp_theme_functions_get( array() );
-		if ( is_wp_error( $result ) ) {
-			$data   = $result->get_error_data();
-			$status = is_array( $data ) && isset( $data['status'] ) ? (int) $data['status'] : 400;
-			return new \WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => $status ) );
-		}
-		return new \WP_REST_Response( $result, 200 );
-	}
-
-	/**
-	 * @param \WP_REST_Request $request Request.
-	 * @return \WP_REST_Response|\WP_Error
-	 */
-	public static function put_theme_functions_php( $request ) {
-		$body = $request->get_json_params();
-		if ( ! is_array( $body ) ) {
-			$body = array();
-		}
-
-		$params = array(
-			'content' => isset( $body['content'] ) ? (string) $body['content'] : '',
-			'confirm' => ! empty( $body['confirm'] ),
-		);
-
-		if ( $params['confirm'] !== true ) {
-			return new \WP_Error(
-				'neo-pulse_confirm_required',
-				__( 'confirm: true is required to write functions.php.', 'neo-pulse-wp' ),
-				array( 'status' => 400 )
-			);
-		}
-
-		$result = Neo_Pulse_Wp_Tools_Handlers::wp_theme_functions_put( $params );
-		if ( is_wp_error( $result ) ) {
-			$data   = $result->get_error_data();
-			$status = is_array( $data ) && isset( $data['status'] ) ? (int) $data['status'] : 400;
-			return new \WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => $status ) );
-		}
-		return new \WP_REST_Response( $result, 200 );
 	}
 
 	/**
@@ -174,10 +77,14 @@ class Neo_Pulse_Wp_Rest {
 
 	/**
 	 * Rendered post body as HTML (same path as neo-pulse/v1/post-content).
+	 * Password-protected posts return '' unless the current user can edit the post.
 	 */
 	public static function get_rendered_content_html( int $post_id ): string {
 		$post_obj = get_post( $post_id );
 		if ( ! $post_obj instanceof \WP_Post ) {
+			return '';
+		}
+		if ( (string) $post_obj->post_password !== '' && ! current_user_can( 'edit_post', $post_id ) ) {
 			return '';
 		}
 
@@ -198,6 +105,7 @@ class Neo_Pulse_Wp_Rest {
 
 	/**
 	 * Rendered post body as plain text (same path as neo-pulse/v1/post-content).
+	 * Password-protected posts return '' unless the current user can edit the post (via get_rendered_content_html()).
 	 */
 	public static function get_rendered_content_plain( int $post_id ): string {
 		$content_html = self::get_rendered_content_html( $post_id );
@@ -223,6 +131,17 @@ class Neo_Pulse_Wp_Rest {
 				'rest_post_invalid_id',
 				__( 'Post not found.', 'neo-pulse-wp' ),
 				array( 'status' => 404 )
+			);
+		}
+
+		// Also enforced here for internal callers that bypass the route permission callback
+		// (e.g. the wp_get_post_content tool): unpublished / password-protected content is
+		// only returned to users who can edit the post.
+		if ( ! current_user_can( 'edit_post', $id ) ) {
+			return new \WP_Error(
+				'rest_forbidden',
+				__( 'You do not have permission to access this post.', 'neo-pulse-wp' ),
+				array( 'status' => 403 )
 			);
 		}
 
@@ -269,21 +188,5 @@ class Neo_Pulse_Wp_Rest {
 		);
 
 		return new \WP_REST_Response( $data, 200 );
-	}
-
-	/**
-	 * Ping response.
-	 *
-	 * @return \WP_REST_Response
-	 */
-	public static function ping(): \WP_REST_Response {
-		return new \WP_REST_Response(
-			array(
-				'ok'      => true,
-				'name'    => 'NEO Pulse WP',
-				'version' => NEO_PULSE_WP_VERSION,
-			),
-			200
-		);
 	}
 }

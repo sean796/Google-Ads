@@ -16,7 +16,11 @@ class Neo_Pulse_Wp_Robots_Txt {
 	}
 
 	public static function get_content(): string {
-		$raw = get_option( self::OPTION_KEY, array() );
+		$raw = get_option( self::OPTION_KEY, null );
+		if ( null === $raw ) {
+			// Never edited in Neo Pulse: keep serving the robots.txt the site set in Rank Math, if any.
+			return class_exists( 'Neo_Pulse_Wp_Seo_Takeover', false ) ? self::sanitize_content( Neo_Pulse_Wp_Seo_Takeover::rank_math_robots_txt() ) : '';
+		}
 		if ( is_string( $raw ) ) {
 			return self::sanitize_content( $raw );
 		}
@@ -77,16 +81,25 @@ class Neo_Pulse_Wp_Robots_Txt {
 		return $content . "\n" . $line;
 	}
 
-	public static function filter_robots_txt( string $output, bool $public ): string {
+	/**
+	 * @param mixed $output Robots text from WordPress.
+	 * @param mixed $public Whether the site is public ("blog_public").
+	 * @return string
+	 */
+	public static function filter_robots_txt( $output, $public ): string {
 		unset( $output );
+		$public  = (bool) $public;
+		$own     = null !== get_option( self::OPTION_KEY, null );
 		$content = self::get_content();
-		if ( $content === '' ) {
+		if ( $content === '' || ( ! $own && ! $public ) ) {
+			// Nothing saved, or a site set to "Discourage search engines" still on Rank Math's text.
 			return self::default_content( $public );
 		}
 		if ( ! $public ) {
 			return $content;
 		}
-		return self::with_sitemap_line( self::with_ai_bot_allows( $content ) );
+		// Rank Math's text is served as written (any AI crawler rules kept); only the sitemap is added.
+		return $own ? self::with_sitemap_line( self::with_ai_bot_allows( $content ) ) : self::with_sitemap_line( $content );
 	}
 
 	/**
@@ -110,31 +123,65 @@ class Neo_Pulse_Wp_Robots_Txt {
 	/**
 	 * Same crawl blocks as User-agent: *, including noindexed Elementor e-page URLs.
 	 *
+	 * Paginated archives (/page/N/) and /wp-json/ stay crawlable: blocking pages hides the posts
+	 * linked from them, and Google needs the REST API to render block and Elementor content.
+	 * Only the default text uses this list; texts saved on the settings screen are left as they are.
+	 *
 	 * @return array<int, string>
 	 */
 	public static function shared_disallow_lines(): array {
 		return array(
 			'Disallow: /wp-admin/',
 			'Allow: /wp-admin/admin-ajax.php',
-			'Disallow: /wp-json/',
 			'Disallow: /feed/',
 			'Disallow: /*/feed/',
 			'Disallow: /search/',
 			'Disallow: /?s=',
 			'Disallow: /author/',
 			'Disallow: /tag/',
-			'Disallow: /page/',
-			'Disallow: /*/page/',
 			'Disallow: /*?*e-page-',
 		);
 	}
 
-	public static function ai_bot_allows_block(): string {
+	/**
+	 * Allow/Disallow lines of the "User-agent: *" group in a robots text ([] when there is none).
+	 *
+	 * @return array<int, string>
+	 */
+	public static function star_group_rules( string $content ): array {
+		$rules   = array();
+		$agents  = array();
+		$reading = false; // Inside a run of User-agent lines (they share one group).
+		$is_star = false;
+		foreach ( explode( "\n", self::sanitize_content( $content ) ) as $line ) {
+			$line = trim( $line );
+			if ( preg_match( '/^User-agent:\s*(.+)$/i', $line, $m ) ) {
+				if ( ! $reading ) {
+					$agents  = array();
+					$reading = true;
+				}
+				$agents[] = trim( $m[1] );
+				$is_star  = in_array( '*', $agents, true );
+				continue;
+			}
+			$reading = false;
+			if ( $is_star && preg_match( '/^(Allow|Disallow):/i', $line ) ) {
+				$rules[] = $line;
+			}
+		}
+		return $rules;
+	}
+
+	/**
+	 * @param array<int, string>|null $rules Rules to repeat for each AI crawler (default: shared list).
+	 */
+	public static function ai_bot_allows_block( ?array $rules = null ): string {
+		$rules = null === $rules ? self::shared_disallow_lines() : $rules;
 		$lines = array();
 		foreach ( self::ai_bot_user_agents() as $bot ) {
 			$lines[] = 'User-agent: ' . $bot;
 			$lines[] = 'Allow: /';
-			foreach ( self::shared_disallow_lines() as $rule ) {
+			foreach ( $rules as $rule ) {
 				$lines[] = $rule;
 			}
 			$lines[] = '';
@@ -144,7 +191,9 @@ class Neo_Pulse_Wp_Robots_Txt {
 
 	public static function with_ai_bot_allows( string $content ): string {
 		$content = rtrim( self::strip_ai_bot_groups( $content ) );
-		$block   = self::ai_bot_allows_block();
+		// AI crawlers get the same blocks as the saved "User-agent: *" group.
+		$star    = self::star_group_rules( $content );
+		$block   = self::ai_bot_allows_block( $star !== array() ? $star : null );
 		if ( $content === '' ) {
 			return $block;
 		}

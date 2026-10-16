@@ -6,6 +6,24 @@ import {
 } from "@/lib/organic-dashboard/organic-client-report-deck-session";
 
 const storage = new Map<string, string>();
+const sessionMap = new Map<string, string>();
+
+function makeMockStorage(backing: Map<string, string>): Storage {
+  return {
+    getItem: (key: string) => backing.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      backing.set(key, value);
+    },
+    removeItem: (key: string) => {
+      backing.delete(key);
+    },
+    clear: () => backing.clear(),
+    key: (index: number) => Array.from(backing.keys())[index] ?? null,
+    get length() {
+      return backing.size;
+    },
+  };
+}
 
 const payload: OrganicClientReportDeckPayload = {
   siteId: "wp-1",
@@ -43,18 +61,9 @@ const payload: OrganicClientReportDeckPayload = {
 describe("organic client report deck session", () => {
   beforeEach(() => {
     storage.clear();
-    vi.stubGlobal("localStorage", {
-      getItem: (key: string) => storage.get(key) ?? null,
-      setItem: (key: string, value: string) => {
-        storage.set(key, value);
-      },
-      removeItem: (key: string) => {
-        storage.delete(key);
-      },
-      clear: () => storage.clear(),
-      key: () => null,
-      length: 0,
-    });
+    sessionMap.clear();
+    vi.stubGlobal("localStorage", makeMockStorage(storage));
+    vi.stubGlobal("sessionStorage", makeMockStorage(sessionMap));
   });
 
   afterEach(() => {
@@ -90,5 +99,25 @@ describe("organic client report deck session", () => {
     const read = readOrganicClientReportDeckSession("deck-stale", "wp-1");
     expect(read?.viewModel.semrushKeywords).toEqual([]);
     expect(read?.viewModel.hasSemrush).toBe(false);
+  });
+
+  it("evicts ephemeral cache keys and never throws when localStorage hits QuotaExceededError", () => {
+    storage.set("neo-pulse-site-prefetch:v1:wp-1:abc", "x".repeat(1000));
+    let attempts = 0;
+    const quotaLocalStorage: Storage = {
+      ...makeMockStorage(storage),
+      setItem: (key: string, value: string) => {
+        attempts += 1;
+        if (attempts === 1) {
+          throw new DOMException("QuotaExceededError", "QuotaExceededError");
+        }
+        storage.set(key, value);
+      },
+    };
+    vi.stubGlobal("localStorage", quotaLocalStorage);
+
+    expect(() => writeOrganicClientReportDeckSession("deck-quota", payload)).not.toThrow();
+    expect(storage.has("neo-pulse-site-prefetch:v1:wp-1:abc")).toBe(false);
+    expect(readOrganicClientReportDeckSession("deck-quota", "wp-1")).toEqual(payload);
   });
 });

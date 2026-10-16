@@ -203,6 +203,7 @@ describe("resolveBulkRowPipelineTitles", () => {
       "Overview",
       "Post content",
       "Content Markdown",
+      "Implementation report",
       "WordPress upload",
     ]);
   });

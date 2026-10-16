@@ -1,58 +1,20 @@
 /**
- * NEO Pulse WP — Lato + 1rem minimum on all admin copy.
- * Loaded last; does not resize dashicons or screen-reader text.
+ * NEO Pulse WP — one typeface on all admin copy: Poppins (bundled as "NPWP Poppins"), like Neo Tools.
+ * Sizes are left to the components (Neo Tools scale: 11-12px labels, 13px descriptions,
+ * 14px body and inputs, 15px card titles, 22px header). Does not touch dashicons or
+ * screen-reader text.
  */
 
-body.neo-pulse-wp-admin-screen #wpbody-content,
-body.neo-pulse-wp-admin-screen .neo-pulse-fields-admin,
-body.neo-pulse-wp-admin-screen .neo-pulse-fields-root,
-.neo-pulse-fields-root,
-.neo-pulse-fields-admin {
-	font-family: var(--fc-font, 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
-	font-size: 1rem;
+body.neo-pulse-wp-admin-screen #wpbody-content {
+	font-family: var(--fc-font, "NPWP Poppins", Poppins, system-ui, sans-serif);
 }
 
 body.neo-pulse-wp-admin-screen #wpbody-content :where(
-	p, span, a, li, td, th, label, dt, dd, figcaption, small, strong, em, code, pre,
+	p, span, a, li, td, th, label, dt, dd, figcaption, small, strong, em,
 	input, textarea, select, option, button,
 	.description, .form-table, .subsubsub, .tablenav, .row-actions, .search-box,
 	.button, .page-title-action, .button-link, .button-link-delete,
-	.neo-pulse-wp-panel-nav, .neo-pulse-wp-panel-nav__heading, .neo-pulse-wp-panel-nav__item,
-	.neo-pulse-wp-panel-content__desc, .neo-pulse-wp-panel-info-box, .neo-pulse-wp-panel-toggle__label,
-	.neo-pulse-fields-acf-field, .neo-pulse-fields-acf-field label, .neo-pulse-fields-acf-field .description,
-	.neo-pulse-fields-acf-toggle__copy, .neo-pulse-fields-acf-toggle__copy strong, .neo-pulse-fields-acf-toggle__copy p,
-	.neo-pulse-fields-acf-checklist__text, .neo-pulse-fields-acf-checklist__slug,
-	.neo-pulse-fields-acf-pt-tab, .neo-pulse-fields-acf-supports-item, .neo-pulse-fields-acf-pt-card,
-	.neo-pulse-image-seo-field label, .neo-pulse-image-seo-badge, .neo-pulse-image-seo-diff-row,
-	.neo-pulse-wp-dashboard-tile__title, .neo-pulse-wp-dashboard-tile__desc, .neo-pulse-wp-dashboard-tile__badge,
-	.fba-page, .fba-page .fba-user, .fba-page .fba-card, .fba-page .fba-chip, .fba-page .fba-input,
-	.fba-page .fba-sidebar-btn, .fba-page .fba-sidebar-item, .fba-page .fba-pill, .fba-page .fba-action-chip,
-	.fba-page .fba-workflow-step, .fba-page .fba-card-badge, .fba-page .fba-card-title, .fba-page .fba-card-body,
-	.neo-pulse-wp-agent-hub, .neo-pulse-wp-agent-hub .wp-list-table,
-	.neo-pulse-agent-hub-modal, .neo-pulse-agent-hub-modal .neo-pulse-builder-main,
-	.neo-pulse-agent-hub-modal .neo-pulse-builder-preview,
-	.notice, .notice p, .wp-list-table, .widefat, .acf-label, .acf-input
-):not(.dashicons):not(.screen-reader-text) {
-	font-family: var(--fc-font, 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif) !important;
-	font-size: 1rem !important;
-}
-
-body.neo-pulse-wp-admin-screen #wpbody-content :where(h1, h2, h3),
-.neo-pulse-fields-root :where(h1, h2, h3, h4, h5, h6),
-.neo-pulse-fields-admin :where(h1, h2, h3, h4, h5, h6) {
-	font-family: var(--fc-font, 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif) !important;
-}
-
-.neo-pulse-fields-root :where(
-	p, span, a, li, label, input, textarea, select, button, .description, .acf-label label
-):not(.dashicons):not(.screen-reader-text) {
-	font-family: var(--fc-font, 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif) !important;
-	font-size: 1rem !important;
-}
-
-.neo-pulse-wp-app--dashboard .neo-pulse-wp-progress-strip__label,
-.neo-pulse-wp-app--dashboard .neo-pulse-wp-dashboard-overview__fact-label,
-.neo-pulse-wp-app--dashboard .neo-pulse-wp-dashboard__section-title {
-	font-size: 0.6875rem !important;
-	line-height: 1.2 !important;
+	.notice, .notice p, .wp-list-table, .widefat, h1, h2, h3, h4
+):not(.dashicons):not([class*="dashicons-"]):not(.screen-reader-text):not(code):not(pre):not(.code) {
+	font-family: var(--fc-font, "NPWP Poppins", Poppins, system-ui, sans-serif) !important;
 }

@@ -21,6 +21,13 @@ class Neo_Pulse_Wp_Backend_Assist_Tools_Wp {
 			$status = 'draft';
 		}
 
+		if ( ! self::user_can_create_in_type( 'page' ) ) {
+			return array( 'success' => false, 'error' => __( 'You do not have permission to create pages.', 'neo-pulse-wp' ) );
+		}
+		if ( ! self::user_can_set_status( 'page', $status ) ) {
+			return array( 'success' => false, 'error' => __( 'You do not have permission to publish pages. Create it as a draft instead.', 'neo-pulse-wp' ) );
+		}
+
 		$post_id = wp_insert_post(
 			array(
 				'post_type'   => 'page',
@@ -71,6 +78,13 @@ class Neo_Pulse_Wp_Backend_Assist_Tools_Wp {
 			}
 		}
 
+		if ( ! self::user_can_create_in_type( $post_type ) ) {
+			return array( 'success' => false, 'error' => __( 'You do not have permission to create content of this type.', 'neo-pulse-wp' ) );
+		}
+		if ( ! self::user_can_set_status( $post_type, $status ) ) {
+			return array( 'success' => false, 'error' => __( 'You do not have permission to publish this content type. Create it as a draft instead.', 'neo-pulse-wp' ) );
+		}
+
 		$post_data = array(
 			'post_type'   => $post_type,
 			'post_title'  => $title,
@@ -84,7 +98,7 @@ class Neo_Pulse_Wp_Backend_Assist_Tools_Wp {
 				$term = get_term_by( 'name', sanitize_text_field( $cat_name ), 'category' );
 				if ( $term ) {
 					$cat_ids[] = (int) $term->term_id;
-				} else {
+				} elseif ( current_user_can( 'manage_categories' ) ) {
 					$new_term = wp_insert_term( sanitize_text_field( $cat_name ), 'category' );
 					if ( ! is_wp_error( $new_term ) ) {
 						$cat_ids[] = (int) $new_term['term_id'];
@@ -121,12 +135,13 @@ class Neo_Pulse_Wp_Backend_Assist_Tools_Wp {
 	public static function tool_list_posts( array $params ): array {
 		$post_type = isset( $params['post_type'] ) ? sanitize_text_field( $params['post_type'] ) : 'any';
 		$count     = isset( $params['count'] ) ? min( absint( $params['count'] ), 50 ) : 10;
+		$count     = max( 1, $count );
 		$status    = isset( $params['status'] ) ? sanitize_text_field( $params['status'] ) : 'any';
 
 		Neo_Pulse_Wp_Site_Inventory::warm( true );
 		$filters = array(
 			'include_drafts' => true,
-			'limit'          => $count,
+			'limit'          => 500, // Filtered by capability below, then capped at $count.
 		);
 		if ( $post_type !== 'any' ) {
 			$filters['post_type'] = sanitize_key( $post_type );
@@ -144,8 +159,22 @@ class Neo_Pulse_Wp_Backend_Assist_Tools_Wp {
 			$total_available = (int) $by_type[ sanitize_key( $post_type ) ];
 		}
 
+		$can_edit_others = current_user_can( 'edit_others_posts' );
 		foreach ( $items as $item ) {
-			$post_id = (int) ( $item['id'] ?? 0 );
+			if ( count( $result ) >= $count ) {
+				break;
+			}
+			$post_id     = (int) ( $item['id'] ?? 0 );
+			$item_status = (string) ( $item['status'] ?? 'publish' );
+			if ( $item_status !== 'publish' ) {
+				// Drafts/private: editors see all; other users only their own editable items.
+				if ( $post_id < 1 || ! current_user_can( 'edit_post', $post_id ) ) {
+					continue;
+				}
+				if ( ! $can_edit_others && (int) get_post_field( 'post_author', $post_id ) !== get_current_user_id() ) {
+					continue;
+				}
+			}
 			$result[] = array(
 				'id'       => $post_id,
 				'title'    => (string) ( $item['title'] ?? '' ),
@@ -182,7 +211,7 @@ class Neo_Pulse_Wp_Backend_Assist_Tools_Wp {
 			return array( 'success' => false, 'error' => 'Provide a post_id or title to search.' );
 		}
 
-		if ( ! $post ) {
+		if ( ! $post || ! self::user_can_view_post( $post ) ) {
 			return array( 'success' => false, 'error' => 'Post not found.' );
 		}
 
@@ -423,6 +452,10 @@ class Neo_Pulse_Wp_Backend_Assist_Tools_Wp {
 			return array( 'success' => false, 'error' => 'Could not find the target page/post. Provide a valid post_id or title.' );
 		}
 
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return array( 'success' => false, 'error' => __( 'You do not have permission to edit this post.', 'neo-pulse-wp' ) );
+		}
+
 		if ( $content === '' ) {
 			return array( 'success' => false, 'error' => 'Content to add is required.' );
 		}
@@ -610,6 +643,9 @@ class Neo_Pulse_Wp_Backend_Assist_Tools_Wp {
 		if ( isset( $params['status'] ) && trim( (string) $params['status'] ) !== '' ) {
 			$status = sanitize_key( (string) $params['status'] );
 			if ( in_array( $status, array( 'draft', 'publish', 'private', 'pending', 'future' ), true ) && $status !== $post->post_status ) {
+				if ( ! self::user_can_set_status( $post->post_type, $status ) ) {
+					return array( 'success' => false, 'error' => __( 'You do not have permission to publish this content.', 'neo-pulse-wp' ) );
+				}
 				$update['post_status'] = $status;
 				$changed_fields[]      = 'status';
 			}
@@ -704,7 +740,7 @@ class Neo_Pulse_Wp_Backend_Assist_Tools_Wp {
 		return is_array( $rev ) && ! empty( $rev['content'] );
 	}
 
-	private static function snapshot_agent_revision( int $post_id ): void {
+	public static function snapshot_agent_revision( int $post_id ): void {
 		if ( $post_id < 1 ) {
 			return;
 		}
@@ -724,6 +760,42 @@ class Neo_Pulse_Wp_Backend_Assist_Tools_Wp {
 				'saved_at' => gmdate( 'c' ),
 			)
 		);
+	}
+
+	/**
+	 * Current user may create items of a public post type.
+	 */
+	private static function user_can_create_in_type( string $post_type ): bool {
+		$obj = get_post_type_object( $post_type );
+		if ( ! $obj || empty( $obj->public ) ) {
+			return false;
+		}
+		return current_user_can( $obj->cap->create_posts ) && current_user_can( $obj->cap->edit_posts );
+	}
+
+	/**
+	 * Current user may set this status on an item of the given post type
+	 * (publish / private / future need the type's publish capability).
+	 */
+	public static function user_can_set_status( string $post_type, string $status ): bool {
+		$obj = get_post_type_object( $post_type );
+		if ( ! $obj ) {
+			return false;
+		}
+		if ( in_array( $status, array( 'publish', 'private', 'future' ), true ) ) {
+			return current_user_can( $obj->cap->publish_posts );
+		}
+		return true;
+	}
+
+	/**
+	 * Published, non-password posts need read_post; anything else needs edit_post.
+	 */
+	private static function user_can_view_post( WP_Post $post ): bool {
+		if ( $post->post_status === 'publish' && $post->post_password === '' ) {
+			return current_user_can( 'read_post', $post->ID );
+		}
+		return current_user_can( 'edit_post', $post->ID );
 	}
 
 	public static function resolve_post_by_title( string $title ): int {

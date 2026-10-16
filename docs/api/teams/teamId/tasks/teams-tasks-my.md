@@ -5,7 +5,7 @@ section: Teams
 method: GET
 path: /api/teams/{teamId}/tasks/my
 auth: session-team
-order: 1890
+order: 1900
 ---
 
 GET `/api/teams/{teamId}/tasks/my`.

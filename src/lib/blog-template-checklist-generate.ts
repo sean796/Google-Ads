@@ -1,5 +1,5 @@
 import { streamChatCompletion, loadApiKey } from "./api";
-import { postOpenRouterAppChat } from "@/lib/openrouter-app-api";
+import { postOpenRouterAppChat, postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
 import { clampOpenRouterMaxTokens } from "@/lib/openrouter-stream-chat-core";
 import type { KeywordData, BlogTemplateChecklist, PeopleAlsoAsk } from "./keyword-types";
 import type { AgentConfig } from "@/types/agent-config";
@@ -169,11 +169,11 @@ Return a JSON object with this exact format:
 The questions array should contain the question texts in order from best to least best, maximum 10 questions.
 DO NOT include explanations, numbering, or any other text. ONLY return the JSON object.`;
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const response = await postOpenRouterAppChatFetch({
       method: "POST",
       headers: openRouterWebAppHeaders(apiKey),
       body: JSON.stringify({
-        model: model || "google/gemini-2.0-flash-exp",
+        model: model || getResearchModel(),
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -363,7 +363,7 @@ export async function generateChecklistFromSelections(
     apiKey,
     model = getResearchModel(),
     temperature = 1.0,
-    maxTokens = 4000,
+    maxTokens = 16000,
     topP = 0.9,
   } = options;
 

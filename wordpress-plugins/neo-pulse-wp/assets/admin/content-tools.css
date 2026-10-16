@@ -1,8 +1,3 @@
-.neo-pulse-content-tools-duplicate .button {
-	width: 100%;
-	text-align: center;
-}
-
 /* Column exists for bulk edit hook only; keep it off the list table. */
 .wp-list-table .column-neo-pulse_content_type {
 	display: none;

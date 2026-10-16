@@ -293,7 +293,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Chat_Logs {
 			<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=neo-pulse-wp-chat-logs' ) ); ?>">&larr; <?php esc_html_e( 'Back to list', 'neo-pulse-wp' ); ?></a></p>
 
 			<?php if ( ! $key_ok ) : ?>
-				<div class="notice notice-warning">
+				<div class="notice inline notice-warning">
 					<p><?php esc_html_e( 'Add an OpenRouter API key in NEO Pulse WP Settings (agency key or wp-config). Analysis uses your site key only, not NEO Pulse cloud.', 'neo-pulse-wp' ); ?></p>
 				</div>
 			<?php endif; ?>

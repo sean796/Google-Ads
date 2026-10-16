@@ -98,8 +98,8 @@ function ExportKpiStrip({ stats }: { stats: DeckHighlightStat[] }) {
   if (stats.length === 0) return null;
   return (
     <ul className={EXPORT_KPI_LIST_CLASS}>
-      {stats.map((stat) => (
-        <li key={stat.label} className={cn(EXPORT_KPI_ITEM_CLASS, kpiAccentClass(stat.accent))}>
+      {stats.map((stat, idx) => (
+        <li key={`${stat.label}-${idx}`} className={cn(EXPORT_KPI_ITEM_CLASS, kpiAccentClass(stat.accent))}>
           <p className={EXPORT_LABEL_CLASS}>{stat.label}</p>
           <p className="organic-client-report-export__kpi-value tabular-nums">{stat.value}</p>
           <ExportDelta delta={stat.delta} />
@@ -126,39 +126,40 @@ function ExportMetricStack({
   return (
     <div className="organic-client-report-export__metric-stack">
       <h3 className={EXPORT_H3_CLASS}>{groupTitle}</h3>
-      {showCompare ? (
-        <table className={EXPORT_METRIC_TABLE_CLASS}>
-          <thead>
-            <tr>
-              <th scope="col">Metric</th>
-              <th scope="col">{comparePeriodLabel}</th>
-              <th scope="col">Change</th>
+      <table className={EXPORT_METRIC_TABLE_CLASS}>
+        <thead>
+          <tr>
+            <th scope="col">Metric</th>
+            {showCompare ? (
+              <>
+                <th scope="col">{comparePeriodLabel}</th>
+                <th scope="col">Change</th>
+                <th scope="col">{primaryPeriodLabel}</th>
+              </>
+            ) : (
               <th scope="col">{primaryPeriodLabel}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.label}>
-                <td>{row.label}</td>
-                <td className="tabular-nums">{row.earlier}</td>
-                <td>
-                  <ExportDelta delta={row.delta} />
-                </td>
+            )}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, idx) => (
+            <tr key={`${row.label}-${idx}`}>
+              <td>{row.label}</td>
+              {showCompare ? (
+                <>
+                  <td className="tabular-nums">{row.earlier}</td>
+                  <td>
+                    <ExportDelta delta={row.delta} />
+                  </td>
+                  <td className="tabular-nums font-semibold">{row.later}</td>
+                </>
+              ) : (
                 <td className="tabular-nums font-semibold">{row.later}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <ul className="m-0 list-none p-0">
-          {rows.map((row) => (
-            <li key={row.label} className="mt-2">
-              <span className={EXPORT_H4_CLASS}>{row.label}: </span>
-              <span className="tabular-nums">{row.later}</span>
-            </li>
+              )}
+            </tr>
           ))}
-        </ul>
-      )}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -188,8 +189,8 @@ function ExportOpportunityTable({
         </tr>
       </thead>
       <tbody>
-        {rows.map((row) => (
-          <tr key={`${row.metric}-${row.comparePeriodValue}`}>
+        {rows.map((row, idx) => (
+          <tr key={`${row.metric}-${row.comparePeriodValue}-${idx}`}>
             <td>{row.metric}</td>
             <td className="tabular-nums">{row.comparePeriodValue}</td>
             <td className="tabular-nums font-semibold">{row.primaryPeriodValue}</td>
@@ -214,7 +215,7 @@ function ExportKeywordList({
       {queries.map((q, i) => {
         const wPct = Math.max(8, (values[i]! / max) * 100);
         return (
-          <li key={q.query} className={EXPORT_QUERY_ITEM_CLASS}>
+          <li key={`${q.query}-${i}`} className={EXPORT_QUERY_ITEM_CLASS}>
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
               <h4 className={EXPORT_H4_CLASS}>{q.query}</h4>
               <p className="tabular-nums text-base text-[#52525b]">
@@ -249,7 +250,7 @@ function ExportOpportunityCard({
         primaryPeriodLabel={primaryPeriodLabel}
         legacyMetrics={item.metrics}
       />
-      <p className={cn(EXPORT_BODY_CLASS, "mt-2")}>{item.why}</p>
+      <p className={EXPORT_BODY_CLASS}>{item.why}</p>
     </li>
   );
 }
@@ -285,12 +286,16 @@ export function OrganicClientReportExportDocument({ content }: OrganicClientRepo
   return (
     <article className={EXPORT_PAGE_CLASS}>
       <header className={EXPORT_HERO_CLASS}>
-        <h1 className="organic-client-report-export__cover-title">
-          {formatClientReportCoverTitle(AGENCY_NAME, siteName)}
-        </h1>
-        <p className="organic-client-report-export__cover-meta">
-          {periodLine} | Prepared {preparedOn}
-        </p>
+        <div className="organic-client-report-export__cover-header">
+          <div>
+            <h1 className="organic-client-report-export__cover-title">
+              {formatClientReportCoverTitle(AGENCY_NAME, siteName)}
+            </h1>
+            <p className="organic-client-report-export__cover-meta">
+              {siteUrl} | {periodLine} | Prepared {preparedOn}
+            </p>
+          </div>
+        </div>
         <div className="organic-client-report-export__hero-body">
           <h2 className="organic-client-report-export__insights-title">Insights</h2>
           <p className={EXPORT_LEAD_CLASS}>{highlights.executiveSummary}</p>
@@ -298,8 +303,8 @@ export function OrganicClientReportExportDocument({ content }: OrganicClientRepo
             <div>
               <h3 className={EXPORT_H3_CLASS}>Key takeaways</h3>
               <ul className={EXPORT_BULLET_LIST_CLASS}>
-                {highlights.keyTakeaways.map((line) => (
-                  <li key={line}>{line}</li>
+                {highlights.keyTakeaways.map((line, idx) => (
+                  <li key={`${idx}-${line}`}>{line}</li>
                 ))}
               </ul>
             </div>
@@ -308,7 +313,7 @@ export function OrganicClientReportExportDocument({ content }: OrganicClientRepo
       </header>
 
       {showPerformanceSection ? (
-        <ExportSection title="Performance summary" pageBreak>
+        <ExportSection title="Performance summary">
           <p className={EXPORT_BODY_MUTED_CLASS}>
             Headline metrics for the selected periods. Organic search traffic comes from GA4 (Organic Search
             channel); search visibility from Google Search Console.
@@ -321,8 +326,8 @@ export function OrganicClientReportExportDocument({ content }: OrganicClientRepo
           {performanceNarrative.length > 0 ? (
             <div className={EXPORT_NARRATIVE_WELL_CLASS}>
               <h3 className={EXPORT_H3_CLASS}>Performance breakdown</h3>
-              {performanceNarrative.map((p) => (
-                <p key={p} className={EXPORT_BODY_CLASS}>
+              {performanceNarrative.map((p, idx) => (
+                <p key={`${idx}-${p}`} className={EXPORT_BODY_CLASS}>
                   {p}
                 </p>
               ))}
@@ -365,12 +370,14 @@ export function OrganicClientReportExportDocument({ content }: OrganicClientRepo
                 Top organic keywords by estimated traffic for {semrushDomain || siteUrl}.
               </p>
               <ul className={EXPORT_QUERY_LIST_CLASS}>
-                {topSemrushKeywords.map((k) => (
-                  <li key={k.phrase} className={EXPORT_QUERY_ITEM_CLASS}>
-                    <h4 className={EXPORT_H4_CLASS}>{k.phrase}</h4>
-                    <p className="tabular-nums text-base text-[#52525b]">
-                      {formatClientReportSemrushKeywordMeta(k.traffic, k.volume)}
-                    </p>
+                {topSemrushKeywords.map((k, idx) => (
+                  <li key={`${k.phrase}-${idx}`} className={EXPORT_QUERY_ITEM_CLASS}>
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                      <h4 className={EXPORT_H4_CLASS}>{k.phrase}</h4>
+                      <p className="tabular-nums text-base text-[#52525b]">
+                        {formatClientReportSemrushKeywordMeta(k.traffic, k.volume)}
+                      </p>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -380,12 +387,12 @@ export function OrganicClientReportExportDocument({ content }: OrganicClientRepo
       ) : null}
 
       {showKeywordSection ? (
-        <ExportSection title="Keyword performance" pageBreak>
+        <ExportSection title="Keyword performance">
           {keywordNarrative.length > 0 ? (
             <div className={EXPORT_NARRATIVE_WELL_CLASS}>
               <h3 className={EXPORT_H3_CLASS}>Keyword performance breakdown</h3>
-              {keywordNarrative.map((p) => (
-                <p key={p} className={EXPORT_BODY_CLASS}>
+              {keywordNarrative.map((p, idx) => (
+                <p key={`${idx}-${p}`} className={EXPORT_BODY_CLASS}>
                   {p}
                 </p>
               ))}
@@ -400,13 +407,13 @@ export function OrganicClientReportExportDocument({ content }: OrganicClientRepo
       ) : null}
 
       {showHighlightsSection ? (
-        <ExportSection title="Highlights" pageBreak>
+        <ExportSection title="Highlights">
           <ExportKpiStrip stats={highlightStats} />
           {opportunities.length > 0 ? (
             <ul className="m-0 flex list-none flex-col gap-4 p-0">
-              {opportunities.map((item) => (
+              {opportunities.map((item, idx) => (
                 <ExportOpportunityCard
-                  key={`${item.rank}-${item.label}`}
+                  key={`${item.rank}-${item.label}-${idx}`}
                   item={item}
                   comparePeriodLabel={comparePeriodLabel}
                   primaryPeriodLabel={primaryPeriodLabel}

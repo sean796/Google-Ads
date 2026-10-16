@@ -172,6 +172,5 @@
 		createWandButton: createSparkButton,
 	};
 
-	window.neoPulseWpAiWandIcon = wandIconSvg;
 	window.neoPulseWpAiSparkIcon = wandIconSvg;
 })();

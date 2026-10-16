@@ -5,7 +5,7 @@
 	'use strict';
 
 	function readConfig() {
-		if (window.neoPulseOverseer && window.neoPulseOverseer.endpoint && window.neoPulseOverseer.nonce) {
+		if (window.neoPulseOverseer && window.neoPulseOverseer.endpoint) {
 			return window.neoPulseOverseer;
 		}
 		var el = document.getElementById('neo-pulse-overseer-config');
@@ -20,9 +20,12 @@
 	}
 
 	var cfg = readConfig();
-	if (!cfg || !cfg.endpoint || !cfg.nonce) {
+	if (!cfg || !cfg.endpoint) {
 		return;
 	}
+	// The REST nonce is only sent (and only required) for logged-in visitors.
+	var nonce = typeof cfg.nonce === 'string' ? cfg.nonce : '';
+	var pagePostId = parseInt(cfg.post_id, 10) || 0;
 
 	var STORAGE_KEY = 'neo-pulse_overseer_session';
 	var VISIT_UID_PREFIX = 'neo-pulse_overseer_visit:';
@@ -127,6 +130,9 @@
 			timezone: '',
 			platform: navigator.platform || ''
 		};
+		if (pagePostId > 0) {
+			payload.post_id = pagePostId;
+		}
 		try {
 			payload.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
 		} catch (e2) {
@@ -187,8 +193,11 @@
 
 	function endpointWithNonce() {
 		var url = cfg.endpoint;
+		if (!nonce) {
+			return url;
+		}
 		var sep = url.indexOf('?') >= 0 ? '&' : '?';
-		return url + sep + '_wpnonce=' + encodeURIComponent(cfg.nonce);
+		return url + sep + '_wpnonce=' + encodeURIComponent(nonce);
 	}
 
 	function onCollectResponse(data, fallbackSessionId) {
@@ -207,9 +216,11 @@
 	function sendPayload(payload, isExit) {
 		var body = JSON.stringify(payload);
 		var headers = {
-			'Content-Type': 'application/json',
-			'X-WP-Nonce': cfg.nonce
+			'Content-Type': 'application/json'
 		};
+		if (nonce) {
+			headers['X-WP-Nonce'] = nonce;
+		}
 		var fallbackSession = payload.session_id || (payload.events && payload.events[0] && payload.events[0].session_id) || '';
 
 		if (isExit && navigator.sendBeacon) {
@@ -266,7 +277,8 @@
 			duration_ms: getWallDurationMs(),
 			active_duration_ms: getActiveDurationMs(),
 			scroll_depth_pct: maxScrollPct,
-			parent_visit_uid: readPageVisitUid()
+			parent_visit_uid: readPageVisitUid(),
+			post_id: pagePostId
 		};
 	}
 
@@ -336,6 +348,7 @@
 			page_url: ctx.page_url,
 			page_title: ctx.page_title,
 			parent_visit_uid: readPageVisitUid(),
+			post_id: pagePostId,
 			element_tag: el ? el.tagName.toLowerCase() : '',
 			element_text: text,
 			element_href: href || (el && el.href ? el.href : '')

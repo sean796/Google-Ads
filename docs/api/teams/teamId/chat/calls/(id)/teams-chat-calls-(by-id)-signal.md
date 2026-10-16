@@ -5,7 +5,7 @@ section: Teams
 method: POST
 path: /api/teams/{teamId}/chat/calls/({id})/signal
 auth: team-rbac-communication
-order: 1240
+order: 1250
 ---
 
 POST `/api/teams/{teamId}/chat/calls/({id})/signal`.

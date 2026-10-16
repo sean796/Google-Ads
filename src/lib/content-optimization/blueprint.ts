@@ -92,7 +92,7 @@ export async function generateOptimizedBlueprint(
       apiKey: openRouterApiKey,
       model: researchModel,
       temperature: 1.0,
-      maxTokens: 4000,
+      maxTokens: 16000,
       topP: 0.9,
       serpData: paaRawResponse,
       selectedPeopleAlsoAsk,

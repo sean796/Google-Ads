@@ -702,13 +702,9 @@ class Neo_Pulse_Wp_Faq_Elementor_Widget extends Widget_Base {
 	 * @return array<string, string>
 	 */
 	private static function get_faq_field_choices(): array {
-		if ( ! class_exists( 'Neo_Pulse_Wp_Fields_Elementor_Registry', false ) ) {
-			require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/fields/integrations/class-neo-pulse-wp-fields-elementor-registry.php';
-		}
-
 		$allowed_types = array( 'text', 'textarea', 'wysiwyg', 'repeater' );
 		$choices       = array();
-		$all           = Neo_Pulse_Wp_Fields_Elementor_Registry::get_field_choices( 'post', '', $allowed_types );
+		$all           = self::get_acf_post_field_choices( $allowed_types );
 
 		foreach ( $all as $name => $label ) {
 			if ( stripos( $name, 'faq' ) !== false ) {
@@ -727,6 +723,43 @@ class Neo_Pulse_Wp_Faq_Elementor_Widget extends Widget_Base {
 			$choices['seo_faq'] = esc_html__( 'SEO FAQ (seo_faq)', 'neo-pulse-wp' );
 		}
 
+		return $choices;
+	}
+
+	/**
+	 * Post field choices from ACF field groups (when ACF is active).
+	 *
+	 * @param array<int, string> $types Allowed ACF field types.
+	 * @return array<string, string> name => label
+	 */
+	private static function get_acf_post_field_choices( array $types ): array {
+		if ( ! function_exists( 'acf_get_field_groups' ) || ! function_exists( 'acf_get_fields' ) ) {
+			return array();
+		}
+		$choices = array();
+		$groups  = acf_get_field_groups();
+		foreach ( is_array( $groups ) ? $groups : array() as $group ) {
+			if ( ! is_array( $group ) ) {
+				continue;
+			}
+			$fields = acf_get_fields( $group );
+			foreach ( is_array( $fields ) ? $fields : array() as $field ) {
+				if ( ! is_array( $field ) ) {
+					continue;
+				}
+				$name = (string) ( $field['name'] ?? '' );
+				$type = (string) ( $field['type'] ?? '' );
+				if ( $name === '' || ! in_array( $type, $types, true ) ) {
+					continue;
+				}
+				$label  = (string) ( $field['label'] ?? $name );
+				$title  = (string) ( $group['title'] ?? '' );
+				$detail = $title !== ''
+					? sprintf( '%s » %s (%s)', $title, $label, $type )
+					: sprintf( '%s (%s)', $label, $type );
+				$choices[ $name ] = sprintf( '%s — %s', $name, $detail );
+			}
+		}
 		return $choices;
 	}
 }

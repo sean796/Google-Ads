@@ -15,30 +15,116 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Settings {
 		}
 		check_admin_referer( self::ACTION_SAVE_OPENROUTER, 'neo_pulse_wp_openrouter_nonce' );
 
-		$raw = isset( $_POST['neo-pulse_openrouter_api_key'] ) ? wp_unslash( $_POST['neo-pulse_openrouter_api_key'] ) : '';
-		$key = sanitize_text_field( trim( (string) $raw ) );
-		if ( $key === '' && Neo_Pulse_Wp_Api::get_agency_openrouter_api_key() !== '' ) {
-			self::set_flash(
-				array(
-					'kind'    => 'openrouter',
-					'success' => true,
-					'message' => __( 'OpenRouter key unchanged.', 'neo-pulse-wp' ),
-				)
-			);
-			self::redirect_to_settings( 'openrouter' );
+		if ( ! empty( $_POST['neo-pulse_editor_ai_types_posted'] ) ) {
+			$types = isset( $_POST['neo-pulse_editor_ai_post_types'] ) && is_array( $_POST['neo-pulse_editor_ai_post_types'] )
+				? array_map( 'sanitize_key', wp_unslash( $_POST['neo-pulse_editor_ai_post_types'] ) )
+				: array();
+			Neo_Pulse_Wp_Editor_Ai_Settings::save_post_types( $types );
 		}
 
-		Neo_Pulse_Wp_Api::save_agency_openrouter_api_key( $key );
+		$raw    = isset( $_POST['neo-pulse_openrouter_api_key'] ) && is_string( $_POST['neo-pulse_openrouter_api_key'] ) ? wp_unslash( $_POST['neo-pulse_openrouter_api_key'] ) : '';
+		$key    = sanitize_text_field( trim( (string) $raw ) );
+		$remove = ! empty( $_POST['openrouter_remove_key'] );
+		$had    = Neo_Pulse_Wp_Api::get_agency_openrouter_api_key() !== '';
+
+		if ( $remove ) {
+			// Explicit "Remove saved key": clear it even if something was typed in the field.
+			if ( $had ) {
+				Neo_Pulse_Wp_Api::save_agency_openrouter_api_key( '' );
+			}
+			$message = $had
+				? __( 'Editor AI settings saved. The saved OpenRouter key was removed.', 'neo-pulse-wp' )
+				: __( 'Editor AI settings saved. There was no saved OpenRouter key to remove.', 'neo-pulse-wp' );
+		} elseif ( $key !== '' ) {
+			Neo_Pulse_Wp_Api::save_agency_openrouter_api_key( $key );
+			$message = __( 'Editor AI settings saved, including the OpenRouter key.', 'neo-pulse-wp' );
+		} else {
+			// Blank field keeps whatever key is saved.
+			$message = __( 'Editor AI settings saved.', 'neo-pulse-wp' );
+		}
+
 		self::set_flash(
 			array(
 				'kind'    => 'openrouter',
 				'success' => true,
-				'message' => $key !== ''
-					? __( 'OpenRouter key saved for editor AI wands.', 'neo-pulse-wp' )
-					: __( 'OpenRouter key cleared.', 'neo-pulse-wp' ),
+				'message' => $message,
 			)
 		);
 		self::redirect_to_settings( 'openrouter' );
+	}
+
+	/**
+	 * Settings → Search Console: store or remove the Google service account JSON.
+	 * The pasted JSON is never echoed back; only its client_email is shown afterwards.
+	 */
+	public static function handle_save_gsc(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to save Search Console credentials.', 'neo-pulse-wp' ) );
+		}
+		check_admin_referer( self::ACTION_SAVE_GSC, 'neo_pulse_wp_gsc_nonce' );
+
+		if ( ! method_exists( 'Neo_Pulse_Wp_Gsc', 'save_service_account_json' ) ) {
+			self::set_flash(
+				array(
+					'kind'    => 'gsc',
+					'success' => false,
+					'message' => __( 'Saving a Search Console key here needs a newer version of Neo Pulse.', 'neo-pulse-wp' ),
+				)
+			);
+			self::redirect_to_settings( 'gsc' );
+		}
+
+		if ( ! empty( $_POST['gsc_check'] ) ) {
+			Neo_Pulse_Wp_Gsc::flush_stats_cache();
+			$check = Neo_Pulse_Wp_Gsc::test_connection( true );
+			$ok    = ! is_wp_error( $check ) && ! empty( $check['connected'] );
+			self::set_flash(
+				array(
+					'kind'    => 'gsc',
+					'success' => $ok,
+					'message' => $ok
+						? __( 'Connected to Google Search Console.', 'neo-pulse-wp' )
+						: ( is_wp_error( $check ) ? $check->get_error_message() : (string) $check['error'] ),
+				)
+			);
+			self::redirect_to_settings( 'gsc' );
+		}
+
+		$remove = ! empty( $_POST['gsc_remove_key'] );
+		// Raw JSON: the private key must not go through sanitize_text_field(); the GSC class validates it.
+		$json = isset( $_POST['gsc_service_account_json'] ) && is_string( $_POST['gsc_service_account_json'] )
+			? trim( wp_unslash( $_POST['gsc_service_account_json'] ) ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			: '';
+
+		if ( $remove ) {
+			$result  = Neo_Pulse_Wp_Gsc::save_service_account_json( '' );
+			$message = __( 'The saved Search Console service account key was removed.', 'neo-pulse-wp' );
+		} elseif ( $json !== '' ) {
+			$result  = Neo_Pulse_Wp_Gsc::save_service_account_json( $json );
+			$message = __( 'Search Console service account key saved.', 'neo-pulse-wp' );
+		} else {
+			$result  = new WP_Error( 'neo-pulse_gsc_empty', __( 'Paste the service account JSON, or tick "Remove saved key".', 'neo-pulse-wp' ) );
+			$message = '';
+		}
+
+		if ( is_wp_error( $result ) ) {
+			self::set_flash(
+				array(
+					'kind'    => 'gsc',
+					'success' => false,
+					'message' => $result->get_error_message(),
+				)
+			);
+		} else {
+			self::set_flash(
+				array(
+					'kind'    => 'gsc',
+					'success' => true,
+					'message' => $message,
+				)
+			);
+		}
+		self::redirect_to_settings( 'gsc' );
 	}
 
 	public static function handle_save_dataforseo(): void {
@@ -123,6 +209,8 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Settings {
 		check_admin_referer( 'neo_pulse_wp_save_chat', 'neo_pulse_wp_chat_nonce' );
 
 		$enabled          = ! empty( $_POST['neo_pulse_chat_enabled'] );
+		$off_everywhere   = ! empty( $_POST['neo_pulse_chat_off_everywhere'] );
+		$without_widget   = ! empty( $_POST['neo_pulse_chat_show_without_widget'] );
 		$disable_backend  = ! empty( $_POST['neo_pulse_chat_disable_backend'] );
 		$logged_in_only   = ! empty( $_POST['neo_pulse_chat_logged_in_only'] );
 		$admin_only       = ! empty( $_POST['neo_pulse_chat_admin_only'] );
@@ -150,6 +238,11 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Settings {
 		Neo_Pulse_Wp_Chat::save_settings(
 			array(
 				'enabled'              => $enabled,
+				'off_everywhere'       => $off_everywhere,
+				'show_without_widget'  => $without_widget,
+				'voice_enabled'        => ! empty( $_POST['neo_pulse_chat_voice_enabled'] ),
+				'voice_ptt'            => ! empty( $_POST['neo_pulse_chat_voice_ptt'] ),
+				'mic_replaces_send'    => ! empty( $_POST['neo_pulse_chat_mic_replaces_send'] ),
 				'disable_backend'      => $disable_backend,
 				'logged_in_only'       => $logged_in_only,
 				'admin_only'           => $admin_only,
@@ -168,49 +261,14 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Settings {
 			array(
 				'kind'    => 'chat',
 				'success' => true,
-				'message' => $enabled
-					? __( 'Chat widget enabled. Chat is available in the AI Search sidebar on the frontend.', 'neo-pulse-wp' )
-					: __( 'Chat widget disabled.', 'neo-pulse-wp' ),
+				'message' => $off_everywhere
+					? __( 'AI chat is turned off everywhere: front end, WordPress admin and the search panel, for every user including administrators.', 'neo-pulse-wp' )
+					: ( $enabled
+						? __( 'Chat widget enabled. Chat is available in the AI Search sidebar on the frontend.', 'neo-pulse-wp' )
+						: __( 'Chat widget disabled.', 'neo-pulse-wp' ) ),
 			)
 		);
 		self::redirect_to_chat();
-	}
-
-	public static function handle_save_chat_design(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'You do not have permission to save chat design settings.', 'neo-pulse-wp' ) );
-		}
-		check_admin_referer( 'neo_pulse_wp_save_chat_design', 'neo_pulse_wp_chat_design_nonce' );
-
-		$raw = isset( $_POST['neo-pulse_design'] ) ? (array) wp_unslash( $_POST['neo-pulse_design'] ) : array();
-		Neo_Pulse_Wp_Ai_Widget_Design::save_from_admin_post( $raw, 'chat' );
-
-		$tokens = isset( $raw['tokens'] ) && is_array( $raw['tokens'] ) ? $raw['tokens'] : array();
-		$accent = isset( $tokens['accent'] ) ? sanitize_hex_color( (string) $tokens['accent'] ) : '';
-
-		$sidebar_raw = isset( $raw['sidebar'] ) && is_array( $raw['sidebar'] ) ? $raw['sidebar'] : array();
-		$sidebar     = Neo_Pulse_Wp_Ai_Widget_Design::sanitize_sidebar_config( $sidebar_raw, 'chat' );
-
-		Neo_Pulse_Wp_Chat::save_settings(
-			array_merge(
-				$sidebar,
-				array(
-					'color'             => $accent !== '' && $accent !== null ? $accent : Neo_Pulse_Wp_Chat::get_settings()['color'],
-					'voice_enabled'     => ! empty( $_POST['neo_pulse_chat_voice_enabled'] ),
-					'voice_ptt'         => ! empty( $_POST['neo_pulse_chat_voice_ptt'] ),
-					'mic_replaces_send' => ! empty( $_POST['neo_pulse_chat_mic_replaces_send'] ),
-				)
-			)
-		);
-
-		self::set_flash(
-			array(
-				'kind'    => 'chat',
-				'success' => true,
-				'message' => __( 'Chat design settings saved.', 'neo-pulse-wp' ),
-			)
-		);
-		self::redirect_to_chat( 'design' );
 	}
 
 	public static function handle_save_chat_training(): void {
@@ -253,12 +311,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Settings {
 		$full_content = ! empty( $_POST['neo_pulse_chat_full_content'] );
 		$lead_conversion_enabled = ! empty( $_POST['neo_pulse_chat_lead_conversion_enabled'] );
 
-		$lead_forms = array(
-			'booking' => isset( $_POST['neo_pulse_chat_lead_form_booking'] ) ? absint( wp_unslash( $_POST['neo_pulse_chat_lead_form_booking'] ) ) : 0,
-			'contact' => isset( $_POST['neo_pulse_chat_lead_form_contact'] ) ? absint( wp_unslash( $_POST['neo_pulse_chat_lead_form_contact'] ) ) : 0,
-			'pricing' => isset( $_POST['neo_pulse_chat_lead_form_pricing'] ) ? absint( wp_unslash( $_POST['neo_pulse_chat_lead_form_pricing'] ) ) : 0,
-		);
-
 		Neo_Pulse_Wp_Chat::save_settings(
 			array(
 				'assistant_name'            => $assistant_name,
@@ -268,7 +320,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Settings {
 				'excluded_categories'       => $excluded_cats,
 				'full_content'              => $full_content,
 				'lead_conversion_enabled'   => $lead_conversion_enabled,
-				'lead_forms'                => $lead_forms,
 			)
 		);
 
@@ -322,31 +373,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Settings {
 			)
 		);
 		self::redirect_to_chat( 'knowledge-base' );
-	}
-
-	public static function handle_save_comments(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'You do not have permission to save comment settings.', 'neo-pulse-wp' ) );
-		}
-		check_admin_referer( self::ACTION_SAVE_COMMENTS, 'neo_pulse_wp_comments_nonce' );
-
-		$enabled = ! empty( $_POST['neo-pulse_comments_enabled'] );
-		Neo_Pulse_Wp_Comments::save_settings(
-			array(
-				'enabled' => $enabled,
-			)
-		);
-
-		self::set_flash(
-			array(
-				'kind'    => 'comments',
-				'success' => true,
-				'message' => $enabled
-					? __( 'Comments enabled site-wide.', 'neo-pulse-wp' )
-					: __( 'Comments disabled site-wide.', 'neo-pulse-wp' ),
-			)
-		);
-		self::redirect_to_settings( 'comments' );
 	}
 
 	public static function handle_save_gmb(): void {

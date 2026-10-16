@@ -1,11 +1,12 @@
-/** OpenRouter id for default video generation (HeyGen Video 1). */
-export const DEFAULT_VIDEO_MODEL = "heygen/heygen-video-1";
+/** OpenRouter id for default video generation (Grok Imagine Video 1.5 — physical-world & rigid-body I2V). */
+export const DEFAULT_VIDEO_MODEL = "x-ai/grok-imagine-video-1.5";
+export const PRODUCT_VISION_MODEL = "google/gemini-2.5-flash";
 
 export const VIDEO_MODEL_PRESETS: { value: string; label: string }[] = [
-  { value: DEFAULT_VIDEO_MODEL, label: "HeyGen Video 1" },
-  { value: "x-ai/grok-imagine-video", label: "Grok Imagine Video" },
-  { value: "x-ai/grok-imagine-video-1.5", label: "Grok Imagine Video 1.5" },
+  { value: DEFAULT_VIDEO_MODEL, label: "Grok Imagine Video 1.5" },
   { value: "x-ai/grok-imagine-video-1.5-lite", label: "Grok Imagine Video 1.5 Lite" },
+  { value: "x-ai/grok-imagine-video", label: "Grok Imagine Video" },
+  { value: "heygen/heygen-video-1", label: "HeyGen Video 1" },
 ];
 
 /** Narration track: HeyGen Voice 1 text-to-speech through OpenRouter `/api/v1/audio/speech`. */
@@ -57,6 +58,15 @@ export function resolutionsForVideoModel(model: string): VideoResolution[] {
   const skus = USD_PER_SECOND[model.trim()];
   if (!skus) return [...VIDEO_RESOLUTIONS];
   return VIDEO_RESOLUTIONS.filter((r) => skus[r] !== undefined);
+}
+
+/** Picks the best default HD resolution (`720p` or `768p`) supported by `model` instead of `480p`. */
+export function defaultResolutionForVideoModel(model: string): VideoResolution {
+  const allowed = resolutionsForVideoModel(model);
+  if (allowed.includes("720p")) return "720p";
+  if (allowed.includes("768p")) return "768p";
+  if (allowed.includes("1080p")) return "1080p";
+  return allowed[0] ?? "720p";
 }
 
 /** Estimated USD for `seconds` of output at `resolution` across `clipCount` clips; null when the model has no known SKU. */

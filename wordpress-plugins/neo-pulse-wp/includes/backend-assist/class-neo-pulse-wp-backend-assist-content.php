@@ -34,7 +34,7 @@ Output ONLY valid JSON:
 }
 
 RULES:
-- Each H2 is one Agent Hub Block Builder block. Never one mega-block for the whole page.
+- Each H2 is its own section. Never one mega-section for the whole page.
 - Each section is a harness fragment: opening heading (h2/h3) PLUS body content (paragraphs, lists, tables) in one generation step. Never heading-only.
 - Match exact counts from the user (e.g. "5 h2s" → exactly 5 sections with type "h2").
 - Use type "table" for table sections; label like "Build section: Topic (table)".
@@ -42,7 +42,7 @@ RULES:
 - features: use [LIST], [TABLE], [FAQ], [LINK] from harness vocabulary when needed. Add [LINK] when the user wants internal links to other site posts.
 - Never invent URLs in labels or briefs. Internal links are resolved from the WordPress post library at generation time.
 - Each section needs a unique, specific title (not "Section 1").
-- For a service page SEO block, titles must name the page topic and focus keyword (city, service). Never generic Overview, Introduction, or Our Services.
+- For a service page, titles must name the page topic and focus keyword (city, service). Never generic Overview, Introduction, or Our Services.
 - Each H2 is a distinct subtopic for the focus keyword and page title.
 - label: short checklist text starting with "Build section: " plus the title (e.g. "Build section: Local SEO on Whyte Ave"). Never use "Write H2" or heading-only labels.
 - brief: 1-2 sentences the writer must follow for that section only.
@@ -70,52 +70,6 @@ PROMPT;
 		}
 
 		return $parsed;
-	}
-
-	/**
-	 * Related phrases from Semrush, then DataForSEO.
-	 *
-	 * @return array<int, string>
-	 */
-	public static function related_phrases_for_keyword( string $keyword ): array {
-		$keyword = trim( $keyword );
-		if ( $keyword === '' ) {
-			return array();
-		}
-
-		$out = array();
-		if ( class_exists( 'Neo_Pulse_Wp_Semrush', false ) ) {
-			foreach ( Neo_Pulse_Wp_Semrush::fetch_related_keywords( $keyword ) as $phrase ) {
-				$phrase = trim( (string) $phrase );
-				if ( $phrase !== '' ) {
-					$out[] = $phrase;
-				}
-			}
-		}
-		if ( $out === array() && class_exists( 'Neo_Pulse_Wp_Dataforseo', false ) ) {
-			$dfs = Neo_Pulse_Wp_Dataforseo::fetch_related_keywords( $keyword );
-			if ( ! is_wp_error( $dfs ) ) {
-				foreach ( $dfs as $phrase ) {
-					$phrase = trim( (string) $phrase );
-					if ( $phrase !== '' ) {
-						$out[] = $phrase;
-					}
-				}
-			}
-		}
-
-		$seen = array();
-		$uniq = array();
-		foreach ( $out as $phrase ) {
-			$key = strtolower( $phrase );
-			if ( isset( $seen[ $key ] ) ) {
-				continue;
-			}
-			$seen[ $key ] = true;
-			$uniq[]       = $phrase;
-		}
-
-		return array_slice( $uniq, 0, 20 );
 	}
 
 	public static function harness_feature_hint_suffix( array $features, string $type ): string {
@@ -387,6 +341,20 @@ PROMPT;
 			);
 		}
 
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			$result = array( 'success' => false, 'error' => __( 'You do not have permission to edit this post.', 'neo-pulse-wp' ) );
+			$workflow['steps'][ $step_index ]['status'] = 'error';
+			$workflow['steps'][ $step_index ]['result'] = $result;
+			Neo_Pulse_Wp_Backend_Assist_Workflow::persist_workflow( $workflow_id, $workflow );
+			return array(
+				'step_index'        => $step_index,
+				'status'            => 'error',
+				'result'            => $result,
+				'workflow_complete' => true,
+				'card'              => Neo_Pulse_Wp_Backend_Assist_Workflow::workflow_failure_card( $workflow, $result, 'write_sections_batch' ),
+			);
+		}
+
 		$harness_outline      = self::sections_to_harness_outline( $outline );
 		$site_url             = home_url( '/' );
 		$needs_internal_links = ! empty( $workflow['needs_internal_links'] );
@@ -479,6 +447,9 @@ PROMPT;
 		} else {
 			$new_content = Neo_Pulse_Wp_Harness_Links::strip_all_internal_links( $new_content, $site_url );
 		}
+		// Model output: sanitize like add_content and keep an undo snapshot.
+		$new_content = wp_kses_post( $new_content );
+		Neo_Pulse_Wp_Backend_Assist_Tools_Wp::snapshot_agent_revision( $post_id );
 		$update      = wp_update_post(
 			array(
 				'ID'           => $post_id,

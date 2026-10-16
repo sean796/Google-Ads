@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, Printer } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { OrganicClientReportDocument } from "@/components/organic-dashboard/OrganicClientReportDocument";
+import { OrganicClientReportExportDocument } from "@/components/organic-dashboard/OrganicClientReportExportDocument";
 import { Button } from "@/components/ui/button";
 import "@/components/organic-dashboard/organic-reporting-client-deck.css";
 import {
@@ -18,6 +18,7 @@ import {
   fetchOrganicReportingHighlights,
 } from "@/lib/organic-dashboard/organic-reporting-highlights";
 import {
+  REPORTING_TOOLBAR_ACTION_BTN,
   REPORTING_TOOLBAR_DOWNLOAD_MARKDOWN_BTN_CLASS,
   REPORTING_TOOLBAR_DOWNLOAD_PDF_BTN_CLASS,
   REPORTING_TOOLBAR_LABEL_RESERVE_CLASS,
@@ -114,16 +115,20 @@ export default function OrganicClientReportPreviewPage() {
     downloadOrganicClientReportMarkdown(reportContent);
   }, [reportContent]);
 
-  if (!deckId || !payload) {
+  const handlePrint = useCallback(() => {
+    window.print();
+  }, []);
+
+  if (!deckId || !payload || !reportContent) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-black px-6 font-sans text-base text-white">
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#f4f4f5] px-6 font-sans text-base text-[#18181b]">
         <p>This client report link is missing or expired. Generate it again from Reporting.</p>
         {siteId ? (
-          <Link className="text-base text-primary hover:underline" to={`/sites/${siteId}/organic?section=performance`}>
+          <Link className="text-base font-semibold text-[#18181b] underline" to={`/sites/${siteId}/organic?section=performance`}>
             Back to Reporting
           </Link>
         ) : (
-          <Link className="text-base text-primary hover:underline" to="/">
+          <Link className="text-base font-semibold text-[#18181b] underline" to="/">
             Back to Neo Pulse
           </Link>
         )}
@@ -135,59 +140,62 @@ export default function OrganicClientReportPreviewPage() {
 
   return (
     <div className="organic-client-report-preview-shell min-h-dvh overflow-auto">
-      <div className="organic-client-report-preview-toolbar organic-client-report-preview-toolbar-actions">
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={pdfDisabled}
-          className={REPORTING_TOOLBAR_DOWNLOAD_PDF_BTN_CLASS}
-          aria-busy={pdfBusy}
-          onClick={() => void handleDownloadPdf()}
-        >
-          <Download className="h-4 w-4 shrink-0" aria-hidden />
-          <span className={REPORTING_TOOLBAR_LABEL_SLOT_CLASS}>
-            <span className={REPORTING_TOOLBAR_LABEL_RESERVE_CLASS} aria-hidden>
-              Download PDF
+      <div className="organic-client-report-preview-toolbar">
+        <div className="min-w-0 truncate text-base font-medium text-white">
+          {hydratingNarratives ? "Updating executive narrative…" : `${payload.siteName} · Printer-friendly report`}
+        </div>
+        <div className="organic-client-report-preview-toolbar-actions">
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={hydratingNarratives}
+            className={REPORTING_TOOLBAR_ACTION_BTN}
+            onClick={handlePrint}
+          >
+            <Printer className="h-4 w-4 shrink-0" aria-hidden />
+            Print
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={pdfDisabled}
+            className={REPORTING_TOOLBAR_DOWNLOAD_PDF_BTN_CLASS}
+            aria-busy={pdfBusy}
+            onClick={() => void handleDownloadPdf()}
+          >
+            <Download className="h-4 w-4 shrink-0" aria-hidden />
+            <span className={REPORTING_TOOLBAR_LABEL_SLOT_CLASS}>
+              <span className={REPORTING_TOOLBAR_LABEL_RESERVE_CLASS} aria-hidden>
+                Download PDF
+              </span>
+              <span className={REPORTING_TOOLBAR_LABEL_VISIBLE_CLASS}>
+                {pdfBusy ? "Preparing…" : "Download PDF"}
+              </span>
             </span>
-            <span className={REPORTING_TOOLBAR_LABEL_VISIBLE_CLASS}>
-              {pdfBusy ? "Preparing…" : "Download PDF"}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={hydratingNarratives}
+            className={REPORTING_TOOLBAR_DOWNLOAD_MARKDOWN_BTN_CLASS}
+            onClick={handleDownloadMarkdown}
+          >
+            <FileText className="h-4 w-4 shrink-0" aria-hidden />
+            <span className={REPORTING_TOOLBAR_LABEL_SLOT_CLASS}>
+              <span className={REPORTING_TOOLBAR_LABEL_RESERVE_CLASS} aria-hidden>
+                Download Markdown
+              </span>
+              <span className={REPORTING_TOOLBAR_LABEL_VISIBLE_CLASS}>Download Markdown</span>
             </span>
-          </span>
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={hydratingNarratives}
-          className={REPORTING_TOOLBAR_DOWNLOAD_MARKDOWN_BTN_CLASS}
-          onClick={handleDownloadMarkdown}
-        >
-          <FileText className="h-4 w-4 shrink-0" aria-hidden />
-          <span className={REPORTING_TOOLBAR_LABEL_SLOT_CLASS}>
-            <span className={REPORTING_TOOLBAR_LABEL_RESERVE_CLASS} aria-hidden>
-              Download Markdown
-            </span>
-            <span className={REPORTING_TOOLBAR_LABEL_VISIBLE_CLASS}>Download Markdown</span>
-          </span>
-        </Button>
+          </Button>
+        </div>
       </div>
       {pdfError ? (
-        <p className="px-4 py-2 font-sans text-base text-destructive md:px-8 lg:px-10" role="alert">
+        <p className="mx-auto max-w-[52rem] px-4 pt-3 font-sans text-base text-[#b91c1c]" role="alert">
           {pdfError}
         </p>
       ) : null}
-      {hydratingNarratives ? (
-        <p className="px-4 py-3 font-sans text-base text-muted-foreground md:px-8 lg:px-10">
-          Generating performance and keyword breakdown…
-        </p>
-      ) : null}
-      <OrganicClientReportDocument
-        viewModel={payload.viewModel}
-        highlights={payload.highlights}
-        siteName={payload.siteName}
-        siteUrl={payload.siteUrl}
-        showCompare={payload.showCompare}
-        preparedOn={payload.preparedOn}
-      />
+      <OrganicClientReportExportDocument content={reportContent} />
     </div>
   );
 }

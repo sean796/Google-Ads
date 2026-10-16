@@ -58,8 +58,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Sitemap {
 
 		if ( 'html' === $tab ) {
 			$section = 'html';
-		} elseif ( 'optimizer' === $tab ) {
-			$section = 'optimizer';
 		} elseif ( 0 === strpos( $tab, 'pt-' ) ) {
 			$section = 'post_type';
 			$slug    = substr( $tab, 3 );
@@ -171,23 +169,9 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Sitemap {
 		if ( 'html' === $tab ) {
 			$config['html'] = array(
 				'enabled'    => ! empty( $_POST['neo-pulse_sitemap_html_enabled'] ),
-				'page_id'    => isset( $_POST['neo-pulse_sitemap_html_page_id'] ) ? absint( wp_unslash( $_POST['neo-pulse_sitemap_html_page_id'] ) ) : 0,
 				'shortcode'  => '[neo-pulse_sitemap]',
 				'sort_order' => isset( $_POST['neo-pulse_sitemap_html_sort'] ) ? sanitize_key( wp_unslash( (string) $_POST['neo-pulse_sitemap_html_sort'] ) ) : 'title',
 			);
-			return Neo_Pulse_Wp_Sitemap_Settings::sanitize_config( $config );
-		}
-
-		if ( 'optimizer' === $tab ) {
-			$posted = isset( $_POST['neo-pulse_sitemap_content_optimizer'] ) && is_array( $_POST['neo-pulse_sitemap_content_optimizer'] )
-				? wp_unslash( $_POST['neo-pulse_sitemap_content_optimizer'] )
-				: array();
-			foreach ( $config['post_types'] as $slug => $settings ) {
-				if ( ! is_array( $settings ) ) {
-					continue;
-				}
-				$config['post_types'][ $slug ]['content_optimizer'] = ! empty( $posted[ $slug ] );
-			}
 			return Neo_Pulse_Wp_Sitemap_Settings::sanitize_config( $config );
 		}
 
@@ -198,7 +182,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Sitemap {
 					'include_xml'       => ! empty( $_POST['neo-pulse_sitemap_include_xml'] ),
 					'include_html'      => ! empty( $_POST['neo-pulse_sitemap_include_html'] ),
 					'image_meta'        => isset( $_POST['neo-pulse_sitemap_image_meta'] ) ? wp_unslash( (string) $_POST['neo-pulse_sitemap_image_meta'] ) : '',
-					'content_optimizer' => ! empty( $_POST['neo-pulse_sitemap_content_optimizer'] ),
 				);
 			}
 			return Neo_Pulse_Wp_Sitemap_Settings::sanitize_config( $config );
@@ -219,11 +202,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Sitemap {
 	}
 
 	private static function redirect_to_sitemap( string $tab = 'general' ): void {
-		$url = admin_url( 'admin.php?page=neo-pulse-wp-sitemap' );
-		if ( $tab !== '' && 'general' !== $tab ) {
-			$url = add_query_arg( 'tab', $tab, $url );
-		}
-		wp_safe_redirect( $url );
-		exit;
+		self::redirect_to_page( 'neo-pulse-wp-sitemap', $tab !== '' && 'general' !== $tab ? array( 'tab' => $tab ) : array() );
 	}
 }

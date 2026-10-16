@@ -2,6 +2,7 @@
   'use strict';
 
   var DEBOUNCE_MS = 300;
+  var MAX_QUERY_LENGTH = 100;
   var SESSION_KEY = 'neo-pulse_search_session_id';
 
   function bindAllSearchWraps() {
@@ -56,10 +57,24 @@
           wrap.classList.toggle('fbs--open', open);
           iconLauncher.setAttribute('aria-expanded', open ? 'true' : 'false');
           if (open) {
+            // Phones: the bar spans the screen just below the icon.
+            if (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
+              iconPanel.style.top = Math.round(iconLauncher.getBoundingClientRect().bottom + 10) + 'px';
+            } else {
+              iconPanel.style.top = '';
+            }
             iconPanel.removeAttribute('hidden');
             var focusInput = iconPanel.querySelector('.fbs__input');
             if (focusInput) focusInput.focus();
           } else {
+            iconPanel.setAttribute('hidden', '');
+          }
+        });
+        // Tap or click anywhere else closes it.
+        document.addEventListener('click', function (e) {
+          if (wrap.classList.contains('fbs--open') && !wrap.contains(e.target) && !wrap.hasAttribute('data-elementor-panel-preview')) {
+            wrap.classList.remove('fbs--open');
+            iconLauncher.setAttribute('aria-expanded', 'false');
             iconPanel.setAttribute('hidden', '');
           }
         });
@@ -112,6 +127,12 @@
           shellBackdrop.classList.add('fbs-modal-backdrop--portaled');
         }
         copyWrapSurfaceVars(wrap, shellPanel, shellBackdrop);
+        // Lets the Elementor widget's own style rules follow the panel to <body>.
+        var elHost = wrap.closest ? wrap.closest('.elementor-element[data-id]') : null;
+        if (elHost) {
+          shellPanel.setAttribute('data-neo-pulse-el', elHost.getAttribute('data-id'));
+          shellBackdrop.setAttribute('data-neo-pulse-el', elHost.getAttribute('data-id'));
+        }
       }
       if (window.NeoPulseAiSidebarUnify) {
         window.NeoPulseAiSidebarUnify.tryMerge();
@@ -136,20 +157,41 @@
     var logUrl       = wrap.getAttribute('data-log-url') || '';
     var acceptUrl    = wrap.getAttribute('data-accept-url') || '';
     var insightsUrl  = wrap.getAttribute('data-insights-url') || '';
-    var wordReadyUrl = wrap.getAttribute('data-word-ready-url') || '';
-    var nonce        = wrap.getAttribute('data-nonce');
+    var nonce        = wrap.getAttribute('data-nonce') || '';
+
+    // Only logged-in pages carry a nonce. If one has expired (cached page, tab left open),
+    // WordPress answers 403 rest_cookie_invalid_nonce: drop it and try once more without.
+    function apiHeaders(json) {
+      var h = {};
+      if (json) h['Content-Type'] = 'application/json';
+      if (nonce) h['X-WP-Nonce'] = nonce;
+      return h;
+    }
+    function apiFetch(url, opts) {
+      opts = opts || {};
+      opts.headers = apiHeaders(!!opts.body);
+      return fetch(url, opts).then(function (res) {
+        if (res.status !== 403 || !nonce) return res;
+        return res.clone().json().then(function (data) {
+          if (!data || data.code !== 'rest_cookie_invalid_nonce') return res;
+          nonce = '';
+          opts.headers = apiHeaders(!!opts.body);
+          return fetch(url, opts);
+        }, function () { return res; });
+      });
+    }
     var maxResults   = parseInt(wrap.getAttribute('data-max-results'), 10) || 8;
     var hideAi       = wrap.getAttribute('data-hide-ai-banner') === '1';
     var hideScores   = wrap.getAttribute('data-hide-scores') === '1';
+    var hideBest     = wrap.getAttribute('data-hide-best') === '1';
     var hidePowered  = wrap.getAttribute('data-hide-powered') === '1';
     var loggingOn    = wrap.getAttribute('data-logging-enabled') === '1';
-    var insightsDays = parseInt(wrap.getAttribute('data-insights-days'), 10) || 30;
     var termsLimit   = parseInt(wrap.getAttribute('data-popular-terms-limit'), 10) || 5;
     var showTerms    = wrap.getAttribute('data-show-popular-terms') === '1';
+    var hidePinned   = wrap.getAttribute('data-hide-pinned') === '1';
     var showOverseer = wrap.getAttribute('data-show-popular-pages-overseer') === '1';
     var showSearchPg = wrap.getAttribute('data-show-popular-pages-search') === '1';
-    var topicsLimit  = parseInt(wrap.getAttribute('data-topics-limit'), 10) || 4;
-    var iconIds      = (wrap.getAttribute('data-fbs-icon-ids') || 'search').split(',');
+    var showThumbs   = wrap.getAttribute('data-show-thumbs') === '1';
 
     var searchScope = resolveSearchScope(wrap, shellPanel);
     var container = searchScope.querySelector('.fbs');
@@ -170,8 +212,6 @@
 
     var timer       = null;
     var controller  = null;
-    var readyController = null;
-    var readyRequestId = 0;
     var lastQuery   = '';
     var lastEventUid = '';
     var insightsLoaded = false;
@@ -224,7 +264,7 @@
       });
     }
 
-    if (!isElementorPanelPreview && (showTerms || showOverseer || showSearchPg || searchScope.querySelector('.fbs__insights-block--slot') || searchScope.querySelector('.fbs__insights-block[data-insight="popular_topics"]'))) {
+    if (!isElementorPanelPreview && (showTerms || showOverseer || showSearchPg)) {
       loadInsights();
     }
 
@@ -241,51 +281,28 @@
       }
     }
 
+    // 0.9.253: decided here, with no server or AI call. Search once the visitor has finished a
+    // word: the input ends in a space or punctuation, or the last word has 3+ characters.
+    function wordReady(raw) {
+      if (!raw || raw.trim() === '') return false;
+      if (/[\s.,!?;:'")\]-]$/.test(raw)) return true;
+      var words = raw.trim().split(/\s+/);
+      var last = words.length ? words[words.length - 1] : '';
+      return Array.from ? Array.from(last).length >= 3 : last.length >= 3;
+    }
+
     function checkWordReadyThenSearch() {
       var q = input.value.trim();
       if (q === '' || q === lastQuery) return;
-      if (!wordReadyUrl) {
+      if (wordReady(input.value)) {
+        doSearch();
+      } else {
         closeDropdown();
-        return;
       }
-
-      var requestId = ++readyRequestId;
-      if (readyController) {
-        try { readyController.abort(); } catch (_) {}
-      }
-      readyController = typeof AbortController !== 'undefined' ? new AbortController() : null;
-
-      var opts = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-WP-Nonce': nonce
-        },
-        body: JSON.stringify({ query: q })
-      };
-      if (readyController) opts.signal = readyController.signal;
-
-      fetch(wordReadyUrl, opts)
-        .then(function (res) {
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          return res.json();
-        })
-        .then(function (data) {
-          if (requestId !== readyRequestId) return;
-          if (input.value.trim() !== q) return;
-          if (data && data.ready) {
-            doSearch();
-          } else {
-            closeDropdown();
-          }
-        })
-        .catch(function (err) {
-          if (err && err.name === 'AbortError') return;
-        });
     }
 
     function doSearch() {
-      var q = input.value.trim();
+      var q = input.value.trim().slice(0, MAX_QUERY_LENGTH).trim();
       if (q === '' || q === lastQuery) return;
       lastQuery = q;
 
@@ -306,17 +323,17 @@
 
       var opts = {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-WP-Nonce': nonce
-        },
         body: JSON.stringify({ query: q, per_page: maxResults })
       };
       if (controller) opts.signal = controller.signal;
 
-      fetch(restUrl, opts)
+      apiFetch(restUrl, opts)
         .then(function (res) {
-          if (!res.ok) throw new Error('HTTP ' + res.status);
+          if (!res.ok) {
+            var httpErr = new Error('HTTP ' + res.status);
+            httpErr.status = res.status;
+            throw httpErr;
+          }
           return res.json();
         })
         .then(function (data) {
@@ -334,6 +351,12 @@
         })
         .catch(function (err) {
           if (err && err.name === 'AbortError') return;
+          if (err && err.status === 429) {
+            // Rate limited: keep the current results and allow the same query again later.
+            lastQuery = '';
+            hideStatus();
+            return;
+          }
           showStatus('error');
           if (!isSidebar) closeDropdown();
         });
@@ -342,12 +365,8 @@
     function logSearch(query, resultCount, analysis, results) {
       if (!loggingOn || !logUrl) return;
 
-      fetch(logUrl, {
+      apiFetch(logUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-WP-Nonce': nonce
-        },
         body: JSON.stringify({
           session_id: getSessionId(),
           page_url: window.location.href || '',
@@ -368,12 +387,8 @@
 
     function recordAccept(url, title, rank) {
       if (!loggingOn || !acceptUrl || !lastEventUid) return;
-      fetch(acceptUrl, {
+      apiFetch(acceptUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-WP-Nonce': nonce
-        },
         body: JSON.stringify({
           eventUid: lastEventUid,
           url: url,
@@ -388,81 +403,27 @@
       if (insightsLoaded || !insightsUrl) return;
       insightsLoaded = true;
 
-      var url = insightsUrl + '?days=' + encodeURIComponent(insightsDays) + '&limit=' + encodeURIComponent(termsLimit);
-      fetch(url, {
-        headers: { 'X-WP-Nonce': nonce }
-      }).then(function (res) {
+      var asked = [];
+      if (showTerms) asked.push('popular_terms');
+      if (showOverseer) asked.push('popular_pages_overseer');
+      if (showSearchPg) asked.push('popular_pages_search');
+      // Days come from the site settings; the list size from this widget (capped at 12 on the server).
+      var url = insightsUrl + (insightsUrl.indexOf('?') === -1 ? '?' : '&') + 'sections=' + encodeURIComponent(asked.join(',')) + '&limit=' + encodeURIComponent(String(termsLimit || 5)) + (hidePinned ? '&pinned=0' : '');
+      apiFetch(url, {}).then(function (res) {
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.json();
       }).then(function (data) {
         var overseerPages = data.popularPagesOverseer || [];
         if (showTerms && data.popularTerms) {
-          renderInsightBlock('popular_terms', data.popularTerms, 'term');
+          renderInsightBlock('popular_terms', data.popularTerms.slice(0, termsLimit), 'term');
         }
-        var topicsBlock = searchScope.querySelector('.fbs__insights-block[data-insight="popular_topics"]');
         if (showOverseer && overseerPages.length) {
-          var linkPages = overseerPages;
-          if (topicsBlock) {
-            linkPages = overseerPages.slice(topicsLimit);
-          }
-          if (linkPages.length) {
-            renderInsightBlock('popular_pages_overseer', linkPages, 'page');
-          }
-        }
-        if (topicsBlock && overseerPages.length) {
-          renderTopicsGrid(overseerPages.slice(0, topicsLimit), topicsBlock);
+          renderInsightBlock('popular_pages_overseer', overseerPages, 'page');
         }
         if (showSearchPg && data.popularPagesFromSearch) {
           renderInsightBlock('popular_pages_search', data.popularPagesFromSearch, 'page');
         }
       }).catch(function () {});
-    }
-
-    function iconIdForIndex(index) {
-      return iconIds[index % iconIds.length] || 'search';
-    }
-
-    function cloneIconSvg(iconId) {
-      var sprite = wrap.querySelector('.fbs__icon-sprite[data-icon="' + iconId + '"]');
-      if (!sprite) return null;
-      var svg = sprite.content ? sprite.content.querySelector('svg') : sprite.querySelector('svg');
-      return svg ? svg.cloneNode(true) : null;
-    }
-
-    function renderTopicsGrid(items, block) {
-      if (!block || !items || !items.length) return;
-
-      var list = block.querySelector('.fbs__insights-list');
-      if (!list) return;
-
-      list.innerHTML = '';
-      for (var i = 0; i < items.length; i++) {
-        var item = items[i];
-        var tile = document.createElement('a');
-        tile.className = 'fbs__topic-tile';
-        tile.href = item.url;
-
-        var iconWrap = document.createElement('span');
-        iconWrap.className = 'fbs__topic-icon';
-        var svg = cloneIconSvg(iconIdForIndex(i));
-        if (svg) iconWrap.appendChild(svg);
-
-        var label = document.createElement('span');
-        label.className = 'fbs__topic-label';
-        label.textContent = item.title || item.url;
-
-        tile.appendChild(iconWrap);
-        tile.appendChild(label);
-        list.appendChild(tile);
-      }
-
-      if (!isInsightSlotBlock(block)) {
-        block.removeAttribute('hidden');
-      }
-    }
-
-    function isInsightSlotBlock(block) {
-      return block && block.classList.contains('fbs__insights-block--slot');
     }
 
     function popularTermLabel(query) {
@@ -494,7 +455,7 @@
         if (mode === 'term') {
           var chip = document.createElement('button');
           chip.type = 'button';
-          chip.className = 'fbs__insight-chip';
+          chip.className = 'fbs__insight-chip nps-chip';
           chip.textContent = popularTermLabel(item.query);
           if (item.query && item.query !== chip.textContent) {
             chip.title = item.query;
@@ -508,25 +469,92 @@
           }(item.query));
           list.appendChild(chip);
         } else {
-          var link = document.createElement('a');
-          link.className = 'fbs__insight-link';
-          link.href = item.url;
-          link.textContent = item.title || item.url;
-          list.appendChild(link);
+          list.appendChild(cardNode('a', 'fbs__insight-link nps-card', item.url, item.title || item.url, '', item.type_label || '', item.thumb || ''));
         }
       }
 
-      if (!isInsightSlotBlock(block)) {
-        block.removeAttribute('hidden');
-      }
+      block.removeAttribute('hidden');
+      wrap.classList.add('nps-has-sections');
+      if (searchScope !== wrap) searchScope.classList.add('nps-has-sections');
     }
 
     function setSuggestionsOpen(open) {
-      if (open) {
-        wrap.classList.add('neo-pulse-search-wrap--open');
-      } else {
-        wrap.classList.remove('neo-pulse-search-wrap--open');
+      wrap.classList.toggle('neo-pulse-search-wrap--open', !!open);
+      wrap.classList.toggle('nps-has-results', !!open);
+      if (searchScope !== wrap) {
+        searchScope.classList.toggle('nps-has-results', !!open);
       }
+    }
+
+    function el(tag, className, text) {
+      var node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined && text !== null && text !== '') node.textContent = text;
+      return node;
+    }
+
+    function thumbNode(src, title) {
+      var box = el('span', 'nps-card__thumb');
+      if (src) {
+        var img = document.createElement('img');
+        img.src = src;
+        img.alt = '';
+        img.loading = 'lazy';
+        box.appendChild(img);
+      } else {
+        box.classList.add('nps-card__thumb--empty');
+        box.textContent = String(title || '?').trim().charAt(0).toUpperCase();
+      }
+      return box;
+    }
+
+    function arrowNode() {
+      var a = el('span', 'nps-card__arrow');
+      a.setAttribute('aria-hidden', 'true');
+      a.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+      return a;
+    }
+
+    var STAR_SVG = '<svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" aria-hidden="true"><path d="M12 2l2.9 6.3 6.9.7-5.1 4.7 1.4 6.8L12 17l-6.1 3.5 1.4-6.8L2.2 9l6.9-.7z"/></svg>';
+
+    // Same markup as Neo_Pulse_Wp_Search_Render::score_html().
+    function scoreNode(pct) {
+      pct = Math.max(0, Math.min(100, Math.round(pct)));
+      var grade = pct >= 80 ? 'high' : (pct >= 50 ? 'mid' : 'low');
+      var pill = el('span', 'nps-score nps-score--' + grade);
+      pill.appendChild(el('span', 'nps-score__dot'));
+      pill.appendChild(document.createTextNode(pct + '% match'));
+      return pill;
+    }
+
+    function bestNode() {
+      var label = el('span', 'nps-best');
+      label.innerHTML = STAR_SVG;
+      label.appendChild(document.createTextNode('Best match'));
+      return label;
+    }
+
+    // Same structure as Neo_Pulse_Wp_Search_Render::card_html().
+    // opts.score: match percentage (pill next to the tag); opts.best: "Best match" label on the card.
+    function cardNode(tagName, className, url, title, excerpt, tag, thumb, opts) {
+      opts = opts || {};
+      var scored = typeof opts.score === 'number' && opts.score >= 0;
+      var card = el(tagName, className + (opts.best ? ' nps-card--best' : ''));
+      if (tagName === 'a') card.href = url;
+      if (opts.best) card.appendChild(bestNode());
+      if (showThumbs) card.appendChild(thumbNode(thumb, title));
+      var body = el('span', 'nps-card__body');
+      body.appendChild(el('span', 'nps-card__title fbs__result-title', title));
+      if (excerpt) body.appendChild(el('span', 'nps-card__text fbs__result-excerpt', excerpt));
+      if (tag || scored) {
+        var meta = el('span', 'nps-card__meta');
+        if (tag) meta.appendChild(el('span', 'nps-tag fbs__result-meta', tag));
+        if (scored) meta.appendChild(scoreNode(opts.score));
+        body.appendChild(meta);
+      }
+      card.appendChild(body);
+      card.appendChild(arrowNode());
+      return card;
     }
 
     function showSlotEmpty() {
@@ -577,117 +605,52 @@
       setSuggestionsOpen(true);
 
       if (analysis && !hideAi && (analysis.intent || (analysis.keywords && analysis.keywords.length))) {
-        var banner = document.createElement('div');
-        banner.className = 'fbs__ai-banner';
-
-        var label = document.createElement('span');
-        label.className = 'fbs__ai-label';
-        label.textContent = 'AI';
-        banner.appendChild(label);
-
-        if (analysis.intent && analysis.intent !== 'unknown') {
-          var intentTag = document.createElement('span');
-          intentTag.className = 'fbs__ai-tag fbs__ai-tag--intent';
-          intentTag.textContent = analysis.intent;
-          banner.appendChild(intentTag);
-        }
-
-        if (analysis.sentiment && analysis.sentiment !== 'neutral') {
-          var sentTag = document.createElement('span');
-          sentTag.className = 'fbs__ai-tag fbs__ai-tag--sentiment' +
-            (analysis.sentiment === 'negative' ? ' fbs__ai-tag--negative' : '');
-          sentTag.textContent = analysis.sentiment;
-          banner.appendChild(sentTag);
-        }
-
+        var intents = {
+          informational: 'Here is what we found',
+          transactional: 'Ready to buy or book? Best matches first',
+          commercial: 'Comparing options? Best matches first',
+          navigational: 'Pages that match what you are looking for'
+        };
+        var banner = el('div', 'fbs__ai-banner nps-ai');
+        var spark = el('span', 'nps-ai__icon');
+        spark.setAttribute('aria-hidden', 'true');
+        spark.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4z"/></svg>';
+        banner.appendChild(spark);
+        var line = el('span', 'nps-ai__text', intents[analysis.intent] || 'Best matches first');
+        banner.appendChild(line);
         if (analysis.keywords && analysis.keywords.length) {
-          var kw = document.createElement('span');
-          kw.className = 'fbs__ai-keywords';
-          kw.textContent = analysis.keywords.join(' · ');
-          banner.appendChild(kw);
+          var kws = el('span', 'nps-ai__keywords fbs__ai-keywords');
+          for (var k = 0; k < Math.min(analysis.keywords.length, 4); k++) {
+            kws.appendChild(el('span', 'nps-ai__keyword', analysis.keywords[k]));
+          }
+          banner.appendChild(kws);
         }
-
         dropdown.appendChild(banner);
       }
 
-      var maxScore = 0;
-      for (var j = 0; j < results.length; j++) {
-        if (typeof results[j].score === 'number' && results[j].score > maxScore) {
-          maxScore = results[j].score;
-        }
-      }
+      // Match score: the server's "match" (how closely each result matches what was typed;
+      // rank_results() always sets it).
+      var ceiling = 100;
 
+      dropdown.setAttribute('role', 'listbox');
       for (var i = 0; i < results.length; i++) {
         var item = results[i];
         var rank = i + 1;
-        var pct = maxScore > 0 && typeof item.score === 'number'
-          ? Math.round((item.score / maxScore) * 100)
-          : 0;
-
-        var a = document.createElement('a');
-        a.href = item.url;
-        a.className = 'fbs__result';
-        dropdown.setAttribute('role', 'listbox');
+        var pct = isFinite(Number(item.match)) ? Number(item.match) : -1;
+        if (pct >= 0) {
+          pct = Math.min(ceiling, Math.round(pct));
+          ceiling = pct;
+        }
+        var a = cardNode('a', 'fbs__result nps-card nps-card--result', item.url, item.title, item.excerpt, item.type_label || item.type, item.thumb || '', {
+          score: hideScores ? -1 : pct,
+          best: i === 0 && !hideBest && (pct < 0 || pct >= 50)
+        });
         a.setAttribute('role', 'option');
-
         a.addEventListener('click', function (url, title, r) {
           return function () {
             recordAccept(url, title, r);
           };
         }(item.url, item.title, rank));
-
-        var row = document.createElement('div');
-        row.className = 'fbs__result-row';
-
-        var body = document.createElement('div');
-        body.className = 'fbs__result-body';
-
-        var title = document.createElement('span');
-        title.className = 'fbs__result-title';
-        title.textContent = item.title;
-
-        var excerpt = document.createElement('span');
-        excerpt.className = 'fbs__result-excerpt';
-        excerpt.textContent = item.excerpt;
-
-        var meta = document.createElement('span');
-        meta.className = 'fbs__result-meta';
-        meta.textContent = item.type_label || item.type;
-
-        body.appendChild(title);
-        body.appendChild(excerpt);
-        body.appendChild(meta);
-
-        var badge = document.createElement('div');
-        badge.className = 'fbs__relevance';
-        var gradeClass = pct >= 80 ? 'fbs__relevance--high'
-          : pct >= 50 ? 'fbs__relevance--mid'
-          : 'fbs__relevance--low';
-        badge.classList.add(gradeClass);
-
-        var ring = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        ring.setAttribute('class', 'fbs__relevance-ring');
-        ring.setAttribute('viewBox', '0 0 36 36');
-        var circumference = 100;
-        var dashOffset = circumference - pct;
-        ring.innerHTML =
-          '<circle class="fbs__relevance-track" cx="18" cy="18" r="16" />' +
-          '<circle class="fbs__relevance-fill" cx="18" cy="18" r="16"' +
-          ' stroke-dasharray="' + circumference + '"' +
-          ' stroke-dashoffset="' + dashOffset + '" />';
-
-        var pctLabel = document.createElement('span');
-        pctLabel.className = 'fbs__relevance-pct';
-        pctLabel.textContent = pct + '%';
-
-        badge.appendChild(ring);
-        badge.appendChild(pctLabel);
-
-        row.appendChild(body);
-        if (!hideScores) {
-          row.appendChild(badge);
-        }
-        a.appendChild(row);
         dropdown.appendChild(a);
       }
 
@@ -698,7 +661,7 @@
     }
 
     function appendPoweredFooter(parent) {
-      if (hidePowered) {
+      if (hidePowered || hasResultsSlot) { // Panels already show it at the bottom.
         return;
       }
       var existing = parent.querySelector('.fbs__dropdown-footer');
@@ -709,8 +672,9 @@
         return;
       }
       var footer = poweredEl.cloneNode(true);
-      footer.className = 'fbs__dropdown-footer';
-      footer.setAttribute('href', poweredEl.href || 'https://neodigital.ca');
+      footer.className = 'fbs__dropdown-footer nps-powered';
+      footer.removeAttribute('hidden');
+      footer.setAttribute('href', poweredEl.href || 'https://neodigital.ca/neo-pulse-platform/');
       footer.setAttribute('target', '_blank');
       footer.setAttribute('rel', 'noopener noreferrer');
       parent.appendChild(footer);
@@ -733,7 +697,7 @@
       setSuggestionsOpen(true);
       showSlotStatus();
       if (type === 'searching') {
-        statusEl.innerHTML = '<span class="fbs__spinner"></span> Searching…';
+        statusEl.innerHTML = '<span class="fbs__spinner nps-spinner"></span> Searching…';
       } else if (type === 'no-results') {
         statusEl.textContent = 'No results found.';
       } else {

@@ -9,7 +9,51 @@ defined( 'ABSPATH' ) || exit;
 
 class Neo_Pulse_Wp_Overseer_Query {
 
+	/** Row caps: admin list pages, AI analysis, CSV export. */
+	const MAX_PER_PAGE     = 200;
+	const MAX_ANALYSIS     = 5000;
+	const MAX_EXPORT       = 50000;
+	const COUNT_TRANSIENT  = 'neo_pulse_wp_overseer_visit_count';
+	const COUNT_TTL        = 600;
+
+	/**
+	 * One page of events for the admin list (at most MAX_PER_PAGE rows).
+	 *
+	 * @param array<string,mixed> $args Filters, order and paging.
+	 * @return array{items: array<int, object>, total: int}
+	 */
 	public static function query( array $args = array() ): array {
+		return self::run_query( $args, self::MAX_PER_PAGE, true );
+	}
+
+	/**
+	 * Newest events in a date range for AI analysis (at most MAX_ANALYSIS), returned oldest first.
+	 *
+	 * @return array<int, object>
+	 */
+	public static function query_for_analysis( string $date_from, string $date_to ): array {
+		$result = self::run_query(
+			array(
+				'date_from' => $date_from,
+				'date_to'   => $date_to,
+				'per_page'  => self::MAX_ANALYSIS,
+				'page'      => 1,
+				'orderby'   => 'created_at',
+				'order'     => 'desc',
+			),
+			self::MAX_ANALYSIS,
+			false
+		);
+		return array_reverse( $result['items'] );
+	}
+
+	/**
+	 * @param array<string,mixed> $args      Filters, order and paging.
+	 * @param int                 $max       Largest page size allowed.
+	 * @param bool                $with_total Also count matching rows.
+	 * @return array{items: array<int, object>, total: int}
+	 */
+	private static function run_query( array $args, int $max, bool $with_total ): array {
 		global $wpdb;
 
 		$table  = Neo_Pulse_Wp_Overseer_Context::table_name();
@@ -52,13 +96,16 @@ class Neo_Pulse_Wp_Overseer_Query {
 
 		$where_sql = implode( ' AND ', $where );
 
-		$count_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_sql}";
-		if ( ! empty( $params ) ) {
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-			$total = (int) $wpdb->get_var( $wpdb->prepare( $count_sql, $params ) );
-		} else {
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-			$total = (int) $wpdb->get_var( $count_sql );
+		$total = 0;
+		if ( $with_total ) {
+			$count_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_sql}";
+			if ( ! empty( $params ) ) {
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				$total = (int) $wpdb->get_var( $wpdb->prepare( $count_sql, $params ) );
+			} else {
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				$total = (int) $wpdb->get_var( $count_sql );
+			}
 		}
 
 		$orderby = isset( $args['orderby'] ) ? sanitize_key( (string) $args['orderby'] ) : 'created_at';
@@ -71,7 +118,7 @@ class Neo_Pulse_Wp_Overseer_Query {
 		$order_col = isset( $allowed[ $orderby ] ) ? $allowed[ $orderby ] : 'created_at';
 		$order     = isset( $args['order'] ) && 'asc' === strtolower( (string) $args['order'] ) ? 'ASC' : 'DESC';
 
-		$per_page = isset( $args['per_page'] ) ? max( 1, min( 200, (int) $args['per_page'] ) ) : 20;
+		$per_page = isset( $args['per_page'] ) ? max( 1, min( $max, (int) $args['per_page'] ) ) : 20;
 		$page     = isset( $args['page'] ) ? max( 1, (int) $args['page'] ) : 1;
 		$offset   = ( $page - 1 ) * $per_page;
 
@@ -81,22 +128,48 @@ class Neo_Pulse_Wp_Overseer_Query {
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$items = $wpdb->get_results( $wpdb->prepare( $list_sql, $list_params ) );
 
+		$items = is_array( $items ) ? $items : array();
+
 		return array(
-			'items' => is_array( $items ) ? $items : array(),
-			'total' => $total,
+			'items' => $items,
+			'total' => $with_total ? $total : count( $items ),
 		);
 	}
+
+	/**
+	 * Rows for CSV export (at most MAX_EXPORT).
+	 *
+	 * @param array<string,mixed> $args Filters and order.
+	 * @return array<int, object>
+	 */
 	public static function query_for_export( array $args = array() ): array {
-		$args['per_page'] = isset( $args['per_page'] ) ? (int) $args['per_page'] : 50000;
+		$args['per_page'] = isset( $args['per_page'] ) ? (int) $args['per_page'] : self::MAX_EXPORT;
 		$args['page']     = 1;
-		$result           = self::query( $args );
+		$result           = self::run_query( $args, self::MAX_EXPORT, false );
 		return $result['items'];
 	}
+
+	/**
+	 * Total stored events (cached for 10 minutes; cleared when visits are deleted).
+	 */
 	public static function count_visits(): int {
+		$cached = get_transient( self::COUNT_TRANSIENT );
+		if ( false !== $cached && is_numeric( $cached ) ) {
+			return (int) $cached;
+		}
 		global $wpdb;
 		$table = Neo_Pulse_Wp_Overseer_Context::table_name();
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
+		$count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
+		set_transient( self::COUNT_TRANSIENT, $count, self::COUNT_TTL );
+		return $count;
+	}
+
+	/**
+	 * Drop the cached count_visits() value.
+	 */
+	public static function forget_count(): void {
+		delete_transient( self::COUNT_TRANSIENT );
 	}
 	public static function get_session_timeline( string $session_id ): array {
 		global $wpdb;

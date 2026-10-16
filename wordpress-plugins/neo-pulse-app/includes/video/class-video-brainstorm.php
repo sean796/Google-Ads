@@ -18,8 +18,9 @@ class Neo_Pulse_App_Video_Brainstorm {
 	const MAX_BEATS        = 24;
 	const MAX_SUBJECT_PHOTOS  = 8;
 	const MAX_SUBJECT_BYTES   = 12582912;
-	const SUBJECT_CELL_WIDTH  = 640;
-	const SUBJECT_CELL_HEIGHT = 480;
+	// 16:9 cells so a 2x2 sheet of locked product renders is 1920x1080 and keeps their detail.
+	const SUBJECT_CELL_WIDTH  = 960;
+	const SUBJECT_CELL_HEIGHT = 540;
 
 	/**
 	 * @param array<string,mixed> $body

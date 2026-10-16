@@ -5,7 +5,7 @@ section: WordPress
 method: POST
 path: /api/wordpress/resolve-urls
 auth: open
-order: 3150
+order: 3160
 ---
 
 POST `/api/wordpress/resolve-urls`.

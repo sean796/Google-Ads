@@ -73,7 +73,7 @@ export const WORKFLOW_SIDEBAR_ROW_CLASS = cn(
   "transition-colors hover:brightness-110",
 );
 
-export const WORKFLOW_RIGHT_RAIL_WIDTH_CLASS = "w-[min(540px,34vw)] min-w-[480px]";
+export const WORKFLOW_RIGHT_RAIL_WIDTH_CLASS = "w-[min(520px,36vw)] min-w-[360px] xl:min-w-[460px]";
 
 export const WORKFLOW_BUILDER_CANVAS_CLASS = "h-full min-h-0 flex-1 overflow-y-auto bg-black";
 export const WORKFLOW_COLUMN_CLASS = "mx-auto flex w-full max-w-[360px] flex-col items-center py-8";

@@ -5,7 +5,7 @@ section: Manager WordPress Properties
 method: GET
 path: /api/manager-wordpress-properties/status
 auth: open
-order: 700
+order: 710
 ---
 
 GET `/api/manager-wordpress-properties/status`.

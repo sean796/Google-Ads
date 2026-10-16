@@ -51,6 +51,7 @@ import type {
 } from "@/lib/workflow/workflow-types";
 import { GscReportingExecutionFields } from "@/components/manager/tasks/GscReportingExecutionFields";
 import { AdsReportingExecutionFields } from "@/components/manager/tasks/AdsReportingExecutionFields";
+import { PostCreatorExecutionFields } from "@/components/manager/tasks/PostCreatorExecutionFields";
 import { ChatGptAuditExecutionFields } from "@/components/manager/tasks/ChatGptAuditExecutionFields";
 import { DfsArticleAuditExecutionFields } from "@/components/manager/tasks/DfsArticleAuditExecutionFields";
 import { BrowserAutomationExecutionFields } from "@/components/manager/tasks/BrowserAutomationExecutionFields";
@@ -60,6 +61,7 @@ import { EntityPageCreatorExecutionFields } from "@/components/manager/tasks/Ent
 import { EntityGeneratorExecutionFields } from "@/components/manager/tasks/EntityGeneratorExecutionFields";
 import { SapGeneratorExecutionFields } from "@/components/manager/tasks/SapGeneratorExecutionFields";
 import { ContentOptimizerExecutionFields } from "@/components/manager/tasks/ContentOptimizerExecutionFields";
+import { ensurePostCreatorPayload } from "@/lib/post-creator/post-creator-defaults";
 import { WorkflowClientInspectorFields } from "@/components/manager/workflow/WorkflowClientInspectorFields";
 import { WorkflowCalendarWhenFields } from "@/components/manager/workflow/WorkflowCalendarWhenFields";
 import { WorkflowThenStepInspector } from "@/components/manager/workflow/WorkflowThenStepInspector";
@@ -168,10 +170,12 @@ export function WorkflowNodeInspector({
       value === "gsc_reporting"
         ? { ...defaultGscReportingExecutionPayload(), ...executionPayload }
         : value === "ads_reporting"
-        ? { ...defaultAdsReportingExecutionPayload(), ...executionPayload }
-        : value === "content_gap_check"
-          ? ensureContentGapCheckPayload(executionPayload)
-          : executionPayload;
+          ? { ...defaultAdsReportingExecutionPayload(), ...executionPayload }
+          : value === "post_creator"
+            ? ensurePostCreatorPayload(executionPayload)
+            : value === "content_gap_check"
+              ? ensureContentGapCheckPayload(executionPayload)
+              : executionPayload;
     const nextKind = value as TaskExecutionKind;
     onChange({
       ...node,
@@ -371,6 +375,13 @@ export function WorkflowNodeInspector({
               layout="workflow"
               executionPayload={executionPayload}
               onChange={patchExecutionPayload}
+            />
+          ) : null}
+          {executionKind === "post_creator" ? (
+            <PostCreatorExecutionFields
+              surface="what"
+              executionPayload={ensurePostCreatorPayload(executionPayload)}
+              onChange={(nextPayload) => patchExecutionPayload(ensurePostCreatorPayload(nextPayload))}
             />
           ) : null}
           {executionKind === "chatgpt_website_audit" ? (

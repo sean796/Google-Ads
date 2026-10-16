@@ -4,7 +4,7 @@
  *
  * Phase A: Classify intent + select relevant content (fast model).
  * Phase B: Reason and draft an answer (capable model).
- * Phase C: Format the answer as a semantic card JSON (fast model).
+ * The card is then built deterministically (build_card_from_answer).
  *
  * @package Neo_Pulse_Wp
  */
@@ -22,70 +22,10 @@ class Neo_Pulse_Wp_Chat_Agents {
 	const ACK_MAX_TOKENS          = 128;
 	const CLASSIFY_MAX_TOKENS     = 2048;
 	const REASON_MAX_TOKENS       = 8192;
-	const FORMAT_MAX_TOKENS       = 4096;
 	const LINK_RESOLVE_MAX_TOKENS = 2048;
 	const TITLE_MAX_TOKENS        = 64;
 	const FOLLOWUP_MAX_TOKENS     = 512;
 	const TEMPLATE_FORMAT_MAX_TOKENS = 2048;
-
-	/**
-	 * Run the full three-phase pipeline.
-	 *
-	 * @param string $user_message  Current user message.
-	 * @param array  $history       Conversation history [{role,content},...].
-	 * @param string $site_name     Human-readable site name.
-	 * @param array  $site_index    Full site inventory from RAG.
-	 * @param array  $training      Training settings (assistant_name, system_prompt, greeting_style, knowledge_base).
-	 * @return array Semantic card JSON or error shape.
-	 */
-	public static function run( string $user_message, array $history, string $site_name, array $site_index, array $training = array(), array $chat_settings = array(), ?array $page_context = null ): array {
-		$gate = self::phase_ack( $user_message, $site_name, $training, $history, $chat_settings );
-		if ( is_wp_error( $gate ) ) {
-			return self::error_card( $gate->get_error_message() );
-		}
-		if ( is_array( $gate ) && ( $gate['action'] ?? '' ) === 'deny' ) {
-			return self::build_denial_card( (string) ( $gate['text'] ?? '' ), $user_message, $site_name, $site_index, $history );
-		}
-
-		$template = Neo_Pulse_Wp_Chat_Suggestion_Templates::match_intent( $user_message, $page_context, $site_index );
-		if ( is_array( $template ) ) {
-			$card = Neo_Pulse_Wp_Chat_Suggestion_Templates::build_card( $template, $page_context, $site_index, $chat_settings, $user_message );
-			if ( is_array( $card ) && ! empty( $card ) ) {
-				return $card;
-			}
-		}
-
-		$phase_a = self::phase_classify( $user_message, $site_name, $site_index );
-		if ( is_wp_error( $phase_a ) ) {
-			return self::error_card( $phase_a->get_error_message() );
-		}
-
-		$relevant_items = self::select_relevant_items( $phase_a, $site_index, $user_message, $chat_settings, $page_context );
-		$relevant_items = Neo_Pulse_Wp_Chat::enrich_relevant_items( $relevant_items, false, $chat_settings );
-
-		$phase_b = self::phase_reason( $user_message, $history, $site_name, $relevant_items, $phase_a, $training, $site_index, $page_context );
-		if ( is_wp_error( $phase_b ) ) {
-			return self::error_card( $phase_b->get_error_message() );
-		}
-
-		$phase_c = self::phase_format( $phase_b, $phase_a, $relevant_items, $user_message );
-		if ( is_wp_error( $phase_c ) ) {
-			return self::error_card( $phase_c->get_error_message() );
-		}
-
-		$phase_c = self::normalize_card_title_body( $phase_c, $user_message );
-
-		if ( Neo_Pulse_Wp_Chat_Lead::is_lead_message( $user_message, $site_index ) && Neo_Pulse_Wp_Chat_Lead::is_enabled( $chat_settings ) ) {
-			$phase_c = Neo_Pulse_Wp_Chat_Lead::enrich_card( $phase_c, $user_message, $phase_b, $relevant_items, $site_index, $training, $chat_settings );
-		}
-
-		$seen_urls   = Neo_Pulse_Wp_Chat_History::collect_seen_urls( $history );
-		$seen_topics = Neo_Pulse_Wp_Chat_History::collect_seen_topics( $history );
-
-		$phase_c = Neo_Pulse_Wp_Chat_Links::attach_to_card( $phase_c, $user_message, $phase_b, $relevant_items, $phase_a, $site_index, $seen_urls, $seen_topics );
-
-		return Neo_Pulse_Wp_Chat_Lead::maybe_attach_contact_human_cta( $phase_c, $user_message, $phase_a, $chat_settings );
-	}
 
 	/**
 	 * Secretary gate: brief ack or deny before content lookup (stream + run paths).
@@ -664,71 +604,6 @@ PROMPT;
 		$body = Neo_Pulse_Wp_Chat_Links::repair_malformed_markdown_links( $body );
 
 		return $body;
-	}
-
-	/**
-	 * Phase C: format the drafted answer as a semantic card JSON.
-	 *
-	 * @return array|WP_Error Parsed card JSON.
-	 */
-	public static function phase_format( string $answer, array $classification, array $items = array(), string $user_message = '' ) {
-		$intent = isset( $classification['intent'] ) ? $classification['intent'] : 'question';
-		$type_map = array(
-			'question'       => 'answer',
-			'navigation'     => 'navigation',
-			'recommendation' => 'recommendation',
-			'support'        => 'answer',
-		);
-		$card_type = isset( $type_map[ $intent ] ) ? $type_map[ $intent ] : 'answer';
-
-		$links_block = Neo_Pulse_Wp_Chat_Links::build_links_context_block( $items );
-		$links_hint  = $links_block !== '' ? "\n\nLINKS AVAILABLE:\n{$links_block}" : '';
-
-		$system = <<<PROMPT
-Convert the following assistant answer into ONLY valid JSON matching this exact schema:
-{
-  "type": "{$card_type}",
-  "title": "short blog-style headline summarizing the answer",
-  "body": "the full answer text, supports markdown",
-  "links": [{"label": "display text", "url": "https://...", "icon": "page|post|external"}],
-  "cta": {"label": "button text", "url": "https://..."},
-  "confidence": "high|medium|low"
-}
-
-Rules:
-- "title" is a blog-style headline for the answer content (e.g. "Services we offer", "Booking a consultation"). Summarize what the response covers, not how the user asked.
-- "title" must not echo, paraphrase, or restate the user's question wording.
-- "title" must not repeat or copy the first sentence or opening phrase of "body".
-- "body" must contain the direct answer from the draft. Do not rewrite into a refusal or a links-only response.
-- Do not open "body" with a standalone filler acknowledgment; the user already received a secretary ack. Start with substantive content.
-- Preserve bullet lists, numbered lists, markdown tables, and ### headings in "body" verbatim. Do not flatten structured markdown into prose.
-- Keep inline links from the draft in prose paragraphs only. Bullet labels are linked automatically; do not add or preserve markdown links inside bullet lines.
-- Do not include bracket citation numbers such as [1] or [2] in "body".
-- Do not add apologies, refusals, or hedge language not already in the draft.
-- Do not rewrite partial answers into "I don't have", "website doesn't", "we don't offer", or "we can't" refusals.
-- Preserve positive staff-invitation closings from the draft verbatim.
-- "links" must include every page URL from LINKS AVAILABLE that the answer suggests. Set icon to "page" for site pages, "post" for blog posts, "external" for outside links.
-- "cta" should be the most specific slug-matched service or topic page from LINKS AVAILABLE when the question is about a service, procedure, or topic; otherwise omit and leave "cta" empty for the attach layer to fill. Do not set "cta" to a page whose slug or title does not match the user's question topic.
-- Do not include relatedTopics; follow-up chips are generated separately from conversation context.
-- "confidence" is "high" when the body directly answers the question, "medium" if partial, "low" only if the draft is mostly uncertain.
-- Output ONLY the JSON object, no markdown fences, no explanation.{$links_hint}
-PROMPT;
-
-		$result = self::call_openrouter( self::FAST_MODEL, $system, $answer, self::FORMAT_MAX_TOKENS, 0.1 );
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-
-		$parsed = self::parse_json_response( $result );
-		if ( null === $parsed || ! isset( $parsed['title'] ) ) {
-			return new WP_Error( 'neo_pulse_chat_format', 'Failed to format response as card.' );
-		}
-
-		$parsed['type'] = isset( $parsed['type'] ) ? $parsed['type'] : $card_type;
-		$parsed['confidence'] = isset( $parsed['confidence'] ) ? $parsed['confidence'] : 'medium';
-		unset( $parsed['relatedTopics'] );
-
-		return self::normalize_card_title_body( $parsed, $user_message );
 	}
 
 	/**
@@ -1968,18 +1843,5 @@ PROMPT;
 			}
 		}
 		return array_merge( $pages, $rest );
-	}
-
-	/**
-	 * Produce an error card when the pipeline fails.
-	 */
-	private static function error_card( string $message ): array {
-		return array(
-			'type'       => 'not-found',
-			'title'      => __( 'Something went wrong', 'neo-pulse-wp' ),
-			'body'       => $message,
-			'links'      => array(),
-			'confidence' => 'low',
-		);
 	}
 }

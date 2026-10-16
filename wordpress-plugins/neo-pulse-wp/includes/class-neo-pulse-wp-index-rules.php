@@ -18,12 +18,7 @@ class Neo_Pulse_Wp_Index_Rules {
 	 * @return array<int, string>
 	 */
 	public static function template_post_types(): array {
-		return array(
-			'elementor_library',
-			'e-floating-buttons',
-			'ygency_template',
-			'qi-addons-template',
-		);
+		return Neo_Pulse_Wp_Seo_Settings::excluded_post_types();
 	}
 
 	/**
@@ -37,7 +32,7 @@ class Neo_Pulse_Wp_Index_Rules {
 	 * @return array<int, string>
 	 */
 	public static function noindex_taxonomies(): array {
-		return array( 'post_tag', 'post_format' );
+		return array_values( array_unique( array_merge( array( 'post_tag' ), Neo_Pulse_Wp_Seo_Settings::excluded_taxonomies() ) ) );
 	}
 
 	/**
@@ -76,7 +71,9 @@ class Neo_Pulse_Wp_Index_Rules {
 		if ( ! is_array( $robots ) ) {
 			$robots = array();
 		}
-		if ( ! self::should_noindex() ) {
+		// Neo Pulse SEO (SEO Settings) or another SEO plugin sets robots per page type itself; only the
+		// Elementor pagination rule applies on top. These built-in rules are for sites with neither.
+		if ( self::seo_handled_elsewhere() ? ! self::request_has_elementor_epage() : ! self::should_noindex() ) {
 			return $robots;
 		}
 		$robots['noindex'] = true;
@@ -127,17 +124,51 @@ class Neo_Pulse_Wp_Index_Rules {
 		}
 	}
 
+	/**
+	 * Whether NEO Pulse SEO is live or another SEO plugin (Rank Math, Yoast…) is active.
+	 */
+	public static function seo_handled_elsewhere(): bool {
+		if ( ! class_exists( 'Neo_Pulse_Wp_Seo_Settings', false ) ) {
+			return false;
+		}
+		return Neo_Pulse_Wp_Seo_Settings::output_active() || Neo_Pulse_Wp_Seo_Settings::other_seo_plugin() !== '';
+	}
+
+	/**
+	 * Attachment pages go to the post they belong to. When the site ran Rank Math, its "Redirect
+	 * Attachments" setting decides: off leaves attachment pages alone; on sends orphans to its
+	 * "Redirect Orphan Attachments" address. Without Rank Math settings: parent, else the file.
+	 */
 	public static function redirect_attachment_pages(): void {
-		if ( ! is_attachment() ) {
+		// Other SEO plugins have their own attachment redirect setting.
+		if ( ! is_attachment() || Neo_Pulse_Wp_Seo_Settings::other_seo_plugin() !== '' ) {
+			return;
+		}
+		$rm_setting = Neo_Pulse_Wp_Seo_Settings::gen( 'attachment_redirect_urls', null );
+		if ( null !== $rm_setting && ! Neo_Pulse_Wp_Seo_Settings::on( $rm_setting ) ) {
 			return;
 		}
 		$id     = (int) get_queried_object_id();
 		$parent = $id > 0 ? (int) wp_get_post_parent_id( $id ) : 0;
-		$url    = $parent > 0 ? get_permalink( $parent ) : wp_get_attachment_url( $id );
+		if ( $parent > 0 ) {
+			$url = get_permalink( $parent );
+		} elseif ( null !== $rm_setting ) {
+			$url = trim( (string) Neo_Pulse_Wp_Seo_Settings::gen( 'attachment_redirect_default', '' ) );
+			$url = $url !== '' ? $url : home_url( '/' );
+		} else {
+			$url = wp_get_attachment_url( $id );
+		}
 		if ( ! is_string( $url ) || $url === '' ) {
 			return;
 		}
-		wp_safe_redirect( $url, 301 );
+		// The file URL or the configured address may be on another host (CDN), which
+		// wp_safe_redirect() would refuse; allow http(s) only.
+		$url = esc_url_raw( $url, array( 'http', 'https' ) );
+		if ( $url === '' ) {
+			return;
+		}
+		// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
+		wp_redirect( $url, 301, 'NEO Pulse WP' );
 		exit;
 	}
 }

@@ -27,7 +27,10 @@ import {
   writeForgeDashboardViewMode,
   type ForgeDashboardViewMode,
 } from "@/lib/pulse-forge/forge-dashboard-view-mode";
+import { cn } from "@/lib/utils";
 import type { TaskProject } from "@/lib/tasks-types";
+
+const DASHBOARD_PANEL_ROW_SLOTS = 5;
 
 export type PulseForgeDashboardProps = {
   automationProjects: TaskProject[];
@@ -127,11 +130,14 @@ export function PulseForgeDashboard({
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 px-4 py-4">
         <div className="flex min-w-0 flex-wrap items-center gap-3">
           <h1 className={FORGE_PAGE_TITLE_CLASS}>My Forge</h1>
-          {viewMode === "live" && activeRuns.length > 0 ? (
-            <span className="bg-primary/20 px-2 py-0.5 text-base font-medium text-white">
-              {activeRuns.length} live
-            </span>
-          ) : null}
+          <span
+            className={cn(
+              "min-w-[4.5rem] bg-primary/20 px-2 py-0.5 text-center text-base font-medium tabular-nums text-white",
+              !(viewMode === "live" && activeRuns.length > 0) && "invisible",
+            )}
+          >
+            {activeRuns.length} live
+          </span>
           <span className={FORGE_DASHBOARD_SECTION_LABEL_CLASS}>This period&apos;s usage</span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -160,20 +166,44 @@ export function PulseForgeDashboard({
 
           <div className="grid min-h-0 grid-cols-1 gap-4 lg:grid-cols-2">
             <ForgeDashboardPanel title="Top models">
-              {snapshot.topModels.map((row, index) => (
-                <ForgeDashboardRow
-                  key={row.id}
-                  rank={index + 1}
-                  stripeIndex={index}
-                  title={row.title}
-                  value={row.value}
-                  active={row.active}
-                />
-              ))}
+              {Array.from({ length: DASHBOARD_PANEL_ROW_SLOTS }, (_, index) => {
+                const row = snapshot.topModels[index];
+                if (!row) {
+                  return (
+                    <ForgeDashboardRow
+                      key={`model-placeholder-${index}`}
+                      rank={index + 1}
+                      stripeIndex={index}
+                      placeholder
+                    />
+                  );
+                }
+                return (
+                  <ForgeDashboardRow
+                    key={row.id}
+                    rank={index + 1}
+                    stripeIndex={index}
+                    title={row.title}
+                    value={row.value}
+                    active={row.active}
+                  />
+                );
+              })}
             </ForgeDashboardPanel>
 
             <ForgeDashboardPanel title="Agent rankings">
-              {snapshot.agentRankings.map((row, index) => {
+              {Array.from({ length: DASHBOARD_PANEL_ROW_SLOTS }, (_, index) => {
+                const row = snapshot.agentRankings[index];
+                if (!row) {
+                  return (
+                    <ForgeDashboardRow
+                      key={`agent-placeholder-${index}`}
+                      rank={index + 1}
+                      stripeIndex={index}
+                      placeholder
+                    />
+                  );
+                }
                 const project =
                   row.projectId != null ? projectById.get(row.projectId) : undefined;
                 return (

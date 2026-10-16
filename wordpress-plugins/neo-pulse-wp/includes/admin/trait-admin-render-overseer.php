@@ -152,7 +152,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Overseer {
 			<hr class="wp-header-end" />
 
 			<?php if ( $flash ) : ?>
-				<div class="notice notice-<?php echo ! empty( $flash['success'] ) ? 'success' : 'error'; ?> is-dismissible">
+				<div class="notice inline notice-<?php echo ! empty( $flash['success'] ) ? 'success' : 'error'; ?> is-dismissible">
 					<p><?php echo esc_html( isset( $flash['message'] ) ? (string) $flash['message'] : '' ); ?></p>
 				</div>
 			<?php endif; ?>
@@ -228,7 +228,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Overseer {
 			<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=neo-pulse-wp-overseer' ) ); ?>">&larr; <?php esc_html_e( 'Back to events', 'neo-pulse-wp' ); ?></a></p>
 
 			<?php if ( $flash ) : ?>
-				<div class="notice notice-<?php echo ! empty( $flash['success'] ) ? 'success' : 'error'; ?> is-dismissible">
+				<div class="notice inline notice-<?php echo ! empty( $flash['success'] ) ? 'success' : 'error'; ?> is-dismissible">
 					<p><?php echo esc_html( isset( $flash['message'] ) ? (string) $flash['message'] : '' ); ?></p>
 				</div>
 			<?php endif; ?>
@@ -335,48 +335,28 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Overseer {
 	private static function render_overseer_conversions_page(): void {
 		$flash       = self::get_and_clear_flash();
 		$edit_id     = isset( $_GET['edit'] ) ? sanitize_key( wp_unslash( (string) $_GET['edit'] ) ) : '';
-		$picker_form = isset( $_GET['form_id'] ) ? absint( $_GET['form_id'] ) : 0;
 		$picker_trigger = isset( $_GET['trigger_type'] ) ? sanitize_key( wp_unslash( (string) $_GET['trigger_type'] ) ) : '';
 		$editing     = ( $edit_id !== '' && 'new' !== $edit_id ) ? Neo_Pulse_Wp_Overseer_Conversions::get_goal( $edit_id ) : null;
 		$goals       = Neo_Pulse_Wp_Overseer_Conversions::get_goals();
-		$forms       = class_exists( 'Neo_Pulse_Wp_Forms_Storage' ) ? Neo_Pulse_Wp_Forms_Storage::get_all_forms( true ) : array();
 		$date_to     = gmdate( 'Y-m-d' );
 		$date_from   = gmdate( 'Y-m-d', strtotime( '-30 days' ) );
 
-		$form_for_fields = null;
-		$selected_form_id = 0;
-		if ( $editing ) {
-			$selected_form_id = (int) ( $editing['form_id'] ?? 0 );
-		} elseif ( $picker_form > 0 ) {
-			$selected_form_id = $picker_form;
-		}
-		if ( $selected_form_id > 0 && class_exists( 'Neo_Pulse_Wp_Forms_Storage' ) ) {
-			$form_for_fields = Neo_Pulse_Wp_Forms_Storage::get_form_by_id( $selected_form_id );
-		}
-
-		$selected_types = array();
-		$selected_field_ids = array();
 		$interaction_values = array(
 			'page_url_contains' => '',
 			'text_contains'     => '',
 			'href_contains'     => '',
 		);
-		$selected_trigger = 'form_success';
-		if ( $editing ) {
+		$editing_legacy   = $editing && ! Neo_Pulse_Wp_Overseer_Conversions::is_supported_goal( $editing );
+		$selected_trigger = (string) array_key_first( Neo_Pulse_Wp_Overseer_Conversions::TRIGGER_TYPES );
+		if ( $editing && ! $editing_legacy ) {
 			$selected_trigger = Neo_Pulse_Wp_Overseer_Conversions::get_trigger_type( $editing );
-		} elseif ( $picker_trigger !== '' && array_key_exists( $picker_trigger, Neo_Pulse_Wp_Overseer_Conversions::TRIGGER_TYPES ) ) {
+		} elseif ( ! $editing && $picker_trigger !== '' && array_key_exists( $picker_trigger, Neo_Pulse_Wp_Overseer_Conversions::TRIGGER_TYPES ) ) {
 			$selected_trigger = $picker_trigger;
 		}
 		if ( $editing && ! empty( $editing['rules'] ) && is_array( $editing['rules'] ) ) {
 			foreach ( $editing['rules'] as $rule ) {
 				if ( ! is_array( $rule ) ) {
 					continue;
-				}
-				if ( 'field_type' === ( $rule['type'] ?? '' ) ) {
-					$selected_types[] = (string) ( $rule['value'] ?? '' );
-				}
-				if ( 'field_id' === ( $rule['type'] ?? '' ) ) {
-					$selected_field_ids[] = (string) ( $rule['value'] ?? '' );
 				}
 				$rule_type = isset( $rule['type'] ) ? sanitize_key( (string) $rule['type'] ) : '';
 				if ( isset( $interaction_values[ $rule_type ] ) ) {
@@ -396,18 +376,23 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Overseer {
 			</div>
 
 			<?php if ( $flash ) : ?>
-				<div class="notice notice-<?php echo ! empty( $flash['success'] ) ? 'success' : 'error'; ?> is-dismissible">
+				<div class="notice inline notice-<?php echo ! empty( $flash['success'] ) ? 'success' : 'error'; ?> is-dismissible">
 					<p><?php echo esc_html( isset( $flash['message'] ) ? (string) $flash['message'] : '' ); ?></p>
 				</div>
 			<?php endif; ?>
 
 			<p class="description neo-pulse-wp-overseer__note">
-				<?php esc_html_e( 'Choose what counts as a conversion, then configure field signals (email, phone, etc.) for successful form submissions, or URL/text filters for clicks and form attempts. Values are never stored—only which field types were present.', 'neo-pulse-wp' ); ?>
+				<?php esc_html_e( 'Choose what counts as a conversion (form attempt, click, or outbound click), then add page URL, link URL, or element text filters. Submitted form values are never stored.', 'neo-pulse-wp' ); ?>
 			</p>
 
 			<?php if ( $edit_id !== '' ) : ?>
 				<div class="neo-pulse-wp-overseer__panel neo-pulse-wp-overseer__panel--nested">
 					<h2><?php echo $editing ? esc_html__( 'Edit conversion goal', 'neo-pulse-wp' ) : esc_html__( 'Add conversion goal', 'neo-pulse-wp' ); ?></h2>
+					<?php if ( $editing_legacy ) : ?>
+						<div class="notice notice-warning inline">
+							<p><?php esc_html_e( 'This goal counted successful NEO Pulse Forms submissions. Forms has been removed, so the goal no longer records conversions. Pick a new trigger and add filters below to keep it, or delete it.', 'neo-pulse-wp' ); ?></p>
+						</div>
+					<?php endif; ?>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="neo-pulse-conversion-goal-form">
 						<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_SAVE_OVERSEER_CONVERSION ); ?>" />
 						<?php wp_nonce_field( self::ACTION_SAVE_OVERSEER_CONVERSION, 'neo_pulse_wp_overseer_conversion_nonce' ); ?>
@@ -433,87 +418,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Overseer {
 								</td>
 							</tr>
 						</table>
-
-						<div class="neo-pulse-conversion-panel neo-pulse-conversion-panel--form" data-trigger-panel="form_success">
-							<h3><?php esc_html_e( 'Form & field signals', 'neo-pulse-wp' ); ?></h3>
-							<p class="description"><?php esc_html_e( 'Counts only after a validated NEO Pulse Forms submission succeeds. Select field types to require (leave all unchecked to count any successful submit).', 'neo-pulse-wp' ); ?></p>
-							<table class="form-table" role="presentation">
-							<tr>
-								<th scope="row"><?php esc_html_e( 'Form', 'neo-pulse-wp' ); ?></th>
-								<td>
-									<select name="form_id" id="form_id" data-form-required="1" onchange="window.location.href=this.options[this.selectedIndex].dataset.url;">
-										<option value=""><?php esc_html_e( '— Select form —', 'neo-pulse-wp' ); ?></option>
-										<?php foreach ( $forms as $form ) : ?>
-											<?php
-											$fid = (int) ( $form['ID'] ?? 0 );
-											$pick_url = add_query_arg(
-												array(
-													'edit'         => $edit_id !== '' ? $edit_id : 'new',
-													'form_id'      => $fid,
-													'trigger_type' => $selected_trigger,
-												),
-												$conversions_url
-											);
-											?>
-											<option value="<?php echo esc_attr( (string) $fid ); ?>" data-url="<?php echo esc_url( $pick_url ); ?>" <?php selected( $selected_form_id, $fid ); ?>>
-												<?php echo esc_html( (string) ( $form['title'] ?? __( 'Untitled', 'neo-pulse-wp' ) ) ); ?>
-											</option>
-										<?php endforeach; ?>
-									</select>
-									<?php if ( empty( $forms ) ) : ?>
-										<p class="description">
-											<?php esc_html_e( 'No active forms found. Create one under NEO Pulse → Forms.', 'neo-pulse-wp' ); ?>
-											<a href="<?php echo esc_url( admin_url( 'admin.php?page=neo-pulse-wp-forms' ) ); ?>"><?php esc_html_e( 'Open Forms', 'neo-pulse-wp' ); ?></a>
-										</p>
-									<?php endif; ?>
-								</td>
-							</tr>
-							<tr>
-								<th scope="row"><?php esc_html_e( 'Field types', 'neo-pulse-wp' ); ?></th>
-								<td>
-									<?php foreach ( Neo_Pulse_Wp_Overseer_Conversions::QUICK_FIELD_TYPES as $ftype ) : ?>
-										<?php
-										$label = $ftype;
-										if ( class_exists( 'Neo_Pulse_Wp_Forms_Field_Registry' ) ) {
-											$choices = Neo_Pulse_Wp_Forms_Field_Registry::choices();
-											if ( isset( $choices[ $ftype ] ) ) {
-												$label = (string) $choices[ $ftype ];
-											}
-										}
-										?>
-										<label style="display:inline-block;margin-right:12px;margin-bottom:6px;">
-											<input type="checkbox" name="rules_field_type[]" value="<?php echo esc_attr( $ftype ); ?>" <?php checked( in_array( $ftype, $selected_types, true ) ); ?> />
-											<?php echo esc_html( $label ); ?>
-										</label>
-									<?php endforeach; ?>
-								</td>
-							</tr>
-							<?php if ( $form_for_fields && ! empty( $form_for_fields['fields'] ) && is_array( $form_for_fields['fields'] ) ) : ?>
-								<tr>
-									<th scope="row"><?php esc_html_e( 'Specific fields', 'neo-pulse-wp' ); ?></th>
-									<td>
-										<?php foreach ( $form_for_fields['fields'] as $field ) : ?>
-											<?php
-											if ( ! is_array( $field ) ) {
-												continue;
-											}
-											$field_id = (string) ( $field['id'] ?? '' );
-											$ftype    = (string) ( $field['type'] ?? '' );
-											if ( $field_id === '' || ( class_exists( 'Neo_Pulse_Wp_Forms_Field_Registry' ) && in_array( $ftype, Neo_Pulse_Wp_Forms_Field_Registry::display_only_types(), true ) ) ) {
-												continue;
-											}
-											$flabel = (string) ( $field['label'] ?? $field_id );
-											?>
-											<label style="display:block;margin-bottom:4px;">
-												<input type="checkbox" name="rules_field_id[]" value="<?php echo esc_attr( $field_id ); ?>" <?php checked( in_array( $field_id, $selected_field_ids, true ) ); ?> />
-												<?php echo esc_html( $flabel ); ?> <span class="description">(<?php echo esc_html( $ftype ); ?>)</span>
-											</label>
-										<?php endforeach; ?>
-									</td>
-								</tr>
-							<?php endif; ?>
-							</table>
-						</div>
 
 						<div class="neo-pulse-conversion-panel neo-pulse-conversion-panel--interaction" data-trigger-panel="interaction">
 							<h3><?php esc_html_e( 'Interaction filters', 'neo-pulse-wp' ); ?></h3>
@@ -558,39 +462,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Overseer {
 						<?php submit_button( $editing ? __( 'Update goal', 'neo-pulse-wp' ) : __( 'Create goal', 'neo-pulse-wp' ) ); ?>
 						<a class="button" href="<?php echo esc_url( $conversions_url ); ?>"><?php esc_html_e( 'Cancel', 'neo-pulse-wp' ); ?></a>
 					</form>
-					<script>
-					(function () {
-						var trigger = document.getElementById('trigger_type');
-						var formSelect = document.getElementById('form_id');
-						var formPanel = document.querySelector('.neo-pulse-conversion-panel--form');
-						var interactionPanel = document.querySelector('.neo-pulse-conversion-panel--interaction');
-						if (!trigger) return;
-
-						function syncPanels() {
-							var value = trigger.value;
-							var isForm = value === 'form_success';
-							if (formPanel) formPanel.hidden = !isForm;
-							if (interactionPanel) interactionPanel.hidden = isForm;
-							if (formSelect) {
-								if (isForm) {
-									formSelect.setAttribute('required', 'required');
-								} else {
-									formSelect.removeAttribute('required');
-								}
-							}
-						}
-
-						trigger.addEventListener('change', function () {
-							var url = new URL(window.location.href);
-							url.searchParams.set('trigger_type', trigger.value);
-							if (trigger.value !== 'form_success') {
-								url.searchParams.delete('form_id');
-							}
-							window.location.href = url.toString();
-						});
-						syncPanels();
-					})();
-					</script>
 				</div>
 			<?php endif; ?>
 
@@ -604,7 +475,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Overseer {
 							<tr>
 								<th><?php esc_html_e( 'Goal', 'neo-pulse-wp' ); ?></th>
 								<th><?php esc_html_e( 'Trigger', 'neo-pulse-wp' ); ?></th>
-								<th><?php esc_html_e( 'Form', 'neo-pulse-wp' ); ?></th>
 								<th><?php esc_html_e( 'Rules', 'neo-pulse-wp' ); ?></th>
 								<th><?php esc_html_e( 'Conversions (30d)', 'neo-pulse-wp' ); ?></th>
 								<th><?php esc_html_e( 'Status', 'neo-pulse-wp' ); ?></th>
@@ -614,13 +484,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Overseer {
 						<tbody>
 							<?php foreach ( $goals as $goal ) : ?>
 								<?php
-								$form_title = '';
-								foreach ( $forms as $form ) {
-									if ( (int) ( $form['ID'] ?? 0 ) === (int) ( $goal['form_id'] ?? 0 ) ) {
-										$form_title = (string) ( $form['title'] ?? '' );
-										break;
-									}
-								}
 								$count = Neo_Pulse_Wp_Overseer_Conversions::count_goal_conversions( (string) $goal['id'], $date_from, $date_to );
 								$delete_url = wp_nonce_url(
 									add_query_arg(
@@ -636,7 +499,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Overseer {
 								<tr>
 									<td><?php echo esc_html( (string) $goal['name'] ); ?></td>
 									<td><?php echo esc_html( Neo_Pulse_Wp_Overseer_Conversions::format_trigger_label( Neo_Pulse_Wp_Overseer_Conversions::get_trigger_type( $goal ) ) ); ?></td>
-									<td><?php echo 'form_success' === Neo_Pulse_Wp_Overseer_Conversions::get_trigger_type( $goal ) ? esc_html( $form_title !== '' ? $form_title : '#' . (int) $goal['form_id'] ) : '—'; ?></td>
 									<td><?php echo esc_html( Neo_Pulse_Wp_Overseer_Conversions::summarize_rules( $goal ) ); ?></td>
 									<td><?php echo (int) $count; ?></td>
 									<td><?php echo ! empty( $goal['enabled'] ) ? esc_html__( 'On', 'neo-pulse-wp' ) : esc_html__( 'Off', 'neo-pulse-wp' ); ?></td>
@@ -874,13 +736,17 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Overseer {
 			</div>
 
 			<?php if ( $flash ) : ?>
-				<div class="notice notice-<?php echo ! empty( $flash['success'] ) ? 'success' : 'error'; ?> is-dismissible">
+				<div class="notice inline notice-<?php echo ! empty( $flash['success'] ) ? 'success' : 'error'; ?> is-dismissible">
 					<p><?php echo esc_html( isset( $flash['message'] ) ? (string) $flash['message'] : '' ); ?></p>
 				</div>
 			<?php endif; ?>
 
-			<?php if ( ! $key_ok ) : ?>
-				<div class="notice notice-warning">
+			<?php if ( Neo_Pulse_Wp_License::ai_needs_upgrade( false ) ) : ?>
+				<div class="notice inline notice-info">
+					<p><?php echo esc_html( Neo_Pulse_Wp_License::upgrade_message() ); ?><?php echo Neo_Pulse_Wp_Plan::label_chip( 'npwp-ai-chip' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in label_chip(). ?></p>
+				</div>
+			<?php elseif ( ! $key_ok ) : ?>
+				<div class="notice inline notice-warning">
 					<p><?php esc_html_e( 'Add an OpenRouter API key in NEO Pulse WP Settings to run analysis.', 'neo-pulse-wp' ); ?></p>
 				</div>
 			<?php endif; ?>
@@ -941,7 +807,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Overseer {
 					</tr>
 				</table>
 				<p class="submit">
-					<button type="submit" class="button button-primary" <?php disabled( ! $key_ok ); ?>>
+					<button type="submit" class="button button-primary<?php echo esc_attr( Neo_Pulse_Wp_Plan::needs_ai_class() ); ?>" <?php disabled( ! $key_ok ); ?>>
 						<?php esc_html_e( 'Generate report', 'neo-pulse-wp' ); ?>
 					</button>
 				</p>
@@ -961,7 +827,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Overseer {
 			</div>
 
 			<?php if ( $flash ) : ?>
-				<div class="notice notice-<?php echo ! empty( $flash['success'] ) ? 'success' : 'error'; ?> is-dismissible">
+				<div class="notice inline notice-<?php echo ! empty( $flash['success'] ) ? 'success' : 'error'; ?> is-dismissible">
 					<p><?php echo esc_html( isset( $flash['message'] ) ? (string) $flash['message'] : '' ); ?></p>
 				</div>
 			<?php endif; ?>
@@ -1072,7 +938,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Overseer {
 			</div>
 
 			<?php if ( $flash ) : ?>
-				<div class="notice notice-<?php echo ! empty( $flash['success'] ) ? 'success' : 'error'; ?> is-dismissible">
+				<div class="notice inline notice-<?php echo ! empty( $flash['success'] ) ? 'success' : 'error'; ?> is-dismissible">
 					<p><?php echo esc_html( isset( $flash['message'] ) ? (string) $flash['message'] : '' ); ?></p>
 				</div>
 			<?php endif; ?>
@@ -1152,7 +1018,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Overseer {
 			</div>
 
 			<?php if ( $flash ) : ?>
-				<div class="notice notice-<?php echo ! empty( $flash['success'] ) ? 'success' : 'error'; ?> is-dismissible">
+				<div class="notice inline notice-<?php echo ! empty( $flash['success'] ) ? 'success' : 'error'; ?> is-dismissible">
 					<p><?php echo esc_html( isset( $flash['message'] ) ? (string) $flash['message'] : '' ); ?></p>
 				</div>
 			<?php endif; ?>
@@ -1197,7 +1063,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Overseer {
 			</div>
 
 			<?php if ( $flash ) : ?>
-				<div class="notice notice-<?php echo ! empty( $flash['success'] ) ? 'success' : 'error'; ?> is-dismissible">
+				<div class="notice inline notice-<?php echo ! empty( $flash['success'] ) ? 'success' : 'error'; ?> is-dismissible">
 					<p><?php echo esc_html( isset( $flash['message'] ) ? (string) $flash['message'] : '' ); ?></p>
 				</div>
 			<?php endif; ?>

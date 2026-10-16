@@ -154,6 +154,9 @@ class Neo_Pulse_Wp_Search_Logs {
 		}
 
 		$query = isset( $data['query'] ) ? sanitize_text_field( (string) $data['query'] ) : '';
+		if ( class_exists( 'Neo_Pulse_Wp_Search' ) ) {
+			$query = Neo_Pulse_Wp_Search::clamp_query( $query );
+		}
 		if ( trim( $query ) === '' ) {
 			return array( 'ok' => false, 'error' => 'empty_query' );
 		}
@@ -429,49 +432,148 @@ class Neo_Pulse_Wp_Search_Logs {
 	}
 
 	/**
-	 * Customer popular terms filtered by OpenRouter (real words, no misspellings).
+	 * Candidates for the search widget's "Popular searches": only searches that found something,
+	 * ranked by how many different visitors made them plus how often a result was clicked, so one
+	 * person searching the same thing ten times doesn't push it to the top.
 	 *
-	 * @param int $days Lookback window.
+	 * @param int $days  Lookback window.
+	 * @param int $limit Max rows.
+	 * @return array<int, array{query: string, count: int}>
+	 */
+	public static function widget_term_candidates( int $days = 30, int $limit = 20 ): array {
+		global $wpdb;
+		$table  = self::table_name();
+		$cutoff = gmdate( 'Y-m-d H:i:s', time() - ( max( 1, $days ) * DAY_IN_SECONDS ) );
+		$limit  = max( 1, min( 40, $limit ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT MIN(query) AS query, query_normalized,
+					COUNT(DISTINCT session_id) AS visitors,
+					SUM(CASE WHEN accepted_url IS NOT NULL AND accepted_url != '' THEN 1 ELSE 0 END) AS clicks,
+					COUNT(*) AS search_count
+				FROM {$table}
+				WHERE created_at >= %s AND query_normalized != '' AND result_count > 0
+				GROUP BY query_normalized
+				ORDER BY (COUNT(DISTINCT session_id) + SUM(CASE WHEN accepted_url IS NOT NULL AND accepted_url != '' THEN 1 ELSE 0 END)) DESC, search_count DESC
+				LIMIT %d",
+				$cutoff,
+				$limit
+			)
+		);
+
+		$out = array();
+		if ( is_array( $rows ) ) {
+			foreach ( $rows as $row ) {
+				$out[] = array(
+					'query' => (string) $row->query,
+					'count' => (int) $row->visitors,
+				);
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * "Popular searches" for the search widget.
+	 *
+	 * Normally this is the list built once a week from the stored weekly totals (see
+	 * Neo_Pulse_Wp_Search_Weekly), so it reflects many weeks of searches and stays the same all week.
+	 * Until the first full week has been stored, it falls back to the last $days of searches.
+	 *
+	 * @param int $days  Lookback window for the fallback.
 	 * @param int $limit Max rows returned.
 	 * @return array<int, array{query: string, count: int}>
 	 */
 	public static function aggregate_popular_terms_curated( int $days = 30, int $limit = 5 ): array {
 		$limit = max( 1, min( 20, $limit ) );
-		$days  = max( 1, $days );
+		$days  = max( 1, min( 365, $days ) );
 
-		$cache_key = 'neo-pulse_search_popular_terms_' . $days . '_' . $limit;
+		if ( class_exists( 'Neo_Pulse_Wp_Search_Weekly' ) ) {
+			$weekly = Neo_Pulse_Wp_Search_Weekly::popular_terms( $limit );
+			if ( $weekly !== null ) {
+				return self::fill_with_seeds( $weekly, $limit );
+			}
+		}
+
+		$cache_key = 'neo-pulse_search_popular_terms_v2_' . $days . '_' . $limit;
 		$cached    = get_transient( $cache_key );
 		if ( is_array( $cached ) ) {
 			return $cached;
 		}
 
-		$fetch_limit = min( 20, $limit * 4 );
-		$candidates  = self::aggregate_popular_terms( $days, $fetch_limit );
+		$candidates = self::widget_term_candidates( $days, min( 20, $limit * 4 ) );
+		$curated    = self::fill_with_seeds( self::curate_candidates( $candidates, $limit ), $limit );
 
-		$curated = array();
+		set_transient( $cache_key, $curated, HOUR_IN_SECONDS );
+		return $curated;
+	}
+
+	/**
+	 * Turn candidate searches into the shown list: the AI keeps real, correctly spelled searches and
+	 * drops near-duplicates (without AI: searches at least two different visitors made), then each
+	 * one is put in sentence case.
+	 *
+	 * @param array<int, array{query: string, count: int}> $candidates Most popular first.
+	 * @param int                                          $limit      Max rows.
+	 * @return array<int, array{query: string, count: int}>
+	 */
+	public static function curate_candidates( array $candidates, int $limit ): array {
+		$curated = null;
 		if (
 			$candidates !== array()
 			&& class_exists( 'Neo_Pulse_Wp_OpenRouter' )
 			&& Neo_Pulse_Wp_OpenRouter::get_api_key() !== ''
+			&& ! Neo_Pulse_Wp_License::ai_needs_upgrade( false )
 		) {
 			$curated = self::curate_popular_terms_with_openrouter( $candidates, $limit );
 		}
-
-		if ( count( $curated ) < $limit ) {
-			$exclude = array();
-			foreach ( $curated as $row ) {
-				$key = self::normalize_query( isset( $row['query'] ) ? (string) $row['query'] : '' );
-				if ( $key !== '' ) {
-					$exclude[] = $key;
+		if ( null === $curated ) {
+			$curated = array();
+			foreach ( $candidates as $row ) {
+				if ( count( $curated ) < $limit && (int) $row['count'] >= 2 ) {
+					$curated[] = $row;
 				}
 			}
-			$seed    = self::aggregate_popular_terms_from_sitemap( $limit - count( $curated ), $exclude );
-			$curated = array_merge( $curated, $seed );
 		}
 
-		$curated = array_slice( $curated, 0, $limit );
-		set_transient( $cache_key, $curated, HOUR_IN_SECONDS );
-		return $curated;
+		$out = array();
+		foreach ( array_slice( $curated, 0, $limit ) as $row ) {
+			$label = isset( $row['label'] ) ? (string) $row['label'] : '';
+			$out[] = array(
+				'query' => $label !== '' ? $label : self::display_case( (string) $row['query'] ),
+				'count' => (int) ( $row['count'] ?? 0 ),
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * Top up a short list with the site's own focus keywords (sentence case too).
+	 *
+	 * @param array<int, array{query: string, count: int}> $terms
+	 * @return array<int, array{query: string, count: int}>
+	 */
+	private static function fill_with_seeds( array $terms, int $limit ): array {
+		$terms = array_slice( $terms, 0, $limit );
+		if ( count( $terms ) >= $limit ) {
+			return $terms;
+		}
+		$exclude = array();
+		foreach ( $terms as $row ) {
+			$key = self::normalize_query( (string) $row['query'] );
+			if ( $key !== '' ) {
+				$exclude[] = $key;
+			}
+		}
+		foreach ( self::aggregate_popular_terms_from_sitemap( $limit - count( $terms ), $exclude ) as $seed ) {
+			$terms[] = array(
+				'query' => self::display_case( (string) $seed['query'] ),
+				'count' => 0,
+			);
+		}
+		return $terms;
 	}
 
 	/**
@@ -636,9 +738,9 @@ class Neo_Pulse_Wp_Search_Logs {
 	/**
 	 * @param array<int, array{query: string, count: int}> $candidates Logged customer queries.
 	 * @param int                                          $limit      Max rows.
-	 * @return array<int, array{query: string, count: int}>
+	 * @return array<int, array{query: string, label: string, count: int}>|null Null when the AI couldn't be reached.
 	 */
-	private static function curate_popular_terms_with_openrouter( array $candidates, int $limit ): array {
+	private static function curate_popular_terms_with_openrouter( array $candidates, int $limit ): ?array {
 		$by_normalized = array();
 		foreach ( $candidates as $row ) {
 			$query = isset( $row['query'] ) ? trim( (string) $row['query'] ) : '';
@@ -666,12 +768,12 @@ class Neo_Pulse_Wp_Search_Logs {
 			++$index;
 		}
 
-		$system = 'You filter on-site customer search queries for a WordPress search widget. Respond with ONLY valid JSON (no markdown): {"terms":[{"query":"...","count":123}]}. Rules: return up to ' . $limit . ' items copied from the input list only, in the same popularity order. Include a query only when every word is a real, correctly spelled word (English or proper nouns). Exclude typos, gibberish, partial words, and random characters. Do not invent new phrases or SEO keywords. Count must match the input entry.';
+		$system = 'You filter on-site customer search queries for a WordPress search widget. Respond with ONLY valid JSON (no markdown): {"terms":[{"query":"...","label":"...","count":123}]}. Rules: return up to ' . $limit . ' items copied from the input list only, in the same popularity order. Include a query only when every word is a real, correctly spelled word (English or proper nouns). Exclude typos, gibberish, partial words, and random characters. When two queries ask for the same thing in different words, keep only the more popular one. Do not invent new phrases or SEO keywords. "query" must be copied exactly from the input. "label" is the same words in sentence case: capitalise the first letter, brand names and proper nouns (for example "Hunter Douglas"), keep acronyms in capitals, and lowercase everything else. Do not change, add or remove any words in "label". Count must match the input entry.';
 		$user   = "Customer search queries:\n" . implode( "\n", $lines );
 
-		$result = Neo_Pulse_Wp_OpenRouter::complete( $system, $user, 400, 0.1, Neo_Pulse_Wp_Search::get_openrouter_model() );
+		$result = Neo_Pulse_Wp_OpenRouter::complete( $system, $user, 500, 0.1, Neo_Pulse_Wp_Search::get_openrouter_model() );
 		if ( is_wp_error( $result ) ) {
-			return array();
+			return null;
 		}
 
 		$text = trim( (string) $result );
@@ -683,7 +785,7 @@ class Neo_Pulse_Wp_Search_Logs {
 
 		$parsed = json_decode( $text, true );
 		if ( ! is_array( $parsed ) || ! isset( $parsed['terms'] ) || ! is_array( $parsed['terms'] ) ) {
-			return array();
+			return null;
 		}
 
 		$out = array();
@@ -703,13 +805,146 @@ class Neo_Pulse_Wp_Search_Logs {
 				continue;
 			}
 			$source = $by_normalized[ $key ];
-			$out[]  = array(
+			$label  = isset( $term['label'] ) ? trim( (string) $term['label'] ) : '';
+			// Use the AI's casing only when it changed nothing but the casing.
+			if ( $label !== '' && self::normalize_query( $label ) !== $key ) {
+				$label = '';
+			}
+			$out[] = array(
 				'query' => $source['query'],
+				'label' => $label,
 				'count' => $source['count'],
 			);
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Sentence case that keeps names: "hunter douglas prices" → "Hunter Douglas prices".
+	 * A word keeps capitals when the site's own text writes it that way (brand names, places, products),
+	 * when it's an acronym typed in capitals (LED, UV) or when it has inner capitals (PowerView).
+	 */
+	public static function display_case( string $term ): string {
+		$term = trim( (string) preg_replace( '/\s+/u', ' ', $term ) );
+		if ( $term === '' ) {
+			return '';
+		}
+		$nouns = self::proper_noun_map();
+		$parts = preg_split( '/([\s\/\-–—&+,()]+)/u', $term, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY );
+		$out   = '';
+		foreach ( (array) $parts as $part ) {
+			if ( ! preg_match( '/\p{L}/u', $part ) ) {
+				$out .= $part;
+				continue;
+			}
+			$lower = self::lower( $part );
+			if ( isset( $nouns[ $lower ] ) ) {
+				$out .= $nouns[ $lower ];
+			} elseif ( preg_match( '/^\p{Lu}{2,5}$/u', $part ) ) {
+				$out .= $part; // Acronym typed in capitals.
+			} elseif ( preg_match( '/^\p{L}+\p{Lu}/u', $part ) && preg_match( '/\p{Ll}/u', $part ) ) {
+				$out .= $part; // Inner capitals (PowerView, iPhone).
+			} else {
+				$out .= $lower;
+			}
+		}
+		$first = function_exists( 'mb_substr' ) ? mb_substr( $out, 0, 1 ) : substr( $out, 0, 1 );
+		$rest  = function_exists( 'mb_substr' ) ? mb_substr( $out, 1 ) : substr( $out, 1 );
+		return ( function_exists( 'mb_strtoupper' ) ? mb_strtoupper( $first ) : strtoupper( $first ) ) . $rest;
+	}
+
+	private static function lower( string $text ): string {
+		return function_exists( 'mb_strtolower' ) ? mb_strtolower( $text ) : strtolower( $text );
+	}
+
+	/**
+	 * Words the site writes with a capital letter in the middle of a sentence (names, brands, places),
+	 * learned from its own pages and posts and the site name. Cached for 12 hours.
+	 *
+	 * @return array<string,string> lowercase word => how the site writes it
+	 */
+	private static function proper_noun_map(): array {
+		static $memo = null;
+		if ( is_array( $memo ) ) {
+			return $memo;
+		}
+		$cached = get_transient( 'neo-pulse_search_proper_nouns' );
+		if ( is_array( $cached ) ) {
+			$memo = $cached;
+			return $memo;
+		}
+
+		$tally = array(); // lower => [ 'caps' => n, 'lower' => n, 'forms' => [ form => n ] ]
+		$posts = get_posts(
+			array(
+				'post_type'              => array_values( get_post_types( array( 'public' => true ) ) ),
+				'post_status'            => 'publish',
+				'has_password'           => false,
+				'posts_per_page'         => 150,
+				'orderby'                => 'modified',
+				'order'                  => 'DESC',
+				'no_found_rows'          => true,
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
+			)
+		);
+		foreach ( $posts as $post ) {
+			if ( ! $post instanceof WP_Post ) {
+				continue;
+			}
+			$text = $post->post_excerpt . "\n" . substr( (string) $post->post_content, 0, 40000 );
+			$text = wp_strip_all_tags( strip_shortcodes( $text ), false );
+			$text = html_entity_decode( $text, ENT_QUOTES, 'UTF-8' );
+			// Split into sentences, then skip each sentence's first word (always capitalised).
+			foreach ( preg_split( '/[.!?:;\n\r•|]+/u', $text ) as $sentence ) {
+				$words = preg_split( '/[^\p{L}\p{N}\'’]+/u', $sentence, -1, PREG_SPLIT_NO_EMPTY );
+				array_shift( $words );
+				foreach ( (array) $words as $word ) {
+					if ( ! preg_match( '/^\p{L}/u', $word ) || strlen( $word ) < 2 ) {
+						continue;
+					}
+					$lower = self::lower( $word );
+					if ( ! isset( $tally[ $lower ] ) ) {
+						$tally[ $lower ] = array( 'caps' => 0, 'lower' => 0, 'forms' => array() );
+					}
+					if ( preg_match( '/^\p{Lu}/u', $word ) && ! preg_match( '/^\p{Lu}+$/u', $word ) ) {
+						++$tally[ $lower ]['caps'];
+						$tally[ $lower ]['forms'][ $word ] = ( $tally[ $lower ]['forms'][ $word ] ?? 0 ) + 1;
+					} elseif ( $word === $lower ) {
+						++$tally[ $lower ]['lower'];
+					}
+				}
+			}
+		}
+
+		$map = array();
+		foreach ( $tally as $lower => $t ) {
+			if ( $t['caps'] < 1 ) {
+				continue;
+			}
+			arsort( $t['forms'] );
+			$form = (string) array_key_first( $t['forms'] );
+			// Mostly written with a capital and seen that way at least twice, or a brand-style name with
+			// inner capitals (PowerView) seen even once.
+			$inner = (bool) preg_match( '/^\p{Lu}\p{Ll}+\p{Lu}/u', $form );
+			if ( ( $t['caps'] >= 2 || $inner ) && $t['caps'] >= 3 * $t['lower'] ) {
+				$map[ $lower ] = $form;
+			}
+		}
+		foreach ( preg_split( '/\s+/u', (string) get_bloginfo( 'name' ) ) as $word ) {
+			$word = trim( $word, " \t\n\r\0\x0B.,:;!?()\"'" );
+			if ( preg_match( '/^\p{Lu}\p{L}+$/u', $word ) ) {
+				$map[ self::lower( $word ) ] = $word;
+			}
+		}
+
+		if ( count( $map ) > 800 ) {
+			$map = array_slice( $map, 0, 800, true );
+		}
+		set_transient( 'neo-pulse_search_proper_nouns', $map, 12 * HOUR_IN_SECONDS );
+		$memo = $map;
+		return $memo;
 	}
 
 	/**
@@ -798,12 +1033,20 @@ class Neo_Pulse_Wp_Search_Logs {
 		return $url;
 	}
 
+	/**
+	 * Delete rows older than the retention period. No cron covers this table, so it runs from
+	 * insert(), but at most once every 12 hours instead of on every logged search.
+	 */
 	public static function maybe_prune_retention(): void {
 		$settings = self::get_settings();
 		$days     = (int) $settings['retention_days'];
 		if ( $days < 1 ) {
 			return;
 		}
+		if ( get_transient( 'neo_pulse_search_logs_pruned' ) ) {
+			return;
+		}
+		set_transient( 'neo_pulse_search_logs_pruned', 1, 12 * HOUR_IN_SECONDS );
 		$cutoff = gmdate( 'Y-m-d H:i:s', time() - ( $days * DAY_IN_SECONDS ) );
 		global $wpdb;
 		$table = self::table_name();

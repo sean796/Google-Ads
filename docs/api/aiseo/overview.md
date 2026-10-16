@@ -5,8 +5,9 @@ section: AISEO & Details Contract
 order: 0
 related:
   - aiseo/element-library
-  - aiseo/agent-models
   - aiseo/generated-files
+  - mastra/overview
+  - mastra/agents-and-models
 ---
 
 <!-- manual -->
@@ -18,7 +19,7 @@ related:
 | Contract | Scope (`runKind`) | Details Drawer Row Structure | WordPress Upload Proof |
 | --- | --- | --- | --- |
 | **1. Modular AISEO Element** | `aiAllMeta`, `aiTitle`, `aiMeta`, `aiUrl`, `aiFaq`, `contentKw`, `entityKw`, `aiHeaders`, `contentCleanup`, `aiLinks`, `aiWikipediaLink`, `aiAnswer`, `aiOverview`, `aiScenario`, `aiInContentImage`, `aiFeaturedImage`, `extraText`, `wpUpload` | Fixed 3-slot row: `<Element Slot>` -> `Post content` -> `WordPress upload` (2-slot for `wpUpload`) | `wordpress.json` + `upload-payload-{slug}.json` |
-| **2. Blog Optimization** | `content` (`AISEO -> Content -> Content`) | `Checklist` -> `Blueprint` -> `Link targets` -> `[Dynamic Blog H2 Sections...]` -> `Post content` -> `Content Markdown` -> `WordPress upload` | `wordpress.json` + `upload-payload-{slug}.json` |
+| **2. Blog Optimization** | `content` (`AISEO -> Content -> Content`) | `Checklist` -> `Blueprint` -> `Link targets` -> `[Dynamic Blog H2 Sections...]` -> `Post content` -> `Content Markdown` -> `Implementation report` -> `WordPress upload` | `wordpress.json` + `upload-payload-{slug}.json` |
 | **3. Research Pipeline** | `research` (`AISEO -> Research -> All`) | 8 Research steps: `DataForSEO SERP` -> `GSC CSV` -> `Semrush enrichment` -> `LLM audit` -> `SERP dump load` -> `GSC quick-wins context` -> `Brief merge` -> `Brief upload` | `wordpress.json` + `seo_brief__{kw}.json` |
 
 ## Design Rules
@@ -41,7 +42,8 @@ Running **Blog Optimization** (`AISEO -> Content -> Content`, `runKind: "content
 4. **Dynamic Blog H2 Sections** (`Answer`, `Overview`, and each body H2 section from the blueprint)
 5. `Post content` (`content-{slug}.html`)
 6. `Content Markdown` (`content-{slug}.md`)
-7. `WordPress upload` (`wordpress.json` + `upload-payload-{slug}.json`)
+7. `Implementation report` (`implementation-report-{slug}.md`)
+8. `WordPress upload` (`wordpress.json` + `upload-payload-{slug}.json`)
 
 ### 3. Zero Cross-Run State Bleed
 

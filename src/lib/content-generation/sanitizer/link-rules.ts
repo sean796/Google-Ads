@@ -213,10 +213,15 @@ export function ensureNoLinkEndsInPeriod(html: string): string {
   return out;
 }
 
-/** Remove orphan " for more." tails left after link strip or bad model output. Keeps "for more information". */
+/** Remove orphan " for more." or "Related reading: <a ...>...</a>." tails left after link strip or bad output. */
 export function stripDanglingForMoreTail(html: string): string {
   if (!html) return html;
-  return html.replace(/\s+for more\.(?!\s*(?:information|details|context|guidance|resources|help|on|about)\b)/gi, ".");
+  let out = html.replace(
+    /\s*Related reading:\s*(?:<a\b[^>]*>[\s\S]*?<\/a>|\[[^\]]+\]\([^)]+\)|[^.<]+)\.?/gi,
+    "",
+  );
+  out = out.replace(/\s+for more\.(?!\s*(?:information|details|context|guidance|resources|help|on|about)\b)/gi, ".");
+  return out;
 }
 
 /**

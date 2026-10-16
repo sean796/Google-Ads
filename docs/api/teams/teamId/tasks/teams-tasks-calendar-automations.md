@@ -5,7 +5,7 @@ section: Teams
 method: GET
 path: /api/teams/{teamId}/tasks/calendar-automations
 auth: session-team
-order: 1830
+order: 1840
 ---
 
 GET `/api/teams/{teamId}/tasks/calendar-automations`.

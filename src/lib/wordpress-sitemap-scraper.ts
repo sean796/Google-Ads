@@ -3,6 +3,7 @@ import { NOTIFY_NO_URLS_COULD_BE_ADDED_TO_KNOWLEDGE_BASE, NOTIFY_OPENROUTER_API_
 import { loadApiKey } from "@/lib/api";
 import { summarizeContentWithAI } from "@/lib/content-summarizer";
 import { htmlToMarkdown } from "@/lib/wordpress-converter";
+import { resolveModelForAgentCategory } from "@/lib/openrouter-agent-category-api";
 import {
   parseSitemap,
   resolveWordPressUrls,
@@ -283,7 +284,7 @@ export async function scrapeChildSitemap(
           
           const summaryResult = await summarizeContentWithAI(pageContent, {
             apiKey: openRouterApiKey,
-            model: "google/gemini-2.5-flash-lite",
+            model: resolveModelForAgentCategory("research"),
             temperature: 0.7,
             maxTokens: 4000,
             topP: 0.9,

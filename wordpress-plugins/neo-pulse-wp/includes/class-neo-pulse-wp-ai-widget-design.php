@@ -157,59 +157,6 @@ class Neo_Pulse_Wp_Ai_Widget_Design {
 	}
 
 	/**
-	 * Save design payload from admin POST for a widget context.
-	 *
-	 * @param array<string,mixed> $raw     neo-pulse_design[...] POST.
-	 * @param string              $widget  'chat' | 'search'.
-	 */
-	public static function save_from_admin_post( array $raw, string $widget ): void {
-		$widget = ( $widget === 'search' ) ? 'search' : 'chat';
-		$data   = array();
-
-		if ( isset( $raw['style_scope'] ) ) {
-			$data['style_scope'] = (string) $raw['style_scope'];
-		}
-		if ( isset( $raw['color_source'] ) ) {
-			$data['color_source'] = (string) $raw['color_source'];
-		}
-
-		$tokens = isset( $raw['tokens'] ) && is_array( $raw['tokens'] ) ? $raw['tokens'] : array();
-		$scope  = isset( $data['style_scope'] ) ? $data['style_scope'] : self::get_settings()['style_scope'];
-
-		if ( $scope === 'both' || ! empty( $raw['apply_to_both'] ) ) {
-			$data['style_scope'] = ! empty( $raw['apply_to_both'] ) ? 'both' : $scope;
-			$data['shared']      = $tokens;
-			if ( ! empty( $raw['apply_to_both'] ) ) {
-				$data['style_scope'] = 'both';
-			}
-		} else {
-			$data[ $widget ] = $tokens;
-		}
-
-		$ui_key = $widget === 'search' ? 'search_ui' : 'chat_ui';
-		$defaults = $widget === 'search'
-			? self::default_search_visibility()
-			: self::default_chat_visibility();
-		$posted_ui = isset( $raw['ui'] ) && is_array( $raw['ui'] ) ? $raw['ui'] : array();
-		$normalized = array();
-		foreach ( array_keys( $defaults ) as $key ) {
-			$normalized[ $key ] = ! empty( $posted_ui[ $key ] );
-		}
-		$data[ $ui_key ] = $normalized;
-
-		$sidebar_key = $widget === 'search' ? 'search_sidebar' : 'chat_sidebar';
-		if ( isset( $raw['sidebar'] ) && is_array( $raw['sidebar'] ) ) {
-			$data[ $sidebar_key ] = self::sanitize_sidebar_config( $raw['sidebar'], $widget );
-		}
-
-		if ( $widget === 'search' && isset( $raw['insights'] ) && is_array( $raw['insights'] ) ) {
-			$data['search_insights'] = self::sanitize_search_insights_config( $raw['insights'] );
-		}
-
-		self::save( $data );
-	}
-
-	/**
 	 * Resolve sidebar config for a widget (global defaults).
 	 *
 	 * @param string              $widget 'search' | 'chat'
@@ -454,21 +401,6 @@ class Neo_Pulse_Wp_Ai_Widget_Design {
 			);
 		}
 		return $out;
-	}
-
-	/**
-	 * Tokens for editing in admin (stored bag, not live branding overlay when custom).
-	 *
-	 * @param string $widget 'chat' | 'search'
-	 * @return array<string,mixed>
-	 */
-	public static function editable_tokens( string $widget ): array {
-		$settings = self::get_settings();
-		if ( $settings['style_scope'] === 'both' ) {
-			return $settings['shared'];
-		}
-		$key = ( $widget === 'search' ) ? 'search' : 'chat';
-		return $settings[ $key ];
 	}
 
 	/**

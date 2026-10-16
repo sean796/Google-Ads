@@ -5,8 +5,9 @@ section: AISEO & Details Contract
 order: 10
 related:
   - aiseo/overview
-  - aiseo/agent-models
   - aiseo/generated-files
+  - mastra/overview
+  - mastra/agent-registry
 ---
 
 <!-- manual -->

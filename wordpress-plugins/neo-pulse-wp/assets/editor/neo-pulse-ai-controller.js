@@ -173,7 +173,10 @@
 		var status = this.status || {};
 
 		if (!status.canPreview && status.reasons && status.reasons.length) {
-			var notice = D.el('div', 'neo-pulse-wp-ai__notice');
+			var notice = D.el('div', 'neo-pulse-wp-ai__notice' + (status.needsUpgrade ? ' neo-pulse-wp-ai__notice--upgrade' : ''));
+			if (status.needsUpgrade) {
+				notice.appendChild(D.el('span', 'npwp-ai-chip', status.upgradeLabel || 'Pro + AI'));
+			}
 			status.reasons.forEach(function (reason) { notice.appendChild(D.el('p', '', reason)); });
 			this.root.appendChild(notice);
 			return;

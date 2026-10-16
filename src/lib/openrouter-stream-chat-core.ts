@@ -84,6 +84,7 @@ export async function streamOpenRouterChatCompletionCore({
       temperature,
       maxTokens: safeMaxTokens,
       topP,
+      reasoning: { effort: "low" },
       stream: true,
     }),
     signal,

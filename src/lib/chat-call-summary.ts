@@ -1,5 +1,6 @@
 import { loadApiKey } from "@/lib/api";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
+import { resolveModelForAgentCategory } from "@/lib/openrouter-agent-category-api";
 import type { ChatCallTranscriptLine } from "@/lib/chat-call-types";
 
 export type ChatCallSummaryResult = {
@@ -111,7 +112,7 @@ Return JSON: { "summary": "...", "actionItems": [{ "owner": "...", "task": "..."
   try {
     const { content } = await callOpenRouterChatCompletion({
       apiKey,
-      model: "google/gemini-2.5-flash-lite",
+      model: resolveModelForAgentCategory("report"),
       system,
       user,
       maxTokens: 1024,

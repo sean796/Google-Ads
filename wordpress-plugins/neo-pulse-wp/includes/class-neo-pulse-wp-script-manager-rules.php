@@ -233,10 +233,7 @@ class Neo_Pulse_Wp_Script_Manager_Rules {
 			return self::targets_match_current( $include );
 		}
 
-		if ( 'exclude' === $mode ) {
-			return ! self::targets_match_current( $exclude );
-		}
-
+		// "all" and "exclude": everywhere except the excluded targets (checked above).
 		return true;
 	}
 
@@ -312,12 +309,21 @@ class Neo_Pulse_Wp_Script_Manager_Rules {
 				if ( $taxonomy === '' || empty( $terms ) ) {
 					continue;
 				}
-				if ( is_tax( $taxonomy, $terms ) ) {
+				// is_tax() never matches the built-in category and tag archives.
+				if ( 'category' === $taxonomy ) {
+					$on_archive = is_category( $terms );
+				} elseif ( 'post_tag' === $taxonomy ) {
+					$on_archive = is_tag( $terms );
+				} else {
+					$on_archive = is_tax( $taxonomy, $terms );
+				}
+				if ( $on_archive ) {
 					return true;
 				}
-				if ( is_singular() && is_single() ) {
-					$post_id = (int) get_queried_object_id();
-					if ( $post_id > 0 && has_term( $terms, $taxonomy, $post_id ) ) {
+				// Any singular post type that uses this taxonomy (posts, pages, CPTs).
+				if ( is_singular() ) {
+					$queried = get_queried_object();
+					if ( $queried instanceof WP_Post && is_object_in_taxonomy( $queried->post_type, $taxonomy ) && has_term( $terms, $taxonomy, $queried ) ) {
 						return true;
 					}
 				}

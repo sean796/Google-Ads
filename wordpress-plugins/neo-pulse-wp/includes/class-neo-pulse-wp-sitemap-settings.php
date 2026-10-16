@@ -40,7 +40,7 @@ class Neo_Pulse_Wp_Sitemap_Settings {
 	/**
 	 * Reset a section to defaults.
 	 *
-	 * @param string $section general|html|optimizer|post_type|taxonomy
+	 * @param string $section general|html|post_type|taxonomy
 	 * @param string $slug    Post type or taxonomy slug when applicable.
 	 * @return array<string, mixed>
 	 */
@@ -54,13 +54,6 @@ class Neo_Pulse_Wp_Sitemap_Settings {
 				break;
 			case 'html':
 				$config['html'] = $defaults['html'];
-				break;
-			case 'optimizer':
-				foreach ( $defaults['post_types'] as $slug => $settings ) {
-					if ( isset( $config['post_types'][ $slug ] ) ) {
-						$config['post_types'][ $slug ]['content_optimizer'] = $settings['content_optimizer'];
-					}
-				}
 				break;
 			case 'post_type':
 				$slug = sanitize_key( $slug );
@@ -110,7 +103,6 @@ class Neo_Pulse_Wp_Sitemap_Settings {
 	public static function default_html(): array {
 		return array(
 			'enabled'    => false,
-			'page_id'    => 0,
 			'shortcode'  => '[neo-pulse_sitemap]',
 			'sort_order' => 'title',
 		);
@@ -122,16 +114,13 @@ class Neo_Pulse_Wp_Sitemap_Settings {
 	public static function default_post_types(): array {
 		$out   = array();
 		$types = get_post_types( array( 'public' => true ), 'objects' );
-		$skip = class_exists( 'Neo_Pulse_Wp_Index_Rules', false )
-			? Neo_Pulse_Wp_Index_Rules::noindex_post_types()
-			: array( 'attachment' );
+		$skip  = array_merge( array( 'attachment' ), Neo_Pulse_Wp_Seo_Settings::excluded_post_types() );
 		foreach ( $types as $slug => $obj ) {
 			$include = ! in_array( (string) $slug, $skip, true );
 			$out[ $slug ] = array(
 				'include_xml'         => $include,
 				'include_html'        => $include,
 				'image_meta'          => '',
-				'content_optimizer'   => in_array( $slug, array( 'post', 'page' ), true ),
 			);
 		}
 		return $out;
@@ -143,9 +132,7 @@ class Neo_Pulse_Wp_Sitemap_Settings {
 	public static function default_taxonomies(): array {
 		$out  = array();
 		$taxs = get_taxonomies( array( 'public' => true ), 'objects' );
-		$skip_tax = class_exists( 'Neo_Pulse_Wp_Index_Rules', false )
-			? Neo_Pulse_Wp_Index_Rules::noindex_taxonomies()
-			: array( 'post_tag', 'post_format' );
+		$skip_tax = array_merge( array( 'post_tag' ), Neo_Pulse_Wp_Seo_Settings::excluded_taxonomies() );
 		foreach ( $taxs as $slug => $obj ) {
 			$include = ! in_array( (string) $slug, $skip_tax, true );
 			$out[ $slug ] = array(
@@ -231,7 +218,6 @@ class Neo_Pulse_Wp_Sitemap_Settings {
 				'include_xml'       => ! empty( $settings['include_xml'] ),
 				'include_html'      => ! empty( $settings['include_html'] ),
 				'image_meta'        => self::sanitize_meta_lines( (string) ( $settings['image_meta'] ?? '' ) ),
-				'content_optimizer' => ! empty( $settings['content_optimizer'] ),
 			);
 		}
 
@@ -256,7 +242,6 @@ class Neo_Pulse_Wp_Sitemap_Settings {
 			),
 			'html'       => array(
 				'enabled'    => ! empty( $merged['html']['enabled'] ),
-				'page_id'    => max( 0, (int) ( $merged['html']['page_id'] ?? 0 ) ),
 				'shortcode'  => '[neo-pulse_sitemap]',
 				'sort_order' => $sort,
 			),
@@ -343,14 +328,14 @@ class Neo_Pulse_Wp_Sitemap_Settings {
 	 * @return string
 	 */
 	/**
-	 * Post type slugs with Content Optimizer enabled in sitemap settings.
+	 * Post types switched on in the old "Content Optimizer" toggles that used to live on this screen.
+	 * Only read once, to carry the choice over to Settings → Editor AI.
 	 *
-	 * @param array<string, mixed>|null $config Optional config; loads saved config when null.
 	 * @return array<int, string>
 	 */
-	public static function content_optimizer_post_types( ?array $config = null ): array {
-		$config = null !== $config ? $config : self::get_config();
-		$types  = isset( $config['post_types'] ) && is_array( $config['post_types'] ) ? $config['post_types'] : array();
+	public static function content_optimizer_post_types(): array {
+		$raw   = get_option( self::OPTION_KEY, array() );
+		$types = is_array( $raw ) && isset( $raw['post_types'] ) && is_array( $raw['post_types'] ) ? $raw['post_types'] : array();
 		$out    = array();
 		foreach ( $types as $slug => $settings ) {
 			if ( ! is_array( $settings ) || empty( $settings['content_optimizer'] ) ) {

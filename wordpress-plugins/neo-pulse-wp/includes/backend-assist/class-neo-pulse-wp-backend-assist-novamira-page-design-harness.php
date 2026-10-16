@@ -22,27 +22,15 @@ class Neo_Pulse_Wp_Backend_Assist_Novamira_Page_Design_Harness {
 			return new WP_Error( 'neo-pulse_novamira', __( 'Novamira abilities are not available.', 'neo-pulse-wp' ) );
 		}
 
-		$content_mode       = self::resolve_content_mode( $params );
+		// Page design always uses native Elementor widgets built from composed section copy.
 		$elementor_sections = self::elementor_sections_from_params( $params );
-		$use_elementor      = $content_mode === 'elementor_widgets' || $elementor_sections !== array();
-
-		if ( $use_elementor ) {
-			if ( $elementor_sections === array() ) {
-				return new WP_Error(
-					'neo-pulse_novamira_design',
-					__( 'No Elementor section copy to design. Run compose_elementor_page_sections first.', 'neo-pulse-wp' )
-				);
-			}
-			$collected = self::collected_from_elementor_sections( $elementor_sections );
-		} else {
-			$collected = Neo_Pulse_Wp_Backend_Assist_Novamira_Page::collect_blocks_and_slots( $params, $post_id );
-			if ( empty( $collected['slots'] ) ) {
-				return new WP_Error(
-					'neo-pulse_novamira_design',
-					__( 'No saved SEO block slots to design. Compose and save blocks first.', 'neo-pulse-wp' )
-				);
-			}
+		if ( $elementor_sections === array() ) {
+			return new WP_Error(
+				'neo-pulse_novamira_design',
+				__( 'No Elementor section copy to design. Run compose_elementor_page_sections first.', 'neo-pulse-wp' )
+			);
 		}
+		$collected = self::collected_from_elementor_sections( $elementor_sections );
 
 		$agent_context = Neo_Pulse_Wp_Backend_Assist_Novamira_Page::run_ability( 'novamira/agent-context', array() );
 		if ( is_wp_error( $agent_context ) ) {
@@ -74,12 +62,14 @@ class Neo_Pulse_Wp_Backend_Assist_Novamira_Page_Design_Harness {
 		}
 
 		$rag_note = self::rag_reference_note( $post_id );
-		$system   = self::build_system_prompt( $skill, $agent_context, $active_design, $use_elementor );
-		$user     = $use_elementor
-			? self::build_user_prompt_elementor( $post_id, $collected, $rag_note )
-			: self::build_user_prompt( $post_id, $collected, $rag_note );
+		$system   = self::build_system_prompt( $skill, $agent_context, $active_design );
+		$user     = self::build_user_prompt_elementor( $post_id, $collected, $rag_note );
 
-		$executor = static function ( string $ability_name, array $input ) {
+		$executor = static function ( string $ability_name, array $input ) use ( $post_id ) {
+			$target_error = self::reject_foreign_target( $input, $post_id );
+			if ( is_wp_error( $target_error ) ) {
+				return $target_error;
+			}
 			return Neo_Pulse_Wp_Backend_Assist_Novamira_Page::run_ability( $ability_name, $input );
 		};
 
@@ -151,9 +141,7 @@ class Neo_Pulse_Wp_Backend_Assist_Novamira_Page_Design_Harness {
 			'title'        => get_the_title( $post_id ),
 			'view_url'     => get_permalink( $post_id ),
 			'edit_url'     => get_edit_post_link( $post_id, 'raw' ),
-			'section_plan' => $use_elementor
-				? self::section_plan_from_elementor_sections( $elementor_sections )
-				: Neo_Pulse_Wp_Backend_Assist_Novamira_Page::section_plan_from_block_spans( $collected['block_spans'] ),
+			'section_plan' => self::section_plan_from_elementor_sections( $elementor_sections ),
 			'check_design' => $check,
 			'summary'      => sprintf(
 				/* translators: %s: page title */
@@ -164,17 +152,39 @@ class Neo_Pulse_Wp_Backend_Assist_Novamira_Page_Design_Harness {
 	}
 
 	/**
-	 * @return string|WP_Error
+	 * Abilities may only touch the target page: reject any post/page/document id in the input
+	 * (at any depth) that is not the page being designed.
+	 *
+	 * @param array<string,mixed> $input
+	 * @return true|WP_Error
 	 */
-	private static function resolve_content_mode( array $params ): string {
-		$mode = isset( $params['content_mode'] ) ? sanitize_key( (string) $params['content_mode'] ) : '';
-		if ( $mode === 'elementor_widgets' ) {
-			return 'elementor_widgets';
+	public static function reject_foreign_target( array $input, int $post_id ) {
+		$id_keys = array( 'post_id', 'page_id', 'postid', 'pageid', 'document_id', 'documentid', 'post', 'page', 'target_post_id', 'target_page_id' );
+		$stack   = array( $input );
+		while ( $stack !== array() ) {
+			$node = array_pop( $stack );
+			foreach ( $node as $key => $value ) {
+				if ( is_array( $value ) ) {
+					$stack[] = $value;
+					continue;
+				}
+				if ( ! is_string( $key ) || ! in_array( strtolower( $key ), $id_keys, true ) ) {
+					continue;
+				}
+				if ( ( is_int( $value ) || ( is_string( $value ) && ctype_digit( $value ) ) ) && (int) $value !== $post_id ) {
+					return new WP_Error(
+						'neo-pulse_novamira_target',
+						sprintf(
+							/* translators: 1: requested id, 2: target page id */
+							__( 'Refused: this design run may only edit page %2$d (ability input targeted %1$d).', 'neo-pulse-wp' ),
+							(int) $value,
+							$post_id
+						)
+					);
+				}
+			}
 		}
-		if ( Neo_Pulse_Wp_Backend_Assist_Pipeline_Content_Prep::page_content_mode_from_context() === 'elementor_widgets' ) {
-			return 'elementor_widgets';
-		}
-		return 'seo_blocks';
+		return true;
 	}
 
 	/**
@@ -408,7 +418,7 @@ class Neo_Pulse_Wp_Backend_Assist_Novamira_Page_Design_Harness {
 	 * @param array<string,mixed> $agent_context
 	 * @param array<string,mixed> $active_design
 	 */
-	private static function build_system_prompt( string $skill, array $agent_context, array $active_design, bool $elementor_widgets = false ): string {
+	private static function build_system_prompt( string $skill, array $agent_context, array $active_design ): string {
 		$parts   = array();
 		$parts[] = $skill;
 		$parts[] = 'Novamira agent context (JSON): ' . wp_json_encode( $agent_context );
@@ -421,54 +431,16 @@ class Neo_Pulse_Wp_Backend_Assist_Novamira_Page_Design_Harness {
 				'guidance'  => $active_design['guidance'] ?? array(),
 			)
 		);
-		$layout_rules = $elementor_widgets
-			? array(
-				'You are building one WordPress page in Elementor using only native Elementor widgets (heading, text-editor, button, image) via Novamira tools.',
-				'Do not use neo-pulse_seo_section or Agent Hub SEO block widgets.',
-				'Map each Elementor content section below to one distinct Elementor section on the page.',
-				'Place section H2 in a heading widget, body in text widgets, CTA in a button widget.',
-				'Match existing neodigital marketing pages: columns, heroes, images, readable contrast.',
-				'When finished building, respond with a short plain summary (no JSON).',
-			)
-			: array(
-				'You are building one WordPress page in Elementor using only the provided Novamira tools.',
-				'Match existing neodigital marketing pages: columns, heroes, images, readable contrast.',
-				'Map each SEO content block to one distinct Elementor section.',
-				'Use block slot copy in title/body/cta widgets only; do not paste reference page chrome text.',
-				'When finished building, respond with a short plain summary (no JSON).',
-			);
+		$layout_rules = array(
+			'You are building one WordPress page in Elementor using only native Elementor widgets (heading, text-editor, button, image) via Novamira tools.',
+			'Only edit the target page_id given below; never edit, create or delete any other page.',
+			'Map each Elementor content section below to one distinct Elementor section on the page.',
+			'Place section H2 in a heading widget, body in text widgets, CTA in a button widget.',
+			"Match the site's existing pages: columns, heroes, images, readable contrast.",
+			'When finished building, respond with a short plain summary (no JSON).',
+		);
 		$parts[] = implode( "\n", $layout_rules );
 		return implode( "\n\n", $parts );
-	}
-
-	/**
-	 * @param array{slots:array<int,array<string,mixed>>,block_spans:array<int,array{label:string,slot_indexes:array<int,int>}>} $collected
-	 */
-	private static function build_user_prompt( int $post_id, array $collected, string $rag_note ): string {
-		$page_title = get_the_title( $post_id );
-		$lines      = array(
-			'Target page_id: ' . $post_id,
-			'Page title: ' . $page_title,
-			'Permalink: ' . get_permalink( $post_id ),
-		);
-		if ( $rag_note !== '' ) {
-			$lines[] = $rag_note;
-		}
-		$lines[] = 'SEO blocks (one Elementor section each):';
-		foreach ( $collected['block_spans'] as $i => $span ) {
-			$label = (string) ( $span['label'] ?? 'Section ' . ( $i + 1 ) );
-			$lines[] = 'Block ' . ( $i + 1 ) . ' H2: ' . $label;
-			foreach ( (array) ( $span['slot_indexes'] ?? array() ) as $idx ) {
-				$slot = $collected['slots'][ (int) $idx ] ?? null;
-				if ( ! is_array( $slot ) ) {
-					continue;
-				}
-				$type    = (string) ( $slot['type'] ?? '' );
-				$preview = self::slot_preview( $slot );
-				$lines[] = '  slot[' . $idx . '] type=' . $type . ' ' . substr( $preview, 0, 400 );
-			}
-		}
-		return implode( "\n", $lines );
 	}
 
 	/**

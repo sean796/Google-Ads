@@ -1,0 +1,93 @@
+/* Neo Pulse → SEO Settings */
+.neo-pulse-wp-seo .npwp-seo__lead { max-width: 60rem; margin-bottom: 1.25rem; }
+.neo-pulse-wp-seo .npwp-seo__panel {
+	background: var(--npwp-panel, #0a1119);
+	border: 1px solid var(--npwp-line, rgba(255, 255, 255, 0.08));
+	border-radius: 10px;
+	padding: 1.25rem 1.5rem;
+	margin: 0 0 1.5rem;
+}
+.neo-pulse-wp-seo .npwp-seo__panel h2 { margin-top: 0; }
+.neo-pulse-wp-seo .npwp-seo__panel h3 { margin: 1.75rem 0 0.75rem; }
+.neo-pulse-wp-seo .npwp-seo__status { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+.neo-pulse-wp-seo .npwp-seo__pill {
+	display: inline-block;
+	padding: 0.2rem 0.75rem;
+	border-radius: 999px;
+	font-weight: 600;
+	font-size: 12px;
+	letter-spacing: 0.02em;
+	border: 1px solid var(--npwp-line-strong, rgba(255, 255, 255, 0.14));
+	color: var(--npwp-muted, #9aa4ae);
+}
+.neo-pulse-wp-seo .npwp-seo__pill--live { background: var(--npwp-lime-tint); border-color: var(--npwp-lime-line); color: var(--npwp-lime-ink, #3f6b00); }
+.neo-pulse-wp-seo .npwp-seo__pill--waiting { background: var(--npwp-warn-tint); border-color: var(--npwp-warn-line); color: var(--npwp-warn-ink, #9a3412); }
+.neo-pulse-wp-seo .npwp-seo__checks { list-style: none; margin: 0 0 1rem; padding: 0; }
+.neo-pulse-wp-seo .npwp-seo__checks li {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.6rem;
+	padding: 0.55rem 0;
+	border-bottom: 1px solid var(--npwp-line, rgba(255, 255, 255, 0.08));
+}
+.neo-pulse-wp-seo .npwp-seo__checks li:last-child { border-bottom: 0; }
+.neo-pulse-wp-seo .npwp-seo__checks .button { margin-left: auto; }
+.neo-pulse-wp-seo .npwp-seo__check-mark { width: 1.25rem; text-align: center; font-weight: 700; }
+/* Long lines wrap beside their button instead of pushing it onto a row of its own. */
+.neo-pulse-wp-seo .npwp-seo__check-text { flex: 1 1 18rem; min-width: 0; }
+.neo-pulse-wp-seo .npwp-seo__checks li > .button,
+.neo-pulse-wp-seo .npwp-seo__inline-form { flex: 0 0 auto; }
+.neo-pulse-wp-seo .npwp-seo__checks li.is-ok .npwp-seo__check-mark { color: var(--npwp-lime, #84bd00); }
+.neo-pulse-wp-seo .npwp-seo__checks li.is-todo .npwp-seo__check-mark { color: var(--npwp-muted, #9aa4ae); }
+.neo-pulse-wp-seo .npwp-seo__inline-form { margin: 0 0 0 auto; }
+.neo-pulse-wp-seo .npwp-seo__inline-form .button { margin-left: 0; }
+.neo-pulse-wp-seo .npwp-seo__toggle .description { margin-top: 0.75rem; max-width: 60rem; }
+.neo-pulse-wp-seo .npwp-seo__progress { margin-left: 0.75rem; color: var(--npwp-muted, #9aa4ae); }
+.neo-pulse-wp-seo .npwp-seo__result {
+	border: 1px solid var(--npwp-line, rgba(255, 255, 255, 0.08));
+	border-radius: 8px;
+	margin: 0 0 0.6rem;
+	padding: 0.5rem 0.9rem;
+}
+.neo-pulse-wp-seo .npwp-seo__result summary { cursor: pointer; overflow-wrap: anywhere; }
+.neo-pulse-wp-seo .npwp-seo__result.is-ok summary strong { color: var(--npwp-lime-ink, #3f6b00); }
+.neo-pulse-wp-seo .npwp-seo__result.is-diff summary strong { color: var(--npwp-warn-ink, #9a3412); }
+.neo-pulse-wp-seo .npwp-seo__result table { margin: 0.75rem 0 0.4rem; table-layout: fixed; }
+.neo-pulse-wp-seo .npwp-seo__result td { overflow-wrap: anywhere; vertical-align: top; }
+.neo-pulse-wp-seo .npwp-seo__result th:first-child,
+.neo-pulse-wp-seo .npwp-seo__result td:first-child { width: 11rem; }
+.neo-pulse-wp-seo .npwp-seo__result tr.is-diff td { color: var(--npwp-warn-ink, #9a3412); }
+.neo-pulse-wp-seo .npwp-seo__error { color: var(--npwp-error-ink, #b42318); }
+.neo-pulse-wp-seo .npwp-seo__table input.regular-text { width: 100%; }
+.neo-pulse-wp-seo .npwp-seo__table td { vertical-align: middle; }
+.neo-pulse-wp-seo .npwp-seo__table th:first-child { width: 12rem; }
+.neo-pulse-wp-seo #npwp-seo-compare-urls { margin: 0.75rem 0 0; }
+.neo-pulse-wp-seo .npwp-seo__result.is-skip summary strong { color: var(--npwp-muted, #6b7280); }
+.neo-pulse-wp-seo .npwp-seo__result tr.is-expected td { color: inherit; }
+.neo-pulse-wp-seo .npwp-seo__note { margin-top: 0.35rem; font-size: 12px; color: var(--npwp-muted, #6b7280); }
+.neo-pulse-wp-seo .npwp-seo__checks li.is-attention .npwp-seo__check-mark { color: var(--npwp-warn, #f5b942); }
+.neo-pulse-wp-seo .npwp-seo__pill--ready { background: var(--npwp-lime-tint); border-color: var(--npwp-lime-line); color: var(--npwp-lime-ink, #3f6b00); }
+.neo-pulse-wp-seo .npwp-seo__banner { display: flex; align-items: flex-start; gap: 0.6rem; margin: 0.25rem 0 1rem; padding: 0.85rem 1rem; border-radius: 10px; border: 1px solid var(--npwp-line, rgba(0, 0, 0, 0.08)); font-weight: 500; }
+.neo-pulse-wp-seo .npwp-seo__banner[hidden] { display: none; }
+.neo-pulse-wp-seo .npwp-seo__banner.is-ok { background: var(--npwp-lime-tint, rgba(132, 189, 0, 0.12)); border-color: var(--npwp-lime-line, rgba(132, 189, 0, 0.35)); }
+.neo-pulse-wp-seo .npwp-seo__banner.is-attention { background: var(--npwp-warn-tint, rgba(245, 185, 66, 0.12)); border-color: var(--npwp-warn-line, rgba(245, 185, 66, 0.4)); }
+.neo-pulse-wp-seo .npwp-seo__banner-mark { font-weight: 700; }
+.neo-pulse-wp-seo .npwp-seo__banner.is-ok .npwp-seo__banner-mark { color: var(--npwp-lime, #84bd00); }
+.neo-pulse-wp-seo .npwp-seo__banner.is-attention .npwp-seo__banner-mark { color: var(--npwp-warn, #f5b942); }
+.neo-pulse-wp-seo .npwp-seo__group { margin: 0.5rem 0; }
+.neo-pulse-wp-seo .npwp-seo__group[hidden] { display: none; }
+.neo-pulse-wp-seo .npwp-seo__group > summary { cursor: pointer; padding: 0.6rem 0.25rem; color: var(--npwp-muted, #5f6b78); font-weight: 500; }
+.neo-pulse-wp-seo .npwp-seo__group-body { padding-left: 0.5rem; }
+
+/* Readiness line and switch buttons under the checklist */
+.neo-pulse-wp-seo .npwp-seo__actions { margin-top: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--npwp-line, rgba(255, 255, 255, 0.08)); }
+.neo-pulse-wp-seo .npwp-seo__readiness { display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem; margin: 0 0 0.9rem; }
+.neo-pulse-wp-seo .npwp-seo__buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+.neo-pulse-wp-seo .npwp-seo__buttons .npwp-seo__toggle { margin: 0; }
+.neo-pulse-wp-seo .npwp-seo__buttons .button[disabled] { opacity: 0.45; cursor: not-allowed; }
+.neo-pulse-wp-seo .npwp-seo__actions .description { margin-top: 0.75rem; max-width: 60rem; }
+.neo-pulse-wp-seo .npwp-seo__accept { display: flex; align-items: center; gap: 0.5rem; flex-basis: 100%; margin: 0 0 0.75rem; font-weight: 500; }
+.neo-pulse-wp-seo .npwp-seo__accept[hidden] { display: none; }
+/* The checkbox gets its own row; both buttons stay side by side underneath. */
+.neo-pulse-wp-seo .npwp-seo__buttons form.npwp-seo__toggle:first-child { display: contents; }

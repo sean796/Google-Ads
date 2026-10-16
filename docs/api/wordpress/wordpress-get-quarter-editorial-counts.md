@@ -5,7 +5,7 @@ section: WordPress
 method: POST
 path: /api/wordpress/get-quarter-editorial-counts
 auth: open
-order: 2850
+order: 2860
 ---
 
 POST `/api/wordpress/get-quarter-editorial-counts`.

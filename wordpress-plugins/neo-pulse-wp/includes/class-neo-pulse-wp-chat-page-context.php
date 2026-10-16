@@ -94,6 +94,11 @@ class Neo_Pulse_Wp_Chat_Page_Context {
 		$key = trim( $key );
 		if ( $key !== '' ) {
 			$stored = get_transient( self::TRANSIENT_PREFIX . $key );
+			if ( is_array( $stored ) && ! empty( $stored['post_id'] ) && ! self::post_id_accessible( (int) $stored['post_id'] ) ) {
+				// Access changed since the context was warmed (unpublished, password added, other user).
+				delete_transient( self::TRANSIENT_PREFIX . $key );
+				$stored = null;
+			}
 			if ( is_array( $stored ) && ! empty( $stored ) ) {
 				if ( empty( $stored['post_id'] ) ) {
 					$site_index = Neo_Pulse_Wp_Chat_Rag::get_site_index( $settings );
@@ -193,7 +198,8 @@ class Neo_Pulse_Wp_Chat_Page_Context {
 
 		$page_title = sanitize_text_field( trim( $page_title ) );
 		if ( $page_title !== '' ) {
-			Neo_Pulse_Wp_Site_Inventory::warm( true );
+			// Only editors may warm the drafts inventory; public requests use published content.
+			Neo_Pulse_Wp_Site_Inventory::warm( is_user_logged_in() && current_user_can( 'edit_posts' ) );
 			$item = Neo_Pulse_Wp_Site_Inventory::find_item_by_title( $page_title );
 			if ( is_array( $item ) && ! empty( $item['id'] ) ) {
 				$match_id = (int) $item['id'];
@@ -229,6 +235,9 @@ class Neo_Pulse_Wp_Chat_Page_Context {
 		if ( ! $post instanceof WP_Post ) {
 			return false;
 		}
+		if ( (string) $post->post_password !== '' ) {
+			return false; // Password-protected content never reaches the chat.
+		}
 		if ( $post->post_status === 'publish' ) {
 			return true;
 		}
@@ -240,7 +249,7 @@ class Neo_Pulse_Wp_Chat_Page_Context {
 	 * @return array<string,mixed>|null
 	 */
 	public static function index_item_for_post( int $post_id, array $site_index ): ?array {
-		if ( $post_id < 1 ) {
+		if ( $post_id < 1 || ! self::post_id_accessible( $post_id ) ) {
 			return null;
 		}
 		foreach ( $site_index as $item ) {
@@ -250,7 +259,7 @@ class Neo_Pulse_Wp_Chat_Page_Context {
 		}
 
 		$post = get_post( $post_id );
-		if ( ! $post instanceof WP_Post || ! self::post_id_accessible( $post_id ) ) {
+		if ( ! $post instanceof WP_Post ) {
 			return null;
 		}
 
@@ -278,6 +287,10 @@ class Neo_Pulse_Wp_Chat_Page_Context {
 	public static function enrich_item( array $item ): array {
 		$post_id = (int) ( $item['id'] ?? 0 );
 		if ( $post_id < 1 ) {
+			return $item;
+		}
+		if ( ! self::post_id_accessible( $post_id ) ) {
+			$item['excerpt'] = '';
 			return $item;
 		}
 		$full = Neo_Pulse_Wp_Chat_Rag::read_post_body_for_chat( $post_id );
@@ -441,7 +454,14 @@ class Neo_Pulse_Wp_Chat_Page_Context {
 		);
 	}
 
+	/**
+	 * Per-user, salted key so one visitor cannot load another user's (e.g. an editor's draft) context.
+	 */
 	private static function storage_key( int $post_id, string $page_url ): string {
-		return md5( $post_id . '|' . Neo_Pulse_Wp_Chat_History::normalize_url( $page_url ) );
+		return hash_hmac(
+			'md5',
+			get_current_user_id() . '|' . $post_id . '|' . Neo_Pulse_Wp_Chat_History::normalize_url( $page_url ),
+			wp_salt( 'nonce' )
+		);
 	}
 }

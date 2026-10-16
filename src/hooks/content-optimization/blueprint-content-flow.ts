@@ -177,6 +177,8 @@ export async function generateAndUploadFlow(
     firstPartyAuthorityBlock: String(optimizationOptions?.firstPartyAuthorityBlock ?? "").trim() || undefined,
     llmAuditAuthorityExternalPairs: optimizationOptions?.llmAuditAuthorityExternalPairs,
     linkTargetsPlan: optimizationOptions?.linkTargetsPlan,
+    gscResult: optimizationOptions?.gscResult,
+    seoResearchRaw: typeof optimizationOptions?.seoResearchRaw === "string" ? optimizationOptions.seoResearchRaw : undefined,
   };
 
   const progressReporter =

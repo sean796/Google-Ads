@@ -286,11 +286,8 @@ class Neo_Pulse_Wp_Chat_Super_Admin {
 	 * @param array<string, mixed>|null $body Stream request body.
 	 */
 	public static function normalize_page_content_mode_from_body( ?array $body ): string {
-		if ( ! is_array( $body ) || ! isset( $body['page_content_mode'] ) ) {
-			return 'seo_blocks';
-		}
-		$mode = sanitize_key( (string) $body['page_content_mode'] );
-		return $mode === 'elementor_widgets' ? 'elementor_widgets' : 'seo_blocks';
+		unset( $body );
+		return 'elementor_widgets'; // SEO blocks were removed in 0.9.232.
 	}
 
 	/**

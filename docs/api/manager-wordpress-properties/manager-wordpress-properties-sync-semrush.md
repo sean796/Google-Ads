@@ -5,7 +5,7 @@ section: Manager WordPress Properties
 method: POST
 path: /api/manager-wordpress-properties/sync-semrush
 auth: open
-order: 720
+order: 730
 ---
 
 POST `/api/manager-wordpress-properties/sync-semrush`.

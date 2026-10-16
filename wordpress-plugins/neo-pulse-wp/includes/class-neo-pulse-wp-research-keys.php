@@ -29,19 +29,6 @@ class Neo_Pulse_Wp_Research_Keys {
 		}
 
 		if ( $login === '' ) {
-			$env = getenv( 'NEO_PULSE_WP_DATAFORSEO_LOGIN' );
-			if ( $env ) {
-				$login = trim( (string) $env );
-			}
-		}
-		if ( $pass === '' ) {
-			$env = getenv( 'NEO_PULSE_WP_DATAFORSEO_PASSWORD' );
-			if ( $env ) {
-				$pass = trim( (string) $env );
-			}
-		}
-
-		if ( $login === '' ) {
 			$login = $site['login'];
 		}
 		if ( $pass === '' ) {
@@ -60,7 +47,7 @@ class Neo_Pulse_Wp_Research_Keys {
 	}
 
 	/**
-	 * @return string wp-config|environment|site|''
+	 * @return string wp-config|site|''
 	 */
 	public static function get_dataforseo_source(): string {
 		$site = Neo_Pulse_Wp_Api::get_agency_dataforseo_credentials();
@@ -70,9 +57,6 @@ class Neo_Pulse_Wp_Research_Keys {
 		if ( defined( 'NEO_PULSE_WP_DATAFORSEO_LOGIN' ) && NEO_PULSE_WP_DATAFORSEO_LOGIN !== ''
 			&& defined( 'NEO_PULSE_WP_DATAFORSEO_PASSWORD' ) && NEO_PULSE_WP_DATAFORSEO_PASSWORD !== '' ) {
 			return 'wp-config';
-		}
-		if ( getenv( 'NEO_PULSE_WP_DATAFORSEO_LOGIN' ) && getenv( 'NEO_PULSE_WP_DATAFORSEO_PASSWORD' ) ) {
-			return 'environment';
 		}
 		if ( $site['login'] !== '' || $site['password'] !== '' ) {
 			return 'site';
@@ -87,12 +71,7 @@ class Neo_Pulse_Wp_Research_Keys {
 		if ( defined( 'NEO_PULSE_WP_SEMRUSH_API_KEY' ) && NEO_PULSE_WP_SEMRUSH_API_KEY !== '' ) {
 			return trim( (string) NEO_PULSE_WP_SEMRUSH_API_KEY );
 		}
-		$env = getenv( 'NEO_PULSE_WP_SEMRUSH_API_KEY' );
-		return $env ? trim( (string) $env ) : '';
-	}
-
-	public static function semrush_configured(): bool {
-		return self::semrush_api_key() !== '';
+		return '';
 	}
 
 	public static function research_configured(): bool {

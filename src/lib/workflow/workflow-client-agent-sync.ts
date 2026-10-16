@@ -11,6 +11,7 @@ const CLIENT_BOUND_BUSINESS_KINDS = new Set<TaskExecutionKind>([
   "local_dominator_export",
   "entity_page_creator",
   "entity_generator",
+  "sap_generator",
 ]);
 
 function stripStoredBusinessName(payload: Record<string, unknown>): Record<string, unknown> {
@@ -32,9 +33,10 @@ export function syncAgentNodesForWorkflowClient(args: {
 
   for (const node of ordered) {
     if (node.kind !== "action_agent") continue;
-    const config = node.config as WorkflowActionConfig;
+    const config = node.config as WorkflowActionConfig & { ragInputKeys?: string[] };
     const kind = String(config.executionKind ?? "") as TaskExecutionKind;
     let executionPayload = { ...(config.executionPayload ?? {}) };
+    let nextRagInputKeys = config.ragInputKeys;
 
     if (CLIENT_BOUND_BUSINESS_KINDS.has(kind)) {
       executionPayload = stripStoredBusinessName(executionPayload);
@@ -42,7 +44,8 @@ export function syncAgentNodesForWorkflowClient(args: {
 
     if (
       prevExecutionKind === "local_dominator_export" &&
-      (kind === "entity_page_creator" || kind === "entity_generator")
+      (kind === "entity_page_creator" || kind === "entity_generator") &&
+      prevVariableKey
     ) {
       executionPayload = {
         ...executionPayload,
@@ -50,11 +53,29 @@ export function syncAgentNodesForWorkflowClient(args: {
         gridInputSource: "workflow",
         ragInputKeys: [prevVariableKey],
       };
+      nextRagInputKeys = [prevVariableKey];
+    }
+
+    if (
+      prevExecutionKind === "entity_generator" &&
+      kind === "sap_generator" &&
+      prevVariableKey
+    ) {
+      executionPayload = {
+        ...executionPayload,
+        entityCsvInputSource: "workflow",
+        ragInputKeys: [prevVariableKey],
+      };
+      nextRagInputKeys = [prevVariableKey];
     }
 
     byId.set(node.id, {
       ...node,
-      config: { ...config, executionPayload },
+      config: {
+        ...config,
+        executionPayload,
+        ...(nextRagInputKeys ? { ragInputKeys: nextRagInputKeys } : {}),
+      },
     });
 
     prevExecutionKind = kind;

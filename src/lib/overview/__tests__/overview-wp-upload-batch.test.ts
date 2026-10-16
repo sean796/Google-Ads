@@ -4,6 +4,7 @@ import type { OverviewBinding } from "@/hooks/overview/use-overview-wordpress-bi
 import type { WordPressSite } from "@/components/integrations/types";
 import {
   buildWpUploadEligibleRows,
+  isOverviewRowDirtyForWpUpload,
   runOverviewWpUploadBatch,
 } from "@/lib/overview/overview-wp-upload-batch";
 import { overviewBulkScopeUrlKeysFromRows } from "@/lib/overview/overview-bulk-row-scope";
@@ -33,7 +34,7 @@ function mockBulkOk(items: OverviewBulkSeoApiItem[]) {
       postId: item.postId,
       index,
       ok: true,
-      method: "direct_put",
+      method: "batch_v1",
     })),
     okCount: items.length,
     total: items.length,
@@ -45,7 +46,7 @@ describe("runOverviewWpUploadBatch", () => {
     bulkUpdateOverviewSeo.mockReset();
   });
 
-  it("sends one row per Pulse request", async () => {
+  it("batches meta-only rows into one Pulse request up to 25 items and attaches proof files", async () => {
     const rowCount = 3;
     const rows: OverviewRow[] = [];
     const bindings: Record<string, OverviewBinding> = {};
@@ -71,9 +72,10 @@ describe("runOverviewWpUploadBatch", () => {
       async (_siteUrl, _user, _pass, items: OverviewBulkSeoApiItem[]) => mockBulkOk(items),
     );
 
+    let bulkState: Record<string, { urlGeneratedFiles?: Record<string, Array<{ name: string }>> }> = {};
     const setBulkOptimizationState = vi.fn((updater: (prev: Record<string, unknown>) => unknown) => {
       if (typeof updater === "function") {
-        updater({});
+        bulkState = updater(bulkState as Record<string, unknown>) as typeof bulkState;
       }
     });
     const setOptimizationProgress = vi.fn((updater: (prev: Record<string, unknown>) => unknown) => {
@@ -96,12 +98,88 @@ describe("runOverviewWpUploadBatch", () => {
       },
     });
 
-    expect(bulkUpdateOverviewSeo).toHaveBeenCalledTimes(3);
-    expect(bulkUpdateOverviewSeo.mock.calls[0]![3]).toHaveLength(1);
-    expect(bulkUpdateOverviewSeo.mock.calls[1]![3]).toHaveLength(1);
-    expect(bulkUpdateOverviewSeo.mock.calls[2]![3]).toHaveLength(1);
+    expect(bulkUpdateOverviewSeo).toHaveBeenCalledTimes(1);
+    expect(bulkUpdateOverviewSeo.mock.calls[0]![3]).toHaveLength(3);
     expect(stats.stats.okCount).toBe(rowCount);
     expect(stats.stats.failCount).toBe(0);
+    const proofFiles = bulkState[batchKey]?.urlGeneratedFiles?.["https://example.com/post-0/"] ?? [];
+    expect(proofFiles.some((f) => f.name === "wordpress.json")).toBe(true);
+  });
+
+  it("filters out unchanged rows when 0 are selected, and includes selected rows when selection is non-empty", () => {
+    const unchangedUrl = "https://example.com/unchanged/";
+    const changedUrl = "https://example.com/changed/";
+    const rows: OverviewRow[] = [
+      {
+        url: unchangedUrl,
+        title: "Unchanged Title",
+        metaDescription: "Unchanged Meta",
+        aiTitle: "",
+        aiMeta: "",
+        status: "idle",
+        focusKeyword: "unchanged title",
+      },
+      {
+        url: changedUrl,
+        title: "Old Title",
+        metaDescription: "Meta",
+        aiTitle: "New AI Title",
+        aiMeta: "",
+        status: "idle",
+        focusKeyword: "changed kw",
+      },
+    ];
+    const bindings: Record<string, OverviewBinding> = {
+      [unchangedUrl]: { postId: 10, subtype: "post" },
+      [changedUrl]: { postId: 11, subtype: "post" },
+    };
+    const getInventoryMatchForUrl = (url: string) =>
+      url === unchangedUrl
+        ? {
+            row: {
+              id: 10,
+              fields: {
+                title: "Unchanged Title",
+                excerpt: "Unchanged Meta",
+                keyword: "unchanged title",
+              },
+              acf: { keyword_focus: "unchanged title" },
+            },
+            subtype: "post" as const,
+          }
+        : undefined;
+
+    expect(
+      isOverviewRowDirtyForWpUpload(rows[0]!, getInventoryMatchForUrl(unchangedUrl)),
+    ).toBe(false);
+    expect(
+      isOverviewRowDirtyForWpUpload(rows[1]!, getInventoryMatchForUrl(changedUrl)),
+    ).toBe(true);
+
+    const eligibleWhenZeroSelected = buildWpUploadEligibleRows(
+      rows,
+      bindings,
+      overviewBulkScopeUrlKeysFromRows(rows),
+      null,
+      {
+        selectedUrlKeys: new Set(),
+        getInventoryMatchForUrl,
+      },
+    );
+    expect(eligibleWhenZeroSelected.map((e) => e.row.url)).toEqual([changedUrl]);
+
+    const selectedKeys = overviewBulkScopeUrlKeysFromRows([rows[0]!]);
+    const eligibleWhenSelected = buildWpUploadEligibleRows(
+      rows,
+      bindings,
+      selectedKeys,
+      null,
+      {
+        selectedUrlKeys: selectedKeys,
+        getInventoryMatchForUrl,
+      },
+    );
+    expect(eligibleWhenSelected.map((e) => e.row.url)).toEqual([unchangedUrl]);
   });
 
   it("includes post body in bulk-update payload for content rows", async () => {

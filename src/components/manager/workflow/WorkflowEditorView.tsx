@@ -932,6 +932,7 @@ export function WorkflowEditorView({
           activeRunId={activeRunId}
           focusRagOnRunId={focusRagOnRunId}
           inspectorNote={inspectorNote}
+          saveError={saveError}
           stepTestResult={stepTestResult}
           testingStepId={testingStepId}
           onTestStep={(nodeId) => void handleTestStep(nodeId)}
@@ -952,16 +953,23 @@ function buildLocalDraft(teamId: number, siteId?: string | null): WorkflowDefini
 }
 
 function syncRagVariables(nodes: WorkflowNode[], current: WorkflowRagVariable[]): WorkflowRagVariable[] {
-  const actionNodes = nodes.filter((node) => node.kind === "action_agent");
-  return actionNodes.map((node) => {
-    const config = node.config as { ragVariableKey?: string; ragScope?: WorkflowRagVariable["scope"]; title?: string };
-    const key = config.ragVariableKey ?? node.id;
+  const ragNodes = nodes.filter(
+    (node) => node.kind === "action_agent" || node.kind === "csv_rows",
+  );
+  return ragNodes.map((node) => {
+    const config = node.config as {
+      ragVariableKey?: string;
+      ragScope?: WorkflowRagVariable["scope"];
+      title?: string;
+    };
+    const defaultPrefix = node.kind === "csv_rows" ? `csv_${node.id}` : node.id;
+    const key = config.ragVariableKey?.trim() || defaultPrefix;
     const existing = current.find((item) => item.nodeId === node.id);
     return {
       key,
       nodeId: node.id,
       scope: "run",
-      label: config.title ?? node.label ?? key,
+      label: config.title ?? node.label ?? existing?.label ?? key,
     };
   });
 }

@@ -16,10 +16,11 @@ vi.mock("@/lib/wordpress-api/crud", () => ({
 vi.mock("@/lib/wordpress-api/meta", () => ({
   updateOverviewSeoItem: vi.fn(),
   getWordPressPostMeta: vi.fn(),
+  bulkUpdateOverviewSeo: vi.fn(),
 }));
 
 import { updateWordPressPost } from "@/lib/wordpress-api/crud";
-import { updateOverviewSeoItem } from "@/lib/wordpress-api/meta";
+import { bulkUpdateOverviewSeo, updateOverviewSeoItem } from "@/lib/wordpress-api/meta";
 
 const site = {
   id: "wp-1",
@@ -34,6 +35,13 @@ beforeEach(() => {
   vi.mocked(updateWordPressPost).mockResolvedValue({ success: true, postId: 44 });
   vi.mocked(updateOverviewSeoItem).mockReset();
   vi.mocked(updateOverviewSeoItem).mockResolvedValue({ postId: 44, ok: true });
+  vi.mocked(bulkUpdateOverviewSeo).mockReset();
+  vi.mocked(bulkUpdateOverviewSeo).mockImplementation(async (_url, _u, _p, items) => ({
+    success: true,
+    results: items.map((item, index) => ({ postId: item.postId, index, ok: true })),
+    okCount: items.length,
+    total: items.length,
+  }));
 });
 
 describe("uploadOverviewAiseoRowToWordPress", () => {
@@ -230,10 +238,16 @@ describe("rowUrlMatchesWordPressSite", () => {
 });
 
 describe("uploadOverviewAiseoWrittenRows", () => {
-  it("never throws when one row fails", async () => {
-    vi.mocked(updateWordPressPost)
-      .mockResolvedValueOnce({ success: false, error: "timeout" })
-      .mockResolvedValueOnce({ success: true, postId: 45 });
+  it("batches multi-row uploads via bulkUpdateOverviewSeo and records per-row failures", async () => {
+    vi.mocked(bulkUpdateOverviewSeo).mockResolvedValueOnce({
+      success: true,
+      results: [
+        { postId: 44, index: 0, ok: false, error: "timeout" },
+        { postId: 45, index: 1, ok: true },
+      ],
+      okCount: 1,
+      total: 2,
+    });
 
     const rows = [
       createEmptyOverviewRow("https://kwbllp.com/a/"),
@@ -255,7 +269,8 @@ describe("uploadOverviewAiseoWrittenRows", () => {
       resolveBindings: async () => ({}),
     });
     expect(stats).toEqual({ uploaded: 1, failed: 1, skipped: 0 });
-    expect(updateWordPressPost).toHaveBeenCalledTimes(2);
+    expect(bulkUpdateOverviewSeo).toHaveBeenCalledTimes(1);
+    expect(bulkUpdateOverviewSeo.mock.calls[0]?.[3]).toHaveLength(2);
   });
 
   it("creates upload proof shell when batch state is missing", () => {

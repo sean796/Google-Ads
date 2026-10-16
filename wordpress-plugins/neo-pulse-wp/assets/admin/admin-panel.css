@@ -84,7 +84,7 @@
 
 	text-transform: uppercase;
 
-	color: #f8fafc;
+	color: var(--npwp-text);
 
 }
 
@@ -108,7 +108,7 @@
 
 	padding: 8px 16px;
 
-	color: #f8fafc;
+	color: var(--npwp-text);
 
 	text-decoration: none;
 
@@ -124,9 +124,9 @@
 
 .neo-pulse-wp-panel-nav__item:hover {
 
-	background: rgba(255, 255, 255, 0.06);
+	background: var(--npwp-field);
 
-	color: #f8fafc;
+	color: var(--npwp-text);
 
 }
 
@@ -134,9 +134,9 @@
 
 .neo-pulse-wp-panel-nav__item--active {
 
-	background: rgba(34, 211, 238, 0.18);
+	background: rgba(132, 189, 0, 0.18);
 
-	color: #f8fafc;
+	color: var(--npwp-text);
 
 	font-weight: 600;
 
@@ -162,7 +162,7 @@
 
 	margin: 0 0 16px;
 
-	color: #d1d5db;
+	color: var(--npwp-muted);
 
 	font-size: 1rem;
 

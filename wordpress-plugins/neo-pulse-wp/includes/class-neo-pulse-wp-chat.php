@@ -1,10 +1,10 @@
 <?php
 /**
- * NEO Pulse Chat Widget: frontend injection and REST API.
+ * NEO Pulse Chat Widget: frontend injection and chat endpoints.
  *
  * When enabled in Settings > Chat Widget, injects a chat panel host in wp_footer
- * that merges with the AI Search magnifying-glass sidebar. The REST endpoint at
- * neo-pulse/v1/chat handles messages using RAG + three-phase sub-agent reasoning.
+ * that merges with the AI Search magnifying-glass sidebar. Messages stream through
+ * admin-ajax (neo_pulse_chat_stream) using RAG + sub-agent reasoning.
  *
  * @package Neo_Pulse_Wp
  */
@@ -20,14 +20,29 @@ class Neo_Pulse_Wp_Chat {
 	const PREFETCH_TTL            = 60;
 	const RESPONSE_PREFETCH_TTL   = 120;
 
+	/** Per-IP limits for visitors (editors exempt): messages, and prefetch calls combined. */
+	const STREAM_RATE_MAX         = 20;
+	const PREFETCH_RATE_MAX       = 240;
+	const RATE_WINDOW             = 300;
+
 	/** @var bool */
 	private static $shortcode_rendered = false;
+
+	/**
+	 * Design from the NEO Pulse Chat Elementor widget on this page (null = no widget rendered).
+	 *
+	 * @var array{tokens:array<string,mixed>,ui:array<string,bool>,sidebar:array<string,mixed>,el_id:string}|null
+	 */
+	private static $widget_design = null;
+
+	const WIDGET_MIGRATION_KEY = 'neo_pulse_wp_chat_widget_migrated';
 
 	/**
 	 * Hook registrations.
 	 */
 	public static function init(): void {
 		add_shortcode( self::SHORTCODE_TAG, array( __CLASS__, 'render_shortcode' ) );
+		self::maybe_migrate_to_widget();
 		add_action( 'rest_api_init', array( __CLASS__, 'register_routes' ) );
 		add_action( 'wp_head', array( __CLASS__, 'render_mobile_guard_script' ), 0 );
 		add_action( 'wp_head', array( __CLASS__, 'render_mobile_launcher_critical_css' ), 1 );
@@ -48,7 +63,12 @@ class Neo_Pulse_Wp_Chat {
 		add_action( 'wp_ajax_nopriv_neo_pulse_chat_response_prefetch', array( __CLASS__, 'ajax_chat_response_prefetch' ) );
 		add_action( 'wp_ajax_neo_pulse_chat_page_context', array( __CLASS__, 'ajax_chat_page_context' ) );
 		add_action( 'wp_ajax_nopriv_neo_pulse_chat_page_context', array( __CLASS__, 'ajax_chat_page_context' ) );
-		Neo_Pulse_Wp_Chat_Starters::maybe_schedule();
+		if ( self::is_off_everywhere() ) {
+			wp_clear_scheduled_hook( Neo_Pulse_Wp_Chat_Starters::CRON_HOOK );
+			wp_clear_scheduled_hook( Neo_Pulse_Wp_Chat_Starters::GENERATE_HOOK );
+		} else {
+			Neo_Pulse_Wp_Chat_Starters::maybe_schedule();
+		}
 	}
 
 	/**
@@ -63,12 +83,162 @@ class Neo_Pulse_Wp_Chat {
 	}
 
 	/**
+	 * Master off switch: no chat anywhere (front end, wp-admin, search panel Chat tab,
+	 * shortcode, God Mode, chat API) for anyone, administrators included.
+	 * Set on Chat > General, or force it with define( 'NEO_PULSE_WP_CHAT_OFF', true ) in wp-config.php.
+	 */
+	public static function is_off_everywhere(): bool {
+		if ( defined( 'NEO_PULSE_WP_CHAT_OFF' ) && NEO_PULSE_WP_CHAT_OFF ) {
+			return true;
+		}
+		// NEO Pulse Pro (without AI): no chat anywhere; its settings and history are kept for an upgrade.
+		if ( Neo_Pulse_Wp_License::ai_needs_upgrade( false ) ) {
+			return true;
+		}
+		$stored = get_option( self::OPTION_KEY, array() );
+		return is_array( $stored ) && ! empty( $stored['off_everywhere'] );
+	}
+
+	/**
+	 * 0.9.235: the front-end bubble moved into the NEO Pulse Chat Elementor widget. Sites that already
+	 * had chat switched on keep the site-wide bubble (and its saved styling) until a widget is placed.
+	 */
+	private static function maybe_migrate_to_widget(): void {
+		if ( get_option( self::WIDGET_MIGRATION_KEY, '' ) === '1' ) {
+			return;
+		}
+		$stored = get_option( self::OPTION_KEY, array() );
+		if ( is_array( $stored ) && ! empty( $stored['enabled'] ) && ! array_key_exists( 'show_without_widget', $stored ) ) {
+			$stored['show_without_widget'] = true;
+			update_option( self::OPTION_KEY, $stored );
+		}
+		update_option( self::WIDGET_MIGRATION_KEY, '1', true );
+	}
+
+	/**
+	 * Called by the NEO Pulse Chat Elementor widget while the page renders.
+	 *
+	 * @param array<string,mixed> $design tokens / ui / sidebar from the widget.
+	 * @param string              $el_id  Elementor element ID.
+	 */
+	public static function apply_widget_design( array $design, string $el_id ): void {
+		if ( self::$widget_design !== null ) {
+			return; // First widget on the page wins.
+		}
+		self::$widget_design = array(
+			'tokens'  => isset( $design['tokens'] ) && is_array( $design['tokens'] ) ? $design['tokens'] : array(),
+			'ui'      => isset( $design['ui'] ) && is_array( $design['ui'] ) ? $design['ui'] : array(),
+			'sidebar' => isset( $design['sidebar'] ) && is_array( $design['sidebar'] ) ? $design['sidebar'] : array(),
+			'extra'   => isset( $design['extra'] ) && is_array( $design['extra'] ) ? $design['extra'] : array(),
+			'el_id'   => $el_id,
+		);
+	}
+
+	public static function has_widget_design(): bool {
+		return self::$widget_design !== null;
+	}
+
+	/**
+	 * Extra widget settings that are not colours: launcher icon markup, avatar image, header status line.
+	 */
+	public static function widget_extra( string $key ): string {
+		if ( self::$widget_design === null || is_admin() ) {
+			return '';
+		}
+		return isset( self::$widget_design['extra'][ $key ] ) ? (string) self::$widget_design['extra'][ $key ] : '';
+	}
+
+	/**
+	 * Chat colour/size tokens: saved site design, overridden by the Elementor widget on this page.
+	 *
+	 * @return array<string,mixed>
+	 */
+	public static function design_tokens(): array {
+		if ( is_admin() ) {
+			return Neo_Pulse_Wp_Ai_Widget_Design::resolve( 'chat' );
+		}
+		$tokens = self::public_base_tokens();
+		if ( self::$widget_design !== null ) {
+			$tokens = array_merge( $tokens, self::$widget_design['tokens'] );
+		}
+		return $tokens;
+	}
+
+	/**
+	 * Starting tokens for the public chat (0.9.236): sizes only. Colours and font from the old site-wide
+	 * chat design are dropped so every site starts from the default look (accent = the site's main
+	 * Elementor colour, text in the site font); only colours set on the NEO Pulse Chat widget apply.
+	 *
+	 * @return array<string,mixed>
+	 */
+	public static function public_base_tokens(): array {
+		$tokens = Neo_Pulse_Wp_Ai_Widget_Design::resolve( 'chat' );
+		foreach ( array_merge( Neo_Pulse_Wp_Ai_Widget_Design::color_token_keys(), array( 'font_family', 'shadow' ) ) as $key ) {
+			unset( $tokens[ $key ] );
+		}
+		return $tokens;
+	}
+
+	/**
+	 * Which chat parts are shown (header, avatar, chips...).
+	 *
+	 * @return array<string,bool>
+	 */
+	public static function design_ui(): array {
+		$design = Neo_Pulse_Wp_Ai_Widget_Design::get_settings();
+		$ui     = isset( $design['chat_ui'] ) && is_array( $design['chat_ui'] ) ? $design['chat_ui'] : array();
+		if ( self::$widget_design !== null && ! is_admin() ) {
+			$ui = array_merge( $ui, self::$widget_design['ui'] );
+		}
+		return $ui;
+	}
+
+	/**
+	 * Everything except "is there a widget on this page": licence, master switch, builders, visitor rules.
+	 */
+	public static function can_show_frontend_bubble(): bool {
+		if ( is_admin() || self::is_off_everywhere() || self::is_page_builder_editing_context() ) {
+			return false;
+		}
+		return self::should_show_for_visitor();
+	}
+
+	/**
+	 * Front end: the bubble shows where the Elementor widget is placed, where the shortcode is used,
+	 * or everywhere when "Show without the widget" is on.
+	 */
+	private static function frontend_bubble_wanted(): bool {
+		if ( self::$widget_design !== null ) {
+			return true;
+		}
+		$settings = self::get_settings();
+		if ( ! empty( $settings['show_without_widget'] ) ) {
+			return true;
+		}
+		return self::page_has_chat_shortcode();
+	}
+
+	/**
+	 * Load the chat for a widget rendered after wp_enqueue_scripts (scripts print in the footer).
+	 */
+	public static function enqueue_for_widget(): void {
+		if ( ! self::can_show_frontend_bubble() ) {
+			return;
+		}
+		// Re-localize even if already enqueued so the widget's design replaces the site default.
+		self::enqueue_lazy_frontend();
+	}
+
+	/**
 	 * Whether the chat widget should load for the current frontend visitor.
 	 * When logged_in_only is set, guests do not see the widget or receive chat API access.
 	 * When admin_only is set, only WordPress administrators see it.
 	 */
 	public static function should_show_for_visitor(): bool {
-		if ( ! self::is_enabled() ) {
+		if ( ! Neo_Pulse_Wp_License::is_licensed( false ) ) {
+			return false; // Not licensed: no chat (see class-neo-pulse-wp-license.php).
+		}
+		if ( self::is_off_everywhere() || ! self::is_enabled() ) {
 			return false;
 		}
 		$settings = self::get_settings();
@@ -119,7 +289,7 @@ class Neo_Pulse_Wp_Chat {
 	 */
 	public static function render_shortcode( $atts = array() ): string {
 		shortcode_atts( array(), is_array( $atts ) ? $atts : array(), self::SHORTCODE_TAG );
-		if ( ! self::is_enabled() ) {
+		if ( self::is_off_everywhere() || ! self::is_enabled() ) {
 			return '';
 		}
 		if ( ! is_admin() && ! self::should_show_for_visitor() ) {
@@ -229,7 +399,10 @@ class Neo_Pulse_Wp_Chat {
 	 * Whether the chat sidebar should load on the current screen (frontend or wp-admin).
 	 */
 	public static function should_show_on_current_screen(): bool {
-		if ( self::is_page_builder_editing_context() ) {
+		if ( ! Neo_Pulse_Wp_License::is_licensed( false ) ) {
+			return false; // Not licensed: no chat (see class-neo-pulse-wp-license.php).
+		}
+		if ( self::is_off_everywhere() || self::is_page_builder_editing_context() ) {
 			return false;
 		}
 		if ( ! self::is_enabled() && ! current_user_can( 'manage_options' ) ) {
@@ -242,13 +415,19 @@ class Neo_Pulse_Wp_Chat {
 			}
 			return is_user_logged_in();
 		}
-		return self::should_show_for_visitor();
+		return self::should_show_for_visitor() && self::frontend_bubble_wanted();
 	}
 
 	/**
 	 * Whether chat API endpoints (stream, prefetch) may run for this request.
 	 */
 	public static function can_use_chat_api(): bool {
+		if ( ! Neo_Pulse_Wp_License::is_licensed( true ) ) {
+			return false; // Not licensed: no chat (see class-neo-pulse-wp-license.php).
+		}
+		if ( self::is_off_everywhere() ) {
+			return false;
+		}
 		if ( ! self::is_enabled() && ! current_user_can( 'manage_options' ) ) {
 			return false;
 		}
@@ -270,6 +449,8 @@ class Neo_Pulse_Wp_Chat {
 	public static function get_settings(): array {
 		$defaults = array(
 			'enabled'             => false,
+			'off_everywhere'      => false,
+			'show_without_widget' => false,
 			'disable_backend'       => false,
 			'logged_in_only'        => false,
 			'admin_only'            => false,
@@ -287,11 +468,6 @@ class Neo_Pulse_Wp_Chat {
 			'voice_ptt'           => true,
 			'mic_replaces_send'   => true,
 			'lead_conversion_enabled' => true,
-			'lead_forms'          => array(
-				'booking' => 0,
-				'contact' => 0,
-				'pricing' => 0,
-			),
 			'god_mode_enabled'       => true,
 			'chekkit_enabled'        => true,
 			'chekkit_teaser_enabled' => true,
@@ -313,8 +489,15 @@ class Neo_Pulse_Wp_Chat {
 			$merged['assistant_name'] = 'Pulse Assist';
 		}
 		$sidebar = Neo_Pulse_Wp_Ai_Widget_Design::resolve_sidebar_config( 'chat', $stored );
+		$merged  = array_merge( $merged, $sidebar );
+		if ( self::$widget_design !== null && ! is_admin() ) {
+			$merged = array_merge( $merged, self::$widget_design['sidebar'] );
+			if ( ! empty( self::$widget_design['tokens']['accent'] ) ) {
+				$merged['color'] = (string) self::$widget_design['tokens']['accent'];
+			}
+		}
 
-		return array_merge( $merged, $sidebar );
+		return $merged;
 	}
 
 	/**
@@ -333,17 +516,26 @@ class Neo_Pulse_Wp_Chat {
 	 * @param array $settings
 	 */
 	public static function save_settings( array $settings ): void {
-		$current = self::get_settings();
-		$merged  = array_merge( $current, $settings );
+		// Merge onto the raw stored option, not get_settings(): that adds derived defaults
+		// (sidebar config, widget design) which must not be frozen into the option.
+		$current = get_option( self::OPTION_KEY, array() );
+		if ( ! is_array( $current ) ) {
+			$current = array();
+		}
+		$merged = array_merge( $current, $settings );
 		update_option( self::OPTION_KEY, $merged );
 	}
 
 	/**
 	 * Whether the current user may use God Mode (backend chat pipeline).
-	 * Requires the Chat setting plus a Neo Digital staff email.
+	 * Requires the Chat setting, the edit_posts capability and a Neo Digital staff email
+	 * (an email alone is not enough: anyone can register with any address on open sites).
 	 */
 	public static function current_user_can_backend_mode(): bool {
-		if ( ! is_user_logged_in() ) {
+		if ( ! is_user_logged_in() || self::is_off_everywhere() ) {
+			return false;
+		}
+		if ( ! current_user_can( 'edit_posts' ) ) {
 			return false;
 		}
 		$settings = self::get_settings();
@@ -371,16 +563,6 @@ class Neo_Pulse_Wp_Chat {
 	 * Register REST route for chat messages.
 	 */
 	public static function register_routes(): void {
-		register_rest_route(
-			self::REST_NAMESPACE,
-			'/chat',
-			array(
-				'methods'             => 'POST',
-				'callback'            => array( __CLASS__, 'rest_chat' ),
-				'permission_callback' => '__return_true',
-			)
-		);
-
 		register_rest_route(
 			self::REST_NAMESPACE,
 			'/chat/accept',
@@ -472,81 +654,15 @@ class Neo_Pulse_Wp_Chat {
 	}
 
 	/**
-	 * REST handler: process a chat message through the RAG + sub-agent pipeline.
-	 *
-	 * @param WP_REST_Request $request
-	 * @return WP_REST_Response
-	 */
-	public static function rest_chat( WP_REST_Request $request ): WP_REST_Response {
-		if ( ! self::is_enabled() && ! current_user_can( 'manage_options' ) ) {
-			return new WP_REST_Response(
-				array( 'error' => __( 'Chat widget is not enabled.', 'neo-pulse-wp' ) ),
-				403
-			);
-		}
-		if ( ! self::can_use_chat_api() ) {
-			return new WP_REST_Response(
-				array( 'error' => __( 'Chat is available to logged-in users only.', 'neo-pulse-wp' ) ),
-				403
-			);
-		}
-
-		$api_key = Neo_Pulse_Wp_OpenRouter::get_api_key();
-		if ( $api_key === '' ) {
-			return new WP_REST_Response(
-				array( 'error' => __( 'AI is not configured. Please ask the site administrator to add an OpenRouter API key.', 'neo-pulse-wp' ) ),
-				503
-			);
-		}
-
-		$body    = $request->get_json_params();
-		$message = isset( $body['message'] ) ? sanitize_textarea_field( wp_unslash( $body['message'] ) ) : '';
-		$history = isset( $body['history'] ) && is_array( $body['history'] ) ? $body['history'] : array();
-		$log_meta = Neo_Pulse_Wp_Chat_Logs::parse_meta_from_body( is_array( $body ) ? $body : null );
-
-		if ( trim( $message ) === '' ) {
-			return new WP_REST_Response(
-				array( 'error' => __( 'Message cannot be empty.', 'neo-pulse-wp' ) ),
-				400
-			);
-		}
-
-		$history = Neo_Pulse_Wp_Chat_History::normalize( $history );
-
-		$site_name  = get_bloginfo( 'name' );
-		$settings   = self::get_settings();
-		$site_index = Neo_Pulse_Wp_Chat_Rag::get_site_index( $settings );
-		$page_context = self::parse_page_context_from_body( is_array( $body ) ? $body : null, $settings );
-
-		$training = array(
-			'assistant_name' => $settings['assistant_name'],
-			'system_prompt'  => $settings['system_prompt'],
-			'greeting_style' => $settings['greeting_style'],
-			'knowledge_base' => $settings['knowledge_base'],
-		);
-
-		$log_meta = self::enrich_log_meta_for_message( $log_meta, $message, $page_context, $settings );
-		Neo_Pulse_Wp_Chat_Logs::log_user_message( $message, $log_meta );
-
-		$card = Neo_Pulse_Wp_Chat_Agents::run( $message, $history, $site_name, $site_index, $training, $settings, $page_context );
-
-		if ( is_array( $card ) ) {
-			$message_uid = Neo_Pulse_Wp_Chat_Logs::log_assistant_card( $card, $log_meta );
-			if ( $message_uid !== '' ) {
-				$card['message_uid'] = $message_uid;
-			}
-		}
-
-		return new WP_REST_Response( $card, 200 );
-	}
-
-	/**
 	 * REST handler: record accepted answer click.
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response
 	 */
 	public static function rest_chat_accept( WP_REST_Request $request ): WP_REST_Response {
+		if ( self::is_off_everywhere() ) {
+			return new WP_REST_Response( array( 'error' => __( 'Chat is turned off.', 'neo-pulse-wp' ) ), 403 );
+		}
 		$body = $request->get_json_params();
 		if ( ! is_array( $body ) ) {
 			$body = array();
@@ -645,10 +761,6 @@ class Neo_Pulse_Wp_Chat {
 		}
 		wp_enqueue_script( 'neo-pulse-build-harness' );
 
-		if ( class_exists( 'Neo_Pulse_Wp_Forms' ) ) {
-			Neo_Pulse_Wp_Forms::enqueue_frontend_assets();
-		}
-
 		Neo_Pulse_Wp_Search::register_sidebar_assets();
 
 		$mobile = ! $in_admin && wp_is_mobile();
@@ -673,11 +785,26 @@ class Neo_Pulse_Wp_Chat {
 
 		wp_add_inline_style( 'neo-pulse-chat-mobile', self::mobile_launcher_force_css() );
 
+		if ( ! $in_admin ) {
+			$modern_css = NEO_PULSE_WP_PLUGIN_DIR . 'assets/frontend/neo-pulse-chat-modern.css';
+			wp_enqueue_style(
+				'neo-pulse-chat-modern',
+				$base . 'neo-pulse-chat-modern.css',
+				array( 'neo-pulse-chat-mobile' ),
+				$ver . ( is_readable( $modern_css ) ? '.' . (string) filemtime( $modern_css ) : '' )
+			);
+		}
+
 		if ( $in_admin ) {
 			wp_add_inline_style(
 				'neo-pulse-chat-widget',
 				'body.wp-admin .neo-pulse-chat-widget{z-index:100000!important}'
 				. 'body.wp-admin .fcw-mobile-launcher{z-index:100000!important}'
+				// wp-admin only: the launcher uses the Neo Digital admin palette (lime on ink), whatever the
+				// visitor-facing widget design is. Same element, same behaviour; colours only.
+				. 'html body.wp-admin #neo-pulse-chat-mobile-launcher,html body.wp-admin #neo-pulse-chat-mobile-launcher.fcw-launcher--chekkit{background:#84bd00!important;color:#02050a!important;border:none!important;box-shadow:0 8px 24px rgba(2,5,10,.35)!important;--fcw-launcher-bg:#84bd00;--fcw-launcher-glow:#97d400;--fcw-launcher-text:#02050a}'
+				. 'html body.wp-admin #neo-pulse-chat-mobile-launcher:hover{background:#97d400!important}'
+				. 'html body.wp-admin #neo-pulse-chat-mobile-launcher:focus-visible{outline:2px solid #02050a!important;outline-offset:2px!important;box-shadow:0 0 0 4px #84bd00!important}'
 			);
 		}
 
@@ -690,9 +817,6 @@ class Neo_Pulse_Wp_Chat {
 
 		$voice_enabled  = ! empty( $settings['voice_enabled'] ) && Neo_Pulse_Wp_OpenRouter::get_api_key() !== '';
 		$widget_deps    = array( 'neo-pulse-thinking-card', 'neo-pulse-chat-stream', 'neo-pulse-chat-prefetch', 'neo-pulse-chat-debug-log', 'neo-pulse-display-text', 'neo-pulse-markdown', 'neo-pulse-build-harness' );
-		if ( class_exists( 'Neo_Pulse_Wp_Forms' ) ) {
-			$widget_deps[] = 'neo-pulse-forms';
-		}
 		if ( $voice_enabled ) {
 			Neo_Pulse_Wp_Voice::enqueue_assets();
 			$widget_deps[] = 'neo-pulse-voice';
@@ -801,6 +925,47 @@ class Neo_Pulse_Wp_Chat {
 	}
 
 	/**
+	 * Name the AI uses for itself, from the server-side chat setting. The browser-sent
+	 * assistant_name is ignored: it went straight into the system prompt (prompt injection).
+	 *
+	 * @param mixed               $body     Decoded request body (unused; kept for call-site compat).
+	 * @param array<string,mixed> $settings Chat settings.
+	 */
+	public static function assistant_name_for_request( $body, array $settings ): string {
+		// The chat widget sends the name shown in its header. It reaches the prompt, so only a plain
+		// short name is accepted (letters, numbers, spaces and - ' . &); anything else falls back.
+		if ( is_array( $body ) && isset( $body['assistant_name'] ) && is_string( $body['assistant_name'] ) ) {
+			$sent = trim( sanitize_text_field( wp_unslash( $body['assistant_name'] ) ) );
+			if ( $sent !== '' && preg_match( "/^[\\p{L}\\p{N} .'&-]{1,40}$/u", $sent ) ) {
+				return $sent;
+			}
+		}
+		$name = trim( sanitize_text_field( (string) ( $settings['assistant_name'] ?? '' ) ) );
+		if ( $name === '' ) {
+			$name = 'Pulse Assist';
+		}
+		return function_exists( 'mb_substr' ) ? mb_substr( $name, 0, 60 ) : substr( $name, 0, 60 );
+	}
+
+	/**
+	 * Launcher part of neo-pulse-chat-modern.css, printed with the bubble so it is styled before the
+	 * rest of the chat loads.
+	 */
+	public static function modern_launcher_css(): string {
+		$file = NEO_PULSE_WP_PLUGIN_DIR . 'assets/frontend/neo-pulse-chat-modern.css';
+		$css  = is_readable( $file ) ? (string) file_get_contents( $file ) : ''; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		$from = strpos( $css, '/* launcher:start' );
+		$to   = strpos( $css, '/* launcher:end */' );
+		if ( $from === false || $to === false || $to <= $from ) {
+			return '';
+		}
+		$css = substr( $css, $from, $to - $from );
+		$css = (string) preg_replace( '#/\*.*?\*/#s', '', $css );
+		$css = (string) preg_replace( '/\s+/', ' ', $css );
+		return trim( str_replace( array( ' {', '{ ', '; ', ' }', ': ' ), array( '{', '{', ';', '}', ':' ), $css ) );
+	}
+
+	/**
 	 * CSS/JS the lazy loader injects after first tap or idle.
 	 *
 	 * @param array<string, mixed> $config   Localized widget config.
@@ -808,30 +973,41 @@ class Neo_Pulse_Wp_Chat {
 	 * @return array{styles: array<int, string>, scripts: array<int, string>}
 	 */
 	public static function frontend_lazy_assets( array $config, array $settings ): array {
+		// Build harness (God Mode builds) and the copy-log helper are staff tools: keep them out of
+		// the public bundle.
+		$can_backend = self::current_user_can_backend_mode();
+		$logged_in   = is_user_logged_in();
+
 		$styles = array(
 			self::versioned_plugin_url( 'assets/frontend/neo-pulse-chat-widget.css' ),
 			self::versioned_plugin_url( 'assets/shared/neo-pulse-thinking-card.css' ),
-			self::versioned_plugin_url( 'assets/shared/neo-pulse-build-harness.css' ),
+		);
+		if ( $can_backend ) {
+			$styles[] = self::versioned_plugin_url( 'assets/shared/neo-pulse-build-harness.css' );
+		}
+		array_push(
+			$styles,
 			self::versioned_plugin_url( 'assets/shared/neo-pulse-ai-sidebar-shell.css' ),
 			self::versioned_plugin_url( 'assets/shared/neo-pulse-ai-sidebar-unify.css' ),
 			self::versioned_plugin_url( 'assets/frontend/neo-pulse-chat-chrome.css' ),
 			self::versioned_plugin_url( 'assets/frontend/neo-pulse-chat-mobile.css' ),
+			self::versioned_plugin_url( 'assets/frontend/neo-pulse-chat-modern.css' )
 		);
 		$scripts = array(
 			self::versioned_plugin_url( 'assets/shared/neo-pulse-thinking-card.js' ),
 			self::versioned_plugin_url( 'assets/shared/neo-pulse-chat-stream.js' ),
 			self::versioned_plugin_url( 'assets/shared/neo-pulse-chat-prefetch.js' ),
-			self::versioned_plugin_url( 'assets/shared/neo-pulse-chat-debug-log.js' ),
-			self::versioned_plugin_url( 'assets/shared/neo-pulse-display-text.js' ),
-			self::versioned_plugin_url( 'assets/shared/neo-pulse-markdown.js' ),
-			self::versioned_plugin_url( 'assets/shared/neo-pulse-build-harness.js' ),
-			self::versioned_plugin_url( 'assets/shared/neo-pulse-ai-sidebar-shell.js' ),
-			self::versioned_plugin_url( 'assets/shared/neo-pulse-ai-sidebar-unify.js' ),
 		);
-		if ( class_exists( 'Neo_Pulse_Wp_Forms' ) ) {
-			$styles[]  = self::versioned_plugin_url( 'assets/frontend/neo-pulse-forms.css' );
-			$scripts[] = self::versioned_plugin_url( 'assets/frontend/neo-pulse-forms.js' );
+		if ( $logged_in ) {
+			$scripts[] = self::versioned_plugin_url( 'assets/shared/neo-pulse-chat-debug-log.js' );
 		}
+		$scripts[] = self::versioned_plugin_url( 'assets/shared/neo-pulse-display-text.js' );
+		$scripts[] = self::versioned_plugin_url( 'assets/shared/neo-pulse-markdown.js' );
+		if ( $can_backend ) {
+			$scripts[] = self::versioned_plugin_url( 'assets/shared/neo-pulse-build-harness.js' );
+		}
+		$scripts[] = self::versioned_plugin_url( 'assets/shared/neo-pulse-ai-sidebar-shell.js' );
+		$scripts[] = self::versioned_plugin_url( 'assets/shared/neo-pulse-ai-sidebar-unify.js' );
 		if ( ! empty( $config['voiceEnabled'] ) ) {
 			$styles[]  = self::versioned_plugin_url( 'assets/shared/neo-pulse-voice.css' );
 			$scripts[] = self::versioned_plugin_url( 'assets/shared/neo-pulse-voice.js' );
@@ -857,8 +1033,7 @@ class Neo_Pulse_Wp_Chat {
 	 * @return array<string, mixed>
 	 */
 	public static function widget_localize_config( bool $in_admin, array $settings, bool $voice_enabled, bool $chekkit_enabled, bool $chekkit_teaser ): array {
-		$design    = Neo_Pulse_Wp_Ai_Widget_Design::get_settings();
-		$tokens    = Neo_Pulse_Wp_Ai_Widget_Design::resolve( 'chat' );
+		$tokens    = self::design_tokens();
 		$css_vars  = Neo_Pulse_Wp_Ai_Widget_Design::build_chat_css_vars( $tokens );
 		$css_vars .= Neo_Pulse_Wp_Ai_Widget_Design::build_sidebar_css_vars( $settings, $tokens );
 
@@ -896,7 +1071,6 @@ class Neo_Pulse_Wp_Chat {
 		}
 
 		$config = array(
-			'restUrl'                => esc_url_raw( rest_url( self::REST_NAMESPACE . '/chat' ) ),
 			'acceptUrl'              => esc_url_raw( rest_url( self::REST_NAMESPACE . '/chat/accept' ) ),
 			'nonce'                  => wp_create_nonce( 'wp_rest' ),
 			'ajaxUrl'                => admin_url( 'admin-ajax.php' ),
@@ -908,7 +1082,12 @@ class Neo_Pulse_Wp_Chat {
 			'assistantName'          => $assistant_name,
 			'greetingStyle'          => isset( $settings['greeting_style'] ) ? (string) $settings['greeting_style'] : 'friendly',
 			'cssVars'                => $css_vars,
-			'ui'                     => $design['chat_ui'],
+			'modern'                 => ! $in_admin,
+			'poweredUrl'             => NEO_PULSE_WP_POWERED_URL,
+			'poweredLogo'            => Neo_Pulse_Wp_Brand::logo_svg(),
+			'avatarUrl'              => esc_url_raw( self::widget_extra( 'avatar_url' ) ),
+			'headerStatus'           => self::has_widget_design() ? self::widget_extra( 'header_status' ) : __( 'Replies instantly', 'neo-pulse-wp' ),
+			'ui'                     => self::design_ui(),
 			'voiceEnabled'           => $voice_enabled,
 			'voicePtt'               => ! empty( $settings['voice_ptt'] ),
 			'micReplacesSend'        => ! empty( $settings['mic_replaces_send'] ),
@@ -1046,7 +1225,7 @@ class Neo_Pulse_Wp_Chat {
 		if ( ! in_array( $transition, array( 'slide', 'fade', 'none' ), true ) ) {
 			$transition = 'slide';
 		}
-		$tokens           = Neo_Pulse_Wp_Ai_Widget_Design::resolve( 'chat' );
+		$tokens           = self::design_tokens();
 		$css_vars         = Neo_Pulse_Wp_Ai_Widget_Design::build_chat_css_vars( $tokens );
 		$css_vars        .= Neo_Pulse_Wp_Ai_Widget_Design::build_sidebar_css_vars( $settings, $tokens );
 		$launcher_label   = isset( $settings['launcher_label'] ) ? trim( (string) $settings['launcher_label'] ) : '';
@@ -1058,8 +1237,8 @@ class Neo_Pulse_Wp_Chat {
 			);
 		}
 		$launcher_svg   = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
-		$launcher_bg    = (string) ( $tokens['launcher_bg'] ?? $tokens['accent'] ?? '#9EAF43' );
-		$launcher_glow  = (string) ( $tokens['launcher_glow'] ?? $tokens['accent'] ?? '#3b82f6' );
+		$launcher_bg    = (string) ( $tokens['launcher_bg'] ?? $tokens['accent'] ?? 'var(--e-global-color-primary, #2563eb)' );
+		$launcher_glow  = (string) ( $tokens['launcher_glow'] ?? $launcher_bg );
 		$launcher_text  = (string) ( $tokens['launcher_text'] ?? $tokens['accent_text'] ?? '#ffffff' );
 		$panel_height   = max( 320, min( 1200, (int) ( $tokens['panel_max_height'] ?? 560 ) ) );
 		$sidebar_width  = max( 280, min( 560, (int) ( $settings['sidebar_width'] ?? 400 ) ) );
@@ -1076,9 +1255,26 @@ class Neo_Pulse_Wp_Chat {
 		if ( $lazy_hide ) {
 			$launcher_class .= ' fcw-launcher--pending';
 		}
+		if ( ! $in_admin && ! $is_edge_tab ) {
+			$launcher_class .= ' fcw-launcher--modern' . ( $side === 'left' ? ' fcw-launcher--at-left' : '' );
+		}
+		$custom_icon = self::widget_extra( 'launcher_icon_html' );
+		if ( $custom_icon !== '' ) {
+			$launcher_svg = $custom_icon;
+		}
 		$launcher_inner = $launcher_svg;
 		if ( $is_edge_tab ) {
 			$launcher_inner .= '<span class="fcw-launcher__label">' . esc_html( $launcher_label ) . '</span>';
+		}
+		// Size and position follow the Elementor widget; without one, the long-standing 56px bottom-right bubble.
+		$bubble_size   = 56;
+		$bubble_bottom = 20;
+		$bubble_pos    = 'right:16px;left:auto';
+		if ( self::has_widget_design() ) {
+			$bubble_size   = max( 40, min( 96, (int) ( $tokens['launcher_size'] ?? 56 ) ) );
+			$bubble_bottom = max( 0, min( 200, (int) ( $tokens['offset_y'] ?? 20 ) ) );
+			$offset_x      = max( 0, min( 200, (int) ( $tokens['offset_x'] ?? 16 ) ) );
+			$bubble_pos    = $side === 'left' ? 'left:' . $offset_x . 'px;right:auto' : 'right:' . $offset_x . 'px;left:auto';
 		}
 		$launcher_style = $is_edge_tab
 			? sprintf(
@@ -1093,14 +1289,34 @@ class Neo_Pulse_Wp_Chat {
 				(int) $sidebar_width
 			)
 			: sprintf(
-				'position:fixed;bottom:20px;right:16px;width:56px;height:56px;z-index:999900;pointer-events:auto;margin:0;padding:0;border:0;border-radius:50%%;display:inline-flex;align-items:center;justify-content:center;background:%s;color:%s;--fcw-launcher-text:%s;box-shadow:0 4px 24px rgba(0,0,0,0.12);',
+				'position:fixed;bottom:%5$dpx;%4$s;width:%6$dpx;height:%6$dpx;z-index:999900;pointer-events:auto;margin:0;padding:0;border:0;border-radius:50%%;display:inline-flex;align-items:center;justify-content:center;background:%1$s;color:%2$s;--fcw-launcher-text:%3$s;box-shadow:0 4px 24px rgba(0,0,0,0.12);',
 				esc_attr( $launcher_bg ),
 				esc_attr( $launcher_text ),
-				esc_attr( $launcher_text )
+				esc_attr( $launcher_text ),
+				$bubble_pos,
+				$bubble_bottom,
+				$bubble_size
 			);
+		if ( ! $is_edge_tab ) {
+			// Values the modern launcher style reads (size, position, colours, shape).
+			$launcher_style .= sprintf(
+				'--fcw-bubble-size:%dpx;--fcw-offset-y:%dpx;--fcw-offset-x:%dpx;--fcw-launcher-bg:%s;--fcw-launcher-glow:%s;',
+				$bubble_size,
+				$bubble_bottom,
+				self::has_widget_design() ? max( 0, min( 200, (int) ( $tokens['offset_x'] ?? 16 ) ) ) : 16,
+				esc_attr( $launcher_bg ),
+				esc_attr( $launcher_glow )
+			);
+			if ( isset( $tokens['launcher_radius'] ) ) {
+				$launcher_style .= '--fcw-launcher-radius:' . max( 0, min( 999, (int) $tokens['launcher_radius'] ) ) . 'px;';
+			}
+			if ( isset( $tokens['launcher_icon'] ) ) {
+				$launcher_style .= '--fcw-launcher-icon:' . max( 12, min( 48, (int) $tokens['launcher_icon'] ) ) . 'px;';
+			}
+		}
 
 		if ( ! $in_admin ) {
-			echo '<style id="neo-pulse-chat-mobile-inline">' . self::pending_launcher_css() . self::mobile_launcher_force_css() . '</style>' . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo '<style id="neo-pulse-chat-mobile-inline">' . self::pending_launcher_css() . self::mobile_launcher_force_css() . self::modern_launcher_css() . '</style>' . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
 
 		if ( ! $hide_launcher ) {
@@ -1137,9 +1353,9 @@ class Neo_Pulse_Wp_Chat {
 	 * or {"status":"done","card":{...}} for the final result.
 	 */
 	public static function ajax_chat_stream(): void {
-		check_ajax_referer( 'neo_pulse_chat_stream', '_nonce' );
+		self::verify_chat_ajax_request();
 
-		if ( ! self::is_enabled() && ! current_user_can( 'manage_options' ) ) {
+		if ( self::is_off_everywhere() || ( ! self::is_enabled() && ! current_user_can( 'manage_options' ) ) ) {
 			self::begin_stream_response();
 			self::stream_line( array( 'status' => 'done', 'card' => array(
 				'type' => 'not-found', 'title' => 'Disabled', 'body' => 'Chat widget is not enabled.', 'confidence' => 'low',
@@ -1186,12 +1402,19 @@ class Neo_Pulse_Wp_Chat {
 			wp_die();
 		}
 
-		$history  = Neo_Pulse_Wp_Chat_History::normalize( $history );
+		if ( Neo_Pulse_Wp_OpenRouter::rate_limit_exceeded( 'chat_stream', self::STREAM_RATE_MAX, self::RATE_WINDOW ) ) {
+			self::stream_line( array( 'status' => 'done', 'card' => self::rate_limited_card() ) );
+			wp_die();
+		}
+
+		// Visitor pipeline: only the visitor's own turns go back to the model (client-sent
+		// assistant turns could carry injected instructions).
+		$history  = Neo_Pulse_Wp_Chat_History::for_visitor( Neo_Pulse_Wp_Chat_History::normalize( $history ) );
 		$settings = self::get_settings();
 		$page_context = self::parse_page_context_from_body( is_array( $body ) ? $body : null, $settings );
 		$site_name = get_bloginfo( 'name' );
 		$training = array(
-			'assistant_name' => $settings['assistant_name'],
+			'assistant_name' => self::assistant_name_for_request( $body ?? null, $settings ),
 			'system_prompt'  => $settings['system_prompt'],
 			'greeting_style' => $settings['greeting_style'],
 			'knowledge_base' => $settings['knowledge_base'],
@@ -1211,7 +1434,7 @@ class Neo_Pulse_Wp_Chat {
 			: Neo_Pulse_Wp_Chat_Agents::phase_ack( $message, $site_name, $training, $history, $settings );
 		if ( is_wp_error( $gate ) ) {
 			self::stream_line( array( 'status' => 'done', 'card' => array(
-				'type' => 'not-found', 'title' => 'Something went wrong', 'body' => $gate->get_error_message(), 'confidence' => 'low',
+				'type' => 'not-found', 'title' => 'Something went wrong', 'body' => self::visitor_error_text(), 'confidence' => 'low',
 			) ) );
 			wp_die();
 		}
@@ -1274,7 +1497,7 @@ class Neo_Pulse_Wp_Chat {
 		}
 		if ( is_wp_error( $phase_a ) ) {
 			self::stream_line( array( 'status' => 'done', 'card' => array(
-				'type' => 'not-found', 'title' => 'Something went wrong', 'body' => $phase_a->get_error_message(), 'confidence' => 'low',
+				'type' => 'not-found', 'title' => 'Something went wrong', 'body' => self::visitor_error_text(), 'confidence' => 'low',
 			) ) );
 			wp_die();
 		}
@@ -1289,7 +1512,7 @@ class Neo_Pulse_Wp_Chat {
 		$phase_b = Neo_Pulse_Wp_Chat_Agents::phase_reason( $message, $history, $site_name, $enriched_items, $phase_a, $training, $site_index, $page_context );
 		if ( is_wp_error( $phase_b ) ) {
 			self::stream_line( array( 'status' => 'done', 'card' => array(
-				'type' => 'not-found', 'title' => 'Something went wrong', 'body' => $phase_b->get_error_message(), 'confidence' => 'low',
+				'type' => 'not-found', 'title' => 'Something went wrong', 'body' => self::visitor_error_text(), 'confidence' => 'low',
 			) ) );
 			wp_die();
 		}
@@ -1321,7 +1544,8 @@ class Neo_Pulse_Wp_Chat {
 				$message,
 				$phase_a,
 				$enriched_items,
-				$site_index
+				$site_index,
+				$settings
 			);
 		}
 
@@ -1384,8 +1608,7 @@ class Neo_Pulse_Wp_Chat {
 			array()
 		);
 
-		Neo_Pulse_Wp_Chat_Logs::log_user_message( $message, self::enrich_log_meta_for_message( $log_meta, $message, $page_context, $settings ) );
-
+		// The user message was already logged by ajax_chat_stream() before this fast path.
 		$message_uid = Neo_Pulse_Wp_Chat_Logs::log_assistant_card( $card, $log_meta );
 		if ( $message_uid !== '' ) {
 			$card['message_uid'] = $message_uid;
@@ -1521,7 +1744,7 @@ class Neo_Pulse_Wp_Chat {
 	 * AJAX prefetch: secretary ack + early RAG while the visitor is still typing.
 	 */
 	public static function ajax_chat_prefetch(): void {
-		check_ajax_referer( 'neo_pulse_chat_stream', '_nonce' );
+		self::verify_chat_ajax_request();
 
 		if ( ! self::passes_chat_access_gates() ) {
 			wp_send_json_error( array( 'message' => 'Chat unavailable.' ), 403 );
@@ -1537,12 +1760,16 @@ class Neo_Pulse_Wp_Chat {
 			wp_send_json_error( array( 'message' => 'Empty message.' ), 400 );
 		}
 
-		$history  = Neo_Pulse_Wp_Chat_History::normalize( $history );
+		if ( Neo_Pulse_Wp_OpenRouter::rate_limit_exceeded( 'chat_prefetch', self::PREFETCH_RATE_MAX, self::RATE_WINDOW ) ) {
+			wp_send_json_error( array( 'message' => 'Too many requests.' ), 429 );
+		}
+
+		$history  = Neo_Pulse_Wp_Chat_History::for_visitor( Neo_Pulse_Wp_Chat_History::normalize( $history ) );
 		$settings = self::get_settings();
 		$page_context = self::parse_page_context_from_body( is_array( $body ) ? $body : null, $settings );
 		$site_name = get_bloginfo( 'name' );
 		$training = array(
-			'assistant_name' => $settings['assistant_name'],
+			'assistant_name' => self::assistant_name_for_request( $body ?? null, $settings ),
 			'system_prompt'  => $settings['system_prompt'],
 			'greeting_style' => $settings['greeting_style'],
 			'knowledge_base' => $settings['knowledge_base'],
@@ -1550,7 +1777,7 @@ class Neo_Pulse_Wp_Chat {
 
 		$gate = Neo_Pulse_Wp_Chat_Agents::phase_ack( $message, $site_name, $training, $history, $settings );
 		if ( is_wp_error( $gate ) ) {
-			wp_send_json_error( array( 'message' => $gate->get_error_message() ), 500 );
+			wp_send_json_error( array( 'message' => self::visitor_error_text() ), 500 );
 		}
 
 		$site_index      = Neo_Pulse_Wp_Chat_Rag::get_site_index( $settings );
@@ -1591,7 +1818,7 @@ class Neo_Pulse_Wp_Chat {
 	 * AJAX fast ack prefetch: secretary ack only (no RAG) while the visitor types.
 	 */
 	public static function ajax_chat_ack_prefetch(): void {
-		check_ajax_referer( 'neo_pulse_chat_stream', '_nonce' );
+		self::verify_chat_ajax_request();
 
 		if ( ! self::passes_chat_access_gates() ) {
 			wp_send_json_error( array( 'message' => 'Chat unavailable.' ), 403 );
@@ -1607,11 +1834,15 @@ class Neo_Pulse_Wp_Chat {
 			wp_send_json_error( array( 'message' => 'Empty message.' ), 400 );
 		}
 
-		$history  = Neo_Pulse_Wp_Chat_History::normalize( $history );
+		if ( Neo_Pulse_Wp_OpenRouter::rate_limit_exceeded( 'chat_prefetch', self::PREFETCH_RATE_MAX, self::RATE_WINDOW ) ) {
+			wp_send_json_error( array( 'message' => 'Too many requests.' ), 429 );
+		}
+
+		$history  = Neo_Pulse_Wp_Chat_History::for_visitor( Neo_Pulse_Wp_Chat_History::normalize( $history ) );
 		$settings = self::get_settings();
 		$site_name = get_bloginfo( 'name' );
 		$training = array(
-			'assistant_name' => $settings['assistant_name'],
+			'assistant_name' => self::assistant_name_for_request( $body ?? null, $settings ),
 			'system_prompt'  => $settings['system_prompt'],
 			'greeting_style' => $settings['greeting_style'],
 			'knowledge_base' => $settings['knowledge_base'],
@@ -1619,7 +1850,7 @@ class Neo_Pulse_Wp_Chat {
 
 		$gate = Neo_Pulse_Wp_Chat_Agents::phase_ack( $message, $site_name, $training, $history, $settings );
 		if ( is_wp_error( $gate ) ) {
-			wp_send_json_error( array( 'message' => $gate->get_error_message() ), 500 );
+			wp_send_json_error( array( 'message' => self::visitor_error_text() ), 500 );
 		}
 
 		wp_send_json_success(
@@ -1637,7 +1868,7 @@ class Neo_Pulse_Wp_Chat {
 	 * AJAX full response prefetch for conversation starters and follow-up chips.
 	 */
 	public static function ajax_chat_response_prefetch(): void {
-		check_ajax_referer( 'neo_pulse_chat_stream', '_nonce' );
+		self::verify_chat_ajax_request();
 
 		if ( ! self::passes_chat_access_gates() ) {
 			wp_send_json_error( array( 'message' => 'Chat unavailable.' ), 403 );
@@ -1653,11 +1884,15 @@ class Neo_Pulse_Wp_Chat {
 			wp_send_json_error( array( 'message' => 'Empty message.' ), 400 );
 		}
 
-		$history  = Neo_Pulse_Wp_Chat_History::normalize( $history );
+		if ( Neo_Pulse_Wp_OpenRouter::rate_limit_exceeded( 'chat_prefetch', self::PREFETCH_RATE_MAX, self::RATE_WINDOW ) ) {
+			wp_send_json_error( array( 'message' => 'Too many requests.' ), 429 );
+		}
+
+		$history  = Neo_Pulse_Wp_Chat_History::for_visitor( Neo_Pulse_Wp_Chat_History::normalize( $history ) );
 		$settings = self::get_settings();
 		$page_context = self::parse_page_context_from_body( is_array( $body ) ? $body : null, $settings );
 		$training = array(
-			'assistant_name' => $settings['assistant_name'],
+			'assistant_name' => self::assistant_name_for_request( $body ?? null, $settings ),
 			'system_prompt'  => $settings['system_prompt'],
 			'greeting_style' => $settings['greeting_style'],
 			'knowledge_base' => $settings['knowledge_base'],
@@ -1665,7 +1900,7 @@ class Neo_Pulse_Wp_Chat {
 
 		$result = self::execute_chat_pipeline( $message, $history, $settings, $training, null, $page_context );
 		if ( is_wp_error( $result ) ) {
-			wp_send_json_error( array( 'message' => $result->get_error_message() ), 500 );
+			wp_send_json_error( array( 'message' => self::visitor_error_text() ), 500 );
 		}
 
 		$gate = $result['gate'];
@@ -1761,7 +1996,8 @@ class Neo_Pulse_Wp_Chat {
 				$message,
 				$prefetched['phase_a'],
 				$enriched_items,
-				$site_index
+				$site_index,
+				$settings
 			);
 		}
 
@@ -1905,7 +2141,7 @@ class Neo_Pulse_Wp_Chat {
 	 * AJAX warm current-page context for URL-aware chat.
 	 */
 	public static function ajax_chat_page_context(): void {
-		check_ajax_referer( 'neo_pulse_chat_stream', '_nonce' );
+		self::verify_chat_ajax_request();
 
 		if ( ! self::passes_chat_access_gates() ) {
 			wp_send_json_error( array( 'message' => 'Chat unavailable.' ), 403 );
@@ -1920,6 +2156,10 @@ class Neo_Pulse_Wp_Chat {
 
 		if ( $page_url === '' && $post_id < 1 ) {
 			wp_send_json_error( array( 'message' => 'Missing page URL.' ), 400 );
+		}
+
+		if ( Neo_Pulse_Wp_OpenRouter::rate_limit_exceeded( 'chat_prefetch', self::PREFETCH_RATE_MAX, self::RATE_WINDOW ) ) {
+			wp_send_json_error( array( 'message' => 'Too many requests.' ), 429 );
 		}
 
 		$settings = self::get_settings();
@@ -1947,6 +2187,39 @@ class Neo_Pulse_Wp_Chat {
 		}
 
 		return Neo_Pulse_Wp_Chat_Page_Context::load( $key, $page_url, $post_id, $page_title, $settings );
+	}
+
+	/**
+	 * Nonce check for the read-only chat ajax actions (stream, prefetch, page context).
+	 * Logged-in users must send a valid nonce. Guests are not required to: full-page caches
+	 * serve them stale nonces, and these actions are protected by the per-IP rate limit.
+	 */
+	private static function verify_chat_ajax_request(): void {
+		if ( ! is_user_logged_in() ) {
+			return;
+		}
+		check_ajax_referer( 'neo_pulse_chat_stream', '_nonce' );
+	}
+
+	/**
+	 * Text shown to visitors when an AI call fails (provider error bodies stay server-side).
+	 */
+	private static function visitor_error_text(): string {
+		return Neo_Pulse_Wp_OpenRouter::generic_error_message() . ' ' . __( 'Please try again in a moment.', 'neo-pulse-wp' );
+	}
+
+	/**
+	 * Card streamed when a visitor sends too many messages.
+	 *
+	 * @return array<string,string>
+	 */
+	private static function rate_limited_card(): array {
+		return array(
+			'type'       => 'not-found',
+			'title'      => __( 'Please slow down', 'neo-pulse-wp' ),
+			'body'       => __( 'You have sent a lot of messages in a short time. Please wait a few minutes and try again.', 'neo-pulse-wp' ),
+			'confidence' => 'low',
+		);
 	}
 
 	/**
@@ -2016,7 +2289,7 @@ class Neo_Pulse_Wp_Chat {
 	 * @param array<int,array<string,mixed>>   $site_index
 	 * @return array<string,mixed>
 	 */
-	private static function build_demo_debug_payload( string $user_message, array $phase_a, array $enriched_items, array $site_index ): array {
+	private static function build_demo_debug_payload( string $user_message, array $phase_a, array $enriched_items, array $site_index, array $settings = array() ): array {
 		$extra_phrases = isset( $phase_a['search_terms'] ) ? array_values( (array) $phase_a['search_terms'] ) : array();
 		$match_terms   = Neo_Pulse_Wp_Chat_Rag::extract_match_terms( $user_message, $extra_phrases );
 

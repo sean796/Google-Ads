@@ -5,7 +5,7 @@ section: Teams
 method: POST
 path: /api/teams/{teamId}/tasks/executions/({id})/cancel
 auth: session-team
-order: 1850
+order: 1860
 ---
 
 POST `/api/teams/{teamId}/tasks/executions/({id})/cancel`.

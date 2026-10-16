@@ -45,16 +45,25 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Script_Manager {
 		$base_url = admin_url( 'admin.php?page=neo-pulse-wp-script-manager' );
 		$conflicts = Neo_Pulse_Wp_Script_Manager::conflicting_plugins();
 		$hfcm      = self::hfcm_database_import_status();
+		if ( ! empty( $hfcm['available'] ) ) {
+			// The HFCM panel below already covers HFCM; warn only about other script plugins.
+			$conflicts = array_values(
+				array_filter(
+					$conflicts,
+					static function ( $name ) {
+						return 0 !== strpos( (string) $name, 'Header Footer Code Manager' );
+					}
+				)
+			);
+		}
 		self::neo_pulse_group_shell_open( 'neo-pulse-wp-script-manager', 'neo-pulse-wp-script-manager' );
 		?>
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'Script Manager', 'neo-pulse-wp' ); ?></h1>
 			<a href="<?php echo esc_url( admin_url( 'admin.php?page=neo-pulse-wp-script-manager&action=new' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Add New', 'neo-pulse-wp' ); ?></a>
-			<a href="<?php echo esc_url( admin_url( 'admin.php?page=neo-pulse-wp-script-manager&action=import-export' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Import & Export', 'neo-pulse-wp' ); ?></a>
-			<a href="<?php echo esc_url( admin_url( 'admin.php?page=neo-pulse-wp-script-manager&action=settings' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Settings', 'neo-pulse-wp' ); ?></a>
 			<hr class="wp-header-end" />
 
 			<?php if ( ! empty( $conflicts ) ) : ?>
-				<div class="notice notice-warning">
+				<div class="notice inline notice-warning">
 					<p>
 						<?php
 						echo esc_html(
@@ -70,33 +79,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Script_Manager {
 			<?php endif; ?>
 
 			<?php if ( ! empty( $hfcm['available'] ) ) : ?>
-				<div class="notice notice-info neo-pulse-wp-script-manager__hfcm-import">
-					<p>
-						<?php
-						if ( (int) $hfcm['pending_count'] > 0 ) {
-							echo esc_html(
-								sprintf(
-									/* translators: %d: HFCM snippet count not yet imported */
-									_n(
-										'Header Footer Code Manager has %d snippet ready to import (header, footer, and body locations).',
-										'Header Footer Code Manager has %d snippets ready to import (header, footer, and body locations).',
-										(int) $hfcm['pending_count'],
-										'neo-pulse-wp'
-									),
-									(int) $hfcm['pending_count']
-								)
-							);
-						} else {
-							esc_html_e( 'Header Footer Code Manager is installed. Click below to import all snippets from the HFCM database.', 'neo-pulse-wp' );
-						}
-						?>
-					</p>
-					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:8px;">
-						<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_IMPORT_SCRIPTS_HFCM_DB ); ?>" />
-						<?php wp_nonce_field( self::ACTION_IMPORT_SCRIPTS_HFCM_DB, 'neo_pulse_wp_import_scripts_hfcm_db_nonce' ); ?>
-						<button type="submit" class="button button-primary"><?php esc_html_e( 'Import HFCM Scripts', 'neo-pulse-wp' ); ?></button>
-					</form>
-				</div>
+				<?php self::render_hfcm_switch_panel( $hfcm, true ); ?>
 			<?php endif; ?>
 
 			<p class="description neo-pulse-wp-script-manager__note">
@@ -199,7 +182,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Script_Manager {
 			<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=neo-pulse-wp-script-manager' ) ); ?>">&larr; <?php esc_html_e( 'Back to list', 'neo-pulse-wp' ); ?></a></p>
 
 			<?php if ( $row && class_exists( 'Neo_Pulse_Wp_Overseer', false ) && Neo_Pulse_Wp_Overseer::is_builtin_script_id( (int) $row->id ) ) : ?>
-				<div class="notice notice-info">
+				<div class="notice inline notice-info">
 					<p>
 						<?php
 						esc_html_e(
@@ -604,44 +587,109 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Script_Manager {
 		<?php
 	}
 
+	/**
+	 * "Move from HFCM" panel: what each snippet becomes, then one button that imports and turns HFCM off.
+	 *
+	 * @param array<string, mixed> $plan    Plan from hfcm_database_import_status().
+	 * @param bool                 $compact On the script list: the snippet table starts folded.
+	 */
+	private static function render_hfcm_switch_panel( array $plan, bool $compact = false ): void {
+		$labels = array(
+			'import'     => __( 'Imports, switched on', 'neo-pulse-wp' ),
+			'import_off' => __( 'Imports, switched off', 'neo-pulse-wp' ),
+			'comments'   => __( 'Replaced by Neo Tools "Disable comments"', 'neo-pulse-wp' ),
+			'skip'       => __( 'Skipped (switched off in HFCM)', 'neo-pulse-wp' ),
+			'done'       => __( 'Already imported', 'neo-pulse-wp' ),
+			'blocker'    => __( 'Needs attention', 'neo-pulse-wp' ),
+		);
+		$items = isset( $plan['items'] ) && is_array( $plan['items'] ) ? $plan['items'] : array();
+		?>
+		<div class="neo-pulse-wp-script-manager__panel neo-pulse-wp-script-manager__panel--hfcm-switch">
+			<h2><?php esc_html_e( 'Move from Header Footer Code Manager', 'neo-pulse-wp' ); ?></h2>
+			<p>
+				<?php
+				if ( (int) $plan['pending'] > 0 ) {
+					esc_html_e( 'Imports every HFCM snippet with the same on/off state, location and page rules, then deactivates HFCM so nothing runs twice.', 'neo-pulse-wp' );
+				} else {
+					esc_html_e( 'All HFCM snippets are already in Script Manager. HFCM is still active, so the button below just deactivates it.', 'neo-pulse-wp' );
+				}
+				?>
+			</p>
+			<?php if ( ! empty( $items ) ) : ?>
+				<?php if ( $compact ) : ?>
+				<details class="neo-pulse-wp-script-manager__hfcm-details"<?php echo (int) $plan['blockers'] > 0 ? ' open' : ''; ?>>
+					<summary>
+						<?php
+						echo esc_html(
+							sprintf(
+								/* translators: %d: number of HFCM snippets */
+								_n( 'See what happens to the %d HFCM snippet', 'See what happens to each of the %d HFCM snippets', count( $items ), 'neo-pulse-wp' ),
+								count( $items )
+							)
+						);
+						?>
+					</summary>
+				<?php endif; ?>
+				<table class="widefat striped neo-pulse-wp-script-manager__hfcm-table">
+					<thead>
+						<tr>
+							<th><?php esc_html_e( 'HFCM snippet', 'neo-pulse-wp' ); ?></th>
+							<th><?php esc_html_e( 'Type', 'neo-pulse-wp' ); ?></th>
+							<th><?php esc_html_e( 'In HFCM', 'neo-pulse-wp' ); ?></th>
+							<th><?php esc_html_e( 'What happens', 'neo-pulse-wp' ); ?></th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php foreach ( $items as $item ) : ?>
+							<tr>
+								<td><?php echo esc_html( (string) $item['name'] ); ?></td>
+								<td><?php echo esc_html( strtoupper( (string) $item['type'] ) ); ?></td>
+								<td><?php echo $item['active'] ? esc_html__( 'On', 'neo-pulse-wp' ) : esc_html__( 'Off', 'neo-pulse-wp' ); ?></td>
+								<td>
+									<strong><?php echo esc_html( $labels[ $item['outcome'] ] ?? (string) $item['outcome'] ); ?></strong>
+									<?php if ( '' !== (string) $item['note'] ) : ?>
+										<br /><span class="description"><?php echo esc_html( (string) $item['note'] ); ?></span>
+									<?php endif; ?>
+								</td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+				<?php if ( $compact ) : ?>
+				</details>
+				<?php endif; ?>
+			<?php endif; ?>
+			<?php if ( (int) $plan['blockers'] > 0 ) : ?>
+				<p class="description"><?php esc_html_e( 'Snippets marked "Needs attention" are switched on but can\'t move to Script Manager. Everything else will still be imported, and HFCM stays on until they are dealt with.', 'neo-pulse-wp' ); ?></p>
+			<?php endif; ?>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_IMPORT_SCRIPTS_HFCM_DB ); ?>" />
+				<?php wp_nonce_field( self::ACTION_IMPORT_SCRIPTS_HFCM_DB, 'neo_pulse_wp_import_scripts_hfcm_db_nonce' ); ?>
+				<p>
+					<button type="submit" class="button button-primary">
+						<?php
+						echo (int) $plan['blockers'] > 0
+							? esc_html__( 'Import from HFCM', 'neo-pulse-wp' )
+							: esc_html__( 'Import from HFCM and deactivate HFCM', 'neo-pulse-wp' );
+						?>
+					</button>
+				</p>
+			</form>
+		</div>
+		<?php
+	}
+
 	private static function render_script_import_export_page(): void {
 		$hfcm = self::hfcm_database_import_status();
 		self::neo_pulse_group_shell_open( 'neo-pulse-wp-script-manager', 'neo-pulse-wp-script-manager' );
 		?>
 			<h1><?php esc_html_e( 'Import & Export', 'neo-pulse-wp' ); ?></h1>
-			<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=neo-pulse-wp-script-manager' ) ); ?>">&larr; <?php esc_html_e( 'Back to list', 'neo-pulse-wp' ); ?></a></p>
+
+			<?php if ( ! empty( $hfcm['available'] ) ) : ?>
+				<?php self::render_hfcm_switch_panel( $hfcm ); ?>
+			<?php endif; ?>
 
 			<div class="neo-pulse-wp-script-manager__panels neo-pulse-wp-script-manager__panels--quad">
-				<?php if ( ! empty( $hfcm['available'] ) ) : ?>
-					<div class="neo-pulse-wp-script-manager__panel neo-pulse-wp-script-manager__panel--hfcm neo-pulse-wp-script-manager__panel--hfcm-direct">
-						<h2><?php esc_html_e( 'Import from HFCM', 'neo-pulse-wp' ); ?></h2>
-						<p>
-							<?php
-							if ( (int) $hfcm['pending_count'] > 0 ) {
-								echo esc_html(
-									sprintf(
-										/* translators: %d: snippet count not yet imported */
-										_n(
-											'Import %d snippet directly from Header Footer Code Manager on this site — no JSON file needed.',
-											'Import %d snippets directly from Header Footer Code Manager on this site — no JSON file needed.',
-											(int) $hfcm['pending_count'],
-											'neo-pulse-wp'
-										),
-										(int) $hfcm['pending_count']
-									)
-								);
-							} else {
-								esc_html_e( 'Import snippets directly from Header Footer Code Manager on this site — no JSON file needed.', 'neo-pulse-wp' );
-							}
-							?>
-						</p>
-						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-							<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_IMPORT_SCRIPTS_HFCM_DB ); ?>" />
-							<?php wp_nonce_field( self::ACTION_IMPORT_SCRIPTS_HFCM_DB, 'neo_pulse_wp_import_scripts_hfcm_db_nonce' ); ?>
-							<p><button type="submit" class="button button-primary button-hero"><?php esc_html_e( 'Import HFCM Scripts', 'neo-pulse-wp' ); ?></button></p>
-						</form>
-					</div>
-				<?php endif; ?>
 
 				<div class="neo-pulse-wp-script-manager__panel neo-pulse-wp-script-manager__panel--hfcm">
 					<h2><?php esc_html_e( 'Import HFCM export file', 'neo-pulse-wp' ); ?></h2>
@@ -696,7 +744,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Script_Manager {
 		self::neo_pulse_group_shell_open( 'neo-pulse-wp-script-manager', 'neo-pulse-wp-script-manager' );
 		?>
 			<h1><?php esc_html_e( 'Script Manager Settings', 'neo-pulse-wp' ); ?></h1>
-			<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=neo-pulse-wp-script-manager' ) ); ?>">&larr; <?php esc_html_e( 'Back to list', 'neo-pulse-wp' ); ?></a></p>
 
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_SAVE_SCRIPT_SETTINGS ); ?>" />

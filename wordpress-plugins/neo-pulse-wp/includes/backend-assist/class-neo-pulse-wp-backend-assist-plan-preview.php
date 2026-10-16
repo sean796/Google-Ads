@@ -23,8 +23,6 @@ class Neo_Pulse_Wp_Backend_Assist_Plan_Preview {
 		'focusKeyword',
 		'focus_keyword',
 		'prompt',
-		'current_block',
-		'block_manifest',
 	);
 
 	/**

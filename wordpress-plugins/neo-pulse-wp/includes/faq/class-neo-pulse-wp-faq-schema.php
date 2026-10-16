@@ -17,8 +17,8 @@ class Neo_Pulse_Wp_Faq_Schema {
 		$main_entity = array();
 
 		foreach ( $entries as $entry ) {
-			$question = trim( (string) ( $entry['question'] ?? '' ) );
-			$answer   = trim( wp_strip_all_tags( (string) ( $entry['answer'] ?? '' ) ) );
+			$question = self::plain( (string) ( $entry['question'] ?? '' ) );
+			$answer   = self::plain( (string) ( $entry['answer'] ?? '' ) );
 			if ( $question === '' && $answer === '' ) {
 				continue;
 			}
@@ -40,6 +40,14 @@ class Neo_Pulse_Wp_Faq_Schema {
 	}
 
 	/**
+	 * Plain text for schema: no tags, entities decoded, whitespace collapsed.
+	 */
+	private static function plain( string $value ): string {
+		$text = wp_strip_all_tags( html_entity_decode( $value, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+		return trim( (string) preg_replace( '/\s+/u', ' ', $text ) );
+	}
+
+	/**
 	 * @param array<int, array{question: string, answer: string}> $entries
 	 * @return string
 	 */
@@ -53,10 +61,12 @@ class Neo_Pulse_Wp_Faq_Schema {
 			return '';
 		}
 
-		$json = wp_json_encode( $schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+		// HEX_TAG / HEX_AMP plus "<\/" so text can never close the script element.
+		$json = wp_json_encode( $schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP );
 		if ( ! is_string( $json ) || $json === '' ) {
 			return '';
 		}
+		$json = str_replace( '</', '<\/', $json );
 
 		return '<script type="application/ld+json">' . $json . '</script>';
 	}

@@ -5,7 +5,7 @@ section: Integrations
 method: POST
 path: /api/integrations/sync-email-worker-keys
 auth: open
-order: 580
+order: 590
 ---
 
 POST `/api/integrations/sync-email-worker-keys`.

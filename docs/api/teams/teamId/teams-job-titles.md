@@ -5,7 +5,7 @@ section: Teams
 method: POST
 path: /api/teams/{teamId}/job-titles
 auth: session-team
-order: 1690
+order: 1700
 ---
 
 POST `/api/teams/{teamId}/job-titles`.

@@ -5,7 +5,7 @@ section: DataForSEO MCP
 method: GET
 path: /api/mcp/DataForSEO_serp_dump_download/{filename}
 auth: open
-order: 840
+order: 850
 ---
 
 GET `/api/mcp/DataForSEO_serp_dump_download/{filename}`.

@@ -5,7 +5,7 @@ section: Teams
 method: DELETE
 path: /api/teams/{teamId}/tasks/templates/([^/]+)
 auth: session-team
-order: 2360
+order: 2370
 ---
 
 DELETE `/api/teams/{teamId}/tasks/templates/([^/]+)`.

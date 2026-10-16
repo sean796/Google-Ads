@@ -5,7 +5,7 @@ section: SEO
 method: POST
 path: /api/seo/fetch-external-sitemap
 auth: open
-order: 1060
+order: 1070
 ---
 
 POST `/api/seo/fetch-external-sitemap`.

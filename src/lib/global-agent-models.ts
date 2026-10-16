@@ -18,8 +18,8 @@ export const NEO_PULSE_AGENT_META_MODEL_KEY = "neo-pulse-agent-meta-model";
 export const NEO_PULSE_AGENT_REPORT_MODEL_KEY = "neo-pulse-agent-report-model";
 /** Global Ads agent (PPC reporting). */
 export const NEO_PULSE_AGENT_ADS_MODEL_KEY = "neo-pulse-agent-ads-model";
-/** Global Video agent (HeyGen video generation). */
-export const NEO_PULSE_AGENT_VIDEO_MODEL_KEY = "neo-pulse-agent-video-model";
+/** Global Video agent (OpenRouter video generation). */
+export const NEO_PULSE_AGENT_VIDEO_MODEL_KEY = "neo-pulse-agent-video-model-v2";
 
 const GLOBAL_RESEARCH_MODEL_KEY = "global_research_model";
 

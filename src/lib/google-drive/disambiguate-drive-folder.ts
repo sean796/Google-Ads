@@ -1,4 +1,5 @@
-import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
+import { z } from "zod";
+import { createPulseAgent } from "@/lib/agent-pipeline";
 import type { DriveFolderMatch } from "@/lib/google-drive/drive-folder-api";
 
 export type DisambiguateDriveFolderInput = {
@@ -16,19 +17,51 @@ export type DisambiguateDriveFolderResult = {
   reason?: string;
 };
 
-function parseDisambiguationJson(content: string): DisambiguateDriveFolderResult | null {
-  try {
-    const parsed = JSON.parse(content) as { folderId?: unknown; reason?: unknown };
-    const folderId = String(parsed.folderId ?? "").trim();
-    if (!folderId) return null;
-    return {
-      folderId,
-      reason: typeof parsed.reason === "string" ? parsed.reason : undefined,
-    };
-  } catch {
-    return null;
-  }
-}
+const DriveFolderDisambiguatorInputSchema = z.object({
+  siteName: z.string(),
+  siteUrl: z.string().optional(),
+  purpose: z.string(),
+  candidates: z.array(
+    z.object({
+      folderId: z.string().min(1),
+      name: z.string().min(1),
+    }),
+  ),
+});
+
+const DriveFolderDisambiguatorOutputSchema = z.object({
+  folderId: z.string().min(1),
+  reason: z.string().optional(),
+});
+
+export const driveFolderDisambiguatorAgent = createPulseAgent({
+  id: "workflow.drive.folder-disambiguator",
+  label: "Google Drive Folder Disambiguation Agent",
+  category: "research",
+  domain: "reporting",
+  reason: "Selects the matching client and purpose Google Drive destination folder from multiple candidate folders.",
+  temperature: 0,
+  maxTokens: 300,
+  responseFormat: { type: "json_object" },
+  inputSchema: DriveFolderDisambiguatorInputSchema,
+  outputSchema: DriveFolderDisambiguatorOutputSchema,
+  buildSystemPrompt: () =>
+    'Pick the best Google Drive folder for the client and purpose. Reply with JSON only: {"folderId":"...","reason":"..."}. folderId must match one candidate id exactly.',
+  buildUserPrompt: (input) => {
+    const candidateLines = input.candidates
+      .map((candidate, index) => `${index + 1}. id=${candidate.folderId} name=${candidate.name}`)
+      .join("\n");
+    return [
+      `Client: ${input.siteName}`,
+      input.siteUrl ? `Site URL: ${input.siteUrl}` : "",
+      `Purpose: ${input.purpose}`,
+      "Candidates:",
+      candidateLines,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  },
+});
 
 export async function disambiguateDriveFolder(
   input: DisambiguateDriveFolderInput,
@@ -40,34 +73,19 @@ export async function disambiguateDriveFolder(
     return { folderId: input.candidates[0]!.folderId, reason: "single_match" };
   }
 
-  const candidateLines = input.candidates
-    .map((candidate, index) => `${index + 1}. id=${candidate.folderId} name=${candidate.name}`)
-    .join("\n");
+  const parsed = await driveFolderDisambiguatorAgent.run(
+    {
+      siteName: input.siteName,
+      siteUrl: input.siteUrl,
+      purpose: input.purpose,
+      candidates: input.candidates.map((c) => ({ folderId: c.folderId, name: c.name })),
+    },
+    {
+      apiKey: input.apiKey,
+      signal: input.signal,
+    },
+  );
 
-  const { content } = await callOpenRouterChatCompletion({
-    apiKey: input.apiKey,
-    model: input.model,
-    temperature: 0,
-    maxTokens: 300,
-    responseFormat: { type: "json_object" },
-    signal: input.signal,
-    system:
-      "Pick the best Google Drive folder for the client and purpose. Reply with JSON only: {\"folderId\":\"...\",\"reason\":\"...\"}. folderId must match one candidate id exactly.",
-    user: [
-      `Client: ${input.siteName}`,
-      input.siteUrl ? `Site URL: ${input.siteUrl}` : "",
-      `Purpose: ${input.purpose}`,
-      "Candidates:",
-      candidateLines,
-    ]
-      .filter(Boolean)
-      .join("\n"),
-  });
-
-  const parsed = parseDisambiguationJson(content);
-  if (!parsed) {
-    throw new Error("Drive folder disambiguation returned invalid JSON.");
-  }
   const allowed = new Set(input.candidates.map((candidate) => candidate.folderId));
   if (!allowed.has(parsed.folderId)) {
     throw new Error("Drive folder disambiguation picked a folder outside the candidate list.");

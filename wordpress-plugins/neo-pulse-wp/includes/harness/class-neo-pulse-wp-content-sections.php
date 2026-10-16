@@ -10,21 +10,6 @@ defined( 'ABSPATH' ) || exit;
 class Neo_Pulse_Wp_Content_Sections {
 
 	/**
-	 * Extract H2 heading texts from HTML.
-	 *
-	 * @return array<int,string>
-	 */
-	public static function extract_h2_titles_from_html( string $html ): array {
-		$titles = array();
-		if ( preg_match_all( '#<h2[^>]*>(.*?)</h2>#is', $html, $m ) ) {
-			foreach ( $m[1] as $inner ) {
-				$titles[] = trim( wp_strip_all_tags( (string) $inner ) );
-			}
-		}
-		return $titles;
-	}
-
-	/**
 	 * Normalize for fuzzy H2 match.
 	 */
 	public static function normalize_title( string $title ): string {

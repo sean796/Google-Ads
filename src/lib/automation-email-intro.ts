@@ -1,5 +1,6 @@
-import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
-import { getResearchModel } from "@/lib/optimization-settings-storage";
+import { z } from "zod";
+import { createPulseAgent } from "@/lib/agent-pipeline";
+import { parseJsonStrict } from "@/lib/json-repair-utility";
 import type { GscClientQuestion } from "@/lib/gsc-reporting/gsc-reporting-meeting-script-markdown";
 import type { TaskExecutionKind } from "@/lib/tasks-types";
 
@@ -13,6 +14,30 @@ export type AutomationEmailIntroResult = {
 };
 
 const GSC_MEETING_BULLET_HEADING = "Quick preview:";
+
+const AutomationEmailIntroInputSchema = z.object({
+  executionKind: z.string(),
+  siteName: z.string(),
+  automationTitle: z.string(),
+  summaryText: z.string(),
+  compareLabel: z.string().optional(),
+});
+
+const AutomationEmailIntroOutputSchema = z.object({
+  intro: z.string().min(1),
+  highlights: z.array(z.string()),
+  subject: z.string().optional(),
+  bulletHeading: z.string().optional(),
+  talkingPoints: z.array(z.string()).optional(),
+  clientQuestions: z
+    .array(
+      z.object({
+        question: z.string(),
+        answer: z.string(),
+      }),
+    )
+    .optional(),
+});
 
 function parseStringList(raw: unknown, maxItems: number): string[] {
   if (!Array.isArray(raw)) return [];
@@ -51,19 +76,14 @@ function parseClientQuestions(raw: unknown, maxItems: number): GscClientQuestion
 }
 
 function parseIntroJson(raw: string, executionKind: TaskExecutionKind): AutomationEmailIntroResult {
-  const trimmed = raw.trim();
-  const jsonStart = trimmed.indexOf("{");
-  const jsonEnd = trimmed.lastIndexOf("}");
-  const slice =
-    jsonStart >= 0 && jsonEnd > jsonStart ? trimmed.slice(jsonStart, jsonEnd + 1) : trimmed;
-  const parsed = JSON.parse(slice) as {
+  const parsed = parseJsonStrict<{
     intro?: unknown;
     highlights?: unknown;
     meetingPoints?: unknown;
     talkingPoints?: unknown;
     clientQuestions?: unknown;
     subject?: unknown;
-  };
+  }>(raw);
   const intro = typeof parsed.intro === "string" ? parsed.intro.trim() : "";
   const subject = typeof parsed.subject === "string" ? parsed.subject.trim() : undefined;
   if (!intro) {
@@ -130,6 +150,38 @@ function maxTokensForKind(executionKind: TaskExecutionKind): number {
   return executionKind === "gsc_reporting" ? 2_000 : 900;
 }
 
+export const automationEmailIntroAgent = createPulseAgent({
+  id: "reporting.automation.email-intro",
+  label: "Automation Email Intro & Meeting Notes Agent",
+  category: "report",
+  domain: "reporting",
+  reason: "Generates executive email intro copy, metric highlights, talking points, and client Q&A from completed automation deliverables.",
+  temperature: 0.4,
+  responseFormat: { type: "json_object" },
+  inputSchema: AutomationEmailIntroInputSchema,
+  outputSchema: AutomationEmailIntroOutputSchema,
+  buildSystemPrompt: (input) => buildIntroSystemPrompt(input.executionKind as TaskExecutionKind),
+  buildUserPrompt: (input) => {
+    const executionKind = input.executionKind as TaskExecutionKind;
+    const kindLabel = executionKind.replace(/_/g, " ").trim() || "automation";
+    const compareLine = input.compareLabel?.trim()
+      ? `Compare period: ${input.compareLabel.trim()}`
+      : "";
+    return [
+      `Automation type: ${kindLabel}`,
+      `Site: ${input.siteName}`,
+      `Automation title: ${input.automationTitle}`,
+      compareLine,
+      "",
+      "Run summary:",
+      input.summaryText.slice(0, summaryLimitForKind(executionKind)),
+    ]
+      .filter(Boolean)
+      .join("\n");
+  },
+  parseOutput: (raw, input) => parseIntroJson(raw, input.executionKind as TaskExecutionKind),
+});
+
 export async function buildAutomationEmailIntro(args: {
   apiKey: string;
   executionKind: TaskExecutionKind;
@@ -139,35 +191,20 @@ export async function buildAutomationEmailIntro(args: {
   compareLabel?: string;
   signal?: AbortSignal;
 }): Promise<AutomationEmailIntroResult> {
-  const kindLabel = args.executionKind.replace(/_/g, " ").trim() || "automation";
-  const compareLine = args.compareLabel?.trim()
-    ? `Compare period: ${args.compareLabel.trim()}`
-    : "";
-
-  const user = [
-    `Automation type: ${kindLabel}`,
-    `Site: ${args.siteName}`,
-    `Automation title: ${args.automationTitle}`,
-    compareLine,
-    "",
-    "Run summary:",
-    args.summaryText.slice(0, summaryLimitForKind(args.executionKind)),
-  ]
-    .filter(Boolean)
-    .join("\n");
-
-  const { content } = await callOpenRouterChatCompletion({
-    apiKey: args.apiKey,
-    model: getResearchModel(),
-    system: buildIntroSystemPrompt(args.executionKind),
-    user,
-    maxTokens: maxTokensForKind(args.executionKind),
-    temperature: 0.4,
-    responseFormat: { type: "json_object" },
-    signal: args.signal,
-  });
-
-  return parseIntroJson(content, args.executionKind);
+  return automationEmailIntroAgent.run(
+    {
+      executionKind: args.executionKind,
+      siteName: args.siteName,
+      automationTitle: args.automationTitle,
+      summaryText: args.summaryText,
+      compareLabel: args.compareLabel,
+    },
+    {
+      apiKey: args.apiKey,
+      maxTokens: maxTokensForKind(args.executionKind),
+      signal: args.signal,
+    },
+  );
 }
 
 export { GSC_MEETING_BULLET_HEADING };

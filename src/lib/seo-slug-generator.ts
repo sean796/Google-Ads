@@ -7,10 +7,8 @@
 import { loadApiKey } from "@/lib/api";
 import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
 import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
+import { resolveModelForAgentCategory } from "@/lib/openrouter-agent-category-api";
 const SLUG_MAX_LENGTH = 80;
-
-/** Slug OpenRouter calls always use Gemini (ignore site research model override). */
-const SEO_SLUG_MODEL = "google/gemini-2.5-flash-lite";
 
 /**
  * Sanitize a slug to WordPress-safe format: lowercase, [a-z0-9-]+
@@ -139,7 +137,7 @@ ${locationBlock}
       method: "POST",
       headers: openRouterWebAppHeaders(key),
       body: JSON.stringify({
-        model: SEO_SLUG_MODEL,
+        model: resolveModelForAgentCategory("meta"),
         messages: [
           {
             role: "system",

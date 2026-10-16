@@ -5,7 +5,7 @@ section: Teams
 method: GET
 path: /api/teams/{teamId}/tasks/automation-blocks/triggers
 auth: session-team
-order: 1800
+order: 1810
 ---
 
 GET `/api/teams/{teamId}/tasks/automation-blocks/triggers`.

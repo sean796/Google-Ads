@@ -1,10 +1,10 @@
 import { recipeToPlan } from "@/lib/automation-planner-compile";
 import type { AutomationRecipeCatalogItem } from "@/lib/automation-recipes-types";
+import { syncAgentNodesForWorkflowClient } from "@/lib/workflow/workflow-client-agent-sync";
 import { defaultNodeLabel, newWorkflowNodeId } from "@/lib/workflow/workflow-graph-utils";
 import {
   ensureRagArchiveNode,
   insertNodesAfter,
-  linearOrderedNodes,
   resolveDefaultInsertAnchorId,
 } from "@/lib/workflow/workflow-graph-mutations";
 import type {
@@ -47,25 +47,61 @@ export function recipeToActionSubgraph(
   const actions = plan.actions?.length ? plan.actions : [plan.action];
   const nodes: WorkflowNode[] = [];
   const ragVariables: WorkflowRagVariable[] = [];
+  let prevVariableKey = "";
+  let prevExecutionKind = "";
 
   actions.forEach((action, index) => {
     const actionId = newWorkflowNodeId("action_agent");
     const baseKey = `${action.executionKind}_${index + 1}`;
     const variableKey = uniqueRagKey(baseKey, usedKeys);
     const actionTitle = action.title ?? defaultNodeLabel("action_agent");
+    const executionKind = String(action.executionKind ?? "");
+    let executionPayload = { ...(action.executionPayload ?? {}) };
+
+    if (
+      index > 0 &&
+      prevExecutionKind === "local_dominator_export" &&
+      (executionKind === "entity_page_creator" || executionKind === "entity_generator")
+    ) {
+      executionPayload = {
+        ...executionPayload,
+        locationSource: "grid",
+        gridInputSource: "workflow",
+        ragInputKeys: [prevVariableKey],
+      };
+    }
+
+    if (index > 0 && prevExecutionKind === "entity_generator" && executionKind === "sap_generator") {
+      executionPayload = {
+        ...executionPayload,
+        entityCsvInputSource: "workflow",
+        ragInputKeys: [prevVariableKey],
+      };
+    }
+
+    const autoRagInputKeys =
+      index > 0 &&
+      ((prevExecutionKind === "local_dominator_export" &&
+        (executionKind === "entity_page_creator" || executionKind === "entity_generator")) ||
+        (prevExecutionKind === "entity_generator" && executionKind === "sap_generator") ||
+        (executionKind === "post_creator" && Boolean(executionPayload.useUpstreamContext) && prevVariableKey))
+        ? [prevVariableKey]
+        : undefined;
+
     nodes.push({
       id: actionId,
       kind: "action_agent",
       label: `${recipe.name} · ${actionTitle}`,
       config: {
         executionKind: action.executionKind,
-        executionPayload: action.executionPayload,
+        executionPayload,
         ragVariableKey: variableKey,
         ragScope: "run",
         title: action.title,
         actionBlockKeyword: action.keyword,
         recipeKeyword: recipe.keyword,
         recipeCategory: recipe.category,
+        ...(autoRagInputKeys ? { ragInputKeys: autoRagInputKeys } : {}),
       },
       position: { x: 120, y: 80 + (index + 1) * 140 },
     });
@@ -75,6 +111,8 @@ export function recipeToActionSubgraph(
       scope: "run",
       label: action.title ?? `${recipe.name} output`,
     });
+    prevVariableKey = variableKey;
+    prevExecutionKind = executionKind;
   });
 
   return { nodes, ragVariables };
@@ -96,6 +134,10 @@ export function mergeRecipeIntoWorkflow(
 
   let graph = insertNodesAfter(workflow, anchorId, subgraph.nodes);
   graph = ensureRagArchiveNode({ ...workflow, ...graph });
+  const syncedNodes = syncAgentNodesForWorkflowClient({
+    nodes: graph.nodes,
+    edges: graph.edges,
+  });
 
   const triggerConflict =
     plan.trigger.kind === "gsc" &&
@@ -104,7 +146,7 @@ export function mergeRecipeIntoWorkflow(
       : undefined;
 
   return {
-    nodes: graph.nodes,
+    nodes: syncedNodes,
     edges: graph.edges,
     ragVariables: [...workflow.ragVariables, ...subgraph.ragVariables],
     insertedNodeIds: subgraph.nodes.map((node) => node.id),

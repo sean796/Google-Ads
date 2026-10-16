@@ -9,10 +9,8 @@ defined( 'ABSPATH' ) || exit;
 
 class Neo_Pulse_Wp_Overseer_Context {
 
-
+	/** Schema version of the visits, reports and tasks tables (all created by Install::install()). */
 	const TABLE_VERSION            = '2.2';
-	const REPORTS_VERSION          = '1.1';
-	const TASKS_VERSION            = '1.0';
 
 	/** @var array<int, string> */
 	const ALLOWED_EVENT_TYPES = array(

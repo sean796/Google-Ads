@@ -20,12 +20,6 @@ class Neo_Pulse_Wp_Backend_Assist_Rest {
 			'permission_callback' => $admin_perm,
 		) );
 
-		register_rest_route( Neo_Pulse_Wp_Backend_Assist_Context::REST_NAMESPACE, '/backend-assist/stream', array(
-			'methods'             => 'POST',
-			'callback'            => array( __CLASS__, 'rest_stream_handle' ),
-			'permission_callback' => $admin_perm,
-		) );
-
 		register_rest_route( Neo_Pulse_Wp_Backend_Assist_Context::REST_NAMESPACE, '/backend-assist/step', array(
 			'methods'             => 'POST',
 			'callback'            => array( 'Neo_Pulse_Wp_Backend_Assist', 'rest_step_handle' ),
@@ -75,57 +69,6 @@ class Neo_Pulse_Wp_Backend_Assist_Rest {
 			),
 		) );
 	}
-	/**
-	 * NDJSON stream for Pulse app / Application Password clients (Ask/Plan).
-	 *
-	 * @param WP_REST_Request $request REST request.
-	 */
-	public static function rest_stream_handle( WP_REST_Request $request ): void {
-		$api_key = Neo_Pulse_Wp_OpenRouter::get_api_key();
-		if ( $api_key === '' ) {
-			Neo_Pulse_Wp_Chat::stream_begin();
-			Neo_Pulse_Wp_Chat::stream_emit(
-				array(
-					'status' => 'done',
-					'card'   => array(
-						'type'       => 'not-found',
-						'title'      => __( 'Not configured', 'neo-pulse-wp' ),
-						'body'       => __( 'OpenRouter API key is not configured.', 'neo-pulse-wp' ),
-						'confidence' => 'low',
-					),
-				)
-			);
-			wp_die();
-		}
-
-		$body    = $request->get_json_params();
-		$message = isset( $body['message'] ) ? sanitize_textarea_field( wp_unslash( (string) $body['message'] ) ) : '';
-		$history = isset( $body['history'] ) && is_array( $body['history'] ) ? $body['history'] : array();
-
-		if ( ! is_array( $body ) ) {
-			$body = array();
-		}
-		$body['admin_mode'] = 'backend';
-
-		if ( ! class_exists( 'Neo_Pulse_Wp_Chat_Super_Admin' ) ) {
-			Neo_Pulse_Wp_Chat::stream_begin();
-			Neo_Pulse_Wp_Chat::stream_emit(
-				array(
-					'status' => 'done',
-					'card'   => array(
-						'type'       => 'not-found',
-						'title'      => __( 'Unavailable', 'neo-pulse-wp' ),
-						'body'       => __( 'Backend Assist is not available.', 'neo-pulse-wp' ),
-						'confidence' => 'low',
-					),
-				)
-			);
-			wp_die();
-		}
-
-		Neo_Pulse_Wp_Chat_Super_Admin::stream_pipeline( $message, $history, $body );
-	}
-
 	public static function rest_handle( WP_REST_Request $request ): WP_REST_Response {
 		$api_key = Neo_Pulse_Wp_OpenRouter::get_api_key();
 		if ( $api_key === '' ) {

@@ -10,50 +10,18 @@ defined( 'ABSPATH' ) || exit;
 trait Neo_Pulse_Wp_Admin_Trait_Wp_Shell {
 
 	/**
+	 * Screen hook names of every NEO Pulse admin page, derived from the menu registry so new
+	 * screens are covered automatically. The menu title "NEO Pulse WP" makes the submenu hooks
+	 * `neo-pulse-wp_page_<slug>`; admin_hook_matches() treats `-` and `_` as the same.
+	 *
 	 * @return array<int, string>
 	 */
 	private static function neo_pulse_admin_screen_ids(): array {
-		return array(
-			'toplevel_page_neo_pulse-wp',
-			'neo-pulse-wp_page_neo_pulse-wp-settings',
-			'neo-pulse-wp_page_neo_pulse-wp-sitemap',
-			'neo-pulse-wp_page_neo_pulse-wp-robots-txt',
-			'neo-pulse-wp_page_neo_pulse-wp-analytics',
-			'neo-pulse-wp_page_neo_pulse-wp-redirects',
-			'neo-pulse-wp_page_neo_pulse-wp-chat-logs',
-			'neo-pulse-wp_page_neo_pulse-wp-search-logs',
-			'neo-pulse-wp_page_neo_pulse-wp-overseer',
-			'neo-pulse-wp_page_neo_pulse-wp-script-manager',
-			'neo-pulse-wp_page_neo_pulse-wp-speed',
-			'neo-pulse-wp_page_neo_pulse-wp-image-seo',
-			'neo-pulse-wp_page_neo_pulse-wp-fields',
-			'admin_page_neo_pulse-wp-fields-edit',
-			'neo-pulse-wp_page_neo_pulse-wp-fields-edit',
-			'neo-pulse-wp_page_neo_pulse-wp-post-types',
-			'admin_page_neo_pulse-wp-post-types-edit',
-			'neo-pulse-wp_page_neo_pulse-wp-post-types-edit',
-			'neo-pulse-wp_page_neo_pulse-wp-taxonomies',
-			'neo-pulse-wp_page_neo_pulse-wp-options-pages',
-			'neo-pulse-wp_page_neo_pulse-wp-tags',
-			'admin_page_neo_pulse-wp-fields-elementor',
-			'neo-pulse-wp_page_neo_pulse-wp-fields-elementor',
-			'neo-pulse-wp_page_neo_pulse-wp-search',
-			'neo-pulse-wp_page_neo_pulse-wp-chat',
-			'neo-pulse-wp_page_neo_pulse-wp-backend-assist',
-			'neo-pulse-wp_page_neo_pulse-wp-tool-library',
-			'admin_page_neo_pulse-wp-fields-gallery',
-			'neo-pulse-wp_page_neo_pulse-wp-fields-gallery',
-			'neo-pulse-wp_page_neo_pulse-wp-fields-tools',
-			'neo-pulse-wp_page_neo_pulse-wp-forms',
-			'admin_page_neo_pulse-wp-forms-edit',
-			'neo-pulse-wp_page_neo_pulse-wp-forms-edit',
-			'admin_page_neo_pulse-wp-forms-entries',
-			'neo-pulse-wp_page_neo_pulse-wp-forms-entries',
-			'neo-pulse-wp_page_neo_pulse-wp-agent-hub',
-			'admin_page_neo_pulse-wp-agent-hub-edit',
-			'neo-pulse-wp_page_neo_pulse-wp-agent-hub-edit',
-			'neo-pulse-wp_page_neo_pulse-wp-super-migrate',
-		);
+		$ids = array( 'toplevel_page_' . Neo_Pulse_Wp_Admin_Menu::PARENT_SLUG );
+		foreach ( array_keys( Neo_Pulse_Wp_Admin_Menu::pages() ) as $slug ) {
+			$ids[] = 'neo-pulse-wp_page_' . $slug;
+		}
+		return $ids;
 	}
 
 	/**
@@ -85,9 +53,13 @@ trait Neo_Pulse_Wp_Admin_Trait_Wp_Shell {
 	}
 
 	/**
-	 * @param string $classes Space-separated admin body classes.
+	 * @param string|mixed $classes Space-separated admin body classes.
+	 * @return string|mixed
 	 */
-	public static function admin_body_class( string $classes ): string {
+	public static function admin_body_class( $classes ) {
+		if ( ! is_string( $classes ) ) {
+			return $classes;
+		}
 		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
 		$hook   = $screen ? (string) $screen->id : '';
 		if ( self::is_neo_pulse_plugin_screen( $hook ) ) {
@@ -115,46 +87,63 @@ trait Neo_Pulse_Wp_Admin_Trait_Wp_Shell {
 		remove_all_actions( 'user_admin_notices' );
 	}
 
-	public static function enqueue_admin_assets( string $hook_suffix ): void {
+	/**
+	 * @param string|mixed $hook_suffix Current admin page hook.
+	 */
+	public static function enqueue_admin_assets( $hook_suffix ): void {
+		$hook_suffix = is_string( $hook_suffix ) ? $hook_suffix : '';
+		if ( class_exists( 'Neo_Pulse_Wp_Emcp_Admin' ) && Neo_Pulse_Wp_Emcp_Admin::is_emcp_screen() ) {
+			return;
+		}
 		if ( ! self::is_neo_pulse_plugin_screen( $hook_suffix ) ) {
 			return;
 		}
 
 		wp_enqueue_style( 'dashicons' );
-		wp_enqueue_style(
-			'neo-pulse-wp-lato',
-			'https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,600;0,700;1,400&display=swap',
-			array(),
-			null
-		);
+		// Bundled Poppins replaces the old Google Fonts Lato request. The "neo-pulse-wp-lato" handle
+		// stays registered (no source) because other admin styles list it as a dependency.
+		Neo_Pulse_Wp_Admin_Menu::register_font_style();
+		wp_register_style( 'neo-pulse-wp-lato', false, array( 'neo-pulse-wp-admin-fonts' ), null );
+		wp_enqueue_style( 'neo-pulse-wp-lato' );
 
 		$css_files = array(
 			'neo-pulse-wp-admin-tokens'         => 'admin-tokens.css',
-			'neo-pulse-wp-admin-shell'          => 'admin-shell.css',
-			'neo-pulse-wp-admin-optimizer'      => 'admin-optimizer.css',
-			'neo-pulse-wp-admin-scrape-preview' => 'admin-scrape-preview.css',
-			'neo-pulse-wp-admin-post-table'     => 'admin-post-table.css',
-			'neo-pulse-wp-admin-progress'       => 'admin-progress.css',
 			'neo-pulse-wp-admin-dashboard'      => 'admin-dashboard.css',
 			'neo-pulse-wp-admin-settings'       => 'admin-settings.css',
 			'neo-pulse-wp-admin-panel'          => 'admin-panel.css',
 			'neo-pulse-wp-admin-analytics'      => 'admin-analytics.css',
 			'neo-pulse-wp-admin-redirects'       => 'admin-redirects.css',
-			'neo-pulse-wp-admin-forms'           => 'admin-forms.css',
 			'neo-pulse-wp-admin-chat-logs'       => 'admin-chat-logs.css',
 			'neo-pulse-wp-admin-overseer'        => 'admin-overseer.css',
 			'neo-pulse-wp-admin-script-manager'  => 'admin-script-manager.css',
-			'neo-pulse-wp-admin-image-seo'       => 'admin-image-seo.css',
 			'neo-pulse-wp-admin-typography'      => 'admin-typography-enforce.css',
 			'neo-pulse-wp-admin-buttons'         => 'admin-buttons.css',
 			'neo-pulse-wp-admin-search'          => 'admin-search.css',
 			'neo-pulse-wp-admin-tool-library'    => 'admin-tool-library.css',
 			'neo-pulse-wp-admin-contrast'        => 'admin-contrast-enforce.css',
 			'neo-pulse-wp-admin-site-schema'    => 'admin-site-schema.css',
+			'neo-pulse-wp-admin-seo'            => 'admin-seo.css',
+			// Neo Tools look (header bar, frame, cards, buttons, tables). Keep last.
+			'neo-pulse-wp-admin-neo-theme'      => 'admin-neo-theme.css',
 		);
+
+		// Sheets whose selectors are all scoped to one screen's wrapper class load only there.
+		// admin-seo.css also styles the 404 log, which renders on the Redirects screen.
+		// (admin-image-seo.css is enqueued by enqueue_image_seo_assets() on its own screen.)
+		$screen_only = array(
+			'neo-pulse-wp-admin-redirects'    => array( 'neo-pulse-wp-redirects' ),
+			'neo-pulse-wp-admin-chat-logs'    => array( 'neo-pulse-wp-chat-logs' ),
+			'neo-pulse-wp-admin-overseer'     => array( 'neo-pulse-wp-overseer' ),
+			'neo-pulse-wp-admin-tool-library' => array( 'neo-pulse-wp-tool-library' ),
+			'neo-pulse-wp-admin-seo'          => array( 'neo-pulse-wp-seo', 'neo-pulse-wp-redirects' ),
+		);
+		$current_page = Neo_Pulse_Wp_Admin_Menu::current_page();
 
 		$deps = array( 'neo-pulse-wp-lato' );
 		foreach ( $css_files as $handle => $file ) {
+			if ( isset( $screen_only[ $handle ] ) && ! in_array( $current_page, $screen_only[ $handle ], true ) ) {
+				continue;
+			}
 			$rel = 'assets/admin/' . $file;
 			$abs = NEO_PULSE_WP_PLUGIN_DIR . $rel;
 			$ver = defined( 'NEO_PULSE_WP_VERSION' ) ? NEO_PULSE_WP_VERSION : '0.5.0';
@@ -168,16 +157,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Wp_Shell {
 				$ver
 			);
 			$deps[] = $handle;
-		}
-
-		$agent_hub_hooks = array(
-			'neo-pulse-wp_page_neo_pulse-wp-agent-hub',
-			'admin_page_neo_pulse-wp-agent-hub-edit',
-			'neo-pulse-wp_page_neo_pulse-wp-agent-hub-edit',
-		);
-		if ( self::admin_hook_matches( $hook_suffix, $agent_hub_hooks ) ) {
-			$agent_hub_deps = ! empty( $deps ) ? array( (string) end( $deps ) ) : array( 'neo-pulse-wp-lato' );
-			self::enqueue_agent_hub_styles( $agent_hub_deps );
 		}
 
 		if (
@@ -198,60 +177,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Wp_Shell {
 		if ( self::admin_hook_matches( $hook_suffix, array( 'neo-pulse-wp_page_neo_pulse-wp-chat' ) ) ) {
 			self::enqueue_chat_demo_assets();
 		}
-
-		if ( self::admin_hook_matches( $hook_suffix, array( 'toplevel_page_neo_pulse-wp' ) ) ) {
-			self::enqueue_dashboard_reorder_script();
-		}
-	}
-
-	/**
-	 * Dashboard module tile reorder (swap + per-user save).
-	 */
-	private static function enqueue_dashboard_reorder_script(): void {
-		$rel = 'assets/admin/admin-dashboard-reorder.js';
-		$abs = NEO_PULSE_WP_PLUGIN_DIR . $rel;
-		if ( ! is_readable( $abs ) ) {
-			return;
-		}
-
-		$ver = defined( 'NEO_PULSE_WP_VERSION' ) ? NEO_PULSE_WP_VERSION : '0.5.0';
-		$ver .= '.' . (string) filemtime( $abs );
-
-		wp_enqueue_script(
-			'neo-pulse-wp-dashboard-reorder',
-			plugin_dir_url( NEO_PULSE_WP_PLUGIN_FILE ) . $rel,
-			array(),
-			$ver,
-			true
-		);
-
-		$modules = Neo_Pulse_Wp_Admin::dashboard_modules();
-		$user_id = get_current_user_id();
-		$groups  = Neo_Pulse_Wp_Dashboard_Preferences::resolve_layout_for_modules(
-			$modules,
-			Neo_Pulse_Wp_Dashboard_Preferences::get_layout_groups( $user_id )
-		);
-		$export  = Neo_Pulse_Wp_Dashboard_Preferences::export_groups_for_client( $groups );
-
-		wp_localize_script(
-			'neo-pulse-wp-dashboard-reorder',
-			'neoPulseWpDashboardReorder',
-			array(
-				'restUrl'       => esc_url_raw( rest_url( Neo_Pulse_Wp_Dashboard_Preferences::REST_NAMESPACE . '/dashboard/module-order' ) ),
-				'restLayoutUrl' => esc_url_raw( rest_url( Neo_Pulse_Wp_Dashboard_Preferences::REST_NAMESPACE . '/dashboard/layout' ) ),
-				'nonce'         => wp_create_nonce( 'wp_rest' ),
-				'groups'        => $export,
-				'i18n'          => array(
-					'customize'               => __( 'Customize layout', 'neo-pulse-wp' ),
-					'done'                    => __( 'Done', 'neo-pulse-wp' ),
-					'addSection'              => __( 'Add section', 'neo-pulse-wp' ),
-					'sectionTitlePlaceholder' => __( 'Section title', 'neo-pulse-wp' ),
-					'removeSection'           => __( 'Remove section', 'neo-pulse-wp' ),
-					'sectionNotEmpty'         => __( 'Remove all modules from this section before deleting it.', 'neo-pulse-wp' ),
-					'modulesLabel'            => __( 'Site modules', 'neo-pulse-wp' ),
-				),
-			)
-		);
 	}
 
 	/**
@@ -280,19 +205,12 @@ trait Neo_Pulse_Wp_Admin_Trait_Wp_Shell {
 			$ver
 		);
 
-		if ( class_exists( 'Neo_Pulse_Wp_Forms' ) ) {
-			Neo_Pulse_Wp_Forms::enqueue_frontend_assets();
-		}
-
 		$demo_js = NEO_PULSE_WP_PLUGIN_DIR . 'assets/admin/admin-chat-demo.js';
 		$js_ver  = $ver;
 		if ( is_readable( $demo_js ) ) {
 			$js_ver .= '.' . (string) filemtime( $demo_js );
 		}
 		$demo_deps = array( 'neo-pulse-thinking-card', 'neo-pulse-chat-stream', 'neo-pulse-chat-prefetch', 'neo-pulse-chat-debug-log', 'neo-pulse-display-text', 'neo-pulse-markdown' );
-		if ( class_exists( 'Neo_Pulse_Wp_Forms' ) ) {
-			$demo_deps[] = 'neo-pulse-forms';
-		}
 		wp_enqueue_script(
 			'neo-pulse-chat-demo',
 			$base . 'assets/admin/admin-chat-demo.js',
@@ -313,52 +231,5 @@ trait Neo_Pulse_Wp_Admin_Trait_Wp_Shell {
 				'ui'            => Neo_Pulse_Wp_Ai_Widget_Design::get_settings()['chat_ui'] ?? array(),
 			)
 		);
-	}
-
-	public static function maybe_dismiss_notice(): void {
-		if ( ! isset( $_GET[ self::DISMISS_ACTION ] ) || ! isset( $_GET['_wpnonce'] ) ) {
-			return;
-		}
-		if ( ! current_user_can( self::required_capability() ) ) {
-			return;
-		}
-		if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), self::DISMISS_ACTION ) ) {
-			return;
-		}
-		update_user_meta( get_current_user_id(), self::NOTICE_USER_META, '1' );
-		wp_safe_redirect( admin_url() );
-		exit;
-	}
-
-	public static function render_notice(): void {
-		if ( ! current_user_can( self::required_capability() ) ) {
-			return;
-		}
-		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-		if ( $screen && self::is_neo_pulse_plugin_screen( (string) $screen->id ) ) {
-			return;
-		}
-		if ( get_user_meta( get_current_user_id(), self::NOTICE_USER_META, true ) ) {
-			return;
-		}
-		$dismiss_url = wp_nonce_url(
-			add_query_arg( self::DISMISS_ACTION, '1', admin_url() ),
-			self::DISMISS_ACTION
-		);
-		$app_url = admin_url( 'admin.php?page=neo-pulse-wp-settings' );
-		?>
-		<div class="notice notice-info">
-			<p>
-				<?php esc_html_e( 'NEO Pulse WP is active. Configure API keys under Settings.', 'neo-pulse-wp' ); ?>
-				<a href="<?php echo esc_url( $app_url ); ?>">
-					<?php esc_html_e( 'Open Settings', 'neo-pulse-wp' ); ?>
-				</a>
-				<span aria-hidden="true"> | </span>
-				<a href="<?php echo esc_url( $dismiss_url ); ?>">
-					<?php esc_html_e( 'Dismiss', 'neo-pulse-wp' ); ?>
-				</a>
-			</p>
-		</div>
-		<?php
 	}
 }

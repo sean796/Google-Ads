@@ -4,12 +4,14 @@ import { callAgentCategoryOpenRouterChat, streamAgentCategoryOpenRouterChat } fr
 import type { OpenRouterAppMessage, OpenRouterAppStreamDelta } from "@/lib/openrouter-app-api";
 import { parseJsonObjectFromModelText } from "@/lib/openrouter-vision-chat";
 import type {
+  ProductViewId,
   VideoBrief,
   VideoPlan,
   VideoPlanContinuity,
   VideoScenePlan,
   VideoTransition,
 } from "./video-generator-types";
+import { formatProductSpecPromptBlock, PRODUCT_VIEW_IDS } from "./video-product-agent";
 import { videoLog, videoLogError, videoTimer } from "./video-log";
 import {
   HEYGEN_VOICES,
@@ -28,12 +30,13 @@ export function briefBlock(brief: VideoBrief): string {
   const subject = brief.subject
     ? "Subject harness (attached first): the one product this video is about, photographed from several angles. continuity.heroSubject names exactly this product and every scene features it as it is; the harness is not one of the numbered images and is assigned to no scene."
     : "Subject harness: none.";
+  const specText = formatProductSpecPromptBlock(brief.productSpec);
   const refCount = brief.references.length;
   return `Target length: ${brief.lengthSeconds} seconds
 Aspect ratio: ${brief.aspect}
 Resolution: ${brief.resolution}
 ${subject}
-Numbered reference images uploaded: ${refCount}. Subject photos and the subject harness are NOT numbered images. Every scene referenceIndexes entry must use integers 1..${refCount}, or [] when ${refCount} is 0. Do not assign Image numbers that appear only in the brief text if those files were not uploaded.
+${specText ? `${specText}\n` : ""}Numbered reference images uploaded: ${refCount}. Subject photos and the subject harness are NOT numbered images. Every scene referenceIndexes entry must use integers 1..${refCount}, or [] when ${refCount} is 0. Do not assign Image numbers that appear only in the brief text if those files were not uploaded.
 Images uploaded by the user (attached ${brief.subject ? "after the harness" : "below"} in this order):
 ${refs}
 
@@ -56,12 +59,19 @@ export function directorMessages(system: string, userText: string, brief: VideoB
   ];
 }
 
-/** Every legal scene count for the length with its average duration, e.g. "3 scenes (10 s each on average), 4 scenes (7.5 s), ...". */
-function sceneCountOptions(lengthSeconds: number): string {
+/** Every legal scene count for `lengthSeconds` with a balanced integer duration array (e.g. `6 scenes [5, 5, 5, 5, 5, 5], 5 scenes [6, 6, 6, 6, 6], 4 scenes [8, 8, 7, 7]`). */
+export function integerSceneSplits(lengthSeconds: number): string {
   const min = Math.ceil(lengthSeconds / VIDEO_SCENE_MAX_SECONDS);
   const max = Math.floor(lengthSeconds / VIDEO_SCENE_MIN_SECONDS);
-  const counts = Array.from({ length: max - min + 1 }, (_, i) => min + i);
-  return counts.map((n) => `${n} scenes (${(lengthSeconds / n).toFixed(1)} s each on average)`).join(", ");
+  const counts = Array.from({ length: max - min + 1 }, (_, i) => max - i);
+  return counts
+    .map((n) => {
+      const base = Math.floor(lengthSeconds / n);
+      const rem = lengthSeconds % n;
+      const durations = Array.from({ length: n }, (_, idx) => (idx < rem ? base + 1 : base));
+      return `${n} scenes [${durations.join(", ")}]`;
+    })
+    .join("; ");
 }
 
 function answersBlock(answers: Record<string, string>, questions: { id: string; text: string }[]): string {
@@ -115,16 +125,36 @@ export async function runVideoDirectorClarify(args: {
   return parsed;
 }
 
-export const PLAN_SCHEMA = `{"title":"string","logline":"string","voice":"none|nadine|tabitha|bram|gareth|noelle|meredith|sabrina|lucian|weston|vincent","continuity":{"heroSubject":"string","screenDirection":"left_to_right|right_to_left","cameraSide":"string","palette":"string","lightArc":"string"},"scenes":[{"id":"string","order":1,"title":"string","durationSeconds":8,"sceneInstructions":"string","storyboardPrompt":"string","motionPrompt":"string","continuityNotes":"string","narration":"string","referenceIndexes":[2],"transitionIn":null},{"id":"string","order":2,"title":"string","durationSeconds":7,"sceneInstructions":"string","storyboardPrompt":"string","motionPrompt":"string","continuityNotes":"string","narration":"string","referenceIndexes":[3],"transitionIn":{"type":"continue|dissolve","seconds":0}}]}`;
+export const PLAN_SCHEMA = `{"title":"string","logline":"string","voice":"none|nadine|tabitha|bram|gareth|noelle|meredith|sabrina|lucian|weston|vincent","fadeInSeconds":0.6,"fadeOutSeconds":0.8,"continuity":{"heroSubject":"string","screenDirection":"left_to_right|right_to_left","cameraSide":"string","palette":"string","lightArc":"string"},"scenes":[{"id":"string","order":1,"title":"string","durationSeconds":8,"sceneInstructions":"string","environmentId":"factory_bay","environmentPrompt":"string","storyboardPrompt":"string","motionPrompt":"string","continuityNotes":"string","narration":"string","referenceIndexes":[2],"productView":"three_quarter","transitionIn":null},{"id":"string","order":2,"title":"string","durationSeconds":7,"sceneInstructions":"string","environmentId":"forest_clearing_piers","environmentPrompt":"string","storyboardPrompt":"string","motionPrompt":"string","continuityNotes":"string","narration":"string","referenceIndexes":[3],"productView":"front_elevation","transitionIn":{"type":"dissolve|fade_black|fade_white|wipe_left|wipe_right|zoom_in|cut|continue","seconds":0.7}}]}`;
 
 export const SCENE_RULES = `- durationSeconds is an integer from ${VIDEO_SCENE_MIN_SECONDS} to ${VIDEO_SCENE_MAX_SECONDS}.
-- sceneInstructions: what happens in the scene, the beat it delivers, and any on-screen text (2 to 4 sentences).
-- storyboardPrompt: the opening still as an image prompt: subject, framing, lens, lighting, palette, materials, mood. Describe only what is visible in that first frame, and state explicitly which way the hero subject faces (screen left or screen right) so it matches continuity.screenDirection.
-- motionPrompt: camera movement and subject motion across the clip, in present tense. All travel is FORWARD in continuity.screenDirection; never reverse, never cross the axis of action (180 degree rule). No new characters or locations.
-- continuityNotes: character, wardrobe, setting, and palette details that must stay identical across scenes.
+- sceneInstructions: what happens in the scene, the beat it delivers, and any on-screen text (2 to 4 sentences). Each 5 to 8 second scene must execute ONE single continuous micro-action (e.g. "module sits completed on clean concrete factory floor as camera dollies past", "semi-truck cruises along mountain highway", "overhead crane lowers module onto concrete foundation piers", "module rests on foundation piers as interior lights glow warmly at dusk"). Never pack two separate events into a single scene.
+- Single Standalone Unit Invariant (CRITICAL): Every scene in the video depicts ONE single standalone modular unit only — NEVER a row of multiple units, never 2, 3, or 4 modules side by side, even if the brief mentions the word "row" from a reference filename or if an uploaded photo shows multiple units stored together.
+- Season & Weather Lock (No Unrequested Snow): Every outdoor scene across the entire video MUST share one single consistent season and ground condition (matching the uploaded beat reference images, or clear dry ground with green/alpine foliage when no season is specified). NEVER write "snow", "snow patches", "ice", "frost", or "winter" in environmentPrompt, storyboardPrompt, motionPrompt, or continuityNotes unless the user's brief text explicitly asks for a winter/snow video.
+- environmentId: required snake_case identifier for the physical location of this scene (e.g. "factory_bay", "mountain_highway", "forest_clearing_piers"). Every scene set at the same physical site MUST share the exact same environmentId so their Environment Plates lock the same ground surface, gravel/grass/concrete, foundation piers, trees, and mountain horizon.
+- environmentPrompt: required empty-stage environment description for this scene: ground material and texture, concrete foundation piers or factory floor, background walls/trees/mountains, sky, and lighting — with NO hero product, NO crane, and NO flatbed trailer or truck in the frame. Scenes sharing an environmentId must use the exact same ground, piers, and terrain description word-for-word, changing only camera angle or time-of-day lighting (daylight vs dusk vs night). Never include snow unless the brief explicitly requests snow.
+- storyboardPrompt: the opening still as an image prompt: subject, framing, lens, lighting, palette, materials, mood. Describe only what is visible in that first frame, and include the exact 0%..100% left-to-right zone map of each visible face verbatim from the Locked Product Bible when present.
+  * Completed Product & 1:1 Zone Map Invariant: Even if an uploaded beat sketch shows an early shell, every scene (including Scene 1 in the factory) MUST depict 1 single 100% completed product unit from the Locked Product Bible, preserving the exact 0%..100% left-to-right zone widths, glass-bay pane count, solid cladding strip between the glass bay and the door, door lower-solid/upper-window structure, wall sconce to the upper-right of the door, and single-pane narrow window. Never paraphrase the facade in a way that replaces a glass pane with solid cladding or changes window/door spacing.
+  * Facade Invariant: Never mirror-flip the building. Each face keeps its openings and panels in the exact left-to-right order the Locked Product Bible gives.
+  * Staging Isolation Invariant (No Stray Trailers or Cranes): Flatbed semi-trucks/trailers appear ONLY in scenes whose action beat is highway transport or loading directly onto/off the truck bed. Cranes and rigging cables appear ONLY in scenes whose action beat is actively hoisting or lowering the unit. In indoor factory bay scenes (e.g. Scene 1) and installed site/evening/night scenes, the unit rests directly on the clean factory floor or concrete foundation piers with NO flatbed trailer, NO truck, NO wheeled chassis, and NO crane cables anywhere in the frame.
+  * Flatbed Truck Co-Linear Alignment & Reference Cab Direction: In any scene where the module is on a flatbed semi-truck, inspect the uploaded beat reference image for that scene and explicitly state which side of the frame the tractor cab is on (e.g. "tractor cab on the RIGHT end of the flatbed trailer facing screen-RIGHT, matching Reference Image N" or "tractor cab on the LEFT facing screen-LEFT"). Set continuity.screenDirection to match the vehicle travel direction in the uploaded beat reference image. State that the module's long axis is 100% parallel and co-linear with the flatbed trailer deck and tractor cab (0 degree yaw offset), resting flat and centered on the trailer bed.
+  * Overhead Crane Rigging (Top Roof Corner Lugs Only): In any crane lift scene, explicitly state that the module hangs horizontally level from 4 steel cables attached ONLY to the 4 top roof corner lifting lugs/eyes connected to an overhead spreader bar directly above the module — never running cables diagonally across the glass or walls down to the bottom base corners, never suspended off to the side on a folding boom arm, and never with stick legs.
+- motionPrompt: camera movement and subject motion across the clip, in present tense. One smooth camera move and one slow, physically grounded micro-action per clip. All vehicle travel moves FORWARD in the direction the tractor cab faces; rigid architectural structures never bend, warp, or change window counts.
+- continuityNotes: character, wardrobe, setting, ground/pier layout, single-season weather, and palette details that must stay identical across scenes.
 - narration: exactly "" (empty) unless the brief explicitly asks for narration, voiceover or spoken lines. Only when it does: the voiceover spoken during this scene, plain spoken English, no stage directions, no quotes, at most ${NARRATION_WORDS_PER_SECOND} words per second of the scene, rounded down (5 s: 11 words, 6 s: 13, 7 s: 15, 8 s: 17, 10 s: 22). Count the words of each narration before you answer and cut words until it fits; a hyphenated term counts as one word. Narration flows as one script across scenes.
-- referenceIndexes: a required key on every scene: the numbers (Image N as labelled) of the uploaded images this scene's opening frame is drawn from, normally exactly one. A contact sheet, overview or grid of many frames is context only and is assigned to no scene. When the uploads form a frame sequence, follow it in upload order, one scene per frame unless the length budget forces merging two neighbouring frames into one scene. storyboardPrompt then describes exactly what that uploaded frame shows, rendered photoreal. With no uploads, referenceIndexes is [].
-- transitionIn: a required key on EVERY scene object. Exactly null on scene 1 (it opens the video). On every later scene an object, never omitted: {"type":"continue","seconds":0} when the clip picks up exactly where the previous clip ends (same place, camera keeps rolling, action continues; the clip is generated FROM the previous clip's final frame, so the scene must be physically reachable in one shot from that end state). {"type":"dissolve","seconds":0.5..1.0} only for a deliberate jump in time or place. Prefer continue; a dissolve must be justified by the story.`;
+- referenceIndexes: a required key on every scene: the numbers (Image N as labelled) of the uploaded images this scene's staging beat is drawn from, normally at most one. A contact sheet, overview or grid of many frames is context only and is assigned to no scene. Uploaded beat images define the scene activity, camera framing, season, and vehicle facing direction; the hero product's appearance and proportions always come from the Locked Product Bible. With no uploads, referenceIndexes is [].
+- productView: optional key ("front_elevation" | "three_quarter" | "side_elevation" | "glazing_detail"). Set this on every scene when a Subject harness / Locked Product Bible is present so the storyboard artist receives the exact matching studio angle for this shot:
+  * "front_elevation": straight-on shot of the front long side.
+  * "three_quarter": front-right three-quarter angle (front long side and right end visible, front receding toward screen-left).
+  * "side_elevation": front-left three-quarter angle (front long side and left end visible, front receding toward screen-right; use this when the camera sees the module from its left corner so the building never mirror-flips).
+  * "glazing_detail": tight close-up on the front long side around its entry or largest opening.
+- transitionIn: a required key on EVERY scene object. Exactly null on scene 1 (it opens the video). On every later scene an object, never omitted. Prefer smooth cinematic transitions (dissolve, fade_black, wipe_left, wipe_right, zoom_in) so the video flows seamlessly without abrupt jumps:
+  * {"type":"dissolve","seconds":0.7} for a smooth 0.5..1.2s cross-dissolve between locations, camera angles, or beats (recommended default so scenes blend smoothly).
+  * {"type":"fade_black","seconds":0.8} or {"type":"fade_white","seconds":0.7} for dramatic time-of-day transitions (such as daytime installation to night glow) or act changes.
+  * {"type":"wipe_left","seconds":0.6} or {"type":"wipe_right","seconds":0.6} for directional travel transitions matching continuity.screenDirection.
+  * {"type":"zoom_in","seconds":0.6} when pushing in from a wide establishing shot to a closer shot.
+  * {"type":"continue","seconds":0} ONLY when the camera does not cut and continues the exact same camera angle and location from the previous clip's final frame.
+  * {"type":"cut","seconds":0} only for an intentional immediate angle change at the exact same moment and location.`;
 
 export function buildDirectorPlanSystemPrompt(lengthSeconds: number, referenceCount: number): string {
   return `You are the Director writing the scene plan for ONE short video that must cut together as one seamless piece.
@@ -136,6 +166,7 @@ Rules:
 - The durations MUST sum to exactly ${lengthSeconds}.
 - order starts at 1 and increases by 1. Ids are snake_case and unique.
 - voice: "none" unless the brief explicitly asks for narration, voiceover or spoken lines; the video then has no narration track and every scene's narration is "". Only when the brief asks: pick the HeyGen voice that fits its tone (nadine, tabitha, noelle, meredith, sabrina are female; bram, gareth, lucian, weston, vincent are male) and write narration for every scene.
+- fadeInSeconds (0..1.5, default 0.6) and fadeOutSeconds (0..1.5, default 0.8) control smooth fade-in from black on Scene 1 and fade-out to black at the end of the final scene.
 - continuity: heroSubject names the one subject every scene follows; screenDirection is the single direction all travel and progress moves across the frame for the whole video; cameraSide says which side of the action the camera stays on; palette and lightArc describe colour and how light changes from first to last scene.
 - Numbered reference images available: ${referenceCount}. When ${referenceCount} is 0, every scene referenceIndexes must be []. When ${referenceCount} is greater than 0, use only integers 1..${referenceCount}. Never reference beat numbers from the brief unless that many images were actually uploaded.
 ${SCENE_RULES}
@@ -150,24 +181,44 @@ function readNumber(v: unknown): number {
   return typeof v === "number" ? v : Number.parseFloat(String(v ?? ""));
 }
 
-function parseTransition(raw: unknown, idx: number): VideoTransition {
+function clampTransitionSeconds(seconds: number, fallback = 0.7): number {
+  const raw = Number.isNaN(seconds) || seconds <= 0 ? fallback : seconds;
+  const clamped = Math.min(1.5, Math.max(0.4, raw));
+  return Math.round(clamped * 10) / 10;
+}
+
+export function parseTransition(raw: unknown, idx: number): VideoTransition {
   const o = (raw ?? {}) as Record<string, unknown>;
-  const type = String(o.type ?? "").trim();
+  const rawType = String(o.type ?? "").trim().toLowerCase();
   const seconds = readNumber(o.seconds);
-  if (type === "continue") {
-    if (seconds !== 0) throw new Error(`Scene ${idx + 1} continue join must have seconds 0.`);
-    return { type, seconds: 0 };
+  if (rawType === "cut" || rawType === "hard_cut" || rawType === "match_cut" || rawType === "none") {
+    return { type: "cut", seconds: 0 };
   }
-  if (type === "dissolve") {
-    if (!(seconds >= 0.5 && seconds <= 1.0)) {
-      throw new Error(`Scene ${idx + 1} dissolve must be 0.5..1.0 s (got ${String(o.seconds)}).`);
-    }
-    return { type, seconds: Math.round(seconds * 10) / 10 };
+  if (rawType === "continue") {
+    return { type: "continue", seconds: 0 };
+  }
+  if (rawType === "dissolve" || rawType === "crossfade" || rawType === "fade") {
+    return { type: "dissolve", seconds: clampTransitionSeconds(seconds, 0.7) };
+  }
+  if (rawType === "fade_black" || rawType === "fadeblack" || rawType === "dip_to_black") {
+    return { type: "fade_black", seconds: clampTransitionSeconds(seconds, 0.8) };
+  }
+  if (rawType === "fade_white" || rawType === "fadewhite" || rawType === "dip_to_white") {
+    return { type: "fade_white", seconds: clampTransitionSeconds(seconds, 0.7) };
+  }
+  if (rawType === "wipe_left" || rawType === "wipeleft" || rawType === "slide_left" || rawType === "slideleft") {
+    return { type: "wipe_left", seconds: clampTransitionSeconds(seconds, 0.6) };
+  }
+  if (rawType === "wipe_right" || rawType === "wiperight" || rawType === "slide_right" || rawType === "slideright") {
+    return { type: "wipe_right", seconds: clampTransitionSeconds(seconds, 0.6) };
+  }
+  if (rawType === "zoom_in" || rawType === "zoomin" || rawType === "zoom") {
+    return { type: "zoom_in", seconds: clampTransitionSeconds(seconds, 0.6) };
   }
   throw new Error(
     raw === undefined || raw === null
       ? `Scene ${idx + 1} is missing transitionIn.`
-      : `Scene ${idx + 1} transitionIn.type must be continue or dissolve (got ${String(o.type)}).`,
+      : `Scene ${idx + 1} transitionIn.type must be cut, continue, dissolve, fade_black, fade_white, wipe_left, wipe_right, or zoom_in (got ${String(o.type)}).`,
   );
 }
 
@@ -189,20 +240,37 @@ function parseReferenceIndexes(raw: unknown, idx: number, referenceCount: number
   return indexes;
 }
 
+function parseProductView(raw: unknown): ProductViewId | undefined {
+  if (typeof raw !== "string" || !raw.trim()) return undefined;
+  const v = raw.trim() as ProductViewId;
+  return PRODUCT_VIEW_IDS.includes(v) ? v : undefined;
+}
+
 /** Validates one scene object from the Director; `idx` is the zero-based position it must occupy. */
 export function parseScene(raw: unknown, idx: number, referenceCount: number): VideoScenePlan {
   const o = (raw ?? {}) as Record<string, unknown>;
+  const productView = parseProductView(o.productView);
+  const environmentId = typeof o.environmentId === "string" && o.environmentId.trim() ? o.environmentId.trim() : undefined;
+  const environmentPrompt =
+    typeof o.environmentPrompt === "string" && o.environmentPrompt.trim() ? o.environmentPrompt.trim() : undefined;
+  const revisionNotes = Array.isArray(o.revisionNotes)
+    ? o.revisionNotes.map((n) => String(n ?? "").trim()).filter(Boolean)
+    : undefined;
   const scene: VideoScenePlan = {
     id: String(o.id ?? "").trim(),
     order: readInt(o.order),
     title: String(o.title ?? "").trim(),
     durationSeconds: readInt(o.durationSeconds),
     sceneInstructions: String(o.sceneInstructions ?? "").trim(),
+    ...(environmentId ? { environmentId } : {}),
+    ...(environmentPrompt ? { environmentPrompt } : {}),
     storyboardPrompt: String(o.storyboardPrompt ?? "").trim(),
     motionPrompt: String(o.motionPrompt ?? "").trim(),
     continuityNotes: String(o.continuityNotes ?? "").trim(),
     narration: String(o.narration ?? "").trim(),
     referenceIndexes: parseReferenceIndexes(o.referenceIndexes, idx, referenceCount),
+    ...(productView ? { productView } : {}),
+    ...(revisionNotes && revisionNotes.length ? { revisionNotes } : {}),
   };
   const missing = (["id", "title", "sceneInstructions", "storyboardPrompt", "motionPrompt"] as const).filter(
     (k) => !scene[k],
@@ -257,6 +325,13 @@ function parseContinuity(raw: unknown): VideoPlanContinuity {
   return continuity;
 }
 
+function clampFadeSeconds(v: unknown, fallback: number): number {
+  const n = readNumber(v);
+  if (Number.isNaN(n)) return fallback;
+  const clamped = Math.min(1.5, Math.max(0, n));
+  return Math.round(clamped * 10) / 10;
+}
+
 export function parseVideoPlan(raw: string, lengthSeconds: number, referenceCount: number): VideoPlan {
   const j = parseJsonObjectFromModelText(raw);
   const title = String(j.title ?? "").trim();
@@ -284,7 +359,17 @@ export function parseVideoPlan(raw: string, lengthSeconds: number, referenceCoun
   if (voice !== "none" && narrated.length !== scenes.length) {
     throw new Error(`Director picked voice ${voice} but left narration empty on some scenes; every scene needs narration or voice must be none.`);
   }
-  return { title, logline, continuity, voice: voice as HeygenVoice | "none", scenes };
+  const fadeInSeconds = clampFadeSeconds(j.fadeInSeconds, 0.6);
+  const fadeOutSeconds = clampFadeSeconds(j.fadeOutSeconds, 0.8);
+  return {
+    title,
+    logline,
+    continuity,
+    voice: voice as HeygenVoice | "none",
+    fadeInSeconds,
+    fadeOutSeconds,
+    scenes,
+  };
 }
 
 export async function runVideoDirectorPlan(args: {
@@ -302,11 +387,12 @@ export async function runVideoDirectorPlan(args: {
 User answers to your questions:
 ${answersBlock(args.answers, args.questions)}
 
-Write the scene plan now. Allocate durations first: every scene is ${VIDEO_SCENE_MIN_SECONDS} to ${VIDEO_SCENE_MAX_SECONDS} s, so ${args.brief.lengthSeconds} seconds fits ${sceneCountOptions(args.brief.lengthSeconds)}. Pick a scene count, write its durations as a list, add them up, and change them until the sum is exactly ${args.brief.lengthSeconds}; only then write the scenes.`;
+Write the scene plan JSON now. Pre-computed integer duration splits for ${args.brief.lengthSeconds} seconds (${VIDEO_SCENE_MIN_SECONDS}..${VIDEO_SCENE_MAX_SECONDS} s per scene): ${integerSceneSplits(args.brief.lengthSeconds)}. Pick one of these exact integer duration arrays immediately without arithmetic trial-and-error and output the JSON scene plan.`;
   const elapsed = videoTimer();
   videoLog("plan", "request", {
     lengthSeconds: args.brief.lengthSeconds,
     subjectHarness: Boolean(args.brief.subject),
+    hasProductSpec: Boolean(args.brief.productSpec),
     references: args.brief.references.map((r) => r.fileName),
     answers: args.answers,
   });
@@ -319,7 +405,6 @@ Write the scene plan now. Allocate durations first: every scene is ${VIDEO_SCENE
       user,
       args.brief,
     ),
-    // Reasoning tokens count against max_tokens; low effort plus a wide budget keeps the JSON from being cut.
     maxTokens: 64000,
     reasoning: { effort: "low" },
     temperature: 0.4,
@@ -341,7 +426,7 @@ Write the scene plan now. Allocate durations first: every scene is ${VIDEO_SCENE
     const plan = parseVideoPlan(res.content, args.brief.lengthSeconds, args.brief.references.length);
     videoLog("plan", "accepted", {
       title: plan.title,
-      scenes: plan.scenes.map((s) => `${s.order}: ${s.title} (${s.durationSeconds} s, refs ${s.referenceIndexes.join(",") || "none"})`),
+      scenes: plan.scenes.map((s) => `${s.order}: ${s.title} (${s.durationSeconds} s, env ${s.environmentId ?? "auto"}, view ${s.productView ?? "auto"}, join ${s.transitionIn?.type ?? "open"}, refs ${s.referenceIndexes.join(",") || "none"})`),
     });
     return plan;
   } catch (e) {

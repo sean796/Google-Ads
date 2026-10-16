@@ -1,84 +1,102 @@
 /**
- * NEO Pulse WP — buttons: high contrast, no borders.
- * Loaded after typography enforce.
+ * NEO Pulse WP — buttons in the Neo Tools style.
+ * Primary: lime pill with ink text. Secondary: ghost pill, lime outline, dark green text. Links: dark green text
+ * (the bright lime is too light for text on the white admin pages).
+ * Loaded after typography enforce; the !important flags win over WP core and older page CSS.
  */
 
 body.neo-pulse-wp-admin-screen #wpbody-content .wp-core-ui .button,
 body.neo-pulse-wp-admin-screen #wpbody-content .button,
 body.neo-pulse-wp-admin-screen #wpbody-content .button-secondary,
 body.neo-pulse-wp-admin-screen #wpbody-content .wp-core-ui .button-secondary,
-.neo-pulse-fields-root .button,
-.neo-pulse-fields-root .button-secondary,
-.neo-pulse-fields-root .wp-core-ui .button {
-	font-family: var(--fc-font, 'Lato', sans-serif) !important;
-	font-size: 1rem !important;
+body.neo-pulse-wp-admin-screen #wpbody-content .page-title-action,
+body.neo-pulse-wp-admin-screen #wpbody-content .wp-core-ui .page-title-action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 36px;
+	padding: 7px 18px;
+	font-family: var(--fc-font, "NPWP Poppins", Poppins, sans-serif) !important;
+	font-size: 13px !important;
 	font-weight: 600;
-	line-height: 1.4;
-	padding: 8px 16px;
-	border: none !important;
-	border-radius: 6px;
+	line-height: 1.3;
+	text-decoration: none;
+	vertical-align: middle;
+	border: 1px solid var(--npwp-lime, #84bd00) !important;
+	border-radius: 999px !important;
 	box-shadow: none !important;
 	outline: none;
-	background: #2c3338 !important;
-	color: #f8fafc !important;
-	-webkit-text-fill-color: #f8fafc !important;
+	background: transparent !important;
+	color: var(--npwp-lime-ink, #3f6b00) !important;
+	-webkit-text-fill-color: var(--npwp-lime-ink, #3f6b00) !important;
+	transition: background-color 0.2s, color 0.2s, border-color 0.2s, transform 0.2s;
 }
 
 body.neo-pulse-wp-admin-screen #wpbody-content .wp-core-ui .button:hover,
-body.neo-pulse-wp-admin-screen #wpbody-content .wp-core-ui .button:focus,
 body.neo-pulse-wp-admin-screen #wpbody-content .button:hover,
-body.neo-pulse-wp-admin-screen #wpbody-content .button:focus,
 body.neo-pulse-wp-admin-screen #wpbody-content .button-secondary:hover,
-body.neo-pulse-wp-admin-screen #wpbody-content .button-secondary:focus,
-.neo-pulse-fields-root .button:hover,
-.neo-pulse-fields-root .button:focus {
-	background: #3c434a !important;
-	color: #ffffff !important;
-	-webkit-text-fill-color: #ffffff !important;
-	border: none !important;
+body.neo-pulse-wp-admin-screen #wpbody-content .page-title-action:hover {
+	background: var(--npwp-lime-tint, rgba(132, 189, 0, 0.12)) !important;
+	color: var(--npwp-lime-ink-hover, #2d4d00) !important;
+	-webkit-text-fill-color: var(--npwp-lime-ink-hover, #2d4d00) !important;
+	border-color: var(--npwp-lime-ink, #3f6b00) !important;
 	box-shadow: none !important;
 }
 
 body.neo-pulse-wp-admin-screen #wpbody-content .wp-core-ui .button-primary,
 body.neo-pulse-wp-admin-screen #wpbody-content .button-primary,
-body.neo-pulse-wp-admin-screen #wpbody-content .neo-pulse-wp-settings__btn,
-.neo-pulse-fields-root .button-primary,
-.neo-pulse-fields-root .wp-core-ui .button-primary {
-	background: #16a34a !important;
-	color: #ffffff !important;
-	-webkit-text-fill-color: #ffffff !important;
-	border: none !important;
+body.neo-pulse-wp-admin-screen #wpbody-content .neo-pulse-wp-settings__btn {
+	padding: 9px 22px;
+	font-size: 14px !important;
+	background: var(--npwp-lime, #84bd00) !important;
+	color: var(--npwp-dark, #02050a) !important;
+	-webkit-text-fill-color: var(--npwp-dark, #02050a) !important;
+	border: 1px solid var(--npwp-lime, #84bd00) !important;
 	box-shadow: none !important;
 }
 
 body.neo-pulse-wp-admin-screen #wpbody-content .wp-core-ui .button-primary:hover,
-body.neo-pulse-wp-admin-screen #wpbody-content .wp-core-ui .button-primary:focus,
 body.neo-pulse-wp-admin-screen #wpbody-content .button-primary:hover,
-body.neo-pulse-wp-admin-screen #wpbody-content .button-primary:focus,
-body.neo-pulse-wp-admin-screen #wpbody-content .neo-pulse-wp-settings__btn:hover,
-body.neo-pulse-wp-admin-screen #wpbody-content .neo-pulse-wp-settings__btn:focus,
-.neo-pulse-fields-root .button-primary:hover,
-.neo-pulse-fields-root .button-primary:focus {
-	background: #15803d !important;
-	color: #ffffff !important;
-	-webkit-text-fill-color: #ffffff !important;
-	border: none !important;
+body.neo-pulse-wp-admin-screen #wpbody-content .neo-pulse-wp-settings__btn:hover {
+	background: var(--npwp-lime-hover, #97d400) !important;
+	border-color: var(--npwp-lime-hover, #97d400) !important;
+	color: var(--npwp-dark, #02050a) !important;
+	-webkit-text-fill-color: var(--npwp-dark, #02050a) !important;
+	transform: translateY(-1px);
+}
+
+body.neo-pulse-wp-admin-screen #wpbody-content .button:focus-visible,
+body.neo-pulse-wp-admin-screen #wpbody-content .button-primary:focus-visible,
+body.neo-pulse-wp-admin-screen #wpbody-content .page-title-action:focus-visible,
+body.neo-pulse-wp-admin-screen #wpbody-content .button-link:focus-visible {
+	outline: 2px solid var(--npwp-lime, #84bd00) !important;
+	outline-offset: 3px;
 	box-shadow: none !important;
 }
 
+body.neo-pulse-wp-admin-screen #wpbody-content .button[disabled],
+body.neo-pulse-wp-admin-screen #wpbody-content .button:disabled,
+body.neo-pulse-wp-admin-screen #wpbody-content .button.disabled,
 body.neo-pulse-wp-admin-screen #wpbody-content .button-primary[disabled],
 body.neo-pulse-wp-admin-screen #wpbody-content .wp-core-ui .button-primary[disabled],
 body.neo-pulse-wp-admin-screen #wpbody-content .neo-pulse-wp-settings__btn[disabled] {
 	opacity: 0.55;
-	color: #ffffff !important;
-	-webkit-text-fill-color: #ffffff !important;
+	cursor: not-allowed;
+	transform: none;
+}
+
+body.neo-pulse-wp-admin-screen #wpbody-content .button-small,
+body.neo-pulse-wp-admin-screen #wpbody-content .wp-core-ui .button-small {
+	min-height: 30px;
+	padding: 4px 14px;
+	font-size: 12px !important;
 }
 
 body.neo-pulse-wp-admin-screen #wpbody-content .button-link,
 body.neo-pulse-wp-admin-screen #wpbody-content .button-link-delete,
 body.neo-pulse-wp-admin-screen #wpbody-content .wp-core-ui .button-link {
 	background: transparent !important;
-	color: var(--fc-link, #72aee6) !important;
+	color: var(--npwp-lime-ink, #3f6b00) !important;
 	-webkit-text-fill-color: currentColor !important;
 	border: none !important;
 	box-shadow: none !important;
@@ -87,15 +105,24 @@ body.neo-pulse-wp-admin-screen #wpbody-content .wp-core-ui .button-link {
 }
 
 body.neo-pulse-wp-admin-screen #wpbody-content .button-link:hover,
-body.neo-pulse-wp-admin-screen #wpbody-content .button-link:focus,
-body.neo-pulse-wp-admin-screen #wpbody-content .button-link-delete:hover,
-body.neo-pulse-wp-admin-screen #wpbody-content .button-link-delete:focus {
-	color: var(--fc-link-hover, #9ecaff) !important;
+body.neo-pulse-wp-admin-screen #wpbody-content .button-link:focus {
+	color: var(--npwp-lime-ink-hover, #2d4d00) !important;
 	-webkit-text-fill-color: currentColor !important;
 }
 
-body.neo-pulse-wp-admin-screen #wpbody-content .page-title-action,
-body.neo-pulse-wp-admin-screen #wpbody-content .wp-core-ui .page-title-action {
-	border: none !important;
-	box-shadow: none !important;
+body.neo-pulse-wp-admin-screen #wpbody-content .button-link-delete,
+body.neo-pulse-wp-admin-screen #wpbody-content .button-link-delete:hover,
+body.neo-pulse-wp-admin-screen #wpbody-content .button-link-delete:focus {
+	color: var(--npwp-error-ink, #b42318) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	body.neo-pulse-wp-admin-screen #wpbody-content .button,
+	body.neo-pulse-wp-admin-screen #wpbody-content .button-primary {
+		transition: none;
+	}
+
+	body.neo-pulse-wp-admin-screen #wpbody-content .button-primary:hover {
+		transform: none;
+	}
 }

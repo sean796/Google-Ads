@@ -1,6 +1,7 @@
 import { summarizeContentWithAI, type SummarizationOptions } from "../content-summarizer";
 import type { WikipediaChunk, WikipediaFetchOptions } from "./types";
 import { getMediaWikiApiUrlWithQuery } from "./mediawiki-api-url";
+import { resolveModelForAgentCategory } from "@/lib/openrouter-agent-category-api";
 
 const EXCLUDED_SECTIONS = [
   "References",
@@ -81,7 +82,7 @@ async function processWikipediaExtract(
           try {
             const summarizationOptions: SummarizationOptions = {
               apiKey: options.openRouterApiKey,
-              model: "google/gemini-2.5-flash-lite",
+              model: resolveModelForAgentCategory("research"),
               temperature: 0.7,
               maxTokens: 4000,
               topP: 0.9,
@@ -139,7 +140,7 @@ async function processWikipediaExtract(
         try {
           const summarizationOptions: SummarizationOptions = {
             apiKey: options.openRouterApiKey,
-            model: "google/gemini-2.5-flash-lite",
+            model: resolveModelForAgentCategory("research"),
             temperature: 0.7,
             maxTokens: 4000,
             topP: 0.9,
@@ -178,7 +179,7 @@ async function processWikipediaExtract(
           try {
             const summarizationOptions: SummarizationOptions = {
               apiKey: options.openRouterApiKey,
-              model: "google/gemini-2.5-flash-lite",
+              model: resolveModelForAgentCategory("research"),
               temperature: 0.7,
               maxTokens: 4000,
               topP: 0.9,

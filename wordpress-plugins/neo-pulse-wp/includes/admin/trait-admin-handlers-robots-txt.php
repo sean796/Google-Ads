@@ -51,7 +51,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Robots_Txt {
 	}
 
 	private static function redirect_to_robots_txt(): void {
-		wp_safe_redirect( admin_url( 'admin.php?page=neo-pulse-wp-robots-txt' ) );
-		exit;
+		self::redirect_to_page( 'neo-pulse-wp-robots-txt' );
 	}
 }

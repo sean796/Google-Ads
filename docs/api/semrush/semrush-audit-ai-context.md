@@ -5,7 +5,7 @@ section: Semrush
 method: POST
 path: /api/semrush/audit-ai-context
 auth: open
-order: 950
+order: 960
 ---
 
 POST `/api/semrush/audit-ai-context`.

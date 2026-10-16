@@ -1,98 +1,98 @@
 /* Search admin panel — demo + shortcode helpers on shared panel styles. */
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-demo {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-demo {
 	margin: 0 0 24px;
 	padding: 16px 18px;
-	background: #121212;
+	background: var(--npwp-panel, #0a1119);
 	border: none;
-	border-radius: 0;
+	border-radius: 10px;
 	box-shadow: none;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-demo__label {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-demo__label {
 	margin: 0 0 12px;
-	color: #a3a3a3;
+	color: var(--npwp-muted, #9aa4ae);
 	font-size: 1rem;
 	font-weight: 600;
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-shortcode-box {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-shortcode-box {
 	display: flex;
 	gap: 8px;
 	align-items: stretch;
 	width: 100%;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-shortcode-box .neo-pulse-field {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-shortcode-box .neo-pulse-field {
 	flex: 1 1 auto;
 	min-width: 0;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-shortcode-box .neo-pulse-field__control {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-shortcode-box .neo-pulse-field__control {
 	font-family: Consolas, Monaco, 'Courier New', monospace;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-search-fieldset {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-search-fieldset {
 	border: none;
 	margin: 0;
 	padding: 12px 14px;
 	min-width: 0;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-search-post-type-toggle {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-search-post-type-toggle {
 	display: flex;
 	margin-bottom: 6px;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-search-post-type-toggle code {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-search-post-type-toggle code {
 	font-size: 0.6875rem;
 	color: var(--fs-muted);
 	background: transparent;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-search-info-section p,
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-search-info-section ol {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-search-info-section p,
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-search-info-section ol {
 	margin: 0;
 	line-height: 1.7;
 	color: var(--fs-text);
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-search-info-section ol {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-search-info-section ol {
 	margin-top: 12px;
 	padding-left: 20px;
 }
 
 /* Live demo: admin link styles must not override search result tokens */
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-demo .neo-pulse-search-wrap a.fbs__result {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-demo .neo-pulse-search-wrap a.fbs__result {
 	color: var(--fbs-text) !important;
 	-webkit-text-fill-color: var(--fbs-text) !important;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-demo .neo-pulse-search-wrap a.fbs__result:hover,
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-demo .neo-pulse-search-wrap a.fbs__result:focus {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-demo .neo-pulse-search-wrap a.fbs__result:hover,
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-demo .neo-pulse-search-wrap a.fbs__result:focus {
 	color: var(--fbs-text) !important;
 	-webkit-text-fill-color: var(--fbs-text) !important;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-demo .neo-pulse-search-wrap .fbs__result-title {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-demo .neo-pulse-search-wrap .fbs__result-title {
 	color: var(--fbs-text) !important;
 	-webkit-text-fill-color: var(--fbs-text) !important;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-demo .neo-pulse-search-wrap .fbs__result-excerpt {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-demo .neo-pulse-search-wrap .fbs__result-excerpt {
 	color: var(--fbs-text-muted) !important;
 	-webkit-text-fill-color: var(--fbs-text-muted) !important;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-demo .neo-pulse-search-wrap .fbs__result-meta {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-demo .neo-pulse-search-wrap .fbs__result-meta {
 	color: var(--fbs-primary) !important;
 	-webkit-text-fill-color: var(--fbs-primary) !important;
 }
 
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-demo .neo-pulse-search-wrap a.fbs__dropdown-footer,
-:is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-demo .neo-pulse-search-wrap a.fbs__dropdown-footer strong {
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-demo .neo-pulse-search-wrap a.fbs__dropdown-footer,
+:is(.neo-pulse-wp-sitemap, .neo-pulse-wp-chat, .neo-pulse-wp-search) .neo-pulse-wp-search-demo .neo-pulse-search-wrap a.fbs__dropdown-footer strong {
 	color: var(--fbs-powered, var(--fbs-text-muted)) !important;
 	-webkit-text-fill-color: var(--fbs-powered, var(--fbs-text-muted)) !important;
 }

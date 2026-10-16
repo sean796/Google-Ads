@@ -5,7 +5,7 @@ section: Semrush
 method: POST
 path: /api/semrush/position-tracking-compare
 auth: open
-order: 1020
+order: 1030
 ---
 
 POST `/api/semrush/position-tracking-compare`.

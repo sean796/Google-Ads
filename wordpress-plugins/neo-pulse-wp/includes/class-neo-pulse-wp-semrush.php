@@ -153,21 +153,6 @@ class Neo_Pulse_Wp_Semrush {
 	}
 
 	/**
-	 * @return array<string,mixed>
-	 */
-	public static function fetch_overview_enrichment( string $page_url, string $seed_keyword, string $database = 'us' ): array {
-		$result = self::fetch_bulk_enrichment(
-			array(
-				'pageUrl'      => $page_url,
-				'seedKeyword'  => $seed_keyword,
-				'database'     => $database,
-			)
-		);
-		unset( $result['skipped'], $result['reason'], $result['keywordOverview'] );
-		return $result;
-	}
-
-	/**
 	 * Phrase-related keywords for an outline seed. Empty when the key or report is missing.
 	 *
 	 * @return array<int, string>

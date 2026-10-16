@@ -320,7 +320,11 @@ describe("buildOrganicDashboardViewModel", () => {
           { month: "2025-10", organicTraffic: 10 },
           { month: "2025-11", organicTraffic: 12 },
         ],
-        topKeywords: [{ phrase: "calgary blinds", volume: 500, traffic: 3, position: 4.2 }],
+        topKeywords: [
+          { phrase: "calgary blinds", volume: 500, traffic: 3, position: 4.2 },
+          { phrase: "how to clean blinds properly", volume: 1200, traffic: 8, position: 2.0 },
+          { phrase: "How to clean blinds properly", volume: 1200, traffic: 2, position: 6.0 },
+        ],
       },
       sources: { ga4: "skipped", gsc: "skipped", semrush: "ok" },
     };
@@ -331,7 +335,10 @@ describe("buildOrganicDashboardViewModel", () => {
     expect(vm.semrushTrend).toHaveLength(2);
     expect(vm.semrushTrend[0]?.label).toBe("2025-10");
     expect(vm.semrushTrend[1]?.semrushTraffic).toBe(12);
+    expect(vm.semrushKeywords).toHaveLength(2);
     expect(vm.semrushKeywords[0]?.phrase).toBe("calgary blinds");
+    expect(vm.semrushKeywords[1]?.phrase).toBe("how to clean blinds properly");
+    expect(vm.semrushKeywords[1]?.traffic).toBe("8");
     expect(vm.semrushOverviewUrl).toContain("example.ca");
   });
 });

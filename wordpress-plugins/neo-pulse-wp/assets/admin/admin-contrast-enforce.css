@@ -1,17 +1,18 @@
 /**
  * NEO Pulse WP — final contrast enforcement on all admin screens.
- * Loaded last; fixes WP core leaks (dark text on dark surfaces).
+ * Loaded last; keeps WP core text and fields readable on the light Neo Pulse screens.
  */
 
 body.neo-pulse-wp-admin-screen #wpbody-content {
-	color: var(--fc-on-dark-text, #ffffff);
+	color: var(--npwp-text, #02050a);
 }
 
-body.neo-pulse-wp-admin-screen #wpbody-content :where(
+/* Zero specificity: a fallback only, so component colours (muted text, lime badges) still apply. */
+:where(body.neo-pulse-wp-admin-screen #wpbody-content) :where(
 	p, span, li, td, th, label, dt, dd, figcaption, small, strong, em,
 	.description, .form-table, .subsubsub, .tablenav, .row-actions,
 	.search-box, .displaying-num, .notice p
-):not(.dashicons):not(.screen-reader-text) {
+):where(:not(.dashicons):not(.screen-reader-text)) {
 	color: inherit;
 }
 
@@ -19,15 +20,15 @@ body.neo-pulse-wp-admin-screen #wpbody-content :where(
 body.neo-pulse-wp-admin-screen #wpbody-content .tablenav .actions select,
 body.neo-pulse-wp-admin-screen #wpbody-content .tablenav.top select,
 body.neo-pulse-wp-admin-screen #wpbody-content .tablenav.bottom select {
-	background: var(--fc-input-bg, #141619) !important;
-	color: var(--fc-on-dark-text, #ffffff) !important;
-	-webkit-text-fill-color: var(--fc-on-dark-text, #ffffff) !important;
+	background: var(--fc-input-bg, #f6f8fa) !important;
+	color: var(--npwp-text, #02050a) !important;
+	-webkit-text-fill-color: var(--npwp-text, #02050a) !important;
 	border: none !important;
 }
 
 body.neo-pulse-wp-admin-screen #wpbody-content select option {
-	background: var(--fc-input-bg, #141619) !important;
-	color: var(--fc-on-dark-text, #ffffff) !important;
+	background: var(--fc-input-bg, #f6f8fa) !important;
+	color: var(--npwp-text, #02050a) !important;
 }
 
 /* Dark-surface inputs without explicit light field styling */
@@ -41,61 +42,55 @@ body.neo-pulse-wp-admin-screen #wpbody-content :where(
 	textarea,
 	select
 ):not([class*="neo-pulse"]):not(.neo-pulse-image-seo-inline-field):not(.neo-pulse-image-seo-input):not(.fcw-textarea) {
-	background: var(--fc-input-bg, #141619) !important;
-	color: var(--fc-on-dark-text, #ffffff) !important;
-	-webkit-text-fill-color: var(--fc-on-dark-text, #ffffff) !important;
+	background: var(--fc-input-bg, #f6f8fa) !important;
+	color: var(--npwp-text, #02050a) !important;
+	-webkit-text-fill-color: var(--npwp-text, #02050a) !important;
 }
 
 body.neo-pulse-wp-admin-screen #wpbody-content input::placeholder,
 body.neo-pulse-wp-admin-screen #wpbody-content textarea:not(.fcw-textarea)::placeholder {
-	color: var(--fc-on-dark-placeholder, #9ca3af) !important;
-	-webkit-text-fill-color: var(--fc-on-dark-placeholder, #9ca3af) !important;
+	color: #8a95a3 !important;
+	-webkit-text-fill-color: #8a95a3 !important;
 	opacity: 1 !important;
 }
 
 body.neo-pulse-wp-admin-screen #wpbody-content .form-table th,
 body.neo-pulse-wp-admin-screen #wpbody-content .form-table th label {
-	color: var(--fc-on-dark-muted, #e5e7eb) !important;
+	color: var(--npwp-muted, #5f6b78) !important;
 }
 
 body.neo-pulse-wp-admin-screen #wpbody-content .form-table td,
 body.neo-pulse-wp-admin-screen #wpbody-content .form-table td label {
-	color: var(--fc-on-dark-text, #ffffff) !important;
-}
-
-body.neo-pulse-wp-admin-screen #wpfooter,
-body.neo-pulse-wp-admin-screen #wpfooter p,
-body.neo-pulse-wp-admin-screen #wpfooter span {
-	color: var(--fc-on-dark-muted, #e5e7eb) !important;
+	color: var(--npwp-text, #02050a) !important;
 }
 
 body.neo-pulse-wp-admin-screen .wp-list-table thead th,
 body.neo-pulse-wp-admin-screen .wp-list-table tfoot th {
-	color: var(--fc-on-dark-text, #ffffff) !important;
+	color: var(--npwp-text, #02050a) !important;
 }
 
 body.neo-pulse-wp-admin-screen .wp-list-table tbody td,
 body.neo-pulse-wp-admin-screen .wp-list-table tbody th {
-	color: var(--fc-on-dark-text, #ffffff) !important;
+	color: var(--npwp-text, #02050a) !important;
 }
 
 body.neo-pulse-wp-admin-screen .tablenav .displaying-num {
-	color: var(--fc-on-dark-muted, #e5e7eb) !important;
+	color: var(--npwp-muted, #5f6b78) !important;
 }
 
-/* Image SEO status pills — dark surface + tinted text (not white on pastel) */
+/* Image SEO status pills — light tint + dark tinted text */
 body.neo-pulse-wp-admin-screen #wpbody-content .neo-pulse-image-seo-badge--warn {
 	background: rgba(251, 146, 60, 0.18) !important;
 	border: 1px solid rgba(251, 146, 60, 0.35) !important;
-	color: #fdba74 !important;
-	-webkit-text-fill-color: #fdba74 !important;
+	color: #9a4b00 !important;
+	-webkit-text-fill-color: #9a4b00 !important;
 }
 
 body.neo-pulse-wp-admin-screen #wpbody-content .neo-pulse-image-seo-badge--ok {
 	background: rgba(34, 197, 94, 0.22) !important;
 	border: 1px solid rgba(34, 197, 94, 0.35) !important;
-	color: #86efac !important;
-	-webkit-text-fill-color: #86efac !important;
+	color: #166534 !important;
+	-webkit-text-fill-color: #166534 !important;
 }
 
 /* Light-field inputs: always pair dark text with light background (not Site Schema) */
@@ -118,37 +113,12 @@ body.neo-pulse-wp-admin-screen #wpbody-content :where(
 	-webkit-text-fill-color: var(--fc-field-text, #1d2327) !important;
 }
 
-body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-site-schema, .neo-pulse-wp-sitemap, .neo-pulse-wp-speed, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) :where(
+body.neo-pulse-wp-admin-screen #wpbody-content :is(.neo-pulse-wp-sitemap, .neo-pulse-wp-chat, .neo-pulse-wp-search, .neo-pulse-wp-settings, .neo-pulse-wp-analytics) :where(
 	[class*="neo-pulse"][class*="field"] input,
 	[class*="neo-pulse"][class*="field"] textarea,
 	[class*="neo-pulse"][class*="field"] select
 ) {
-	background-color: transparent !important;
-	color: #ffffff !important;
-	-webkit-text-fill-color: #ffffff !important;
-}
-
-body.neo-pulse-wp-admin-screen #wpbody-content .neo-pulse-wp-dashboard__reorder-input {
-	background: var(--fc-field-bg, #f6f7f7) !important;
-	color: var(--fc-field-text, #1d2327) !important;
-	-webkit-text-fill-color: var(--fc-field-text, #1d2327) !important;
-}
-
-/* Agent Hub — match Script Manager input tokens (not pure black/white) */
-body.neo-pulse-wp-admin-screen .neo-pulse-wp-agent-hub input,
-body.neo-pulse-wp-admin-screen .neo-pulse-wp-agent-hub textarea,
-body.neo-pulse-wp-admin-screen .neo-pulse-wp-agent-hub select {
-	background: var(--fc-input-bg) !important;
-	color: var(--fc-text) !important;
-	-webkit-text-fill-color: var(--fc-text) !important;
-}
-
-/* Agent Hub builder modal lives on body — force white chrome text on dark surfaces */
-body.neo-pulse-wp-admin-screen .neo-pulse-agent-hub-modal #neo-pulse-agent-hub-modal-title,
-body.neo-pulse-wp-admin-screen .neo-pulse-agent-hub-modal .neo-pulse-agent-hub-modal__header h2,
-body.neo-pulse-wp-admin-screen .neo-pulse-agent-hub-modal .neo-pulse-builder-main label,
-body.neo-pulse-wp-admin-screen .neo-pulse-agent-hub-modal .neo-pulse-builder-group__title {
-	color: #ffffff !important;
-	-webkit-text-fill-color: #ffffff !important;
-	opacity: 1 !important;
+	background-color: var(--npwp-field, #f6f8fa) !important;
+	color: var(--npwp-text, #02050a) !important;
+	-webkit-text-fill-color: var(--npwp-text, #02050a) !important;
 }

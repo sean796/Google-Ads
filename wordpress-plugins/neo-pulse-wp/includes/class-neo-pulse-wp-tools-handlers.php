@@ -10,6 +10,23 @@ defined( 'ABSPATH' ) || exit;
 class Neo_Pulse_Wp_Tools_Handlers {
 
 	/**
+	 * Build an internal REST request whose params are readable via get_json_params()
+	 * (JSON body + Content-Type header) and via get_param() (body params).
+	 *
+	 * @param string               $method HTTP method.
+	 * @param string               $route  Route.
+	 * @param array<string, mixed> $params Body params.
+	 * @return WP_REST_Request
+	 */
+	private static function json_request( string $method, string $route, array $params ): WP_REST_Request {
+		$req = new WP_REST_Request( $method, $route );
+		$req->set_header( 'Content-Type', 'application/json' );
+		$req->set_body( (string) wp_json_encode( $params ) );
+		$req->set_body_params( $params );
+		return $req;
+	}
+
+	/**
 	 * @param array<string, mixed> $params Params.
 	 * @return array<string, mixed>
 	 */
@@ -18,64 +35,6 @@ class Neo_Pulse_Wp_Tools_Handlers {
 			'ok'      => true,
 			'name'    => 'NEO Pulse WP',
 			'version' => NEO_PULSE_WP_VERSION,
-		);
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params (zip_url, confirm).
-	 * @return array<string, mixed>|WP_Error
-	 */
-	public static function wp_plugin_upgrade_from_zip_url( array $params ) {
-		if ( empty( $params['confirm'] ) ) {
-			return new WP_Error(
-				'neo-pulse_confirm_required',
-				__( 'params.confirm must be true to upgrade the plugin from a zip URL.', 'neo-pulse-wp' ),
-				array( 'status' => 400 )
-			);
-		}
-
-		$zip_url = isset( $params['zip_url'] ) ? esc_url_raw( (string) $params['zip_url'] ) : '';
-		if ( $zip_url === '' || ! wp_http_validate_url( $zip_url ) ) {
-			return new WP_Error(
-				'neo-pulse_tools',
-				__( 'A valid params.zip_url is required.', 'neo-pulse-wp' ),
-				array( 'status' => 400 )
-			);
-		}
-
-		require_once ABSPATH . 'wp-admin/includes/file.php';
-		require_once ABSPATH . 'wp-admin/includes/plugin.php';
-		require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
-
-		$tmp = download_url( $zip_url, 300 );
-		if ( is_wp_error( $tmp ) ) {
-			return $tmp;
-		}
-
-		$skin     = new Automatic_Upgrader_Skin();
-		$upgrader = new Plugin_Upgrader( $skin );
-		$result   = $upgrader->install( $tmp, array( 'overwrite_package' => true ) );
-		@unlink( $tmp );
-
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-		if ( ! $result ) {
-			return new WP_Error(
-				'neo-pulse_plugin_upgrade_failed',
-				__( 'Plugin upgrade from zip failed.', 'neo-pulse-wp' ),
-				array( 'status' => 500 )
-			);
-		}
-
-		if ( class_exists( 'Neo_Pulse_Wp_Activation', false ) ) {
-			Neo_Pulse_Wp_Activation::on_activate();
-		}
-
-		return array(
-			'ok'      => true,
-			'version' => defined( 'NEO_PULSE_WP_VERSION' ) ? NEO_PULSE_WP_VERSION : '',
-			'zip_url' => $zip_url,
 		);
 	}
 
@@ -112,7 +71,8 @@ class Neo_Pulse_Wp_Tools_Handlers {
 	 * @return array<string, mixed>
 	 */
 	public static function wp_site_index( array $params ): array {
-		$include_drafts = ! empty( $params['include_drafts'] );
+		// Drafts/private items in the index belong to all authors: editors only.
+		$include_drafts = ! empty( $params['include_drafts'] ) && current_user_can( 'edit_others_posts' );
 		$limit          = isset( $params['limit'] ) ? max( 1, min( 500, (int) $params['limit'] ) ) : 500;
 		$index          = Neo_Pulse_Wp_Chat_Rag::get_agent_site_index( $include_drafts );
 		return array( 'ok' => true, 'count' => count( $index ), 'items' => array_slice( $index, 0, $limit ) );
@@ -254,7 +214,17 @@ class Neo_Pulse_Wp_Tools_Handlers {
 			$update['post_title'] = sanitize_text_field( (string) $params['title'] );
 		}
 		if ( isset( $params['status'] ) ) {
-			$update['post_status'] = sanitize_key( (string) $params['status'] );
+			$status = sanitize_key( (string) $params['status'] );
+			if ( ! in_array( $status, array( 'draft', 'pending', 'publish', 'private', 'future' ), true ) ) {
+				return new WP_Error( 'neo-pulse_tools', __( 'Unsupported status.', 'neo-pulse-wp' ), array( 'status' => 400 ) );
+			}
+			if ( in_array( $status, array( 'publish', 'private', 'future' ), true ) ) {
+				$type_obj = get_post_type_object( (string) get_post_type( $post_id ) );
+				if ( ! $type_obj || ! current_user_can( $type_obj->cap->publish_posts ) ) {
+					return new WP_Error( 'rest_forbidden', __( 'You do not have permission to publish this content.', 'neo-pulse-wp' ), array( 'status' => 403 ) );
+				}
+			}
+			$update['post_status'] = $status;
 		}
 		if ( isset( $params['excerpt'] ) ) {
 			$update['post_excerpt'] = sanitize_textarea_field( (string) $params['excerpt'] );
@@ -352,98 +322,13 @@ class Neo_Pulse_Wp_Tools_Handlers {
 				}
 			}
 		}
+		if ( $post_id > 0 && get_post_status( $post_id ) !== 'publish' && ! current_user_can( 'edit_post', $post_id ) ) {
+			$post_id = 0;
+		}
 		if ( $post_id < 1 ) {
 			return new WP_Error( 'neo-pulse_tools', __( 'No post found for URL.', 'neo-pulse-wp' ), array( 'status' => 404 ) );
 		}
 		return array( 'ok' => true, 'post_id' => $post_id, 'url' => get_permalink( $post_id ) );
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>
-	 */
-	public static function wp_fields_list_groups( array $params ): array {
-		$groups = Neo_Pulse_Wp_Fields_Storage::get_all_groups( false );
-		$out    = array();
-		foreach ( $groups as $g ) {
-			$out[] = array(
-				'key'   => $g['key'] ?? '',
-				'title' => $g['title'] ?? '',
-			);
-		}
-		return array( 'ok' => true, 'groups' => $out );
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>|WP_Error
-	 */
-	public static function wp_fields_get( array $params ) {
-		$post_id = isset( $params['post_id'] ) ? (int) $params['post_id'] : 0;
-		if ( $post_id < 1 ) {
-			return new WP_Error( 'neo-pulse_tools', __( 'post_id is required.', 'neo-pulse-wp' ), array( 'status' => 400 ) );
-		}
-		if ( ! empty( $params['field'] ) ) {
-			$val = Neo_Pulse_Wp_Fields_Api::get_field( sanitize_key( (string) $params['field'] ), $post_id );
-			return array( 'ok' => true, 'field' => $params['field'], 'value' => $val );
-		}
-		return array( 'ok' => true, 'fields' => Neo_Pulse_Wp_Fields_Api::get_fields( $post_id ) );
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>|WP_Error
-	 */
-	public static function wp_fields_update( array $params ) {
-		$post_id = isset( $params['post_id'] ) ? (int) $params['post_id'] : 0;
-		$field   = isset( $params['field'] ) ? sanitize_key( (string) $params['field'] ) : '';
-		if ( $post_id < 1 || $field === '' ) {
-			return new WP_Error( 'neo-pulse_tools', __( 'post_id and field are required.', 'neo-pulse-wp' ), array( 'status' => 400 ) );
-		}
-		$value = isset( $params['value'] ) ? $params['value'] : '';
-		$ok    = Neo_Pulse_Wp_Fields_Api::update_field( $field, $value, $post_id );
-		return array( 'ok' => (bool) $ok, 'post_id' => $post_id, 'field' => $field );
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>|WP_Error
-	 */
-	public static function wp_fields_get_object( array $params ) {
-		$post_id = isset( $params['post_id'] ) ? (int) $params['post_id'] : 0;
-		$field   = isset( $params['field'] ) ? sanitize_key( (string) $params['field'] ) : '';
-		if ( $field === '' ) {
-			return new WP_Error( 'neo-pulse_tools', __( 'field is required.', 'neo-pulse-wp' ), array( 'status' => 400 ) );
-		}
-		$obj = Neo_Pulse_Wp_Fields_Api::get_field_object( $field, $post_id );
-		return array( 'ok' => true, 'object' => $obj );
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>
-	 */
-	public static function wp_fields_export_json( array $params ): array {
-		$keys = isset( $params['keys'] ) && is_array( $params['keys'] ) ? array_map( 'sanitize_key', $params['keys'] ) : array();
-		$json = Neo_Pulse_Wp_Fields_Import_Export::export_json_string( $keys );
-		return array( 'ok' => true, 'json' => $json );
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>
-	 */
-	public static function wp_fields_import_json( array $params ): array {
-		$json = '';
-		if ( ! empty( $params['json'] ) && is_string( $params['json'] ) ) {
-			$json = $params['json'];
-		} elseif ( ! empty( $params['file_path'] ) && is_string( $params['file_path'] ) && is_readable( $params['file_path'] ) ) {
-			$contents = file_get_contents( $params['file_path'] );
-			$json     = is_string( $contents ) ? $contents : '';
-		}
-		$delete_missing = ! empty( $params['delete_missing'] );
-		$result         = Neo_Pulse_Wp_Fields_Import_Export::import_json_string( $json, $delete_missing );
-		return array_merge( array( 'ok' => ! empty( $result['success'] ) ), $result );
 	}
 
 	/**
@@ -676,8 +561,7 @@ class Neo_Pulse_Wp_Tools_Handlers {
 	 * @return array<string, mixed>|WP_Error
 	 */
 	public static function wp_body_section_preview( array $params ) {
-		$req = new WP_REST_Request( 'POST', '/neo-pulse/v1/ai/body/section/preview' );
-		$req->set_body_params( $params );
+		$req = self::json_request( 'POST', '/neo-pulse/v1/ai/body/section/preview', $params );
 		$res = Neo_Pulse_Wp_Ai_Body_Rest::section_preview( $req );
 		return $res->get_data();
 	}
@@ -689,8 +573,7 @@ class Neo_Pulse_Wp_Tools_Handlers {
 	public static function wp_body_section_apply( array $params ) {
 		$post_id = (int) ( $params['post_id'] ?? 0 );
 		self::maybe_snapshot_revision( $post_id );
-		$req = new WP_REST_Request( 'POST', '/neo-pulse/v1/ai/body/section/apply' );
-		$req->set_body_params( $params );
+		$req = self::json_request( 'POST', '/neo-pulse/v1/ai/body/section/apply', $params );
 		$res = Neo_Pulse_Wp_Ai_Body_Rest::section_apply( $req );
 		return $res->get_data();
 	}
@@ -700,8 +583,7 @@ class Neo_Pulse_Wp_Tools_Handlers {
 	 * @return array<string, mixed>|WP_Error
 	 */
 	public static function wp_body_suggest_link( array $params ) {
-		$req = new WP_REST_Request( 'POST', '/neo-pulse/v1/ai/body/suggest-link' );
-		$req->set_body_params( $params );
+		$req = self::json_request( 'POST', '/neo-pulse/v1/ai/body/suggest-link', $params );
 		$res = Neo_Pulse_Wp_Ai_Body_Rest::suggest_link( $req );
 		return $res->get_data();
 	}
@@ -711,8 +593,7 @@ class Neo_Pulse_Wp_Tools_Handlers {
 	 * @return array<string, mixed>|WP_Error
 	 */
 	public static function wp_body_insert_element( array $params ) {
-		$req = new WP_REST_Request( 'POST', '/neo-pulse/v1/ai/body/insert-element' );
-		$req->set_body_params( $params );
+		$req = self::json_request( 'POST', '/neo-pulse/v1/ai/body/insert-element', $params );
 		$res = Neo_Pulse_Wp_Ai_Body_Rest::insert_element( $req );
 		return $res->get_data();
 	}
@@ -797,8 +678,7 @@ class Neo_Pulse_Wp_Tools_Handlers {
 	 * @return array<string, mixed>|WP_Error
 	 */
 	public static function wp_image_seo_bulk( array $params ) {
-		$req = new WP_REST_Request( 'POST', '/neo-pulse/v1/image-seo/bulk' );
-		$req->set_body_params( $params );
+		$req = self::json_request( 'POST', '/neo-pulse/v1/image-seo/bulk', $params );
 		$res = Neo_Pulse_Wp_Image_Seo_Rest::bulk( $req );
 		return $res->get_data();
 	}
@@ -816,8 +696,7 @@ class Neo_Pulse_Wp_Tools_Handlers {
 	 * @return array<string, mixed>|WP_Error
 	 */
 	public static function wp_sitemap_put( array $params ) {
-		$req = new WP_REST_Request( 'PUT', '/neo-pulse/v1/sitemap' );
-		$req->set_body_params( array( 'config' => $params['config'] ?? $params ) );
+		$req = self::json_request( 'PUT', '/neo-pulse/v1/sitemap', array( 'config' => $params['config'] ?? $params ) );
 		$res = Neo_Pulse_Wp_Sitemap::rest_put( $req );
 		if ( is_wp_error( $res ) ) {
 			return $res;
@@ -831,64 +710,6 @@ class Neo_Pulse_Wp_Tools_Handlers {
 	 */
 	public static function wp_sitemap_flush( array $params ): array {
 		return Neo_Pulse_Wp_Sitemap::rest_flush( new WP_REST_Request( 'POST', '/neo-pulse/v1/sitemap/flush' ) )->get_data();
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>
-	 */
-	public static function wp_speed_status( array $params ): array {
-		unset( $params );
-		return Neo_Pulse_Wp_Speed::tool_status_payload();
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>
-	 */
-	public static function wp_speed_flush( array $params ): array {
-		unset( $params );
-		return Neo_Pulse_Wp_Speed::tool_flush_payload();
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>
-	 */
-	public static function wp_speed_image_status( array $params ): array {
-		unset( $params );
-		return Neo_Pulse_Wp_Speed_Image_Rest::rest_status( new WP_REST_Request( 'GET', '/neo-pulse/v1/speed/images/status' ) )->get_data();
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>|WP_Error
-	 */
-	public static function wp_speed_image_batch( array $params ) {
-		$req = new WP_REST_Request( 'POST', '/neo-pulse/v1/speed/images/batch' );
-		foreach ( array( 'page', 'per_page', 'force' ) as $key ) {
-			if ( isset( $params[ $key ] ) ) {
-				$req->set_param( $key, $params[ $key ] );
-			}
-		}
-		$response = Neo_Pulse_Wp_Speed_Image_Rest::rest_batch( $req );
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
-		return $response->get_data();
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>
-	 */
-	public static function wp_speed_image_flush_meta( array $params ): array {
-		unset( $params );
-		Neo_Pulse_Wp_Speed_Image_Optimizer::flush_all_meta();
-		return array(
-			'ok'      => true,
-			'message' => __( 'Image optimization metadata cleared.', 'neo-pulse-wp' ),
-		);
 	}
 
 	/**
@@ -925,8 +746,7 @@ class Neo_Pulse_Wp_Tools_Handlers {
 	 * @return array<string, mixed>
 	 */
 	public static function wp_redirects_create( array $params ): array {
-		$req = new WP_REST_Request( 'POST', '/neo-pulse/v1/redirects' );
-		$req->set_body_params( $params );
+		$req = self::json_request( 'POST', '/neo-pulse/v1/redirects', $params );
 		return Neo_Pulse_Wp_Redirects_Rest::create_redirect( $req )->get_data();
 	}
 
@@ -936,9 +756,8 @@ class Neo_Pulse_Wp_Tools_Handlers {
 	 */
 	public static function wp_redirects_update( array $params ): array {
 		$id  = (int) ( $params['id'] ?? 0 );
-		$req = new WP_REST_Request( 'PUT', '/neo-pulse/v1/redirects/' . $id );
+		$req = self::json_request( 'PUT', '/neo-pulse/v1/redirects/' . $id, $params );
 		$req->set_param( 'id', $id );
-		$req->set_body_params( $params );
 		return Neo_Pulse_Wp_Redirects_Rest::update_redirect( $req )->get_data();
 	}
 
@@ -988,8 +807,7 @@ class Neo_Pulse_Wp_Tools_Handlers {
 	 * @return array<string, mixed>
 	 */
 	public static function wp_scripts_create( array $params ): array {
-		$req = new WP_REST_Request( 'POST', '/neo-pulse/v1/scripts' );
-		$req->set_body_params( $params );
+		$req = self::json_request( 'POST', '/neo-pulse/v1/scripts', $params );
 		return Neo_Pulse_Wp_Script_Manager_Rest::create_script( $req )->get_data();
 	}
 
@@ -999,9 +817,8 @@ class Neo_Pulse_Wp_Tools_Handlers {
 	 */
 	public static function wp_scripts_update( array $params ): array {
 		$id  = (int) ( $params['id'] ?? 0 );
-		$req = new WP_REST_Request( 'PUT', '/neo-pulse/v1/scripts/' . $id );
+		$req = self::json_request( 'PUT', '/neo-pulse/v1/scripts/' . $id, $params );
 		$req->set_param( 'id', $id );
-		$req->set_body_params( $params );
 		return Neo_Pulse_Wp_Script_Manager_Rest::update_script( $req )->get_data();
 	}
 
@@ -1041,27 +858,13 @@ class Neo_Pulse_Wp_Tools_Handlers {
 
 	/**
 	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>
-	 */
-	public static function wp_gmb_posts_list( array $params ): array {
-		return array(
-			'ok'      => true,
-			'items'   => array(),
-			'message' => __( 'Listing GBP posts requires Google API integration; use wp_gmb_create_post to publish.', 'neo-pulse-wp' ),
-		);
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
 	 * @return array<string, mixed>|WP_Error
 	 */
 	public static function wp_gmb_create_post( array $params ) {
 		$post_id = (int) ( $params['post_id'] ?? 0 );
-		$req     = new WP_REST_Request( 'POST', '/neo-pulse/v1/ai/gmb-post' );
+		$body    = isset( $params['summary'] ) ? array( 'summary' => (string) $params['summary'] ) : array();
+		$req     = self::json_request( 'POST', '/neo-pulse/v1/ai/gmb-post', $body );
 		$req->set_param( 'post_id', $post_id );
-		if ( isset( $params['summary'] ) ) {
-			$req->set_body_params( array( 'summary' => (string) $params['summary'] ) );
-		}
 		$res = Neo_Pulse_Wp_Gmb_Rest::create_social_post( $req );
 		return $res->get_data();
 	}
@@ -1071,8 +874,7 @@ class Neo_Pulse_Wp_Tools_Handlers {
 	 * @return array<string, mixed>
 	 */
 	public static function wp_assist_chat( array $params ): array {
-		$req = new WP_REST_Request( 'POST', '/neo-pulse/v1/backend-assist' );
-		$req->set_body_params( $params );
+		$req = self::json_request( 'POST', '/neo-pulse/v1/backend-assist', $params );
 		$res = Neo_Pulse_Wp_Backend_Assist::rest_handle( $req );
 		$data = $res->get_data();
 		return is_array( $data ) ? array_merge( array( 'ok' => true ), array( 'card' => $data ) ) : array( 'ok' => true );
@@ -1097,8 +899,7 @@ class Neo_Pulse_Wp_Tools_Handlers {
 	 * @return array<string, mixed>|WP_Error
 	 */
 	public static function wp_assist_workflow_step( array $params ) {
-		$req = new WP_REST_Request( 'POST', '/neo-pulse/v1/backend-assist/step' );
-		$req->set_body_params( $params );
+		$req = self::json_request( 'POST', '/neo-pulse/v1/backend-assist/step', $params );
 		return Neo_Pulse_Wp_Backend_Assist::rest_step_handle( $req )->get_data();
 	}
 
@@ -1157,339 +958,6 @@ class Neo_Pulse_Wp_Tools_Handlers {
 				'content'   => $post->post_content,
 				'saved_at'  => gmdate( 'c' ),
 			)
-		);
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>
-	 */
-	public static function wp_super_migrate_plan( array $params ): array {
-		unset( $params );
-		return Neo_Pulse_Wp_Super_Migrate::get_plan_preview();
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>
-	 */
-	public static function wp_super_migrate_start( array $params ): array {
-		return Neo_Pulse_Wp_Super_Migrate::start_job( $params );
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>
-	 */
-	public static function wp_super_migrate_step( array $params ): array {
-		$job_id = isset( $params['job_id'] ) ? sanitize_key( (string) $params['job_id'] ) : '';
-		if ( $job_id === '' ) {
-			return array(
-				'ok'    => false,
-				'error' => __( 'job_id is required.', 'neo-pulse-wp' ),
-			);
-		}
-		return Neo_Pulse_Wp_Super_Migrate::run_step( $job_id, $params );
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>
-	 */
-	public static function wp_super_migrate_status( array $params ): array {
-		$job_id = isset( $params['job_id'] ) ? sanitize_key( (string) $params['job_id'] ) : '';
-		if ( $job_id === '' ) {
-			return array(
-				'ok'    => false,
-				'error' => __( 'job_id is required.', 'neo-pulse-wp' ),
-			);
-		}
-		$job = Neo_Pulse_Wp_Super_Migrate::get_status( $job_id );
-		if ( null === $job ) {
-			return array(
-				'ok'    => false,
-				'error' => __( 'Job not found.', 'neo-pulse-wp' ),
-			);
-		}
-		return array(
-			'ok'  => true,
-			'job' => $job,
-		);
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>
-	 */
-	public static function wp_super_migrate_flo_sheet( array $params ): array {
-		unset( $params );
-		$sheet = Neo_Pulse_Wp_Neo_Pulse_Sheet::get();
-		$sheet = apply_filters( 'neo_pulse_wp_flo_sheet_export', $sheet );
-		return array(
-			'ok'      => true,
-			'sheet'   => $sheet,
-			'json'    => Neo_Pulse_Wp_Neo_Pulse_Sheet::to_json( $sheet ),
-			'summary' => Neo_Pulse_Wp_Super_Migrate::sheet_summary( $sheet ),
-		);
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>
-	 */
-	public static function wp_super_migrate_flo_sheet_import( array $params ): array {
-		$json = isset( $params['json'] ) ? (string) $params['json'] : '';
-		if ( $json === '' && isset( $params['sheet'] ) && is_array( $params['sheet'] ) ) {
-			$json = Neo_Pulse_Wp_Neo_Pulse_Sheet::to_json( $params['sheet'] );
-		}
-		if ( $json === '' ) {
-			return array(
-				'ok'    => false,
-				'error' => __( 'Flo Sheet JSON is required.', 'neo-pulse-wp' ),
-			);
-		}
-		return Neo_Pulse_Wp_Super_Migrate::import_neo_pulse_sheet( $json, ! empty( $params['dry_run'] ) );
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>
-	 */
-	public static function wp_seo_blocks_list( array $params ): array {
-		unset( $params );
-		return array(
-			'ok'     => true,
-			'blocks' => Neo_Pulse_Wp_Seo_Blocks_Storage::list_all(),
-		);
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>|WP_Error
-	 */
-	public static function wp_seo_block_save( array $params ) {
-		$result = Neo_Pulse_Wp_Seo_Blocks_Storage::save( $params );
-		if ( is_wp_error( $result ) ) {
-			return array(
-				'ok'    => false,
-				'error' => $result->get_error_message(),
-			);
-		}
-		return array(
-			'ok'    => true,
-			'block' => $result,
-		);
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>|WP_Error
-	 */
-	public static function wp_seo_block_optimize( array $params ) {
-		$preview = Neo_Pulse_Wp_Seo_Blocks_Optimizer::preview( $params );
-		if ( is_wp_error( $preview ) ) {
-			return array(
-				'ok'    => false,
-				'error' => $preview->get_error_message(),
-			);
-		}
-		if ( empty( $params['apply'] ) ) {
-			return array(
-				'ok'      => true,
-				'preview' => $preview,
-			);
-		}
-		$applied = Neo_Pulse_Wp_Seo_Blocks_Optimizer::apply(
-			array(
-				'post_id'       => absint( $params['post_id'] ?? 0 ),
-				'element_id'    => sanitize_text_field( (string) ( $params['element_id'] ?? '' ) ),
-				'block_id'      => absint( $params['block_id'] ?? 0 ),
-				'preview_slots' => $preview['preview_slots'] ?? array(),
-				'topic_focus'   => (string) ( $preview['topic_focus'] ?? '' ),
-				'focus_keyword' => (string) ( $preview['focus_keyword'] ?? '' ),
-			)
-		);
-		if ( is_wp_error( $applied ) ) {
-			return array(
-				'ok'    => false,
-				'error' => $applied->get_error_message(),
-			);
-		}
-		return array(
-			'ok'      => true,
-			'preview' => $preview,
-			'applied' => $applied,
-		);
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>|WP_Error
-	 */
-	public static function wp_seo_block_sync_library( array $params ) {
-		$id  = absint( $params['id'] ?? $params['block_id'] ?? 0 );
-		$row = Neo_Pulse_Wp_Seo_Blocks_Storage::get( $id );
-		if ( ! is_array( $row ) ) {
-			return array(
-				'ok'    => false,
-				'error' => __( 'SEO block not found.', 'neo-pulse-wp' ),
-			);
-		}
-		$result = Neo_Pulse_Wp_Seo_Blocks_Library::sync_row( $row );
-		if ( is_wp_error( $result ) ) {
-			return array(
-				'ok'    => false,
-				'error' => $result->get_error_message(),
-			);
-		}
-		return array(
-			'ok'    => true,
-			'block' => Neo_Pulse_Wp_Seo_Blocks_Storage::get( $id ),
-		);
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>
-	 */
-	public static function wp_seo_blocks_usage( array $params ): array {
-		unset( $params );
-		return array(
-			'ok'    => true,
-			'usage' => Neo_Pulse_Wp_Seo_Blocks_Usage::scan_all(),
-		);
-	}
-
-	/**
-	 * Active child/parent theme functions.php path.
-	 *
-	 * @return string
-	 */
-	private static function theme_functions_path(): string {
-		return trailingslashit( get_stylesheet_directory() ) . 'functions.php';
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>|WP_Error
-	 */
-	public static function wp_theme_functions_get( array $params ) {
-		unset( $params );
-
-		if ( defined( 'DISALLOW_FILE_EDIT' ) && DISALLOW_FILE_EDIT ) {
-			return new WP_Error(
-				'neo-pulse_file_edit_disabled',
-				__( 'Theme file editing is disabled on this host (DISALLOW_FILE_EDIT).', 'neo-pulse-wp' ),
-				array( 'status' => 403 )
-			);
-		}
-
-		$path = self::theme_functions_path();
-		if ( ! is_readable( $path ) || ! is_file( $path ) ) {
-			return new WP_Error(
-				'neo-pulse_functions_missing',
-				__( 'functions.php was not found for the active theme.', 'neo-pulse-wp' ),
-				array( 'status' => 404 )
-			);
-		}
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-		$content = file_get_contents( $path );
-		if ( ! is_string( $content ) ) {
-			return new WP_Error(
-				'neo-pulse_functions_read_failed',
-				__( 'Could not read functions.php.', 'neo-pulse-wp' ),
-				array( 'status' => 500 )
-			);
-		}
-
-		return array(
-			'ok'             => true,
-			'theme'          => get_stylesheet(),
-			'path'           => 'functions.php',
-			'content'        => $content,
-			'bytes'          => strlen( $content ),
-			'modified_unix'  => (int) filemtime( $path ),
-		);
-	}
-
-	/**
-	 * Extract HELLO_ELEMENTOR_CHILD_VERSION from PHP source when present.
-	 *
-	 * @param string $content PHP file contents.
-	 * @return string
-	 */
-	private static function detect_child_theme_version( string $content ): string {
-		$marker = 'HELLO_ELEMENTOR_CHILD_VERSION';
-		$pos    = strpos( $content, $marker );
-		if ( $pos === false ) {
-			return '';
-		}
-		$slice = substr( $content, $pos, 120 );
-		if ( preg_match( "/define\s*\(\s*['\"]HELLO_ELEMENTOR_CHILD_VERSION['\"]\s*,\s*['\"]([^'\"]+)['\"]/", $slice, $m ) ) {
-			return trim( (string) $m[1] );
-		}
-		return '';
-	}
-
-	/**
-	 * @param array<string, mixed> $params Params.
-	 * @return array<string, mixed>|WP_Error
-	 */
-	public static function wp_theme_functions_put( array $params ) {
-		if ( defined( 'DISALLOW_FILE_EDIT' ) && DISALLOW_FILE_EDIT ) {
-			return new WP_Error(
-				'neo-pulse_file_edit_disabled',
-				__( 'Theme file editing is disabled on this host (DISALLOW_FILE_EDIT).', 'neo-pulse-wp' ),
-				array( 'status' => 403 )
-			);
-		}
-
-		$content = isset( $params['content'] ) ? (string) $params['content'] : '';
-		$content = str_replace( array( "\r\n", "\r" ), "\n", $content );
-		if ( $content === '' || strpos( $content, '<?php' ) === false ) {
-			return new WP_Error(
-				'neo-pulse_functions_invalid',
-				__( 'content must be a non-empty PHP file starting with <?php.', 'neo-pulse-wp' ),
-				array( 'status' => 400 )
-			);
-		}
-
-		$path = self::theme_functions_path();
-		if ( ! is_file( $path ) ) {
-			return new WP_Error(
-				'neo-pulse_functions_missing',
-				__( 'functions.php was not found for the active theme.', 'neo-pulse-wp' ),
-				array( 'status' => 404 )
-			);
-		}
-
-		$theme_dir = get_stylesheet_directory();
-		$backup    = trailingslashit( $theme_dir ) . 'functions.php.neo-pulse-backup-' . gmdate( 'Ymd-His' ) . '.php';
-
-		if ( ! copy( $path, $backup ) ) {
-			return new WP_Error(
-				'neo-pulse_functions_backup_failed',
-				__( 'Could not create backup before writing functions.php.', 'neo-pulse-wp' ),
-				array( 'status' => 500 )
-			);
-		}
-
-		$written = file_put_contents( $path, $content );
-		if ( $written === false ) {
-			return new WP_Error(
-				'neo-pulse_functions_write_failed',
-				__( 'Could not write functions.php.', 'neo-pulse-wp' ),
-				array( 'status' => 500 )
-			);
-		}
-
-		return array(
-			'ok'           => true,
-			'theme'        => get_stylesheet(),
-			'backup_path'  => $backup,
-			'bytes_written' => (int) $written,
-			'version'      => self::detect_child_theme_version( $content ),
 		);
 	}
 }

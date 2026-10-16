@@ -53,6 +53,10 @@ class Neo_Pulse_Wp_Search_Elementor {
 	public static function register_widgets( $widgets_manager ): void {
 		require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/search/integrations/class-neo-pulse-wp-search-elementor-widget.php';
 		$widgets_manager->register( new Neo_Pulse_Wp_Search_Elementor_Widget() );
+		if ( class_exists( 'Neo_Pulse_Wp_Chat' ) ) {
+			require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/search/integrations/class-neo-pulse-wp-chat-elementor-widget.php';
+			$widgets_manager->register( new Neo_Pulse_Wp_Chat_Elementor_Widget() );
+		}
 	}
 
 	public static function enqueue_preview_assets(): void {
@@ -61,16 +65,17 @@ class Neo_Pulse_Wp_Search_Elementor {
 			return;
 		}
 		wp_enqueue_script( 'neo-pulse-search-elementor-preview' );
-		wp_localize_script(
-			'neo-pulse-search-elementor-preview',
-			'neoPulseSearchElementorPreview',
-			array(
-				'cssVars' => Neo_Pulse_Wp_Ai_Widget_Design_Css::get_search_portal_css_var_names(),
-			)
-		);
 	}
 
 	public static function register_preview_script(): void {
+		$chat_css = NEO_PULSE_WP_PLUGIN_DIR . 'assets/frontend/neo-pulse-chat-elementor-preview.css';
+		wp_register_style(
+			'neo-pulse-chat-elementor-preview',
+			plugin_dir_url( NEO_PULSE_WP_PLUGIN_FILE ) . 'assets/frontend/neo-pulse-chat-elementor-preview.css',
+			array(),
+			NEO_PULSE_WP_VERSION . ( is_readable( $chat_css ) ? '.' . (string) filemtime( $chat_css ) : '' )
+		);
+
 		$path = NEO_PULSE_WP_PLUGIN_DIR . 'assets/search/neo-pulse-search-elementor-preview.js';
 		$ver  = Neo_Pulse_Wp_Search::search_asset_version();
 		if ( is_readable( $path ) ) {

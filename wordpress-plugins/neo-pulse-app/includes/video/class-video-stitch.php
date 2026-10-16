@@ -104,15 +104,29 @@ class Neo_Pulse_App_Video_Stitch {
 		return $info;
 	}
 
+	private static function xfade_name( string $type ): string {
+		$map = array(
+			'dissolve'   => 'fade',
+			'fade_black' => 'fadeblack',
+			'fade_white' => 'fadewhite',
+			'wipe_left'  => 'smoothleft',
+			'wipe_right' => 'smoothright',
+			'zoom_in'    => 'zoomin',
+		);
+		return $map[ $type ] ?? 'fade';
+	}
+
 	/**
-	 * One ffmpeg pass: clips normalized to the first clip's size at 24 fps, joined by concat (continue) or xfade (dissolve),
-	 * narration (when the render has one) placed at each scene's start. Per-scene clip audio is not mixed (avoids music resets at cuts).
-	 * Without narration the output has no audio stream.
+	 * One ffmpeg pass: clips normalized to the first clip's size at 24 fps, joined by concat (cut/continue) or xfade (dissolve/fade_black/fade_white/wipe_left/wipe_right/zoom_in),
+	 * optional fade-in from black and fade-out to black on the assembled stream, and narration placed at each scene's start.
 	 *
 	 * @param array<int,array{clip:string,voice:string,voiceRate:int,voiceChannels:int,transition:?array{type:string,seconds:float}}> $segments Ordered; voice is '' for a render without narration, else a raw 16-bit little-endian PCM file.
+	 * @param string $out_path Output MP4 path.
+	 * @param float  $fade_in  Optional fade-in from black in seconds (0..1.5).
+	 * @param float  $fade_out Optional fade-out to black in seconds (0..1.5).
 	 * @return true|WP_Error
 	 */
-	public static function assemble( array $segments, string $out_path ) {
+	public static function assemble( array $segments, string $out_path, float $fade_in = 0.0, float $fade_out = 0.0 ) {
 		$n = count( $segments );
 		if ( $n === 0 ) {
 			return new WP_Error( 'neo-pulse_video_stitch', 'No clips to assemble' );
@@ -151,12 +165,13 @@ class Neo_Pulse_App_Video_Stitch {
 		}
 		for ( $i = 0; $i < $n; $i++ ) {
 			$filters[] = sprintf(
-				'[%d:v]scale=%d:%d:force_original_aspect_ratio=decrease,pad=%d:%d:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=%d,format=yuv420p,settb=AVTB,setpts=PTS-STARTPTS[v%d]',
+				'[%d:v]scale=%d:%d:force_original_aspect_ratio=decrease,pad=%d:%d:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=%d,format=yuv420p,settb=1/%d,setpts=PTS-STARTPTS[v%d]',
 				$i,
 				$w,
 				$h,
 				$w,
 				$h,
+				self::FPS,
 				self::FPS,
 				$i
 			);
@@ -167,27 +182,70 @@ class Neo_Pulse_App_Video_Stitch {
 		$current = '[v0]';
 		for ( $i = 1; $i < $n; $i++ ) {
 			$transition = $segments[ $i ]['transition'];
-			$dissolve   = is_array( $transition ) && $transition['type'] === 'dissolve' ? (float) $transition['seconds'] : 0.0;
+			$tr_type    = is_array( $transition ) && isset( $transition['type'] ) ? (string) $transition['type'] : 'cut';
+			$is_xfade   = $tr_type !== 'cut' && $tr_type !== 'continue';
+			$xfade_sec  = $is_xfade && is_array( $transition ) ? (float) ( $transition['seconds'] ?? 0.0 ) : 0.0;
 			$label      = '[x' . $i . ']';
-			if ( $dissolve > 0 ) {
-				$offset    = max( 0.0, $total - $dissolve );
-				$filters[] = sprintf( '%s[v%d]xfade=transition=fade:duration=%s:offset=%s%s', $current, $i, self::num( $dissolve ), self::num( $offset ), $label );
-				$starts[]  = $offset;
-				$total     = $offset + (float) $clips[ $i ]['duration'];
+			if ( $xfade_sec > 0 ) {
+				$xfade_name = self::xfade_name( $tr_type );
+				$offset     = max( 0.0, $total - $xfade_sec );
+				$filters[]  = sprintf(
+					'%s[v%d]xfade=transition=%s:duration=%s:offset=%s,fps=%d,format=yuv420p,settb=1/%d,setpts=PTS-STARTPTS%s',
+					$current,
+					$i,
+					$xfade_name,
+					self::num( $xfade_sec ),
+					self::num( $offset ),
+					self::FPS,
+					self::FPS,
+					$label
+				);
+				$starts[] = $offset;
+				$total    = $offset + (float) $clips[ $i ]['duration'];
 			} else {
-				$filters[] = sprintf( '%s[v%d]concat=n=2:v=1:a=0%s', $current, $i, $label );
-				$starts[]  = $total;
-				$total    += (float) $clips[ $i ]['duration'];
+				$filters[] = sprintf(
+					'%s[v%d]concat=n=2:v=1:a=0,fps=%d,format=yuv420p,settb=1/%d,setpts=PTS-STARTPTS%s',
+					$current,
+					$i,
+					self::FPS,
+					self::FPS,
+					$label
+				);
+				$starts[] = $total;
+				$total   += (float) $clips[ $i ]['duration'];
 			}
 			$current = $label;
 		}
-		$filters[] = $current . 'null[vout]';
+		$end_filters = array();
+		if ( $fade_in > 0.0 && $total > $fade_in ) {
+			$end_filters[] = sprintf( 'fade=t=in:st=0:d=%s', self::num( $fade_in ) );
+		}
+		if ( $fade_out > 0.0 && $total > $fade_out ) {
+			$fade_out_start = max( 0.0, $total - $fade_out );
+			$end_filters[]  = sprintf( 'fade=t=out:st=%s:d=%s', self::num( $fade_out_start ), self::num( $fade_out ) );
+		}
+		$filters[] = $current . ( count( $end_filters ) > 0 ? implode( ',', $end_filters ) : 'null' ) . '[vout]';
 
 		$mix_inputs = array();
 		for ( $i = 0; $i < $n; $i++ ) {
 			$delay_ms = (int) round( $starts[ $i ] * 1000 );
 			if ( $narrated ) {
-				$filters[]    = sprintf( '[%d:a]aresample=48000,aformat=channel_layouts=stereo,adelay=%d:all=1[n%d]', $n + $i, $delay_ms, $i );
+				$seg           = $segments[ $i ];
+				$bytes_per_sec = max( 1, (int) $seg['voiceRate'] * (int) $seg['voiceChannels'] * 2 );
+				$pcm_seconds   = is_file( $seg['voice'] ) ? ( (float) filesize( $seg['voice'] ) / (float) $bytes_per_sec ) : 0.0;
+				$window        = ( $i + 1 < $n ) ? max( 1.0, $starts[ $i + 1 ] - $starts[ $i ] - 0.15 ) : max( 1.0, $total - $starts[ $i ] - 0.1 );
+				$atempo_filter = '';
+				if ( $pcm_seconds > $window && $window > 0.5 ) {
+					$tempo         = min( 1.35, max( 1.01, $pcm_seconds / $window ) );
+					$atempo_filter = 'atempo=' . self::num( $tempo ) . ',';
+				}
+				$filters[]    = sprintf(
+					'[%d:a]%saresample=48000,aformat=channel_layouts=stereo,adelay=%d:all=1[n%d]',
+					$n + $i,
+					$atempo_filter,
+					$delay_ms,
+					$i
+				);
 				$mix_inputs[] = '[n' . $i . ']';
 			}
 		}

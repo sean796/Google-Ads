@@ -5,7 +5,7 @@ section: Integrations
 method: GET
 path: /api/integrations/resolved-openrouter-key
 auth: open
-order: 560
+order: 570
 ---
 
 GET `/api/integrations/resolved-openrouter-key`.

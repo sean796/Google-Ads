@@ -13,8 +13,20 @@ class Neo_Pulse_Wp_Image_Seo {
 
 	const FIELD_KEYS = array( 'title', 'alt', 'caption', 'description' );
 
+	const RETRY_HOOK    = 'neo_pulse_wp_image_seo_retry';
+	const ATTEMPTS_META = '_neo_pulse_image_seo_attempts';
+	const MAX_ATTEMPTS  = 3;
+
+	/**
+	 * True while filling text automatically (upload or background retry), when no user check applies.
+	 *
+	 * @var bool
+	 */
+	public static $system_run = false;
+
 	public static function init(): void {
 		add_action( 'add_attachment', array( __CLASS__, 'maybe_auto_on_upload' ), 20, 1 );
+		add_action( self::RETRY_HOOK, array( __CLASS__, 'retry' ), 10, 1 );
 	}
 
 	/**
@@ -29,10 +41,10 @@ class Neo_Pulse_Wp_Image_Seo {
 				'caption'     => true,
 				'description' => false,
 			),
-			'auto_on_upload'    => false,
-			'auto_in_gallery'   => false,
-			'auto_mode'         => 'filename',
+			'auto_on_upload'    => true,
+			'auto_mode'         => 'ai',
 			'context_from_post' => true,
+			'ai_instructions'   => '',
 		);
 	}
 
@@ -85,9 +97,9 @@ class Neo_Pulse_Wp_Image_Seo {
 			'overwrite_mode'    => $overwrite,
 			'fields'            => $fields,
 			'auto_on_upload'    => ! empty( $input['auto_on_upload'] ),
-			'auto_in_gallery'   => ! empty( $input['auto_in_gallery'] ),
 			'auto_mode'         => $auto_mode,
 			'context_from_post' => ! empty( $input['context_from_post'] ),
+			'ai_instructions'   => isset( $input['ai_instructions'] ) ? mb_substr( trim( wp_strip_all_tags( wp_check_invalid_utf8( (string) $input['ai_instructions'] ) ) ), 0, 2000 ) : (string) ( self::get_config()['ai_instructions'] ?? '' ),
 		);
 	}
 
@@ -172,6 +184,10 @@ class Neo_Pulse_Wp_Image_Seo {
 			}
 			$new_val = isset( $proposed[ $key ] ) ? trim( (string) $proposed[ $key ] ) : '';
 			$old_val = isset( $existing[ $key ] ) ? trim( (string) $existing[ $key ] ) : '';
+			// WordPress titles new uploads after the file ("IMG_4821"); that counts as missing.
+			if ( 'title' === $key && $old_val !== '' && self::is_filename_title( $old_val, (string) ( $existing['filename'] ?? '' ) ) ) {
+				$old_val = '';
+			}
 			if ( $new_val === '' ) {
 				continue;
 			}
@@ -180,6 +196,19 @@ class Neo_Pulse_Wp_Image_Seo {
 			}
 		}
 		return $out;
+	}
+
+	public static function is_filename_title( string $title, string $filename ): bool {
+		if ( $filename === '' ) {
+			return false;
+		}
+		$norm = static function ( string $s ): string {
+			return (string) preg_replace( '/[^a-z0-9]+/', '', strtolower( $s ) );
+		};
+		$stem = (string) preg_replace( '/\.[^.]+$/', '', $filename );
+		$stem = (string) preg_replace( '/-(scaled|rotated|e\d+)$/', '', $stem );
+		$t    = $norm( $title );
+		return $t !== '' && ( $t === $norm( $stem ) || $t === $norm( (string) preg_replace( '/-\d+$/', '', $stem ) ) );
 	}
 
 	public static function filename_from_attachment( int $attachment_id ): string {
@@ -210,34 +239,115 @@ class Neo_Pulse_Wp_Image_Seo {
 		);
 	}
 
-	public static function maybe_auto_on_upload( int $attachment_id ): void {
+	/**
+	 * New upload: fill missing title/alt/etc. straight away so they show in the media window.
+	 * If the AI call fails it is retried in the background before falling back to the file name.
+	 */
+	public static function maybe_auto_on_upload( $attachment_id ): void {
+		$attachment_id = (int) $attachment_id;
 		if ( ! wp_attachment_is_image( $attachment_id ) ) {
 			return;
 		}
-		$config = self::get_config();
-		if ( empty( $config['auto_on_upload'] ) ) {
+		$config = self::upload_config();
+		if ( null === $config ) {
 			return;
 		}
-		self::auto_optimize( $attachment_id, 0, $config );
+		$parent = (int) wp_get_post_parent_id( $attachment_id );
+		self::$system_run = true;
+		try {
+			$done = self::auto_optimize( $attachment_id, $parent, $config, false, 25 );
+		} finally {
+			self::$system_run = false;
+		}
+		if ( ! $done && ( $config['auto_mode'] ?? '' ) === 'ai' ) {
+			update_post_meta( $attachment_id, self::ATTEMPTS_META, 1 );
+			wp_schedule_single_event( time() + 60, self::RETRY_HOOK, array( $attachment_id ) );
+		}
+	}
+
+	/**
+	 * Settings for the automatic fill on upload, or null when it should not run.
+	 *
+	 * Only the title and alt text are filled on upload: captions show under images in many themes
+	 * and galleries, so those stay a manual choice in Image SEO. In AI mode nothing runs without an
+	 * OpenRouter key, so new uploads never get file-name text by surprise.
+	 *
+	 * @return array<string,mixed>|null
+	 */
+	public static function upload_config(): ?array {
+		$config = self::get_config();
+		if ( empty( $config['auto_on_upload'] ) ) {
+			return null;
+		}
+		if ( ( $config['auto_mode'] ?? '' ) === 'ai' && ( Neo_Pulse_Wp_OpenRouter::get_api_key() === '' || Neo_Pulse_Wp_License::ai_needs_upgrade( false ) ) ) {
+			return null; // No AI (no key, or NEO Pulse Pro): nothing runs, rather than file-name text by surprise.
+		}
+		$fields           = is_array( $config['fields'] ?? null ) ? $config['fields'] : array();
+		$config['fields'] = array(
+			'title'       => ! empty( $fields['title'] ),
+			'alt'         => ! empty( $fields['alt'] ),
+			'caption'     => false,
+			'description' => false,
+		);
+		return ( $config['fields']['title'] || $config['fields']['alt'] ) ? $config : null;
+	}
+
+	/**
+	 * Background retry after a failed AI call on upload.
+	 *
+	 * @param mixed $attachment_id Attachment ID.
+	 */
+	public static function retry( $attachment_id ): void {
+		$attachment_id = (int) $attachment_id;
+		if ( $attachment_id < 1 || ! wp_attachment_is_image( $attachment_id ) ) {
+			return;
+		}
+		$config = self::upload_config();
+		if ( null === $config ) {
+			delete_post_meta( $attachment_id, self::ATTEMPTS_META );
+			return;
+		}
+		$attempts = (int) get_post_meta( $attachment_id, self::ATTEMPTS_META, true ) + 1;
+		$last     = $attempts >= self::MAX_ATTEMPTS;
+		self::$system_run = true;
+		try {
+			// No file-name fallback: an empty alt is better than "IMG 4821".
+			$done = self::auto_optimize( $attachment_id, (int) wp_get_post_parent_id( $attachment_id ), $config, false );
+		} finally {
+			self::$system_run = false;
+		}
+		if ( $done || $last ) {
+			delete_post_meta( $attachment_id, self::ATTEMPTS_META );
+			return;
+		}
+		update_post_meta( $attachment_id, self::ATTEMPTS_META, $attempts );
+		wp_schedule_single_event( time() + 300, self::RETRY_HOOK, array( $attachment_id ) );
 	}
 
 	/**
 	 * @param array<string,mixed>|null $config
+	 * @param bool                     $fallback Use the file name when the AI call fails.
+	 * @param int                      $timeout  AI request timeout in seconds (0 = default).
+	 * @return bool True when the AI (or chosen mode) produced text, even if nothing needed changing.
 	 */
-	public static function auto_optimize( int $attachment_id, int $post_id = 0, ?array $config = null ): bool {
+	public static function auto_optimize( int $attachment_id, int $post_id = 0, ?array $config = null, bool $fallback = true, int $timeout = 0 ): bool {
 		$config = $config ?? self::get_config();
 		$use_ai = ( $config['auto_mode'] ?? 'filename' ) === 'ai';
 
 		if ( $use_ai && ! Neo_Pulse_Wp_Image_Seo_Gate::can_ai( $post_id ) ) {
 			$use_ai = false;
 		}
+		$config['ai_timeout'] = $timeout;
 
 		$existing = self::read_meta( $attachment_id );
 		$fields   = is_array( $config['fields'] ?? null ) ? $config['fields'] : self::default_config()['fields'];
 
 		if ( $use_ai ) {
 			$proposed = Neo_Pulse_Wp_Image_Seo_Ai::preview_ai( $attachment_id, $post_id, $fields, $config );
-			if ( is_wp_error( $proposed ) ) {
+			if ( is_wp_error( $proposed ) || $proposed === array() ) {
+				if ( ! $fallback ) {
+					return false;
+				}
 				$proposed = Neo_Pulse_Wp_Image_Seo_Ai::preview_filename( $attachment_id, $fields );
 			}
 		} else {
@@ -251,7 +361,7 @@ class Neo_Pulse_Wp_Image_Seo {
 			$fields
 		);
 		if ( empty( $merged ) ) {
-			return false;
+			return true;
 		}
 		$result = self::save_meta( $attachment_id, $merged );
 		return ! is_wp_error( $result );
@@ -261,67 +371,6 @@ class Neo_Pulse_Wp_Image_Seo {
 	 * @param array<string,mixed> $args
 	 * @return array{items:array<int,array<string,mixed>>,total:int,page:int,per_page:int}
 	 */
-	/**
-	 * Render inline SEO metadata panel for image/gallery fields.
-	 */
-	public static function render_attachment_seo_panel( int $attachment_id, string $context = 'gallery' ): void {
-		if ( $attachment_id < 1 ) {
-			return;
-		}
-		$meta = self::read_meta( $attachment_id );
-		$fields = array(
-			'title'       => __( 'Title', 'neo-pulse-wp' ),
-			'alt'         => __( 'Alt text', 'neo-pulse-wp' ),
-			'caption'     => __( 'Caption', 'neo-pulse-wp' ),
-			'description' => __( 'Description', 'neo-pulse-wp' ),
-		);
-		echo '<div class="neo-pulse-image-seo-panel" data-attachment-id="' . esc_attr( (string) $attachment_id ) . '" data-context="' . esc_attr( $context ) . '">';
-		foreach ( $fields as $key => $label ) {
-			$val = isset( $meta[ $key ] ) ? (string) $meta[ $key ] : '';
-			echo '<div class="neo-pulse-image-seo-field neo-pulse-image-seo-field--' . esc_attr( $key ) . '">';
-			echo '<label>' . esc_html( $label ) . '</label>';
-			echo '<div class="neo-pulse-image-seo-field__row">';
-			if ( $key === 'caption' || $key === 'description' ) {
-				printf(
-					'<textarea class="neo-pulse-image-seo-input" data-field="%1$s" rows="2">%2$s</textarea>',
-					esc_attr( $key ),
-					esc_textarea( $val )
-				);
-			} else {
-				printf(
-					'<input type="text" class="neo-pulse-image-seo-input" data-field="%1$s" value="%2$s" />',
-					esc_attr( $key ),
-					esc_attr( $val )
-				);
-			}
-			printf(
-				'<button type="button" class="button neo-pulse-image-seo-wand" data-field="%1$s" title="%2$s" aria-label="%2$s">✦</button>',
-				esc_attr( $key ),
-				esc_attr__( 'Optimize', 'neo-pulse-wp' )
-			);
-			echo '</div></div>';
-		}
-		echo '<button type="button" class="button neo-pulse-image-seo-optimize-all">' . esc_html__( 'Optimize all', 'neo-pulse-wp' ) . '</button>';
-		echo '<button type="button" class="button neo-pulse-image-seo-save">' . esc_html__( 'Save metadata', 'neo-pulse-wp' ) . '</button>';
-		echo '</div>';
-	}
-
-	/**
-	 * Render a gallery list item card.
-	 */
-	public static function render_gallery_item( int $attachment_id ): void {
-		if ( $attachment_id < 1 ) {
-			return;
-		}
-		echo '<li class="neo-pulse-gallery-item" data-id="' . esc_attr( (string) $attachment_id ) . '">';
-		echo '<div class="neo-pulse-gallery-item__thumb">';
-		echo wp_get_attachment_image( $attachment_id, 'thumbnail' );
-		echo '<button type="button" class="neo-pulse-gallery-item__remove" aria-label="' . esc_attr__( 'Remove', 'neo-pulse-wp' ) . '">&times;</button>';
-		echo '</div>';
-		self::render_attachment_seo_panel( $attachment_id, 'gallery' );
-		echo '</li>';
-	}
-
 	public static function query_attachments( array $args = array() ): array {
 		$page     = max( 1, (int) ( $args['page'] ?? 1 ) );
 		$per_page = max( 1, min( 100, (int) ( $args['per_page'] ?? 20 ) ) );

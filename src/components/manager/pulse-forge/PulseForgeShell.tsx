@@ -290,7 +290,7 @@ export function PulseForgeShell(): React.ReactElement {
       if (!teamId) return false;
       const graph = automationPlanToWorkflowGraph(plan, {
         teamId,
-        siteId: null,
+        siteId: activeWordPressSiteId ?? null,
       });
       const created = await createWorkflow(teamId, graph);
       if (created.workflow) {
@@ -301,7 +301,7 @@ export function PulseForgeShell(): React.ReactElement {
       reportError(created.error ?? "Could not create workflow.");
       return false;
     },
-    [clearErrors, openWorkflow, reportError, teamId],
+    [activeWordPressSiteId, clearErrors, openWorkflow, reportError, teamId],
   );
 
   const handleRecipeInstallAsWorkflow = useCallback(
@@ -423,7 +423,7 @@ export function PulseForgeShell(): React.ReactElement {
             <PulseForgeDashboard
               automationProjects={automationProjects}
               projectBundles={projectBundles}
-              onEditAutomation={(project: TaskProject) => openCreateWorkflow()}
+              onEditAutomation={() => navigateSection("workflows")}
               onRefreshProject={handleRefreshProject}
             />
           )}

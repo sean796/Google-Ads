@@ -26,6 +26,10 @@ class Neo_Pulse_Wp_Gmb {
 
 	const SUMMARY_MAX_WORDS = 150;
 
+	/** OAuth state transients: neo_pulse_wp_gmb_state_<state> => user ID, valid 10 minutes. */
+	const STATE_TRANSIENT_PREFIX = 'neo_pulse_wp_gmb_state_';
+	const STATE_TTL              = 600;
+
 	/**
 	 * Per-platform character limits and copy-style constraints.
 	 * Used by the Social Media Module modal to show limits and tailor AI output.
@@ -175,8 +179,14 @@ class Neo_Pulse_Wp_Gmb {
 		$body = json_decode( wp_remote_retrieve_body( $response ), true );
 
 		if ( $code < 200 || $code >= 300 || empty( $body['access_token'] ) ) {
-			$msg = is_array( $body ) && isset( $body['error_description'] ) ? $body['error_description'] : 'Token refresh failed.';
-			self::clear_tokens();
+			$msg = is_array( $body ) && isset( $body['error_description'] ) && is_scalar( $body['error_description'] )
+				? (string) $body['error_description']
+				: 'Token refresh failed.';
+			// Only a revoked/expired refresh token means the connection is gone; a timeout, quota or
+			// 5xx from Google must not disconnect the site.
+			if ( is_array( $body ) && isset( $body['error'] ) && 'invalid_grant' === $body['error'] ) {
+				self::clear_tokens();
+			}
 			return new WP_Error( 'neo-pulse_gmb_refresh', $msg );
 		}
 
@@ -190,8 +200,13 @@ class Neo_Pulse_Wp_Gmb {
 		return rest_url( 'neo-pulse/v1/gmb/callback' );
 	}
 
+	/**
+	 * Google consent URL. The state is a random value remembered for 10 minutes against the user who
+	 * started the connection; the callback (which arrives without a WordPress login) acts for them.
+	 */
 	public static function get_authorize_url(): string {
-		$state = wp_create_nonce( 'neo-pulse_gmb_oauth' );
+		$state = wp_generate_password( 40, false, false );
+		set_transient( self::STATE_TRANSIENT_PREFIX . $state, get_current_user_id(), self::STATE_TTL );
 		return add_query_arg(
 			array(
 				'client_id'     => self::get_client_id(),
@@ -215,13 +230,25 @@ class Neo_Pulse_Wp_Gmb {
 		$state = $request->get_param( 'state' );
 		$error = $request->get_param( 'error' );
 
-		if ( $error ) {
-			return self::redirect_with_notice( 'error', 'Google denied access: ' . sanitize_text_field( $error ) );
+		// One-time state: look up who started the flow, then forget it whatever happens next.
+		$state   = is_string( $state ) ? preg_replace( '/[^A-Za-z0-9]/', '', $state ) : '';
+		$user_id = 0;
+		if ( is_string( $state ) && strlen( $state ) >= 32 ) {
+			$user_id = (int) get_transient( self::STATE_TRANSIENT_PREFIX . $state );
+			delete_transient( self::STATE_TRANSIENT_PREFIX . $state );
 		}
 
-		if ( ! $code || ! wp_verify_nonce( $state, 'neo-pulse_gmb_oauth' ) ) {
+		if ( $error ) {
+			return self::redirect_with_notice( 'error', 'Google denied access: ' . sanitize_text_field( is_scalar( $error ) ? (string) $error : '' ) );
+		}
+
+		if ( ! is_string( $code ) || $code === '' || $user_id < 1 ) {
 			return self::redirect_with_notice( 'error', 'Invalid OAuth state or missing code.' );
 		}
+		if ( ! user_can( $user_id, 'manage_options' ) ) {
+			return self::redirect_with_notice( 'error', 'Only an administrator can connect Google Business Profile.' );
+		}
+		wp_set_current_user( $user_id );
 
 		$response = wp_remote_post(
 			self::GOOGLE_TOKEN_URL,

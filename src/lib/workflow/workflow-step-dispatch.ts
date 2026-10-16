@@ -97,6 +97,10 @@ import { walkWorkflowThenNode } from "@/lib/workflow/workflow-dispatch-then-node
 import { walkWorkflowRagArchiveNode } from "@/lib/workflow/workflow-dispatch-rag-archive-node";
 import { walkWorkflowCsvRowsNode } from "@/lib/workflow/workflow-dispatch-csv-node";
 import { walkWorkflowActionAgentNode } from "@/lib/workflow/workflow-dispatch-action-agent-node";
+import {
+  buildMastraWorkflowPipeline,
+  runMastraWorkflowNodeStep,
+} from "@/lib/workflow/workflow-mastra-bridge";
 
 import {
   startWorkflowAgentForSite,
@@ -192,53 +196,78 @@ async function walkFromNode(
     return walkFromNode(workflow, run, edge.target, outputs, callbacks, visited, walkScope);
   }
 
-  const csvWalk = await walkWorkflowCsvRowsNode({
+  const csvWalk = await runMastraWorkflowNodeStep({
     workflow,
     run,
     node,
-    nodeId,
-    outputs,
-    callbacks,
-    visited,
-    walkScope,
-    allSiteIds,
-    walkFromNode,
+    executeNode: () =>
+      walkWorkflowCsvRowsNode({
+        workflow,
+        run,
+        node,
+        nodeId,
+        outputs,
+        callbacks,
+        visited,
+        walkScope,
+        allSiteIds,
+        walkFromNode,
+        walkRemainingLinearSteps,
+      }),
   });
   if (csvWalk !== null) return csvWalk;
 
   const walkScopeState = { current: walkScope };
-  const actionWalk = await walkWorkflowActionAgentNode({
+  const actionWalk = await runMastraWorkflowNodeStep({
     workflow,
     run,
     node,
-    nodeId,
-    outputs,
-    callbacks,
-    visited,
-    walkScopeState,
-    walkRemainingLinearSteps,
+    executeNode: () =>
+      walkWorkflowActionAgentNode({
+        workflow,
+        run,
+        node,
+        nodeId,
+        outputs,
+        callbacks,
+        visited,
+        walkScopeState,
+        walkRemainingLinearSteps,
+      }),
   });
   if (actionWalk !== null) return actionWalk;
   walkScope = walkScopeState.current;
 
-  const thenWalk = await walkWorkflowThenNode({
+  const thenWalk = await runMastraWorkflowNodeStep({
     workflow,
     run,
     node,
-    outputs,
-    callbacks,
-    walkScope,
-    allSiteIds,
+    executeNode: () =>
+      walkWorkflowThenNode({
+        workflow,
+        run,
+        node,
+        outputs,
+        callbacks,
+        walkScope,
+        allSiteIds,
+      }),
   });
   if (thenWalk) return thenWalk;
 
-  const ragWalk = await walkWorkflowRagArchiveNode({
+  const ragWalk = await runMastraWorkflowNodeStep({
     workflow,
     run,
     node,
-    outputs,
-    walkScope,
-    allSiteIds,
+    executeNode: () =>
+      walkWorkflowRagArchiveNode({
+        workflow,
+        run,
+        node,
+        outputs,
+        walkScope,
+        allSiteIds,
+      }),
   });
   if (ragWalk) return ragWalk;
 
@@ -278,5 +307,7 @@ export {
   actionConfig,
   contentGapGoalMetFromAgentResult,
   workflowActionStartsFromCompiledTask,
+  buildMastraWorkflowPipeline,
+  runMastraWorkflowNodeStep,
 };
 

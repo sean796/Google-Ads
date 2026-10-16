@@ -5,7 +5,7 @@ section: Manager Cloud Settings
 method: POST
 path: /api/manager-cloud-settings/save
 auth: open
-order: 660
+order: 670
 ---
 
 POST `/api/manager-cloud-settings/save`.

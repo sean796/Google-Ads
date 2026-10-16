@@ -5,7 +5,7 @@ section: Google Search Console
 method: POST
 path: /api/gsc/url-inventory
 auth: open
-order: 530
+order: 540
 ---
 
 POST `/api/gsc/url-inventory`.

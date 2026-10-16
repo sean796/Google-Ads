@@ -18,6 +18,7 @@ import {
 } from "@/lib/notify-messages";
 import { DEFAULT_IMAGE_MODEL } from "@/lib/image-model-defaults";
 import { getImageModel } from "@/lib/optimization-settings-storage";
+import { resolveModelForAgentCategory } from "@/lib/openrouter-agent-category-api";
 import { parseMarkdownSections } from "@/lib/section-parser";
 import { generateSEOImageFilename, sanitizeImageFilename } from "@/lib/image-filename-generator";
 import { runImageChecklist } from "@/lib/image-generator/run-image-checklist";
@@ -40,7 +41,7 @@ export function useImageGenerator({
   flowPurpose = "",
   agents = [],
   finalOutput = "",
-  selectedModel = "google/gemini-2.5-flash",
+  selectedModel = resolveModelForAgentCategory("research"),
   temperature = 1.57,
   maxTokens = 5000000,
   topP = 0.9,

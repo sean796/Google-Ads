@@ -5,7 +5,7 @@ section: Semrush
 method: POST
 path: /api/semrush/match-project-for-site
 auth: open
-order: 1000
+order: 1010
 ---
 
 POST `/api/semrush/match-project-for-site`.

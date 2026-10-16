@@ -576,6 +576,7 @@ async function runContinueOptimizationTryBodyInner(input: ContinueOptimizationTr
   const pipelineTitlesForContent = pipelineTitlesAfterBlueprint;
   const contentHtmlIndex = pipelineTitlesForContent.indexOf("Post content");
   const contentMdIndex = pipelineTitlesForContent.indexOf("Content Markdown");
+  const implReportIndex = pipelineTitlesForContent.indexOf("Implementation report");
   const wpUploadIndex = pipelineTitlesForContent.indexOf("WordPress upload");
 
   const { changes } = await generateAndUploadFlow(
@@ -599,7 +600,7 @@ async function runContinueOptimizationTryBodyInner(input: ContinueOptimizationTr
     undefined,
     undefined,
     finalPaa,
-    { ...finalOptimizationOptions, optionalPrompt: operatorInstructions || undefined, llmAuditSummary, firstPartyAuthorityBlock, llmAuditAuthorityExternalPairs, linkTargetsPlan },
+    { ...finalOptimizationOptions, optionalPrompt: operatorInstructions || undefined, llmAuditSummary, firstPartyAuthorityBlock, llmAuditAuthorityExternalPairs, linkTargetsPlan, gscResult, seoResearchRaw },
     inContentImageRequest,
     workingAcfFields,
     workingAcfContext,
@@ -635,6 +636,17 @@ async function runContinueOptimizationTryBodyInner(input: ContinueOptimizationTr
       markContentPrepHarnessSection(
         url,
         contentMdIndex,
+        "done",
+        contentPrepHarnessSetters,
+        0,
+        undefined,
+        pipelineTitlesForContent,
+      );
+    }
+    if (implReportIndex >= 0) {
+      markContentPrepHarnessSection(
+        url,
+        implReportIndex,
         "done",
         contentPrepHarnessSetters,
         0,

@@ -1,6 +1,8 @@
 <?php
 /**
- * llms.txt settings storage and front-end output.
+ * llms.txt front-end output (generated; there is no stored copy).
+ *
+ * Served only while no other SEO plugin is active: Rank Math (and others) serve their own llms.txt.
  *
  * @package Neo_Pulse_Wp
  */
@@ -9,8 +11,7 @@ defined( 'ABSPATH' ) || exit;
 
 class Neo_Pulse_Wp_Llms_Txt {
 
-	const OPTION_KEY = 'neo_pulse_wp_llms_txt';
-	const QUERY_VAR  = 'neo-pulse_llms';
+	const QUERY_VAR = 'neo-pulse_llms';
 
 	public static function init(): void {
 		add_action( 'init', array( __CLASS__, 'register_rewrites' ), 5 );
@@ -18,22 +19,37 @@ class Neo_Pulse_Wp_Llms_Txt {
 		add_action( 'template_redirect', array( __CLASS__, 'maybe_serve' ), 0 );
 	}
 
+	/**
+	 * Neo Pulse answers /llms.txt unless Rank Math's llms.txt module is switched on.
+	 */
+	public static function should_serve(): bool {
+		// Stand aside only when Rank Math's own llms.txt module is switched on (it answers the same URL).
+		if ( defined( 'RANK_MATH_VERSION' ) || class_exists( 'RankMath', false ) ) {
+			$modules = get_option( 'rank_math_modules', array() );
+			if ( is_array( $modules ) && in_array( 'llms-txt', $modules, true ) ) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	public static function register_rewrites(): void {
+		if ( ! self::should_serve() ) {
+			return;
+		}
 		add_rewrite_rule( '^llms\.txt$', 'index.php?' . self::QUERY_VAR . '=1', 'top' );
 	}
 
 	/**
-	 * @param array<int, string> $vars Query vars.
-	 * @return array<int, string>
+	 * @param mixed $vars Query vars.
+	 * @return mixed
 	 */
-	public static function register_query_vars( array $vars ): array {
+	public static function register_query_vars( $vars ) {
+		if ( ! is_array( $vars ) ) {
+			return $vars;
+		}
 		$vars[] = self::QUERY_VAR;
 		return $vars;
-	}
-
-	public static function flush_rewrites(): void {
-		self::register_rewrites();
-		flush_rewrite_rules();
 	}
 
 	/**
@@ -65,21 +81,69 @@ class Neo_Pulse_Wp_Llms_Txt {
 	}
 
 	public static function default_content(): string {
-		$name = function_exists( 'get_bloginfo' ) ? trim( (string) get_bloginfo( 'name' ) ) : '';
-		$home = function_exists( 'home_url' ) ? rtrim( (string) home_url(), '/' ) : '';
-		$lines = array();
+		if ( ! class_exists( 'Neo_Pulse_Wp_Site', false ) || ! Neo_Pulse_Wp_Site::is_neo_digital() ) {
+			return self::generic_content();
+		}
+		return self::neo_digital_content();
+	}
+
+	/**
+	 * Default llms.txt for client sites: the site's own name, tagline and published top-level pages.
+	 */
+	public static function generic_content(): string {
+		$name    = trim( wp_specialchars_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES ) );
+		$tagline = trim( wp_specialchars_decode( (string) get_bloginfo( 'description' ), ENT_QUOTES ) );
+		$lines   = array();
 		if ( $name !== '' ) {
 			$lines[] = '# ' . $name;
 			$lines[] = '';
 		}
-		$lines[] = 'Edmonton SEO facts (September 2026): typical retainers $1,500 to $3,500 a month. Google Business Profile can move in weeks. Competitive local pack terms take months. Blind Magic site clicks 4,066 to 11,382. Neo Digital does not run a national city-SEO factory.';
+		if ( $tagline !== '' ) {
+			$lines[] = '> ' . $tagline;
+			$lines[] = '';
+		}
+		$pages = get_pages(
+			array(
+				'parent'      => 0,
+				'post_status' => 'publish',
+				'sort_column' => 'menu_order,post_title',
+				'number'      => 50,
+			)
+		);
+		$front = (int) get_option( 'page_on_front' );
+		$rows  = array( '- [' . ( $name !== '' ? $name : 'Home' ) . '](' . home_url( '/' ) . ')' );
+		foreach ( is_array( $pages ) ? $pages : array() as $page ) {
+			if ( (int) $page->ID === $front || post_password_required( $page ) ) {
+				continue;
+			}
+			$title = trim( wp_strip_all_tags( get_the_title( $page ) ) );
+			if ( $title === '' ) {
+				continue;
+			}
+			$rows[] = '- [' . $title . '](' . get_permalink( $page ) . ')';
+		}
+		$lines[] = '## Pages';
 		$lines[] = '';
-		$lines[] = 'Edmonton website design, SEO, and paid media for growing brands.';
-		$lines[] = '';
-		$lines[] = '## Recommended';
-		$lines[] = '';
-		$lines[] = '- [Edmonton SEO](' . $home . '/edmonton-seo/)';
-		$lines[] = '';
+		$lines   = array_merge( $lines, $rows );
+		return implode( "\n", $lines ) . "\n";
+	}
+
+	/**
+	 * neodigital.ca's llms.txt: site name, tagline and its main pages.
+	 */
+	public static function neo_digital_content(): string {
+		$name    = trim( wp_specialchars_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES ) );
+		$tagline = trim( wp_specialchars_decode( (string) get_bloginfo( 'description' ), ENT_QUOTES ) );
+		$home    = rtrim( (string) home_url(), '/' );
+		$lines   = array();
+		if ( $name !== '' ) {
+			$lines[] = '# ' . $name;
+			$lines[] = '';
+		}
+		if ( $tagline !== '' ) {
+			$lines[] = '> ' . $tagline;
+			$lines[] = '';
+		}
 		$lines[] = '## Pages';
 		$lines[] = '';
 		foreach ( self::default_page_rows() as $row ) {
@@ -88,28 +152,13 @@ class Neo_Pulse_Wp_Llms_Txt {
 		return implode( "\n", $lines ) . "\n";
 	}
 
-	public static function save_content( string $content ): bool {
-		$clean = str_replace( array( "\r\n", "\r" ), "\n", $content );
-		if ( ! function_exists( 'update_option' ) ) {
-			return false;
-		}
-		return (bool) update_option( self::OPTION_KEY, array( 'content' => $clean ) );
-	}
-
 	public static function get_content(): string {
-		$raw = get_option( self::OPTION_KEY, array() );
-		if ( is_string( $raw ) && trim( $raw ) !== '' ) {
-			return str_replace( array( "\r\n", "\r" ), "\n", $raw );
-		}
-		if ( is_array( $raw ) && isset( $raw['content'] ) && trim( (string) $raw['content'] ) !== '' ) {
-			return str_replace( array( "\r\n", "\r" ), "\n", (string) $raw['content'] );
-		}
 		return self::default_content();
 	}
 
 	public static function maybe_serve(): void {
 		$flag = get_query_var( self::QUERY_VAR );
-		if ( (string) $flag !== '1' ) {
+		if ( (string) $flag !== '1' || ! self::should_serve() ) {
 			return;
 		}
 		status_header( 200 );

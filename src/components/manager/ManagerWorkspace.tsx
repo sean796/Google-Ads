@@ -20,6 +20,7 @@ import { SitemapOptimizerResearchTab } from "@/components/research/sitemap-optim
 import { VerticalBenchmarkShell } from "@/components/vertical-benchmark/VerticalBenchmarkShell";
 import { PulseHostTabContent } from "@/components/hosting/PulseHostTabContent";
 import { VideoGeneratorTabContent } from "@/components/video-generator/VideoGeneratorTabContent";
+import { NeoEmcpTabContent } from "@/components/neo-emcp/NeoEmcpTabContent";
 
 const ApiDocsTabContent = lazy(() =>
   import("@/components/api-docs/ApiDocsTabContent").then((m) => ({ default: m.ApiDocsTabContent })),
@@ -162,6 +163,7 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
     (managerTab === "chat" ||
       managerTab === "tasks" ||
       managerTab === "pulse-forge" ||
+      managerTab === "video-generator" ||
       managerTab === "api");
   /** Radix tabpanel must participate in flex-1 chain when embedded; parent-only selectors are unreliable. */
   const embeddedTabPanelStretch = embedded ? "flex h-full min-h-0 flex-1 flex-col overflow-hidden" : undefined;
@@ -278,6 +280,8 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
                   managerTab === "chat" ||
                   managerTab === "tasks" ||
                   managerTab === "pulse-forge" ||
+                  managerTab === "video-generator" ||
+                  managerTab === "neo-emcp" ||
                   managerTab === "api" ||
                   managerTab === "organic-reporting"
                   ? "overflow-y-hidden"
@@ -502,6 +506,13 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
           className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}
         >
           <VideoGeneratorTabContent apiKey={apiKey} />
+        </TabsContent>
+
+        <TabsContent
+          value="neo-emcp"
+          className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}
+        >
+          <NeoEmcpTabContent apiKey={apiKey} />
         </TabsContent>
 
         <TabsContent value="api" className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}>

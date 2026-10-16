@@ -5,7 +5,7 @@ section: Manager Cloud Settings
 method: GET
 path: /api/manager-cloud-settings/status
 auth: open
-order: 670
+order: 680
 ---
 
 GET `/api/manager-cloud-settings/status`.

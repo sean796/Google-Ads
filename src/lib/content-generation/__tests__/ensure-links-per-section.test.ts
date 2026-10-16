@@ -199,9 +199,9 @@ describe("applyLinkTargetsPlanToHtml", () => {
 });
 
 describe("applyLinkTargetsPlanToHtmlDeterministic", () => {
-  it("adds at least two internal links per body H2 from plan and catalog", () => {
+  it("weaves planned internal links in context and never appends Related reading or See tails", () => {
     const html =
-      "<h2>Gear and Logistics</h2><p>Preparing for corporate glamping retreats involves thoughtful logistics.</p>";
+      "<h2>Gear and Logistics</h2><p>Preparing for corporate event hosting retreats involves thoughtful logistics.</p><p>Teams also book custom adventure packages for outdoor retreats.</p>";
 
     const out = applyLinkTargetsPlanToHtmlDeterministic({
       htmlContent: html,
@@ -222,8 +222,32 @@ describe("applyLinkTargetsPlanToHtmlDeterministic", () => {
       post(11, "event-hosting", "Event Hosting", "pages"),
       post(12, "custom-adventure", "Custom Adventure Packages", "pages"),
     ];
-    expect(countInternalLinksInHtmlContent(out, posts, SITE_URL)).toBeGreaterThanOrEqual(2);
-    expect(out).toMatch(/<a href="https:\/\/example\.com\//);
+    expect(countInternalLinksInHtmlContent(out, posts, SITE_URL)).toBe(2);
+    expect(out).toContain('<a href="https://example.com/event-hosting/">event hosting</a>');
+    expect(out).toContain('<a href="https://example.com/custom-adventure/">custom adventure packages</a>');
+    expect(out).not.toMatch(/Related reading:/i);
+    expect(out).not.toMatch(/See <a href=/i);
+  });
+
+  it("leaves section unchanged when planned links cannot be woven in context", () => {
+    const html =
+      "<h2>Gear and Logistics</h2><p>Preparing for corporate glamping retreats involves thoughtful logistics.</p>";
+
+    const out = applyLinkTargetsPlanToHtmlDeterministic({
+      htmlContent: html,
+      linkTargetsPlan: planForSections([
+        { section: "Gear and Logistics", slug: "event-hosting", title: "Event Hosting", bucket: "pages" },
+      ]),
+      wordPressPosts: [
+        ...INVENTORY,
+        post(11, "event-hosting", "Event Hosting", "pages"),
+      ],
+      siteUrl: SITE_URL,
+    });
+
+    expect(out).toBe(html);
+    expect(out).not.toMatch(/Related reading:/i);
+    expect(out).not.toMatch(/See <a href=/i);
   });
 });
 

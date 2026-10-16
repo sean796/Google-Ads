@@ -93,8 +93,11 @@ class Neo_Pulse_Wp_Overseer_Ingest {
 			$referrer = substr( $referrer, 0, 512 );
 		}
 
-		$post_id = isset( $data['post_id'] ) ? absint( $data['post_id'] ) : 0;
-		if ( $post_id < 1 ) {
+		// The beacon sends the page's post ID. Look it up from the URL only for pageviews and
+		// interactions without one: url_to_postid() is slow, and heartbeat/exit events point back
+		// at their pageview through parent_visit_uid anyway.
+		$post_id = isset( $data['post_id'] ) && is_numeric( $data['post_id'] ) ? absint( $data['post_id'] ) : 0;
+		if ( $post_id < 1 && ! in_array( $event_type, array( 'page_heartbeat', 'page_exit' ), true ) ) {
 			$post_id = url_to_postid( $page_url );
 		}
 
@@ -189,19 +192,13 @@ class Neo_Pulse_Wp_Overseer_Ingest {
 
 		do_action( 'neo_pulse_wp_overseer_event_recorded', $visit_uid, $event_type, (object) $row );
 
-		Neo_Pulse_Wp_Overseer_Maintenance::maybe_prune_retention();
+		// Retention is pruned by the daily neo_pulse_wp_overseer_prune cron, not on every insert.
 
 		return array(
 			'ok'         => true,
 			'visit_uid'  => $visit_uid,
 			'session_id' => $session_id,
 		);
-	}
-	public static function record_visit( array $data ) {
-		if ( ! isset( $data['event_type'] ) ) {
-			$data['event_type'] = 'pageview';
-		}
-		return self::record_event( $data );
 	}
 	public static function sanitize_client_meta( array $meta, string $event_type = '' ): array {
 		if ( 'conversion' !== $event_type ) {

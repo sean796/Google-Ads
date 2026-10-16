@@ -183,15 +183,6 @@ class Neo_Pulse_Wp_Backend_Assist_Openrouter_Agent {
 		return is_string( $safe ) && $safe !== '' ? $safe : 'novamira_tool';
 	}
 
-	public static function ability_from_tool_name( string $tool_name, array $allowlist ): string {
-		foreach ( $allowlist as $name ) {
-			if ( self::tool_name_from_ability( $name ) === $tool_name ) {
-				return $name;
-			}
-		}
-		return '';
-	}
-
 	/**
 	 * @return array<string,mixed>
 	 */

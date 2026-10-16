@@ -5,7 +5,7 @@ section: WordPress
 method: POST
 path: /api/wordpress/pulse-assist-site-inventory
 auth: open
-order: 3030
+order: 3040
 ---
 
 POST `/api/wordpress/pulse-assist-site-inventory`.

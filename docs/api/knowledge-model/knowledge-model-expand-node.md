@@ -5,7 +5,7 @@ section: Knowledge Model
 method: POST
 path: /api/knowledge-model/expand-node
 auth: open
-order: 610
+order: 620
 ---
 
 POST `/api/knowledge-model/expand-node`.

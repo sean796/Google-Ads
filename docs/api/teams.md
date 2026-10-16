@@ -5,7 +5,7 @@ section: Teams
 method: POST
 path: /api/teams
 auth: session
-order: 1120
+order: 1130
 ---
 
 POST `/api/teams`.

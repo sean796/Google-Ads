@@ -7,6 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/class-neo-pulse-wp-csv.php';
+
 class Neo_Pulse_Wp_Chat_Logs_Gap_Csv {
 
 	const DEFAULT_MODEL = 'google/gemini-2.5-flash';
@@ -504,17 +506,17 @@ class Neo_Pulse_Wp_Chat_Logs_Gap_Csv {
 			$lines[] = implode(
 				',',
 				array(
-					self::csv_quote( $idea['keyword'] ),
-					self::csv_quote( '' ),
-					self::csv_quote( $idea['title'] ),
-					self::csv_quote( $idea['modifier'] ),
-					self::csv_quote( 'y' ),
-					self::csv_quote( isset( $schedule_dates[ $i ] ) ? (string) $schedule_dates[ $i ] : '' ),
-					self::csv_quote( $content_type ),
-					self::csv_quote( $idea['meta_description'] ),
-					self::csv_quote( '' ),
-					self::csv_quote( '' ),
-					self::csv_quote( '' ),
+					Neo_Pulse_Wp_Csv::cell( $idea['keyword'] ),
+					Neo_Pulse_Wp_Csv::cell( '' ),
+					Neo_Pulse_Wp_Csv::cell( $idea['title'] ),
+					Neo_Pulse_Wp_Csv::cell( $idea['modifier'] ),
+					Neo_Pulse_Wp_Csv::cell( 'y' ),
+					Neo_Pulse_Wp_Csv::cell( isset( $schedule_dates[ $i ] ) ? (string) $schedule_dates[ $i ] : '' ),
+					Neo_Pulse_Wp_Csv::cell( $content_type ),
+					Neo_Pulse_Wp_Csv::cell( $idea['meta_description'] ),
+					Neo_Pulse_Wp_Csv::cell( '' ),
+					Neo_Pulse_Wp_Csv::cell( '' ),
+					Neo_Pulse_Wp_Csv::cell( '' ),
 				)
 			);
 		}
@@ -546,12 +548,5 @@ class Neo_Pulse_Wp_Chat_Logs_Gap_Csv {
 			$dates[] = gmdate( 'Y-m-d\TH:i:s.000\Z', $start + $offset );
 		}
 		return $dates;
-	}
-
-	private static function csv_quote( string $value ): string {
-		if ( strpos( $value, '"' ) !== false || strpos( $value, ',' ) !== false || strpos( $value, "\n" ) !== false ) {
-			return '"' . str_replace( '"', '""', $value ) . '"';
-		}
-		return $value;
 	}
 }

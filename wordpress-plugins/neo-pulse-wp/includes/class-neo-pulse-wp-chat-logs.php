@@ -594,12 +594,20 @@ class Neo_Pulse_Wp_Chat_Logs {
 		);
 	}
 
+	/**
+	 * Delete rows older than the retention period. No cron covers this table, so it runs from
+	 * the insert path, but at most once every 12 hours instead of on every logged message.
+	 */
 	public static function maybe_prune_retention(): void {
 		$settings = self::get_settings();
 		$days     = (int) $settings['retention_days'];
 		if ( $days < 1 ) {
 			return;
 		}
+		if ( get_transient( 'neo_pulse_chat_logs_pruned' ) ) {
+			return;
+		}
+		set_transient( 'neo_pulse_chat_logs_pruned', 1, 12 * HOUR_IN_SECONDS );
 		$cutoff = gmdate( 'Y-m-d H:i:s', time() - ( $days * DAY_IN_SECONDS ) );
 		global $wpdb;
 		$table = self::messages_table_name();

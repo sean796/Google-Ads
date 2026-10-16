@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Building2,
   Clapperboard,
+  Cpu,
   Film,
   UserRound,
   Users,
@@ -99,6 +100,12 @@ export const MANAGER_NAV_SECTIONS: ManagerNavSection[] = [
         label: "Pulse Host",
         description: "Managed WordPress sites",
         icon: Server,
+      },
+      {
+        value: "neo-emcp",
+        label: "Neo EMCP",
+        description: "WordPress Abilities API, Elementor MCP tools, and 8-point schema doctor",
+        icon: Cpu,
       },
     ],
   },

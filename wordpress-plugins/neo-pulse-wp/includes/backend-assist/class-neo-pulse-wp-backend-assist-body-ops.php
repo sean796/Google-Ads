@@ -1231,9 +1231,4 @@ class Neo_Pulse_Wp_Backend_Assist_Body_Ops {
 
 		return $block . $html;
 	}
-
-	/** @deprecated Use validate_ops_result */
-	public static function validate_surgical_result( string $before, string $after, array $ops ) {
-		return self::validate_ops_result( $before, $after, $ops );
-	}
 }

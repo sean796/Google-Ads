@@ -38,7 +38,7 @@
 		return store.select.getActiveGeneralSidebarName() === SIDEBAR_ID;
 	}
 
-	function openNEO Pulse() {
+	function openNeoPulse() {
 		var store = getSidebarStore();
 		if (store) {
 			if (isSidebarOpen() && store.dispatch.closeGeneralSidebar) {
@@ -67,8 +67,6 @@
 		}
 	}
 
-	window.neoPulseWpAiOpenSidebar = openNEO Pulse;
-
 	function syncButtonState() {
 		var btn = document.querySelector('.' + WRAP_CLASS + ' .neo-pulse-wp-ai-toolbar-btn');
 		if (!btn) {
@@ -89,7 +87,7 @@
 		btn.addEventListener('click', function (event) {
 			event.preventDefault();
 			event.stopPropagation();
-			openNEO Pulse();
+			openNeoPulse();
 		});
 		syncButtonState();
 		return btn;

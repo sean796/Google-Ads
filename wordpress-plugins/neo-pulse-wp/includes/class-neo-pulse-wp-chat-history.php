@@ -9,6 +9,9 @@ defined( 'ABSPATH' ) || exit;
 
 class Neo_Pulse_Wp_Chat_History {
 
+	/** Longest assistant text kept from browser-sent history on the visitor pipeline. */
+	const ASSISTANT_TEXT_MAX = 800;
+
 	const CARD_BODY_SNAPSHOT_MAX = 200;
 
 	/**
@@ -38,6 +41,65 @@ class Neo_Pulse_Wp_Chat_History {
 			$out[] = $turn;
 		}
 
+		return $out;
+	}
+
+	/**
+	 * History for the public (visitor) pipeline. Assistant turns come back from the browser, so they
+	 * are kept only as short context: text trimmed to ASSISTANT_TEXT_MAX characters and card links
+	 * limited to this site's own URLs, so a forged turn cannot plant outside links or long
+	 * instructions. Other roles are dropped.
+	 *
+	 * @param array<int,array<string,mixed>> $history Normalized history.
+	 * @return array<int,array<string,mixed>>
+	 */
+	public static function for_visitor( array $history ): array {
+		$home = (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST );
+		$own  = static function ( $url ) use ( $home ): bool {
+			$host = (string) wp_parse_url( (string) $url, PHP_URL_HOST );
+			return $host === '' || strcasecmp( preg_replace( '/^www\./i', '', $host ), preg_replace( '/^www\./i', '', $home ) ) === 0;
+		};
+		$out = array();
+		foreach ( $history as $entry ) {
+			if ( ! is_array( $entry ) ) {
+				continue;
+			}
+			$role = $entry['role'] ?? '';
+			if ( $role === 'user' ) {
+				$out[] = $entry;
+				continue;
+			}
+			if ( $role !== 'assistant' ) {
+				continue;
+			}
+			$text = trim( wp_strip_all_tags( (string) ( $entry['content'] ?? '' ) ) );
+			if ( strlen( $text ) > self::ASSISTANT_TEXT_MAX ) {
+				$text = substr( $text, 0, self::ASSISTANT_TEXT_MAX ) . '…';
+			}
+			$clean = array(
+				'role'    => 'assistant',
+				'content' => $text,
+			);
+			if ( ! empty( $entry['card'] ) && is_array( $entry['card'] ) ) {
+				$card = $entry['card'];
+				if ( ! empty( $card['cta']['url'] ) && ! $own( $card['cta']['url'] ) ) {
+					unset( $card['cta'] );
+				}
+				if ( ! empty( $card['links'] ) && is_array( $card['links'] ) ) {
+					$card['links'] = array_values(
+						array_filter(
+							$card['links'],
+							static function ( $link ) use ( $own ) {
+								return is_array( $link ) && ! empty( $link['url'] ) && $own( $link['url'] );
+							}
+						)
+					);
+				}
+				unset( $card['body'] );
+				$clean['card'] = $card;
+			}
+			$out[] = $clean;
+		}
 		return $out;
 	}
 

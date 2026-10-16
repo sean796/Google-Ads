@@ -9,8 +9,13 @@ defined( 'ABSPATH' ) || exit;
 
 class Neo_Pulse_Wp_Backend_Assist_Submode {
 
-	/** @var array<int, string> */
-	private static $read_only_tools = array(
+	/**
+	 * Tools that never change site content (allowed in Ask/Plan; skip param prep).
+	 * Single source of truth, also used by Pipeline_Content_Prep.
+	 *
+	 * @var array<int, string>
+	 */
+	const READ_ONLY_TOOLS = array(
 		'get_chat_insights',
 		'get_search_insights',
 		'get_overseer_summary',
@@ -21,7 +26,6 @@ class Neo_Pulse_Wp_Backend_Assist_Submode {
 		'get_gsc_context',
 		'list_posts',
 		'get_post',
-		'list_seo_blocks',
 	);
 
 	public static function normalize_submode( string $submode ): string {
@@ -37,7 +41,7 @@ class Neo_Pulse_Wp_Backend_Assist_Submode {
 		if ( $tool === '' ) {
 			return false;
 		}
-		return ! in_array( $tool, self::$read_only_tools, true );
+		return ! in_array( $tool, self::READ_ONLY_TOOLS, true );
 	}
 
 	/**
@@ -116,14 +120,15 @@ class Neo_Pulse_Wp_Backend_Assist_Submode {
 		$intent = isset( $classification['intent'] ) ? $classification['intent'] : 'question';
 		$tool   = isset( $classification['tool'] ) ? sanitize_key( (string) $classification['tool'] ) : '';
 
+		// Write guard first: Ask mode never changes content.
+		if ( $intent === 'action' && $tool !== '' && self::is_write_tool( $tool ) ) {
+			return self::blocked_card( 'ask', $tool );
+		}
+
 		$params     = isset( $classification['params'] ) && is_array( $classification['params'] ) ? $classification['params'] : array();
 		$faq_append = Neo_Pulse_Wp_Backend_Assist_Pipeline_Content_Prep::try_faq_table_append_response( $message, $history, $params );
 		if ( is_array( $faq_append ) ) {
 			return $faq_append;
-		}
-
-		if ( $intent === 'action' && $tool !== '' && self::is_write_tool( $tool ) ) {
-			return self::blocked_card( 'ask', $tool );
 		}
 
 		return Neo_Pulse_Wp_Backend_Assist_Pipeline::run_from_classification( $classification, $message, $history );

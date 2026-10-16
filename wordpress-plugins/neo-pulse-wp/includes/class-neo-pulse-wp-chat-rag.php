@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
 
 class Neo_Pulse_Wp_Chat_Rag {
 
-	const CACHE_KEY         = 'neo_pulse_chat_context_cache_v4';
+	const CACHE_KEY         = 'neo_pulse_chat_context_cache_v5';
 	const BODY_CACHE_PREFIX = 'neo_pulse_chat_body_';
 	const FUZZY_MIN_SCORE   = 5.0;
 	const CACHE_TTL         = 3600;
@@ -25,18 +25,23 @@ class Neo_Pulse_Wp_Chat_Rag {
 
 	/**
 	 * Full page body for chat deep-read (rendered WP content, Elementor fallback, FAQ).
+	 * Password-protected posts are never read. Internal SEO fields (focus keyword, SEO research)
+	 * are only added for God Mode / backend requests, never for visitor-facing answers.
+	 *
+	 * @param int  $post_id            Post ID.
+	 * @param bool $include_seo_fields Add focus keyword + SEO research (backend only).
 	 */
-	public static function read_post_body_for_chat( int $post_id ): string {
+	public static function read_post_body_for_chat( int $post_id, bool $include_seo_fields = false ): string {
 		if ( $post_id < 1 ) {
 			return '';
 		}
 
 		$post = get_post( $post_id );
-		if ( ! $post instanceof WP_Post ) {
+		if ( ! $post instanceof WP_Post || (string) $post->post_password !== '' ) {
 			return '';
 		}
 
-		$cache_key = self::BODY_CACHE_PREFIX . $post_id . '_' . md5( (string) $post->post_modified_gmt );
+		$cache_key = self::BODY_CACHE_PREFIX . $post_id . '_' . md5( (string) $post->post_modified_gmt . ( $include_seo_fields ? '|seo' : '|pub' ) );
 		$cached    = get_transient( $cache_key );
 		if ( is_string( $cached ) && $cached !== '' ) {
 			return $cached;
@@ -45,18 +50,17 @@ class Neo_Pulse_Wp_Chat_Rag {
 		$parts = array();
 		$body  = Neo_Pulse_Wp_Rest::get_rendered_content_plain( $post_id );
 		if ( $body === '' ) {
-			if ( ! class_exists( 'Neo_Pulse_Wp_Seo_Blocks_Context' ) ) {
-				require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/seo-builder/class-neo-pulse-wp-seo-blocks-context.php';
-			}
-			$body = Neo_Pulse_Wp_Seo_Blocks_Context::extract_page_body_text( $post_id );
+			$body = Neo_Pulse_Wp_Elementor_Text::extract_page_body_text( $post_id );
 		}
 		if ( $body !== '' ) {
 			$parts[] = $body;
 		}
 
-		$focus = Neo_Pulse_Wp_Ai_Context::read_focus_keyword( $post_id );
-		if ( $focus !== '' ) {
-			$parts[] = 'Focus keyword: ' . $focus;
+		if ( $include_seo_fields ) {
+			$focus = Neo_Pulse_Wp_Ai_Context::read_focus_keyword( $post_id );
+			if ( $focus !== '' ) {
+				$parts[] = 'Focus keyword: ' . $focus;
+			}
 		}
 
 		$faq = Neo_Pulse_Wp_Ai_Context::read_field_value( $post_id, 'faq' );
@@ -64,12 +68,14 @@ class Neo_Pulse_Wp_Chat_Rag {
 			$parts[] = "FAQ:\n" . $faq;
 		}
 
-		$research = Neo_Pulse_Wp_Ai_Context::read_field_value( $post_id, 'seo_research' );
-		if ( $research !== '' ) {
-			if ( strlen( $research ) > self::SEO_RESEARCH_MAX ) {
-				$research = substr( $research, 0, self::SEO_RESEARCH_MAX ) . '…';
+		if ( $include_seo_fields ) {
+			$research = Neo_Pulse_Wp_Ai_Context::read_field_value( $post_id, 'seo_research' );
+			if ( $research !== '' ) {
+				if ( strlen( $research ) > self::SEO_RESEARCH_MAX ) {
+					$research = substr( $research, 0, self::SEO_RESEARCH_MAX ) . '…';
+				}
+				$parts[] = "SEO research:\n" . $research;
 			}
-			$parts[] = "SEO research:\n" . $research;
 		}
 
 		$text = trim( implode( "\n\n", $parts ) );
@@ -838,6 +844,9 @@ class Neo_Pulse_Wp_Chat_Rag {
 	 * @return array<string,mixed>|null
 	 */
 	private static function map_post_to_index_item( WP_Post $post, string $post_type, int $trim_length = 40 ): ?array {
+		if ( (string) $post->post_password !== '' ) {
+			return null; // Password-protected: keep out of the visitor chat index.
+		}
 		$url = get_permalink( $post );
 		if ( ! $url ) {
 			return null;
@@ -1267,9 +1276,11 @@ class Neo_Pulse_Wp_Chat_Rag {
 						'id'             => $post->ID,
 						'title'          => get_the_title( $post ),
 						'url'            => get_permalink( $post ),
-						'excerpt'        => has_excerpt( $post->ID )
-							? wp_strip_all_tags( get_the_excerpt( $post ) )
-							: wp_trim_words( wp_strip_all_tags( $post->post_content ), 40, '...' ),
+						'excerpt'        => (string) $post->post_password !== ''
+							? ''
+							: ( has_excerpt( $post->ID )
+								? wp_strip_all_tags( get_the_excerpt( $post ) )
+								: wp_trim_words( wp_strip_all_tags( $post->post_content ), 40, '...' ) ),
 						'type'           => $pt,
 						'status'         => $post->post_status,
 						'focus_keyword'  => $focus,

@@ -15,6 +15,7 @@ import type { StoredFile } from '@/components/KnowledgeBaseTab';
 import { extractNAPFromSite } from '@/lib/nap-extractor';
 import { createNAPTemplate } from '@/lib/nap-kb-template';
 import { BACKEND_API_BASE } from '@/lib/wordpress-api/connection';
+import { resolveModelForAgentCategory } from '@/lib/openrouter-agent-category-api';
 
 const KB_FILES_STORAGE_KEY = 'kb_files';
 const SAVED_GRAPHS_KEY = 'kg_saved_graphs'; // Track saved graphs to prevent duplicates
@@ -80,7 +81,7 @@ Provide a concise summary that preserves all critical information while minimizi
     
     await streamChatCompletion({
       apiKey,
-      model: 'google/gemini-2.5-flash-lite',
+      model: resolveModelForAgentCategory("research"),
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }

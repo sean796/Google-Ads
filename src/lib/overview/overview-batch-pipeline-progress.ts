@@ -5,8 +5,45 @@ import type {
 } from "@/components/overview/overview-tab-constants";
 import { CONTENT_OPTIMIZER_BULK_PAGE_SIZE } from "@/lib/content-optimizer/content-optimizer-bulk-page-size";
 
-/** Sequential debug: one post per Pulse request so each write can be inspected. */
-export const OVERVIEW_WP_API_BATCH_SIZE = 1;
+/** Max items per Pulse request when uploading meta/ACF only (matches WP batch/v1 limit). */
+export const OVERVIEW_WP_API_META_BATCH_SIZE = 25;
+
+/** Max items per Pulse request when any item includes full postContent HTML. */
+export const OVERVIEW_WP_API_HTML_BATCH_SIZE = 8;
+
+/** Default WordPress bulk upload batch size. */
+export const OVERVIEW_WP_API_BATCH_SIZE = OVERVIEW_WP_API_META_BATCH_SIZE;
+
+export function chunkWpUploadItems<T>(
+  items: readonly T[],
+  hasHtml: (item: T) => boolean,
+): T[][] {
+  if (!items.length) return [];
+  const chunks: T[][] = [];
+  let current: T[] = [];
+  let chunkHasHtml = false;
+
+  for (const item of items) {
+    const itemHasHtml = hasHtml(item);
+    const nextHasHtml = chunkHasHtml || itemHasHtml;
+    const maxForChunk = nextHasHtml
+      ? OVERVIEW_WP_API_HTML_BATCH_SIZE
+      : OVERVIEW_WP_API_META_BATCH_SIZE;
+
+    if (current.length > 0 && current.length >= maxForChunk) {
+      chunks.push(current);
+      current = [item];
+      chunkHasHtml = itemHasHtml;
+    } else {
+      current.push(item);
+      chunkHasHtml = nextHasHtml;
+    }
+  }
+  if (current.length > 0) {
+    chunks.push(current);
+  }
+  return chunks;
+}
 
 export function overviewWpApiBatchCount(total: number): number {
   if (total <= 0) return 0;
@@ -68,11 +105,28 @@ export function buildKeywordBatchPipelineSteps(
   });
 }
 
-export function buildWpUploadBatchPipelineSteps(total: number): MetaPipelineStepUi[] {
+export function buildWpUploadBatchPipelineSteps(
+  totalOrChunkLengths: number | readonly number[],
+): MetaPipelineStepUi[] {
+  if (Array.isArray(totalOrChunkLengths)) {
+    const count = totalOrChunkLengths.length;
+    return totalOrChunkLengths.map((rowCount, batchIndex) => ({
+      id: `batch-${batchIndex}`,
+      label:
+        rowCount === 1 && count === totalOrChunkLengths.reduce((a, b) => a + b, 0)
+          ? `WP post ${batchIndex + 1}/${count}`
+          : `WP batch ${batchIndex + 1}/${count} (${rowCount} ${rowCount === 1 ? "post" : "posts"})`,
+      status: "waiting" as PipelineStepStatus,
+    }));
+  }
+  const total = totalOrChunkLengths as number;
   const batchSize = OVERVIEW_WP_API_BATCH_SIZE;
   const batchCount = overviewWpApiBatchCount(total);
-  return buildBatchPipelineSteps(batchCount, batchSize, total, (batchIndex, count) => {
-    return `WP post ${batchIndex + 1}/${count}`;
+  return buildBatchPipelineSteps(batchCount, batchSize, total, (batchIndex, count, rowCount) => {
+    if (batchSize === 1) {
+      return `WP post ${batchIndex + 1}/${count}`;
+    }
+    return `WP batch ${batchIndex + 1}/${count} (${rowCount} ${rowCount === 1 ? "post" : "posts"})`;
   });
 }
 

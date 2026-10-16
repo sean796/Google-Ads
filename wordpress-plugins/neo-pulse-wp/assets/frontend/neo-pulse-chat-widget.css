@@ -125,25 +125,6 @@
   overflow: hidden;
 }
 
-/* ── Header ─────────────────────────────────────────────────── */
-.fcw-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: var(--fcw-header-bg);
-  border-bottom: 1px solid var(--fcw-border);
-  flex-shrink: 0;
-}
-.neo-pulse-chat-widget.fcw-hide-header .fcw-header { display: none !important; }
-.fcw-header__title {
-  font-weight: 600;
-  font-size: 1em;
-  color: var(--fcw-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 /* ── Toolbar icon buttons ───────────────────────────────────── */
 .neo-pulse-chat-widget .fai-sidebar-panel__toolbar button:not(.fcw-mode-btn) {
   background: transparent !important;
@@ -184,50 +165,6 @@
   background-color: transparent !important;
   border: none !important;
   box-shadow: none !important;
-}
-
-.fcw-toolbar-hidden {
-  display: none !important;
-}
-
-.neo-pulse-chat-widget .fai-sidebar-menu-panel a.fcw-inventory-download[hidden] {
-  display: none !important;
-}
-
-.neo-pulse-chat-widget.fcw-hide-assistant-name .fcw-header__title { display: none !important; }
-.fcw-header__close {
-  background: none;
-  border: none;
-  color: var(--fcw-text-muted);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--fcw-radius-sm);
-  padding: 6px;
-  transition: color 0.15s, background 0.15s;
-}
-.fcw-header__close:hover {
-  color: var(--fcw-text);
-  background: var(--fcw-bg-elevated);
-}
-.neo-pulse-chat-widget.fcw-hide-close-button .fcw-header__close { display: none !important; }
-.fcw-header__clear {
-  background: none;
-  border: none;
-  box-shadow: none;
-  color: #1e293b;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--fcw-radius-sm);
-  padding: 6px;
-  transition: color 0.15s;
-}
-.fcw-header__clear:hover {
-  color: #0f172a;
-  background: none;
 }
 
 /* ── Messages area ──────────────────────────────────────────── */
@@ -658,11 +595,8 @@
 }
 .neo-pulse-chat-widget.fcw-hide-send-button .fcw-send { display: none !important; }
 .neo-pulse-chat-widget.fcw-hide-powered-by .fcw-powered { display: none !important; }
-.neo-pulse-chat-widget.fcw-hide-avatar .fcw-avatar { display: none !important; }
 .neo-pulse-chat-widget.fcw-hide-mic-button .fcw-mic,
 .neo-pulse-chat-widget.fcw-hide-mic-button .neo-pulse-voice-ptt { display: none !important; }
-.neo-pulse-chat-widget.fcw-hide-voice-toast .fcw-voice-toast { display: none !important; }
-.neo-pulse-chat-widget.fcw-hide-welcome-message .fcw-welcome { display: none !important; }
 
 .fcw-send svg {
   color: var(--fcw-icon, var(--fcw-accent-text));
@@ -1168,18 +1102,6 @@ body:has(#neo-pulse-chat-widget-root.fai-sidebar-root--peek.fai-sidebar-root--le
   text-decoration: underline;
 }
 
-.fcw-card__conversion-form .neo-pulse-form {
-  margin-top: 4px;
-}
-
-.fcw-card__conversion-form .neo-pulse-form__field {
-  margin-bottom: 8px;
-}
-
-.fcw-card__conversion-form .neo-pulse-form__button {
-  width: 100%;
-}
-
 .fcw-contact-human__overlay {
   position: fixed;
   inset: 0;
@@ -1249,7 +1171,6 @@ body:has(#neo-pulse-chat-widget-root.fai-sidebar-root--peek.fai-sidebar-root--le
   box-shadow: none !important;
   outline: none !important;
 }
-
 
 .fcw-contact-human__form-heading {
   margin: 0 0 8px;

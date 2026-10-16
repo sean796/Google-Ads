@@ -28,7 +28,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Robots_Txt {
 		</div>
 
 		<?php if ( Neo_Pulse_Wp_Robots_Txt::has_physical_file() ) : ?>
-			<div class="notice notice-warning neo-pulse-wp-acf-shell-notice">
+			<div class="notice inline notice-warning neo-pulse-wp-acf-shell-notice">
 				<p><?php esc_html_e( 'A physical robots.txt file exists in the site root. It overrides NEO Pulse and WordPress virtual robots.txt output.', 'neo-pulse-wp' ); ?></p>
 			</div>
 		<?php endif; ?>

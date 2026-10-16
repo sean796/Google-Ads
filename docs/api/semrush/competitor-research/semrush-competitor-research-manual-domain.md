@@ -5,7 +5,7 @@ section: Semrush
 method: POST
 path: /api/semrush/competitor-research/manual-domain
 auth: open
-order: 990
+order: 1000
 ---
 
 POST `/api/semrush/competitor-research/manual-domain`.

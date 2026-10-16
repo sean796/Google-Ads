@@ -20,7 +20,8 @@ class Neo_Pulse_Wp_Gmb_Rest {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( __CLASS__, 'create_social_post' ),
-				'permission_callback' => array( 'Neo_Pulse_Wp_Ai_Rest', 'edit_post_permission' ),
+				// Publishing to the business's Google profile is an admin action, not an editor one.
+				'permission_callback' => array( __CLASS__, 'publish_permission' ),
 				'args'                => array(
 					'post_id' => array(
 						'type'              => 'integer',
@@ -76,6 +77,23 @@ class Neo_Pulse_Wp_Gmb_Rest {
 				},
 			)
 		);
+	}
+
+	/**
+	 * Permission for /ai/gmb-post: manage_options plus the usual edit-this-post check.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return bool|WP_Error
+	 */
+	public static function publish_permission( $request ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return new WP_Error(
+				'rest_forbidden',
+				__( 'Only administrators can publish to Google Business Profile.', 'neo-pulse-wp' ),
+				array( 'status' => rest_authorization_required_code() )
+			);
+		}
+		return Neo_Pulse_Wp_Ai_Rest::edit_post_permission( $request );
 	}
 
 	/**

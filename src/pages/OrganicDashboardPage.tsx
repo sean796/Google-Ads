@@ -58,6 +58,8 @@ import {
 } from "@/lib/organic-dashboard/organic-dashboard-report-errors";
 import { buildOrganicDashboardViewModel } from "@/lib/organic-dashboard/organic-dashboard-view-model";
 import { writeOrganicClientReportDeckSession } from "@/lib/organic-dashboard/organic-client-report-deck-session";
+import { buildOrganicClientReportContent } from "@/lib/organic-dashboard/organic-client-report-content";
+import { downloadOrganicClientReportPdf } from "@/lib/organic-dashboard/organic-client-report-print";
 import { resolveClientReportHighlights } from "@/lib/organic-dashboard/organic-reporting-highlights";
 import { useOrganicReportingHighlightsQuery } from "@/hooks/use-organic-reporting-highlights-query";
 import { writeOrganicDashboardDateSession } from "@/lib/organic-dashboard/organic-dashboard-date-session";
@@ -127,6 +129,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
   );
   const [datePopoverOpen, setDatePopoverOpen] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [downloadPdfBusy, setDownloadPdfBusy] = useState(false);
   const [ga4PropertyId, setGa4PropertyId] = useState(() => resolveGa4PropertyIdForReporting(site));
 
   useEffect(() => {
@@ -254,13 +257,19 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     [query.data, showCompare],
   );
 
+  const siteDisplayName = site.name?.trim() || site.siteUrl;
+  const sitePublicUrl = useMemo(
+    () => getPublicSiteUrl(site).trim() || site.siteUrl.trim(),
+    [site],
+  );
+
   const highlightsQuery = useOrganicReportingHighlightsQuery({
     siteId: site.id,
     bundle: query.data,
     fetchParams,
     showCompare,
-    siteDisplayName: site.name?.trim() || site.siteUrl,
-    sitePublicUrl: getPublicSiteUrl(site).trim() || site.siteUrl.trim(),
+    siteDisplayName,
+    sitePublicUrl,
     enabled: reportingSection === "performance",
   });
 
@@ -283,12 +292,6 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     }
   }, [fetchParams, highlightsQuery, query, reportingSection, speedQuery]);
 
-  const siteDisplayName = site.name?.trim() || site.siteUrl;
-  const sitePublicUrl = useMemo(
-    () => getPublicSiteUrl(site).trim() || site.siteUrl.trim(),
-    [site],
-  );
-
   const handleExportPdf = useCallback(() => {
     if (reportingSection !== "performance") return;
     if (!query.data || query.isLoading) {
@@ -296,7 +299,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
       return;
     }
     const vm = buildOrganicDashboardViewModel(query.data, { showCompare });
-    const highlights = resolveClientReportHighlights(highlightsQuery.data, siteDisplayName);
+    const highlights = resolveClientReportHighlights(highlightsQuery.data, siteDisplayName, vm);
     const preparedOn = formatLocalYmd(new Date());
     const deckId = crypto.randomUUID();
     writeOrganicClientReportDeckSession(deckId, {
@@ -311,7 +314,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     const base = import.meta.env.BASE_URL.replace(/\/$/, "");
     const path = `${base}/sites/${site.id}/organic/client-report?deck=${encodeURIComponent(deckId)}`;
     const absolute = new URL(path, window.location.origin).href;
-    const opened = window.open(absolute, "_blank", "noopener,noreferrer");
+    const opened = window.open(absolute, "_blank");
     if (!opened) {
       reportError("Client report · allow pop-ups to open the report in a new tab.");
     }
@@ -323,6 +326,49 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     reportError,
     showCompare,
     site.id,
+    siteDisplayName,
+    sitePublicUrl,
+  ]);
+
+  const handleDownloadPdf = useCallback(async () => {
+    if (reportingSection !== "performance" || downloadPdfBusy) return;
+    if (!query.data || query.isLoading) {
+      reportError("Client report · load Performance data before downloading PDF.");
+      return;
+    }
+    setDownloadPdfBusy(true);
+    try {
+      const vm = buildOrganicDashboardViewModel(query.data, { showCompare });
+      let resolvedHighlights = highlightsQuery.data;
+      if (!resolvedHighlights) {
+        const refetched = await highlightsQuery.refetch();
+        resolvedHighlights = refetched.data;
+      }
+      const highlights = resolveClientReportHighlights(resolvedHighlights, siteDisplayName, vm);
+      const preparedOn = formatLocalYmd(new Date());
+      const content = buildOrganicClientReportContent({
+        viewModel: vm,
+        highlights,
+        siteName: siteDisplayName,
+        siteUrl: sitePublicUrl,
+        showCompare,
+        preparedOn,
+      });
+      await downloadOrganicClientReportPdf({ content, preparedOn });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "PDF download failed.";
+      reportError(`Client report · ${message}`);
+    } finally {
+      setDownloadPdfBusy(false);
+    }
+  }, [
+    downloadPdfBusy,
+    highlightsQuery,
+    query.data,
+    query.isLoading,
+    reportError,
+    reportingSection,
+    showCompare,
     siteDisplayName,
     sitePublicUrl,
   ]);
@@ -341,7 +387,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     <div className={CONTENT_OPTIMIZER_WORKSPACE_SHELL_CLASS}>
       <div className={SEO_WORKSPACE_HEADER_CLASS}>
         <OrganicDashboardWorkspaceHeader
-          workspaceBusy={false}
+          workspaceBusy={downloadPdfBusy}
           titleRowMenu={
             <ReportingSectionPills
               activeSection={reportingSection}
@@ -352,6 +398,8 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
           showDateRange={reportingSection === "performance"}
           onRefresh={handleRefresh}
           onExportPdf={handleExportPdf}
+          onDownloadPdf={() => void handleDownloadPdf()}
+          downloadPdfBusy={downloadPdfBusy}
           exportPdfDisabled={reportingSection !== "performance" || !query.data}
           showExportPdf={reportingSection === "performance"}
           onShareLink={() => void handleShareLink()}

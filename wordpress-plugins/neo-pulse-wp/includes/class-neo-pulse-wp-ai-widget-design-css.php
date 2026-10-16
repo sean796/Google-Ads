@@ -437,6 +437,24 @@ trait Neo_Pulse_Wp_Ai_Widget_Design_Css {
 		$parts[] = '--fcw-offset-x:' . max( 0, (int) ( $t['offset_x'] ?? 20 ) ) . 'px';
 		$parts[] = '--fcw-offset-y:' . max( 0, (int) ( $t['offset_y'] ?? 20 ) ) . 'px';
 		$parts[] = '--fcw-z-index:' . max( 1, (int) ( $t['z_index'] ?? 999999 ) );
+		// Shapes from the NEO Pulse Chat widget; the stylesheet has defaults when these are not set.
+		$shapes = array(
+			'panel_radius'    => array( 'panel-radius', 0, 48, 'px' ),
+			'msg_radius'      => array( 'msg-radius', 0, 32, 'px' ),
+			'pill_radius'     => array( 'pill-radius', 0, 999, 'px' ),
+			'composer_radius' => array( 'composer-radius', 0, 40, 'px' ),
+			'head_size'       => array( 'head-size', 12, 32, 'px' ),
+			'bd_opacity'      => array( 'bd-opacity', 0, 100, '%' ),
+			'bd_blur'         => array( 'bd-blur', 0, 24, 'px' ),
+		);
+		foreach ( $shapes as $key => $shape ) {
+			if ( isset( $t[ $key ] ) && $t[ $key ] !== '' ) {
+				$parts[] = '--fcw-' . $shape[0] . ':' . max( $shape[1], min( $shape[2], (int) $t[ $key ] ) ) . $shape[3];
+			}
+		}
+		if ( ! empty( $t['bd_color'] ) ) {
+			$parts[] = '--fcw-bd-color:' . esc_attr( (string) $t['bd_color'] );
+		}
 		return implode( ';', $parts ) . ';';
 	}
 

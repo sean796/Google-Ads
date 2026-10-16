@@ -9,9 +9,18 @@ import { filterWorkflowOutputsForSite } from "@/lib/workflow/workflow-rag-client
 import { executeWorkflowThenStep } from "@/lib/workflow/workflow-then-runner";
 import { linearExecutableTailNodes } from "@/lib/workflow/workflow-linear-tail";
 import { thenConfig, workflowThenOutputExistsForSite } from "@/lib/workflow/workflow-then-utils";
-import { workflowClientVariableSuffix } from "@/lib/workflow/workflow-client-config";
+import {
+  resolveWorkflowClientSiteIds,
+  workflowClientVariableSuffix,
+} from "@/lib/workflow/workflow-client-config";
+import { findClientNode } from "@/lib/workflow/workflow-graph-utils";
+import { listWorkflowAvailableSiteIds } from "@/lib/workflow/workflow-available-sites";
 import { workflowRunThenEmailAlreadySent } from "@/lib/workflow/workflow-then-aggregate";
-import type { WorkflowActionConfig, WorkflowStepOutput } from "@/lib/workflow/workflow-types";
+import type {
+  WorkflowActionConfig,
+  WorkflowClientConfig,
+  WorkflowStepOutput,
+} from "@/lib/workflow/workflow-types";
 import { isWorkflowThenKind } from "@/lib/workflow/workflow-types";
 
 function textField(source: Record<string, unknown> | undefined, key: string): string {
@@ -126,7 +135,18 @@ export async function runWorkflowBoundDeliverySteps(args: {
   ).trim();
   const siteContext = resolveSiteContext(siteId || undefined, args.run);
   const executionKind = resolveExecutionKind(workflow, binding.workflowNodeId);
-  const allSiteIds = siteId ? [siteId] : [];
+  const clientNode = findClientNode(workflow);
+  const clientConfig = (clientNode?.config ?? {}) as WorkflowClientConfig;
+  const resolvedClientSiteIds = resolveWorkflowClientSiteIds(
+    clientConfig,
+    listWorkflowAvailableSiteIds(),
+  );
+  const allSiteIds =
+    resolvedClientSiteIds.length > 0
+      ? resolvedClientSiteIds
+      : siteId
+        ? [siteId]
+        : [];
 
   for (const node of thenNodes) {
     if (workflowThenOutputExistsForSite(outputs, node.id, siteId, args.run.id)) {
@@ -149,7 +169,7 @@ export async function runWorkflowBoundDeliverySteps(args: {
         allOutputs: outputs,
       });
       if (!thenResult.ok) {
-        throw new Error(thenResult.error ?? "Google Drive step failed.");
+        throw new Error(thenResult.error ?? "Automation email step failed.");
       }
       if (thenResult.output) {
         const saved = await saveThenOutput(

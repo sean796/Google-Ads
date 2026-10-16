@@ -1,6 +1,6 @@
 <?php
 /**
- * OpenRouter video jobs (Grok Imagine): submit a clip from a first frame, poll, download.
+ * OpenRouter video jobs (HeyGen Video / Grok Imagine): submit a clip from a first frame (and optional target last frame), poll, download.
  *
  * @package Neo_Pulse_App
  */
@@ -12,10 +12,25 @@ class Neo_Pulse_App_Openrouter_Video {
 	const VIDEOS_URL = 'https://openrouter.ai/api/v1/videos';
 
 	/**
-	 * @param array{model:string,prompt:string,duration:int,resolution:string,aspectRatio:string,firstFrameDataUrl:string} $opts
+	 * @param array{model:string,prompt:string,duration:int,resolution:string,aspectRatio:string,firstFrameDataUrl:string,lastFrameDataUrl?:string} $opts
 	 * @return array{id:string,pollingUrl:string}|WP_Error
 	 */
 	public static function submit( string $api_key, array $opts ) {
+		$frame_images = array(
+			array(
+				'type'       => 'image_url',
+				'image_url'  => array( 'url' => $opts['firstFrameDataUrl'] ),
+				'frame_type' => 'first_frame',
+			),
+		);
+		if ( ! empty( $opts['lastFrameDataUrl'] ) ) {
+			$frame_images[] = array(
+				'type'       => 'image_url',
+				'image_url'  => array( 'url' => (string) $opts['lastFrameDataUrl'] ),
+				'frame_type' => 'last_frame',
+			);
+		}
+
 		$response = wp_remote_post(
 			self::VIDEOS_URL,
 			array(
@@ -28,13 +43,7 @@ class Neo_Pulse_App_Openrouter_Video {
 						'duration'     => (int) $opts['duration'],
 						'resolution'   => $opts['resolution'],
 						'aspect_ratio' => $opts['aspectRatio'],
-						'frame_images' => array(
-							array(
-								'type'       => 'image_url',
-								'image_url'  => array( 'url' => $opts['firstFrameDataUrl'] ),
-								'frame_type' => 'first_frame',
-							),
-						),
+						'frame_images' => $frame_images,
 					)
 				),
 			)

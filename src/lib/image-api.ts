@@ -77,7 +77,7 @@ export const generateImage = async ({
           },
         ],
         image_config: { aspect_ratio: aspectRatio },
-        max_tokens: 8192,
+        max_tokens: 16384,
       }),
     });
 

@@ -40,7 +40,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Search_Logs {
 		?>
 		<div class="wrap">
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'Search Logs', 'neo-pulse-wp' ); ?></h1>
-			<a href="<?php echo esc_url( admin_url( 'admin.php?page=neo-pulse-wp-search-logs&action=import-export' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Import & Export', 'neo-pulse-wp' ); ?></a>
+			<a href="<?php echo esc_url( admin_url( 'admin.php?page=neo-pulse-wp-search-logs&action=import-export' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Export', 'neo-pulse-wp' ); ?></a>
 			<a href="<?php echo esc_url( admin_url( 'admin.php?page=neo-pulse-wp-search-logs&action=settings' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Settings', 'neo-pulse-wp' ); ?></a>
 			<hr class="wp-header-end" />
 
@@ -98,7 +98,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Search_Logs {
 		self::neo_pulse_group_shell_open( 'neo-pulse-wp-search-logs', 'neo-pulse-wp-search-logs' );
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Search Logs Import & Export', 'neo-pulse-wp' ); ?></h1>
+			<h1><?php esc_html_e( 'Export Search Logs', 'neo-pulse-wp' ); ?></h1>
 			<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=neo-pulse-wp-search-logs' ) ); ?>">&larr; <?php esc_html_e( 'Back to list', 'neo-pulse-wp' ); ?></a></p>
 
 			<div class="neo-pulse-wp-search-logs__panels">

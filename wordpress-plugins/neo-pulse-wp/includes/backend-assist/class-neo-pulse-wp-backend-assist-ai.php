@@ -9,69 +9,42 @@ defined( 'ABSPATH' ) || exit;
 
 class Neo_Pulse_Wp_Backend_Assist_Ai {
 
+	/**
+	 * @param array<string, mixed> $extra Extra request body fields (e.g. response_format).
+	 * @return string|WP_Error
+	 */
 	public static function call_openrouter( string $model, string $system_prompt, string $user_prompt, int $max_tokens = 1024, float $temperature = 0.3, array $extra = array() ) {
-		$key = Neo_Pulse_Wp_OpenRouter::get_api_key();
-		if ( $key === '' ) {
-			return new WP_Error( 'neo-pulse_openrouter_key', __( 'OpenRouter API key not configured.', 'neo-pulse-wp' ) );
-		}
-
-		Neo_Pulse_Wp_OpenRouter::maybe_extend_time_limit();
-
-		$response = wp_remote_post(
-			Neo_Pulse_Wp_OpenRouter::API_URL,
-			array(
-				'timeout' => Neo_Pulse_Wp_OpenRouter::get_timeout(),
-				'headers' => Neo_Pulse_Wp_OpenRouter::request_headers( $key ),
-				'body'    => wp_json_encode( array_merge(
-					array(
-						'model'       => $model,
-						'messages'    => array(
-							array( 'role' => 'system', 'content' => $system_prompt ),
-							array( 'role' => 'user', 'content' => $user_prompt ),
-						),
-						'temperature' => $temperature,
-						'max_tokens'  => $max_tokens,
-					),
-					$extra
-				) ),
-			)
-		);
-
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
-
-		$code = (int) wp_remote_retrieve_response_code( $response );
-		$raw  = wp_remote_retrieve_body( $response );
-		$data = json_decode( $raw, true );
-
-		if ( $code < 200 || $code >= 300 ) {
-			$msg = '';
-			if ( is_array( $data ) && isset( $data['error']['message'] ) ) {
-				$msg = (string) $data['error']['message'];
-			}
-			return new WP_Error( 'neo-pulse_backend_ai', $msg ?: sprintf( 'HTTP %d', $code ) );
-		}
-
-		$text = '';
-		if ( is_array( $data ) && isset( $data['choices'][0]['message']['content'] ) ) {
-			$text = trim( (string) $data['choices'][0]['message']['content'] );
-		}
-
-		if ( $text === '' ) {
-			return new WP_Error( 'neo-pulse_backend_empty', __( 'AI returned empty content.', 'neo-pulse-wp' ) );
-		}
-
-		return $text;
+		return Neo_Pulse_Wp_OpenRouter::complete( $system_prompt, $user_prompt, $max_tokens, $temperature, $model, $extra );
 	}
-	public static function parse_json_response( string $text ): ?array {
+
+	/**
+	 * Parse a JSON object/array from model output: strips ``` fences, then falls back to the
+	 * first {...} span. Single helper for Backend Assist and the content harness.
+	 *
+	 * @return array<mixed>|null
+	 */
+	public static function parse_json( string $text ): ?array {
 		$text = trim( $text );
-		$text = preg_replace( '/^```(?:json)?\s*/i', '', $text );
-		$text = preg_replace( '/\s*```$/', '', $text );
+		$text = (string) preg_replace( '/^```(?:json)?\s*/i', '', $text );
+		$text = (string) preg_replace( '/\s*```\s*$/', '', $text );
 		$text = trim( $text );
 
 		$decoded = json_decode( $text, true );
-		return is_array( $decoded ) ? $decoded : null;
+		if ( is_array( $decoded ) ) {
+			return $decoded;
+		}
+		if ( preg_match( '/\{[\s\S]*\}/', $text, $m ) ) {
+			$decoded = json_decode( $m[0], true );
+			return is_array( $decoded ) ? $decoded : null;
+		}
+		return null;
+	}
+
+	/**
+	 * @return array<mixed>|null
+	 */
+	public static function parse_json_response( string $text ): ?array {
+		return self::parse_json( $text );
 	}
 	public static function build_site_context(): string {
 		$lines   = array();

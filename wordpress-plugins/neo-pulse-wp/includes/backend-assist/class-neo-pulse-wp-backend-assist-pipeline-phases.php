@@ -167,12 +167,40 @@ PROMPT;
 
 		return array( 'tool' => $resolved_tool, 'params' => $resolved_params );
 	}
-	public static function phase_execute( string $tool, array $params ): array {
+	/**
+	 * @param mixed                $tool   Tool name (model output; validated here).
+	 * @param array<string, mixed> $params Tool params.
+	 * @return array<string, mixed>
+	 */
+	public static function phase_execute( $tool, array $params ): array {
+		if ( ! is_string( $tool ) || $tool === '' || ! isset( Neo_Pulse_Wp_Backend_Assist_Context::$tool_registry[ $tool ] ) ) {
+			return array(
+				'success' => false,
+				'error'   => sprintf(
+					/* translators: %s: tool name */
+					__( 'Unknown tool: %s', 'neo-pulse-wp' ),
+					is_string( $tool ) ? sanitize_key( $tool ) : gettype( $tool )
+				),
+			);
+		}
 		$entry   = Neo_Pulse_Wp_Backend_Assist_Context::$tool_registry[ $tool ];
-		$handler = $entry['handler'];
+		$handler = is_array( $entry ) && isset( $entry['handler'] ) ? $entry['handler'] : null;
+		if ( ! is_callable( $handler ) ) {
+			return array(
+				'success' => false,
+				'error'   => __( 'Tool handler missing.', 'neo-pulse-wp' ),
+			);
+		}
 
 		try {
-			return call_user_func( $handler, $params );
+			$result = call_user_func( $handler, $params );
+			if ( is_wp_error( $result ) ) {
+				return array(
+					'success' => false,
+					'error'   => $result->get_error_message(),
+				);
+			}
+			return is_array( $result ) ? $result : array( 'success' => false, 'error' => __( 'Tool returned an invalid result.', 'neo-pulse-wp' ) );
 		} catch ( \Throwable $e ) {
 			return array(
 				'success' => false,
@@ -465,8 +493,8 @@ MANDATORY RULES:
 - For body ops paths, reference section targeting and op types, not rewritten prose.
 - For workflows, explain step order and dependencies without slot HTML or section drafts.
 - A new page or post always includes focus keyword, SEO title, meta description, and content. NEVER say meta or content was not requested.
-- When checklist labels include compose, save, or apply SEO block, plan_description MUST say Build will create an Agent Hub SEO block for THIS page and apply it.
-- When checklist labels include H2: or H3: rows, plan_description MUST name those headings. Those headings are the block. Do not hide them behind "structured content" or "relevant sections".
+- When checklist labels include Compose Elementor sections, plan_description MUST say Build will write the section copy and design THIS page with native Elementor widgets.
+- When checklist labels include H2: or H3: rows, plan_description MUST name those headings. Those headings are the page sections. Do not hide them behind "structured content" or "relevant sections".
 
 CLASSIFIED TOOL: {$tool}
 RESOLVED PARAMS (sanitized, no body copy): {$params_json}

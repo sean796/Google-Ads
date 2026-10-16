@@ -7,6 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/class-neo-pulse-wp-csv.php';
+
 class Neo_Pulse_Wp_Chat_Logs_Csv {
 
 	const HEADER = 'message_uid,session_id,source,role,content,card_type,confidence,page_url,accepted_url,accepted_label,accepted_type,accepted_at,input_origin,created_at';
@@ -120,20 +122,20 @@ class Neo_Pulse_Wp_Chat_Logs_Csv {
 			$lines[] = implode(
 				',',
 				array(
-					self::csv_quote( isset( $r['message_uid'] ) ? (string) $r['message_uid'] : '' ),
-					self::csv_quote( isset( $r['session_id'] ) ? (string) $r['session_id'] : '' ),
-					self::csv_quote( isset( $r['source'] ) ? (string) $r['source'] : '' ),
-					self::csv_quote( isset( $r['role'] ) ? (string) $r['role'] : '' ),
-					self::csv_quote( isset( $r['content'] ) ? (string) $r['content'] : '' ),
-					self::csv_quote( isset( $r['card_type'] ) ? (string) $r['card_type'] : '' ),
-					self::csv_quote( isset( $r['confidence'] ) ? (string) $r['confidence'] : '' ),
-					self::csv_quote( isset( $r['page_url'] ) ? (string) $r['page_url'] : '' ),
-					self::csv_quote( isset( $r['accepted_url'] ) ? (string) $r['accepted_url'] : '' ),
-					self::csv_quote( isset( $r['accepted_label'] ) ? (string) $r['accepted_label'] : '' ),
-					self::csv_quote( isset( $r['accepted_type'] ) ? (string) $r['accepted_type'] : '' ),
-					self::csv_quote( isset( $r['accepted_at'] ) ? (string) $r['accepted_at'] : '' ),
-					self::csv_quote( isset( $r['input_origin'] ) ? (string) $r['input_origin'] : '' ),
-					self::csv_quote( isset( $r['created_at'] ) ? (string) $r['created_at'] : '' ),
+					Neo_Pulse_Wp_Csv::cell( isset( $r['message_uid'] ) ? (string) $r['message_uid'] : '' ),
+					Neo_Pulse_Wp_Csv::cell( isset( $r['session_id'] ) ? (string) $r['session_id'] : '' ),
+					Neo_Pulse_Wp_Csv::cell( isset( $r['source'] ) ? (string) $r['source'] : '' ),
+					Neo_Pulse_Wp_Csv::cell( isset( $r['role'] ) ? (string) $r['role'] : '' ),
+					Neo_Pulse_Wp_Csv::cell( isset( $r['content'] ) ? (string) $r['content'] : '' ),
+					Neo_Pulse_Wp_Csv::cell( isset( $r['card_type'] ) ? (string) $r['card_type'] : '' ),
+					Neo_Pulse_Wp_Csv::cell( isset( $r['confidence'] ) ? (string) $r['confidence'] : '' ),
+					Neo_Pulse_Wp_Csv::cell( isset( $r['page_url'] ) ? (string) $r['page_url'] : '' ),
+					Neo_Pulse_Wp_Csv::cell( isset( $r['accepted_url'] ) ? (string) $r['accepted_url'] : '' ),
+					Neo_Pulse_Wp_Csv::cell( isset( $r['accepted_label'] ) ? (string) $r['accepted_label'] : '' ),
+					Neo_Pulse_Wp_Csv::cell( isset( $r['accepted_type'] ) ? (string) $r['accepted_type'] : '' ),
+					Neo_Pulse_Wp_Csv::cell( isset( $r['accepted_at'] ) ? (string) $r['accepted_at'] : '' ),
+					Neo_Pulse_Wp_Csv::cell( isset( $r['input_origin'] ) ? (string) $r['input_origin'] : '' ),
+					Neo_Pulse_Wp_Csv::cell( isset( $r['created_at'] ) ? (string) $r['created_at'] : '' ),
 				)
 			);
 		}
@@ -173,12 +175,5 @@ class Neo_Pulse_Wp_Chat_Logs_Csv {
 	private static function normalize_header_key( string $key ): string {
 		$key = strtolower( trim( $key ) );
 		return preg_replace( '/\s+/', '', $key );
-	}
-
-	private static function csv_quote( string $value ): string {
-		if ( strpos( $value, '"' ) !== false || strpos( $value, ',' ) !== false || strpos( $value, "\n" ) !== false ) {
-			return '"' . str_replace( '"', '""', $value ) . '"';
-		}
-		return $value;
 	}
 }

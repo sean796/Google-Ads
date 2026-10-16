@@ -5,7 +5,7 @@ section: Teams
 method: POST
 path: /api/teams/{teamId}/chat/preview-link
 auth: team-rbac-communication
-order: 1610
+order: 1620
 ---
 
 POST `/api/teams/{teamId}/chat/preview-link`.

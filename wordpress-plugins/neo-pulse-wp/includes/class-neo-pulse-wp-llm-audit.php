@@ -11,6 +11,9 @@ class Neo_Pulse_Wp_Llm_Audit {
 
 	const SYSTEM_MESSAGE = 'You are a local resident and AISEO researcher in this market. Use web search. Return bullet facts only someone who lives here would know. Forbidden: census or population stats, km/mile distances, blog outlines, SEO advice, any business or brand names. Each bullet: one specific resident-level detail plus https source (verification only, not for the post).';
 
+	/** Seconds per DataForSEO LLM call (platforms run sequentially). */
+	const PER_CALL_TIMEOUT = 45;
+
 	/** @var array<int,array<string,mixed>> */
 	const PLATFORM_CONFIG = array(
 		array(
@@ -61,7 +64,10 @@ class Neo_Pulse_Wp_Llm_Audit {
 	public static function fetch_parallel( array $input ) {
 		$keyword  = trim( (string) ( $input['keyword'] ?? '' ) );
 		$site_url = trim( (string) ( $input['siteUrl'] ?? '' ) );
-		$location = trim( (string) ( $input['location'] ?? self::resolve_location_from_keyword( $keyword ) ) );
+		$location = trim( (string) ( $input['location'] ?? '' ) );
+		if ( $location === '' ) {
+			$location = self::resolve_location_from_keyword( $keyword );
+		}
 
 		$platforms = array();
 		foreach ( self::PLATFORM_CONFIG as $cfg ) {
@@ -85,7 +91,7 @@ class Neo_Pulse_Wp_Llm_Audit {
 		$model_name = (string) $cfg['model_name'];
 
 		$task = self::build_task( $cfg, $keyword, $location );
-		$raw  = Neo_Pulse_Wp_Dataforseo::post_live( (string) $cfg['path'], array( $task ), 130 );
+		$raw  = Neo_Pulse_Wp_Dataforseo::post_live( (string) $cfg['path'], array( $task ), self::PER_CALL_TIMEOUT );
 
 		if ( is_wp_error( $raw ) ) {
 			return array(
@@ -105,14 +111,17 @@ class Neo_Pulse_Wp_Llm_Audit {
 	 * @return array<string,mixed>
 	 */
 	private static function build_task( array $cfg, $keyword, $location ) {
+		$location = trim( (string) $location );
+		$subject  = $location !== ''
+			? sprintf( "'%s' in %s", $keyword, $location )
+			: sprintf( "'%s'", $keyword );
 		$task = array(
 			'model_name'        => (string) $cfg['model_name'],
 			'user_prompt'       => self::clip(
 				sprintf(
-					"For %s: '%s' in %s. List 12 hyper-local AREA facts only (no businesses): how locals refer to places, Main Street rhythm, typical home/entry styles, seasonal habits, prairie sun-wind-frost at front doors, events, nearby towns locals name. No wiki census. Bullets + https (verify only).",
+					'For %s: %s. List 12 hyper-local AREA facts only (no businesses): how locals refer to places, Main Street rhythm, typical home/entry styles, seasonal habits and local climate, events, nearby towns locals name. No wiki census. Bullets + https (verify only).',
 					(string) $cfg['label'],
-					$keyword,
-					$location
+					$subject
 				),
 				500
 			),

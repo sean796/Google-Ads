@@ -224,16 +224,12 @@
 			var reader=res.body.getReader();
 			var decoder=new TextDecoder();
 			var buf='';
-			function pump(){
-				return reader.read().then(function(result){
-					if(result.done)return;
-					buf+=decoder.decode(result.value,{stream:true});
-					var lines=buf.split('\n');
-					buf=lines.pop();
-					lines.forEach(function(line){
+			var gotDone=false;
+			function handleLine(line){
 						line=line.trim();if(!line)return;
 						var evt;try{evt=JSON.parse(line);}catch(_){return;}
 						if(evt.status==='done'&&evt.card){
+							gotDone=true;
 							presentCard(evt.card,{
 								shell:thinkingShell,
 								finish:function(){finishAssistantCard(evt.card);}
@@ -243,13 +239,28 @@
 						}else if(evt.label&&thinkingShell&&window.NeoPulseThinkingCard){
 							NeoPulseThinkingCard.advanceStreamLabel(thinkingShell,host,evt.label);
 						}
-					});
+			}
+			function pump(){
+				return reader.read().then(function(result){
+					if(result.done){
+						// Last line may have no trailing newline; a stream with no "done" is an error.
+						buf+=decoder.decode();
+						if(buf.trim())handleLine(buf);
+						buf='';
+						if(!gotDone){var endErr=new Error('Stream ended without a reply');endErr.incomplete=true;throw endErr;}
+						return;
+					}
+					buf+=decoder.decode(result.value,{stream:true});
+					var lines=buf.split('\n');
+					buf=lines.pop();
+					lines.forEach(handleLine);
 					return pump();
 				});
 			}
 			return pump();
-		}).catch(function(){
-			presentCard({type:'error',title:'Connection error',body:'Could not reach the server.',confidence:'low'},{
+		}).catch(function(err){
+			var errBody=err&&err.incomplete?'The reply was interrupted before it finished. Please try again.':'Could not reach the server.';
+			presentCard({type:'error',title:err&&err.incomplete?'Something went wrong':'Connection error',body:errBody,confidence:'low'},{
 				shell:thinkingShell,
 				finish:function(){}
 			}).then(function(){
@@ -660,7 +671,8 @@
 	function scrollDown(){msgs.scrollTop=msgs.scrollHeight;}
 	function renderMd(text){
 		if(window.NeoPulseMarkdown&&typeof window.NeoPulseMarkdown.render==='function'){return NeoPulseMarkdown.render(text);}
-		var d=document.createElement('div');d.textContent=text;var s=d.innerHTML;
+		// Escape quotes too: captured URLs land inside href="...".
+		var s=String(text==null?'':text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 		s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
 		s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
 		s=s.replace(/`([^`]+)`/g,'<code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;font-size:1rem">$1</code>');

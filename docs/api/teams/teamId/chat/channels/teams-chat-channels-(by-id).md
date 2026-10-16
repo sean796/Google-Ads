@@ -5,7 +5,7 @@ section: Teams
 method: PATCH
 path: /api/teams/{teamId}/chat/channels/({id})
 auth: team-rbac-communication
-order: 1350
+order: 1360
 ---
 
 PATCH `/api/teams/{teamId}/chat/channels/({id})`.

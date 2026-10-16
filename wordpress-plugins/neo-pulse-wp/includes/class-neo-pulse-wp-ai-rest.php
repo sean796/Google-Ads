@@ -240,11 +240,6 @@ class Neo_Pulse_Wp_Ai_Rest {
 			return self::error_response( $result );
 		}
 
-		$client = Neo_Pulse_Wp_Ai_Gate::get_client();
-		if ( is_array( $client ) ) {
-			$result['optimization'] = Neo_Pulse_Wp_Site_Progress::optimization_usage_for_client( $client );
-		}
-
 		return new WP_REST_Response( $result, 200 );
 	}
 

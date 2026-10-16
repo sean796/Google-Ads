@@ -28,9 +28,21 @@ class Neo_Pulse_Wp_Image_Seo_Ai {
 			return array();
 		}
 
-		$system = 'You are an expert WordPress image SEO specialist. Generate optimized attachment metadata from the image filename and any context provided. Return ONLY valid JSON with keys: title, alt, caption, description. Use empty string for fields you should not fill. Alt text must be concise (max 125 characters), descriptive, and keyword-natural. Title should be human-readable. Caption and description are optional supporting text — keep them shorter than body copy. Do not invent brand names or locations not suggested by the filename or context.';
+		$image = self::image_data_url( $attachment_id );
 
-		$user = "Filename: {$filename}\n";
+		$system = 'You are an expert WordPress image SEO specialist. Write attachment metadata for the image'
+			. ( $image !== '' ? ' you are shown. Describe what is actually visible in the image' : ' from its filename and any context provided' )
+			. '. Return ONLY valid JSON with keys: title, alt, caption, description. Use an empty string for fields you are not asked to fill.'
+			. ' Alt text: one plain sentence or phrase, max 125 characters, describing the image for someone who cannot see it; no "image of" or "picture of"; use keywords only where they fit naturally.'
+			. ' Title: short and human-readable (not a file name). Caption and description: optional, brief supporting text.'
+			. ' Do not invent brand names, product names or locations that are not visible in the image or given in the context.';
+		$instructions = trim( (string) ( $config['ai_instructions'] ?? '' ) );
+		if ( $instructions !== '' ) {
+			$system .= "\n\nInstructions from the site owner (follow these):\n" . $instructions;
+		}
+
+		$user = self::site_context();
+		$user .= "Filename: {$filename}\n";
 		if ( $meta['title'] !== '' || $meta['alt'] !== '' || $meta['caption'] !== '' || $meta['description'] !== '' ) {
 			$user .= "Existing metadata:\n";
 			$user .= '- title: ' . $meta['title'] . "\n";
@@ -43,12 +55,70 @@ class Neo_Pulse_Wp_Image_Seo_Ai {
 		}
 		$user .= 'Generate values for: ' . implode( ', ', $enabled ) . '.';
 
-		$raw = Neo_Pulse_Wp_OpenRouter::complete( $system, $user, 1024, 0.4 );
+		$timeout = (int) ( $config['ai_timeout'] ?? 0 );
+		$raw     = $image !== ''
+			? Neo_Pulse_Wp_OpenRouter::complete_with_image( $system, $user, $image, 800, 0.3, $timeout )
+			: Neo_Pulse_Wp_OpenRouter::complete( $system, $user, 1024, 0.4 );
 		if ( is_wp_error( $raw ) ) {
 			return $raw;
 		}
 
 		return self::parse_ai_json( (string) $raw, $enabled );
+	}
+
+	/**
+	 * The image as a small JPEG data URL for the AI to look at ('' when it cannot be read).
+	 * Resized to at most 1024px so the request stays small and fast.
+	 */
+	public static function image_data_url( int $attachment_id ): string {
+		$file = get_attached_file( $attachment_id );
+		if ( ! is_string( $file ) || $file === '' || ! is_readable( $file ) ) {
+			return '';
+		}
+		$mime = (string) get_post_mime_type( $attachment_id );
+		if ( ! in_array( $mime, array( 'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif', 'image/heic' ), true ) ) {
+			return '';
+		}
+		$editor = wp_get_image_editor( $file );
+		if ( ! is_wp_error( $editor ) ) {
+			$editor->resize( 1024, 1024, false );
+			$editor->set_quality( 75 );
+			$tmp   = wp_tempnam( 'neo-pulse-img-seo' ) . '.jpg';
+			$saved = $editor->save( $tmp, 'image/jpeg' );
+			if ( ! is_wp_error( $saved ) && ! empty( $saved['path'] ) && is_readable( $saved['path'] ) ) {
+				$bytes = (string) file_get_contents( $saved['path'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+				wp_delete_file( $saved['path'] );
+				wp_delete_file( $tmp );
+				return $bytes !== '' ? 'data:image/jpeg;base64,' . base64_encode( $bytes ) : ''; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+			}
+			wp_delete_file( $tmp );
+		}
+		if ( in_array( $mime, array( 'image/jpeg', 'image/png', 'image/webp', 'image/gif' ), true ) && filesize( $file ) <= 4 * MB_IN_BYTES ) {
+			$bytes = (string) file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+			return $bytes !== '' ? 'data:' . $mime . ';base64,' . base64_encode( $bytes ) : ''; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+		}
+		return '';
+	}
+
+	/**
+	 * Business name, tagline and city, so the AI can use them when the instructions ask.
+	 */
+	private static function site_context(): string {
+		$lines = array( 'Website: ' . wp_specialchars_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES ) );
+		$tagline = wp_specialchars_decode( (string) get_bloginfo( 'description' ), ENT_QUOTES );
+		if ( $tagline !== '' ) {
+			$lines[] = 'Tagline: ' . $tagline;
+		}
+		if ( class_exists( 'Neo_Pulse_Wp_Seo_Settings', false ) ) {
+			$address = Neo_Pulse_Wp_Seo_Settings::get( 'local_address', array() );
+			if ( is_array( $address ) ) {
+				$place = trim( implode( ', ', array_filter( array( (string) ( $address['addressLocality'] ?? '' ), (string) ( $address['addressRegion'] ?? '' ) ) ) ) );
+				if ( $place !== '' ) {
+					$lines[] = 'Business location: ' . $place;
+				}
+			}
+		}
+		return implode( "\n", $lines ) . "\n";
 	}
 
 	/**

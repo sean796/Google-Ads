@@ -38,9 +38,15 @@ class Neo_Pulse_Wp_Overseer_Beacon {
 	}
 	public static function beacon_config(): array {
 		$settings = Neo_Pulse_Wp_Overseer_Settings::get_settings();
+		$post_id = 0;
+		if ( did_action( 'wp' ) && is_singular() ) {
+			$post_id = (int) get_queried_object_id();
+		}
 		return array(
 			'endpoint'            => rest_url( 'neo-pulse/v1/overseer/collect' ),
-			'nonce'               => wp_create_nonce( 'wp_rest' ),
+			// Only checked for logged-in visitors (cached pages carry stale nonces).
+			'nonce'               => is_user_logged_in() ? wp_create_nonce( 'wp_rest' ) : '',
+			'post_id'             => $post_id,
 			'track_interactions'  => ! empty( $settings['track_interactions'] ),
 			'track_outbound_only' => ! empty( $settings['track_outbound_only'] ),
 		);
@@ -104,16 +110,16 @@ class Neo_Pulse_Wp_Overseer_Beacon {
 		if ( get_option( Neo_Pulse_Wp_Overseer_Context::SCRIPT_TEMPLATE_OPTION, '1' ) === Neo_Pulse_Wp_Overseer_Context::SCRIPT_TEMPLATE_VERSION ) {
 			return;
 		}
-		update_option( Neo_Pulse_Wp_Overseer_Context::SCRIPT_TEMPLATE_OPTION, Neo_Pulse_Wp_Overseer_Context::SCRIPT_TEMPLATE_VERSION, false );
+		update_option( Neo_Pulse_Wp_Overseer_Context::SCRIPT_TEMPLATE_OPTION, Neo_Pulse_Wp_Overseer_Context::SCRIPT_TEMPLATE_VERSION, true );
 		if ( self::get_builtin_script_id() > 0 ) {
 			self::sync_builtin_script();
 		}
 	}
-	public static function flush_optimization_cache(): void {
-		if ( class_exists( 'Neo_Pulse_Wp_Speed', false ) ) {
-			Neo_Pulse_Wp_Speed::flush_cache();
-		}
-	}
+	/**
+	 * Create or repair the built-in Script Manager tag. Runs on install / plugin version change
+	 * (Neo_Pulse_Wp_Overseer_Install::install) and when the Overseer settings are saved, not on
+	 * every request.
+	 */
 	public static function ensure_builtin_script(): void {
 		if ( ! class_exists( 'Neo_Pulse_Wp_Script_Manager', false ) ) {
 			return;
@@ -123,7 +129,7 @@ class Neo_Pulse_Wp_Overseer_Beacon {
 		if ( $by_name ) {
 			$canonical_id = (int) $by_name->id;
 			if ( self::get_builtin_script_id() !== $canonical_id ) {
-				update_option( Neo_Pulse_Wp_Overseer_Context::BUILTIN_SCRIPT_ID_OPTION, $canonical_id, false );
+				update_option( Neo_Pulse_Wp_Overseer_Context::BUILTIN_SCRIPT_ID_OPTION, $canonical_id, true );
 			}
 			self::maybe_sync_builtin_script();
 			self::maybe_upgrade_script_template();
@@ -143,7 +149,7 @@ class Neo_Pulse_Wp_Overseer_Beacon {
 		);
 
 		if ( ! empty( $result['ok'] ) && ! empty( $result['id'] ) ) {
-			update_option( Neo_Pulse_Wp_Overseer_Context::BUILTIN_SCRIPT_ID_OPTION, (int) $result['id'], false );
+			update_option( Neo_Pulse_Wp_Overseer_Context::BUILTIN_SCRIPT_ID_OPTION, (int) $result['id'], true );
 			self::sync_builtin_script();
 		}
 	}
@@ -183,8 +189,6 @@ class Neo_Pulse_Wp_Overseer_Beacon {
 				'display_rules' => Neo_Pulse_Wp_Script_Manager_Rules::decode( isset( $row->display_rules ) ? (string) $row->display_rules : '' ),
 			)
 		);
-
-		self::flush_optimization_cache();
 	}
 	public static function is_overseer_tag_row( $row ): bool {
 		if ( ! is_object( $row ) ) {
@@ -196,14 +200,21 @@ class Neo_Pulse_Wp_Overseer_Beacon {
 		$name = isset( $row->name ) ? Neo_Pulse_Wp_Script_Manager::normalize_name( (string) $row->name ) : '';
 		return $name === Neo_Pulse_Wp_Overseer_Context::BUILTIN_SCRIPT_NAME;
 	}
-	public static function filter_script_code( string $code, $row ): string {
+	/**
+	 * Filter: neo_pulse_wp_script_manager_render_code.
+	 *
+	 * @param mixed $code Script code.
+	 * @param mixed $row  Script row.
+	 */
+	public static function filter_script_code( $code, $row ): string {
+		$code = is_scalar( $code ) ? (string) $code : '';
 		if ( is_object( $row ) && self::is_overseer_tag_row( $row ) ) {
 			if ( ! Neo_Pulse_Wp_Overseer_Settings::is_tracking_active() ) {
 				return '';
 			}
 			$canonical_id = (int) $row->id;
 			if ( self::get_builtin_script_id() !== $canonical_id ) {
-				update_option( Neo_Pulse_Wp_Overseer_Context::BUILTIN_SCRIPT_ID_OPTION, $canonical_id, false );
+				update_option( Neo_Pulse_Wp_Overseer_Context::BUILTIN_SCRIPT_ID_OPTION, $canonical_id, true );
 			}
 			$template = self::needs_builtin_script_resync( $code )
 				? self::builtin_script_template()

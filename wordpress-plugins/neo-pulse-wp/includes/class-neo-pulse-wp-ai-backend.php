@@ -84,10 +84,7 @@ class Neo_Pulse_Wp_Ai_Backend {
 	 * @return array{siteUrl:string,pageUrl:string,companyName:string}
 	 */
 	public static function resolve_urls( int $post_id ): array {
-		$client = Neo_Pulse_Wp_Ai_Gate::get_client();
-		$site   = is_array( $client ) && ! empty( $client['siteUrl'] )
-			? esc_url_raw( trim( (string) $client['siteUrl'] ) )
-			: esc_url_raw( home_url( '/' ) );
+		$site = esc_url_raw( home_url( '/' ) );
 
 		$page = get_permalink( $post_id );
 		$page = is_string( $page ) ? esc_url_raw( trim( $page ) ) : '';
@@ -95,15 +92,10 @@ class Neo_Pulse_Wp_Ai_Backend {
 			$page = esc_url_raw( trim( Neo_Pulse_Wp_Ai_Context::read_field_value( $post_id, 'page_url' ) ) );
 		}
 
-		$company = '';
-		if ( is_array( $client ) && ! empty( $client['name'] ) ) {
-			$company = trim( (string) $client['name'] );
-		}
-
 		return array(
 			'siteUrl'     => $site,
 			'pageUrl'     => $page,
-			'companyName' => $company,
+			'companyName' => '',
 		);
 	}
 }

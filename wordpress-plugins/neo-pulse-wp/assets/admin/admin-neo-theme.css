@@ -1,0 +1,1283 @@
+/**
+ * NEO Pulse WP admin — the Neo Tools page look (light canvas, white rounded cards, lime accents).
+ *
+ * Enqueued last on Neo Pulse screens only (see Neo_Pulse_Wp_Admin::enqueue_admin_assets), so it
+ * can settle the older page stylesheets. Everything is scoped to body.neo-pulse-wp-admin-screen
+ * and the .npwp-admin frame; core WordPress screens and other plugins are never touched.
+ *
+ * Tokens (defined in admin-tokens.css): --npwp-ink, --npwp-panel, --npwp-panel-hover,
+ * --npwp-field, --npwp-line, --npwp-text, --npwp-muted, --npwp-lime, --npwp-lime-hover.
+ *
+ * Sections: 1 page + heading · 2 section tabs · 3 panel body + type · 4 side sub-tabs ·
+ * 5 cards · 6 fields + switches · 7 badges + notices · 8 list tables · 9 per-screen polish ·
+ * 10 responsive · 11 motion · 12 licence pill.
+ */
+
+/* 1. Page + heading (Neo Tools page look: light canvas, white cards) ----- */
+
+body.neo-pulse-wp-admin-screen #wpbody-content .wrap.npwp-admin {
+	box-sizing: border-box;
+	width: auto;
+	max-width: 1320px;
+	margin: 18px 20px 40px 2px;
+	padding: 0;
+	background: transparent;
+	color: var(--npwp-text);
+	font-family: var(--npwp-font);
+	font-size: 14px;
+	line-height: 1.55;
+}
+
+.npwp-admin *,
+.npwp-admin *::before,
+.npwp-admin *::after {
+	box-sizing: border-box;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .npwp-admin__frame {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+	width: 100%;
+	max-width: none;
+	margin: 0;
+	background: transparent;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .npwp-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px 16px;
+	padding: 2px 4px 0;
+}
+
+.npwp-admin .npwp-head__titles {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+	margin-right: auto;
+}
+
+.npwp-admin .npwp-head__crumb {
+	color: var(--npwp-muted);
+	font-size: 13px;
+	line-height: 1.4;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin h1.npwp-head__title {
+	margin: 0;
+	padding: 0;
+	color: var(--npwp-text);
+	font-family: var(--npwp-font);
+	font-size: 28px !important;
+	font-weight: 600;
+	line-height: 1.2;
+	letter-spacing: -0.02em;
+}
+
+.npwp-admin .npwp-head__meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.npwp-admin .npwp-head__version {
+	display: inline-flex;
+	align-items: center;
+	height: 30px;
+	padding: 0 12px;
+	border-radius: 999px;
+	background: var(--npwp-panel);
+	box-shadow: inset 0 0 0 1px var(--npwp-line);
+	color: var(--npwp-muted);
+	font-size: 12px;
+	font-weight: 500;
+}
+
+/* 2. Section tabs: a segmented control (Settings / Training / Conversations …) */
+
+body.neo-pulse-wp-admin-screen .npwp-admin .npwp-tabs {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-self: flex-start;
+	gap: 4px;
+	max-width: 100%;
+	padding: 4px;
+	border-radius: 999px;
+	background: #e2e8f0;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .npwp-tabs a.npwp-tabs__item {
+	display: inline-flex;
+	align-items: center;
+	min-height: 34px;
+	padding: 0 16px;
+	border-radius: 999px;
+	color: #475569 !important;
+	font-family: var(--npwp-font);
+	font-size: 13px !important;
+	font-weight: 600;
+	line-height: 1.2;
+	text-decoration: none;
+	box-shadow: none;
+	transition: color 0.16s, background-color 0.16s;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .npwp-tabs a.npwp-tabs__item:hover {
+	color: var(--npwp-text) !important;
+	background: rgba(255, 255, 255, 0.55);
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .npwp-tabs a.npwp-tabs__item.is-active {
+	background: #fff;
+	color: var(--npwp-text) !important;
+	box-shadow: 0 1px 3px rgba(2, 5, 10, 0.1);
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .npwp-tabs a:focus-visible {
+	outline: 2px solid var(--npwp-lime);
+	outline-offset: 2px;
+}
+
+/* 3. Panel body + type -------------------------------------------------- */
+
+body.neo-pulse-wp-admin-screen .npwp-admin .npwp-admin__panel {
+	flex: 1 1 auto;
+	min-height: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	color: var(--npwp-text);
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel :where(p, li, td, dd, label, .description) {
+	font-size: 14px;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel :where(h1, h2, h3, h4) {
+	color: var(--npwp-text);
+	font-family: var(--npwp-font);
+	font-weight: 600;
+	letter-spacing: 0;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel h1 {
+	margin: 0 0 6px;
+	padding: 0;
+	font-size: 20px !important;
+	line-height: 1.3;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel :is(h1, h2).wp-heading-inline {
+	display: inline-block;
+	margin-right: 10px;
+	vertical-align: middle;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel h2 {
+	font-size: 17px !important;
+	line-height: 1.35;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel h3 {
+	font-size: 15px !important;
+	line-height: 1.35;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel .description,
+body.neo-pulse-wp-admin-screen .npwp-admin__panel p.description,
+body.neo-pulse-wp-admin-screen .npwp-admin__panel .neo-pulse-field__note,
+body.neo-pulse-wp-admin-screen .npwp-admin__panel .neo-pulse-wp-panel-content__desc,
+body.neo-pulse-wp-admin-screen .npwp-admin__panel .neo-pulse-wp-settings__lead,
+body.neo-pulse-wp-admin-screen .npwp-admin__panel .neo-pulse-wp-settings__card-desc {
+	color: var(--npwp-muted) !important;
+	font-size: 13px !important;
+	line-height: 1.6;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel a:not(.button):not(.page-title-action):not([class*="nav__item"]):not([class*="nav-item"]):not([class*="tile"]):not([class*="tab"]) {
+	color: var(--npwp-lime-ink);
+	text-decoration-color: rgba(63, 107, 0, 0.35);
+	text-underline-offset: 2px;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel a:not(.button):not(.page-title-action):not([class*="nav__item"]):not([class*="nav-item"]):not([class*="tile"]):not([class*="tab"]):hover {
+	color: var(--npwp-lime-ink-hover);
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel a:focus-visible {
+	outline: 2px solid var(--npwp-lime);
+	outline-offset: 2px;
+	box-shadow: none;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel :where(code, kbd) {
+	padding: 2px 6px;
+	border-radius: 6px;
+	background: var(--npwp-panel-hover);
+	color: var(--npwp-text);
+	font-size: 12.5px;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel hr:not(.wp-header-end) {
+	border: 0;
+	border-top: 1px solid var(--npwp-line);
+}
+
+/* Uppercase muted section labels (Neo Tools .ndet-admin__section) */
+body.neo-pulse-wp-admin-screen .npwp-admin__panel :is(
+	.neo-pulse-wp-panel-nav__heading,
+	.neo-pulse-wp-settings__card-title,
+	.neo-pulse-wp-analytics__section-title
+) {
+	color: var(--npwp-muted) !important;
+	font-size: 12px !important;
+	font-weight: 600;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+/* 4. Side sub-tabs (in-page nav on screens without section tabs) -------- */
+
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-panel-layout {
+	grid-template-columns: 200px minmax(0, 1fr);
+	gap: 28px;
+	min-height: 0;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-panel-nav {
+	align-self: start;
+	position: sticky;
+	top: 52px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-panel-nav__heading {
+	margin: 0 0 8px;
+	padding: 0 12px;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-panel-nav__list {
+	display: grid;
+	gap: 2px;
+	margin: 0 0 22px;
+	padding: 0;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-panel-nav__list li {
+	margin: 0;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin a.neo-pulse-wp-panel-nav__item {
+	position: relative;
+	display: block;
+	padding: 8px 12px;
+	border-radius: 10px;
+	background: transparent;
+	color: var(--npwp-muted) !important;
+	font-size: 13px !important;
+	font-weight: 500;
+	line-height: 1.4;
+	text-decoration: none;
+	transition: color 0.2s, background-color 0.2s;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin a.neo-pulse-wp-panel-nav__item:hover {
+	background: var(--npwp-panel-hover);
+	color: var(--npwp-text) !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin a.neo-pulse-wp-panel-nav__item--active,
+body.neo-pulse-wp-admin-screen .npwp-admin a.neo-pulse-wp-panel-nav__item--active:hover {
+	background: var(--npwp-lime-tint);
+	color: var(--npwp-lime-ink) !important;
+	font-weight: 600;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin a.neo-pulse-wp-panel-nav__item--active::before {
+	content: "";
+	position: absolute;
+	top: 9px;
+	bottom: 9px;
+	left: 0;
+	width: 3px;
+	border-radius: 3px;
+	background: var(--npwp-lime);
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin a.neo-pulse-wp-panel-nav__item:focus-visible {
+	outline: 2px solid var(--npwp-lime);
+	outline-offset: 0;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-panel-content {
+	min-width: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+/* In-page tabs as pills above the content (short lists), or none when the section tabs show them. */
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-panel-layout--top,
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-panel-layout--solo {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-panel-layout--top .neo-pulse-wp-panel-nav {
+	position: static;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-panel-layout--top .neo-pulse-wp-panel-nav__list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 0;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-panel-layout--top a.neo-pulse-wp-panel-nav__item {
+	padding: 7px 16px;
+	border-radius: 999px;
+	background: var(--npwp-panel);
+	box-shadow: inset 0 0 0 1px var(--npwp-line);
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-panel-layout--top a.neo-pulse-wp-panel-nav__item--active {
+	background: var(--npwp-lime-tint);
+	box-shadow: inset 0 0 0 1.5px var(--npwp-lime-line);
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-panel-layout--top a.neo-pulse-wp-panel-nav__item--active::before {
+	content: none;
+}
+
+/* Page titles inside the content read as card-group headings under the page heading. */
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-panel-content__title,
+body.neo-pulse-wp-admin-screen .npwp-admin__panel :is(h1, h2).wp-heading-inline,
+body.neo-pulse-wp-admin-screen .npwp-admin__panel > .wrap > h1 {
+	font-size: 18px !important;
+}
+
+/* Every form group is its own white card. */
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-schema-group {
+	margin: 0 0 20px;
+	padding: 22px;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-panel-footer {
+	border-top: 0;
+	background: transparent;
+}
+
+/* 5. Cards ---------------------------------------------------------------- */
+
+body.neo-pulse-wp-admin-screen .npwp-admin :is(
+	.neo-pulse-wp-settings__card,
+	.neo-pulse-wp-panel-info-box,
+	.neo-pulse-schema-group,
+	.neo-pulse-wp-chat-logs__ai-bar,
+	.neo-pulse-wp-overseer__panel,
+	.neo-pulse-conversion-panel,
+	.neo-pulse-wp-analytics__section:not(.neo-pulse-wp-analytics__section--metrics),
+	.neo-pulse-wp-analytics__metric
+) {
+	border: 0;
+	border-radius: 22px;
+	background: var(--npwp-panel);
+	box-shadow: var(--npwp-card-shadow);
+	color: var(--npwp-text);
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin :is(.neo-pulse-wp-settings__card) {
+	padding: 22px;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-panel-info-box {
+	padding: 16px 20px;
+}
+
+/* A card inside a card stays flat. */
+body.neo-pulse-wp-admin-screen .npwp-admin :is(.neo-pulse-wp-settings__card, .neo-pulse-schema-group) :is(.neo-pulse-wp-panel-info-box) {
+	border: 0;
+	background: var(--npwp-field);
+	box-shadow: none;
+}
+
+/* 6. Fields + switches ------------------------------------------------- */
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel :where(
+	input[type="text"],
+	input[type="search"],
+	input[type="number"],
+	input[type="url"],
+	input[type="email"],
+	input[type="password"],
+	input[type="date"],
+	input[type="datetime-local"],
+	input[type="time"],
+	input[type="tel"],
+	textarea,
+	select
+):not(.fcw-textarea):not([type="checkbox"]):not([type="radio"]) {
+	min-height: 40px;
+	padding: 8px 14px;
+	border: 1px solid var(--npwp-line) !important;
+	border-radius: 10px !important;
+	background-color: var(--npwp-field) !important;
+	color: var(--npwp-text) !important;
+	-webkit-text-fill-color: var(--npwp-text) !important;
+	font-size: 14px !important;
+	line-height: 1.45;
+	box-shadow: none !important;
+	color-scheme: light;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel select {
+	padding-right: 34px;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aa4ae' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+	background-position: right 12px center !important;
+	background-repeat: no-repeat !important;
+	background-size: 14px 14px !important;
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel textarea {
+	min-height: 0;
+	padding: 10px 14px;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel :where(input, textarea, select):not([type="checkbox"]):not([type="radio"]):focus {
+	border-color: var(--npwp-lime) !important;
+	outline: none !important;
+	box-shadow: 0 0 0 1px var(--npwp-lime) !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel :where(input, textarea)::placeholder {
+	color: #6f7a85 !important;
+	-webkit-text-fill-color: #6f7a85 !important;
+	opacity: 1;
+}
+
+/* Code and rule editors stay monospace (beats the Poppins rule in admin-typography-enforce.css). */
+body.neo-pulse-wp-admin-screen #wpbody-content .npwp-admin__panel :is(textarea.code, .neo-pulse-field__control--code, #neo-pulse_robots_txt_content) {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+	font-size: 13px !important;
+	line-height: 1.6;
+}
+
+/* Checkboxes and radios: lime accent, Neo Tools-sized */
+body.neo-pulse-wp-admin-screen .npwp-admin__panel input[type="checkbox"]:not(.npwp-switch-input),
+body.neo-pulse-wp-admin-screen .npwp-admin__panel input[type="radio"] {
+	position: relative;
+	width: 18px;
+	height: 18px;
+	min-width: 18px;
+	min-height: 18px;
+	margin: 0 8px 0 0;
+	border: 1px solid #c3cbd5 !important;
+	background: var(--npwp-field) !important;
+	box-shadow: none !important;
+	vertical-align: -3px;
+	accent-color: var(--npwp-lime);
+	-webkit-appearance: none;
+	appearance: none;
+	cursor: pointer;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel input[type="checkbox"]:not(.npwp-switch-input) {
+	border-radius: 5px !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel input[type="radio"] {
+	border-radius: 50% !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel input[type="checkbox"]:not(.npwp-switch-input):checked {
+	border-color: var(--npwp-lime) !important;
+	background: var(--npwp-lime) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2302050a' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 13px 13px no-repeat !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel input[type="radio"]:checked {
+	border-color: var(--npwp-lime) !important;
+	background: radial-gradient(circle, var(--npwp-lime) 0 4px, var(--npwp-field) 5px) !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel input[type="checkbox"]::before,
+body.neo-pulse-wp-admin-screen .npwp-admin__panel input[type="radio"]::before {
+	content: none !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel input[type="checkbox"]:focus-visible,
+body.neo-pulse-wp-admin-screen .npwp-admin__panel input[type="radio"]:focus-visible {
+	outline: 2px solid var(--npwp-lime) !important;
+	outline-offset: 2px;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin__panel input[type="checkbox"]:disabled,
+body.neo-pulse-wp-admin-screen .npwp-admin__panel input[type="radio"]:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* On/off setting rows (panel_form_toggle): drawn as Neo Tools switches; the real checkbox stays
+ * in place (invisible, on top) so clicks, keyboard and screen readers work unchanged. */
+body.neo-pulse-wp-admin-screen .npwp-admin label.neo-pulse-wp-panel-toggle {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	margin: 0;
+	cursor: pointer;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin label.neo-pulse-wp-panel-toggle > input[type="checkbox"] {
+	position: absolute;
+	top: 50%;
+	left: 0;
+	z-index: 1;
+	width: 50px !important;
+	height: 28px !important;
+	min-width: 0;
+	min-height: 0;
+	margin: -14px 0 0 0;
+	opacity: 0;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin label.neo-pulse-wp-panel-toggle::before {
+	content: "";
+	flex: 0 0 50px;
+	height: 28px;
+	border-radius: 999px;
+	background: #dfe4ea;
+	transition: background-color 0.2s;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin label.neo-pulse-wp-panel-toggle::after {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 4px;
+	width: 20px;
+	height: 20px;
+	margin-top: -10px;
+	border-radius: 50%;
+	background: #fff;
+	box-shadow: 0 1px 3px rgba(2, 5, 10, 0.25);
+	transition: transform 0.2s, background-color 0.2s;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin label.neo-pulse-wp-panel-toggle:has(> input:checked)::before {
+	background: linear-gradient(135deg, var(--npwp-lime-hover), var(--npwp-lime));
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin label.neo-pulse-wp-panel-toggle:has(> input:checked)::after {
+	transform: translateX(22px);
+	background: #fff;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin label.neo-pulse-wp-panel-toggle:has(> input:focus-visible)::before {
+	outline: 2px solid var(--npwp-lime);
+	outline-offset: 3px;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin label.neo-pulse-wp-panel-toggle:has(> input:disabled) {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-panel-toggle__label {
+	color: var(--npwp-text);
+	font-size: 14px !important;
+	font-weight: 500;
+}
+
+/* 7. Badges + notices --------------------------------------------------- */
+
+body.neo-pulse-wp-admin-screen .npwp-admin :is(
+	.neo-pulse-wp-settings__gsc-status,
+	.neo-pulse-image-seo-badge,
+	[class*="__status-badge"],
+	[class*="-badge--"]
+) {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 11px !important;
+	border: 1px solid var(--npwp-line-strong) !important;
+	border-radius: 999px !important;
+	background: transparent !important;
+	color: var(--npwp-muted) !important;
+	-webkit-text-fill-color: currentColor !important;
+	font-size: 12px !important;
+	font-weight: 500;
+	line-height: 1.35;
+	white-space: nowrap;
+	box-shadow: none !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin :is(
+	.neo-pulse-wp-settings__gsc-status--ok,
+	.neo-pulse-image-seo-badge--ok,
+	[class*="-badge--success"],
+	[class*="-badge--active"],
+	[class*="-badge--enabled"]
+) {
+	border-color: var(--npwp-lime-line) !important;
+	color: var(--npwp-lime-ink) !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin :is(
+	.neo-pulse-wp-settings__gsc-status--error,
+	.neo-pulse-image-seo-badge--warn,
+	[class*="-badge--warning"],
+	[class*="-badge--error"]
+) {
+	border-color: var(--npwp-warn-line) !important;
+	background: var(--npwp-warn-tint) !important;
+	color: var(--npwp-warn-ink) !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .notice,
+body.neo-pulse-wp-admin-screen .npwp-admin div.updated,
+body.neo-pulse-wp-admin-screen .npwp-admin div.error {
+	margin: 0 0 18px !important;
+	padding: 12px 18px;
+	border: 1px solid var(--npwp-line);
+	border-left-width: 1px;
+	border-radius: 12px;
+	background: var(--npwp-panel);
+	color: var(--npwp-text);
+	box-shadow: none;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .notice p {
+	margin: 4px 0;
+	color: inherit !important;
+	font-size: 14px;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .notice-success,
+body.neo-pulse-wp-admin-screen .npwp-admin div.updated {
+	border-color: var(--npwp-lime-line);
+	background: var(--npwp-lime-tint);
+	color: var(--npwp-text);
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .notice-warning {
+	border-color: var(--npwp-warn-line);
+	background: var(--npwp-warn-tint);
+	color: var(--npwp-text);
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .notice-error,
+body.neo-pulse-wp-admin-screen .npwp-admin div.error {
+	border-color: var(--npwp-error-line);
+	background: var(--npwp-error-tint);
+	color: var(--npwp-text);
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .notice-info {
+	border-color: var(--npwp-line);
+	background: var(--npwp-panel);
+}
+
+/* Dismissible notices: room for the close button, which WordPress positions absolutely. */
+body.neo-pulse-wp-admin-screen .npwp-admin .notice.is-dismissible {
+	position: relative;
+	padding-right: 48px;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .notice-dismiss {
+	top: 50%;
+	right: 6px;
+	transform: translateY(-50%);
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .notice-dismiss:before {
+	color: var(--npwp-muted);
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .notice-dismiss:hover:before,
+body.neo-pulse-wp-admin-screen .npwp-admin .notice-dismiss:focus:before {
+	color: var(--npwp-lime-ink);
+}
+
+/* 8. WP list tables (redirects, chat logs, overseer, scripts, search logs, image SEO) */
+
+body.neo-pulse-wp-admin-screen .npwp-admin .wp-list-table,
+body.neo-pulse-wp-admin-screen .npwp-admin table.widefat {
+	overflow: hidden;
+	border: 1px solid var(--npwp-line) !important;
+	border-collapse: separate;
+	border-spacing: 0;
+	border-radius: 16px;
+	background: var(--npwp-panel) !important;
+	color: var(--npwp-text);
+	box-shadow: none;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin :is(.wp-list-table, table.widefat) :is(thead, tfoot) :is(th, td) {
+	padding-top: 12px;
+	padding-bottom: 12px;
+	border: 0 !important;
+	background: var(--npwp-panel) !important;
+	color: var(--npwp-muted) !important;
+	font-size: 11px !important;
+	font-weight: 600;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	word-break: normal;
+	overflow-wrap: normal;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin :is(.wp-list-table, table.widefat) :is(thead, tfoot) :is(th, td) :is(a, span:not(.sorting-indicator):not(.sorting-indicators)) {
+	font-size: inherit !important;
+	letter-spacing: inherit;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin :is(.wp-list-table, table.widefat) thead :is(th, td) {
+	border-bottom: 1px solid var(--npwp-line) !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin :is(.wp-list-table, table.widefat) tfoot :is(th, td) {
+	border-top: 1px solid var(--npwp-line) !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin :is(.wp-list-table, table.widefat) :is(thead, tfoot) a,
+body.neo-pulse-wp-admin-screen .npwp-admin :is(.wp-list-table, table.widefat) :is(thead, tfoot) a span {
+	color: var(--npwp-muted) !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .wp-list-table :is(thead, tfoot) .sorted a,
+body.neo-pulse-wp-admin-screen .npwp-admin .wp-list-table :is(thead, tfoot) a:hover,
+body.neo-pulse-wp-admin-screen .npwp-admin .wp-list-table :is(thead, tfoot) a:hover span {
+	color: var(--npwp-text) !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin :is(.wp-list-table, table.widefat) > tbody > tr,
+body.neo-pulse-wp-admin-screen .npwp-admin :is(.wp-list-table, table.widefat).striped > tbody > :nth-child(odd),
+body.neo-pulse-wp-admin-screen .npwp-admin :is(.wp-list-table, table.widefat) > tbody > tr:nth-child(odd),
+body.neo-pulse-wp-admin-screen .npwp-admin :is(.wp-list-table, table.widefat) > tbody > tr.alternate {
+	background: var(--npwp-panel) !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin :is(.wp-list-table, table.widefat) > tbody > tr > :is(th, td) {
+	border-top: 1px solid var(--npwp-line) !important;
+	background: transparent !important;
+	color: var(--npwp-text) !important;
+	font-size: 13.5px;
+	vertical-align: middle;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin :is(.wp-list-table, table.widefat) > tbody > tr:first-child > :is(th, td) {
+	border-top: 0 !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin :is(.wp-list-table, table.widefat) > tbody > tr:hover,
+body.neo-pulse-wp-admin-screen .npwp-admin :is(.wp-list-table, table.widefat) > tbody > tr:hover > :is(th, td) {
+	background: var(--npwp-panel-hover) !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .wp-list-table a:not(.button) {
+	color: var(--npwp-lime-ink) !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .wp-list-table a:not(.button):hover {
+	color: var(--npwp-lime-ink-hover) !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .wp-list-table .row-title {
+	font-weight: 600;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .wp-list-table .row-actions,
+body.neo-pulse-wp-admin-screen .npwp-admin .wp-list-table .row-actions span {
+	color: var(--npwp-muted) !important;
+	font-size: 12.5px !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .wp-list-table .row-actions .trash a,
+body.neo-pulse-wp-admin-screen .npwp-admin .wp-list-table .row-actions .delete a {
+	color: var(--npwp-error-ink) !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .wp-list-table .no-items td {
+	padding: 22px 14px;
+	color: var(--npwp-muted) !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .wp-list-table .check-column {
+	width: 2.6em;
+	vertical-align: middle;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .wp-list-table .check-column input[type="checkbox"] {
+	margin: 0 0 0 6px;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .tablenav {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	height: auto;
+	margin: 12px 0;
+	color: var(--npwp-muted);
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .tablenav .actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	padding: 0;
+	overflow: visible;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .tablenav .actions select {
+	float: none;
+	margin: 0;
+	min-height: 36px !important;
+	padding-top: 6px !important;
+	padding-bottom: 6px !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .tablenav .tablenav-pages {
+	margin: 0 0 0 auto;
+	float: none;
+	color: var(--npwp-muted) !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .tablenav .displaying-num {
+	color: var(--npwp-muted) !important;
+	font-size: 13px;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .tablenav-pages :is(.button, .tablenav-pages-navspan) {
+	min-width: 34px;
+	min-height: 34px !important;
+	padding: 0 10px !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .tablenav-pages .tablenav-pages-navspan {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid var(--npwp-line) !important;
+	border-radius: 999px;
+	background: transparent !important;
+	color: var(--npwp-muted) !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .tablenav-pages .current-page {
+	width: 3.2em;
+	min-height: 34px !important;
+	padding: 4px 6px !important;
+	text-align: center;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .subsubsub {
+	margin: 6px 0 14px;
+	color: var(--npwp-muted) !important;
+	font-size: 13px;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .subsubsub a {
+	color: var(--npwp-muted) !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .subsubsub a .count {
+	color: inherit;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .subsubsub a.current,
+body.neo-pulse-wp-admin-screen .npwp-admin .subsubsub a:hover {
+	color: var(--npwp-lime-ink) !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin p.search-box {
+	display: flex;
+	gap: 8px;
+	margin: 0 0 8px;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .form-table {
+	margin-top: 0;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .form-table th,
+body.neo-pulse-wp-admin-screen .npwp-admin .form-table th label {
+	color: var(--npwp-text) !important;
+	font-size: 14px !important;
+	font-weight: 600;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .form-table td,
+body.neo-pulse-wp-admin-screen .npwp-admin .form-table td label {
+	color: var(--npwp-text) !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .form-table :is(th, td) {
+	border-top: 1px solid var(--npwp-line);
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .form-table tr:first-child :is(th, td) {
+	border-top: 0;
+}
+
+/* 9. Per-screen polish -------------------------------------------------- */
+
+/* Headings and notes placed straight into a 12-column form grid span the full row. */
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-schema-grid > :not(.neo-pulse-schema-cell) {
+	grid-column: 1 / -1;
+}
+
+
+/* Toggle rows: the help note sits under the label, not beside it. */
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-schema-cell:has(> .neo-pulse-wp-panel-toggle) {
+	flex-direction: column;
+	align-items: stretch;
+	gap: 2px;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-schema-cell > .neo-pulse-wp-panel-toggle ~ .neo-pulse-field__note {
+	margin-left: 64px;
+}
+
+/* Backend Assist: the chat app fills the panel edge to edge. */
+body.neo-pulse-wp-admin-screen .npwp-admin.fba-page .npwp-admin__panel {
+	display: flex;
+	flex-direction: column;
+	padding: 0;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin.fba-page .fba-input-row {
+	border-color: var(--npwp-line);
+	background: var(--npwp-field);
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin.fba-page {
+	--fcw-mic-idle: var(--npwp-lime);
+	--fcw-mic-recording: var(--npwp-lime-hover);
+	--fcw-send-bg: var(--npwp-lime);
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin.fba-page .fba-send {
+	color: var(--npwp-dark) !important;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin.fba-page .fba-mode-btn {
+	border: 1px solid #dfe4ea;
+	border-radius: 999px;
+	background: #fff;
+	color: var(--npwp-text);
+	font-size: 13px;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin.fba-page .fba-mode-btn:hover {
+	background: var(--npwp-field);
+	color: var(--npwp-text);
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin.fba-page .fba-mode-btn--active {
+	border-color: var(--npwp-lime-line);
+	background: var(--npwp-lime-tint);
+	color: var(--npwp-lime-ink);
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin.fba-page :is(.fba-chip, .fba-pill, .fba-action-chip, .fba-sidebar-btn, .fba-input) {
+	font-size: 13px !important;
+}
+
+/* WP settings tables (Overseer and Script Manager settings) sit in one card. */
+body.neo-pulse-wp-admin-screen .npwp-admin table.form-table {
+	border: 1px solid var(--npwp-line);
+	border-collapse: separate;
+	border-spacing: 0;
+	border-radius: 16px;
+	background: var(--npwp-panel);
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin table.form-table > tbody > tr > th {
+	width: 220px;
+	padding: 18px 12px 18px 22px;
+	vertical-align: top;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin table.form-table > tbody > tr > td {
+	padding: 14px 22px 14px 10px;
+	vertical-align: middle;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin table.form-table table.widefat {
+	background: var(--npwp-field) !important;
+}
+
+/* A heading inside a full-width settings cell sits above its fields, not beside them. */
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-schema-cell--full:has(> .neo-pulse-chat-settings-section__title) {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 10px;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-schema-cell--full > .neo-pulse-schema-inline-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 14px;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-schema-inline-grid__cell :is(input, select) {
+	width: 100%;
+	max-width: none;
+}
+
+/* Long column lists in import/export cards wrap instead of widening the page. */
+body.neo-pulse-wp-admin-screen .npwp-admin p > code {
+	overflow-wrap: anywhere;
+	white-space: normal;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-script-manager__panels--quad {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 20px;
+}
+
+body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-script-manager__panels--quad > * {
+	min-width: 0;
+}
+
+/* 10. Responsive (Neo Tools breakpoint) -------------------------------- */
+
+@media (max-width: 782px) {
+	body.neo-pulse-wp-admin-screen #wpbody-content .wrap.npwp-admin {
+		margin: 10px 10px 30px 0;
+	}
+
+	body.neo-pulse-wp-admin-screen .npwp-admin h1.npwp-head__title {
+		font-size: 24px !important;
+	}
+
+	body.neo-pulse-wp-admin-screen .npwp-admin .npwp-tabs {
+		display: flex;
+		flex-wrap: nowrap;
+		overflow-x: auto;
+		scrollbar-width: none;
+	}
+
+	body.neo-pulse-wp-admin-screen .npwp-admin .npwp-tabs a.npwp-tabs__item {
+		flex: 0 0 auto;
+	}
+
+	body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-panel-layout {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 18px;
+	}
+
+	body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-panel-nav {
+		position: static;
+	}
+
+	body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-wp-panel-nav__list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		margin-bottom: 12px;
+	}
+
+	body.neo-pulse-wp-admin-screen .npwp-admin a.neo-pulse-wp-panel-nav__item {
+		padding: 6px 12px;
+		border: 1px solid var(--npwp-line);
+		border-radius: 999px;
+	}
+
+	body.neo-pulse-wp-admin-screen .npwp-admin a.neo-pulse-wp-panel-nav__item--active {
+		border-color: var(--npwp-lime-line);
+	}
+
+	body.neo-pulse-wp-admin-screen .npwp-admin a.neo-pulse-wp-panel-nav__item--active::before {
+		content: none;
+	}
+
+	body.neo-pulse-wp-admin-screen .npwp-admin .wp-list-table {
+		border-radius: 14px;
+	}
+
+	body.neo-pulse-wp-admin-screen .npwp-admin table.form-table > tbody > tr > :is(th, td) {
+		display: block;
+		width: auto;
+		padding: 12px 18px;
+	}
+
+	body.neo-pulse-wp-admin-screen .npwp-admin table.form-table > tbody > tr > th {
+		padding-bottom: 0;
+	}
+
+	body.neo-pulse-wp-admin-screen .npwp-admin table.form-table > tbody > tr > td {
+		border-top: 0;
+		padding-bottom: 16px;
+	}
+
+	body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-schema-cell > .neo-pulse-wp-panel-toggle ~ .neo-pulse-field__note {
+		margin-left: 0;
+	}
+
+	/* Wide data tables scroll inside their card instead of widening the page. */
+	body.neo-pulse-wp-admin-screen .npwp-admin :is(.neo-pulse-conversion-panel, .neo-pulse-wp-overseer__panel, .neo-pulse-chat-kb-table-wrap) {
+		position: relative;
+		max-width: 100%;
+		overflow-x: auto;
+	}
+
+	body.neo-pulse-wp-admin-screen .npwp-admin .neo-pulse-chat-kb-table :is(input, textarea, select) {
+		min-width: 0;
+	}
+
+	/* Backend Assist stacks: session list on top, chat below, composer in the flow. */
+	body.neo-pulse-wp-admin-screen .npwp-admin.fba-page .fba-shell {
+		min-height: 0;
+	}
+
+	body.neo-pulse-wp-admin-screen .npwp-admin.fba-page .fba-main {
+		width: 100%;
+		max-width: 100%;
+		padding: 20px 16px 18px;
+	}
+
+	body.neo-pulse-wp-admin-screen .npwp-admin.fba-page .fba-center {
+		padding-bottom: 24px;
+		text-align: center;
+	}
+
+	body.neo-pulse-wp-admin-screen .npwp-admin.fba-page .fba-gsc-status {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 6px;
+		max-width: 100%;
+	}
+
+	body.neo-pulse-wp-admin-screen .npwp-admin.fba-page .fba-gsc-status .neo-pulse-wp-settings__gsc-status {
+		white-space: normal;
+	}
+
+	body.neo-pulse-wp-admin-screen .npwp-admin.fba-page .fba-input-wrap {
+		position: static;
+	}
+
+	body.neo-pulse-wp-admin-screen .npwp-admin.fba-page .fba-input {
+		min-width: 0;
+	}
+}
+
+/* Overseer pill row: beat the generic ".neo-pulse-wp-app a" link colour. */
+body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer a.neo-pulse-wp-overseer__nav-item {
+	color: var(--npwp-muted);
+}
+
+body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer a.neo-pulse-wp-overseer__nav-item:hover,
+body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer a.neo-pulse-wp-overseer__nav-item:focus {
+	color: var(--npwp-text);
+}
+
+body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer a.neo-pulse-wp-overseer__nav-item.is-active {
+	color: var(--npwp-lime-ink);
+}
+
+/* 11. Motion ------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+	.npwp-admin *,
+	.npwp-admin *::before,
+	.npwp-admin *::after {
+		transition-duration: 0.01ms !important;
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		scroll-behavior: auto !important;
+	}
+}
+
+/* 12. Licence pill in the header (same as the "Activated" badge in Neo Tools) */
+
+.npwp-admin a.npwp-activated {
+	display: inline-flex;
+	flex-shrink: 0;
+	align-items: center;
+	gap: 9px;
+	margin-left: auto;
+	padding: 6px 14px 6px 12px;
+	border: 0;
+	border-radius: 999px;
+	background: var(--npwp-lime-tint);
+	color: var(--npwp-lime-ink) !important;
+	font-size: 12px !important;
+	font-weight: 600;
+	line-height: 1.3;
+	letter-spacing: 0.02em;
+	text-decoration: none !important;
+	box-shadow: none !important;
+	transition: background-color 0.2s;
+}
+
+.npwp-admin a.npwp-activated:hover {
+	background: #dff0b8;
+}
+
+.npwp-admin a.npwp-activated:focus-visible {
+	outline: 2px solid var(--npwp-lime);
+	outline-offset: 3px;
+}
+
+.npwp-admin .npwp-activated__dot {
+	position: relative;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--npwp-lime);
+}
+
+.npwp-admin .npwp-activated__dot::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: 50%;
+	background: var(--npwp-lime);
+	animation: npwp-pulse 1.8s ease-out infinite;
+}
+
+.npwp-admin a.npwp-activated.is-off {
+	border-color: transparent;
+	background: #fff4e5;
+	color: #9a3412 !important;
+}
+
+.npwp-admin a.npwp-activated.is-off .npwp-activated__dot,
+.npwp-admin a.npwp-activated.is-off .npwp-activated__dot::after {
+	background: #ea580c;
+	animation: none;
+}
+
+@keyframes npwp-pulse {
+	0% { transform: scale(1); opacity: 0.7; }
+	100% { transform: scale(3.2); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.npwp-admin .npwp-activated__dot::after {
+		animation: none;
+	}
+}

@@ -68,10 +68,6 @@ class Neo_Pulse_Wp_Backend_Assist_Pipeline {
 				$message,
 				$classification
 			);
-			$decomposed = Neo_Pulse_Wp_Backend_Assist_Workflow_Builder::attach_heading_outline( $decomposed, $message, $history );
-			if ( is_wp_error( $decomposed ) ) {
-				return Neo_Pulse_Wp_Backend_Assist_Cards::error_card( $decomposed->get_error_message() );
-			}
 			$workflow_id = Neo_Pulse_Wp_Backend_Assist_Workflow::save_workflow( $message, $history, $decomposed );
 			if ( $workflow_id === '' ) {
 				return Neo_Pulse_Wp_Backend_Assist_Cards::error_card( __( 'Could not start the page workflow.', 'neo-pulse-wp' ) );
@@ -120,7 +116,7 @@ class Neo_Pulse_Wp_Backend_Assist_Pipeline {
 		$result = isset( $last['result'] ) && is_array( $last['result'] ) ? $last['result'] : array();
 		$exec   = isset( $card['action_result'] ) && is_array( $card['action_result'] ) ? $card['action_result'] : $result;
 		if ( empty( $exec['success'] ) ) {
-			$err = isset( $exec['error'] ) ? (string) $exec['error'] : __( 'Build did not apply the SEO block.', 'neo-pulse-wp' );
+			$err = isset( $exec['error'] ) ? (string) $exec['error'] : __( 'Build did not finish the page changes.', 'neo-pulse-wp' );
 			return Neo_Pulse_Wp_Backend_Assist_Cards::error_card( $err );
 		}
 
@@ -158,14 +154,8 @@ class Neo_Pulse_Wp_Backend_Assist_Pipeline {
 			'save_post_meta',
 			'run_seo_research_brief',
 			'restore_post_revision',
-			'compose_seo_block',
 			'compose_elementor_page_sections',
-			'modify_seo_block_slots',
-			'duplicate_seo_block',
-			'save_seo_block',
-			'apply_seo_block_to_page',
 			'design_page_with_novamira',
-			'get_seo_block',
 		);
 		if ( ! empty( $exec_result['success'] ) && in_array( $tool, $truthful_tools, true ) ) {
 			return Neo_Pulse_Wp_Backend_Assist_Cards::enrich_card(
@@ -386,10 +376,6 @@ class Neo_Pulse_Wp_Backend_Assist_Pipeline {
 		}
 
 		$decomposed = Neo_Pulse_Wp_Backend_Assist_Workflow_Builder::expand_create_to_full_page( $decomposed, $message );
-		$decomposed = Neo_Pulse_Wp_Backend_Assist_Workflow_Builder::attach_heading_outline( $decomposed, $message, $history );
-		if ( is_wp_error( $decomposed ) ) {
-			return Neo_Pulse_Wp_Backend_Assist_Cards::error_card( $decomposed->get_error_message() );
-		}
 
 		$is_workflow = ! empty( $decomposed['workflow'] )
 			&& ! empty( $decomposed['steps'] )
@@ -456,10 +442,6 @@ class Neo_Pulse_Wp_Backend_Assist_Pipeline {
 		}
 
 		$decomposed = Neo_Pulse_Wp_Backend_Assist_Workflow_Builder::expand_create_to_full_page( $decomposed, $message, $classification );
-		$decomposed = Neo_Pulse_Wp_Backend_Assist_Workflow_Builder::attach_heading_outline( $decomposed, $message, $history );
-		if ( is_wp_error( $decomposed ) ) {
-			return Neo_Pulse_Wp_Backend_Assist_Cards::error_card( $decomposed->get_error_message() );
-		}
 
 		$is_workflow = ! empty( $decomposed['workflow'] )
 			&& ! empty( $decomposed['steps'] )
@@ -625,70 +607,6 @@ class Neo_Pulse_Wp_Backend_Assist_Pipeline {
 			return ucwords( str_replace( '_', ' ', $tool ) ) . ': ' . mb_substr( $trimmed, 0, 80 );
 		}
 		return ucwords( str_replace( '_', ' ', $tool ) );
-	}
-
-	/**
-	 * FAQ schema (ACF) + visible FAQ table in one Build-mode request.
-	 *
-	 * @param array<string, mixed>           $params
-	 * @param array<int, array<string, mixed>> $history
-	 * @return array<string, mixed>
-	 */
-	private static function run_faq_compound( string $message, array $history, array $params ): array {
-		$meta_prep = Neo_Pulse_Wp_Backend_Assist_Pipeline_Content_Prep::prepare_tool_params( $message, $history, 'save_post_meta', $params );
-		$post_id   = isset( $meta_prep['params']['post_id'] ) ? absint( $meta_prep['params']['post_id'] ) : 0;
-
-		if ( $post_id < 1 ) {
-			return Neo_Pulse_Wp_Backend_Assist_Cards::error_card( __( 'Could not resolve post for FAQ update.', 'neo-pulse-wp' ) );
-		}
-
-		$entries = Neo_Pulse_Wp_Backend_Assist_Pipeline_Content_Prep::generate_faq_qa_pairs( $post_id, $message, $history );
-		if ( is_wp_error( $entries ) ) {
-			return Neo_Pulse_Wp_Backend_Assist_Cards::error_card( $entries->get_error_message() );
-		}
-
-		$schema_json = Neo_Pulse_Wp_Backend_Assist_Pipeline_Content_Prep::faq_entries_to_schema_json( $entries );
-		$table_html  = Neo_Pulse_Wp_Backend_Assist_Pipeline_Content_Prep::faq_entries_to_table_html( $entries );
-
-		$meta_params = array_merge(
-			is_array( $meta_prep['params'] ) ? $meta_prep['params'] : array(),
-			array(
-				'post_id' => $post_id,
-				'faq'     => $schema_json,
-			)
-		);
-		$meta_result = Neo_Pulse_Wp_Backend_Assist_Pipeline_Phases::phase_execute( 'save_post_meta', $meta_params );
-
-		$content_params = array(
-			'post_id' => $post_id,
-			'mode'    => 'append',
-			'content' => $table_html,
-		);
-		$content_result = Neo_Pulse_Wp_Backend_Assist_Pipeline_Phases::phase_execute( 'add_content', $content_params );
-
-		$combined = array(
-			'success'        => ! empty( $meta_result['success'] ) && ! empty( $content_result['success'] ),
-			'faq_compound'   => true,
-			'post_id'        => $post_id,
-			'title'          => $content_result['title'] ?? $meta_result['title'] ?? '',
-			'edit_url'       => $content_result['edit_url'] ?? $meta_result['edit_url'] ?? '',
-			'view_url'       => $content_result['view_url'] ?? $meta_result['view_url'] ?? '',
-			'word_count'     => $content_result['word_count'] ?? null,
-			'meta_result'    => $meta_result,
-			'content_result' => $content_result,
-			'saved'          => $meta_result['saved'] ?? array(),
-		);
-
-		if ( ! $combined['success'] ) {
-			$error = $content_result['error'] ?? $meta_result['error'] ?? __( 'FAQ update failed.', 'neo-pulse-wp' );
-			$combined['error'] = $error;
-		}
-
-		return Neo_Pulse_Wp_Backend_Assist_Cards::enrich_card(
-			Neo_Pulse_Wp_Backend_Assist_Cards::action_card( $combined, 'faq_compound' ),
-			'faq_compound',
-			$combined
-		);
 	}
 
 	/**

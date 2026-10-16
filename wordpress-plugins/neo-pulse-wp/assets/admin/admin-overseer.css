@@ -50,10 +50,10 @@
 	width: min(220px, 100%);
 	min-height: 30px;
 	margin: 0;
-	background: #121212;
-	color: #ffffff;
+	background: var(--npwp-panel, #0a1119);
+	color: var(--npwp-text, #f7f4f2);
 	border: none;
-	border-radius: 0;
+	border-radius: 10px;
 	padding: 6px 10px;
 }
 
@@ -126,7 +126,7 @@
 	background: var(--fc-input-bg);
 	color: var(--fc-text);
 	border: none;
-	border-radius: 0;
+	border-radius: 10px;
 	padding: 6px 10px;
 }
 
@@ -155,7 +155,7 @@
 .neo-pulse-wp-overseer__panel {
 	background: var(--fc-surface-muted);
 	border: none;
-	border-radius: 0;
+	border-radius: 10px;
 	padding: 20px 24px;
 	box-shadow: none;
 	color: var(--fc-text);
@@ -190,7 +190,7 @@
 }
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer .wp-list-table {
-	background: #000;
+	background: var(--fc-surface);
 }
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer .wp-list-table thead th,
@@ -217,7 +217,7 @@ body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer .wp-list-table tfoot .chec
 }
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer .wp-list-table tbody tr {
-	background: #000;
+	background: var(--fc-surface);
 }
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer .wp-list-table tbody tr.alternate {
@@ -295,46 +295,54 @@ body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer .form-table .description {
 	color: var(--fc-link);
 }
 
+/* Overseer sections: a quiet secondary pill row under the Neo Pulse tab row. */
 .neo-pulse-wp-overseer__shell-header {
-	padding: 0 var(--fc-layout-gutter, 24px);
-	background: hsl(0 0% 14%);
-	border-bottom: 1px solid hsl(0 0% 100% / 0.08);
+	margin: 0 0 22px;
+	padding: 0 0 14px;
+	border-bottom: 1px solid var(--npwp-line, rgba(255, 255, 255, 0.08));
+	background: transparent;
 }
 
 .neo-pulse-wp-overseer__shell-nav {
 	display: flex;
 	flex-wrap: wrap;
-	align-items: stretch;
-	gap: 4px;
-	min-height: 48px;
+	align-items: center;
+	gap: 6px;
 }
 
-.neo-pulse-wp-overseer__nav-item {
+.neo-pulse-wp-overseer a.neo-pulse-wp-overseer__nav-item {
 	display: inline-flex;
 	align-items: center;
-	padding: 0 14px;
-	font-family: var(--fc-font);
-	font-size: 0.9375rem;
-	font-weight: 600;
-	line-height: 1.2;
-	color: hsl(0 0% 100% / 0.72);
+	min-height: 32px;
+	padding: 5px 13px;
+	border: 1px solid var(--npwp-line, rgba(255, 255, 255, 0.08));
+	border-radius: 999px;
 	background: transparent;
-	border: none;
-	border-radius: 0;
+	color: var(--npwp-muted, #9aa4ae);
+	font-family: var(--fc-font);
+	font-size: 13px;
+	font-weight: 500;
+	line-height: 1.2;
 	text-decoration: none;
-	transition: color 0.15s ease, background 0.15s ease;
+	transition: color 0.2s, background-color 0.2s, border-color 0.2s;
 }
 
-.neo-pulse-wp-overseer__nav-item:hover,
-.neo-pulse-wp-overseer__nav-item:focus {
-	color: var(--fc-text);
-	background: hsl(0 0% 100% / 0.06);
+.neo-pulse-wp-overseer a.neo-pulse-wp-overseer__nav-item:hover,
+.neo-pulse-wp-overseer a.neo-pulse-wp-overseer__nav-item:focus {
+	background: rgba(255, 255, 255, 0.04);
+	color: var(--npwp-text, #f7f4f2);
 }
 
-.neo-pulse-wp-overseer__nav-item.is-active {
-	color: var(--fc-text);
-	background: hsl(0 0% 100% / 0.1);
-	box-shadow: none;
+.neo-pulse-wp-overseer a.neo-pulse-wp-overseer__nav-item.is-active {
+	border-color: var(--npwp-lime-line, rgba(132, 189, 0, 0.45));
+	background: var(--npwp-lime-tint, rgba(132, 189, 0, 0.12));
+	color: var(--npwp-lime, #84bd00);
+	font-weight: 600;
+}
+
+.neo-pulse-wp-overseer a.neo-pulse-wp-overseer__nav-item:focus-visible {
+	outline: 2px solid var(--npwp-lime, #84bd00);
+	outline-offset: 2px;
 }
 
 /* Fields-style shell header — greyscale active tabs (no white pill) */
@@ -385,7 +393,7 @@ body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer .form-table .description {
 	margin: 0 0 12px;
 	padding: 12px 0;
 	background: transparent;
-	border-radius: 0;
+	border-radius: 10px;
 	position: relative;
 }
 
@@ -440,7 +448,7 @@ body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer .form-table .description {
 .neo-pulse-wp-overseer__report-body code {
 	background: var(--fc-input-bg);
 	padding: 2px 6px;
-	border-radius: 0;
+	border-radius: 10px;
 }
 
 .neo-pulse-wp-overseer__report-body a {
@@ -520,7 +528,7 @@ body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer .form-table .description {
 	font-weight: 600;
 	font-size: 0.8rem;
 	color: var(--fc-text-muted);
-	background: var(--fc-table-header-bg, #1a1a1a);
+	background: var(--fc-table-header-bg, #0a1119);
 	border: none;
 }
 
@@ -528,7 +536,7 @@ body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer .form-table .description {
 	padding: 10px 12px;
 	color: var(--fc-text);
 	border: none;
-	background: #000;
+	background: var(--fc-surface);
 }
 
 .neo-pulse-wp-overseer__metrics-table tbody tr:nth-child(even) td {
@@ -536,7 +544,7 @@ body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer .form-table .description {
 }
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer__metrics-table tbody tr:hover td {
-	background: var(--fc-table-row-hover, #2a2a2a);
+	background: var(--fc-table-row-hover, #0e1721);
 	color: var(--fc-text);
 }
 
@@ -561,7 +569,7 @@ body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer table.striped.widefat {
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer table.widefat.striped thead th,
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer table.striped.widefat thead th {
-	background: var(--fc-table-header-bg, #1a1a1a);
+	background: var(--fc-table-header-bg, #0a1119);
 	color: var(--fc-text-muted);
 	border: none;
 }
@@ -570,7 +578,7 @@ body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer table.widefat.striped tbod
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer table.striped.widefat tbody td {
 	color: var(--fc-text);
 	border: none;
-	background: #000;
+	background: var(--fc-surface);
 }
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer table.widefat.striped tbody tr:nth-child(odd) td,
@@ -582,7 +590,7 @@ body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer table.striped.widefat > tb
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer table.widefat.striped tbody tr:nth-child(even) td,
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer table.striped.widefat tbody tr:nth-child(even) td {
-	background: #000;
+	background: var(--fc-surface);
 }
 
 .neo-pulse-wp-overseer__panel--nested {
@@ -597,7 +605,7 @@ body.neo-pulse-wp-admin-screen .neo-pulse-wp-overseer table.striped.widefat tbod
 	margin: 20px 0;
 	padding: 0;
 	border: none;
-	border-radius: 0;
+	border-radius: 10px;
 	box-shadow: none;
 	background: transparent;
 }

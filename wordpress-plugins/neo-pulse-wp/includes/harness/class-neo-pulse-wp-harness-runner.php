@@ -117,12 +117,10 @@ class Neo_Pulse_Wp_Harness_Runner {
 		if ( is_wp_error( $raw ) ) {
 			return $html;
 		}
-		$data = json_decode( trim( (string) $raw ), true );
-		if ( ! is_array( $data ) || empty( $data['section_html'] ) ) {
-			if ( preg_match( '/\{[\s\S]*\}/', (string) $raw, $m ) ) {
-				$data = json_decode( $m[0], true );
-			}
+		if ( ! class_exists( 'Neo_Pulse_Wp_Backend_Assist_Ai', false ) ) {
+			require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/backend-assist/class-neo-pulse-wp-backend-assist-ai.php';
 		}
+		$data = Neo_Pulse_Wp_Backend_Assist_Ai::parse_json( (string) $raw );
 		if ( is_array( $data ) && ! empty( $data['section_html'] ) && is_string( $data['section_html'] ) ) {
 			return Neo_Pulse_Wp_Harness_Outline::strip_footer_from_section_html( $data['section_html'] );
 		}

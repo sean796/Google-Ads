@@ -31,17 +31,6 @@ class Neo_Pulse_Wp_Backend_Assist_Registry {
 		}
 
 		self::register_tool(
-			'compose_seo_block',
-			static function ( array $params ): array {
-				if ( ! class_exists( 'Neo_Pulse_Wp_Seo_Blocks_Agent', false ) ) {
-					require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/seo-builder/class-neo-pulse-wp-seo-blocks-agent.php';
-				}
-				return Neo_Pulse_Wp_Seo_Blocks_Agent::tool_handler( $params );
-			},
-			'Generate, optimize, or analyze a full Agent Hub SEO block manifest (title, slots, layout grid, responsive settings) from natural language'
-		);
-
-		self::register_tool(
 			'get_gsc_context',
 			array( 'Neo_Pulse_Wp_Backend_Assist', 'tool_get_gsc_context' ),
 			'Fetch Google Search Console keyword/query data for a post or the whole site (read-only)'
@@ -72,63 +61,15 @@ class Neo_Pulse_Wp_Backend_Assist_Registry {
 		);
 
 		self::register_tool(
-			'modify_seo_block_slots',
-			array( 'Neo_Pulse_Wp_Backend_Assist', 'tool_modify_seo_block_slots' ),
-			'Add, remove, or update individual slots (H2, paragraph, CTA, list, image) in an SEO block manifest'
-		);
-
-		self::register_tool(
-			'list_seo_blocks',
-			array( 'Neo_Pulse_Wp_Backend_Assist', 'tool_list_seo_blocks' ),
-			'List Agent Hub SEO blocks with id, title, focus keyword, and status'
-		);
-
-		self::register_tool(
-			'get_seo_block',
-			array( 'Neo_Pulse_Wp_Backend_Assist', 'tool_get_seo_block' ),
-			'Get one Agent Hub SEO block by block_id or exact title, including slots'
-		);
-
-		self::register_tool(
-			'duplicate_seo_block',
-			array( 'Neo_Pulse_Wp_Backend_Assist', 'tool_duplicate_seo_block' ),
-			'Duplicate an existing Agent Hub SEO block as a new row. Optional user_copy fills the copy slots. Never edits the source block.'
-		);
-
-		self::register_tool(
-			'create_seo_block',
-			array( 'Neo_Pulse_Wp_Backend_Assist', 'tool_create_seo_block' ),
-			'Create a new draft SEO block in Agent Hub'
-		);
-
-		self::register_tool(
-			'delete_seo_block',
-			array( 'Neo_Pulse_Wp_Backend_Assist', 'tool_delete_seo_block' ),
-			'Delete an SEO block from Agent Hub by block_id'
-		);
-
-		self::register_tool(
-			'save_seo_block',
-			array( 'Neo_Pulse_Wp_Backend_Assist', 'tool_save_seo_block' ),
-			'Persist an SEO block manifest to the database'
-		);
-
-		self::register_tool(
-			'apply_seo_block_to_page',
-			array( 'Neo_Pulse_Wp_Backend_Assist', 'tool_apply_seo_block_to_page' ),
-			'Insert a registry-linked neo-pulse_seo_section widget on an Elementor page (dynamic block + optional NEO Pulse Fields heading tag)'
-		);
-
-		self::register_tool(
 			'compose_elementor_page_sections',
 			array( 'Neo_Pulse_Wp_Backend_Assist_Tools_Elementor_Sections', 'tool_compose_elementor_page_sections' ),
-			'Generate H2 section copy for native Elementor widgets (no Agent Hub SEO block). Used when page content mode is Elementor.'
+			'Generate H2 section copy for native Elementor widgets. Used when building a new page.'
 		);
 
 		self::register_tool(
 			'design_page_with_novamira',
 			array( 'Neo_Pulse_Wp_Backend_Assist', 'tool_design_page_with_novamira' ),
-			'Design a new Elementor page with Novamira tokens and the homepage pattern. Requires post_id and saved SEO block slots. Publishes the page.'
+			'Design a new Elementor page with Novamira tokens and the homepage pattern from composed Elementor sections. Requires post_id. Publishes the page.'
 		);
 
 		Neo_Pulse_Wp_Backend_Assist_Tools_Analytics::register_tools();

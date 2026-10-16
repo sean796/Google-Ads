@@ -32,7 +32,7 @@ export function ForgeDashboardUsageChart({
     return out;
   }, [chartKeys, labels]);
 
-  if (chartKeys.length === 0 || chartSeries.length === 0) return null;
+  const hasData = chartKeys.length > 0 && chartSeries.length > 0;
 
   return (
     <div className="flex flex-col gap-2">
@@ -45,29 +45,35 @@ export function ForgeDashboardUsageChart({
       </div>
       <div className={FORGE_DASHBOARD_PANEL_SHELL_CLASS}>
         <div className="px-2 py-3">
-          <ChartContainer config={config} className="aspect-[3/1] h-48 w-full">
-            <BarChart data={chartSeries} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-              <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-zinc-800" />
-              <XAxis
-                dataKey="date"
-                tickLine={false}
-                axisLine={false}
-                interval="preserveStartEnd"
-                minTickGap={24}
-              />
-              <YAxis tickLine={false} axisLine={false} width={32} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              {chartKeys.map((key) => (
-                <Bar
-                  key={key}
-                  dataKey={key}
-                  stackId="usage"
-                  fill={`var(--color-${key})`}
-                  radius={key === chartKeys[chartKeys.length - 1] ? [2, 2, 0, 0] : [0, 0, 0, 0]}
+          {hasData ? (
+            <ChartContainer config={config} className="aspect-[3/1] h-48 w-full">
+              <BarChart data={chartSeries} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-zinc-800" />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  interval="preserveStartEnd"
+                  minTickGap={24}
                 />
-              ))}
-            </BarChart>
-          </ChartContainer>
+                <YAxis tickLine={false} axisLine={false} width={32} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                {chartKeys.map((key) => (
+                  <Bar
+                    key={key}
+                    dataKey={key}
+                    stackId="usage"
+                    fill={`var(--color-${key})`}
+                    radius={key === chartKeys[chartKeys.length - 1] ? [2, 2, 0, 0] : [0, 0, 0, 0]}
+                  />
+                ))}
+              </BarChart>
+            </ChartContainer>
+          ) : (
+            <div className="flex h-48 w-full items-center justify-center">
+              <p className="text-base text-muted-foreground">No usage recorded in this period</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -316,8 +316,8 @@ export function OrganicGscSection({
                 </tr>
               </thead>
               <tbody>
-                {queries.map((row) => (
-                  <tr key={row.query} className="border-t border-white/5">
+                {queries.map((row, idx) => (
+                  <tr key={`${row.query}-${idx}`} className="border-t border-white/5">
                     <td className="max-w-[20rem] truncate py-2.5 pr-4 text-white">{row.query}</td>
                     {showCompare ? (
                       <>

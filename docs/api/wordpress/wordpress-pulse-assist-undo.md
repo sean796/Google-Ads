@@ -5,7 +5,7 @@ section: WordPress
 method: POST
 path: /api/wordpress/pulse-assist-undo
 auth: open
-order: 3090
+order: 3100
 ---
 
 POST `/api/wordpress/pulse-assist-undo`.

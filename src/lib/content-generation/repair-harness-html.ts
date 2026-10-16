@@ -17,9 +17,13 @@ export function repairMalformedImgTags(html: string): string {
   return s;
 }
 
-/** Remove orphan bracket fragments left after placeholder stripping. */
+/** Remove orphan bracket fragments and banned "Related reading:" link tails. */
 export function stripOrphanBracketArtifacts(html: string): string {
   let s = html;
+  s = s.replace(
+    /\s*Related reading:\s*(?:<a\b[^>]*>[\s\S]*?<\/a>|\[[^\]]+\]\([^)]+\)|[^.<]+)\.?/gi,
+    "",
+  );
   s = s.replace(/\s+\]\./g, ".");
   s = s.replace(/\s+\[\./g, ".");
   s = s.replace(/\s+\](?=[,.;:!?])/g, "");

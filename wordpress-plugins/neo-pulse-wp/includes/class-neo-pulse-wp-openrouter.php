@@ -30,10 +30,6 @@ class Neo_Pulse_Wp_OpenRouter {
 		if ( defined( 'NEO_PULSE_WP_OPENROUTER_API_KEY' ) && NEO_PULSE_WP_OPENROUTER_API_KEY !== '' ) {
 			return trim( (string) NEO_PULSE_WP_OPENROUTER_API_KEY );
 		}
-		$env = getenv( 'NEO_PULSE_WP_OPENROUTER_API_KEY' );
-		if ( $env ) {
-			return trim( (string) $env );
-		}
 		$agency = Neo_Pulse_Wp_Api::get_agency_openrouter_api_key();
 		if ( $agency !== '' ) {
 			return $agency;
@@ -62,17 +58,13 @@ class Neo_Pulse_Wp_OpenRouter {
 	}
 
 	/**
-	 * Body harness: wp-config, env, or agency settings only.
+	 * Body harness: wp-config or agency settings only.
 	 *
 	 * @return string
 	 */
 	public static function get_body_api_key(): string {
 		if ( defined( 'NEO_PULSE_WP_OPENROUTER_API_KEY' ) && NEO_PULSE_WP_OPENROUTER_API_KEY !== '' ) {
 			return trim( (string) NEO_PULSE_WP_OPENROUTER_API_KEY );
-		}
-		$env = getenv( 'NEO_PULSE_WP_OPENROUTER_API_KEY' );
-		if ( $env ) {
-			return trim( (string) $env );
 		}
 		return Neo_Pulse_Wp_Api::get_agency_openrouter_api_key();
 	}
@@ -83,10 +75,6 @@ class Neo_Pulse_Wp_OpenRouter {
 	public static function get_model(): string {
 		if ( defined( 'NEO_PULSE_WP_OPENROUTER_MODEL' ) && NEO_PULSE_WP_OPENROUTER_MODEL !== '' ) {
 			return trim( (string) NEO_PULSE_WP_OPENROUTER_MODEL );
-		}
-		$env = getenv( 'NEO_PULSE_WP_OPENROUTER_MODEL' );
-		if ( $env ) {
-			return trim( (string) $env );
 		}
 
 		return self::DEFAULT_MODEL;
@@ -160,9 +148,6 @@ class Neo_Pulse_Wp_OpenRouter {
 		if ( defined( 'NEO_PULSE_WP_OPENROUTER_API_KEY' ) && NEO_PULSE_WP_OPENROUTER_API_KEY !== '' ) {
 			return 'wp-config';
 		}
-		if ( getenv( 'NEO_PULSE_WP_OPENROUTER_API_KEY' ) || getenv( 'OPEN_ROUTER_API_KEY' ) || getenv( 'OPENROUTER_API_KEY' ) ) {
-			return 'environment';
-		}
 		if ( Neo_Pulse_Wp_Api::get_agency_openrouter_api_key() !== '' ) {
 			return 'site';
 		}
@@ -177,14 +162,16 @@ class Neo_Pulse_Wp_OpenRouter {
 	 * @param string $user_prompt
 	 * @param int    $max_tokens
 	 * @param float  $temperature
+	 * @param string|null          $model Model id; null uses the configured default.
+	 * @param array<string, mixed> $extra Extra request body fields (e.g. response_format). Cannot override model or messages.
 	 * @return string|WP_Error
 	 */
-	public static function complete( string $system_prompt, string $user_prompt, int $max_tokens = 4096, float $temperature = 0.7, ?string $model = null ) {
+	public static function complete( string $system_prompt, string $user_prompt, int $max_tokens = 4096, float $temperature = 0.7, ?string $model = null, array $extra = array() ) {
 		$key = self::get_api_key();
 		if ( $key === '' ) {
 			return new WP_Error(
 				'neo-pulse_openrouter_key',
-				__( 'OpenRouter API key is not configured. Add your key in NEO Pulse WP Settings or the plugin .env file.', 'neo-pulse-wp' )
+				__( 'OpenRouter API key is not configured. Add your key in NEO Pulse WP Settings or wp-config.php.', 'neo-pulse-wp' )
 			);
 		}
 
@@ -192,28 +179,32 @@ class Neo_Pulse_Wp_OpenRouter {
 
 		$model_id = $model !== null && trim( $model ) !== '' ? trim( $model ) : self::get_model();
 
+		unset( $extra['model'], $extra['messages'] );
+		$body = array_merge(
+			array(
+				'model'       => $model_id,
+				'messages'    => array(
+					array(
+						'role'    => 'system',
+						'content' => $system_prompt,
+					),
+					array(
+						'role'    => 'user',
+						'content' => $user_prompt,
+					),
+				),
+				'temperature' => $temperature,
+				'max_tokens'  => $max_tokens,
+			),
+			$extra
+		);
+
 		$response = wp_remote_post(
 			self::API_URL,
 			array(
 				'timeout' => self::get_timeout(),
 				'headers' => self::request_headers( $key ),
-				'body'    => wp_json_encode(
-					array(
-						'model'       => $model_id,
-						'messages'    => array(
-							array(
-								'role'    => 'system',
-								'content' => $system_prompt,
-							),
-							array(
-								'role'    => 'user',
-								'content' => $user_prompt,
-							),
-						),
-						'temperature' => $temperature,
-						'max_tokens'  => $max_tokens,
-					)
-				),
+				'body'    => wp_json_encode( $body ),
 			)
 		);
 
@@ -237,7 +228,7 @@ class Neo_Pulse_Wp_OpenRouter {
 			if ( $msg === '' ) {
 				$msg = $raw !== '' ? $raw : sprintf( 'HTTP %d', $code );
 			}
-			return new WP_Error( 'neo-pulse_openrouter_http', sprintf( 'OpenRouter %1$d: %2$s', $code, $msg ) );
+			return self::http_error( $code, $msg );
 		}
 
 		$text = '';
@@ -248,6 +239,139 @@ class Neo_Pulse_Wp_OpenRouter {
 			return new WP_Error( 'neo-pulse_openrouter_empty', __( 'AI returned empty content.', 'neo-pulse-wp' ) );
 		}
 
+		return $text;
+	}
+
+	/**
+	 * Generic message shown when an AI call fails (never the raw provider body).
+	 */
+	public static function generic_error_message(): string {
+		return __( 'The assistant is unavailable right now.', 'neo-pulse-wp' );
+	}
+
+	/**
+	 * OpenRouter HTTP failure: generic message; the provider detail stays in the error data.
+	 * Site administrators also see a short version of the detail so they can fix keys/credits.
+	 */
+	private static function http_error( int $code, string $detail ): WP_Error {
+		$detail  = sprintf( 'OpenRouter %1$d: %2$s', $code, $detail );
+		$message = self::generic_error_message();
+		if ( function_exists( 'current_user_can' ) && current_user_can( 'manage_options' ) ) {
+			$short   = function_exists( 'mb_substr' ) ? mb_substr( wp_strip_all_tags( $detail ), 0, 300 ) : substr( wp_strip_all_tags( $detail ), 0, 300 );
+			$message .= ' (' . $short . ')';
+		}
+		return new WP_Error(
+			'neo-pulse_openrouter_http',
+			$message,
+			array(
+				'status' => $code,
+				'detail' => $detail,
+			)
+		);
+	}
+
+	/**
+	 * Hashed client key for per-IP limits. Uses REMOTE_ADDR only (forwarded headers are spoofable).
+	 */
+	public static function client_ip_hash(): string {
+		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['REMOTE_ADDR'] ) ) : '';
+		return substr( hash_hmac( 'sha256', $ip, wp_salt( 'nonce' ) ), 0, 24 );
+	}
+
+	/**
+	 * Per-IP sliding-window counter for public (unauthenticated) endpoints.
+	 * Records this request and returns true when the client is over the limit.
+	 * Logged-in users who can edit posts are exempt.
+	 *
+	 * @param string $bucket Counter name (requests in the same bucket share the limit).
+	 * @param int    $max    Requests allowed per window.
+	 * @param int    $window Window length in seconds.
+	 */
+	public static function rate_limit_exceeded( string $bucket, int $max, int $window ): bool {
+		if ( is_user_logged_in() && current_user_can( 'edit_posts' ) ) {
+			return false;
+		}
+		$max    = max( 1, $max );
+		$window = max( 1, $window );
+		$key    = 'neo_pulse_rl_' . sanitize_key( $bucket ) . '_' . self::client_ip_hash();
+		$now    = time();
+		$hits   = get_transient( $key );
+		$recent = array();
+		if ( is_array( $hits ) ) {
+			foreach ( $hits as $t ) {
+				$t = (int) $t;
+				if ( $t > $now - $window ) {
+					$recent[] = $t;
+				}
+			}
+		}
+		if ( count( $recent ) >= $max ) {
+			return true;
+		}
+		$recent[] = $now;
+		set_transient( $key, $recent, $window );
+		return false;
+	}
+
+	/**
+	 * Completion that also shows the model an image (vision models such as Gemini Flash).
+	 *
+	 * @param string $image_url Data URL (data:image/jpeg;base64,…) or public https URL.
+	 * @param int    $timeout   Seconds; 0 uses the usual timeout.
+	 * @return string|WP_Error
+	 */
+	public static function complete_with_image( string $system_prompt, string $user_prompt, string $image_url, int $max_tokens = 800, float $temperature = 0.3, int $timeout = 0, ?string $model = null ) {
+		$key = self::get_api_key();
+		if ( $key === '' ) {
+			return new WP_Error( 'neo-pulse_openrouter_key', __( 'OpenRouter API key is not configured.', 'neo-pulse-wp' ) );
+		}
+		$model_id = $model !== null && trim( $model ) !== '' ? trim( $model ) : self::get_model();
+		$response = wp_remote_post(
+			self::API_URL,
+			array(
+				'timeout' => $timeout > 0 ? $timeout : self::get_timeout(),
+				'headers' => self::request_headers( $key ),
+				'body'    => wp_json_encode(
+					array(
+						'model'       => $model_id,
+						'messages'    => array(
+							array(
+								'role'    => 'system',
+								'content' => $system_prompt,
+							),
+							array(
+								'role'    => 'user',
+								'content' => array(
+									array(
+										'type' => 'text',
+										'text' => $user_prompt,
+									),
+									array(
+										'type'      => 'image_url',
+										'image_url' => array( 'url' => $image_url ),
+									),
+								),
+							),
+						),
+						'temperature' => $temperature,
+						'max_tokens'  => $max_tokens,
+					)
+				),
+			)
+		);
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+		$code = (int) wp_remote_retrieve_response_code( $response );
+		$raw  = wp_remote_retrieve_body( $response );
+		$data = json_decode( $raw, true );
+		if ( $code < 200 || $code >= 300 ) {
+			return new WP_Error( 'neo-pulse_openrouter_http', sprintf( 'OpenRouter %1$d: %2$s', $code, self::extract_api_error_message( is_array( $data ) ? $data : null, (string) $raw, $code ) ) );
+		}
+		$text = is_array( $data ) && isset( $data['choices'][0]['message']['content'] ) ? trim( (string) $data['choices'][0]['message']['content'] ) : '';
+		if ( $text === '' ) {
+			return new WP_Error( 'neo-pulse_openrouter_empty', __( 'AI returned empty content.', 'neo-pulse-wp' ) );
+		}
 		return $text;
 	}
 

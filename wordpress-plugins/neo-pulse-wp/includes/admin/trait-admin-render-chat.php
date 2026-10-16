@@ -18,29 +18,15 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Chat {
 		$openrouter_ok = Neo_Pulse_Wp_OpenRouter::get_api_key() !== '';
 
 		$tab = self::panel_active_tab( 'general' );
-		if ( ! in_array( $tab, array( 'general', 'design', 'training', 'knowledge-base', 'demo' ), true ) ) {
+		if ( ! in_array( $tab, array( 'general', 'training', 'knowledge-base', 'demo' ), true ) ) {
 			$tab = 'general';
 		}
 
-		$nav_groups = array(
-			array(
-				'heading' => __( 'Chat', 'neo-pulse-wp' ),
-				'tabs'    => array(
-					'general'        => __( 'General', 'neo-pulse-wp' ),
-					'design'         => __( 'Design', 'neo-pulse-wp' ),
-					'training'       => __( 'Training', 'neo-pulse-wp' ),
-					'knowledge-base' => __( 'Knowledge Base', 'neo-pulse-wp' ),
-					'demo'           => __( 'Demo', 'neo-pulse-wp' ),
-				),
-			),
-		);
 		self::neo_pulse_group_shell_open( 'neo-pulse-wp-chat', 'neo-pulse-wp-chat neo-pulse-wp-panel-page' );
 
-		self::panel_layout_start( 'neo-pulse-wp-chat', $nav_groups, $tab, __( 'Chat sections', 'neo-pulse-wp' ) );
+		// The section tabs across the top already list these tabs, so no in-page nav is passed.
+		self::panel_layout_start( 'neo-pulse-wp-chat', array(), $tab, __( 'Chat sections', 'neo-pulse-wp' ) );
 		switch ( $tab ) {
-			case 'design':
-				self::render_chat_section_design( $chat_settings );
-				break;
 			case 'training':
 				self::render_chat_section_training( $chat_settings );
 				break;
@@ -74,20 +60,32 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Chat {
 		?>
 		<h2 class="neo-pulse-wp-panel-content__title"><?php esc_html_e( 'General', 'neo-pulse-wp' ); ?></h2>
 		<p class="neo-pulse-wp-panel-content__desc">
-			<?php esc_html_e( 'Configure the floating chat widget that appears on your site for visitors.', 'neo-pulse-wp' ); ?>
+			<?php esc_html_e( 'Turn chat on, decide who sees it and set up voice and Talk To A Human. How the chat looks is set on the NEO Pulse Chat widget in Elementor: place it in your footer template to show the bubble on every page.', 'neo-pulse-wp' ); ?>
 		</p>
 
 		<div class="neo-pulse-wp-panel-info-box" role="status">
 			<p>
 				<?php
-				if ( ! empty( $chat_settings['enabled'] ) ) {
+				if ( Neo_Pulse_Wp_License::ai_needs_upgrade( false ) ) {
+					esc_html_e( 'Status: AI chat is part of NEO Pulse Pro + AI, so it is off on this site. Your chat settings, training and conversations are kept for when the site moves up to Pro + AI.', 'neo-pulse-wp' );
+				} elseif ( Neo_Pulse_Wp_Chat::is_off_everywhere() ) {
+					esc_html_e( 'Status: AI chat is turned off everywhere. Nobody sees it, administrators included: not on the front end, not in the WordPress admin, not in the search panel.', 'neo-pulse-wp' );
+					if ( defined( 'NEO_PULSE_WP_CHAT_OFF' ) && NEO_PULSE_WP_CHAT_OFF ) {
+						echo ' ';
+						esc_html_e( '(Forced by NEO_PULSE_WP_CHAT_OFF in wp-config.php.)', 'neo-pulse-wp' );
+					}
+				} elseif ( ! empty( $chat_settings['enabled'] ) ) {
 					if ( $openrouter_ok ) {
 						esc_html_e( 'Status: enabled and active on the frontend.', 'neo-pulse-wp' );
 					} else {
 						esc_html_e( 'Status: enabled but OpenRouter key is missing. Chat will not respond until a key is configured.', 'neo-pulse-wp' );
 					}
 				} else {
-					esc_html_e( 'Status: disabled. Enable below to show the chat widget on your site.', 'neo-pulse-wp' );
+					if ( empty( $chat_settings['disable_backend'] ) ) {
+						esc_html_e( 'Status: off on the front end, but administrators still see it in the WordPress admin. To hide it there too, turn on "Turn AI chat off everywhere".', 'neo-pulse-wp' );
+					} else {
+						esc_html_e( 'Status: disabled. Enable below to show the chat widget on your site.', 'neo-pulse-wp' );
+					}
 				}
 				?>
 			</p>
@@ -100,9 +98,19 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Chat {
 			<?php
 			self::panel_form_group_open();
 			self::panel_form_toggle(
+				'neo_pulse_chat_off_everywhere',
+				__( 'Turn AI chat off everywhere (front end, WordPress admin and search panel, for every user including administrators)', 'neo-pulse-wp' ),
+				! empty( $chat_settings['off_everywhere'] )
+			);
+			self::panel_form_toggle(
 				'neo_pulse_chat_enabled',
 				__( 'Enable chat widget on the frontend', 'neo-pulse-wp' ),
 				! empty( $chat_settings['enabled'] )
+			);
+			self::panel_form_toggle(
+				'neo_pulse_chat_show_without_widget',
+				__( 'Also show the bubble on pages without the NEO Pulse Chat widget (uses the previous site-wide styling)', 'neo-pulse-wp' ),
+				! empty( $chat_settings['show_without_widget'] )
 			);
 			self::panel_form_toggle(
 				'neo_pulse_chat_disable_backend',
@@ -177,6 +185,8 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Chat {
 				' placeholder="' . esc_attr__( 'Hi! Ask me anything about this website.', 'neo-pulse-wp' ) . '"'
 			);
 			self::panel_form_group_close();
+
+			self::render_chat_voice_fields( $chat_settings );
 
 			self::panel_form_group_open();
 			?>
@@ -255,32 +265,19 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Chat {
 	}
 
 	/**
-	 * Design tab: shared appearance, visibility, voice.
+	 * Voice & mic toggles on the General tab (saved by handle_save_chat).
 	 *
 	 * @param array<string,mixed> $chat_settings
 	 */
-	private static function render_chat_section_design( array $chat_settings ): void {
-		$form_id = 'neo-pulse-wp-chat-design-form';
+	private static function render_chat_voice_fields( array $chat_settings ): void {
+		self::panel_form_group_open();
 		?>
-		<h2 class="neo-pulse-wp-panel-content__title"><?php esc_html_e( 'Design', 'neo-pulse-wp' ); ?></h2>
-		<p class="neo-pulse-wp-panel-content__desc">
-			<?php esc_html_e( 'Colors, visibility, and layout for Chat. Shared with Search unless you style this widget only.', 'neo-pulse-wp' ); ?>
-		</p>
-
-		<form id="<?php echo esc_attr( $form_id ); ?>" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="neo-pulse-wp-settings__form neo-pulse-schema-form" autocomplete="off">
-			<input type="hidden" name="action" value="neo_pulse_wp_save_chat_design" />
-			<?php wp_nonce_field( 'neo_pulse_wp_save_chat_design', 'neo_pulse_wp_chat_design_nonce' ); ?>
-			<?php self::render_ai_widget_design_fields( 'chat', $chat_settings ); ?>
-		</form>
-
-		<div class="neo-pulse-wp-panel-footer">
-			<p class="neo-pulse-wp-settings__actions neo-pulse-wp-panel-footer__right">
-				<button type="submit" form="<?php echo esc_attr( $form_id ); ?>" class="button button-primary neo-pulse-wp-settings__btn">
-					<?php esc_html_e( 'Save Changes', 'neo-pulse-wp' ); ?>
-				</button>
-			</p>
-		</div>
+		<h3 class="neo-pulse-chat-settings-section__title"><?php esc_html_e( 'Voice & mic', 'neo-pulse-wp' ); ?></h3>
 		<?php
+		self::panel_form_toggle( 'neo_pulse_chat_voice_enabled', __( 'Enable voice chat', 'neo-pulse-wp' ), ! isset( $chat_settings['voice_enabled'] ) || ! empty( $chat_settings['voice_enabled'] ) );
+		self::panel_form_toggle( 'neo_pulse_chat_voice_ptt', __( 'Hold to speak (push-to-talk)', 'neo-pulse-wp' ), ! isset( $chat_settings['voice_ptt'] ) || ! empty( $chat_settings['voice_ptt'] ) );
+		self::panel_form_toggle( 'neo_pulse_chat_mic_replaces_send', __( 'Mic replaces send when input empty', 'neo-pulse-wp' ), ! isset( $chat_settings['mic_replaces_send'] ) || ! empty( $chat_settings['mic_replaces_send'] ) );
+		self::panel_form_group_close();
 	}
 
 	// ── Training tab ────────────────────────────────────────────
@@ -295,18 +292,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Chat {
 		$excluded_cats     = isset( $chat_settings['excluded_categories'] ) && is_array( $chat_settings['excluded_categories'] ) ? $chat_settings['excluded_categories'] : array();
 		$full_content      = ! empty( $chat_settings['full_content'] );
 		$lead_conversion   = ! isset( $chat_settings['lead_conversion_enabled'] ) || ! empty( $chat_settings['lead_conversion_enabled'] );
-		$lead_forms        = isset( $chat_settings['lead_forms'] ) && is_array( $chat_settings['lead_forms'] ) ? $chat_settings['lead_forms'] : array();
-		$lead_form_booking = isset( $lead_forms['booking'] ) ? (int) $lead_forms['booking'] : 0;
-		$lead_form_contact = isset( $lead_forms['contact'] ) ? (int) $lead_forms['contact'] : 0;
-		$lead_form_pricing = isset( $lead_forms['pricing'] ) ? (int) $lead_forms['pricing'] : 0;
-		$neo_pulse_forms     = class_exists( 'Neo_Pulse_Wp_Forms_Storage' ) ? Neo_Pulse_Wp_Forms_Storage::get_all_forms( true ) : array();
-		$form_options      = array( '0' => __( 'None', 'neo-pulse-wp' ) );
-		foreach ( $neo_pulse_forms as $form ) {
-			if ( empty( $form['ID'] ) ) {
-				continue;
-			}
-			$form_options[ (string) (int) $form['ID'] ] = (string) ( $form['title'] ?? ( 'Form #' . (int) $form['ID'] ) );
-		}
 
 		$all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 		$all_categories = get_categories( array( 'hide_empty' => false ) );
@@ -335,7 +320,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Chat {
 						'full',
 						'text',
 						false,
-						__( 'Shown in the chat header and used in responses.', 'neo-pulse-wp' ),
+						__( 'The name the AI answers as, and the default chat header name. A Chat widget can show a different header name.', 'neo-pulse-wp' ),
 						' placeholder="Pulse Assist"'
 					);
 					self::panel_form_field_textarea(
@@ -388,32 +373,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Chat {
 							<span class="neo-pulse-wp-panel-toggle__label"><?php esc_html_e( 'Enable lead conversion specialist', 'neo-pulse-wp' ); ?></span>
 						</label>
 					</div>
-					<?php
-					self::panel_form_field_select(
-						'neo-pulse-chat-lead-form-booking',
-						'neo_pulse_chat_lead_form_booking',
-						__( 'Booking form', 'neo-pulse-wp' ),
-						$form_options,
-						(string) $lead_form_booking,
-						'full'
-					);
-					self::panel_form_field_select(
-						'neo-pulse-chat-lead-form-contact',
-						'neo_pulse_chat_lead_form_contact',
-						__( 'Contact form', 'neo-pulse-wp' ),
-						$form_options,
-						(string) $lead_form_contact,
-						'full'
-					);
-					self::panel_form_field_select(
-						'neo-pulse-chat-lead-form-pricing',
-						'neo_pulse_chat_lead_form_pricing',
-						__( 'Pricing / quote form', 'neo-pulse-wp' ),
-						$form_options,
-						(string) $lead_form_pricing,
-						'full'
-					);
-					?>
 				</div>
 			</section>
 

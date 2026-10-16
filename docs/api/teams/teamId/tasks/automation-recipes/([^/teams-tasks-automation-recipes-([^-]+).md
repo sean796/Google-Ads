@@ -5,7 +5,7 @@ section: Teams
 method: GET
 path: /api/teams/{teamId}/tasks/automation-recipes/([^/]+)
 auth: session-team
-order: 1820
+order: 1830
 ---
 
 GET `/api/teams/{teamId}/tasks/automation-recipes/([^/]+)`.

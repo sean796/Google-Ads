@@ -7,25 +7,42 @@
   var pack = window.neoPulseChatLazy || {};
   var loaded = false;
   var inflight = null;
+  // Files already loaded, so a retry after a failure never runs a script twice.
+  var doneStyles = {};
+  var doneScripts = {};
 
   function injectStyle(href) {
+    if (doneStyles[href]) return Promise.resolve();
     return new Promise(function (resolve) {
       var link = document.createElement("link");
       link.rel = "stylesheet";
       link.href = href;
-      link.onload = resolve;
-      link.onerror = resolve;
+      link.onload = function () {
+        doneStyles[href] = true;
+        resolve();
+      };
+      link.onerror = function () {
+        if (link.parentNode) link.parentNode.removeChild(link);
+        resolve();
+      };
       document.head.appendChild(link);
     });
   }
 
   function injectScript(src) {
+    if (doneScripts[src]) return Promise.resolve();
     return new Promise(function (resolve, reject) {
       var script = document.createElement("script");
       script.src = src;
       script.async = false;
-      script.onload = resolve;
-      script.onerror = reject;
+      script.onload = function () {
+        doneScripts[src] = true;
+        resolve();
+      };
+      script.onerror = function () {
+        if (script.parentNode) script.parentNode.removeChild(script);
+        reject(new Error("Could not load " + src));
+      };
       document.body.appendChild(script);
     });
   }
@@ -44,12 +61,8 @@
     if (pack.voiceConfig) {
       window.neoPulseVoiceConfig = pack.voiceConfig;
     }
-    inflight = (pack.styles || [])
-      .reduce(function (chain, href) {
-        return chain.then(function () {
-          return injectStyle(href);
-        });
-      }, Promise.resolve())
+    // Stylesheets download in parallel (document order keeps the cascade); scripts run in order.
+    inflight = Promise.all((pack.styles || []).map(injectStyle))
       .then(function () {
         return (pack.scripts || []).reduce(function (chain, src) {
           return chain.then(function () {
@@ -57,10 +70,19 @@
           });
         }, Promise.resolve());
       })
-      .then(function () {
-        loaded = true;
-        revealLauncher();
-      });
+      .then(
+        function () {
+          loaded = true;
+          inflight = null;
+          revealLauncher();
+        },
+        function (err) {
+          // Let the next tap try again, and never leave the launcher hidden.
+          inflight = null;
+          revealLauncher();
+          throw err;
+        }
+      );
     return inflight;
   }
 
@@ -77,9 +99,14 @@
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
-      load().then(function () {
-        btn.click();
-      });
+      load().then(
+        function () {
+          btn.click();
+        },
+        function () {
+          // Load failed (offline, blocked file): the next tap retries.
+        }
+      );
     },
     true
   );
@@ -88,6 +115,6 @@
     return window.setTimeout(cb, 2000);
   };
   idle(function () {
-    load();
+    load().catch(function () {});
   }, { timeout: 4000 });
 })();

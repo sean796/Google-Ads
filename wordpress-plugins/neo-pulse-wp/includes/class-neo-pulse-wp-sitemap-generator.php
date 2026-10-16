@@ -12,6 +12,12 @@ defined( 'ABSPATH' ) || exit;
  */
 class Neo_Pulse_Wp_Sitemap_Generator {
 
+	/** @var array<string, array<int, int>> Indexable post IDs per post type (this request). */
+	private static $post_ids = array();
+
+	/** @var array<string, array<int, int>> Indexable term IDs per taxonomy (this request). */
+	private static $term_ids = array();
+
 	/**
 	 * @param array<string, mixed> $config Settings config.
 	 */
@@ -34,34 +40,64 @@ class Neo_Pulse_Wp_Sitemap_Generator {
 	}
 
 	/**
+	 * One entry per sitemap page. Post types and taxonomies with nothing to list are left out;
+	 * lastmod is the newest change among the URLs on that page.
+	 *
 	 * @param array<string, mixed> $config Settings config.
 	 * @return array<int, array{loc:string,lastmod?:string}>
 	 */
 	public static function index_entries( array $config ): array {
-		$entries = array();
-		$now     = gmdate( 'c' );
+		$entries  = array();
+		$per_page = self::links_per_sitemap( $config );
 
 		foreach ( self::enabled_post_types( $config ) as $slug ) {
+			$ids   = self::indexable_post_ids( $slug, $config );
 			$pages = self::post_type_page_count( $slug, $config );
 			for ( $page = 1; $page <= $pages; $page++ ) {
-				$entries[] = array(
-					'loc'     => Neo_Pulse_Wp_Sitemap_Settings::child_sitemap_url( $slug, $page ),
-					'lastmod' => $now,
-				);
+				$entry = array( 'loc' => Neo_Pulse_Wp_Sitemap_Settings::child_sitemap_url( $slug, $page ) );
+				// IDs are newest first, so the first post on a page is its newest.
+				$first = get_post( (int) ( $ids[ ( $page - 1 ) * $per_page ] ?? 0 ) );
+				if ( $first instanceof WP_Post && '' !== (string) $first->post_modified_gmt && '0000-00-00 00:00:00' !== $first->post_modified_gmt ) {
+					$entry['lastmod'] = gmdate( 'c', (int) strtotime( $first->post_modified_gmt . ' UTC' ) );
+				}
+				$entries[] = $entry;
 			}
 		}
 
 		foreach ( self::enabled_taxonomies( $config ) as $slug ) {
-			$pages = self::taxonomy_page_count( $slug, $config );
+			$pages   = self::taxonomy_page_count( $slug, $config );
+			$lastmod = $pages > 0 ? self::taxonomy_lastmod( $slug ) : '';
 			for ( $page = 1; $page <= $pages; $page++ ) {
-				$entries[] = array(
-					'loc'     => Neo_Pulse_Wp_Sitemap_Settings::child_sitemap_url( $slug, $page ),
-					'lastmod' => $now,
-				);
+				$entry = array( 'loc' => Neo_Pulse_Wp_Sitemap_Settings::child_sitemap_url( $slug, $page ) );
+				if ( '' !== $lastmod ) {
+					$entry['lastmod'] = $lastmod;
+				}
+				$entries[] = $entry;
 			}
 		}
 
 		return $entries;
+	}
+
+	/**
+	 * Newest published post in a taxonomy, as ISO 8601, or ''.
+	 */
+	private static function taxonomy_lastmod( string $taxonomy ): string {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$gmt = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT MAX(p.post_modified_gmt) FROM {$wpdb->posts} p
+				INNER JOIN {$wpdb->term_relationships} tr ON tr.object_id = p.ID
+				INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+				WHERE tt.taxonomy = %s AND p.post_status = 'publish'",
+				$taxonomy
+			)
+		);
+		if ( ! is_string( $gmt ) || '' === $gmt || '0000-00-00 00:00:00' === $gmt ) {
+			return '';
+		}
+		return gmdate( 'c', (int) strtotime( $gmt . ' UTC' ) );
 	}
 
 	/**
@@ -89,17 +125,6 @@ class Neo_Pulse_Wp_Sitemap_Generator {
 		}
 
 		return $out;
-	}
-
-	/**
-	 * Post type slugs included in the XML sitemap (for chat index debug).
-	 *
-	 * @param array<string, mixed>|null $config Optional sitemap config.
-	 * @return array<int, string>
-	 */
-	public static function sitemap_index_post_types( ?array $config = null ): array {
-		$config = null !== $config ? $config : Neo_Pulse_Wp_Sitemap_Settings::get_config();
-		return self::enabled_post_types( $config );
 	}
 
 	/**
@@ -153,27 +178,23 @@ class Neo_Pulse_Wp_Sitemap_Generator {
 	}
 
 	/**
+	 * Sitemap pages for a post type; 0 when it has nothing indexable (it is then left out).
+	 *
 	 * @param array<string, mixed> $config Settings config.
 	 */
 	public static function post_type_page_count( string $post_type, array $config ): int {
-		$per_page = self::links_per_sitemap( $config );
-		$total    = self::count_posts( $post_type, $config );
-		if ( $total < 1 ) {
-			return 1;
-		}
-		return (int) ceil( $total / $per_page );
+		$total = count( self::indexable_post_ids( $post_type, $config ) );
+		return $total < 1 ? 0 : (int) ceil( $total / self::links_per_sitemap( $config ) );
 	}
 
 	/**
+	 * Sitemap pages for a taxonomy; 0 when it has nothing indexable.
+	 *
 	 * @param array<string, mixed> $config Settings config.
 	 */
 	public static function taxonomy_page_count( string $taxonomy, array $config ): int {
-		$per_page = self::links_per_sitemap( $config );
-		$total    = self::count_terms( $taxonomy );
-		if ( $total < 1 ) {
-			return 1;
-		}
-		return (int) ceil( $total / $per_page );
+		$total = count( self::indexable_term_ids( $taxonomy ) );
+		return $total < 1 ? 0 : (int) ceil( $total / self::links_per_sitemap( $config ) );
 	}
 
 	/**
@@ -185,34 +206,74 @@ class Neo_Pulse_Wp_Sitemap_Generator {
 	}
 
 	/**
+	 * Published, indexable post IDs of a type, newest change first.
+	 *
 	 * @param array<string, mixed> $config Settings config.
+	 * @return array<int, int>
 	 */
-	private static function count_posts( string $post_type, array $config ): int {
+	public static function indexable_post_ids( string $post_type, array $config ): array {
+		$excluded = Neo_Pulse_Wp_Sitemap_Settings::excluded_post_ids( $config );
+		$key      = $post_type . '|' . implode( ',', $excluded );
+		if ( isset( self::$post_ids[ $key ] ) ) {
+			return self::$post_ids[ $key ];
+		}
 		$query = new WP_Query(
 			array(
 				'post_type'              => $post_type,
 				'post_status'            => 'publish',
-				'posts_per_page'         => 1,
+				'posts_per_page'         => -1,
 				'fields'                 => 'ids',
-				'no_found_rows'          => false,
+				'orderby'                => 'modified',
+				'order'                  => 'DESC',
+				'no_found_rows'          => true,
 				'update_post_meta_cache' => false,
-				'update_post_term_cache'=> false,
-				'post__not_in'           => Neo_Pulse_Wp_Sitemap_Settings::excluded_post_ids( $config ),
+				'update_post_term_cache' => false,
+				'post__not_in'           => $excluded,
 			)
 		);
-		$total = (int) $query->found_posts;
+		$all = array_map( 'intval', is_array( $query->posts ) ? $query->posts : array() );
 		wp_reset_postdata();
-		return $total;
+
+		$ids = array();
+		foreach ( array_chunk( $all, 200 ) as $chunk ) {
+			_prime_post_caches( $chunk, false, true );
+			foreach ( $chunk as $id ) {
+				if ( Neo_Pulse_Wp_Seo_Head::is_indexable_post( $id ) ) {
+					$ids[] = $id;
+				}
+			}
+		}
+		self::$post_ids[ $key ] = $ids;
+		return $ids;
 	}
 
-	private static function count_terms( string $taxonomy ): int {
-		$terms = wp_count_terms(
+	/**
+	 * Non-empty, indexable term IDs of a taxonomy, by name.
+	 *
+	 * @return array<int, int>
+	 */
+	public static function indexable_term_ids( string $taxonomy ): array {
+		if ( isset( self::$term_ids[ $taxonomy ] ) ) {
+			return self::$term_ids[ $taxonomy ];
+		}
+		$terms = get_terms(
 			array(
 				'taxonomy'   => $taxonomy,
 				'hide_empty' => true,
+				'orderby'    => 'name',
+				'order'      => 'ASC',
 			)
 		);
-		return is_wp_error( $terms ) ? 0 : (int) $terms;
+		$ids = array();
+		if ( ! is_wp_error( $terms ) && is_array( $terms ) ) {
+			foreach ( $terms as $term ) {
+				if ( $term instanceof WP_Term && Neo_Pulse_Wp_Seo_Head::is_indexable_term( $term ) ) {
+					$ids[] = (int) $term->term_id;
+				}
+			}
+		}
+		self::$term_ids[ $taxonomy ] = $ids;
+		return $ids;
 	}
 
 	/**
@@ -221,30 +282,15 @@ class Neo_Pulse_Wp_Sitemap_Generator {
 	 */
 	private static function query_posts( string $post_type, int $page, array $config ): array {
 		$per_page = self::links_per_sitemap( $config );
-		$query    = new WP_Query(
-			array(
-				'post_type'              => $post_type,
-				'post_status'            => 'publish',
-				'posts_per_page'         => $per_page,
-				'paged'                  => max( 1, $page ),
-				'orderby'                => 'modified',
-				'order'                  => 'DESC',
-				'no_found_rows'          => true,
-				'update_post_meta_cache' => true,
-				'update_post_term_cache' => false,
-				'post__not_in'           => Neo_Pulse_Wp_Sitemap_Settings::excluded_post_ids( $config ),
-			)
-		);
-		$posts = is_array( $query->posts ) ? $query->posts : array();
-		wp_reset_postdata();
-
-		$filtered = array();
-		foreach ( $posts as $post ) {
-			if ( $post instanceof WP_Post && ! self::is_post_noindex( $post->ID ) ) {
-				$filtered[] = $post;
+		$slice    = array_slice( self::indexable_post_ids( $post_type, $config ), ( max( 1, $page ) - 1 ) * $per_page, $per_page );
+		$posts    = array();
+		foreach ( $slice as $id ) {
+			$post = get_post( $id );
+			if ( $post instanceof WP_Post ) {
+				$posts[] = $post;
 			}
 		}
-		return $filtered;
+		return $posts;
 	}
 
 	/**
@@ -253,19 +299,13 @@ class Neo_Pulse_Wp_Sitemap_Generator {
 	 */
 	private static function query_terms( string $taxonomy, int $page, array $config ): array {
 		$per_page = self::links_per_sitemap( $config );
-		$offset   = ( max( 1, $page ) - 1 ) * $per_page;
-		$terms    = get_terms(
-			array(
-				'taxonomy'   => $taxonomy,
-				'hide_empty' => true,
-				'number'     => $per_page,
-				'offset'     => $offset,
-				'orderby'    => 'name',
-				'order'      => 'ASC',
-			)
-		);
-		if ( is_wp_error( $terms ) || ! is_array( $terms ) ) {
-			return array();
+		$slice    = array_slice( self::indexable_term_ids( $taxonomy ), ( max( 1, $page ) - 1 ) * $per_page, $per_page );
+		$terms    = array();
+		foreach ( $slice as $id ) {
+			$term = get_term( $id, $taxonomy );
+			if ( $term instanceof WP_Term ) {
+				$terms[] = $term;
+			}
 		}
 		return $terms;
 	}
@@ -361,23 +401,6 @@ class Neo_Pulse_Wp_Sitemap_Generator {
 		}
 
 		return array_values( array_unique( $images ) );
-	}
-
-	private static function is_post_noindex( int $post_id ): bool {
-		$rm = get_post_meta( $post_id, 'rank_math_robots', true );
-		if ( is_array( $rm ) && in_array( 'noindex', $rm, true ) ) {
-			return true;
-		}
-		if ( is_string( $rm ) && stripos( $rm, 'noindex' ) !== false ) {
-			return true;
-		}
-
-		$yoast = get_post_meta( $post_id, '_yoast_wpseo_meta-robots-noindex', true );
-		if ( (string) $yoast === '1' ) {
-			return true;
-		}
-
-		return false;
 	}
 
 	/**
@@ -480,7 +503,7 @@ class Neo_Pulse_Wp_Sitemap_Generator {
 				'orderby'                => $orderby,
 				'order'                  => $order,
 				'no_found_rows'          => true,
-				'update_post_meta_cache' => false,
+				'update_post_meta_cache' => true,
 				'update_post_term_cache' => false,
 				'post__not_in'           => Neo_Pulse_Wp_Sitemap_Settings::excluded_post_ids( $config ),
 			)
@@ -490,7 +513,7 @@ class Neo_Pulse_Wp_Sitemap_Generator {
 
 		$filtered = array();
 		foreach ( $posts as $post ) {
-			if ( $post instanceof WP_Post && ! self::is_post_noindex( $post->ID ) ) {
+			if ( $post instanceof WP_Post && Neo_Pulse_Wp_Seo_Head::is_indexable_post( $post ) ) {
 				$filtered[] = $post;
 			}
 		}

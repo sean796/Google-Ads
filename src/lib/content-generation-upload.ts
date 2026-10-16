@@ -147,6 +147,8 @@ export interface OptimizationContext {
   /** LLM audit authority externals (gov/municipal/news) — harness allowlist. */
   llmAuditAuthorityExternalPairs?: import("@/lib/content-generation/external-link-placeholders").ExternalLinkPair[];
   linkTargetsPlan?: import("@/lib/bulk/bulk-generation-wp-inventory").LinkTargetsPlan;
+  gscResult?: unknown;
+  seoResearchRaw?: string;
 }
 
 /** Queries by impressions for meta AI (same shape as Overview GSC context). */
@@ -1008,11 +1010,33 @@ export async function generateAndUploadContent(
   const newExtraForReport = (strippedExtra ?? extraTextContent ?? '').trim();
 
   // Step 6: Generate Implementation Report
+  const implReportHarnessIndex = contentPrepHarnessBridge
+    ? pipelineIndexForHarnessTitle("Implementation report", contentPrepHarnessBridge.pipelineTitles)
+    : -1;
+  const markImplReportHarness = (
+    phase: "start" | "done" | "error",
+    markdownSlice?: string,
+  ) => {
+    if (!contentPrepHarnessBridge || implReportHarnessIndex < 0) return;
+    markContentPrepHarnessSection(
+      contentPrepHarnessBridge.url,
+      implReportHarnessIndex,
+      phase,
+      contentPrepHarnessBridge.setters,
+      0,
+      markdownSlice,
+      contentPrepHarnessBridge.pipelineTitles,
+    );
+    contentPrepHarnessBridge.flushGeneratedFiles?.();
+  };
+
   try {
+    markImplReportHarness("start");
     setProgress("done", 0.9, "Generating implementation report…");
     
     // Get original content as markdown for comparison (WordPress API may return { raw, rendered })
-    let originalContentMarkdown = toStringContent(context.existingContent);
+    const rawOriginalContent = toStringContent(context.existingContent);
+    let originalContentMarkdown = rawOriginalContent;
     try {
       if (originalContentMarkdown.includes('<') && originalContentMarkdown.includes('>')) {
         originalContentMarkdown = htmlToMarkdown(originalContentMarkdown);
@@ -1021,20 +1045,33 @@ export async function generateAndUploadContent(
       console.warn('[Content Generation] Could not convert original content to markdown for report:', error);
     }
 
-    await generateImplementationReport(
+    const seoResearchForReport =
+      context.seoResearchRaw?.trim() ||
+      resolvedAcfContext?.seoResearch?.trim() ||
+      (typeof acfFields?.seo_research === "string" ? acfFields.seo_research.trim() : undefined);
+
+    const reportMarkdown = await generateImplementationReport(
       {
         originalTitle: context.existingTitle,
-        newTitle: blueprintResult.title || context.existingTitle || primaryKeyword,
+        newTitle: finalTitle || blueprintResult.title || context.existingTitle || primaryKeyword,
         originalExcerpt: toStringContent(context.existingExcerpt) || '',
         newExcerpt: returnedExcerpt,
         originalContent: originalContentMarkdown,
         newContent: markdownContent,
+        originalHtml: rawOriginalContent,
+        newHtml: strippedHtml,
         primaryKeyword,
         clusterKeywords: context.clusterKeywords,
         selectedKeyword: context.selectedKeyword,
+        gscResult: context.gscResult,
+        seoResearchRaw: seoResearchForReport,
+        faqEntries: optimizeFaqBundle?.faqEntries,
         blueprintResult,
         updateMode: context.updateMode,
         url: context.url,
+        siteId: site.id,
+        siteUrl: site.siteUrl,
+        apiKey: openRouterApiKey,
         originalExtraText: originalExtraForReport || undefined,
         newExtraText: newExtraForReport || undefined,
       },
@@ -1044,10 +1081,12 @@ export async function generateAndUploadContent(
       }
     );
 
+    markImplReportHarness("done", reportMarkdown);
     setProgress("done", 1, "Implementation report generated successfully!");
     if (!getMuteOptimizationToasts()) notify.success(NOTIFY_IMPLEMENTATION_REPORT_GENERATED, { duration: 3000 });
   } catch (error) {
     console.error('[Content Generation] Error generating implementation report:', error);
+    markImplReportHarness("error");
     // Don't fail the whole process if report generation fails
     if (!getMuteOptimizationToasts()) notify.warning(NOTIFY_CONTENT_OPTIMIZED_BUT_IMPLEMENTATION_REP, { duration: 5000 });
   }

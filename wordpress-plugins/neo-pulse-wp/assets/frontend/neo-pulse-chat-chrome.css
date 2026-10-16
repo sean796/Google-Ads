@@ -244,16 +244,6 @@ body:has(#neo-pulse-chat-widget-root.fai-sidebar-root--open.fai-sidebar-root--le
 	position: relative !important;
 }
 
-#neo-pulse-chat-widget-root.neo-pulse-chat-widget .fai-sidebar-clear,
-.neo-pulse-chat-widget .fai-sidebar-clear {
-	appearance: none !important;
-	-webkit-appearance: none !important;
-	background: transparent !important;
-	border: none !important;
-	box-shadow: none !important;
-	color: #64748b !important;
-}
-
 #neo-pulse-chat-widget-root.neo-pulse-chat-widget .fcw-composer textarea.fcw-textarea,
 .neo-pulse-chat-widget .fcw-composer textarea.fcw-textarea,
 #neo-pulse-chat-widget-root.neo-pulse-chat-widget .fcw-demo-composer textarea.fcw-textarea,

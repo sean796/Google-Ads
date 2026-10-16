@@ -104,14 +104,13 @@ class Neo_Pulse_Wp_Chat_Lead {
 		$enriched_lead = Neo_Pulse_Wp_Chat::enrich_relevant_items( $lead_pages, false, $settings );
 		$kb            = isset( $training['knowledge_base'] ) && is_array( $training['knowledge_base'] ) ? $training['knowledge_base'] : array();
 		$contact_facts = self::resolve_contact_facts( $enriched_lead, $kb );
-		$form_id       = self::resolve_form_id( $lead_action, $enriched_lead, $settings );
-		$specialist    = self::phase_lead_convert( $message, $lead_action, $answer, $enriched_lead, $contact_facts, $form_id );
+		$specialist    = self::phase_lead_convert( $message, $lead_action, $answer, $enriched_lead, $contact_facts );
 
 		if ( is_wp_error( $specialist ) ) {
 			return $card;
 		}
 
-		return self::apply_conversion_to_card( $card, $specialist, $contact_facts, $form_id, $enriched_lead );
+		return self::apply_conversion_to_card( $card, $specialist, $contact_facts, $enriched_lead );
 	}
 
 	/**
@@ -200,44 +199,13 @@ PROMPT;
 	}
 
 	/**
-	 * @param array<int,array<string,mixed>> $lead_pages
-	 * @param array<string,mixed>            $settings
-	 */
-	public static function resolve_form_id( string $lead_action, array $lead_pages, array $settings ): int {
-		$map = isset( $settings['lead_forms'] ) && is_array( $settings['lead_forms'] ) ? $settings['lead_forms'] : array();
-		$key = in_array( $lead_action, array( 'booking', 'contact', 'pricing' ), true ) ? $lead_action : 'contact';
-		if ( ! empty( $map[ $key ] ) ) {
-			$form_id = (int) $map[ $key ];
-			if ( $form_id > 0 && self::form_exists( $form_id ) ) {
-				return $form_id;
-			}
-		}
-
-		foreach ( $lead_pages as $page ) {
-			$page_form = self::form_id_from_page( $page );
-			if ( $page_form > 0 ) {
-				return $page_form;
-			}
-		}
-
-		return 0;
-	}
-
-	/**
 	 * @param array<int,array<string,mixed>>                               $lead_pages
 	 * @param array{phone:string,email:string,address:string,hours:string} $contact_facts
 	 * @return array<string,mixed>|WP_Error
 	 */
-	public static function phase_lead_convert( string $message, string $lead_action, string $answer, array $lead_pages, array $contact_facts, int $form_id ) {
+	public static function phase_lead_convert( string $message, string $lead_action, string $answer, array $lead_pages, array $contact_facts ) {
 		$pages_block = self::summarize_lead_pages( $lead_pages );
 		$facts_block = wp_json_encode( $contact_facts );
-		$form_title  = '';
-		if ( $form_id > 0 && class_exists( 'Neo_Pulse_Wp_Forms_Storage' ) ) {
-			$form = Neo_Pulse_Wp_Forms_Storage::get_form_by_id( $form_id );
-			if ( is_array( $form ) && ! empty( $form['title'] ) ) {
-				$form_title = (string) $form['title'];
-			}
-		}
 
 		$system = <<<'PROMPT'
 You are a lead conversion specialist for a website chat assistant.
@@ -254,7 +222,7 @@ Rules:
 - Personalize to THIS answer and lead action (booking, contact, pricing).
 - When the user asked about service coverage for a location not listed on the site, conversionHeadline and bodyLeadIn should invite them to speak with staff to confirm that area — do not imply the area is or is not serviced.
 - For pricing, quote, or phone questions: never say quotes or help aren't available by phone or over the phone; invite a free consultation or conversation with staff instead.
-- When the user asked to be called: never ask for their phone number. conversionHeadline and bodyLeadIn should invite contacting the store or sending a text through the form below.
+- When the user asked to be called: never ask for their phone number. conversionHeadline and bodyLeadIn should invite contacting the store directly or sending a text.
 - For any partial answer: conversionHeadline and bodyLeadIn must be inviting and forward-looking — never restate limitations, refusals, or "we don't/can't" language from the draft.
 - conversionHeadline and ctaLabel are required non-empty strings.
 - contactEmphasis must only include keys present in CONTACT FACTS with non-empty values.
@@ -269,9 +237,6 @@ PROMPT;
 		$user .= "\n\nCONTACT FACTS:\n{$facts_block}";
 		if ( $pages_block !== '' ) {
 			$user .= "\n\nLEAD PAGES:\n{$pages_block}";
-		}
-		if ( $form_title !== '' ) {
-			$user .= "\n\nAvailable form: {$form_title}";
 		}
 
 		$result = self::call_openrouter( self::FAST_MODEL, $system, $user, self::CONVERT_MAX_TOKENS, 0.2 );
@@ -294,7 +259,7 @@ PROMPT;
 	 * @param array<int,array<string,mixed>>                                 $lead_pages
 	 * @return array<string,mixed>
 	 */
-	public static function apply_conversion_to_card( array $card, array $specialist, array $contact_facts, int $form_id, array $lead_pages ): array {
+	public static function apply_conversion_to_card( array $card, array $specialist, array $contact_facts, array $lead_pages ): array {
 		$headline = isset( $specialist['conversionHeadline'] ) ? trim( sanitize_text_field( (string) $specialist['conversionHeadline'] ) ) : '';
 		$cta_label = isset( $specialist['ctaLabel'] ) ? trim( sanitize_text_field( (string) $specialist['ctaLabel'] ) ) : '';
 		if ( $headline === '' || $cta_label === '' ) {
@@ -309,15 +274,6 @@ PROMPT;
 			'headline' => $headline,
 			'contact'  => self::filter_contact_by_emphasis( $contact_facts, $emphasis ),
 		);
-
-		if ( $form_id > 0 ) {
-			$form_bundle = self::render_form_bundle( $form_id );
-			if ( ! empty( $form_bundle['formId'] ) ) {
-				$conversion['formId']     = (int) $form_bundle['formId'];
-				$conversion['formHtml']   = (string) ( $form_bundle['formHtml'] ?? '' );
-				$conversion['formConfig'] = isset( $form_bundle['formConfig'] ) && is_array( $form_bundle['formConfig'] ) ? $form_bundle['formConfig'] : null;
-			}
-		}
 
 		$body_lead_in = isset( $specialist['bodyLeadIn'] ) ? trim( (string) $specialist['bodyLeadIn'] ) : '';
 		if ( $body_lead_in !== '' && ! empty( $card['body'] ) ) {
@@ -361,43 +317,17 @@ PROMPT;
 	}
 
 	/**
-	 * @return array{formId:int,formHtml:string,formConfig:array<string,mixed>|null}
+	 * Address of the first lead page (contact, booking or quote), for the card's CTA button.
+	 *
+	 * @param array<int,array<string,mixed>> $lead_pages
 	 */
-	private static function render_form_bundle( int $form_id ): array {
-		if ( $form_id < 1 || ! class_exists( 'Neo_Pulse_Wp_Forms' ) ) {
-			return array(
-				'formId'     => 0,
-				'formHtml'   => '',
-				'formConfig' => null,
-			);
+	private static function lead_page_url( array $lead_pages ): string {
+		foreach ( $lead_pages as $page ) {
+			if ( ! empty( $page['url'] ) ) {
+				return (string) $page['url'];
+			}
 		}
-
-		$html = Neo_Pulse_Wp_Forms::render_instance(
-			array(
-				'form_id'       => $form_id,
-				'wrapper_class' => 'neo-pulse-form--chat',
-				'full_width'    => 'yes',
-			)
-		);
-
-		if ( $html === '' ) {
-			return array(
-				'formId'     => 0,
-				'formHtml'   => '',
-				'formConfig' => null,
-			);
-		}
-
-		return array(
-			'formId'     => $form_id,
-			'formHtml'   => $html,
-			'formConfig' => array(
-				'formId'  => $form_id,
-				'restUrl' => rest_url( 'neo-pulse/v1/forms/' . $form_id . '/submit' ),
-				'nonce'   => wp_create_nonce( 'neo-pulse_form_submit_' . $form_id ),
-				'ajax'    => true,
-			),
-		);
+		return '';
 	}
 
 	/**
@@ -655,45 +585,6 @@ PROMPT;
 			$lines[] = '- ' . (string) $page['title'] . ( $url !== '' ? ' → ' . $url : '' );
 		}
 		return implode( "\n", $lines );
-	}
-
-	/**
-	 * @param array<int,array<string,mixed>> $lead_pages
-	 */
-	private static function lead_page_url( array $lead_pages ): string {
-		foreach ( $lead_pages as $page ) {
-			if ( ! empty( $page['url'] ) ) {
-				return (string) $page['url'];
-			}
-		}
-		return '';
-	}
-
-	/**
-	 * @param array<string,mixed> $page
-	 */
-	private static function form_id_from_page( array $page ): int {
-		if ( empty( $page['id'] ) ) {
-			return 0;
-		}
-		$post_id = (int) $page['id'];
-		if ( $post_id < 1 ) {
-			return 0;
-		}
-		foreach ( array( '_neo_pulse_form_id', 'neo-pulse_form_id' ) as $key ) {
-			$val = (int) get_post_meta( $post_id, $key, true );
-			if ( $val > 0 && self::form_exists( $val ) ) {
-				return $val;
-			}
-		}
-		return 0;
-	}
-
-	private static function form_exists( int $form_id ): bool {
-		if ( $form_id < 1 || ! class_exists( 'Neo_Pulse_Wp_Forms_Storage' ) ) {
-			return false;
-		}
-		return is_array( Neo_Pulse_Wp_Forms_Storage::get_form_by_id( $form_id ) );
 	}
 
 	private static function text_mentions_contact( string $text ): bool {

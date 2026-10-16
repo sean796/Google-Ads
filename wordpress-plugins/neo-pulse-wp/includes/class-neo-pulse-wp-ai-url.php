@@ -26,6 +26,16 @@ class Neo_Pulse_Wp_Ai_Url {
 			);
 		}
 
+		// Check the redirect permission before anything changes, so a refused redirect never
+		// leaves the slug changed with no redirect from the old URL.
+		if ( $create_redirect && ! current_user_can( 'manage_options' ) ) {
+			return new WP_Error(
+				'neo-pulse_redirect_forbidden',
+				__( 'You do not have permission to create redirects.', 'neo-pulse-wp' ),
+				array( 'status' => 403 )
+			);
+		}
+
 		$post = get_post( $post_id );
 		if ( ! $post instanceof WP_Post ) {
 			return new WP_Error(
@@ -82,14 +92,6 @@ class Neo_Pulse_Wp_Ai_Url {
 
 		$redirect_result = null;
 		if ( $create_redirect ) {
-			if ( ! current_user_can( 'manage_options' ) ) {
-				return new WP_Error(
-					'neo-pulse_redirect_forbidden',
-					__( 'You do not have permission to create redirects.', 'neo-pulse-wp' ),
-					array( 'status' => 403 )
-				);
-			}
-
 			$source = Neo_Pulse_Wp_Redirects_Csv::normalize_relative_path( $old_permalink );
 			if ( ! $source ) {
 				return new WP_Error(

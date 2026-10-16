@@ -35,7 +35,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Image_Seo {
 			return;
 		}
 		?>
-		<div class="notice notice-warning">
+		<div class="notice inline notice-warning">
 			<p>
 				<?php
 				printf(
@@ -68,7 +68,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Image_Seo {
 		}
 		?>
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'Image SEO', 'neo-pulse-wp' ); ?></h1>
-			<a href="<?php echo esc_url( $settings_url ); ?>" class="page-title-action"><?php esc_html_e( 'Settings', 'neo-pulse-wp' ); ?></a>
 			<a href="<?php echo esc_url( $toggle_url ); ?>" class="page-title-action">
 				<?php echo $edit_mode ? esc_html__( 'Exit edit mode', 'neo-pulse-wp' ) : esc_html__( 'Edit inline', 'neo-pulse-wp' ); ?>
 			</a>
@@ -148,10 +147,8 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Image_Seo {
 	private static function render_image_seo_settings( array $config, array $status ): void {
 		$form_id = 'neo-pulse-wp-image-seo-settings-form';
 		$fields  = is_array( $config['fields'] ?? null ) ? $config['fields'] : Neo_Pulse_Wp_Image_Seo::default_config()['fields'];
-		$library_url = admin_url( 'admin.php?page=neo-pulse-wp-image-seo&tab=library' );
 		?>
 			<h1><?php esc_html_e( 'Image SEO Settings', 'neo-pulse-wp' ); ?></h1>
-			<p><a href="<?php echo esc_url( $library_url ); ?>">&larr; <?php esc_html_e( 'Back to library', 'neo-pulse-wp' ); ?></a></p>
 
 			<?php self::render_image_seo_openrouter_notice( $status ); ?>
 
@@ -182,20 +179,22 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Image_Seo {
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Auto on upload', 'neo-pulse-wp' ); ?></th>
 					<td>
-						<label><input type="checkbox" name="auto_on_upload" value="1" <?php checked( ! empty( $config['auto_on_upload'] ) ); ?> /> <?php esc_html_e( 'Automatically optimize new image uploads', 'neo-pulse-wp' ); ?></label>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row"><?php esc_html_e( 'Auto in gallery', 'neo-pulse-wp' ); ?></th>
-					<td>
-						<label><input type="checkbox" name="auto_in_gallery" value="1" <?php checked( ! empty( $config['auto_in_gallery'] ) ); ?> /> <?php esc_html_e( 'Automatically optimize when images are added to a NEO Pulse gallery field', 'neo-pulse-wp' ); ?></label>
+						<label><input type="checkbox" name="auto_on_upload" value="1" <?php checked( ! empty( $config['auto_on_upload'] ) ); ?> /> <?php esc_html_e( 'Fill in missing text as soon as an image is uploaded', 'neo-pulse-wp' ); ?></label>
+						<p class="description"><?php esc_html_e( 'Fills the title and alt text (if ticked above) for uploads from the Media Library, the post editor and Elementor. Captions and descriptions are left for you to add from the library, since many themes show captions under images. Only empty fields are filled unless "Overwrite existing text" is chosen above.', 'neo-pulse-wp' ); ?></p>
 					</td>
 				</tr>
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Auto-update mode', 'neo-pulse-wp' ); ?></th>
 					<td>
 						<label><input type="radio" name="auto_mode" value="filename" <?php checked( $config['auto_mode'] ?? 'filename', 'filename' ); ?> /> <?php esc_html_e( 'Filename only (no API call)', 'neo-pulse-wp' ); ?></label><br />
-						<label><input type="radio" name="auto_mode" value="ai" <?php checked( $config['auto_mode'] ?? '', 'ai' ); ?> /> <?php esc_html_e( 'OpenRouter Gemini (uses API credits)', 'neo-pulse-wp' ); ?></label>
+						<label><input type="radio" name="auto_mode" value="ai" <?php checked( $config['auto_mode'] ?? '', 'ai' ); ?> /> <?php esc_html_e( 'AI looks at the image (OpenRouter, a fraction of a cent per image)', 'neo-pulse-wp' ); ?></label>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="neo-pulse-image-seo-instructions"><?php esc_html_e( 'Instructions for the AI', 'neo-pulse-wp' ); ?></label></th>
+					<td>
+						<textarea id="neo-pulse-image-seo-instructions" name="ai_instructions" rows="5" class="large-text" placeholder="<?php echo esc_attr__( 'e.g. We sell and install window coverings in Edmonton. Name the product type when you can tell (roller shades, zebra blinds, shutters). Mention Edmonton in the title, not the alt text. Keep alt text under 100 characters.', 'neo-pulse-wp' ); ?>"><?php echo esc_textarea( (string) ( $config['ai_instructions'] ?? '' ) ); ?></textarea>
+						<p class="description"><?php esc_html_e( 'Guides every alt text, title, caption and description the AI writes: wording, keywords, what to mention or avoid. The site name and city are already passed along.', 'neo-pulse-wp' ); ?></p>
 					</td>
 				</tr>
 				<tr>
@@ -210,7 +209,13 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Image_Seo {
 		<?php
 	}
 
-	public static function enqueue_image_seo_assets( string $hook_suffix ): void {
+	/**
+	 * Image SEO screen only: its stylesheet (not in the shared admin list) and script.
+	 *
+	 * @param string|mixed $hook_suffix Current admin page hook.
+	 */
+	public static function enqueue_image_seo_assets( $hook_suffix ): void {
+		$hook_suffix = is_string( $hook_suffix ) ? $hook_suffix : '';
 		if ( ! Neo_Pulse_Wp_Admin::admin_hook_matches( $hook_suffix, array( 'neo-pulse-wp_page_neo_pulse-wp-image-seo' ) ) ) {
 			return;
 		}

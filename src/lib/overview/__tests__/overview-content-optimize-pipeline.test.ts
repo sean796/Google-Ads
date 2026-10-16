@@ -10,9 +10,9 @@ import {
 } from "@/lib/overview/overview-content-optimize-pipeline";
 
 describe("overview-content-optimize-pipeline", () => {
-  it("uses six fixed blog-optimization slots without research steps", () => {
+  it("uses seven fixed blog-optimization slots including Implementation report without research steps", () => {
     expect(buildContentOptimizePipelineTitles()).toEqual([...CONTENT_OPTIMIZE_PIPELINE_TITLES]);
-    expect(CONTENT_OPTIMIZE_PIPELINE_TITLES).toHaveLength(6);
+    expect(CONTENT_OPTIMIZE_PIPELINE_TITLES).toHaveLength(7);
     expect(isContentOptimizePipelineTitles([...CONTENT_OPTIMIZE_PIPELINE_TITLES])).toBe(true);
     expect(CONTENT_OPTIMIZE_PIPELINE_TITLES).not.toContain("Keyword research");
     expect(CONTENT_OPTIMIZE_PIPELINE_TITLES).not.toContain("Selected keyword");
@@ -20,6 +20,7 @@ describe("overview-content-optimize-pipeline", () => {
     expect(CONTENT_OPTIMIZE_PIPELINE_TITLES).toContain("Checklist");
     expect(CONTENT_OPTIMIZE_PIPELINE_TITLES).toContain("Blueprint");
     expect(CONTENT_OPTIMIZE_PIPELINE_TITLES).toContain("Link targets");
+    expect(CONTENT_OPTIMIZE_PIPELINE_TITLES).toContain("Implementation report");
     expect(CONTENT_OPTIMIZE_PIPELINE_TITLES[CONTENT_OPTIMIZE_PIPELINE_TITLES.length - 1]).toBe(
       "WordPress upload",
     );
@@ -31,8 +32,9 @@ describe("overview-content-optimize-pipeline", () => {
     expect(titles[1]).toBe("Blueprint");
     expect(titles[2]).toBe("Link targets");
     expect(titles.slice(3, 6)).toEqual(["Overview", "Answer", "Motorization Compared"]);
-    expect(titles[titles.length - 3]).toBe("Post content");
-    expect(titles[titles.length - 2]).toBe("Content Markdown");
+    expect(titles[titles.length - 4]).toBe("Post content");
+    expect(titles[titles.length - 3]).toBe("Content Markdown");
+    expect(titles[titles.length - 2]).toBe("Implementation report");
     expect(titles[titles.length - 1]).toBe("WordPress upload");
     expect(isContentOptimizePipelineTitles(titles)).toBe(true);
   });
@@ -47,6 +49,7 @@ describe("overview-content-optimize-pipeline", () => {
       { title: "Motorization Compared" },
       { title: "Post content" },
       { title: "Content Markdown" },
+      { title: "Implementation report" },
       { title: "WordPress upload" },
     ];
     expect(extractBodyHarnessTitlesFromSections(sections)).toEqual([
@@ -63,6 +66,7 @@ describe("overview-content-optimize-pipeline", () => {
       "Motorization Compared",
       "Post content",
       "Content Markdown",
+      "Implementation report",
       "WordPress upload",
     ]);
   });
@@ -91,6 +95,7 @@ describe("overview-content-optimize-pipeline", () => {
       "Motorization Compared",
       "Post content",
       "Content Markdown",
+      "Implementation report",
       "WordPress upload",
     ]);
   });

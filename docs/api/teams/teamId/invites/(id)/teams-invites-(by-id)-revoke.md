@@ -5,7 +5,7 @@ section: Teams
 method: POST
 path: /api/teams/{teamId}/invites/({id})/revoke
 auth: session-team
-order: 1670
+order: 1680
 ---
 
 POST `/api/teams/{teamId}/invites/({id})/revoke`.

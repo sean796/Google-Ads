@@ -10,15 +10,25 @@ defined( 'ABSPATH' ) || exit;
 class Neo_Pulse_Wp_Backend_Assist_Cards {
 
 	public static function normalize_history( array $history ): array {
-		return array_map(
-			function ( $entry ) {
-				return array(
-					'role'    => isset( $entry['role'] ) ? sanitize_text_field( $entry['role'] ) : 'user',
-					'content' => isset( $entry['content'] ) ? sanitize_textarea_field( $entry['content'] ) : '',
-				);
-			},
-			array_slice( $history, -10 )
-		);
+		$out = array();
+		foreach ( array_slice( array_values( $history ), -10 ) as $entry ) {
+			if ( ! is_array( $entry ) ) {
+				continue;
+			}
+			$row = array(
+				'role'    => isset( $entry['role'] ) && is_string( $entry['role'] ) ? sanitize_text_field( $entry['role'] ) : 'user',
+				'content' => isset( $entry['content'] ) && is_string( $entry['content'] ) ? sanitize_textarea_field( $entry['content'] ) : '',
+			);
+			// Keep the card's workflow id so Workflow::workflow_id_from_history() can resume a plan.
+			if ( isset( $entry['card'] ) && is_array( $entry['card'] ) && isset( $entry['card']['workflow_id'] ) && is_scalar( $entry['card']['workflow_id'] ) ) {
+				$workflow_id = sanitize_text_field( (string) $entry['card']['workflow_id'] );
+				if ( $workflow_id !== '' ) {
+					$row['card'] = array( 'workflow_id' => $workflow_id );
+				}
+			}
+			$out[] = $row;
+		}
+		return $out;
 	}
 	public static function action_card( array $result, string $tool ): array {
 		$success = ! empty( $result['success'] );
@@ -316,48 +326,6 @@ class Neo_Pulse_Wp_Backend_Assist_Cards {
 					'Add 5 H2 headings to SEO Vs. Ads',
 					'Write an intro paragraph for my About page',
 					'Add a FAQ section to Services',
-				),
-			),
-			'compose_seo_block' => array(
-				'title'       => __( 'Describe your SEO block', 'neo-pulse-wp' ),
-				'body'        => __( 'Tell me **what this block should cover** — topic, keyword, sections, or layout goals.', 'neo-pulse-wp' ),
-				'suggestions' => array(
-					'Generate a full block about window treatments in Edmonton',
-					'Optimize copy for the focus keyword',
-					'Analyze this block for SEO gaps',
-				),
-			),
-			'modify_seo_block_slots' => array(
-				'title'       => __( 'Which slot should I change?', 'neo-pulse-wp' ),
-				'body'        => __( 'Describe the **slot to add, remove, or update** (e.g. add H2, remove CTA).', 'neo-pulse-wp' ),
-				'suggestions' => array(
-					'Add an H2 about our services',
-					'Remove the CTA slot',
-					'Update the first heading text',
-				),
-			),
-			'delete_seo_block' => array(
-				'title'       => __( 'Which SEO block should I delete?', 'neo-pulse-wp' ),
-				'body'        => __( 'Provide the **block ID** or name from the list.', 'neo-pulse-wp' ),
-				'suggestions' => array(
-					'List my SEO blocks',
-					'Delete block 3',
-				),
-			),
-			'create_seo_block' => array(
-				'title'       => __( 'New SEO block', 'neo-pulse-wp' ),
-				'body'        => __( 'What **title or focus keyword** should the new block use?', 'neo-pulse-wp' ),
-				'suggestions' => array(
-					'Window treatments Edmonton',
-					'Services hero block',
-				),
-			),
-			'apply_seo_block_to_page' => array(
-				'title'       => __( 'Apply SEO block to page', 'neo-pulse-wp' ),
-				'body'        => __( 'Which **page** and **SEO block** should I link? Provide post_id and block_id, or create a page first.', 'neo-pulse-wp' ),
-				'suggestions' => array(
-					'Apply block 12 to page 45',
-					'Create a page about services with an SEO block',
 				),
 			),
 			'design_page_with_novamira' => array(
@@ -884,13 +852,6 @@ class Neo_Pulse_Wp_Backend_Assist_Cards {
 				'icon'  => 'edit',
 			);
 		}
-		if ( ! empty( $result['block_edit_url'] ) ) {
-			$links[] = array(
-				'label' => __( 'Edit SEO block', 'neo-pulse-wp' ),
-				'url'   => (string) $result['block_edit_url'],
-				'icon'  => 'post',
-			);
-		}
 		if ( ! empty( $result['view_url'] ) ) {
 			$view_label = $status === 'publish'
 				? ( $title !== '' ? $title : ( $type === 'page' ? __( 'View page', 'neo-pulse-wp' ) : __( 'View post', 'neo-pulse-wp' ) ) )
@@ -930,7 +891,6 @@ class Neo_Pulse_Wp_Backend_Assist_Cards {
 		$type   = sanitize_key( (string) ( $result['type'] ?? 'post' ) );
 		$edit   = trim( (string) ( $result['edit_url'] ?? '' ) );
 		$view   = trim( (string) ( $result['view_url'] ?? '' ) );
-		$block  = trim( (string) ( $result['block_edit_url'] ?? '' ) );
 
 		if ( $status === 'publish' && self::is_valid_card_link_url( $view ) ) {
 			$card['cta'] = array(
@@ -948,11 +908,6 @@ class Neo_Pulse_Wp_Backend_Assist_Cards {
 			$card['cta'] = array(
 				'label' => __( 'View', 'neo-pulse-wp' ),
 				'url'   => $view,
-			);
-		} elseif ( self::is_valid_card_link_url( $block ) ) {
-			$card['cta'] = array(
-				'label' => __( 'Edit SEO block', 'neo-pulse-wp' ),
-				'url'   => $block,
 			);
 		}
 

@@ -102,14 +102,19 @@ class Neo_Pulse_Wp_Redirects_List_Table extends WP_List_Table {
 				esc_attr( sprintf( __( 'Edit redirect for %s', 'neo-pulse-wp' ), (string) $item->source ) ),
 				esc_html__( 'Edit', 'neo-pulse-wp' )
 			),
-			'view' => sprintf(
+		);
+
+		// Only an exact source is a real URL; contains / starts / ends / regex sources are patterns.
+		$matching = isset( $item->matching ) ? Neo_Pulse_Wp_Redirects::normalize_matching( (string) $item->matching ) : 'exact';
+		if ( 'exact' === $matching ) {
+			$actions['view'] = sprintf(
 				'<a href="%s" target="_blank" rel="noopener noreferrer" aria-label="%s">%s</a>',
 				esc_url( $view_url ),
 				/* translators: %s: redirect source path */
 				esc_attr( sprintf( __( 'View source URL for %s', 'neo-pulse-wp' ), (string) $item->source ) ),
 				esc_html__( 'View', 'neo-pulse-wp' )
-			),
-		);
+			);
+		}
 
 		if ( is_string( $dest_url ) && $dest_url !== '' ) {
 			$actions['view_destination'] = sprintf(

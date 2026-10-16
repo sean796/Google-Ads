@@ -5,7 +5,7 @@ section: Semrush
 method: POST
 path: /api/semrush/bulk-enrichment
 auth: open
-order: 970
+order: 980
 ---
 
 POST `/api/semrush/bulk-enrichment`.

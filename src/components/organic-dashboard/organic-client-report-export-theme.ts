@@ -1,6 +1,6 @@
-/** Class names for letter-first white export (PDF capture). Screen deck stays dark. */
+/** Class names for the light-theme printer-friendly client report (screen preview, browser print, and PDF capture). */
 
-export const EXPORT_PAGE_CLASS = "organic-client-report organic-client-report-export";
+export const EXPORT_PAGE_CLASS = "organic-client-report-export";
 
 export const EXPORT_SECTION_CLASS = "organic-client-report-export__section";
 

@@ -46,6 +46,7 @@ export const CONTENT_OPTIMIZE_PIPELINE_PREFIX = [
 export const CONTENT_OPTIMIZE_PIPELINE_SUFFIX = [
   AISEO_POST_CONTENT_SLOT_TITLE,
   "Content Markdown",
+  "Implementation report",
   "WordPress upload",
 ] as const;
 
@@ -160,6 +161,7 @@ export const CONTENT_OPTIMIZE_ARTIFACT_SLUGS: Partial<
   "Link targets": "link-targets",
   [AISEO_POST_CONTENT_SLOT_TITLE]: "content-",
   "Content Markdown": "content-",
+  "Implementation report": "implementation-report",
   "WordPress upload": "wordpress.json",
 };
 

@@ -5,7 +5,7 @@ section: Teams
 method: GET
 path: /api/teams/{teamId}/chat/channels/({id})/activity-log
 auth: team-rbac-communication
-order: 1360
+order: 1370
 ---
 
 GET `/api/teams/{teamId}/chat/channels/({id})/activity-log`.

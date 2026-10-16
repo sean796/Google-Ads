@@ -76,7 +76,7 @@
 
 /* Redirects list table — enforce black/grey rows */
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-redirects .wp-list-table {
-	background: #000;
+	background: var(--fc-surface);
 }
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-redirects .wp-list-table thead th,
@@ -91,7 +91,7 @@ body.neo-pulse-wp-admin-screen .neo-pulse-wp-redirects .wp-list-table tfoot .che
 }
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-redirects .wp-list-table tbody tr {
-	background: #000;
+	background: var(--fc-surface);
 }
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-redirects .wp-list-table tbody tr.alternate {
@@ -124,10 +124,20 @@ body.neo-pulse-wp-admin-screen .neo-pulse-wp-redirects .row-actions a {
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-redirects .row-actions .submitdelete a,
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-redirects .row-actions a.submitdelete {
-	color: #f87171;
+	color: var(--npwp-error-ink, #b42318);
 }
 
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-redirects tr:hover .row-actions,
 body.neo-pulse-wp-admin-screen .neo-pulse-wp-redirects .row-actions.visible {
 	visibility: visible;
+}
+
+/* "Import from Rank Math" panel on the redirect list */
+.neo-pulse-wp-redirects__panel--rank-math {
+	margin: 16px 0 20px;
+	border: 1px solid var(--fc-link, #84bd00);
+}
+
+.neo-pulse-wp-redirects__panel--rank-math form p {
+	margin: 0;
 }

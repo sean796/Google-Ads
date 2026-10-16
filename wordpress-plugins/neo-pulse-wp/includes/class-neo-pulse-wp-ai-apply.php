@@ -46,21 +46,11 @@ class Neo_Pulse_Wp_Ai_Apply {
 
 		self::stamp_date_modifier( $post_id );
 
-		$client = Neo_Pulse_Wp_Ai_Gate::get_client();
-		$usage  = is_array( $client ) ? Neo_Pulse_Wp_Site_Progress::optimization_usage_for_client( $client ) : null;
-
 		return array(
-			'ok'           => true,
-			'applied'      => $applied,
-			'field'        => $field,
-			'values'       => Neo_Pulse_Wp_Ai_Context::meta_hub_values( $post_id ),
-			'optimization' => is_array( $usage )
-				? array(
-					'used'      => (int) $usage['used'],
-					'cap'       => (int) $usage['cap'],
-					'remaining' => (int) $usage['remaining'],
-				)
-				: null,
+			'ok'      => true,
+			'applied' => $applied,
+			'field'   => $field,
+			'values'  => Neo_Pulse_Wp_Ai_Context::meta_hub_values( $post_id ),
 		);
 	}
 

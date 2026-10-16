@@ -89,33 +89,18 @@ class Neo_Pulse_Wp_Harness_Blueprint {
 	 * @return array<string,mixed>|null
 	 */
 	private static function extract_json_object( string $raw ) {
-		$raw = trim( $raw );
-		$raw = preg_replace( '/^```(?:json)?\s*/i', '', $raw );
-		$raw = preg_replace( '/\s*```\s*$/', '', (string) $raw );
-		$data = json_decode( trim( (string) $raw ), true );
-		if ( is_array( $data ) ) {
-			return $data;
+		if ( ! class_exists( 'Neo_Pulse_Wp_Backend_Assist_Ai', false ) ) {
+			require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/backend-assist/class-neo-pulse-wp-backend-assist-ai.php';
 		}
-		if ( preg_match( '/\{[\s\S]*\}/', $raw, $m ) ) {
-			$data = json_decode( $m[0], true );
-			return is_array( $data ) ? $data : null;
-		}
-		return null;
+		return Neo_Pulse_Wp_Backend_Assist_Ai::parse_json( $raw );
 	}
 
 	/**
 	 * @return array<int,array{id:int,slug:string,title:string,excerpt:string,link:string,date_gmt:string}>
 	 */
 	public static function fetch_linkable_posts(): array {
-		$client = Neo_Pulse_Wp_Ai_Gate::get_client();
-		$types  = array( 'post', 'page' );
-		if ( is_array( $client ) ) {
-			$entity = Neo_Pulse_Wp_Site_Progress::resolve_entity_post_type_for_client( $client );
-			if ( null !== $entity && ! in_array( $entity, $types, true ) ) {
-				$types[] = $entity;
-			}
-		}
-		$q = new WP_Query(
+		$types = array( 'post', 'page' );
+		$q     = new WP_Query(
 			array(
 				'post_type'      => $types,
 				'post_status'    => 'publish',

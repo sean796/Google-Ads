@@ -5,7 +5,7 @@ section: Semrush
 method: GET
 path: /api/semrush/audit-json/{filename}
 auth: open
-order: 960
+order: 970
 ---
 
 GET `/api/semrush/audit-json/{filename}`.

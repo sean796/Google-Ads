@@ -90,14 +90,14 @@ describe("organicClientReportPdfFileName", () => {
 });
 
 describe("buildOrganicClientReportPdfOptions", () => {
-  it("uses agency letter width and slim page margin", () => {
+  it("uses agency letter width, slim page margin, and disables html2pdf internal spacer injection", () => {
     const opt = buildOrganicClientReportPdfOptions("Acme Organic Performance.pdf");
     expect(opt.margin).toBe(ORGANIC_CLIENT_REPORT_PDF_MARGIN_IN);
     expect(opt.margin).toBe(0.4);
     expect(opt.html2canvas.width).toBe(ORGANIC_CLIENT_REPORT_PDF_CONTENT_WIDTH_PX);
     expect(opt.html2canvas.windowWidth).toBe(720);
     expect(opt.html2canvas.backgroundColor).toBe("#ffffff");
-    expect(opt.pagebreak.before).toContain(".organic-deck-export-page-break");
+    expect(opt.pagebreak).toEqual({ mode: [], before: [], avoid: [] });
     expect(ORGANIC_CLIENT_REPORT_PDF_LETTER_WIDTH_PX).toBe(720);
   });
 });

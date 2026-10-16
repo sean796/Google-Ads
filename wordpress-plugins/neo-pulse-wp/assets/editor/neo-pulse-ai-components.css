@@ -71,8 +71,7 @@
 }
 
 .neo-pulse-wp-ai-wand-btn,
-.neo-pulse-wp-ai-spark-btn,
-.neo-pulse-wp-ai-field-wand {
+.neo-pulse-wp-ai-spark-btn {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -124,8 +123,7 @@
 }
 
 .neo-pulse-wp-ai-wand-btn:hover,
-.neo-pulse-wp-ai-spark-btn:hover,
-.neo-pulse-wp-ai-field-wand:hover {
+.neo-pulse-wp-ai-spark-btn:hover {
 	background: #09090b;
 	box-shadow: none;
 	transform: none;
@@ -151,22 +149,6 @@
 @keyframes neo-pulse-wp-ai-spin {
 	from { transform: rotate(0deg); }
 	to { transform: rotate(360deg); }
-}
-
-.neo-pulse-wp-ai-field-row {
-	display: flex;
-	align-items: flex-start;
-	gap: 6px;
-}
-
-.neo-pulse-wp-ai-field-row > :first-child {
-	flex: 1 1 auto;
-	min-width: 0;
-}
-
-.neo-pulse-wp-ai-field-wand-wrap {
-	flex: 0 0 auto;
-	padding-top: 2px;
 }
 
 .neo-pulse-wp-ai__wand-list {

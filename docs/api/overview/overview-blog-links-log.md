@@ -5,7 +5,7 @@ section: Overview
 method: POST
 path: /api/overview/blog-links-log
 auth: open
-order: 890
+order: 900
 ---
 
 POST `/api/overview/blog-links-log`.

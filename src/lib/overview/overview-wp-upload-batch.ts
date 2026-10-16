@@ -1,6 +1,7 @@
 import { flushSync } from "react-dom";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import type { WordPressSite } from "@/components/integrations/types";
+import { applyElementorOptimization } from "@/lib/elementor-api";
 import {
   buildOverviewUploadPayloadBundle,
   overviewBindingForRow,
@@ -24,14 +25,28 @@ import type { OverviewWordPressUploadFailureRow } from "@/lib/overview/overview-
 import { overviewRowInBulkScope } from "@/lib/overview/overview-bulk-row-scope";
 import { semrushIssueLabelFromFilename } from "@/lib/overview/parse-semrush-error-csv";
 import {
-  OVERVIEW_WP_API_BATCH_SIZE,
-  overviewWpApiBatchCount,
+  buildWpUploadBatchPipelineSteps,
+  chunkWpUploadItems,
+  setBatchStepStatus,
 } from "@/lib/overview/overview-batch-pipeline-progress";
 import { initOverviewBulkHarnessPagination } from "@/lib/overview/overview-bulk-page-state";
+import {
+  buildOverviewRowPatchFromInventory,
+  type OverviewInventoryUrlMatch,
+} from "@/lib/overview/overview-row-scrape";
+import { isAnswerOnlyHarnessBody } from "@/lib/overview/overview-blog-overview-prepend";
+import {
+  attachAiseoUploadGeneratedFiles,
+  rowUrlMatchesWordPressSite,
+} from "@/lib/overview/overview-aiseo-after-upload";
+import { buildOverviewRowWpUploadProofFiles } from "@/lib/overview/overview-wp-upload-harness-artifacts";
+import { normalizePageUrlKey } from "@/lib/sitemap-optimizer/normalize-page-url";
 
 export type WpUploadEligibleRow = {
   index: number;
   row: OverviewRow;
+  binding: OverviewBinding;
+  inventoryContent: string;
   bundle: OverviewUploadPayloadBundle;
 };
 
@@ -42,6 +57,7 @@ export type WpUploadRowResult = {
   error?: string;
   mergeError?: string;
   postId: number | null;
+  link?: string;
 };
 
 export type RunOverviewWpUploadBatchParams = {
@@ -55,7 +71,44 @@ export type RunOverviewWpUploadBatchParams = {
 
 export type BuildWpUploadEligibleRowsOptions = {
   resolveBinding?: (row: OverviewRow) => OverviewBinding | undefined;
+  selectedUrlKeys?: ReadonlySet<string>;
+  getInventoryMatchForUrl?: (url: string) => OverviewInventoryUrlMatch | undefined;
+  site?: WordPressSite;
 };
+
+export function isOverviewRowDirtyForWpUpload(
+  row: OverviewRow,
+  invMatch?: OverviewInventoryUrlMatch,
+): boolean {
+  if (
+    row.aiTitle?.trim() ||
+    row.aiMeta?.trim() ||
+    row.postContentOptimized?.trim() ||
+    row.elementorDataJson?.trim() ||
+    row.aiSuggestedPath?.trim()
+  ) {
+    return true;
+  }
+
+  if (invMatch?.row) {
+    const baseline = buildOverviewRowPatchFromInventory(row, invMatch);
+    if (!baseline) return false;
+    const curTitle = (row.title ?? "").trim();
+    const curMeta = (row.metaDescription ?? "").trim();
+    const curFocus = (row.focusKeyword ?? "").trim();
+    const curFaq = (row.faq ?? "").trim();
+    const curSeo = (row.seoResearch ?? "").trim();
+
+    if (curTitle && curTitle !== (baseline.title ?? "").trim()) return true;
+    if (curMeta && curMeta !== (baseline.metaDescription ?? "").trim()) return true;
+    if (curFocus && curFocus !== (baseline.focusKeyword ?? "").trim()) return true;
+    if (curFaq && curFaq !== (baseline.faq ?? "").trim()) return true;
+    if (curSeo && curSeo !== (baseline.seoResearch ?? "").trim()) return true;
+    return false;
+  }
+
+  return rowHasUploadableGridFields(row);
+}
 
 export function buildWpUploadEligibleRows(
   rows: OverviewRow[],
@@ -64,20 +117,46 @@ export function buildWpUploadEligibleRows(
   semrushCsvFileName: string | null = null,
   options?: BuildWpUploadEligibleRowsOptions,
 ): WpUploadEligibleRow[] {
-  const uploadOptions: BuildOverviewBulkSeoItemOptions = semrushCsvFileName
+  const baseOptions: BuildOverviewBulkSeoItemOptions = semrushCsvFileName
     ? { semrushScope: semrushIssueLabelFromFilename(semrushCsvFileName) as SemrushUploadScope }
     : { forWordPressUpload: true };
+  const hasExplicitSelection = Boolean(options?.selectedUrlKeys && options.selectedUrlKeys.size > 0);
   const eligible: WpUploadEligibleRow[] = [];
+
   rows.forEach((row, index) => {
-    if (!overviewRowInBulkScope(row.url, bulkScopeUrlKeys)) {
+    const url = row.url?.trim() ?? "";
+    if (!url || !overviewRowInBulkScope(url, bulkScopeUrlKeys)) {
       return;
+    }
+    if (options?.site && !rowUrlMatchesWordPressSite(url, options.site)) {
+      return;
+    }
+    const invMatch = options?.getInventoryMatchForUrl?.(url);
+    if (!hasExplicitSelection && !semrushCsvFileName) {
+      const explicitlySelected = options?.selectedUrlKeys?.has(normalizePageUrlKey(url)) ?? false;
+      if (!explicitlySelected && !isOverviewRowDirtyForWpUpload(row, invMatch)) {
+        return;
+      }
     }
     const binding =
       options?.resolveBinding?.(row) ?? overviewBindingForRow(row, bindings);
     if (!binding?.postId) return;
-    const bundle = buildOverviewUploadPayloadBundle(row, binding, uploadOptions);
+
+    const inventoryContent = invMatch?.row?.fields?.content?.trim() ?? "";
+    const candidateBody =
+      row.postContentOptimized?.trim() || row.postContent?.trim() || inventoryContent;
+    if (candidateBody && isAnswerOnlyHarnessBody(candidateBody)) {
+      return;
+    }
+
+    const bundle = buildOverviewUploadPayloadBundle(row, binding, {
+      ...baseOptions,
+      inventoryContent: row.postContentOptimized?.trim() || row.postContent?.trim()
+        ? inventoryContent
+        : undefined,
+    });
     if (!bundle) return;
-    eligible.push({ index, row, bundle });
+    eligible.push({ index, row, binding, inventoryContent, bundle });
   });
   return eligible;
 }
@@ -140,7 +219,7 @@ function rowResultFromBulk(
     error: fallbackError ?? "No result returned for this row.",
   };
   if (res.ok) {
-    return { index: entry.index, url, ok: true, postId };
+    return { index: entry.index, url, ok: true, postId, link: res.link };
   }
   const error = res.error?.trim() || fallbackError || "WordPress rejected the update.";
   return {
@@ -150,6 +229,7 @@ function rowResultFromBulk(
     postId,
     error,
     mergeError: res.mergeError,
+    link: res.link,
   };
 }
 
@@ -173,9 +253,29 @@ async function uploadPreparedChunk(
     }
   });
 
+  const elementorErrorsByLocalIdx = new Map<number, string>();
+  for (let localIdx = 0; localIdx < chunkPrepared.length; localIdx += 1) {
+    const { entry } = chunkPrepared[localIdx]!;
+    if (entry.row.contentFormat === "elementor" && entry.row.elementorDataJson?.trim()) {
+      try {
+        await applyElementorOptimization(
+          site,
+          entry.bundle.item.postId,
+          entry.row.elementorDataJson.trim(),
+        );
+      } catch (err) {
+        elementorErrorsByLocalIdx.set(
+          localIdx,
+          err instanceof Error ? err.message : "Elementor upload failed.",
+        );
+      }
+    }
+  }
+
   const items = chunkPrepared.map(({ entry }) => entry.bundle.item);
   const first = chunkPrepared[0];
   console.info("[WP upload] POST", `${wpBatch}/${wpBatchCount}`, {
+    count: items.length,
     postId: first?.entry.bundle.item.postId ?? null,
     url: first?.url ?? "",
   });
@@ -200,13 +300,52 @@ async function uploadPreparedChunk(
   const { resultByIndex, resultByPostId } = mapBulkResults(bulkRes);
   const results: WpUploadRowResult[] = [];
   const failures: OverviewWordPressUploadFailureRow[] = [];
+  const uploadedAt = new Date().toISOString();
 
   for (let localIdx = 0; localIdx < chunkPrepared.length; localIdx += 1) {
-    const { entry } = chunkPrepared[localIdx]!;
+    const { entry, url } = chunkPrepared[localIdx]!;
+    const elementorError = elementorErrorsByLocalIdx.get(localIdx);
     const uploadResult =
       resultByIndex.get(localIdx) ?? resultByPostId.get(entry.bundle.item.postId);
-    const rowResult = rowResultFromBulk(entry, localIdx, uploadResult);
+    const rawResult = rowResultFromBulk(entry, localIdx, uploadResult);
+    const rowResult: WpUploadRowResult = elementorError
+      ? {
+          ...rawResult,
+          ok: false,
+          error: elementorError,
+        }
+      : rawResult;
     results.push(rowResult);
+
+    const proofFiles = buildOverviewRowWpUploadProofFiles({
+      site,
+      row: entry.row,
+      binding: entry.binding,
+      inventoryContent: entry.inventoryContent,
+      ok: rowResult.ok,
+      skipped: false,
+      error: rowResult.ok ? undefined : rowResult.error,
+      link: rowResult.link,
+      uploadedAt,
+      apiResult: {
+        ok: rowResult.ok,
+        error: rowResult.error,
+        mergeError: rowResult.mergeError,
+        method: uploadResult?.method,
+        httpStatus: uploadResult?.httpStatus ?? undefined,
+        link: rowResult.link,
+      },
+    });
+    if (url && proofFiles.length) {
+      attachAiseoUploadGeneratedFiles(
+        harnessSetters.batchKey,
+        harnessSetters.setBulkOptimizationState,
+        url,
+        proofFiles,
+        rowResult.ok,
+      );
+    }
+
     if (!rowResult.ok) {
       failures.push({
         postId: rowResult.postId,
@@ -253,21 +392,38 @@ export async function runOverviewWpUploadBatch(
     entry,
     url: entry.row.url?.trim() ?? "",
   }));
+  const chunks = chunkWpUploadItems(prepared, ({ entry }) =>
+    Boolean(entry.bundle.item.postContent?.trim()),
+  );
   const total = prepared.length;
-  const wpBatchCount = overviewWpApiBatchCount(total);
+  const wpBatchCount = chunks.length;
+  const chunkLengths = chunks.map((c) => c.length);
+  const steps = setBatchStepStatus(buildWpUploadBatchPipelineSteps(chunkLengths), 0, "running");
+
+  harnessSetters.setBulkOptimizationState((prev) => {
+    const current = prev[batchKey];
+    if (!current) return prev;
+    return {
+      ...prev,
+      [batchKey]: {
+        ...current,
+        batchPipelineSteps: steps,
+      },
+    };
+  });
 
   initOverviewBulkHarnessPagination(batchKey, total, harnessSetters.setBulkOptimizationState);
   setWpUploadBatchPrepMessage(
     batchKey,
     harnessSetters.siteId,
-    `Uploading ${total} row(s) to WordPress…`,
+    `Uploading ${total} row(s) to WordPress in ${wpBatchCount} batch(es)…`,
     harnessSetters,
   );
 
   const results: WpUploadRowResult[] = [];
-  for (let start = 0; start < prepared.length; start += OVERVIEW_WP_API_BATCH_SIZE) {
-    const chunk = prepared.slice(start, start + OVERVIEW_WP_API_BATCH_SIZE);
-    const wpBatch = Math.floor(start / OVERVIEW_WP_API_BATCH_SIZE) + 1;
+  for (let batchIdx = 0; batchIdx < chunks.length; batchIdx += 1) {
+    const chunk = chunks[batchIdx]!;
+    const wpBatch = batchIdx + 1;
     const outcome = await uploadPreparedChunk(
       site,
       chunk,
@@ -279,6 +435,7 @@ export async function runOverviewWpUploadBatch(
     );
     const row = outcome.results[0];
     console.info("[WP upload]", `${wpBatch}/${wpBatchCount}`, {
+      count: chunk.length,
       postId: row?.postId ?? null,
       url: row?.url ?? chunk[0]?.url ?? "",
     });

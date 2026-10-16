@@ -286,17 +286,8 @@ class Neo_Pulse_Wp_Overseer_Aggregates {
 		return $out;
 	}
 	public static function fetch_events_for_analysis( string $date_from, string $date_to ): array {
-		$result = Neo_Pulse_Wp_Overseer_Query::query(
-			array(
-				'date_from' => $date_from,
-				'date_to'   => $date_to,
-				'per_page'  => 5000,
-				'page'      => 1,
-				'orderby'   => 'created_at',
-				'order'     => 'asc',
-			)
-		);
-		return $result['items'];
+		// Newest MAX_ANALYSIS events in the range (the list query caps pages at 200), oldest first.
+		return Neo_Pulse_Wp_Overseer_Query::query_for_analysis( $date_from, $date_to );
 	}
 	public static function count_sessions_in_range( string $date_from, string $date_to ): int {
 		global $wpdb;

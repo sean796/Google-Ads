@@ -5,7 +5,7 @@ section: Teams
 method: GET
 path: /api/teams/{teamId}/chat/mentions/unread-count
 auth: team-rbac-communication
-order: 1530
+order: 1540
 ---
 
 GET `/api/teams/{teamId}/chat/mentions/unread-count`.

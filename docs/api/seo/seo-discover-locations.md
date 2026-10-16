@@ -5,7 +5,7 @@ section: SEO
 method: POST
 path: /api/seo/discover-locations
 auth: open
-order: 1040
+order: 1050
 ---
 
 POST `/api/seo/discover-locations`.

@@ -259,14 +259,10 @@ class Neo_Pulse_Wp_Ai_Body {
 		);
 		Neo_Pulse_Wp_Harness_Session::save( $post_id, $session );
 
-		$client = Neo_Pulse_Wp_Ai_Gate::get_client();
-		$usage  = is_array( $client ) ? Neo_Pulse_Wp_Site_Progress::optimization_usage_for_client( $client ) : null;
-
 		return array(
 			'ok'           => true,
 			'sectionIndex' => $section_index,
 			'session'      => Neo_Pulse_Wp_Harness_Session::public_shape( $session ),
-			'optimization' => is_array( $usage ) ? $usage : null,
 		);
 	}
 

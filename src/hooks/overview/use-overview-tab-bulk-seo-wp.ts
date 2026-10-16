@@ -8,7 +8,11 @@ import {
   NOTIFY_NO_ROWS_MATCHED_WORDPRESS_INVENTORY,
 } from "@/lib/notify-messages";
 
-import { resolveOverviewBindingForRow } from "@/lib/overview/overview-bulk-seo-payload";
+import {
+  overviewDateModifierTodayIso,
+  resolveOverviewBindingForRow,
+} from "@/lib/overview/overview-bulk-seo-payload";
+import { normalizePageUrlKey } from "@/lib/sitemap-optimizer/normalize-page-url";
 
 import {
   buildOverviewWordPressExportCsv,
@@ -41,11 +45,14 @@ type Opt = ReturnType<typeof useWordPressOptimization>;
 type Args = Pick<
   OverviewTabBase,
   | "rows"
+  | "setRows"
+  | "rowsRef"
   | "bindings"
   | "resolveBindings"
   | "prefetchOverviewInventory"
   | "setBulkSeoCsvExportBusy"
   | "bulkScopeUrlKeys"
+  | "selectedUrlKeys"
   | "setBulkActionProgress"
 > & {
   site: WordPressSite | undefined;
@@ -61,12 +68,15 @@ export function useOverviewTabBulkSeoWp({
   site,
   sitemapSource,
   rows,
+  setRows,
+  rowsRef,
   bindings,
   resolveBindings,
   prefetchOverviewInventory,
   setBulkSeoCsvExportBusy,
   opt,
   bulkScopeUrlKeys,
+  selectedUrlKeys,
   setBulkActionProgress,
   getInventoryMatchForUrl,
 }: Args) {
@@ -154,6 +164,9 @@ export function useOverviewTabBulkSeoWp({
     const eligible = buildWpUploadEligibleRows(rows, mergedBindings, bulkScopeUrlKeys, null, {
       resolveBinding: (row) =>
         resolveOverviewBindingForRow(row, mergedBindings, getInventoryMatchForUrl(site, row.url)),
+      selectedUrlKeys,
+      getInventoryMatchForUrl: (url) => getInventoryMatchForUrl(site, url),
+      site,
     });
     console.info("[WP upload] eligible", {
       count: eligible.length,
@@ -189,23 +202,55 @@ export function useOverviewTabBulkSeoWp({
     });
 
     if (!eligible.length) {
-      console.info("[WP upload] aborted: no rows with WordPress post IDs");
+      const noEligibleMessage =
+        selectedUrlKeys.size === 0
+          ? "No changed rows to upload"
+          : "No selected rows with WordPress post IDs";
+      console.info("[WP upload] aborted:", noEligibleMessage);
       finalizeOverviewWpUploadHarnessBatch(
         batchKey,
         site.id,
         harnessSetters,
         opt.setIsOptimizingContent,
-        "No scoped rows with WordPress post IDs",
+        noEligibleMessage,
       );
       return;
     }
 
-    const { stats } = await runOverviewWpUploadBatch({
+    const { results, stats } = await runOverviewWpUploadBatch({
       site,
       eligible,
       harnessSetters,
       batchKey,
     });
+
+    const uploadedKeys = new Set(
+      results.filter((r) => r.ok && r.url).map((r) => normalizePageUrlKey(r.url)),
+    );
+    if (uploadedKeys.size > 0) {
+      const todayIso = overviewDateModifierTodayIso();
+      const commitRow = (row: (typeof rows)[number]) => {
+        if (!uploadedKeys.has(normalizePageUrlKey(row.url))) return row;
+        return {
+          ...row,
+          title: (row.aiTitle || row.title || "").trim() || row.title,
+          metaDescription: (row.aiMeta || row.metaDescription || "").trim() || row.metaDescription,
+          aiTitle: "",
+          aiMeta: "",
+          ...(row.postContentOptimized?.trim()
+            ? {
+                postContent: row.postContentOptimized.trim(),
+                postContentOptimized: undefined,
+              }
+            : {}),
+          dateModifier: todayIso,
+        };
+      };
+      if (rowsRef) {
+        rowsRef.current = rowsRef.current.map(commitRow);
+      }
+      setRows?.((prev) => prev.map(commitRow));
+    }
 
     console.info("[WP upload] finished", { okCount: stats.okCount });
 
@@ -219,8 +264,11 @@ export function useOverviewTabBulkSeoWp({
   }, [
     site,
     rows,
+    setRows,
+    rowsRef,
     bindings,
     bulkScopeUrlKeys,
+    selectedUrlKeys,
     resolveBindings,
     getInventoryMatchForUrl,
     opt,

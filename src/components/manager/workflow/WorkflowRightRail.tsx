@@ -23,6 +23,7 @@ export type WorkflowRightRailProps = {
   activeRunId: number | null;
   focusRagOnRunId?: number | null;
   inspectorNote?: string | null;
+  saveError?: string | null;
   stepTestResult?: WorkflowStepTestResult | null;
   testingStepId?: string | null;
   onTestStep?: (nodeId: string) => void;
@@ -42,6 +43,7 @@ export function WorkflowRightRail({
   activeRunId,
   focusRagOnRunId = null,
   inspectorNote,
+  saveError,
   stepTestResult,
   testingStepId,
   onTestStep,
@@ -80,6 +82,13 @@ export function WorkflowRightRail({
         </button>
       </div>
       <div className="min-h-0 flex-1 overflow-hidden">
+        {saveError ? (
+          <div className={cn("shrink-0 px-5 py-3", WORKFLOW_SIDEBAR_FIELD_CLASS)} role="alert">
+            <p className="select-text whitespace-pre-wrap break-words text-base text-red-400">
+              {saveError}
+            </p>
+          </div>
+        ) : null}
         {tab === "setup" ? (
           <div className="flex h-full flex-col overflow-hidden">
             {inspectorNote ? (

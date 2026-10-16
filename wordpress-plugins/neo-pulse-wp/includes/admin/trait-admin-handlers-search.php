@@ -24,14 +24,17 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Search {
 		$data = array();
 
 		if ( $tab === 'general' ) {
-			if ( isset( $raw['placeholder'] ) ) {
+			if ( isset( $raw['placeholder'] ) && is_string( $raw['placeholder'] ) ) {
 				$data['placeholder'] = (string) $raw['placeholder'];
 			}
-			if ( isset( $raw['button_label'] ) ) {
+			if ( isset( $raw['button_label'] ) && is_string( $raw['button_label'] ) ) {
 				$data['button_label'] = (string) $raw['button_label'];
 			}
-			if ( isset( $raw['max_results'] ) ) {
+			if ( isset( $raw['max_results'] ) && is_scalar( $raw['max_results'] ) ) {
 				$data['max_results'] = (int) $raw['max_results'];
+			}
+			if ( isset( $raw['daily_ai_cap'] ) && is_scalar( $raw['daily_ai_cap'] ) && $raw['daily_ai_cap'] !== '' ) {
+				$data['daily_ai_cap'] = (int) $raw['daily_ai_cap'];
 			}
 			$data['post_types'] = isset( $raw['post_types'] ) && is_array( $raw['post_types'] )
 				? $raw['post_types']
@@ -39,21 +42,23 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Search {
 			if ( isset( $raw['content_type_labels'] ) && is_array( $raw['content_type_labels'] ) ) {
 				$data['content_type_labels'] = $raw['content_type_labels'];
 			}
-			$data['auto_front_page'] = ! empty( $raw['auto_front_page'] );
-			if ( isset( $raw['openrouter_model'] ) ) {
+			if ( isset( $raw['openrouter_model'] ) && is_string( $raw['openrouter_model'] ) ) {
 				$data['openrouter_model'] = (string) $raw['openrouter_model'];
 			}
+			if ( isset( $raw['type_priority'] ) && is_array( $raw['type_priority'] ) ) {
+				$data['type_priority'] = $raw['type_priority'];
+			}
+			if ( isset( $raw['priority_mode'] ) && is_string( $raw['priority_mode'] ) ) {
+				$data['priority_mode'] = $raw['priority_mode'];
+			}
+			$data['indexable_only'] = ! empty( $raw['indexable_only'] );
 		}
 
-		if ( $tab === 'appearance' ) {
-			$raw_design = isset( $_POST['neo-pulse_design'] ) ? (array) wp_unslash( $_POST['neo-pulse_design'] ) : array();
-			Neo_Pulse_Wp_Ai_Widget_Design::save_from_admin_post( $raw_design, 'search' );
-
-			$tokens = Neo_Pulse_Wp_Ai_Widget_Design::editable_tokens( 'search' );
-			$data['primary_color'] = (string) ( $tokens['accent'] ?? '#3b82f6' );
-			$data['bg_color']      = (string) ( $tokens['bg'] ?? '#ffffff' );
-			$data['border_radius'] = (int) ( $tokens['radius'] ?? 8 );
-			$data['font_size']     = (int) ( $tokens['font_size'] ?? 16 );
+		if ( $tab === 'popular' ) {
+			$pinned               = isset( $raw['pinned_terms'] ) && is_string( $raw['pinned_terms'] ) ? $raw['pinned_terms'] : '';
+			$hidden               = isset( $raw['hidden_terms'] ) && is_string( $raw['hidden_terms'] ) ? $raw['hidden_terms'] : '';
+			$data['pinned_terms'] = Neo_Pulse_Wp_Search_Popular::sanitize_list( $pinned, Neo_Pulse_Wp_Search_Popular::MAX_PINNED );
+			$data['hidden_terms'] = Neo_Pulse_Wp_Search_Popular::sanitize_list( $hidden, Neo_Pulse_Wp_Search_Popular::MAX_HIDDEN );
 		}
 
 		if ( ! empty( $data ) ) {
@@ -64,7 +69,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Search {
 			array(
 				'kind'    => 'search',
 				'success' => true,
-				'message' => __( 'Search settings saved. NEO Pulse Speed cache was cleared; purge WP Engine or CDN page cache if guests still see an old search bar.', 'neo-pulse-wp' ),
+				'message' => __( 'Search settings saved. Purge the NitroPack or WP Engine page cache if guests still see an old search bar.', 'neo-pulse-wp' ),
 			)
 		);
 		self::redirect_to_search( $tab );
@@ -78,8 +83,24 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Search {
 
 		$tab = isset( $_POST['neo-pulse_search_tab'] ) ? sanitize_key( wp_unslash( $_POST['neo-pulse_search_tab'] ) ) : 'general';
 
-		Neo_Pulse_Wp_Search::reset_search_settings();
-		Neo_Pulse_Wp_Search::purge_public_caches();
+		if ( $tab === 'popular' ) {
+			// Resetting this tab only clears the pinned and hidden searches.
+			Neo_Pulse_Wp_Search::save_search_settings( array( 'pinned_terms' => array(), 'hidden_terms' => array() ) );
+		} else {
+			// Reset Options on the Settings tab restores defaults but keeps the Popular searches
+			// lists (pinned / hidden terms); those have their own reset on that tab.
+			// Only one cache purge: the reset skips it when save_search_settings() (which purges) follows.
+			$current   = Neo_Pulse_Wp_Search::get_search_settings();
+			$keep      = array(
+				'pinned_terms' => isset( $current['pinned_terms'] ) && is_array( $current['pinned_terms'] ) ? $current['pinned_terms'] : array(),
+				'hidden_terms' => isset( $current['hidden_terms'] ) && is_array( $current['hidden_terms'] ) ? $current['hidden_terms'] : array(),
+			);
+			$will_save = $keep['pinned_terms'] !== array() || $keep['hidden_terms'] !== array();
+			Neo_Pulse_Wp_Search::reset_search_settings( ! $will_save );
+			if ( $will_save ) {
+				Neo_Pulse_Wp_Search::save_search_settings( $keep );
+			}
+		}
 
 		self::set_flash(
 			array(

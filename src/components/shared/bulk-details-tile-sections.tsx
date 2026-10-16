@@ -56,6 +56,7 @@ const ARTIFACT_ONLY_PIPELINE_TITLES = new Set<string>([
   ...CONTENT_OPTIMIZE_PIPELINE_PREFIX,
   "Post content",
   "Content Markdown",
+  "Implementation report",
   "WordPress upload",
   "OpenRouter Image",
 ]);
@@ -385,6 +386,15 @@ export function linkPipelineSectionToGeneratedFile(
       files.find(
         (file) =>
           file.name.toLowerCase().startsWith("content-") && file.name.toLowerCase().endsWith(".md"),
+      ) ?? null
+    );
+  }
+  if (title === "implementation report" || title.includes("implementation report")) {
+    return (
+      files.find(
+        (file) =>
+          file.name.toLowerCase().startsWith("implementation-report") &&
+          file.name.toLowerCase().endsWith(".md"),
       ) ?? null
     );
   }

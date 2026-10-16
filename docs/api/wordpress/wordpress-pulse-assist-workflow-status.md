@@ -5,7 +5,7 @@ section: WordPress
 method: POST
 path: /api/wordpress/pulse-assist-workflow-status
 auth: open
-order: 3110
+order: 3120
 ---
 
 POST `/api/wordpress/pulse-assist-workflow-status`.

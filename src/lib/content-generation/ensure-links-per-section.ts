@@ -232,12 +232,10 @@ function insertOneInternalLinkIntoBlock(
   sectionHtml: string,
   link: { title: string; link: string },
   tag: "p" | "td",
-  allowAppendFallback: boolean,
 ): string {
   if (!sectionHtml.trim() || !link.link?.trim()) return sectionHtml;
 
   const href = link.link.trim();
-  const anchorLabel = shortAnchorFromPostTitle(link.title);
   let inserted = false;
   const re = new RegExp(`<${tag}(\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, "gi");
 
@@ -252,49 +250,22 @@ function insertOneInternalLinkIntoBlock(
     return full;
   });
 
-  if (inserted || !allowAppendFallback) return inserted ? out : sectionHtml;
-
-  return sectionHtml.replace(re, (full, attrs, inner) => {
-    if (inserted) return full;
-    if (HTML_INTERNAL_LINK_RE.test(inner)) return full;
-    inserted = true;
-    const trimmed = inner.trimEnd();
-    const suffix = ` See <a href="${href}">${anchorLabel}</a>.`;
-    return `<${tag}${attrs || ""}>${trimmed}${suffix}</${tag}>`;
-  });
+  return inserted ? out : sectionHtml;
 }
 
 /**
- * Inserts one internal link into the first <p> or <td> without an http(s) link.
+ * Inserts one internal link into the first <p> or <td> without an http(s) link by weaving into existing text.
+ * Never appends "See ..." or "Related reading: ..." tails.
  */
 export function insertOneInternalLinkIntoHtml(
   sectionHtml: string,
   link: { title: string; link: string },
-  options?: { allowAppendFallback?: boolean },
 ): string {
-  const allowAppendFallback = options?.allowAppendFallback ?? false;
-  let html = insertOneInternalLinkIntoBlock(sectionHtml, link, "p", allowAppendFallback);
+  let html = insertOneInternalLinkIntoBlock(sectionHtml, link, "p");
   if (html === sectionHtml) {
-    html = insertOneInternalLinkIntoBlock(sectionHtml, link, "td", allowAppendFallback);
+    html = insertOneInternalLinkIntoBlock(sectionHtml, link, "td");
   }
   return html;
-}
-
-/** Adds one more same-site link sentence to the first paragraph (upload prep gap-fill). */
-function appendInternalLinkSentenceToSection(
-  sectionHtml: string,
-  link: { title: string; link: string },
-): string {
-  if (!sectionHtml.trim() || !link.link?.trim()) return sectionHtml;
-  const href = link.link.trim();
-  const anchorLabel = shortAnchorFromPostTitle(link.title);
-  let done = false;
-  return sectionHtml.replace(/<p(\s[^>]*)?>([\s\S]*?)<\/p>/i, (full, attrs, inner) => {
-    if (done) return full;
-    done = true;
-    const trimmed = inner.trimEnd();
-    return `<p${attrs || ""}>${trimmed} Related reading: <a href="${href}">${anchorLabel}</a>.</p>`;
-  });
 }
 
 /**
@@ -645,11 +616,7 @@ export function applyLinkTargetsPlanToHtmlDeterministic(
     );
 
     const tryInsert = (pick: { title: string; link: string }) => {
-      const before = section;
-      section = insertOneInternalLinkIntoHtml(section, pick, { allowAppendFallback: true });
-      if (section === before) {
-        section = appendInternalLinkSentenceToSection(section, pick);
-      }
+      section = insertOneInternalLinkIntoHtml(section, pick);
     };
 
     for (const pick of planned) {

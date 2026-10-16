@@ -42,7 +42,13 @@ class Neo_Pulse_Wp_Editor {
 		);
 	}
 
-	public static function render_meta_box( WP_Post $post ): void {
+	/**
+	 * @param WP_Post|mixed $post Post being edited.
+	 */
+	public static function render_meta_box( $post ): void {
+		if ( ! $post instanceof WP_Post ) {
+			return;
+		}
 		echo '<div id="neo-pulse-wp-ai-classic-root" class="neo-pulse-wp-ai-root" data-post-id="' . esc_attr( (string) $post->ID ) . '"></div>';
 	}
 
@@ -71,7 +77,6 @@ class Neo_Pulse_Wp_Editor {
 		}
 
 		self::enqueue_shared_assets( $post_id );
-		self::enqueue_fields_shim();
 		self::enqueue_script(
 			'neo-pulse-wp-ai-body-harness',
 			'neo-pulse-ai-body-harness.js',
@@ -134,7 +139,11 @@ class Neo_Pulse_Wp_Editor {
 		);
 	}
 
-	public static function enqueue_classic_assets( string $hook ): void {
+	/**
+	 * @param string|mixed $hook Current admin page hook.
+	 */
+	public static function enqueue_classic_assets( $hook ): void {
+		$hook = is_string( $hook ) ? $hook : '';
 		if ( ! in_array( $hook, array( 'post.php', 'post-new.php' ), true ) ) {
 			return;
 		}
@@ -160,7 +169,6 @@ class Neo_Pulse_Wp_Editor {
 
 		self::enqueue_shared_assets( $post_id );
 		self::enqueue_script( 'neo-pulse-wp-ai-classic', 'neo-pulse-ai-classic.js', array( 'neo-pulse-wp-ai-controller' ) );
-		self::enqueue_fields_shim();
 	}
 
 	private static function enqueue_shared_assets( int $post_id ): void {
@@ -300,28 +308,6 @@ class Neo_Pulse_Wp_Editor {
 				),
 			)
 		);
-	}
-
-	private static function enqueue_fields_shim(): void {
-		$rel = 'assets/fields/acf-shim.js';
-		$abs = NEO_PULSE_WP_PLUGIN_DIR . $rel;
-		if ( ! is_readable( $abs ) ) {
-			return;
-		}
-		wp_enqueue_script(
-			'neo-pulse-fields-acf-shim-js',
-			plugins_url( $rel, NEO_PULSE_WP_PLUGIN_FILE ),
-			array(),
-			NEO_PULSE_WP_VERSION . '.' . (string) filemtime( $abs ),
-			true
-		);
-		wp_enqueue_style(
-			'neo-pulse-fields-inputs-css',
-			plugins_url( 'assets/fields/admin-fields.css', NEO_PULSE_WP_PLUGIN_FILE ),
-			array(),
-			NEO_PULSE_WP_VERSION
-		);
-		Neo_Pulse_Wp_Fields::enqueue_field_assets();
 	}
 
 	private static function enqueue_styles(): void {

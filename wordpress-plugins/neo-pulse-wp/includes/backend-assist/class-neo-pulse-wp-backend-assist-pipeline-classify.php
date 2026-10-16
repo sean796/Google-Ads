@@ -63,7 +63,7 @@ POST FIELD TARGET (mandatory — pick the correct tool):
 - Clear / empty / remove an ACF meta field (seo research, focus keyword, meta description, faq, etc.) → save_post_meta. Omit value params; planning clears the named field.
 - Run / build / refresh SEO research brief (DataForSEO + GSC + Semrush merge into ACF seo_research) → run_seo_research_brief with post_id. NOT save_post_meta with LLM text. Requires focus keyword on the post.
 - FAQ schema / JSON-LD / structured FAQ data → save_post_meta with faq field only. NOT add_content. Schema is backend ACF only; never visible in post body.
-- "for acf", "to acf", "acf fields", "keyword for acf", or similar on a post editor means save SEO meta INTO the ACF/NEO Pulse fields on the CURRENT POST. NOT content about the Advanced Custom Fields plugin. Omit focusKeyword and metaDescription from classifier params; planning writes copy from post context.
+- "for acf", "to acf", "acf fields", "keyword for acf", or similar on a post editor means save SEO meta INTO the ACF fields on the CURRENT POST. NOT content about the Advanced Custom Fields plugin. Omit focusKeyword and metaDescription from classifier params; planning writes copy from post context.
 - FAQ table / visible FAQ section in post body → add_content with mode append. HTML table only; no script tags or raw JSON-LD in body.
 - FAQ table AND schema in the same message → intent "action" with tool save_post_meta (compound runner handles both steps in Build mode).
 - Body copy, H2s, paragraphs, tables, sections (new content blocks) → add_content with mode append or replace + content_brief. NEVER the user's raw message as content.
@@ -104,19 +104,12 @@ CRITICAL:
 - For add_content: ALWAYS set intent to "action" if a target post is identifiable from history metadata [post_id=X] — even if user just says "add to it".
 - For add_content: only set "needs_info" if BOTH conditions are true: (1) no target post exists in history AND user doesn't name one, AND (2) user gives zero indication of what to write.
 - CREATE PAGE/POST: Any request to create a page or post is intent "action" with create_page or create_post. ALWAYS create a NEW WordPress page/post. Never reuse, link to, or write onto the page the user is viewing. CURRENT POST CONTEXT is not the target. The plan expands to create + save_post_meta (focus keyword, SEO title, meta description) + content. Do not wait for the user to name meta or headings.
-- COMPOUND CREATE+SEO BLOCK: If the user asks to create a page AND apply/compose an SEO block, Elementor section, registry link, dynamic tag, or "create blocks", set intent "action" with create_page — the plan endpoint persists a new Agent Hub block then applies it.
-- ADD BLOCKS ON CURRENT PAGE: "create the blocks", "add blocks", "add this text" on the current page with Elementor/SEO block language → intent "action" with tool compose_seo_block (workflow will compose → save → apply). Put pasted page text in params.user_copy. Do not list Elementor library post IDs.
+- COMPOUND CREATE PAGE: If the user asks to create a page with sections, blocks, or pasted copy, set intent "action" with create_page. The workflow composes native Elementor sections and designs the page.
+- SECTIONS ON AN EXISTING ELEMENTOR PAGE: Adding Elementor sections or blocks to a page that already exists is not available (Block Builder was removed). Set intent "question" and tool "" so the answer can explain that new pages can be built here and existing Elementor pages are edited in Elementor. Blog posts still use add_content.
 - GSC KEYWORDS: For "what keywords", "search console", "GSC data", or keyword research requests, use tool get_gsc_context with post_id when known.
-- POST META / SEO FIELDS: For "add/set/update focus keyword", "add meta description", "fix SEO on post", or grading follow-up chips, use save_post_meta with post_id OR title. NOT modify_seo_block_slots.
+- POST META / SEO FIELDS: For "add/set/update focus keyword", "add meta description", "fix SEO on post", or grading follow-up chips, use save_post_meta with post_id OR title.
 - save_post_meta: at least one of post_id or title required. Optional: focusKeyword, metaDescription, seoTitle, faq, seoResearch. If keyword not given but user asks to add one, set intent "action" and omit focusKeyword (planning will infer).
 - NEVER set focusKeyword, metaDescription, seoTitle, or seoResearch to placeholder text, field labels, or filler like "placeholder", "TBD", or "lorem ipsum". Omit those params so planning writes in-context copy from the post.
-- SEO BLOCKS: list_seo_blocks, get_seo_block (block_id or exact title), duplicate_seo_block (new row from a template; optional user_copy), create_seo_block (empty draft only), delete_seo_block (requires block_id), save_seo_block (requires block manifest or block_id), modify_seo_block_slots for slot-level edits on Agent Hub SEO blocks ONLY, compose_seo_block for full block generation.
-- NEVER treat Elementor library / template post IDs as Agent Hub block_id. Resolve templates with list_seo_blocks or get_seo_block by title.
-- apply_seo_block_to_page is illegal until a new Agent Hub block_id exists from compose+save or duplicate_seo_block. Empty create_seo_block is not enough.
-- modify_seo_block_slots: ONLY when user explicitly refers to SEO block slots, Agent Hub block, or Elementor section slots. NOT for post meta or focus keyword on a blog post.
-- apply_seo_block_to_page REQUIRES: post_id and block_id (Agent Hub id from save/duplicate, or resolvable from workflow/history). OPTIONAL: sync_library (default true), include_dynamic_heading (default true), mode (append|replace).
-- For "apply block X to page Y" when both Agent Hub IDs are known, use apply_seo_block_to_page directly with intent "action".
-- Pasted page copy for SEO blocks goes in params.user_copy (verbatim). Do not put the raw message in add_content content.
 - CHAT INSIGHTS: For visitor questions, chat logs, knowledge gaps, unanswered topics, or "what are users asking", use get_chat_insights.
 - SEARCH INSIGHTS: For site search queries, popular searches, or zero-result searches, use get_search_insights.
 - OVERSEER: For engagement, pageviews, bounce rate, conversions, or behavioral analytics, use get_overseer_summary.
@@ -128,25 +121,6 @@ CRITICAL:
 - MODE SWITCH: "Switch to Build mode", "Switch to Plan mode", or "Switch to Ask mode" are UI commands, NOT tools. Set intent "question" and tool "".
 - CHAT-ONLY QUESTIONS: Use get_chat_insights only when the user asks what visitors are asking with no content ideation request.
 PROMPT;
-
-		if (
-			is_array( Neo_Pulse_Wp_Backend_Assist_Context::$builder_context )
-			&& ! empty( Neo_Pulse_Wp_Backend_Assist_Context::$builder_context['block'] )
-			&& is_array( Neo_Pulse_Wp_Backend_Assist_Context::$builder_context['block'] )
-		) {
-			$block_json = wp_json_encode( Neo_Pulse_Wp_Backend_Assist_Context::$builder_context['block'], JSON_UNESCAPED_SLASHES );
-			$page_note  = Neo_Pulse_Wp_Backend_Assist_Pipeline_Content_Prep::builder_context_page_prompt( Neo_Pulse_Wp_Backend_Assist_Context::$builder_context['block'] );
-			$system    .= <<<CTX
-
-BUILDER CONTEXT (Agent Hub SEO block editor):
-The user is editing an SEO block in the builder. Current block JSON:
-{$block_json}
-{$page_note}
-For generate, optimize, layout, analyze, or rewrite requests about this block, prefer tool "compose_seo_block".
-For surgical edits (add/remove/update a single slot such as H2, paragraph, CTA, list, image), prefer tool "modify_seo_block_slots" with action add, remove, or update.
-Set intent to "action" and include params: prompt (user request), mode ("generate_full", "optimize", or "analyze") for compose_seo_block; or action + slot/target for modify_seo_block_slots.
-CTX;
-		}
 
 		if (
 			is_array( Neo_Pulse_Wp_Backend_Assist_Context::$builder_context )
@@ -181,7 +155,7 @@ status: {$fp_status}
 
 Draft, scheduled, and future posts are valid targets when the user can edit them.
 If the user asks to create a page or create a post, ignore this current post. Always output create_page or create_post. Do not apply or write to post_id {$fp_id}.
-Default target for update_post, restore_post_revision, add_content, save_post_meta, get_post, get_gsc_context, apply_seo_block_to_page, focus keyword, meta description, and similar updates is post_id {$fp_id} only when the user is editing this page, not creating a new one.
+Default target for update_post, restore_post_revision, add_content, save_post_meta, get_post, get_gsc_context, focus keyword, meta description, and similar updates is post_id {$fp_id} only when the user is editing this page, not creating a new one.
 When the user says "this post", "this page", "on this post", "the page im on", "add content to it", or similar, set post_id to {$fp_id} in params.
 For FAQ table append requests on the current page, use add_content with post_id {$fp_id} and mode append; do not ask which page.
 CTX;
@@ -281,32 +255,19 @@ Output ONLY valid JSON:
 WORKFLOW TRUE when ANY of these apply:
 - User asks to CREATE a page or post. Always. A new page/post always includes SEO meta and content. Never return a title-only create step.
 - User asks to add FAQ schema AND FAQ table to an existing post in the same message (save_post_meta then add_content append).
-- User asks to create blocks / add Elementor SEO blocks / add pasted text to a page via Agent Hub blocks (current page or new page).
-- User asks for a multi-part deliverable in one message (e.g. create + write content + keyword, or create page + SEO block + sections).
+- User asks for a multi-part deliverable in one message (e.g. create + write content + keyword, or create page + sections).
 
 WORKFLOW FALSE when:
 - User asks a question only.
-- User wants list_posts, get_post, get_gsc_context, list_seo_blocks, or add_content to an existing post from history only.
-- Single SEO block slot edit (modify_seo_block_slots) or save/create/delete block without page creation.
-- Single apply_seo_block_to_page when post_id and an existing Agent Hub block_id are known (no create/compose/duplicate in same message).
+- User wants list_posts, get_post, get_gsc_context, or add_content to an existing post from history only.
 - Single in-place body edit on one section of an existing post (add/insert/create table in a section, convert section to table, bold/format one section, delete after FAQ table, internal links). One add_content step only — workflow false.
 
 STEP RULES:
 1. First step: create_post or create_page with title, focus_keyword, status, post_type if applicable.
 2. Next step (always for a new page/post): save_post_meta with focusKeyword from the topic. Omit seoTitle and metaDescription so planning writes them.
 3. New post body: add_content with mode "replace", "expand_sections": true, and content_brief. Do NOT put post_id in that step — filled after create.
-4. New page content: Elementor SEO block path (composer pill **SEO blocks**, default). Apply is illegal until a new Agent Hub block_id exists. Never output Elementor library post IDs.
-   Elementor widgets path (composer pill **Elementor** on create_page only): skip compose/save SEO blocks; use compose_elementor_page_sections then design_page_with_novamira with native Elementor widgets. Page content mode comes from the composer pill, not the user message.
-   Template named (use the same Agent Hub block as a layout):
-   a. create_page whenever the user asked for a new page. Never omit it because they are viewing another page.
-   b. duplicate_seo_block with block_id or exact title, and user_copy = verbatim pasted text when the user supplied copy
-   c. design_page_with_novamira (post_id and block_ids filled after create/save). Do not apply spatial SEO widgets as the page look.
-   No template / "create blocks" on a NEW page:
-   a. create_page whenever the user asked for a new page. Never omit it.
-   b. compose_seo_block mode "generate_full" with prompt (title/keyword/structure). Add user_copy only when the user pasted page copy.
-   c. save_seo_block (no block_manifest in params — filled from compose)
-   d. design_page_with_novamira. Novamira agent (design skill, Elementor abilities, check-design) on saved SEO blocks; queued on wp-cron when long-running.
-   Empty create_seo_block is not a persist step.
+4. New page content: native Elementor widgets. Use compose_elementor_page_sections (prompt = title, focus keyword and requested sections; user_copy = verbatim pasted copy when the user supplied it), then design_page_with_novamira. Post_id is filled after create. Never output Elementor library post IDs.
+   create_page is always present when the user asked for a new page. Never omit it because they are viewing another page.
 5. "service area post" → post_type "service-area" on create step when that type exists.
 6. Each step needs a clear "label" for a UI checklist.
 7. Infer title and focus_keyword from the user message when implied.
@@ -316,8 +277,7 @@ User: "can you create a page for aiseo edmonton"
 → steps: [
   { "tool": "create_page", "label": "Create page AI SEO Edmonton", "params": { "title": "AI SEO Edmonton", "focus_keyword": "aiseo edmonton" } },
   { "tool": "save_post_meta", "label": "Save SEO meta", "params": { "focusKeyword": "aiseo edmonton" } },
-  { "tool": "compose_seo_block", "label": "Compose SEO block", "params": { "mode": "generate_full", "prompt": "AI SEO Edmonton. Focus keyword aiseo edmonton." } },
-  { "tool": "save_seo_block", "label": "Save SEO block to Agent Hub", "params": {} },
+  { "tool": "compose_elementor_page_sections", "label": "Compose Elementor sections", "params": { "prompt": "AI SEO Edmonton. Focus keyword aiseo edmonton." } },
   { "tool": "design_page_with_novamira", "label": "Design page with Novamira", "params": {} }
 ]
 
@@ -336,21 +296,13 @@ User: "add a faq table and schema and append the table to the end of the post co
   { "tool": "add_content", "label": "Append FAQ HTML table", "params": { "mode": "append", "content_brief": "Append an HTML FAQ table with question and answer columns only. No JSON-LD or script tags." } }
 ]
 
-EXAMPLE (SEO block + Elementor page workflow):
-User: "Create a page about window treatments in Edmonton, apply an SEO block with dynamic registry link, add sections for types, benefits, and FAQ"
+EXAMPLE (Elementor page with named sections):
+User: "Create a page about window treatments in Edmonton, add sections for types, benefits, and FAQ"
 → steps: [
   { "tool": "create_page", "label": "Create page Window Treatments Edmonton", "params": { "title": "Window Treatments Edmonton", "focus_keyword": "window treatments edmonton" } },
   { "tool": "save_post_meta", "label": "Save SEO meta", "params": { "focusKeyword": "window treatments edmonton" } },
-  { "tool": "compose_seo_block", "label": "Compose SEO block sections", "params": { "mode": "generate_full", "prompt": "Window treatments in Edmonton: H2 sections for types of window treatments, benefits, and FAQ. Focus keyword window treatments edmonton.", "user_copy": "Types of window treatments...\nBenefits...\nFAQ..." } },
-  { "tool": "save_seo_block", "label": "Save SEO block to Agent Hub", "params": {} },
+  { "tool": "compose_elementor_page_sections", "label": "Compose Elementor sections", "params": { "prompt": "Window treatments in Edmonton: H2 sections for types of window treatments, benefits, and FAQ. Focus keyword window treatments edmonton." } },
   { "tool": "design_page_with_novamira", "label": "Design page with Novamira", "params": {} }
-]
-
-EXAMPLE (duplicate existing Agent Hub template + user copy on current page):
-User: "Use the SEO Extra block and add this text: Local SEO for clinics in Edmonton."
-→ steps: [
-  { "tool": "duplicate_seo_block", "label": "Duplicate SEO Extra and fill copy", "params": { "title": "SEO Extra", "user_copy": "Local SEO for clinics in Edmonton." } },
-  { "tool": "apply_seo_block_to_page", "label": "Apply new block to current page", "params": { "sync_library": true, "include_dynamic_heading": true } }
 ]
 
 Output ONLY the JSON object.
@@ -366,6 +318,51 @@ PROMPT;
 			return array( 'workflow' => false, 'steps' => array() );
 		}
 
-		return $parsed;
+		return self::replace_removed_block_steps( $parsed );
+	}
+
+	/**
+	 * Block Builder (SEO blocks) was removed in 0.9.232. If the planner still returns its old steps,
+	 * turn a compose into native Elementor section copy and drop the save/apply/duplicate steps.
+	 *
+	 * @param array<string, mixed> $decomposed Planner output.
+	 * @return array<string, mixed>
+	 */
+	public static function replace_removed_block_steps( array $decomposed ): array {
+		if ( empty( $decomposed['steps'] ) || ! is_array( $decomposed['steps'] ) ) {
+			return $decomposed;
+		}
+		$compose_like = array( 'compose_seo_block', 'duplicate_seo_block' );
+		$removed      = array( 'save_seo_block', 'apply_seo_block_to_page', 'create_seo_block', 'list_seo_blocks', 'get_seo_block', 'delete_seo_block', 'modify_seo_block_slots' );
+		$out          = array();
+		foreach ( $decomposed['steps'] as $step ) {
+			if ( ! is_array( $step ) ) {
+				continue;
+			}
+			$tool = sanitize_key( (string) ( $step['tool'] ?? '' ) );
+			if ( in_array( $tool, $removed, true ) ) {
+				continue;
+			}
+			if ( in_array( $tool, $compose_like, true ) ) {
+				$old    = isset( $step['params'] ) && is_array( $step['params'] ) ? $step['params'] : array();
+				$params = array();
+				foreach ( array( 'prompt', 'user_copy', 'section_h2' ) as $key ) {
+					if ( isset( $old[ $key ] ) && '' !== (string) $old[ $key ] ) {
+						$params[ $key ] = $old[ $key ];
+					}
+				}
+				if ( empty( $params['prompt'] ) && ! empty( $old['title'] ) ) {
+					$params['prompt'] = (string) $old['title'];
+				}
+				$step = array(
+					'tool'   => 'compose_elementor_page_sections',
+					'label'  => __( 'Compose Elementor sections', 'neo-pulse-wp' ),
+					'params' => $params,
+				);
+			}
+			$out[] = $step;
+		}
+		$decomposed['steps'] = $out;
+		return $decomposed;
 	}
 }

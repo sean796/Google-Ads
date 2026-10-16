@@ -50,8 +50,13 @@ class Neo_Pulse_Wp_Overseer_Settings {
 				'track_outbound_only' => ! empty( $settings['track_outbound_only'] ),
 				'include_gsc'         => ! empty( $settings['include_gsc'] ),
 			),
-			false
+			true // Small and read on every front-end request (beacon, Script Manager filter).
 		);
+
+		// Create or repair the built-in tag here rather than on every request.
+		if ( class_exists( 'Neo_Pulse_Wp_Overseer_Beacon', false ) ) {
+			Neo_Pulse_Wp_Overseer_Beacon::ensure_builtin_script();
+		}
 	}
 	public static function is_tracking_active(): bool {
 		$settings = self::get_settings();

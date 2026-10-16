@@ -5,7 +5,7 @@ section: DataForSEO MCP
 method: POST
 path: /api/mcp/DataForSEO_on_page_content_parsing
 auth: open
-order: 820
+order: 830
 ---
 
 POST `/api/mcp/DataForSEO_on_page_content_parsing`.

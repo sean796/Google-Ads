@@ -5,7 +5,7 @@ section: Manager Cloud Settings
 method: GET
 path: /api/manager-cloud-settings/load
 auth: open
-order: 650
+order: 660
 ---
 
 GET `/api/manager-cloud-settings/load`.

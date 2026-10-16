@@ -1,0 +1,25 @@
+/* NEO Pulse WP admin: Poppins (SIL OFL 1.1, see fonts/OFL.txt), bundled so admin screens make no request to Google. */
+
+@font-face {
+	font-family: "NPWP Poppins";
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url("fonts/poppins-400.woff2") format("woff2");
+}
+
+@font-face {
+	font-family: "NPWP Poppins";
+	font-style: normal;
+	font-weight: 500;
+	font-display: swap;
+	src: url("fonts/poppins-500.woff2") format("woff2");
+}
+
+@font-face {
+	font-family: "NPWP Poppins";
+	font-style: normal;
+	font-weight: 600;
+	font-display: swap;
+	src: url("fonts/poppins-600.woff2") format("woff2");
+}

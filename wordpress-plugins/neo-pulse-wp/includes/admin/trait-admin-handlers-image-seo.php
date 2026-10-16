@@ -111,14 +111,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Image_Seo {
 	}
 
 	private static function redirect_to_image_seo( string $tab = 'library' ): void {
-		$url = add_query_arg(
-			array(
-				'page' => 'neo-pulse-wp-image-seo',
-				'tab'  => $tab,
-			),
-			admin_url( 'admin.php' )
-		);
-		wp_safe_redirect( $url );
-		exit;
+		self::redirect_to_page( 'neo-pulse-wp-image-seo', array( 'tab' => $tab ) );
 	}
 }

@@ -1,3 +1,5 @@
+import { z } from "zod";
+import { createPulseAgent } from "@/lib/agent-pipeline";
 import type { CSVRow } from "@/lib/bulk/bulk-csv-parser";
 import {
   buildBlogImportRowFromDraft,
@@ -13,9 +15,7 @@ import {
   type ImportedBlogDraft,
 } from "@/lib/bulk/blog-import-parser";
 import { resolveBlogImportRowViaOpenRouter } from "@/lib/bulk/blog-import-openrouter-run";
-import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
 import { parseJsonWithRepair } from "@/lib/json-repair-utility";
-import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
 import {
   fetchAgentMailInbound,
@@ -110,6 +110,87 @@ function stripHtml(html: string): string {
     .trim();
 }
 
+const AgentMailClassifierInputSchema = z.object({
+  subject: z.string(),
+  from: z.string(),
+  bodyText: z.string(),
+  attachmentLines: z.array(z.string()),
+});
+
+const AgentMailClassifierOutputSchema = z.object({
+  isBlogRequest: z.boolean(),
+  reason: z.string(),
+  intent: z.string(),
+  sources: z.array(
+    z.discriminatedUnion("kind", [
+      z.object({
+        kind: z.literal("attachment"),
+        filename: z.string().min(1),
+        treatment: z.enum(["import_draft", "context_only"]),
+      }),
+      z.object({
+        kind: z.literal("body"),
+        treatment: z.enum(["import_draft", "context_only"]),
+      }),
+    ]),
+  ),
+});
+
+export const agentmailIntakeClassifierAgent = createPulseAgent({
+  id: "workflow.agentmail.intake-classifier",
+  label: "AgentMail Inbound Blog Request Classifier",
+  category: "research",
+  domain: "blog-generator",
+  reason: "Classifies inbound AgentMail messages and attachments into blog creation requests, draft sources, and context briefs.",
+  temperature: 0.2,
+  maxTokens: 2000,
+  responseFormat: { type: "json_object" },
+  inputSchema: AgentMailClassifierInputSchema,
+  outputSchema: AgentMailClassifierOutputSchema,
+  buildSystemPrompt: () => CLASSIFY_SYSTEM,
+  buildUserPrompt: (input) =>
+    [
+      `Subject: ${input.subject}`,
+      `From: ${input.from}`,
+      "",
+      "Body:",
+      input.bodyText || "(empty)",
+      "",
+      "Attachments:",
+      input.attachmentLines.length ? input.attachmentLines.join("\n") : "(none)",
+    ].join("\n"),
+  parseOutput: (rawContent) => {
+    const { parsed } = parseJsonWithRepair<{
+      isBlogRequest?: boolean;
+      reason?: string;
+      intent?: string;
+      sources?: Array<{
+        kind?: string;
+        filename?: string;
+        treatment?: string;
+      }>;
+    }>(rawContent);
+
+    const sources: AgentMailIntakeSource[] = [];
+    for (const source of parsed?.sources ?? []) {
+      const kind = source.kind === "body" ? "body" : "attachment";
+      const treatment = source.treatment === "context_only" ? "context_only" : "import_draft";
+      if (kind === "body") {
+        sources.push({ kind: "body", treatment });
+      } else if (source.filename?.trim()) {
+        sources.push({ kind: "attachment", filename: source.filename.trim(), treatment });
+      }
+    }
+
+    return {
+      isBlogRequest: parsed?.isBlogRequest === true,
+      reason: String(parsed?.reason ?? "").trim(),
+      intent: String(parsed?.intent ?? "").trim(),
+      sources,
+    };
+  },
+});
+
 async function classifyAgentMailEmail(
   inbound: AgentMailInboundRecord,
   openRouterApiKey: string,
@@ -117,55 +198,19 @@ async function classifyAgentMailEmail(
   const attachmentLines = (inbound.attachments ?? []).map(
     (item) => `- ${item.filename} (${item.contentType}, ${item.size} bytes)`,
   );
-  const user = [
-    `Subject: ${inbound.subject}`,
-    `From: ${inbound.from}`,
-    "",
-    "Body:",
-    inbound.text?.trim() || stripHtml(inbound.html) || inbound.preview || "(empty)",
-    "",
-    "Attachments:",
-    attachmentLines.length ? attachmentLines.join("\n") : "(none)",
-  ].join("\n");
+  const bodyText = inbound.text?.trim() || stripHtml(inbound.html) || inbound.preview || "(empty)";
 
-  const { content } = await callOpenRouterChatCompletion({
-    apiKey: openRouterApiKey,
-    model: getResearchModel(),
-    system: CLASSIFY_SYSTEM,
-    user,
-    maxTokens: 2000,
-    temperature: 0.2,
-    responseFormat: { type: "json_object" },
-  });
-
-  const { parsed } = parseJsonWithRepair<{
-    isBlogRequest?: boolean;
-    reason?: string;
-    intent?: string;
-    sources?: Array<{
-      kind?: string;
-      filename?: string;
-      treatment?: string;
-    }>;
-  }>(content);
-
-  const sources: AgentMailIntakeSource[] = [];
-  for (const source of parsed?.sources ?? []) {
-    const kind = source.kind === "body" ? "body" : "attachment";
-    const treatment = source.treatment === "context_only" ? "context_only" : "import_draft";
-    if (kind === "body") {
-      sources.push({ kind: "body", treatment });
-    } else if (source.filename?.trim()) {
-      sources.push({ kind: "attachment", filename: source.filename.trim(), treatment });
-    }
-  }
-
-  return {
-    isBlogRequest: parsed?.isBlogRequest === true,
-    reason: String(parsed?.reason ?? "").trim(),
-    intent: String(parsed?.intent ?? "").trim(),
-    sources,
-  };
+  return agentmailIntakeClassifierAgent.run(
+    {
+      subject: inbound.subject,
+      from: inbound.from,
+      bodyText,
+      attachmentLines,
+    },
+    {
+      apiKey: openRouterApiKey,
+    },
+  );
 }
 
 async function rowFromAttachment(

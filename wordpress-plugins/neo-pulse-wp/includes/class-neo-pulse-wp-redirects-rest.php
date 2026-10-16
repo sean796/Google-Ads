@@ -69,6 +69,7 @@ class Neo_Pulse_Wp_Redirects_Rest {
 			'destination' => (string) $row->destination,
 			'type'        => (int) $row->type,
 			'matching'    => (string) $row->matching,
+			'ignore_case' => ! empty( $row->ignore_case ),
 			'category'    => (string) $row->category,
 			'status'      => (string) $row->status,
 			'hits'        => (int) $row->hits,
@@ -146,9 +147,42 @@ class Neo_Pulse_Wp_Redirects_Rest {
 	 * @return WP_REST_Response
 	 */
 	public static function update_redirect( WP_REST_Request $request ): WP_REST_Response {
-		$body   = $request->get_json_params();
-		$params = is_array( $body ) ? $body : array();
-		$params['id'] = (int) $request['id'];
+		$id       = (int) $request['id'];
+		$existing = Neo_Pulse_Wp_Redirects::get( $id );
+		if ( ! $existing ) {
+			return new WP_REST_Response(
+				array( 'ok' => false, 'error' => __( 'Redirect not found.', 'neo-pulse-wp' ) ),
+				404
+			);
+		}
+		$body = $request->get_json_params();
+		if ( ! is_array( $body ) || empty( $body ) ) {
+			$body = $request->get_body_params();
+		}
+		$body = is_array( $body ) ? $body : array();
+
+		// Partial update: start from the stored row so omitted fields (status,
+		// matching, type, category, ignore-case) keep their current values.
+		$params = array(
+			'source'      => (string) $existing->source,
+			'destination' => (string) $existing->destination,
+			'type'        => (int) $existing->type,
+			'matching'    => (string) $existing->matching,
+			'category'    => (string) $existing->category,
+			'status'      => (string) $existing->status,
+			'ignore'      => ! empty( $existing->ignore_case ) ? 1 : 0,
+		);
+		foreach ( array( 'source', 'destination', 'type', 'matching', 'category', 'status' ) as $key ) {
+			if ( array_key_exists( $key, $body ) ) {
+				$params[ $key ] = $body[ $key ];
+			}
+		}
+		if ( array_key_exists( 'ignore_case', $body ) ) {
+			$params['ignore'] = ! empty( $body['ignore_case'] ) ? 1 : 0;
+		} elseif ( array_key_exists( 'ignore', $body ) ) {
+			$params['ignore'] = ! empty( $body['ignore'] ) ? 1 : 0;
+		}
+		$params['id'] = $id;
 		$result       = Neo_Pulse_Wp_Redirects::save( $params );
 		if ( empty( $result['ok'] ) ) {
 			return new WP_REST_Response(
@@ -168,12 +202,17 @@ class Neo_Pulse_Wp_Redirects_Rest {
 	 * @return WP_REST_Response
 	 */
 	public static function delete_redirect( WP_REST_Request $request ): WP_REST_Response {
-		$id     = (int) $request['id'];
-		$force  = (bool) $request->get_param( 'force' );
-		$deleted = $force ? Neo_Pulse_Wp_Redirects::delete( $id ) : Neo_Pulse_Wp_Redirects::save( array( 'id' => $id, 'status' => 'trash' ) );
-		if ( $force ) {
-			return new WP_REST_Response( array( 'ok' => (bool) $deleted ), $deleted ? 200 : 404 );
+		$id    = (int) $request['id'];
+		$force = rest_sanitize_boolean( $request->get_param( 'force' ) );
+		if ( ! Neo_Pulse_Wp_Redirects::get( $id ) ) {
+			return new WP_REST_Response( array( 'ok' => false, 'error' => __( 'Redirect not found.', 'neo-pulse-wp' ) ), 404 );
 		}
-		return new WP_REST_Response( array( 'ok' => ! empty( $deleted['ok'] ) ), ! empty( $deleted['ok'] ) ? 200 : 400 );
+		if ( $force ) {
+			$deleted = Neo_Pulse_Wp_Redirects::delete( $id );
+			return new WP_REST_Response( array( 'ok' => $deleted, 'deleted' => $deleted ), $deleted ? 200 : 500 );
+		}
+		// Without force: move to trash, keeping every other field.
+		$changed = Neo_Pulse_Wp_Redirects::bulk_action( array( $id ), 'trash' ) > 0;
+		return new WP_REST_Response( array( 'ok' => $changed, 'trashed' => $changed ), $changed ? 200 : 500 );
 	}
 }

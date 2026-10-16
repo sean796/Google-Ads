@@ -24,6 +24,7 @@ class Neo_Pulse_Wp_Site_Inventory {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public static function warm( bool $include_drafts = false ): array {
+		$include_drafts       = $include_drafts && self::current_user_can_see_drafts();
 		self::$include_drafts = $include_drafts;
 		self::$items          = self::build_items( $include_drafts );
 		self::store_meta( self::$items );
@@ -267,8 +268,9 @@ class Neo_Pulse_Wp_Site_Inventory {
 			return null;
 		}
 
-		self::warm( true );
-		$filters = array( 'include_drafts' => true );
+		$drafts = self::current_user_can_see_drafts();
+		self::warm( $drafts );
+		$filters = array( 'include_drafts' => $drafts );
 		if ( $post_type !== 'any' ) {
 			$filters['post_type'] = sanitize_key( $post_type );
 		}
@@ -298,7 +300,7 @@ class Neo_Pulse_Wp_Site_Inventory {
 	 * @return array<int, array{type:string,title:string,url:string,focus_keyword:string}>
 	 */
 	public static function build_coverage_snapshot( int $limit = 0, string $post_type = '' ): array {
-		$filters = array( 'include_drafts' => true );
+		$filters = array( 'include_drafts' => self::current_user_can_see_drafts() );
 		if ( $post_type !== '' ) {
 			$filters['post_type'] = sanitize_key( $post_type );
 		}
@@ -353,23 +355,24 @@ class Neo_Pulse_Wp_Site_Inventory {
 				? implode( '; ', $item['tags'] )
 				: '';
 
-			$row = array(
-				self::csv_cell( (string) ( $item['id'] ?? '' ) ),
-				self::csv_cell( (string) ( $item['url'] ?? '' ) ),
-				self::csv_cell( (string) ( $item['slug'] ?? '' ) ),
-				self::csv_cell( (string) ( $item['type'] ?? '' ) ),
-				self::csv_cell( (string) ( $item['title'] ?? '' ) ),
-				self::csv_cell( (string) ( $item['date_gmt'] ?? '' ) ),
-				self::csv_cell( (string) ( $item['focus_keyword'] ?? '' ) ),
-				self::csv_cell( (string) ( $item['excerpt'] ?? '' ) ),
-				self::csv_cell( $faq ),
-				self::csv_cell( $research ),
-				self::csv_cell( $kw_focus ),
-				self::csv_cell( (string) ( $item['status'] ?? 'publish' ) ),
-				self::csv_cell( $cats ),
-				self::csv_cell( $tags ),
+			$lines[] = Neo_Pulse_Wp_Csv::row(
+				array(
+					(string) ( $item['id'] ?? '' ),
+					(string) ( $item['url'] ?? '' ),
+					(string) ( $item['slug'] ?? '' ),
+					(string) ( $item['type'] ?? '' ),
+					(string) ( $item['title'] ?? '' ),
+					(string) ( $item['date_gmt'] ?? '' ),
+					(string) ( $item['focus_keyword'] ?? '' ),
+					(string) ( $item['excerpt'] ?? '' ),
+					$faq,
+					$research,
+					$kw_focus,
+					(string) ( $item['status'] ?? 'publish' ),
+					$cats,
+					$tags,
+				)
 			);
-			$lines[] = implode( ',', $row );
 		}
 
 		return "\xEF\xBB\xBF" . implode( "\r\n", $lines );
@@ -414,12 +417,23 @@ class Neo_Pulse_Wp_Site_Inventory {
 				if ( isset( $seen[ $id ] ) ) {
 					continue;
 				}
+				// Non-published rows only for users who may edit that post.
+				if ( ! current_user_can( 'edit_post', $id ) ) {
+					continue;
+				}
 				$seen[ $id ] = true;
 				$items[]     = self::normalize_row( $row, (string) ( $row['status'] ?? 'draft' ) );
 			}
 		}
 
 		return $items;
+	}
+
+	/**
+	 * Drafts/private rows are only ever built for logged-in users who can edit posts.
+	 */
+	private static function current_user_can_see_drafts(): bool {
+		return is_user_logged_in() && current_user_can( 'edit_posts' );
 	}
 
 	/**
@@ -472,12 +486,5 @@ class Neo_Pulse_Wp_Site_Inventory {
 		set_transient( self::CACHE_META_KEY, $meta, Neo_Pulse_Wp_Chat_Rag::CACHE_TTL );
 
 		return $meta;
-	}
-
-	private static function csv_cell( string $value ): string {
-		if ( strpbrk( $value, ",\n\r\"" ) !== false ) {
-			return '"' . str_replace( '"', '""', $value ) . '"';
-		}
-		return $value;
 	}
 }

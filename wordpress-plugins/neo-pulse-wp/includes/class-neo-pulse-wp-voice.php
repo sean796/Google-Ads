@@ -11,14 +11,17 @@ class Neo_Pulse_Wp_Voice {
 
 	const REST_NAMESPACE = 'neo-pulse/v1';
 
+	/** Transcriptions per IP per window for visitors (editors are exempt). */
+	const RATE_LIMIT_MAX = 10;
+
+	const RATE_LIMIT_WINDOW = 300;
+
 	/**
 	 * Hook registrations.
 	 */
 	public static function init(): void {
 		add_action( 'rest_api_init', array( __CLASS__, 'register_routes' ) );
-		if ( ! Neo_Pulse_Wp_Speed::is_active() ) {
-			add_filter( 'autoptimize_filter_js_exclude', array( __CLASS__, 'autoptimize_exclude_voice_scripts' ) );
-		}
+		add_filter( 'autoptimize_filter_js_exclude', array( __CLASS__, 'autoptimize_exclude_voice_scripts' ) );
 	}
 
 	/**
@@ -60,13 +63,16 @@ class Neo_Pulse_Wp_Voice {
 	 * @return bool
 	 */
 	public static function rest_permission( WP_REST_Request $request ): bool {
+		if ( ! Neo_Pulse_Wp_License::is_licensed( false ) ) {
+			return false; // Not licensed: no AI voice (see class-neo-pulse-wp-license.php).
+		}
+		// Editors also dictate in wp-admin (Backend Assist), outside the chat widget.
 		if ( current_user_can( 'edit_posts' ) ) {
 			return true;
 		}
-		if ( current_user_can( 'manage_options' ) ) {
-			return true;
-		}
-		if ( ! Neo_Pulse_Wp_Chat::is_enabled() ) {
+		// Everyone else gets exactly the chat's access rules (off everywhere, enabled,
+		// logged-in only, admin only, whitelist, licence) plus the chat nonce.
+		if ( ! Neo_Pulse_Wp_Chat::can_use_chat_api() ) {
 			return false;
 		}
 		return self::verify_voice_nonce( $request );
@@ -101,6 +107,13 @@ class Neo_Pulse_Wp_Voice {
 			);
 		}
 
+		if ( Neo_Pulse_Wp_OpenRouter::rate_limit_exceeded( 'voice', self::RATE_LIMIT_MAX, self::RATE_LIMIT_WINDOW ) ) {
+			return new WP_REST_Response(
+				array( 'error' => __( 'Too many voice messages. Please wait a few minutes and try again.', 'neo-pulse-wp' ) ),
+				429
+			);
+		}
+
 		$body = $request->get_json_params();
 		if ( ! is_array( $body ) ) {
 			$body = array();
@@ -131,8 +144,12 @@ class Neo_Pulse_Wp_Voice {
 
 		$result = Neo_Pulse_Wp_OpenRouter::transcribe_audio( $audio_b64, $format );
 		if ( is_wp_error( $result ) ) {
+			// Provider error bodies are for staff only; visitors get a plain message.
+			$message = current_user_can( 'edit_posts' ) || $result->get_error_code() === 'neo-pulse_openrouter_transcribe_empty'
+				? $result->get_error_message()
+				: __( 'Voice input is unavailable right now. Please type your message.', 'neo-pulse-wp' );
 			return new WP_REST_Response(
-				array( 'error' => $result->get_error_message() ),
+				array( 'error' => $message ),
 				502
 			);
 		}

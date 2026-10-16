@@ -34,8 +34,8 @@ class Neo_Pulse_Wp_Chat_Page_Summary {
 		}
 
 		$post = get_post( $post_id );
-		if ( ! $post instanceof WP_Post ) {
-			return '';
+		if ( ! $post instanceof WP_Post || (string) $post->post_password !== '' ) {
+			return ''; // Password-protected content never reaches the chat.
 		}
 
 		$cache_key = self::CACHE_PREFIX . $post_id . '_' . md5( (string) $post->post_modified_gmt );
@@ -247,11 +247,7 @@ class Neo_Pulse_Wp_Chat_Page_Summary {
 	 * @return array<int,string>
 	 */
 	private static function seo_section_to_markdown_lines( array $settings ): array {
-		if ( ! class_exists( 'Neo_Pulse_Wp_Seo_Blocks_Slots' ) ) {
-			require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/seo-builder/class-neo-pulse-wp-seo-blocks-slots.php';
-		}
-
-		$slots = Neo_Pulse_Wp_Seo_Blocks_Slots::from_elementor_settings( $settings );
+		$slots = Neo_Pulse_Wp_Elementor_Text::slots_from_settings( $settings );
 		$lines = array();
 
 		foreach ( $slots as $slot ) {

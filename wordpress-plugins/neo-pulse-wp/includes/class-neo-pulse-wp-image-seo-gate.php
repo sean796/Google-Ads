@@ -15,7 +15,9 @@ class Neo_Pulse_Wp_Image_Seo_Gate {
 	public static function collect_reasons( int $post_id = 0, bool $require_ai = false ): array {
 		$reasons = array();
 
-		if ( $post_id > 0 ) {
+		if ( Neo_Pulse_Wp_Image_Seo::$system_run ) {
+			// Automatic fill on upload or in the background: no person to check.
+		} elseif ( $post_id > 0 ) {
 			if ( ! current_user_can( 'edit_post', $post_id ) ) {
 				$reasons[] = __( 'You do not have permission to edit this post.', 'neo-pulse-wp' );
 			}
@@ -23,7 +25,9 @@ class Neo_Pulse_Wp_Image_Seo_Gate {
 			$reasons[] = __( 'You do not have permission to manage media.', 'neo-pulse-wp' );
 		}
 
-		if ( $require_ai && Neo_Pulse_Wp_OpenRouter::get_api_key() === '' ) {
+		if ( $require_ai && Neo_Pulse_Wp_License::ai_needs_upgrade( false ) ) {
+			$reasons[] = Neo_Pulse_Wp_License::upgrade_message();
+		} elseif ( $require_ai && Neo_Pulse_Wp_OpenRouter::get_api_key() === '' ) {
 			$reasons[] = __( 'Add an OpenRouter API key under NEO Pulse WP → Settings → Editor AI.', 'neo-pulse-wp' );
 		}
 
@@ -66,6 +70,9 @@ class Neo_Pulse_Wp_Image_Seo_Gate {
 		$post = get_post( $attachment_id );
 		if ( ! $post instanceof WP_Post || $post->post_type !== 'attachment' ) {
 			return new WP_Error( 'neo-pulse_attachment', __( 'Attachment not found.', 'neo-pulse-wp' ) );
+		}
+		if ( Neo_Pulse_Wp_Image_Seo::$system_run ) {
+			return true;
 		}
 		if ( ! current_user_can( 'edit_post', $attachment_id ) ) {
 			return new WP_Error( 'neo-pulse_forbidden', __( 'You do not have permission to edit this attachment.', 'neo-pulse-wp' ), array( 'status' => 403 ) );

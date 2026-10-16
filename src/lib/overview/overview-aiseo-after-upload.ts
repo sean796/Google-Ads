@@ -9,7 +9,10 @@ import {
   buildOverviewBulkSeoItem,
   resolveOverviewBindingForRow,
   uploadOverviewSeoApiItemAvoidingBatchV1,
+  type OverviewBulkSeoApiItem,
 } from "@/lib/overview/overview-bulk-seo-payload";
+import { bulkUpdateOverviewSeo } from "@/lib/wordpress-api/meta";
+import { chunkWpUploadItems } from "@/lib/overview/overview-batch-pipeline-progress";
 import { isAnswerOnlyHarnessBody } from "@/lib/overview/overview-blog-overview-prepend";
 import { buildOverviewRowWpUploadProofFiles } from "@/lib/overview/overview-wp-upload-harness-artifacts";
 import { mergeGeneratedFilesByName } from "@/lib/overview/overview-peer-csv-details";
@@ -392,31 +395,217 @@ export async function uploadOverviewAiseoWrittenRows(
   const extra = await params.resolveBindings(urls, site, undefined, { inventoryOnly: true });
   const bindings = { ...params.bindings, ...extra };
 
-  for (const index of indices) {
-    const row = rows[index];
-    if (!row) continue;
-    const url = row.url?.trim() ?? "";
-    try {
-      const result = await uploadOverviewAiseoRowToWordPress({
-        site,
-        row,
-        bindings,
-        getInventoryMatchForUrl: (s, u) => params.getInventoryMatchForUrl(s, u),
-      });
-      if (params.batchKey && params.setBulkOptimizationState && url && result.generatedFiles.length) {
-        attachAiseoUploadGeneratedFiles(
-          params.batchKey,
-          params.setBulkOptimizationState,
-          url,
-          result.generatedFiles,
-          result.ok,
-        );
+  if (indices.length <= 1) {
+    for (const index of indices) {
+      const row = rows[index];
+      if (!row) continue;
+      const url = row.url?.trim() ?? "";
+      try {
+        const result = await uploadOverviewAiseoRowToWordPress({
+          site,
+          row,
+          bindings,
+          getInventoryMatchForUrl: (s, u) => params.getInventoryMatchForUrl(s, u),
+        });
+        if (params.batchKey && params.setBulkOptimizationState && url && result.generatedFiles.length) {
+          attachAiseoUploadGeneratedFiles(
+            params.batchKey,
+            params.setBulkOptimizationState,
+            url,
+            result.generatedFiles,
+            result.ok,
+          );
+        }
+        if (result.skipped) skipped += 1;
+        else if (result.ok) uploaded += 1;
+        else failed += 1;
+      } catch {
+        failed += 1;
       }
-      if (result.skipped) skipped += 1;
-      else if (result.ok) uploaded += 1;
-      else failed += 1;
-    } catch {
-      failed += 1;
+    }
+  } else {
+    type PreparedAiseoUpload = {
+      row: OverviewRow;
+      url: string;
+      binding: OverviewBinding;
+      inventoryContent: string;
+      item: OverviewBulkSeoApiItem;
+    };
+    const prepared: PreparedAiseoUpload[] = [];
+    const uploadedAt = new Date().toISOString();
+
+    for (const index of indices) {
+      const row = rows[index];
+      if (!row) continue;
+      const url = row.url?.trim() ?? "";
+      const invMatch = url ? params.getInventoryMatchForUrl(site, url) : undefined;
+      const inventoryContent = invMatch?.row?.fields?.content?.trim() ?? "";
+      const invHit =
+        invMatch?.row?.id != null && Number.isFinite(invMatch.row.id)
+          ? {
+              row: { id: invMatch.row.id, date_gmt: invMatch.row.date_gmt ?? null },
+              subtype: invMatch.subtype,
+            }
+          : undefined;
+      const binding = resolveOverviewBindingForRow(row, bindings, invHit);
+
+      const skipWithProof = (error: string) => {
+        skipped += 1;
+        const files = buildOverviewRowWpUploadProofFiles({
+          site,
+          row,
+          binding,
+          inventoryContent,
+          ok: false,
+          skipped: true,
+          error,
+          uploadedAt,
+        });
+        if (params.batchKey && params.setBulkOptimizationState && url && files.length) {
+          attachAiseoUploadGeneratedFiles(
+            params.batchKey,
+            params.setBulkOptimizationState,
+            url,
+            files,
+            false,
+          );
+        }
+      };
+
+      if (!url || !rowUrlMatchesWordPressSite(url, site)) {
+        const siteLabel = site.name?.trim() || site.siteUrl || site.id;
+        skipWithProof(
+          url
+            ? `Row URL is not on connected site ${siteLabel}. Upload blocked.`
+            : "Row URL missing. Upload blocked.",
+        );
+        continue;
+      }
+      if (!binding?.postId) {
+        skipWithProof("No WordPress post binding for this row.");
+        continue;
+      }
+      const bodyForUpload =
+        row.postContentOptimized?.trim() || row.postContent?.trim() || inventoryContent.trim();
+      if (bodyForUpload && isAnswerOnlyHarnessBody(bodyForUpload)) {
+        skipWithProof(
+          "Post body missing in cache; skipped upload so the live post is not replaced with Answer only.",
+        );
+        continue;
+      }
+      const item = buildOverviewBulkSeoItem(row, binding, {
+        forWordPressUpload: true,
+        inventoryContent,
+      });
+      if (!item) {
+        skipWithProof("Nothing to upload for this row.");
+        continue;
+      }
+      prepared.push({ row, url, binding, inventoryContent, item });
+    }
+
+    const chunks = chunkWpUploadItems(prepared, (entry) =>
+      Boolean(entry.item.postContent?.trim()),
+    );
+
+    for (const chunk of chunks) {
+      const elementorErrors = new Map<number, string>();
+      for (let i = 0; i < chunk.length; i += 1) {
+        const entry = chunk[i]!;
+        if (entry.row.contentFormat === "elementor" && entry.row.elementorDataJson?.trim()) {
+          try {
+            await applyElementorOptimization(
+              site,
+              entry.binding.postId,
+              entry.row.elementorDataJson.trim(),
+            );
+          } catch (err) {
+            elementorErrors.set(
+              i,
+              err instanceof Error ? err.message : "Elementor upload failed.",
+            );
+          }
+        }
+      }
+
+      try {
+        const bulkRes = await bulkUpdateOverviewSeo(
+          site.siteUrl,
+          site.username!,
+          site.appPassword!,
+          chunk.map((c) => c.item),
+        );
+        const byIndex = new Map<number, (typeof bulkRes.results)[number]>();
+        const byPostId = new Map<number, (typeof bulkRes.results)[number]>();
+        for (const r of bulkRes.results ?? []) {
+          if (typeof r.index === "number") byIndex.set(r.index, r);
+          if (r.postId != null && Number.isFinite(r.postId)) byPostId.set(r.postId, r);
+        }
+
+        for (let i = 0; i < chunk.length; i += 1) {
+          const entry = chunk[i]!;
+          const apiRow = byIndex.get(i) ?? byPostId.get(entry.binding.postId);
+          const elErr = elementorErrors.get(i);
+          const ok = Boolean(apiRow?.ok) && !elErr;
+          const error = elErr || (ok ? undefined : apiRow?.error || "WordPress rejected the update.");
+          const files = buildOverviewRowWpUploadProofFiles({
+            site,
+            row: entry.row,
+            binding: entry.binding,
+            inventoryContent: entry.inventoryContent,
+            ok,
+            skipped: false,
+            error,
+            link: apiRow?.link,
+            uploadedAt,
+            apiResult: apiRow
+              ? {
+                  ok,
+                  error,
+                  mergeError: apiRow.mergeError,
+                  method: apiRow.method,
+                  httpStatus: apiRow.httpStatus ?? undefined,
+                  link: apiRow.link,
+                }
+              : undefined,
+          });
+          if (params.batchKey && params.setBulkOptimizationState && entry.url && files.length) {
+            attachAiseoUploadGeneratedFiles(
+              params.batchKey,
+              params.setBulkOptimizationState,
+              entry.url,
+              files,
+              ok,
+            );
+          }
+          if (ok) uploaded += 1;
+          else failed += 1;
+        }
+      } catch (err) {
+        const error = err instanceof Error ? err.message : "WordPress bulk update failed.";
+        for (const entry of chunk) {
+          failed += 1;
+          const files = buildOverviewRowWpUploadProofFiles({
+            site,
+            row: entry.row,
+            binding: entry.binding,
+            inventoryContent: entry.inventoryContent,
+            ok: false,
+            skipped: false,
+            error,
+            uploadedAt,
+          });
+          if (params.batchKey && params.setBulkOptimizationState && entry.url && files.length) {
+            attachAiseoUploadGeneratedFiles(
+              params.batchKey,
+              params.setBulkOptimizationState,
+              entry.url,
+              files,
+              false,
+            );
+          }
+        }
+      }
     }
   }
 

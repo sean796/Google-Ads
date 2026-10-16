@@ -5,7 +5,7 @@ section: DataForSEO MCP
 method: POST
 path: /api/mcp/DataForSEO_kw_data_google_ads_keywords_for_keywords
 auth: open
-order: 810
+order: 820
 ---
 
 POST `/api/mcp/DataForSEO_kw_data_google_ads_keywords_for_keywords`.

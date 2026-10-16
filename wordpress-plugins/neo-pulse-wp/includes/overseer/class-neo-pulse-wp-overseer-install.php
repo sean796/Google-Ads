@@ -104,7 +104,8 @@ class Neo_Pulse_Wp_Overseer_Install {
 		dbDelta( $sql );
 		dbDelta( $sql_reports );
 		dbDelta( $sql_tasks );
-		update_option( Neo_Pulse_Wp_Overseer_Context::DB_VERSION_OPTION, Neo_Pulse_Wp_Overseer_Context::TABLE_VERSION, false );
+		// Autoloaded: maybe_install() compares it on every request.
+		update_option( Neo_Pulse_Wp_Overseer_Context::DB_VERSION_OPTION, Neo_Pulse_Wp_Overseer_Context::TABLE_VERSION, true );
 
 		if ( get_option( Neo_Pulse_Wp_Overseer_Context::OPTION_KEY, null ) === null ) {
 			add_option(
@@ -119,10 +120,11 @@ class Neo_Pulse_Wp_Overseer_Install {
 					'include_gsc'         => true,
 				),
 				'',
-				false
+				true
 			);
 		}
 
+		// Built-in Script Manager tag: created/repaired on install and plugin version change only.
 		Neo_Pulse_Wp_Overseer_Beacon::ensure_builtin_script();
 	}
 }

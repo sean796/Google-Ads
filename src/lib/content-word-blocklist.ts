@@ -107,6 +107,8 @@ export const GLOBAL_FORBIDDEN_PHRASES = [
   "at the forefront",
   "stands as a testament",
   "peace of mind",
+  "Related reading:",
+  "related reading:",
 ] as const;
 
 const FORBIDDEN_SENTENCE_SHAPES = `- Never write importance-claim openers like "Understanding [topic] is crucial/vital for [audience] to [verb]…". State facts and actions directly.

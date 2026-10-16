@@ -1,6 +1,6 @@
 <?php
 /**
- * Overseer conversion goals and NEO Pulse Forms integration.
+ * Overseer conversion goals (interaction-based: form attempts, clicks, outbound clicks).
  *
  * @package Neo_Pulse_Wp
  */
@@ -11,11 +11,15 @@ class Neo_Pulse_Wp_Overseer_Conversions {
 
 	const OPTION_KEY = 'neo_pulse_wp_overseer_conversions';
 
-	const QUICK_FIELD_TYPES = array( 'email', 'phone', 'name', 'website', 'address', 'consent' );
+	/**
+	 * Trigger of goals created for the removed NEO Pulse Forms module (also the
+	 * implicit trigger of goals saved without one). Such goals are kept in the
+	 * option so no data is lost, but they are shown as unsupported and never match.
+	 */
+	const LEGACY_FORM_TRIGGER = 'form_success';
 
 	/** @var array<string, string> */
 	const TRIGGER_TYPES = array(
-		'form_success'   => 'Form submission (successful)',
 		'form_attempt'   => 'Form submission (attempt)',
 		'click'          => 'Click',
 		'outbound_click' => 'Outbound click',
@@ -43,7 +47,6 @@ class Neo_Pulse_Wp_Overseer_Conversions {
 	 * @return void
 	 */
 	public static function init(): void {
-		add_action( 'neo_pulse_wp_forms_after_submit', array( __CLASS__, 'handle_form_submit' ), 10, 4 );
 		add_action( 'neo_pulse_wp_overseer_event_recorded', array( __CLASS__, 'handle_overseer_event' ), 10, 3 );
 	}
 
@@ -139,36 +142,6 @@ class Neo_Pulse_Wp_Overseer_Conversions {
 	}
 
 	/**
-	 * @param array<string, mixed>      $form     Form definition.
-	 * @param array<string, mixed>      $entry    Saved entry.
-	 * @param array<string, mixed>      $response Submit response.
-	 * @param array<string, mixed>      $server   Request context.
-	 * @return void
-	 */
-	public static function handle_form_submit( array $form, array $entry, array $response, array $server = array() ): void {
-		if ( empty( $response['success'] ) ) {
-			return;
-		}
-
-		$form_id = isset( $form['ID'] ) ? (int) $form['ID'] : ( isset( $entry['form_id'] ) ? (int) $entry['form_id'] : 0 );
-		if ( $form_id < 1 ) {
-			return;
-		}
-
-		$meta = isset( $entry['meta'] ) && is_array( $entry['meta'] ) ? $entry['meta'] : array();
-		$ctx  = self::build_submission_context( $form, $meta, $entry, $server );
-
-		foreach ( self::get_goals_for_form( $form_id ) as $goal ) {
-			if ( self::get_trigger_type( $goal ) !== 'form_success' ) {
-				continue;
-			}
-			if ( self::goal_matches_submission( $goal, $form, $ctx ) ) {
-				self::record_conversion( $goal, $form, $entry, $ctx );
-			}
-		}
-	}
-
-	/**
 	 * Match interaction-based goals when Overseer records click/form_submit events.
 	 *
 	 * @param string $visit_uid  Event visit UID.
@@ -176,11 +149,12 @@ class Neo_Pulse_Wp_Overseer_Conversions {
 	 * @param object $row        Stored event row.
 	 * @return void
 	 */
-	public static function handle_overseer_event( string $visit_uid, string $event_type, $row ): void {
+	public static function handle_overseer_event( $visit_uid, $event_type, $row ): void {
 		unset( $visit_uid );
-		if ( ! is_object( $row ) ) {
+		if ( ! is_object( $row ) || ! is_scalar( $event_type ) ) {
 			return;
 		}
+		$event_type = (string) $event_type;
 
 		$trigger_map = array(
 			'form_submit'    => 'form_attempt',
@@ -206,8 +180,17 @@ class Neo_Pulse_Wp_Overseer_Conversions {
 	 * @return string
 	 */
 	public static function get_trigger_type( array $goal ): string {
-		$trigger = isset( $goal['trigger_type'] ) ? sanitize_key( (string) $goal['trigger_type'] ) : 'form_success';
-		return array_key_exists( $trigger, self::TRIGGER_TYPES ) ? $trigger : 'form_success';
+		$trigger = isset( $goal['trigger_type'] ) ? sanitize_key( (string) $goal['trigger_type'] ) : self::LEGACY_FORM_TRIGGER;
+		return array_key_exists( $trigger, self::TRIGGER_TYPES ) ? $trigger : self::LEGACY_FORM_TRIGGER;
+	}
+
+	/**
+	 * Whether a goal uses a trigger that can still record conversions.
+	 *
+	 * @param array<string, mixed> $goal Goal.
+	 */
+	public static function is_supported_goal( array $goal ): bool {
+		return array_key_exists( self::get_trigger_type( $goal ), self::TRIGGER_TYPES );
 	}
 
 	/**
@@ -269,26 +252,6 @@ class Neo_Pulse_Wp_Overseer_Conversions {
 	 * @param array<string, mixed> $goal Goal.
 	 * @return array<int, array{type: string, value: string}>
 	 */
-	public static function get_field_rules( array $goal ): array {
-		$rules = isset( $goal['rules'] ) && is_array( $goal['rules'] ) ? $goal['rules'] : array();
-		return array_values(
-			array_filter(
-				$rules,
-				static function ( $rule ) {
-					if ( ! is_array( $rule ) ) {
-						return false;
-					}
-					$type = isset( $rule['type'] ) ? sanitize_key( (string) $rule['type'] ) : '';
-					return in_array( $type, array( 'field_type', 'field_id' ), true );
-				}
-			)
-		);
-	}
-
-	/**
-	 * @param array<string, mixed> $goal Goal.
-	 * @return array<int, array{type: string, value: string}>
-	 */
 	public static function get_interaction_rules( array $goal ): array {
 		$rules   = isset( $goal['rules'] ) && is_array( $goal['rules'] ) ? $goal['rules'] : array();
 		$allowed = self::interaction_rule_labels();
@@ -304,131 +267,6 @@ class Neo_Pulse_Wp_Overseer_Conversions {
 				}
 			)
 		);
-	}
-
-	/**
-	 * @param int $form_id Form post ID.
-	 * @return array<int, array<string, mixed>>
-	 */
-	public static function get_goals_for_form( int $form_id ): array {
-		if ( $form_id < 1 ) {
-			return array();
-		}
-		return array_values(
-			array_filter(
-				self::get_goals(),
-				static function ( $goal ) use ( $form_id ) {
-					return ! empty( $goal['enabled'] )
-						&& self::get_trigger_type( $goal ) === 'form_success'
-						&& (int) ( $goal['form_id'] ?? 0 ) === $form_id;
-				}
-			)
-		);
-	}
-
-	/**
-	 * @param array<string, mixed> $form Form definition.
-	 * @param array<string, mixed> $meta Entry meta values.
-	 * @return array{field_signals: array<string, bool>, present_field_ids: array<int, string>, fields_by_id: array<string, array<string, mixed>>}
-	 */
-	public static function build_field_context( array $form, array $meta ): array {
-		$field_signals     = array();
-		$present_field_ids = array();
-		$fields_by_id      = array();
-		$fields            = isset( $form['fields'] ) && is_array( $form['fields'] ) ? $form['fields'] : array();
-
-		foreach ( $fields as $field ) {
-			if ( ! is_array( $field ) ) {
-				continue;
-			}
-			$field_id = isset( $field['id'] ) ? sanitize_key( (string) $field['id'] ) : '';
-			$type     = isset( $field['type'] ) ? sanitize_key( (string) $field['type'] ) : 'text';
-			$name     = isset( $field['name'] ) ? sanitize_key( (string) $field['name'] ) : '';
-
-			if ( $field_id !== '' ) {
-				$fields_by_id[ $field_id ] = $field;
-			}
-			if ( class_exists( 'Neo_Pulse_Wp_Forms_Field_Registry' ) && in_array( $type, Neo_Pulse_Wp_Forms_Field_Registry::display_only_types(), true ) ) {
-				continue;
-			}
-			if ( $name === '' ) {
-				continue;
-			}
-
-			$value   = $meta[ $name ] ?? null;
-			$present = self::is_field_value_present( $field, $value );
-			if ( ! array_key_exists( $type, $field_signals ) ) {
-				$field_signals[ $type ] = false;
-			}
-			if ( $present ) {
-				$field_signals[ $type ] = true;
-				if ( $field_id !== '' ) {
-					$present_field_ids[] = $field_id;
-				}
-			}
-		}
-
-		return array(
-			'field_signals'     => $field_signals,
-			'present_field_ids' => array_values( array_unique( $present_field_ids ) ),
-			'fields_by_id'      => $fields_by_id,
-		);
-	}
-
-	/**
-	 * @param array<string, mixed> $goal Goal.
-	 * @param array<string, mixed> $form Form.
-	 * @param array<string, mixed> $ctx  Submission context.
-	 * @return bool
-	 */
-	public static function goal_matches_submission( array $goal, array $form, array $ctx ): bool {
-		$rules = self::get_field_rules( $goal );
-		if ( empty( $rules ) ) {
-			return true;
-		}
-
-		$match_mode = isset( $goal['match_mode'] ) ? (string) $goal['match_mode'] : 'all';
-		$results    = array();
-		foreach ( $rules as $rule ) {
-			if ( ! is_array( $rule ) ) {
-				continue;
-			}
-			$results[] = self::rule_matches( $rule, $ctx );
-		}
-		if ( empty( $results ) ) {
-			return false;
-		}
-		if ( 'any' === $match_mode ) {
-			return in_array( true, $results, true );
-		}
-		return ! in_array( false, $results, true );
-	}
-
-	/**
-	 * @param array<string, mixed> $rule Rule.
-	 * @param array<string, mixed> $ctx  Submission context.
-	 * @return bool
-	 */
-	public static function rule_matches( array $rule, array $ctx ): bool {
-		$rule_type  = isset( $rule['type'] ) ? sanitize_key( (string) $rule['type'] ) : '';
-		$rule_value = isset( $rule['value'] ) ? (string) $rule['value'] : '';
-		if ( $rule_type === '' || $rule_value === '' ) {
-			return false;
-		}
-
-		if ( 'field_type' === $rule_type ) {
-			$rule_value = sanitize_key( $rule_value );
-			$signals    = isset( $ctx['field_signals'] ) && is_array( $ctx['field_signals'] ) ? $ctx['field_signals'] : array();
-			return ! empty( $signals[ $rule_value ] );
-		}
-
-		if ( 'field_id' === $rule_type ) {
-			$rule_value = sanitize_key( $rule_value );
-			$present    = isset( $ctx['present_field_ids'] ) && is_array( $ctx['present_field_ids'] ) ? $ctx['present_field_ids'] : array();
-			return in_array( $rule_value, $present, true );
-		}
-
-		return false;
 	}
 
 	/**
@@ -520,24 +358,8 @@ class Neo_Pulse_Wp_Overseer_Conversions {
 	 * @return string
 	 */
 	public static function summarize_rules( array $goal ): string {
-		if ( 'form_success' === self::get_trigger_type( $goal ) ) {
-			$field_rules = self::get_field_rules( $goal );
-			if ( empty( $field_rules ) ) {
-				return __( 'Any successful submit', 'neo-pulse-wp' );
-			}
-			$labels = array();
-			foreach ( $field_rules as $rule ) {
-				if ( ! is_array( $rule ) ) {
-					continue;
-				}
-				$labels[] = self::format_rule_label( $rule, (int) ( $goal['form_id'] ?? 0 ) );
-			}
-			$labels = array_values( array_filter( $labels ) );
-			if ( empty( $labels ) ) {
-				return '—';
-			}
-			$join = 'any' === ( $goal['match_mode'] ?? 'all' ) ? ' ' . __( 'or', 'neo-pulse-wp' ) . ' ' : ' + ';
-			return implode( $join, $labels );
+		if ( ! self::is_supported_goal( $goal ) ) {
+			return __( 'Unsupported: NEO Pulse Forms was removed, so this goal no longer records conversions. Edit it to pick a new trigger, or delete it.', 'neo-pulse-wp' );
 		}
 
 		$interaction_rules = self::get_interaction_rules( $goal );
@@ -568,6 +390,9 @@ class Neo_Pulse_Wp_Overseer_Conversions {
 		if ( isset( self::TRIGGER_TYPES[ $trigger_type ] ) ) {
 			return (string) self::TRIGGER_TYPES[ $trigger_type ];
 		}
+		if ( self::LEGACY_FORM_TRIGGER === $trigger_type ) {
+			return __( 'Form submission (successful) — unsupported', 'neo-pulse-wp' );
+		}
 		return $trigger_type;
 	}
 
@@ -585,35 +410,19 @@ class Neo_Pulse_Wp_Overseer_Conversions {
 	}
 
 	/**
+	 * Label for a field rule / field signal recorded by legacy form conversions.
+	 *
 	 * @param array<string, mixed> $rule Rule.
-	 * @param int                  $form_id Form ID for field labels.
 	 * @return string
 	 */
-	public static function format_rule_label( array $rule, int $form_id = 0 ): string {
+	public static function format_rule_label( array $rule ): string {
 		$rule_type  = isset( $rule['type'] ) ? sanitize_key( (string) $rule['type'] ) : '';
 		$rule_value = isset( $rule['value'] ) ? sanitize_key( (string) $rule['value'] ) : '';
 		if ( $rule_type === '' || $rule_value === '' ) {
 			return '';
 		}
 		if ( 'field_type' === $rule_type ) {
-			if ( class_exists( 'Neo_Pulse_Wp_Forms_Field_Registry' ) ) {
-				$choices = Neo_Pulse_Wp_Forms_Field_Registry::choices();
-				if ( isset( $choices[ $rule_value ] ) ) {
-					return (string) $choices[ $rule_value ];
-				}
-			}
-			return $rule_value;
-		}
-		if ( 'field_id' === $rule_type && $form_id > 0 && class_exists( 'Neo_Pulse_Wp_Forms_Storage' ) ) {
-			$form = Neo_Pulse_Wp_Forms_Storage::get_form_by_id( $form_id );
-			if ( $form && ! empty( $form['fields'] ) && is_array( $form['fields'] ) ) {
-				foreach ( $form['fields'] as $field ) {
-					if ( is_array( $field ) && (string) ( $field['id'] ?? '' ) === $rule_value ) {
-						$label = isset( $field['label'] ) ? (string) $field['label'] : $rule_value;
-						return $label !== '' ? $label : $rule_value;
-					}
-				}
-			}
+			return ucwords( str_replace( array( '_', '-' ), ' ', $rule_value ) );
 		}
 		return $rule_value;
 	}
@@ -636,46 +445,6 @@ class Neo_Pulse_Wp_Overseer_Conversions {
 		}
 		$present = array_values( array_filter( $present ) );
 		return empty( $present ) ? '—' : implode( ' · ', $present );
-	}
-
-	/**
-	 * @param array<string, mixed> $goal Goal.
-	 * @param array<string, mixed> $form Form.
-	 * @param array<string, mixed> $entry Entry.
-	 * @param array<string, mixed> $ctx Context.
-	 * @return void
-	 */
-	private static function record_conversion( array $goal, array $form, array $entry, array $ctx ): void {
-		$form_id    = (int) ( $form['ID'] ?? 0 );
-		$source_url = isset( $entry['source_url'] ) ? esc_url_raw( (string) $entry['source_url'] ) : '';
-		if ( $source_url === '' ) {
-			$source_url = home_url( '/' );
-		}
-		$form_title = isset( $form['title'] ) ? sanitize_text_field( (string) $form['title'] ) : __( 'Form', 'neo-pulse-wp' );
-
-		$client_meta = array(
-			'conversion_goal_id' => (string) ( $goal['id'] ?? '' ),
-			'conversion_name'    => (string) ( $goal['name'] ?? '' ),
-			'trigger_type'       => self::get_trigger_type( $goal ),
-			'form_id'            => $form_id,
-			'entry_id'           => (int) ( $entry['id'] ?? 0 ),
-			'field_signals'      => isset( $ctx['field_signals'] ) && is_array( $ctx['field_signals'] ) ? self::sanitize_signal_map( $ctx['field_signals'] ) : array(),
-			'matched_field_ids'  => isset( $ctx['present_field_ids'] ) && is_array( $ctx['present_field_ids'] ) ? array_values( array_map( 'sanitize_key', $ctx['present_field_ids'] ) ) : array(),
-		);
-
-		Neo_Pulse_Wp_Overseer::record_event(
-			array(
-				'event_type'       => 'conversion',
-				'session_id'       => isset( $ctx['session_id'] ) ? (string) $ctx['session_id'] : '',
-				'page_url'         => $source_url,
-				'page_title'       => $form_title,
-				'parent_visit_uid' => isset( $ctx['visit_uid'] ) ? (string) $ctx['visit_uid'] : '',
-				'element_tag'      => 'form',
-				'element_text'     => (string) ( $goal['name'] ?? '' ),
-				'element_href'     => 'form:' . $form_id,
-				'client_meta'      => $client_meta,
-			)
-		);
 	}
 
 	/**
@@ -714,70 +483,6 @@ class Neo_Pulse_Wp_Overseer_Conversions {
 	}
 
 	/**
-	 * @param array<string, mixed> $form Form.
-	 * @param array<string, mixed> $meta Entry meta.
-	 * @param array<string, mixed> $entry Entry row.
-	 * @param array<string, mixed> $server Request context.
-	 * @return array<string, mixed>
-	 */
-	private static function build_submission_context( array $form, array $meta, array $entry, array $server ): array {
-		$ctx = self::build_field_context( $form, $meta );
-
-		$session_id = '';
-		if ( isset( $server['overseer_session_id'] ) ) {
-			$session_id = sanitize_text_field( (string) $server['overseer_session_id'] );
-		}
-		if ( ! Neo_Pulse_Wp_Overseer::is_valid_session_id( $session_id ) ) {
-			$session_id = '';
-		}
-
-		$visit_uid = '';
-		if ( isset( $server['overseer_visit_uid'] ) ) {
-			$visit_uid = sanitize_text_field( (string) $server['overseer_visit_uid'] );
-		}
-		if ( ! Neo_Pulse_Wp_Overseer::is_valid_uuid( $visit_uid ) ) {
-			$visit_uid = '';
-		}
-
-		$ctx['session_id'] = $session_id;
-		$ctx['visit_uid']  = $visit_uid;
-		return $ctx;
-	}
-
-	/**
-	 * @param array<string, mixed> $field Field definition.
-	 * @param mixed                $value Submitted value.
-	 * @return bool
-	 */
-	public static function is_field_value_present( array $field, $value ): bool {
-		$type = isset( $field['type'] ) ? sanitize_key( (string) $field['type'] ) : 'text';
-
-		if ( in_array( $type, array( 'name', 'address' ), true ) && is_array( $value ) ) {
-			foreach ( $value as $part ) {
-				if ( is_string( $part ) && trim( $part ) !== '' ) {
-					return true;
-				}
-			}
-			return false;
-		}
-
-		if ( is_array( $value ) ) {
-			foreach ( $value as $part ) {
-				if ( trim( (string) $part ) !== '' ) {
-					return true;
-				}
-			}
-			return false;
-		}
-
-		if ( 'consent' === $type ) {
-			return ! empty( $value ) && '0' !== (string) $value && 'false' !== strtolower( (string) $value );
-		}
-
-		return trim( (string) $value ) !== '';
-	}
-
-	/**
 	 * @param array<string, mixed> $goal Raw goal.
 	 * @param bool                 $allow_new_id Allow generating a new ID.
 	 * @return array<string, mixed>|null
@@ -796,14 +501,19 @@ class Neo_Pulse_Wp_Overseer_Conversions {
 			return null;
 		}
 
-		$trigger_type = isset( $goal['trigger_type'] ) ? sanitize_key( (string) $goal['trigger_type'] ) : 'form_success';
-		if ( ! array_key_exists( $trigger_type, self::TRIGGER_TYPES ) ) {
-			$trigger_type = 'form_success';
+		$trigger_type = self::get_trigger_type( $goal );
+		$is_legacy    = self::LEGACY_FORM_TRIGGER === $trigger_type;
+		if ( $is_legacy && $allow_new_id ) {
+			// NEO Pulse Forms goals can no longer be created or saved.
+			return null;
 		}
 
 		$form_id = isset( $goal['form_id'] ) ? absint( $goal['form_id'] ) : 0;
-		if ( 'form_success' === $trigger_type && $form_id < 1 ) {
+		if ( $is_legacy && $form_id < 1 ) {
 			return null;
+		}
+		if ( ! $is_legacy ) {
+			$form_id = 0;
 		}
 
 		$match_mode = isset( $goal['match_mode'] ) ? sanitize_key( (string) $goal['match_mode'] ) : 'all';
@@ -824,7 +534,7 @@ class Neo_Pulse_Wp_Overseer_Conversions {
 			}
 		}
 
-		if ( 'form_success' !== $trigger_type && empty( $rules ) ) {
+		if ( ! $is_legacy && empty( $rules ) ) {
 			return null;
 		}
 
@@ -844,7 +554,7 @@ class Neo_Pulse_Wp_Overseer_Conversions {
 	 * @param string               $trigger_type Goal trigger.
 	 * @return array{type: string, value: string}|null
 	 */
-	private static function normalize_rule( array $rule, string $trigger_type = 'form_success' ): ?array {
+	private static function normalize_rule( array $rule, string $trigger_type ): ?array {
 		$type  = isset( $rule['type'] ) ? sanitize_key( (string) $rule['type'] ) : '';
 		$value = isset( $rule['value'] ) ? trim( (string) $rule['value'] ) : '';
 		if ( $type === '' || $value === '' ) {
@@ -852,14 +562,12 @@ class Neo_Pulse_Wp_Overseer_Conversions {
 		}
 
 		if ( in_array( $type, array( 'field_type', 'field_id' ), true ) ) {
-			if ( 'form_success' !== $trigger_type ) {
+			// Field rules only belong to legacy NEO Pulse Forms goals (kept for display).
+			if ( self::LEGACY_FORM_TRIGGER !== $trigger_type ) {
 				return null;
 			}
 			if ( 'field_type' === $type ) {
 				$value = sanitize_key( $value );
-				if ( class_exists( 'Neo_Pulse_Wp_Forms_Field_Registry' ) && ! Neo_Pulse_Wp_Forms_Field_Registry::is_valid_type( $value ) ) {
-					return null;
-				}
 			}
 			if ( 'field_id' === $type ) {
 				$value = sanitize_key( $value );
@@ -874,7 +582,7 @@ class Neo_Pulse_Wp_Overseer_Conversions {
 		}
 
 		if ( array_key_exists( $type, self::interaction_rule_labels() ) ) {
-			if ( 'form_success' === $trigger_type ) {
+			if ( self::LEGACY_FORM_TRIGGER === $trigger_type ) {
 				return null;
 			}
 			return array(
@@ -884,21 +592,5 @@ class Neo_Pulse_Wp_Overseer_Conversions {
 		}
 
 		return null;
-	}
-
-	/**
-	 * @param array<string, mixed> $signals Signals map.
-	 * @return array<string, bool>
-	 */
-	private static function sanitize_signal_map( array $signals ): array {
-		$out = array();
-		foreach ( $signals as $type => $present ) {
-			$key = sanitize_key( (string) $type );
-			if ( $key === '' ) {
-				continue;
-			}
-			$out[ $key ] = (bool) $present;
-		}
-		return $out;
 	}
 }

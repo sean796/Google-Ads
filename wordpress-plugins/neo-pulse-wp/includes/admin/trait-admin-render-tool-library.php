@@ -14,14 +14,12 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Tool_Library {
 			wp_die( esc_html__( 'You do not have permission to view this page.', 'neo-pulse-wp' ) );
 		}
 
-		$dashboard_url = admin_url( 'admin.php?page=neo-pulse-wp' );
-		$grouped       = Neo_Pulse_Wp_Tools_Library::get_entries_by_category();
-		$tool_count    = Neo_Pulse_Wp_Tools_Library::tool_count();
-		$version       = Neo_Pulse_Wp_Tools::VERSION;
+		$grouped    = Neo_Pulse_Wp_Tools_Library::get_entries_by_category();
+		$tool_count = Neo_Pulse_Wp_Tools_Library::tool_count();
+		$version    = Neo_Pulse_Wp_Tools::VERSION;
 		self::neo_pulse_group_shell_open( 'neo-pulse-wp-tool-library', 'neo-pulse-wp-panel-page neo-pulse-wp-tool-library' );
 		self::panel_page_header(
-				__( 'Reference for all agent tools exposed via MCP and the NEO Pulse tools REST API. Use these names in Cursor, Claude Desktop, or custom automations.', 'neo-pulse-wp' ),
-				$dashboard_url
+				__( 'Reference for all agent tools exposed via MCP and the NEO Pulse tools REST API. Use these names in Cursor, Claude Desktop, or custom automations.', 'neo-pulse-wp' )
 			); ?>
 
 			<div class="neo-pulse-wp-tool-library__toolbar">

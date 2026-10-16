@@ -91,18 +91,26 @@ export function VideoSceneSidebar({
                   <p className="truncate font-medium text-white">{scene.title}</p>
                   <p className="truncate tabular-nums text-muted-foreground" title={frame?.error ?? clip?.error ?? undefined}>
                     {scene.durationSeconds} s
-                    {scene.transitionIn ? ` · ${scene.transitionIn.type === "dissolve" ? `dissolve ${scene.transitionIn.seconds} s` : "continue"}` : ""}
+                    {scene.transitionIn
+                      ? ` · ${
+                          scene.transitionIn.type === "dissolve"
+                            ? `dissolve ${scene.transitionIn.seconds} s`
+                            : scene.transitionIn.type === "cut"
+                              ? "cut"
+                              : "continue"
+                        }`
+                      : ""}
                     {prompting ? " · Writing clip prompt" : ""}
                     {frame?.status === "failed" && frame.error ? ` · ${frame.error}` : ""}
                     {clip?.status === "failed" && clip.error ? ` · ${clip.error}` : ""}
                   </p>
                 </button>
-                {renderScenes === null && frames.length > 0 ? (
+                {frames.length > 0 ? (
                   <Button
                     type="button"
                     variant="ghost"
                     className={MY_SITES_ICON_BTN}
-                    disabled={disabled || spinning || prompting}
+                    disabled={disabled || spinning || prompting || clip?.status === "generating"}
                     aria-label={`Regenerate scene ${scene.order}`}
                     onClick={() => onRegenerate(scene.id)}
                   >

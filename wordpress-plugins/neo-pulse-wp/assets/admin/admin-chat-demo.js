@@ -312,16 +312,6 @@
       }
       block.appendChild(contactWrap);
     }
-    if (conv.formHtml) {
-      var formWrap = document.createElement('div');
-      formWrap.className = 'fcw-card__conversion-form';
-      formWrap.innerHTML = conv.formHtml;
-      block.appendChild(formWrap);
-      var formEl = formWrap.querySelector('.neo-pulse-form');
-      if (formEl && window.NeoPulseForms && typeof window.NeoPulseForms.mount === 'function') {
-        window.NeoPulseForms.mount(formEl, conv.formConfig || null);
-      }
-    }
     cardEl.appendChild(block);
   }
 
@@ -560,20 +550,8 @@
         var reader = res.body.getReader();
         var decoder = new TextDecoder();
         var buf = '';
-        function pump() {
-          return reader.read().then(function (result) {
-            if (result.done) {
-              if (streamCtx && window.NeoPulseChatStream) {
-                NeoPulseChatStream.removeTypingIndicator(streamCtx);
-              }
-              loading = false;
-              btn.disabled = false;
-              return;
-            }
-            buf += decoder.decode(result.value, { stream: true });
-            var lines = buf.split('\n');
-            buf = lines.pop();
-            lines.forEach(function (line) {
+        var gotDone = false;
+        function handleLine(line) {
               line = line.trim();
               if (!line) return;
               var evt;
@@ -581,6 +559,9 @@
                 evt = JSON.parse(line);
               } catch (_) {
                 return;
+              }
+              if (evt.status === 'done' && evt.card) {
+                gotDone = true;
               }
               if (streamCtx && window.NeoPulseChatStream) {
                 NeoPulseChatStream.handleEvent(evt, streamCtx);
@@ -600,7 +581,30 @@
               } else if (evt.label && thinkingShell && window.NeoPulseThinkingCard) {
                 NeoPulseThinkingCard.advanceStreamLabel(thinkingShell, host, evt.label);
               }
-            });
+        }
+        function pump() {
+          return reader.read().then(function (result) {
+            if (result.done) {
+              // Last line may have no trailing newline; a stream with no "done" is an error.
+              buf += decoder.decode();
+              if (buf.trim()) {
+                handleLine(buf);
+              }
+              buf = '';
+              if (!gotDone) {
+                throw new Error('Stream ended without a reply');
+              }
+              if (streamCtx && window.NeoPulseChatStream) {
+                NeoPulseChatStream.removeTypingIndicator(streamCtx);
+              }
+              loading = false;
+              btn.disabled = false;
+              return;
+            }
+            buf += decoder.decode(result.value, { stream: true });
+            var lines = buf.split('\n');
+            buf = lines.pop();
+            lines.forEach(handleLine);
             return pump();
           });
         }
@@ -692,9 +696,13 @@
     if (window.NeoPulseMarkdown && typeof window.NeoPulseMarkdown.render === 'function') {
       return NeoPulseMarkdown.render(text);
     }
-    var d = document.createElement('div');
-    d.textContent = text;
-    var s = d.innerHTML;
+    // Escape quotes too: captured URLs land inside href="...".
+    var s = String(text == null ? '' : text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
     s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
     s = s.replace(/\n/g, '<br>');

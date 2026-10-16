@@ -1,77 +1,117 @@
-import { HOST_DIVIDER, HOST_SURFACE } from "@/components/hosting/my-sites/my-sites-theme";
-import type { OpenRouterAppStreamDelta } from "@/lib/openrouter-app-api";
-import type { VideoPlan } from "@/lib/video-generator/video-generator-types";
+import { formatTransitionBadge, type VideoPlan } from "@/lib/video-generator/video-generator-types";
 import { cn } from "@/lib/utils";
-import { VideoPlanLive } from "./VideoPlanLive";
 
-/** Director's scene plan in scene order; while the Director is still writing it, the text streams in live. */
+/**
+ * Compact Scene Plan Inspector for the Video Editor Left Sidebar.
+ * Clicking a scene selects it in the Center Stage Monitor and Timeline, and shows its clean summary.
+ */
 export function VideoPlanPanel({
   plan,
-  live,
+  selectedSceneId,
+  onSelectScene,
   referenceNames,
 }: {
-  plan: VideoPlan | null;
-  live: OpenRouterAppStreamDelta;
+  plan: VideoPlan;
+  selectedSceneId?: string | null;
+  onSelectScene?: (sceneId: string) => void;
   referenceNames: string[];
 }) {
-  if (!plan) return <VideoPlanLive live={live} />;
   const total = plan.scenes.reduce((s, sc) => s + sc.durationSeconds, 0);
   const c = plan.continuity;
+  const activeSceneId = selectedSceneId ?? plan.scenes[0]?.id ?? null;
+
   return (
-    <div className={cn(HOST_SURFACE, "flex flex-col")}>
-      <div className="flex h-12 shrink-0 items-center justify-between gap-3 px-5">
-        <p className="truncate font-semibold text-white">{plan.title}</p>
-        <p className="shrink-0 tabular-nums text-muted-foreground">
-          {plan.scenes.length} scenes <span aria-hidden>·</span> {total} s
-        </p>
-      </div>
-      <p className={cn("border-t px-5 py-3 text-muted-foreground", HOST_DIVIDER)}>{plan.logline}</p>
-      <p className={cn("border-t px-5 py-3 text-muted-foreground", HOST_DIVIDER)}>
-        <span className="font-medium text-foreground">Continuity:</span> {c.heroSubject} travels {c.screenDirection.replace(/_/g, " ")}; camera
-        stays on {c.cameraSide}. Palette: {c.palette}. Light: {c.lightArc}.{plan.voice === "none" ? "" : ` Voice: ${plan.voice}.`}
-      </p>
-      {plan.scenes.map((scene) => (
-        <div key={scene.id} className={cn("grid gap-x-6 gap-y-2 border-t px-5 py-4 md:grid-cols-[8rem_1fr]", HOST_DIVIDER)}>
-          <div className="flex flex-col">
-            <span className="font-semibold text-white">Scene {scene.order}</span>
-            <span className="tabular-nums text-muted-foreground">{scene.durationSeconds} s</span>
-          </div>
-          <div className="flex flex-col gap-2">
-            <p className="font-semibold text-white">{scene.title}</p>
-            <p>{scene.sceneInstructions}</p>
-            <p className="text-muted-foreground">
-              <span className="font-medium text-foreground">Storyboard frame:</span> {scene.storyboardPrompt}
-            </p>
-            <p className="text-muted-foreground">
-              <span className="font-medium text-foreground">Motion:</span> {scene.motionPrompt}
-            </p>
-            {scene.narration ? (
-              <p className="text-muted-foreground">
-                <span className="font-medium text-foreground">Narration:</span> {scene.narration}
-              </p>
-            ) : null}
-            {scene.continuityNotes ? (
-              <p className="text-muted-foreground">
-                <span className="font-medium text-foreground">Continuity:</span> {scene.continuityNotes}
-              </p>
-            ) : null}
-            {scene.referenceIndexes.length ? (
-              <p className="text-muted-foreground">
-                <span className="font-medium text-foreground">From upload:</span>{" "}
-                {scene.referenceIndexes.map((n) => referenceNames[n - 1] ?? `Image ${n} (removed)`).join(", ")}
-              </p>
-            ) : null}
-            {scene.transitionIn ? (
-              <p className="text-muted-foreground">
-                <span className="font-medium text-foreground">Join:</span>{" "}
-                {scene.transitionIn.type === "dissolve"
-                  ? `dissolve ${scene.transitionIn.seconds} s`
-                  : "continues from the last frame of the previous scene"}
-              </p>
-            ) : null}
-          </div>
+    <div className="flex flex-col gap-2.5 text-base">
+      {/* Plan Header & Continuity Summary */}
+      <div className="flex flex-col gap-1.5 bg-zinc-900 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="truncate font-semibold text-white">{plan.title}</p>
+          <span className="shrink-0 tabular-nums text-muted-foreground">
+            {plan.scenes.length} scenes · {total}s
+          </span>
         </div>
-      ))}
+        <p className="text-muted-foreground">{plan.logline}</p>
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          <span className="bg-zinc-950 px-2 py-0.5 text-muted-foreground">
+            {c.screenDirection.replace(/_/g, " ")}
+          </span>
+          <span className="bg-zinc-950 px-2 py-0.5 text-muted-foreground">
+            {c.cameraSide}
+          </span>
+          {plan.voice !== "none" ? (
+            <span className="bg-zinc-950 px-2 py-0.5 text-primary">
+              Voice: {plan.voice}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Compact Selectable Scene Inspector Cards */}
+      <div className="flex flex-col gap-1.5">
+        <span className="font-semibold text-white">Scenes</span>
+        {plan.scenes.map((scene) => {
+          const isSelected = scene.id === activeSceneId;
+          const joinBadge = formatTransitionBadge(scene.transitionIn);
+
+          return (
+            <div
+              key={scene.id}
+              className={cn(
+                "flex flex-col bg-zinc-900 transition-colors",
+                isSelected ? "ring-1 ring-primary" : "hover:bg-zinc-800/80",
+              )}
+            >
+              <button
+                type="button"
+                onClick={() => onSelectScene?.(scene.id)}
+                className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
+              >
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <span
+                    className={cn(
+                      "inline-flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center px-1 font-semibold tabular-nums",
+                      isSelected ? "bg-primary text-black" : "bg-zinc-950 text-white",
+                    )}
+                  >
+                    {scene.order}
+                  </span>
+                  <span className="truncate font-medium text-white">{scene.title}</span>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <span className="bg-zinc-950 px-1.5 py-0.5 text-muted-foreground">
+                    {joinBadge}
+                  </span>
+                  <span className="tabular-nums text-muted-foreground">{scene.durationSeconds}s</span>
+                </div>
+              </button>
+
+              {isSelected ? (
+                <div className="flex flex-col gap-2 border-t border-white/10 px-3 py-2.5">
+                  <p className="text-foreground">{scene.sceneInstructions}</p>
+                  {scene.revisionNotes && scene.revisionNotes.length > 0 ? (
+                    <div className="flex flex-col gap-1 bg-zinc-950 p-2.5 text-primary">
+                      {scene.revisionNotes.map((n, i) => (
+                        <p key={`${i}-${n}`}>{i + 1}. {n}</p>
+                      ))}
+                    </div>
+                  ) : null}
+                  {scene.narration ? (
+                    <p className="text-muted-foreground">{scene.narration}</p>
+                  ) : null}
+                  {scene.referenceIndexes.length > 0 ? (
+                    <p className="text-muted-foreground">
+                      <span className="font-medium text-white">Beat Ref:</span>{" "}
+                      {scene.referenceIndexes
+                        .map((n) => referenceNames[n - 1] ?? `Image ${n}`)
+                        .join(", ")}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

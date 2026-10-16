@@ -1,294 +1,118 @@
 .organic-client-report-print-host {
-
   display: none;
-
 }
-
-
-
-.organic-client-report {
-
-  container-type: inline-size;
-
-  container-name: deck;
-
-  font-family: Lato, ui-sans-serif, system-ui, sans-serif;
-
-  font-size: 1rem;
-
-  line-height: 1.5;
-
-}
-
-
-
-.organic-client-report-preview-shell,
-.organic-client-report-preview-shell .organic-client-report,
-.organic-client-report p,
-.organic-client-report li,
-.organic-client-report span,
-.organic-client-report h4,
-.organic-client-report label {
-
-  font-family: Lato, ui-sans-serif, system-ui, sans-serif;
-
-}
-
-
-
-.organic-client-report p,
-.organic-client-report li,
-.organic-client-report span:not([class*="text-"]),
-.organic-client-report .text-muted-foreground {
-
-  font-size: max(1rem, 1em);
-
-}
-
-
-
-.organic-client-report-preview-toolbar {
-
-  display: flex;
-
-  justify-content: flex-end;
-
-  box-sizing: border-box;
-
-  width: 100%;
-
-  padding: 0.75rem clamp(1rem, 4vw, 2.5rem);
-
-  background: #000;
-
-}
-
-
 
 .organic-client-report-preview-shell {
-
   box-sizing: border-box;
-
   width: 100%;
-
   min-height: 100dvh;
-
-  padding: clamp(1rem, 3vw, 2rem) clamp(1rem, 4vw, 2.5rem);
-
-  background: #000;
-
-}
-
-
-
-.organic-client-report-preview-shell .organic-client-report {
-
-  box-sizing: border-box;
-
-  width: 100%;
-
-  max-width: none;
-
   margin: 0;
-
-  padding: 0;
-
-  min-height: 0;
-
+  padding: 0 0 3rem;
+  background: #f4f4f5;
+  color: #18181b;
+  font-family: Lato, ui-sans-serif, system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
-
-
-.organic-deck-split--2 {
-
-  display: grid;
-
-  grid-template-columns: 1fr;
-
-  gap: 2.5rem;
-
-}
-
-
-
-@container deck (min-width: 52rem) {
-
-  .organic-deck-split--2 {
-
-    grid-template-columns: 1fr 1fr;
-
-    align-items: start;
-
-  }
-
-}
-
-
-
-.organic-deck-kpi-strip {
-
+.organic-client-report-preview-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  box-sizing: border-box;
   width: 100%;
-
+  padding: 0.625rem clamp(1rem, 4vw, 2.5rem);
+  background: #000000;
+  color: #ffffff;
 }
-
-
-
-.organic-deck-query-bars {
-
-  width: 100%;
-
-}
-
-
-
-.organic-deck-section {
-
-  break-inside: auto;
-
-  page-break-inside: auto;
-
-}
-
-
-
-section.organic-deck-pdf-section-start {
-
-  break-before: page;
-
-  page-break-before: always;
-
-}
-
-
 
 .organic-client-report-preview-toolbar-actions {
-
   display: flex;
-
   flex-wrap: wrap;
-
   align-items: center;
-
   justify-content: flex-end;
-
   gap: 0.5rem;
-
+  margin-left: auto;
 }
 
-
-
-.organic-deck-kpi-strip > li,
-
-.organic-deck-opportunity-card,
-
-.organic-deck-query-list > li {
-
-  break-inside: avoid-page;
-
-  page-break-inside: avoid;
-
+.organic-client-report-preview-shell .organic-client-report-export {
+  margin: 1.5rem auto 0;
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
 }
 
-
-
-.organic-client-report-print-host .organic-client-report {
-
+.organic-client-report-print-host .organic-client-report-export {
   box-sizing: border-box;
-
-  padding: 0.5in;
-
+  padding: 0.4in;
   min-height: 100vh;
-
-  background: #000;
-
+  background: #ffffff;
+  color: #18181b;
 }
-
-
 
 @media print {
+  html,
+  body,
+  #root {
+    overflow: visible !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #18181b !important;
+  }
 
   .organic-client-report-preview-toolbar {
-
     display: none !important;
-
   }
-
-
 
   .organic-client-report-preview-shell {
-
     overflow: visible !important;
-
-    padding: 0.5in;
-
-    background: #000 !important;
-
+    min-height: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
   }
 
-
-
-  .organic-client-report-preview-shell .organic-client-report {
-
-    padding: 0;
-
-    background: #000 !important;
-
+  .organic-client-report-preview-shell .organic-client-report-export {
+    max-width: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: #ffffff !important;
+    color: #18181b !important;
     -webkit-print-color-adjust: exact;
-
     print-color-adjust: exact;
-
   }
-
-
 
   html.organic-reporting-print-mode,
-
   body.organic-reporting-print-mode {
-
-    overflow: hidden !important;
-
+    overflow: visible !important;
     height: auto !important;
-
     margin: 0 !important;
-
-    background: #000 !important;
-
+    background: #ffffff !important;
+    color: #18181b !important;
   }
-
-
 
   body.organic-reporting-print-mode > *:not(.organic-client-report-print-host) {
-
     display: none !important;
-
   }
-
-
 
   body.organic-reporting-print-mode .organic-client-report-print-host {
-
     display: block !important;
-
     position: static !important;
-
     overflow: visible !important;
-
     height: auto !important;
-
-    background: #000 !important;
-
+    background: #ffffff !important;
+    color: #18181b !important;
   }
-
-
 
   @page {
-
-    size: letter;
-
-    margin: 0;
-
+    size: letter portrait;
+    margin: 0.4in;
   }
-
 }
-
-

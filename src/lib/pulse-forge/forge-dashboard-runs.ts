@@ -33,6 +33,8 @@ export function runBelongsToForgeAutomation(
   projectIds: Set<number>,
   taskIds: Set<number>,
 ): boolean {
+  if (run.source === "workflow") return true;
+  if (Number(run.context?.workflowId ?? run.plan?.workflowId ?? 0) > 0) return true;
   const projectId = run.context?.projectId;
   if (projectId != null && projectIds.has(projectId)) return true;
   if (run.taskId > 0 && taskIds.has(run.taskId)) return true;

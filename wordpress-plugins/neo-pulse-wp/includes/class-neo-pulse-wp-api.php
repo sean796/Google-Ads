@@ -1,6 +1,7 @@
 <?php
 /**
- * NEO Pulse Node API client (server-to-server via wp_remote_post).
+ * Plugin settings accessors (site OpenRouter / DataForSEO keys, legacy API base) and the clean-up of
+ * the retired NEO Pulse Node API credentials.
  *
  * @package Neo_Pulse_Wp
  */
@@ -8,97 +9,34 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * HTTP helper and settings accessors.
+ * Settings accessors.
  */
 class Neo_Pulse_Wp_Api {
 
 	const OPTION_KEY = 'neo_pulse_wp_settings';
 
-	const AUTO_APP_PASSWORD_NAME = 'NEO Pulse WP';
 
-	const OPTION_AUTO_SETUP = 'neo_pulse_wp_auto_setup_user';
-
-	const TRANSIENT_AUTO_PAUSE = 'neo_pulse_wp_auto_pause_';
+	/** Option that recorded which user the old pairing created that password for. */
+	const LEGACY_AUTO_SETUP_OPTION = 'neo_pulse_wp_auto_setup_user';
 
 	/**
-	 * Copy options from the old NEO Pulse Current plugin keys once so upgrades keep settings.
+	 * Remove the plain-text credentials the retired NEO Pulse Node API pairing stored (WordPress username
+	 * and Application Password in neo_pulse_wp_settings) and the auto-setup marker. The Application
+	 * Password itself is left in place: an external app may still sign in with it; revoke it under
+	 * Users → Profile if it is no longer needed. Safe to run more than once.
 	 */
-	public static function maybe_migrate_legacy_data(): void {
-		$legacy_settings = get_option( 'neo_pulse_current_settings', null );
-		if ( is_array( $legacy_settings ) && $legacy_settings !== array() ) {
-			$current = get_option( self::OPTION_KEY, array() );
-			$current = is_array( $current ) ? $current : array();
-			$has_credentials = ! empty( $current['wp_username'] ) || ! empty( $current['app_password'] );
-			if ( ! $has_credentials ) {
-				update_option( self::OPTION_KEY, array_merge( $legacy_settings, $current ), false );
-			}
-			delete_option( 'neo_pulse_current_settings' );
+	public static function cleanup_legacy_credentials(): void {
+		$settings = get_option( self::OPTION_KEY, null );
+		if ( is_array( $settings ) && ( array_key_exists( 'wp_username', $settings ) || array_key_exists( 'app_password', $settings ) ) ) {
+			unset( $settings['wp_username'], $settings['app_password'] );
+			update_option( self::OPTION_KEY, $settings, false );
 		}
-
-		$legacy_auto = get_option( 'flowbie_current_auto_setup_user', null );
-		if ( $legacy_auto === null ) {
-			$legacy_auto = get_option( 'neo_pulse_current_auto_setup_user', null );
-		}
-		if ( $legacy_auto !== null && $legacy_auto !== false && get_option( self::OPTION_AUTO_SETUP, false ) === false ) {
-			update_option( self::OPTION_AUTO_SETUP, $legacy_auto, false );
-			delete_option( 'flowbie_current_auto_setup_user' );
-			delete_option( 'neo_pulse_current_auto_setup_user' );
-		}
-
-		self::maybe_clear_stored_api_base_for_builtin_default();
-		self::maybe_apply_default_api_base();
+		delete_option( self::LEGACY_AUTO_SETUP_OPTION );
 	}
 
-	public static function maybe_clear_stored_api_base_for_builtin_default(): void {
-		if ( get_option( 'neo_pulse_wp_builtin_api_base_v1', false ) ) {
-			return;
-		}
-		$default = self::get_default_api_base();
-		if ( $default !== '' ) {
-			$s = self::get_settings();
-			if ( isset( $s['api_base'] ) && $s['api_base'] !== '' ) {
-				$s['api_base'] = '';
-				update_option( self::OPTION_KEY, $s, false );
-			}
-		}
-		update_option( 'neo_pulse_wp_builtin_api_base_v1', '1', true );
-	}
-
-	public static function maybe_apply_default_api_base(): void {
-		$default = self::get_default_api_base();
-		if ( $default === '' ) {
-			return;
-		}
-		$saved = self::get_settings();
-		if ( isset( $saved['api_base'] ) && trim( (string) $saved['api_base'] ) !== '' ) {
-			return;
-		}
-		update_option(
-			self::OPTION_KEY,
-			array_merge(
-				$saved,
-				array(
-					'api_base' => $default,
-				)
-			),
-			false
-		);
-	}
-
-	public static function pause_auto_provision_retries(): void {
-		$uid = get_current_user_id();
-		if ( $uid > 0 ) {
-			set_transient( self::TRANSIENT_AUTO_PAUSE . $uid, 1, HOUR_IN_SECONDS );
-		}
-	}
-
-	public static function clear_auto_provision_pause(): void {
-		$uid = get_current_user_id();
-		if ( $uid > 0 ) {
-			delete_transient( self::TRANSIENT_AUTO_PAUSE . $uid );
-		}
-	}
-
+	/**
+	 * Legacy Node API origin from the NEO_PULSE_WP_DEFAULT_API_BASE constant / filter ('' when unset).
+	 */
 	public static function get_default_api_base(): string {
 		$default = defined( 'NEO_PULSE_WP_DEFAULT_API_BASE' ) ? (string) NEO_PULSE_WP_DEFAULT_API_BASE : '';
 		$default = (string) apply_filters( 'neo_pulse_wp_default_api_base', $default );
@@ -128,113 +66,38 @@ class Neo_Pulse_Wp_Api {
 	}
 
 	/**
-	 * @return array{api_base:string,wp_username:string,app_password:string}
+	 * @return array{api_base:string,agency_openrouter_api_key:string,agency_dataforseo_login:string,agency_dataforseo_password:string}
 	 */
 	public static function get_settings(): array {
 		$defaults = array(
 			'api_base'                    => '',
-			'wp_username'                 => '',
-			'app_password'                => '',
 			'agency_openrouter_api_key'   => '',
 			'agency_dataforseo_login'     => '',
 			'agency_dataforseo_password'  => '',
 		);
 		$saved = get_option( self::OPTION_KEY, array() );
-		$merged = wp_parse_args( (array) $saved, $defaults );
 
-		return $merged;
-	}
-
-	public static function dev_credentials_active(): bool {
-		if ( ! defined( 'NEO_PULSE_WP_USE_DEV_CREDENTIALS' ) || ! NEO_PULSE_WP_USE_DEV_CREDENTIALS ) {
-			return false;
-		}
-		$u = self::get_dev_username();
-		$p = self::get_dev_app_password_raw();
-		return $u !== '' && $p !== '';
-	}
-
-	private static function get_dev_username(): string {
-		if ( defined( 'NEO_PULSE_WP_DEV_WP_USERNAME' ) && NEO_PULSE_WP_DEV_WP_USERNAME !== '' ) {
-			return sanitize_text_field( (string) NEO_PULSE_WP_DEV_WP_USERNAME );
-		}
-		$e = getenv( 'NEO_PULSE_WP_DEV_WP_USERNAME' );
-		return $e ? sanitize_text_field( (string) $e ) : '';
-	}
-
-	private static function get_dev_app_password_raw(): string {
-		if ( defined( 'NEO_PULSE_WP_DEV_APP_PASSWORD' ) && NEO_PULSE_WP_DEV_APP_PASSWORD !== '' ) {
-			return preg_replace( '/\s+/', '', (string) NEO_PULSE_WP_DEV_APP_PASSWORD );
-		}
-		$e = getenv( 'NEO_PULSE_WP_DEV_APP_PASSWORD' );
-		return $e ? preg_replace( '/\s+/', '', (string) $e ) : '';
-	}
-
-	private static function get_dev_api_base(): string {
-		if ( defined( 'NEO_PULSE_WP_DEV_API_BASE' ) && NEO_PULSE_WP_DEV_API_BASE !== '' ) {
-			return self::normalize_neo_pulse_api_base( (string) NEO_PULSE_WP_DEV_API_BASE );
-		}
-		$e = getenv( 'NEO_PULSE_WP_DEV_API_BASE' );
-		return $e ? self::normalize_neo_pulse_api_base( (string) $e ) : '';
+		return wp_parse_args( (array) $saved, $defaults );
 	}
 
 	/**
-	 * @return array{api_base:string,wp_username:string,app_password:string,source:string}
+	 * Legacy Node API base URL (saved setting, else the build default). Used by Neo_Pulse_Wp_Ai_Backend.
+	 *
+	 * @return array{api_base:string,source:string}
 	 */
 	public static function get_effective_settings(): array {
-		if ( self::dev_credentials_active() ) {
-			$base = self::get_dev_api_base();
-			if ( $base === '' ) {
-				$base = self::get_default_api_base();
-			}
-			return array(
-				'api_base'     => $base,
-				'wp_username'  => self::get_dev_username(),
-				'app_password' => self::get_dev_app_password_raw(),
-				'source'       => 'dev',
-			);
-		}
-
 		$saved = self::get_settings();
 		$base  = '';
 		if ( isset( $saved['api_base'] ) && trim( (string) $saved['api_base'] ) !== '' ) {
 			$base = self::normalize_neo_pulse_api_base( (string) $saved['api_base'] );
-		} elseif ( self::get_default_api_base() !== '' ) {
+		} else {
 			$base = self::get_default_api_base();
 		}
 
 		return array(
-			'api_base'     => $base,
-			'wp_username'  => $saved['wp_username'],
-			'app_password' => $saved['app_password'],
-			'source'       => 'saved',
+			'api_base' => $base,
+			'source'   => 'saved',
 		);
-	}
-
-	/**
-	 * @param array<string,mixed> $data Raw POST-shaped array.
-	 */
-	public static function save_settings( array $data ): void {
-		$username = isset( $data['wp_username'] ) ? sanitize_text_field( (string) $data['wp_username'] ) : '';
-		$app_pw   = isset( $data['app_password'] ) ? preg_replace( '/\s+/', '', (string) $data['app_password'] ) : '';
-		$app_pw   = sanitize_text_field( $app_pw );
-		$api_base = isset( $data['api_base'] ) ? self::normalize_neo_pulse_api_base( (string) $data['api_base'] ) : '';
-
-		$prev   = self::get_settings();
-		$merged = array_merge(
-			$prev,
-			array(
-				'wp_username'  => $username !== '' ? $username : $prev['wp_username'],
-				'app_password' => $app_pw !== '' ? $app_pw : $prev['app_password'],
-			)
-		);
-		if ( $api_base !== '' ) {
-			$merged['api_base'] = $api_base;
-		} elseif ( array_key_exists( 'api_base', $data ) ) {
-			$merged['api_base'] = '';
-		}
-
-		update_option( self::OPTION_KEY, $merged, false );
 	}
 
 	public static function get_agency_openrouter_api_key(): string {
@@ -298,24 +161,6 @@ class Neo_Pulse_Wp_Api {
 	}
 
 	/**
-	 * @return array<string,string>|WP_Error
-	 */
-	public static function build_auth_payload() {
-		$s = self::get_effective_settings();
-		if ( $s['wp_username'] === '' || $s['app_password'] === '' ) {
-			return new WP_Error(
-				'neo-pulse_incomplete',
-				__( 'WordPress credentials are not stored locally for this plugin.', 'neo-pulse-wp' )
-			);
-		}
-		return array(
-			'siteUrl'     => self::get_site_url(),
-			'username'    => $s['wp_username'],
-			'appPassword' => $s['app_password'],
-		);
-	}
-
-	/**
 	 * Local WordPress site dashboard (no cloud pairing).
 	 *
 	 * @return array{ok:bool,dashboard:?array<string,mixed>,error:string,error_code:string}
@@ -327,9 +172,6 @@ class Neo_Pulse_Wp_Api {
 				'name'    => get_bloginfo( 'name' ),
 				'siteUrl' => self::get_site_url(),
 			),
-			'progress' => array(
-				'ok' => false,
-			),
 		);
 
 		return array(
@@ -337,221 +179,6 @@ class Neo_Pulse_Wp_Api {
 			'dashboard'  => $dashboard,
 			'error'      => '',
 			'error_code' => '',
-		);
-	}
-
-	/**
-	 * @param string               $route
-	 * @param array<string,mixed>  $body
-	 * @param int                  $timeout
-	 * @return array|WP_Error
-	 */
-	public static function request( string $route, array $body, int $timeout = 90 ) {
-		$s = self::get_effective_settings();
-		if ( $s['api_base'] === '' ) {
-			return new WP_Error(
-				'neo-pulse_no_base',
-				__( 'Set the NEO Pulse API URL under Settings.', 'neo-pulse-wp' )
-			);
-		}
-
-		$url  = untrailingslashit( $s['api_base'] ) . '/api/wordpress/' . ltrim( $route, '/' );
-		$args = array(
-			'timeout' => $timeout,
-			'headers' => array(
-				'Content-Type' => 'application/json; charset=utf-8',
-				'Accept'       => 'application/json',
-			),
-			'body'    => wp_json_encode( $body ),
-		);
-
-		$response = wp_remote_post( $url, $args );
-
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
-
-		$code = wp_remote_retrieve_response_code( $response );
-		$raw  = wp_remote_retrieve_body( $response );
-		$data = json_decode( $raw, true );
-
-		if ( $code < 200 || $code >= 300 ) {
-			$msg = '';
-			if ( is_array( $data ) ) {
-				if ( isset( $data['message'] ) && is_string( $data['message'] ) ) {
-					$msg = $data['message'];
-				} elseif ( isset( $data['error'] ) && is_string( $data['error'] ) ) {
-					$msg = $data['error'];
-				}
-			}
-			if ( $msg === '' ) {
-				$msg = $raw !== '' ? $raw : sprintf( 'HTTP %d', (int) $code );
-			}
-			return new WP_Error( 'neo-pulse_http', $msg, array( 'status' => $code ) );
-		}
-
-		if ( ! is_array( $data ) ) {
-			return new WP_Error(
-				'neo-pulse_bad_json',
-				sprintf(
-					/* translators: 1: HTTP status code */
-					__( 'NEO Pulse API returned a non-JSON response (HTTP %1$d). Use the NEO Pulse API server URL from Integrations — not the frontend app URL (e.g. not neo-pulse-1.onrender.com).', 'neo-pulse-wp' ),
-					(int) $code
-				)
-			);
-		}
-
-		if ( $raw === '' || $data === array() ) {
-			return new WP_Error(
-				'neo-pulse_empty_response',
-				sprintf(
-					/* translators: 1: HTTP status code */
-					__( 'NEO Pulse API returned an empty response (HTTP %1$d). The API URL likely points at the frontend app instead of the NEO Pulse API server. Update NEO Pulse API URL in Settings.', 'neo-pulse-wp' ),
-					(int) $code
-				)
-			);
-		}
-
-		return $data;
-	}
-
-	/**
-	 * @return array{success:bool,message:string}|WP_Error
-	 */
-	public static function run_test_connection_internal() {
-		$auth = self::build_auth_payload();
-		if ( is_wp_error( $auth ) ) {
-			return $auth;
-		}
-		$result = self::request( 'test-connection', $auth, 30 );
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-		$ok      = ! empty( $result['success'] );
-		$message = '';
-		if ( isset( $result['message'] ) && is_string( $result['message'] ) ) {
-			$message = $result['message'];
-		} elseif ( ! $ok && isset( $result['error'] ) && is_string( $result['error'] ) ) {
-			$message = $result['error'];
-		} elseif ( $ok ) {
-			$message = __( 'Connection successful.', 'neo-pulse-wp' );
-		} else {
-			$message = __( 'Connection failed.', 'neo-pulse-wp' );
-		}
-		return array(
-			'success' => $ok,
-			'message' => $message,
-		);
-	}
-
-	/**
-	 * @return array{ok:bool,message:string}|WP_Error
-	 */
-	public static function maybe_auto_provision_credentials() {
-		if ( self::dev_credentials_active() ) {
-			return array( 'ok' => false, 'message' => '' );
-		}
-
-		$uid = get_current_user_id();
-		if ( $uid > 0 && get_transient( self::TRANSIENT_AUTO_PAUSE . $uid ) ) {
-			return array( 'ok' => false, 'message' => '' );
-		}
-
-		$eff = self::get_effective_settings();
-		if ( $eff['wp_username'] !== '' && $eff['app_password'] !== '' && $eff['api_base'] !== '' ) {
-			return array( 'ok' => false, 'message' => '' );
-		}
-
-		$saved = self::get_settings();
-
-		if ( ! class_exists( 'WP_Application_Passwords' ) ) {
-			self::pause_auto_provision_retries();
-			return new WP_Error(
-				'neo-pulse_no_app_passwords',
-				__( 'Application passwords are not available on this WordPress version.', 'neo-pulse-wp' )
-			);
-		}
-
-		if ( ! wp_is_application_passwords_available() ) {
-			self::pause_auto_provision_retries();
-			return new WP_Error(
-				'neo-pulse_app_passwords_disabled',
-				__( 'Application passwords are disabled on this site. Add credentials manually or ask your host to enable them.', 'neo-pulse-wp' )
-			);
-		}
-
-		$user_id = get_current_user_id();
-		if ( $user_id < 1 ) {
-			return array( 'ok' => false, 'message' => '' );
-		}
-
-		if ( ! wp_is_application_passwords_available_for_user( $user_id ) ) {
-			self::pause_auto_provision_retries();
-			return new WP_Error(
-				'neo-pulse_app_passwords_user',
-				__( 'Your account cannot use application passwords. Save credentials for a user that can, or use an administrator account.', 'neo-pulse-wp' )
-			);
-		}
-
-		if ( method_exists( 'WP_Application_Passwords', 'application_name_exists_for_user' )
-			&& WP_Application_Passwords::application_name_exists_for_user( $user_id, self::AUTO_APP_PASSWORD_NAME )
-			&& $saved['app_password'] === '' ) {
-			self::pause_auto_provision_retries();
-			return new WP_Error(
-				'neo-pulse_app_password_exists',
-				__( 'An application password named “NEO Pulse WP” already exists. Remove it under your profile or enter the password manually below.', 'neo-pulse-wp' )
-			);
-		}
-
-		$created = WP_Application_Passwords::create_new_application_password(
-			$user_id,
-			array(
-				'name' => self::AUTO_APP_PASSWORD_NAME,
-			)
-		);
-
-		if ( is_wp_error( $created ) ) {
-			self::pause_auto_provision_retries();
-			return $created;
-		}
-
-		$plain = '';
-		if ( is_array( $created ) && isset( $created[0] ) && is_string( $created[0] ) ) {
-			$plain = $created[0];
-		}
-
-		if ( $plain === '' ) {
-			self::pause_auto_provision_retries();
-			return new WP_Error(
-				'neo-pulse_app_password_empty',
-				__( 'Could not read the new application password. Try saving credentials manually.', 'neo-pulse-wp' )
-			);
-		}
-
-		$user = get_userdata( $user_id );
-		if ( ! $user instanceof WP_User ) {
-			self::pause_auto_provision_retries();
-			return new WP_Error( 'neo-pulse_user', __( 'Invalid user.', 'neo-pulse-wp' ) );
-		}
-
-		$prev_merge = self::get_settings();
-		$auto_base  = self::get_default_api_base();
-		$merged     = array_merge(
-			$prev_merge,
-			array(
-				'wp_username'  => $user->user_login,
-				'app_password' => preg_replace( '/\s+/', '', $plain ),
-			)
-		);
-		if ( $auto_base !== '' && trim( (string) ( $prev_merge['api_base'] ?? '' ) ) === '' ) {
-			$merged['api_base'] = $auto_base;
-		}
-		update_option( self::OPTION_KEY, $merged, false );
-		update_option( self::OPTION_AUTO_SETUP, $user_id, false );
-
-		return array(
-			'ok'      => true,
-			'message' => __( 'NEO Pulse connected automatically using a new application password for your account.', 'neo-pulse-wp' ),
 		);
 	}
 }

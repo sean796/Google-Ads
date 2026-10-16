@@ -145,7 +145,7 @@ export async function runBulkRowChecklistAndBlueprintPhase(input: {
         apiKey: options.openRouterApiKey,
         model: pipelineResearchModel,
         temperature: options.temperature || 1.0,
-        maxTokens: options.maxTokens || 4000,
+        maxTokens: Math.max(options.maxTokens || 0, 16000),
         topP: options.topP || 0.9,
         userPrompt: enrichedRow.prompt_modifier || enrichedRow.modifier, // Use prompt_modifier if available, fallback to modifier
         entity: entityForLocalTemplate,

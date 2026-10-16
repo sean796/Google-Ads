@@ -331,15 +331,33 @@ export function parseOrganicReportingHighlightsPayload(raw: string): OrganicRepo
   };
 }
 
-/** Neutral deck copy while the report agent runs (no invented metrics). */
-export function buildPlaceholderOrganicReportingHighlights(siteName: string): OrganicReportingHighlights {
+/** Clean client-facing summary while the report agent finishes (no internal status jargon). */
+export function buildPlaceholderOrganicReportingHighlights(
+  siteName: string,
+  viewModel?: OrganicDashboardViewModel,
+): OrganicReportingHighlights {
   const name = siteName.trim() || "This site";
+  const takeaways: string[] = [];
+  const sessionsRow = viewModel?.ga4Table.find((r) => r.label === "Organic Search sessions");
+  if (sessionsRow && sessionsRow.current !== "—") {
+    takeaways.push(
+      `GA4 Organic Search recorded ${sessionsRow.current} sessions in ${viewModel?.periodLabels.primary ?? "the primary period"}.`,
+    );
+  }
+  if (viewModel?.gscSummary) {
+    takeaways.push(
+      `Google Search Console recorded ${viewModel.gscSummary.clicks} clicks and ${viewModel.gscSummary.impressions} impressions (${viewModel.gscSummary.ctr} CTR, avg. position ${viewModel.gscSummary.avgPosition}).`,
+    );
+  }
+  if (takeaways.length < 2) {
+    takeaways.push(
+      "Headline GA4 organic traffic and Google Search Console visibility metrics are summarized in the tables below.",
+      "Top organic search queries and period comparisons are detailed by section.",
+    );
+  }
   return {
-    executiveSummary: `${name} organic performance report is being prepared.`,
-    keyTakeaways: [
-      "Performance and keyword narratives are generating.",
-      "This page will update when the report agent finishes.",
-    ],
+    executiveSummary: `${name} organic search performance summary across GA4, Google Search Console, and Semrush.`,
+    keyTakeaways: takeaways.slice(0, 4),
     performanceNarrative: [],
     keywordNarrative: [],
     topOpportunities: [],
@@ -349,11 +367,12 @@ export function buildPlaceholderOrganicReportingHighlights(siteName: string): Or
 export function resolveClientReportHighlights(
   cached: OrganicReportingHighlights | undefined,
   siteName: string,
+  viewModel?: OrganicDashboardViewModel,
 ): OrganicReportingHighlights {
   if (cached) {
     return cached;
   }
-  return buildPlaceholderOrganicReportingHighlights(siteName);
+  return buildPlaceholderOrganicReportingHighlights(siteName, viewModel);
 }
 
 export async function fetchOrganicReportingHighlights(

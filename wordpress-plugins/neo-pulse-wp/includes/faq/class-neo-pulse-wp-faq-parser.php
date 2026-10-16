@@ -1,6 +1,6 @@
 <?php
 /**
- * Parse NEO Pulse Fields FAQ values into normalized Q&A pairs.
+ * Parse FAQ field values (repeater rows, Q/A text, JSON-LD) into normalized Q&A pairs.
  *
  * @package Neo_Pulse_Wp
  */

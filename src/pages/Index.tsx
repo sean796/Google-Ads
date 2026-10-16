@@ -86,7 +86,7 @@ import { isPulseHostHash } from "@/lib/hosting/pulse-host-hash";
 
 const OPENROUTER_API_KEY_STORAGE_KEY = "openrouter-api-key";
 
-const DEFAULT_BLOG_MODEL = "google/gemini-2.5-flash";
+const DEFAULT_BLOG_MODEL = DEFAULT_SETTINGS.model;
 const DEFAULT_TEMPERATURE = 1.57;
 // Keep this comfortably under typical OpenRouter/model context limits
 const DEFAULT_MAX_TOKENS = 5000000;
@@ -124,6 +124,7 @@ const VALID_MANAGER_TABS = new Set([
   "organic-reporting",
   "pulse-host",
   "video-generator",
+  "neo-emcp",
 ]);
 
 const Index = () => {

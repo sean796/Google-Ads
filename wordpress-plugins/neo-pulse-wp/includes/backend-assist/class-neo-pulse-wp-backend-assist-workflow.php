@@ -27,9 +27,6 @@ class Neo_Pulse_Wp_Backend_Assist_Workflow {
 			'steps'                 => $built['steps'],
 			'outline'               => isset( $built['outline'] ) ? $built['outline'] : array(),
 			'last_post_id'          => 0,
-			'last_block_id'         => 0,
-			'last_block_ids'        => array(),
-			'last_block_manifest'   => null,
 			'last_elementor_sections' => array(),
 			'step_results'          => array(),
 			'focus_keyword'         => isset( $built['focus_keyword'] ) ? $built['focus_keyword'] : '',
@@ -133,52 +130,6 @@ class Neo_Pulse_Wp_Backend_Assist_Workflow {
 			$params['post_id'] = (int) $workflow['last_post_id'];
 		}
 
-		$new_block = ! empty( $params['new_block'] )
-			|| Neo_Pulse_Wp_Backend_Assist_Pipeline_Content_Prep::message_requests_new_page_or_post( $message );
-		if ( empty( $params['block_id'] ) && ! empty( $workflow['last_block_id'] ) && ( $tool !== 'compose_seo_block' || ! $new_block ) ) {
-			$params['block_id'] = (int) $workflow['last_block_id'];
-		}
-
-		if ( $tool === 'save_seo_block' ) {
-			if ( empty( $params['block_manifest'] ) && ! empty( $workflow['last_block_manifest'] ) && is_array( $workflow['last_block_manifest'] ) ) {
-				$params['block_manifest'] = $workflow['last_block_manifest'];
-			}
-			if ( ! empty( $params['block_manifest'] ) && is_array( $params['block_manifest'] ) && ! empty( $workflow['last_post_id'] ) ) {
-				$params['block_manifest']['primary_post_id'] = (int) $workflow['last_post_id'];
-			}
-		}
-
-		if ( $tool === 'duplicate_seo_block' ) {
-			if ( empty( $params['block_id'] ) && ! empty( $params['title'] ) ) {
-				$params['title'] = sanitize_text_field( (string) $params['title'] );
-			}
-		}
-
-		if ( $tool === 'compose_seo_block' ) {
-			if ( $new_block || empty( $params['current_block'] ) || ! is_array( $params['current_block'] ) ) {
-				$params['current_block'] = array();
-			}
-			if ( ! empty( $workflow['last_post_id'] ) ) {
-				$params['current_block']['primary_post_id'] = (int) $workflow['last_post_id'];
-			}
-			if ( ! $new_block && ! empty( $workflow['last_block_id'] ) && empty( $params['current_block']['id'] ) ) {
-				$params['current_block']['id'] = (int) $workflow['last_block_id'];
-			}
-			if ( empty( $params['page_context'] ) && ! empty( $workflow['last_post_id'] ) ) {
-				if ( ! class_exists( 'Neo_Pulse_Wp_Seo_Blocks_Context', false ) ) {
-					require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/seo-builder/class-neo-pulse-wp-seo-blocks-context.php';
-				}
-				$params['page_context'] = Neo_Pulse_Wp_Seo_Blocks_Context::prompt_for_block(
-					(int) $workflow['last_post_id'],
-					absint( $params['current_block']['id'] ?? 0 ),
-					$params['current_block']
-				);
-			}
-			if ( empty( $params['prompt'] ) && ! empty( $workflow['message'] ) ) {
-				$params['prompt'] = (string) $workflow['message'];
-			}
-		}
-
 		if ( $tool === 'compose_elementor_page_sections' ) {
 			if ( empty( $params['prompt'] ) && ! empty( $workflow['message'] ) ) {
 				$params['prompt'] = (string) $workflow['message'];
@@ -217,17 +168,6 @@ class Neo_Pulse_Wp_Backend_Assist_Workflow {
 
 		if ( ! empty( $result['post_id'] ) ) {
 			$workflow['last_post_id'] = (int) $result['post_id'];
-		}
-		if ( ! empty( $result['block_id'] ) ) {
-			$workflow['last_block_id'] = (int) $result['block_id'];
-			$ids                       = isset( $workflow['last_block_ids'] ) && is_array( $workflow['last_block_ids'] )
-				? $workflow['last_block_ids']
-				: array();
-			$ids[]                     = (int) $result['block_id'];
-			$workflow['last_block_ids'] = array_values( array_unique( array_filter( array_map( 'absint', $ids ) ) ) );
-		}
-		if ( ! empty( $result['block_manifest'] ) && is_array( $result['block_manifest'] ) ) {
-			$workflow['last_block_manifest'] = $result['block_manifest'];
 		}
 		if ( ! empty( $result['sections'] ) && is_array( $result['sections'] ) ) {
 			$existing = isset( $workflow['last_elementor_sections'] ) && is_array( $workflow['last_elementor_sections'] )
@@ -424,7 +364,7 @@ class Neo_Pulse_Wp_Backend_Assist_Workflow {
 		}
 
 		return is_array( $last ) ? $last : array(
-			'error' => __( 'Build did not apply the SEO block.', 'neo-pulse-wp' ),
+			'error' => __( 'Build did not finish the page changes.', 'neo-pulse-wp' ),
 		);
 	}
 

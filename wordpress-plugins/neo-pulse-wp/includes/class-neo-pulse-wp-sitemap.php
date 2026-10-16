@@ -19,6 +19,9 @@ class Neo_Pulse_Wp_Sitemap {
 	 */
 	public static function init(): void {
 		add_action( 'init', array( __CLASS__, 'register_rewrites' ), 5 );
+		if ( class_exists( 'Neo_Pulse_Wp_Sitemap_Style', false ) ) {
+			Neo_Pulse_Wp_Sitemap_Style::init();
+		}
 		add_filter( 'query_vars', array( __CLASS__, 'register_query_vars' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'maybe_serve_sitemap' ), 0 );
 		add_filter( 'wp_sitemaps_enabled', array( __CLASS__, 'maybe_disable_core_sitemaps' ) );
@@ -61,10 +64,13 @@ class Neo_Pulse_Wp_Sitemap {
 	}
 
 	/**
-	 * @param array<int, string> $vars Query vars.
-	 * @return array<int, string>
+	 * @param mixed $vars Query vars.
+	 * @return mixed
 	 */
-	public static function register_query_vars( array $vars ): array {
+	public static function register_query_vars( $vars ) {
+		if ( ! is_array( $vars ) ) {
+			return $vars;
+		}
 		$vars[] = self::QUERY_VAR;
 		$vars[] = 'neo-pulse_sitemap_type';
 		$vars[] = 'neo-pulse_sitemap_page';
@@ -154,6 +160,10 @@ class Neo_Pulse_Wp_Sitemap {
 		status_header( 200 );
 		header( 'Content-Type: application/xml; charset=UTF-8' );
 		header( 'X-Robots-Tag: noindex, follow', true );
+		if ( class_exists( 'Neo_Pulse_Wp_Sitemap_Style', false ) ) {
+			// Browsers show a styled table; search engines read the XML as before.
+			$xml = Neo_Pulse_Wp_Sitemap_Style::add_to( $xml );
+		}
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- XML payload.
 		echo $xml;
 		exit;

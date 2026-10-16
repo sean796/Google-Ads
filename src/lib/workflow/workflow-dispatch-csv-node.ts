@@ -1,6 +1,7 @@
 import { patchWorkflowRun, saveWorkflowStepOutput } from "@/lib/workflow/workflow-api";
 import { resolveRagInputKeys } from "@/lib/workflow/workflow-rag-utils";
-import { collectWorkflowRunContextBlock } from "@/lib/workflow/workflow-walk-helpers";
+import { collectWorkflowRunContextBlock, resolveWorkflowSiteContext } from "@/lib/workflow/workflow-walk-helpers";
+import { syncWorkflowRunArchiveDeliverables } from "@/lib/workflow/workflow-rag-archive";
 import { workflowClientVariableSuffix } from "@/lib/workflow/workflow-client-config";
 import {
   executeWorkflowCsvRowsStep,
@@ -9,6 +10,7 @@ import {
 import { csvTextToDataHref } from "@/lib/workflow/workflow-rag-run-files";
 import { nodeById, outgoingEdges } from "@/lib/workflow/workflow-graph-utils";
 import { workflowAgentUsesThenDelivery } from "@/lib/workflow/workflow-then-utils";
+import { registerParallelWorkflowChains } from "@/lib/workflow/workflow-parallel-completion";
 import type {
   WorkflowActionConfig,
   WorkflowDefinition,
@@ -44,6 +46,15 @@ export async function walkWorkflowCsvRowsNode(args: {
     visited: Set<string>,
     clientScope: WorkflowWalkClientScope,
   ) => Promise<WalkFromNodeResult>;
+  walkRemainingLinearSteps?: (
+    workflow: WorkflowDefinition,
+    run: WorkflowRun,
+    afterNodeId: string,
+    outputs: WorkflowStepOutput[],
+    callbacks: WorkflowRunCallbacks,
+    visited: Set<string>,
+    clientScope: WorkflowWalkClientScope,
+  ) => Promise<WalkFromNodeResult>;
 }): Promise<WalkFromNodeResult | null> {
   const {
     workflow,
@@ -55,6 +66,7 @@ export async function walkWorkflowCsvRowsNode(args: {
     walkScope,
     allSiteIds,
     walkFromNode,
+    walkRemainingLinearSteps,
   } = args;
   if (node.kind !== "csv_rows") return null;
 
@@ -159,22 +171,55 @@ export async function walkWorkflowCsvRowsNode(args: {
     }
     if (fanOutAgent) {
       visited.add(fanOutAgent.id);
+      await Promise.all(
+        sitesToAudit.map(async (siteId) => {
+          const archiveOutput = await syncWorkflowRunArchiveDeliverables({
+            teamId: workflow.teamId,
+            workflowId: workflow.id,
+            workflowRunId: run.id,
+            nodes: workflow.nodes,
+            outputs,
+            siteId,
+            clientSiteIds: allSiteIds.length > 1 ? allSiteIds : sitesToAudit,
+            siteName: resolveWorkflowSiteContext(siteId).name,
+          });
+          if (archiveOutput) outputs.push(archiveOutput);
+        }),
+      );
+      const deferCount = siteResults.filter((row) => row.agentResult?.defer).length;
+      if (deferCount > 0) {
+        registerParallelWorkflowChains(workflow.teamId, workflow.id, run.id, deferCount);
+        return { ok: true, deferWorkflowCompletion: true };
+      }
       if (callbacks.stopAfterNodeId === fanOutAgent.id) {
         return { ok: true };
       }
       const afterAgent = outgoingEdges(workflow.edges, fanOutAgent.id)[0];
-      if (!afterAgent) {
-        return { ok: true };
+      if (afterAgent) {
+        const next = await walkFromNode(
+          workflow,
+          run,
+          afterAgent.target,
+          outputs,
+          callbacks,
+          visited,
+          walkScope,
+        );
+        if (!next.ok) return next;
+        if (next.deferWorkflowCompletion) return next;
       }
-      return walkFromNode(
-        workflow,
-        run,
-        afterAgent.target,
-        outputs,
-        callbacks,
-        visited,
-        walkScope,
-      );
+      if (walkRemainingLinearSteps) {
+        return walkRemainingLinearSteps(
+          workflow,
+          run,
+          fanOutAgent.id,
+          outputs,
+          callbacks,
+          visited,
+          walkScope,
+        );
+      }
+      return { ok: true };
     }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "CSV rows step failed";

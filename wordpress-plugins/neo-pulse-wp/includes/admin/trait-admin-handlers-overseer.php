@@ -88,13 +88,19 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Overseer {
 		}
 		check_admin_referer( self::ACTION_CLEAR_OVERSEER_VISITS, 'neo_pulse_wp_clear_overseer_nonce' );
 
-		Neo_Pulse_Wp_Overseer::delete_all_visits();
+		$deleted = Neo_Pulse_Wp_Overseer::delete_all_visits();
 
 		self::set_flash(
 			array(
 				'kind'    => 'overseer',
 				'success' => true,
-				'message' => __( 'All visits cleared.', 'neo-pulse-wp' ),
+				'message' => $deleted > 0
+					? sprintf(
+						/* translators: %d: number of visits deleted */
+						_n( 'All visits cleared (%d visit deleted).', 'All visits cleared (%d visits deleted).', $deleted, 'neo-pulse-wp' ),
+						$deleted
+					)
+					: __( 'No visits were deleted.', 'neo-pulse-wp' ),
 			)
 		);
 		self::redirect_to_overseer( 'import-export' );
@@ -163,66 +169,37 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Overseer {
 		}
 		check_admin_referer( self::ACTION_SAVE_OVERSEER_CONVERSION, 'neo_pulse_wp_overseer_conversion_nonce' );
 
-		$trigger_type = isset( $_POST['trigger_type'] ) ? sanitize_key( wp_unslash( (string) $_POST['trigger_type'] ) ) : 'form_success';
+		$trigger_type = isset( $_POST['trigger_type'] ) ? sanitize_key( wp_unslash( (string) $_POST['trigger_type'] ) ) : '';
 		if ( ! array_key_exists( $trigger_type, Neo_Pulse_Wp_Overseer_Conversions::TRIGGER_TYPES ) ) {
-			$trigger_type = 'form_success';
+			$trigger_type = (string) array_key_first( Neo_Pulse_Wp_Overseer_Conversions::TRIGGER_TYPES );
 		}
 
-		$rules = array();
-		if ( 'form_success' === $trigger_type ) {
-			if ( isset( $_POST['rules_field_type'] ) && is_array( $_POST['rules_field_type'] ) ) {
-				foreach ( $_POST['rules_field_type'] as $type ) {
-					$type = sanitize_key( (string) $type );
-					if ( $type !== '' ) {
-						$rules[] = array(
-							'type'  => 'field_type',
-							'value' => $type,
-						);
-					}
-				}
+		$rules           = array();
+		$interaction_map = array(
+			'rules_page_url' => 'page_url_contains',
+			'rules_text'     => 'text_contains',
+			'rules_href'     => 'href_contains',
+		);
+		foreach ( $interaction_map as $post_key => $rule_type ) {
+			if ( ! isset( $_POST[ $post_key ] ) ) {
+				continue;
 			}
-			if ( isset( $_POST['rules_field_id'] ) && is_array( $_POST['rules_field_id'] ) ) {
-				foreach ( $_POST['rules_field_id'] as $field_id ) {
-					$field_id = sanitize_key( (string) $field_id );
-					if ( $field_id !== '' ) {
-						$rules[] = array(
-							'type'  => 'field_id',
-							'value' => $field_id,
-						);
-					}
-				}
-			}
-		} else {
-			$interaction_map = array(
-				'rules_page_url' => 'page_url_contains',
-				'rules_text'     => 'text_contains',
-				'rules_href'     => 'href_contains',
-			);
-			foreach ( $interaction_map as $post_key => $rule_type ) {
-				if ( ! isset( $_POST[ $post_key ] ) ) {
-					continue;
-				}
-				$value = trim( sanitize_text_field( wp_unslash( (string) $_POST[ $post_key ] ) ) );
-				if ( $value !== '' ) {
-					$rules[] = array(
-						'type'  => $rule_type,
-						'value' => $value,
-					);
-				}
+			$value = trim( sanitize_text_field( wp_unslash( (string) $_POST[ $post_key ] ) ) );
+			if ( $value !== '' ) {
+				$rules[] = array(
+					'type'  => $rule_type,
+					'value' => $value,
+				);
 			}
 		}
 
 		$goal_id = isset( $_POST['goal_id'] ) ? sanitize_key( wp_unslash( (string) $_POST['goal_id'] ) ) : '';
-		$form_id = isset( $_POST['form_id'] ) ? (int) $_POST['form_id'] : 0;
-		if ( 'form_success' !== $trigger_type ) {
-			$form_id = 0;
-		}
 		$payload = array(
 			'id'           => $goal_id,
 			'name'         => isset( $_POST['goal_name'] ) ? wp_unslash( (string) $_POST['goal_name'] ) : '',
 			'enabled'      => ! empty( $_POST['goal_enabled'] ),
 			'trigger_type' => $trigger_type,
-			'form_id'      => $form_id,
+			'form_id'      => 0,
 			'match_mode'   => isset( $_POST['match_mode'] ) ? sanitize_key( wp_unslash( (string) $_POST['match_mode'] ) ) : 'all',
 			'rules'        => $rules,
 		);
@@ -234,7 +211,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Overseer {
 				'success' => (bool) $saved,
 				'message' => $saved
 					? __( 'Conversion goal saved.', 'neo-pulse-wp' )
-					: __( 'Could not save conversion goal. Check the trigger, form, and rules.', 'neo-pulse-wp' ),
+					: __( 'Could not save conversion goal. Check the trigger and add at least one rule.', 'neo-pulse-wp' ),
 			)
 		);
 		self::redirect_to_overseer( 'conversions' );

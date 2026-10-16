@@ -132,6 +132,47 @@ class Neo_Pulse_Wp_Overview_Seo_Bulk {
 		$meta = isset( $raw['meta'] ) && is_array( $raw['meta'] ) ? $raw['meta'] : array();
 		$acf  = isset( $raw['acf'] ) && is_array( $raw['acf'] ) ? $raw['acf'] : array();
 
+		/*
+		 * Allow-list: only the three Rank Math meta keys and the ACF keys in $acf_map
+		 * may be written. Anything else is skipped so callers cannot write arbitrary
+		 * post meta (e.g. _wp_page_template, _edit_lock, other plugins' keys); the item
+		 * only fails when nothing allowed was sent.
+		 */
+		$meta_keys = array( 'rank_math_title', 'rank_math_description', 'rank_math_focus_keyword' );
+		$acf_map   = array(
+			'keyword_focus'     => array( 'keyword_focus' ),
+			'keyword_focu'      => array( 'keyword_focus' ),
+			'faq'               => array( 'faq', 'seo_faq' ),
+			'seo_faq'           => array( 'seo_faq', 'faq' ),
+			'date_modifier'     => array( 'date_modifier', 'seo_date_modifier' ),
+			'seo_date_modifier' => array( 'date_modifier', 'seo_date_modifier' ),
+			'seo_research'      => array( 'seo_research' ),
+		);
+
+		$rejected = array();
+		foreach ( array_keys( $meta ) as $key ) {
+			if ( ! in_array( (string) $key, $meta_keys, true ) ) {
+				$rejected[] = 'meta.' . (string) $key;
+				unset( $meta[ $key ] );
+			}
+		}
+		foreach ( array_keys( $acf ) as $key ) {
+			if ( ! is_string( $key ) || ! isset( $acf_map[ $key ] ) ) {
+				$rejected[] = 'acf.' . (string) $key;
+				unset( $acf[ $key ] );
+			}
+		}
+		if ( $rejected !== array() && $meta === array() && $acf === array() ) {
+			return new \WP_Error(
+				'neo-pulse_unsupported_keys',
+				sprintf(
+					/* translators: %s: comma-separated list of rejected keys. */
+					__( 'Unsupported keys: %s', 'neo-pulse-wp' ),
+					implode( ', ', array_map( 'sanitize_text_field', $rejected ) )
+				)
+			);
+		}
+
 		$did = false;
 
 		if ( isset( $meta['rank_math_title'] ) && is_string( $meta['rank_math_title'] ) ) {
@@ -162,26 +203,15 @@ class Neo_Pulse_Wp_Overview_Seo_Bulk {
 			}
 		}
 
-		$acf_map = array(
-			'keyword_focus'      => array( 'keyword_focus' ),
-			'keyword_focu'       => array( 'keyword_focus' ),
-			'faq'                => array( 'faq', 'seo_faq' ),
-			'seo_faq'            => array( 'seo_faq', 'faq' ),
-			'date_modifier'      => array( 'date_modifier', 'seo_date_modifier' ),
-			'seo_date_modifier'  => array( 'date_modifier', 'seo_date_modifier' ),
-			'seo_research'       => array( 'seo_research' ),
-		);
-
 		foreach ( $acf as $key => $value ) {
-			if ( ! is_string( $key ) || $value === null || $value === '' ) {
+			if ( $value === null || $value === '' || ! is_scalar( $value ) ) {
 				continue;
 			}
-			$text = is_string( $value ) ? trim( $value ) : trim( (string) $value );
+			$text = trim( (string) $value );
 			if ( $text === '' ) {
 				continue;
 			}
-			$targets = isset( $acf_map[ $key ] ) ? $acf_map[ $key ] : array( $key );
-			foreach ( $targets as $target ) {
+			foreach ( $acf_map[ $key ] as $target ) {
 				Neo_Pulse_Wp_Ai_Apply::write_acf_or_meta( $post_id, $target, $text );
 			}
 			$did = true;

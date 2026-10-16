@@ -5,7 +5,7 @@ section: Proposal
 method: POST
 path: /api/proposal/site-audit
 auth: open
-order: 940
+order: 950
 ---
 
 POST `/api/proposal/site-audit`.

@@ -11,10 +11,31 @@
     return text == null ? '' : String(text);
   }
 
+  // Escapes quotes too: the output is used inside href="..." attributes.
   function esc(text) {
-    var d = document.createElement('div');
-    d.textContent = decodeDisplayText(text);
-    return d.innerHTML;
+    return String(decodeDisplayText(text))
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // Only http(s), mailto, tel and site-relative links are ever rendered as <a>.
+  function safeHref(url) {
+    var u = String(url == null ? '' : url).trim();
+    if (/^(https?:\/\/|mailto:|tel:)/i.test(u)) {
+      return u;
+    }
+    if (/^\/(?!\/)/.test(u) || /^#/.test(u)) {
+      return u;
+    }
+    return '';
+  }
+
+  function linkHtml(label, url) {
+    var href = safeHref(url);
+    return href ? '<a href="' + href + '">' + label + '</a>' : label;
   }
 
   function telHref(raw) {
@@ -87,9 +108,15 @@
     s = protectedLinks.text;
     s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     s = restoreMarkdownLinks(s, protectedLinks.saved);
-    s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2">$1</a>');
-    s = s.replace(/\[([^\]]+)\]\((mailto:[^)]+)\)/gi, '<a href="$2">$1</a>');
-    s = s.replace(/\[([^\]]+)\]\((tel:[^)]+)\)/gi, '<a href="$2">$1</a>');
+    s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, function (_, label, url) {
+      return linkHtml(label, url);
+    });
+    s = s.replace(/\[([^\]]+)\]\((mailto:[^)]+)\)/gi, function (_, label, url) {
+      return linkHtml(label, url);
+    });
+    s = s.replace(/\[([^\]]+)\]\((tel:[^)]+)\)/gi, function (_, label, url) {
+      return linkHtml(label, url);
+    });
     return autoLinkContacts(s);
   }
 
@@ -258,6 +285,8 @@
 
   global.NeoPulseMarkdown = {
     render: renderMarkdown,
-    inline: inlineMarkdown
+    inline: inlineMarkdown,
+    escape: esc,
+    safeHref: safeHref
   };
 })(typeof window !== 'undefined' ? window : this);

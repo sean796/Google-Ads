@@ -262,8 +262,16 @@ class Neo_Pulse_App_Openrouter_Chat_Completion_Route {
 		$code = (int) wp_remote_retrieve_response_code( $response );
 		$raw  = json_decode( wp_remote_retrieve_body( $response ), true );
 		if ( $code < 200 || $code >= 300 ) {
-			$msg = is_array( $raw ) ? ( $raw['error']['message'] ?? $raw['message'] ?? 'OpenRouter error' ) : 'OpenRouter error';
-			throw new Exception( 'OpenRouter ' . $code . ': ' . $msg );
+			$msg  = is_array( $raw ) ? ( $raw['error']['message'] ?? $raw['message'] ?? 'OpenRouter error' ) : 'OpenRouter error';
+			$meta = is_array( $raw['error']['metadata'] ?? null ) ? $raw['error']['metadata'] : array();
+			$detail = '';
+			if ( ! empty( $meta['provider_name'] ) && is_string( $meta['provider_name'] ) ) {
+				$detail .= ' [' . $meta['provider_name'] . ']';
+			}
+			if ( ! empty( $meta['raw'] ) && is_string( $meta['raw'] ) ) {
+				$detail .= ' ' . mb_substr( $meta['raw'], 0, 300 );
+			}
+			throw new Exception( 'OpenRouter ' . $code . ': ' . $msg . $detail );
 		}
 
 		$message    = is_array( $raw['choices'][0]['message'] ?? null ) ? $raw['choices'][0]['message'] : array();
@@ -294,7 +302,7 @@ class Neo_Pulse_App_Openrouter_Chat_Completion_Route {
 			throw new Exception(
 				$finish === 'length'
 					? 'OpenRouter cut the structured reply at max_tokens (finish_reason=length); raise the token budget for this call.'
-					: 'OpenRouter returned prose instead of JSON for structured output (finish_reason=' . $finish . '). Use a model that supports response_format json_object.'
+					: 'OpenRouter returned prose instead of JSON for structured output (finish_reason=' . $finish . '). Reply began: ' . mb_substr( $content, 0, 400 )
 			);
 		}
 		if ( $content === '' && $parsed === null && ! $has_tool_calls && empty( $message['images'] ) && empty( $payload['modalities'] ) ) {

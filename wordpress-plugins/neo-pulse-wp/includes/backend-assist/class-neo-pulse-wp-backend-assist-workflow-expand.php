@@ -111,26 +111,10 @@ class Neo_Pulse_Wp_Backend_Assist_Workflow_Expand {
 				if ( $keyword !== '' ) {
 					$prompt .= '. Focus keyword ' . $keyword . '.';
 				}
-				if ( self::uses_elementor_page_content() ) {
-					$out[] = self::compose_elementor_step(
-						'Compose Elementor sections for ' . $title,
-						array( 'prompt' => $prompt )
-					);
-				} else {
-					$out[] = array(
-						'tool'   => 'compose_seo_block',
-						'label'  => 'Compose SEO block for ' . $title,
-						'params' => array(
-							'mode'   => 'generate_full',
-							'prompt' => $prompt,
-						),
-					);
-					$out[] = array(
-						'tool'   => 'save_seo_block',
-						'label'  => 'Save SEO block to Agent Hub',
-						'params' => array(),
-					);
-				}
+				$out[] = self::compose_elementor_step(
+					'Compose Elementor sections for ' . $title,
+					array( 'prompt' => $prompt )
+				);
 				$out[] = self::design_step();
 			} else {
 				$brief = 'Write full post body for ' . $title . '.';
@@ -155,246 +139,6 @@ class Neo_Pulse_Wp_Backend_Assist_Workflow_Expand {
 			$decomposed['title'] = ( $create_tool === 'create_page' ? 'Create page ' : 'Create post ' ) . $title;
 		}
 		return $decomposed;
-	}
-
-	/**
-	 * Replace one mega compose with compose/save/apply per H2.
-	 *
-	 * @param array<string, mixed>             $decomposed
-	 * @param array<int, array<string, mixed>> $sections
-	 * @return array<string, mixed>
-	 */
-	public static function apply_heading_outline_to_steps( array $decomposed, array $sections ): array {
-		$steps = isset( $decomposed['steps'] ) && is_array( $decomposed['steps'] ) ? $decomposed['steps'] : array();
-		if ( $steps === array() || $sections === array() ) {
-			return $decomposed;
-		}
-
-		$groups = self::heading_groups( $sections );
-		if ( $groups === array() ) {
-			return $decomposed;
-		}
-
-		$topic          = self::pack_topic( $decomposed );
-		$is_create      = in_array( 'create_page', self::decomposed_tool_names( $steps ), true );
-		$use_elementor  = $is_create && self::uses_elementor_page_content();
-		$triplets       = array();
-		foreach ( $groups as $group ) {
-			$h2 = $group['title'];
-			if ( $use_elementor ) {
-				$triplets[] = self::compose_elementor_step(
-					'Compose Elementor section: ' . $h2,
-					array(
-						'prompt'      => self::compose_prompt_for_h2( $topic, $group ),
-						'section_h2'  => $h2,
-						'new_section' => true,
-					)
-				);
-				continue;
-			}
-			$triplets[] = array(
-				'tool'   => 'compose_seo_block',
-				'label'  => 'Compose SEO block: ' . $h2,
-				'params' => array(
-					'mode'          => 'generate_full',
-					'prompt'        => self::compose_prompt_for_h2( $topic, $group ),
-					'new_block'     => true,
-					'current_block' => array(),
-				),
-			);
-			$triplets[] = array(
-				'tool'   => 'save_seo_block',
-				'label'  => 'Save SEO block: ' . $h2,
-				'params' => array(),
-			);
-			if ( ! $is_create ) {
-				$triplets[] = array(
-					'tool'   => 'apply_seo_block_to_page',
-					'label'  => 'Apply SEO block: ' . $h2,
-					'params' => array(
-						'mode'                    => 'append',
-						'sync_library'            => true,
-						'include_dynamic_heading' => true,
-					),
-				);
-			}
-		}
-
-		$out      = array();
-		$replaced = false;
-		foreach ( $steps as $step ) {
-			if ( ! is_array( $step ) ) {
-				continue;
-			}
-			if ( sanitize_key( (string) ( $step['step_kind'] ?? '' ) ) === 'heading' ) {
-				continue;
-			}
-			$tool = sanitize_key( (string) ( $step['tool'] ?? '' ) );
-			if ( in_array( $tool, array( 'compose_seo_block', 'save_seo_block', 'apply_seo_block_to_page', 'compose_elementor_page_sections', 'design_page_with_novamira' ), true ) ) {
-				if ( ! $replaced ) {
-					$out      = array_merge( $out, $triplets );
-					$replaced = true;
-				}
-				continue;
-			}
-			if ( $tool === '' ) {
-				continue;
-			}
-			$out[] = $step;
-		}
-		if ( ! $replaced ) {
-			$out = array_merge( $out, $triplets );
-		}
-		if ( $is_create ) {
-			$out[] = self::design_step();
-		}
-
-		$decomposed['steps']   = $out;
-		$decomposed['outline'] = $sections;
-		return $decomposed;
-	}
-
-	/**
-	 * @param array<int, array<string, mixed>> $sections
-	 * @return array<int, array{title: string, brief: string, h3s: array<int, array{title: string, brief: string}>}>
-	 */
-	private static function heading_groups( array $sections ): array {
-		$groups  = array();
-		$current = null;
-		foreach ( $sections as $section ) {
-			if ( ! is_array( $section ) ) {
-				continue;
-			}
-			$type  = isset( $section['type'] ) ? sanitize_key( (string) $section['type'] ) : 'h2';
-			$title = isset( $section['title'] ) ? sanitize_text_field( (string) $section['title'] ) : '';
-			if ( $title === '' ) {
-				continue;
-			}
-			$brief = isset( $section['brief'] ) ? sanitize_text_field( (string) $section['brief'] ) : '';
-			if ( $type === 'h3' && is_array( $current ) ) {
-				$current['h3s'][] = array(
-					'title' => $title,
-					'brief' => $brief,
-				);
-				continue;
-			}
-			if ( is_array( $current ) ) {
-				$groups[] = $current;
-			}
-			$current = array(
-				'title' => $title,
-				'brief' => $brief,
-				'h3s'   => array(),
-			);
-		}
-		if ( is_array( $current ) ) {
-			$groups[] = $current;
-		}
-		return $groups;
-	}
-
-	/**
-	 * @param array{title: string, keyword: string} $topic
-	 * @param array{title: string, brief: string, h3s: array<int, array{title: string, brief: string}>} $group
-	 */
-	private static function compose_prompt_for_h2( array $topic, array $group ): string {
-		$page = $topic['title'] !== '' ? $topic['title'] : 'this page';
-		$h2   = $group['title'];
-		$prompt = 'Create a brand-new Agent Hub Block Builder SEO block for this H2 only on the WordPress page "' . $page . '".';
-		if ( $topic['keyword'] !== '' ) {
-			$prompt .= ' Focus keyword: ' . $topic['keyword'] . '.';
-		}
-		$prompt .= ' H2 title (use exactly): ' . $h2 . '.';
-		if ( $group['brief'] !== '' ) {
-			$prompt .= ' ' . $group['brief'];
-		}
-		if ( ! empty( $group['h3s'] ) ) {
-			$prompt .= ' H3s under this H2 only:';
-			foreach ( $group['h3s'] as $h3 ) {
-				$prompt .= ' ' . $h3['title'];
-				if ( $h3['brief'] !== '' ) {
-					$prompt .= ' (' . $h3['brief'] . ')';
-				}
-				$prompt .= '.';
-			}
-		}
-		$prompt .= ' Body copy covers this subtopic only. Do not include sibling H2s as slots. Do not load or reuse an existing Agent Hub block id. Start with an empty current_block.';
-		return $prompt;
-	}
-
-	/**
-	 * @param array<string, mixed> $decomposed
-	 * @return array{title: string, keyword: string}
-	 */
-	public static function pack_topic( array $decomposed ): array {
-		$title   = '';
-		$keyword = '';
-		$steps   = isset( $decomposed['steps'] ) && is_array( $decomposed['steps'] ) ? $decomposed['steps'] : array();
-		foreach ( $steps as $step ) {
-			if ( ! is_array( $step ) ) {
-				continue;
-			}
-			$tool   = sanitize_key( (string) ( $step['tool'] ?? '' ) );
-			$params = isset( $step['params'] ) && is_array( $step['params'] ) ? $step['params'] : array();
-			if ( in_array( $tool, array( 'create_page', 'create_post' ), true ) ) {
-				if ( $title === '' && ! empty( $params['title'] ) ) {
-					$title = sanitize_text_field( (string) $params['title'] );
-				}
-				if ( $keyword === '' && ! empty( $params['focus_keyword'] ) ) {
-					$keyword = sanitize_text_field( (string) $params['focus_keyword'] );
-				}
-			}
-			if ( $tool === 'save_post_meta' && $keyword === '' && ! empty( $params['focusKeyword'] ) ) {
-				$keyword = sanitize_text_field( (string) $params['focusKeyword'] );
-			}
-		}
-		return array(
-			'title'   => $title,
-			'keyword' => $keyword,
-		);
-	}
-
-	/**
-	 * Plan H2/H3s for a compose_seo_block pack and lock the compose prompt to them.
-	 *
-	 * @param array<string, mixed>             $decomposed
-	 * @param array<int, array<string, mixed>> $history
-	 * @return array<string, mixed>|WP_Error
-	 */
-	public static function attach_heading_outline( array $decomposed, string $message, array $history = array() ) {
-		$steps = isset( $decomposed['steps'] ) && is_array( $decomposed['steps'] ) ? $decomposed['steps'] : array();
-		$tools = self::decomposed_tool_names( $steps );
-		if ( ! in_array( 'compose_seo_block', $tools, true ) ) {
-			return $decomposed;
-		}
-		foreach ( $steps as $step ) {
-			if ( is_array( $step ) && sanitize_key( (string) ( $step['step_kind'] ?? '' ) ) === 'heading' ) {
-				return $decomposed;
-			}
-		}
-
-		if ( ! class_exists( 'Neo_Pulse_Wp_Backend_Assist_Content', false ) ) {
-			require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/backend-assist/class-neo-pulse-wp-backend-assist-content.php';
-		}
-
-		$topic   = self::pack_topic( $decomposed );
-		$planned = Neo_Pulse_Wp_Backend_Assist_Content::phase_plan_content_outline(
-			$message,
-			array(
-				'post_title'    => $topic['title'],
-				'focus_keyword' => $topic['keyword'],
-				'content_brief' => 'Plan one H2 per subtopic. Each H2 becomes its own Agent Hub Block Builder block.',
-			),
-			$history
-		);
-		if ( is_wp_error( $planned ) ) {
-			return $planned;
-		}
-		$sections = Neo_Pulse_Wp_Backend_Assist_Content::normalize_outline_sections( $planned['sections'] ?? array() );
-		if ( $sections === array() ) {
-			return new WP_Error( 'neo-pulse_outline', __( 'Could not plan headings for this page block.', 'neo-pulse-wp' ) );
-		}
-		return self::apply_heading_outline_to_steps( $decomposed, $sections );
 	}
 
 	/**
@@ -429,7 +173,7 @@ class Neo_Pulse_Wp_Backend_Assist_Workflow_Expand {
 	 * @param array<int, string> $tools
 	 */
 	private static function decomposed_has_content_steps( array $tools ): bool {
-		foreach ( array( 'add_content', 'compose_seo_block', 'compose_elementor_page_sections', 'duplicate_seo_block', 'apply_seo_block_to_page', 'design_page_with_novamira' ) as $tool ) {
+		foreach ( array( 'add_content', 'compose_elementor_page_sections', 'design_page_with_novamira' ) as $tool ) {
 			if ( in_array( $tool, $tools, true ) ) {
 				return true;
 			}
@@ -456,10 +200,6 @@ class Neo_Pulse_Wp_Backend_Assist_Workflow_Expand {
 	 * @param array<int, mixed> $steps
 	 * @return array<int, mixed>
 	 */
-	/**
-	 * @param array<int, mixed> $steps
-	 * @return array<int, mixed>
-	 */
 	private static function clear_create_pack_post_ids( array $steps ): array {
 		$out = array();
 		foreach ( $steps as $step ) {
@@ -467,7 +207,7 @@ class Neo_Pulse_Wp_Backend_Assist_Workflow_Expand {
 				continue;
 			}
 			$tool = sanitize_key( (string) ( $step['tool'] ?? '' ) );
-			if ( in_array( $tool, array( 'save_post_meta', 'compose_seo_block', 'apply_seo_block_to_page', 'design_page_with_novamira', 'add_content' ), true ) ) {
+			if ( in_array( $tool, array( 'save_post_meta', 'design_page_with_novamira', 'add_content' ), true ) ) {
 				if ( isset( $step['params'] ) && is_array( $step['params'] ) ) {
 					unset( $step['params']['post_id'] );
 				}
@@ -516,9 +256,6 @@ class Neo_Pulse_Wp_Backend_Assist_Workflow_Expand {
 				continue;
 			}
 			$tool = sanitize_key( (string) ( $step['tool'] ?? '' ) );
-			if ( $tool === 'apply_seo_block_to_page' ) {
-				continue;
-			}
 			if ( $tool === 'design_page_with_novamira' ) {
 				if ( $has_design ) {
 					continue;
@@ -537,19 +274,11 @@ class Neo_Pulse_Wp_Backend_Assist_Workflow_Expand {
 	 * @return array<string, mixed>
 	 */
 	private static function design_step(): array {
-		$params = array();
-		if ( self::uses_elementor_page_content() ) {
-			$params['content_mode'] = 'elementor_widgets';
-		}
 		return array(
 			'tool'   => 'design_page_with_novamira',
 			'label'  => 'Design page with Novamira',
-			'params' => $params,
+			'params' => array( 'content_mode' => 'elementor_widgets' ),
 		);
-	}
-
-	private static function uses_elementor_page_content(): bool {
-		return Neo_Pulse_Wp_Backend_Assist_Pipeline_Content_Prep::page_content_mode_from_context() === 'elementor_widgets';
 	}
 
 	/**

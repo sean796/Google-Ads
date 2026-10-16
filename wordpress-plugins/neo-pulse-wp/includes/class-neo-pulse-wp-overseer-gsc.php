@@ -17,7 +17,7 @@ class Neo_Pulse_Wp_Overseer_Gsc {
 	public static function merge_page_stats( string $date_from, string $date_to ): array {
 		$overseer_by_path = array();
 		foreach ( Neo_Pulse_Wp_Overseer::aggregate_by_page( $date_from, $date_to ) as $row ) {
-			$path = self::normalize_gsc_path( (string) $row->page_url );
+			$path = Neo_Pulse_Wp_Overseer_Aggregates::normalize_path_url( (string) $row->page_url );
 			$overseer_by_path[ $path ] = array(
 				'on_site_views'    => (int) $row->pageviews,
 				'avg_time_sec'     => isset( $row->avg_duration_ms ) ? (int) round( (float) $row->avg_duration_ms / 1000 ) : 0,
@@ -45,7 +45,7 @@ class Neo_Pulse_Wp_Overseer_Gsc {
 				if ( ! is_array( $page_row ) || empty( $page_row['page'] ) ) {
 					continue;
 				}
-				$path = self::normalize_gsc_path( (string) $page_row['page'] );
+				$path = Neo_Pulse_Wp_Overseer_Aggregates::normalize_path_url( (string) $page_row['page'] );
 				$gsc_by_path[ $path ] = array(
 					'gsc_clicks'      => isset( $page_row['clicks'] ) ? (int) $page_row['clicks'] : 0,
 					'gsc_impressions' => isset( $page_row['impressions'] ) ? (int) $page_row['impressions'] : 0,
@@ -187,13 +187,6 @@ class Neo_Pulse_Wp_Overseer_Gsc {
 		}
 
 		return implode( "\n", $lines ) . "\n";
-	}
-
-	/**
-	 * @param string $url Page URL from GSC or Overseer.
-	 */
-	public static function normalize_gsc_path( string $url ): string {
-		return Neo_Pulse_Wp_Overseer::normalize_path_url( $url );
 	}
 
 	/**

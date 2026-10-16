@@ -5,7 +5,7 @@ section: Teams
 method: GET
 path: /api/teams/{teamId}/tasks/trigger-pending
 auth: session-team
-order: 2390
+order: 2400
 ---
 
 GET `/api/teams/{teamId}/tasks/trigger-pending`.

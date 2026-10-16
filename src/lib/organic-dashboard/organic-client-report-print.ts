@@ -63,14 +63,11 @@ export function buildOrganicClientReportPdfOptions(
       },
     },
     jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+    /* Disable html2pdf internal DOM spacer injection; planPdfCanvasSlices handles pagination. */
     pagebreak: {
-      mode: ["css", "legacy"],
-      before: [".organic-deck-export-page-break"],
-      avoid: [
-        ".organic-client-report-export__kpi-item",
-        ".organic-client-report-export__opportunity",
-        ".organic-client-report-export__query-item",
-      ],
+      mode: [],
+      before: [],
+      avoid: [],
     },
   };
 }

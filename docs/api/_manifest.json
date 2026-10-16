@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-07T22:03:32.597Z",
-  "routeCount": 329,
+  "generatedAt": "2026-10-16T01:51:40.073Z",
+  "routeCount": 330,
   "sections": [
     {
       "id": "getting-started",
@@ -85,14 +85,100 @@
           "order": 10
         },
         {
-          "slug": "aiseo/agent-models",
-          "title": "Pipeline Agents & Models",
+          "slug": "aiseo/generated-files",
+          "title": "Generated Files & Upload JSONs",
+          "order": 20
+        }
+      ]
+    },
+    {
+      "id": "mastra",
+      "label": "Mastra",
+      "items": [
+        {
+          "slug": "mastra/overview",
+          "title": "Mastra Overview & Architecture",
+          "order": 0
+        },
+        {
+          "slug": "mastra/workflows-and-steps",
+          "title": "Workflows & Steps",
+          "order": 10
+        },
+        {
+          "slug": "mastra/agents-and-models",
+          "title": "Agents & Category Models",
           "order": 20
         },
         {
-          "slug": "aiseo/generated-files",
-          "title": "Generated Files & Upload JSONs",
+          "slug": "mastra/agent-registry",
+          "title": "Pulse Agent Registry",
           "order": 30
+        },
+        {
+          "slug": "mastra/agentic-study-guide",
+          "title": "Agentic Engineering Study Guide",
+          "order": 35
+        },
+        {
+          "slug": "mastra/playbook-index",
+          "title": "Playbook: Complete Index",
+          "order": 40
+        },
+        {
+          "slug": "mastra/playbook/agents-and-subagents",
+          "title": "Playbook: Agents & Subagents",
+          "order": 50
+        },
+        {
+          "slug": "mastra/playbook/workflows",
+          "title": "Playbook: Workflows & Control Flow",
+          "order": 60
+        },
+        {
+          "slug": "mastra/playbook/harness",
+          "title": "Playbook: Harness, Durable Agents & Signals",
+          "order": 70
+        },
+        {
+          "slug": "mastra/playbook/memory",
+          "title": "Playbook: Memory & Context Recall",
+          "order": 80
+        },
+        {
+          "slug": "mastra/playbook/guides-and-context",
+          "title": "Playbook: Guides, Context Engineering & Lifecycle",
+          "order": 90
+        },
+        {
+          "slug": "mastra/playbook/evals-and-observability",
+          "title": "Playbook: Evals, Scorers & Observability",
+          "order": 100
+        },
+        {
+          "slug": "mastra/playbook/connections-and-sandboxes",
+          "title": "Playbook: MCP, Connections, Sandboxes & Channels",
+          "order": 110
+        },
+        {
+          "slug": "mastra/playbook/server-auth-and-deploy",
+          "title": "Playbook: Server, Storage, Studio, Auth & Deployment",
+          "order": 120
+        },
+        {
+          "slug": "mastra/playbook/models-and-platform",
+          "title": "Playbook: Model Router, Providers & Platform",
+          "order": 130
+        },
+        {
+          "slug": "mastra/playbook/reference-agents-and-tools",
+          "title": "Playbook: API Reference - Agents & Tools",
+          "order": 140
+        },
+        {
+          "slug": "mastra/playbook/reference-workflows-core-and-memory",
+          "title": "Playbook: API Reference - Workflows, Core & Memory",
+          "order": 150
         }
       ]
     },
@@ -486,12 +572,20 @@
           "order": 110
         },
         {
+          "slug": "gsc/page-indexing-report",
+          "title": "Page Indexing Report",
+          "method": "POST",
+          "path": "/api/gsc/page-indexing-report",
+          "auth": "open",
+          "order": 120
+        },
+        {
           "slug": "gsc/query-daily-series",
           "title": "Query Daily Series",
           "method": "POST",
           "path": "/api/gsc/query-daily-series",
           "auth": "open",
-          "order": 120
+          "order": 130
         },
         {
           "slug": "gsc/quick-wins-context",
@@ -499,7 +593,7 @@
           "method": "POST",
           "path": "/api/gsc/quick-wins-context",
           "auth": "open",
-          "order": 130
+          "order": 140
         },
         {
           "slug": "gsc/quick-wins-csv/filename",
@@ -507,7 +601,7 @@
           "method": "GET",
           "path": "/api/gsc/quick-wins-csv/{filename}",
           "auth": "open",
-          "order": 140
+          "order": 150
         },
         {
           "slug": "gsc/report-date-range",
@@ -515,7 +609,7 @@
           "method": "POST",
           "path": "/api/gsc/report-date-range",
           "auth": "open",
-          "order": 150
+          "order": 160
         },
         {
           "slug": "gsc/reporting-chat-completion",
@@ -523,7 +617,7 @@
           "method": "POST",
           "path": "/api/gsc/reporting-chat-completion",
           "auth": "open",
-          "order": 160
+          "order": 170
         },
         {
           "slug": "gsc/request-url-indexing",
@@ -531,7 +625,7 @@
           "method": "POST",
           "path": "/api/gsc/request-url-indexing",
           "auth": "open",
-          "order": 170
+          "order": 180
         },
         {
           "slug": "gsc/service-account-email",
@@ -539,7 +633,7 @@
           "method": "GET",
           "path": "/api/gsc/service-account-email",
           "auth": "open",
-          "order": 180
+          "order": 190
         },
         {
           "slug": "gsc/test-connection",
@@ -547,7 +641,7 @@
           "method": "GET",
           "path": "/api/gsc/test-connection",
           "auth": "open",
-          "order": 190
+          "order": 200
         },
         {
           "slug": "gsc/top-pages",
@@ -555,7 +649,7 @@
           "method": "POST",
           "path": "/api/gsc/top-pages",
           "auth": "open",
-          "order": 200
+          "order": 210
         },
         {
           "slug": "gsc/url-inventory",
@@ -563,7 +657,7 @@
           "method": "POST",
           "path": "/api/gsc/url-inventory",
           "auth": "open",
-          "order": 210
+          "order": 220
         }
       ]
     },

@@ -5,7 +5,7 @@ section: WordPress
 method: POST
 path: /api/wordpress/get-posts-list
 auth: open
-order: 2810
+order: 2820
 ---
 
 POST `/api/wordpress/get-posts-list`.

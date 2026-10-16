@@ -6,7 +6,7 @@ order: 30
 related:
   - aiseo/overview
   - aiseo/element-library
-  - aiseo/agent-models
+  - mastra/workflows-and-steps
 ---
 
 <!-- manual -->
@@ -71,3 +71,4 @@ Attached to the **`Post content`** slot via `buildAiseoPostContentHtmlFile(url, 
 | `blueprint-{slug}.json` | `content` | JSON | Structured multi-agent blog blueprint (`title`, `purpose`, `agents[]`) |
 | `link-targets-{slug}.json` | `content` | JSON | Pre-matched internal link targets per body section |
 | `content-{slug}.md` | `content` | Markdown | Full article Markdown projection alongside `content-{slug}.html` |
+| `implementation-report-{slug}.md` | `content` | Markdown | Executive implementation report (Director reasoning + GSC/Semrush strategy + before/after H2, link, FAQ, and word-count diffs) |

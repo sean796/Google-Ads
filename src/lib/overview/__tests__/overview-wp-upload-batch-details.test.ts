@@ -23,10 +23,10 @@ function uploadState(urls: string[], steps = buildWpUploadBatchPipelineSteps(url
 }
 
 describe("buildOverviewWpUploadBatchDetailsProps", () => {
-  it("shows only the current sequential post", () => {
+  it("shows only the current upload batch", () => {
     const urls = Array.from({ length: 4 }, (_, i) => `https://example.com/p-${i}/`);
     const props = buildOverviewWpUploadBatchDetailsProps(
-      { bulkState: uploadState(urls) },
+      { bulkState: uploadState(urls, buildWpUploadBatchPipelineSteps([1, 1, 1, 1])) },
       true,
     );
 
@@ -47,9 +47,9 @@ describe("buildOverviewWpUploadBatchDetailsProps", () => {
     expect(props.status).toBe("Uploading WordPress post 1/91…");
   });
 
-  it("shows the running post only", () => {
+  it("shows the running batch only", () => {
     const urls = Array.from({ length: 3 }, (_, i) => `https://example.com/p-${i}/`);
-    const steps = buildWpUploadBatchPipelineSteps(3).map((step, index) => ({
+    const steps = buildWpUploadBatchPipelineSteps([1, 1, 1]).map((step, index) => ({
       ...step,
       status: index === 0 ? ("done" as const) : index === 1 ? ("running" as const) : ("waiting" as const),
     }));
@@ -88,7 +88,7 @@ describe("buildOverviewBulkGeneratorDetailsProps wpUpload", () => {
     );
 
     expect(props?.displayRows).toHaveLength(1);
-    expect(props?.displayRows?.[0]?.title).toBe("WP post 1/4");
+    expect(props?.displayRows?.[0]?.title).toBe("WP batch 1/1 (4 posts)");
     expect(props?.pipelineSectionTitles).toEqual([]);
   });
 });

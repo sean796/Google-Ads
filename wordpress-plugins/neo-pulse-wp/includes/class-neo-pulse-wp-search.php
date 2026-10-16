@@ -17,16 +17,33 @@ class Neo_Pulse_Wp_Search {
 
 	const REST_NAMESPACE = 'neo-pulse/v1';
 
-	const RATE_LIMIT_TTL = 2;
+	/** Per-IP sliding limit (editors exempt): searches per minute. Over it the search is refused. */
+	const RATE_LIMIT_MAX = 30;
+
+	const RATE_LIMIT_WINDOW = 60;
+
+	/** Per-IP AI searches per day (editors exempt). Over it the visitor still gets plain search results. */
+	const RATE_LIMIT_DAY_MAX = 100;
+
+	/** Longest search sent anywhere (characters); longer input is cut. */
+	const MAX_QUERY_LENGTH = 100;
+
+	/** Default site-wide AI searches per day; over it every search runs without AI until midnight. */
+	const DEFAULT_DAILY_AI_CAP = 500;
+
+	/** Today's AI search count: array{day:string,count:int}. */
+	const AI_USAGE_OPTION = 'neo_pulse_wp_search_ai_usage';
+
+	/** Search log / accept writes per IP per 5 minutes. */
+	const LOG_RATE_LIMIT_MAX = 60;
+
+	const LOG_RATE_LIMIT_WINDOW = 300;
+
+	/** AI query analysis is cached per normalised query (a cached answer costs nothing and ignores the caps). */
+	const AI_CACHE_TTL = DAY_IN_SECONDS;
 
 	/** @var array<string,mixed>|null */
 	private static ?array $settings_cache = null;
-
-	/** @var bool */
-	private static bool $front_page_search_rendered = false;
-
-	/** @var bool */
-	private static bool $sidebar_search_rendered = false;
 
 	// ── Settings CRUD ────────────────────────────────────────────
 
@@ -46,18 +63,24 @@ class Neo_Pulse_Wp_Search {
 				'post' => 'Blogs',
 			),
 			'button_label'        => 'Search',
-			'primary_color'       => '#3b82f6',
-			'bg_color'            => '#ffffff',
-			'border_radius'       => 8,
-			'font_size'           => 16,
-			'auto_front_page'     => false,
 			'openrouter_model'    => self::DEFAULT_OPENROUTER_MODEL,
+			// Site-wide AI searches per day (0 = search never uses AI).
+			'daily_ai_cap'        => self::DEFAULT_DAILY_AI_CAP,
+			// Popular searches: always shown first / never shown (one search per entry).
+			'pinned_terms'        => array(),
+			'hidden_terms'        => array(),
+			// Result order by content type: post type => 1 (first) … 9 (last). Missing types use
+			// type_priority_default(): pages first, blog posts last, everything else in between.
+			'type_priority'       => array(),
+			// balanced: the order is a strong lean, a near-exact match can still rise above it.
+			// strict: every result of a higher type shows before any of a lower one.
+			'priority_mode'       => 'balanced',
+			// Leave out pages search engines are told to skip (noindex, redirected, other canonical).
+			'indexable_only'      => true,
 		);
 
 		$saved = get_option( self::OPTION_KEY, array() );
 		self::$settings_cache = wp_parse_args( is_array( $saved ) ? $saved : array(), $defaults );
-		self::$settings_cache['font_size']       = max( 16, (int) self::$settings_cache['font_size'] );
-		self::$settings_cache['auto_front_page'] = ! empty( self::$settings_cache['auto_front_page'] );
 		if ( ! is_array( self::$settings_cache['content_type_labels'] ) ) {
 			self::$settings_cache['content_type_labels'] = $defaults['content_type_labels'];
 		}
@@ -66,7 +89,7 @@ class Neo_Pulse_Wp_Search {
 	}
 
 	/**
-	 * OpenRouter model for AI search (intent, word-ready, popular terms). Does not affect chat or editor wands.
+	 * OpenRouter model for AI search (query intent, popular terms). Does not affect chat or editor wands.
 	 *
 	 * @return string
 	 */
@@ -78,10 +101,6 @@ class Neo_Pulse_Wp_Search {
 		}
 		if ( defined( 'NEO_PULSE_WP_SEARCH_OPENROUTER_MODEL' ) && NEO_PULSE_WP_SEARCH_OPENROUTER_MODEL !== '' ) {
 			return trim( (string) NEO_PULSE_WP_SEARCH_OPENROUTER_MODEL );
-		}
-		$env = getenv( 'NEO_PULSE_WP_SEARCH_OPENROUTER_MODEL' );
-		if ( $env ) {
-			return trim( (string) $env );
 		}
 		return Neo_Pulse_Wp_OpenRouter::get_model();
 	}
@@ -96,10 +115,10 @@ class Neo_Pulse_Wp_Search {
 		$merged['placeholder']   = sanitize_text_field( (string) $merged['placeholder'] );
 		$merged['button_label']  = sanitize_text_field( (string) $merged['button_label'] );
 		$merged['max_results']   = max( 1, min( 20, (int) $merged['max_results'] ) );
-		$merged['primary_color'] = sanitize_hex_color( (string) $merged['primary_color'] ) ?: '#3b82f6';
-		$merged['bg_color']      = sanitize_hex_color( (string) $merged['bg_color'] ) ?: '#ffffff';
-		$merged['border_radius'] = max( 0, min( 50, (int) $merged['border_radius'] ) );
-		$merged['font_size']     = max( 16, min( 24, (int) $merged['font_size'] ) );
+		$merged['daily_ai_cap']  = max( 0, min( 100000, (int) $merged['daily_ai_cap'] ) );
+		// The old Appearance tab's colour and size keys are no longer used (the widget styles search),
+		// and the automatic front-page hero search was removed.
+		unset( $merged['primary_color'], $merged['bg_color'], $merged['border_radius'], $merged['font_size'], $merged['auto_front_page'] );
 
 		if ( ! is_array( $merged['post_types'] ) ) {
 			$merged['post_types'] = array( 'post', 'page' );
@@ -123,23 +142,40 @@ class Neo_Pulse_Wp_Search {
 		}
 		$merged['content_type_labels'] = $labels;
 
-		if ( array_key_exists( 'auto_front_page', $data ) ) {
-			$merged['auto_front_page'] = ! empty( $data['auto_front_page'] );
-		}
-
 		if ( array_key_exists( 'openrouter_model', $data ) ) {
 			$merged['openrouter_model'] = sanitize_text_field( trim( (string) $data['openrouter_model'] ) );
 		}
+
+		$priority = array();
+		if ( isset( $merged['type_priority'] ) && is_array( $merged['type_priority'] ) ) {
+			foreach ( $merged['type_priority'] as $type => $rank ) {
+				$key = sanitize_key( (string) $type );
+				if ( $key !== '' && is_numeric( $rank ) ) {
+					$priority[ $key ] = max( 1, min( 9, (int) $rank ) );
+				}
+			}
+		}
+		$merged['type_priority']  = $priority;
+		$merged['priority_mode']  = 'strict' === ( $merged['priority_mode'] ?? '' ) ? 'strict' : 'balanced';
+		$merged['indexable_only'] = ! empty( $merged['indexable_only'] );
+
+		$merged['pinned_terms'] = Neo_Pulse_Wp_Search_Popular::sanitize_list( $merged['pinned_terms'] ?? array(), Neo_Pulse_Wp_Search_Popular::MAX_PINNED );
+		$merged['hidden_terms'] = Neo_Pulse_Wp_Search_Popular::sanitize_list( $merged['hidden_terms'] ?? array(), Neo_Pulse_Wp_Search_Popular::MAX_HIDDEN );
 
 		update_option( self::OPTION_KEY, $merged, false );
 		self::$settings_cache = $merged;
 		self::purge_public_caches();
 	}
 
-	public static function reset_search_settings(): void {
+	/**
+	 * @param bool $purge Purge public caches. Pass false when save_search_settings() runs right after (it purges).
+	 */
+	public static function reset_search_settings( bool $purge = true ): void {
 		delete_option( self::OPTION_KEY );
 		self::$settings_cache = null;
-		self::purge_public_caches();
+		if ( $purge ) {
+			self::purge_public_caches();
+		}
 	}
 
 	/**
@@ -191,33 +227,16 @@ class Neo_Pulse_Wp_Search {
 		add_action( 'init', array( __CLASS__, 'register_search_assets' ), 5 );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'register_search_assets' ) );
 
-		if ( defined( 'ELEMENTOR_VERSION' ) ) {
-			add_action( 'elementor/theme/after_do_header', array( __CLASS__, 'maybe_render_front_page_search' ), 5 );
-		} else {
-			add_action( 'wp_body_open', array( __CLASS__, 'maybe_render_front_page_search' ), 5 );
-		}
-		add_action( 'wp_footer', array( __CLASS__, 'maybe_render_header_search_host' ), 5 );
-
 		require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/search/integrations/class-neo-pulse-wp-search-elementor.php';
 		Neo_Pulse_Wp_Search_Elementor::init();
 	}
 
 	/**
-	 * One-time: disable auto front-page search for existing installs and purge caches.
+	 * One-time cache purge after the search settings migration.
 	 */
 	public static function maybe_migrate_settings(): void {
 		if ( get_option( self::SETTINGS_MIGRATION_KEY, '' ) === '1' ) {
 			return;
-		}
-
-		$saved = get_option( self::OPTION_KEY, array() );
-		if ( ! is_array( $saved ) ) {
-			$saved = array();
-		}
-		if ( ! array_key_exists( 'auto_front_page', $saved ) ) {
-			$saved['auto_front_page'] = false;
-			update_option( self::OPTION_KEY, $saved, false );
-			self::$settings_cache = null;
 		}
 
 		update_option( self::SETTINGS_MIGRATION_KEY, '1', false );
@@ -232,74 +251,9 @@ class Neo_Pulse_Wp_Search {
 			Neo_Pulse_Wp_Cache_Flush::flush_all();
 			return;
 		}
-		if ( class_exists( 'Neo_Pulse_Wp_Speed', false ) ) {
-			Neo_Pulse_Wp_Speed::flush_cache();
-		}
 		if ( function_exists( 'wp_cache_flush' ) ) {
 			wp_cache_flush();
 		}
-	}
-
-	/**
-	 * Whether the hero search should auto-render on the front page.
-	 */
-	public static function should_auto_display_front_page_search(): bool {
-		if ( is_admin() || ! is_front_page() ) {
-			return false;
-		}
-
-		$settings = self::get_search_settings();
-		if ( empty( $settings['auto_front_page'] ) ) {
-			return false;
-		}
-
-		return (bool) apply_filters( 'neo_pulse_wp_search_auto_display_front_page', false );
-	}
-
-	/**
-	 * Output hero search after the theme header (Elementor) or at body open (fallback).
-	 */
-	public static function maybe_render_front_page_search(): void {
-		if ( ! self::should_auto_display_front_page_search() ) {
-			return;
-		}
-		if ( self::$front_page_search_rendered ) {
-			return;
-		}
-
-		self::$front_page_search_rendered = true;
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Markup from render_instance().
-		echo self::render_instance(
-			array(
-				'layout' => 'hero',
-				'slot'   => 'header',
-			)
-		);
-	}
-
-	/**
-	 * Hidden search sidebar host when Design is set to use the header search icon.
-	 */
-	public static function maybe_render_header_search_host(): void {
-		if ( is_admin() ) {
-			return;
-		}
-		$sidebar = Neo_Pulse_Wp_Ai_Widget_Design::resolve_sidebar_config( 'search' );
-		if ( empty( $sidebar['header_search_opens_sidebar'] ) ) {
-			return;
-		}
-		if ( self::$sidebar_search_rendered ) {
-			return;
-		}
-		$side = ( ( $sidebar['sidebar_side'] ?? 'right' ) === 'left' ) ? 'left' : 'right';
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Markup from render_instance().
-		echo self::render_instance(
-			array(
-				'header_search_host' => true,
-				'display_mode'       => 'icon_only',
-				'icon_open_as'       => $side === 'left' ? 'sidebar_left' : 'sidebar_right',
-			)
-		);
 	}
 
 	// ── Shortcode ────────────────────────────────────────────────
@@ -331,23 +285,20 @@ class Neo_Pulse_Wp_Search {
 		$settings   = self::merge_instance_settings( $instance );
 		$sidebar    = Neo_Pulse_Wp_Ai_Widget_Design::resolve_sidebar_config( 'search', $instance );
 		$insights   = Neo_Pulse_Wp_Ai_Widget_Design::resolve_search_insights( $instance );
-		$wrap_class = self::build_wrap_class( $instance, $sidebar );
-		$css_vars   = self::build_css_vars( $settings, $instance, $sidebar );
-		$rest_url   = esc_url( rest_url( self::REST_NAMESPACE . '/search' ) );
-		$nonce      = wp_create_nonce( 'wp_rest' );
+		$options    = Neo_Pulse_Wp_Search_Render::options( $instance, $settings, $sidebar, $insights );
+		$rest_url   = rest_url( self::REST_NAMESPACE . '/search' );
+		// Logged-out visitors get no REST nonce: search is public, and a nonce baked into a cached
+		// page (or a tab left open) expires after 12-24 h, after which WordPress refuses the request.
+		$nonce      = is_user_logged_in() ? wp_create_nonce( 'wp_rest' ) : '';
 
-		self::enqueue_search_assets( $sidebar );
-
-		return self::render_search_markup(
-			$wrap_class,
-			$css_vars,
-			$rest_url,
-			$nonce,
-			$settings,
-			$instance,
-			$sidebar,
-			$insights
+		self::enqueue_search_assets(
+			array(
+				'display_mode' => $options['mode'] === 'icon' ? 'icon_only' : 'inline',
+				'icon_open_as' => $options['open_as'],
+			)
 		);
+
+		return Neo_Pulse_Wp_Search_Render::render( $options, $rest_url, $nonce );
 	}
 
 	/**
@@ -375,180 +326,14 @@ class Neo_Pulse_Wp_Search {
 			}
 		}
 
-		$style_keys = array(
-			'primary_color',
-			'bg_color',
-			'text_color',
-			'text_muted_color',
-			'border_color',
-			'hover_color',
-			'dropdown_bg',
-			'border_radius',
-			'font_size',
-			'dropdown_radius',
-		);
-		foreach ( $style_keys as $key ) {
-			if ( ! $use_global && isset( $instance[ $key ] ) && $instance[ $key ] !== '' ) {
-				$merged[ $key ] = $instance[ $key ];
-			}
-		}
-
-		$merged['placeholder']   = sanitize_text_field( (string) $merged['placeholder'] );
-		$merged['button_label']  = sanitize_text_field( (string) $merged['button_label'] );
-		$merged['max_results']   = max( 1, min( 20, (int) $merged['max_results'] ) );
-		$merged['primary_color'] = sanitize_hex_color( (string) $merged['primary_color'] ) ?: '#3b82f6';
-		$merged['bg_color']      = sanitize_hex_color( (string) $merged['bg_color'] ) ?: '#ffffff';
-		$merged['border_radius'] = max( 0, min( 50, (int) $merged['border_radius'] ) );
-		$merged['font_size']     = max( 16, min( 24, (int) $merged['font_size'] ) );
-
-		if ( isset( $merged['text_color'] ) && $merged['text_color'] !== '' ) {
-			$merged['text_color'] = sanitize_hex_color( (string) $merged['text_color'] ) ?: '#1e293b';
-		}
-		if ( isset( $merged['text_muted_color'] ) && $merged['text_muted_color'] !== '' ) {
-			$merged['text_muted_color'] = sanitize_hex_color( (string) $merged['text_muted_color'] ) ?: '#64748b';
-		}
-		if ( isset( $merged['border_color'] ) && $merged['border_color'] !== '' ) {
-			$merged['border_color'] = sanitize_hex_color( (string) $merged['border_color'] ) ?: '#cbd5e1';
-		}
-		if ( isset( $merged['hover_color'] ) && $merged['hover_color'] !== '' ) {
-			$merged['hover_color'] = sanitize_hex_color( (string) $merged['hover_color'] ) ?: '#f1f5f9';
-		}
-		if ( isset( $merged['dropdown_bg'] ) && $merged['dropdown_bg'] !== '' ) {
-			$merged['dropdown_bg'] = sanitize_hex_color( (string) $merged['dropdown_bg'] ) ?: $merged['bg_color'];
-		}
-		if ( isset( $merged['dropdown_radius'] ) && $merged['dropdown_radius'] !== '' ) {
-			$merged['dropdown_radius'] = max( 0, min( 50, (int) $merged['dropdown_radius'] ) );
-		}
+		// Only content keys are used by the renderer; styling comes from the widget's --nps-* variables.
+		$merged['placeholder']  = sanitize_text_field( (string) $merged['placeholder'] );
+		$merged['button_label'] = sanitize_text_field( (string) $merged['button_label'] );
+		$merged['max_results']  = max( 1, min( 20, (int) $merged['max_results'] ) );
 
 		return $merged;
 	}
 
-	/**
-	 * @param array<string,mixed> $instance
-	 * @param array<string,mixed> $sidebar
-	 */
-	private static function build_wrap_class( array $instance, array $sidebar = array() ): string {
-		$wrap_class = 'neo-pulse-search-wrap';
-
-		$layout = isset( $instance['layout'] ) ? (string) $instance['layout'] : '';
-		if ( $layout === '' && isset( $instance['layout_preset'] ) ) {
-			$layout = (string) $instance['layout_preset'];
-		}
-		if ( isset( $instance['slot'] ) && (string) $instance['slot'] === 'header' ) {
-			$layout = $layout !== '' ? $layout : 'header_slot';
-		}
-
-		switch ( $layout ) {
-			case 'hero':
-				$wrap_class .= ' neo-pulse-search-wrap--hero';
-				break;
-			case 'compact':
-				$wrap_class .= ' neo-pulse-search-wrap--compact';
-				break;
-			case 'header_slot':
-				$wrap_class .= ' neo-pulse-search-wrap--hero neo-pulse-search-wrap--header-slot';
-				break;
-		}
-
-		if ( ! empty( $instance['full_width'] ) && $instance['full_width'] === 'yes' ) {
-			$wrap_class .= ' neo-pulse-search-wrap--full-width';
-		}
-
-		if ( ! empty( $sidebar['display_mode'] ) && $sidebar['display_mode'] === 'sidebar' ) {
-			$wrap_class .= ' neo-pulse-search-wrap--sidebar fai-sidebar-root';
-			$side = ( $sidebar['sidebar_side'] ?? 'right' ) === 'left' ? 'left' : 'right';
-			$wrap_class .= ' fai-sidebar-root--' . $side;
-			$transition = (string) ( $sidebar['sidebar_transition'] ?? 'slide' );
-			if ( ! in_array( $transition, array( 'slide', 'fade', 'none' ), true ) ) {
-				$transition = 'slide';
-			}
-			$wrap_class .= ' fai-sidebar-root--transition-' . $transition;
-		}
-
-		if ( ! empty( $instance['header_search_host'] ) ) {
-			$wrap_class .= ' neo-pulse-search-wrap--header-host';
-		}
-
-		if ( ! empty( $sidebar['display_mode'] ) && $sidebar['display_mode'] === 'icon_only' ) {
-			$wrap_class .= ' neo-pulse-search-wrap--icon-only';
-			$open_as = (string) ( $sidebar['icon_open_as'] ?? 'sidebar_right' );
-			if ( $open_as === 'expand_inline' ) {
-				$wrap_class .= ' neo-pulse-search-wrap--icon-expand';
-			} elseif ( $open_as === 'modal_center' ) {
-				$wrap_class .= ' fbs-modal-root';
-			} else {
-				// In-flow launcher (header/toolbar). Do not use fai-sidebar-root — it fixed-positions the wrap off-layout.
-				$wrap_class .= ' fbs-icon-panel-root fai-sidebar-root--inline-launcher';
-				$side = ( $sidebar['sidebar_side'] ?? 'right' ) === 'left' ? 'left' : 'right';
-				$wrap_class .= ' fai-sidebar-root--' . $side;
-				$transition = (string) ( $sidebar['sidebar_transition'] ?? 'slide' );
-				if ( ! in_array( $transition, array( 'slide', 'fade', 'none' ), true ) ) {
-					$transition = 'slide';
-				}
-				$wrap_class .= ' fai-sidebar-root--transition-' . $transition;
-			}
-		}
-
-		$panel_modes = ! empty( $sidebar['display_mode'] ) && in_array( $sidebar['display_mode'], array( 'sidebar', 'icon_only' ), true );
-		if ( $panel_modes && (string) ( $sidebar['panel_content_align'] ?? 'left' ) === 'center' ) {
-			$wrap_class .= ' neo-pulse-search-wrap--panel-align-center';
-		}
-
-		return $wrap_class;
-	}
-
-	/**
-	 * @param array<string,mixed> $settings
-	 * @param array<string,mixed> $instance
-	 * @param array<string,mixed> $sidebar
-	 */
-	private static function build_css_vars( array $settings, array $instance, array $sidebar = array() ): string {
-		$tokens = Neo_Pulse_Wp_Ai_Widget_Design::resolve( 'search' );
-
-		// Instance style overrides when not using global settings.
-		$use_global = ! isset( $instance['use_global_settings'] )
-			|| $instance['use_global_settings'] === 'yes'
-			|| $instance['use_global_settings'] === true;
-
-		if ( ! $use_global ) {
-			$map = array(
-				'primary_color'    => 'accent',
-				'bg_color'         => 'bg',
-				'text_color'       => 'text',
-				'text_muted_color' => 'text_muted',
-				'border_color'     => 'border',
-				'hover_color'      => 'result_hover',
-				'dropdown_bg'      => 'dropdown_bg',
-			);
-			foreach ( $map as $inst_key => $token_key ) {
-				if ( isset( $instance[ $inst_key ] ) && $instance[ $inst_key ] !== '' ) {
-					$san = Neo_Pulse_Wp_Ai_Widget_Design::sanitize_color_value( (string) $instance[ $inst_key ] );
-					if ( $san !== '' ) {
-						$tokens[ $token_key ] = $san;
-					}
-				}
-			}
-			if ( isset( $instance['border_radius'] ) && $instance['border_radius'] !== '' ) {
-				$tokens['radius'] = max( 0, min( 50, (int) $instance['border_radius'] ) );
-			}
-			if ( isset( $instance['font_size'] ) && $instance['font_size'] !== '' ) {
-				$tokens['font_size'] = max( 16, min( 24, (int) $instance['font_size'] ) );
-			}
-		}
-
-		$vars = Neo_Pulse_Wp_Ai_Widget_Design::build_search_css_vars( $tokens, $instance );
-		$panel_mode = ! empty( $sidebar['display_mode'] ) ? (string) $sidebar['display_mode'] : '';
-		if ( $panel_mode === 'sidebar' || $panel_mode === 'icon_only' ) {
-			$vars .= Neo_Pulse_Wp_Ai_Widget_Design::build_sidebar_css_vars( $sidebar, $tokens );
-		}
-		if ( $panel_mode === 'icon_only' ) {
-			$modal_width = max( 320, min( 720, (int) ( $sidebar['modal_max_width'] ?? 560 ) ) );
-			$vars .= '--fbs-modal-max-width:' . $modal_width . 'px;';
-			$vars .= '--fbs-launcher-bg:var(--fai-sidebar-launcher-bg);';
-			$vars .= '--fbs-launcher-color:var(--fai-sidebar-launcher-text);';
-		}
-		return $vars;
-	}
 
 	/**
 	 * Register shared sidebar shell assets.
@@ -598,16 +383,9 @@ class Neo_Pulse_Wp_Search {
 		self::register_sidebar_assets();
 
 		wp_register_style(
-			'neo-pulse-wp-lato',
-			'https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,600;0,700;1,400&display=swap',
-			array(),
-			null
-		);
-
-		wp_register_style(
 			'neo-pulse-search',
 			$base_url . 'assets/search/neo-pulse-search.css',
-			array(),
+			array( 'neo-pulse-ai-sidebar-shell' ),
 			$asset_ver
 		);
 
@@ -615,14 +393,6 @@ class Neo_Pulse_Wp_Search {
 			'neo-pulse-search',
 			$base_url . 'assets/search/neo-pulse-search.js',
 			array(),
-			$asset_ver,
-			true
-		);
-
-		wp_register_script(
-			'neo-pulse-search-header-trigger',
-			$base_url . 'assets/search/neo-pulse-search-header-trigger.js',
-			array( 'neo-pulse-search', 'neo-pulse-ai-sidebar-shell' ),
 			$asset_ver,
 			true
 		);
@@ -634,11 +404,10 @@ class Neo_Pulse_Wp_Search {
 	 * @param array<string,mixed> $sidebar Optional sidebar config.
 	 */
 	public static function enqueue_search_assets( array $sidebar = array() ): void {
-		$display_mode   = ! empty( $sidebar['display_mode'] ) ? (string) $sidebar['display_mode'] : '';
-		$is_sidebar     = $display_mode === 'sidebar';
-		$icon_open_as   = (string) ( $sidebar['icon_open_as'] ?? 'sidebar_right' );
-		$header_trigger = ! empty( $sidebar['header_search_opens_sidebar'] );
-		$needs_shell    = $is_sidebar || $header_trigger || ( $display_mode === 'icon_only' && $icon_open_as !== 'expand_inline' );
+		$display_mode = ! empty( $sidebar['display_mode'] ) ? (string) $sidebar['display_mode'] : '';
+		$is_sidebar   = $display_mode === 'sidebar';
+		$icon_open_as = (string) ( $sidebar['icon_open_as'] ?? 'sidebar_right' );
+		$needs_shell  = $is_sidebar || ( $display_mode === 'icon_only' && $icon_open_as !== 'expand_inline' );
 		self::register_search_assets();
 		if ( $needs_shell ) {
 			self::register_sidebar_assets();
@@ -654,14 +423,10 @@ class Neo_Pulse_Wp_Search {
 		wp_enqueue_style( 'neo-pulse-search' );
 		if ( $needs_shell ) {
 			wp_enqueue_style( 'neo-pulse-ai-sidebar-shell' );
-			wp_enqueue_style( 'neo-pulse-ai-sidebar-unify' );
 			wp_enqueue_script( 'neo-pulse-ai-sidebar-shell' );
 			wp_enqueue_script( 'neo-pulse-ai-sidebar-unify' );
 		}
 		wp_enqueue_script( 'neo-pulse-search' );
-		if ( $header_trigger ) {
-			wp_enqueue_script( 'neo-pulse-search-header-trigger' );
-		}
 	}
 
 	/**
@@ -670,7 +435,6 @@ class Neo_Pulse_Wp_Search {
 	public static function search_asset_version(): string {
 		$css = NEO_PULSE_WP_PLUGIN_DIR . 'assets/search/neo-pulse-search.css';
 		$js  = NEO_PULSE_WP_PLUGIN_DIR . 'assets/search/neo-pulse-search.js';
-		$header_js = NEO_PULSE_WP_PLUGIN_DIR . 'assets/search/neo-pulse-search-header-trigger.js';
 		$ver = defined( 'NEO_PULSE_WP_VERSION' ) ? NEO_PULSE_WP_VERSION : '1';
 		if ( is_readable( $css ) ) {
 			$ver .= '.' . (string) filemtime( $css );
@@ -678,657 +442,27 @@ class Neo_Pulse_Wp_Search {
 		if ( is_readable( $js ) ) {
 			$ver .= '.' . (string) filemtime( $js );
 		}
-		if ( is_readable( $header_js ) ) {
-			$ver .= '.' . (string) filemtime( $header_js );
-		}
 		return $ver;
 	}
 
 	/**
-	 * Server-rendered markup so theme CSS cannot collapse a JS-only form.
+	 * Admin "try it" demo on the Search screen: a plain search bar with the site settings.
+	 * The renderer builds its own wrapper and styles.
 	 *
-	 * @param string               $wrap_class
-	 * @param string               $css_vars
-	 * @param string               $rest_url
-	 * @param string               $nonce
-	 * @param array<string,mixed>  $settings
-	 * @param array<string,mixed>  $instance
+	 * @param string              $rest_url Search REST endpoint.
+	 * @param string              $nonce    wp_rest nonce.
+	 * @param array<string,mixed> $settings Search settings.
+	 * @param array<string,mixed> $instance Widget instance overrides.
+	 * @param array<string,mixed> $sidebar  Sidebar config (resolved from $instance when empty).
+	 * @param array<string,mixed> $insights Insights config (resolved from $instance when empty).
 	 */
-	public static function render_search_markup(
-		string $wrap_class,
-		string $css_vars,
-		string $rest_url,
-		string $nonce,
-		array $settings,
-		array $instance = array(),
-		array $sidebar = array(),
-		array $insights = array()
-	): string {
-		$placeholder  = isset( $settings['placeholder'] ) ? (string) $settings['placeholder'] : '';
-		$button_label = isset( $settings['button_label'] ) ? (string) $settings['button_label'] : '';
-		$max_results  = isset( $settings['max_results'] ) ? (int) $settings['max_results'] : 8;
-
-		$hide_ai      = self::instance_flag_is_off( $instance, 'show_ai_banner', true );
-		$hide_scores  = self::instance_flag_is_off( $instance, 'show_relevance_scores', true );
-		$hide_powered = self::instance_flag_is_off( $instance, 'show_powered_by', true );
-
-		$design_ui = Neo_Pulse_Wp_Ai_Widget_Design::get_settings()['search_ui'];
-		if ( empty( $design_ui['ai_banner'] ) ) {
-			$hide_ai = true;
-		}
-		if ( empty( $design_ui['relevance_scores'] ) ) {
-			$hide_scores = true;
-		}
-		if ( empty( $design_ui['powered_by'] ) ) {
-			$hide_powered = true;
-		}
-		$hide_icon     = empty( $design_ui['search_icon'] );
-		$hide_submit   = empty( $design_ui['submit_button'] );
-		$hide_shadow   = empty( $design_ui['dropdown_shadow'] );
-		$hide_empty    = empty( $design_ui['empty_state'] );
-
-		$icon_id   = Neo_Pulse_Wp_Search_Icons::sanitize_id( (string) ( $sidebar['launcher_icon'] ?? 'search' ) );
-		$icon_svg  = Neo_Pulse_Wp_Search_Icons::render( $icon_id );
-
-		$hide_clear = empty( $design_ui['clear_button'] );
-
-		$is_sidebar   = ! empty( $sidebar['display_mode'] ) && $sidebar['display_mode'] === 'sidebar';
-		$is_icon_only = ! empty( $sidebar['display_mode'] ) && $sidebar['display_mode'] === 'icon_only';
-		$icon_open_as = (string) ( $sidebar['icon_open_as'] ?? 'sidebar_right' );
-		$layout       = isset( $sidebar['sidebar_layout'] ) && is_array( $sidebar['sidebar_layout'] )
-			? $sidebar['sidebar_layout']
-			: array( 'heading', 'search', 'results' );
-		$show_search  = in_array( 'search', $layout, true );
-		$show_results = in_array( 'results', $layout, true );
-		if ( ! $show_search && ! $show_results ) {
-			$show_search  = true;
-			$show_results = true;
-		}
-
-		$is_panel_search = $is_sidebar || ( $is_icon_only && $icon_open_as !== 'expand_inline' );
-		if ( $is_panel_search ) {
-			self::$sidebar_search_rendered = true;
-			$layout = self::normalize_sidebar_panel_layout( $layout );
-		}
-		if ( $is_panel_search && $show_search ) {
-			if ( ! in_array( 'results', $layout, true ) ) {
-				$layout[] = 'results';
-			}
-			$show_results = true;
-		}
-
-		if ( empty( $insights ) ) {
-			$insights = Neo_Pulse_Wp_Ai_Widget_Design::resolve_search_insights( $instance );
-		}
-
-		$log_url       = esc_url( rest_url( self::REST_NAMESPACE . '/search/log' ) );
-		$accept_url    = esc_url( rest_url( self::REST_NAMESPACE . '/search/accept' ) );
-		$insights_url  = esc_url( rest_url( self::REST_NAMESPACE . '/search/insights' ) );
-		$word_ready_url = esc_url( rest_url( self::REST_NAMESPACE . '/search/word-ready' ) );
-		$logging_on    = ! empty( $insights['logging_enabled'] );
-		$insight_order = ( $is_sidebar || ( $is_icon_only && $icon_open_as !== 'expand_inline' ) ) ? $layout : array( 'popular_terms' );
-
-		$extra_classes = '';
-		if ( $hide_shadow ) {
-			$extra_classes .= ' fbs--no-shadow';
-		}
-		if ( $hide_empty ) {
-			$extra_classes .= ' fbs--no-empty';
-		}
-		if ( $hide_icon ) {
-			$extra_classes .= ' fbs--no-icon';
-		}
-		if ( $hide_submit ) {
-			$extra_classes .= ' fbs--no-submit';
-		}
-		if ( $hide_powered ) {
-			$extra_classes .= ' fbs--no-powered';
-		}
-		if ( $hide_clear ) {
-			$extra_classes .= ' fbs--no-clear';
-		}
-		if ( $is_sidebar ) {
-			$extra_classes .= ' neo-pulse-search-wrap--sidebar-mode';
-		}
-		if ( $is_icon_only ) {
-			$extra_classes .= ' neo-pulse-search-wrap--icon-only-mode';
-			if ( $icon_open_as !== 'expand_inline' ) {
-				$extra_classes .= ' neo-pulse-search-wrap--sidebar-mode';
-			}
-		}
-
-		$launcher_label = self::launcher_aria_label( $sidebar, $button_label );
-		$fbs_modifiers  = $extra_classes;
-		$panel_layout   = (string) ( $sidebar['panel_layout'] ?? 'compact' );
-		$elementor_edit_context = ! empty( $instance['elementor_edit_context'] );
-
-		if ( $elementor_edit_context ) {
-			$extra_classes .= ' neo-pulse-search-wrap--elementor-edit';
-		}
-
-		$panel_markup_hidden = $is_panel_search && $elementor_edit_context;
-
-		$panel_align_class = '';
-		if ( $is_panel_search && (string) ( $sidebar['panel_content_align'] ?? 'left' ) === 'center' ) {
-			$panel_align_class = ' fai-sidebar-panel--align-center';
-		}
-
-		if ( $elementor_edit_context ) {
-			$css_vars = preg_replace( '/--fbs-panel-offset-top:\s*[^;]+;?/', '', $css_vars ) ?? $css_vars;
-		}
-
-		ob_start();
-		?>
-		<div
-			class="<?php echo esc_attr( $wrap_class . $extra_classes ); ?>"
-			style="<?php echo esc_attr( $css_vars ); ?>"
-			data-rest-url="<?php echo esc_url( $rest_url ); ?>"
-			data-log-url="<?php echo esc_url( $log_url ); ?>"
-			data-accept-url="<?php echo esc_url( $accept_url ); ?>"
-			data-insights-url="<?php echo esc_url( $insights_url ); ?>"
-			data-word-ready-url="<?php echo esc_url( $word_ready_url ); ?>"
-			data-nonce="<?php echo esc_attr( $nonce ); ?>"
-			<?php if ( $logging_on ) : ?>
-				data-logging-enabled="1"
-			<?php endif; ?>
-			<?php if ( ! empty( $insights['show_popular_terms'] ) ) : ?>
-				data-show-popular-terms="1"
-			<?php endif; ?>
-			<?php if ( ! empty( $insights['show_popular_pages_overseer'] ) ) : ?>
-				data-show-popular-pages-overseer="1"
-			<?php endif; ?>
-			<?php if ( ! empty( $insights['show_popular_pages_search'] ) ) : ?>
-				data-show-popular-pages-search="1"
-			<?php endif; ?>
-			data-insights-days="<?php echo (int) ( $insights['insights_days'] ?? 30 ); ?>"
-			data-popular-terms-limit="<?php echo (int) ( $insights['popular_terms_limit'] ?? 5 ); ?>"
-			data-placeholder="<?php echo esc_attr( $placeholder ); ?>"
-			data-button-label="<?php echo esc_attr( $button_label ); ?>"
-			data-max-results="<?php echo (int) $max_results; ?>"
-			<?php if ( $is_sidebar || ( $is_icon_only && $icon_open_as !== 'expand_inline' ) ) : ?>
-				data-sidebar-mode="1"
-			<?php endif; ?>
-			<?php if ( $is_icon_only ) : ?>
-				data-icon-mode="1"
-				data-icon-open-as="<?php echo esc_attr( $icon_open_as ); ?>"
-			<?php endif; ?>
-			<?php if ( ! empty( $sidebar['header_search_opens_sidebar'] ) ) : ?>
-				data-header-search-trigger="1"
-			<?php endif; ?>
-			<?php if ( $hide_ai ) : ?>
-				data-hide-ai-banner="1"
-			<?php endif; ?>
-			<?php if ( $hide_scores ) : ?>
-				data-hide-scores="1"
-			<?php endif; ?>
-			<?php if ( $hide_powered ) : ?>
-				data-hide-powered="1"
-			<?php endif; ?>
-			<?php if ( $hide_clear ) : ?>
-				data-hide-clear="1"
-			<?php endif; ?>
-			<?php if ( $is_panel_search ) : ?>
-				data-panel-layout="<?php echo esc_attr( $panel_layout ); ?>"
-				data-topics-limit="4"
-				data-fbs-icon-ids="<?php echo esc_attr( implode( ',', Neo_Pulse_Wp_Search_Icons::ids() ) ); ?>"
-			<?php endif; ?>
-			<?php if ( $elementor_edit_context ) : ?>
-				data-elementor-edit-preview="1"
-			<?php endif; ?>
-		>
-			<?php if ( $is_icon_only ) : ?>
-				<button type="button" class="fbs__icon-launcher" aria-label="<?php echo esc_attr( $launcher_label ); ?>" aria-expanded="false">
-					<?php echo $icon_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- inline SVG ?>
-				</button>
-				<?php if ( $icon_open_as === 'expand_inline' ) : ?>
-					<div class="fbs__icon-panel fbs__icon-panel--expand"<?php echo $panel_markup_hidden ? ' hidden' : ''; ?>>
-						<div class="fbs">
-							<?php
-							// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-							echo self::render_inline_search_body(
-								$placeholder,
-								$button_label,
-								$icon_svg,
-								$insight_order,
-								$insights,
-								false
-							);
-							?>
-						</div>
-					</div>
-				<?php else : ?>
-					<?php
-					$backdrop_class = $icon_open_as === 'modal_center' ? 'fbs-modal-backdrop fai-sidebar-backdrop' : 'fai-sidebar-backdrop';
-					$panel_class    = $icon_open_as === 'modal_center' ? 'fbs-modal-panel fai-sidebar-panel' : 'fai-sidebar-panel';
-					?>
-					<div class="<?php echo esc_attr( $backdrop_class ); ?>" aria-hidden="true"<?php echo $panel_markup_hidden ? ' hidden' : ''; ?>></div>
-					<div class="<?php echo esc_attr( $panel_class . $panel_align_class ); ?>" style="<?php echo esc_attr( $css_vars ); ?>" role="dialog" aria-modal="true" aria-label="<?php esc_attr_e( 'Site search', 'neo-pulse-wp' ); ?>"<?php echo $panel_markup_hidden ? ' hidden' : ''; ?>>
-						<?php
-						// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-						echo self::render_panel_close_button();
-						// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-						echo self::render_sidebar_panel_body(
-							$css_vars,
-							$fbs_modifiers,
-							true,
-							$layout,
-							$placeholder,
-							$button_label,
-							$icon_svg,
-							$insights,
-							$show_search,
-							$show_results,
-							$sidebar,
-							false
-						);
-						?>
-					</div>
-				<?php endif; ?>
-			<?php elseif ( $is_sidebar ) : ?>
-				<button type="button" class="fai-sidebar-launcher" aria-label="<?php esc_attr_e( 'Open search', 'neo-pulse-wp' ); ?>">
-					<?php echo $icon_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- inline SVG ?>
-				</button>
-				<div class="fai-sidebar-backdrop" aria-hidden="true"<?php echo $panel_markup_hidden ? ' hidden' : ''; ?>></div>
-				<div class="fai-sidebar-panel<?php echo esc_attr( $panel_align_class ); ?>" style="<?php echo esc_attr( $css_vars ); ?>" role="dialog" aria-modal="true" aria-label="<?php esc_attr_e( 'Site search', 'neo-pulse-wp' ); ?>"<?php echo $panel_markup_hidden ? ' hidden' : ''; ?>>
-					<?php
-					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-					echo self::render_panel_close_button();
-					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-					echo self::render_sidebar_panel_body(
-						$css_vars,
-						$fbs_modifiers,
-						false,
-						$layout,
-						$placeholder,
-						$button_label,
-						$icon_svg,
-						$insights,
-						$show_search,
-						$show_results,
-						$sidebar,
-						false
-					);
-					?>
-				</div>
-			<?php else : ?>
-			<div class="fbs">
-				<?php
-				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-				echo self::render_inline_search_body(
-					$placeholder,
-					$button_label,
-					$icon_svg,
-					$insight_order,
-					$insights,
-					true
-				);
-				?>
-			</div>
-			<?php endif; ?>
-			<?php if ( $is_panel_search ) : ?>
-				<div class="fbs__icon-sprites" hidden aria-hidden="true">
-					<?php
-					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-					echo self::render_icon_sprite_templates();
-					?>
-				</div>
-			<?php endif; ?>
-		</div>
-		<?php
-		return (string) ob_get_clean();
+	public static function render_search_markup( string $rest_url, string $nonce, array $settings, array $instance = array(), array $sidebar = array(), array $insights = array() ): string {
+		$sidebar  = $sidebar ? $sidebar : Neo_Pulse_Wp_Ai_Widget_Design::resolve_sidebar_config( 'search', $instance );
+		$insights = $insights ? $insights : Neo_Pulse_Wp_Ai_Widget_Design::resolve_search_insights( $instance );
+		$options  = Neo_Pulse_Wp_Search_Render::options( array_merge( array( 'display_mode' => 'inline' ), $instance ), $settings, $sidebar, $insights );
+		return Neo_Pulse_Wp_Search_Render::render( $options, $rest_url, $nonce );
 	}
 
-	/**
-	 * @param array<string,mixed> $sidebar
-	 */
-	private static function launcher_aria_label( array $sidebar, string $button_label ): string {
-		$custom = isset( $sidebar['launcher_label'] ) ? trim( (string) $sidebar['launcher_label'] ) : '';
-		if ( $custom !== '' ) {
-			return $custom;
-		}
-		if ( $button_label !== '' ) {
-			return $button_label;
-		}
-		return __( 'Open search', 'neo-pulse-wp' );
-	}
-
-	/**
-	 * Sidebar / icon panel body with scoped search shell (survives portal to body).
-	 *
-	 * @param array<int,string>   $layout
-	 * @param array<string,mixed> $insights
-	 */
-	private static function render_sidebar_panel_body(
-		string $css_vars,
-		string $modifier_classes,
-		bool $is_icon_panel,
-		array $layout,
-		string $placeholder,
-		string $button_label,
-		string $icon_svg,
-		array $insights,
-		bool $show_search,
-		bool $show_results,
-		array $sidebar,
-		bool $panel_editor_open = false
-	): string {
-		$panel_layout     = (string) ( $sidebar['panel_layout'] ?? 'compact' );
-		$is_discovery     = $panel_layout === 'discovery';
-		$sidebar_heading  = trim( (string) ( $sidebar['sidebar_heading'] ?? '' ) );
-		$sidebar_subtitle = trim( (string) ( $sidebar['sidebar_subtitle'] ?? '' ) );
-		$intro_text       = $sidebar_subtitle;
-		if ( $panel_editor_open && $intro_text === '' ) {
-			$intro_text = __( 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.', 'neo-pulse-wp' );
-		}
-		$show_heading = in_array( 'heading', $layout, true );
-		if ( $show_heading && $sidebar_heading === '' ) {
-			$sidebar_heading = $button_label !== '' ? $button_label : __( 'Search', 'neo-pulse-wp' );
-		}
-
-		$shell_class = 'neo-pulse-search-wrap neo-pulse-search-wrap--sidebar-mode neo-pulse-search-wrap--panel-inner';
-		if ( $is_icon_panel ) {
-			$shell_class .= ' neo-pulse-search-wrap--icon-only-mode';
-		}
-		if ( $is_discovery ) {
-			$shell_class .= ' neo-pulse-search-wrap--panel-layout-discovery';
-		}
-
-		ob_start();
-		?>
-		<div class="fai-sidebar-panel__body">
-			<?php if ( $is_discovery && ( $show_heading || $intro_text !== '' ) ) : ?>
-				<div class="fbs__panel-hero">
-					<?php if ( $show_heading ) : ?>
-						<h2 class="fbs__panel-title"><?php echo esc_html( $sidebar_heading ); ?></h2>
-					<?php endif; ?>
-					<?php if ( $intro_text !== '' ) : ?>
-						<p class="fbs__panel-subtitle"><?php echo esc_html( $intro_text ); ?></p>
-					<?php endif; ?>
-				</div>
-			<?php elseif ( $show_heading ) : ?>
-				<h2 class="fai-sidebar-heading fbs__heading"><?php echo esc_html( $sidebar_heading ); ?></h2>
-				<?php if ( $intro_text !== '' ) : ?>
-					<p class="fbs__sidebar-intro"><?php echo esc_html( $intro_text ); ?></p>
-				<?php endif; ?>
-			<?php endif; ?>
-			<div class="<?php echo esc_attr( $shell_class . $modifier_classes ); ?>" style="<?php echo esc_attr( $css_vars ); ?>">
-				<div class="fbs fbs--sidebar-inner">
-					<?php
-					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-					echo self::render_sidebar_layout_sections(
-						$layout,
-						$placeholder,
-						$button_label,
-						$icon_svg,
-						$insights,
-						$show_search,
-						$show_results,
-						$panel_editor_open,
-						$is_discovery
-					);
-					?>
-					<?php
-					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-					echo self::render_powered_by_markup();
-					?>
-				</div>
-			</div>
-		</div>
-		<?php
-		return (string) ob_get_clean();
-	}
-
-	/**
-	 * @param array<int,string>   $layout
-	 * @param array<string,mixed> $insights
-	 */
-	private static function render_sidebar_layout_sections(
-		array $layout,
-		string $placeholder,
-		string $button_label,
-		string $icon_svg,
-		array $insights,
-		bool $show_search,
-		bool $show_results,
-		bool $panel_editor_open = false,
-		bool $is_discovery = false
-	): string {
-		$insight_sections = array( 'popular_terms' );
-		$has_query_search = $show_search && in_array( 'search', $layout, true );
-		$has_query_results = $show_results && in_array( 'results', $layout, true );
-		ob_start();
-
-		if ( $has_query_search ) {
-			?>
-			<section class="fbs__sidebar-search" aria-label="<?php esc_attr_e( 'Search', 'neo-pulse-wp' ); ?>">
-				<?php
-				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-				echo self::render_search_form( $placeholder, $button_label, $icon_svg );
-				?>
-			</section>
-			<?php
-		}
-
-		if ( $has_query_results ) {
-			echo '<div class="fbs__sidebar-query-scroll">';
-			?>
-			<section class="fbs__sidebar-results" aria-label="<?php esc_attr_e( 'Search results', 'neo-pulse-wp' ); ?>">
-				<div class="fbs__results-slot">
-					<div class="fbs__results-slot-empty" data-elementor-preview-placeholder="1">
-						<p class="fbs__results-slot-empty-label"><?php esc_html_e( 'Search results appear here', 'neo-pulse-wp' ); ?></p>
-					</div>
-					<div class="fbs__panel fbs__panel--sidebar">
-						<div class="fbs__dropdown" hidden></div>
-						<div class="fbs__status" aria-live="polite" hidden></div>
-					</div>
-				</div>
-			</section>
-			<?php
-			echo '</div>';
-		}
-
-		$insights_open         = false;
-		$pages_group_open      = false;
-		$page_sections         = array( 'popular_pages_overseer', 'popular_pages_search' );
-		$page_sections_rendered = 0;
-		$has_both_page_sections = in_array( 'popular_pages_overseer', $layout, true ) && in_array( 'popular_pages_search', $layout, true );
-		foreach ( $insight_sections as $section ) {
-			if ( ! in_array( $section, $layout, true ) ) {
-				continue;
-			}
-			if ( ! $insights_open ) {
-				?>
-				<aside class="fbs__sidebar-insights" aria-label="<?php esc_attr_e( 'Suggestions', 'neo-pulse-wp' ); ?>">
-				<?php
-				$insights_open = true;
-			}
-
-			$is_page_section = in_array( $section, $page_sections, true );
-			if ( $is_page_section && ! $pages_group_open ) {
-				$group_class = 'fbs__insights-pages-group';
-				if ( $has_both_page_sections ) {
-					$group_class .= ' fbs__insights-pages-group--paired';
-				}
-				echo '<div class="' . esc_attr( $group_class ) . '">';
-				$pages_group_open = true;
-			}
-			if ( ! $is_page_section && $pages_group_open ) {
-				echo '</div>';
-				$pages_group_open = false;
-				$page_sections_rendered = 0;
-			}
-
-			if ( $is_page_section && $page_sections_rendered > 0 ) {
-				echo '<span class="fbs__insights-pages-separator" aria-hidden="true">,</span>';
-			}
-
-			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			echo self::render_insight_block( $section, $insights, $panel_editor_open, $is_discovery, true );
-			if ( $is_page_section ) {
-				$page_sections_rendered += 1;
-			}
-		}
-		if ( $pages_group_open ) {
-			echo '</div>';
-		}
-		if ( $insights_open ) {
-			?>
-			</aside>
-			<?php
-		}
-
-		return (string) ob_get_clean();
-	}
-
-	/**
-	 * Panel sidebar order: heading → search → results → insight modules.
-	 *
-	 * @param array<int,string> $layout Raw layout keys.
-	 * @return array<int,string>
-	 */
-	private static function normalize_sidebar_panel_layout( array $layout ): array {
-		$ordered = array( 'heading', 'search', 'results' );
-		$insight = array( 'popular_terms' );
-		$out     = array( 'heading' );
-		foreach ( $ordered as $key ) {
-			if ( $key === 'heading' ) {
-				continue;
-			}
-			if ( in_array( $key, $layout, true ) ) {
-				$out[] = $key;
-			}
-		}
-		foreach ( $insight as $key ) {
-			if ( in_array( $key, $layout, true ) ) {
-				$out[] = $key;
-			}
-		}
-		return $out;
-	}
-
-	/**
-	 * @param array<int,string>   $insight_order
-	 * @param array<string,mixed> $insights
-	 */
-	private static function render_inline_search_body(
-		string $placeholder,
-		string $button_label,
-		string $icon_svg,
-		array $insight_order,
-		array $insights,
-		bool $include_powered
-	): string {
-		ob_start();
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-		echo self::render_search_form( $placeholder, $button_label, $icon_svg );
-		$page_sections          = array( 'popular_pages_overseer', 'popular_pages_search' );
-		$pages_group_open       = false;
-		$page_sections_rendered = 0;
-		$has_both_page_sections = in_array( 'popular_pages_overseer', $insight_order, true ) && in_array( 'popular_pages_search', $insight_order, true );
-		foreach ( $insight_order as $section ) {
-			if ( ! in_array( $section, array( 'popular_terms', 'popular_pages_overseer', 'popular_pages_search' ), true ) ) {
-				continue;
-			}
-			$is_page_section = in_array( $section, $page_sections, true );
-			if ( $is_page_section && ! $pages_group_open ) {
-				$group_class = 'fbs__insights-pages-group';
-				if ( $has_both_page_sections ) {
-					$group_class .= ' fbs__insights-pages-group--paired';
-				}
-				echo '<div class="' . esc_attr( $group_class ) . '">';
-				$pages_group_open = true;
-			}
-			if ( ! $is_page_section && $pages_group_open ) {
-				echo '</div>';
-				$pages_group_open = false;
-				$page_sections_rendered = 0;
-			}
-			if ( $is_page_section && $page_sections_rendered > 0 ) {
-				echo '<span class="fbs__insights-pages-separator" aria-hidden="true">,</span>';
-			}
-			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			echo self::render_insight_block( $section, $insights );
-			if ( $is_page_section ) {
-				$page_sections_rendered += 1;
-			}
-		}
-		if ( $pages_group_open ) {
-			echo '</div>';
-		}
-		?>
-		<div class="fbs__panel">
-			<div class="fbs__dropdown" hidden style="display:none;"></div>
-			<div class="fbs__status" aria-live="polite" style="display:none;"></div>
-		</div>
-		<?php
-		if ( $include_powered ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			echo self::render_powered_by_markup();
-		}
-		return (string) ob_get_clean();
-	}
-
-	private static function render_search_form( string $placeholder, string $button_label, string $icon_svg ): string {
-		ob_start();
-		?>
-		<form class="fbs__form" role="search" action="#" method="get" autocomplete="off">
-			<input
-				type="text"
-				class="fbs__input"
-				name="neo-pulse_search_query"
-				value=""
-				placeholder="<?php echo esc_attr( $placeholder ); ?>"
-				aria-label="<?php echo esc_attr( $placeholder ); ?>"
-				autocomplete="off"
-				inputmode="search"
-				enterkeyhint="search"
-			/>
-			<button type="submit" class="fbs__btn fbs__btn--icon" aria-label="<?php echo esc_attr( $button_label ); ?>">
-				<span class="fbs__btn-icon"><?php echo $icon_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- inline SVG ?></span>
-				<span class="fbs__btn-label"><?php echo esc_html( $button_label ); ?></span>
-			</button>
-		</form>
-		<?php
-		return (string) ob_get_clean();
-	}
-
-	private static function render_powered_by_markup(): string {
-		ob_start();
-		?>
-		<a class="fbs__powered" href="https://neodigital.ca" target="_blank" rel="noopener noreferrer">
-			<svg class="fbs__powered-icon" viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true"><path d="M11.3 1.05a1 1 0 0 0-1.6 0L5.7 7H2a1 1 0 0 0-.8 1.6l4 5.5a1 1 0 0 0 .8.4h2.2l-1.1 3.9a.75.75 0 0 0 1.3.7l6-7A1 1 0 0 0 14.6 11H12l1.9-5.2A1 1 0 0 0 13 4.5h-1.8l.1-3.45z"/></svg>
-			<?php esc_html_e( 'Powered by', 'neo-pulse-wp' ); ?> <strong>NEO Pulse</strong>
-		</a>
-		<?php
-		return (string) ob_get_clean();
-	}
-
-	private static function render_panel_close_button(): string {
-		ob_start();
-		?>
-		<button type="button" class="fai-sidebar-close" aria-label="<?php esc_attr_e( 'Close search', 'neo-pulse-wp' ); ?>">
-			<?php echo Neo_Pulse_Wp_Search_Icons::render_close(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- inline SVG ?>
-		</button>
-		<?php
-		return (string) ob_get_clean();
-	}
-
-	/**
-	 * @param array<string,mixed> $instance
-	 */
-	private static function instance_flag_is_off( array $instance, string $key, bool $default_on ): bool {
-		if ( ! array_key_exists( $key, $instance ) ) {
-			return ! $default_on;
-		}
-		$value = $instance[ $key ];
-		if ( $value === 'yes' || $value === true || $value === 1 || $value === '1' ) {
-			return false;
-		}
-		if ( $value === 'no' || $value === false || $value === 0 || $value === '0' || $value === '' ) {
-			return true;
-		}
-		return ! $default_on;
-	}
 
 	// ── REST API ─────────────────────────────────────────────────
 
@@ -1408,23 +542,83 @@ class Neo_Pulse_Wp_Search {
 	 * @return WP_REST_Response
 	 */
 	public static function handle_search_word_ready( WP_REST_Request $request ): WP_REST_Response {
-		$query_text = trim( (string) $request->get_param( 'query' ) );
-		if ( $query_text === '' ) {
-			return new WP_REST_Response( array( 'ready' => false ), 200 );
-		}
+		// 0.9.253: decided in code, never by AI. The browser now checks locally and only older cached
+		// pages still call this endpoint.
+		$query_text = self::clamp_query( (string) $request->get_param( 'query' ) );
+		return new WP_REST_Response( array( 'ready' => $query_text !== '' && self::local_word_ready( $query_text ) ), 200 );
+	}
 
-		$ip_key = 'fbs_wrl_' . md5( $_SERVER['REMOTE_ADDR'] ?? 'unknown' );
-		if ( get_transient( $ip_key ) ) {
-			return new WP_REST_Response( array( 'ready' => false ), 200 );
+	/**
+	 * Trim a search and cut it to MAX_QUERY_LENGTH characters.
+	 */
+	public static function clamp_query( string $query ): string {
+		$query = trim( $query );
+		if ( function_exists( 'mb_substr' ) ) {
+			return trim( mb_substr( $query, 0, self::MAX_QUERY_LENGTH ) );
 		}
-		set_transient( $ip_key, 1, self::RATE_LIMIT_TTL );
+		return trim( substr( $query, 0, self::MAX_QUERY_LENGTH ) );
+	}
 
-		return new WP_REST_Response(
-			array(
-				'ready' => self::openrouter_query_has_complete_word( $query_text ),
-			),
-			200
-		);
+	/**
+	 * Site-wide AI search cap for today (filterable).
+	 */
+	public static function daily_ai_cap(): int {
+		$settings = self::get_search_settings();
+		$cap      = isset( $settings['daily_ai_cap'] ) ? (int) $settings['daily_ai_cap'] : self::DEFAULT_DAILY_AI_CAP;
+		/**
+		 * Site-wide AI searches allowed per day. 0 turns AI off for search.
+		 *
+		 * @param int $cap Cap from Search settings.
+		 */
+		return max( 0, (int) apply_filters( 'neo_pulse_wp_search_daily_ai_cap', $cap ) );
+	}
+
+	/**
+	 * AI searches used today (site time zone).
+	 */
+	public static function ai_searches_today(): int {
+		$usage = get_option( self::AI_USAGE_OPTION );
+		if ( ! is_array( $usage ) || ( $usage['day'] ?? '' ) !== wp_date( 'Y-m-d' ) ) {
+			return 0;
+		}
+		return (int) ( $usage['count'] ?? 0 );
+	}
+
+	/**
+	 * Count one AI search against today's cap. False when the cap is already reached.
+	 */
+	private static function take_daily_ai_slot(): bool {
+		$cap  = self::daily_ai_cap();
+		$used = self::ai_searches_today();
+		if ( $used >= $cap ) {
+			return false;
+		}
+		update_option( self::AI_USAGE_OPTION, array( 'day' => wp_date( 'Y-m-d' ), 'count' => $used + 1 ), false );
+		return true;
+	}
+
+	/**
+	 * Licensed site with an OpenRouter key: AI query analysis may run.
+	 */
+	private static function ai_search_available(): bool {
+		return Neo_Pulse_Wp_License::has_ai( false ) && Neo_Pulse_Wp_OpenRouter::get_api_key() !== '';
+	}
+
+	/**
+	 * Non-AI "has the visitor finished a word?": the input ends in a space or punctuation,
+	 * or the last word is at least three characters.
+	 */
+	private static function local_word_ready( string $query ): bool {
+		if ( $query === '' ) {
+			return false;
+		}
+		if ( preg_match( '/[\s\p{P}]$/u', $query ) ) {
+			return true;
+		}
+		$words = preg_split( '/\s+/u', trim( $query ) );
+		$last  = is_array( $words ) && ! empty( $words ) ? (string) end( $words ) : '';
+		$len   = function_exists( 'mb_strlen' ) ? mb_strlen( $last ) : strlen( $last );
+		return $len >= 3;
 	}
 
 	/**
@@ -1432,16 +626,14 @@ class Neo_Pulse_Wp_Search {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public static function handle_search( WP_REST_Request $request ) {
-		$query_text = trim( (string) $request->get_param( 'query' ) );
+		$query_text = self::clamp_query( (string) $request->get_param( 'query' ) );
 		if ( $query_text === '' ) {
 			return new WP_Error( 'neo-pulse_search_empty', 'Query cannot be empty.', array( 'status' => 400 ) );
 		}
 
-		$ip_key = 'fbs_rl_' . md5( $_SERVER['REMOTE_ADDR'] ?? 'unknown' );
-		if ( get_transient( $ip_key ) ) {
+		if ( Neo_Pulse_Wp_OpenRouter::rate_limit_exceeded( 'search', self::RATE_LIMIT_MAX, self::RATE_LIMIT_WINDOW ) ) {
 			return new WP_Error( 'neo-pulse_search_rate', 'Too many requests. Please wait a moment.', array( 'status' => 429 ) );
 		}
-		set_transient( $ip_key, 1, self::RATE_LIMIT_TTL );
 
 		$settings  = self::get_search_settings();
 		$per_page  = (int) $request->get_param( 'per_page' );
@@ -1449,7 +641,7 @@ class Neo_Pulse_Wp_Search {
 			$per_page = (int) $settings['max_results'];
 		}
 
-		$ai_analysis = self::openrouter_analyze( $query_text );
+		$ai_analysis = self::openrouter_analyze( $query_text, self::ai_search_available() );
 
 		$search_terms = self::build_search_queries( $query_text, $ai_analysis );
 
@@ -1466,7 +658,7 @@ class Neo_Pulse_Wp_Search {
 			}
 		}
 
-		$ranked = self::rank_results( $all_results, $ai_analysis, $per_page );
+		$ranked = self::rank_results( $all_results, $ai_analysis, $per_page, $query_text );
 
 		return new WP_REST_Response(
 			array(
@@ -1537,16 +729,29 @@ class Neo_Pulse_Wp_Search {
 		$results  = array();
 		$position = 0;
 
+		$indexable_only = ! empty( self::get_search_settings()['indexable_only'] )
+			&& class_exists( 'Neo_Pulse_Wp_Seo_Head' )
+			&& method_exists( 'Neo_Pulse_Wp_Seo_Head', 'is_indexable_post' );
+
 		foreach ( $wp_query->posts as $post ) {
+			// Thank-you pages, noindex pages and pages that redirect or point their canonical elsewhere
+			// aren't meant to be landed on, so search leaves them out.
+			if ( $indexable_only && ! Neo_Pulse_Wp_Seo_Head::is_indexable_post( $post ) ) {
+				continue;
+			}
 			++$position;
 			$results[] = array(
 				'id'         => $post->ID,
 				'title'      => html_entity_decode( get_the_title( $post ), ENT_QUOTES, 'UTF-8' ),
 				'url'        => get_permalink( $post ),
 				'slug'       => $post->post_name,
-				'excerpt'    => html_entity_decode( wp_trim_words( $post->post_excerpt !== '' ? $post->post_excerpt : $post->post_content, 30, '…' ), ENT_QUOTES, 'UTF-8' ),
+				// Password-protected posts never expose their text in results.
+				'excerpt'    => (string) $post->post_password !== ''
+					? ''
+					: html_entity_decode( wp_trim_words( $post->post_excerpt !== '' ? $post->post_excerpt : $post->post_content, 30, '…' ), ENT_QUOTES, 'UTF-8' ),
 				'type'       => $post->post_type,
 				'type_label' => self::content_type_label( $post->post_type ),
+				'thumb'      => (string) get_the_post_thumbnail_url( $post, 'thumbnail' ),
 				'base_rank'  => $position,
 			);
 		}
@@ -1557,10 +762,15 @@ class Neo_Pulse_Wp_Search {
 	// ── OpenRouter sentiment / intent ────────────────────────────
 
 	/**
+	 * AI intent and keywords for a search. A cached answer is always used. A new AI call needs
+	 * $allow_ai, a free slot in today's site-wide cap and the visitor's daily allowance; otherwise
+	 * the plain (no-AI) analysis is returned and the search still runs.
+	 *
 	 * @param string $query
+	 * @param bool   $allow_ai Licensed site with an AI key.
 	 * @return array{intent:string,keywords:array<string>,sentiment:string}
 	 */
-	private static function openrouter_analyze( string $query ): array {
+	private static function openrouter_analyze( string $query, bool $allow_ai = true ): array {
 		$fallback = array(
 			'intent'    => 'informational',
 			'keywords'  => array_filter( explode( ' ', strtolower( $query ) ) ),
@@ -1568,6 +778,23 @@ class Neo_Pulse_Wp_Search {
 		);
 
 		if ( Neo_Pulse_Wp_OpenRouter::get_api_key() === '' ) {
+			return $fallback;
+		}
+
+		$cache_key = 'neo_pulse_srch_ai_' . md5( Neo_Pulse_Wp_Search_Logs::normalize_query( $query ) . '|' . self::get_openrouter_model() );
+		$cached    = get_transient( $cache_key );
+		if ( is_array( $cached ) && isset( $cached['intent'], $cached['keywords'], $cached['sentiment'] ) ) {
+			return $cached;
+		}
+
+		if ( ! $allow_ai ) {
+			return $fallback;
+		}
+		// Per-visitor daily allowance first (it doesn't use a site slot), then the site-wide cap.
+		if ( Neo_Pulse_Wp_OpenRouter::rate_limit_exceeded( 'search_day', self::RATE_LIMIT_DAY_MAX, DAY_IN_SECONDS ) ) {
+			return $fallback;
+		}
+		if ( ! self::take_daily_ai_slot() ) {
 			return $fallback;
 		}
 
@@ -1591,41 +818,14 @@ class Neo_Pulse_Wp_Search {
 			return $fallback;
 		}
 
-		return array(
+		$analysis = array(
 			'intent'    => isset( $parsed['intent'] ) && is_string( $parsed['intent'] ) ? $parsed['intent'] : $fallback['intent'],
 			'keywords'  => isset( $parsed['keywords'] ) && is_array( $parsed['keywords'] ) ? array_map( 'strval', $parsed['keywords'] ) : $fallback['keywords'],
 			'sentiment' => isset( $parsed['sentiment'] ) && is_string( $parsed['sentiment'] ) ? $parsed['sentiment'] : $fallback['sentiment'],
 		);
-	}
+		set_transient( $cache_key, $analysis, self::AI_CACHE_TTL );
 
-	/**
-	 * @param string $query Raw search input.
-	 */
-	private static function openrouter_query_has_complete_word( string $query ): bool {
-		if ( Neo_Pulse_Wp_OpenRouter::get_api_key() === '' ) {
-			return false;
-		}
-
-		$system = 'You judge whether a search box input contains at least one complete, correctly spelled real word (English or a proper noun). Partial mid-word typing is not ready. Trailing space is optional. Respond with ONLY valid JSON (no markdown): {"ready": true} or {"ready": false}. Examples: "plu" false, "plumber" true, "plumber edmonton" true, "plumber ed" true when "plumber" is complete, "asdfgh" false.';
-
-		$result = Neo_Pulse_Wp_OpenRouter::complete( $system, $query, 64, 0.0, self::get_openrouter_model() );
-		if ( is_wp_error( $result ) ) {
-			return false;
-		}
-
-		$text = trim( (string) $result );
-		if ( strpos( $text, '```' ) !== false ) {
-			$text = preg_replace( '/```(?:json)?\s*/i', '', $text );
-			$text = preg_replace( '/```/', '', $text );
-			$text = trim( (string) $text );
-		}
-
-		$parsed = json_decode( $text, true );
-		if ( ! is_array( $parsed ) || ! array_key_exists( 'ready', $parsed ) ) {
-			return false;
-		}
-
-		return (bool) $parsed['ready'];
+		return $analysis;
 	}
 
 	// ── Ranking ──────────────────────────────────────────────────
@@ -1638,22 +838,17 @@ class Neo_Pulse_Wp_Search {
 	 */
 	private static function content_priority_boost( array $item ): int {
 		$type = isset( $item['type'] ) ? (string) $item['type'] : '';
-		$url  = isset( $item['url'] ) ? strtolower( (string) $item['url'] ) : '';
 		$slug = isset( $item['slug'] ) ? strtolower( (string) $item['slug'] ) : '';
 
-		$boost = 0;
+		// The order set in Search → General: the top level gets +45, the bottom -18, levels in
+		// between are spread evenly (the same range the fixed page/post bonuses used before).
+		$levels = self::priority_levels();
+		$level  = self::priority_level( $type );
+		$count  = count( $levels );
+		$boost  = $count > 1 ? (int) round( 45 - ( 63 * $level / ( $count - 1 ) ) ) : 0;
 
-		if ( $type === 'page' ) {
-			$boost += 45;
-			if ( self::is_money_page_slug( $slug ) ) {
-				$boost += 25;
-			}
-		} elseif ( $type === 'service-area' || self::is_service_area_url( $url, $slug ) ) {
-			$boost += 32;
-		} elseif ( $type === 'post' ) {
-			$boost -= 18;
-		} else {
-			$boost += 10;
+		if ( $type === 'page' && self::is_money_page_slug( $slug ) ) {
+			$boost += 25;
 		}
 
 		/**
@@ -1663,6 +858,50 @@ class Neo_Pulse_Wp_Search {
 		 * @param array<string,mixed> $item  Result row.
 		 */
 		return (int) apply_filters( 'neo_pulse_wp_search_content_boost', $boost, $item );
+	}
+
+	/**
+	 * Default place in the result order for a content type: pages first, blog posts last.
+	 */
+	private static function type_priority_default( string $type ): int {
+		if ( 'page' === $type ) {
+			return 1;
+		}
+		return 'post' === $type ? 9 : 5;
+	}
+
+	/**
+	 * Place in the result order (1 first … 9 last) for a content type.
+	 */
+	public static function type_priority( string $type ): int {
+		$set = self::get_search_settings()['type_priority'] ?? array();
+		return is_array( $set ) && isset( $set[ $type ] ) ? (int) $set[ $type ] : self::type_priority_default( $type );
+	}
+
+	/**
+	 * The distinct priority numbers used by the searched content types, best first.
+	 *
+	 * @return array<int,int>
+	 */
+	private static function priority_levels(): array {
+		static $levels = null;
+		if ( null === $levels ) {
+			$levels = array();
+			foreach ( (array) self::get_search_settings()['post_types'] as $type ) {
+				$levels[] = self::type_priority( (string) $type );
+			}
+			$levels = array_values( array_unique( $levels ) );
+			sort( $levels );
+		}
+		return $levels;
+	}
+
+	/**
+	 * 0 for the best level, 1 for the next, and so on.
+	 */
+	private static function priority_level( string $type ): int {
+		$index = array_search( self::type_priority( $type ), self::priority_levels(), true );
+		return false === $index ? max( 0, count( self::priority_levels() ) - 1 ) : (int) $index;
 	}
 
 	/**
@@ -1724,16 +963,18 @@ class Neo_Pulse_Wp_Search {
 	/**
 	 * @param array<int,array<string,mixed>> $wp_results
 	 * @param array{intent:string,keywords:array<string>,sentiment:string} $ai
-	 * @param int $limit
+	 * @param int    $limit
+	 * @param string $query What the visitor typed (for the match percentage).
 	 * @return array<int,array<string,mixed>>
 	 */
-	private static function rank_results( array $wp_results, array $ai, int $limit ): array {
+	private static function rank_results( array $wp_results, array $ai, int $limit, string $query = '' ): array {
 		if ( empty( $wp_results ) ) {
 			return array();
 		}
 
 		$keywords = array_map( 'strtolower', $ai['keywords'] );
 		$intent   = $ai['intent'];
+		$terms    = self::match_terms( $query !== '' ? $query : implode( ' ', $keywords ) );
 
 		foreach ( $wp_results as &$item ) {
 			$score       = max( 0, 100 - ( (int) $item['base_rank'] * 3 ) );
@@ -1789,135 +1030,127 @@ class Neo_Pulse_Wp_Search {
 				$score += 8;
 			}
 
-			$item['score'] = $score;
+			// How closely the result matches what was typed (0-100), shown as "95% match".
+			// It also counts towards the ranking, so better matches sit higher.
+			$item['match'] = self::match_percent( $terms, $title_lower, $slug_lower . ' ' . $url_lower, strtolower( (string) $item['excerpt'] ) );
+			$item['score'] = $score + $item['match'];
 			unset( $item['base_rank'] );
 		}
 		unset( $item );
 
-		usort( $wp_results, static function ( $a, $b ) {
+		$strict = 'strict' === ( self::get_search_settings()['priority_mode'] ?? 'balanced' );
+		usort( $wp_results, static function ( $a, $b ) use ( $strict ) {
+			if ( $strict ) {
+				$by_type = self::priority_level( (string) $a['type'] ) - self::priority_level( (string) $b['type'] );
+				if ( 0 !== $by_type ) {
+					return $by_type;
+				}
+			}
 			return (int) $b['score'] - (int) $a['score'];
 		} );
 
-		return array_slice( $wp_results, 0, $limit );
-	}
+		$wp_results = array_slice( $wp_results, 0, $limit );
 
-	private static function render_icon_sprite_templates(): string {
-		ob_start();
-		foreach ( Neo_Pulse_Wp_Search_Icons::ids() as $icon_id ) {
-			?>
-			<template class="fbs__icon-sprite" data-icon="<?php echo esc_attr( $icon_id ); ?>">
-				<?php echo Neo_Pulse_Wp_Search_Icons::render( $icon_id, array( 'width' => 20, 'height' => 20 ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- inline SVG ?>
-			</template>
-			<?php
+		// Keep the percentages in step with the order: a lower result never shows a higher match.
+		$ceiling = 100;
+		foreach ( $wp_results as &$item ) {
+			$item['match'] = min( $ceiling, (int) $item['match'] );
+			$ceiling       = $item['match'];
 		}
-		return (string) ob_get_clean();
+		unset( $item );
+
+		return $wp_results;
 	}
 
 	/**
-	 * @param string              $section Insight section key.
-	 * @param array<string,mixed> $insights Resolved insights config.
+	 * Words in the search that carry meaning (lowercase, no filler words, no repeats).
+	 *
+	 * @return array<int,string>
 	 */
-	private static function render_insight_block( string $section, array $insights, bool $preview_demo = false, bool $is_discovery = false, bool $reserve_slot = false ): string {
-		$toggles = array(
-			'popular_terms'          => 'show_popular_terms',
-			'popular_pages_overseer' => 'show_popular_pages_overseer',
-			'popular_pages_search'   => 'show_popular_pages_search',
-			'popular_topics'         => 'show_popular_pages_overseer',
+	private static function match_terms( string $query ): array {
+		static $filler = array(
+			'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'can', 'do', 'does', 'for', 'from', 'get', 'how', 'i',
+			'in', 'is', 'it', 'me', 'my', 'of', 'on', 'or', 'our', 'the', 'to', 'we', 'what', 'where', 'which', 'who',
+			'why', 'with', 'you', 'your',
 		);
-		if ( ! isset( $toggles[ $section ] ) ) {
-			return '';
+		$query = function_exists( 'mb_strtolower' ) ? mb_strtolower( $query ) : strtolower( $query );
+		$words = preg_split( '/[^\p{L}\p{N}]+/u', $query, -1, PREG_SPLIT_NO_EMPTY );
+		$terms = array();
+		foreach ( (array) $words as $word ) {
+			if ( ( strlen( $word ) < 2 && ! ctype_digit( $word ) ) || in_array( $word, $filler, true ) ) {
+				continue;
+			}
+			$terms[ $word ] = true;
 		}
-		if ( ! $preview_demo && ! $reserve_slot && empty( $insights[ $toggles[ $section ] ] ) ) {
-			return '';
+		if ( empty( $terms ) ) {
+			foreach ( (array) $words as $word ) {
+				$terms[ $word ] = true;
+			}
 		}
-
-		$labels = array(
-			'popular_terms'          => __( 'Popular searches', 'neo-pulse-wp' ),
-			'popular_pages_overseer' => __( 'General pages', 'neo-pulse-wp' ),
-			'popular_pages_search'   => __( 'From search', 'neo-pulse-wp' ),
-			'popular_topics'         => __( 'Popular Topics', 'neo-pulse-wp' ),
-		);
-
-		$list_class  = $section === 'popular_topics' ? 'fbs__insights-list fbs__topics-grid' : 'fbs__insights-list';
-		$label_class = $section === 'popular_topics' ? 'fbs__insights-label fbs__insights-label--topics' : 'fbs__insights-label';
-		if ( $section === 'popular_terms' ) {
-			$list_class .= ' fbs__insights-list--terms';
-		}
-		if ( in_array( $section, array( 'popular_pages_overseer', 'popular_pages_search' ), true ) ) {
-			$list_class .= ' fbs__insights-list--links';
-		}
-
-		$block_class = 'fbs__insights-block';
-		if ( $reserve_slot ) {
-			$block_class .= ' fbs__insights-block--slot';
-		}
-		$hidden_attr = ( $preview_demo || $reserve_slot ) ? '' : ' hidden';
-		$demo_attr   = $preview_demo ? ' data-elementor-demo="1"' : '';
-
-		$list_markup = '';
-		if ( $preview_demo ) {
-			$list_markup = self::render_elementor_preview_insight_list( $section );
-		}
-
-		return sprintf(
-			'<div class="%8$s" data-insight="%1$s"%5$s%6$s><div class="%3$s">%2$s</div><div class="%4$s" role="list">%7$s</div></div>',
-			esc_attr( $section ),
-			esc_html( $labels[ $section ] ),
-			esc_attr( $label_class ),
-			esc_attr( $list_class ),
-			$hidden_attr,
-			$demo_attr,
-			$list_markup,
-			esc_attr( $block_class )
-		);
+		return array_keys( $terms );
 	}
 
-	private static function render_elementor_preview_insight_list( string $section ): string {
-		if ( $section === 'popular_terms' ) {
-			$terms = array( 'Lorem ipsum', 'Dolor sit amet', 'Consectetur', 'Adipiscing elit', 'Sed eiusmod' );
-			$out   = '';
-			foreach ( $terms as $term ) {
-				$out .= sprintf(
-					'<button type="button" class="fbs__insight-chip" tabindex="-1">%s</button>',
-					esc_html( $term )
-				);
+	/**
+	 * Match percentage for one result: each search word scores by where it appears (title best, then
+	 * the address, then the description; a shared word stem counts for less), averaged over the words.
+	 * Every result returned matched the search somehow, so the floor is 20%.
+	 *
+	 * @param array<int,string> $terms
+	 */
+	private static function match_percent( array $terms, string $title, string $address, string $excerpt ): int {
+		if ( empty( $terms ) ) {
+			return 0;
+		}
+		$total = 0.0;
+		foreach ( $terms as $term ) {
+			$stem = self::match_stem( $term );
+			if ( self::has_word( $title, $term ) ) {
+				$weight = 1.0;
+			} elseif ( self::has_word( $address, $term ) ) {
+				$weight = 0.85;
+			} elseif ( self::has_word( $excerpt, $term ) ) {
+				$weight = 0.7;
+			} elseif ( $stem !== '' && strpos( $title, $stem ) !== false ) {
+				$weight = 0.6;
+			} elseif ( $stem !== '' && ( strpos( $address, $stem ) !== false || strpos( $excerpt, $stem ) !== false ) ) {
+				$weight = 0.4;
+			} else {
+				$weight = 0.0;
 			}
-			return $out;
+			$total += $weight;
 		}
-
-		if ( $section === 'popular_topics' ) {
-			$topics = array( 'Lorem Topic', 'Ipsum Pages', 'Dolor Guides', 'Sit Resources' );
-			$out    = '';
-			foreach ( $topics as $topic ) {
-				$out .= sprintf(
-					'<a class="fbs__topic-tile" href="#" tabindex="-1"><span class="fbs__topic-label">%s</span></a>',
-					esc_html( $topic )
-				);
-			}
-			return $out;
-		}
-
-		$pages = array(
-			'Lorem ipsum dolor',
-			'Sit amet consectetur',
-			'Adipiscing elit sed',
-			'Eiusmod tempor incididunt',
-		);
-		$out   = '';
-		foreach ( $pages as $page ) {
-			$out .= sprintf(
-				'<a class="fbs__insight-link" href="#" tabindex="-1">%s</a>',
-				esc_html( $page )
-			);
-		}
-		return $out;
+		$coverage = $total / count( $terms );
+		return (int) round( 20 + 80 * $coverage );
 	}
+
+	/**
+	 * Whole-word (or word-start) match, so "blind" counts in "blinds" but "art" doesn't count in "start".
+	 */
+	private static function has_word( string $text, string $term ): bool {
+		return $text !== '' && (bool) preg_match( '/(?<![\p{L}\p{N}])' . preg_quote( $term, '/' ) . '/u', $text );
+	}
+
+	/**
+	 * Rough word stem ("motorized" → "motoriz", "blinds" → "blind") for partial credit.
+	 */
+	private static function match_stem( string $term ): string {
+		if ( strlen( $term ) < 5 ) {
+			return '';
+		}
+		$stem = preg_replace( '/(ing|ed|es|s|er|ers|ly)$/', '', $term );
+		return strlen( (string) $stem ) >= 4 ? (string) $stem : '';
+	}
+
 
 	/**
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public static function handle_search_log( WP_REST_Request $request ) {
+		if ( Neo_Pulse_Wp_OpenRouter::rate_limit_exceeded( 'search_log', self::LOG_RATE_LIMIT_MAX, self::LOG_RATE_LIMIT_WINDOW ) ) {
+			return new WP_REST_Response( array( 'ok' => false, 'error' => 'rate_limited' ), 429 );
+		}
+
 		$body = $request->get_json_params();
 		if ( ! is_array( $body ) ) {
 			$body = array();
@@ -1954,16 +1187,28 @@ class Neo_Pulse_Wp_Search {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public static function handle_search_accept( WP_REST_Request $request ) {
+		if ( Neo_Pulse_Wp_OpenRouter::rate_limit_exceeded( 'search_log', self::LOG_RATE_LIMIT_MAX, self::LOG_RATE_LIMIT_WINDOW ) ) {
+			return new WP_REST_Response( array( 'ok' => false, 'error' => 'rate_limited' ), 429 );
+		}
+
 		$body = $request->get_json_params();
 		if ( ! is_array( $body ) ) {
 			$body = array();
 		}
 
+		// Accepted pages feed the public "Others also found" list, so only real, public pages
+		// on this site count, and the title always comes from the post (never from the browser).
+		$post = self::public_post_for_url( isset( $body['url'] ) ? (string) $body['url'] : '' );
+		if ( null === $post ) {
+			return new WP_REST_Response( array( 'ok' => false, 'error' => 'invalid_url' ), 400 );
+		}
+		$permalink = get_permalink( $post );
+
 		$result = Neo_Pulse_Wp_Search_Logs::record_accept(
 			array(
 				'event_uid' => isset( $body['eventUid'] ) ? (string) $body['eventUid'] : '',
-				'url'       => isset( $body['url'] ) ? (string) $body['url'] : '',
-				'title'     => isset( $body['title'] ) ? (string) $body['title'] : '',
+				'url'       => is_string( $permalink ) && $permalink !== '' ? $permalink : (string) $body['url'],
+				'title'     => html_entity_decode( get_the_title( $post ), ENT_QUOTES, 'UTF-8' ),
 				'rank'      => isset( $body['rank'] ) ? (int) $body['rank'] : 0,
 			)
 		);
@@ -1977,20 +1222,53 @@ class Neo_Pulse_Wp_Search {
 	}
 
 	/**
+	 * Published, non-password post on this site for a URL, or null.
+	 */
+	private static function public_post_for_url( string $url ): ?WP_Post {
+		$url = esc_url_raw( trim( $url ) );
+		if ( $url === '' ) {
+			return null;
+		}
+		$host = wp_parse_url( $url, PHP_URL_HOST );
+		$home = wp_parse_url( home_url(), PHP_URL_HOST );
+		if ( ! is_string( $host ) || ! is_string( $home ) || strtolower( $host ) !== strtolower( $home ) ) {
+			return null;
+		}
+		$post_id = url_to_postid( $url );
+		if ( $post_id < 1 ) {
+			return null;
+		}
+		$post = get_post( $post_id );
+		if ( ! $post instanceof WP_Post || $post->post_status !== 'publish' || (string) $post->post_password !== '' ) {
+			return null;
+		}
+		return $post;
+	}
+
+	/**
+	 * Public insights lists (aggregates only). Days come from the site settings, never the request;
+	 * the widget picks its sections and a list size of 1–12, so the cache stays small and bounded.
+	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response
 	 */
 	public static function handle_search_insights( WP_REST_Request $request ): WP_REST_Response {
-		$days  = (int) $request->get_param( 'days' );
-		$limit = (int) $request->get_param( 'limit' );
-		if ( $days < 1 ) {
-			$days = 30;
-		}
-		if ( $limit < 1 ) {
-			$limit = 5;
+		$insights = Neo_Pulse_Wp_Ai_Widget_Design::resolve_search_insights( array() );
+		$days     = max( 1, min( 365, (int) ( $insights['insights_days'] ?? 30 ) ) );
+		$limit    = max( 1, min( 12, (int) ( $insights['popular_terms_limit'] ?? 5 ) ) );
+		$req_lim  = $request->get_param( 'limit' );
+		if ( is_scalar( $req_lim ) && (int) $req_lim > 0 ) {
+			$limit = min( 12, (int) $req_lim );
 		}
 
-		$insights = Neo_Pulse_Wp_Ai_Widget_Design::resolve_search_insights( array() );
+		// The widget says which sections it shows (each widget has its own switches).
+		$asked = $request->get_param( 'sections' );
+		if ( is_string( $asked ) && $asked !== '' ) {
+			$asked = array_map( 'trim', explode( ',', $asked ) );
+			$insights['show_popular_terms']          = in_array( 'popular_terms', $asked, true );
+			$insights['show_popular_pages_overseer'] = in_array( 'popular_pages_overseer', $asked, true );
+			$insights['show_popular_pages_search']   = in_array( 'popular_pages_search', $asked, true );
+		}
 
 		$payload = array(
 			'popularTerms'            => array(),
@@ -1999,7 +1277,7 @@ class Neo_Pulse_Wp_Search {
 		);
 
 		if ( ! empty( $insights['show_popular_terms'] ) ) {
-			$payload['popularTerms'] = Neo_Pulse_Wp_Search_Logs::aggregate_popular_terms_curated( $days, $limit );
+			$payload['popularTerms'] = Neo_Pulse_Wp_Search_Popular::terms( $days, $limit, (string) $request->get_param( 'pinned' ) !== '0' );
 		}
 		if ( ! empty( $insights['show_popular_pages_overseer'] ) ) {
 			$payload['popularPagesOverseer'] = Neo_Pulse_Wp_Search_Logs::aggregate_popular_pages_overseer( $days, $limit );
@@ -2007,7 +1285,25 @@ class Neo_Pulse_Wp_Search {
 		if ( ! empty( $insights['show_popular_pages_search'] ) ) {
 			$payload['popularPagesFromSearch'] = Neo_Pulse_Wp_Search_Logs::aggregate_popular_pages_from_search( $days, $limit );
 		}
+		foreach ( array( 'popularPagesOverseer', 'popularPagesFromSearch' ) as $list ) {
+			$payload[ $list ] = self::with_page_details( $payload[ $list ] );
+		}
 
 		return new WP_REST_Response( $payload, 200 );
+	}
+
+	/**
+	 * Add a thumbnail and a type label ("Page", "Blog") to popular page rows.
+	 *
+	 * @param array<int,array<string,mixed>> $rows
+	 * @return array<int,array<string,mixed>>
+	 */
+	private static function with_page_details( array $rows ): array {
+		foreach ( $rows as $i => $row ) {
+			$post_id = isset( $row['url'] ) ? url_to_postid( (string) $row['url'] ) : 0;
+			$rows[ $i ]['thumb']      = $post_id ? (string) get_the_post_thumbnail_url( $post_id, 'thumbnail' ) : '';
+			$rows[ $i ]['type_label'] = $post_id ? self::content_type_label( (string) get_post_type( $post_id ) ) : '';
+		}
+		return $rows;
 	}
 }

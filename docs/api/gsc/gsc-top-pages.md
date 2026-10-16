@@ -5,7 +5,7 @@ section: Google Search Console
 method: POST
 path: /api/gsc/top-pages
 auth: open
-order: 520
+order: 530
 ---
 
 POST `/api/gsc/top-pages`.

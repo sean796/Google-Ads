@@ -429,7 +429,7 @@
 
       function next() {
         if (index >= total) {
-          return Promise.reject(new Error('Build finished without applying the SEO block.'));
+          return Promise.reject(new Error('Build finished without applying the changes.'));
         }
         var step = steps[index] || {};
         var label = step.label || ('Step ' + (index + 1));

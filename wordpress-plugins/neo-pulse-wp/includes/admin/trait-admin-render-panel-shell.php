@@ -11,21 +11,17 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Panel_Shell {
 
 	/**
 	 * @param string $lead Lead paragraph.
-	 * @param string $dashboard_url Dashboard link URL.
 	 */
-	protected static function panel_page_header( string $lead, string $dashboard_url ): void {
+	protected static function panel_page_header( string $lead ): void {
 		$flash = self::get_and_clear_flash();
 		?>
 		<header class="neo-pulse-wp-settings__header">
 			<h1 class="neo-pulse-wp-settings__title"><?php echo esc_html( get_admin_page_title() ); ?></h1>
 			<p class="neo-pulse-wp-settings__lead"><?php echo esc_html( $lead ); ?></p>
-			<p>
-				<a href="<?php echo esc_url( $dashboard_url ); ?>"><?php esc_html_e( '← Dashboard', 'neo-pulse-wp' ); ?></a>
-			</p>
 		</header>
 
 		<?php if ( $flash ) : ?>
-			<div class="notice notice-<?php echo ! empty( $flash['success'] ) ? 'success' : 'error'; ?> is-dismissible">
+			<div class="notice inline notice-<?php echo ! empty( $flash['success'] ) ? 'success' : 'error'; ?> is-dismissible">
 				<p><?php echo esc_html( isset( $flash['message'] ) ? (string) $flash['message'] : '' ); ?></p>
 			</div>
 		<?php endif; ?>
@@ -39,8 +35,22 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Panel_Shell {
 	 * @param string                              $nav_label  Accessible nav label.
 	 */
 	protected static function panel_layout_start( string $page_slug, array $nav_groups, string $active_tab, string $nav_label ): void {
+		// Tabs already shown across the top of the section are not repeated here.
+		if ( Neo_Pulse_Wp_Admin_Menu::section_shows_page_tabs( $page_slug ) ) {
+			echo '<div class="neo-pulse-wp-panel-layout neo-pulse-wp-panel-layout--solo"><div class="neo-pulse-wp-panel-content">';
+			return;
+		}
+		// A short list without headings sits as pills above the content; longer lists go down the side.
+		$tabs_count = count( self::panel_flatten_nav_tabs( $nav_groups ) );
+		$has_heads  = false;
+		foreach ( $nav_groups as $group ) {
+			if ( ! empty( $group['heading'] ) && count( $nav_groups ) > 1 ) {
+				$has_heads = true;
+			}
+		}
+		$top = ! $has_heads && $tabs_count <= 6;
 		?>
-		<div class="neo-pulse-wp-panel-layout">
+		<div class="neo-pulse-wp-panel-layout<?php echo $top ? ' neo-pulse-wp-panel-layout--top' : ''; ?>">
 			<nav class="neo-pulse-wp-panel-nav" aria-label="<?php echo esc_attr( $nav_label ); ?>">
 				<?php foreach ( $nav_groups as $group ) : ?>
 					<?php
@@ -50,7 +60,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Panel_Shell {
 						continue;
 					}
 					?>
-					<?php if ( $heading !== '' ) : ?>
+					<?php if ( $heading !== '' && ! $top ) : ?>
 						<p class="neo-pulse-wp-panel-nav__heading"><?php echo esc_html( $heading ); ?></p>
 					<?php endif; ?>
 					<ul class="neo-pulse-wp-panel-nav__list">
@@ -60,7 +70,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Panel_Shell {
 							$is_active = $tab_key === $active_tab;
 							?>
 							<li>
-								<a class="neo-pulse-wp-panel-nav__item <?php echo $is_active ? 'neo-pulse-wp-panel-nav__item--active' : ''; ?>" href="<?php echo esc_url( $url ); ?>">
+								<a class="neo-pulse-wp-panel-nav__item <?php echo $is_active ? 'neo-pulse-wp-panel-nav__item--active' : ''; ?>" href="<?php echo esc_url( $url ); ?>"<?php echo $is_active ? ' aria-current="page"' : ''; ?>>
 									<?php echo esc_html( $tab_label ); ?>
 								</a>
 							</li>
@@ -195,7 +205,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Panel_Shell {
 		<section class="neo-pulse-wp-settings__card neo-pulse-wp-settings__card--gsc" aria-labelledby="neo-pulse-wp-gsc-connection-heading">
 			<h2 id="neo-pulse-wp-gsc-connection-heading" class="neo-pulse-wp-settings__card-title"><?php esc_html_e( 'Google Search Console', 'neo-pulse-wp' ); ?></h2>
 			<p class="neo-pulse-wp-settings__card-desc">
-				<?php esc_html_e( 'Analytics uses this service account to read Search Console stats for this WordPress site.', 'neo-pulse-wp' ); ?>
+				<?php esc_html_e( 'Search Console stats for this site, read with the service account below.', 'neo-pulse-wp' ); ?>
 			</p>
 
 			<div class="neo-pulse-wp-settings__gsc-panel">
@@ -226,6 +236,15 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Panel_Shell {
 
 				<?php if ( $hint !== '' && ! $connected ) : ?>
 					<p class="neo-pulse-wp-settings__gsc-hint"><?php echo esc_html( $hint ); ?></p>
+				<?php endif; ?>
+
+				<?php if ( current_user_can( 'manage_options' ) ) : ?>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="neo-pulse-wp-settings__gsc-check">
+						<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_SAVE_GSC ); ?>" />
+						<input type="hidden" name="gsc_check" value="1" />
+						<?php wp_nonce_field( self::ACTION_SAVE_GSC, 'neo_pulse_wp_gsc_nonce' ); ?>
+						<button type="submit" class="button"><?php echo $connected ? esc_html__( 'Check connection', 'neo-pulse-wp' ) : esc_html__( 'Check again', 'neo-pulse-wp' ); ?></button>
+					</form>
 				<?php endif; ?>
 			</div>
 
@@ -265,18 +284,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Panel_Shell {
 		return isset( $_GET['page'] ) ? sanitize_key( wp_unslash( (string) $_GET['page'] ) ) : '';
 	}
 
-	protected static function neo_pulse_shell_active_slug( string $page_slug ): string {
-		$parent_map = array(
-			'neo-pulse-wp-fields-edit'      => 'neo-pulse-wp-fields',
-			'neo-pulse-wp-post-types-edit'  => 'neo-pulse-wp-post-types',
-			'neo-pulse-wp-forms-edit'       => 'neo-pulse-wp-forms',
-			'neo-pulse-wp-forms-entries'    => 'neo-pulse-wp-forms',
-			'neo-pulse-wp-agent-hub-edit'   => 'neo-pulse-wp-agent-hub',
-		);
-
-		return $parent_map[ $page_slug ] ?? $page_slug;
-	}
-
 	protected static function neo_pulse_overseer_active_section(): string {
 		$action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( (string) $_GET['action'] ) ) : 'list';
 		if ( $action === '' || $action === 'list' || $action === 'session' ) {
@@ -291,80 +298,100 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Panel_Shell {
 		return $action;
 	}
 
-	protected static function render_acf_shell_overseer_nav( bool $is_active_parent ): void {
-		$active = self::neo_pulse_overseer_active_section();
-		?>
-		<div class="neo-pulse-wp-acf-shell-nav__menu neo-pulse-wp-acf-shell-nav__menu--overseer<?php echo $is_active_parent ? ' is-active' : ''; ?>">
-			<button type="button" class="neo-pulse-wp-acf-shell-nav__menu-btn" aria-haspopup="true" aria-expanded="false">
-				<?php esc_html_e( 'Overseer', 'neo-pulse-wp' ); ?>
-				<span class="neo-pulse-wp-acf-shell-nav__menu-caret" aria-hidden="true"></span>
-			</button>
-			<div class="neo-pulse-wp-acf-shell-nav__dropdown" role="menu">
-				<?php foreach ( self::get_overseer_subnav_items() as $item ) : ?>
-					<a class="neo-pulse-wp-acf-shell-nav__dropdown-item<?php echo $active === $item['slug'] ? ' is-active' : ''; ?>" role="menuitem" href="<?php echo esc_url( $item['url'] ); ?>"><?php echo esc_html( $item['label'] ); ?></a>
-				<?php endforeach; ?>
-			</div>
-		</div>
-		<?php
-	}
-
 	protected static function neo_pulse_shell_wrap_classes( string $extra = '' ): string {
 		return trim( 'neo-pulse-wp-settings neo-pulse-wp-settings--wide neo-pulse-wp-settings--shell ' . $extra );
 	}
 
 	/**
-	 * Group-tier header (SEO, General, AI Tools, …) with links to sibling admin pages.
+	 * Page heading shared by every Neo Pulse screen (same look as the Neo Tools page): a small
+	 * "Neo Pulse / group" line, the screen title, and the licence and version pills.
+	 *
+	 * @param string $group Group name for the small line ('' for the Dashboard).
+	 * @param string $title Screen title.
+	 */
+	public static function render_page_head( string $group, string $title ): void {
+		$version = defined( 'NEO_PULSE_WP_VERSION' ) ? (string) NEO_PULSE_WP_VERSION : '';
+		?>
+		<header class="npwp-head">
+			<div class="npwp-head__titles">
+				<span class="npwp-head__crumb"><?php echo esc_html( $group !== '' ? sprintf( /* translators: %s: section group */ __( 'Neo Pulse / %s', 'neo-pulse-wp' ), $group ) : __( 'Neo Digital / Neo Pulse', 'neo-pulse-wp' ) ); ?></span>
+				<h1 class="npwp-head__title"><?php echo esc_html( $title ); ?></h1>
+			</div>
+			<div class="npwp-head__meta">
+				<?php Neo_Pulse_Wp_License::render_header_badge(); ?>
+				<?php if ( $version !== '' ) : ?>
+					<span class="npwp-head__version">v<?php echo esc_html( $version ); ?></span>
+				<?php endif; ?>
+			</div>
+		</header>
+		<?php
+	}
+
+	/**
+	 * Section tabs across the top of a screen (Settings / Training / Conversations …).
+	 */
+	public static function render_section_tabs( string $section_id ): void {
+		$tabs = Neo_Pulse_Wp_Admin_Menu::section_tabs( $section_id );
+		if ( count( $tabs ) < 2 ) {
+			return;
+		}
+		$label = Neo_Pulse_Wp_Admin_Menu::sections()[ $section_id ]['label'];
+		?>
+		<nav class="npwp-tabs" aria-label="<?php echo esc_attr( sprintf( /* translators: %s: section name */ __( '%s sections', 'neo-pulse-wp' ), $label ) ); ?>">
+			<?php foreach ( $tabs as $tab ) : ?>
+				<a class="npwp-tabs__item<?php echo $tab['active'] ? ' is-active' : ''; ?>" href="<?php echo esc_url( $tab['url'] ); ?>"<?php echo $tab['active'] ? ' aria-current="page"' : ''; ?>><?php echo esc_html( $tab['label'] ); ?><?php echo ! Neo_Pulse_Wp_Plan::is_ai_section( $section_id ) && Neo_Pulse_Wp_Plan::is_ai_screen( (string) $tab['page'], isset( $tab['tab'] ) ? (string) $tab['tab'] : '' ) ? Neo_Pulse_Wp_Plan::label_chip( 'npwp-tabs__ai' ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in label_chip(). ?></a>
+			<?php endforeach; ?>
+		</nav>
+		<?php
+	}
+
+	/**
+	 * Opens a Neo Pulse screen: heading, section tabs, then the body (flash message, licence warning).
 	 *
 	 * @param string $page_slug    Current admin page slug.
 	 * @param string $wrap_classes Extra wrap classes.
 	 * @param string $flash_kind   Optional flash kind filter.
 	 */
-	protected static function neo_pulse_group_shell_open( string $page_slug, string $wrap_classes = '', string $flash_kind = '' ): void {
+	public static function neo_pulse_group_shell_open( string $page_slug, string $wrap_classes = '', string $flash_kind = '' ): void {
 		$page_slug = sanitize_key( $page_slug );
 		if ( $page_slug === '' ) {
 			$page_slug = self::neo_pulse_current_admin_page_slug();
 		}
 
-		$group = Neo_Pulse_Wp_Admin_Menu::get_group_for_page_slug( $page_slug );
+		$section_id = Neo_Pulse_Wp_Admin_Menu::section_for_page( $page_slug );
+		$sections   = Neo_Pulse_Wp_Admin_Menu::sections();
+		$section    = $section_id !== '' ? $sections[ $section_id ] : null;
+		$title      = $section ? $section['label'] : (string) get_admin_page_title();
+		$group      = $section ? $section['group'] : '';
+
 		$flash = self::get_and_clear_flash();
 		if ( $flash && $flash_kind !== '' && ( ! isset( $flash['kind'] ) || (string) $flash['kind'] !== $flash_kind ) ) {
 			$flash = null;
 		}
 
-		$wrap_classes = trim( 'neo-pulse-wp-acf-shell ' . self::neo_pulse_shell_wrap_classes( $wrap_classes ) );
+		$wrap_classes = trim( 'npwp-admin neo-pulse-wp-acf-shell ' . self::neo_pulse_shell_wrap_classes( $wrap_classes ) );
 		?>
 		<div class="wrap <?php echo esc_attr( $wrap_classes ); ?>">
-			<div class="neo-pulse-wp-acf-shell-app">
-				<?php if ( is_array( $group ) && ! empty( $group['id'] ) ) : ?>
-					<header class="neo-pulse-wp-acf-shell-header">
-						<div class="neo-pulse-wp-acf-shell-header__brand">
-							<span class="neo-pulse-wp-acf-shell-header__icon"><?php echo self::brand_icon_svg( '#22d3ee', 22 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-							<span class="neo-pulse-wp-acf-shell-header__name"><?php echo esc_html( sprintf( __( 'NEO Pulse %s', 'neo-pulse-wp' ), (string) $group['label'] ) ); ?></span>
-						</div>
-						<nav class="neo-pulse-wp-acf-shell-nav" aria-label="<?php echo esc_attr( sprintf( __( '%s sections', 'neo-pulse-wp' ), (string) $group['label'] ) ); ?>">
-							<?php
-							$active_slug = self::neo_pulse_shell_active_slug( $page_slug );
-							foreach ( Neo_Pulse_Wp_Admin_Menu::get_group_tier_nav_items( (string) $group['id'] ) as $nav_item ) :
-								if ( 'neo-pulse-wp-overseer' === $nav_item['slug'] ) {
-									self::render_acf_shell_overseer_nav( 'neo-pulse-wp-overseer' === $active_slug );
-									continue;
-								}
-								?>
-								<a class="neo-pulse-wp-acf-shell-nav__item<?php echo $nav_item['slug'] === $active_slug ? ' is-active' : ''; ?>" href="<?php echo esc_url( $nav_item['url'] ); ?>"><?php echo esc_html( $nav_item['label'] ); ?></a>
-							<?php endforeach; ?>
-						</nav>
-					</header>
-				<?php endif; ?>
-				<div class="neo-pulse-wp-acf-shell-body">
+			<div class="neo-pulse-wp-acf-shell-app npwp-admin__frame">
+				<?php self::render_page_head( $group, $title ); ?>
+				<?php
+				if ( $section_id !== '' ) {
+					self::render_section_tabs( $section_id );
+				}
+				Neo_Pulse_Wp_Lock::render_admin_card();
+				Neo_Pulse_Wp_Plan::render_admin_card();
+				?>
+				<div class="neo-pulse-wp-acf-shell-body npwp-admin__panel">
 					<?php if ( $flash ) : ?>
-						<div class="notice notice-<?php echo ! empty( $flash['success'] ) ? 'success' : 'error'; ?> is-dismissible neo-pulse-wp-acf-shell-notice">
+						<div class="notice inline notice-<?php echo ! empty( $flash['success'] ) ? 'success' : 'error'; ?> is-dismissible neo-pulse-wp-acf-shell-notice">
 							<p><?php echo esc_html( isset( $flash['message'] ) ? (string) $flash['message'] : '' ); ?></p>
 						</div>
 					<?php endif; ?>
+					<?php Neo_Pulse_Wp_License::render_shell_banner(); ?>
 		<?php
 	}
 
-	protected static function neo_pulse_group_shell_close(): void {
+	public static function neo_pulse_group_shell_close(): void {
 		?>
 				</div>
 			</div>

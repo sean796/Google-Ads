@@ -5,7 +5,7 @@ section: Overview
 method: POST
 path: /api/overview/optimize-meta-ai
 auth: open
-order: 910
+order: 920
 ---
 
 POST `/api/overview/optimize-meta-ai`.

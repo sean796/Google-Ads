@@ -28,13 +28,18 @@ function collectFiles(root, rel = "") {
 }
 
 export function buildPluginZip(pluginDir, zipPath, onProgress) {
-  const files = collectFiles(pluginDir);
+  const files = collectFiles(pluginDir).sort((a, b) => {
+    if (a.rel === "neo-pulse-wp.php") return -1;
+    if (b.rel === "neo-pulse-wp.php") return 1;
+    return a.rel.localeCompare(b.rel);
+  });
   assertNoSecretsInFiles(files, "Plugin zip build");
   const zip = new AdmZip();
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
-    zip.addFile(`neo-pulse-wp/${file.rel}`, readFileSync(file.local));
+    const buf = readFileSync(file.local);
+    zip.addFile(`neo-pulse-wp/${file.rel}`, buf.length > 0 ? buf : Buffer.from("\n", "utf8"));
     onProgress?.(i + 1, files.length);
   }
 

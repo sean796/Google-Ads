@@ -5,7 +5,7 @@ section: WordPress
 method: POST
 path: /api/wordpress/change-post-url
 auth: open
-order: 2510
+order: 2520
 ---
 
 POST `/api/wordpress/change-post-url`.

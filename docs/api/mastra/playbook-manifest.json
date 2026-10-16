@@ -1,0 +1,78 @@
+{
+  "syncedAt": "2026-10-16T01:00:13.135Z",
+  "sourceIndex": "https://mastra.ai/llms.txt",
+  "totalPagesScraped": 304,
+  "entries": [
+    {
+      "slug": "mastra/playbook-index",
+      "title": "Playbook: Complete Index",
+      "order": 40
+    },
+    {
+      "slug": "mastra/playbook/agents-and-subagents",
+      "title": "Playbook: Agents & Subagents",
+      "order": 50,
+      "pageCount": 9
+    },
+    {
+      "slug": "mastra/playbook/workflows",
+      "title": "Playbook: Workflows & Control Flow",
+      "order": 60,
+      "pageCount": 11
+    },
+    {
+      "slug": "mastra/playbook/harness",
+      "title": "Playbook: Harness, Durable Agents & Signals",
+      "order": 70,
+      "pageCount": 8
+    },
+    {
+      "slug": "mastra/playbook/memory",
+      "title": "Playbook: Memory & Context Recall",
+      "order": 80,
+      "pageCount": 7
+    },
+    {
+      "slug": "mastra/playbook/guides-and-context",
+      "title": "Playbook: Guides, Context Engineering & Lifecycle",
+      "order": 90,
+      "pageCount": 8
+    },
+    {
+      "slug": "mastra/playbook/evals-and-observability",
+      "title": "Playbook: Evals, Scorers & Observability",
+      "order": 100,
+      "pageCount": 17
+    },
+    {
+      "slug": "mastra/playbook/connections-and-sandboxes",
+      "title": "Playbook: MCP, Connections, Sandboxes & Channels",
+      "order": 110,
+      "pageCount": 13
+    },
+    {
+      "slug": "mastra/playbook/server-auth-and-deploy",
+      "title": "Playbook: Server, Storage, Studio, Auth & Deployment",
+      "order": 120,
+      "pageCount": 31
+    },
+    {
+      "slug": "mastra/playbook/models-and-platform",
+      "title": "Playbook: Model Router, Providers & Platform",
+      "order": 130,
+      "pageCount": 24
+    },
+    {
+      "slug": "mastra/playbook/reference-agents-and-tools",
+      "title": "Playbook: API Reference - Agents, Tools, Processors & Streaming",
+      "order": 140,
+      "pageCount": 83
+    },
+    {
+      "slug": "mastra/playbook/reference-workflows-core-and-memory",
+      "title": "Playbook: API Reference - Workflows, Mastra Core, Memory & Signals",
+      "order": 150,
+      "pageCount": 93
+    }
+  ]
+}

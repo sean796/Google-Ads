@@ -89,6 +89,8 @@ export function ApiDocsSidebar() {
             currentSlug={currentSlug}
             defaultOpen={
               section.id === "getting-started" ||
+              section.id === "aiseo" ||
+              section.id === "mastra" ||
               section.items.some((i) => isSlugActive(currentSlug, i.slug))
             }
           />

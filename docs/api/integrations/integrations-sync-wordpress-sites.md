@@ -5,7 +5,7 @@ section: Integrations
 method: POST
 path: /api/integrations/sync-wordpress-sites
 auth: open
-order: 590
+order: 600
 ---
 
 POST `/api/integrations/sync-wordpress-sites`.

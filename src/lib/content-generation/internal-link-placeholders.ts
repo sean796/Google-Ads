@@ -307,7 +307,7 @@ ${INTERNAL_LINK_INTENT_ROUTING_RULE}
 FORBIDDEN: raw same-site <a href="https://..."> in body sections. Emit [[LINK:plan-query|anchor]] only
 FORBIDDEN: linking bold copy (**markdown**, <strong>, <b>)
 FORBIDDEN: a leftover keyword, page title, or [[LINK]] after a finished sentence (". durable window coverings")
-FORBIDDEN: a lone linked page title tacked on at the end of a paragraph. If you cannot weave the next [[LINK]] mid-sentence, STOP. Do not append it.
+FORBIDDEN: a lone linked page title, "Related reading:", or "See [link]." tacked on at the end of a paragraph. Internal links are strictly in-context mid-sentence only. If you cannot weave the next [[LINK]] mid-sentence, STOP. Do not append it.
 Format example: [[LINK:PAGES title words|short anchor]]
 FORBIDDEN: service-area pages, city landings, /service-area/ URLs.
 FORBIDDEN: {{LINK:...}}, {{EXTERNAL:...}}, {LINK:...}, template braces, or any syntax other than [[LINK:query|anchor]] and [[EXTERNAL:url|anchor]].

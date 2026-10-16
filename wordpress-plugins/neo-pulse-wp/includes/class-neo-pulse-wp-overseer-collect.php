@@ -13,6 +13,16 @@ class Neo_Pulse_Wp_Overseer_Collect {
 	const RATE_LIMIT_TTL = 60;
 	const RATE_LIMIT_MAX = 120;
 
+	/** Most events accepted in one request (the beacon batches at most 10). */
+	const MAX_EVENTS = 20;
+
+	/** UTM keys kept from the beacon, and their maximum length. */
+	const UTM_KEYS    = array( 'source', 'medium', 'campaign', 'term', 'content' );
+	const UTM_MAX_LEN = 200;
+
+	/** Event types the browser may send ('conversion' is recorded server-side only). */
+	const CLIENT_EVENT_TYPES = array( 'pageview', 'page_exit', 'page_heartbeat', 'click', 'form_submit', 'outbound_click' );
+
 	public static function init(): void {
 		add_action( 'rest_api_init', array( __CLASS__, 'register_routes' ) );
 	}
@@ -41,16 +51,21 @@ class Neo_Pulse_Wp_Overseer_Collect {
 			);
 		}
 
-		$nonce = $request->get_header( 'X-WP-Nonce' );
-		if ( ! is_string( $nonce ) || $nonce === '' ) {
-			$nonce = $request->get_param( '_wpnonce' );
-		}
-		if ( ! is_string( $nonce ) || ! wp_verify_nonce( $nonce, 'wp_rest' ) ) {
-			return new WP_Error(
-				'neo-pulse_overseer_invalid_nonce',
-				__( 'Invalid security token.', 'neo-pulse-wp' ),
-				array( 'status' => 403 )
-			);
+		// Logged-out visitors usually get a cached page whose nonce has expired, so their beacons are
+		// accepted without one (rate limit and the per-request limits below apply). Logged-in requests
+		// still need a valid REST nonce.
+		if ( is_user_logged_in() ) {
+			$nonce = $request->get_header( 'X-WP-Nonce' );
+			if ( ! is_string( $nonce ) || $nonce === '' ) {
+				$nonce = $request->get_param( '_wpnonce' );
+			}
+			if ( ! is_string( $nonce ) || ! wp_verify_nonce( $nonce, 'wp_rest' ) ) {
+				return new WP_Error(
+					'neo-pulse_overseer_invalid_nonce',
+					__( 'Invalid security token.', 'neo-pulse-wp' ),
+					array( 'status' => 403 )
+				);
+			}
 		}
 
 		if ( self::is_rate_limited() ) {
@@ -82,26 +97,22 @@ class Neo_Pulse_Wp_Overseer_Collect {
 				if ( is_array( $event ) ) {
 					$events[] = $event;
 				}
+				if ( count( $events ) >= self::MAX_EVENTS ) {
+					break;
+				}
 			}
 		} else {
 			$events[] = $body;
 		}
 
-		$utm = array();
-		if ( isset( $body['utm'] ) && is_array( $body['utm'] ) ) {
-			foreach ( array( 'source', 'medium', 'campaign', 'term', 'content' ) as $key ) {
-				if ( isset( $body['utm'][ $key ] ) ) {
-					$utm[ $key ] = sanitize_text_field( (string) $body['utm'][ $key ] );
-				}
-			}
-		}
-
 		$client_meta = array();
+		$utm         = self::sanitize_utm( isset( $body['utm'] ) ? $body['utm'] : null );
 		if ( ! empty( $utm ) ) {
 			$client_meta['utm'] = $utm;
 		}
-		if ( isset( $body['platform'] ) ) {
-			$client_meta['platform'] = sanitize_text_field( (string) $body['platform'] );
+		$platform = self::str( $body, 'platform', 64 );
+		if ( $platform !== '' ) {
+			$client_meta['platform'] = $platform;
 		}
 
 		$session_id  = '';
@@ -113,35 +124,47 @@ class Neo_Pulse_Wp_Overseer_Collect {
 				continue;
 			}
 
-			$event_meta = $client_meta;
-			if ( isset( $event['utm'] ) && is_array( $event['utm'] ) ) {
-				$event_meta['utm'] = $event['utm'];
-			}
-			if ( isset( $event['platform'] ) ) {
-				$event_meta['platform'] = sanitize_text_field( (string) $event['platform'] );
+			$event_type = self::str( $event, 'event_type', 32 );
+			$event_type = $event_type !== '' ? sanitize_key( $event_type ) : 'pageview';
+			if ( ! in_array( $event_type, self::CLIENT_EVENT_TYPES, true ) ) {
+				// Conversions are recorded by the server (form hooks), never taken from the browser.
+				$last_error = 'invalid_event_type';
+				continue;
 			}
 
-			$result = Neo_Pulse_Wp_Overseer::record_event(
+			$event_meta = $client_meta;
+			if ( isset( $event['utm'] ) ) {
+				$event_utm = self::sanitize_utm( $event['utm'] );
+				if ( ! empty( $event_utm ) ) {
+					$event_meta['utm'] = $event_utm;
+				}
+			}
+			$event_platform = self::str( $event, 'platform', 64 );
+			if ( $event_platform !== '' ) {
+				$event_meta['platform'] = $event_platform;
+			}
+
+			$result = Neo_Pulse_Wp_Overseer_Ingest::record_event(
 				array(
-					'event_type'       => isset( $event['event_type'] ) ? (string) $event['event_type'] : 'pageview',
-					'session_id'       => isset( $event['session_id'] ) ? (string) $event['session_id'] : ( isset( $body['session_id'] ) ? (string) $body['session_id'] : '' ),
-					'page_url'         => isset( $event['page_url'] ) ? (string) $event['page_url'] : ( isset( $body['page_url'] ) ? (string) $body['page_url'] : '' ),
-					'page_title'       => isset( $event['page_title'] ) ? (string) $event['page_title'] : ( isset( $body['page_title'] ) ? (string) $body['page_title'] : '' ),
-					'referrer'         => isset( $event['referrer'] ) ? (string) $event['referrer'] : ( isset( $body['referrer'] ) ? (string) $body['referrer'] : '' ),
-					'post_id'          => isset( $event['post_id'] ) ? (int) $event['post_id'] : ( isset( $body['post_id'] ) ? (int) $body['post_id'] : 0 ),
-					'screen_width'     => isset( $event['screen_width'] ) ? (int) $event['screen_width'] : ( isset( $body['screen_width'] ) ? (int) $body['screen_width'] : 0 ),
-					'screen_height'    => isset( $event['screen_height'] ) ? (int) $event['screen_height'] : ( isset( $body['screen_height'] ) ? (int) $body['screen_height'] : 0 ),
-					'language'         => isset( $event['language'] ) ? (string) $event['language'] : ( isset( $body['language'] ) ? (string) $body['language'] : '' ),
-					'timezone'         => isset( $event['timezone'] ) ? (string) $event['timezone'] : ( isset( $body['timezone'] ) ? (string) $body['timezone'] : '' ),
-					'duration_ms'        => isset( $event['duration_ms'] ) ? (int) $event['duration_ms'] : 0,
-					'active_duration_ms' => isset( $event['active_duration_ms'] ) ? (int) $event['active_duration_ms'] : 0,
-					'page_load_ms'       => isset( $event['page_load_ms'] ) ? (int) $event['page_load_ms'] : ( isset( $body['page_load_ms'] ) ? (int) $body['page_load_ms'] : 0 ),
-					'scroll_depth_pct'   => isset( $event['scroll_depth_pct'] ) ? (int) $event['scroll_depth_pct'] : 0,
-					'parent_visit_uid' => isset( $event['parent_visit_uid'] ) ? (string) $event['parent_visit_uid'] : '',
-					'element_tag'      => isset( $event['element_tag'] ) ? (string) $event['element_tag'] : '',
-					'element_text'     => isset( $event['element_text'] ) ? (string) $event['element_text'] : '',
-					'element_href'     => isset( $event['element_href'] ) ? (string) $event['element_href'] : '',
-					'client_meta'      => $event_meta,
+					'event_type'         => $event_type,
+					'session_id'         => self::str_or( $event, $body, 'session_id', 64 ),
+					'page_url'           => self::str_or( $event, $body, 'page_url', 2048 ),
+					'page_title'         => self::str_or( $event, $body, 'page_title', 512 ),
+					'referrer'           => self::str_or( $event, $body, 'referrer', 2048 ),
+					'post_id'            => self::int_or( $event, $body, 'post_id' ),
+					'screen_width'       => self::int_or( $event, $body, 'screen_width' ),
+					'screen_height'      => self::int_or( $event, $body, 'screen_height' ),
+					'language'           => self::str_or( $event, $body, 'language', 32 ),
+					'timezone'           => self::str_or( $event, $body, 'timezone', 64 ),
+					'duration_ms'        => self::int( $event, 'duration_ms' ),
+					'active_duration_ms' => self::int( $event, 'active_duration_ms' ),
+					'page_load_ms'       => self::int_or( $event, $body, 'page_load_ms' ),
+					'scroll_depth_pct'   => self::int( $event, 'scroll_depth_pct' ),
+					'parent_visit_uid'   => self::str( $event, 'parent_visit_uid', 36 ),
+					'element_tag'        => self::str( $event, 'element_tag', 32 ),
+					'element_text'       => self::str( $event, 'element_text', 256 ),
+					'element_href'       => self::str( $event, 'element_href', 512 ),
+					'client_meta'        => $event_meta,
 				)
 			);
 
@@ -180,6 +203,65 @@ class Neo_Pulse_Wp_Overseer_Collect {
 			),
 			200
 		);
+	}
+
+	/**
+	 * Keep only the known UTM keys, as plain text of at most UTM_MAX_LEN characters.
+	 *
+	 * @param mixed $raw Client utm object.
+	 * @return array<string,string>
+	 */
+	private static function sanitize_utm( $raw ): array {
+		if ( ! is_array( $raw ) ) {
+			return array();
+		}
+		$out = array();
+		foreach ( self::UTM_KEYS as $key ) {
+			$value = self::str( $raw, $key, self::UTM_MAX_LEN );
+			if ( $value !== '' ) {
+				$out[ $key ] = $value;
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * A scalar field as a trimmed, length-capped string ('' for missing or non-scalar values).
+	 *
+	 * @param array<string,mixed> $src Source array.
+	 */
+	private static function str( array $src, string $key, int $max ): string {
+		if ( ! isset( $src[ $key ] ) || ! is_scalar( $src[ $key ] ) ) {
+			return '';
+		}
+		$value = sanitize_text_field( (string) $src[ $key ] );
+		return function_exists( 'mb_substr' ) ? mb_substr( $value, 0, $max ) : substr( $value, 0, $max );
+	}
+
+	/**
+	 * Event field, falling back to the request body.
+	 *
+	 * @param array<string,mixed> $event Event.
+	 * @param array<string,mixed> $body  Request body.
+	 */
+	private static function str_or( array $event, array $body, string $key, int $max ): string {
+		$value = self::str( $event, $key, $max );
+		return $value !== '' ? $value : self::str( $body, $key, $max );
+	}
+
+	/**
+	 * @param array<string,mixed> $src Source array.
+	 */
+	private static function int( array $src, string $key ): int {
+		return isset( $src[ $key ] ) && is_numeric( $src[ $key ] ) ? (int) $src[ $key ] : 0;
+	}
+
+	/**
+	 * @param array<string,mixed> $event Event.
+	 * @param array<string,mixed> $body  Request body.
+	 */
+	private static function int_or( array $event, array $body, string $key ): int {
+		return isset( $event[ $key ] ) && is_numeric( $event[ $key ] ) ? (int) $event[ $key ] : self::int( $body, $key );
 	}
 
 	private static function is_rate_limited(): bool {

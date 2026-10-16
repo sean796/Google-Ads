@@ -1,15 +1,20 @@
 import { ORGANIC_CLIENT_REPORT_PDF_CAPTURE_SCALE } from "@/lib/organic-dashboard/organic-client-report-pdf-types";
 
 const BREAKPOINT_SELECTORS =
-  ".organic-client-report-export__hero, .organic-deck-export-page-break, .organic-client-report-export__footer";
+  ".organic-client-report-export__hero, .organic-client-report-export__section, .organic-deck-export-page-break, .organic-client-report-export__footer";
 
 const MAJOR_SECTION_BREAK_SELECTOR = ".organic-deck-export-page-break";
 
 const AVOID_SPLIT_SELECTORS = [
+  ".organic-client-report-export__hero-body",
+  ".organic-client-report-export__section-head",
+  ".organic-client-report-export__narrative",
   ".organic-client-report-export__kpi-item",
   ".organic-client-report-export__query-item",
   ".organic-client-report-export__opportunity",
   ".organic-client-report-export__metric-stack",
+  ".organic-client-report-export__metric-table tr",
+  ".organic-client-report-export__footer",
 ].join(", ");
 
 export type PdfAvoidRegion = { topPx: number; bottomPx: number };

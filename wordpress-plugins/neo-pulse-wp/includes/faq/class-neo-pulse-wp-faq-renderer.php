@@ -29,27 +29,54 @@ class Neo_Pulse_Wp_Faq_Renderer {
 	 * @return array<int, array{question: string, answer: string}>
 	 */
 	private static function resolve_entries( array $args ): array {
+		return self::entries_for( $args, self::resolve_post_id( $args ) );
+	}
+
+	/**
+	 * Entries a widget instance shows for a post: its own items, else the post's FAQ field.
+	 * Also used by Neo_Pulse_Wp_Seo_Faq so the SEO schema lists the same questions.
+	 *
+	 * @param array<string,mixed> $args    Mapped widget settings.
+	 * @param int                 $post_id Post the widget is rendered for.
+	 * @return array<int, array{question: string, answer: string}>
+	 */
+	public static function entries_for( array $args, int $post_id ): array {
 		$from_widget = self::entries_from_widget( $args );
 		if ( ! empty( $from_widget ) ) {
 			return $from_widget;
 		}
-
-		$post_id = self::resolve_post_id( $args );
 		if ( $post_id < 1 ) {
 			return array();
 		}
 
 		$field_name = self::resolve_field_name( $post_id, $args );
-		$field      = Neo_Pulse_Wp_Fields_Values::find_field( $field_name, $post_id );
-		$raw        = null;
+		$raw        = self::field_value( $post_id, $field_name );
 
-		if ( is_array( $field ) ) {
-			$raw = Neo_Pulse_Wp_Fields_Values::get_value( $post_id, $field, false );
-		} else {
-			$raw = get_post_meta( $post_id, $field_name, true );
+		// Arrays are repeater-style rows (question/answer pairs); scalars are text/JSON-LD.
+		return Neo_Pulse_Wp_Faq_Parser::parse( $raw, is_array( $raw ) ? array( 'type' => 'repeater' ) : null );
+	}
+
+	/**
+	 * Read a FAQ value stored under an ACF-compatible post meta key (repeaters as rows).
+	 *
+	 * @return mixed
+	 */
+	public static function field_value( int $post_id, string $field_name ) {
+		if ( $field_name === '' ) {
+			return null;
+		}
+		$raw = get_post_meta( $post_id, $field_name, true );
+
+		// ACF stores repeaters as a row count with the rows in sub-keys; let ACF assemble them.
+		$is_row_count = is_int( $raw ) || ( is_string( $raw ) && $raw !== '' && ctype_digit( $raw ) );
+		if ( $is_row_count && function_exists( 'get_field' ) ) {
+			$rows = get_field( $field_name, $post_id );
+			if ( is_array( $rows ) && ! empty( $rows ) ) {
+				return $rows;
+			}
 		}
 
-		return Neo_Pulse_Wp_Faq_Parser::parse( $raw, is_array( $field ) ? $field : null );
+		return $raw;
 	}
 
 	/**
@@ -88,10 +115,7 @@ class Neo_Pulse_Wp_Faq_Renderer {
 			return (int) $args['post_id'];
 		}
 		if ( class_exists( '\Elementor\Plugin', false ) ) {
-			if ( ! class_exists( 'Neo_Pulse_Wp_Fields_Elementor_Registry', false ) ) {
-				require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/fields/integrations/class-neo-pulse-wp-fields-elementor-registry.php';
-			}
-			$editor_id = Neo_Pulse_Wp_Fields_Elementor_Registry::resolve_editor_post_id();
+			$editor_id = self::resolve_elementor_document_id();
 			if ( $editor_id > 0 ) {
 				return $editor_id;
 			}
@@ -99,6 +123,24 @@ class Neo_Pulse_Wp_Faq_Renderer {
 		$queried = get_queried_object_id();
 		if ( $queried > 0 ) {
 			return $queried;
+		}
+		$post_id = get_the_ID();
+		return $post_id ? (int) $post_id : 0;
+	}
+
+	/**
+	 * Main post ID of the Elementor document being rendered/edited (0 when unknown).
+	 */
+	private static function resolve_elementor_document_id(): int {
+		$plugin = \Elementor\Plugin::$instance;
+		if ( $plugin && isset( $plugin->documents ) ) {
+			$doc = $plugin->documents->get_current();
+			if ( $doc && method_exists( $doc, 'get_main_id' ) ) {
+				$main_id = (int) $doc->get_main_id();
+				if ( $main_id > 0 ) {
+					return $main_id;
+				}
+			}
 		}
 		$post_id = get_the_ID();
 		return $post_id ? (int) $post_id : 0;
@@ -204,7 +246,11 @@ class Neo_Pulse_Wp_Faq_Renderer {
 
 		$html .= '</div>';
 
-		if ( ! $is_empty && ! empty( $args['enable_schema'] ) ) {
+		// When Neo Pulse SEO already printed a FAQPage in the page's schema graph (which includes
+		// this page's own FAQ widgets), don't print a second one. A widget in a template, popup or
+		// global widget on a page without a FAQPage still prints its own.
+		$graph_owns_faq = class_exists( 'Neo_Pulse_Wp_Seo_Head', false ) && Neo_Pulse_Wp_Seo_Head::printed_faqpage();
+		if ( ! $is_empty && ! empty( $args['enable_schema'] ) && ! $graph_owns_faq ) {
 			$html .= Neo_Pulse_Wp_Faq_Schema::render_script( $entries );
 		}
 

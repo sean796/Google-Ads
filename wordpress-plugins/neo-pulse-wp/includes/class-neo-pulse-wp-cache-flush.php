@@ -1,6 +1,6 @@
 <?php
 /**
- * NEO Pulse + WordPress cache flush (no host / WP Engine purge).
+ * NEO Pulse + WordPress cache flush (plus NitroPack / WP Engine page-cache purges when present).
  *
  * @package Neo_Pulse_Wp
  */
@@ -16,7 +16,8 @@ class Neo_Pulse_Wp_Cache_Flush {
 
 	const NOCACHE_UNTIL_OPTION = 'neo_pulse_wp_send_nocache_until';
 
-	const NOCACHE_SECONDS = 600;
+	/** How long guests get no-cache headers after a flush. */
+	const NOCACHE_SECONDS = 120;
 
 	/**
 	 * Register front-end no-cache headers after a flush (helps browsers refetch for guests).
@@ -34,19 +35,12 @@ class Neo_Pulse_Wp_Cache_Flush {
 	 */
 	public static function flush_all(): array {
 		$summary = array(
-			'speed_files'     => 0,
 			'transients'      => 0,
 			'object_cache'    => false,
 			'html_caches'     => array(),
 			'flush_version'   => 0,
 			'nocache_seconds' => self::NOCACHE_SECONDS,
 		);
-
-		if ( class_exists( 'Neo_Pulse_Wp_Speed_Cache', false ) ) {
-			$before = Neo_Pulse_Wp_Speed_Cache::stats();
-			Neo_Pulse_Wp_Speed_Cache::flush_all();
-			$summary['speed_files'] = (int) ( $before['file_count'] ?? 0 );
-		}
 
 		if ( class_exists( 'Neo_Pulse_Wp_Sitemap_Cache', false ) ) {
 			Neo_Pulse_Wp_Sitemap_Cache::flush_all();
@@ -75,9 +69,10 @@ class Neo_Pulse_Wp_Cache_Flush {
 
 		$summary['html_caches'] = self::purge_html_caches();
 
+		// Both are read on every front-end request (asset URLs, no-cache window), so they are autoloaded.
 		$version = time();
-		update_option( self::VERSION_OPTION, $version, false );
-		update_option( self::NOCACHE_UNTIL_OPTION, $version + self::NOCACHE_SECONDS, false );
+		update_option( self::VERSION_OPTION, $version, true );
+		update_option( self::NOCACHE_UNTIL_OPTION, $version + self::NOCACHE_SECONDS, true );
 		$summary['flush_version'] = $version;
 
 		/**
@@ -101,8 +96,8 @@ class Neo_Pulse_Wp_Cache_Flush {
 	 * @param string $src    Asset URL.
 	 * @param string $handle Script/style handle.
 	 */
-	public static function append_version_to_neo_pulse_src( string $src, string $handle ): string {
-		if ( strpos( $handle, 'neo-pulse' ) === false ) {
+	public static function append_version_to_neo_pulse_src( $src, $handle = '' ) {
+		if ( ! is_string( $src ) || '' === $src || ! is_string( $handle ) || strpos( $handle, 'neo-pulse' ) === false ) {
 			return $src;
 		}
 		$ver = self::version();
@@ -124,7 +119,7 @@ class Neo_Pulse_Wp_Cache_Flush {
 	}
 
 	/**
-	 * Drop HTML page caches so they cannot keep Speed asset URLs after disk files are gone.
+	 * Drop HTML page caches (NitroPack and similar) so guests see the latest markup.
 	 *
 	 * @return array<int, string>
 	 */
@@ -215,7 +210,7 @@ class Neo_Pulse_Wp_Cache_Flush {
 	}
 
 	/**
-	 * Delete NEO Pulse-related transients from wp_options.
+	 * Delete NEO Pulse-related transients (neo_pulse… and the older neo-pulse… keys) from wp_options.
 	 */
 	public static function delete_neo_pulse_transients(): int {
 		global $wpdb;
@@ -224,11 +219,12 @@ class Neo_Pulse_Wp_Cache_Flush {
 			return 0;
 		}
 
+		// esc_like() the literal prefix only, then add the wildcard ('_' and '%' in the prefix stay literal).
 		$patterns = array(
-			$wpdb->esc_like( '_transient_neo_pulse%' ) . '%',
-			$wpdb->esc_like( '_transient_timeout_neo_pulse%' ) . '%',
-			$wpdb->esc_like( '_transient_neo_pulse_wp%' ) . '%',
-			$wpdb->esc_like( '_transient_timeout_neo_pulse_wp%' ) . '%',
+			$wpdb->esc_like( '_transient_neo_pulse' ) . '%',
+			$wpdb->esc_like( '_transient_timeout_neo_pulse' ) . '%',
+			$wpdb->esc_like( '_transient_neo-pulse' ) . '%',
+			$wpdb->esc_like( '_transient_timeout_neo-pulse' ) . '%',
 		);
 
 		$deleted = 0;

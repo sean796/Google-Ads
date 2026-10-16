@@ -629,9 +629,11 @@ async function executeWorkflowThenStepOnce(
 
     if (!lastFileName) {
       const message =
-        ctx.executionKind === "gsc_reporting" || ctx.executionKind === "ads_reporting"
-          ? "Google Drive upload failed: no report found from upstream agent."
-          : "Google Drive upload failed: no deliverable files loaded from upstream agent.";
+        ctx.executionKind === "gsc_reporting"
+          ? "Google Drive upload failed: no GSC report found from upstream agent."
+          : ctx.executionKind === "ads_reporting"
+            ? "Google Drive upload failed: no PPC report found from upstream agent."
+            : "Google Drive upload failed: no deliverable files loaded from upstream agent.";
       await logWorkflowThenStepToAgentRun({
         teamId: ctx.workflow.teamId,
         agentRunId: tailAgentRunId,

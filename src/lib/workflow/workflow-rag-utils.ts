@@ -40,6 +40,9 @@ export function upstreamRagVariablesForNode(
   const priorActionIds = new Set(
     priorNodes.filter((node) => node.kind === "action_agent").map((node) => node.id),
   );
+  const priorCsvIds = new Set(
+    priorNodes.filter((node) => node.kind === "csv_rows").map((node) => node.id),
+  );
   const priorThenIds = new Set(
     priorNodes.filter((node) => isWorkflowThenKind(node.kind)).map((node) => node.id),
   );
@@ -47,7 +50,9 @@ export function upstreamRagVariablesForNode(
   const fromRegistry = workflow.ragVariables.filter(
     (variable) =>
       variable.scope === "run" &&
-      (priorActionIds.has(variable.nodeId) || priorThenIds.has(variable.nodeId)),
+      (priorActionIds.has(variable.nodeId) ||
+        priorCsvIds.has(variable.nodeId) ||
+        priorThenIds.has(variable.nodeId)),
   );
 
   const computed: WorkflowRagVariable[] = [];
@@ -59,6 +64,14 @@ export function upstreamRagVariablesForNode(
         nodeId: prior.id,
         scope: "run",
         label: prior.label,
+      });
+    } else if (prior.kind === "csv_rows") {
+      const csvConfig = prior.config as { ragVariableKey?: string };
+      computed.push({
+        key: String(csvConfig.ragVariableKey?.trim() || `csv_${prior.id}`),
+        nodeId: prior.id,
+        scope: "run",
+        label: prior.label || "CSV rows",
       });
     } else if (isWorkflowThenKind(prior.kind)) {
       computed.push({

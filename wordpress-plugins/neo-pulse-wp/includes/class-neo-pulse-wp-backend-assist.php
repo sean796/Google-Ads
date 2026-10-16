@@ -37,10 +37,8 @@ class Neo_Pulse_Wp_Backend_Assist {
 		require_once $dir . 'class-neo-pulse-wp-backend-assist-ai.php';
 		require_once $dir . 'class-neo-pulse-wp-backend-assist-cards.php';
 		require_once $dir . 'class-neo-pulse-wp-backend-assist-tools-wp.php';
-		require_once $dir . 'class-neo-pulse-wp-backend-assist-tools-seo.php';
 		require_once $dir . 'class-neo-pulse-wp-backend-assist-tools-elementor-sections.php';
 		require_once $dir . 'class-neo-pulse-wp-backend-assist-novamira-page-design-rag.php';
-		require_once $dir . 'class-neo-pulse-wp-backend-assist-novamira-page-compose.php';
 		require_once $dir . 'class-neo-pulse-wp-backend-assist-openrouter-agent.php';
 		require_once $dir . 'class-neo-pulse-wp-backend-assist-novamira-page-design-harness.php';
 		require_once $dir . 'class-neo-pulse-wp-backend-assist-novamira-page.php';
@@ -69,14 +67,6 @@ class Neo_Pulse_Wp_Backend_Assist {
 
 	public static function register_routes(): void {
 		Neo_Pulse_Wp_Backend_Assist_Rest::register_routes();
-	}
-
-	public static function register_tool( string $tool_name, callable $handler, string $description = '' ): void {
-		Neo_Pulse_Wp_Backend_Assist_Registry::register_tool( $tool_name, $handler, $description );
-	}
-
-	public static function get_tool_descriptions(): string {
-		return Neo_Pulse_Wp_Backend_Assist_Registry::get_tool_descriptions();
 	}
 
 	public static function rest_handle( WP_REST_Request $request ): WP_REST_Response {
@@ -155,39 +145,7 @@ class Neo_Pulse_Wp_Backend_Assist {
 		return Neo_Pulse_Wp_Backend_Assist_Tools_Wp::tool_restore_post_revision( $params );
 	}
 
-	public static function tool_modify_seo_block_slots( array $params ): array {
-		return Neo_Pulse_Wp_Backend_Assist_Tools_Seo::tool_modify_seo_block_slots( $params );
-	}
-
-	public static function tool_list_seo_blocks( array $params ): array {
-		return Neo_Pulse_Wp_Backend_Assist_Tools_Seo::tool_list_seo_blocks( $params );
-	}
-
-	public static function tool_get_seo_block( array $params ): array {
-		return Neo_Pulse_Wp_Backend_Assist_Tools_Seo::tool_get_seo_block( $params );
-	}
-
-	public static function tool_duplicate_seo_block( array $params ): array {
-		return Neo_Pulse_Wp_Backend_Assist_Tools_Seo::tool_duplicate_seo_block( $params );
-	}
-
-	public static function tool_create_seo_block( array $params ): array {
-		return Neo_Pulse_Wp_Backend_Assist_Tools_Seo::tool_create_seo_block( $params );
-	}
-
-	public static function tool_delete_seo_block( array $params ): array {
-		return Neo_Pulse_Wp_Backend_Assist_Tools_Seo::tool_delete_seo_block( $params );
-	}
-
-	public static function tool_save_seo_block( array $params ): array {
-		return Neo_Pulse_Wp_Backend_Assist_Tools_Seo::tool_save_seo_block( $params );
-	}
-
-	public static function tool_apply_seo_block_to_page( array $params ): array {
-		return Neo_Pulse_Wp_Backend_Assist_Tools_Seo::tool_apply_seo_block_to_page( $params );
-	}
-
 	public static function tool_design_page_with_novamira( array $params ): array {
-		return Neo_Pulse_Wp_Backend_Assist_Tools_Seo::tool_design_page_with_novamira( $params );
+		return Neo_Pulse_Wp_Backend_Assist_Novamira_Page::tool_design_page_with_novamira( $params );
 	}
 }

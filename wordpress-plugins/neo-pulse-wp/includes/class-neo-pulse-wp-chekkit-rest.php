@@ -37,7 +37,11 @@ class Neo_Pulse_Wp_Chekkit_Rest {
 	 */
 	public static function handle_contact( WP_REST_Request $request ): WP_REST_Response {
 		$settings = Neo_Pulse_Wp_Chat::get_settings();
-		if ( ! Neo_Pulse_Wp_Chat_Lead::is_chekkit_available( $settings ) ) {
+		if (
+			Neo_Pulse_Wp_Chat::is_off_everywhere()
+			|| ! Neo_Pulse_Wp_License::is_licensed( false )
+			|| ! Neo_Pulse_Wp_Chat_Lead::is_chekkit_available( $settings )
+		) {
 			return new WP_REST_Response(
 				array(
 					'success' => false,
@@ -129,14 +133,12 @@ class Neo_Pulse_Wp_Chekkit_Rest {
 		return $params;
 	}
 
+	/**
+	 * Rate-limit key: REMOTE_ADDR only. X-Forwarded-For is client-controlled and would let a
+	 * sender pick a fresh "IP" for every request.
+	 */
 	private static function client_ip(): string {
-		$ip = '';
-		if ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-			$parts = explode( ',', (string) wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
-			$ip    = trim( $parts[0] );
-		} elseif ( ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
-			$ip = (string) wp_unslash( $_SERVER['REMOTE_ADDR'] );
-		}
+		$ip = ! empty( $_SERVER['REMOTE_ADDR'] ) ? (string) wp_unslash( $_SERVER['REMOTE_ADDR'] ) : '';
 		return sanitize_text_field( $ip );
 	}
 

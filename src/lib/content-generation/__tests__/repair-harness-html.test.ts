@@ -22,6 +22,14 @@ describe("stripOrphanBracketArtifacts", () => {
     const html = "<p>See their warranty policy ].</p>";
     expect(stripOrphanBracketArtifacts(html)).toBe("<p>See their warranty policy.</p>");
   });
+
+  it("removes Related reading: link tails", () => {
+    const html =
+      '<p>Choose solar chargers to maintain battery charge. Related reading: <a href="https://blindmagic.com/powerview/">PowerView Automation</a>. Related reading: <a href="https://blindmagic.com/operating-systems/">operating systems</a>.</p>';
+    expect(stripOrphanBracketArtifacts(html)).toBe(
+      "<p>Choose solar chargers to maintain battery charge.</p>",
+    );
+  });
 });
 
 describe("removeDuplicateParagraphBlocks", () => {

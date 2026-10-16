@@ -85,6 +85,13 @@ class Neo_Pulse_Wp_Tools_Rest {
 		}
 
 		if ( $idempotency_key !== '' ) {
+			// Check permission before serving any cached result.
+			$perm = Neo_Pulse_Wp_Tools::check_tool_permission( $tool_name, $params );
+			if ( is_wp_error( $perm ) ) {
+				$data   = $perm->get_error_data();
+				$status = is_array( $data ) && isset( $data['status'] ) ? (int) $data['status'] : 403;
+				return self::error( $perm->get_error_message(), $status, $perm->get_error_code() );
+			}
 			$cached = Neo_Pulse_Wp_Tools::get_idempotent_result( $idempotency_key, $tool_name, $params );
 			if ( is_array( $cached ) ) {
 				return new WP_REST_Response( $cached, 200, array( 'X-NEO Pulse-Tools-Version' => (string) Neo_Pulse_Wp_Tools::VERSION ) );

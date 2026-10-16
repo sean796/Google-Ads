@@ -5,7 +5,7 @@ section: WordPress
 method: POST
 path: /api/wordpress/check-future-posts
 auth: open
-order: 2530
+order: 2540
 ---
 
 POST `/api/wordpress/check-future-posts`.

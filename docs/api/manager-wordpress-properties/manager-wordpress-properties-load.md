@@ -5,7 +5,7 @@ section: Manager WordPress Properties
 method: GET
 path: /api/manager-wordpress-properties/load
 auth: open
-order: 680
+order: 690
 ---
 
 GET `/api/manager-wordpress-properties/load`.

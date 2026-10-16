@@ -58,7 +58,7 @@ export function WorkflowWorkspaceHeader({
           variant="ghost"
           size="sm"
           className={cn(WORKFLOW_HEADER_TOOL_BTN, "gap-1.5")}
-          disabled={saving}
+          disabled={saving || testingRun}
           onClick={onSave}
         >
           <Save className="h-4 w-4 shrink-0" />
@@ -69,7 +69,7 @@ export function WorkflowWorkspaceHeader({
           variant="ghost"
           size="sm"
           className={cn(WORKFLOW_HEADER_TOOL_BTN, "gap-1.5")}
-          disabled={saving || publishDisabled}
+          disabled={saving || testingRun || publishDisabled}
           onClick={onPublish}
         >
           <Upload className="h-4 w-4 shrink-0" />
@@ -79,7 +79,8 @@ export function WorkflowWorkspaceHeader({
           type="button"
           variant="ghost"
           size="sm"
-          className={cn(WORKFLOW_HEADER_RUN_BTN, "gap-1.5")}
+          className={cn(WORKFLOW_HEADER_RUN_BTN, "min-w-[5.5rem] justify-center gap-1.5 tabular-nums")}
+          disabled={testingRun || saving}
           onClick={onTestRun}
         >
           <Play className="h-4 w-4 shrink-0" />

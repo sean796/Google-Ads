@@ -5,7 +5,7 @@ section: Teams
 method: POST
 path: /api/teams/{teamId}/invites/({id})/copy-link
 auth: session-team
-order: 1650
+order: 1660
 ---
 
 POST `/api/teams/{teamId}/invites/({id})/copy-link`.

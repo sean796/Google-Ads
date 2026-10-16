@@ -1,6 +1,8 @@
 <?php
 /**
- * Settings: tabbed panel (site, OpenRouter, GSC, DataForSEO).
+ * Settings screen: Licence, Editor AI (OpenRouter key + editor post types), Search Console
+ * (service account key), SEO research (DataForSEO) and Google Business tabs. The tabs are the
+ * Settings section tabs across the top of the screen (Neo_Pulse_Wp_Admin_Menu::sections()).
  *
  * @package Neo_Pulse_Wp
  */
@@ -25,28 +27,15 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Settings_Placeholder {
 			$site_dfs_login = Neo_Pulse_Wp_Research_Keys::dataforseo()['login'];
 		}
 
-		$tab = self::panel_active_tab( 'property' );
-		if ( ! in_array( $tab, array( 'property', 'openrouter', 'gsc', 'dataforseo', 'gmb', 'comments' ), true ) ) {
-			$tab = 'property';
+		$tab = self::panel_active_tab( 'licence' );
+		if ( ! in_array( $tab, array( 'licence', 'openrouter', 'gsc', 'dataforseo', 'gmb' ), true ) ) {
+			$tab = 'licence';
 		}
-
-		$nav_groups = array(
-			array(
-				'heading' => __( 'Settings', 'neo-pulse-wp' ),
-				'tabs'    => array(
-					'property'   => __( 'Site', 'neo-pulse-wp' ),
-					'openrouter' => __( 'Editor AI', 'neo-pulse-wp' ),
-					'gsc'        => __( 'Search Console', 'neo-pulse-wp' ),
-					'dataforseo' => __( 'SEO research', 'neo-pulse-wp' ),
-					'gmb'        => __( 'GMB', 'neo-pulse-wp' ),
-					'comments'   => __( 'Comments', 'neo-pulse-wp' ),
-				),
-			),
-		);
 
 		self::neo_pulse_group_shell_open( 'neo-pulse-wp-settings', 'neo-pulse-wp-settings neo-pulse-wp-panel-page' );
 
-		self::panel_layout_start( 'neo-pulse-wp-settings', $nav_groups, $tab, __( 'Settings sections', 'neo-pulse-wp' ) );
+		// The section tabs across the top already list these tabs, so no in-page nav is passed.
+		self::panel_layout_start( 'neo-pulse-wp-settings', array(), $tab, __( 'Settings sections', 'neo-pulse-wp' ) );
 		switch ( $tab ) {
 			case 'openrouter':
 				self::render_settings_section_openrouter( $openrouter_configured, $openrouter_source, $has_site_openrouter );
@@ -60,34 +49,13 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Settings_Placeholder {
 			case 'gmb':
 				self::render_settings_section_gmb();
 				break;
-			case 'comments':
-				self::render_settings_section_comments();
-				break;
 			default:
-				self::render_settings_section_property();
+				Neo_Pulse_Wp_License::render_settings_section();
 				break;
 		}
 		self::panel_layout_end();
 
 		self::neo_pulse_group_shell_close();
-	}
-
-	private static function render_settings_section_property(): void {
-		$plugin_ver = defined( 'NEO_PULSE_WP_VERSION' ) ? NEO_PULSE_WP_VERSION : '';
-		?>
-		<h2 class="neo-pulse-wp-panel-content__title"><?php esc_html_e( 'Site', 'neo-pulse-wp' ); ?></h2>
-		<p class="neo-pulse-wp-panel-content__desc">
-			<?php esc_html_e( 'This WordPress site runs NEO Pulse WP standalone. API keys load from the plugin .env file or the tabs below.', 'neo-pulse-wp' ); ?>
-		</p>
-
-		<div class="neo-pulse-wp-panel-info-box" role="status">
-			<p><strong><?php echo esc_html( get_bloginfo( 'name' ) ); ?></strong></p>
-			<p><a href="<?php echo esc_url( home_url( '/' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( home_url( '/' ) ); ?></a></p>
-			<?php if ( $plugin_ver !== '' ) : ?>
-				<p><?php echo esc_html( sprintf( /* translators: %s: plugin version */ __( 'NEO Pulse WP %s', 'neo-pulse-wp' ), $plugin_ver ) ); ?></p>
-			<?php endif; ?>
-		</div>
-		<?php
 	}
 
 	private static function render_settings_section_openrouter(
@@ -97,9 +65,9 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Settings_Placeholder {
 	): void {
 		$form_id = 'neo-pulse-wp-settings-openrouter-form';
 		?>
-		<h2 class="neo-pulse-wp-panel-content__title"><?php esc_html_e( 'Editor AI (OpenRouter)', 'neo-pulse-wp' ); ?></h2>
+		<h2 class="neo-pulse-wp-panel-content__title"><?php esc_html_e( 'Editor AI', 'neo-pulse-wp' ); ?></h2>
 		<p class="neo-pulse-wp-panel-content__desc">
-			<?php esc_html_e( 'Required for AI wands in the post editor and Flow Assist chat. Keys can live in the plugin .env file or here.', 'neo-pulse-wp' ); ?>
+			<?php esc_html_e( 'The AI tools in the post editor (wands, SEO research, writing help) and Flow Assist. They need an OpenRouter key, which can live in wp-config.php or here.', 'neo-pulse-wp' ); ?>
 		</p>
 
 		<div class="neo-pulse-wp-panel-info-box" role="status">
@@ -108,8 +76,8 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Settings_Placeholder {
 				if ( $openrouter_configured ) {
 					if ( 'site' === $openrouter_source ) {
 						esc_html_e( 'Status: configured (saved on this site).', 'neo-pulse-wp' );
-					} elseif ( 'wp-config' === $openrouter_source || 'environment' === $openrouter_source ) {
-						esc_html_e( 'Status: configured (wp-config / plugin .env).', 'neo-pulse-wp' );
+					} elseif ( 'wp-config' === $openrouter_source ) {
+						esc_html_e( 'Status: configured (wp-config.php).', 'neo-pulse-wp' );
 					} else {
 						esc_html_e( 'Status: configured.', 'neo-pulse-wp' );
 					}
@@ -134,10 +102,23 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Settings_Placeholder {
 					'full',
 					'password',
 					false,
-					__( 'Leave blank to keep the current key. Clear the field and save to remove it.', 'neo-pulse-wp' ),
+					$has_site_openrouter
+						? __( 'A key is saved on this site. Leave blank to keep it, or paste a new key to replace it.', 'neo-pulse-wp' )
+						: __( 'Paste your OpenRouter key (starts with sk-or-).', 'neo-pulse-wp' ),
 					' placeholder="' . esc_attr( $has_site_openrouter ? '••••••••••••••••' : __( 'sk-or-v1-…', 'neo-pulse-wp' ) ) . '" autocomplete="off"'
 				);
+				if ( $has_site_openrouter ) {
+					self::panel_form_toggle(
+						'openrouter_remove_key',
+						__( 'Remove saved key', 'neo-pulse-wp' ),
+						false,
+						__( 'Deletes the key saved on this site when you save. A key set in wp-config.php is not affected.', 'neo-pulse-wp' ),
+						'1',
+						'neo-pulse-wp-openrouter-remove-key'
+					);
+				}
 				self::panel_form_group_close();
+				self::render_editor_ai_post_types();
 				?>
 			</form>
 		<?php else : ?>
@@ -147,20 +128,153 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Settings_Placeholder {
 		<?php if ( current_user_can( 'manage_options' ) ) : ?>
 			<div class="neo-pulse-wp-panel-footer">
 				<p class="neo-pulse-wp-settings__actions neo-pulse-wp-panel-footer__right">
-					<button type="submit" form="<?php echo esc_attr( $form_id ); ?>" class="button button-primary neo-pulse-wp-settings__btn"><?php esc_html_e( 'Save OpenRouter key', 'neo-pulse-wp' ); ?></button>
+					<button type="submit" form="<?php echo esc_attr( $form_id ); ?>" class="button button-primary neo-pulse-wp-settings__btn"><?php esc_html_e( 'Save Editor AI', 'neo-pulse-wp' ); ?></button>
 				</p>
 			</div>
 		<?php endif; ?>
 		<?php
 	}
 
+	/**
+	 * Post types that get the editor AI (was "Content Optimizer" under Sitemap).
+	 */
+	private static function render_editor_ai_post_types(): void {
+		$enabled = Neo_Pulse_Wp_Editor_Ai_Settings::post_types();
+		$types   = get_post_types( array( 'public' => true ), 'objects' );
+		unset( $types['attachment'], $types['elementor_library'], $types['e-floating-buttons'] );
+		?>
+		<input type="hidden" name="neo-pulse_editor_ai_types_posted" value="1" />
+		<h3 class="neo-pulse-chat-settings-section__title"><?php esc_html_e( 'Where the editor AI appears', 'neo-pulse-wp' ); ?></h3>
+		<p class="neo-pulse-field__note"><?php esc_html_e( 'Show the NEO Pulse AI box and editor tools on these content types.', 'neo-pulse-wp' ); ?></p>
+		<?php
+		self::panel_form_group_open();
+		foreach ( $types as $slug => $obj ) {
+			?>
+			<div class="neo-pulse-schema-cell neo-pulse-schema-cell--half">
+				<label class="neo-pulse-wp-panel-toggle">
+					<input type="checkbox" name="neo-pulse_editor_ai_post_types[]" value="<?php echo esc_attr( $slug ); ?>" <?php checked( in_array( $slug, $enabled, true ) ); ?> />
+					<span class="neo-pulse-wp-panel-toggle__label"><?php echo esc_html( $obj->labels->name ); ?></span>
+				</label>
+			</div>
+			<?php
+		}
+		self::panel_form_group_close();
+	}
+
 	private static function render_settings_section_gsc(): void {
+		if ( method_exists( 'Neo_Pulse_Wp_Gsc', 'legacy_file_notice' ) ) {
+			Neo_Pulse_Wp_Gsc::legacy_file_notice();
+		}
 		?>
 		<h2 class="neo-pulse-wp-panel-content__title"><?php esc_html_e( 'Google Search Console', 'neo-pulse-wp' ); ?></h2>
 		<p class="neo-pulse-wp-panel-content__desc">
-			<?php esc_html_e( 'Analytics uses this service account to read Search Console stats for this WordPress site.', 'neo-pulse-wp' ); ?>
+			<?php esc_html_e( 'Analytics, the editor and Flow Assist read this site\'s Search Console stats through Neo Digital. To connect, add the service account email below as a user on this site\'s property in Google Search Console (Settings → Users and permissions, Restricted is enough). Nothing else to set up.', 'neo-pulse-wp' ); ?>
 		</p>
-		<?php self::render_gsc_connection_panel( false ); ?>
+		<?php
+		self::render_gsc_connection_panel( false );
+		self::render_gsc_service_account_form();
+	}
+
+	/**
+	 * Client email of the service account JSON saved in the option, or '' when none is saved.
+	 * Only this one field is read back; the JSON itself is never printed.
+	 */
+	private static function gsc_saved_client_email(): string {
+		if ( ! defined( 'Neo_Pulse_Wp_Gsc::ACCOUNT_OPTION' ) ) {
+			return '';
+		}
+		$raw = get_option( Neo_Pulse_Wp_Gsc::ACCOUNT_OPTION, '' );
+		if ( is_string( $raw ) ) {
+			$raw = json_decode( $raw, true );
+		}
+		if ( ! is_array( $raw ) || empty( $raw['client_email'] ) || ! is_string( $raw['client_email'] ) ) {
+			return '';
+		}
+		return sanitize_email( $raw['client_email'] );
+	}
+
+	/**
+	 * Paste / remove the service account JSON (manage_options only).
+	 */
+	private static function render_gsc_service_account_form(): void {
+		if ( ! method_exists( 'Neo_Pulse_Wp_Gsc', 'save_service_account_json' ) ) {
+			return;
+		}
+		if ( ! current_user_can( 'manage_options' ) ) {
+			?>
+			<p class="description"><?php esc_html_e( 'Ask a site administrator to add the Search Console service account key.', 'neo-pulse-wp' ); ?></p>
+			<?php
+			return;
+		}
+
+		$form_id      = 'neo-pulse-wp-settings-gsc-form';
+		$has_account  = method_exists( 'Neo_Pulse_Wp_Gsc', 'has_service_account' ) && Neo_Pulse_Wp_Gsc::has_service_account();
+		$source       = method_exists( 'Neo_Pulse_Wp_Gsc', 'credentials_source' ) ? Neo_Pulse_Wp_Gsc::credentials_source() : '';
+		$saved_email  = self::gsc_saved_client_email();
+		?>
+		<details class="neo-pulse-wp-settings__advanced"<?php echo $has_account ? ' open' : ''; ?>>
+		<summary><?php esc_html_e( 'Advanced: use your own service account key', 'neo-pulse-wp' ); ?></summary>
+		<p class="description"><?php esc_html_e( 'Only needed if this site should read Search Console with its own Google Cloud service account instead of Neo Digital\'s. A key saved here takes priority.', 'neo-pulse-wp' ); ?></p>
+		<div class="neo-pulse-wp-panel-info-box" role="status">
+			<p>
+				<?php
+				if ( 'legacy_file' === $source ) {
+					esc_html_e( 'Using the old key file in the plugin folder — paste the key here and delete that file.', 'neo-pulse-wp' );
+				} elseif ( $saved_email !== '' ) {
+					echo esc_html(
+						sprintf(
+							/* translators: %s: service account client_email */
+							__( 'A key is saved (client_email: %s).', 'neo-pulse-wp' ),
+							$saved_email
+						)
+					);
+				} elseif ( $has_account && ( 'constant' === $source || 'file' === $source ) ) {
+					esc_html_e( 'A key is set in wp-config.php, so nothing needs to be saved here.', 'neo-pulse-wp' );
+				} elseif ( $has_account ) {
+					esc_html_e( 'A key is in use, but none is saved here yet.', 'neo-pulse-wp' );
+				} else {
+					esc_html_e( 'No service account key is saved yet.', 'neo-pulse-wp' );
+				}
+				?>
+			</p>
+		</div>
+
+		<form id="<?php echo esc_attr( $form_id ); ?>" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="neo-pulse-wp-settings__form neo-pulse-schema-form neo-pulse-wp-settings__form--gsc" autocomplete="off">
+			<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_SAVE_GSC ); ?>" />
+			<?php wp_nonce_field( self::ACTION_SAVE_GSC, 'neo_pulse_wp_gsc_nonce' ); ?>
+			<?php
+			self::panel_form_group_open();
+			self::panel_form_field_textarea(
+				'neo-pulse-wp-gsc-service-account-json',
+				'gsc_service_account_json',
+				__( 'Service account JSON', 'neo-pulse-wp' ),
+				'',
+				'full',
+				8,
+				$saved_email !== ''
+					? __( 'Leave blank to keep the saved key, or paste a new JSON key file to replace it. The saved key is never shown here.', 'neo-pulse-wp' )
+					: __( 'Paste the whole JSON key file of the Google Cloud service account that has access to this site in Search Console.', 'neo-pulse-wp' )
+			);
+			if ( $saved_email !== '' ) {
+				self::panel_form_toggle(
+					'gsc_remove_key',
+					__( 'Remove saved key', 'neo-pulse-wp' ),
+					false,
+					__( 'Deletes the key saved on this site when you save. A key set in wp-config.php is not affected.', 'neo-pulse-wp' ),
+					'1',
+					'neo-pulse-wp-gsc-remove-key'
+				);
+			}
+			self::panel_form_group_close();
+			?>
+		</form>
+
+		<div class="neo-pulse-wp-panel-footer">
+			<p class="neo-pulse-wp-settings__actions neo-pulse-wp-panel-footer__right">
+				<button type="submit" form="<?php echo esc_attr( $form_id ); ?>" class="button button-primary neo-pulse-wp-settings__btn"><?php esc_html_e( 'Save Search Console key', 'neo-pulse-wp' ); ?></button>
+			</p>
+		</div>
+		</details>
 		<?php
 	}
 
@@ -181,8 +295,8 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Settings_Placeholder {
 			<p>
 				<?php
 				if ( $dfs_configured ) {
-					if ( 'wp-config' === $dfs_source || 'environment' === $dfs_source ) {
-						esc_html_e( 'Status: configured (wp-config / server env).', 'neo-pulse-wp' );
+					if ( 'wp-config' === $dfs_source ) {
+						esc_html_e( 'Status: configured (wp-config.php).', 'neo-pulse-wp' );
 					} elseif ( 'site' === $dfs_source ) {
 						esc_html_e( 'Status: configured (saved on this site).', 'neo-pulse-wp' );
 					} else {
@@ -349,58 +463,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Settings_Placeholder {
 					</button>
 				</p>
 			</div>
-		<?php endif; ?>
-		<?php
-	}
-
-	private static function render_settings_section_comments(): void {
-		$enabled = Neo_Pulse_Wp_Comments::is_enabled();
-		$form_id = 'neo-pulse-wp-settings-comments-form';
-		?>
-		<h2 class="neo-pulse-wp-panel-content__title"><?php esc_html_e( 'Comments', 'neo-pulse-wp' ); ?></h2>
-		<p class="neo-pulse-wp-panel-content__desc">
-			<?php esc_html_e( 'Enable or disable WordPress comments site-wide.', 'neo-pulse-wp' ); ?>
-		</p>
-
-		<div class="neo-pulse-wp-panel-info-box" role="status">
-			<p>
-				<?php
-				echo esc_html(
-					$enabled
-						? __( 'Status: enabled — comments are open according to each post or page.', 'neo-pulse-wp' )
-						: __( 'Status: disabled — comments are closed on the public site and in the editor.', 'neo-pulse-wp' )
-				);
-				?>
-			</p>
-		</div>
-
-		<?php if ( current_user_can( 'manage_options' ) ) : ?>
-			<form id="<?php echo esc_attr( $form_id ); ?>" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="neo-pulse-wp-settings__form neo-pulse-schema-form">
-				<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_SAVE_COMMENTS ); ?>" />
-				<?php wp_nonce_field( self::ACTION_SAVE_COMMENTS, 'neo_pulse_wp_comments_nonce' ); ?>
-				<?php
-				self::panel_form_group_open();
-				self::panel_form_toggle(
-					'neo-pulse_comments_enabled',
-					__( 'Enable comments site-wide', 'neo-pulse-wp' ),
-					$enabled,
-					'',
-					'1',
-					'neo-pulse_comments_enabled'
-				);
-				self::panel_form_group_close();
-				?>
-			</form>
-
-			<div class="neo-pulse-wp-panel-footer">
-				<p class="neo-pulse-wp-settings__actions neo-pulse-wp-panel-footer__right">
-					<button type="submit" form="<?php echo esc_attr( $form_id ); ?>" class="button button-primary neo-pulse-wp-settings__btn">
-						<?php esc_html_e( 'Save comments setting', 'neo-pulse-wp' ); ?>
-					</button>
-				</p>
-			</div>
-		<?php else : ?>
-			<p class="description"><?php esc_html_e( 'Ask a site administrator to change comment settings.', 'neo-pulse-wp' ); ?></p>
 		<?php endif; ?>
 		<?php
 	}

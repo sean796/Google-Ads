@@ -1,4 +1,4 @@
-import { ExternalLink, Link2, RefreshCw } from "lucide-react";
+import { Download, ExternalLink, Link2, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -13,6 +13,7 @@ import {
 
 import {
   REPORTING_TOOLBAR_CLIENT_REPORT_BTN_CLASS,
+  REPORTING_TOOLBAR_DOWNLOAD_PDF_BTN_CLASS,
   REPORTING_TOOLBAR_LABEL_RESERVE_CLASS,
   REPORTING_TOOLBAR_LABEL_SLOT_CLASS,
   REPORTING_TOOLBAR_LABEL_VISIBLE_CLASS,
@@ -24,6 +25,8 @@ export type OrganicDashboardToolbarProps = {
   onRefresh: () => void;
   onExportPdf: () => void;
   exportPdfDisabled?: boolean;
+  onDownloadPdf?: () => void;
+  downloadPdfBusy?: boolean;
   onShareLink: () => void;
   shareCopied?: boolean;
   showDateRange?: boolean;
@@ -50,6 +53,8 @@ export function OrganicDashboardToolbar({
   onRefresh,
   onExportPdf,
   exportPdfDisabled = false,
+  onDownloadPdf,
+  downloadPdfBusy = false,
   onShareLink,
   shareCopied = false,
   showDateRange = true,
@@ -87,16 +92,34 @@ export function OrganicDashboardToolbar({
             <ToolbarLabelSlot visible={shareCopied ? "Copied" : "Share link"} reserve="Share link" />
           </Button>
           {showExportPdf ? (
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={exportPdfDisabled}
-              className={REPORTING_TOOLBAR_CLIENT_REPORT_BTN_CLASS}
-              onClick={onExportPdf}
-            >
-              <ExternalLink className="h-4 w-4 shrink-0" aria-hidden />
-              Client report
-            </Button>
+            <>
+              {onDownloadPdf ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={exportPdfDisabled || downloadPdfBusy}
+                  aria-busy={downloadPdfBusy}
+                  className={REPORTING_TOOLBAR_DOWNLOAD_PDF_BTN_CLASS}
+                  onClick={onDownloadPdf}
+                >
+                  <Download className="h-4 w-4 shrink-0" aria-hidden />
+                  <ToolbarLabelSlot
+                    visible={downloadPdfBusy ? "Preparing…" : "Download PDF"}
+                    reserve="Download PDF"
+                  />
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={exportPdfDisabled}
+                className={REPORTING_TOOLBAR_CLIENT_REPORT_BTN_CLASS}
+                onClick={onExportPdf}
+              >
+                <ExternalLink className="h-4 w-4 shrink-0" aria-hidden />
+                Client report
+              </Button>
+            </>
           ) : null}
           <Button
             type="button"

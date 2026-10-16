@@ -273,7 +273,7 @@ export function buildLinkMap(inventory, classified, cluster = {}) {
       const anchor = clusterAnchors[j.job] || `${j.job} reading`;
       if (usedAnchors.has(anchor.toLowerCase())) continue;
       usedAnchors.add(anchor.toLowerCase());
-      add(money, to, anchor, "", `Related reading: {{link}}.`);
+      add(money, to, anchor, "", `We also cover {{link}} for local businesses.`);
     }
   }
 

@@ -2,19 +2,21 @@
  * NEO Pulse Chat Widget – Dark Glassmorphism Edition
  *
  * Reads config from the global `neoPulseChatConfig` object injected by
- * wp_localize_script (restUrl, nonce, siteName, welcomeMessage, color, assistantName).
+ * wp_localize_script (ajaxUrl, streamNonce, siteName, welcomeMessage, color, assistantName).
  */
 (function () {
   'use strict';
 
   var cfg = window.neoPulseChatConfig || {};
-  if (!cfg.restUrl) return;
+  if (!cfg.ajaxUrl) return;
 
   var root = document.getElementById('neo-pulse-chat-widget-root');
   if (!root) return;
 
   var ASSISTANT = cfg.assistantName || 'Pulse Assist';
   var UI = cfg.ui || {};
+  // 0.9.236 look on the public site (the wp-admin assistant keeps its own styling).
+  var MODERN = cfg.modern === true && !cfg.isWpAdmin;
   var SIDEBAR_SIDE = cfg.sidebarSide === 'left' ? 'left' : 'right';
   var LAUNCHER_STYLE = cfg.launcherStyle === 'edge_tab' || cfg.launcherStyle === 'none'
     ? cfg.launcherStyle
@@ -132,6 +134,9 @@
     if (!launcher) return;
     launcher.id = 'neo-pulse-chat-mobile-launcher';
     launcher.classList.add('fcw-mobile-launcher', 'fai-sidebar-launcher', 'fcw-launcher');
+    if (MODERN) {
+      launcher.classList.add('fcw-launcher--modern');
+    }
     launcher.setAttribute('data-fcw-chat-launcher', '1');
     launcher.setAttribute('aria-controls', 'neo-pulse-chat-widget-root');
     applyLauncherStyle(launcher);
@@ -180,9 +185,10 @@
   var ADMIN_SUBMODE_LABELS = { ask: 'Ask', plan: 'Plan', build: 'Build' };
   var adminSubmode = 'ask';
   var adminSubmodeBtn = null;
-  var PAGE_CONTENT_MODES = ['seo_blocks', 'elementor_widgets'];
-  var PAGE_CONTENT_MODE_LABELS = { seo_blocks: 'SEO blocks', elementor_widgets: 'Elementor' };
-  var pageContentMode = 'seo_blocks';
+  // 0.9.232: Block Builder (SEO blocks) was removed, so pages are always built with Elementor widgets.
+  var PAGE_CONTENT_MODES = ['elementor_widgets'];
+  var PAGE_CONTENT_MODE_LABELS = { elementor_widgets: 'Elementor' };
+  var pageContentMode = 'elementor_widgets';
   var pageContentModeBtn = null;
   var adminTargetScope = 'page';
   var scopeToggleWrap = null;
@@ -388,7 +394,7 @@
       return 'Plan mode: review proposed changes before building.';
     }
     if (adminSubmode === 'build') {
-      return 'Build mode: can edit posts, pages, and SEO blocks.';
+      return 'Build mode: can edit posts and pages.';
     }
     return 'Ask mode: analytics, SEO, and read-only site insights.';
   }
@@ -454,7 +460,7 @@
     if (!CAN_BACKEND_MODE) return;
     try {
       var stored = sessionStorage.getItem('neo_pulse_page_content_mode');
-      if (stored === 'seo_blocks' || stored === 'elementor_widgets') {
+      if (stored === 'elementor_widgets') {
         pageContentMode = stored;
       }
     } catch (_) {}
@@ -462,7 +468,7 @@
 
   function savePageContentMode(mode) {
     if (PAGE_CONTENT_MODES.indexOf(mode) < 0) {
-      mode = 'seo_blocks';
+      mode = 'elementor_widgets';
     }
     pageContentMode = mode;
     try {
@@ -471,25 +477,25 @@
   }
 
   function getPageContentModeForApi() {
-    return isBackendMode() ? pageContentMode : 'seo_blocks';
+    return 'elementor_widgets';
   }
 
   function togglePageContentMode() {
-    savePageContentMode(pageContentMode === 'seo_blocks' ? 'elementor_widgets' : 'seo_blocks');
+    savePageContentMode('elementor_widgets');
     updatePageContentModeUi();
   }
 
   function updatePageContentModeUi() {
     if (!pageContentModeBtn) return;
-    pageContentModeBtn.hidden = !isBackendMode();
-    pageContentModeBtn.textContent = PAGE_CONTENT_MODE_LABELS[pageContentMode] || 'SEO blocks';
+    pageContentModeBtn.hidden = true; // Only one mode left, so the toggle stays hidden.
+    pageContentModeBtn.textContent = PAGE_CONTENT_MODE_LABELS[pageContentMode] || 'Elementor';
     pageContentModeBtn.classList.toggle(
       'fcw-page-content-pill--elementor',
       pageContentMode === 'elementor_widgets'
     );
     pageContentModeBtn.setAttribute(
       'aria-label',
-      'Page content: ' + (PAGE_CONTENT_MODE_LABELS[pageContentMode] || 'SEO blocks') + '. Click to toggle.'
+      'Page content: ' + (PAGE_CONTENT_MODE_LABELS[pageContentMode] || 'Elementor') + '.'
     );
   }
 
@@ -1115,7 +1121,7 @@
       if (!uiOn(k)) hideClasses += ' ' + hideMap[k];
     });
     if (isMobileViewport() && !keepOpen) {
-      root.className = ('neo-pulse-chat-widget neo-pulse-chat--standalone-launcher' + hideClasses).trim();
+      root.className = ('neo-pulse-chat-widget neo-pulse-chat--standalone-launcher' + hideClasses + (MODERN ? ' fcw-modern' : '')).trim();
       lockMobileRootClosed();
       return;
     }
@@ -1131,6 +1137,11 @@
     }
     if (isBackendMode()) {
       nextClass += ' fcw--super-admin-mode';
+    }
+    if (MODERN) {
+      nextClass += ' fcw-modern';
+      if (!uiOn('avatar')) nextClass += ' fcw-hide-avatar';
+      if (!uiOn('powered_by')) nextClass += ' fcw-hide-powered-by';
     }
     root.className = nextClass;
     if (!keepOpen) {
@@ -1407,6 +1418,31 @@
   toolbarActions.appendChild(closeBtn);
   var contactHuman = SHOW_CONTACT_HUMAN ? buildContactHumanModule() : null;
   var toolbar = el('div', { className: 'fai-sidebar-panel__toolbar' });
+  // Who you're talking to: avatar, name and a short status line.
+  if (MODERN && uiOn('header') && !toolbarLeading.childNodes.length) {
+    var head = el('div', { className: 'fcw-head' });
+    var headAvatar = el('span', { className: 'fcw-head__avatar', 'aria-hidden': 'true' });
+    if (cfg.avatarUrl) {
+      var headImg = document.createElement('img');
+      headImg.src = cfg.avatarUrl;
+      headImg.alt = '';
+      headAvatar.appendChild(headImg);
+    } else {
+      headAvatar.textContent = String(ASSISTANT || '?').trim().charAt(0).toUpperCase();
+    }
+    var headText = el('span', { className: 'fcw-head__text' });
+    var headName = el('span', { className: 'fcw-head__name' });
+    headName.textContent = ASSISTANT;
+    headText.appendChild(headName);
+    if (cfg.headerStatus) {
+      var headStatus = el('span', { className: 'fcw-head__status' });
+      headStatus.textContent = cfg.headerStatus;
+      headText.appendChild(headStatus);
+    }
+    head.appendChild(headAvatar);
+    head.appendChild(headText);
+    toolbarLeading.appendChild(head);
+  }
   if (toolbarLeading.childNodes.length) {
     toolbar.appendChild(toolbarLeading);
   }
@@ -1484,9 +1520,6 @@
   if (adminSubmodeBtn) {
     composerActions.appendChild(adminSubmodeBtn);
   }
-  if (pageContentModeBtn) {
-    composerActions.appendChild(pageContentModeBtn);
-  }
   if (contactHuman) {
     composerActions.classList.add('fcw-composer-actions--with-human');
     composerActions.appendChild(contactHuman.toolbarBtn);
@@ -1507,6 +1540,11 @@
     if (emptyEl) chatMain.appendChild(emptyEl);
     chatMain.appendChild(messages);
     chatMain.appendChild(inputRow);
+    if (MODERN && uiOn('powered_by')) {
+      var powered = el('a', { className: 'fcw-powered', href: cfg.poweredUrl || 'https://neodigital.ca/neo-pulse-platform/', target: '_blank', rel: 'noopener noreferrer' });
+      powered.innerHTML = '<span class="np-powered__label">Powered by</span>' + (cfg.poweredLogo || ' <strong>NEO Pulse</strong>');
+      chatMain.appendChild(powered);
+    }
   }
   panelBody.appendChild(chatMain);
   panel.appendChild(toolbar);
@@ -1771,15 +1809,6 @@
       var contactWrap = el('div', { className: 'fcw-card__conversion-contact' });
       fcwAppendConversionContact(contactWrap, contact);
       block.appendChild(contactWrap);
-    }
-    if (conv.formHtml) {
-      var formWrap = el('div', { className: 'fcw-card__conversion-form' });
-      formWrap.innerHTML = conv.formHtml;
-      block.appendChild(formWrap);
-      var formEl = formWrap.querySelector('.neo-pulse-form');
-      if (formEl && window.NeoPulseForms && typeof window.NeoPulseForms.mount === 'function') {
-        window.NeoPulseForms.mount(formEl, conv.formConfig || null);
-      }
     }
     cardEl.appendChild(block);
   }
@@ -2855,7 +2884,7 @@
       ? window.NeoPulseChatPrefetch.getPageContextKey()
       : '';
     return {
-      ajaxUrl: cfg.ajaxUrl || cfg.restUrl,
+      ajaxUrl: cfg.ajaxUrl,
       streamNonce: cfg.streamNonce || '',
       history: historyForApi(),
       sessionId: getChatSessionId(),
@@ -3009,7 +3038,7 @@
     }
     var thinkingShell = null;
 
-    var url = (cfg.ajaxUrl || cfg.restUrl) +
+    var url = cfg.ajaxUrl +
       '?action=neo_pulse_chat_stream&_nonce=' + encodeURIComponent(cfg.streamNonce || '');
 
     fetch(url, {
@@ -3020,6 +3049,7 @@
         history: historyForApi(),
         prefetch_key: prefetchHit && prefetchHit.prefetch_key ? prefetchHit.prefetch_key : '',
         session_id: getChatSessionId(),
+        assistant_name: ASSISTANT,
         source: 'frontend',
         admin_mode: getAdminModeForApi(),
         admin_submode: getAdminSubmodeForApi(),
@@ -3034,14 +3064,52 @@
         input_origin: inputOrigin
       })
     }).then(function (res) {
-      if (!res.ok) throw new Error('HTTP ' + res.status);
+      if (!res.ok) {
+        var httpErr = new Error('HTTP ' + res.status);
+        httpErr.status = res.status;
+        throw httpErr;
+      }
       var reader = res.body.getReader();
       var decoder = new TextDecoder();
       var buf = '';
+      var gotDone = false;
+
+      function handleLine(line) {
+        line = line.trim();
+        if (!line) return;
+        var evt;
+        try { evt = JSON.parse(line); } catch (_) { return; }
+        if (evt.status === 'done' && evt.card) {
+          gotDone = true;
+        }
+        if (streamCtx && window.NeoPulseChatStream) {
+          NeoPulseChatStream.handleEvent(evt, streamCtx);
+          thinkingShell = streamCtx.thinkingShell || thinkingShell;
+        } else if (evt.status === 'done' && evt.card) {
+          presentCard(evt.card, {
+            shell: thinkingShell,
+            onDone: streamCtx ? streamCtx.onDone : undefined
+          });
+        } else if (evt.label && thinkingShell && window.NeoPulseThinkingCard) {
+          NeoPulseThinkingCard.advanceStreamLabel(thinkingShell, host, evt.label);
+        }
+      }
 
       function pump() {
         return reader.read().then(function (result) {
           if (result.done) {
+            // A last line may arrive without a trailing newline.
+            buf += decoder.decode();
+            if (buf.trim()) {
+              handleLine(buf);
+            }
+            buf = '';
+            if (!gotDone) {
+              // The server stopped (timeout, fatal error) before sending an answer.
+              var endErr = new Error('Stream ended without a reply');
+              endErr.incomplete = true;
+              throw endErr;
+            }
             if (streamCtx && window.NeoPulseChatStream) {
               NeoPulseChatStream.removeTypingIndicator(streamCtx);
             }
@@ -3055,44 +3123,68 @@
           buf += decoder.decode(result.value, { stream: true });
           var lines = buf.split('\n');
           buf = lines.pop();
-          lines.forEach(function (line) {
-            line = line.trim();
-            if (!line) return;
-            var evt;
-            try { evt = JSON.parse(line); } catch (_) { return; }
-            if (streamCtx && window.NeoPulseChatStream) {
-              NeoPulseChatStream.handleEvent(evt, streamCtx);
-              thinkingShell = streamCtx.thinkingShell || thinkingShell;
-            } else if (evt.status === 'done' && evt.card) {
-              presentCard(evt.card, {
-                shell: thinkingShell,
-                onDone: streamCtx ? streamCtx.onDone : undefined
-              });
-            } else if (evt.label && thinkingShell && window.NeoPulseThinkingCard) {
-              NeoPulseThinkingCard.advanceStreamLabel(thinkingShell, host, evt.label);
-            }
-          });
+          lines.forEach(handleLine);
           return pump();
         });
       }
       return pump();
-    }).catch(function () {
+    }).catch(function (err) {
       isLoading = false;
       sendBtn.disabled = false;
       if (window.NeoPulseVoice) {
         NeoPulseVoice.updateSendMicVisibility(textarea, sendBtn);
       }
       if (streamCtx && window.NeoPulseChatStream) {
+        if (NeoPulseChatStream.clearDoneTimer) {
+          NeoPulseChatStream.clearDoneTimer(streamCtx);
+        }
         NeoPulseChatStream.removeTypingIndicator(streamCtx);
         thinkingShell = NeoPulseChatStream.ensureThinkingShell(streamCtx);
       }
-      presentCard({
-        type: 'not-found',
-        title: 'Connection error',
-        body: 'Could not reach the server. Please check your internet connection.',
-        confidence: 'low'
-      }, { shell: thinkingShell });
+      presentCard(streamErrorCard(err), { shell: thinkingShell });
     });
+  }
+
+  function streamErrorCard(err) {
+    var status = err && err.status ? err.status : 0;
+    if (status === 403) {
+      return {
+        type: 'not-found',
+        title: 'Session expired',
+        body: 'This page has been open for a while. Please refresh the page and send your message again.',
+        confidence: 'low'
+      };
+    }
+    if (status === 429) {
+      return {
+        type: 'not-found',
+        title: 'Please slow down',
+        body: 'You have sent a lot of messages in a short time. Please wait a few minutes and try again.',
+        confidence: 'low'
+      };
+    }
+    if (err && err.incomplete) {
+      return {
+        type: 'not-found',
+        title: 'Something went wrong',
+        body: 'The reply was interrupted before it finished. Please try again.',
+        confidence: 'low'
+      };
+    }
+    if (status >= 500) {
+      return {
+        type: 'not-found',
+        title: 'Something went wrong',
+        body: 'The assistant is unavailable right now. Please try again in a moment.',
+        confidence: 'low'
+      };
+    }
+    return {
+      type: 'not-found',
+      title: 'Connection error',
+      body: 'Could not reach the server. Please check your internet connection.',
+      confidence: 'low'
+    };
   }
 
   // ── Rendering ─────────────────────────────────────────────────
@@ -3212,22 +3304,34 @@
     return node;
   }
 
+  // Escapes quotes too: results are used inside attribute values.
   function esc(s) {
-    var d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function fallbackLink(label, url) {
+    if (!/^https?:\/\//i.test(String(url))) return label;
+    return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + label + '</a>';
   }
 
   function renderMarkdown(text) {
     if (window.NeoPulseMarkdown && typeof window.NeoPulseMarkdown.render === 'function') {
       return NeoPulseMarkdown.render(text);
     }
+    // Fallback when the shared renderer did not load. Text is escaped first (quotes included),
+    // so captured URLs cannot break out of href.
     var s = esc(text);
     s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-    s = s.replace(/<(https?:\/\/[^>]+)>/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+    s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, function (match, label, url) {
+      return fallbackLink(label, url);
+    });
     s = s.replace(/(^|[\s(])((https?:\/\/[^\s<)]+))/g, function (match, prefix, url) {
-      return prefix + '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + url + '</a>';
+      return prefix + fallbackLink(url, url);
     });
     s = s.replace(/\n/g, '<br>');
     return s;

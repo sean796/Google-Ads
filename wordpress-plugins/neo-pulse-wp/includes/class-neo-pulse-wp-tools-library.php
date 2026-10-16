@@ -16,17 +16,14 @@ class Neo_Pulse_Wp_Tools_Library {
 		return array(
 			'connection'  => __( 'Connection & site', 'neo-pulse-wp' ),
 			'posts'       => __( 'Posts & pages', 'neo-pulse-wp' ),
-			'fields'      => __( 'NEO Pulse Fields', 'neo-pulse-wp' ),
 			'editor_ai'   => __( 'Editor AI wands', 'neo-pulse-wp' ),
 			'body'        => __( 'Body harness', 'neo-pulse-wp' ),
-			'agent_hub'   => __( 'Agent Hub SEO blocks', 'neo-pulse-wp' ),
 			'image_seo'   => __( 'Image SEO', 'neo-pulse-wp' ),
 			'site'        => __( 'Schema & sitemap', 'neo-pulse-wp' ),
 			'redirects'   => __( 'Redirects', 'neo-pulse-wp' ),
 			'scripts'     => __( 'Script Manager', 'neo-pulse-wp' ),
 			'gmb'         => __( 'Google Business Profile', 'neo-pulse-wp' ),
 			'assist'      => __( 'Backend Assist', 'neo-pulse-wp' ),
-			'migrate'     => __( 'Super Import', 'neo-pulse-wp' ),
 			'safety'      => __( 'Audit & safety', 'neo-pulse-wp' ),
 		);
 	}
@@ -36,17 +33,11 @@ class Neo_Pulse_Wp_Tools_Library {
 	 * @return string Category slug.
 	 */
 	public static function category_for_tool( string $tool_name ): string {
-		if ( strpos( $tool_name, 'wp_fields_' ) === 0 ) {
-			return 'fields';
-		}
 		if ( strpos( $tool_name, 'wp_ai_' ) === 0 ) {
 			return 'editor_ai';
 		}
 		if ( strpos( $tool_name, 'wp_body_' ) === 0 ) {
 			return 'body';
-		}
-		if ( strpos( $tool_name, 'wp_seo_' ) === 0 ) {
-			return 'agent_hub';
 		}
 		if ( strpos( $tool_name, 'wp_image_seo_' ) === 0 ) {
 			return 'image_seo';
@@ -66,13 +57,10 @@ class Neo_Pulse_Wp_Tools_Library {
 		if ( strpos( $tool_name, 'wp_assist_' ) === 0 ) {
 			return 'assist';
 		}
-		if ( strpos( $tool_name, 'wp_super_migrate_' ) === 0 ) {
-			return 'migrate';
-		}
 		if ( in_array( $tool_name, array( 'wp_audit_list', 'wp_revision_restore' ), true ) ) {
 			return 'safety';
 		}
-		if ( in_array( $tool_name, array( 'wp_ping', 'wp_whoami', 'wp_site_dashboard', 'wp_site_index', 'wp_site_index_search', 'wp_openrouter_status', 'wp_chat_settings_get', 'wp_chat_settings_update', 'wp_theme_functions_get', 'wp_theme_functions_put' ), true ) ) {
+		if ( in_array( $tool_name, array( 'wp_ping', 'wp_whoami', 'wp_site_dashboard', 'wp_site_index', 'wp_site_index_search', 'wp_openrouter_status', 'wp_chat_settings_get', 'wp_chat_settings_update' ), true ) ) {
 			return 'connection';
 		}
 		return 'posts';
@@ -125,17 +113,6 @@ class Neo_Pulse_Wp_Tools_Library {
 				'params'  => array(
 					'enabled'        => __( 'Master on/off for the frontend chat widget.', 'neo-pulse-wp' ),
 					'logged_in_only' => __( 'When true, only logged-in WordPress users see the widget.', 'neo-pulse-wp' ),
-				),
-			),
-			'wp_theme_functions_get'     => array(
-				'summary' => __( 'Reads the active theme functions.php (child theme when active). Requires edit_themes.', 'neo-pulse-wp' ),
-				'params'  => array(),
-			),
-			'wp_theme_functions_put'     => array(
-				'summary' => __( 'Writes functions.php after backing up the current file. Requires confirm: true and edit_themes.', 'neo-pulse-wp' ),
-				'params'  => array(
-					'content' => __( 'Complete PHP file contents.', 'neo-pulse-wp' ),
-					'confirm' => __( 'Must be true to write.', 'neo-pulse-wp' ),
 				),
 			),
 			'wp_list_posts'              => array(
@@ -219,7 +196,7 @@ class Neo_Pulse_Wp_Tools_Library {
 				),
 			),
 			'wp_ai_apply_field'          => array(
-				'summary' => __( 'Applies a previewed wand value to Rank Math meta, title, excerpt, or NEO Pulse Fields. Counts toward optimization usage.', 'neo-pulse-wp' ),
+				'summary' => __( 'Applies a previewed wand value to Rank Math meta, title, excerpt, or ACF / post meta fields. Counts toward optimization usage.', 'neo-pulse-wp' ),
 				'params'  => array(
 					'post_id' => __( 'Required.', 'neo-pulse-wp' ),
 					'field'   => __( 'title, focus_keyword, excerpt, seo_research, faq, page_url.', 'neo-pulse-wp' ),
@@ -227,22 +204,6 @@ class Neo_Pulse_Wp_Tools_Library {
 					'confirm' => __( 'Must be true.', 'neo-pulse-wp' ),
 				),
 				'example' => '{"post_id":123,"field":"focus_keyword","value":"hvac edmonton","confirm":true}',
-			),
-			'wp_fields_import_json'      => array(
-				'summary' => __( 'Import an ACF-compatible JSON export (field groups, post types, taxonomies). Strips UTF-8 BOM from ACF/Windows exports.', 'neo-pulse-wp' ),
-				'params'  => array(
-					'json'           => __( 'Full JSON string (use instead of file_path).', 'neo-pulse-wp' ),
-					'file_path'      => __( 'Absolute path to a .json file on the server.', 'neo-pulse-wp' ),
-					'delete_missing' => __( 'Remove field groups not present in the import.', 'neo-pulse-wp' ),
-					'confirm'        => __( 'Must be true.', 'neo-pulse-wp' ),
-				),
-				'example' => '{"json":"[{\\"key\\":\\"group_abc\\",...}]","confirm":true}',
-			),
-			'wp_fields_export_json'      => array(
-				'summary' => __( 'Export NEO Pulse field groups, post types, and taxonomies as ACF-compatible JSON.', 'neo-pulse-wp' ),
-				'params'  => array(
-					'keys' => __( 'Optional list of field group keys; empty exports all.', 'neo-pulse-wp' ),
-				),
 			),
 			'wp_body_section_apply'      => array(
 				'summary' => __( 'Writes AI-generated HTML into the matching H2 section and saves the post.', 'neo-pulse-wp' ),
@@ -253,98 +214,6 @@ class Neo_Pulse_Wp_Tools_Library {
 					'html'          => __( 'Section HTML to apply.', 'neo-pulse-wp' ),
 					'confirm'       => __( 'Must be true.', 'neo-pulse-wp' ),
 				),
-			),
-			'wp_super_migrate_plan'      => array(
-				'summary' => __( 'Scan active third-party plugins and preview Super Import macro/micro steps.', 'neo-pulse-wp' ),
-			),
-			'wp_super_migrate_start'     => array(
-				'summary' => __( 'Start a Super Import job (crawl third-party settings into Flo Sheet and/or apply).', 'neo-pulse-wp' ),
-				'params'  => array(
-					'phases'  => __( 'Array: crawl, apply.', 'neo-pulse-wp' ),
-					'dry_run' => __( 'Apply phase only: log would-change counts without writes.', 'neo-pulse-wp' ),
-					'confirm' => __( 'Must be true when applying.', 'neo-pulse-wp' ),
-				),
-			),
-			'wp_super_migrate_step'      => array(
-				'summary' => __( 'Execute the next micro step of an active Super Import job.', 'neo-pulse-wp' ),
-				'params'  => array(
-					'job_id' => __( 'Required job id from wp_super_migrate_start.', 'neo-pulse-wp' ),
-				),
-			),
-			'wp_super_migrate_status'    => array(
-				'summary' => __( 'Poll macro/micro progress for a Super Import job.', 'neo-pulse-wp' ),
-				'params'  => array(
-					'job_id' => __( 'Required.', 'neo-pulse-wp' ),
-				),
-			),
-			'wp_super_migrate_flo_sheet' => array(
-				'summary' => __( 'Get the master Flo Sheet JSON workbook stored on this site.', 'neo-pulse-wp' ),
-			),
-			'wp_super_migrate_flo_sheet_import' => array(
-				'summary' => __( 'Import Flo Sheet JSON and start apply-only import.', 'neo-pulse-wp' ),
-				'params'  => array(
-					'json'    => __( 'Flo Sheet JSON string.', 'neo-pulse-wp' ),
-					'dry_run' => __( 'Optional dry run for apply phase.', 'neo-pulse-wp' ),
-					'confirm' => __( 'Must be true.', 'neo-pulse-wp' ),
-				),
-			),
-			'wp_seo_blocks_list' => array(
-				'summary' => __( 'List all Agent Hub SEO blocks from the registry table.', 'neo-pulse-wp' ),
-			),
-			'wp_seo_block_get' => array(
-				'summary' => __( 'Get one Agent Hub SEO block by id or exact title, including slots.', 'neo-pulse-wp' ),
-				'params'  => array(
-					'block_id' => __( 'Registry block ID.', 'neo-pulse-wp' ),
-					'title'    => __( 'Exact Agent Hub title if block_id omitted.', 'neo-pulse-wp' ),
-				),
-			),
-			'wp_seo_block_duplicate' => array(
-				'summary' => __( 'Duplicate an Agent Hub SEO block into a new row. Optional user_copy fills the copy. Source block is not edited.', 'neo-pulse-wp' ),
-				'params'  => array(
-					'block_id'  => __( 'Source registry block ID.', 'neo-pulse-wp' ),
-					'title'     => __( 'Exact source title if block_id omitted.', 'neo-pulse-wp' ),
-					'user_copy' => __( 'Verbatim text to map onto the copy slots.', 'neo-pulse-wp' ),
-				),
-			),
-			'wp_seo_block_apply_to_page' => array(
-				'summary' => __( 'Insert a persisted Agent Hub SEO block onto an Elementor page. Requires a real block_id with slots.', 'neo-pulse-wp' ),
-				'params'  => array(
-					'post_id'                 => __( 'Target page ID.', 'neo-pulse-wp' ),
-					'block_id'                => __( 'Agent Hub block ID from save or duplicate.', 'neo-pulse-wp' ),
-					'mode'                    => __( 'append or replace.', 'neo-pulse-wp' ),
-					'sync_library'            => __( 'Sync Elementor library section (default true).', 'neo-pulse-wp' ),
-					'include_dynamic_heading' => __( 'Insert dynamic H1 (default true).', 'neo-pulse-wp' ),
-				),
-			),
-			'wp_seo_block_save' => array(
-				'summary' => __( 'Create or update an Agent Hub SEO block and sync Elementor library template.', 'neo-pulse-wp' ),
-				'params'  => array(
-					'title'        => __( 'Theme / title for the block and library template.', 'neo-pulse-wp' ),
-					'focus_keyword'=> __( 'Short keyword label.', 'neo-pulse-wp' ),
-					'topic_focus'  => __( 'Intent prompt used by AI wands.', 'neo-pulse-wp' ),
-					'h2'           => __( 'Optional first H2 slot when slots array is empty.', 'neo-pulse-wp' ),
-					'slots'        => __( 'Structured slot JSON array.', 'neo-pulse-wp' ),
-				),
-			),
-			'wp_seo_block_optimize' => array(
-				'summary' => __( 'Preview or apply AI optimization for a SEO block (full or intent mode).', 'neo-pulse-wp' ),
-				'params'  => array(
-					'block_id'   => __( 'Registry block ID.', 'neo-pulse-wp' ),
-					'post_id'    => __( 'Optional page ID for in-context optimization.', 'neo-pulse-wp' ),
-					'element_id' => __( 'Optional Elementor element ID on the page.', 'neo-pulse-wp' ),
-					'mode'       => __( 'full or intent.', 'neo-pulse-wp' ),
-					'apply'      => __( 'When true, apply preview to registry/page.', 'neo-pulse-wp' ),
-				),
-			),
-			'wp_seo_block_sync_library' => array(
-				'summary' => __( 'Force rebuild of the linked Elementor library section for a block.', 'neo-pulse-wp' ),
-				'params'  => array(
-					'id'      => __( 'Registry block ID.', 'neo-pulse-wp' ),
-					'confirm' => __( 'Must be true.', 'neo-pulse-wp' ),
-				),
-			),
-			'wp_seo_blocks_usage' => array(
-				'summary' => __( 'Scan Elementor pages for neo-pulse_seo_section widget instances.', 'neo-pulse-wp' ),
 			),
 		);
 	}

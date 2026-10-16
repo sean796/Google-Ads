@@ -218,12 +218,18 @@ class Neo_Pulse_App_Semrush_Competitor_Shared {
 	public static function extract_top_keywords_from_csv( string $csv, int $limit = self::ENRICHMENT_DOMAIN_ORGANIC_LIMIT ): array {
 		$rows = Neo_Pulse_App_Semrush_Table_Parse::rows_from_csv_text( $csv );
 		$out  = array();
+		$seen = array();
 		foreach ( $rows as $row ) {
 			$m = self::record_keys_lower( Neo_Pulse_App_Semrush_Table_Parse::record_keys_lower( $row ) );
 			$phrase = self::phrase_from_keyword_row( $m );
 			if ( $phrase === '' ) {
 				continue;
 			}
+			$norm = strtolower( trim( $phrase ) );
+			if ( isset( $seen[ $norm ] ) ) {
+				continue;
+			}
+			$seen[ $norm ] = true;
 			$out[] = array(
 				'phrase'   => $phrase,
 				'volume'   => self::volume_from_row( $m ),

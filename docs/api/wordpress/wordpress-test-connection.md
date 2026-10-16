@@ -5,7 +5,7 @@ section: WordPress
 method: POST
 path: /api/wordpress/test-connection
 auth: open
-order: 3170
+order: 3180
 ---
 
 POST `/api/wordpress/test-connection`.

@@ -116,49 +116,34 @@ export type OrganicDashboardViewModel = {
 };
 
 const EM = "—";
+const EMPTY_DELTA: OrganicGscMetricDelta = { deltaPercent: null, deltaPositive: null };
 
 function fmtInt(n: number | null | undefined): string {
-  if (n == null || !Number.isFinite(n)) return EM;
-  return formatCanadianNumber(Math.round(n));
+  return n == null || !Number.isFinite(n) ? EM : formatCanadianNumber(Math.round(n));
 }
 
 function fmtCount(n: number | null | undefined): string {
-  if (n == null || !Number.isFinite(n)) return EM;
-  return formatCanadianCompactNumber(Math.round(n));
+  return n == null || !Number.isFinite(n) ? EM : formatCanadianCompactNumber(Math.round(n));
 }
 
 function fmtPct(n: number | null | undefined): string {
-  if (n == null || !Number.isFinite(n)) return EM;
-  return `${n.toFixed(1)}%`;
+  return n == null || !Number.isFinite(n) ? EM : `${n.toFixed(1)}%`;
 }
 
 function fmtPosition(n: number | null | undefined): string {
-  if (n == null || !Number.isFinite(n)) return EM;
-  return n.toFixed(1);
+  return n == null || !Number.isFinite(n) ? EM : n.toFixed(1);
 }
 
 function fmtTrafficCost(n: number | null | undefined): string {
-  if (n == null || !Number.isFinite(n)) return EM;
-  return `$${formatCanadianCompactNumber(Math.round(n))}`;
+  return n == null || !Number.isFinite(n) ? EM : `$${formatCanadianCompactNumber(Math.round(n))}`;
 }
 
-function deltaFromPercent(changePercent: number | null | undefined): {
-  deltaPercent: number | null;
-  deltaPositive: boolean | null;
-} {
-  if (changePercent == null || !Number.isFinite(changePercent)) {
-    return { deltaPercent: null, deltaPositive: null };
-  }
-  return {
-    deltaPercent: Math.abs(changePercent),
-    deltaPositive: changePercent >= 0,
-  };
+function deltaFromPercent(changePercent: number | null | undefined): OrganicGscMetricDelta {
+  if (changePercent == null || !Number.isFinite(changePercent)) return EMPTY_DELTA;
+  return { deltaPercent: Math.abs(changePercent), deltaPositive: changePercent >= 0 };
 }
 
-function deltaFromPair(current: number | undefined, previous: number | undefined): {
-  deltaPercent: number | null;
-  deltaPositive: boolean | null;
-} {
+function deltaFromPair(current: number | undefined, previous: number | undefined): OrganicGscMetricDelta {
   if (
     current == null ||
     previous == null ||
@@ -166,7 +151,7 @@ function deltaFromPair(current: number | undefined, previous: number | undefined
     !Number.isFinite(previous) ||
     previous === 0
   ) {
-    return { deltaPercent: null, deltaPositive: null };
+    return EMPTY_DELTA;
   }
   return deltaFromPercent(((current - previous) / previous) * 100);
 }
@@ -177,69 +162,40 @@ function monthInRange(monthKey: string, startYmd: string, endYmd: string): boole
   return monthKey >= start && monthKey <= end;
 }
 
+function formatGaMetricValue(val: number, format: "int" | "pct" | "sec"): string {
+  if (format === "pct") return fmtPct(val * 100);
+  if (format === "sec") return `${Math.round(val)}s`;
+  return fmtInt(val);
+}
+
 function buildGa4Table(ga: GA4ReportData | undefined, showCompare: boolean): OrganicGa4TableRow[] {
   const acq = ga ? pickGa4OrganicAcquisition(ga) : undefined;
   const users = ga?.organicUsers;
-  if (!acq && !users) {
-    return [];
-  }
+  if (!acq && !users) return [];
   const rows: Array<{ label: string; cur: number; prev: number; format: "int" | "pct" | "sec" }> = [];
   if (users) {
     rows.push(
       { label: "Total users", cur: users.current.totalUsers, prev: users.previous.totalUsers, format: "int" },
       { label: "New users", cur: users.current.newUsers, prev: users.previous.newUsers, format: "int" },
-      {
-        label: "User key event rate",
-        cur: users.current.userKeyEventRate,
-        prev: users.previous.userKeyEventRate,
-        format: "pct",
-      },
+      { label: "User key event rate", cur: users.current.userKeyEventRate, prev: users.previous.userKeyEventRate, format: "pct" },
       { label: "Key events", cur: users.current.keyEvents, prev: users.previous.keyEvents, format: "int" },
     );
   }
   if (acq) {
     rows.push(
       { label: "Organic Search sessions", cur: acq.current.sessions, prev: acq.previous.sessions, format: "int" },
-      {
-        label: "Engaged sessions",
-        cur: acq.current.engagedSessions,
-        prev: acq.previous.engagedSessions,
-        format: "int",
-      },
+      { label: "Engaged sessions", cur: acq.current.engagedSessions, prev: acq.previous.engagedSessions, format: "int" },
       { label: "Engagement rate", cur: acq.current.engagementRate, prev: acq.previous.engagementRate, format: "pct" },
-      {
-        label: "Avg session duration",
-        cur: acq.current.averageSessionDurationSec,
-        prev: acq.previous.averageSessionDurationSec,
-        format: "sec",
-      },
-      {
-        label: "Key events (Organic Search sessions)",
-        cur: acq.current.keyEvents,
-        prev: acq.previous.keyEvents,
-        format: "int",
-      },
+      { label: "Avg session duration", cur: acq.current.averageSessionDurationSec, prev: acq.previous.averageSessionDurationSec, format: "sec" },
+      { label: "Key events (Organic Search sessions)", cur: acq.current.keyEvents, prev: acq.previous.keyEvents, format: "int" },
     );
   }
-  return rows.map((r) => {
-    const delta = showCompare ? deltaFromPair(r.cur, r.prev) : { deltaPercent: null, deltaPositive: null };
-    return {
-      label: r.label,
-      current:
-        r.format === "pct"
-          ? fmtPct(r.cur * 100)
-          : r.format === "sec"
-            ? `${Math.round(r.cur)}s`
-            : fmtInt(r.cur),
-      previous:
-        r.format === "pct"
-          ? fmtPct(r.prev * 100)
-          : r.format === "sec"
-            ? `${Math.round(r.prev)}s`
-            : fmtInt(r.prev),
-      delta,
-    };
-  });
+  return rows.map((r) => ({
+    label: r.label,
+    current: formatGaMetricValue(r.cur, r.format),
+    previous: formatGaMetricValue(r.prev, r.format),
+    delta: showCompare ? deltaFromPair(r.cur, r.prev) : EMPTY_DELTA,
+  }));
 }
 
 function buildGa4MonthlyChart(
@@ -250,18 +206,12 @@ function buildGa4MonthlyChart(
   if (userMonths.length > 0) {
     return userMonths
       .filter((m) => monthInRange(m.yearMonth, primary.startDate, primary.endDate))
-      .map((m) => ({
-        label: m.label || m.yearMonth,
-        gaUsers: m.totalUsers,
-      }));
+      .map((m) => ({ label: m.label || m.yearMonth, gaUsers: m.totalUsers }));
   }
   const months = ga?.organicTrafficAcquisitionMonthly?.months ?? [];
   return months
     .filter((m) => monthInRange(m.yearMonth, primary.startDate, primary.endDate))
-    .map((m) => ({
-      label: m.label || m.yearMonth,
-      gaSessions: m.sessions,
-    }));
+    .map((m) => ({ label: m.label || m.yearMonth, gaSessions: m.sessions }));
 }
 
 function formatGscChartDateLabel(ymd: string): string {
@@ -269,13 +219,11 @@ function formatGscChartDateLabel(ymd: string): string {
   if (parts.length !== 3) return ymd;
   const m = Number(parts[1]);
   const d = Number(parts[2]);
-  if (!Number.isFinite(m) || !Number.isFinite(d)) return ymd;
-  return `${m}/${d}`;
+  return Number.isFinite(m) && Number.isFinite(d) ? `${m}/${d}` : ymd;
 }
 
 function buildGscTrendFromDaily(gsc: OrganicDashboardGscStats | undefined): OrganicChartPoint[] {
-  const daily = gsc?.timeseries ?? [];
-  return daily.map((row) => ({
+  return (gsc?.timeseries ?? []).map((row) => ({
     label: formatGscChartDateLabel(row.date),
     gscClicks: row.clicks,
     gscImpressions: row.impressions,
@@ -287,8 +235,7 @@ function buildGscTrendMonthly(
   hist: OrganicDashboardGscHistorical | undefined,
   primary: { startDate: string; endDate: string },
 ): OrganicChartPoint[] {
-  const stats = hist?.monthlyStats ?? [];
-  return stats
+  return (hist?.monthlyStats ?? [])
     .filter((m) => monthInRange(m.month, primary.startDate, primary.endDate))
     .map((m) => ({
       label: m.month,
@@ -298,9 +245,7 @@ function buildGscTrendMonthly(
     }));
 }
 
-function aggregateTimeseriesToMonthly(
-  daily: OrganicDashboardGscTimeseriesPoint[],
-): OrganicChartPoint[] {
+function aggregateTimeseriesToMonthly(daily: OrganicDashboardGscTimeseriesPoint[]): OrganicChartPoint[] {
   const buckets = new Map<string, { clicks: number; impressions: number; pos: number; posW: number }>();
   for (const row of daily) {
     const mk = row.date.slice(0, 7);
@@ -327,17 +272,11 @@ function buildGscSummary(gsc: OrganicDashboardGscStats | undefined): OrganicGscS
   const cur = stats?.currentPeriod;
   if (!cur) return null;
   const cmp = stats.comparisons;
-  const clicksDelta = deltaFromPercent(cmp?.clicksChangePercent);
-  const impressionsDelta = deltaFromPercent(cmp?.impressionsChangePercent);
-  const ctrDelta = deltaFromPercent(cmp?.ctrChangePercent);
   const posChange = cmp?.avgPositionChange;
   const positionDelta =
     posChange != null && Number.isFinite(posChange)
-      ? {
-          deltaPercent: Math.abs(cmp.avgPositionChangePercent ?? 0),
-          deltaPositive: posChange <= 0,
-        }
-      : { deltaPercent: null, deltaPositive: null };
+      ? { deltaPercent: Math.abs(cmp.avgPositionChangePercent ?? 0), deltaPositive: posChange <= 0 }
+      : EMPTY_DELTA;
   const prev = stats.comparisonPeriod;
   return {
     clicks: fmtCount(cur.clicks),
@@ -348,18 +287,15 @@ function buildGscSummary(gsc: OrganicDashboardGscStats | undefined): OrganicGscS
     compareImpressions: fmtCount(prev?.impressions),
     compareCtr: fmtPct((prev?.ctr ?? 0) * 100),
     compareAvgPosition: fmtPosition(prev?.avgPosition),
-    clicksDelta,
-    impressionsDelta,
-    ctrDelta,
+    clicksDelta: deltaFromPercent(cmp?.clicksChangePercent),
+    impressionsDelta: deltaFromPercent(cmp?.impressionsChangePercent),
+    ctrDelta: deltaFromPercent(cmp?.ctrChangePercent),
     positionDelta,
   };
 }
 
 function chartMetricNumber(value: number | null | undefined): number | undefined {
-  if (value == null || typeof value !== "number" || !Number.isFinite(value)) {
-    return undefined;
-  }
-  return value;
+  return value == null || typeof value !== "number" || !Number.isFinite(value) ? undefined : value;
 }
 
 function buildSemrushTrend(semrush: OrganicDashboardSemrushStats | undefined): OrganicChartPoint[] {
@@ -372,13 +308,7 @@ function buildSemrushTrend(semrush: OrganicDashboardSemrushStats | undefined): O
   }));
 }
 
-function metricStrings(m: OrganicDashboardSemrushMetrics | null | undefined): {
-  keywords: string;
-  traffic: string;
-  trafficCost: string;
-  branded: string;
-  nonBranded: string;
-} {
+function metricStrings(m: OrganicDashboardSemrushMetrics | null | undefined) {
   return {
     keywords: fmtCount(m?.organicKeywords),
     traffic: fmtCount(m?.organicTraffic),
@@ -404,22 +334,6 @@ function buildSemrushSummary(
     cur.nonBrandedTraffic != null &&
     Number.isFinite(cur.nonBrandedTraffic);
 
-  const keywordsDelta = showCompare
-    ? deltaFromPercent(comparisons?.keywordsChangePercent)
-    : { deltaPercent: null, deltaPositive: null };
-  const trafficDelta = showCompare
-    ? deltaFromPercent(comparisons?.trafficChangePercent)
-    : { deltaPercent: null, deltaPositive: null };
-  const trafficCostDelta = showCompare
-    ? deltaFromPercent(comparisons?.trafficCostChangePercent)
-    : { deltaPercent: null, deltaPositive: null };
-  const brandedDelta = showCompare
-    ? deltaFromPair(cur.brandedTraffic ?? undefined, cmp?.brandedTraffic ?? undefined)
-    : { deltaPercent: null, deltaPositive: null };
-  const nonBrandedDelta = showCompare
-    ? deltaFromPair(cur.nonBrandedTraffic ?? undefined, cmp?.nonBrandedTraffic ?? undefined)
-    : { deltaPercent: null, deltaPositive: null };
-
   return {
     keywords: curFmt.keywords,
     traffic: curFmt.traffic,
@@ -431,19 +345,34 @@ function buildSemrushSummary(
     compareTrafficCost: cmpFmt.trafficCost,
     compareBrandedTraffic: cmpFmt.branded,
     compareNonBrandedTraffic: cmpFmt.nonBranded,
-    keywordsDelta,
-    trafficDelta,
-    trafficCostDelta,
-    brandedDelta,
-    nonBrandedDelta,
+    keywordsDelta: showCompare ? deltaFromPercent(comparisons?.keywordsChangePercent) : EMPTY_DELTA,
+    trafficDelta: showCompare ? deltaFromPercent(comparisons?.trafficChangePercent) : EMPTY_DELTA,
+    trafficCostDelta: showCompare ? deltaFromPercent(comparisons?.trafficCostChangePercent) : EMPTY_DELTA,
+    brandedDelta: showCompare ? deltaFromPair(cur.brandedTraffic ?? undefined, cmp?.brandedTraffic ?? undefined) : EMPTY_DELTA,
+    nonBrandedDelta: showCompare ? deltaFromPair(cur.nonBrandedTraffic ?? undefined, cmp?.nonBrandedTraffic ?? undefined) : EMPTY_DELTA,
     hasBrandedMetrics: hasBranded,
   };
 }
 
+function dedupeByNormalizedKey<T>(rows: T[], getKey: (row: T) => string, limit = 25): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const row of rows) {
+    const raw = getKey(row)?.trim() ?? "";
+    if (!raw) continue;
+    const norm = raw.toLowerCase();
+    if (seen.has(norm)) continue;
+    seen.add(norm);
+    out.push(row);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
 function buildSemrushKeywords(semrush: OrganicDashboardSemrushStats | undefined): OrganicSemrushKeywordRow[] {
-  const top = semrush?.topKeywords ?? [];
-  return top.slice(0, 25).map((row) => ({
-    phrase: row.phrase,
+  const unique = dedupeByNormalizedKey(semrush?.topKeywords ?? [], (r) => r.phrase);
+  return unique.map((row) => ({
+    phrase: row.phrase.trim(),
     volume: fmtCount(row.volume),
     traffic: fmtCount(row.traffic),
     position: fmtPosition(row.position),
@@ -454,28 +383,20 @@ function buildGscQueries(
   gsc: OrganicDashboardGscStats | undefined,
   showCompare: boolean,
 ): OrganicGscQueryRow[] {
-  const emptyDelta = { deltaPercent: null, deltaPositive: null };
-  const top = [...(gsc?.stats?.topKeywords ?? [])].sort(
+  const sorted = [...(gsc?.stats?.topKeywords ?? [])].sort(
     (a, b) => (b.currentClicks ?? 0) - (a.currentClicks ?? 0),
   );
-  return top.slice(0, 25).map((row) => {
-    const clicksDelta = showCompare
-      ? deltaFromPair(row.currentClicks, row.previousClicks)
-      : emptyDelta;
-    const impressionsDelta = showCompare
-      ? deltaFromPair(row.currentImpressions, row.previousImpressions)
-      : emptyDelta;
-    return {
-      query: row.query,
-      clicks: fmtCount(row.currentClicks),
-      previousClicks: fmtCount(row.previousClicks),
-      clicksDelta,
-      impressions: fmtCount(row.currentImpressions),
-      previousImpressions: fmtCount(row.previousImpressions),
-      impressionsDelta,
-      position: fmtPosition(row.currentRanking),
-    };
-  });
+  const unique = dedupeByNormalizedKey(sorted, (r) => r.query);
+  return unique.map((row) => ({
+    query: row.query.trim(),
+    clicks: fmtCount(row.currentClicks),
+    previousClicks: fmtCount(row.previousClicks),
+    clicksDelta: showCompare ? deltaFromPair(row.currentClicks, row.previousClicks) : EMPTY_DELTA,
+    impressions: fmtCount(row.currentImpressions),
+    previousImpressions: fmtCount(row.previousImpressions),
+    impressionsDelta: showCompare ? deltaFromPair(row.currentImpressions, row.previousImpressions) : EMPTY_DELTA,
+    position: fmtPosition(row.currentRanking),
+  }));
 }
 
 export type OrganicDashboardViewModelOptions = {
@@ -491,10 +412,8 @@ export function buildOrganicDashboardViewModel(
   const compare = data?.meta?.compare ?? { startDate: "", endDate: "" };
   const ga4 = data?.ga4 && !isOrganicSkippedBlock(data.ga4) ? data.ga4 : undefined;
   const gsc = data?.gsc && !isOrganicSkippedBlock(data.gsc) ? data.gsc : undefined;
-  const hist =
-    data?.gscHistorical && !isOrganicSkippedBlock(data.gscHistorical) ? data.gscHistorical : undefined;
-  const semrush =
-    data?.semrush && !isOrganicSkippedBlock(data.semrush) ? data.semrush : undefined;
+  const hist = data?.gscHistorical && !isOrganicSkippedBlock(data.gscHistorical) ? data.gscHistorical : undefined;
+  const semrush = data?.semrush && !isOrganicSkippedBlock(data.semrush) ? data.semrush : undefined;
   const semrushDomain = semrush?.domain?.trim() ?? "";
   const semrushDatabase = semrush?.database?.trim() || "us";
   const semrushOverviewUrl =
@@ -512,17 +431,13 @@ export function buildOrganicDashboardViewModel(
         : "Compare period",
   };
 
+  const series = gsc?.timeseries ?? [];
   return {
     ga4Table: buildGa4Table(ga4, showCompare),
     ga4MonthlyChart: buildGa4MonthlyChart(ga4, primary),
     gscQueries: buildGscQueries(gsc, showCompare),
     gscTrendDaily: buildGscTrendFromDaily(gsc),
-    gscTrendMonthly: (() => {
-      const series = gsc?.timeseries ?? [];
-      return series.length > 0
-        ? aggregateTimeseriesToMonthly(series)
-        : buildGscTrendMonthly(hist, primary);
-    })(),
+    gscTrendMonthly: series.length > 0 ? aggregateTimeseriesToMonthly(series) : buildGscTrendMonthly(hist, primary),
     gscSummary: buildGscSummary(gsc),
     semrushSummary: buildSemrushSummary(semrush, showCompare),
     semrushTrend: buildSemrushTrend(semrush),
@@ -547,28 +462,23 @@ export function normalizeOrganicDashboardViewModelForDeck(raw: unknown): Organic
     ...r,
     ga4Table: Array.isArray(r.ga4Table) ? r.ga4Table : defaults.ga4Table,
     ga4MonthlyChart: Array.isArray(r.ga4MonthlyChart) ? r.ga4MonthlyChart : defaults.ga4MonthlyChart,
-    gscQueries: Array.isArray(r.gscQueries) ? r.gscQueries : defaults.gscQueries,
+    gscQueries: Array.isArray(r.gscQueries) ? dedupeByNormalizedKey(r.gscQueries, (q) => q.query) : defaults.gscQueries,
     gscTrendDaily: Array.isArray(r.gscTrendDaily) ? r.gscTrendDaily : defaults.gscTrendDaily,
     gscTrendMonthly: Array.isArray(r.gscTrendMonthly) ? r.gscTrendMonthly : defaults.gscTrendMonthly,
-    semrushKeywords: Array.isArray(r.semrushKeywords) ? r.semrushKeywords : defaults.semrushKeywords,
+    semrushKeywords: Array.isArray(r.semrushKeywords)
+      ? dedupeByNormalizedKey(r.semrushKeywords, (k) => k.phrase)
+      : defaults.semrushKeywords,
     semrushTrend: Array.isArray(r.semrushTrend) ? r.semrushTrend : defaults.semrushTrend,
     periodLabels:
       r.periodLabels && typeof r.periodLabels === "object"
         ? {
-            primary:
-              typeof r.periodLabels.primary === "string"
-                ? r.periodLabels.primary
-                : defaults.periodLabels.primary,
-            compare:
-              typeof r.periodLabels.compare === "string"
-                ? r.periodLabels.compare
-                : defaults.periodLabels.compare,
+            primary: typeof r.periodLabels.primary === "string" ? r.periodLabels.primary : defaults.periodLabels.primary,
+            compare: typeof r.periodLabels.compare === "string" ? r.periodLabels.compare : defaults.periodLabels.compare,
           }
         : defaults.periodLabels,
     gscSummary: r.gscSummary !== undefined ? r.gscSummary : defaults.gscSummary,
     semrushSummary: r.semrushSummary !== undefined ? r.semrushSummary : defaults.semrushSummary,
-    semrushOverviewUrl:
-      typeof r.semrushOverviewUrl === "string" ? r.semrushOverviewUrl : defaults.semrushOverviewUrl,
+    semrushOverviewUrl: typeof r.semrushOverviewUrl === "string" ? r.semrushOverviewUrl : defaults.semrushOverviewUrl,
     semrushDomain: typeof r.semrushDomain === "string" ? r.semrushDomain : defaults.semrushDomain,
     semrushDatabase: typeof r.semrushDatabase === "string" ? r.semrushDatabase : defaults.semrushDatabase,
     hasGa4: typeof r.hasGa4 === "boolean" ? r.hasGa4 : defaults.hasGa4,

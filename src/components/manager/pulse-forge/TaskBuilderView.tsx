@@ -721,7 +721,7 @@ export function TaskBuilderView({
             <Button
               type="button"
               variant="outline"
-              className={getPropertyListRowBlackLabelButtonClass()}
+              className={cn(getPropertyListRowBlackLabelButtonClass(), "min-w-[5rem] tabular-nums")}
               disabled={saving || !canSaveDraft}
               onClick={() => void handleSaveDraft()}
             >
@@ -730,7 +730,7 @@ export function TaskBuilderView({
           ) : null}
           <Button
             type="button"
-            className="h-10 rounded-none bg-[#77AA00] text-base text-black hover:bg-[#77AA00]/90"
+            className="h-10 min-w-[5.5rem] rounded-none bg-[#77AA00] text-base tabular-nums text-black hover:bg-[#77AA00]/90"
             disabled={saving || !canInstallOrCreate}
             onClick={() => void handleSubmit()}
           >
@@ -808,16 +808,16 @@ export function TaskBuilderView({
               )}
               {sites.length > 0 && mode !== "workflow-agent" && !clientAgnosticPlan ? (
                 mode === "edit" ? (
-                  <div className="grid shrink-0 grid-cols-1 gap-3 lg:grid-cols-2">
-                    <div className="flex min-w-0 flex-col gap-1">
-                      <span className="text-base text-white">Client site</span>
+                  <div className="grid shrink-0 grid-cols-1 gap-2 lg:grid-cols-2">
+                    <div className={FORGE_TASK_BUILDER_INFIELD_CLASS}>
+                      <span className="shrink-0 text-base text-white">Client site</span>
                       <Select
                         value={clientId || "__empty__"}
                         onValueChange={(v) => setClientId(v === "__empty__" ? "" : v)}
                         disabled={saving}
                       >
                         <SelectTrigger className={TASK_FORM_SELECT_TRIGGER_CLASS}>
-                          <SelectValue placeholder="Select site" />
+                          <SelectValue placeholder="Client site" />
                         </SelectTrigger>
                         <SelectContent className={TASK_FORM_SELECT_CONTENT_CLASS}>
                           {sites.map((s) => (
@@ -897,7 +897,6 @@ export function TaskBuilderView({
               onChange={(trigger) =>
                 setPlan((current) => {
                   const withTrigger = { ...current, trigger };
-                  if (mode !== "workflow-agent") return withTrigger;
                   const synced = applyTriggerScheduleToPlan(withTrigger);
                   thenExecutionPayloadRef.current = synced.action.executionPayload ?? null;
                   return synced;
@@ -922,7 +921,7 @@ export function TaskBuilderView({
                 }
                 setPlan((current) => {
                   const next = { ...current, action: { ...current.action, ...patch } };
-                  if (mode !== "workflow-agent" || !patch.executionPayload) return next;
+                  if (!patch.executionPayload) return next;
                   const synced = applyActionScheduleToPlanTrigger(next);
                   thenExecutionPayloadRef.current = synced.action.executionPayload ?? null;
                   return synced;
@@ -1032,10 +1031,13 @@ export function TaskBuilderView({
         ) : null}
       </div>
 
-      {error ? <p className="shrink-0 px-4 pb-4 text-base text-red-400">{error}</p> : null}
-      {!error && validationErrors.length > 0 ? (
-        <p className="shrink-0 px-4 pb-4 text-base text-red-400">{validationErrors[0]}</p>
-      ) : null}
+      <div className="min-h-6 shrink-0 px-4 pb-3">
+        {error ? (
+          <p className="truncate text-base text-red-400">{error}</p>
+        ) : validationErrors.length > 0 ? (
+          <p className="truncate text-base text-red-400">{validationErrors[0]}</p>
+        ) : null}
+      </div>
     </div>
   );
 }
