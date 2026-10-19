@@ -17,6 +17,15 @@ describe("applySemrushProjectDefaults", () => {
     expect(next.semrushPositionTrackingProjectId).toBeUndefined();
   });
 
+  it("fills Position Tracking campaign id for In the Shade and Interiors by Laura", () => {
+    const shade = applySemrushProjectDefaults({ ...base, siteUrl: "https://intheshadeflorida.com/" });
+    expect(shade.semrushSiteAuditProjectId).toBe("25786226");
+    expect(shade.semrushPositionTrackingCampaignId).toBe("25786226_8251906");
+    const laura = applySemrushProjectDefaults({ ...base, siteUrl: "https://interiorsbylaura.com/" });
+    expect(laura.semrushSiteAuditProjectId).toBe("29036845");
+    expect(laura.semrushPositionTrackingCampaignId).toBe("29036845_11197899");
+  });
+
   it("keeps existing values and skips unknown or blank hosts", () => {
     const set = { ...base, siteUrl: "https://superiorblinds.com", semrushSiteAuditProjectId: "1", semrushPositionTrackingProjectId: "2" };
     expect(applySemrushProjectDefaults(set)).toBe(set);
