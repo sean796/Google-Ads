@@ -22,11 +22,12 @@ export function removeColons(content: string): string {
   return sanitized;
 }
 
-/** Replace em dashes with comma and space; preserve URLs. */
+/** Replace em/en dashes and entities with comma or hyphen; preserve URLs. */
 export function removeEmDashes(content: string): string {
   if (!content) return content;
 
-  const emDashPattern = / - | - /g;
+  const emDashPattern = /\u2014|&mdash;|&#8212;/gi;
+  const enDashPattern = /\u2013|&ndash;|&#8211;/gi;
 
   const urlPattern =
     /(https?:\/\/[^\s\)"<>]+|!\[[^\]]*\]\([^\)]+\)|\[[^\]]*\]\([^\)]+\)|<img[^>]*src=["']https?:\/\/[^"']+["'][^>]*>|<a[^>]*href=["']https?:\/\/[^"']+["'][^>]*>)/gi;
@@ -46,16 +47,19 @@ export function removeEmDashes(content: string): string {
     content,
   );
   const emDashCount = (contentWithoutUrls.match(emDashPattern) || []).length;
+  const enDashCount = (contentWithoutUrls.match(enDashPattern) || []).length;
 
-  let sanitized = contentWithPlaceholders.replace(emDashPattern, ', ');
+  let sanitized = contentWithPlaceholders
+    .replace(emDashPattern, ", ")
+    .replace(enDashPattern, "-");
 
   urlPlaceholders.forEach((url, index) => {
     sanitized = sanitized.replace(`__URL_PLACEHOLDER_${index}__`, url);
   });
 
-  if (emDashCount > 0) {
+  if (emDashCount > 0 || enDashCount > 0) {
     console.log(
-      `[Content Sanitizer] Removed ${emDashCount} em dash(es) from content (replaced with comma and space, preserved URLs)`,
+      `[Content Sanitizer] Removed ${emDashCount} em dash(es) and ${enDashCount} en dash(es) from content (preserved URLs)`,
     );
   }
 

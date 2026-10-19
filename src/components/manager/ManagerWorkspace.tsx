@@ -29,6 +29,7 @@ import { saveDataForSEOApiKey, saveSemrushApiKey, loadSemrushApiKey } from "@/li
 import type { ManagerSettingsClusterId } from "@/components/manager/manager-settings-cluster";
 import type { GeneratorFreeFlowBindings } from "@/components/generator/generator-free-flow-bindings";
 import type { AssistNavigateTarget } from "@/lib/pulse-assist/types";
+import type { BlogGeneratorSectionId } from "@/components/blog-generator/blog-generator-sections";
 import { cn } from "@/lib/utils";
 import { ManagerMegaMenuNav } from "@/components/manager/ManagerMegaMenuNav";
 import { ManagerTopBarDisplayConsole } from "@/components/manager/ManagerTopBarDisplayConsole";
@@ -91,6 +92,8 @@ export interface ManagerWorkspaceProps {
   onNavigateToSapGenerator?: (site: WordPressSite, sitemapUrl: string) => void;
   /** Pulse Assist in-app navigation (pulse:nav/... links). */
   onAssistNavigate?: (target: AssistNavigateTarget) => void;
+  /** Tools → SEO mega menu generator mode rows. */
+  onGeneratorSectionChange?: (section: BlogGeneratorSectionId) => void;
 }
 
 export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
@@ -133,6 +136,7 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
   onManagerDashboardClusterChange,
   onNavigateToSapGenerator,
   onAssistNavigate,
+  onGeneratorSectionChange,
 }) => {
   const [dataForSEOApiKey, setDataForSEOApiKey] = useState<string>(() => {
     try {
@@ -164,6 +168,7 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
       managerTab === "tasks" ||
       managerTab === "pulse-forge" ||
       managerTab === "video-generator" ||
+      managerTab === "generator" ||
       managerTab === "api");
   /** Radix tabpanel must participate in flex-1 chain when embedded; parent-only selectors are unreliable. */
   const embeddedTabPanelStretch = embedded ? "flex h-full min-h-0 flex-1 flex-col overflow-hidden" : undefined;
@@ -172,6 +177,9 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
   /** Embedded: small air gap below the sticky mega menu; overlay keeps classic inset. */
   const embeddedTabPanelTopClass = embedded ? "mt-0" : "mt-2";
   const embeddedMainColumnTopClass = embedded ? "pt-3 md:pt-4" : "pt-2 md:pt-3";
+  /** Keeps generator (and other tabs) full width beside docked SEO/Assist panel. */
+  const embeddedAssistAwareInsetClass =
+    "pr-[calc(var(--neo-pulse-shortcut-rail-width)+var(--neo-pulse-assist-panel-width,0px))]";
 
   const embeddedManagerStickyHeader =
     embedded && showResetToolbar ? (
@@ -192,6 +200,7 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
                 <ManagerMegaMenuNav
                   managerTab={managerTab}
                   onManagerTabChange={onManagerTabChange}
+                  onGeneratorSectionChange={onGeneratorSectionChange}
                   variant="embedded"
                   dashboardCluster={managerDashboardCluster}
                   onDashboardClusterChange={onManagerDashboardClusterChange}
@@ -239,6 +248,7 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
                 <ManagerMegaMenuNav
                   managerTab={managerTab}
                   onManagerTabChange={onManagerTabChange}
+                  onGeneratorSectionChange={onGeneratorSectionChange}
                   variant="compact"
                   dashboardCluster={managerDashboardCluster}
                   onDashboardClusterChange={onManagerDashboardClusterChange}
@@ -548,20 +558,23 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
   return (
     <AgentRunsShell>
       <PulseAssistContextProvider managerTab={managerTab} onAssistNavigate={onAssistNavigate}>
-        <div className="flex h-full min-h-0 min-w-0 w-full max-w-none flex-1 flex-col overflow-hidden bg-background">
-          {embeddedManagerStickyHeader}
-          <div className="relative flex min-h-0 min-w-0 w-full flex-1 flex-row gap-0 overflow-hidden">
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden pr-[var(--neo-pulse-shortcut-rail-width)]">
-              {inner}
-              {embeddedFooter ? (
-                <div className="neo-pulse-embedded-footer-chrome relative z-[60] w-full shrink-0">
-                  {embeddedFooter}
-                </div>
-              ) : null}
-            </div>
-            <div className="neo-pulse-docked-rail-slot pointer-events-none absolute inset-y-0 right-0 z-30 w-[var(--neo-pulse-shortcut-rail-width)]">
-              <PulseAssistRoot layout="docked" />
-            </div>
+        <div className="relative flex h-full min-h-0 min-w-0 w-full max-w-none flex-1 flex-col overflow-hidden bg-background">
+          <div
+            className={cn(
+              "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+              embeddedAssistAwareInsetClass,
+            )}
+          >
+            {embeddedManagerStickyHeader}
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{inner}</div>
+            {embeddedFooter ? (
+              <div className="neo-pulse-embedded-footer-chrome relative z-[60] w-full shrink-0">
+                {embeddedFooter}
+              </div>
+            ) : null}
+          </div>
+          <div className="neo-pulse-docked-rail-slot pointer-events-none absolute inset-y-0 right-0 z-30 w-[var(--neo-pulse-shortcut-rail-width)]">
+            <PulseAssistRoot layout="docked" />
           </div>
         </div>
       </PulseAssistContextProvider>

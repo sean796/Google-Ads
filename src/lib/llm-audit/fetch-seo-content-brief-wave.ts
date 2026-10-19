@@ -107,11 +107,22 @@ async function fetchDataForSeoSerpMcpSafe(input: {
       depth: 10,
       people_also_ask_click_depth: 4,
     });
+    if (
+      isDataForSeoPaymentFailure({ json: serpMcpJson }) ||
+      (serpMcpJson &&
+        typeof serpMcpJson === "object" &&
+        (serpMcpJson as { skipped?: boolean }).skipped === true)
+    ) {
+      markDfsPaymentFailed();
+      return { serpMcpJson: null, serpError: null };
+    }
     return { serpMcpJson, serpError: null };
   } catch (err) {
     const serpError = err instanceof Error ? err.message : String(err);
-    if (isDataForSeoPaymentFailure({ message: serpError })) {
+    const httpStatus = (err as Error & { status?: number })?.status;
+    if (isDataForSeoPaymentFailure({ httpStatus, message: serpError })) {
       markDfsPaymentFailed();
+      return { serpMcpJson: null, serpError: null };
     }
     return { serpMcpJson: null, serpError };
   }
@@ -265,26 +276,31 @@ export async function fetchSerpOrganicForQuery(input: {
 }): Promise<{ storedFile: string | null; serpDumpJson: Record<string, unknown> }> {
   const keyword = input.keyword.trim();
   if (!keyword) throw new Error("fetchSerpOrganicForQuery: keyword is required");
+  if (isDfsPaymentLatched()) {
+    return { storedFile: null, serpDumpJson: { tasks: [] } };
+  }
   const location = (input.location ?? resolveSiteLocationLabel(input.site, keyword)).trim();
   const serpLocation = resolveSerpLocationName(location, keyword);
-  const serpMcpJson = await mcp_DataForSEO_serp_organic_live_advanced({
+  const { serpMcpJson } = await fetchDataForSeoSerpMcpSafe({
     keyword,
     location_name: serpLocation,
-    language_code: "en",
-    depth: 10,
-    people_also_ask_click_depth: 4,
   });
+  if (!serpMcpJson || isDfsPaymentLatched()) {
+    return { storedFile: null, serpDumpJson: { tasks: [] } };
+  }
   const storedFile = storedFileFromSerpMcpResponse(
     serpMcpJson as Record<string, unknown> | null | undefined,
   );
   if (storedFile) {
-    return { storedFile, serpDumpJson: await loadSerpDumpJson(storedFile) };
+    try {
+      return { storedFile, serpDumpJson: await loadSerpDumpJson(storedFile) };
+    } catch {
+      const inlineFallback = extractSerpDumpJsonFromMcpResponse(serpMcpJson);
+      return { storedFile: null, serpDumpJson: inlineFallback ?? { tasks: [] } };
+    }
   }
   const inline = extractSerpDumpJsonFromMcpResponse(serpMcpJson);
-  if (!inline) {
-    throw new Error(`SERP dump unavailable for query: ${keyword}`);
-  }
-  return { storedFile: null, serpDumpJson: inline };
+  return { storedFile: null, serpDumpJson: inline ?? { tasks: [] } };
 }
 
 export const SERP_DUMP_LOAD_TIMEOUT_MS = 30_000;

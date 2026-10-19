@@ -191,8 +191,14 @@ export function useOverviewTabAiTitleMetaUrlCsv({
       }
       const gscFilenameForMeta = row.gscQuickWinsCsvFilename ?? gscQuickWinsFile;
       const pageUrlForGsc = row.url?.trim() ?? "";
+      const briefForMeta = row.seoResearch?.trim();
       let gscQuickWinsContext: string | undefined;
-      if (hasValidGscDumpFilename(gscFilenameForMeta) && pageUrlForGsc && BACKEND_API_BASE) {
+      if (
+        !briefForMeta &&
+        hasValidGscDumpFilename(gscFilenameForMeta) &&
+        pageUrlForGsc &&
+        BACKEND_API_BASE
+      ) {
         try {
           const ctxRes = await fetch(`${BACKEND_API_BASE}/api/gsc/quick-wins-context`, {
             method: "POST",
@@ -205,7 +211,6 @@ export function useOverviewTabAiTitleMetaUrlCsv({
           // Meta still runs without GSC RAG
         }
       }
-      const briefForMeta = row.seoResearch?.trim();
       const result = await optimizeMeta(
         row.url,
         base,

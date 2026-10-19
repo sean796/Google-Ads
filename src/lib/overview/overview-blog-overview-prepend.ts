@@ -195,6 +195,8 @@ function headingOpenHasOverviewId(html: string, openAt: number): boolean {
 
 function normalizeOverviewTitleKey(title: string): string {
   return (title ?? "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/[:\u2013\u2014-]+$/g, "")
     .trim()
     .toLowerCase()
     .replace(/\s+/g, " ");
@@ -252,7 +254,9 @@ function isAnswerHeadingTitle(title: string): boolean {
   const key = normalizeOverviewTitleKey(title);
   if (!key) return false;
   if (isBlogHarnessAnswerAgent({ id: "", title: key })) return true;
-  return key === "direct answer";
+  if (key === "direct answer" || key === "the answer" || key === "quick answer") return true;
+  if (key.startsWith("answer ") || key.startsWith("direct answer ")) return true;
+  return false;
 }
 
 function headingOpenHasAnswerId(html: string, openAt: number): boolean {
@@ -270,7 +274,7 @@ function isAnswerHeadingAt(html: string, openAt: number): boolean {
 }
 
 function answerSectionEndAt(html: string, openAt: number): number {
-  const positions = findH2OpenPositions(html);
+  const positions = findHeadingOpenPositions(html, [2, 3]);
   for (let i = 0; i < positions.length; i += 1) {
     if (positions[i]! <= openAt) continue;
     return positions[i]!;
@@ -292,7 +296,7 @@ export function stripLeadingAnswerSection(html: string): string {
   if (!src) return src;
 
   for (let guard = 0; guard < 20; guard += 1) {
-    const positions = findH2OpenPositions(src);
+    const positions = findHeadingOpenPositions(src, [2, 3]);
     let removed = false;
     for (let i = 0; i < positions.length; i += 1) {
       const openAt = positions[i]!;
@@ -549,11 +553,11 @@ export function looksLikeBlockedHostHtml(html: string): boolean {
   return false;
 }
 
-/** Slice the Answer H2 block (through the next H2) for row preview. */
+/** Slice the Answer H2/H3 block (through the next H2/H3) for row preview. */
 export function extractAnswerSectionHtml(html: string): string {
   const src = (html ?? "").trim();
   if (!src) return "";
-  const positions = findH2OpenPositions(src);
+  const positions = findHeadingOpenPositions(src, [2, 3]);
   for (let i = 0; i < positions.length; i++) {
     const openAt = positions[i]!;
     if (!isAnswerHeadingAt(src, openAt)) continue;

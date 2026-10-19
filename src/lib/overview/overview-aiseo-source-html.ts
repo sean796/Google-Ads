@@ -47,10 +47,15 @@ export function resolveAiseoHarnessSourceHtmlFromCache(args: {
   const invBody = invMatch?.row ? postBodyHtmlFromInventoryRow(invMatch.row)?.trim() : "";
   const sentiment = invMatch?.row ? sentimentHtmlFromInventoryRow(invMatch.row)?.trim() : "";
 
+  const optimized = row.postContentOptimized?.trim() ?? "";
+  if (optimized && !isTruncatedAiseoSourceBody(optimized)) {
+    return optimized;
+  }
+
   return pickBestAiseoSourceHtml(
+    row.postContentOptimized,
     gridHtml,
     row.postContent,
-    row.postContentOptimized,
     inventoryHtml,
     invBody,
     sentiment,
@@ -68,6 +73,9 @@ export async function resolveAiseoHarnessSourceHtml(args: {
   ) => OverviewInventoryUrlMatch | undefined;
 }): Promise<{ html: string; liveHtml?: string; cachedHtml: string }> {
   const cachedHtml = resolveAiseoHarnessSourceHtmlFromCache(args).trim();
+  if (cachedHtml && !isTruncatedAiseoSourceBody(cachedHtml)) {
+    return { html: cachedHtml, cachedHtml };
+  }
   const invMatch = args.getInventoryMatchForUrl(args.site, args.row.url?.trim() ?? "");
   const liveHtml = await fetchLiveWordPressPostBodyForRow(args.site, args.row, invMatch);
   const html = pickBestAiseoSourceHtml(cachedHtml, liveHtml).trim();

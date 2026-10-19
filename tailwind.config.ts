@@ -180,12 +180,18 @@ export default {
           "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(400%)" },
         },
+        /** Video Studio product turntable splash while views generate (no spinners). */
+        "video-product-splash-breathe": {
+          "0%, 100%": { opacity: "0.65", transform: "scale(0.98)" },
+          "50%": { opacity: "1", transform: "scale(1.02)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "meta-opt-breathe": "meta-opt-breathe 2.2s ease-in-out infinite",
         "overview-fix-strip": "overview-fix-strip 1.35s ease-in-out infinite",
+        "video-product-splash-breathe": "video-product-splash-breathe 2.2s ease-in-out infinite",
       },
     },
   },

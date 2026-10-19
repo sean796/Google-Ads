@@ -48,7 +48,7 @@ const BLOG_IDEA_ROW_GRID_WITH_DATE_CLASS = cn(
   BULK_GENERATOR_ROW_GRID_MIN_CLASS,
 );
 const BLOG_IDEA_ROW_SLOT_GRID_CLASS = cn(
-  "grid w-full min-w-0 grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)_minmax(4.75rem,auto)] items-center gap-x-2 sm:gap-x-3",
+  "grid w-full min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(4.75rem,auto)] items-center gap-x-2 sm:gap-x-3",
   BULK_GENERATOR_ROW_GRID_MIN_CLASS,
 );
 const BLOG_PROMPT_SLOT_INPUT_CLASS = cn(PPC_DETAIL_INPUT_CLASS, "h-9 w-full min-w-0 text-zinc-100");

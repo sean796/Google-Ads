@@ -41,6 +41,7 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
     resolveBindings: base.resolveBindings,
     prefetchOverviewInventory: base.prefetchOverviewInventory,
     getInventoryMatchForUrl: base.getInventoryMatchForUrl,
+    disableAutoSitemapLoad: props.studioRowSource === "bulk-generator",
   });
 
   const bindingsRef = useRef(base.bindings);
@@ -223,7 +224,9 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
 
   const pipelines = useOverviewTabResearchPipelines({
     rows: base.visibleRows,
-    rowsRef: base.visibleRowsRef,
+    rowsRef: base.rowsRef,
+    displayRowsRef: base.displayRowsRef,
+    setExpandedPageUrl: base.setExpandedPageUrl,
     updateRow: base.updateRow,
     setBulkActionProgress: base.setBulkActionProgress,
     setGscQuickWinsFile: base.setGscQuickWinsFile,
@@ -231,7 +234,7 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
     serpDumpUrl: base.serpDumpUrl,
     portfolioBlockedHostsForSemrush: base.portfolioBlockedHostsForSemrush,
     site,
-    opt: base.opt,
+    opt: base.syncOpt,
     bulkSeoExtraOptions: base.bulkSeoExtraOptions,
     bindings: base.bindings,
     getInventoryMatchForUrl: base.getInventoryMatchForUrl,
@@ -431,8 +434,9 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
       } else {
         await blogAnswer.handleAiAnswerRow(index);
       }
+      base.syncRowsFromRef();
     },
-    [base.visibleRows, elementorHarnessHandlers, blogAnswer, uploadAfterAiseo],
+    [base.visibleRows, elementorHarnessHandlers, blogAnswer, uploadAfterAiseo, base.syncRowsFromRef],
   );
 
   const handleAiAnswerAll = useCallback(
@@ -448,8 +452,9 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
       } else {
         await blogOverview.handleAiOverviewRow(index);
       }
+      base.syncRowsFromRef();
     },
-    [base.visibleRows, elementorHarnessHandlers, blogOverview],
+    [base.visibleRows, elementorHarnessHandlers, blogOverview, base.syncRowsFromRef],
   );
 
   const handleAiOverviewAll = useCallback(
@@ -466,8 +471,9 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
       } else {
         await blogScenario.handleAiScenarioRow(index);
       }
+      base.syncRowsFromRef();
     },
-    [base.rowsRef, elementorHarnessHandlers, blogScenario],
+    [base.rowsRef, elementorHarnessHandlers, blogScenario, uploadAfterAiseo, base.syncRowsFromRef],
   );
 
   const handleAiScenarioAll = useCallback(
@@ -505,8 +511,9 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
         await blogHeaders.handleAiHeadersRow(index);
       }
       await uploadAfterAiseo([index]);
+      base.syncRowsFromRef();
     },
-    [base.visibleRows, elementorHarnessHandlers, blogHeaders, uploadAfterAiseo],
+    [base.visibleRows, elementorHarnessHandlers, blogHeaders, uploadAfterAiseo, base.syncRowsFromRef],
   );
 
   const handleAiHeadersAll = useCallback(
@@ -587,8 +594,9 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
     async (index: number) => {
       await blogLinks.handleAiLinksRow(index);
       await uploadAfterAiseo([index]);
+      base.syncRowsFromRef();
     },
-    [blogLinks, uploadAfterAiseo],
+    [blogLinks, uploadAfterAiseo, base.syncRowsFromRef],
   );
 
   const handleAiLinksAll = useCallback(

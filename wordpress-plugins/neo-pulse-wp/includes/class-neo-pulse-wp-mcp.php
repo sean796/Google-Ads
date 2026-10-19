@@ -16,6 +16,7 @@ require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/mcp/class-neo-pulse-wp-mcp-hist
 require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/mcp/class-neo-pulse-wp-mcp-audit.php';
 require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/mcp/class-neo-pulse-wp-mcp-read.php';
 require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/mcp/class-neo-pulse-wp-mcp-write.php';
+require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/mcp/class-neo-pulse-wp-mcp-guards.php';
 
 final class Neo_Pulse_Wp_Mcp {
 
@@ -27,6 +28,7 @@ final class Neo_Pulse_Wp_Mcp {
 
 		// Hook early so EMCP's registrar sees our ability names when building the server.
 		add_filter( 'emcp_tools_ability_names', array( __CLASS__, 'filter_emcp_ability_names' ) );
+		Neo_Pulse_Wp_Mcp_Guards::init();
 
 		add_action( 'wp_abilities_api_categories_init', array( __CLASS__, 'register_category' ) );
 		add_action( 'wp_abilities_api_init', array( __CLASS__, 'register_abilities' ) );

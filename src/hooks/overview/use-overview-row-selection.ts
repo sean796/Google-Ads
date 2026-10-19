@@ -35,12 +35,13 @@ export function useOverviewRowSelection({
   }, [displayKeySet]);
 
   const toggleSelectedUrlKey = useCallback(
-    (url: string, shiftKey = false) => {
+    (url: string, shiftKey = false, orderedKeys?: readonly string[]) => {
       const key = overviewRowSelectionKey(url);
       if (!key) return;
+      const keysForRange = orderedKeys?.length ? orderedKeys : displayKeys;
       if (shiftKey && lastAnchorKeyRef.current) {
         const fromKey = lastAnchorKeyRef.current;
-        setSelectedUrlKeys((prev) => applyOverviewRangeSelection(prev, displayKeys, fromKey, key));
+        setSelectedUrlKeys((prev) => applyOverviewRangeSelection(prev, keysForRange, fromKey, key));
         return;
       }
       lastAnchorKeyRef.current = key;

@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { RefreshCw, Send } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ImagePlus, RefreshCw, Send, X } from "lucide-react";
+import { IMAGE_REFERENCE_ACCEPT, prepareVideoStudioReference } from "@/lib/image-generator/manual-reference-upload";
+import type { PostCutSceneReference } from "@/lib/video-generator/video-generator-types";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,7 +25,7 @@ export type VideoPostCutPanelProps = {
   selectedSceneId: string | null;
   disabled: boolean;
   onSelectScene: (sceneId: string) => void;
-  onSendSceneInstruction: (sceneId: string, instruction: string) => void;
+  onSendSceneInstruction: (sceneId: string, instruction: string, postCutReference?: PostCutSceneReference) => void;
   onRegenerateEnvironmentPlate: (sceneId: string) => void;
   onRegenerateFrame: (sceneId: string) => void;
   onRerenderSceneClip: (sceneId: string) => void;
@@ -65,6 +67,20 @@ export function VideoPostCutPanel({
   const clip = activeScene && render ? render.scenes.find((s) => s.sceneId === activeScene.id) : undefined;
 
   const [chatText, setChatText] = useState("");
+  const [pendingReference, setPendingReference] = useState<PostCutSceneReference | null>(null);
+  const referenceInputRef = useRef<HTMLInputElement>(null);
+  const sceneReference: PostCutSceneReference | null =
+    pendingReference ??
+    (activeScene?.postCutReferenceDataUrl
+      ? {
+          dataUrl: activeScene.postCutReferenceDataUrl,
+          fileName: activeScene.postCutReferenceFileName ?? "Client reference",
+        }
+      : null);
+
+  useEffect(() => {
+    setPendingReference(null);
+  }, [activeScene?.id]);
 
   if (!plan || !activeScene) {
     return (
@@ -83,8 +99,20 @@ export function VideoPostCutPanel({
   const submitChat = () => {
     const trimmed = chatText.trim();
     if (!trimmed || disabled) return;
-    onSendSceneInstruction(activeScene.id, trimmed);
+    onSendSceneInstruction(activeScene.id, trimmed, pendingReference ?? undefined);
     setChatText("");
+    setPendingReference(null);
+  };
+
+  const onReferenceFiles = async (files: FileList | null) => {
+    if (!files?.length || disabled) return;
+    const file = files[0];
+    try {
+      const prepared = await prepareVideoStudioReference(file);
+      setPendingReference({ dataUrl: prepared.dataUrl, fileName: prepared.fileName });
+    } finally {
+      if (referenceInputRef.current) referenceInputRef.current.value = "";
+    }
   };
 
   return (
@@ -132,6 +160,49 @@ export function VideoPostCutPanel({
           submitChat();
         }}
       >
+        <input
+          ref={referenceInputRef}
+          type="file"
+          accept={IMAGE_REFERENCE_ACCEPT}
+          className="sr-only"
+          aria-label="Optional client reference photo for this scene"
+          disabled={disabled}
+          onChange={(e) => void onReferenceFiles(e.target.files)}
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => referenceInputRef.current?.click()}
+            className="inline-flex h-8 items-center gap-1.5 bg-zinc-950 px-2.5 text-base text-white hover:bg-primary hover:text-black disabled:opacity-40"
+          >
+            <ImagePlus className="h-4 w-4" aria-hidden />
+            Reference photo (optional)
+          </button>
+          {sceneReference ? (
+            <div className="flex min-w-0 flex-1 items-center gap-2 bg-zinc-950 p-1">
+              <img
+                src={sceneReference.dataUrl}
+                alt=""
+                className="h-10 w-16 shrink-0 object-cover"
+              />
+              <span className="min-w-0 truncate text-muted-foreground">{sceneReference.fileName}</span>
+              {pendingReference ? (
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => setPendingReference(null)}
+                  className="ml-auto shrink-0 p-1 text-muted-foreground hover:text-white"
+                  aria-label="Remove pending reference photo"
+                >
+                  <X className="h-4 w-4" aria-hidden />
+                </button>
+              ) : null}
+            </div>
+          ) : (
+            <span className="text-muted-foreground">1:1 client storefront or showroom match</span>
+          )}
+        </div>
         <Textarea
           value={chatText}
           onChange={(e) => setChatText(e.target.value)}

@@ -213,6 +213,9 @@ const Index = () => {
         } else if (tab === "pulse-host") {
           const current = window.location.hash.replace(/^#/, "").trim();
           hash = isPulseHostHash(current) ? current : "pulse-host";
+        } else if (tab === "generator") {
+          const section = readStoredBlogGeneratorSection();
+          hash = `generator/${section}`;
         } else {
           hash = tab;
         }
@@ -235,9 +238,7 @@ const Index = () => {
       }
       setManagerTab("generator");
       try {
-        if (window.location.hash.replace(/^#/, "") !== "generator") {
-          window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#generator`);
-        }
+        writeGeneratorSectionHash("entity");
         localStorage.setItem(MANAGER_TAB_STORAGE_KEY, "generator");
       } catch {
         /* ignore */
@@ -791,6 +792,7 @@ try {
         managerDashboardCluster={managerDashboardCluster}
         onManagerDashboardClusterChange={handleManagerDashboardClusterChange}
         onAssistNavigate={handleAssistNavigate}
+        onGeneratorSectionChange={navigateToGeneratorSection}
         currentKBFiles={knowledgeFiles}
         onFilesUpdate={setKnowledgeFiles}
         onManualContentUpdate={setManualKnowledgeText}

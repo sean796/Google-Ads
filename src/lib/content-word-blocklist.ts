@@ -6,6 +6,7 @@
  */
 
 import { isFaqStyleHeadingTitle } from "@/lib/content-generation/faq-heading-policy";
+import { removeEmDashes } from "@/lib/content-generation/sanitizer/typography-rules";
 import { stripIllustrativeMarkersFromChecklistItem } from "@/lib/content-optimization/illustrative-h2";
 import { isLlmAuditAuthorityDumpChecklistItem } from "@/lib/content-optimization/harness-heading-titles";
 
@@ -130,6 +131,7 @@ export const ACTIVE_VOICE_HEADING_RULE = `[HEADING STYLE]: Active, direct H2/H3 
 export const GLOBAL_FORBIDDEN_WORDS_PROMPT_BLOCK = `WORD BLACKLIST (mandatory — all clients, all sitemap/content output):
 - Never use these words: ${GLOBAL_FORBIDDEN_WORDS.join(", ")}.
 - Never use these phrases: ${GLOBAL_FORBIDDEN_PHRASES.join("; ")}.
+- Punctuation: never use em dash (U+2014) or en dash (U+2013). Use a comma, period, or hyphen-minus for short joins. Never use HTML &mdash; or &ndash; entities in output.
 ${FORBIDDEN_SENTENCE_SHAPES}
 ${UNDERSTAND_FORMS_USAGE_RULE}
 - ${ACTIVE_VOICE_HEADING_RULE.replace(/\[HEADING STYLE\]: /, "")}
@@ -155,6 +157,11 @@ const SYSTEM_PROMPT_BLACKLIST_PREFIX = `${FORBIDDEN_WORDS_MANDATORY_TAG}\n${GLOB
 
 const BLACKLIST_RAG_OPEN = "=== WORD BLACKLIST (READ ONLY — master rule; read fully before any output) ===";
 const BLACKLIST_RAG_CLOSE = "=== END WORD BLACKLIST ===";
+
+/** Full policy text for the Content Optimizer Generated files drawer and downloads. */
+export function buildWordBlacklistDownloadText(): string {
+  return `${FORBIDDEN_WORDS_MANDATORY_TAG}\n${GLOBAL_FORBIDDEN_WORDS_PROMPT_BLOCK}\n\n${ARTICLE_WORD_FREQUENCY_CHECKLIST_ITEM}`;
+}
 
 /** Read-only RAG doc prepended to content harness user prompts. */
 export function buildBlacklistRagBlock(): string {
@@ -429,6 +436,12 @@ export function sectionHtmlHasForbiddenWords(
   priorUnderstandCount?: number,
 ): boolean {
   return listForbiddenWordViolations(html, { priorUnderstandCount }).length > 0;
+}
+
+/** Deterministic scrub after LLM output: em/en dashes, then banned words/phrases. */
+export function scrubOverviewContentOutput(html: string): string {
+  if (!html.trim()) return html;
+  return scrubForbiddenWordsFromHtml(removeEmDashes(html));
 }
 
 /** Deterministic scrub of banned words/phrases before WordPress upload. */

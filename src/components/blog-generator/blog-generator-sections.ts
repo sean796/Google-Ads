@@ -139,10 +139,3 @@ export function writeStoredBlogGeneratorSection(section: BlogGeneratorSectionId)
   notifyBlogGeneratorSectionChange(section);
 }
 
-/**
- * Mega menu: Generator is one menu row; inner modes use header pills only.
- */
-export function isNavItemSelected(managerTab: string, itemValue: string): boolean {
-  if (managerTab === "generator" && itemValue === "generator") return true;
-  return managerTab === itemValue;
-}

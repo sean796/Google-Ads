@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
-import { AlertTriangle, Check, Loader2, RefreshCw } from "lucide-react";
+import { AlertTriangle, Check, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HOST_SURFACE, MY_SITES_ICON_BTN } from "@/components/hosting/my-sites/my-sites-theme";
 import type { StoryboardFrame, VideoPlan, VideoRenderScene } from "@/lib/video-generator/video-generator-types";
 import { VIDEO_ASPECT_BOX_CLASS, type VideoAspect } from "@/lib/video-generator/video-model-defaults";
+import { VideoStudioPlaceholderSplash } from "./VideoStudioPlaceholderSplash";
 import { cn } from "@/lib/utils";
 
 type VideoSceneSidebarProps = {
@@ -48,6 +49,7 @@ export function VideoSceneSidebar({
           const frame = frames.find((f) => f.sceneId === scene.id);
           const clip = renderScenes?.find((s) => s.sceneId === scene.id);
           const spinning = frame?.status === "generating" || frame?.status === "waiting";
+          const clipBusy = clip?.status === "generating" || clip?.status === "queued";
           const prompting = frame?.status === "done" && !frame.videoPrompt && renderScenes === null;
           const selected = scene.id === selectedSceneId;
           return (
@@ -63,12 +65,27 @@ export function VideoSceneSidebar({
                 onClick={() => onSelect(scene.id)}
               >
                 {frame?.imageDataUrl ? (
-                  <img src={frame.imageDataUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                  <img
+                    src={frame.imageDataUrl}
+                    alt=""
+                    className={cn(
+                      "absolute inset-0 h-full w-full object-cover",
+                      clip?.status === "generating" ? "animate-video-product-splash-breathe" : "",
+                    )}
+                  />
+                ) : spinning ? (
+                  <VideoStudioPlaceholderSplash
+                    title={`Scene ${scene.order}`}
+                    subtitle={scene.title}
+                    breathing
+                    variant="tile"
+                  />
                 ) : null}
-                <span className="absolute inset-0 flex items-center justify-center">
-                  {spinning ? <Loader2 className="h-6 w-6 animate-spin text-primary" aria-label="Drawing frame" /> : null}
-                  {frame?.status === "failed" ? <AlertTriangle className="h-6 w-6 text-red-300" aria-label="Frame failed" /> : null}
-                </span>
+                {frame?.status === "failed" && !frame?.imageDataUrl ? (
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <AlertTriangle className="h-6 w-6 text-red-300" aria-label="Frame failed" />
+                  </span>
+                ) : null}
                 <span className="absolute left-2 top-2 inline-flex h-6 min-w-[1.5rem] items-center justify-center bg-black/80 px-1.5 tabular-nums text-white">
                   {scene.order}
                 </span>
@@ -79,7 +96,9 @@ export function VideoSceneSidebar({
                       clip.status === "failed" ? "text-red-300" : clip.status === "done" ? "text-primary" : "text-foreground",
                     )}
                   >
-                    {clip.status === "generating" || clip.status === "queued" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+                    {clipBusy && !frame?.imageDataUrl ? (
+                      <span className="h-2 w-2 shrink-0 animate-video-product-splash-breathe bg-primary" aria-hidden />
+                    ) : null}
                     {clip.status === "done" ? <Check className="h-4 w-4" aria-hidden /> : null}
                     {clip.status === "failed" ? <AlertTriangle className="h-4 w-4" aria-hidden /> : null}
                     <span className="truncate">{CLIP_STATUS_LABEL[clip.status]}</span>

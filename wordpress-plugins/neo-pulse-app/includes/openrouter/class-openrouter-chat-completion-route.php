@@ -111,6 +111,11 @@ class Neo_Pulse_App_Openrouter_Chat_Completion_Route {
 		}
 		if ( isset( $body['reasoning'] ) && is_array( $body['reasoning'] ) ) {
 			$payload['reasoning'] = $body['reasoning'];
+		} else {
+			$payload['reasoning'] = array( 'effort' => 'low' );
+		}
+		if ( ! empty( $payload['response_format'] ) && is_array( $payload['response_format'] ) && $payload['max_tokens'] < 2048 ) {
+			$payload['max_tokens'] = 2048;
 		}
 		if ( isset( $body['webSearchOptions'] ) && is_array( $body['webSearchOptions'] ) ) {
 			$payload['web_search_options'] = $body['webSearchOptions'];

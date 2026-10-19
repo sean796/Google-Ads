@@ -405,7 +405,7 @@ class Neo_Pulse_Wp_Lock {
 		if ( in_array( $file, $own, true ) ) {
 			return false;
 		}
-		if ( 0 === strpos( $file, wp_normalize_path( self::$dir . 'includes/mcp/' ) ) || 0 === strpos( $file, wp_normalize_path( self::$dir . 'includes/emcp/' ) ) ) {
+		if ( 0 === strpos( $file, wp_normalize_path( self::$dir . 'includes/mcp/' ) ) ) {
 			return false;
 		}
 		return true;

@@ -425,11 +425,14 @@ export function BulkGeneratorDetailsPanel(props: BulkGeneratorDetailsPanelProps)
       )}
 
       <WorkspaceDetailsSection title="Run detail" stripeIndex={1} defaultOpen>
-        {variant === "prompt" &&
-        ((props.sitemapInventoryLinks?.length ?? 0) > 0 || props.siteKwHostedLink) ? (
+        {(variant === "prompt" || variant === "csv") &&
+        ((props.sitemapInventoryLinks?.length ?? 0) > 0 ||
+          props.siteKwHostedLink ||
+          props.sitemapInventoryLoading) ? (
           <BulkSitemapInventoryRunDetail
             links={props.sitemapInventoryLinks ?? []}
             gscHostedLink={props.siteKwHostedLink ?? null}
+            loading={props.sitemapInventoryLoading}
           />
         ) : null}
 

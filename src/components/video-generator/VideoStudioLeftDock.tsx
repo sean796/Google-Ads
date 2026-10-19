@@ -6,11 +6,9 @@ import {
   Clapperboard,
   FolderOpen,
   Image as ImageIcon,
-  Loader2,
   SlidersHorizontal,
   Sparkles,
   Trash2,
-  Upload,
   Video as VideoIcon,
   X,
 } from "lucide-react";
@@ -18,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { WorkspacePill } from "@/components/shared/WorkspacePill";
 import { MY_SITES_FIELD } from "@/components/hosting/my-sites/my-sites-theme";
+import { IMAGE_REFERENCE_ACCEPT, referenceUploadFiles } from "@/lib/image-generator/manual-reference-upload";
 import type { ManualImageReference } from "@/lib/image-generator/manual-reference-upload";
 import type { OpenRouterAppStreamDelta } from "@/lib/openrouter-app-api";
 import type {
@@ -33,6 +32,7 @@ import type {
   VideoStoredRenderSummary,
   VideoTransition,
 } from "@/lib/video-generator/video-generator-types";
+import { VideoStartComposePanel } from "./VideoStartComposePanel";
 import { VideoProductPanel } from "./VideoProductPanel";
 import { VideoQuestionsPanel } from "./VideoQuestionsPanel";
 import { VideoPlanPanel } from "./VideoPlanPanel";
@@ -81,7 +81,11 @@ export type VideoStudioLeftDockProps = {
   render: VideoRenderSnapshot | null;
   selectedSceneId: string | null;
   onSelectScene: (sceneId: string) => void;
-  onSendSceneInstruction: (sceneId: string, instruction: string) => void;
+  onSendSceneInstruction: (
+    sceneId: string,
+    instruction: string,
+    postCutReference?: { dataUrl: string; fileName: string },
+  ) => void;
   onRegenerateEnvironmentPlate: (sceneId: string) => void;
   onRegenerateFrame: (sceneId: string) => void;
   onRerenderSceneClip: (sceneId: string) => void;
@@ -191,7 +195,6 @@ export function VideoStudioLeftDock(props: VideoStudioLeftDockProps) {
   } = props;
 
   const [assetFilter, setAssetFilter] = useState<AssetFilter>("all");
-  const subjectInputRef = useRef<HTMLInputElement>(null);
   const mediaInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -209,10 +212,14 @@ export function VideoStudioLeftDock(props: VideoStudioLeftDockProps) {
     const files = Array.from(e.dataTransfer.files);
     if (files.some((f) => f.type.startsWith("video/"))) {
       onAddBrainstormFiles(files);
-    } else if (assetFilter === "product") {
-      onAddSubjectFiles(files);
+      return;
+    }
+    const images = referenceUploadFiles(files);
+    if (!images.length) return;
+    if (assetFilter === "product") {
+      onAddSubjectFiles(images);
     } else {
-      onAddReferenceFiles(files);
+      onAddReferenceFiles(images);
     }
   };
 
@@ -432,66 +439,38 @@ export function VideoStudioLeftDock(props: VideoStudioLeftDockProps) {
         >
           {activeTab === "assets" ? (
             <>
-              <div className="grid grid-cols-2 gap-2.5">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="h-10 justify-center bg-zinc-900 px-3.5 text-base font-medium text-white hover:bg-zinc-800"
-                  disabled={working || isPreparingSubject}
-                  onClick={() => subjectInputRef.current?.click()}
-                >
-                  {isPreparingSubject ? (
-                    <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" />
-                  ) : (
-                    <Upload className="mr-2 h-4 w-4 shrink-0 text-primary" />
-                  )}
-                  <span className="truncate">+ Product</span>
-                </Button>
-                <input
-                  ref={subjectInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => {
-                    if (e.target.files?.length) onAddSubjectFiles(e.target.files);
-                    e.target.value = "";
-                  }}
-                />
-
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="h-10 justify-center bg-zinc-900 px-3.5 text-base font-medium text-white hover:bg-zinc-800"
-                  disabled={working || isPreparingReferences || isPreparingBrainstorm}
-                  onClick={() => mediaInputRef.current?.click()}
-                >
-                  {isPreparingReferences || isPreparingBrainstorm ? (
-                    <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" />
-                  ) : (
-                    <Upload className="mr-2 h-4 w-4 shrink-0 text-primary" />
-                  )}
-                  <span className="truncate">+ References</span>
-                </Button>
-                <input
-                  ref={mediaInputRef}
-                  type="file"
-                  accept="image/*,video/*"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => {
-                    const list = e.target.files ? Array.from(e.target.files) : [];
-                    if (list.length) {
-                      if (list.some((f) => f.type.startsWith("video/"))) {
-                        onAddBrainstormFiles(list);
-                      } else {
-                        onAddReferenceFiles(list);
-                      }
+              <VideoStartComposePanel
+                variant="drawer"
+                prompt={brief.prompt}
+                onPromptChange={onPromptChange}
+                productCount={subjectPhotos.length}
+                referenceCount={brief.references.length}
+                disabled={working}
+                isPreparingSubject={isPreparingSubject}
+                isPreparingReferences={isPreparingReferences}
+                onAddProductFiles={onAddSubjectFiles}
+                onAddReferenceFiles={onAddReferenceFiles}
+              />
+              <input
+                ref={mediaInputRef}
+                type="file"
+                accept={`${IMAGE_REFERENCE_ACCEPT},video/*`}
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  const list = e.target.files ? Array.from(e.target.files) : [];
+                  if (list.length) {
+                    if (list.some((f) => f.type.startsWith("video/"))) {
+                      onAddBrainstormFiles(list);
+                    } else if (assetFilter === "product") {
+                      onAddSubjectFiles(referenceUploadFiles(list));
+                    } else {
+                      onAddReferenceFiles(referenceUploadFiles(list));
                     }
-                    e.target.value = "";
-                  }}
-                />
-              </div>
+                  }
+                  e.target.value = "";
+                }}
+              />
 
               <div className="flex gap-1.5 bg-zinc-900 p-1.5">
                 {(
@@ -519,10 +498,15 @@ export function VideoStudioLeftDock(props: VideoStudioLeftDockProps) {
               </div>
 
               {filteredTiles.length === 0 ? (
-                <div className="flex min-h-[10rem] flex-col items-center justify-center gap-2.5 bg-zinc-900 px-5 py-6 text-center text-muted-foreground">
+                <button
+                  type="button"
+                  disabled={working || isPreparingSubject || isPreparingReferences || isPreparingBrainstorm}
+                  onClick={() => mediaInputRef.current?.click()}
+                  className="flex min-h-[10rem] w-full flex-col items-center justify-center gap-2.5 bg-zinc-900 px-5 py-6 text-center text-muted-foreground transition-colors hover:bg-zinc-800/80 disabled:opacity-50"
+                >
                   <ImageIcon className="h-6 w-6 text-primary/80" aria-hidden />
-                  <p>Drop product photos, story beats, or reference video here.</p>
-                </div>
+                  <p>Drop product photos, story beats, or reference video here, or click to browse.</p>
+                </button>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
                   {filteredTiles.map((tile) => (
@@ -637,12 +621,16 @@ export function VideoStudioLeftDock(props: VideoStudioLeftDockProps) {
                 />
               ) : isStreamingPlan ? (
                 <div className="flex items-center gap-2.5 bg-zinc-900 p-4 text-muted-foreground">
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
+                  <span
+                    className="h-2 w-2 shrink-0 animate-video-product-splash-breathe bg-primary"
+                    aria-hidden
+                  />
                   <span>Director is streaming the scene plan on the Center Monitor…</span>
                 </div>
               ) : !questions ? (
                 <div className="bg-zinc-900 p-4 text-muted-foreground">
-                  Write your Brief and click <span className="font-medium text-white">Ask the Director</span> in the top-right bar.
+                  Add a brief, product photos, or references on the Assets tab or center monitor, then click{" "}
+                  <span className="font-medium text-white">Ask the Director</span> in the top bar.
                 </div>
               ) : null}
             </div>

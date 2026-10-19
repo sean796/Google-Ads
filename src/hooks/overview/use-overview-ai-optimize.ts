@@ -3,6 +3,10 @@ import { streamChatCompletion, type Message } from "@/lib/api";
 import { enforceExactFocusKeyword } from "@/lib/overview/enforce-exact-focus-keyword";
 export { enforceExactFocusKeyword } from "@/lib/overview/enforce-exact-focus-keyword";
 import { META_DESCRIPTION_ANTI_CLICKBAIT_RULE, TITLE_ANTI_CLICKBAIT_RULE, TITLE_KEYWORD_WEAVING_RULE, TITLE_CASE_RULE, TITLE_WELL_KNOWN_ACRONYMS_RULE } from "@/lib/prompt-builders/title-rules";
+import {
+  appendUniversalContentRulesToSystemPrompt,
+  scrubOverviewContentOutput,
+} from "@/lib/content-word-blocklist";
 import { appendMasterInstructionsToSystemPrompt, ensureMasterInstructionsInMemory } from "@/lib/master-instructions-storage";
 import { normalizeFocusKeywordPhrase } from "@/lib/seo-redirect-csv";
 import { pathSlugToFocusHint } from "@/lib/overview/focus-keyword-path-hint";
@@ -163,7 +167,9 @@ export function useOverviewAiOptimize(options: UseOverviewAiOptions): UseOvervie
       const messages: Message[] = [
         {
           role: "system",
-          content: appendMasterInstructionsToSystemPrompt(systemPrompt, wordPressSiteId ?? null),
+          content: appendUniversalContentRulesToSystemPrompt(
+            appendMasterInstructionsToSystemPrompt(systemPrompt, wordPressSiteId ?? null),
+          ),
         },
         { role: "user", content: userPrompt },
       ];
@@ -177,12 +183,13 @@ export function useOverviewAiOptimize(options: UseOverviewAiOptions): UseOvervie
         maxTokens,
         topP,
         signal,
+        contentHarness: true,
         onContentChunk: (chunk) => {
           result += chunk;
         },
       });
 
-      return result.trim();
+      return scrubOverviewContentOutput(result.trim());
     },
     [apiKey, resolveMetaModel, temperature, maxTokens, topP, wordPressSiteId],
   );
@@ -317,7 +324,7 @@ Rules
 - ${META_DESCRIPTION_ANTI_CLICKBAIT_RULE}
 - Include the full focus keyword phrase below as the WRITING KEYWORD string — same spelling, words, spacing, hyphens, and **full Title Case on every word**. Do NOT paste the raw lowercase slug. Do NOT add words to the phrase, do NOT slugify, or rephrase it.
 - Natural placement: When you use a buffer before the keyword, choose a plain, factual lead-in - vary the angle (what the page covers, who it helps, or a concrete detail). Do NOT default to the same word every time, and do not use promotional openers. One or two words before the keyword is enough; only start with the raw keyword when nothing else fits cleanly in the character limit.
-- If the focus keyword does not fit grammatically into a natural sentence (e.g. "Blinds Bushnell FL"), front-load it at the start, then continue in the same sentence - use a comma, colon, or em dash if needed; do NOT use a pipe (|) and do NOT start with a business name, site name, or distributor name. Examples:
+- If the focus keyword does not fit grammatically into a natural sentence (e.g. "Blinds Bushnell FL"), front-load it at the start, then continue in the same sentence. Use a comma or colon if needed; never an em dash. Do NOT use a pipe (|) and do NOT start with a business name, site name, or distributor name. Examples:
   "Blinds Bushnell FL – Window treatment options, materials, and installation details."
   "Blinds Bushnell FL: Styles, materials, and how installation works."
 - Do NOT try to force the keyword into the middle of a sentence where it sounds unnatural (e.g. NEVER write "Find the perfect Blinds Bushnell FL").

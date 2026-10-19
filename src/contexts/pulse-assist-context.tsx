@@ -2,11 +2,17 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
-import { readStoredBlogGeneratorSection } from "@/components/blog-generator/blog-generator-sections";
+import {
+  readStoredBlogGeneratorSection,
+  registerBlogGeneratorSectionListener,
+  unregisterBlogGeneratorSectionListener,
+  type BlogGeneratorSectionId,
+} from "@/components/blog-generator/blog-generator-sections";
 import { CONTENT_OPTIMIZER_SECTION_STORAGE_KEY } from "@/components/content-optimizer/content-optimizer-sections";
 import type { ManagerSettingsClusterId } from "@/components/manager/manager-settings-cluster";
 import { readStoredResearchSection } from "@/components/research/research-workspace-sections";
@@ -106,11 +112,27 @@ export function PulseAssistContextProvider({
     [connectedSites, activeWordPressSiteId],
   );
 
-  const generatorSection = useMemo(() => {
+  const [generatorSection, setGeneratorSection] = useState<string>(() => {
     try {
       return readStoredBlogGeneratorSection() || "";
     } catch {
       return "";
+    }
+  });
+
+  useEffect(() => {
+    const onSection = (id: BlogGeneratorSectionId) => setGeneratorSection(id);
+    registerBlogGeneratorSectionListener(onSection);
+    return () => unregisterBlogGeneratorSectionListener(onSection);
+  }, []);
+
+  useEffect(() => {
+    if (managerTab === "generator") {
+      try {
+        setGeneratorSection(readStoredBlogGeneratorSection() || "");
+      } catch {
+        /* ignore */
+      }
     }
   }, [managerTab]);
 

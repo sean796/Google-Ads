@@ -3,6 +3,7 @@ import pLimit from "p-limit";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
 import { parseJsonStrict } from "@/lib/json-repair-utility";
 import { fetchSerpOrganicForQuery } from "@/lib/llm-audit/fetch-seo-content-brief-wave";
+import { isDfsPaymentLatched } from "@/lib/llm-audit/dataforseo-llm-responses-live";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
 import type { QueryFanoutSerpRow, SerpOrganicTopEntry, VerifiedFact } from "@/lib/overview-seo-content-brief";
@@ -710,6 +711,9 @@ export async function runFactualVerificationPass(input: {
   verifiedFacts: VerifiedFact[];
   verificationSerpRows: QueryFanoutSerpRow[];
 }> {
+  if (isDfsPaymentLatched()) {
+    return { factualVerificationQueries: [], verifiedFacts: [], verificationSerpRows: [] };
+  }
   const location = requireFanoutLocation(input.location);
   input.onProgress?.("Planning factual verification queries");
   const plannerPlan = await planFactualVerificationQueries({
@@ -747,16 +751,20 @@ export async function runFactualVerificationPass(input: {
         input.onProgress?.(`Verifying: ${item.claimLabel.slice(0, 48)}`);
         let organicTop: SerpOrganicTopEntry[] = [];
         let serpRow: QueryFanoutSerpRow;
-        try {
-          const { serpDumpJson } = await fetchSerpOrganicForQuery({
-            keyword: query,
-            location,
-            site: input.site,
-          });
-          serpRow = serpRowFromDump(query, serpDumpJson);
-          organicTop = serpRow.organicTop;
-        } catch {
+        if (isDfsPaymentLatched()) {
           serpRow = { query, organicTop: [], paa: [], organicTitles: [] };
+        } else {
+          try {
+            const { serpDumpJson } = await fetchSerpOrganicForQuery({
+              keyword: query,
+              location,
+              site: input.site,
+            });
+            serpRow = serpRowFromDump(query, serpDumpJson);
+            organicTop = serpRow.organicTop;
+          } catch {
+            serpRow = { query, organicTop: [], paa: [], organicTitles: [] };
+          }
         }
         const fact = await fetchAndExtractVerifiedFact({
           item,

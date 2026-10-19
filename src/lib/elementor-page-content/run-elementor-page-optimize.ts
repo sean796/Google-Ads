@@ -39,7 +39,7 @@ function sectionsWithBody(elementorJson: string) {
   );
 }
 
-/** Full-page Elementor optimize: rewrites section body copy. Headings unchanged. */
+/** Full-page Elementor optimize: full rewrite of section body copy. Headings unchanged unless header harness runs. */
 export async function runElementorPageOptimizeFromResearch(
   args: RunElementorPageOptimizeArgs,
 ): Promise<RunElementorPageOptimizeResult> {

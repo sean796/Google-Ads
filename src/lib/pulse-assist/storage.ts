@@ -11,10 +11,12 @@ const SCOPE_KEY = "neo_pulse_chat_target_scope";
 const OPEN_KEY = "neo_pulse_pulse_assist_open";
 const PANEL_KEY = "neo_pulse_sidebar_panel";
 const SIDEBAR_WIDTH_KEY = "neo_pulse_assist_sidebar_width";
-export const DEFAULT_SIDEBAR_WIDTH = 440;
-export const MIN_SIDEBAR_WIDTH = 320;
-export const MAX_SIDEBAR_WIDTH = 960;
-export type SidebarPanel = "assist" | "agents";
+export const DEFAULT_SIDEBAR_WIDTH = 480;
+/** Wider default when the SEO inspector is open (research brief JSON, meta fields). */
+export const DEFAULT_SEO_SIDEBAR_WIDTH = 720;
+export const MIN_SIDEBAR_WIDTH = 360;
+export const MAX_SIDEBAR_WIDTH = 1280;
+export type SidebarPanel = "assist" | "agents" | "seo";
 const ASSIST_HISTORY_MAX = 40;
 const ASSIST_HISTORY_BODY_MAX = 12000;
 
@@ -103,7 +105,8 @@ export function writeSidebarOpen(open: boolean): void {
 export function readSidebarPanel(): SidebarPanel {
   try {
     const v = sessionStorage.getItem(PANEL_KEY);
-    if (v === "agents") return "agents";
+    if (v === "agents" || v === "seo") return v;
+    if (v === "mastra") return "seo";
   } catch {
     /* ignore */
   }

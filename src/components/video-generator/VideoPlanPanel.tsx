@@ -1,4 +1,8 @@
-import { formatTransitionBadge, type VideoPlan } from "@/lib/video-generator/video-generator-types";
+import {
+  formatTransitionBadge,
+  formatVideoPlanAudioSummary,
+  type VideoPlan,
+} from "@/lib/video-generator/video-generator-types";
 import { cn } from "@/lib/utils";
 
 /**
@@ -37,6 +41,9 @@ export function VideoPlanPanel({
           </span>
           <span className="bg-zinc-950 px-2 py-0.5 text-muted-foreground">
             {c.cameraSide}
+          </span>
+          <span className="bg-zinc-950 px-2 py-0.5 text-muted-foreground">
+            {formatVideoPlanAudioSummary(plan.audio)}
           </span>
           {plan.voice !== "none" ? (
             <span className="bg-zinc-950 px-2 py-0.5 text-primary">

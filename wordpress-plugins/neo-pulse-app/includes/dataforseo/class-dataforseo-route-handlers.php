@@ -202,14 +202,49 @@ class Neo_Pulse_App_Dataforseo_Route_Handlers {
 	 * @return array<string,mixed>
 	 */
 	public static function handle_mcp_tool( string $tool, array $body ): array {
+		$res = self::handle_mcp_tool_with_status( $tool, $body );
+		return $res['data'];
+	}
+
+	/**
+	 * @param string              $tool MCP tool name.
+	 * @param array<string,mixed> $body Request body.
+	 * @return array{status:int,data:array<string,mixed>}
+	 */
+	public static function handle_mcp_tool_with_status( string $tool, array $body ): array {
 		if ( ! Neo_Pulse_App_Dataforseo_Mcp_Router::is_supported( $tool ) ) {
-			return array( 'error' => 'Unknown DataForSEO MCP tool.', 'tool' => $tool );
+			return array(
+				'status' => 404,
+				'data'   => array( 'error' => 'Unknown DataForSEO MCP tool.', 'tool' => $tool ),
+			);
 		}
 		$result = Neo_Pulse_App_Dataforseo_Mcp_Router::dispatch( $tool, $body );
 		if ( is_wp_error( $result ) ) {
-			return array( 'error' => $result->get_error_message(), 'tool' => $tool );
+			$status = 500;
+			$data   = $result->get_error_data();
+			if ( is_array( $data ) && isset( $data['status'] ) ) {
+				$status = (int) $data['status'];
+			} elseif ( is_array( $data ) && isset( $data['status_code'] ) ) {
+				$code = (int) $data['status_code'];
+				if ( $code === 40200 || $code === 40210 ) {
+					$status = 402;
+				} elseif ( $code >= 40000 && $code < 50000 ) {
+					$status = 422;
+				}
+			}
+			return array(
+				'status' => $status,
+				'data'   => array(
+					'error'   => $result->get_error_message(),
+					'tool'    => $tool,
+					'details' => $data,
+				),
+			);
 		}
-		return is_array( $result ) ? $result : array( 'result' => $result );
+		return array(
+			'status' => 200,
+			'data'   => is_array( $result ) ? $result : array( 'result' => $result ),
+		);
 	}
 
 	public static function send_serp_dump_file( string $filename ): void {

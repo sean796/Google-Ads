@@ -3,6 +3,7 @@ import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competit
 import { parseJsonStrict } from "@/lib/json-repair-utility";
 import { fetchChatGptCompanyAuthority } from "@/lib/llm-audit/llm-audit-dataforseo";
 import { fetchSerpOrganicForQuery } from "@/lib/llm-audit/fetch-seo-content-brief-wave";
+import { isDfsPaymentLatched } from "@/lib/llm-audit/dataforseo-llm-responses-live";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
 import type {
@@ -241,20 +242,25 @@ export async function runTopicResearchFanout(input: {
       pageExcerpt: input.pageExcerpt,
     });
     input.onProgress?.("Fan-out SERP");
-    const serpByQuery = await Promise.all(
-      plan.researchQueries.map(async (query) => {
-        try {
-          const { serpDumpJson } = await fetchSerpOrganicForQuery({
-            keyword: query,
-            location,
-            site: input.site,
-          });
-          return serpRowFromDump(query, serpDumpJson);
-        } catch {
-          return { query, organicTop: [], organicTitles: [], paa: [] };
-        }
-      }),
-    );
+    const serpByQuery = isDfsPaymentLatched()
+      ? plan.researchQueries.map((query) => ({ query, organicTop: [], organicTitles: [], paa: [] }))
+      : await Promise.all(
+          plan.researchQueries.map(async (query) => {
+            if (isDfsPaymentLatched()) {
+              return { query, organicTop: [], organicTitles: [], paa: [] };
+            }
+            try {
+              const { serpDumpJson } = await fetchSerpOrganicForQuery({
+                keyword: query,
+                location,
+                site: input.site,
+              });
+              return serpRowFromDump(query, serpDumpJson);
+            } catch {
+              return { query, organicTop: [], organicTitles: [], paa: [] };
+            }
+          }),
+        );
     input.onProgress?.("ChatGPT company facts");
     const authorityTopics = [
       ...plan.namedPrograms.map((program) => ({
@@ -321,7 +327,7 @@ export async function runTopicResearchFanout(input: {
 
   const researchAsOf =
     fanout.researchAsOf ?? formatResearchAsOfLabel(new Date());
-  if (!fanout.verifiedFacts && cityTokenFromLocation(location)) {
+  if (!fanout.verifiedFacts && cityTokenFromLocation(location) && !isDfsPaymentLatched()) {
     input.onProgress?.("Factual verification");
     const verification = await runFactualVerificationPass({
       keyword: input.keyword,

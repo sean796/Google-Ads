@@ -200,35 +200,35 @@ export function buildOverviewBulkActionClusters(
         onSelect: () => void c.handleAiFaqAll(),
       },
       { kind: "category", id: "content-cat", label: "Content" },
-      ...(c.sitemapSource !== "pages"
-        ? [
-            {
-              kind: "action" as const,
-              id: "optimize-all",
-              label: "Content",
-              icon: Sparkles,
-              disabled:
-                noRows(c) ||
-                !c.site ||
-                isActiveBulkProgressSlice(p.optimizeAll) ||
-                optimizingSite ||
-                optimizingBatch,
-              onSelect: () => void c.handleOptimizeAll(),
-            },
-          ]
-        : []),
       {
         kind: "action",
-        id: "bulk-seo-extra",
-        label: "Extra Text",
+        id: "optimize-all",
+        label: "Content",
         icon: Sparkles,
         disabled:
           noRows(c) ||
           !c.site ||
+          isActiveBulkProgressSlice(p.optimizeAll) ||
           optimizingSite ||
           optimizingBatch,
-        onSelect: () => void c.handleBulkSeoExtraText(),
+        onSelect: () => void c.handleOptimizeAll(),
       },
+      ...(c.sitemapSource === "pages"
+        ? [
+            {
+              kind: "action" as const,
+              id: "bulk-seo-extra",
+              label: "Extra Text",
+              icon: Sparkles,
+              disabled:
+                noRows(c) ||
+                !c.site ||
+                optimizingSite ||
+                optimizingBatch,
+              onSelect: () => void c.handleBulkSeoExtraText(),
+            },
+          ]
+        : []),
       {
         kind: "action",
         id: "ai-headers",
@@ -253,54 +253,58 @@ export function buildOverviewBulkActionClusters(
         disabled: noRows(c) || linksHarnessRunning || ctx.bulkWorkspaceBusy,
         onSelect: () => void c.handleAiLinksAll(),
       },
-      {
-        kind: "action",
-        id: "ai-wikipedia-link",
-        label: "Wikipedia link",
-        icon: Wand2,
-        disabled: noRows(c) || wikipediaLinkHarnessRunning || ctx.bulkWorkspaceBusy,
-        onSelect: () => void c.handleAiWikipediaLinkAll(),
-      },
-      {
-        kind: "action",
-        id: "ai-answer",
-        label: "Answer",
-        icon: Wand2,
-        disabled: noRows(c) || answerHarnessRunning || ctx.bulkWorkspaceBusy,
-        onSelect: () => void c.handleAiAnswerAll(),
-      },
-      {
-        kind: "action",
-        id: "ai-overview",
-        label: "Overview",
-        icon: Wand2,
-        disabled: noRows(c) || overviewHarnessRunning || ctx.bulkWorkspaceBusy,
-        onSelect: () => void c.handleAiOverviewAll(),
-      },
-      {
-        kind: "action",
-        id: "ai-scenario",
-        label: "Scenario",
-        icon: Wand2,
-        disabled: noRows(c) || scenarioHarnessRunning || ctx.bulkWorkspaceBusy,
-        onSelect: () => void c.handleAiScenarioAll(),
-      },
-      {
-        kind: "action",
-        id: "ai-in-content-image",
-        label: "In Content Image",
-        icon: Wand2,
-        disabled: noRows(c) || inContentImageHarnessRunning || ctx.bulkWorkspaceBusy,
-        onSelect: () => void c.handleAiInContentImageAll(),
-      },
-      {
-        kind: "action",
-        id: "ai-featured-image",
-        label: "Featured image",
-        icon: Wand2,
-        disabled: noRows(c) || !c.site,
-        onSelect: () => void c.handleAiFeaturedImageAll(),
-      },
+      ...(c.sitemapSource !== "pages"
+        ? [
+            {
+              kind: "action" as const,
+              id: "ai-wikipedia-link",
+              label: "Wikipedia link",
+              icon: Wand2,
+              disabled: noRows(c) || wikipediaLinkHarnessRunning || ctx.bulkWorkspaceBusy,
+              onSelect: () => void c.handleAiWikipediaLinkAll(),
+            },
+            {
+              kind: "action" as const,
+              id: "ai-answer",
+              label: "Answer",
+              icon: Wand2,
+              disabled: noRows(c) || answerHarnessRunning || ctx.bulkWorkspaceBusy,
+              onSelect: () => void c.handleAiAnswerAll(),
+            },
+            {
+              kind: "action" as const,
+              id: "ai-overview",
+              label: "Overview",
+              icon: Wand2,
+              disabled: noRows(c) || overviewHarnessRunning || ctx.bulkWorkspaceBusy,
+              onSelect: () => void c.handleAiOverviewAll(),
+            },
+            {
+              kind: "action" as const,
+              id: "ai-scenario",
+              label: "Scenario",
+              icon: Wand2,
+              disabled: noRows(c) || scenarioHarnessRunning || ctx.bulkWorkspaceBusy,
+              onSelect: () => void c.handleAiScenarioAll(),
+            },
+            {
+              kind: "action" as const,
+              id: "ai-in-content-image",
+              label: "In Content Image",
+              icon: Wand2,
+              disabled: noRows(c) || inContentImageHarnessRunning || ctx.bulkWorkspaceBusy,
+              onSelect: () => void c.handleAiInContentImageAll(),
+            },
+            {
+              kind: "action" as const,
+              id: "ai-featured-image",
+              label: "Featured image",
+              icon: Wand2,
+              disabled: noRows(c) || !c.site,
+              onSelect: () => void c.handleAiFeaturedImageAll(),
+            },
+          ]
+        : []),
       ...(c.sitemapSource === "sap"
         ? [
             {

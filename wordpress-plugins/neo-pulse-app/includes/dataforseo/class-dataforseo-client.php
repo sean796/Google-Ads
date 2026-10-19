@@ -164,6 +164,34 @@ class Neo_Pulse_App_Dataforseo_Client {
 		}
 
 		$code = (int) wp_remote_retrieve_response_code( $response );
+
+		// If a browser-supplied X-DataForSEO-Api-Key returned 401, retry with server credentials when configured.
+		if ( $code === 401 && method_exists( 'Neo_Pulse_App_Secrets', 'server_dataforseo_credentials' ) ) {
+			$server_creds = Neo_Pulse_App_Secrets::server_dataforseo_credentials();
+			if (
+				$server_creds['login'] !== '' &&
+				$server_creds['password'] !== '' &&
+				( $server_creds['login'] !== $creds['login'] || $server_creds['password'] !== $creds['password'] )
+			) {
+				$retry_response = wp_remote_post(
+					$url,
+					array(
+						'timeout' => $timeout,
+						'headers' => array(
+							'Authorization' => 'Basic ' . base64_encode( $server_creds['login'] . ':' . $server_creds['password'] ),
+							'Content-Type'  => 'application/json; charset=utf-8',
+							'Accept'        => 'application/json',
+						),
+						'body'    => wp_json_encode( $payload ),
+					)
+				);
+				if ( ! is_wp_error( $retry_response ) ) {
+					$response = $retry_response;
+					$code     = (int) wp_remote_retrieve_response_code( $response );
+				}
+			}
+		}
+
 		$raw  = wp_remote_retrieve_body( $response );
 		$data = json_decode( $raw, true );
 

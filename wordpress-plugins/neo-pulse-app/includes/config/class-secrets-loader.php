@@ -51,6 +51,39 @@ class Neo_Pulse_App_Secrets {
 	}
 
 	/**
+	 * Server-configured DataForSEO credentials from wp-config constants or environment.
+	 *
+	 * @return array{login:string,password:string}
+	 */
+	public static function server_dataforseo_credentials(): array {
+		$login = '';
+		$pass  = '';
+		if ( defined( 'NEO_PULSE_APP_DATAFORSEO_LOGIN' ) ) {
+			$login = trim( (string) NEO_PULSE_APP_DATAFORSEO_LOGIN );
+		}
+		if ( defined( 'NEO_PULSE_APP_DATAFORSEO_PASSWORD' ) ) {
+			$pass = trim( (string) NEO_PULSE_APP_DATAFORSEO_PASSWORD );
+		}
+		if ( $login === '' && defined( 'NEO_PULSE_WP_DATAFORSEO_LOGIN' ) ) {
+			$login = trim( (string) NEO_PULSE_WP_DATAFORSEO_LOGIN );
+		}
+		if ( $pass === '' && defined( 'NEO_PULSE_WP_DATAFORSEO_PASSWORD' ) ) {
+			$pass = trim( (string) NEO_PULSE_WP_DATAFORSEO_PASSWORD );
+		}
+		if ( $login === '' ) {
+			$login = self::env_string( 'DATAFORSEO_API_LOGIN', 'NEO_PULSE_APP_DATAFORSEO_LOGIN', 'DATAFORSEO_LOGIN' );
+		}
+		if ( $pass === '' ) {
+			$pass = self::env_string( 'DATAFORSEO_API_PASSWORD', 'NEO_PULSE_APP_DATAFORSEO_PASSWORD', 'DATAFORSEO_PASSWORD' );
+		}
+
+		return array(
+			'login'    => $login,
+			'password' => $pass,
+		);
+	}
+
+	/**
 	 * @return array{login:string,password:string}
 	 */
 	public static function dataforseo(): array {
@@ -83,31 +116,7 @@ class Neo_Pulse_App_Secrets {
 			}
 		}
 
-		$login = '';
-		$pass  = '';
-		if ( defined( 'NEO_PULSE_APP_DATAFORSEO_LOGIN' ) ) {
-			$login = trim( (string) NEO_PULSE_APP_DATAFORSEO_LOGIN );
-		}
-		if ( defined( 'NEO_PULSE_APP_DATAFORSEO_PASSWORD' ) ) {
-			$pass = trim( (string) NEO_PULSE_APP_DATAFORSEO_PASSWORD );
-		}
-		if ( $login === '' && defined( 'NEO_PULSE_WP_DATAFORSEO_LOGIN' ) ) {
-			$login = trim( (string) NEO_PULSE_WP_DATAFORSEO_LOGIN );
-		}
-		if ( $pass === '' && defined( 'NEO_PULSE_WP_DATAFORSEO_PASSWORD' ) ) {
-			$pass = trim( (string) NEO_PULSE_WP_DATAFORSEO_PASSWORD );
-		}
-		if ( $login === '' ) {
-			$login = self::env_string( 'DATAFORSEO_API_LOGIN', 'NEO_PULSE_APP_DATAFORSEO_LOGIN', 'DATAFORSEO_LOGIN' );
-		}
-		if ( $pass === '' ) {
-			$pass = self::env_string( 'DATAFORSEO_API_PASSWORD', 'NEO_PULSE_APP_DATAFORSEO_PASSWORD', 'DATAFORSEO_PASSWORD' );
-		}
-
-		return array(
-			'login'    => $login,
-			'password' => $pass,
-		);
+		return self::server_dataforseo_credentials();
 	}
 
 	/** @var array{login:string,password:string} */

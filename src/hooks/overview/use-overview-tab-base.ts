@@ -56,6 +56,8 @@ export function useOverviewTabBase({
   temperature,
   maxTokens,
   topP,
+  studioRowSource = "sitemap",
+  onBulkGeneratorOverviewRowPatched,
 }: OverviewTabContentProps) {
   const [sitemapSource, setSitemapSource] = useState<OverviewSitemapSource>("pages");
   const [rows, setRows] = useState<OverviewRow[]>([]);
@@ -265,16 +267,22 @@ export function useOverviewTabBase({
   } = useOverviewSitemap();
 
   useEffect(() => {
+    if (studioRowSource === "bulk-generator") {
+      return;
+    }
     if (!site?.id) {
       setSitemapSource("pages");
       return;
     }
     setSitemapSource("pages");
-  }, [site?.id, site?.sitemaps?.mainSitemapUrl]);
+  }, [site?.id, site?.sitemaps?.mainSitemapUrl, studioRowSource]);
 
   useEffect(() => {
     if (!site?.id) {
       setRows([]);
+      return;
+    }
+    if (studioRowSource === "bulk-generator") {
       return;
     }
     let cancelled = false;
@@ -297,14 +305,14 @@ export function useOverviewTabBase({
       cancelled = true;
       cancelIdleCallback(idleId);
     };
-  }, [site?.id, sitemapSource, activateInventoryCacheForSource]);
+  }, [site?.id, sitemapSource, activateInventoryCacheForSource, studioRowSource]);
 
   useEffect(() => {
-    if (!site?.id) return;
+    if (!site?.id || studioRowSource === "bulk-generator") return;
     return () => {
       if (site?.id) setOverviewRowsSessionCache(site.id, sitemapSource, rowsRef.current);
     };
-  }, [site?.id, sitemapSource]);
+  }, [site?.id, sitemapSource, studioRowSource]);
 
   const visibleRows = rows;
 
@@ -477,15 +485,32 @@ export function useOverviewTabBase({
       return { ...row, ...patch };
     });
     rowsRef.current = next;
-    if (patch.status !== undefined) {
+    if (studioRowSource === "bulk-generator" && onBulkGeneratorOverviewRowPatched) {
+      onBulkGeneratorOverviewRowPatched(index, patch);
+    }
+    const studioLiveKeys: (keyof OverviewRow)[] = [
+      "postContent",
+      "postContentOptimized",
+      "elementorSectionHeaders",
+      "elementorDataJson",
+      "faq",
+      "seoResearch",
+      "aiTitle",
+      "aiMeta",
+      "title",
+      "metaDescription",
+    ];
+    const flushStudioLive =
+      patch.status !== undefined ||
+      studioLiveKeys.some((key) => Object.prototype.hasOwnProperty.call(patch, key));
+    if (flushStudioLive) {
       setRows(next);
       return;
     }
-    if (isMultiRowBulkActive()) return;
     startTransition(() => {
       setRows(next);
     });
-  }, [isMultiRowBulkActive]);
+  }, [studioRowSource, onBulkGeneratorOverviewRowPatched]);
 
   const setSemrushCsvUpload = useCallback((file: File) => {
     void file.text().then((text) => {
@@ -535,6 +560,7 @@ export function useOverviewTabBase({
     expandedResearchBriefUrl,
     setExpandedResearchBriefUrl,
     expandedPageUrl,
+    setExpandedPageUrl,
     toggleExpandedPageUrl,
     sortColumn,
     setSortColumn,

@@ -2,7 +2,7 @@ import type { BulkHarnessSectionUi } from "@/hooks/use-bulk-auto-generate";
 import type { BulkGeneratedFile } from "@/lib/bulk-file-manager";
 import type { PromptBulkSitemapInventoryLink } from "@/lib/bulk/prompt-bulk-sitemap-inventory";
 import type { CSVRow, WordPressPostDestination } from "@/lib/bulk-auto-generate";
-import type { ConnectedSiteSummary } from "@/components/integrations/types";
+import type { ConnectedSiteSummary, WordPressSite } from "@/components/integrations/types";
 import type { ScheduleOccupancy } from "@/lib/bulk-schedule-gap";
 import type { ScheduleFrequency } from "@/lib/wordpress-scheduler";
 import type { BulkSiteSitemapConfig } from "@/components/keyword-research/bulk/BulkGeneratorSitemapMenu";
@@ -54,6 +54,7 @@ export type BulkGeneratorWorkspaceBindings = {
   rowOrder: number[];
   setRowOrder: (value: number[] | ((prev: number[]) => number[])) => void;
   connectedSite: ConnectedSiteSummary | null;
+  wordPressSite: WordPressSite | null;
   scheduleOccupancy: ScheduleOccupancy | null;
   scheduleOccupancyLoading: boolean;
   csvFileName: string | null;
@@ -76,6 +77,9 @@ export type BulkGeneratorWorkspaceBindings = {
   /** @deprecated Use gscHostedLink from warm cache (Content Opt parity). */
   siteKwHostedLink?: import("@/lib/bulk/prompt-bulk-site-kw-scrape").PromptBulkSiteKwHostedLink | null;
   selectedBlogIndices: Set<number>;
+  setSelectedBlogIndices: (
+    value: Set<number> | ((prev: Set<number>) => Set<number>),
+  ) => void;
   optionalPrompt: string;
   setOptionalPrompt: (value: string) => void;
   featuredImagePerBlog: boolean;
@@ -95,6 +99,7 @@ export type BulkGeneratorWorkspaceBindings = {
   onRowSitemapChange: (rowIndex: number, value: BulkRowSitemapType) => void;
   onSwitchToCustom: (defaultRowType: BulkRowSitemapType) => void;
   onCsvRowChange: (rowIndex: number, patch: Partial<CSVRow>) => void;
+  onDisplayRowChange: (rowIndex: number, patch: Partial<CSVRow>) => void;
   /** Schedule-derived publish labels keyed by display/generated row index. */
   publishDateLabelByIndex: Record<number, string>;
 };

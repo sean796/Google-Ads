@@ -153,7 +153,8 @@ describe("product views contract", () => {
     expect(call.prompt).toContain("Master 0-Degree Reference");
     expect(call.prompt).toContain("Current View Reference");
     expect(call.prompt).toContain("Remove the upper right wall vent and make glass fully mirrored");
-    expect(call.prompt).toContain("NEVER render wheels, axles, trailer tongues, flatbed trailers");
+    expect(call.prompt).toContain("Do not substitute a different product type");
+    expect(call.prompt).not.toContain("Cladding Strip Between Glass Bay");
     expect(call.prompt).toContain("- left end (Photo 2; Photo 2: glass end wall at left): Full-height glass panel, no door.");
     expect(call.prompt).not.toContain("rear long side");
     spy.mockRestore();
@@ -270,6 +271,38 @@ describe("Director briefBlock, productView, and Instagram-style transitions", ()
   });
 });
 
+describe("resolveProductAnchorForScene", () => {
+  it("returns no anchor when productView is omitted even if studio views exist", () => {
+    const scene = parseScene(
+      {
+        id: "s1",
+        order: 1,
+        title: "Sunrise Sidewalk",
+        durationSeconds: 6,
+        sceneInstructions: "Woman walks dog on suburban sidewalk.",
+        storyboardPrompt: "Golden retriever on leash, suburban houses.",
+        motionPrompt: "Slow tracking shot.",
+        continuityNotes: "",
+        narration: "",
+        referenceIndexes: [],
+        transitionIn: null,
+      },
+      0,
+      0,
+    );
+    const anchor = resolveProductAnchorForScene({
+      scene,
+      subjectDataUrl: "data:image/png;base64,HARNESS",
+      productViews: {
+        front_elevation: "data:image/png;base64,FRONT",
+        three_quarter: "data:image/png;base64,THREE_Q",
+      },
+    });
+    expect(anchor.dataUrl).toBeUndefined();
+    expect(anchor.label).toBe("none");
+  });
+});
+
 describe("Storyboard angle-matched product view anchor & harnessed Environment Plate", () => {
   it("attaches BOTH the angle-matched productView and the master 0 deg Front Elevation view while omitting Scene 1 heroFrameDataUrl", async () => {
     const scene = parseScene(
@@ -346,12 +379,9 @@ describe("Storyboard angle-matched product view anchor & harnessed Environment P
     ]);
     expect(callArg.maxReferenceImages).toBe(3);
     expect(callArg.referenceImageDataUrls).not.toContain("data:image/png;base64,FACTORY_SCENE_1_POLLUTION");
-    expect(callArg.prompt).toContain("Flatbed Truck Co-Linear Alignment");
-    expect(callArg.prompt).toContain("Facade Lock (No Mirror-Flipping)");
-    expect(callArg.prompt).toContain("Staging Isolation (No Stray Trailers or Cranes)");
-    expect(callArg.prompt).toContain("Top Roof Corner Lugs Only");
-    expect(callArg.prompt).toContain("Single Standalone Unit");
-    expect(callArg.prompt).not.toMatch(/timber cladding|narrow window|glazing bay on the left/);
+    expect(callArg.prompt).toContain("Product fidelity");
+    expect(callArg.prompt).toContain("Scene fidelity");
+    expect(callArg.prompt).not.toMatch(/Flatbed Truck|modular unit|glass panes and mullions/);
     spy.mockRestore();
   });
 
@@ -407,7 +437,7 @@ describe("Storyboard angle-matched product view anchor & harnessed Environment P
     });
     expect(envPlate).toBe("data:image/png;base64,ENV_PLATE_S4");
     expect(spy.mock.calls[0][0].referenceImageDataUrls).toEqual(["data:image/png;base64,MASTER_ENV_CLEARING"]);
-    expect(spy.mock.calls[0][0].prompt).toContain("DO NOT render the hero modular building/cabin");
+    expect(spy.mock.calls[0][0].prompt).toContain("DO NOT render people, pets, products");
 
     await generateStoryboardFrame({
       apiKey: "sk-or-test",
@@ -688,6 +718,70 @@ describe("Non-destructive single-scene rerender and restitch API", () => {
     expect(turntableHtml).toContain("Prompt AI to change 3. Front-left 3/4");
     expect(turntableHtml).toContain("Prompt AI to change 4. Detail");
     expect(turntableHtml).toContain("1 edit");
+
+    const generatingTurntableHtml = renderToStaticMarkup(
+      React.createElement(VideoStagePanel, {
+        activeTab: "product",
+        plan: null,
+        aspect: "16:9",
+        frames: [],
+        selectedSceneId: null,
+        render: null,
+        hasSubjectPhotos: true,
+        productViewsBatchBusy: true,
+        productLock: {
+          spec: SAMPLE_SPEC,
+          locked: false,
+          views: initialProductViews().map((v) => ({
+            ...v,
+            status: "generating" as const,
+            imageDataUrl: undefined,
+          })),
+        },
+        onRegenerateProductView: () => {},
+        onReviseProductView: () => {},
+      }),
+    );
+    expect(generatingTurntableHtml).toContain("/video-studio/elementor-placeholder.png");
+    expect(generatingTurntableHtml).toContain("animate-video-product-splash-breathe");
+    expect(generatingTurntableHtml).not.toContain("animate-spin");
+
+    const generatingStageHtml = renderToStaticMarkup(
+      React.createElement(VideoStagePanel, {
+        plan,
+        aspect: "16:9",
+        frames: [{ sceneId: "s1", status: "generating" as const, environmentStatus: "waiting" as const }],
+        selectedSceneId: "s1",
+        render: null,
+      }),
+    );
+    expect(generatingStageHtml).toContain("/video-studio/elementor-placeholder.png");
+    expect(generatingStageHtml).not.toContain("animate-spin");
+
+    const clipGeneratingTimelineHtml = renderToStaticMarkup(
+      React.createElement(VideoTimelineDock, {
+        plan,
+        totalSeconds: 15,
+        frames: [
+          {
+            sceneId: "s1",
+            status: "done" as const,
+            imageDataUrl: "data:image/png;base64,KEY",
+            environmentStatus: "done" as const,
+            videoPrompt: "Dolly right",
+          },
+        ],
+        renderScenes: [{ sceneId: "s1", status: "generating" as const }],
+        selectedSceneId: "s1",
+        disabled: false,
+        onSelectScene: () => {},
+        onRegenerateFrame: () => {},
+        onRerenderSceneClip: () => {},
+        onUpdateSceneTransition: () => {},
+      }),
+    );
+    expect(clipGeneratingTimelineHtml).toContain("animate-video-product-splash-breathe");
+    expect(clipGeneratingTimelineHtml).not.toContain("animate-spin");
 
     const preApproveHtml = renderToStaticMarkup(
       React.createElement(VideoStagePanel, {

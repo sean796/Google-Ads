@@ -15,9 +15,9 @@ services:
       - key: VITE_BASE_PATH
         value: /
       - key: VITE_MCP_API_BASE
-        value: https://flowbieone.onrender.com/api/mcp
+        value: https://pulse-host-wp-hub.onrender.com/api/mcp
       - key: NEO_PULSE_RENDER_API_BASE
-        value: https://flowbieone.onrender.com/api/mcp
+        value: https://pulse-host-wp-hub.onrender.com/api/mcp
       - key: VITE_OPENROUTER_API_KEY
         sync: false
 

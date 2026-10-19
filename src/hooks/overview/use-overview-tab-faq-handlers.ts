@@ -151,6 +151,7 @@ export function useOverviewTabFaqHandlers({
         skipFaqLoading?: boolean;
         onMicroStep?: () => void;
         seedQuestionCount?: number;
+        skipUploadAfterRowWrite?: boolean;
       },
     ) => {
       if (!site) {
@@ -193,7 +194,7 @@ export function useOverviewTabFaqHandlers({
           harnessSetters,
           cacheWrite,
           updateRow,
-          uploadAfterRowWrite,
+          uploadAfterRowWrite: options?.skipUploadAfterRowWrite ? undefined : uploadAfterRowWrite,
           skipLoadingState: options?.skipFaqLoading ?? true,
         });
 

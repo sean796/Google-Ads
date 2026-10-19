@@ -94,8 +94,74 @@ export function mergeOverviewRowScrapeFields(
   return patch;
 }
 
-/** FAQ JSON-LD embedded in post HTML (when ACF `faq` is empty). */
-function extractFaqFromPostHtml(html: string): string | undefined {
+function decodeHtmlEntitiesPlain(raw: string): string {
+  return raw
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&#8217;|&#039;|&apos;/gi, "'")
+    .replace(/&#8220;|&#8221;|&quot;|&#34;/gi, '"')
+    .replace(/&amp;|&#038;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractFaqEntriesFromFloFaqTableHtml(html: string): string | undefined {
+  const low = html.toLowerCase();
+  let faqStart = low.indexOf('class="flo-faq"');
+  if (faqStart === -1) faqStart = low.indexOf("class='flo-faq'");
+  if (faqStart === -1) faqStart = low.indexOf('id="faq"');
+  if (faqStart === -1) faqStart = low.indexOf("id='faq'");
+  if (faqStart === -1) {
+    const h2FaqMatch = /<h2[^>]*>\s*(?:faq|frequently asked questions)\s*<\/h2>/i.exec(html);
+    if (h2FaqMatch?.index != null) faqStart = h2FaqMatch.index;
+  }
+  if (faqStart === -1) return undefined;
+
+  const slice = html.slice(faqStart);
+  const tableStart = slice.toLowerCase().indexOf("<table");
+  if (tableStart === -1) return undefined;
+  const tableEnd = slice.toLowerCase().indexOf("</table>", tableStart);
+  const tableHtml = tableEnd === -1 ? slice.slice(tableStart) : slice.slice(tableStart, tableEnd);
+
+  const entries: Array<{ question: string; answer: string }> = [];
+  let rowCursor = 0;
+  const tableLow = tableHtml.toLowerCase();
+  while (rowCursor < tableHtml.length) {
+    const trOpen = tableLow.indexOf("<tr", rowCursor);
+    if (trOpen === -1) break;
+    const trClose = tableLow.indexOf("</tr>", trOpen);
+    if (trClose === -1) break;
+    const trInner = tableHtml.slice(trOpen, trClose);
+    const cells: string[] = [];
+    let cellCursor = 0;
+    const trLow = trInner.toLowerCase();
+    while (cellCursor < trInner.length) {
+      const tdOpen = trLow.indexOf("<td", cellCursor);
+      if (tdOpen === -1) break;
+      const tdGt = trInner.indexOf(">", tdOpen);
+      if (tdGt === -1) break;
+      const tdClose = trLow.indexOf("</td>", tdGt + 1);
+      if (tdClose === -1) break;
+      cells.push(decodeHtmlEntitiesPlain(trInner.slice(tdGt + 1, tdClose)));
+      cellCursor = tdClose + 5;
+    }
+    if (cells.length >= 2) {
+      const q = cells[0]!;
+      const a = cells[1]!;
+      if (q && !(q.toLowerCase() === "question" && a.toLowerCase() === "answer")) {
+        entries.push({ question: q, answer: a });
+      }
+    }
+    rowCursor = trClose + 5;
+  }
+
+  return entries.length > 0 ? serializeFaqEntriesPlain(entries) : undefined;
+}
+
+/** FAQ JSON-LD or `.flo-faq` / `#faq` table embedded in post HTML (when ACF `faq` is empty). */
+export function extractFaqFromPostHtml(html: string): string | undefined {
   const trimmed = (html ?? "").trim();
   if (!trimmed) return undefined;
   let cursor = 0;
@@ -116,7 +182,7 @@ function extractFaqFromPostHtml(html: string): string | undefined {
     }
     cursor = close + "</script>".length;
   }
-  return undefined;
+  return extractFaqEntriesFromFloFaqTableHtml(trimmed);
 }
 
 function faqFromSeoResearch(seoResearch: string | undefined): string | undefined {

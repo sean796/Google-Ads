@@ -78,7 +78,7 @@ export function VideoInstructionBar({
           onChange={(e) => setText(e.target.value)}
           disabled={disabled}
           aria-label="Prompt AI to change the product"
-          placeholder={`Prompt AI to change ${targetLabel} (e.g. "remove upper wall vent", "make glass mirrored")`}
+          placeholder={`Prompt AI to change ${targetLabel} (e.g. "lighten fabric color", "show fully lowered")`}
           className={cn(MY_SITES_FIELD, "flex-1")}
         />
         <Button

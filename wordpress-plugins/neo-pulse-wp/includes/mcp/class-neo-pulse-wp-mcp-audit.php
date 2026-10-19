@@ -2,8 +2,8 @@
 /**
  * Site-wide SEO & Schema Audit (`neo-pulse/read` -> `audit`).
  *
- * Implements the 8 generalized checks from the Elite Shadings audit in
- * EMCP-INTEGRATION-HANDOFF.md.
+ * Implements the 8 generalized checks from EMCP-INTEGRATION-HANDOFF.md using
+ * each site's own stored data.
  *
  * @package Neo_Pulse_Wp
  */
@@ -12,21 +12,6 @@ defined( 'ABSPATH' ) || exit;
 
 final class Neo_Pulse_Wp_Mcp_Audit {
 
-	/** Known portfolio/template brand names that can leak when content or ACF options are cloned. */
-	const KNOWN_PORTFOLIO_BRANDS = array(
-		'Blind Magic',
-		'In The Shade',
-		"Designer's Resource Centre",
-		'Designers Resource Centre',
-		'Shutter Spot',
-		'Superior Blinds',
-		'Elite Shadings',
-		'Tailored Interiors',
-		'Blinds West',
-		'Advance Blinds',
-		'DM Interiors',
-	);
-
 	/**
 	 * Run all 8 audit checks and return structured findings.
 	 *
@@ -34,7 +19,6 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 	 */
 	public static function run(): array {
 		$findings = array();
-
 		self::check_foreign_schema_text( $findings );
 		self::check_logo( $findings );
 		self::check_business_details( $findings );
@@ -53,37 +37,49 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 	}
 
 	/**
-	 * 1. FAQ or other saved schema text naming a business other than the site's own.
+	 * 1. FAQ or other saved schema text naming a business other than the site's own,
+	 *    derived from the site's own stored data (legacy ACF options, old Rank Math
+	 *    knowledgegraph_name, or explicit schema entity names).
 	 *
 	 * @param array<int,array<string,mixed>> $findings Collected findings.
 	 */
 	private static function check_foreign_schema_text( array &$findings ): void {
-		$own_names = array_filter(
-			array(
-				strtolower( trim( (string) Neo_Pulse_Wp_Business::get()['name'] ) ),
-				strtolower( trim( (string) Neo_Pulse_Wp_Business::get()['legal_name'] ) ),
-				strtolower( trim( (string) Neo_Pulse_Wp_Business::get()['alternate_name'] ) ),
-				strtolower( trim( (string) get_bloginfo( 'name' ) ) ),
+		$biz       = Neo_Pulse_Wp_Business::get();
+		$own_names = array_values(
+			array_filter(
+				array_map(
+					static fn( $v ): string => strtolower( trim( (string) $v ) ),
+					array( $biz['name'] ?? '', $biz['legal_name'] ?? '', $biz['alternate_name'] ?? '', get_bloginfo( 'name' ) )
+				)
 			)
 		);
 
-		$foreign_brands = array();
-		foreach ( self::KNOWN_PORTFOLIO_BRANDS as $brand ) {
-			$lower = strtolower( $brand );
-			$is_own = false;
+		$is_own_name = static function ( string $candidate ) use ( $own_names ): bool {
+			$lower = strtolower( trim( $candidate ) );
+			if ( '' === $lower ) {
+				return true;
+			}
 			foreach ( $own_names as $own ) {
 				if ( '' !== $own && ( false !== strpos( $own, $lower ) || false !== strpos( $lower, $own ) ) ) {
-					$is_own = true;
-					break;
+					return true;
 				}
 			}
-			if ( ! $is_own ) {
-				$foreign_brands[] = $brand;
-			}
-		}
+			return false;
+		};
 
-		if ( array() === $foreign_brands ) {
-			return;
+		$stale_names = array();
+		$rm_titles   = get_option( 'rank-math-options-titles', array() );
+		$candidates  = array(
+			is_array( $rm_titles ) ? (string) ( $rm_titles['knowledgegraph_name'] ?? '' ) : '',
+			(string) get_option( 'options_ci_company_name', '' ),
+			(string) get_option( 'options_ci_business_name', '' ),
+			(string) get_option( 'options_ci_name', '' ),
+		);
+		foreach ( $candidates as $cand ) {
+			$cand = trim( $cand );
+			if ( strlen( $cand ) >= 3 && ! $is_own_name( $cand ) ) {
+				$stale_names[ strtolower( $cand ) ] = $cand;
+			}
 		}
 
 		$posts = get_posts(
@@ -101,36 +97,53 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 			if ( ! is_array( $all ) ) {
 				continue;
 			}
-			$haystacks = array();
 			foreach ( $all as $key => $values ) {
-				if ( 0 === strpos( (string) $key, 'rank_math_schema_' ) || in_array( (string) $key, array( 'faq', 'seo_faq' ), true ) ) {
-					$haystacks[ (string) $key ] = wp_json_encode( $values );
+				$meta_key = (string) $key;
+				if ( 0 !== strpos( $meta_key, 'rank_math_schema_' ) && ! in_array( $meta_key, array( 'faq', 'seo_faq' ), true ) ) {
+					continue;
 				}
-			}
-			foreach ( $haystacks as $meta_key => $blob ) {
+				$blob = wp_json_encode( $values );
 				if ( ! is_string( $blob ) || '' === $blob ) {
 					continue;
 				}
-				foreach ( $foreign_brands as $brand ) {
-					if ( false !== stripos( $blob, $brand ) ) {
+				foreach ( $stale_names as $stale_name ) {
+					if ( false !== stripos( $blob, $stale_name ) ) {
 						$findings[] = array(
-							'check'       => 1,
-							'code'        => 'foreign_business_in_schema',
-							'severity'    => 'error',
-							'post_id'     => $post_id,
-							'url'         => (string) get_permalink( $post_id ),
-							'meta_key'    => $meta_key,
-							'foreign_name'=> $brand,
-							'message'     => sprintf(
-								'Post #%d (%s) carries "%s" inside %s, which appears to be copied from another site.',
-								$post_id,
-								get_the_title( $post_id ),
-								$brand,
-								$meta_key
-							),
-							'fix_tool'    => 'neo-pulse/write',
-							'fix_op'      => 'set-page-faqs',
+							'check'        => 1,
+							'code'         => 'foreign_business_in_schema',
+							'severity'     => 'error',
+							'post_id'      => $post_id,
+							'url'          => (string) get_permalink( $post_id ),
+							'meta_key'     => $meta_key,
+							'foreign_name' => $stale_name,
+							'message'      => sprintf( 'Post #%d (%s) carries legacy business name "%s" inside %s.', $post_id, get_the_title( $post_id ), $stale_name, $meta_key ),
+							'fix_tool'     => 'neo-pulse/write',
+							'fix_op'       => 'set-page-faqs',
 						);
+					}
+				}
+				if ( 0 === strpos( $meta_key, 'rank_math_schema_' ) && is_array( $values ) ) {
+					foreach ( $values as $raw_entry ) {
+						$entry = maybe_unserialize( $raw_entry );
+						if ( ! is_array( $entry ) ) {
+							continue;
+						}
+						$type = (string) ( $entry['@type'] ?? '' );
+						$name = trim( (string) ( $entry['name'] ?? $entry['legalName'] ?? '' ) );
+						if ( '' !== $name && 0 !== strpos( $name, '%' ) && in_array( $type, array( 'Organization', 'LocalBusiness', 'HomeGoodsStore', 'Store' ), true ) && ! $is_own_name( $name ) ) {
+							$findings[] = array(
+								'check'        => 1,
+								'code'         => 'foreign_business_in_schema',
+								'severity'     => 'error',
+								'post_id'      => $post_id,
+								'url'          => (string) get_permalink( $post_id ),
+								'meta_key'     => $meta_key,
+								'foreign_name' => $name,
+								'message'      => sprintf( 'Post #%d (%s) has a saved %s schema naming "%s", which does not match this site\'s business name.', $post_id, get_the_title( $post_id ), $type, $name ),
+								'fix_tool'     => 'neo-pulse/write',
+								'fix_op'       => 'set-page-schema',
+							);
+						}
 					}
 				}
 			}
@@ -159,7 +172,6 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 			);
 			return;
 		}
-
 		if ( $logo_id > 0 && $site_icon > 0 && $logo_id === $site_icon ) {
 			$findings[] = array(
 				'check'    => 2,
@@ -171,7 +183,6 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 				'fix_op'   => 'update-business-details',
 			);
 		}
-
 		$check_url = $logo_id > 0 ? (string) wp_get_attachment_url( $logo_id ) : $logo_url;
 		if ( '' !== $check_url && false !== stripos( basename( (string) wp_parse_url( $check_url, PHP_URL_PATH ) ), 'favicon' ) ) {
 			$findings[] = array(
@@ -184,7 +195,6 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 				'fix_op'   => 'update-business-details',
 			);
 		}
-
 		if ( $logo_id > 0 ) {
 			$meta = wp_get_attachment_metadata( $logo_id );
 			$w    = is_array( $meta ) ? (int) ( $meta['width'] ?? 0 ) : 0;
@@ -268,7 +278,6 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 				'fix_op'   => 'update-business-details',
 			);
 		}
-
 		$saved_main = (int) ( $d['main_location'] ?? 0 );
 		if ( 'several' === ( $d['locations'] ?? 'one' ) && $saved_main > 0 && ! Neo_Pulse_Wp_Business::is_showroom( $saved_main ) ) {
 			$findings[] = array(
@@ -281,7 +290,6 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 				'fix_op'        => 'update-business-details',
 			);
 		}
-
 		if ( 'one' === ( $d['locations'] ?? 'one' ) && count( $showrooms ) >= 2 ) {
 			$findings[] = array(
 				'check'          => 3,
@@ -307,16 +315,13 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 		$locations = Neo_Pulse_Wp_Business::location_posts();
 
 		foreach ( $locations as $post ) {
-			$id      = (int) $post->ID;
-			$title   = get_the_title( $post );
-			$kind    = strtolower( Neo_Pulse_Wp_Business::location_value( $id, 'kind' ) );
-			$is_area = false !== strpos( $kind, 'service' );
-			if ( $is_area ) {
+			$id    = (int) $post->ID;
+			$title = get_the_title( $post );
+			$kind  = strtolower( Neo_Pulse_Wp_Business::location_value( $id, 'kind' ) );
+			if ( false !== strpos( $kind, 'service' ) ) {
 				continue;
 			}
-
-			$addr = Neo_Pulse_Wp_Business::location_value( $id, 'address' );
-			if ( '' === $addr ) {
+			if ( '' === Neo_Pulse_Wp_Business::location_value( $id, 'address' ) ) {
 				$findings[] = array(
 					'check'    => 4,
 					'code'     => 'location_missing_address',
@@ -327,7 +332,6 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 					'fix_op'   => 'update-location',
 				);
 			}
-
 			$any_hours  = false;
 			$unreadable = array();
 			foreach ( $hour_map as $day => $field ) {
@@ -336,19 +340,16 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 				if ( '' === $text ) {
 					continue;
 				}
-				$lower = strtolower( $text );
-				if ( in_array( $lower, array( 'closed', 'by appointment', 'by appointment only' ), true ) ) {
+				if ( in_array( strtolower( $text ), array( 'closed', 'by appointment', 'by appointment only' ), true ) ) {
 					$any_hours = true;
 					continue;
 				}
-				$parsed = Neo_Pulse_Wp_Seo_Locations::parse_hours( $text );
-				if ( array() === $parsed ) {
+				if ( array() === Neo_Pulse_Wp_Seo_Locations::parse_hours( $text ) ) {
 					$unreadable[ $day ] = $text;
 				} else {
 					$any_hours = true;
 				}
 			}
-
 			if ( ! $any_hours && array() === $unreadable ) {
 				$findings[] = array(
 					'check'    => 4,
@@ -372,7 +373,6 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 					'fix_op'     => 'update-location',
 				);
 			}
-
 			$loc_type = Neo_Pulse_Wp_Business::location_type( $id );
 			if ( 'LocalBusiness' === $loc_type && '' !== $biz_type && ! in_array( $biz_type, array( 'Organization', 'LocalBusiness' ), true ) ) {
 				$findings[] = array(
@@ -389,14 +389,12 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 	}
 
 	/**
-	 * 5. Homepage or other pages output as Article (pt_page_default_rich_snippet), and any
-	 *    Article/Person author whose display_name equals their WordPress login.
+	 * 5. Homepage or other pages output as Article, and authors exposing their WP login.
 	 *
 	 * @param array<int,array<string,mixed>> $findings Collected findings.
 	 */
 	private static function check_article_and_authors( array &$findings ): void {
-		$page_snippet = (string) Neo_Pulse_Wp_Seo_Settings::get( 'pt_page_default_rich_snippet', 'off' );
-		if ( 'article' === $page_snippet ) {
+		if ( 'article' === (string) Neo_Pulse_Wp_Seo_Settings::get( 'pt_page_default_rich_snippet', 'off' ) ) {
 			$findings[] = array(
 				'check'    => 5,
 				'code'     => 'pages_default_to_article',
@@ -406,24 +404,14 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 				'fix_op'   => 'set-type-rules',
 			);
 		}
-
-		$author_ids = get_users(
-			array(
-				'who'    => 'authors',
-				'fields' => 'ID',
-			)
-		);
+		$author_ids = get_users( array( 'who' => 'authors', 'fields' => 'ID' ) );
 		if ( empty( $author_ids ) ) {
 			$author_ids = get_users( array( 'fields' => 'ID', 'number' => 50 ) );
 		}
 		foreach ( is_array( $author_ids ) ? $author_ids : array() as $uid ) {
 			$user = get_userdata( (int) $uid );
-			if ( ! $user instanceof WP_User ) {
-				continue;
-			}
-			if ( '' !== $user->user_login && strtolower( trim( $user->display_name ) ) === strtolower( trim( $user->user_login ) ) ) {
-				$count = count_user_posts( (int) $user->ID, array( 'post', 'page' ), true );
-				if ( $count > 0 ) {
+			if ( $user instanceof WP_User && '' !== $user->user_login && strtolower( trim( $user->display_name ) ) === strtolower( trim( $user->user_login ) ) ) {
+				if ( count_user_posts( (int) $user->ID, array( 'post', 'page' ), true ) > 0 ) {
 					$findings[] = array(
 						'check'      => 5,
 						'code'       => 'author_display_name_exposes_login',
@@ -453,10 +441,7 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 		}
 		$org_nodes = 0;
 		foreach ( $preview['json_ld']['@graph'] as $node ) {
-			if ( ! is_array( $node ) ) {
-				continue;
-			}
-			$types = (array) ( $node['@type'] ?? array() );
+			$types = is_array( $node ) ? (array) ( $node['@type'] ?? array() ) : array();
 			if ( in_array( 'Organization', $types, true ) || in_array( 'LocalBusiness', $types, true ) ) {
 				++$org_nodes;
 			}
@@ -497,14 +482,9 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 	 * @param array<int,array<string,mixed>> $findings Collected findings.
 	 */
 	private static function check_leftover_cross_site_values( array &$findings ): void {
-		$contact    = Neo_Pulse_Wp_Business::contact();
-		$biz_city   = strtolower( trim( (string) ( $contact['address']['city'] ?? '' ) ) );
-		$biz_region = strtoupper( trim( (string) ( $contact['address']['region'] ?? '' ) ) );
-
-		$acf_addr  = trim( (string) get_option( 'options_ci_address', '' ) );
-		$acf_phone = trim( (string) get_option( 'options_ci_phone', '' ) );
-		$acf_email = trim( (string) get_option( 'options_ci_email', '' ) );
-
+		$contact  = Neo_Pulse_Wp_Business::contact();
+		$biz_city = strtolower( trim( (string) ( $contact['address']['city'] ?? '' ) ) );
+		$acf_addr = trim( (string) get_option( 'options_ci_address', '' ) );
 		if ( '' !== $acf_addr && '' !== $biz_city && false === stripos( $acf_addr, $biz_city ) ) {
 			$findings[] = array(
 				'check'       => 8,
@@ -517,9 +497,10 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 		}
 
 		$biz_phone = isset( $contact['phones'][0]['number'] ) ? (string) $contact['phones'][0]['number'] : '';
+		$acf_phone = trim( (string) get_option( 'options_ci_phone', '' ) );
 		$biz_area  = self::area_code( $biz_phone );
 		$acf_area  = self::area_code( $acf_phone );
-		if ( '' !== $biz_area && '' !== $acf_area && $biz_area !== $acf_area && '800' !== $acf_area && '888' !== $acf_area && '877' !== $acf_area ) {
+		if ( '' !== $biz_area && '' !== $acf_area && $biz_area !== $acf_area && ! in_array( $acf_area, array( '800', '888', '877' ), true ) ) {
 			$findings[] = array(
 				'check'     => 8,
 				'code'      => 'leftover_acf_contact_phone',
@@ -530,9 +511,9 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 			);
 		}
 
+		$acf_email = trim( (string) get_option( 'options_ci_email', '' ) );
 		if ( '' !== $acf_email && false !== strpos( $acf_email, '@' ) ) {
-			$site_host = strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) );
-			$site_host = (string) preg_replace( '/^www\./', '', $site_host );
+			$site_host = (string) preg_replace( '/^www\./', '', strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) ) );
 			$email_dom = strtolower( substr( strrchr( $acf_email, '@' ), 1 ) );
 			if ( '' !== $site_host && '' !== $email_dom && false === strpos( $site_host, '.wpenginepowered.com' ) && $email_dom !== $site_host && ! in_array( $email_dom, array( 'gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com' ), true ) ) {
 				$findings[] = array(
@@ -545,7 +526,6 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 				);
 			}
 		}
-		unset( $biz_region );
 	}
 
 	private static function area_code( string $phone ): string {

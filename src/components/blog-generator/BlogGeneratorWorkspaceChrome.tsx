@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { UnifiedWorkspaceChrome } from "@/components/shared/UnifiedWorkspaceChrome";
-import { BlogGeneratorSectionPills } from "@/components/blog-generator/BlogGeneratorSectionPills";
 import {
   blogGeneratorTitleLeadingSlotProps,
   getBlogGeneratorSectionMeta,
@@ -12,7 +11,6 @@ export type BlogGeneratorWorkspaceChromeProps = {
   activeSection: BlogGeneratorSectionId;
   onSectionChange: (id: BlogGeneratorSectionId) => void;
   sectionSwitchDisabled?: boolean;
-  showOpt?: boolean;
   titleRowMenu?: ReactNode;
   workspaceBusy: boolean;
   progressBand?: "full" | "empty";
@@ -35,7 +33,6 @@ export function BlogGeneratorWorkspaceChrome({
   activeSection,
   onSectionChange,
   sectionSwitchDisabled = false,
-  showOpt = true,
   titleRowMenu,
   workspaceBusy,
   progressBand = "full",
@@ -55,15 +52,6 @@ export function BlogGeneratorWorkspaceChrome({
   const sectionMeta = getBlogGeneratorSectionMeta(activeSection);
   const SectionIcon = sectionMeta.icon;
 
-  const sectionPills = (
-    <BlogGeneratorSectionPills
-      activeSection={activeSection}
-      onSectionChange={onSectionChange}
-      disabled={sectionSwitchDisabled}
-      showOpt={showOpt}
-    />
-  );
-
   const titleLeadingSlot = blogGeneratorTitleLeadingSlotProps();
 
   if (progressBand === "empty") {
@@ -73,7 +61,6 @@ export function BlogGeneratorWorkspaceChrome({
         title={sectionMeta.label}
         titleLeadingSlot={titleLeadingSlot}
         titleRowMenu={titleRowMenu}
-        titleRowEnd={sectionPills}
         toolbar={toolbar}
         hideToolbar={hideToolbar}
         workspaceBusy={workspaceBusy}
@@ -88,7 +75,6 @@ export function BlogGeneratorWorkspaceChrome({
       title={sectionMeta.label}
       titleLeadingSlot={titleLeadingSlot}
       titleRowMenu={titleRowMenu}
-      titleRowEnd={sectionPills}
       toolbar={toolbar}
       hideToolbar={hideToolbar}
       workspaceBusy={workspaceBusy}

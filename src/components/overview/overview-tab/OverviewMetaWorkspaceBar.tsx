@@ -268,7 +268,6 @@ export function OverviewContentHeader({
         activeSection={generatorChrome.activeSection}
         onSectionChange={generatorChrome.onSectionChange}
         sectionSwitchDisabled={generatorChrome.sectionSwitchDisabled}
-        showOpt={generatorChrome.showOpt}
         titleRowMenu={
           <>
             {sitemapMenu}

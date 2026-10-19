@@ -3,7 +3,10 @@ import {
   appendMasterInstructionsToSystemPrompt,
   ensureMasterInstructionsInMemory,
 } from "@/lib/master-instructions-storage";
-import { injectBlacklistRagIntoMessages } from "@/lib/content-word-blocklist";
+import {
+  appendUniversalContentRulesToSystemPrompt,
+  injectBlacklistRagIntoMessages,
+} from "@/lib/content-word-blocklist";
 import {
   getAdsModel,
   getBlogModel,
@@ -90,7 +93,15 @@ async function prepareAgentMessages(args: {
   }
 
   if (args.useWordBlacklist) {
+    if (system?.trim()) {
+      system = appendUniversalContentRulesToSystemPrompt(system);
+    }
     if (messages?.length) {
+      messages = messages.map((m) =>
+        m.role === "system" && typeof m.content === "string"
+          ? { ...m, content: appendUniversalContentRulesToSystemPrompt(m.content) }
+          : m,
+      );
       const stringMessages = messages.map((m) => ({
         role: m.role,
         content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),

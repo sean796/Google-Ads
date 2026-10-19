@@ -9,6 +9,10 @@ import {
 export const GENERATOR_TOOLBAR_ROOT_CLASS =
   "flex w-full min-w-0 flex-nowrap items-center gap-1.5";
 
+/** Visual doc canvas Band 2: allow bulk controls to wrap instead of horizontal scroll. */
+export const GENERATOR_STUDIO_BAND2_TOOLBAR_CLASS =
+  "w-full min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 [&>div]:min-w-0 [&>div]:flex-wrap";
+
 /** Left zone: uploads, keyword, main intent. */
 export const GENERATOR_TOOLBAR_PRIMARY_CLASS =
   "flex min-w-0 flex-1 flex-nowrap items-center gap-1.5";
@@ -21,7 +25,7 @@ export const GENERATOR_TOOLBAR_OPTIONS_CLASS =
 export const GENERATOR_TOOLBAR_ACTIONS_CLASS =
   "ml-auto flex shrink-0 flex-nowrap items-center gap-1.5";
 
-export const GENERATOR_FIELD_KEYWORD = cn(BULK_HEADER_FIELD, "w-[10rem] shrink-0 text-base");
+export const GENERATOR_FIELD_KEYWORD = cn(BULK_HEADER_FIELD, "min-w-[10rem] flex-1 text-base");
 
 export const GENERATOR_FIELD_COUNT = cn(
   BULK_HEADER_FIELD,

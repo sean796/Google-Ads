@@ -304,10 +304,12 @@ function buildCopyBlueprint(args: {
       : "Preserve coverage: keep every paragraph block, list block, and major topic from CURRENT SECTION.",
   );
   checklist.push(
-    "Preserve every existing internal link tag exactly (href and anchor text). Rewrite non-link prose only.",
+    "Preserve every existing internal link tag exactly (href and anchor text). Fully rewrite all non-link prose (no minimal polish).",
   );
   checklist.push("Do not use <table>, markdown, or inline text-align styles.");
-  checklist.push("Reword non-link sentences in place. Never summarize, never shorten, never drop themes.");
+  checklist.push(
+    "Rephrase every non-link sentence. Never copy verbatim, never summarize, never shorten, never drop themes.",
+  );
 
   return {
     primaryBodyWidget: args.primaryBodyWidget,

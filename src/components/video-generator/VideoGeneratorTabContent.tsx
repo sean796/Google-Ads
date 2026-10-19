@@ -31,6 +31,7 @@ export function VideoGeneratorTabContent({ apiKey }: { apiKey: string }) {
       ? "Pricing unavailable"
       : `~${formatEstimateUsd(g.estimatedCostUsd)} for ${g.brief.lengthSeconds} s at ${g.brief.resolution}`;
   const status = g.busy || b.busy || "";
+  const productViewsBatchBusy = g.busy !== null && g.needsProductStep && !g.productLock.locked;
 
   const selectedScene =
     g.plan?.scenes.find((s) => s.id === g.selectedSceneId) ?? g.plan?.scenes[0] ?? null;
@@ -53,10 +54,10 @@ export function VideoGeneratorTabContent({ apiKey }: { apiKey: string }) {
       setLeftTab("director");
     } else if (g.step === "render") {
       setLeftTab("postcut");
-    } else if (g.step === "brief" && !g.brief.prompt.trim()) {
-      setLeftTab("brief");
+    } else if (g.step === "brief" && !g.canStartStudio) {
+      setLeftTab("assets");
     }
-  }, [g.step, g.brief.prompt]);
+  }, [g.step, g.canStartStudio]);
 
   const handleHeaderStepClick = (nextStep: VideoGeneratorStep) => {
     g.setStep(nextStep);
@@ -74,7 +75,7 @@ export function VideoGeneratorTabContent({ apiKey }: { apiKey: string }) {
   };
 
   const primaryAction = (() => {
-    if (g.step === "brainstorm" && b.canBrainstorm && !g.brief.prompt.trim()) {
+    if (g.step === "brainstorm" && b.canBrainstorm && !g.canStartStudio) {
       return {
         label: "Brainstorm brief",
         onClick: () => void b.brainstorm(),
@@ -105,7 +106,7 @@ export function VideoGeneratorTabContent({ apiKey }: { apiKey: string }) {
           setLeftOpen(true);
           void g.askQuestions();
         },
-        disabled: working || !g.brief.prompt.trim(),
+        disabled: working || !g.canStartStudio,
       };
     }
     if (g.plan === null) {
@@ -132,6 +133,12 @@ export function VideoGeneratorTabContent({ apiKey }: { apiKey: string }) {
       disabled: working || !g.readyToRender || g.renderActive,
     };
   })();
+
+  const busyStatusLabel = g.busy ?? b.busy;
+  const primaryActionResolved =
+    primaryAction && working && busyStatusLabel
+      ? { ...primaryAction, label: busyStatusLabel }
+      : primaryAction;
 
   return (
     <div className="relative flex h-full min-h-0 w-full flex-1 flex-row overflow-hidden bg-black font-sans text-base">
@@ -174,7 +181,9 @@ export function VideoGeneratorTabContent({ apiKey }: { apiKey: string }) {
         render={g.render}
         selectedSceneId={g.selectedSceneId}
         onSelectScene={g.selectScene}
-        onSendSceneInstruction={(sceneId, instruction) => void g.sendInstruction("scene", instruction, sceneId)}
+        onSendSceneInstruction={(sceneId, instruction, postCutReference) =>
+          void g.sendInstruction("scene", instruction, sceneId, postCutReference)
+        }
         onRegenerateEnvironmentPlate={(sceneId) => void g.regenerateEnvironmentPlate(sceneId)}
         onRegenerateFrame={(sceneId) => void g.regenerateFrame(sceneId)}
         onRerenderSceneClip={(sceneId) => void g.rerenderSceneClip(sceneId)}
@@ -215,7 +224,7 @@ export function VideoGeneratorTabContent({ apiKey }: { apiKey: string }) {
           frames={g.frames}
           render={g.render}
           renderActive={g.renderActive}
-          primaryAction={primaryAction}
+          primaryAction={primaryActionResolved}
           onLengthChange={g.setLengthSeconds}
           onAspectChange={g.setAspect}
           onResolutionChange={g.setResolution}
@@ -249,14 +258,24 @@ export function VideoGeneratorTabContent({ apiKey }: { apiKey: string }) {
             onSelectScene={g.selectScene}
             render={g.render}
             disabled={working}
+            onPromptChange={g.setPrompt}
+            productPhotoCount={g.subjectPhotos.length}
+            referenceCount={g.brief.references.length}
+            isPreparingSubject={g.isPreparingSubject}
+            isPreparingReferences={g.isPreparingReferences}
+            onAddProductFiles={(files) => void g.addSubjectFiles(files)}
+            onAddReferenceFiles={(files) => void g.addReferenceFiles(files)}
             onRegenerateProductView={(viewId) => g.regenerateProductView(viewId)}
             onReviseProductView={(viewId, instruction) => void g.reviseProductView(viewId, instruction)}
             onToggleSceneApproved={g.toggleSceneApproved}
             onApprovePlanAndBeginStoryboard={() => void g.approvePlanAndBeginStoryboard()}
-            onSendSceneInstruction={(sceneId, instruction) => void g.sendInstruction("scene", instruction, sceneId)}
+            onSendSceneInstruction={(sceneId, instruction, postCutReference) =>
+          void g.sendInstruction("scene", instruction, sceneId, postCutReference)
+        }
             onRegenerateEnvironmentPlate={(sceneId) => void g.regenerateEnvironmentPlate(sceneId)}
             onRegenerateFrame={(sceneId) => void g.regenerateFrame(sceneId)}
             onRerenderSceneClip={(sceneId) => void g.rerenderSceneClip(sceneId)}
+            productViewsBatchBusy={productViewsBatchBusy}
           />
           <div className="mt-2 shrink-0">
             <VideoInstructionBar

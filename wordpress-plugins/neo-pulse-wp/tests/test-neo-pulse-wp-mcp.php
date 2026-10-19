@@ -359,7 +359,6 @@ require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-neo-pulse-wp-seo-head.php
 require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-neo-pulse-wp-seo-faq.php';
 require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-neo-pulse-wp-business.php';
 require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-neo-pulse-wp-mcp.php';
-require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/emcp/class-neo-pulse-wp-emcp-guards.php';
 
 function assert_true( bool $cond, string $msg ): void {
 	if ( ! $cond ) {
@@ -371,8 +370,8 @@ function assert_true( bool $cond, string $msg ): void {
 // 1. Test unknown key preservation in Neo_Pulse_Wp_Business::sanitize()
 $sanitized = Neo_Pulse_Wp_Business::sanitize(
 	array(
-		'name'                  => 'Blind Magic',
-		'legal_name'            => 'Blind Magic Window Coverings Ltd.',
+		'name'                  => 'Example Shades',
+		'legal_name'            => 'Example Shades Ltd.',
 		'geo'                   => array( 'lat' => '53.5461', 'lng' => '-113.4937' ),
 		'future_neo_tools_key'  => 'kept_safely',
 		'future_nested_setting' => array( 'tier' => 'gold' ),
@@ -388,11 +387,11 @@ $GLOBALS['__test_posts'][101] = new WP_Post(
 		'ID'          => 101,
 		'post_type'   => 'location',
 		'post_status' => 'publish',
-		'post_title'  => 'Edmonton Showroom',
+		'post_title'  => 'Downtown Showroom',
 	)
 );
 update_post_meta( 101, 'showroom_or_service_area', 'Showroom' );
-update_post_meta( 101, 'address', '10945 120 St NW, Edmonton, AB T5H 3P9' );
+update_post_meta( 101, 'address', '100 Main St, Calgary, AB T2P 1J9' );
 update_post_meta( 101, 'monday_hours', '9:00 am - 5:00 pm' );
 
 $GLOBALS['__test_posts'][102] = new WP_Post(
@@ -400,7 +399,7 @@ $GLOBALS['__test_posts'][102] = new WP_Post(
 		'ID'          => 102,
 		'post_type'   => 'location',
 		'post_status' => 'publish',
-		'post_title'  => 'Beaumont Service Area',
+		'post_title'  => 'Suburb Service Area',
 	)
 );
 update_post_meta( 102, 'showroom_or_service_area', 'Service Area' );
@@ -427,7 +426,7 @@ assert_true( isset( $write_catalog['operations']['undo'] ), 'Write catalog must 
 $missing_create = Neo_Pulse_Wp_Mcp::write(
 	array(
 		'operation' => 'update-business-details',
-		'arguments' => array( 'name' => 'Blind Magic' ),
+		'arguments' => array( 'name' => 'Example Shades' ),
 	)
 );
 assert_true( is_wp_error( $missing_create ) && 'invalid_argument' === $missing_create->get_error_code(), 'Must refuse creating business details without create: true' );
@@ -439,7 +438,7 @@ $dry = Neo_Pulse_Wp_Mcp::write(
 		'arguments' => array(
 			'create'  => true,
 			'dry_run' => true,
-			'name'    => 'Blind Magic',
+			'name'    => 'Example Shades',
 		),
 	)
 );
@@ -452,8 +451,8 @@ $created = Neo_Pulse_Wp_Mcp::write(
 		'operation' => 'update-business-details',
 		'arguments' => array(
 			'create'             => true,
-			'name'               => 'Blind Magic',
-			'legal_name'         => 'Blind Magic Ltd.',
+			'name'               => 'Example Shades',
+			'legal_name'         => 'Example Shades Ltd.',
 			'custom_unknown_key' => 'survives_pulse_save',
 		),
 	)
@@ -499,13 +498,13 @@ assert_true( ! is_wp_error( $undone ) && ! empty( $undone['ok'] ), 'Undo must su
 assert_true( ! Neo_Pulse_Wp_Business::exists(), 'Undo of initial create must remove the option' );
 
 // 7. Test Ownership & Secret Guards
-$veto_secret = Neo_Pulse_Wp_Emcp_Guards::check_option_write_allowed( 'neo_pulse_wp_site_key' );
+$veto_secret = Neo_Pulse_Wp_Mcp_Guards::check_option_write_allowed( 'neo_pulse_wp_site_key' );
 assert_true( is_wp_error( $veto_secret ) && 'forbidden' === $veto_secret->get_error_code(), 'Secret option write must be forbidden' );
 
-$veto_owned = Neo_Pulse_Wp_Emcp_Guards::check_option_write_allowed( 'neo_business_details' );
+$veto_owned = Neo_Pulse_Wp_Mcp_Guards::check_option_write_allowed( 'neo_business_details' );
 assert_true( is_wp_error( $veto_owned ) && 'owned_by_neo_plugin' === $veto_owned->get_error_code(), 'Owned option raw write must be refused' );
 
-$masked = Neo_Pulse_Wp_Emcp_Guards::redact_secrets_after_execute(
+$masked = Neo_Pulse_Wp_Mcp_Guards::redact_secrets_after_execute(
 	array(
 		'neo_pulse_wp_site_key' => 'nd_live_secret_9876',
 		'normal_field'          => 'keep_me',
@@ -517,4 +516,39 @@ $masked = Neo_Pulse_Wp_Emcp_Guards::redact_secrets_after_execute(
 assert_true( 'set (****9876)' === $masked['neo_pulse_wp_site_key'], 'Secret key must be masked to last 4 chars' );
 assert_true( 'keep_me' === $masked['normal_field'], 'Normal fields must be untouched' );
 
-echo "ALL NEO PULSE MCP & EMCP GUARD TESTS PASSED.\n";
+// 8. Test Audit detects legacy/foreign business name from site-local options_ci_company_name
+Neo_Pulse_Wp_Mcp::write(
+	array(
+		'operation' => 'update-business-details',
+		'arguments' => array(
+			'create' => true,
+			'name'   => 'Example Shades',
+		),
+	)
+);
+update_option( 'options_ci_company_name', 'Old Stale Brand' );
+update_post_meta(
+	101,
+	'rank_math_schema_FAQPage',
+	array(
+		'@type'      => 'FAQPage',
+		'mainEntity' => array(
+			array(
+				'@type'          => 'Question',
+				'name'           => 'Why choose Old Stale Brand?',
+				'acceptedAnswer' => array( '@type' => 'Answer', 'text' => 'We are great.' ),
+			),
+		),
+	)
+);
+$audit_res = Neo_Pulse_Wp_Mcp::read( array( 'operation' => 'audit' ) );
+$found_foreign = false;
+foreach ( $audit_res['findings'] ?? array() as $f ) {
+	if ( 'foreign_business_in_schema' === ( $f['code'] ?? '' ) && 'Old Stale Brand' === ( $f['foreign_name'] ?? '' ) ) {
+		$found_foreign = true;
+		break;
+	}
+}
+assert_true( $found_foreign, 'Audit must detect stale business name from site-local options_ci_company_name' );
+
+echo "ALL NEO PULSE MCP & GUARD TESTS PASSED.\n";

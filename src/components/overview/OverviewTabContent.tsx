@@ -1,117 +1,175 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  SEO_WORKSPACE_BODY_SCROLL_CLASS,
-  SEO_WORKSPACE_HEADER_CLASS,
-} from "@/components/seo/seo-workspace-layout";
-import { OverviewPagesSection } from "@/components/overview/OverviewPagesSection";
-import { OverviewTabSitemapBulkForm } from "@/components/overview/overview-tab/OverviewTabSitemapBulkForm";
+  isOverviewBulkWorkerActive,
+  resolveOverviewOptimizingRowUrl,
+} from "@/components/overview/overview-tab/overview-bulk-run-helpers";
+import { OverviewStudioRevisionsPage } from "@/components/overview/studio/OverviewStudioRevisionsPage";
+import { OverviewStudioTabShell } from "@/components/overview/studio/OverviewStudioTabShell";
+import { OverviewVisualDocCanvas } from "@/components/overview/studio/OverviewVisualDocCanvas";
 import type { OverviewTabContentProps } from "@/components/overview/overview-tab/overview-tab-content-types";
-import {
-  CONTENT_OPTIMIZER_BODY_INSET_CLASS,
-  CONTENT_OPTIMIZER_WORKSPACE_SHELL_CLASS,
-} from "@/components/overview/overview-tab/overview-tab-content-constants";
 import { useOverviewTabController } from "@/hooks/overview/use-overview-tab-controller";
 import { useOverviewTabShellDerived } from "@/hooks/overview/use-overview-tab-shell-derived";
-import { cn } from "@/lib/utils";
 import { usePulseAssistOverviewBridge } from "@/hooks/use-pulse-assist-overview-bridge";
+import { consumeOverviewOptimizedUpload } from "@/lib/overview/overview-content-opt-html-store";
+import { setStudioDocRevisionsViewBridge } from "@/lib/overview/studio-doc-revisions-view-bridge";
+import { normalizePageUrlKey } from "@/lib/sitemap-optimizer/normalize-page-url";
+export type StudioCenterView = "document" | "revisions";
 
 export function OverviewTabContent(props: OverviewTabContentProps) {
   const ctrl = useOverviewTabController(props);
   const derived = useOverviewTabShellDerived(ctrl);
-  const batchProgress = derived.bulkBatchKey
-    ? ctrl.opt.optimizationProgress[derived.bulkBatchKey]
-    : undefined;
-  const { site } = ctrl;
+  const [inFlightAutoSeoUrl, setInFlightAutoSeoUrl] = useState<string | null>(null);
+  const [studioCenterView, setStudioCenterView] = useState<StudioCenterView>("document");
+
+  const batchRunning = useMemo(
+    () =>
+      ctrl.site
+        ? isOverviewBulkWorkerActive(
+            ctrl.opt.isOptimizingContent,
+            derived.bulkBatchKey,
+            ctrl.site.id,
+            derived.batchBulkState,
+          )
+        : false,
+    [
+      ctrl.site,
+      ctrl.opt.isOptimizingContent,
+      derived.bulkBatchKey,
+      derived.batchBulkState,
+    ],
+  );
+
+  const optimizingRowUrl = useMemo(
+    () =>
+      resolveOverviewOptimizingRowUrl({
+        batchBulkState: derived.batchBulkState,
+        batchRunning,
+        siteId: ctrl.site?.id,
+        isOptimizingContent: ctrl.opt.isOptimizingContent,
+        pendingOptimization: ctrl.opt.pendingOptimization,
+        optimizationProgress: ctrl.opt.optimizationProgress,
+        inFlightAutoSeoUrl,
+      }),
+    [
+      derived.batchBulkState,
+      batchRunning,
+      ctrl.site?.id,
+      ctrl.opt.isOptimizingContent,
+      ctrl.opt.pendingOptimization,
+      ctrl.opt.optimizationProgress,
+      inFlightAutoSeoUrl,
+    ],
+  );
+
+  // Apply newly generated AISEO Content HTML to rows as each post in a batch completes
+  useEffect(() => {
+    const statuses = derived.batchBulkState?.urlStatuses;
+    if (!statuses) return;
+    for (const [url, status] of Object.entries(statuses)) {
+      if (status !== "completed") continue;
+      const payload = consumeOverviewOptimizedUpload(url);
+      if (!payload?.html?.trim()) continue;
+      const urlKey = normalizePageUrlKey(url);
+      const rowIdx = ctrl.rowsRef.current.findIndex(
+        (r) => normalizePageUrlKey(r.url) === urlKey,
+      );
+      if (rowIdx >= 0) {
+        ctrl.updateRow(rowIdx, {
+          postContent: payload.html,
+          postContentOptimized: payload.html,
+          ...(payload.link?.trim() ? { url: payload.link.trim() } : {}),
+        });
+      }
+    }
+  }, [derived.batchBulkState?.urlStatuses, ctrl]);
+
+  // Auto-select the first available article when none is selected so the Visual Doc Studio is immediately active
+  useEffect(() => {
+    if (ctrl.expandedPageUrl) {
+      const activeKey = normalizePageUrlKey(ctrl.expandedPageUrl);
+      const exists = ctrl.displayRows.some(
+        (r) => normalizePageUrlKey(r.url) === activeKey,
+      );
+      if (exists) return;
+    }
+    const firstUrl = ctrl.displayRows[0]?.url;
+    if (firstUrl) {
+      ctrl.setExpandedPageUrl(firstUrl);
+    }
+  }, [ctrl.expandedPageUrl, ctrl.displayRows, ctrl.setExpandedPageUrl]);
+
+  const activeRowIndex = useMemo(() => {
+    if (!ctrl.expandedPageUrl) return -1;
+    const activeKey = normalizePageUrlKey(ctrl.expandedPageUrl);
+    return ctrl.rows.findIndex((r) => normalizePageUrlKey(r.url) === activeKey);
+  }, [ctrl.expandedPageUrl, ctrl.rows]);
+
+  const activeRow = activeRowIndex >= 0 ? ctrl.rows[activeRowIndex] ?? null : null;
 
   const expandedPageTitle = useMemo(() => {
-    if (!ctrl.expandedPageUrl) return null;
-    const row = ctrl.displayRows.find((r) => r.url === ctrl.expandedPageUrl);
-    return row?.title || ctrl.wpTitlesByUrl[ctrl.expandedPageUrl] || null;
-  }, [ctrl.displayRows, ctrl.expandedPageUrl, ctrl.wpTitlesByUrl]);
+    if (!activeRow) return null;
+    return activeRow.title || ctrl.wpTitlesByUrl[activeRow.url] || null;
+  }, [activeRow, ctrl.wpTitlesByUrl]);
 
   usePulseAssistOverviewBridge({
     sitemapSource: ctrl.sitemapSource,
-    expandedPageUrl: ctrl.expandedPageUrl,
+    expandedPageUrl: activeRow?.url ?? ctrl.expandedPageUrl,
     expandedPageTitle,
   });
 
+  useEffect(() => {
+    setStudioDocRevisionsViewBridge({
+      openRevisions: () => setStudioCenterView("revisions"),
+    });
+    return () => setStudioDocRevisionsViewBridge(null);
+  }, []);
+
+  useEffect(() => {
+    setStudioCenterView("document");
+  }, [activeRow?.url]);
+
+  const selectDocUrl = (url: string) => {
+    if (normalizePageUrlKey(ctrl.expandedPageUrl ?? "") === normalizePageUrlKey(url)) {
+      return;
+    }
+    ctrl.setExpandedPageUrl(url);
+  };
+
   return (
-    <div className={CONTENT_OPTIMIZER_WORKSPACE_SHELL_CLASS}>
-      <div className={SEO_WORKSPACE_HEADER_CLASS}>
-        <OverviewTabSitemapBulkForm
-          ctrl={ctrl}
-          metaOptBulkStripBusy={derived.metaOptBulkStripBusy}
-          bulkWorkspaceBusy={derived.bulkWorkspaceBusy}
-          bulkMicroSnapshot={derived.bulkMicroSnapshot}
-          isBatchContentRunning={derived.isBatchContentRunning}
-          isSinglePageOptimizing={derived.isSinglePageOptimizing}
-          batchBulkState={derived.batchBulkState}
-          bulkBatchKey={derived.bulkBatchKey}
-          batchProgress={batchProgress}
-          opt={ctrl.opt}
-          setBulkActionProgress={ctrl.setBulkActionProgress}
-          onUploadToWordPress={() => void ctrl.handleBulkUploadToWordPress()}
-          optimizerSection={props.optimizerSection}
-          onOptimizerSectionChange={props.onOptimizerSectionChange}
-          paginationLayoutTotal={props.paginationLayoutTotal}
-          generatorChrome={props.generatorChrome}
-        />
-      </div>
-      <div
-        className={cn(
-          SEO_WORKSPACE_BODY_SCROLL_CLASS,
-          CONTENT_OPTIMIZER_BODY_INSET_CLASS,
-          "relative",
-        )}
-      >
-        <OverviewPagesSection
-        site={site}
-        sitemapSource={ctrl.sitemapSource}
-        rows={ctrl.rows}
-        displayRows={ctrl.displayRows}
-        selectedUrlKeys={ctrl.selectedUrlKeys}
-        toggleSelectedUrlKey={ctrl.toggleSelectedUrlKey}
-        toggleSelectPageRows={ctrl.toggleSelectPageRows}
-        gridPageIndex={ctrl.gridPageIndex}
-        wpTitlesByUrl={ctrl.wpTitlesByUrl}
-        expandedPageUrl={ctrl.expandedPageUrl}
-        toggleExpandedPageUrl={ctrl.toggleExpandedPageUrl}
-        bindings={ctrl.bindings}
-        opt={ctrl.opt}
-        bulkAiFaqSeedCount={ctrl.bulkAiFaqSeedCount}
-        expandedResearchBriefUrl={ctrl.expandedResearchBriefUrl}
-        setExpandedResearchBriefUrl={ctrl.setExpandedResearchBriefUrl}
-        expandedContentUrl={ctrl.expandedContentUrl}
-        setExpandedContentUrl={ctrl.setExpandedContentUrl}
-        updateRow={ctrl.updateRow}
-        handleAiUrlRow={ctrl.handleAiUrlRow}
-        handleScrapeRow={ctrl.handleScrapeRow}
-        handleUpdateWordPressForRow={ctrl.handleUpdateWordPressForRow}
-        handleDataForSeoResearch={ctrl.handleDataForSeoResearch}
-        handleOptimizeAllSerpRow={ctrl.handleOptimizeAllSerpRow}
-        handleAiAllMetaRow={ctrl.handleAiAllMetaRow}
-        handleAiTitleRow={ctrl.handleAiTitleRow}
-        handleAiMetaRow={ctrl.handleAiMetaRow}
-        handleAiKeywordRow={ctrl.handleAiKeywordRow}
-        handleSetDateToday={ctrl.handleSetDateToday}
-        commitRowDateModifier={ctrl.commitRowDateModifier}
-        handleAiFaqRowAll={ctrl.handleAiFaqRowAll}
-        handleAiFaqQuestion={ctrl.handleAiFaqQuestion}
-        handleAiFaqAnswer={ctrl.handleAiFaqAnswer}
-        handleAiHeadersRow={ctrl.handleAiHeadersRow}
-        handleAiLinksRow={ctrl.handleAiLinksRow}
-        handleAiWikipediaLinkRow={ctrl.handleAiWikipediaLinkRow}
-        handleAiAnswerRow={ctrl.handleAiAnswerRow}
-        handleAiOverviewRow={ctrl.handleAiOverviewRow}
-        handleAiScenarioRow={ctrl.handleAiScenarioRow}
-        handleAiInContentImageRow={ctrl.handleAiInContentImageRow}
-        handleAiElementorSectionRow={ctrl.handleAiElementorSectionRow}
-        handleAiElementorSectionHeaderRow={ctrl.handleAiElementorSectionHeaderRow}
-        handleAiElementorSectionContentRow={ctrl.handleAiElementorSectionContentRow}
-        handleAiElementorSectionLinkRow={ctrl.handleAiElementorSectionLinkRow}
-        handleAiElementorFullPageRow={ctrl.handleAiElementorFullPageRow}
-      />
-      </div>
-    </div>
+    <OverviewStudioTabShell
+      dock={{
+        ctrl,
+        activeUrl: activeRow?.url ?? ctrl.expandedPageUrl,
+        optimizingRowUrl,
+        batchBulkState: derived.batchBulkState,
+        batchRunning,
+        onSelectUrl: selectDocUrl,
+        bulkWorkspaceBusy: derived.bulkWorkspaceBusy,
+        optimizerSection: props.optimizerSection,
+        onOptimizerSectionChange: props.onOptimizerSectionChange,
+      }}
+      main={
+        studioCenterView === "revisions" && activeRow ? (
+          <OverviewStudioRevisionsPage
+            row={activeRow}
+            wpTitlesByUrl={ctrl.wpTitlesByUrl}
+            siteId={ctrl.site?.id ?? null}
+            onBackToEditor={() => setStudioCenterView("document")}
+          />
+        ) : (
+          <OverviewVisualDocCanvas
+            ctrl={ctrl}
+            row={activeRow}
+            rowIndex={activeRowIndex}
+            bulkWorkspaceBusy={derived.bulkWorkspaceBusy}
+            bulkMicroSnapshot={derived.bulkMicroSnapshot}
+            batchBulkState={derived.batchBulkState}
+            optimizingRowUrl={optimizingRowUrl}
+            onInFlightAutoSeoUrlChange={setInFlightAutoSeoUrl}
+            onOpenRevisions={() => setStudioCenterView("revisions")}
+          />
+        )
+      }
+    />
   );
 }

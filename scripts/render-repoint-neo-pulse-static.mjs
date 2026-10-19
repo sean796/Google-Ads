@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(__dirname, "..");
 
-process.env.NEO_PULSE_RENDER_REPO = "https://github.com/sean796/Google-Ads";
+process.env.NEO_PULSE_RENDER_REPO = "https://github.com/neodigitalca/neo-pulse";
 process.env.NEO_PULSE_RENDER_BRANCH = "main";
 
 const child = spawnSync("node", [path.join(repoRoot, "scripts", "render-provision-neo-pulse.mjs")], {

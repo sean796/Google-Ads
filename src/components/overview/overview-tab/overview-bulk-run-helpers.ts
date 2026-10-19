@@ -123,6 +123,36 @@ export function isOverviewRowBulkActive(
   return normalizePageUrlKey(rowUrl) === normalizePageUrlKey(active);
 }
 
+export function resolveOverviewOptimizingRowUrl(args: {
+  batchBulkState: BulkOptimizationState | undefined;
+  batchRunning: boolean;
+  siteId?: string;
+  isOptimizingContent: Record<string, boolean>;
+  pendingOptimization: Opt["pendingOptimization"];
+  optimizationProgress: Opt["optimizationProgress"];
+  inFlightAutoSeoUrl?: string | null;
+}): string | null {
+  const fromBatch = getOverviewBulkActiveRowUrl(args.batchBulkState, args.batchRunning);
+  if (fromBatch) return fromBatch;
+  const inFlight = args.inFlightAutoSeoUrl?.trim();
+  if (inFlight) return inFlight;
+  if (args.siteId && args.isOptimizingContent[args.siteId]) {
+    const pending = args.pendingOptimization[args.siteId]?.url?.trim();
+    if (pending) return pending;
+    const progress = args.optimizationProgress[args.siteId]?.pageUrl?.trim();
+    if (progress) return progress;
+  }
+  return null;
+}
+
+export function isOverviewRowOptimizationActive(
+  rowUrl: string,
+  optimizingUrl: string | null | undefined,
+): boolean {
+  if (!rowUrl?.trim() || !optimizingUrl?.trim()) return false;
+  return normalizePageUrlKey(rowUrl) === normalizePageUrlKey(optimizingUrl);
+}
+
 /** Details drawer row highlight: match optimizing URL, not only paginated index. */
 export function isBulkDetailsDrawerRowActive(
   rowUrl: string | undefined,

@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ManualImageReference } from "@/lib/image-generator/manual-reference-upload";
-import { manualReferenceFromDataUrl, prepareManualReference } from "@/lib/image-generator/manual-reference-upload";
+import {
+  manualReferenceFromDataUrl,
+  prepareVideoStudioReference,
+  referenceUploadFiles,
+} from "@/lib/image-generator/manual-reference-upload";
+import { sceneBeatReferenceDataUrls } from "@/lib/video-generator/video-client-location-reference";
 import { getImageModel, getVideoModel } from "@/lib/optimization-settings-storage";
 import { writeGlobalVideoAgentModel } from "@/lib/global-agent-models";
 import type { OpenRouterAppStreamDelta } from "@/lib/openrouter-app-api";
@@ -17,6 +22,7 @@ import type {
   VideoProjectSnapshot,
   VideoProjectSummary,
   VideoRenderSnapshot,
+  PostCutSceneReference,
   VideoScenePlan,
   VideoStoredClip,
   VideoStoredRenderSummary,
@@ -139,6 +145,10 @@ export function useVideoGenerator(apiKey: string) {
 
   const needsProductStep = subjectPhotos.length > 0;
 
+  const canStartStudio = Boolean(
+    prompt.trim() || subjectPhotos.length > 0 || references.length > 0,
+  );
+
   const productViewsMap = useMemo(() => {
     const map: Partial<Record<ProductViewId, string>> = {};
     for (const v of productLock.views) {
@@ -192,13 +202,25 @@ export function useVideoGenerator(apiKey: string) {
   }, [apiKey]);
 
   const addReferenceFiles = useCallback(async (files: FileList | File[]) => {
-    const list = Array.from(files).filter((f) => f.type.startsWith("image/"));
-    if (!list.length) return;
+    const list = referenceUploadFiles(files);
+    if (!list.length) {
+      setError("Story-beat references must be images, not video. Use a reference video on the Video filter tab.");
+      return;
+    }
     setIsPreparingReferences(true);
     setError("");
     try {
-      const prepared = await Promise.all(list.map((f) => prepareManualReference(f)));
+      const settled = await Promise.allSettled(list.map((f) => prepareVideoStudioReference(f)));
+      const prepared = settled.filter((r) => r.status === "fulfilled").map((r) => r.value);
+      const failed = settled.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
+      if (!prepared.length) {
+        setError(errorText(failed[0]?.reason ?? "Could not read the selected files as images."));
+        return;
+      }
       setReferences((prev) => [...prev, ...prepared]);
+      if (failed.length) {
+        setError(`${prepared.length} reference(s) added. ${failed.length} file(s) could not be read as images.`);
+      }
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -246,14 +268,17 @@ export function useVideoGenerator(apiKey: string) {
     async (files: FileList | File[]) => {
       const key = requireApiKey();
       if (!key) return;
-      const list = Array.from(files).filter((f) => f.type.startsWith("image/"));
-      if (!list.length) return;
+      const list = referenceUploadFiles(files);
+      if (!list.length) {
+        setError("Product photos must be images, not video.");
+        return;
+      }
       videoLog("subject", "photos added", list.map((f) => ({ name: f.name, bytes: f.size })));
       setIsPreparingSubject(true);
       setError("");
       let prepared: ManualImageReference[];
       try {
-        prepared = await Promise.all(list.map((f) => prepareManualReference(f)));
+        prepared = await Promise.all(list.map((f) => prepareVideoStudioReference(f)));
       } catch (e) {
         videoLogError("subject", "photo prepare failed", e);
         setError(errorText(e));
@@ -346,11 +371,7 @@ export function useVideoGenerator(apiKey: string) {
       };
       patch({ status: "generating", error: undefined, imageDataUrl: refs.currentFrameDataUrl, videoPrompt: undefined });
       try {
-        const sceneReferenceDataUrls = scene.referenceIndexes.map((n) => {
-          const ref = references[n - 1];
-          if (!ref) throw new Error(`Upload ${n} was removed after the plan was written; regenerate the plan.`);
-          return ref.dataUrl;
-        });
+        const sceneReferenceDataUrls = sceneBeatReferenceDataUrls(scene, references);
         const imageDataUrl = await generateStoryboardFrame({
           apiKey: key,
           imageModel,
@@ -358,7 +379,7 @@ export function useVideoGenerator(apiKey: string) {
           scene,
           aspect,
           subjectDataUrl: subject?.dataUrl,
-          productSpec: productLock.spec,
+          productSpec: scene.productView ? productLock.spec : undefined,
           productViews: productViewsMap,
           environmentDataUrl: refs.environmentDataUrl,
           sameLocationFrameDataUrl: refs.sameLocationFrameDataUrl,
@@ -402,7 +423,7 @@ export function useVideoGenerator(apiKey: string) {
           plan: currentPlan,
           scene,
           frameDataUrl,
-          productSpec: productLock.spec,
+          productSpec: scene.productView ? productLock.spec : undefined,
           previousScene: currentPlan.scenes[index - 1],
           previousFrameDataUrl,
           nextScene: currentPlan.scenes[index + 1],
@@ -440,7 +461,7 @@ export function useVideoGenerator(apiKey: string) {
       currentEnv: Map<string, string> = new Map(),
     ): Promise<{ framesById: Map<string, string>; promptsById: Map<string, string> }> => {
       const heroId = currentPlan.scenes[0].id;
-      const hasLockedProductViews = Object.keys(productViewsMap).length >= 2;
+      const hasLockedProductViews = currentPlan.scenes.some((s) => s.productView);
       videoLog("storyboard", `run ${run}: draw ${drawIds.length} frames, write ${promptIds.length} prompts`, {
         draw: drawIds,
         prompts: promptIds,
@@ -997,9 +1018,9 @@ export function useVideoGenerator(apiKey: string) {
 
   const askQuestions = useCallback(async () => {
     const key = requireApiKey();
-    if (!key || !prompt.trim()) return;
+    if (!key || !canStartStudio) return;
     await clarify(key, brief);
-  }, [brief, clarify, prompt, requireApiKey]);
+  }, [brief, canStartStudio, clarify, requireApiKey]);
 
   const answerQuestion = useCallback((id: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [id]: value }));
@@ -1439,7 +1460,12 @@ export function useVideoGenerator(apiKey: string) {
   );
 
   const sendInstruction = useCallback(
-    async (scope: InstructionScope, instruction: string, targetSceneId?: string) => {
+    async (
+      scope: InstructionScope,
+      instruction: string,
+      targetSceneId?: string,
+      postCutReference?: PostCutSceneReference,
+    ) => {
       const key = requireApiKey();
       const text = instruction.trim();
       if (!key || !plan || !text) return;
@@ -1450,13 +1476,39 @@ export function useVideoGenerator(apiKey: string) {
         if (scope === "scene") {
           const sceneId = activeSceneId as string;
           const before = plan.scenes.find((s) => s.id === sceneId);
+          const planForRevise: VideoPlan = postCutReference
+            ? {
+                ...plan,
+                scenes: plan.scenes.map((s) =>
+                  s.id === sceneId
+                    ? {
+                        ...s,
+                        postCutReferenceDataUrl: postCutReference.dataUrl,
+                        postCutReferenceFileName: postCutReference.fileName,
+                      }
+                    : s,
+                ),
+              }
+            : plan;
+          if (postCutReference) setPlan(planForRevise);
           setBusy(`Director is revising scene ${before?.order ?? ""} ("${text}")`);
-          const revised = await runVideoDirectorReviseScene({ apiKey: key, brief, plan, sceneId, instruction: text });
-          const revisedWithApproval = { ...revised, approved: before?.approved };
-          const index = plan.scenes.findIndex((s) => s.id === sceneId);
+          const revised = await runVideoDirectorReviseScene({
+            apiKey: key,
+            brief,
+            plan: planForRevise,
+            sceneId,
+            instruction: text,
+          });
+          const revisedWithApproval: VideoScenePlan = {
+            ...revised,
+            approved: before?.approved,
+            postCutReferenceDataUrl: postCutReference?.dataUrl ?? before?.postCutReferenceDataUrl,
+            postCutReferenceFileName: postCutReference?.fileName ?? before?.postCutReferenceFileName,
+          };
+          const index = planForRevise.scenes.findIndex((s) => s.id === sceneId);
           const nextPlan: VideoPlan = {
-            ...plan,
-            scenes: plan.scenes.map((s) => (s.id === sceneId ? revisedWithApproval : s)),
+            ...planForRevise,
+            scenes: planForRevise.scenes.map((s) => (s.id === sceneId ? revisedWithApproval : s)),
           };
           const run = bumpRun(`scene ${revised.order} revised`);
           setPlan(nextPlan);
@@ -1464,9 +1516,12 @@ export function useVideoGenerator(apiKey: string) {
           if (frames.length === 0) {
             return;
           }
-          const current = frames.find((f) => f.imageDataUrl && f.sceneId === sceneId)?.imageDataUrl;
+          const current = postCutReference
+            ? undefined
+            : frames.find((f) => f.imageDataUrl && f.sceneId === sceneId)?.imageDataUrl;
           const currentEnvUrl = frames.find((f) => f.environmentDataUrl && f.sceneId === sceneId)?.environmentDataUrl;
-          const envChanged = revised.environmentPrompt !== before?.environmentPrompt;
+          const envChanged =
+            Boolean(postCutReference) || revised.environmentPrompt !== before?.environmentPrompt;
           const existing = new Map(frames.filter((f) => f.imageDataUrl && f.sceneId !== sceneId).map((f) => [f.sceneId, f.imageDataUrl as string]));
           const existingEnv = new Map(
             frames
@@ -1926,6 +1981,7 @@ export function useVideoGenerator(apiKey: string) {
     renderVideo,
     reset,
     needsProductStep,
+    canStartStudio,
     continueToProduct,
     productLock,
     productReadyToLock,

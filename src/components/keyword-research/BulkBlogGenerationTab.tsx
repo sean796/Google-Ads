@@ -3,13 +3,24 @@ import { BulkAutoGeneratePanel } from "./BulkAutoGeneratePanel";
 import { BLOG_GENERATOR_TAB_ROOT_CLASS, BLOG_GENERATOR_WORKSPACE_BODY_CLASS, BLOG_GENERATOR_WORKSPACE_HEADER_CLASS, BULK_GENERATOR_EMPTY_ROW_COUNT } from "@/components/keyword-research/blog-generator-tab-classes";
 import { WORKSPACE_DETAILS_DIM_OVERLAY_CLASS } from "@/components/overview/overview-tab/overview-tab-content-constants";
 import { cn } from "@/lib/utils";
-import { BlogImportWorkspaceHeader } from "@/components/keyword-research/bulk/BlogImportWorkspaceHeader";
-import { BulkCsvRunProgressGrid } from "@/components/keyword-research/bulk/BulkCsvRunProgressGrid";
-import { BulkCsvWorkspaceHeader } from "@/components/keyword-research/bulk/BulkCsvWorkspaceHeader";
-import { BulkPromptWorkspaceHeader } from "@/components/keyword-research/bulk/BulkPromptWorkspaceHeader";
+import { BulkGeneratorOverviewTabContent } from "@/components/keyword-research/bulk/BulkGeneratorOverviewTabContent";
+import type { OverviewSitemapLeftDockBulkGeneratorDock } from "@/components/overview/studio/OverviewSitemapLeftDock";
+import {
+  BulkCsvDockToolbar,
+  BulkImportDockToolbar,
+  BulkPromptDockToolbar,
+} from "@/components/keyword-research/bulk/bulk-generator-studio-chrome";
+import {
+  readStoredContentOptimizerSection,
+  writeStoredContentOptimizerSection,
+  type ContentOptimizerSectionId,
+} from "@/components/content-optimizer/content-optimizer-sections";
+import type { BulkGeneratorDetailsPanelProps } from "@/components/keyword-research/bulk/BulkGeneratorDetailsPanel";
+import { buildPromptChecklistHarnessSections } from "@/lib/bulk/prompt-bulk-checklist-harness-sections";
+import { GOOGLE_IMAGE_ENTITY_SAP_PIPELINE_TITLES } from "@/lib/overview/overview-content-optimize-pipeline";
+import { useOverviewSiteWarmDetails } from "@/hooks/overview/use-overview-site-warm-details";
+import { BLOG_IMPORT_PIPELINE_TITLES } from "@/lib/bulk/blog-import-minimal";
 import { BulkGeneratorScheduleMenu } from "@/components/keyword-research/bulk/BulkGeneratorScheduleMenu";
-import { BulkGeneratorSitemapMenu } from "@/components/keyword-research/bulk/BulkGeneratorSitemapMenu";
-import { generatorTitleRowPrimarySelectSlotProps } from "@/components/blog-generator/generator-title-row-select-width";
 import { GENERATOR_TOOLBAR_SLOT_RESERVE } from "@/components/blog-generator/generator-toolbar-theme";
 import { BULK_HEADER_ICON_TOOL_BTN } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import type { BulkGeneratorWorkspaceBindings } from "@/components/keyword-research/bulk/bulk-generator-workspace-bindings";
@@ -28,7 +39,6 @@ import {
   blogImportHeaderProgressFromBulk,
   buildBlogImportMicroSnapshot,
 } from "@/lib/bulk/blog-import-header-progress";
-import { BLOG_IMPORT_PIPELINE_TITLES } from "@/lib/bulk/blog-import-minimal";
 import { countBulkCsvRowsDone } from "@/lib/bulk/bulk-csv-row-run-status";
 import { PressReleaseTab } from "@/components/keyword-research/PressReleaseTab";
 import { PressReleaseWorkspaceBody } from "@/components/press-release/PressReleaseWorkspaceBody";
@@ -41,9 +51,6 @@ import {
 import { notify } from "@/lib/app-notifications";
 import { notifyLoadedCsvX, NOTIFY_OPENROUTER_API_KEY_IS_REQUIRED } from "@/lib/notify-messages";
 import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
-import { GOOGLE_IMAGE_ENTITY_SAP_PIPELINE_TITLES } from "@/lib/overview/overview-content-optimize-pipeline";
-import { overviewBulkDetailsCanOpenFromWarm } from "@/lib/overview/overview-bulk-details-bindings";
-import { buildPromptChecklistHarnessSections } from "@/lib/bulk/prompt-bulk-checklist-harness-sections";
 
 export interface BulkBlogGenerationTabProps {
   variant: "csv" | "prompt" | "blog-import" | "press-release";
@@ -84,6 +91,14 @@ export function BulkBlogGenerationTab({
   const effectiveDataForSeoApiKey = dataForSEOApiKey ?? pressReleaseDataForSeoApiKey;
 
   const [detailsDrawerOpen, setDetailsDrawerOpen] = useState(false);
+  const [optimizerSection, setOptimizerSection] = useState<ContentOptimizerSectionId>(() =>
+    readStoredContentOptimizerSection(),
+  );
+
+  const handleOptimizerSectionChange = useCallback((id: ContentOptimizerSectionId) => {
+    setOptimizerSection(id);
+    writeStoredContentOptimizerSection(id);
+  }, []);
 
   const isCsv = variant === "csv";
   const isBlogImport = variant === "blog-import";
@@ -182,11 +197,6 @@ export function BulkBlogGenerationTab({
     setPressReleaseBindings(bindings);
   }, []);
 
-  const promptSiteContextBlocked =
-    isPrompt &&
-    Boolean(bulkBindings?.connectedSite) &&
-    !bulkBindings?.promptSiteContextReady;
-
   const workspaceBusy = isPressRelease
     ? Boolean(pressReleaseBindings?.isProcessing)
     : Boolean(bulkBindings?.isProcessing) ||
@@ -245,18 +255,43 @@ export function BulkBlogGenerationTab({
   }, [isPressRelease, pressReleaseBindings, bulkBindings, isCsv, isPrompt, isBlogImport]);
 
   const progressSnapshot = useMemo(() => {
-    if (isBlogImport) return null;
     if (isPressRelease) {
       return buildPressReleaseMicroSnapshot(headerProgress);
     }
     return buildBlogImportMicroSnapshot(headerProgress, PROGRESS_LABELS[variant]);
-  }, [headerProgress, variant, isPressRelease, isBlogImport]);
+  }, [headerProgress, variant, isPressRelease]);
 
   const postDestinationChoices = isBlogImport
     ? BLOG_IMPORT_POST_DESTINATION_CHOICES
     : BULK_POST_DESTINATION_CHOICES;
 
   const postDestination = bulkBindings?.bulkPostDestination ?? (isBlogImport ? "direct" : "wordpress");
+
+  const warmSiteDetails = useOverviewSiteWarmDetails(
+    !isPressRelease ? bulkBindings?.wordPressSite ?? null : null,
+  );
+
+  const mergedInventoryDetails = useMemo(() => {
+    const bindingLinks = bulkBindings?.sitemapInventoryLinks ?? [];
+    const links =
+      warmSiteDetails.sitemapInventoryLinks.length > 0
+        ? warmSiteDetails.sitemapInventoryLinks
+        : bindingLinks;
+    const gscHostedLink =
+      warmSiteDetails.gscHostedLink ??
+      bulkBindings?.gscHostedLink ??
+      bulkBindings?.siteKwHostedLink ??
+      null;
+    const sitemapInventoryLoading =
+      warmSiteDetails.sitemapInventoryLoading ||
+      Boolean(bulkBindings?.sitemapInventoryLoading);
+    return { links, gscHostedLink, sitemapInventoryLoading };
+  }, [bulkBindings, warmSiteDetails]);
+
+  const googleImagePipelineTitles =
+    !isBlogImport && bulkBindings?.featuredImageType === "google-maps"
+      ? [...GOOGLE_IMAGE_ENTITY_SAP_PIPELINE_TITLES]
+      : undefined;
 
   const wpConfig = bulkBindings
     ? {
@@ -292,41 +327,29 @@ export function BulkBlogGenerationTab({
       }
     : null;
 
-  const sitemapScopeSlot = useMemo(() => {
-    if (isPressRelease || (!isCsv && !isPrompt && !isBlogImport)) return undefined;
-    if (!bulkBindings) {
-      const reserve = generatorTitleRowPrimarySelectSlotProps();
-      return <div className={reserve.className} style={reserve.style} aria-hidden />;
-    }
-    return (
-      <BulkGeneratorSitemapMenu
-        postDestination={postDestination}
-        connectedSite={bulkBindings.connectedSite}
-        selectedWordPressSites={bulkBindings.selectedWordPressSites}
-        siteConfigs={bulkBindings.siteConfigs}
-        setSiteConfigs={bulkBindings.setSiteConfigs}
-        isDisabled={workspaceBusy}
-        showWhenLocal={isBlogImport}
-      />
-    );
-  }, [bulkBindings, isCsv, isPrompt, isBlogImport, isPressRelease, postDestination, workspaceBusy]);
-
-  const csvSitemapGridProps = useMemo(() => {
-    if (!bulkBindings) {
-      return {
-        sitemapMode: "post" as const,
-        siteFallbackSitemapType: "post" as const,
-        onRowSitemapChange: undefined,
-        sitemapControlDisabled: true,
-      };
-    }
-    return {
-      sitemapMode: bulkBindings.sitemapMode,
-      siteFallbackSitemapType: bulkBindings.siteFallbackSitemapType,
-      onRowSitemapChange: bulkBindings.onRowSitemapChange,
-      sitemapControlDisabled: workspaceBusy,
-    };
-  }, [bulkBindings, workspaceBusy]);
+  const baseDetailsProps = {
+    workspaceBusy,
+    headerProgress,
+    isProcessing: Boolean(bulkBindings?.isProcessing),
+    status: bulkBindings?.status ?? "",
+    processingStepLog: bulkBindings?.processingStepLog ?? [],
+    harnessSections: bulkBindings?.harnessSections ?? [],
+    harnessByRow: bulkBindings?.harnessByRow ?? new Map(),
+    harnessPlannedSectionCount: bulkBindings?.harnessPlannedSectionCount ?? null,
+    currentRow: bulkBindings?.currentRow ?? 0,
+    totalRows: bulkBindings?.totalRows ?? 0,
+    displayRows: bulkBindings?.displayRows ?? [],
+    postDestination,
+    wpConfig,
+    runKind: "content" as const,
+    pipelineSectionTitles: isBlogImport
+      ? [...BLOG_IMPORT_PIPELINE_TITLES]
+      : googleImagePipelineTitles,
+    entitySapRowDisplay: bulkBindings?.featuredImageType === "google-maps",
+    sitemapInventoryLinks: mergedInventoryDetails.links,
+    siteKwHostedLink: mergedInventoryDetails.gscHostedLink,
+    sitemapInventoryLoading: mergedInventoryDetails.sitemapInventoryLoading,
+  };
 
   const scheduleMenu = useMemo(() => {
     if (!bulkBindings) {
@@ -364,62 +387,17 @@ export function BulkBlogGenerationTab({
     );
   }, [bulkBindings, isBlogImport, postDestination, workspaceBusy]);
 
-  const placeholderOnlyBody =
-    (isCsv && (bulkBindings?.displayRows?.length ?? 0) < BULK_GENERATOR_EMPTY_ROW_COUNT) ||
-    (isBlogImport && (bulkBindings?.displayRows?.length ?? 0) === 0) ||
-    (isPrompt && !bulkBindings?.hasGeneratedChecklist) ||
-    (isPressRelease && !pressReleaseBindings?.resultMarkdown);
+  const placeholderOnlyBody = isPressRelease && !pressReleaseBindings?.resultMarkdown;
 
-  const googleImagePipelineTitles =
-    !isBlogImport && bulkBindings?.featuredImageType === "google-maps"
-      ? [...GOOGLE_IMAGE_ENTITY_SAP_PIPELINE_TITLES]
-      : undefined;
+  const studioVariant = isBlogImport ? "blog-import" : isPrompt ? "prompt" : "csv";
+  const showGeneratorStudio = !isPressRelease && Boolean(bulkBindings);
 
-  const baseDetailsProps = {
-    workspaceBusy,
-    headerProgress,
-    isProcessing: Boolean(bulkBindings?.isProcessing),
-    status: bulkBindings?.status ?? "",
-    processingStepLog: bulkBindings?.processingStepLog ?? [],
-    harnessSections: bulkBindings?.harnessSections ?? [],
-    harnessByRow: bulkBindings?.harnessByRow ?? new Map(),
-    harnessPlannedSectionCount: bulkBindings?.harnessPlannedSectionCount ?? null,
-    currentRow: bulkBindings?.currentRow ?? 0,
-    totalRows: bulkBindings?.totalRows ?? 0,
-    displayRows: bulkBindings?.displayRows ?? [],
-    postDestination,
-    wpConfig,
-    runKind: "content" as const,
-    pipelineSectionTitles: isBlogImport
-      ? [...BLOG_IMPORT_PIPELINE_TITLES]
-      : googleImagePipelineTitles,
-    entitySapRowDisplay: bulkBindings?.featuredImageType === "google-maps",
-  };
-
-  const promptWarmCanOpenDetails =
-    isPrompt && bulkBindings?.connectedSite
-      ? overviewBulkDetailsCanOpenFromWarm(
-          bulkBindings.sitemapInventoryLinks ?? [],
-          bulkBindings.gscHostedLink ?? null,
-          Boolean(bulkBindings.sitemapInventoryLoading),
-        )
-      : false;
-
-  const canOpenDetails = isPressRelease
-    ? workspaceBusy ||
-      Boolean(pressReleaseBindings?.inventoryJsonLink) ||
-      Boolean(pressReleaseBindings?.resultMarkdown) ||
-      Boolean(pressReleaseBindings?.keyword.trim()) ||
-      Boolean(pressReleaseBindings?.title.trim())
-    : workspaceBusy ||
-      promptWarmCanOpenDetails ||
-      Boolean(importedFileName) ||
-      Boolean(bulkBindings?.csvFileName) ||
-      Boolean(bulkBindings?.hasGeneratedChecklist) ||
-      (bulkBindings?.sitemapInventoryLinks?.length ?? 0) > 0 ||
-      Boolean(bulkBindings?.gscHostedLink) ||
-      Boolean(bulkBindings?.siteKwHostedLink) ||
-      Boolean(bulkBindings && bulkBindings.stats.completed > 0);
+  const canOpenDetails =
+    workspaceBusy ||
+    Boolean(pressReleaseBindings?.inventoryJsonLink) ||
+    Boolean(pressReleaseBindings?.resultMarkdown) ||
+    Boolean(pressReleaseBindings?.keyword.trim()) ||
+    Boolean(pressReleaseBindings?.title.trim());
 
   const canRunCsv =
     Boolean((bulkBindings?.rows.length ?? 0) > 0 && !bulkBindings?.isProcessing);
@@ -456,6 +434,84 @@ export function BulkBlogGenerationTab({
     }
   }, [bulkBindings, blogContentFile]);
 
+  const bulkGeneratorDetailsProps = useMemo((): BulkGeneratorDetailsPanelProps | null => {
+    if (!bulkBindings || isPressRelease) return null;
+    if (isCsv) {
+      return {
+        ...baseDetailsProps,
+        variant: "csv",
+        csvFileName: bulkBindings.csvFileName ?? null,
+        rowCount: bulkBindings.rows.length ?? 0,
+        filesByRow: bulkBindings.filesByRow,
+        downloadFile: bulkBindings.downloadFile,
+        publishDateLabelByIndex: bulkBindings.publishDateLabelByIndex,
+        draftOnly: bulkBindings.wordpressDraftOnly,
+        directionsSiteName: bulkBindings.connectedSite?.name,
+      };
+    }
+    if (isPrompt) {
+      return {
+        ...baseDetailsProps,
+        variant: "prompt",
+        generatedRowCount: bulkBindings.generatedRows.length ?? 0,
+        selectedCount: bulkBindings.selectedBlogIndices.size ?? 0,
+        sitemapInventoryLinks: mergedInventoryDetails.links,
+        siteKwHostedLink: mergedInventoryDetails.gscHostedLink,
+        sitemapInventoryLoading: mergedInventoryDetails.sitemapInventoryLoading,
+        isGeneratingChecklist: bulkBindings.isGeneratingChecklist,
+        checklistPhase: bulkBindings.checklistPhase,
+        liveMessage: bulkBindings.isGeneratingChecklist
+          ? bulkBindings.checklistPhase?.trim() || "Generating blog ideas"
+          : null,
+        batchPrepHarnessSections: buildPromptChecklistHarnessSections(
+          bulkBindings.checklistPhase ?? "",
+          Boolean(bulkBindings.isGeneratingChecklist),
+        ),
+        prepAccordionTitle: "Ideas checklist",
+        filesByRow: bulkBindings.filesByRow,
+        downloadFile: bulkBindings.downloadFile,
+        publishDateLabelByIndex: bulkBindings.publishDateLabelByIndex,
+        draftOnly: bulkBindings.wordpressDraftOnly,
+        directionsSiteName: bulkBindings.connectedSite?.name,
+      };
+    }
+    return {
+      ...baseDetailsProps,
+      variant: "blog-import",
+      importedFileName,
+      filesByRow: bulkBindings.filesByRow,
+      downloadFile: bulkBindings.downloadFile,
+      canDownloadBlog,
+      onDownloadBlog: handleDownloadBlog,
+      publishDateLabelByIndex: bulkBindings.publishDateLabelByIndex,
+      draftOnly: bulkBindings.wordpressDraftOnly,
+      directionsSiteName: bulkBindings.connectedSite?.name,
+    };
+  }, [
+    bulkBindings,
+    isPressRelease,
+    isCsv,
+    isPrompt,
+    baseDetailsProps,
+    mergedInventoryDetails,
+    importedFileName,
+    canDownloadBlog,
+    handleDownloadBlog,
+  ]);
+
+  const bulkGeneratedFilesStepMetrics = useMemo(() => {
+    if (!bulkBindings) {
+      return { stepTotal: 0, stepCompleted: 0 };
+    }
+    const harnessTotal = bulkBindings.harnessPlannedSectionCount ?? bulkBindings.harnessSections.length;
+    return {
+      stepTotal: harnessTotal > 0 ? harnessTotal : bulkBindings.totalRows,
+      stepCompleted: bulkBindings.isProcessing
+        ? bulkBindings.currentRow + 1
+        : bulkBindings.stats.completed,
+    };
+  }, [bulkBindings]);
+
   const canRunPressRelease = Boolean(
     effectiveDataForSeoApiKey?.trim() &&
       openRouterApiKey?.trim() &&
@@ -482,157 +538,134 @@ export function BulkBlogGenerationTab({
     }
   };
 
+  const bulkGeneratorBand2Toolbar = useMemo(() => {
+    if (!bulkBindings) return null;
+    if (isPrompt) {
+      return (
+        <BulkPromptDockToolbar
+          workspaceBusy={workspaceBusy}
+          isProcessing={Boolean(bulkBindings.isProcessing)}
+          featuredImagePerBlog={bulkBindings.featuredImagePerBlog ?? true}
+          onFeaturedImagePerBlogChange={(v) => bulkBindings.setFeaturedImagePerBlog(v)}
+          featuredImageType={bulkBindings.featuredImageType ?? "ai-generated"}
+          onFeaturedImageTypeChange={(v) => bulkBindings.setFeaturedImageType(v)}
+          postDestination={postDestination}
+          onPostDestinationChange={(v) => bulkBindings.setBulkPostDestination(v)}
+          postDestinationChoices={postDestinationChoices}
+          onCancel={() => bulkBindings.cancelProcessing()}
+          onClear={handlePromptClear}
+          scheduleMenu={scheduleMenu}
+        />
+      );
+    }
+    if (isCsv) {
+      return (
+        <BulkCsvDockToolbar
+          workspaceBusy={workspaceBusy}
+          isProcessing={Boolean(bulkBindings.isProcessing)}
+          rowCount={bulkBindings.rows.length ?? 0}
+          postDestination={postDestination}
+          onPostDestinationChange={(v) => bulkBindings.setBulkPostDestination(v)}
+          postDestinationChoices={postDestinationChoices}
+          featuredImagePerBlog={bulkBindings.featuredImagePerBlog ?? true}
+          onFeaturedImagePerBlogChange={(v) => bulkBindings.setFeaturedImagePerBlog(v)}
+          featuredImageType={bulkBindings.featuredImageType ?? "ai-generated"}
+          onFeaturedImageTypeChange={(v) => bulkBindings.setFeaturedImageType(v)}
+          onApplyFeaturedImageToRows={(value) => {
+            const rows = bulkBindings.rows ?? [];
+            rows.forEach((_, i) => bulkBindings.onCsvRowChange(i, { featuredImage: value }));
+          }}
+          canRun={canRunCsv}
+          onRun={() => void bulkBindings.handleStartProcessing()}
+          onCancel={() => bulkBindings.cancelProcessing()}
+          onClear={handleCsvClear}
+          scheduleMenu={scheduleMenu}
+        />
+      );
+    }
+    if (isBlogImport) {
+      return (
+        <BulkImportDockToolbar
+          workspaceBusy={workspaceBusy}
+          isProcessing={Boolean(bulkBindings.isProcessing)}
+          focusKeyword={focusKeyword}
+          onFocusKeywordChange={setFocusKeyword}
+          titleOverride={titleOverride}
+          onTitleOverrideChange={setTitleOverride}
+          featuredImageMode={featuredImageMode}
+          onFeaturedImageModeChange={setFeaturedImageMode}
+          entity={entity}
+          onEntityChange={setEntity}
+          postDestination={postDestination}
+          onPostDestinationChange={handleImportDestinationChange}
+          postDestinationChoices={postDestinationChoices}
+          canRun={canRunImport}
+          onRun={() => void bulkBindings.handleStartProcessing()}
+          onCancel={() => bulkBindings.cancelProcessing()}
+          onClear={handleImportClear}
+          canDownloadBlog={canDownloadBlog}
+          onDownloadBlog={handleDownloadBlog}
+          scheduleMenu={scheduleMenu}
+        />
+      );
+    }
+    return null;
+  }, [
+    bulkBindings,
+    isPrompt,
+    isCsv,
+    isBlogImport,
+    workspaceBusy,
+    postDestination,
+    postDestinationChoices,
+    scheduleMenu,
+    handlePromptClear,
+    handleCsvClear,
+    canRunCsv,
+    canRunImport,
+    focusKeyword,
+    titleOverride,
+    featuredImageMode,
+    entity,
+    handleImportDestinationChange,
+    canDownloadBlog,
+    handleDownloadBlog,
+  ]);
+
+  const bulkGeneratorDock = useMemo((): OverviewSitemapLeftDockBulkGeneratorDock | null => {
+    if (!bulkBindings) return null;
+    const emptyListCopy =
+      studioVariant === "prompt"
+        ? "Set blog count and run Ideas to fill this list."
+        : studioVariant === "blog-import"
+          ? "Upload blog files with the Files control above."
+          : "Upload a CSV with the CSV control above.";
+    return {
+      variant: studioVariant,
+      emptyListCopy,
+      csvLoading: false,
+      importParsing: isParsingImport,
+      importedFileName,
+      csvFileName: bulkBindings.csvFileName,
+      onPickCsvFile: handleCsvPick,
+      onPickImportFiles: handlePickImportFiles,
+      promptSelection: studioVariant === "prompt" && bulkBindings.hasGeneratedChecklist,
+      selectedBlogIndices: bulkBindings.selectedBlogIndices,
+      setSelectedBlogIndices: bulkBindings.setSelectedBlogIndices,
+    };
+  }, [
+    bulkBindings,
+    studioVariant,
+    isParsingImport,
+    importedFileName,
+    handleCsvPick,
+    handlePickImportFiles,
+  ]);
+
   return (
     <div className={BLOG_GENERATOR_TAB_ROOT_CLASS}>
-      <div className={BLOG_GENERATOR_WORKSPACE_HEADER_CLASS}>
-        {isCsv ? (
-          <BulkCsvWorkspaceHeader
-            activeSection={activeSection}
-            onSectionChange={onSectionChange}
-            workspaceBusy={workspaceBusy}
-            progressSnapshot={progressSnapshot}
-            canOpenDetails={canOpenDetails}
-            isProcessing={Boolean(bulkBindings?.isProcessing)}
-            csvFileName={bulkBindings?.csvFileName ?? null}
-            rowCount={bulkBindings?.rows.length ?? 0}
-            onPickCsvFile={handleCsvPick}
-            postDestination={postDestination}
-            onPostDestinationChange={(v) => bulkBindings?.setBulkPostDestination(v)}
-            postDestinationChoices={postDestinationChoices}
-            featuredImagePerBlog={bulkBindings?.featuredImagePerBlog ?? true}
-            onFeaturedImagePerBlogChange={(v) => bulkBindings?.setFeaturedImagePerBlog(v)}
-            featuredImageType={bulkBindings?.featuredImageType ?? "ai-generated"}
-            onFeaturedImageTypeChange={(v) => bulkBindings?.setFeaturedImageType(v)}
-            onApplyFeaturedImageToRows={(value) => {
-              const rows = bulkBindings?.rows ?? [];
-              rows.forEach((_, i) => bulkBindings?.onCsvRowChange(i, { featuredImage: value }));
-            }}
-            canRun={canRunCsv}
-            onRun={() => void bulkBindings?.handleStartProcessing()}
-            onCancel={() => bulkBindings?.cancelProcessing()}
-            onClear={handleCsvClear}
-            sitemapScopeSlot={sitemapScopeSlot}
-            scheduleMenu={scheduleMenu}
-            detailsProps={{
-              ...baseDetailsProps,
-              variant: "csv",
-              csvFileName: bulkBindings?.csvFileName ?? null,
-              rowCount: bulkBindings?.rows.length ?? 0,
-              filesByRow: bulkBindings?.filesByRow,
-              downloadFile: bulkBindings?.downloadFile,
-              publishDateLabelByIndex: bulkBindings?.publishDateLabelByIndex,
-              draftOnly: bulkBindings?.wordpressDraftOnly,
-              directionsSiteName: bulkBindings?.connectedSite?.name,
-            }}
-            onDetailsOpenChange={setDetailsDrawerOpen}
-          />
-        ) : null}
-
-        {isPrompt ? (
-          <BulkPromptWorkspaceHeader
-            activeSection={activeSection}
-            onSectionChange={onSectionChange}
-            workspaceBusy={workspaceBusy}
-            progressSnapshot={progressSnapshot}
-            canOpenDetails={canOpenDetails}
-            isProcessing={Boolean(bulkBindings?.isProcessing)}
-            generalIntent={bulkBindings?.generalIntent ?? ""}
-            onGeneralIntentChange={(v) => bulkBindings?.setGeneralIntent(v)}
-            numberOfBlogs={bulkBindings?.numberOfBlogs ?? 3}
-            onNumberOfBlogsChange={(v) => bulkBindings?.setNumberOfBlogs(v)}
-            optionalPrompt={bulkBindings?.optionalPrompt ?? ""}
-            onOptionalPromptChange={(v) => bulkBindings?.setOptionalPrompt(v)}
-            featuredImagePerBlog={bulkBindings?.featuredImagePerBlog ?? true}
-            onFeaturedImagePerBlogChange={(v) => bulkBindings?.setFeaturedImagePerBlog(v)}
-            featuredImageType={bulkBindings?.featuredImageType ?? "ai-generated"}
-            onFeaturedImageTypeChange={(v) => bulkBindings?.setFeaturedImageType(v)}
-            isGeneratingChecklist={Boolean(bulkBindings?.isGeneratingChecklist)}
-            hasGeneratedChecklist={Boolean(bulkBindings?.hasGeneratedChecklist)}
-            onGenerateChecklist={() => void bulkBindings?.handleGenerateChecklist()}
-            onApprove={() => void bulkBindings?.handleApprove()}
-            postDestination={postDestination}
-            onPostDestinationChange={(v) => bulkBindings?.setBulkPostDestination(v)}
-            postDestinationChoices={postDestinationChoices}
-            onCancel={() => bulkBindings?.cancelProcessing()}
-            onClear={handlePromptClear}
-            scheduleMenu={scheduleMenu}
-            sitemapScopeSlot={sitemapScopeSlot}
-            promptSiteContextBlocked={promptSiteContextBlocked}
-            detailsProps={{
-              ...baseDetailsProps,
-              variant: "prompt",
-              generatedRowCount: bulkBindings?.generatedRows.length ?? 0,
-              selectedCount: bulkBindings?.selectedBlogIndices.size ?? 0,
-              sitemapInventoryLinks: bulkBindings?.sitemapInventoryLinks ?? [],
-              siteKwHostedLink: bulkBindings?.gscHostedLink ?? bulkBindings?.siteKwHostedLink ?? null,
-              sitemapInventoryLoading: bulkBindings?.sitemapInventoryLoading,
-              isGeneratingChecklist: bulkBindings?.isGeneratingChecklist,
-              checklistPhase: bulkBindings?.checklistPhase,
-              liveMessage: bulkBindings?.isGeneratingChecklist
-                ? bulkBindings?.checklistPhase?.trim() || "Generating blog ideas"
-                : null,
-              batchPrepHarnessSections: buildPromptChecklistHarnessSections(
-                bulkBindings?.checklistPhase ?? "",
-                Boolean(bulkBindings?.isGeneratingChecklist),
-              ),
-              prepAccordionTitle: "Ideas checklist",
-              filesByRow: bulkBindings?.filesByRow,
-              downloadFile: bulkBindings?.downloadFile,
-              publishDateLabelByIndex: bulkBindings?.publishDateLabelByIndex,
-              draftOnly: bulkBindings?.wordpressDraftOnly,
-              directionsSiteName: bulkBindings?.connectedSite?.name,
-            }}
-            onDetailsOpenChange={setDetailsDrawerOpen}
-          />
-        ) : null}
-
-        {isBlogImport ? (
-          <BlogImportWorkspaceHeader
-            activeSection={activeSection}
-            onSectionChange={onSectionChange}
-            workspaceBusy={workspaceBusy}
-            progressSnapshot={progressSnapshot}
-            canOpenDetails={canOpenDetails}
-            focusKeyword={focusKeyword}
-            onFocusKeywordChange={setFocusKeyword}
-            titleOverride={titleOverride}
-            onTitleOverrideChange={setTitleOverride}
-            featuredImageMode={featuredImageMode}
-            onFeaturedImageModeChange={setFeaturedImageMode}
-            entity={entity}
-            onEntityChange={setEntity}
-            isParsing={isParsingImport}
-            importedFileName={importedFileName}
-            onPickFiles={handlePickImportFiles}
-            postDestination={postDestination}
-            onPostDestinationChange={handleImportDestinationChange}
-            postDestinationChoices={postDestinationChoices}
-            canRun={canRunImport}
-            isProcessing={Boolean(bulkBindings?.isProcessing)}
-            onRun={() => void bulkBindings?.handleStartProcessing()}
-            onCancel={() => bulkBindings?.cancelProcessing()}
-            onClear={handleImportClear}
-            canDownloadBlog={canDownloadBlog}
-            onDownloadBlog={handleDownloadBlog}
-            scheduleMenu={scheduleMenu}
-            sitemapScopeSlot={sitemapScopeSlot}
-            detailsProps={{
-              ...baseDetailsProps,
-              variant: "blog-import",
-              importedFileName,
-              filesByRow: bulkBindings?.filesByRow,
-              downloadFile: bulkBindings?.downloadFile,
-              canDownloadBlog,
-              onDownloadBlog: handleDownloadBlog,
-              publishDateLabelByIndex: bulkBindings?.publishDateLabelByIndex,
-              draftOnly: bulkBindings?.wordpressDraftOnly,
-              directionsSiteName: bulkBindings?.connectedSite?.name,
-            }}
-            onDetailsOpenChange={setDetailsDrawerOpen}
-          />
-        ) : null}
-
-        {isPressRelease ? (
+      {isPressRelease ? (
+        <div className={BLOG_GENERATOR_WORKSPACE_HEADER_CLASS}>
           <PressReleaseWorkspaceHeader
             activeSection={activeSection}
             onSectionChange={onSectionChange}
@@ -659,77 +692,47 @@ export function BulkBlogGenerationTab({
             }}
             onDetailsOpenChange={setDetailsDrawerOpen}
           />
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       <div
         className={cn(
           BLOG_GENERATOR_WORKSPACE_BODY_CLASS,
-          "relative flex flex-col",
+          "relative flex min-h-0 flex-1 flex-col",
           placeholderOnlyBody && "overflow-y-hidden",
+          showGeneratorStudio && "overflow-hidden pb-0",
         )}
       >
-        {detailsDrawerOpen ? (
+        {isPressRelease && detailsDrawerOpen ? (
           <div className={WORKSPACE_DETAILS_DIM_OVERLAY_CLASS} aria-hidden />
         ) : null}
-        {isCsv ? (
-          <BulkCsvRunProgressGrid
-            displayRows={bulkBindings?.displayRows ?? []}
-            filesByRow={bulkBindings?.filesByRow ?? new Map()}
-            currentRow={bulkBindings?.currentRow ?? 0}
-            isProcessing={Boolean(bulkBindings?.isProcessing)}
-            processingStatus={bulkBindings?.status ?? ""}
-            failedRowIndices={bulkBindings?.failedRowIndices ?? new Set()}
-            failedRowMessages={bulkBindings?.failedRowMessages ?? {}}
-            downloadFile={bulkBindings?.downloadFile ?? (() => {})}
-            downloadRowFiles={bulkBindings?.downloadRowFiles ?? (() => {})}
-            downloadRunContentCsv={bulkBindings?.downloadRunContentCsv ?? (() => {})}
-            runContentCsvAvailable={bulkBindings?.runContentCsvAvailable ?? false}
-            placeholderRowCount={BULK_GENERATOR_EMPTY_ROW_COUNT}
-            sitemapMode={csvSitemapGridProps.sitemapMode}
-            siteFallbackSitemapType={csvSitemapGridProps.siteFallbackSitemapType}
-            onRowSitemapChange={csvSitemapGridProps.onRowSitemapChange}
-            sitemapControlDisabled={csvSitemapGridProps.sitemapControlDisabled}
-            onRowChange={bulkBindings?.onCsvRowChange}
-            directionsSiteName={bulkBindings?.connectedSite?.name}
-            publishDateLabelByIndex={bulkBindings?.publishDateLabelByIndex}
-            draftOnly={
-              Boolean(bulkBindings?.wordpressDraftOnly) &&
-              (bulkBindings?.bulkPostDestination ?? "wordpress") !== "local"
-            }
-          />
-        ) : null}
 
-        {isBlogImport ? (
-          <BulkCsvRunProgressGrid
-            displayRows={bulkBindings?.displayRows ?? []}
-            filesByRow={bulkBindings?.filesByRow ?? new Map()}
-            currentRow={bulkBindings?.currentRow ?? 0}
-            isProcessing={Boolean(bulkBindings?.isProcessing)}
-            processingStatus={bulkBindings?.status ?? ""}
-            failedRowIndices={bulkBindings?.failedRowIndices ?? new Set()}
-            failedRowMessages={bulkBindings?.failedRowMessages ?? {}}
-            downloadFile={bulkBindings?.downloadFile ?? (() => {})}
-            downloadRowFiles={bulkBindings?.downloadRowFiles ?? (() => {})}
-            downloadRunContentCsv={bulkBindings?.downloadRunContentCsv ?? (() => {})}
-            runContentCsvAvailable={bulkBindings?.runContentCsvAvailable ?? false}
-            placeholderRowCount={BULK_GENERATOR_EMPTY_ROW_COUNT}
-            sitemapMode={csvSitemapGridProps.sitemapMode}
-            siteFallbackSitemapType={csvSitemapGridProps.siteFallbackSitemapType}
-            onRowSitemapChange={csvSitemapGridProps.onRowSitemapChange}
-            sitemapControlDisabled={csvSitemapGridProps.sitemapControlDisabled}
-            onRowChange={bulkBindings?.onCsvRowChange}
-            publishDateLabelByIndex={bulkBindings?.publishDateLabelByIndex}
-            draftOnly={
-              Boolean(bulkBindings?.wordpressDraftOnly) &&
-              (bulkBindings?.bulkPostDestination ?? "wordpress") !== "local"
-            }
-            showPostDestination
-            postDestinationChoices={BLOG_IMPORT_POST_DESTINATION_CHOICES}
-            headerPostDestination={postDestination}
-            onDropFiles={handlePickImportFiles}
-            dropDisabled={Boolean(bulkBindings?.isProcessing) || isParsingImport}
-          />
+        {showGeneratorStudio && bulkBindings && bulkGeneratorDock && bulkGeneratorDetailsProps ? (
+          bulkBindings.wordPressSite ? (
+            <BulkGeneratorOverviewTabContent
+              site={bulkBindings.wordPressSite}
+              bindings={bulkBindings}
+              variant={studioVariant}
+              workspaceBusy={workspaceBusy}
+              apiKey={effectiveDataForSeoApiKey ?? ""}
+              selectedModel={selectedModel ?? ""}
+              temperature={temperature ?? 0.7}
+              maxTokens={maxTokens ?? 4096}
+              topP={topP ?? 1}
+              bulkGeneratorDock={bulkGeneratorDock}
+              bulkGeneratorDetailsPanel={bulkGeneratorDetailsProps}
+              progressSnapshot={progressSnapshot}
+              bulkGeneratedFilesStepTotal={bulkGeneratedFilesStepMetrics.stepTotal}
+              bulkGeneratedFilesStepCompleted={bulkGeneratedFilesStepMetrics.stepCompleted}
+              bulkGeneratorBand2Toolbar={bulkGeneratorBand2Toolbar}
+              optimizerSection={optimizerSection}
+              onOptimizerSectionChange={handleOptimizerSectionChange}
+            />
+          ) : (
+            <div className="flex min-h-[12rem] flex-1 flex-col items-center justify-center gap-2 border border-white/10 bg-black px-6 text-center text-base text-muted-foreground">
+              <p>Connect a WordPress site under Integrations to use the studio editor.</p>
+            </div>
+          )
         ) : null}
 
         {isPressRelease ? (
@@ -753,23 +756,25 @@ export function BulkBlogGenerationTab({
             ) : null}
           </>
         ) : (
-          <BulkAutoGeneratePanel
-            forcedInputMode={isBlogImport ? "blog-import" : variant}
-            injectedRows={isBlogImport ? importedRows : undefined}
-            blogImportSourceFile={isBlogImport ? uploadedImportFile : null}
-            blogImportForm={isBlogImport ? importForm : undefined}
-            apiKey={effectiveDataForSeoApiKey}
-            openRouterApiKey={openRouterApiKey}
-            selectedModel={selectedModel}
-            temperature={temperature}
-            maxTokens={maxTokens}
-            topP={topP}
-            flowPurpose={flowPurpose}
-            initialBulkPostDestination={isBlogImport ? "direct" : undefined}
-            postDestinationChoices={isBlogImport ? BLOG_IMPORT_POST_DESTINATION_CHOICES : undefined}
-            bulkGeneratorWorkspace
-            onBulkGeneratorWorkspaceBindings={onBulkGeneratorWorkspaceBindings}
-          />
+          <div className="pointer-events-none absolute h-0 w-0 overflow-hidden opacity-0" aria-hidden>
+            <BulkAutoGeneratePanel
+              forcedInputMode={isBlogImport ? "blog-import" : variant}
+              injectedRows={isBlogImport ? importedRows : undefined}
+              blogImportSourceFile={isBlogImport ? uploadedImportFile : null}
+              blogImportForm={isBlogImport ? importForm : undefined}
+              apiKey={effectiveDataForSeoApiKey}
+              openRouterApiKey={openRouterApiKey}
+              selectedModel={selectedModel}
+              temperature={temperature}
+              maxTokens={maxTokens}
+              topP={topP}
+              flowPurpose={flowPurpose}
+              initialBulkPostDestination={isBlogImport ? "direct" : undefined}
+              postDestinationChoices={isBlogImport ? BLOG_IMPORT_POST_DESTINATION_CHOICES : undefined}
+              bulkGeneratorWorkspace
+              onBulkGeneratorWorkspaceBindings={onBulkGeneratorWorkspaceBindings}
+            />
+          </div>
         )}
       </div>
     </div>

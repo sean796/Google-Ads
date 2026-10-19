@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   manualReferenceFromDataUrl,
-  prepareManualReference,
+  prepareVideoStudioReference,
+  referenceUploadFiles,
   type ManualImageReference,
 } from "@/lib/image-generator/manual-reference-upload";
 import { runVideoBrainstorm } from "@/lib/video-generator/video-brainstorm-agent";
@@ -49,12 +50,12 @@ export function useVideoBrainstorm(apiKey: string, onBrief: (brief: BrainstormBr
     videoLog("brainstorm", "files added", list.map((f) => ({ name: f.name, type: f.type, bytes: f.size })));
     const clip = list.find((f) => f.type.startsWith("video/"));
     if (clip) setVideo({ file: clip, previewUrl: URL.createObjectURL(clip) });
-    const stills = list.filter((f) => f.type.startsWith("image/"));
+    const stills = referenceUploadFiles(list);
     if (!stills.length) return;
     setIsPreparing(true);
     setError("");
     try {
-      const prepared = await Promise.all(stills.map((f) => prepareManualReference(f)));
+      const prepared = await Promise.all(stills.map((f) => prepareVideoStudioReference(f)));
       videoLog("brainstorm", "images prepared", prepared.map((r) => ({ fileName: r.fileName, bytes: r.dataUrl.length })));
       setImages((prev) => [...prev, ...prepared]);
     } catch (e) {

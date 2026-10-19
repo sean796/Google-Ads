@@ -57,7 +57,7 @@
 }
 
 .pulse-assist-root {
-  --fai-sidebar-width: 440px;
+  --fai-sidebar-width: 480px;
   --fai-sidebar-z-index: 60;
   --fai-sidebar-launcher-bg: #000;
   --fai-sidebar-launcher-text: #fff;
@@ -264,6 +264,16 @@
 .pulse-assist-root:not(.pulse-assist-root--docked) button.neo-pulse-sidebar-launcher--agents {
   top: calc(50% - 44px - 12px);
   transform: translateY(-100%);
+}
+
+.pulse-assist-root:not(.pulse-assist-root--docked) button.neo-pulse-sidebar-launcher--mastra {
+  top: calc(50% - 132px - 24px);
+  transform: translateY(-100%);
+}
+
+.pulse-assist-root:not(.pulse-assist-root--docked) button.neo-pulse-sidebar-launcher--mastra:hover,
+.pulse-assist-root:not(.pulse-assist-root--docked) button.neo-pulse-sidebar-launcher--mastra:focus-visible {
+  transform: translateY(-100%) translateX(-6px);
 }
 
 .pulse-assist-root:not(.pulse-assist-root--docked) button.neo-pulse-sidebar-launcher--agents:hover,

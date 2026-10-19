@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, Check, Link2, Loader2, Lock, RefreshCw, Send } from "lucide-react";
+import { AlertTriangle, Check, Link2, Lock, RefreshCw, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MY_SITES_FIELD, MY_SITES_ICON_BTN } from "@/components/hosting/my-sites/my-sites-theme";
@@ -50,7 +50,7 @@ export function VideoProductPanel({
             onChange={(e) => setAllViewsDraft(e.target.value)}
             disabled={disabled || !hasSubjectPhotos}
             aria-label="Prompt AI to change all 4 product views"
-            placeholder="Prompt AI to change all 4 views (e.g. remove wall vent)"
+            placeholder="Prompt AI to change all 4 views (e.g. match photo fabric tone)"
             className={cn(MY_SITES_FIELD, "h-9 flex-1 bg-zinc-950 text-base")}
           />
           <Button
@@ -98,7 +98,10 @@ export function VideoProductPanel({
               <div className="flex items-center justify-between gap-2">
                 <div className="flex min-w-0 flex-1 items-center gap-2.5">
                   {spinning ? (
-                    <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-label="Generating" />
+                    <span
+                      className="h-2 w-2 shrink-0 animate-video-product-splash-breathe bg-primary"
+                      aria-label="Generating"
+                    />
                   ) : done ? (
                     <Check className="h-4 w-4 shrink-0 text-primary" aria-label="Ready" />
                   ) : failed ? (

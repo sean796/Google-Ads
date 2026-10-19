@@ -116,6 +116,7 @@ All colors MUST be HSL.
     --shadow-glow-intense: 0 0 30px hsl(78 100% 45% / 0.45);
 
     --neo-pulse-shortcut-rail-width: 5rem;
+    --neo-pulse-assist-panel-width: 0px;
     --neo-pulse-manager-sticky-nav-height: 4.25rem;
   }
 }
@@ -678,5 +679,24 @@ All colors MUST be HSL.
   }
   100% {
     transform: translateX(320%);
+  }
+}
+
+@media print {
+  body.overview-revisions-printing * {
+    visibility: hidden !important;
+  }
+  body.overview-revisions-printing #overview-revisions-print-root,
+  body.overview-revisions-printing #overview-revisions-print-root * {
+    visibility: visible !important;
+  }
+  body.overview-revisions-printing #overview-revisions-print-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  body.overview-revisions-printing .no-print {
+    display: none !important;
   }
 }

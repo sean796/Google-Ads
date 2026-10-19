@@ -19,6 +19,12 @@ import {
   planTopicResearchQueries,
   runFactualVerificationPass,
 } from "@/lib/content-optimization/topic-research-fanout";
+import { isDfsPaymentLatched } from "@/lib/llm-audit/dataforseo-llm-responses-live";
+import {
+  appendUniversalContentRulesToSystemPrompt,
+  injectBlacklistRagIntoMessages,
+  scrubOverviewContentOutput,
+} from "@/lib/content-word-blocklist";
 import { postOpenRouterAppChat } from "@/lib/openrouter-app-api";
 import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
 import { LLM_AUDIT_QFO_QUERY_CONCURRENCY } from "@/lib/overview/overview-research-batch-constants";
@@ -94,10 +100,15 @@ export async function fetchLlmAuditOpenRouter(
 
   try {
     const apiKey = await resolveOpenRouterApiKeyForHarness();
-    const system = LLM_AUDIT_SYSTEM_MESSAGE;
-    const user =
+    const system = appendUniversalContentRulesToSystemPrompt(LLM_AUDIT_SYSTEM_MESSAGE);
+    const userRaw =
       input.userPrompt?.trim() ||
       buildLlmAuditUserPromptFull({ keyword, location, platformLabel });
+    const user =
+      injectBlacklistRagIntoMessages([
+        { role: "system", content: system },
+        { role: "user", content: userRaw },
+      ])[1]?.content ?? userRaw;
 
     const { content, raw } = await postOpenRouterAppChat({
       apiKey,
@@ -109,7 +120,7 @@ export async function fetchLlmAuditOpenRouter(
       signal: AbortSignal.timeout(LLM_AUDIT_OPENROUTER_TIMEOUT_MS),
     });
 
-    const responseText = content.trim();
+    const responseText = scrubOverviewContentOutput(content.trim());
     const annotations = annotationsFromOpenRouterRaw(raw);
     const annotationUrls = annotations.map((a) => a.url).filter(Boolean) as string[];
     const liveLinks = dedupeLlmAuditUrls([...annotationUrls, ...urlsFromLlmAuditText(responseText)]);
@@ -251,7 +262,7 @@ export async function fetchLlmAuditOpenRouterWithQfo(
   let factualVerificationQueries: string[] | undefined;
   let verifiedFacts: QueryFanout["verifiedFacts"];
   let verificationSerpRows: NonNullable<QueryFanout["serpByQuery"]> = [];
-  if (cityTokenFromLocation(location)) {
+  if (cityTokenFromLocation(location) && !isDfsPaymentLatched()) {
     const verification = await runFactualVerificationPass({
       keyword,
       title: input.title,

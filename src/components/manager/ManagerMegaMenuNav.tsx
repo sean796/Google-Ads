@@ -34,11 +34,14 @@ import {
   type ManagerNavSection,
 } from "@/components/manager/manager-nav-sections";
 import type { ManagerSettingsClusterId } from "@/components/manager/manager-settings-cluster";
+import type { BlogGeneratorSectionId } from "@/components/blog-generator/blog-generator-sections";
+import { useBlogGeneratorSection } from "@/hooks/use-blog-generator-section";
 import { dashboardClusterToArea, managerTabToArea, useTeamPermission } from "@/hooks/use-team-permission";
 
 export interface ManagerMegaMenuNavProps {
   managerTab: string;
   onManagerTabChange: (tab: string) => void;
+  onGeneratorSectionChange?: (section: BlogGeneratorSectionId) => void;
   variant: "embedded" | "compact";
   dashboardCluster: ManagerSettingsClusterId;
   onDashboardClusterChange: (id: ManagerSettingsClusterId) => void;
@@ -47,10 +50,12 @@ export interface ManagerMegaMenuNavProps {
 export function ManagerMegaMenuNav({
   managerTab,
   onManagerTabChange,
+  onGeneratorSectionChange,
   variant,
   dashboardCluster,
   onDashboardClusterChange,
 }: ManagerMegaMenuNavProps) {
+  const activeGeneratorSection = useBlogGeneratorSection();
   const triggerClass = useMemo(
     () =>
       variant === "embedded"
@@ -126,6 +131,10 @@ export function ManagerMegaMenuNav({
         navigate(item.docsPath, { flushSync: true });
         return;
       }
+      if (item.generatorSection) {
+        onGeneratorSectionChange?.(item.generatorSection);
+        return;
+      }
       if (item.dashboardCluster) {
         onDashboardClusterChange(item.dashboardCluster);
         onManagerTabChange("dashboard");
@@ -136,6 +145,7 @@ export function ManagerMegaMenuNav({
     [
       navigate,
       onDashboardClusterChange,
+      onGeneratorSectionChange,
       onManagerTabChange,
       resolveOrganicNavSite,
       warmOrganicReportingRoute,
@@ -164,7 +174,12 @@ export function ManagerMegaMenuNav({
     const Icon = item.icon;
 
     if (item.children?.length) {
-      const subActive = isManagerNavItemActive(managerTab, item, dashboardCluster);
+      const subActive = isManagerNavItemActive(
+        managerTab,
+        item,
+        dashboardCluster,
+        activeGeneratorSection,
+      );
       return (
         <DropdownMenuSub key={item.id ?? item.value}>
           <DropdownMenuSubTrigger
@@ -195,7 +210,12 @@ export function ManagerMegaMenuNav({
           >
             {item.children.map((child, childIndex) => {
               const ChildIcon = child.icon;
-              const selected = isManagerNavItemSelected(managerTab, child, dashboardCluster);
+              const selected = isManagerNavItemSelected(
+                managerTab,
+                child,
+                dashboardCluster,
+                activeGeneratorSection,
+              );
               const prefetchOnHover =
                 child.organicDashboard === true
                   ? () => {
@@ -227,7 +247,7 @@ export function ManagerMegaMenuNav({
 
     const selected = item.organicDashboard
       ? isOrganicDashboardRoute
-      : isManagerNavItemSelected(managerTab, item, dashboardCluster);
+      : isManagerNavItemSelected(managerTab, item, dashboardCluster, activeGeneratorSection);
     return (
       <DropdownMenuItem
         key={item.id ?? item.value}
@@ -253,6 +273,12 @@ export function ManagerMegaMenuNav({
       if (item.dashboardCluster) {
         const area = dashboardClusterToArea(item.dashboardCluster);
         return !area || canRead(area);
+      }
+      if (item.generatorSection === "opt") {
+        return canRead("content-optimizer") && canRead("generator");
+      }
+      if (item.generatorSection) {
+        return canRead("generator");
       }
       const area = managerTabToArea(item.value);
       return !area || canRead(area);
@@ -296,7 +322,7 @@ export function ManagerMegaMenuNav({
           section.id === "reporting"
             ? isOrganicDashboardRoute
             : section.items.some((i) =>
-                isManagerNavItemActive(managerTab, i, dashboardCluster),
+                isManagerNavItemActive(managerTab, i, dashboardCluster, activeGeneratorSection),
               );
         const SectionIcon = section.icon;
 

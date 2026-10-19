@@ -1,7 +1,7 @@
 import { useAgentRunsContext } from "@/contexts/use-agent-runs-context";
-import { useTeam } from "@/contexts/TeamContext";
 import { AgentRunsPanel } from "@/components/agent-runs/AgentRunsPanel";
 import { PulseAssistChatPanel } from "./PulseAssistChatPanel";
+import { MastraInspectorPanel } from "./MastraInspectorPanel";
 import { PulseAssistSidebarShell } from "./PulseAssistSidebarShell";
 import { writeSidebarOpen, writeSidebarPanel } from "@/lib/pulse-assist/storage";
 import "@/components/agent-runs/agent-runs-theme.css";
@@ -35,6 +35,8 @@ export function PulseAssistRoot({ layout = "overlay" }: PulseAssistRootProps) {
     >
       {sidebarPanel === "agents" ? (
         <AgentRunsPanel />
+      ) : sidebarPanel === "seo" ? (
+        <MastraInspectorPanel />
       ) : (
         <PulseAssistChatPanel sidebarOpen={sidebarOpen} />
       )}

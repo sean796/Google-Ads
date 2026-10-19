@@ -163,7 +163,8 @@ class Neo_Pulse_App_Api_Dispatcher {
 			self::run_with_dataforseo_request_credentials(
 				$body,
 				function () use ( $m, $body ) {
-					self::send_json( Neo_Pulse_App_Dataforseo_Route_Handlers::handle_mcp_tool( $m[1], $body ) );
+					$response = Neo_Pulse_App_Dataforseo_Route_Handlers::handle_mcp_tool_with_status( $m[1], $body );
+					self::send_json( $response['data'], $response['status'] );
 				}
 			);
 			return;

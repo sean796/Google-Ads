@@ -13,8 +13,11 @@ import {
 } from "@/lib/overview/overview-change-post-url";
 import {
   buildOverviewRowPatchFromInventory,
+  extractFaqFromPostHtml,
   hydrateOverviewRowsFromInventory,
 } from "@/lib/overview/overview-row-scrape";
+import { fetchLiveWordPressPostBodyForRow } from "@/lib/overview/overview-aiseo-source-html";
+import { extractH2TextsFromHtml } from "@/lib/overview/overview-blog-headers-extract";
 import type { OverviewInventoryUrlMatch } from "@/lib/overview/overview-row-scrape";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { OverviewBinding } from "@/hooks/overview/use-overview-wordpress-binding";
@@ -234,13 +237,31 @@ export function useOverviewTabScrapeWp({
 
         const invMatchAfter = getInventoryMatchForUrl(site, row.url) ?? invMatch;
         const binding = resolveOverviewBindingForRow(row, bindings, invMatchAfter);
-        const downloaded = binding?.postId
-          ? await downloadRow(site, row.url, binding).catch(() => null)
-          : null;
+        const [downloaded, liveBodyHtml] = await Promise.all([
+          binding?.postId ? downloadRow(site, row.url, binding).catch(() => null) : Promise.resolve(null),
+          fetchLiveWordPressPostBodyForRow(site, row, invMatchAfter).catch(() => undefined),
+        ]);
         const patch = buildOverviewRowPatchFromInventory(row, invMatchAfter, binding, site.siteUrl);
         if (!patch) {
           updateRow(index, { status: "error" });
           return;
+        }
+        if (liveBodyHtml?.trim()) {
+          patch.postContent = liveBodyHtml.trim();
+          patch.postContentOptimized = liveBodyHtml.trim();
+          const h2s = extractH2TextsFromHtml(liveBodyHtml);
+          if (h2s.length) patch.blogH2List = h2s;
+          if (invMatchAfter?.row?.id) {
+            mergeInventoryContentForSource(site, sitemapSource, [
+              {
+                ...invMatchAfter.row,
+                fields: {
+                  ...(invMatchAfter.row.fields ?? {}),
+                  content: liveBodyHtml.trim(),
+                } as typeof invMatchAfter.row.fields,
+              },
+            ]);
+          }
         }
         // Inventory list often omits large seo_research; merge get-post-meta when present.
         if (downloaded?.seoResearch?.trim() && !(patch.seoResearch ?? "").trim()) {
@@ -252,10 +273,11 @@ export function useOverviewTabScrapeWp({
         if (downloaded?.faq?.trim() && !(patch.faq ?? "").trim()) {
           patch.faq = downloaded.faq.trim();
         }
-        updateRow(index, { ...patch, status: "idle" });
-        if (sitemapSource === "pages" && hydrateElementorRowAtIndex && !row.elementorDataJson?.trim()) {
-          await hydrateElementorRowAtIndex(index).catch(() => undefined);
+        if (!(patch.faq ?? "").trim() && (patch.postContent ?? "").trim()) {
+          const faqFromHtml = extractFaqFromPostHtml(patch.postContent!);
+          if (faqFromHtml) patch.faq = faqFromHtml;
         }
+        updateRow(index, { ...patch, status: "idle" });
       } catch {
         updateRow(index, { status: "error" });
       }

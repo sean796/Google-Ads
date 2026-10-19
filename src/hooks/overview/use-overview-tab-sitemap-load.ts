@@ -42,6 +42,7 @@ type Args = Pick<
   | "bindings"
 > & {
   site: WordPressSite | undefined;
+  disableAutoSitemapLoad?: boolean;
 };
 
 type LoadOptions = {
@@ -77,6 +78,7 @@ export function useOverviewTabSitemapLoad({
   prefetchOverviewInventory,
   getInventoryMatchForUrl,
   bindings,
+  disableAutoSitemapLoad = false,
 }: Args) {
   const [overviewSitemapLoadBusy, setOverviewSitemapLoadBusy] = useState(false);
   const uiLoadCountByGenerationRef = useRef<Map<number, number>>(new Map());
@@ -313,6 +315,9 @@ export function useOverviewTabSitemapLoad({
   );
 
   useEffect(() => {
+    if (disableAutoSitemapLoad) {
+      return;
+    }
     const onSiteDataRefreshed = (event: Event) => {
       const detail = (event as CustomEvent<{ siteId?: string }>).detail;
       const activeSite = siteRef.current;
@@ -321,9 +326,12 @@ export function useOverviewTabSitemapLoad({
     };
     window.addEventListener(NEO_PULSE_SITE_DATA_REFRESHED_EVENT, onSiteDataRefreshed);
     return () => window.removeEventListener(NEO_PULSE_SITE_DATA_REFRESHED_EVENT, onSiteDataRefreshed);
-  }, [handleLoadSitemap]);
+  }, [handleLoadSitemap, disableAutoSitemapLoad]);
 
   useEffect(() => {
+    if (disableAutoSitemapLoad) {
+      return;
+    }
     if (!site?.username?.trim() || !site.appPassword?.trim()) {
       return;
     }
@@ -379,6 +387,7 @@ export function useOverviewTabSitemapLoad({
     site?.entitySitemapUrl,
     sitemapSource,
     setRows,
+    disableAutoSitemapLoad,
   ]);
 
   return { handleLoadSitemap, overviewSitemapLoadBusy };

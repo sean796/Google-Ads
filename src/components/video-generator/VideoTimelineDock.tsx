@@ -5,8 +5,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Film,
-  Loader2,
   Mic,
+  Music,
   Plus,
   RefreshCw,
   SlidersHorizontal,
@@ -18,12 +18,14 @@ import {
   VIDEO_TRANSITION_DURATIONS,
   VIDEO_TRANSITION_OPTIONS,
   formatTransitionBadge,
+  formatVideoPlanAudioSummary,
   type StoryboardFrame,
   type VideoPlan,
   type VideoRenderScene,
   type VideoTransition,
   type VideoTransitionType,
 } from "@/lib/video-generator/video-generator-types";
+import { VideoStudioPlaceholderSplash } from "./VideoStudioPlaceholderSplash";
 import { cn } from "@/lib/utils";
 
 export type VideoTimelineDockProps = {
@@ -274,6 +276,8 @@ export function VideoTimelineDock({
                     frame?.status === "waiting" ||
                     frame?.environmentStatus === "generating" ||
                     clip?.status === "generating";
+                  const clipGenerating = clip?.status === "generating";
+                  const showTileSplash = spinning && !frame?.imageDataUrl && !scene.customClipUrl;
                   const failed = frame?.status === "failed" || clip?.status === "failed";
                   const joinLabel = scene.transitionIn ? formatTransitionBadge(scene.transitionIn) : null;
                   const isEditingThisJoin = editingTransitionSceneId === scene.id;
@@ -308,10 +312,21 @@ export function VideoTimelineDock({
                         )}
                       >
                         {/* Repeating filmstrip thumbnails across the clip block */}
+                        {showTileSplash ? (
+                          <VideoStudioPlaceholderSplash
+                            title={`Scene ${scene.order}`}
+                            breathing
+                            variant="tile"
+                          />
+                        ) : null}
+
                         {frame?.imageDataUrl ? (
                           <div
                             onClick={() => onSelectScene(scene.id)}
-                            className="absolute inset-0 grid cursor-pointer grid-cols-3 opacity-65 transition-opacity group-hover:opacity-80"
+                            className={cn(
+                              "absolute inset-0 grid cursor-pointer grid-cols-3 opacity-65 transition-opacity group-hover:opacity-80",
+                              clipGenerating ? "animate-video-product-splash-breathe" : "",
+                            )}
                           >
                             <img
                               src={frame.imageDataUrl}
@@ -446,8 +461,11 @@ export function VideoTimelineDock({
                         {/* Bottom overlay row: Join badge + revision count + status + duration */}
                         <div className="relative z-10 flex items-center justify-between gap-1.5 bg-gradient-to-t from-black/90 to-transparent px-2 py-1 text-left">
                           <div className="flex min-w-0 items-center gap-1.5">
-                            {spinning ? (
-                              <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" />
+                            {spinning && !frame?.imageDataUrl && !scene.customClipUrl ? (
+                              <span
+                                className="h-2 w-2 shrink-0 animate-video-product-splash-breathe bg-primary"
+                                aria-hidden
+                              />
                             ) : failed ? (
                               <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-400" />
                             ) : clip?.status === "done" || frame?.status === "done" || scene.customClipFile ? (
@@ -525,6 +543,18 @@ export function VideoTimelineDock({
                 })}
               </div>
             </div>
+
+            {plan.audio && plan.audio.backingTrack !== "none" ? (
+              <div className="flex h-9 w-full items-stretch gap-1.5">
+                <div className="flex w-28 shrink-0 items-center gap-2 whitespace-nowrap bg-zinc-900 px-3 text-muted-foreground">
+                  <Music className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                  <span className="font-medium text-white">MUSIC</span>
+                </div>
+                <div className="flex min-w-0 flex-1 items-center overflow-hidden bg-zinc-900/80 px-3 text-muted-foreground">
+                  <span className="truncate">{formatVideoPlanAudioSummary(plan.audio)}</span>
+                </div>
+              </div>
+            ) : null}
           </>
         )}
       </div>

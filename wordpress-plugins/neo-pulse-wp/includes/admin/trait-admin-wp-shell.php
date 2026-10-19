@@ -92,9 +92,6 @@ trait Neo_Pulse_Wp_Admin_Trait_Wp_Shell {
 	 */
 	public static function enqueue_admin_assets( $hook_suffix ): void {
 		$hook_suffix = is_string( $hook_suffix ) ? $hook_suffix : '';
-		if ( class_exists( 'Neo_Pulse_Wp_Emcp_Admin' ) && Neo_Pulse_Wp_Emcp_Admin::is_emcp_screen() ) {
-			return;
-		}
 		if ( ! self::is_neo_pulse_plugin_screen( $hook_suffix ) ) {
 			return;
 		}

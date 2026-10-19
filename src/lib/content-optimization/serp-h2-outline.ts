@@ -136,8 +136,9 @@ export async function deriveSerpH2Outline(input: {
     model: input.model?.trim() || getResearchModel(input.siteId),
     system: SERP_H2_OUTLINE_SYSTEM,
     user,
-    maxTokens: 600,
+    maxTokens: 2048,
     temperature: 0.4,
+    reasoning: { effort: "low" },
     responseFormat: {
       type: "json_schema",
       json_schema: { name: "serp_h2_outline", strict: true, schema: OUTLINE_SCHEMA },

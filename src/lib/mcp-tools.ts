@@ -71,9 +71,49 @@ function isNetworkFetchError(error: unknown): boolean {
   );
 }
 
+type GlobalWithDfsLatch = typeof globalThis & {
+  __neoPulseDfsPaymentLatched?: boolean;
+};
+
+function isDfsMcpLatched(): boolean {
+  return Boolean((globalThis as GlobalWithDfsLatch).__neoPulseDfsPaymentLatched);
+}
+
+function latchDfsMcpSkip(): void {
+  (globalThis as GlobalWithDfsLatch).__neoPulseDfsPaymentLatched = true;
+}
+
+function isDfsAuthOrPaymentSkip(status: number, message: string, json?: unknown): boolean {
+  if (status === 401 || status === 402 || status === 403) return true;
+  const rec = json && typeof json === "object" ? (json as Record<string, unknown>) : null;
+  const code = typeof rec?.status_code === "number" ? rec.status_code : 0;
+  if (code === 40100 || code === 40200 || code === 40210) return true;
+  const task = Array.isArray(rec?.tasks) ? (rec.tasks[0] as Record<string, unknown> | undefined) : undefined;
+  const taskCode = typeof task?.status_code === "number" ? task.status_code : 0;
+  if (taskCode === 40100 || taskCode === 40200 || taskCode === 40210) return true;
+  const m = [
+    message,
+    typeof rec?.status_message === "string" ? rec.status_message : "",
+    typeof rec?.error === "string" ? rec.error : "",
+    typeof task?.status_message === "string" ? task.status_message : "",
+  ]
+    .join(" ")
+    .toLowerCase();
+  return (
+    m.includes("payment required") ||
+    m.includes("insufficient funds") ||
+    m.includes("unauthorized") ||
+    m.includes("invalid login or password") ||
+    m.includes("credentials are not configured")
+  );
+}
+
 async function callMCPToolOnce(toolName: string, params: unknown): Promise<unknown> {
+  if (toolName.startsWith("DataForSEO_") && isDfsMcpLatched()) {
+    return { skipped: true, reason: "dfs_payment", tasks: [] };
+  }
+
   const url = resolveMcpToolUrl(toolName);
-  console.log(`[MCP] Calling: ${url}`, params);
 
   const response = await fetch(url, {
     method: "POST",
@@ -97,6 +137,14 @@ async function callMCPToolOnce(toolName: string, params: unknown): Promise<unkno
     }
 
     const errorMessage = errorData?.error || errorData?.message || errorText;
+    if (
+      toolName.startsWith("DataForSEO_") &&
+      isDfsAuthOrPaymentSkip(response.status, errorMessage, errorData?.details ?? errorData)
+    ) {
+      latchDfsMcpSkip();
+      return { skipped: true, reason: "dfs_payment", tasks: [] };
+    }
+
     const errorDetails = errorData?.details
       ? `\nDetails: ${JSON.stringify(errorData.details, null, 2)}`
       : "";
@@ -106,13 +154,13 @@ async function callMCPToolOnce(toolName: string, params: unknown): Promise<unkno
   }
 
   const responseData = await response.json();
-  console.log("[MCP] Response received:", {
-    status: response.status,
-    has_tasks: !!responseData?.tasks,
-    tasks_count: responseData?.tasks?.length,
-    first_task_status: responseData?.tasks?.[0]?.status_code,
-    first_task_result_count: responseData?.tasks?.[0]?.result_count,
-  });
+  if (
+    toolName.startsWith("DataForSEO_") &&
+    isDfsAuthOrPaymentSkip(response.status, "", responseData)
+  ) {
+    latchDfsMcpSkip();
+    return { skipped: true, reason: "dfs_payment", tasks: [] };
+  }
 
   return responseData;
 }

@@ -24,7 +24,7 @@ Output a single JSON object only, no markdown fences, with the full revised plan
 Schema:
 ${PLAN_SCHEMA}
 Rules:
-- Apply the client's note across the whole video. Change only what the note requires; every other scene keeps its id, order, duration, environmentId, environmentPrompt, prompts, narration, referenceIndexes, productView and transitionIn exactly as in the current plan. Every scene object carries all keys in the schema, including referenceIndexes and transitionIn.
+- Apply the client's note across the whole video. Change only what the note requires; every other scene keeps its id, order, duration, environmentId, environmentPrompt, prompts, narration, referenceIndexes, productView and transitionIn exactly as in the current plan. Keep audio unchanged unless the note changes music or backing track. Every scene object carries all keys in the schema, including referenceIndexes and transitionIn.
 - A scene whose storyboardPrompt or environmentPrompt text changes will be redrawn; keep them identical when the visual does not change.
 - Durations must still sum to exactly ${args.brief.lengthSeconds} seconds. Scenes may be added, merged or removed only when the note asks for it.
 - continuity.screenDirection stays as it is unless the note changes direction.
@@ -63,6 +63,7 @@ Return the full revised plan now.`;
       ...plan,
       fadeInSeconds: plan.fadeInSeconds ?? args.plan.fadeInSeconds,
       fadeOutSeconds: plan.fadeOutSeconds ?? args.plan.fadeOutSeconds,
+      audio: plan.audio ?? args.plan.audio,
       scenes: mergedScenes,
     };
     videoLog("revise", "plan applied", finalPlan.scenes.map((s) => `${s.order}: ${s.title} (${s.durationSeconds} s)`));
@@ -136,6 +137,8 @@ Return the revised scene object now.`;
       environmentId: parsed.environmentId ?? scene.environmentId,
       environmentPrompt: parsed.environmentPrompt ?? scene.environmentPrompt,
       revisionNotes: [...priorNotes, args.instruction.trim()],
+      postCutReferenceDataUrl: scene.postCutReferenceDataUrl,
+      postCutReferenceFileName: scene.postCutReferenceFileName,
     };
     videoLog("revise", `scene ${scene.order} applied`, {
       title: revised.title,

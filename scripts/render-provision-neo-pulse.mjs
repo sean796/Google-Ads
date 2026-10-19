@@ -13,9 +13,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.join(__dirname, "..");
 const API = "https://api.render.com/v1";
 const REPO =
-  (process.env.NEO_PULSE_RENDER_REPO || "https://github.com/sean796/Google-Ads").trim();
+  (process.env.NEO_PULSE_RENDER_REPO || "https://github.com/neodigitalca/neo-pulse").trim();
 const BRANCH = (process.env.NEO_PULSE_RENDER_BRANCH || "main").trim();
-const RENDER_API = "https://flowbieone.onrender.com/api/mcp";
+const RENDER_API =
+  (process.env.NEO_PULSE_RENDER_API_BASE || "https://pulse-host-wp-hub.onrender.com/api/mcp").trim();
 
 function loadApiKey() {
   const fromEnv = (process.env.RENDER_API_KEY || "").trim();

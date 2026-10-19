@@ -160,7 +160,6 @@ export function MultiSiteContentOptimizerWorkspaceHeader({
         activeSection={generatorChrome.activeSection}
         onSectionChange={generatorChrome.onSectionChange}
         sectionSwitchDisabled={generatorChrome.sectionSwitchDisabled}
-        showOpt={generatorChrome.showOpt}
         titleRowMenu={
           <>
             {sourceModePills}

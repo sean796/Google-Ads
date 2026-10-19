@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import type { OpenRouterAppStreamDelta } from "@/lib/openrouter-app-api";
 
 /**
@@ -20,7 +20,10 @@ export function VideoPlanLive({ live }: { live: OpenRouterAppStreamDelta }) {
     <div className="flex h-full w-full min-h-0 flex-col overflow-hidden bg-zinc-950 text-base">
       <div className="flex h-9 shrink-0 items-center justify-between bg-zinc-900/80 px-4">
         <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
+          <span
+            className="h-2 w-2 shrink-0 animate-video-product-splash-breathe bg-primary"
+            aria-hidden
+          />
           <span className="font-medium text-white">
             {hasJson ? "Writing structured scene plan JSON…" : "Director reasoning through shots and beat timing…"}
           </span>

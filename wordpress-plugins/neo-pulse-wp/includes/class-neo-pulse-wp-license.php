@@ -670,7 +670,7 @@ class Neo_Pulse_Wp_License {
 									<input type="checkbox" name="neo_pulse_wp_mcp_enabled" value="1" <?php checked( $mcp_on ); ?> onchange="this.form.submit()" />
 									<span class="neo-pulse-wp-panel-toggle__label"><?php esc_html_e( 'Allow Claude access (MCP)', 'neo-pulse-wp' ); ?></span>
 								</label>
-								<p class="neo-pulse-field__note"><?php esc_html_e( 'Exposes neo-pulse/read and neo-pulse/write on this site\'s MCP server so Claude and Neo EMCP can inspect and update SEO settings, shared business details, locations and page schema.', 'neo-pulse-wp' ); ?></p>
+								<p class="neo-pulse-field__note"><?php esc_html_e( 'Exposes neo-pulse/read and neo-pulse/write on this site\'s MCP server so Claude can inspect and update SEO settings, shared business details, locations and page schema.', 'neo-pulse-wp' ); ?></p>
 							</div>
 						</div>
 					</section>

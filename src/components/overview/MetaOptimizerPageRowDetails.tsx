@@ -100,7 +100,7 @@ export const META_FIELD_END_RAIL =
   "flex h-7 shrink-0 items-stretch divide-x divide-white/25 rounded-none border-0 bg-zinc-950/90 sm:h-8";
 export const META_FIELD_END_RAIL_CELL = "flex min-w-[2rem] items-center justify-center px-2";
 export const META_FIELD_END_RAIL_BTN =
-  "h-full min-h-0 min-w-[2rem] shrink-0 rounded-none border-0 bg-transparent px-0 shadow-none hover:bg-white/10 focus-visible:ring-1 focus-visible:ring-cyan-400/35 focus-visible:ring-offset-0 disabled:opacity-45 [&_svg]:text-emerald-400";
+  "inline-flex h-full min-h-0 min-w-[2rem] shrink-0 items-center justify-center rounded-none border-0 bg-transparent px-0 shadow-none hover:bg-white/10 focus-visible:ring-1 focus-visible:ring-cyan-400/35 focus-visible:ring-offset-0 disabled:opacity-45 [&_svg]:text-emerald-400";
 
 const META_EDITABLE_LIST_ITEM = "flex min-w-0 items-start gap-2";
 const META_EDITABLE_LIST_TEXTAREA = cn(

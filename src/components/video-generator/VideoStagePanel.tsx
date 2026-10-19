@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  Box,
   Check,
   Film,
-  Loader2,
   Pause,
   Play,
   RefreshCw,
@@ -27,6 +25,9 @@ import {
 } from "@/lib/video-generator/video-generator-types";
 import { VIDEO_ASPECT_BOX_CLASS, type VideoAspect } from "@/lib/video-generator/video-model-defaults";
 import { VideoPlanLive } from "./VideoPlanLive";
+import { VideoProductViewSplash } from "./VideoProductViewSplash";
+import { VideoStudioPlaceholderSplash } from "./VideoStudioPlaceholderSplash";
+import { VideoStartComposePanel } from "./VideoStartComposePanel";
 import type { StudioLeftTabId } from "./VideoStudioLeftDock";
 import { cn } from "@/lib/utils";
 
@@ -49,10 +50,23 @@ type VideoStagePanelProps = {
   onReviseProductView?: (viewId: ProductViewId | "all", instruction: string) => void;
   onToggleSceneApproved?: (sceneId: string) => void;
   onApprovePlanAndBeginStoryboard?: () => void;
-  onSendSceneInstruction?: (sceneId: string, instruction: string) => void;
+  onSendSceneInstruction?: (
+    sceneId: string,
+    instruction: string,
+    postCutReference?: { dataUrl: string; fileName: string },
+  ) => void;
   onRegenerateEnvironmentPlate?: (sceneId: string) => void;
   onRegenerateFrame?: (sceneId: string) => void;
   onRerenderSceneClip?: (sceneId: string) => void;
+  onPromptChange?: (v: string) => void;
+  productPhotoCount?: number;
+  referenceCount?: number;
+  isPreparingSubject?: boolean;
+  isPreparingReferences?: boolean;
+  onAddProductFiles?: (files: FileList | File[]) => void;
+  onAddReferenceFiles?: (files: FileList | File[]) => void;
+  /** True while survey/render product views batch is in flight (before lock). */
+  productViewsBatchBusy?: boolean;
 };
 
 const RENDER_STATUS_LABEL: Record<VideoRenderSnapshot["status"], string> = {
@@ -99,6 +113,14 @@ export function VideoStagePanel({
   onRegenerateEnvironmentPlate,
   onRegenerateFrame,
   onRerenderSceneClip,
+  onPromptChange,
+  productPhotoCount = 0,
+  referenceCount = 0,
+  isPreparingSubject = false,
+  isPreparingReferences = false,
+  onAddProductFiles,
+  onAddReferenceFiles,
+  productViewsBatchBusy = false,
 }: VideoStagePanelProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -364,17 +386,17 @@ export function VideoStagePanel({
                           alt={def.label}
                           className="absolute inset-0 h-full w-full object-contain"
                         />
-                      ) : spinning ? (
-                        <Loader2 className="h-7 w-7 animate-spin text-primary" aria-label={`Generating ${def.label}`} />
                       ) : v?.error ? (
                         <div className="flex max-h-full flex-col gap-1 overflow-y-auto px-4 py-3 text-red-300">
                           <p className="font-medium">{v.error}</p>
                         </div>
                       ) : (
-                        <div className="flex flex-col items-center gap-1.5 text-muted-foreground">
-                          <Box className="h-6 w-6 text-zinc-700" aria-hidden />
-                          <span>{def.label}</span>
-                        </div>
+                        <VideoProductViewSplash
+                          viewId={def.id}
+                          label={def.label}
+                          shortLabel={def.shortLabel}
+                          breathing={spinning || (productViewsBatchBusy && !v?.imageDataUrl)}
+                        />
                       )}
                     </div>
 
@@ -394,7 +416,7 @@ export function VideoStagePanel({
                           }
                           disabled={disabled || spinning || !hasSubjectPhotos}
                           aria-label={`Prompt AI to change ${def.label}`}
-                          placeholder={`Prompt AI to change ${def.shortLabel} (e.g. "remove wall vent", "make glass mirrored")`}
+                          placeholder={`Prompt AI to change ${def.shortLabel} (e.g. "match uploaded color", "show full drop")`}
                           className={cn(MY_SITES_FIELD, "h-7 flex-1 bg-zinc-900 px-2.5 text-base")}
                         />
                         <Button
@@ -412,6 +434,27 @@ export function VideoStagePanel({
                 );
               })}
             </div>
+          ) : onPromptChange && onAddProductFiles && onAddReferenceFiles ? (
+            <div
+              className={cn(
+                "relative flex flex-col items-center justify-center bg-zinc-900/40 p-6",
+                VIDEO_ASPECT_BOX_CLASS[aspect],
+                boxSizeClass,
+              )}
+            >
+              <VideoStartComposePanel
+                variant="stage"
+                prompt={brief?.prompt ?? ""}
+                onPromptChange={onPromptChange}
+                productCount={productPhotoCount}
+                referenceCount={referenceCount}
+                disabled={disabled}
+                isPreparingSubject={isPreparingSubject}
+                isPreparingReferences={isPreparingReferences}
+                onAddProductFiles={onAddProductFiles}
+                onAddReferenceFiles={onAddReferenceFiles}
+              />
+            </div>
           ) : (
             <div
               className={cn(
@@ -423,7 +466,7 @@ export function VideoStagePanel({
               <Film className="h-10 w-10 text-primary/80" aria-hidden />
               <p className="font-semibold text-white">Ready to Direct</p>
               <p className="max-w-md text-muted-foreground">
-                Upload product photos or references in the left sidebar, write your brief in the Brief tab, then click the primary button in the top-right bar.
+                Add a brief, product photos, or references, then use the primary action in the top bar.
               </p>
             </div>
           )}
@@ -445,6 +488,11 @@ export function VideoStagePanel({
     !disabled &&
     render?.status !== "rendering" &&
     render?.status !== "stitching";
+
+  const hasMonitorVisual =
+    Boolean(activeVideoUrl) ||
+    Boolean(effectiveMode === "env" && frame?.environmentDataUrl) ||
+    Boolean(frame?.imageDataUrl);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-zinc-950">
@@ -518,9 +566,6 @@ export function VideoStagePanel({
               render?.status === "failed" ? "text-red-300" : "text-muted-foreground",
             )}
           >
-            {render && (render.status === "rendering" || render.status === "stitching" || render.status === "created") ? (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            ) : null}
             {render ? RENDER_STATUS_LABEL[render.status] : `${scene.durationSeconds} s`}
           </span>
         </div>
@@ -554,10 +599,13 @@ export function VideoStagePanel({
               className="absolute inset-0 h-full w-full object-contain"
             />
           ) : null}
-          {!activeVideoUrl && spinning ? (
-            <span className="absolute inset-0 flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" aria-label="Drawing frame" />
-            </span>
+          {!hasMonitorVisual && spinning ? (
+            <VideoStudioPlaceholderSplash
+              title={`Scene ${scene.order}`}
+              subtitle={scene.title}
+              breathing
+              variant="stage"
+            />
           ) : null}
         </div>
       </div>

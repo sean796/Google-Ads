@@ -72,7 +72,7 @@ function extractBalancedDivInner(html: string, contentStart: number): string {
 
 function extractTextEditorWidgetBodies(html: string): string[] {
   const parts: string[] = [];
-  const widgetRe = /elementor-widget-text-editor/gi;
+  const widgetRe = /elementor-widget-(?:text-editor|html)\b/gi;
   for (const widgetMatch of html.matchAll(widgetRe)) {
     const slice = html.slice(widgetMatch.index ?? 0);
     const containerMatch = /<div\s+class="elementor-widget-container"\s*>/i.exec(slice);

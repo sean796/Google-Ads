@@ -3,6 +3,7 @@ import { fetchImageDataUrlViaApi } from "@/lib/proxy-fetch-text";
 import type { VideoAspect } from "./video-model-defaults";
 import type { ProductSpec, ProductViewId, VideoPlan, VideoScenePlan } from "./video-generator-types";
 import { formatProductSpecPromptBlock } from "./video-product-agent";
+import { clientLocationReferencePromptBlock } from "./video-client-location-reference";
 import { videoLog, videoLogError, videoTimer } from "./video-log";
 
 /**
@@ -44,32 +45,6 @@ export function resolveProductAnchorForScene(args: {
           : {}),
       };
     }
-    const fallbackView =
-      views.three_quarter ?? views.front_elevation ?? views.side_elevation ?? views.glazing_detail;
-    if (fallbackView) {
-      const secondary =
-        views.front_elevation && views.front_elevation !== fallbackView
-          ? views.front_elevation
-          : views.three_quarter && views.three_quarter !== fallbackView
-            ? views.three_quarter
-            : undefined;
-      return {
-        dataUrl: fallbackView,
-        label: "canonical studio render of the locked product",
-        ...(secondary
-          ? {
-              secondaryDataUrl: secondary,
-              secondaryLabel: "front elevation studio render of the locked product (locks the exact left-to-right order of everything on the front long side)",
-            }
-          : {}),
-      };
-    }
-  }
-  if (args.subjectDataUrl) {
-    return {
-      dataUrl: args.subjectDataUrl,
-      label: "subject harness sheet of the real product",
-    };
   }
   return { dataUrl: undefined, label: "none" };
 }
@@ -90,28 +65,37 @@ export async function generateEnvironmentPlate(args: {
   /** Existing environment plate for this scene when revising in place. */
   currentEnvironmentDataUrl?: string;
 }): Promise<string> {
+  const clientRef = args.scene.postCutReferenceDataUrl?.startsWith("data:image/")
+    ? args.scene.postCutReferenceDataUrl
+    : undefined;
   const anchorUrl = args.currentEnvironmentDataUrl ?? args.masterEnvironmentDataUrl;
-  const refs = anchorUrl ? [anchorUrl] : [];
+  const refs = [...(clientRef ? [clientRef] : []), ...(anchorUrl ? [anchorUrl] : [])].slice(0, 2);
   const envDescription =
     args.scene.environmentPrompt?.trim() ||
     `Clean empty environment setting for scene "${args.scene.title}": ${args.scene.storyboardPrompt}`;
   const anchorRule = args.currentEnvironmentDataUrl
-    ? "The first reference image is the current Environment Plate for this scene: keep the exact ground surface, foundation piers/floor, terrain, background trees/mountains/walls, season, and horizon line, changing only what the revised environment description requests."
+    ? "The first reference image is the current Environment Plate for this scene: keep the exact ground/floor, backdrop, season, and horizon, changing only what the revised environment description requests."
     : args.masterEnvironmentDataUrl
-      ? `The first reference image is the Master Environment Plate for this film's setting: preserve the exact same season, weather, ground texture (dry gravel/grass/concrete — never switching between summer and winter snow), concrete foundation pier count and spacing, tree species, and mountain silhouette, adjusting only for this scene's location or time-of-day lighting.`
+      ? `The first reference image is the Master Environment Plate for this film's setting: preserve the same season, weather, ground/floor texture, backdrop architecture or landscape, and horizon line, adjusting only for this scene's location or time-of-day lighting.`
       : "";
   const revisionBlock = args.scene.revisionNotes?.length
     ? `\nClient Revision Notes: ${args.scene.revisionNotes.join("; ")}\n`
     : "";
+  const clientRefBlock = args.scene.postCutReferenceDataUrl
+    ? clientLocationReferencePromptBlock({
+        fileName: args.scene.postCutReferenceFileName,
+        forEnvironmentPlate: true,
+      })
+    : "";
   const prompt = `Empty-Stage Environment Plate for scene ${args.scene.order} ("${args.scene.title}", location "${args.scene.environmentId ?? `scene_${args.scene.order}`}") of "${args.plan.title}".
 ${anchorRule}
-Environment description: ${envDescription}${revisionBlock}
+Environment description: ${envDescription}${clientRefBlock}${revisionBlock}
 Mandatory Empty-Stage & Season Consistency Rules:
-1. Render ONLY the physical environment: the ground surface, concrete factory floor or concrete foundation piers, road surface, background architecture, forest trees, mountain peaks, sky, and lighting.
-2. DO NOT render the hero modular building/cabin, DO NOT render any flatbed semi-truck or trailer, and DO NOT render any crane, spreader bar, or rigging cables. The center stage where the product will sit must remain completely clear and unobstructed, showing the clean ground or concrete foundation piers ready to receive 1 single unit.
-3. Single Season Lock: Keep the ground dry and clear with consistent seasonal foliage across all scenes unless the description explicitly requests winter snow. Never randomly add snow or ice to the ground.
+1. Render ONLY the physical environment: ground/floor, walls, sky, distant backdrop, and lighting described above.
+2. DO NOT render people, pets, products, or scene action. Leave the stage empty for the storyboard artist.
+3. Single Season Lock: Keep season and ground condition consistent with the description. Never add snow or ice unless the description explicitly requests it.
 4. Palette & lighting arc: ${continuityBlock(args.plan)}
-Single full-frame photoreal cinematic architectural environment plate, ${args.aspect} frame, no text, no watermark, no borders.`;
+Single full-frame photoreal cinematic environment plate, ${args.aspect} frame, no text, no watermark, no borders.`;
 
   const elapsed = videoTimer();
   videoLog("storyboard", `scene ${args.scene.order} environment plate start`, {
@@ -152,45 +136,56 @@ function storyboardPromptFor(args: {
   stageAnchorKind: "current" | "same_location" | "environment" | "hero" | "none";
   productSpec?: ProductSpec | null;
   hasSceneBeatRef: boolean;
+  hasProductAnchor: boolean;
 }): string {
   const { plan, scene, aspect } = args;
   let slot = 0;
   const subjectRule = args.productAnchorLabel
-    ? `The ${ORDINAL[slot++]} reference image is the ${args.productAnchorLabel}. The hero subject in this frame IS this exact 1 single completed physical product unit: identical design, 0%..100% horizontal zone widths, materials, every opening, pane, mullion, solid cladding strip between the glass bay and the door, fixture, top-corner lifting lug, colour, and integral perimeter base, exactly as in that image and the Locked Product Bible. Never render an unfinished shell, never render multiple units or a row of units, and never mirror-flip the building.`
+    ? `The ${ORDINAL[slot++]} reference image is the ${args.productAnchorLabel}. The hero subject in this frame IS this exact single completed physical product unit: identical design, materials, proportions, colors, and every feature listed in the Locked Product Bible and reference image. Never render a different product category, never render multiple units or a row of units, and never mirror-flip the primary face left-for-right.`
     : "";
   const stageRule =
     args.stageAnchorKind === "current"
-      ? `The ${ORDINAL[slot++]} reference image is the current version of this frame: keep its composition, camera angle, subject, ground, foundation piers, season, lighting and palette, and change only what the revised description and Client Revision Notes below specify.`
+      ? `The ${ORDINAL[slot++]} reference image is the current version of this frame: keep its composition, camera angle, subjects, ground, season, lighting and palette, and change only what the revised description and Client Revision Notes below specify.`
       : args.stageAnchorKind === "same_location"
-        ? `The ${ORDINAL[slot++]} reference image is the previous scene's frame at this exact same location ("${scene.environmentId ?? "shared_site"}"): keep 100% of the same ground texture, dry gravel/grass (never switching season or adding snow), concrete foundation piers, module placement, and background trees/mountains, changing only the scene action or time-of-day lighting described below.`
+        ? `The ${ORDINAL[slot++]} reference image is the previous scene's frame at this exact same location ("${scene.environmentId ?? "shared_site"}"): keep the same ground, backdrop, prop layout, and season, changing only the scene action or time-of-day lighting described below.`
         : args.stageAnchorKind === "environment"
-          ? `The ${ORDINAL[slot++]} reference image is the Locked Environment Plate for this scene (location "${scene.environmentId ?? `scene_${scene.order}`}"): composite the 1 single completed hero product directly into this exact environment plate, keeping 100% of its ground surface, dry season, concrete foundation piers, background trees/walls, mountain silhouette, and horizon line unchanged.`
+          ? args.hasProductAnchor
+            ? `The ${ORDINAL[slot++]} reference image is the Locked Environment Plate for this scene (location "${scene.environmentId ?? `scene_${scene.order}`}"): composite the locked product from the first reference into this plate, keeping ground, backdrop, season, and horizon unchanged.`
+            : `The ${ORDINAL[slot++]} reference image is the Locked Environment Plate for this scene (location "${scene.environmentId ?? `scene_${scene.order}`}"): build the storyboardPrompt subjects and action into this plate, keeping ground, backdrop, season, and horizon unchanged.`
           : args.stageAnchorKind === "hero"
             ? `The ${ORDINAL[slot++]} reference image is the hero frame of this video: match its cinematic colour grade, season, and subject scale.`
             : "";
   const thirdSlotRule = args.hasSceneBeatRef
-    ? `The ${ORDINAL[slot++]} reference image is the uploaded scene beat reference for staging & vehicle direction: match its camera framing, activity beat, and exact vehicle/truck orientation (if a truck is present, place the tractor cab on the exact same side of the frame — left vs right — facing the exact same travel direction as in this beat reference image), while replacing the building/cargo with the 1:1 Locked Product from the first reference image.`
+    ? args.hasProductAnchor
+      ? `The ${ORDINAL[slot++]} reference image is the uploaded scene beat reference: match its camera framing, activity, and facing; use the first reference for the locked product appearance at 1:1. When the beat reference is a client storefront or showroom photo, replicate sign copy, materials, and layout at 1:1.`
+      : `The ${ORDINAL[slot++]} reference image is the uploaded scene beat reference: match its camera framing, activity, wardrobe, and travel/facing direction. When it is a client storefront, showroom, or interior location photo, replicate architecture, signage, and branding at 1:1; do not invent a generic building.`
     : args.secondaryProductAnchorLabel
-      ? `The ${ORDINAL[slot++]} reference image is the ${args.secondaryProductAnchorLabel}. Use it together with the first reference image to keep the exact left-to-right 0%..100% zone widths and pane counts on each face; never mirror-flip the building and never replace a glass pane with solid cladding.`
+      ? `The ${ORDINAL[slot++]} reference image is the ${args.secondaryProductAnchorLabel}. Use it with the first reference to keep exact left-to-right layout and materials; never mirror-flip the product.`
       : "";
-  const specBlock = formatProductSpecPromptBlock(args.productSpec);
+  const specBlock = args.hasProductAnchor ? formatProductSpecPromptBlock(args.productSpec) : "";
   const revisionBlock = scene.revisionNotes?.length
     ? `\nClient Revision Notes (MANDATORY override for this scene):\n${scene.revisionNotes.map((note, i) => `- ${i + 1}. ${note}`).join("\n")}\n`
     : "";
-  const facing = plan.continuity.screenDirection === "left_to_right" ? "RIGHT" : "LEFT";
+  const clientRefBlock = scene.postCutReferenceDataUrl
+    ? clientLocationReferencePromptBlock({ fileName: scene.postCutReferenceFileName })
+    : "";
+  const productLaws = args.hasProductAnchor
+    ? `
+Product fidelity (this scene shows the locked SKU):
+1. Match the Locked Product Bible and product reference images at 1:1 for materials, color, proportions, and 0%..100% feature layout on visible faces.
+2. Never mirror-flip the primary face left-for-right versus the bible and references.
+3. Do not substitute a different product category or add features not in the bible.`
+    : "";
   return `Storyboard frame ${scene.order} of ${plan.scenes.length} for the video "${plan.title}".
 ${subjectRule}
 ${stageRule}
 ${thirdSlotRule}
-${specBlock ? `${specBlock}\n` : ""}${scene.storyboardPrompt}${revisionBlock}
-
-Physical & Structural Laws (mandatory 1:1 enforcement in every frame):
-1. Single Standalone Unit & 1:1 Zone Map Lock: Render ONLY 1 single standalone modular unit in the frame — NEVER a row of multiple units side by side. Every horizontal zone (0%..100%) on each face keeps its exact width ratio, exact number of floor-to-ceiling glass panes and mullions, exact vertical cladding rib strips separating glazed bays from door frames, exact door lower/upper panel structure, exact exterior light sconce placement, and exact single-pane or multi-pane window divisions listed in the Locked Product Bible. Never replace any glass pane with solid cladding.
-2. Facade Lock (No Mirror-Flipping): each face keeps the exact left-to-right order of its openings and panels as in the Locked Product Bible and the studio renders.
-3. Season & Ground Lock (No Unrequested Snow): Keep the exact season and dry ground condition of the environment plate / previous scene. Never add snow, ice, or winter slush unless the scene prompt explicitly asks for snow.
-4. Staging Isolation (No Stray Trailers or Cranes): Flatbed semi-trucks/trailers appear ONLY when this scene's action explicitly takes place on a highway truck or loading directly off a truck bed. In indoor factory bay scenes and installed site/piers/night scenes, the module rests directly on the clean concrete factory floor or concrete foundation piers with NO flatbed trailer, NO truck bed, and NO wheeled chassis anywhere in the frame.
-5. Flatbed Truck Co-Linear Alignment & Cab Direction: Whenever the module is on a flatbed semi-truck, the module's long axis MUST be 100% parallel and co-linear with the flatbed trailer deck and tractor cab (0 degree yaw offset), resting flat and centered on the trailer bed. Match the tractor cab side (left vs right) and facing direction to the uploaded beat reference image (or pointing screen ${facing} when no beat reference is attached).
-6. Overhead Crane Rigging (Top Roof Corner Lugs Only): Whenever a crane lifts or sets the module, the module hangs horizontally level from 4 steel cables attached ONLY to the 4 top roof corner lifting lugs/eyes connected to an overhead spreader bar directly above the module — NEVER run crane cables diagonally across the front glass or cladding down to the bottom base corners, never dangle off to the side on a folding boom arm, and never add thin metal stick legs.
+${specBlock ? `${specBlock}\n` : ""}${scene.storyboardPrompt}${clientRefBlock}${revisionBlock}
+${productLaws}
+Scene fidelity (every frame):
+1. Render exactly what the storyboardPrompt and sceneInstructions describe. Do not invent buildings, products, or props the Director did not specify.
+2. Season & ground: match the environment plate or previous frame at this location. No unrequested snow or ice.
+3. Keep people, pets, wardrobe, and props consistent with continuityNotes and beat references.
 
 Video continuity (every frame obeys it): ${continuityBlock(plan)}
 Single full-frame photoreal cinematic shot, ${aspect} frame, no split-screen, no text, no captions, no watermark, no borders.
@@ -225,8 +220,8 @@ export async function generateStoryboardFrame(args: {
     subjectDataUrl: args.subjectDataUrl,
     productViews: args.productViews,
   });
-  const hasLockedStudioViews = Boolean(productAnchor.secondaryDataUrl);
-  const effectiveHeroFrame = hasLockedStudioViews ? undefined : args.heroFrameDataUrl;
+  const hasProductAnchor = Boolean(productAnchor.dataUrl);
+  const effectiveHeroFrame = hasProductAnchor ? undefined : args.heroFrameDataUrl;
 
   // Slot 2: Pick ONE stage/context anchor (never both empty environment plate and occupied same-location frame at once)
   const stageAnchorKind: "current" | "same_location" | "environment" | "hero" | "none" = args.currentFrameDataUrl
@@ -276,6 +271,7 @@ export async function generateStoryboardFrame(args: {
       stageAnchorKind,
       productSpec: args.productSpec,
       hasSceneBeatRef,
+      hasProductAnchor,
     }),
     model: args.imageModel,
     aspectRatio: args.aspect,

@@ -41,7 +41,6 @@ class Neo_Pulse_Wp_Admin_Menu {
 		$cap = Neo_Pulse_Wp_Admin::required_capability();
 		$a   = 'Neo_Pulse_Wp_Admin';
 		return array(
-			'neo-pulse-wp-emcp'           => array( 'title' => __( 'Neo EMCP', 'neo-pulse-wp' ), 'capability' => 'manage_options', 'callback' => array( 'Neo_Pulse_Wp_Emcp_Admin', 'render_page' ) ),
 			'neo-pulse-wp-seo'            => array( 'title' => __( 'SEO', 'neo-pulse-wp' ), 'capability' => 'manage_options', 'callback' => array( $a, 'render_seo_page' ) ),
 			'neo-pulse-wp-sitemap'        => array( 'title' => __( 'Sitemap', 'neo-pulse-wp' ), 'capability' => 'manage_options', 'callback' => array( $a, 'render_sitemap_page' ) ),
 			'neo-pulse-wp-robots-txt'     => array( 'title' => __( 'robots.txt', 'neo-pulse-wp' ), 'capability' => 'manage_options', 'callback' => array( $a, 'render_robots_txt_page' ) ),
@@ -72,13 +71,6 @@ class Neo_Pulse_Wp_Admin_Menu {
 		$insights = __( 'Insights', 'neo-pulse-wp' );
 		$site     = __( 'Site', 'neo-pulse-wp' );
 		return array(
-			'emcp'           => array(
-				'label' => __( 'Neo EMCP', 'neo-pulse-wp' ),
-				'group' => $ai,
-				'tabs'  => array(
-					array( 'label' => __( 'Neo EMCP', 'neo-pulse-wp' ), 'page' => 'neo-pulse-wp-emcp', 'default' => true ),
-				),
-			),
 			'seo'            => array(
 				'label' => __( 'SEO', 'neo-pulse-wp' ),
 				'group' => $seo,
@@ -347,7 +339,7 @@ class Neo_Pulse_Wp_Admin_Menu {
 	 */
 	public static function filter_parent_file( $parent_file ) {
 		$page = self::current_page();
-		if ( $page === self::PARENT_SLUG || isset( self::pages()[ $page ] ) || 0 === strpos( $page, 'emcp-tools' ) ) {
+		if ( $page === self::PARENT_SLUG || isset( self::pages()[ $page ] ) ) {
 			return self::PARENT_SLUG;
 		}
 		return $parent_file;
@@ -364,11 +356,7 @@ class Neo_Pulse_Wp_Admin_Menu {
 		if ( $parent_file !== self::PARENT_SLUG ) {
 			return $submenu_file;
 		}
-		$page = self::current_page();
-		if ( 0 === strpos( $page, 'emcp-tools' ) ) {
-			return 'neo-pulse-wp-emcp';
-		}
-		$section = self::section_for_page( $page );
+		$section = self::section_for_page( self::current_page() );
 		if ( $section === '' ) {
 			return $submenu_file;
 		}

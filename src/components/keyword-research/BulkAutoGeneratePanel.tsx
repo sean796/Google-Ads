@@ -32,7 +32,6 @@ import type { ConnectedSiteSummary } from '@/components/integrations/types';
 import { CSVUploadSection } from './bulk/CSVUploadSection';
 import { PromptInputSection } from './bulk/PromptInputSection';
 import { GeneratedBlogIdeasList } from './bulk/GeneratedBlogIdeasList';
-import { BulkPromptWorkspaceBody } from './bulk/BulkPromptWorkspaceBody';
 import { BULK_GENERATOR_EMPTY_ROW_COUNT } from '@/components/keyword-research/blog-generator-tab-classes';
 import { GeneratedFilesDisplay } from './bulk/GeneratedFilesDisplay';
 import { ProgressAndStatsDisplay } from './bulk/ProgressAndStatsDisplay';
@@ -718,26 +717,19 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
   const handleNumberOfBlogsChange = useCallback(
     (value: number) => {
       setNumberOfBlogs(value);
-      if (!hasGeneratedChecklist) {
-        setGeneratedRows((prev) => syncPromptBlogRowsToCount(prev, value));
-      } else {
+      if (hasGeneratedChecklist) {
         setGeneratedRows((prev) => (prev.length > value ? prev.slice(0, value) : prev));
+        setSelectedBlogIndices((prev) => {
+          const next = new Set<number>();
+          for (const i of prev) {
+            if (i < value) next.add(i);
+          }
+          return next;
+        });
       }
-      setSelectedBlogIndices((prev) => {
-        const next = new Set<number>();
-        for (const i of prev) {
-          if (i < value) next.add(i);
-        }
-        return next;
-      });
     },
     [setGeneratedRows, hasGeneratedChecklist],
   );
-
-  useEffect(() => {
-    if (inputMode !== 'prompt' || hasGeneratedChecklist) return;
-    setGeneratedRows((prev) => syncPromptBlogRowsToCount(prev, numberOfBlogs));
-  }, [inputMode, hasGeneratedChecklist, numberOfBlogs, setGeneratedRows]);
 
   useEffect(() => {
     if (!pendingEntityAutoRunRef.current || rows.length === 0) return;
@@ -863,6 +855,7 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
       rowOrder,
       setRowOrder,
       connectedSite,
+      wordPressSite,
       scheduleOccupancy,
       scheduleOccupancyLoading,
       csvFileName: csvFile?.name ?? null,
@@ -889,12 +882,16 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
         }
       },
       onClearPrompt: () => {
+        if (isProcessing) cancelProcessing();
+        fileManager.clear();
         resetPromptGeneration();
         setSelectedBlogIndices(new Set());
         setRowOrder([]);
         setGeneralIntent("");
         setNumberOfBlogs(3);
-        setGeneratedRows(seedPromptBlogSlots(3));
+        setGeneratedRows([]);
+        setTotalRows(0);
+        setCurrentRow(0);
         setOptionalPrompt("");
         setFeaturedImagePerBlog(true);
         setFeaturedImageType("ai-generated");
@@ -913,6 +910,7 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
       sitemapInventoryLoading: promptSiteContext.sitemapInventoryLoading,
       promptSiteContextReady: promptSiteContext.promptSiteContextReady,
       selectedBlogIndices,
+      setSelectedBlogIndices,
       optionalPrompt,
       setOptionalPrompt,
       featuredImagePerBlog,
@@ -932,6 +930,13 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
       onRowSitemapChange: handleRowSitemapChange,
       onSwitchToCustom: handleSwitchToCustom,
       onCsvRowChange: handleCsvRowChange,
+      onDisplayRowChange: (rowIndex, patch) => {
+        if (inputMode === "csv") {
+          handleCsvRowChange(rowIndex, patch);
+        } else {
+          handleGeneratedRowChange(rowIndex, patch);
+        }
+      },
       publishDateLabelByIndex: publishDateLabelByGeneratedIndex,
     });
   }, [
@@ -966,6 +971,7 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
     previewRowsForWp,
     rowOrder,
     connectedSite,
+    wordPressSite,
     scheduleOccupancy,
     scheduleOccupancyLoading,
     csvFile,
@@ -985,6 +991,7 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
     promptSiteContext.sitemapInventoryLoading,
     promptSiteContext.promptSiteContextReady,
     selectedBlogIndices,
+    setSelectedBlogIndices,
     optionalPrompt,
     featuredImagePerBlog,
     featuredImageType,
@@ -1001,42 +1008,12 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
     handleRowSitemapChange,
     handleSwitchToCustom,
     handleCsvRowChange,
+    handleGeneratedRowChange,
     publishDateLabelByGeneratedIndex,
   ]);
 
-  if (bulkGeneratorWorkspace && inputMode === "csv") {
+  if (bulkGeneratorWorkspace && (inputMode === "csv" || inputMode === "prompt")) {
     return null;
-  }
-
-  if (bulkGeneratorWorkspace && inputMode === "prompt") {
-    return (
-      <BulkPromptWorkspaceBody
-        numberOfBlogs={numberOfBlogs}
-        hasGeneratedChecklist={hasGeneratedChecklist}
-        generatedRows={generatedRows}
-        previewRows={previewRowsForWp}
-        baseDisplayIndices={bulkPreviewBuilt.ok ? bulkPreviewBuilt.baseDisplayIndices : undefined}
-        rowOrder={rowOrder}
-        setRowOrder={setRowOrder}
-        selectedBlogIndices={selectedBlogIndices}
-        setSelectedBlogIndices={setSelectedBlogIndices}
-        isGeneratingChecklist={isGeneratingChecklist}
-        isProcessing={isProcessing}
-        publishDateLabelByIndex={publishDateLabelByGeneratedIndex}
-        onRowChange={handleGeneratedRowChange}
-        postDestination={bulkPostDestination}
-        scheduleFrequency={scheduleFrequency}
-        customInterval={customInterval}
-        dayOfWeek={dayOfWeek}
-        startDateOption={startDateOption}
-        customStartDate={customStartDate}
-        startTime={startTime}
-        useCsvPublishDates={useCsvPublishDates}
-        useGapScheduling={gapScheduleEnabled && Boolean(scheduleOccupancy)}
-        scheduleOccupancy={scheduleOccupancy}
-        wordpressDraftOnly={wordpressDraftOnly}
-      />
-    );
   }
 
   return (

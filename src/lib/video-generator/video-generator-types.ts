@@ -1,6 +1,10 @@
 import type { FlowFreeformClarifyQuestion } from "@/lib/flow-freeform/flow-freeform-types";
 import type { ManualImageReference } from "@/lib/image-generator/manual-reference-upload";
+import type { VideoPlanAudio } from "./video-audio-plan";
 import type { HeygenVoice, VideoAspect, VideoLengthSeconds, VideoResolution } from "./video-model-defaults";
+
+export type { VideoBackingTrackMode, VideoPlanAudio } from "./video-audio-plan";
+export { formatVideoPlanAudioSummary, VIDEO_AUDIO_CLARIFY_QUESTION_ID } from "./video-audio-plan";
 
 export type { FlowFreeformClarifyQuestion as VideoClarifyQuestion };
 
@@ -147,12 +151,20 @@ export type VideoScenePlan = {
   transitionIn?: VideoTransition;
   /** Persistent natural-language revision notes applied to this scene in Pre-Scene Review or Post-Cut. */
   revisionNotes?: string[];
+  /** Optional Post-Cut client location photo; overrides brief referenceIndexes for this scene's beat ref. */
+  postCutReferenceDataUrl?: string;
+  postCutReferenceFileName?: string;
   /** Whether the user approved this scene's simplified brief in the Pre-Scene Plan Review gate. */
   approved?: boolean;
   /** Server-relative path under neo-pulse-video/ when this scene is an uploaded or library video clip rather than an AI-generated clip. */
   customClipFile?: string;
   /** Public URL for immediate playback of an uploaded or library video clip on the timeline. */
   customClipUrl?: string;
+};
+
+export type PostCutSceneReference = {
+  dataUrl: string;
+  fileName: string;
 };
 
 export type VideoPlan = {
@@ -165,6 +177,8 @@ export type VideoPlan = {
   fadeInSeconds?: number;
   /** Optional fade-out to black at the end of the final scene (0..1.5 s). */
   fadeOutSeconds?: number;
+  /** Music under picture (generation or upload); narration stays on voice + scene narration. */
+  audio?: VideoPlanAudio;
   scenes: VideoScenePlan[];
 };
 

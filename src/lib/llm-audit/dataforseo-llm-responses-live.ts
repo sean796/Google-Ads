@@ -19,16 +19,25 @@ export const DFS_LLM_UNAVAILABLE_SKIP = { skipped: true as const, reason: "dfs_u
 
 let dfsPaymentLatched = false;
 
+type GlobalWithDfsLatch = typeof globalThis & {
+  __neoPulseDfsPaymentLatched?: boolean;
+};
+
 export function isDfsPaymentLatched(): boolean {
-  return dfsPaymentLatched;
+  return (
+    dfsPaymentLatched ||
+    Boolean((globalThis as GlobalWithDfsLatch).__neoPulseDfsPaymentLatched)
+  );
 }
 
 export function markDfsPaymentFailed(): void {
   dfsPaymentLatched = true;
+  (globalThis as GlobalWithDfsLatch).__neoPulseDfsPaymentLatched = true;
 }
 
 export function resetDfsPaymentLatch(): void {
   dfsPaymentLatched = false;
+  (globalThis as GlobalWithDfsLatch).__neoPulseDfsPaymentLatched = false;
 }
 
 export function isDfsLlmPaymentSkip(json: unknown): json is typeof DFS_LLM_PAYMENT_SKIP {
@@ -62,13 +71,13 @@ export function isDataForSeoPaymentFailure(input: {
   json?: unknown;
   message?: string;
 }): boolean {
-  if (input.httpStatus === 402) return true;
+  if (input.httpStatus === 401 || input.httpStatus === 402 || input.httpStatus === 403) return true;
   const json = input.json && typeof input.json === "object" ? (input.json as Record<string, unknown>) : null;
   const code = typeof json?.status_code === "number" ? json.status_code : 0;
-  if (code === 40200 || code === 40210) return true;
+  if (code === 40100 || code === 40200 || code === 40210) return true;
   const task = Array.isArray(json?.tasks) ? (json.tasks[0] as Record<string, unknown> | undefined) : undefined;
   const taskCode = typeof task?.status_code === "number" ? task.status_code : 0;
-  if (taskCode === 40200 || taskCode === 40210) return true;
+  if (taskCode === 40100 || taskCode === 40200 || taskCode === 40210) return true;
   const msg = [
     input.message,
     typeof json?.status_message === "string" ? json.status_message : "",
@@ -78,7 +87,14 @@ export function isDataForSeoPaymentFailure(input: {
     .join(" ")
     .toLowerCase();
   return (
-    msg.includes("http 402")
+    msg.includes("http 401")
+    || msg.includes("401 (unauthorized)")
+    || msg.includes("mcp api error (401)")
+    || msg.includes("mcp api error (402)")
+    || msg.includes("unauthorized")
+    || msg.includes("invalid login or password")
+    || msg.includes("credentials are not configured")
+    || msg.includes("http 402")
     || msg.includes("payment required")
     || msg.includes("insufficient funds")
   );

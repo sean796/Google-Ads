@@ -8,6 +8,33 @@ export type ManualImageReference = ImageReferenceResult & {
   fileName: string;
 };
 
+const IMAGE_UPLOAD_EXTENSIONS = new Set([
+  "avif",
+  "bmp",
+  "gif",
+  "heic",
+  "heif",
+  "jpeg",
+  "jpg",
+  "png",
+  "webp",
+]);
+
+/** Windows and some browsers leave `file.type` empty; accept common photo extensions too. */
+export function isImageUploadFile(file: File): boolean {
+  if (file.type.startsWith("image/")) return true;
+  const ext = file.name.includes(".") ? file.name.split(".").pop()!.toLowerCase() : "";
+  return IMAGE_UPLOAD_EXTENSIONS.has(ext);
+}
+
+export function filterImageUploadFiles(files: FileList | File[]): File[] {
+  return Array.from(files).filter(isImageUploadFile);
+}
+
+/** File picker accept string for story-beat and reference uploads. */
+export const IMAGE_REFERENCE_ACCEPT =
+  "image/*,.jpg,.jpeg,.png,.webp,.gif,.bmp,.heic,.heif,.avif";
+
 export function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -24,19 +51,12 @@ export function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
-export async function prepareManualReference(file: File): Promise<ManualImageReference> {
-  return manualReferenceFromDataUrl(file.name, await readFileAsDataUrl(file));
-}
-
-/** Size-gates `rawDataUrl` on the server and wraps it as a manual reference (uploads and server-cut video frames alike). */
-export async function manualReferenceFromDataUrl(fileName: string, rawDataUrl: string): Promise<ManualImageReference> {
-  const prepared = await prepareLocalImageDataUrl(rawDataUrl);
+function buildManualImageReference(fileName: string, dataUrl: string): ManualImageReference {
   const id = `${fileName}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-
   return {
     id,
     fileName,
-    dataUrl: prepared.dataUrl,
+    dataUrl,
     imageUrl: "",
     query: "manual upload",
     kind: "other",
@@ -48,6 +68,32 @@ export async function manualReferenceFromDataUrl(fileName: string, rawDataUrl: s
     useFromImage: ["Match subject identity, materials, and setting cues from this photo."],
     ignoreFromImage: ["Watermarks, UI chrome, and photo borders."],
   };
+}
+
+export async function prepareManualReference(file: File): Promise<ManualImageReference> {
+  return manualReferenceFromDataUrl(file.name, await readFileAsDataUrl(file));
+}
+
+/** Video Studio uploads: always keep readable browser pixels (WebP, JPEG, PNG, etc.); server normalize is optional. */
+export async function prepareVideoStudioReference(file: File): Promise<ManualImageReference> {
+  const rawDataUrl = await readFileAsDataUrl(file);
+  try {
+    const prepared = await prepareLocalImageDataUrl(rawDataUrl);
+    return buildManualImageReference(file.name, prepared.dataUrl);
+  } catch {
+    return buildManualImageReference(file.name, rawDataUrl);
+  }
+}
+
+/** Non-video files from a picker or drop (any type the browser can read as an image). */
+export function referenceUploadFiles(files: FileList | File[]): File[] {
+  return Array.from(files).filter((f) => !f.type.startsWith("video/"));
+}
+
+/** Size-gates `rawDataUrl` on the server and wraps it as a manual reference (uploads and server-cut video frames alike). */
+export async function manualReferenceFromDataUrl(fileName: string, rawDataUrl: string): Promise<ManualImageReference> {
+  const prepared = await prepareLocalImageDataUrl(rawDataUrl);
+  return buildManualImageReference(fileName, prepared.dataUrl);
 }
 
 export function manualReferencesToProvenance(

@@ -28,6 +28,33 @@ import {
   Zap,
 } from "lucide-react";
 import type { ManagerSettingsClusterId } from "@/components/manager/manager-settings-cluster";
+import {
+  BLOG_GENERATOR_SECTION_DEFS,
+  type BlogGeneratorSectionId,
+} from "@/components/blog-generator/blog-generator-sections";
+
+const GENERATOR_NAV_DESCRIPTIONS: Record<BlogGeneratorSectionId, string> = {
+  opt: "Pages grid, AISEO, meta, and WordPress publish",
+  "bulk-csv": "Bulk articles from CSV upload rows",
+  "bulk-prompt": "Bulk articles from prompt slots",
+  "bulk-blog-import": "Import existing posts for optimization",
+  "bulk-press-release": "Press release bulk pipeline",
+  entity: "Entity and competitor page generation",
+  flow: "Freeform multi-agent flow builder",
+  image: "AI image generation workspace",
+  research: "Citation, backlink, and research tools",
+};
+
+function buildSeoGeneratorNavItems(): ManagerNavItem[] {
+  return BLOG_GENERATOR_SECTION_DEFS.map((def) => ({
+    id: `generator-${def.id}`,
+    value: "generator",
+    label: def.label,
+    description: GENERATOR_NAV_DESCRIPTIONS[def.id],
+    icon: def.icon,
+    generatorSection: def.id,
+  }));
+}
 
 export type ManagerNavItem = {
   /** Stable key when multiple items share the same `value` (e.g. Generator sections). */
@@ -36,6 +63,8 @@ export type ManagerNavItem = {
   label: string;
   description: string;
   icon: LucideIcon;
+  /** Opens Generator tab on this inner mode (Tools → SEO mega menu). */
+  generatorSection?: BlogGeneratorSectionId;
   /** Nested mega menu rows (parent is a submenu trigger only). */
   children?: ManagerNavItem[];
   /** Selects Dashboard tab and this settings section (in-page nav hidden). */
@@ -180,12 +209,7 @@ export const MANAGER_NAV_SECTIONS: ManagerNavSection[] = [
         description: "Search engine optimization and sitemaps",
         icon: Search,
         children: [
-          {
-            value: "generator",
-            label: "Generator",
-            description: "Opt, CSV, prompt, import, PR, entity, pages, flow, image, and research",
-            icon: TrendingUp,
-          },
+          ...buildSeoGeneratorNavItems(),
           {
             value: "sitemap-optimizer",
             label: "Sitemap",
@@ -277,20 +301,22 @@ export function isManagerNavItemActive(
   managerTab: string,
   item: ManagerNavItem,
   dashboardCluster: ManagerSettingsClusterId | undefined,
+  activeGeneratorSection?: BlogGeneratorSectionId,
 ): boolean {
   if (item.children?.length) {
     return item.children.some((child) =>
-      isManagerNavItemActive(managerTab, child, dashboardCluster),
+      isManagerNavItemActive(managerTab, child, dashboardCluster, activeGeneratorSection),
     );
   }
-  return isManagerNavItemSelected(managerTab, item, dashboardCluster);
+  return isManagerNavItemSelected(managerTab, item, dashboardCluster, activeGeneratorSection);
 }
 
-/** Mega menu: dashboard rows use `dashboardCluster`; blog generator uses inner side tabs. */
+/** Mega menu: dashboard rows use `dashboardCluster`; generator rows use `generatorSection`. */
 export function isManagerNavItemSelected(
   managerTab: string,
   item: ManagerNavItem,
   dashboardCluster: ManagerSettingsClusterId | undefined,
+  activeGeneratorSection?: BlogGeneratorSectionId,
 ): boolean {
   if (item.dashboardCluster) {
     return managerTab === "dashboard" && dashboardCluster === item.dashboardCluster;
@@ -298,6 +324,8 @@ export function isManagerNavItemSelected(
   if (item.organicDashboard) {
     return managerTab === "organic-reporting";
   }
-  if (managerTab === "generator" && item.value === "generator") return true;
+  if (item.generatorSection) {
+    return managerTab === "generator" && activeGeneratorSection === item.generatorSection;
+  }
   return managerTab === item.value;
 }

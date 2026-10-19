@@ -184,7 +184,7 @@ export function buildOpenRouterAppChatRequestBody(args: {
     tools: args.tools,
     tool_choice: args.toolChoice,
     webSearchOptions: args.webSearchOptions,
-    reasoning: args.reasoning,
+    reasoning: args.reasoning ?? { effort: "low" },
   };
 
   if (filteredMessages.length > 0) {

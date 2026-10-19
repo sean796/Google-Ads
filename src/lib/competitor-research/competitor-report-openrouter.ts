@@ -29,6 +29,6 @@ export async function callOpenRouterChatCompletion(args: {
     signal: args.signal,
     temperature: args.temperature ?? REPORT_TEMPERATURE,
     responseFormat: args.responseFormat,
-    reasoning: args.reasoning,
+    reasoning: args.reasoning ?? { effort: "low" },
   });
 }

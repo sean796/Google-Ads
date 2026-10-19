@@ -335,40 +335,42 @@ export async function fillBlogRowKeywordFocusFromOpenRouter(
     chunkStarts.push(chunkStart);
   }
 
-  for (const chunkStart of chunkStarts) {
-    const chunkIndices = pendingIndices.slice(chunkStart, chunkStart + FOCUS_FILL_CHUNK);
-    const chunkRows = chunkIndices.map((i) => out[i]!);
-    try {
-      const focusList = await fetchFocusKeywordsBatch(
-        apiKey,
-        options.siteId,
-        topic,
-        chunkRows,
-        siteName,
-        {
-          singlePass: options.singlePass,
-          modelCategory: options.modelCategory,
-        },
-      );
-      chunkIndices.forEach((idx, i) => {
-        const focus = focusList[i]!;
-        const userLocked = locked[idx] === true;
-        out[idx] = {
-          ...out[idx]!,
-          keyword_focus: focus,
-          keyword: userLocked ? out[idx]!.keyword : focus,
-        };
-      });
-    } catch (err) {
-      if (options.strict !== false) {
-        throw err instanceof Error ? err : new Error(String(err));
+  await Promise.all(
+    chunkStarts.map(async (chunkStart) => {
+      const chunkIndices = pendingIndices.slice(chunkStart, chunkStart + FOCUS_FILL_CHUNK);
+      const chunkRows = chunkIndices.map((i) => out[i]!);
+      try {
+        const focusList = await fetchFocusKeywordsBatch(
+          apiKey,
+          options.siteId,
+          topic,
+          chunkRows,
+          siteName,
+          {
+            singlePass: options.singlePass,
+            modelCategory: options.modelCategory,
+          },
+        );
+        chunkIndices.forEach((idx, i) => {
+          const focus = focusList[i]!;
+          const userLocked = locked[idx] === true;
+          out[idx] = {
+            ...out[idx]!,
+            keyword_focus: focus,
+            keyword: userLocked ? out[idx]!.keyword : focus,
+          };
+        });
+      } catch (err) {
+        if (options.strict !== false) {
+          throw err instanceof Error ? err : new Error(String(err));
+        }
       }
-    }
-    options.onProgress?.(
-      out.filter((r) => (r.keyword_focus ?? "").trim().length > 0).length,
-      total,
-    );
-  }
+      options.onProgress?.(
+        out.filter((r) => (r.keyword_focus ?? "").trim().length > 0).length,
+        total,
+      );
+    }),
+  );
 
   const missing = out.find((r) => !(r.keyword_focus ?? "").trim());
   if (missing && options.strict !== false) {

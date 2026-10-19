@@ -50,7 +50,7 @@ export function overviewPageSelectionState(
   };
 }
 
-/** Inclusive range from `fromKey` to `toKey` in display order. Adds those keys. */
+/** Inclusive range from `fromKey` to `toKey` in display order. Sets those keys to the target state of `toKey`. */
 export function applyOverviewRangeSelection(
   selected: Set<string>,
   displayKeys: readonly string[],
@@ -62,10 +62,13 @@ export function applyOverviewRangeSelection(
   if (from < 0 || to < 0) return toggleOverviewRowSelectionKey(selected, toKey);
   const start = Math.min(from, to);
   const end = Math.max(from, to);
+  const shouldSelect = !selected.has(toKey);
   const next = new Set(selected);
   for (let i = start; i <= end; i += 1) {
     const key = displayKeys[i];
-    if (key) next.add(key);
+    if (!key) continue;
+    if (shouldSelect) next.add(key);
+    else next.delete(key);
   }
   return next;
 }

@@ -32,13 +32,8 @@ const seoBriefSaveLimit = pLimit(SEO_BRIEF_SAVE_CONCURRENCY);
 export const RESEARCH_NO_GSC_DATA = "No GSC data";
 
 export function isOverviewGscDumpFilename(filename: string): boolean {
-  const name = filename.trim().toLowerCase();
-  if (!name.endsWith(".csv")) return false;
-  return (
-    name.startsWith("gsc_quick_wins__") ||
-    name.startsWith("gsc_page_keywords__") ||
-    name.startsWith("gsc_site_queries__")
-  );
+  const name = filename.trim();
+  return /^gsc_(quick_wins|page_keywords|site_queries)__[a-zA-Z0-9._-]+\.csv$/i.test(name);
 }
 
 export function firstValidGscDumpFilename(

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactElement, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { ChevronRight, Sparkles, X } from "lucide-react";
+import { ChevronRight, Search, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAgentRunsContext } from "@/contexts/use-agent-runs-context";
 import { cn } from "@/lib/utils";
@@ -13,8 +13,22 @@ import { PulseAssistSidebarResizeHandle } from "./PulseAssistSidebarResizeHandle
 import { PulseAssistClock } from "./PulseAssistClock";
 import { WorkspacePill } from "@/components/shared/WorkspacePill";
 import type { PulseAssistLayout } from "./PulseAssistRoot";
-import type { SidebarPanel } from "@/lib/pulse-assist/storage";
+import {
+  DEFAULT_SEO_SIDEBAR_WIDTH,
+  type SidebarPanel,
+} from "@/lib/pulse-assist/storage";
 import "./pulse-assist-theme.css";
+
+export const SEO_INSPECTOR_LABEL = "Page SEO";
+
+function SeoLauncherBrand({ className }: { className?: string }): ReactElement {
+  return (
+    <span className={cn("pulse-assist-launcher-brand", className)}>
+      <Search className="pulse-assist-launcher-brand__spark" aria-hidden />
+      <span className="pulse-assist-launcher-brand__label">SEO</span>
+    </span>
+  );
+}
 
 type PulseAssistSidebarShellProps = {
   layout?: PulseAssistLayout;
@@ -61,14 +75,29 @@ function MobileAssistCircle({ onOpen }: { onOpen: () => void }): ReactElement | 
 
 function ShortcutLaunchers({
   docked,
+  onOpenSeo,
   onOpenAgents,
   onOpenAssist,
 }: {
   docked: boolean;
+  onOpenSeo: () => void;
   onOpenAgents: () => void;
   onOpenAssist: () => void;
 }): ReactElement {
   const launcherClass = cn("pulse-assist-launcher", docked && "pulse-assist-launcher--docked");
+
+  const seoButton = (
+    <button
+      type="button"
+      className={cn(launcherClass, !docked && "neo-pulse-sidebar-launcher--mastra")}
+      onClick={onOpenSeo}
+      aria-label={`Open ${SEO_INSPECTOR_LABEL}`}
+      aria-expanded={false}
+      aria-controls="neo-pulse-sidebar-panel"
+    >
+      <SeoLauncherBrand />
+    </button>
+  );
 
   const agentsButton = (
     <button
@@ -99,6 +128,7 @@ function ShortcutLaunchers({
   if (docked) {
     return (
       <aside className="pulse-assist-shortcut-rail" aria-label="Sidebar shortcuts">
+        {seoButton}
         {agentsButton}
         {assistButton}
       </aside>
@@ -107,6 +137,7 @@ function ShortcutLaunchers({
 
   return (
     <>
+      {seoButton}
       {agentsButton}
       {assistButton}
     </>
@@ -122,8 +153,14 @@ export function PulseAssistSidebarShell({
   children,
 }: PulseAssistSidebarShellProps): ReactElement {
   const panelRef = useRef<HTMLDivElement>(null);
-  const { width, isResizing, isMobile, handleProps } = usePulseAssistSidebarResize(open);
-  const panelLabel = panel === "agents" ? RUNNING_AGENTS_LABEL : NEO_PULSE_ASSIST_LABEL;
+  const { width, isResizing, isMobile, ensureWidthAtLeast, handleProps } =
+    usePulseAssistSidebarResize(open);
+  const panelLabel =
+    panel === "agents"
+      ? RUNNING_AGENTS_LABEL
+      : panel === "seo"
+        ? SEO_INSPECTOR_LABEL
+        : NEO_PULSE_ASSIST_LABEL;
   const { clearHistory, cancelActiveRuns } = useAgentRunsContext();
   const [clearingHistory, setClearingHistory] = useState(false);
   const [cancellingRuns, setCancellingRuns] = useState(false);
@@ -148,6 +185,21 @@ export function PulseAssistSidebarShell({
     };
   }, [open, useDockedChrome]);
 
+  useEffect(() => {
+    const inset =
+      useDockedChrome && open && !isMobile ? `${width}px` : "0px";
+    document.documentElement.style.setProperty("--neo-pulse-assist-panel-width", inset);
+    return () => {
+      document.documentElement.style.setProperty("--neo-pulse-assist-panel-width", "0px");
+    };
+  }, [useDockedChrome, open, isMobile, width]);
+
+  useEffect(() => {
+    if (panel === "seo" && open && !isMobile) {
+      ensureWidthAtLeast(DEFAULT_SEO_SIDEBAR_WIDTH);
+    }
+  }, [panel, open, isMobile, ensureWidthAtLeast]);
+
   const openPanel = (next: SidebarPanel) => {
     onPanelChange(next);
     onOpenChange(true);
@@ -168,6 +220,7 @@ export function PulseAssistSidebarShell({
       {!open && !isMobile ? (
         <ShortcutLaunchers
           docked={useDockedChrome}
+          onOpenSeo={() => openPanel("seo")}
           onOpenAgents={() => openPanel("agents")}
           onOpenAssist={() => openPanel("assist")}
         />
@@ -218,6 +271,13 @@ export function PulseAssistSidebarShell({
               active={panel === "agents"}
               square
               onClick={() => onPanelChange("agents")}
+              className="h-8 min-w-[4.5rem] shrink-0"
+            />
+            <WorkspacePill
+              label="SEO"
+              active={panel === "seo"}
+              square
+              onClick={() => onPanelChange("seo")}
               className="h-8 min-w-[4.5rem] shrink-0"
             />
             <div className="ml-auto flex min-w-0 items-center justify-end gap-1">

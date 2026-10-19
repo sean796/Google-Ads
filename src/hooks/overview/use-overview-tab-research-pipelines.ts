@@ -57,6 +57,7 @@ import { setOverviewBulkHarnessPageState } from "@/lib/overview/overview-bulk-pa
 import {
   overviewBulkRowEntries,
   overviewBulkRowIndices,
+  overviewBulkRowIndicesForDisplayOrder,
   overviewRowInBulkScope,
   overviewRowsInBulkScope,
 } from "@/lib/overview/overview-bulk-row-scope";
@@ -69,13 +70,57 @@ import {
   generatedFilesForUrl,
   storageKeyForUrlGeneratedFiles,
 } from "@/lib/content-optimization/content-optimizer-bulk-generator-bindings";
+import { elementorSectionHeadersFromCachedRow } from "@/lib/elementor-page-content/elementor-section-headers-from-cache";
+import { normalizeSectionProseHtml, prosePlainText } from "@/lib/elementor-page-content/extract-text-editor-prose";
+import { stripTrailingFaqSection } from "@/lib/overview/overview-blog-faq-append";
+import {
+  extractAnswerSectionHtml,
+  extractOverviewSectionHtml,
+  stripLeadingAnswerSection,
+  stripLeadingOverviewSection,
+} from "@/lib/overview/overview-blog-overview-prepend";
+import {
+  rewriteBlogLeadSectionBlock,
+  rewriteBlogPassageSection,
+  splitHtmlBodyIntoH2PassageSections,
+  stitchOverviewBlogPostHtml,
+} from "@/lib/overview/overview-blog-passage-sections";
 import { mergeGeneratedFilesByName } from "@/lib/overview/overview-peer-csv-details";
 import { setOptimizingState } from "@/hooks/content-optimization/optimization-helpers-a";
+import { isDfsPaymentLatched } from "@/lib/llm-audit/dataforseo-llm-responses-live";
+import { pathSlugToFocusHint } from "@/lib/overview/focus-keyword-path-hint";
+import { normalizeFocusKeywordPhrase } from "@/lib/seo-redirect-csv";
+import { clearOverviewStudioRevisions } from "@/lib/overview/studio-doc-revisions-store";
+import { runAutoSeoMetaAndFaqFinale } from "@/lib/overview/overview-auto-seo-meta-faq-finale";
+import { recordOverviewStudioRevision } from "@/lib/overview/record-overview-studio-revision";
+
+type WindowWithOptimizeRunId = Window & {
+  __neoPulseOptimizeAllRunId?: number;
+};
+
+function nextOptimizeAllRunId(): number {
+  if (typeof window === "undefined") return 1;
+  const w = window as WindowWithOptimizeRunId;
+  w.__neoPulseOptimizeAllRunId = (w.__neoPulseOptimizeAllRunId ?? 0) + 1;
+  return w.__neoPulseOptimizeAllRunId;
+}
+
+function isOptimizeAllRunCurrent(runId: number): boolean {
+  if (typeof window === "undefined") return true;
+  return (window as WindowWithOptimizeRunId).__neoPulseOptimizeAllRunId === runId;
+}
+
+// Invalidate any orphaned pre-HMR loop immediately on module evaluation
+if (typeof window !== "undefined") {
+  nextOptimizeAllRunId();
+}
 
 type Args = Pick<
   OverviewTabBase,
   | "rows"
   | "rowsRef"
+  | "displayRowsRef"
+  | "setExpandedPageUrl"
   | "updateRow"
   | "setBulkActionProgress"
   | "setGscQuickWinsFile"
@@ -125,6 +170,7 @@ type Args = Pick<
       skipFaqLoading?: boolean;
       onMicroStep?: () => void;
       seedQuestionCount?: number;
+      skipUploadAfterRowWrite?: boolean;
     },
   ) => Promise<void>;
   bulkScopeUrlKeys: Set<string>;
@@ -152,6 +198,8 @@ async function runResearchRefreshForRows(
 export function useOverviewTabResearchPipelines({
   rows,
   rowsRef,
+  displayRowsRef,
+  setExpandedPageUrl,
   updateRow,
   setBulkActionProgress,
   setGscQuickWinsFile,
@@ -560,109 +608,482 @@ export function useOverviewTabResearchPipelines({
       notify.error("No posts in the current grid to optimize. Clear filters or load the sitemap.");
       return;
     }
-    const scopedIndices = overviewBulkRowIndices(rowsRef.current, scopeKeys);
-    const urls = scopedIndices.map((index) => rowsRef.current[index]!.url);
-    const batchKey = `${site.id}-batch`;
-    if (isOverviewBatchRunning(opt.isOptimizingContent, batchKey)) {
-      notify.error(NOTIFY_A_BULK_CONTENT_RUN_IS_ALREADY_IN_PROGRES);
+    const orderedDisplayIndices = overviewBulkRowIndicesForDisplayOrder(
+      rowsRef.current,
+      displayRowsRef.current,
+      scopeKeys,
+    );
+    const scopedIndices =
+      orderedDisplayIndices.length > 0
+        ? orderedDisplayIndices
+        : overviewBulkRowIndices(rowsRef.current, scopeKeys);
+    if (scopedIndices.length === 0) {
+      notify.error("No posts in the current grid to optimize.");
       return;
     }
-    setBulkActionProgress((p) => ({
-      ...p,
-      optimizeAll: initBulkSliceWithStatus("optimizeAll", urls.length, 0),
-    }));
-    let bulkHandedOff = false;
-    try {
-      seedOverviewBulkBatchPrelude(
-        opt.setBulkOptimizationState,
-        opt.setIsOptimizingContent,
-        batchKey,
-        urls,
-        "WordPress inventory",
-        { isSap: sitemapSource === "sap" },
-      );
-      const prepHarnessSetters: ContentPrepHarnessSetters = {
-        siteId: site.id,
-        batchKey,
-        setBulkOptimizationState: opt.setBulkOptimizationState,
-        setOptimizationProgress: opt.setOptimizationProgress,
-      };
-      markContentPrepBatchHarnessSection(
-        0,
-        "start",
-        prepHarnessSetters,
-        "Using WordPress inventory from site cache…",
-      );
-      patchActiveBulkSlice(setBulkActionProgress, "optimizeAll", {
-        statusMessage: "Using WordPress inventory from site cache…",
-      });
-      seedBulkInventorySessionFromSiteWarmCache(site);
-      setContentPrepBatchMessage(
-        "Using WordPress inventory from site cache (no re-fetch).",
-        "WordPress inventory",
-        prepHarnessSetters,
-      );
-      markContentPrepBatchHarnessSection(0, "done", prepHarnessSetters);
+    const urls = scopedIndices.map((index) => rowsRef.current[index]!.url);
+    const batchKey = `${site.id}-batch`;
 
-      const scopedRows = overviewBulkRowEntries(rowsRef.current, scopeKeys).map((e) => e.row);
-      const { prefilledOverviewTargets, prefilledUrlKeywords } =
-        buildPrefilledTargetsFromOverviewRows(
-          scopedRows,
-          bindings,
-          getInventoryMatchForUrl,
-          site,
-          sitemapSource,
-        );
+    // Claim the single global run slot (cancels any stale or pre-HMR loop immediately)
+    const runId = nextOptimizeAllRunId();
 
-      notify.info(
-        `Starting bulk content optimization for ${urls.length} URL(s). Use the progress strip below or follow the bulk review panel.`,
-        { duration: 6000 },
-      );
-      bulkHandedOff = true;
-      const siteOpt = opt.optimizationOptions[site.id];
-      await opt.handleOptimizeMultipleContentClick(
-        site,
-        urls,
-        opt.optimizeUpdateMode[site.id] || "update",
-        {
-          optimizeContent: true,
-          autoOptimize: true,
-          optimizeTitle: false,
-          optimizeMeta: false,
-          optimizeExcerpt: false,
-          optimizeFeaturedImage:
-            sitemapSource === "sap" ? Boolean(siteOpt?.optimizeFeaturedImage) : false,
-          featuredImageType:
-            sitemapSource === "sap" ? (siteOpt?.featuredImageType ?? "google-maps") : siteOpt?.featuredImageType,
-          optimizeExtraText: false,
-          optimizeExtraImage: false,
-          contentOnlyUpload: true,
-          hasEntity: sitemapSource === "sap",
-          inventorySitemapSource: sitemapSource,
-          prefilledOverviewTargets,
-          prefilledUrlKeywords,
-          useSiteWarmCacheOnly: true,
+    // Clear any stale row statuses left over from interrupted runs so only 1 row is ever sky-blue
+    for (let i = 0; i < rowsRef.current.length; i += 1) {
+      const r = rowsRef.current[i];
+      if (r && r.status !== "idle") {
+        updateRow(i, { status: "idle" });
+      }
+    }
+
+    flushSync(() => {
+      setOptimizingState(opt.setIsOptimizingContent, batchKey, true);
+      opt.setBulkOptimizationState((prev) => ({
+        ...prev,
+        [batchKey]: {
+          urls,
+          currentIndex: 0,
+          urlStatuses: Object.fromEntries(
+            urls.map((u, uIdx) => [u, uIdx === 0 ? ("optimizing" as const) : ("pending" as const)]),
+          ),
+          currentStep: "SERP Research Brief",
+          currentUrl: urls[0],
+          runKind: "content",
         },
-      );
-    } finally {
-      setBulkActionProgress((p) => {
-        const next = { ...p };
-        delete next.optimizeAll;
-        return next;
+      }));
+    });
+
+    const setStepTelemetry = (
+      url: string,
+      pos: number,
+      stepNumber: number,
+      totalSteps: number,
+      stepTitle: string,
+    ) => {
+      if (!isOptimizeAllRunCurrent(runId)) return;
+      const pct = Math.min(100, Math.max(5, Math.round((stepNumber / Math.max(totalSteps, 1)) * 100)));
+      opt.setBulkOptimizationState((prev) => {
+        const cur = prev[batchKey];
+        const baseUrls = cur?.urls?.length ? cur.urls : urls;
+        const baseStatuses: BulkOptimizationState["urlStatuses"] = Object.fromEntries(
+          baseUrls.map((u, uIdx) => {
+            if (u === url || uIdx === pos) return [u, "optimizing" as const];
+            if (uIdx < pos) return [u, cur?.urlStatuses?.[u] ?? ("completed" as const)];
+            return [u, "pending" as const];
+          }),
+        );
+        return {
+          ...prev,
+          [batchKey]: {
+            ...(cur || {}),
+            urls: baseUrls,
+            runKind: "content",
+            currentIndex: pos,
+            currentUrl: url,
+            currentStep: stepTitle,
+            currentProgress: pct,
+            urlStatuses: baseStatuses,
+            currentStepProgress: {
+              step: `${stepNumber}/${totalSteps}`,
+              progress: pct,
+              message: stepTitle,
+              harnessPlannedSectionCount: totalSteps,
+            },
+          },
+        };
       });
-      if (!bulkHandedOff) {
-        opt.resetBulkBatch(batchKey);
+    };
+
+    try {
+      for (let pos = 0; pos < scopedIndices.length; pos += 1) {
+        if (!isOptimizeAllRunCurrent(runId)) return;
+        const idx = scopedIndices[pos]!;
+        let latestRow = rowsRef.current[idx];
+        if (!latestRow?.url) continue;
+        const url = latestRow.url;
+        clearOverviewStudioRevisions(url);
+        const revisionRunId = String(runId);
+
+        try {
+          const isPages =
+            sitemapSource === "pages" ||
+            latestRow.contentFormat === "elementor" ||
+            Boolean(latestRow.elementorDataJson?.trim());
+
+          let resolvedHtml =
+            latestRow.postContentOptimized?.trim() || latestRow.postContent?.trim() || "";
+          if (!isPages) {
+            try {
+              const sourceRes = await resolveAiseoHarnessSourceHtml({
+                row: latestRow,
+                site,
+                sitemapSource,
+                getInventoryMatchForUrl,
+              });
+              if (!isOptimizeAllRunCurrent(runId)) return;
+              if (sourceRes.html?.trim()) {
+                resolvedHtml = sourceRes.html;
+              }
+            } catch (err) {
+              console.warn("[Auto SEO] Source HTML resolve warning for", url, err);
+            }
+          }
+
+          if (!isPages && resolvedHtml.trim() && !latestRow.postContent?.trim()) {
+            updateRow(idx, { postContent: resolvedHtml, postContentOptimized: resolvedHtml });
+            latestRow = rowsRef.current[idx] ?? latestRow;
+          }
+
+          const pageHeaders = isPages
+            ? elementorSectionHeadersFromCachedRow(latestRow).filter((sec) => {
+                const key = (sec.title ?? "").trim().toLowerCase();
+                return key !== "faq" && key !== "frequently asked questions";
+              })
+            : [];
+
+          let ansHtml = !isPages ? extractAnswerSectionHtml(resolvedHtml) : "";
+          let ovHtml = !isPages ? extractOverviewSectionHtml(resolvedHtml) : "";
+          const withoutLead = !isPages
+            ? stripLeadingOverviewSection(stripLeadingAnswerSection(resolvedHtml))
+            : "";
+          const coreOnly = !isPages ? stripTrailingFaqSection(withoutLead) : "";
+          const trailingFaq =
+            !isPages && withoutLead.length > coreOnly.length
+              ? withoutLead.slice(coreOnly.length).trim()
+              : "";
+          const parsedBlog = !isPages
+            ? splitHtmlBodyIntoH2PassageSections(coreOnly)
+            : { leadingHtml: "", sections: [] };
+
+          let leadingHtml = parsedBlog.leadingHtml;
+          const leadCount =
+            (!isPages && ansHtml.trim() ? 1 : 0) +
+            (!isPages && ovHtml.trim() ? 1 : 0) +
+            (!isPages && leadingHtml.trim() ? 1 : 0);
+          const sectionCount = isPages ? pageHeaders.length : parsedBlog.sections.length;
+          const totalSteps = 1 + leadCount + sectionCount + 1;
+
+          // Step 1: SERP Research Brief (never gate the run if DataForSEO has a payment/auth issue)
+          setStepTelemetry(url, pos, 1, totalSteps, "SERP Research Brief");
+          if (!latestRow.focusKeyword?.trim()) {
+            const slugHint = normalizeFocusKeywordPhrase(pathSlugToFocusHint(url) || "");
+            if (slugHint) {
+              updateRow(idx, { focusKeyword: slugHint });
+              latestRow = rowsRef.current[idx] ?? { ...latestRow, focusKeyword: slugHint };
+            }
+          }
+          // Auto SEO content: use existing brief as read-only context; never refresh or overwrite it.
+          const shouldRunDfsResearch =
+            !isDfsPaymentLatched() && !latestRow.seoResearch?.trim();
+          if (shouldRunDfsResearch) {
+            try {
+              await handleDataForSeoResearch(idx, { silent: true, skipGsc: true });
+              if (!isOptimizeAllRunCurrent(runId)) return;
+              latestRow = rowsRef.current[idx] ?? latestRow;
+            } catch (err) {
+              console.warn("[Auto SEO] Research step warning for", url, err);
+            } finally {
+              updateRow(idx, { status: "idle" });
+            }
+          }
+
+          const passageRewriteCtx = {
+            articleTitle: latestRow.aiTitle?.trim() || latestRow.title || "",
+            focusKeyword: latestRow.focusKeyword?.trim() || "",
+            seoResearchBrief: latestRow.seoResearch,
+            siteId: site.id,
+            siteUrl: site.siteUrl,
+            pageUrl: url,
+            businessName: site.name,
+          };
+
+          // Step 3+: Answer, Overview, intro lead, then H2 passages (full blog)
+          if (!isPages) {
+            let stepNum = 2;
+            const siblingTitles = parsedBlog.sections.map((s) => s.title);
+            const commitBlogHtml = (sections: typeof parsedBlog.sections) => {
+              const html = stitchOverviewBlogPostHtml({
+                ansHtml,
+                ovHtml,
+                leadingHtml,
+                sections,
+                trailingFaq,
+              });
+              updateRow(idx, {
+                postContentOptimized: html,
+                postContent: html,
+              });
+            };
+            if (ansHtml.trim()) {
+              if (!isOptimizeAllRunCurrent(runId)) return;
+              setStepTelemetry(url, pos, stepNum, totalSteps, "Answer");
+              stepNum += 1;
+              const ansBefore = ansHtml;
+              try {
+                ansHtml = await rewriteBlogLeadSectionBlock(ansHtml, {
+                  ...passageRewriteCtx,
+                  siblingTitles,
+                });
+                recordOverviewStudioRevision({
+                  pageUrl: url,
+                  stepLabel: "Answer",
+                  runId: revisionRunId,
+                  beforeHtml: ansBefore,
+                  afterHtml: ansHtml,
+                });
+                commitBlogHtml(parsedBlog.sections);
+              } catch (err) {
+                console.warn("[Auto SEO] Answer section warning for", url, err);
+              }
+            }
+            if (ovHtml.trim()) {
+              if (!isOptimizeAllRunCurrent(runId)) return;
+              setStepTelemetry(url, pos, stepNum, totalSteps, "Overview");
+              stepNum += 1;
+              const ovBefore = ovHtml;
+              try {
+                ovHtml = await rewriteBlogLeadSectionBlock(ovHtml, {
+                  ...passageRewriteCtx,
+                  siblingTitles,
+                });
+                recordOverviewStudioRevision({
+                  pageUrl: url,
+                  stepLabel: "Overview",
+                  runId: revisionRunId,
+                  beforeHtml: ovBefore,
+                  afterHtml: ovHtml,
+                });
+                commitBlogHtml(parsedBlog.sections);
+              } catch (err) {
+                console.warn("[Auto SEO] Overview section warning for", url, err);
+              }
+            }
+            if (leadingHtml.trim()) {
+              if (!isOptimizeAllRunCurrent(runId)) return;
+              setStepTelemetry(url, pos, stepNum, totalSteps, "Introduction");
+              stepNum += 1;
+              const introBefore = leadingHtml;
+              try {
+                leadingHtml = await rewriteBlogLeadSectionBlock(leadingHtml, {
+                  ...passageRewriteCtx,
+                  siblingTitles,
+                });
+                recordOverviewStudioRevision({
+                  pageUrl: url,
+                  stepLabel: "Introduction",
+                  runId: revisionRunId,
+                  beforeHtml: introBefore,
+                  afterHtml: leadingHtml,
+                });
+                commitBlogHtml(parsedBlog.sections);
+              } catch (err) {
+                console.warn("[Auto SEO] Intro lead warning for", url, err);
+              }
+            }
+          }
+
+          // Content sections (1 by 1 in document order)
+          if (isPages) {
+            const siblingTitles = pageHeaders.map((s) => s.title);
+            const workingHeaders = [...pageHeaders];
+            for (let sIdx = 0; sIdx < workingHeaders.length; sIdx += 1) {
+              if (!isOptimizeAllRunCurrent(runId)) return;
+              const sec = workingHeaders[sIdx]!;
+              const secBody = (sec.bodyHtml || sec.bodyText || "").trim();
+              const stepNum = 2 + sIdx;
+              setStepTelemetry(
+                url,
+                pos,
+                stepNum,
+                totalSteps,
+                sec.title?.trim() || `Section ${sIdx + 1}`,
+              );
+              if (!secBody) continue;
+
+              const elBodyBefore = secBody;
+              try {
+                const rewritten = await rewriteBlogPassageSection({
+                  mode: "copy",
+                  section: {
+                    id: sec.id || `sec-${sIdx}`,
+                    index: sIdx,
+                    h2OpenTag: "<h2>",
+                    title: sec.title,
+                    bodyHtml: secBody,
+                  },
+                  siblingTitles: siblingTitles.filter((_, i) => i !== sIdx),
+                  articleTitle: latestRow.aiTitle?.trim() || latestRow.title || "",
+                  focusKeyword: latestRow.focusKeyword?.trim() || "",
+                  seoResearchBrief: latestRow.seoResearch,
+                  siteId: site.id,
+                  siteUrl: site.siteUrl,
+                  pageUrl: url,
+                  businessName: site.name,
+                });
+                if (!isOptimizeAllRunCurrent(runId)) return;
+                const normalizedHtml = normalizeSectionProseHtml(rewritten.bodyHtml);
+                recordOverviewStudioRevision({
+                  pageUrl: url,
+                  stepLabel: sec.title?.trim() || `Section ${sIdx + 1}`,
+                  sectionTitle: sec.title?.trim() || undefined,
+                  runId: revisionRunId,
+                  beforeHtml: elBodyBefore,
+                  afterHtml: normalizedHtml,
+                });
+                workingHeaders[sIdx] = {
+                  ...sec,
+                  bodyHtml: normalizedHtml,
+                  bodyText: prosePlainText(normalizedHtml),
+                };
+                updateRow(idx, { elementorSectionHeaders: [...workingHeaders] });
+              } catch (err) {
+                console.warn(
+                  `[Auto SEO] Page section ${sIdx + 1} warning for ${url}:`,
+                  err,
+                );
+              }
+            }
+          } else {
+            const workingSections = [...parsedBlog.sections];
+            for (let sIdx = 0; sIdx < workingSections.length; sIdx += 1) {
+              if (!isOptimizeAllRunCurrent(runId)) return;
+              const sec = workingSections[sIdx]!;
+              const stepNum = 1 + leadCount + sIdx + 1;
+              setStepTelemetry(
+                url,
+                pos,
+                stepNum,
+                totalSteps,
+                sec.title?.trim() || `Section ${sIdx + 1}`,
+              );
+              if (!sec.bodyHtml.trim()) continue;
+
+              const passageBefore = sec.bodyHtml;
+              try {
+                const rewritten = await rewriteBlogPassageSection({
+                  mode: "copy",
+                  section: sec,
+                  siblingTitles: workingSections
+                    .filter((_, i) => i !== sIdx)
+                    .map((s) => s.title),
+                  articleTitle: latestRow.aiTitle?.trim() || latestRow.title || "",
+                  focusKeyword: latestRow.focusKeyword?.trim() || "",
+                  seoResearchBrief: latestRow.seoResearch,
+                  siteId: site.id,
+                  siteUrl: site.siteUrl,
+                  pageUrl: url,
+                  businessName: site.name,
+                });
+                if (!isOptimizeAllRunCurrent(runId)) return;
+                const nextBody = normalizeSectionProseHtml(rewritten.bodyHtml);
+                recordOverviewStudioRevision({
+                  pageUrl: url,
+                  stepLabel: sec.title?.trim() || `Section ${sIdx + 1}`,
+                  sectionTitle: sec.title?.trim() || undefined,
+                  runId: revisionRunId,
+                  beforeHtml: passageBefore,
+                  afterHtml: nextBody,
+                });
+                workingSections[sIdx] = {
+                  ...sec,
+                  bodyHtml: nextBody,
+                };
+                const nextFull = stitchOverviewBlogPostHtml({
+                  ansHtml,
+                  ovHtml,
+                  leadingHtml,
+                  sections: workingSections,
+                  trailingFaq,
+                });
+                updateRow(idx, {
+                  postContentOptimized: nextFull,
+                  postContent: nextFull,
+                });
+              } catch (err) {
+                console.warn(
+                  `[Auto SEO] Blog passage ${sIdx + 1} (${sec.title}) warning for ${url}:`,
+                  err,
+                );
+              }
+            }
+          }
+
+          // Final step: SEO title + meta (sequential) parallel with FAQs
+          if (!isOptimizeAllRunCurrent(runId)) return;
+          setStepTelemetry(url, pos, totalSteps, totalSteps, "SEO Meta & FAQs");
+          try {
+            await runAutoSeoMetaAndFaqFinale({
+              rowIndex: idx,
+              pageUrl: url,
+              revisionRunId,
+              getRow: () => rowsRef.current[idx],
+              handleAiTitleRow,
+              handleAiMetaRow,
+              handleAiFaqRowAll,
+            });
+          } finally {
+            updateRow(idx, { status: "idle" });
+          }
+          latestRow = rowsRef.current[idx] ?? latestRow;
+
+          if (!isOptimizeAllRunCurrent(runId)) return;
+
+          // Fire WordPress upload in background so the next selected article starts immediately
+          if (uploadAfterRowWrite) {
+            latestRow = rowsRef.current[idx] ?? latestRow;
+            const finalHtml =
+              latestRow.postContentOptimized?.trim() || latestRow.postContent?.trim() || "";
+            if (finalHtml) {
+              void uploadAfterRowWrite({
+                index: idx,
+                url,
+                html: finalHtml,
+              }).catch((err) => {
+                console.warn("[Auto SEO] Background WP upload warning for", url, err);
+              });
+            }
+          }
+        } catch (postErr) {
+          console.warn("[Auto SEO] Article chain error for", url, postErr);
+        } finally {
+          updateRow(idx, { status: "idle" });
+        }
+
+        if (!isOptimizeAllRunCurrent(runId)) return;
+        opt.setBulkOptimizationState((prev) => {
+          const cur = prev[batchKey];
+          const baseUrls = cur?.urls?.length ? cur.urls : urls;
+          return {
+            ...prev,
+            [batchKey]: {
+              ...(cur || { urls: baseUrls, currentIndex: pos, currentStep: "Complete" }),
+              urls: baseUrls,
+              runKind: "content",
+              urlStatuses: { ...(cur?.urlStatuses || {}), [url]: "completed" },
+            },
+          };
+        });
+      }
+    } finally {
+      if (isOptimizeAllRunCurrent(runId)) {
+        setOptimizingState(opt.setIsOptimizingContent, batchKey, false);
       }
     }
   }, [
     bulkScopeUrlKeysRef,
     rowsRef,
+    displayRowsRef,
+    setExpandedPageUrl,
     site,
     opt,
     setBulkActionProgress,
     sitemapSource,
     ensureOverviewKeywordsForMissingRows,
     handleDataForSeoResearch,
+    handleAiTitleRow,
+    handleAiMetaRow,
+    handleAiFaqRowAll,
+    updateRow,
+    uploadAfterRowWrite,
     bindings,
     getInventoryMatchForUrl,
   ]);

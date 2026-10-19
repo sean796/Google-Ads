@@ -54,12 +54,6 @@ require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-neo-pulse-wp-updater.php'
 Neo_Pulse_Wp_Updater::init();
 require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-neo-pulse-wp-mcp.php';
 Neo_Pulse_Wp_Mcp::init();
-require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/emcp/class-neo-pulse-wp-emcp-loader.php';
-require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/emcp/class-neo-pulse-wp-emcp-guards.php';
-require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/emcp/class-neo-pulse-wp-emcp-admin.php';
-Neo_Pulse_Wp_Emcp_Guards::init();
-Neo_Pulse_Wp_Emcp_Admin::init();
-Neo_Pulse_Wp_Emcp_Loader::boot();
 
 /** Set true in wp-config to re-enable optimization cap on Apply. */
 if ( ! defined( 'NEO_PULSE_WP_AI_CAP_ENFORCED' ) ) {

@@ -14,10 +14,15 @@ export function overviewTitlePrimarySegment(raw: string | undefined | null): str
   return s.slice(0, i).trim();
 }
 
-export function metaDisplayTitle(row: OverviewRow, wpTitlesByUrl: Record<string, string>): string {
+export function metaDisplayTitle(
+  row: OverviewRow,
+  wpTitlesByUrl?: Record<string, string> | null,
+): string {
   const h1 = overviewTitlePrimarySegment(row.pageHeading);
   const t = overviewTitlePrimarySegment(row.title);
-  const fromWp = overviewTitlePrimarySegment(wpTitlesByUrl[row.url]);
+  const fromWp = overviewTitlePrimarySegment(
+    wpTitlesByUrl && typeof wpTitlesByUrl === "object" ? wpTitlesByUrl[row.url] : undefined,
+  );
   if (h1) return decodeOverviewDisplayText(h1);
   if (t) return decodeOverviewDisplayText(t);
   if (fromWp) return decodeOverviewDisplayText(fromWp);

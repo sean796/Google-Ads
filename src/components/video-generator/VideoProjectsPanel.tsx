@@ -109,7 +109,7 @@ export function VideoProjectsPanel({
             }}
             disabled={disabled}
             aria-label="Project name"
-            placeholder="Project name (e.g. Invicta Modular Film)"
+            placeholder="Project name (e.g. Blind Magic Spring Spot)"
             className={cn(MY_SITES_FIELD, "h-9 flex-1 bg-zinc-950 text-base")}
           />
           <Button

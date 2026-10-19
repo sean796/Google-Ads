@@ -96,10 +96,19 @@ export function usePulseAssistSidebarResize(enabled: boolean) {
     [finishResize],
   );
 
+  const ensureWidthAtLeast = useCallback((minWidth: number) => {
+    setWidth((current) => {
+      const next = clampSidebarWidth(Math.max(current, minWidth));
+      if (next !== current) writeSidebarWidth(next);
+      return next;
+    });
+  }, []);
+
   return {
     width,
     isResizing,
     isMobile,
+    ensureWidthAtLeast,
     handleProps: {
       onPointerDown,
       onPointerMove,
