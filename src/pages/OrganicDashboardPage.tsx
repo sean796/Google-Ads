@@ -57,7 +57,8 @@ import {
   reportOrganicDashboardSourceErrors,
 } from "@/lib/organic-dashboard/organic-dashboard-report-errors";
 import { buildOrganicDashboardViewModel } from "@/lib/organic-dashboard/organic-dashboard-view-model";
-import { writeOrganicClientReportDeckSession } from "@/lib/organic-dashboard/organic-client-report-deck-session";
+import { resolveSemrushProjectDashboardUrlForSite } from "@/lib/semrush-project-id-defaults";
+import { publishOrganicClientReportDeckSession } from "@/lib/organic-dashboard/organic-client-report-deck-session";
 import { buildOrganicClientReportContent } from "@/lib/organic-dashboard/organic-client-report-content";
 import { downloadOrganicClientReportPdf } from "@/lib/organic-dashboard/organic-client-report-print";
 import { resolveClientReportHighlights } from "@/lib/organic-dashboard/organic-reporting-highlights";
@@ -252,9 +253,18 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     }
   }, [query.error, reportError]);
 
+  const siteSemrushProjectDashboardUrl = useMemo(
+    () => resolveSemrushProjectDashboardUrlForSite(site),
+    [site],
+  );
+
   const viewModel = useMemo(
-    () => buildOrganicDashboardViewModel(query.data, { showCompare }),
-    [query.data, showCompare],
+    () =>
+      buildOrganicDashboardViewModel(query.data, {
+        showCompare,
+        siteSemrushProjectDashboardUrl,
+      }),
+    [query.data, showCompare, siteSemrushProjectDashboardUrl],
   );
 
   const siteDisplayName = site.name?.trim() || site.siteUrl;
@@ -298,36 +308,52 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
       reportError("Client report · load Performance data before exporting.");
       return;
     }
-    const vm = buildOrganicDashboardViewModel(query.data, { showCompare });
-    const highlights = resolveClientReportHighlights(highlightsQuery.data, siteDisplayName, vm);
-    const preparedOn = formatLocalYmd(new Date());
-    const deckId = crypto.randomUUID();
-    writeOrganicClientReportDeckSession(deckId, {
-      siteId: site.id,
-      highlights,
-      viewModel: vm,
-      siteName: siteDisplayName,
-      siteUrl: sitePublicUrl,
-      showCompare,
-      preparedOn,
-    });
-    const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-    const path = `${base}/sites/${site.id}/organic/client-report?deck=${encodeURIComponent(deckId)}`;
-    const absolute = new URL(path, window.location.origin).href;
-    const opened = window.open(absolute, "_blank");
-    if (!opened) {
-      reportError("Client report · allow pop-ups to open the report in a new tab.");
-    }
+    void (async () => {
+      const vm = buildOrganicDashboardViewModel(query.data!, {
+        showCompare,
+        siteSemrushProjectDashboardUrl,
+      });
+      const highlights = resolveClientReportHighlights(highlightsQuery.data, siteDisplayName, vm);
+      const preparedOn = formatLocalYmd(new Date());
+      const deckId = crypto.randomUUID();
+      const deckPayload = {
+        siteId: site.id,
+        highlights,
+        viewModel: vm,
+        siteName: siteDisplayName,
+        siteUrl: sitePublicUrl,
+        showCompare,
+        preparedOn,
+      };
+      try {
+        await publishOrganicClientReportDeckSession(deckId, deckPayload);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Could not publish client report link.";
+        reportError(`Client report · ${message}`);
+        return;
+      }
+      const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+      const shareQs = buildOrganicReportingShareSearch(shareState);
+      const deckParam = `deck=${encodeURIComponent(deckId)}`;
+      const path = `${base}/sites/${site.id}/organic/client-report?${deckParam}&${shareQs}`;
+      const absolute = new URL(path, window.location.origin).href;
+      const opened = window.open(absolute, "_blank");
+      if (!opened) {
+        reportError("Client report · allow pop-ups to open the report in a new tab.");
+      }
+    })();
   }, [
     query.data,
     query.isLoading,
     highlightsQuery.data,
     reportingSection,
     reportError,
+    shareState,
     showCompare,
     site.id,
     siteDisplayName,
     sitePublicUrl,
+    siteSemrushProjectDashboardUrl,
   ]);
 
   const handleDownloadPdf = useCallback(async () => {
@@ -338,7 +364,10 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     }
     setDownloadPdfBusy(true);
     try {
-      const vm = buildOrganicDashboardViewModel(query.data, { showCompare });
+      const vm = buildOrganicDashboardViewModel(query.data, {
+      showCompare,
+      siteSemrushProjectDashboardUrl,
+    });
       let resolvedHighlights = highlightsQuery.data;
       if (!resolvedHighlights) {
         const refetched = await highlightsQuery.refetch();

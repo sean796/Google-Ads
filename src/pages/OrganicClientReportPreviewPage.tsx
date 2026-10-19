@@ -11,6 +11,10 @@ import {
   buildOrganicReportingShareSearch,
   shareStateFromDateHarness,
 } from "@/lib/organic-dashboard/organic-reporting-share-url";
+import {
+  fetchOrganicClientReportDeckShare,
+  resolveOrganicClientReportDeckId,
+} from "@/lib/organic-dashboard/organic-client-report-share-api";
 import { resolveOrganicReportingDateHarnessFromSearch } from "@/lib/organic-dashboard/organic-dashboard-fetch-params";
 import type { WordPressSite } from "@/components/integrations/types";
 import { writeOrganicDashboardDateSession } from "@/lib/organic-dashboard/organic-dashboard-date-session";
@@ -25,6 +29,7 @@ import "@/components/organic-dashboard/organic-reporting-client-deck.css";
 import {
   deckHighlightsNeedsAgentNarratives,
   readOrganicClientReportDeckSession,
+  publishOrganicClientReportDeckSession,
   writeOrganicClientReportDeckSession,
   type OrganicClientReportDeckPayload,
 } from "@/lib/organic-dashboard/organic-client-report-deck-session";
@@ -52,7 +57,7 @@ function readDeckPayload(deckId: string, siteId: string): OrganicClientReportDec
 export default function OrganicClientReportPreviewPage() {
   const { siteId = "" } = useParams<{ siteId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const deckId = searchParams.get("deck")?.trim() ?? "";
+  const deckId = resolveOrganicClientReportDeckId(searchParams);
   const shareSearch = searchParams.toString();
   const liveReportMode = !deckId && siteId !== "";
   const { sites } = useWordPressSites();
@@ -74,6 +79,8 @@ export default function OrganicClientReportPreviewPage() {
   );
   const [shareHydrating, setShareHydrating] = useState(liveReportMode);
   const [shareHydrateError, setShareHydrateError] = useState<string | null>(null);
+  const [deckLoading, setDeckLoading] = useState(Boolean(deckId && siteId));
+  const [deckLoadError, setDeckLoadError] = useState<string | null>(null);
   const [hydratingNarratives, setHydratingNarratives] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
@@ -89,6 +96,41 @@ export default function OrganicClientReportPreviewPage() {
     if (data) {
       document.title = `${data.siteName} Organic Performance`;
     }
+  }, [deckId, siteId]);
+
+  useEffect(() => {
+    if (!deckId || !siteId) {
+      setDeckLoading(false);
+      setDeckLoadError(null);
+      return;
+    }
+
+    const local = readDeckPayload(deckId, siteId);
+    if (local) {
+      setDeckLoading(false);
+      setDeckLoadError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setDeckLoadError(null);
+    setDeckLoading(true);
+
+    void fetchOrganicClientReportDeckShare(deckId, siteId).then((remote) => {
+      if (cancelled) return;
+      if (remote) {
+        setPayload(remote);
+        document.title = `${remote.siteName} Organic Performance`;
+        setDeckLoadError(null);
+      } else {
+        setDeckLoadError("This client report link is missing or expired. Generate it again from Reporting.");
+      }
+      setDeckLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [deckId, siteId]);
 
   useEffect(() => {
@@ -181,8 +223,10 @@ export default function OrganicClientReportPreviewPage() {
         );
         const highlights = await fetchOrganicReportingHighlights(snapshot, siteId);
         const next: OrganicClientReportDeckPayload = { ...data, highlights };
-        writeOrganicClientReportDeckSession(deckId, next);
         if (!cancelled) setPayload(next);
+        void publishOrganicClientReportDeckSession(deckId, next).catch(() => {
+          /* Local deck remains visible if hub publish fails. */
+        });
       } catch {
         /* Keep deck visible with stored highlights. */
       } finally {
@@ -227,6 +271,31 @@ export default function OrganicClientReportPreviewPage() {
     !payload &&
     !shareHydrateError &&
     (shareHydrating || siteResolving || !reportSite);
+
+  if (deckId && deckLoading) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#f4f4f5] px-6 font-sans text-base text-[#18181b]">
+        <p>Loading client report…</p>
+      </div>
+    );
+  }
+
+  if (deckLoadError) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#f4f4f5] px-6 font-sans text-base text-[#18181b]">
+        <p role="alert">{deckLoadError}</p>
+        {siteId ? (
+          <Link className="text-base font-semibold text-[#18181b] underline" to={`/sites/${siteId}/organic?section=performance`}>
+            Back to Reporting
+          </Link>
+        ) : (
+          <Link className="text-base font-semibold text-[#18181b] underline" to="/">
+            Back to Neo Pulse
+          </Link>
+        )}
+      </div>
+    );
+  }
 
   if (awaitingShareHydrate || (liveReportMode && shareHydrating && !payload)) {
     return (

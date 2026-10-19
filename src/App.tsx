@@ -103,11 +103,7 @@ const App = () => {
                       />
                       <Route
                         path="/sites/:siteId/organic/client-report"
-                        element={
-                          <ProtectedRoute>
-                            <OrganicClientReportPreviewPage />
-                          </ProtectedRoute>
-                        }
+                        element={<OrganicClientReportPreviewPage />}
                       />
                       <Route
                         path="/sites/:siteId/organic"

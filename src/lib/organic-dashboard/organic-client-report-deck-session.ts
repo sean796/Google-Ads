@@ -6,6 +6,7 @@ import {
   normalizeOrganicDashboardViewModelForDeck,
   type OrganicDashboardViewModel,
 } from "@/lib/organic-dashboard/organic-dashboard-view-model";
+import { saveOrganicClientReportDeckShare } from "@/lib/organic-dashboard/organic-client-report-share-api";
 
 export type OrganicClientReportDeckPayload = {
   siteId: string;
@@ -93,6 +94,15 @@ export function writeOrganicClientReportDeckSession(
   }
 }
 
+/** Writes browser storage, then publishes to the hub so incognito and shared links can load the deck. */
+export async function publishOrganicClientReportDeckSession(
+  deckId: string,
+  payload: OrganicClientReportDeckPayload,
+): Promise<void> {
+  writeOrganicClientReportDeckSession(deckId, payload);
+  await saveOrganicClientReportDeckShare(deckId, payload);
+}
+
 export function deckHighlightsNeedsAgentNarratives(
   highlights: OrganicClientReportDeckPayload["highlights"],
 ): boolean {
@@ -106,21 +116,10 @@ export function deckHighlightsNeedsAgentNarratives(
   );
 }
 
-export function readOrganicClientReportDeckSession(
-  deckId: string,
+export function parseOrganicClientReportDeckPayload(
   siteId: string,
+  parsed: unknown,
 ): OrganicClientReportDeckPayload | null {
-  const key = storageKey(deckId);
-  const raw =
-    (typeof localStorage !== "undefined" ? readFromStorage(localStorage, key) : null) ??
-    (typeof sessionStorage !== "undefined" ? readFromStorage(sessionStorage, key) : null);
-  if (!raw) return null;
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return null;
-  }
   if (!parsed || typeof parsed !== "object") return null;
   const o = parsed as Record<string, unknown>;
   if (o.siteId !== siteId) return null;
@@ -139,4 +138,22 @@ export function readOrganicClientReportDeckSession(
     viewModel: normalizeOrganicDashboardViewModelForDeck(o.viewModel),
     highlights,
   };
+}
+
+export function readOrganicClientReportDeckSession(
+  deckId: string,
+  siteId: string,
+): OrganicClientReportDeckPayload | null {
+  const key = storageKey(deckId);
+  const raw =
+    (typeof localStorage !== "undefined" ? readFromStorage(localStorage, key) : null) ??
+    (typeof sessionStorage !== "undefined" ? readFromStorage(sessionStorage, key) : null);
+  if (!raw) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  return parseOrganicClientReportDeckPayload(siteId, parsed);
 }
