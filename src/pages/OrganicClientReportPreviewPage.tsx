@@ -40,11 +40,13 @@ export default function OrganicClientReportPreviewPage() {
   const [searchParams] = useSearchParams();
   const deckId = searchParams.get("deck")?.trim() ?? "";
   const shareSearch = searchParams.toString();
+  const shareLinkMode = !deckId && hasOrganicReportingShareParams(shareSearch);
   const { sites } = useWordPressSites();
   const site = useMemo(
     () => resolveOrganicDashboardSite(sites, siteId, null),
     [siteId, sites],
   );
+  const siteListReady = sites.length > 0;
 
   const [payload, setPayload] = useState<OrganicClientReportDeckPayload | null>(() =>
     readDeckPayload(deckId, siteId),
@@ -167,10 +169,24 @@ export default function OrganicClientReportPreviewPage() {
     window.print();
   }, []);
 
-  if (shareHydrating) {
+  const awaitingShareHydrate =
+    shareLinkMode && !payload && !shareHydrateError && (shareHydrating || !siteListReady || (siteId !== "" && !site));
+
+  if (awaitingShareHydrate || shareHydrating) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#f4f4f5] px-6 font-sans text-base text-[#18181b]">
         <p>Loading client report…</p>
+      </div>
+    );
+  }
+
+  if (shareLinkMode && siteListReady && siteId && !site) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#f4f4f5] px-6 font-sans text-base text-[#18181b]">
+        <p role="alert">This property is not available in your workspace.</p>
+        <Link className="text-base font-semibold text-[#18181b] underline" to="/">
+          Back to Neo Pulse
+        </Link>
       </div>
     );
   }
@@ -188,7 +204,24 @@ export default function OrganicClientReportPreviewPage() {
     );
   }
 
-  if ((!deckId && !hasOrganicReportingShareParams(shareSearch)) || !payload || !reportContent) {
+  if (!shareLinkMode && !deckId) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#f4f4f5] px-6 font-sans text-base text-[#18181b]">
+        <p>This client report link is missing or expired. Generate it again from Reporting.</p>
+        {siteId ? (
+          <Link className="text-base font-semibold text-[#18181b] underline" to={`/sites/${siteId}/organic?section=performance`}>
+            Back to Reporting
+          </Link>
+        ) : (
+          <Link className="text-base font-semibold text-[#18181b] underline" to="/">
+            Back to Neo Pulse
+          </Link>
+        )}
+      </div>
+    );
+  }
+
+  if (!payload || !reportContent) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#f4f4f5] px-6 font-sans text-base text-[#18181b]">
         <p>This client report link is missing or expired. Generate it again from Reporting.</p>
