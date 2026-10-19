@@ -110,6 +110,7 @@ class Neo_Pulse_App_Loader {
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/proposal/class-proposal-route-handlers.php';
 
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/gsc/class-gsc-service-account.php';
+		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/gsc/class-gsc-credentials.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/gsc/class-gsc-queries.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/gsc/class-gsc-performance.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/gsc/class-gsc-performance-batch.php';

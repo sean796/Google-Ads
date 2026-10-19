@@ -28,10 +28,16 @@ class Neo_Pulse_App_Gsc_Service_Account {
 	/**
 	 * @return array<string,string>|WP_Error
 	 */
+	/** @var array<string,string>|null */
+	private static $credential_cache = null;
+
+	public static function clear_credentials_cache(): void {
+		self::$credential_cache = null;
+	}
+
 	public static function get_credentials() {
-		static $resolved = null;
-		if ( is_array( $resolved ) ) {
-			return $resolved;
+		if ( is_array( self::$credential_cache ) ) {
+			return self::$credential_cache;
 		}
 
 		$raw = Neo_Pulse_App_Secrets::gsc_service_account_json();
@@ -59,12 +65,12 @@ class Neo_Pulse_App_Gsc_Service_Account {
 			);
 		}
 
-		$resolved = array(
+		self::$credential_cache = array(
 			'client_email' => $email,
 			'private_key'  => $key,
 			'project_id'   => isset( $data['project_id'] ) ? (string) $data['project_id'] : '',
 		);
-		return $resolved;
+		return self::$credential_cache;
 	}
 
 	/**

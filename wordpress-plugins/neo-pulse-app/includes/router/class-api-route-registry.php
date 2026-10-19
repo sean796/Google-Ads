@@ -34,6 +34,8 @@ class Neo_Pulse_App_Api_Route_Registry {
 			array( 'method' => 'POST', 'path' => 'seo/discover-locations' ),
 			array( 'method' => 'GET', 'path' => 'vertical-benchmarks/taxonomy' ),
 			array( 'method' => 'GET', 'path' => 'ga/credentials-status' ),
+			array( 'method' => 'GET', 'path' => 'gsc/credentials-status' ),
+			array( 'method' => 'POST', 'path' => 'gsc/test-and-save' ),
 			array( 'method' => 'GET', 'path' => 'gmb/config-status' ),
 			array( 'method' => 'GET', 'path' => 'gmb/authorize' ),
 			array( 'method' => 'POST', 'path' => 'gmb/performance' ),

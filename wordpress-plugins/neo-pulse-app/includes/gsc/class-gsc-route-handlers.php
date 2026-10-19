@@ -297,6 +297,15 @@ class Neo_Pulse_App_Gsc_Route_Handlers {
 		$subpath = trim( $subpath, '/' );
 		$method  = strtoupper( $method );
 
+		if ( $subpath === 'credentials-status' && $method === 'GET' ) {
+			Neo_Pulse_App_Api_Dispatcher::send_json( Neo_Pulse_App_Gsc_Credentials::credentials_status() );
+			return;
+		}
+		if ( $subpath === 'test-and-save' && $method === 'POST' ) {
+			$result = Neo_Pulse_App_Gsc_Credentials::test_and_save( $body );
+			Neo_Pulse_App_Api_Dispatcher::send_json( $result['body'], $result['statusCode'] );
+			return;
+		}
 		if ( $subpath === 'service-account-email' && $method === 'GET' ) {
 			Neo_Pulse_App_Api_Dispatcher::send_json( array( 'email' => Neo_Pulse_App_Gsc_Service_Account::service_account_email() ) );
 			return;
