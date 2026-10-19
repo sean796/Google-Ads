@@ -126,6 +126,7 @@ class Neo_Pulse_App_Loader {
 
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/organic-dashboard/class-organic-dashboard-semrush.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/organic-dashboard/class-organic-dashboard-bundle.php';
+		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/organic-dashboard/class-organic-dashboard-reporting-highlights.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/organic-dashboard/class-organic-dashboard-client-report-share.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/organic-dashboard/class-organic-dashboard-route-handlers.php';
 

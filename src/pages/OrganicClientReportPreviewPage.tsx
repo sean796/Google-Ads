@@ -27,19 +27,12 @@ import { OrganicClientReportExportDocument } from "@/components/organic-dashboar
 import { Button } from "@/components/ui/button";
 import "@/components/organic-dashboard/organic-reporting-client-deck.css";
 import {
-  deckHighlightsNeedsAgentNarratives,
   readOrganicClientReportDeckSession,
-  publishOrganicClientReportDeckSession,
-  writeOrganicClientReportDeckSession,
   type OrganicClientReportDeckPayload,
 } from "@/lib/organic-dashboard/organic-client-report-deck-session";
 import { buildOrganicClientReportContent } from "@/lib/organic-dashboard/organic-client-report-content";
 import { downloadOrganicClientReportMarkdown } from "@/lib/organic-dashboard/organic-client-report-markdown";
 import { downloadOrganicClientReportPdf } from "@/lib/organic-dashboard/organic-client-report-print";
-import {
-  buildOrganicReportingHighlightsSnapshot,
-  fetchOrganicReportingHighlights,
-} from "@/lib/organic-dashboard/organic-reporting-highlights";
 import {
   REPORTING_TOOLBAR_ACTION_BTN,
   REPORTING_TOOLBAR_DOWNLOAD_MARKDOWN_BTN_CLASS,
@@ -67,8 +60,8 @@ export default function OrganicClientReportPreviewPage() {
     [siteId, sites],
   );
   const [resolvedSite, setResolvedSite] = useState<WordPressSite | undefined>(undefined);
-  const [siteResolving, setSiteResolving] = useState(liveReportMode);
-  const reportSite = deckId ? siteFromList : resolvedSite ?? siteFromList;
+  const [siteResolving, setSiteResolving] = useState(Boolean(siteId));
+  const reportSite = resolvedSite ?? siteFromList;
 
   const [dateHarness, setDateHarness] = useState<Ga4ReportingDateHarness>(() =>
     resolveOrganicReportingDateHarnessFromSearch(shareSearch),
@@ -81,7 +74,6 @@ export default function OrganicClientReportPreviewPage() {
   const [shareHydrating, setShareHydrating] = useState(liveReportMode);
   const [shareHydrateError, setShareHydrateError] = useState<string | null>(null);
   const [deckLoading, setDeckLoading] = useState(Boolean(deckId && siteId));
-  const [hydratingNarratives, setHydratingNarratives] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
 
@@ -135,7 +127,7 @@ export default function OrganicClientReportPreviewPage() {
   }, [deckId, siteId]);
 
   useEffect(() => {
-    if (!liveReportMode) {
+    if (!siteId) {
       setResolvedSite(undefined);
       setSiteResolving(false);
       return;
@@ -151,7 +143,7 @@ export default function OrganicClientReportPreviewPage() {
     return () => {
       cancelled = true;
     };
-  }, [liveReportMode, siteId, sites]);
+  }, [siteId, sites]);
 
   useEffect(() => {
     setDateHarness(resolveOrganicReportingDateHarnessFromSearch(shareSearch));
@@ -163,10 +155,13 @@ export default function OrganicClientReportPreviewPage() {
       writeOrganicDashboardDateSession(next);
       const qs = buildOrganicReportingShareSearch(shareStateFromDateHarness("performance", next));
       setSearchParams(new URLSearchParams(qs), { replace: true });
+      if (deckId) {
+        setDeckUseLiveFallback(true);
+      }
       setPayload(null);
       setShareHydrateError(null);
     },
-    [setSearchParams],
+    [deckId, setSearchParams],
   );
 
   useEffect(() => {
@@ -202,44 +197,6 @@ export default function OrganicClientReportPreviewPage() {
       cancelled = true;
     };
   }, [dateHarness, deckId, deckUseLiveFallback, liveReportMode, reportSite]);
-
-  useEffect(() => {
-    if (!siteId || !deckId) return;
-
-    const data = readDeckPayload(deckId, siteId);
-    if (!data || !deckHighlightsNeedsAgentNarratives(data.highlights)) {
-      setHydratingNarratives(false);
-      return;
-    }
-
-    let cancelled = false;
-    setHydratingNarratives(true);
-
-    void (async () => {
-      try {
-        const snapshot = buildOrganicReportingHighlightsSnapshot(
-          data.viewModel,
-          data.siteName,
-          data.siteUrl,
-          data.showCompare,
-        );
-        const highlights = await fetchOrganicReportingHighlights(snapshot, siteId);
-        const next: OrganicClientReportDeckPayload = { ...data, highlights };
-        if (!cancelled) setPayload(next);
-        void publishOrganicClientReportDeckSession(deckId, next).catch(() => {
-          /* Local deck remains visible if hub publish fails. */
-        });
-      } catch {
-        /* Keep deck visible with stored highlights. */
-      } finally {
-        if (!cancelled) setHydratingNarratives(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [deckId, siteId]);
 
   const handleDownloadPdf = useCallback(async () => {
     if (!reportContent || !payload) return;
@@ -348,27 +305,26 @@ export default function OrganicClientReportPreviewPage() {
     );
   }
 
-  const pdfDisabled = hydratingNarratives || pdfBusy;
+  const pdfDisabled = pdfBusy;
 
   return (
     <div className="organic-client-report-preview-shell min-h-dvh overflow-auto">
       <div className="organic-client-report-preview-toolbar">
         <div className="min-w-0 truncate text-base font-medium text-white">
-          {hydratingNarratives ? "Updating executive narrative…" : `${payload.siteName} · Printer-friendly report`}
+          {`${payload.siteName} · Printer-friendly report`}
         </div>
         <div className="organic-client-report-preview-toolbar-actions">
-          {liveReportMode ? (
+          <div className="organic-client-report-preview-date-slot">
             <Ga4ReportingDateRangePopover
               busy={shareHydrating}
               value={dateHarness}
               onApply={handleDateHarnessApply}
               todayYmdMax={todayYmdMax}
             />
-          ) : null}
+          </div>
           <Button
             type="button"
             variant="ghost"
-            disabled={hydratingNarratives}
             className={REPORTING_TOOLBAR_ACTION_BTN}
             onClick={handlePrint}
           >
@@ -396,7 +352,6 @@ export default function OrganicClientReportPreviewPage() {
           <Button
             type="button"
             variant="ghost"
-            disabled={hydratingNarratives}
             className={REPORTING_TOOLBAR_DOWNLOAD_MARKDOWN_BTN_CLASS}
             onClick={handleDownloadMarkdown}
           >

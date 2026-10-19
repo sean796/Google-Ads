@@ -24,6 +24,12 @@ class Neo_Pulse_App_Organic_Dashboard_Route_Handlers {
 			return;
 		}
 
+		if ( $subpath === 'reporting-highlights' && $method === 'POST' ) {
+			$result = Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights::generate( $body );
+			Neo_Pulse_App_Api_Dispatcher::send_json( $result['body'], $result['statusCode'] );
+			return;
+		}
+
 		if ( $subpath === 'client-report/save' && $method === 'POST' ) {
 			$result = Neo_Pulse_App_Organic_Dashboard_Client_Report_Share::save( $body );
 			Neo_Pulse_App_Api_Dispatcher::send_json( $result['body'], $result['statusCode'] );

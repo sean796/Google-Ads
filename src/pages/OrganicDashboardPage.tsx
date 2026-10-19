@@ -45,7 +45,7 @@ import {
   resolveGa4PropertyIdForReportingAsync,
 } from "@/lib/ga4-reporting-property";
 import { getPublicSiteUrl } from "@/lib/wordpress-site-public-url";
-import { fetchOrganicDashboardBundle } from "@/lib/organic-dashboard/organic-dashboard-fetch";
+import { fetchOrganicDashboardPerformancePack } from "@/lib/organic-dashboard/organic-dashboard-performance-pack";
 import {
   buildOrganicDashboardFetchParams,
   defaultOrganicReportingDateHarness,
@@ -56,13 +56,13 @@ import {
   reportOrganicDashboardFetchError,
   reportOrganicDashboardSourceErrors,
 } from "@/lib/organic-dashboard/organic-dashboard-report-errors";
-import { buildOrganicDashboardViewModel } from "@/lib/organic-dashboard/organic-dashboard-view-model";
 import { resolveSemrushProjectDashboardUrlForSite } from "@/lib/semrush-project-id-defaults";
-import { publishOrganicClientReportDeckSession } from "@/lib/organic-dashboard/organic-client-report-deck-session";
+import {
+  deckHighlightsNeedsAgentNarratives,
+  publishOrganicClientReportDeckSession,
+} from "@/lib/organic-dashboard/organic-client-report-deck-session";
 import { buildOrganicClientReportContent } from "@/lib/organic-dashboard/organic-client-report-content";
 import { downloadOrganicClientReportPdf } from "@/lib/organic-dashboard/organic-client-report-print";
-import { resolveClientReportHighlights } from "@/lib/organic-dashboard/organic-reporting-highlights";
-import { useOrganicReportingHighlightsQuery } from "@/hooks/use-organic-reporting-highlights-query";
 import { writeOrganicDashboardDateSession } from "@/lib/organic-dashboard/organic-dashboard-date-session";
 import { formatLocalYmd } from "@/lib/reporting/reporting-date-presets";
 
@@ -203,14 +203,33 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     [site, dateHarness, ga4PropertyId],
   );
 
+  const siteSemrushProjectDashboardUrl = useMemo(
+    () => resolveSemrushProjectDashboardUrlForSite(site),
+    [site],
+  );
+
+  const siteDisplayName = site.name?.trim() || site.siteUrl;
+  const sitePublicUrl = useMemo(
+    () => getPublicSiteUrl(site).trim() || site.siteUrl.trim(),
+    [site],
+  );
+
   const query = useQuery({
-    queryKey: ["organic-dashboard", site.id, fetchParams] as const,
-    queryFn: async ({ queryKey }) => {
+    queryKey: ["organic-dashboard", site.id, fetchParams, showCompare, siteDisplayName, sitePublicUrl] as const,
+    queryFn: async ({ queryKey, signal }) => {
       const params = queryKey[2] as OrganicDashboardFetchParams | null;
       if (!params) throw new Error("Invalid date range");
-      return fetchOrganicDashboardBundle(params);
+      return fetchOrganicDashboardPerformancePack({
+        fetchParams: params,
+        siteId: site.id,
+        siteDisplayName,
+        sitePublicUrl,
+        showCompare: queryKey[3] as boolean,
+        siteSemrushProjectDashboardUrl,
+        signal,
+      });
     },
-    enabled: fetchParams != null,
+    enabled: fetchParams != null && reportingSection === "performance",
     refetchOnWindowFocus: false,
     retry: 0,
     staleTime: ORGANIC_DASHBOARD_QUERY_STALE_MS,
@@ -219,8 +238,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
   const performanceLoading =
     reportingSection === "performance" &&
     fetchParams != null &&
-    !query.data &&
-    (query.isLoading || query.isFetching);
+    (!query.data || query.isLoading || query.isFetching);
 
   const speedQuery = useQuery({
     queryKey: ["reporting-speed-audit", site.id, speedTargetUrl] as const,
@@ -242,8 +260,8 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
   }, [speedQuery.error, reportError]);
 
   useEffect(() => {
-    if (query.data) {
-      reportOrganicDashboardSourceErrors(query.data, reportError);
+    if (query.data?.bundle) {
+      reportOrganicDashboardSourceErrors(query.data.bundle, reportError);
     }
   }, [query.data, reportError]);
 
@@ -253,35 +271,9 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     }
   }, [query.error, reportError]);
 
-  const siteSemrushProjectDashboardUrl = useMemo(
-    () => resolveSemrushProjectDashboardUrlForSite(site),
-    [site],
-  );
+  const viewModel = query.data?.viewModel;
 
-  const viewModel = useMemo(
-    () =>
-      buildOrganicDashboardViewModel(query.data, {
-        showCompare,
-        siteSemrushProjectDashboardUrl,
-      }),
-    [query.data, showCompare, siteSemrushProjectDashboardUrl],
-  );
-
-  const siteDisplayName = site.name?.trim() || site.siteUrl;
-  const sitePublicUrl = useMemo(
-    () => getPublicSiteUrl(site).trim() || site.siteUrl.trim(),
-    [site],
-  );
-
-  const highlightsQuery = useOrganicReportingHighlightsQuery({
-    siteId: site.id,
-    bundle: query.data,
-    fetchParams,
-    showCompare,
-    siteDisplayName,
-    sitePublicUrl,
-    enabled: reportingSection === "performance",
-  });
+  const [clientReportBusy, setClientReportBusy] = useState(false);
 
   const handleDateHarnessApply = useCallback((next: Ga4ReportingDateHarness) => {
     setDateHarness(next);
@@ -290,62 +282,61 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
   const handleRefresh = useCallback(() => {
     if (reportingSection === "performance") {
       if (!fetchParams) return;
-      void query.refetch().then((result) => {
-        if (result.isSuccess) {
-          void highlightsQuery.refetch();
-        }
-      });
+      void query.refetch();
       return;
     }
     if (reportingSection === "speed") {
       void speedQuery.refetch();
     }
-  }, [fetchParams, highlightsQuery, query, reportingSection, speedQuery]);
+  }, [fetchParams, query, reportingSection, speedQuery]);
 
   const handleExportPdf = useCallback(() => {
-    if (reportingSection !== "performance") return;
-    if (!query.data || query.isLoading) {
-      reportError("Client report · load Performance data before exporting.");
+    if (reportingSection !== "performance" || clientReportBusy) return;
+    const pack = query.data;
+    if (!pack || query.isLoading || query.isFetching) {
+      reportError("Client report · wait for Performance and narratives to finish loading.");
+      return;
+    }
+    if (deckHighlightsNeedsAgentNarratives(pack.highlights)) {
+      reportError("Client report · narratives are not ready. Refresh Performance and try again.");
       return;
     }
     void (async () => {
-      const vm = buildOrganicDashboardViewModel(query.data!, {
-        showCompare,
-        siteSemrushProjectDashboardUrl,
-      });
-      const highlights = resolveClientReportHighlights(highlightsQuery.data, siteDisplayName, vm);
-      const preparedOn = formatLocalYmd(new Date());
-      const deckId = crypto.randomUUID();
-      const deckPayload = {
-        siteId: site.id,
-        highlights,
-        viewModel: vm,
-        siteName: siteDisplayName,
-        siteUrl: sitePublicUrl,
-        showCompare,
-        preparedOn,
-      };
+      setClientReportBusy(true);
       try {
+        const preparedOn = formatLocalYmd(new Date());
+        const deckId = crypto.randomUUID();
+        const deckPayload = {
+          siteId: site.id,
+          highlights: pack.highlights,
+          viewModel: pack.viewModel,
+          siteName: siteDisplayName,
+          siteUrl: sitePublicUrl,
+          showCompare,
+          preparedOn,
+        };
         await publishOrganicClientReportDeckSession(deckId, deckPayload);
+        const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+        const shareQs = buildOrganicReportingShareSearch(shareState);
+        const deckParam = `deck=${encodeURIComponent(deckId)}`;
+        const path = `${base}/sites/${site.id}/organic/client-report?${deckParam}&${shareQs}`;
+        const absolute = new URL(path, window.location.origin).href;
+        const opened = window.open(absolute, "_blank");
+        if (!opened) {
+          reportError("Client report · allow pop-ups to open the report in a new tab.");
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Could not publish client report link.";
         reportError(`Client report · ${message}`);
-        return;
-      }
-      const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-      const shareQs = buildOrganicReportingShareSearch(shareState);
-      const deckParam = `deck=${encodeURIComponent(deckId)}`;
-      const path = `${base}/sites/${site.id}/organic/client-report?${deckParam}&${shareQs}`;
-      const absolute = new URL(path, window.location.origin).href;
-      const opened = window.open(absolute, "_blank");
-      if (!opened) {
-        reportError("Client report · allow pop-ups to open the report in a new tab.");
+      } finally {
+        setClientReportBusy(false);
       }
     })();
   }, [
+    clientReportBusy,
     query.data,
+    query.isFetching,
     query.isLoading,
-    highlightsQuery.data,
     reportingSection,
     reportError,
     shareState,
@@ -353,31 +344,21 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     site.id,
     siteDisplayName,
     sitePublicUrl,
-    siteSemrushProjectDashboardUrl,
   ]);
 
   const handleDownloadPdf = useCallback(async () => {
     if (reportingSection !== "performance" || downloadPdfBusy) return;
-    if (!query.data || query.isLoading) {
-      reportError("Client report · load Performance data before downloading PDF.");
+    const pack = query.data;
+    if (!pack || query.isLoading || query.isFetching) {
+      reportError("Client report · wait for Performance and narratives to finish loading.");
       return;
     }
     setDownloadPdfBusy(true);
     try {
-      const vm = buildOrganicDashboardViewModel(query.data, {
-      showCompare,
-      siteSemrushProjectDashboardUrl,
-    });
-      let resolvedHighlights = highlightsQuery.data;
-      if (!resolvedHighlights) {
-        const refetched = await highlightsQuery.refetch();
-        resolvedHighlights = refetched.data;
-      }
-      const highlights = resolveClientReportHighlights(resolvedHighlights, siteDisplayName, vm);
       const preparedOn = formatLocalYmd(new Date());
       const content = buildOrganicClientReportContent({
-        viewModel: vm,
-        highlights,
+        viewModel: pack.viewModel,
+        highlights: pack.highlights,
         siteName: siteDisplayName,
         siteUrl: sitePublicUrl,
         showCompare,
@@ -392,8 +373,8 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     }
   }, [
     downloadPdfBusy,
-    highlightsQuery,
     query.data,
+    query.isFetching,
     query.isLoading,
     reportError,
     reportingSection,
@@ -416,7 +397,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     <div className={CONTENT_OPTIMIZER_WORKSPACE_SHELL_CLASS}>
       <div className={SEO_WORKSPACE_HEADER_CLASS}>
         <OrganicDashboardWorkspaceHeader
-          workspaceBusy={downloadPdfBusy}
+          workspaceBusy={downloadPdfBusy || clientReportBusy}
           titleRowMenu={
             <ReportingSectionPills
               activeSection={reportingSection}
@@ -429,7 +410,13 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
           onExportPdf={handleExportPdf}
           onDownloadPdf={() => void handleDownloadPdf()}
           downloadPdfBusy={downloadPdfBusy}
-          exportPdfDisabled={reportingSection !== "performance" || !query.data}
+          exportPdfDisabled={
+            reportingSection !== "performance" ||
+            !query.data ||
+            query.isLoading ||
+            query.isFetching
+          }
+          clientReportBusy={clientReportBusy}
           showExportPdf={reportingSection === "performance"}
           onShareLink={() => void handleShareLink()}
           shareCopied={shareCopied}

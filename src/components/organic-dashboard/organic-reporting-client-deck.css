@@ -40,6 +40,13 @@
   margin-left: auto;
 }
 
+.organic-client-report-preview-date-slot {
+  display: flex;
+  min-width: 16rem;
+  max-width: min(52vw, 22rem);
+  flex-shrink: 0;
+}
+
 .organic-client-report-preview-shell .organic-client-report-export {
   margin: 1.5rem auto 0;
   background: #ffffff;

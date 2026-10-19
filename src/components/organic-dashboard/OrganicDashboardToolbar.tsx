@@ -25,6 +25,7 @@ export type OrganicDashboardToolbarProps = {
   onRefresh: () => void;
   onExportPdf: () => void;
   exportPdfDisabled?: boolean;
+  clientReportBusy?: boolean;
   onDownloadPdf?: () => void;
   downloadPdfBusy?: boolean;
   onShareLink: () => void;
@@ -53,6 +54,7 @@ export function OrganicDashboardToolbar({
   onRefresh,
   onExportPdf,
   exportPdfDisabled = false,
+  clientReportBusy = false,
   onDownloadPdf,
   downloadPdfBusy = false,
   onShareLink,
@@ -112,12 +114,16 @@ export function OrganicDashboardToolbar({
               <Button
                 type="button"
                 variant="ghost"
-                disabled={exportPdfDisabled}
+                disabled={exportPdfDisabled || clientReportBusy}
+                aria-busy={clientReportBusy}
                 className={REPORTING_TOOLBAR_CLIENT_REPORT_BTN_CLASS}
                 onClick={onExportPdf}
               >
                 <ExternalLink className="h-4 w-4 shrink-0" aria-hidden />
-                Client report
+                <ToolbarLabelSlot
+                  visible={clientReportBusy ? "Preparing…" : "Client report"}
+                  reserve="Client report"
+                />
               </Button>
             </>
           ) : null}

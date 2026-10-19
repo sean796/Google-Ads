@@ -1,9 +1,6 @@
 import type { OrganicDashboardViewModel } from "@/lib/organic-dashboard/organic-dashboard-view-model";
-import { getReportModel } from "@/lib/optimization-settings-storage";
-import { postOpenRouterAppChat } from "@/lib/openrouter-app-api";
-import { REPORTING_ENGLISH_PROSE_RULES } from "@/lib/reporting/reporting-english-prose";
-import { gscOutlineMaxOutputTokensForModel } from "@/lib/gsc-reporting/gsc-reporting-outline-schema";
-import { ORGANIC_REPORTING_HIGHLIGHTS_RESPONSE_FORMAT } from "@/lib/organic-dashboard/organic-reporting-highlights-schema";
+import { loadSemrushApiKeyForAppRequests } from "@/lib/api";
+import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
 import {
   deriveKeyTakeawaysFromSummary,
   ORGANIC_GA4_DECK_LABELS,
@@ -130,36 +127,6 @@ export type OrganicReportingHighlightsSnapshot = {
     impressionsChangePercent: number | null;
   }>;
 };
-
-const HIGHLIGHTS_SYSTEM = `You are a senior SEO strategist at Neo Digital preparing a client-facing organic performance report.
-
-${REPORTING_ENGLISH_PROSE_RULES}
-
-Source split (mandatory): ga4Rows in the snapshot are **organic search (GA4)** only. gscTotals and topQueries are **Google Search Console** organic search. Never describe GSC clicks or impressions as website sessions. Never use site-wide or all-channel GA4 metrics (Total users, New users, all-channel Key events, User key event rate); those are omitted from the snapshot on purpose.
-
-Numbers: Every figure must appear in the JSON snapshot. Do not invent metrics.
-
-No redundancy: Do not repeat the same measure twice (e.g. site-wide Key events plus Key events from Organic Search sessions). One row per metric in comparisonRows. Query cards: prefer Clicks, Impressions, Avg position. Traffic or conversion cards: Organic Search sessions and/or Key events (Organic Search sessions) once.
-
-Plain text only on every string field: no markdown, no asterisks, no backticks, no hash headings, no bullet characters inside strings.
-
-Punctuation: do not use em dashes or en dashes. Use commas, periods, or a hyphen for date ranges (May 1-31). When comparing periods, write "vs" (not an arrow or dash).
-
-Non-redundancy: keyTakeaways = period-level story only (no query names). topOpportunities = ranked themes or queries. Put figures only in comparisonRows; why = business impact without re-listing those figures.
-
-Return JSON with executiveSummary, keyTakeaways, performanceNarrative, keywordNarrative, and topOpportunities (exactly 3 or 4 items).
-
-Period labels: snapshot.periods.earlier and snapshot.periods.later are the exact date range strings for the compare and primary periods. Use those labels whenever you name a period. Never write the words Earlier or Later.
-
-performanceNarrative: 2–3 short paragraphs for the Performance summary section. Paragraph 1: GA4 **organic search** sessions and engagement only. Paragraph 2: GSC search visibility (clicks, impressions, CTR, position). Paragraph 3 (optional): how organic traffic and visibility relate. No site-wide user totals. Reference periods only by snapshot.periods.earlier and snapshot.periods.later. Plain prose, no bullets inside strings.
-
-keywordNarrative: 1–2 short paragraphs for the Keyword performance section. Use topQueries only. Explain which queries drove clicks in snapshot.periods.later, brand vs non-brand mix, and click shifts vs snapshot.periods.earlier when showCompare is true. Plain prose; use period date labels only.
-
-executiveSummary: one complete headline sentence (max ~220 characters). Put detailed metrics in keyTakeaways, not in executiveSummary.
-
-keyTakeaways: 2–4 complete sentences. When GA4 and GSC exist, include at least one takeaway for **organic search traffic (GA4)** and one for **search visibility (GSC)**. Organic scope only; no duplicate stats across bullets. Each string must stand alone (no sentence fragments).
-
-topOpportunities: rank by client impact using this rubric: (1) winnable query/CTR gaps from topQueries, (2) brand query defense, (3) organic session or organic key-event momentum. Each item: rank, label (short title), why (max 2 sentences, impact only), comparisonRows (1–4 table rows only; metric name plus comparePeriodValue and primaryPeriodValue from snapshot; organic metrics only). Optional evidence for model audit only. Do not include next steps or recommended actions.`;
 
 function isNonEmptyString(v: unknown): v is string {
   return typeof v === "string" && v.trim().length > 0;
@@ -375,30 +342,45 @@ export function resolveClientReportHighlights(
   return buildPlaceholderOrganicReportingHighlights(siteName, viewModel);
 }
 
+function organicReportingHighlightsRequestHeaders(): HeadersInit {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const key = loadSemrushApiKeyForAppRequests();
+  if (key) {
+    headers["X-Semrush-Api-Key"] = key;
+  }
+  return headers;
+}
+
 export async function fetchOrganicReportingHighlights(
   snapshot: OrganicReportingHighlightsSnapshot,
   siteId: string,
   signal?: AbortSignal,
 ): Promise<OrganicReportingHighlights> {
-  const model = getReportModel(siteId);
-  const maxTokens = gscOutlineMaxOutputTokensForModel(model);
-  const user = `Organic dashboard snapshot (JSON). Use only these numbers.\n\n${JSON.stringify(snapshot, null, 2)}`;
-
-  const { content, parsed } = await postOpenRouterAppChat({
-    model,
-    system: HIGHLIGHTS_SYSTEM,
-    user,
-    maxTokens,
+  const response = await fetch(`${BACKEND_API_BASE}/api/organic-dashboard/reporting-highlights`, {
+    method: "POST",
+    credentials: "include",
+    headers: organicReportingHighlightsRequestHeaders(),
+    body: JSON.stringify({ siteId, snapshot }),
     signal,
-    temperature: 0.15,
-    responseFormat: ORGANIC_REPORTING_HIGHLIGHTS_RESPONSE_FORMAT,
   });
 
-  if (parsed && typeof parsed === "object") {
-    return parseOrganicReportingHighlightsPayload(JSON.stringify(parsed));
+  const data = (await response.json().catch(() => ({}))) as {
+    success?: boolean;
+    error?: string;
+    highlights?: unknown;
+  };
+
+  if (!response.ok || data.success === false) {
+    const message =
+      typeof data.error === "string" && data.error.trim()
+        ? data.error.trim()
+        : `Reporting highlights HTTP ${response.status}`;
+    throw new Error(message);
   }
-  if (!content?.trim()) {
+
+  if (!data.highlights || typeof data.highlights !== "object") {
     throw new Error("Highlights model returned empty content.");
   }
-  return parseOrganicReportingHighlightsPayload(content);
+
+  return parseOrganicReportingHighlightsPayload(JSON.stringify(data.highlights));
 }

@@ -19,6 +19,7 @@ class Neo_Pulse_App_Api_Route_Registry {
 			array( 'method' => 'POST', 'path' => 'wordpress/discover-acf-field-groups' ),
 			array( 'method' => 'POST', 'path' => 'gsc/fetch-reporting-bundle' ),
 			array( 'method' => 'POST', 'path' => 'organic-dashboard/fetch' ),
+			array( 'method' => 'POST', 'path' => 'organic-dashboard/reporting-highlights' ),
 			array( 'method' => 'POST', 'path' => 'organic-dashboard/client-report/save' ),
 			array( 'method' => 'GET', 'path' => 'organic-dashboard/client-report/load' ),
 			array( 'method' => 'POST', 'path' => 'gsc/reporting-chat-completion' ),

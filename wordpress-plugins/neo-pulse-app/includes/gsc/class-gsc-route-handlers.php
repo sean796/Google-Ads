@@ -182,6 +182,16 @@ class Neo_Pulse_App_Gsc_Route_Handlers {
 	 * @param array<string,mixed>|null $response_format
 	 * @return array{content:string,finishReason:?string,nativeFinishReason:?string,raw:array<string,mixed>|null}
 	 */
+	public static function reporting_chat_completion_request_public( array $messages, array $opts, ?array $response_format ): array {
+		return self::reporting_chat_completion_request( $messages, $opts, $response_format );
+	}
+
+	/**
+	 * @param array<int,array{role:string,content:string}> $messages
+	 * @param array{model?:string,temperature?:float,maxTokens?:int} $opts
+	 * @param array<string,mixed>|null $response_format
+	 * @return array{content:string,finishReason:?string,nativeFinishReason:?string,raw:array<string,mixed>|null}
+	 */
 	private static function reporting_chat_completion_request( array $messages, array $opts, ?array $response_format ): array {
 		$api_key = Neo_Pulse_App_Chat_Openrouter::resolve_api_key();
 		if ( $api_key === '' ) {

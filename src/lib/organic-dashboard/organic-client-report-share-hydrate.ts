@@ -6,15 +6,9 @@ import {
   resolveGa4PropertyIdForReportingAsync,
 } from "@/lib/ga4-reporting-property";
 import { getPublicSiteUrl } from "@/lib/wordpress-site-public-url";
-import { fetchOrganicDashboardBundle } from "@/lib/organic-dashboard/organic-dashboard-fetch";
 import { buildOrganicDashboardFetchParams } from "@/lib/organic-dashboard/organic-dashboard-fetch-params";
-import { buildOrganicDashboardViewModel } from "@/lib/organic-dashboard/organic-dashboard-view-model";
+import { fetchOrganicDashboardPerformancePackForSite } from "@/lib/organic-dashboard/organic-dashboard-performance-pack";
 import type { OrganicClientReportDeckPayload } from "@/lib/organic-dashboard/organic-client-report-deck-session";
-import {
-  buildOrganicReportingHighlightsSnapshot,
-  fetchOrganicReportingHighlights,
-  resolveClientReportHighlights,
-} from "@/lib/organic-dashboard/organic-reporting-highlights";
 import { resolveOrganicReportingDateHarnessFromSearch } from "@/lib/organic-dashboard/organic-dashboard-fetch-params";
 
 export async function hydrateOrganicClientReportForHarness(
@@ -26,20 +20,22 @@ export async function hydrateOrganicClientReportForHarness(
   const fetchParams = buildOrganicDashboardFetchParams(site, dateHarness, ga4PropertyId);
   if (!fetchParams) return null;
 
-  const bundle = await fetchOrganicDashboardBundle(fetchParams);
   const showCompare = dateHarness.compareEnabled;
-  const viewModel = buildOrganicDashboardViewModel(bundle, { showCompare });
   const siteName = site.name?.trim() || site.siteUrl.trim();
   const siteUrl = getPublicSiteUrl(site).trim() || site.siteUrl.trim();
-  const snapshot = buildOrganicReportingHighlightsSnapshot(viewModel, siteName, siteUrl, showCompare);
-  const fetched = await fetchOrganicReportingHighlights(snapshot, site.id);
-  const highlights = resolveClientReportHighlights(fetched, siteName, viewModel);
+  const pack = await fetchOrganicDashboardPerformancePackForSite({
+    site,
+    fetchParams,
+    showCompare,
+    siteDisplayName: siteName,
+    sitePublicUrl: siteUrl,
+  });
   const preparedOn = formatLocalYmd(new Date());
 
   return {
     siteId: site.id,
-    highlights,
-    viewModel,
+    highlights: pack.highlights,
+    viewModel: pack.viewModel,
     siteName,
     siteUrl,
     showCompare,
