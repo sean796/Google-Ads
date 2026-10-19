@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { OrganicReportingPrintFrame } from "@/components/organic-dashboard/OrganicReportingPrintFrame";
 import {
+  buildOrganicClientReportShareUrl,
   buildOrganicReportingShareSearch,
-  buildOrganicReportingShareUrl,
   parseOrganicReportingShareParams,
   type OrganicReportingShareState,
 } from "@/lib/organic-dashboard/organic-reporting-share-url";
@@ -149,7 +149,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
   );
 
   const shareUrl = useMemo(
-    () => buildOrganicReportingShareUrl(site.id, shareState),
+    () => buildOrganicClientReportShareUrl(site.id, shareState),
     [site.id, shareState],
   );
 

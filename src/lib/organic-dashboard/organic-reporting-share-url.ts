@@ -191,6 +191,19 @@ export function buildOrganicReportingShareUrl(
   return `${base}${path}?${qs}`;
 }
 
+/** Client-facing printer report; same date/section query string as Performance share links. */
+export function buildOrganicClientReportShareUrl(
+  siteId: string,
+  state: OrganicReportingShareState,
+  origin?: string,
+): string {
+  const base = origin ?? (typeof window !== "undefined" ? window.location.origin : "");
+  const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const path = `${basePath}/sites/${encodeURIComponent(siteId)}/organic/client-report`;
+  const qs = buildOrganicReportingShareSearch(state);
+  return `${base}${path}?${qs}`;
+}
+
 export function shareStateFromDateHarness(
   section: ReportingSectionId,
   harness: Ga4ReportingDateHarness,

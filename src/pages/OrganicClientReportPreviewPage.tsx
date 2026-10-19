@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Download, FileText, Printer } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
+import { useWordPressSites } from "@/hooks/use-wordpress-sites";
+import { resolveOrganicDashboardSite } from "@/lib/organic-dashboard/resolve-organic-dashboard-site";
+import { hydrateOrganicClientReportFromShareSearch } from "@/lib/organic-dashboard/organic-client-report-share-hydrate";
+import { hasOrganicReportingShareParams } from "@/lib/organic-dashboard/organic-reporting-share-url";
 import { OrganicClientReportExportDocument } from "@/components/organic-dashboard/OrganicClientReportExportDocument";
 import { Button } from "@/components/ui/button";
 import "@/components/organic-dashboard/organic-reporting-client-deck.css";
@@ -35,10 +39,18 @@ export default function OrganicClientReportPreviewPage() {
   const { siteId = "" } = useParams<{ siteId: string }>();
   const [searchParams] = useSearchParams();
   const deckId = searchParams.get("deck")?.trim() ?? "";
+  const shareSearch = searchParams.toString();
+  const { sites } = useWordPressSites();
+  const site = useMemo(
+    () => resolveOrganicDashboardSite(sites, siteId, null),
+    [siteId, sites],
+  );
 
   const [payload, setPayload] = useState<OrganicClientReportDeckPayload | null>(() =>
     readDeckPayload(deckId, siteId),
   );
+  const [shareHydrating, setShareHydrating] = useState(false);
+  const [shareHydrateError, setShareHydrateError] = useState<string | null>(null);
   const [hydratingNarratives, setHydratingNarratives] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
@@ -55,6 +67,42 @@ export default function OrganicClientReportPreviewPage() {
       document.title = `${data.siteName} Organic Performance`;
     }
   }, [deckId, siteId]);
+
+  useEffect(() => {
+    if (payload || deckId || !siteId || !site) return;
+    if (!hasOrganicReportingShareParams(shareSearch)) return;
+
+    let cancelled = false;
+    setShareHydrateError(null);
+    setShareHydrating(true);
+
+    void (async () => {
+      try {
+        const next = await hydrateOrganicClientReportFromShareSearch(
+          site,
+          shareSearch.startsWith("?") ? shareSearch : `?${shareSearch}`,
+        );
+        if (cancelled) return;
+        if (!next) {
+          setShareHydrateError("Could not build this client report from the link. Check the date range and try again.");
+          return;
+        }
+        setPayload(next);
+        document.title = `${next.siteName} Organic Performance`;
+      } catch (err) {
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : "Failed to load report data.";
+          setShareHydrateError(message);
+        }
+      } finally {
+        if (!cancelled) setShareHydrating(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [deckId, payload, shareSearch, site, siteId]);
 
   useEffect(() => {
     if (!siteId || !deckId) return;
@@ -119,7 +167,28 @@ export default function OrganicClientReportPreviewPage() {
     window.print();
   }, []);
 
-  if (!deckId || !payload || !reportContent) {
+  if (shareHydrating) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#f4f4f5] px-6 font-sans text-base text-[#18181b]">
+        <p>Loading client report…</p>
+      </div>
+    );
+  }
+
+  if (shareHydrateError) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#f4f4f5] px-6 font-sans text-base text-[#18181b]">
+        <p role="alert">{shareHydrateError}</p>
+        {siteId ? (
+          <Link className="text-base font-semibold text-[#18181b] underline" to={`/sites/${siteId}/organic?section=performance`}>
+            Back to Reporting
+          </Link>
+        ) : null}
+      </div>
+    );
+  }
+
+  if ((!deckId && !hasOrganicReportingShareParams(shareSearch)) || !payload || !reportContent) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#f4f4f5] px-6 font-sans text-base text-[#18181b]">
         <p>This client report link is missing or expired. Generate it again from Reporting.</p>

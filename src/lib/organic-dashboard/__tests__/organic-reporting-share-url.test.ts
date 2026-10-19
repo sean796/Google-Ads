@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildOrganicClientReportShareUrl,
   buildOrganicReportingShareSearch,
   buildOrganicReportingShareUrl,
   parseOrganicReportingShareParams,
@@ -46,6 +47,26 @@ describe("organic-reporting-share-url", () => {
       "?section=indexing&structure=compare&preset=last_30&baseline=previous_period&start=2026-03-14&end=2026-04-13&cstart=2026-02-12&cend=2026-03-13",
     );
     expect(parsed?.section).toBe("performance");
+  });
+
+  it("builds absolute client report share url", () => {
+    const url = buildOrganicClientReportShareUrl(
+      "site-1",
+      {
+        section: "performance",
+        primaryPreset: "last_30",
+        compareBaseline: "previous_period",
+        compareEnabled: true,
+        compareRangeDraft: {
+          primary: { startDate: "2026-04-07", endDate: "2026-04-13" },
+          compare: { startDate: "2026-03-31", endDate: "2026-04-06" },
+        },
+      },
+      "https://app.example.com",
+    );
+    expect(url).toContain("/sites/site-1/organic/client-report");
+    expect(url).toContain("preset=last_30");
+    expect(url).toContain("structure=compare");
   });
 
   it("builds absolute share url", () => {
