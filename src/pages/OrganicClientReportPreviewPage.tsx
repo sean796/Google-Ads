@@ -59,7 +59,8 @@ export default function OrganicClientReportPreviewPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const deckId = resolveOrganicClientReportDeckId(searchParams);
   const shareSearch = searchParams.toString();
-  const liveReportMode = !deckId && siteId !== "";
+  const [deckUseLiveFallback, setDeckUseLiveFallback] = useState(false);
+  const liveReportMode = (!deckId || deckUseLiveFallback) && siteId !== "";
   const { sites } = useWordPressSites();
   const siteFromList = useMemo(
     () => resolveOrganicDashboardSite(sites, siteId, null),
@@ -80,7 +81,6 @@ export default function OrganicClientReportPreviewPage() {
   const [shareHydrating, setShareHydrating] = useState(liveReportMode);
   const [shareHydrateError, setShareHydrateError] = useState<string | null>(null);
   const [deckLoading, setDeckLoading] = useState(Boolean(deckId && siteId));
-  const [deckLoadError, setDeckLoadError] = useState<string | null>(null);
   const [hydratingNarratives, setHydratingNarratives] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
@@ -99,21 +99,22 @@ export default function OrganicClientReportPreviewPage() {
   }, [deckId, siteId]);
 
   useEffect(() => {
+    setDeckUseLiveFallback(false);
+  }, [deckId, siteId]);
+
+  useEffect(() => {
     if (!deckId || !siteId) {
       setDeckLoading(false);
-      setDeckLoadError(null);
       return;
     }
 
     const local = readDeckPayload(deckId, siteId);
     if (local) {
       setDeckLoading(false);
-      setDeckLoadError(null);
       return;
     }
 
     let cancelled = false;
-    setDeckLoadError(null);
     setDeckLoading(true);
 
     void fetchOrganicClientReportDeckShare(deckId, siteId).then((remote) => {
@@ -121,9 +122,9 @@ export default function OrganicClientReportPreviewPage() {
       if (remote) {
         setPayload(remote);
         document.title = `${remote.siteName} Organic Performance`;
-        setDeckLoadError(null);
       } else {
-        setDeckLoadError("This client report link is missing or expired. Generate it again from Reporting.");
+        setPayload(null);
+        setDeckUseLiveFallback(true);
       }
       setDeckLoading(false);
     });
@@ -169,7 +170,8 @@ export default function OrganicClientReportPreviewPage() {
   );
 
   useEffect(() => {
-    if (deckId || !liveReportMode || !reportSite) return;
+    if (!liveReportMode || !reportSite) return;
+    if (deckId && !deckUseLiveFallback) return;
 
     let cancelled = false;
     setShareHydrateError(null);
@@ -199,7 +201,7 @@ export default function OrganicClientReportPreviewPage() {
     return () => {
       cancelled = true;
     };
-  }, [dateHarness, deckId, liveReportMode, reportSite]);
+  }, [dateHarness, deckId, deckUseLiveFallback, liveReportMode, reportSite]);
 
   useEffect(() => {
     if (!siteId || !deckId) return;
@@ -276,23 +278,6 @@ export default function OrganicClientReportPreviewPage() {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#f4f4f5] px-6 font-sans text-base text-[#18181b]">
         <p>Loading client report…</p>
-      </div>
-    );
-  }
-
-  if (deckLoadError) {
-    return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#f4f4f5] px-6 font-sans text-base text-[#18181b]">
-        <p role="alert">{deckLoadError}</p>
-        {siteId ? (
-          <Link className="text-base font-semibold text-[#18181b] underline" to={`/sites/${siteId}/organic?section=performance`}>
-            Back to Reporting
-          </Link>
-        ) : (
-          <Link className="text-base font-semibold text-[#18181b] underline" to="/">
-            Back to Neo Pulse
-          </Link>
-        )}
       </div>
     );
   }
