@@ -15,24 +15,12 @@ import {
   fetchOrganicReportingHighlights,
   resolveClientReportHighlights,
 } from "@/lib/organic-dashboard/organic-reporting-highlights";
-import {
-  parseOrganicReportingShareParams,
-  type OrganicReportingShareState,
-} from "@/lib/organic-dashboard/organic-reporting-share-url";
+import { resolveOrganicReportingDateHarnessFromSearch } from "@/lib/organic-dashboard/organic-dashboard-fetch-params";
 
-function dateHarnessFromShare(parsed: OrganicReportingShareState): Ga4ReportingDateHarness {
-  const { section: _section, ...harness } = parsed;
-  return harness;
-}
-
-export async function hydrateOrganicClientReportFromShareSearch(
+export async function hydrateOrganicClientReportForHarness(
   site: WordPressSite,
-  search: string,
+  dateHarness: Ga4ReportingDateHarness,
 ): Promise<OrganicClientReportDeckPayload | null> {
-  const parsed = parseOrganicReportingShareParams(search);
-  if (!parsed || parsed.section !== "performance") return null;
-
-  const dateHarness = dateHarnessFromShare(parsed);
   const ga4PropertyId =
     (await resolveGa4PropertyIdForReportingAsync(site)) || resolveGa4PropertyIdForReporting(site);
   const fetchParams = buildOrganicDashboardFetchParams(site, dateHarness, ga4PropertyId);
@@ -57,4 +45,11 @@ export async function hydrateOrganicClientReportFromShareSearch(
     showCompare,
     preparedOn,
   };
+}
+
+export async function hydrateOrganicClientReportFromShareSearch(
+  site: WordPressSite,
+  search: string,
+): Promise<OrganicClientReportDeckPayload | null> {
+  return hydrateOrganicClientReportForHarness(site, resolveOrganicReportingDateHarnessFromSearch(search));
 }

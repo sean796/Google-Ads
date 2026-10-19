@@ -3,8 +3,22 @@ import { Download, FileText, Printer } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useWordPressSites } from "@/hooks/use-wordpress-sites";
 import { resolveOrganicDashboardSite } from "@/lib/organic-dashboard/resolve-organic-dashboard-site";
-import { hydrateOrganicClientReportFromShareSearch } from "@/lib/organic-dashboard/organic-client-report-share-hydrate";
-import { hasOrganicReportingShareParams } from "@/lib/organic-dashboard/organic-reporting-share-url";
+import {
+  hydrateOrganicClientReportForHarness,
+} from "@/lib/organic-dashboard/organic-client-report-share-hydrate";
+import { resolveSiteForClientReport } from "@/lib/organic-dashboard/resolve-site-for-client-report";
+import {
+  buildOrganicReportingShareSearch,
+  shareStateFromDateHarness,
+} from "@/lib/organic-dashboard/organic-reporting-share-url";
+import { resolveOrganicReportingDateHarnessFromSearch } from "@/lib/organic-dashboard/organic-dashboard-fetch-params";
+import type { WordPressSite } from "@/components/integrations/types";
+import { writeOrganicDashboardDateSession } from "@/lib/organic-dashboard/organic-dashboard-date-session";
+import {
+  Ga4ReportingDateRangePopover,
+  type Ga4ReportingDateHarness,
+} from "@/components/research/reporting/Ga4ReportingDateRangePopover";
+import { formatLocalYmd } from "@/lib/reporting/reporting-date-presets";
 import { OrganicClientReportExportDocument } from "@/components/organic-dashboard/OrganicClientReportExportDocument";
 import { Button } from "@/components/ui/button";
 import "@/components/organic-dashboard/organic-reporting-client-deck.css";
@@ -37,21 +51,28 @@ function readDeckPayload(deckId: string, siteId: string): OrganicClientReportDec
 
 export default function OrganicClientReportPreviewPage() {
   const { siteId = "" } = useParams<{ siteId: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const deckId = searchParams.get("deck")?.trim() ?? "";
   const shareSearch = searchParams.toString();
-  const shareLinkMode = !deckId && hasOrganicReportingShareParams(shareSearch);
+  const liveReportMode = !deckId && siteId !== "";
   const { sites } = useWordPressSites();
-  const site = useMemo(
+  const siteFromList = useMemo(
     () => resolveOrganicDashboardSite(sites, siteId, null),
     [siteId, sites],
   );
-  const siteListReady = sites.length > 0;
+  const [resolvedSite, setResolvedSite] = useState<WordPressSite | undefined>(undefined);
+  const [siteResolving, setSiteResolving] = useState(liveReportMode);
+  const reportSite = deckId ? siteFromList : resolvedSite ?? siteFromList;
+
+  const [dateHarness, setDateHarness] = useState<Ga4ReportingDateHarness>(() =>
+    resolveOrganicReportingDateHarnessFromSearch(shareSearch),
+  );
+  const todayYmdMax = formatLocalYmd(new Date());
 
   const [payload, setPayload] = useState<OrganicClientReportDeckPayload | null>(() =>
     readDeckPayload(deckId, siteId),
   );
-  const [shareHydrating, setShareHydrating] = useState(false);
+  const [shareHydrating, setShareHydrating] = useState(liveReportMode);
   const [shareHydrateError, setShareHydrateError] = useState<string | null>(null);
   const [hydratingNarratives, setHydratingNarratives] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
@@ -71,22 +92,54 @@ export default function OrganicClientReportPreviewPage() {
   }, [deckId, siteId]);
 
   useEffect(() => {
-    if (payload || deckId || !siteId || !site) return;
-    if (!hasOrganicReportingShareParams(shareSearch)) return;
+    if (!liveReportMode) {
+      setResolvedSite(undefined);
+      setSiteResolving(false);
+      return;
+    }
+    let cancelled = false;
+    setSiteResolving(true);
+    void resolveSiteForClientReport(sites, siteId).then((site) => {
+      if (!cancelled) {
+        setResolvedSite(site);
+        setSiteResolving(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [liveReportMode, siteId, sites]);
+
+  useEffect(() => {
+    setDateHarness(resolveOrganicReportingDateHarnessFromSearch(shareSearch));
+  }, [shareSearch]);
+
+  const handleDateHarnessApply = useCallback(
+    (next: Ga4ReportingDateHarness) => {
+      setDateHarness(next);
+      writeOrganicDashboardDateSession(next);
+      const qs = buildOrganicReportingShareSearch(shareStateFromDateHarness("performance", next));
+      setSearchParams(new URLSearchParams(qs), { replace: true });
+      setPayload(null);
+      setShareHydrateError(null);
+    },
+    [setSearchParams],
+  );
+
+  useEffect(() => {
+    if (deckId || !liveReportMode || !reportSite) return;
 
     let cancelled = false;
     setShareHydrateError(null);
     setShareHydrating(true);
+    setPayload(null);
 
     void (async () => {
       try {
-        const next = await hydrateOrganicClientReportFromShareSearch(
-          site,
-          shareSearch.startsWith("?") ? shareSearch : `?${shareSearch}`,
-        );
+        const next = await hydrateOrganicClientReportForHarness(reportSite, dateHarness);
         if (cancelled) return;
         if (!next) {
-          setShareHydrateError("Could not build this client report from the link. Check the date range and try again.");
+          setShareHydrateError("Could not build this client report. Check the date range and try again.");
           return;
         }
         setPayload(next);
@@ -104,7 +157,7 @@ export default function OrganicClientReportPreviewPage() {
     return () => {
       cancelled = true;
     };
-  }, [deckId, payload, shareSearch, site, siteId]);
+  }, [dateHarness, deckId, liveReportMode, reportSite]);
 
   useEffect(() => {
     if (!siteId || !deckId) return;
@@ -170,9 +223,12 @@ export default function OrganicClientReportPreviewPage() {
   }, []);
 
   const awaitingShareHydrate =
-    shareLinkMode && !payload && !shareHydrateError && (shareHydrating || !siteListReady || (siteId !== "" && !site));
+    liveReportMode &&
+    !payload &&
+    !shareHydrateError &&
+    (shareHydrating || siteResolving || !reportSite);
 
-  if (awaitingShareHydrate || shareHydrating) {
+  if (awaitingShareHydrate || (liveReportMode && shareHydrating && !payload)) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#f4f4f5] px-6 font-sans text-base text-[#18181b]">
         <p>Loading client report…</p>
@@ -180,7 +236,7 @@ export default function OrganicClientReportPreviewPage() {
     );
   }
 
-  if (shareLinkMode && siteListReady && siteId && !site) {
+  if (liveReportMode && !siteResolving && siteId && !reportSite) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#f4f4f5] px-6 font-sans text-base text-[#18181b]">
         <p role="alert">This property is not available in your workspace.</p>
@@ -204,7 +260,7 @@ export default function OrganicClientReportPreviewPage() {
     );
   }
 
-  if (!shareLinkMode && !deckId) {
+  if (!liveReportMode && !deckId) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#f4f4f5] px-6 font-sans text-base text-[#18181b]">
         <p>This client report link is missing or expired. Generate it again from Reporting.</p>
@@ -247,6 +303,14 @@ export default function OrganicClientReportPreviewPage() {
           {hydratingNarratives ? "Updating executive narrative…" : `${payload.siteName} · Printer-friendly report`}
         </div>
         <div className="organic-client-report-preview-toolbar-actions">
+          {liveReportMode ? (
+            <Ga4ReportingDateRangePopover
+              busy={shareHydrating}
+              value={dateHarness}
+              onApply={handleDateHarnessApply}
+              todayYmdMax={todayYmdMax}
+            />
+          ) : null}
           <Button
             type="button"
             variant="ghost"

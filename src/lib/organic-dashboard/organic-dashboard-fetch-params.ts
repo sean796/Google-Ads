@@ -19,13 +19,7 @@ function dateHarnessFromShare(parsed: OrganicReportingShareState): Ga4ReportingD
   return harness;
 }
 
-export function defaultOrganicReportingDateHarness(): Ga4ReportingDateHarness {
-  if (typeof window !== "undefined") {
-    const fromUrl = parseOrganicReportingShareParams(window.location.search);
-    if (fromUrl) return dateHarnessFromShare(fromUrl);
-  }
-  const stored = readOrganicDashboardDateSession();
-  if (stored) return stored;
+function defaultOrganicReportingDateHarnessFallback(): Ga4ReportingDateHarness {
   return {
     primaryPreset: "last_30",
     compareBaseline: "previous_period",
@@ -38,6 +32,23 @@ export function defaultOrganicReportingDateHarness(): Ga4ReportingDateHarness {
       compareCustom: { startDate: "", endDate: "" },
     }),
   };
+}
+
+/** URL search (with or without leading ?), then session, then last-30 compare default. */
+export function resolveOrganicReportingDateHarnessFromSearch(search: string): Ga4ReportingDateHarness {
+  const normalized = search.startsWith("?") ? search : search ? `?${search}` : "";
+  const fromUrl = normalized ? parseOrganicReportingShareParams(normalized) : null;
+  if (fromUrl) return dateHarnessFromShare(fromUrl);
+  const stored = readOrganicDashboardDateSession();
+  if (stored) return stored;
+  return defaultOrganicReportingDateHarnessFallback();
+}
+
+export function defaultOrganicReportingDateHarness(): Ga4ReportingDateHarness {
+  if (typeof window !== "undefined") {
+    return resolveOrganicReportingDateHarnessFromSearch(window.location.search);
+  }
+  return defaultOrganicReportingDateHarnessFallback();
 }
 
 export function buildOrganicDashboardFetchParams(
