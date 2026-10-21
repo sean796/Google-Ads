@@ -95,6 +95,15 @@ class Neo_Pulse_App_Chat_Openrouter {
 			? trim( $opts['model'] )
 			: self::DEFAULT_MODEL;
 
+		$response_format = array( 'type' => 'json_object' );
+		if ( isset( $opts['responseFormat'] ) && is_array( $opts['responseFormat'] ) && $opts['responseFormat'] !== array() ) {
+			$response_format = $opts['responseFormat'];
+		}
+		$reasoning = isset( $opts['reasoning'] ) && is_array( $opts['reasoning'] )
+			? $opts['reasoning']
+			: array( 'effort' => 'none', 'exclude' => true );
+		$max_tokens = isset( $opts['maxTokens'] ) ? max( 4096, (int) $opts['maxTokens'] ) : 4096;
+
 		$response = wp_remote_post(
 			self::CHAT_URL,
 			array(
@@ -105,8 +114,9 @@ class Neo_Pulse_App_Chat_Openrouter {
 						'model'           => $model,
 						'messages'        => $messages,
 						'temperature'     => isset( $opts['temperature'] ) ? (float) $opts['temperature'] : 0.2,
-						'max_tokens'      => isset( $opts['maxTokens'] ) ? (int) $opts['maxTokens'] : 4096,
-						'response_format' => array( 'type' => 'json_object' ),
+						'max_tokens'      => $max_tokens,
+						'response_format' => $response_format,
+						'reasoning'       => $reasoning,
 					)
 				),
 			)
@@ -187,13 +197,21 @@ class Neo_Pulse_App_Chat_Openrouter {
 			$model    = isset( $opts['model'] ) && is_string( $opts['model'] ) && trim( $opts['model'] ) !== ''
 				? trim( $opts['model'] )
 				: self::DEFAULT_MODEL;
+			$response_format = array( 'type' => 'json_object' );
+			if ( isset( $opts['responseFormat'] ) && is_array( $opts['responseFormat'] ) && $opts['responseFormat'] !== array() ) {
+				$response_format = $opts['responseFormat'];
+			}
+			$reasoning = isset( $opts['reasoning'] ) && is_array( $opts['reasoning'] )
+				? $opts['reasoning']
+				: array( 'effort' => 'none', 'exclude' => true );
 			$body = wp_json_encode(
 				array(
 					'model'           => $model,
 					'messages'        => $messages,
 					'temperature'     => isset( $opts['temperature'] ) ? (float) $opts['temperature'] : 0.2,
 					'max_tokens'      => isset( $opts['maxTokens'] ) ? (int) $opts['maxTokens'] : 4096,
-					'response_format' => array( 'type' => 'json_object' ),
+					'response_format' => $response_format,
+					'reasoning'       => $reasoning,
 				)
 			);
 			$ch = curl_init( self::CHAT_URL );
@@ -475,16 +493,99 @@ class Neo_Pulse_App_Chat_Openrouter {
 			throw new Exception( 'OpenRouter ' . $code . ': ' . $msg );
 		}
 
-		$content = trim( (string) ( $json['choices'][0]['message']['content'] ?? '' ) );
-		if ( $content === '' ) {
-			throw new Exception( 'OpenRouter response was not valid JSON' );
+		$message = is_array( $json['choices'][0]['message'] ?? null ) ? $json['choices'][0]['message'] : array();
+		$content = self::extract_message_text( $message );
+		if ( isset( $message['parsed'] ) ) {
+			$parsed_msg = $message['parsed'];
+			if ( is_array( $parsed_msg ) ) {
+				return $parsed_msg;
+			}
+			if ( is_object( $parsed_msg ) ) {
+				$as_array = json_decode( wp_json_encode( $parsed_msg ), true );
+				if ( is_array( $as_array ) ) {
+					return $as_array;
+				}
+			}
+		}
+		if ( $content !== '' ) {
+			$json_text = self::extract_json_object_text( $content );
+			$parsed    = json_decode( $json_text, true );
+			if ( is_array( $parsed ) ) {
+				return $parsed;
+			}
+		}
+		$reasoning = self::extract_message_reasoning( $message );
+		if ( $reasoning !== '' ) {
+			$json_text = self::extract_json_object_text( $reasoning );
+			$parsed    = json_decode( $json_text, true );
+			if ( is_array( $parsed ) ) {
+				return $parsed;
+			}
+		}
+		$finish = isset( $json['choices'][0]['finish_reason'] ) ? (string) $json['choices'][0]['finish_reason'] : '';
+		if ( $content === '' && $reasoning === '' ) {
+			throw new Exception(
+				'OpenRouter returned empty content'
+				. ( $finish !== '' ? ' (finish_reason=' . $finish . ')' : '' )
+			);
+		}
+		if ( $finish === 'length' ) {
+			throw new Exception( 'OpenRouter cut the structured reply at max_tokens (finish_reason=length)' );
 		}
 
-		$parsed = json_decode( $content, true );
-		if ( ! is_array( $parsed ) ) {
-			throw new Exception( 'OpenRouter response was not valid JSON' );
+		throw new Exception(
+			'OpenRouter response was not valid JSON'
+			. ( $finish !== '' ? ' (finish_reason=' . $finish . ')' : '' )
+		);
+	}
+
+	/**
+	 * @param array<string,mixed> $message
+	 */
+	private static function extract_message_text( array $message ): string {
+		$content = $message['content'] ?? '';
+		if ( is_string( $content ) ) {
+			return trim( $content );
 		}
-		return $parsed;
+		if ( ! is_array( $content ) ) {
+			return '';
+		}
+		$parts = array();
+		foreach ( $content as $part ) {
+			if ( is_array( $part ) && isset( $part['text'] ) && is_string( $part['text'] ) ) {
+				$text = trim( $part['text'] );
+				if ( $text !== '' ) {
+					$parts[] = $text;
+				}
+			}
+		}
+		return trim( implode( "\n", $parts ) );
+	}
+
+	/**
+	 * @param array<string,mixed> $message
+	 */
+	private static function extract_message_reasoning( array $message ): string {
+		if ( isset( $message['reasoning'] ) && is_string( $message['reasoning'] ) ) {
+			$text = trim( $message['reasoning'] );
+			if ( $text !== '' ) {
+				return $text;
+			}
+		}
+		$details = $message['reasoning_details'] ?? null;
+		if ( ! is_array( $details ) ) {
+			return '';
+		}
+		$parts = array();
+		foreach ( $details as $detail ) {
+			if ( is_array( $detail ) && isset( $detail['text'] ) && is_string( $detail['text'] ) ) {
+				$text = trim( $detail['text'] );
+				if ( $text !== '' ) {
+					$parts[] = $text;
+				}
+			}
+		}
+		return trim( implode( "\n", $parts ) );
 	}
 
 	private static function extract_json_object_text( string $content ): string {

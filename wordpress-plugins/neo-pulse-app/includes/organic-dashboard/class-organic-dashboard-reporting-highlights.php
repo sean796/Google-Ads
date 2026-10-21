@@ -14,6 +14,10 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 	 * @return array{statusCode:int,body:array<string,mixed>}
 	 */
 	public static function generate( array $body ): array {
+		if ( function_exists( 'set_time_limit' ) ) {
+			@set_time_limit( 180 );
+		}
+
 		$site_id  = isset( $body['siteId'] ) ? trim( (string) $body['siteId'] ) : '';
 		$snapshot = isset( $body['snapshot'] ) && is_array( $body['snapshot'] ) ? $body['snapshot'] : null;
 
@@ -27,79 +31,90 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 			);
 		}
 
-		$user = 'Organic dashboard snapshot (JSON). Use only these numbers.' . "\n\n" . wp_json_encode( $snapshot, JSON_PRETTY_PRINT );
-		if ( $user === '' ) {
-			return array(
-				'statusCode' => 400,
-				'body'       => array(
-					'success' => false,
-					'error'   => 'Invalid snapshot',
-				),
-			);
+		if ( class_exists( 'Neo_Pulse_App_Chat_Openrouter' ) ) {
+			$request_key = Neo_Pulse_App_Chat_Openrouter::api_key_from_request( $body );
+			if ( $request_key !== '' ) {
+				Neo_Pulse_App_Chat_Openrouter::use_request_api_key( $request_key );
+			}
 		}
 
 		try {
-			$messages = array(
-				array(
-					'role'    => 'system',
-					'content' => self::system_prompt(),
-				),
-				array(
-					'role'    => 'user',
-					'content' => $user,
-				),
-			);
 			$model = Neo_Pulse_App_Openrouter_Agent_Models::resolve(
 				Neo_Pulse_App_Openrouter_Agent_Models::CATEGORY_REPORT,
 				isset( $body['model'] ) ? (string) $body['model'] : ''
 			);
-			$opts  = array(
+			$job_opts = array(
 				'model'       => $model,
 				'temperature' => 0.15,
-				'maxTokens'   => 8192,
-			);
-
-			$response_format = array(
-				'type'        => 'json_schema',
-				'json_schema' => array(
-					'name'   => 'organic_reporting_highlights',
-					'strict' => true,
-					'schema' => self::json_schema(),
+				'maxTokens'   => 4096,
+				'reasoning'   => array(
+					'effort'  => 'none',
+					'exclude' => true,
 				),
 			);
 
-			$raw = Neo_Pulse_App_Gsc_Route_Handlers::reporting_chat_completion_request_public(
-				$messages,
-				$opts,
-				$response_format
+			$cache_key = 'neo_pulse_orh_' . md5(
+				wp_json_encode(
+					array(
+						'v'        => 2,
+						'siteId'   => $site_id,
+						'model'    => $model,
+						'snapshot' => $snapshot,
+					)
+				)
 			);
-
-			$content = trim( (string) ( $raw['content'] ?? '' ) );
-			$parsed  = null;
-			if ( isset( $raw['raw']['choices'][0]['message']['parsed'] ) && is_array( $raw['raw']['choices'][0]['message']['parsed'] ) ) {
-				$parsed = $raw['raw']['choices'][0]['message']['parsed'];
-			} elseif ( $content !== '' ) {
-				$decoded = json_decode( $content, true );
-				if ( is_array( $decoded ) ) {
-					$parsed = $decoded;
-				}
+			$cached = get_transient( $cache_key );
+			if ( is_array( $cached ) && ! empty( $cached['executiveSummary'] ) ) {
+				return array(
+					'statusCode' => 200,
+					'body'       => array(
+						'success'    => true,
+						'highlights' => $cached,
+						'cached'     => true,
+					),
+				);
 			}
 
-			if ( ! is_array( $parsed ) ) {
+			$slice_specs = self::build_parallel_slice_specs( $snapshot );
+			$jobs        = array();
+			$slice_ids   = array();
+			foreach ( $slice_specs as $spec ) {
+				$slice_ids[] = $spec['id'];
+				$jobs[]      = array(
+					'messages' => array(
+						array(
+							'role'    => 'system',
+							'content' => $spec['system'],
+						),
+						array(
+							'role'    => 'user',
+							'content' => self::snapshot_user_message( $spec['snapshot'] ),
+						),
+					),
+					'opts'     => $job_opts,
+				);
+			}
+
+			$results = Neo_Pulse_App_Chat_Openrouter::json_completion_parallel( $jobs );
+
+			$merged = self::merge_slice_results( $slice_ids, $results, $snapshot );
+			if ( isset( $merged['error'] ) ) {
 				return array(
 					'statusCode' => 502,
 					'body'       => array(
 						'success' => false,
-						'error'   => 'Highlights model returned invalid JSON.',
+						'error'   => (string) $merged['error'],
 					),
 				);
 			}
+
+			set_transient( $cache_key, $merged['highlights'], 6 * HOUR_IN_SECONDS );
 
 			return array(
 				'statusCode' => 200,
 				'body'       => array(
 					'success'    => true,
-					'highlights' => $parsed,
+					'highlights' => $merged['highlights'],
 				),
 			);
 		} catch ( Exception $e ) {
@@ -110,95 +125,267 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 					'error'   => $e->getMessage(),
 				),
 			);
+		} finally {
+			if ( class_exists( 'Neo_Pulse_App_Chat_Openrouter' ) ) {
+				Neo_Pulse_App_Chat_Openrouter::clear_request_api_key();
+			}
 		}
 	}
 
-	private static function system_prompt(): string {
-		$prose = '**ENGLISH PROSE (mandatory):** Every **sentence you write** (paragraphs, bullet bodies after the label, short intros) must use **client-ready Canadian English**: correct spelling, punctuation, grammar, and apostrophes. **Possessives:** **Calgary\'s**, **Edmonton\'s**, **the site\'s** search performance, **the client\'s** (never **Calgarys**, never **the sites** when you mean this website). **Bold:** use `**` on **1–3 short phrases per paragraph** (a few words each, not whole sentences); **never** open bold in one sentence and close it in a later sentence. **Do not** change spelling inside **verbatim** search queries, keywords, page titles, or brand names from RETRIEVED DATA. **Proofread** narrative before finishing.';
-
-		return 'You are a senior SEO strategist at Neo Digital preparing a client-facing organic performance report.' . "\n\n"
-			. $prose . "\n\n"
-			. 'Source split (mandatory): ga4Rows in the snapshot are **organic search (GA4)** only. gscTotals and topQueries are **Google Search Console** organic search. Never describe GSC clicks or impressions as website sessions. Never use site-wide or all-channel GA4 metrics (Total users, New users, all-channel Key events, User key event rate); those are omitted from the snapshot on purpose.' . "\n\n"
-			. 'Numbers: Every figure must appear in the JSON snapshot. Do not invent metrics.' . "\n\n"
-			. 'Return JSON with executiveSummary, keyTakeaways, performanceNarrative, keywordNarrative, and topOpportunities (exactly 3 or 4 items).' . "\n\n"
-			. 'Period labels: snapshot.periods.earlier and snapshot.periods.later are the exact date range strings for the compare and primary periods. Use those labels whenever you name a period. Never write the words Earlier or Later.' . "\n\n"
-			. 'performanceNarrative: 2–3 short paragraphs for the Performance summary section. Paragraph 1: GA4 **organic search** sessions and engagement only. Paragraph 2: GSC search visibility (clicks, impressions, CTR, position). Plain prose, no bullets inside strings.' . "\n\n"
-			. 'keywordNarrative: 1–2 short paragraphs for the Keyword performance section. Use topQueries only. Plain prose; use period date labels only.' . "\n\n"
-			. 'executiveSummary: one complete headline sentence (max ~220 characters).' . "\n\n"
-			. 'keyTakeaways: 2–4 complete sentences. When GA4 and GSC exist, include at least one takeaway for **organic search traffic (GA4)** and one for **search visibility (GSC)**.' . "\n\n"
-			. 'topOpportunities: rank by client impact; each item: rank, label, why, comparisonRows (1–4 table rows). Do not include next steps or recommended actions.';
-	}
-
 	/**
-	 * @return array<string,mixed>
+	 * @param array<string,mixed> $snapshot
+	 * @return array<int,array{id:string,system:string,snapshot:array<string,mixed>}>
 	 */
-	private static function json_schema(): array {
-		return array(
-			'type'                 => 'object',
-			'additionalProperties' => false,
-			'required'             => array(
-				'executiveSummary',
-				'keyTakeaways',
-				'performanceNarrative',
-				'keywordNarrative',
-				'topOpportunities',
+	private static function build_parallel_slice_specs( array $snapshot ): array {
+		$common = self::snapshot_common_fields( $snapshot );
+		$has_ads = isset( $snapshot['googleAdsTotals'] ) && is_array( $snapshot['googleAdsTotals'] ) && $snapshot['googleAdsTotals'] !== array();
+
+		$specs = array(
+			array(
+				'id'       => 'insights',
+				'system'   => self::insights_system_prompt(),
+				'snapshot' => array_merge(
+					$common,
+					self::pick_snapshot_fields(
+						$snapshot,
+						array( 'ga4Rows', 'gscTotals', 'googleAdsTotals', 'periodTotals' )
+					)
+				),
 			),
-			'properties'           => array(
-				'executiveSummary'     => array( 'type' => 'string', 'maxLength' => 320 ),
-				'performanceNarrative' => array(
-					'type'     => 'array',
-					'minItems' => 2,
-					'maxItems' => 3,
-					'items'    => array( 'type' => 'string', 'maxLength' => 520 ),
+			array(
+				'id'       => 'performance',
+				'system'   => self::performance_system_prompt(),
+				'snapshot' => array_merge(
+					$common,
+					self::pick_snapshot_fields(
+						$snapshot,
+						array( 'ga4Rows', 'gscTotals', 'monthlyProgression', 'periodTotals' )
+					)
 				),
-				'keywordNarrative'     => array(
-					'type'     => 'array',
-					'minItems' => 1,
-					'maxItems' => 2,
-					'items'    => array( 'type' => 'string', 'maxLength' => 480 ),
+			),
+			array(
+				'id'       => 'keyword',
+				'system'   => self::keyword_system_prompt(),
+				'snapshot' => array_merge(
+					$common,
+					self::pick_snapshot_fields( $snapshot, array( 'topQueries' ) )
 				),
-				'keyTakeaways'         => array(
-					'type'     => 'array',
-					'minItems' => 2,
-					'maxItems' => 4,
-					'items'    => array( 'type' => 'string', 'maxLength' => 280 ),
-				),
-				'topOpportunities'     => array(
-					'type'     => 'array',
-					'minItems' => 3,
-					'maxItems' => 4,
-					'items'    => array(
-						'type'                 => 'object',
-						'additionalProperties' => false,
-						'required'             => array( 'rank', 'label', 'why', 'comparisonRows' ),
-						'properties'           => array(
-							'rank'             => array( 'type' => 'integer' ),
-							'label'            => array( 'type' => 'string', 'maxLength' => 120 ),
-							'why'              => array( 'type' => 'string', 'maxLength' => 480 ),
-							'comparisonRows'   => array(
-								'type'     => 'array',
-								'minItems' => 1,
-								'maxItems' => 4,
-								'items'    => array(
-									'type'                 => 'object',
-									'additionalProperties' => false,
-									'required'             => array( 'metric', 'comparePeriodValue', 'primaryPeriodValue' ),
-									'properties'           => array(
-										'metric'               => array( 'type' => 'string', 'maxLength' => 80 ),
-										'comparePeriodValue'   => array( 'type' => 'string', 'maxLength' => 72 ),
-										'primaryPeriodValue'   => array( 'type' => 'string', 'maxLength' => 72 ),
-									),
-								),
-							),
-							'evidence'         => array(
-								'type'     => 'array',
-								'maxItems' => 6,
-								'items'    => array( 'type' => 'string', 'maxLength' => 200 ),
-							),
-						),
-					),
+			),
+			array(
+				'id'       => 'seo_opportunities',
+				'system'   => self::seo_opportunities_system_prompt(),
+				'snapshot' => array_merge(
+					$common,
+					self::pick_snapshot_fields(
+						$snapshot,
+						array( 'ga4Rows', 'gscTotals', 'topQueries' )
+					)
 				),
 			),
 		);
+
+		if ( $has_ads ) {
+			$specs[] = array(
+				'id'       => 'google_ads',
+				'system'   => self::google_ads_system_prompt(),
+				'snapshot' => array_merge(
+					$common,
+					self::pick_snapshot_fields(
+						$snapshot,
+						array( 'googleAdsTotals', 'googleAdsBudgetCaption' )
+					)
+				),
+			);
+		}
+
+		return $specs;
+	}
+
+	/**
+	 * @param array<string,mixed> $snapshot
+	 * @return array<string,mixed>
+	 */
+	private static function snapshot_common_fields( array $snapshot ): array {
+		return self::pick_snapshot_fields(
+			$snapshot,
+			array( 'siteName', 'siteUrl', 'showCompare', 'reportStructure' )
+		);
+	}
+
+	/**
+	 * @param array<string,mixed> $snapshot
+	 * @param array<int,string>   $keys
+	 * @return array<string,mixed>
+	 */
+	private static function pick_snapshot_fields( array $snapshot, array $keys ): array {
+		$out = array();
+		foreach ( $keys as $key ) {
+			if ( array_key_exists( $key, $snapshot ) ) {
+				$out[ $key ] = $snapshot[ $key ];
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * @param array<string,mixed> $snapshot
+	 */
+	private static function snapshot_user_message( array $snapshot ): string {
+		return 'Organic dashboard snapshot (JSON). Use only these numbers. Date labels are not in this JSON; the report UI already shows them.' . "\n\n"
+			. wp_json_encode( $snapshot, JSON_PRETTY_PRINT ) . "\n\n"
+			. self::no_dates_line() . "\n\n"
+			. self::query_prose_line();
+	}
+
+	/**
+	 * @param array<int,string> $slice_ids
+	 * @param array<int,array{parsed:array<string,mixed>|null,error:string,ms:int}> $results
+	 * @param array<string,mixed> $snapshot
+	 * @return array{highlights:array<string,mixed>}|array{error:string}
+	 */
+	private static function merge_slice_results( array $slice_ids, array $results, array $snapshot ): array {
+		$highlights = array(
+			'executiveSummary'     => '',
+			'keyTakeaways'         => array(),
+			'performanceNarrative' => array(),
+			'keywordNarrative'     => array(),
+			'googleAdsNarrative'   => array(),
+			'topOpportunities'     => array(),
+		);
+
+		foreach ( $slice_ids as $i => $slice_id ) {
+			$result = isset( $results[ $i ] ) && is_array( $results[ $i ] ) ? $results[ $i ] : array();
+			$error  = isset( $result['error'] ) ? trim( (string) $result['error'] ) : '';
+			$parsed = isset( $result['parsed'] ) && is_array( $result['parsed'] ) ? $result['parsed'] : null;
+
+			if ( $error !== '' ) {
+				return array( 'error' => 'Highlights slice "' . $slice_id . '": ' . $error );
+			}
+			if ( $parsed === null ) {
+				return array( 'error' => 'Highlights slice "' . $slice_id . '" returned invalid JSON.' );
+			}
+
+			switch ( $slice_id ) {
+				case 'insights':
+					if ( ! self::is_non_empty_string( $parsed['executiveSummary'] ?? '' ) ) {
+						return array( 'error' => 'Highlights slice "insights" missing executiveSummary.' );
+					}
+					$highlights['executiveSummary'] = trim( (string) $parsed['executiveSummary'] );
+					$highlights['keyTakeaways']     = self::string_list( $parsed['keyTakeaways'] ?? array(), 8 );
+					if ( count( $highlights['keyTakeaways'] ) < 2 ) {
+						return array( 'error' => 'Highlights slice "insights" missing keyTakeaways.' );
+					}
+					break;
+				case 'performance':
+					$highlights['performanceNarrative'] = self::string_list( $parsed['performanceNarrative'] ?? array(), 6 );
+					if ( count( $highlights['performanceNarrative'] ) < 1 ) {
+						return array( 'error' => 'Highlights slice "performance" missing performanceNarrative.' );
+					}
+					break;
+				case 'keyword':
+					$highlights['keywordNarrative'] = self::string_list( $parsed['keywordNarrative'] ?? array(), 4 );
+					if ( count( $highlights['keywordNarrative'] ) < 1 ) {
+						return array( 'error' => 'Highlights slice "keyword" missing keywordNarrative.' );
+					}
+					break;
+				case 'seo_opportunities':
+					$top = $parsed['topOpportunities'] ?? array();
+					if ( ! is_array( $top ) || count( $top ) < 1 ) {
+						return array( 'error' => 'Highlights slice "seo_opportunities" missing topOpportunities.' );
+					}
+					$highlights['topOpportunities'] = $top;
+					break;
+				case 'google_ads':
+					$highlights['googleAdsNarrative'] = self::string_list( $parsed['googleAdsNarrative'] ?? array(), 4 );
+					if ( count( $highlights['googleAdsNarrative'] ) < 1 ) {
+						return array( 'error' => 'Highlights slice "google_ads" missing googleAdsNarrative.' );
+					}
+					$ads_top = $parsed['topOpportunities'] ?? array();
+					if ( is_array( $ads_top ) && count( $ads_top ) > 0 ) {
+						$highlights['topOpportunities'] = array_merge(
+							$highlights['topOpportunities'],
+							$ads_top
+						);
+					}
+					break;
+			}
+		}
+
+		return array( 'highlights' => $highlights );
+	}
+
+	/**
+	 * @param mixed $raw
+	 * @return array<int,string>
+	 */
+	private static function string_list( $raw, int $max ): array {
+		if ( ! is_array( $raw ) ) {
+			return array();
+		}
+		$out = array();
+		foreach ( $raw as $item ) {
+			if ( ! self::is_non_empty_string( $item ) ) {
+				continue;
+			}
+			$out[] = trim( (string) $item );
+			if ( count( $out ) >= $max ) {
+				break;
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * @param mixed $value
+	 */
+	private static function is_non_empty_string( $value ): bool {
+		return is_string( $value ) && trim( $value ) !== '';
+	}
+
+	private static function no_dates_line(): string {
+		return 'Never write calendar dates or date ranges in your output (no month-day-year, no "Sep 21 - Oct 20", no years). Tables already show dates. When showCompare is true, say the reporting period and the prior period with metrics only.';
+	}
+
+	private static function query_prose_line(): string {
+		return 'GSC queries in JSON are lowercase slugs. In narrative prose, never copy them verbatim. Bold each query you cite using **readable Title Case** and correct brand or place names (JSON hunter douglas blinds edmonton → **Hunter Douglas blinds Edmonton**; branded queries → use snapshot.siteName capitalization, e.g. **Blind Magic Edmonton**). Every sentence must start with a capital letter; never start a sentence with a lowercase word.';
+	}
+
+	private static function prose_line(): string {
+		return 'American English with full sentence grammar. Use snapshot.siteName for the client brand in prose. ' . self::query_prose_line();
+	}
+
+	private static function insights_system_prompt(): string {
+		return 'Neo Digital SEO report. JSON only: {"executiveSummary":"string","keyTakeaways":["string"]}.' . "\n\n"
+			. self::prose_line() . "\n\n"
+			. self::no_dates_line() . "\n\n"
+			. 'executiveSummary: one sentence. keyTakeaways: 2–4 sentences (GA4 organic, GSC visibility; optional one Google Ads line if googleAdsTotals exists).';
+	}
+
+	private static function performance_system_prompt(): string {
+		return 'Neo Digital SEO report. JSON only: {"performanceNarrative":["string"]}.' . "\n\n"
+			. self::prose_line() . "\n\n"
+			. self::no_dates_line() . "\n\n"
+			. 'Two or three short paragraphs: (1) GA4 organic sessions and engagement, (2) GSC clicks, impressions, CTR, position. No Google Ads.';
+	}
+
+	private static function keyword_system_prompt(): string {
+		return 'Neo Digital SEO report. JSON only: {"keywordNarrative":["string"]}.' . "\n\n"
+			. self::prose_line() . "\n\n"
+			. self::no_dates_line() . "\n\n"
+			. 'Write one or two paragraphs summarizing topQueries only. When showCompare is true, compare laterClicks and earlierClicks across top queries (e.g. **Blind Magic Edmonton** recorded 27 clicks compared with 44 in the prior period). When showCompare is false, summarize clicks, impressions, and avgPosition for the leading queries. If topQueries is empty, return one factual sentence stating that query-level Search Console data was not recorded for the period.';
+	}
+
+	private static function seo_opportunities_system_prompt(): string {
+		return 'Neo Digital SEO report. JSON only: {"topOpportunities":[{"rank":1,"label":"string","why":"string","comparisonRows":[{"metric":"string","comparePeriodValue":"string","primaryPeriodValue":"string"}]}]}.' . "\n\n"
+			. self::prose_line() . "\n\n"
+			. self::no_dates_line() . "\n\n"
+			. 'Three or four organic opportunities (GA4, GSC, queries). Each why is one or two full sentences (capital letter first); bold queries in Title Case per query rules above. No Google Ads metrics. No actions.';
+	}
+
+	private static function google_ads_system_prompt(): string {
+		return 'Neo Digital SEO report. JSON only: {"googleAdsNarrative":["string"],"topOpportunities":[{"rank":1,"label":"string","why":"string","comparisonRows":[{"metric":"string","comparePeriodValue":"string","primaryPeriodValue":"string"}]}]}.' . "\n\n"
+			. self::prose_line() . "\n\n"
+			. self::no_dates_line() . "\n\n"
+			. 'googleAdsNarrative: paid search from googleAdsTotals only. topOpportunities: 0–2 paid items with (Google Ads) metrics.';
 	}
 }

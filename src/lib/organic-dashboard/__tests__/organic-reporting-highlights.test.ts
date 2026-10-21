@@ -1,7 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import * as apiModule from "@/lib/api";
 import {
   buildOrganicReportingHighlightsSnapshot,
   buildPlaceholderOrganicReportingHighlights,
+  fetchOrganicReportingHighlights,
   normalizeOrganicReportingHighlights,
   parseOrganicReportingHighlightsPayload,
   resolveClientReportHighlights,
@@ -151,6 +153,92 @@ describe("buildOrganicReportingHighlightsSnapshot", () => {
     expect(snap.ga4Rows.length).toBeGreaterThan(0);
     expect(snap.gscTotals?.length).toBe(4);
     expect(snap.periods.earlier).toContain("August");
+    expect(snap.reportStructure).toBe("compare");
+  });
+
+  it("period progress snapshot omits compare queries and adds monthly progression", () => {
+    const data: OrganicDashboardBundleResponse = {
+      success: true,
+      meta: {
+        fetchedAt: "2026-01-01T00:00:00Z",
+        reportStructure: "period_progress",
+        primary: { startDate: "2025-11-01", endDate: "2025-12-31" },
+        compare: null,
+      },
+      ga4: {
+        organicAcquisition: {
+          current: {
+            sessions: 100,
+            engagedSessions: 50,
+            engagementRate: 0.5,
+            averageSessionDurationSec: 60,
+            keyEvents: 5,
+            eventCount: 10,
+            eventsPerSession: 0.1,
+          },
+          previous: {
+            sessions: 80,
+            engagedSessions: 40,
+            engagementRate: 0.4,
+            averageSessionDurationSec: 55,
+            keyEvents: 4,
+            eventCount: 8,
+            eventsPerSession: 0.1,
+          },
+        },
+        organicTrafficAcquisitionMonthly: {
+          channel: "Organic Search",
+          dimension: "sessionDefaultChannelGroup",
+          periodStart: "2025-11-01",
+          periodEnd: "2025-12-31",
+          totals: {
+            sessions: 100,
+            engagedSessions: 50,
+            engagementRate: 0.5,
+            averageSessionDurationSec: 60,
+            keyEvents: 5,
+            eventCount: 10,
+            eventsPerSession: 0.1,
+          },
+          months: [
+            {
+              yearMonth: "2025-11",
+              label: "Nov 2025",
+              sessions: 40,
+              engagedSessions: 20,
+              engagementRate: 0.5,
+              averageSessionDurationSec: 55,
+              keyEvents: 2,
+              eventCount: 4,
+              eventsPerSession: 0.1,
+            },
+          ],
+        },
+      },
+      gsc: {
+        stats: {
+          currentPeriod: {
+            startDate: "2025-11-01",
+            endDate: "2025-12-31",
+            clicks: 50,
+            impressions: 2000,
+            ctr: 0.025,
+            avgPosition: 10,
+          },
+          topKeywords: [{ query: "blinds", clicks: 20, impressions: 500, ctr: 0.04, position: 8 }],
+        },
+        timeseries: [{ date: "2025-11-15", clicks: 50, impressions: 2000, ctr: 0.025, avgPosition: 10 }],
+      },
+      sources: { ga4: "ok", gsc: "ok", gscHistorical: "skipped" },
+    };
+    const vm = buildOrganicDashboardViewModel(data, { showCompare: false });
+    const snap = buildOrganicReportingHighlightsSnapshot(vm, "Example", "https://example.com", false);
+    expect(snap.reportStructure).toBe("period_progress");
+    expect(snap.showCompare).toBe(false);
+    expect(snap.periods.earlier).toBe("");
+    expect(snap.periodTotals?.ga4.length).toBeGreaterThan(0);
+    expect(snap.topQueries[0]).toMatchObject({ query: "blinds", clicks: expect.any(String) });
+    expect(snap.topQueries[0]).not.toHaveProperty("earlierClicks");
   });
 });
 
@@ -164,7 +252,7 @@ describe("normalizeOrganicReportingHighlights", () => {
     expect(normalized?.executiveSummary).toContain("Traffic");
   });
 
-  it("strips markdown from opportunity fields", () => {
+  it("preserves **bold** in opportunity why (model markdown)", () => {
     const normalized = normalizeOrganicReportingHighlights({
       executiveSummary: "Headline.",
       keyTakeaways: ["One insight.", "Two insight."],
@@ -172,14 +260,16 @@ describe("normalizeOrganicReportingHighlights", () => {
         {
           rank: 1,
           label: "Query",
-          why: "**High-intent** query gap.",
+          why: "**Blind Magic Edmonton** slipped to 27 clicks from 44 in the prior period.",
           comparisonRows: [
             { metric: "Clicks", comparePeriodValue: "10", primaryPeriodValue: "12" },
           ],
         },
       ],
     });
-    expect(normalized?.topOpportunities[0]?.why).toBe("High-intent query gap.");
+    expect(normalized?.topOpportunities[0]?.why).toBe(
+      "**Blind Magic Edmonton** slipped to 27 clicks from 44 in the prior period.",
+    );
   });
 
   it("preserves performanceNarrative when present", () => {
@@ -210,6 +300,7 @@ describe("parseOrganicReportingHighlightsPayload", () => {
       keywordNarrative: [
         "Brand queries led clicks in September 1–30, 2026, with non-brand blinds terms still contributing meaningful volume.",
       ],
+      googleAdsNarrative: [],
       topOpportunities: [
         sampleOpportunity(1, "Brand query"),
         { ...sampleOpportunity(2, "Non-brand"), why: "**Winnable** CTR gap on a core term." },
@@ -222,6 +313,39 @@ describe("parseOrganicReportingHighlightsPayload", () => {
     expect(parsed.performanceNarrative).toHaveLength(2);
     expect(parsed.keywordNarrative).toHaveLength(1);
     expect(parsed.topOpportunities).toHaveLength(3);
-    expect(parsed.topOpportunities[1]?.why).toBe("Winnable CTR gap on a core term.");
+    expect(parsed.topOpportunities[1]?.why).toBe("**Winnable** CTR gap on a core term.");
+  });
+
+  it("sends X-OpenRouter-Api-Key header when fetching reporting highlights from backend", async () => {
+    const keySpy = vi.spyOn(apiModule, "loadApiKey").mockReturnValue("sk-or-v1-test-key");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          success: true,
+          highlights: {
+            executiveSummary: "Headline summary.",
+            keyTakeaways: ["First takeaway.", "Second takeaway."],
+            performanceNarrative: ["GA4 paragraph.", "GSC paragraph."],
+            keywordNarrative: ["Keyword paragraph."],
+            googleAdsNarrative: [],
+            topOpportunities: [sampleOpportunity(1, "Opportunity")],
+          },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const vm = buildOrganicDashboardViewModel(undefined, { showCompare: true });
+    const snapshot = buildOrganicReportingHighlightsSnapshot(vm, "Blind Magic", "https://blindmagic.com", true);
+    const result = await fetchOrganicReportingHighlights(snapshot, "site-1");
+
+    expect(result.executiveSummary).toBe("Headline summary.");
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const [, init] = fetchSpy.mock.calls[0]!;
+    const headers = (init?.headers ?? {}) as Record<string, string>;
+    expect(headers["X-OpenRouter-Api-Key"]).toBe("sk-or-v1-test-key");
+
+    fetchSpy.mockRestore();
+    keySpy.mockRestore();
   });
 });

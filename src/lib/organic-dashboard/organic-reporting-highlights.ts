@@ -1,9 +1,12 @@
+import type { OrganicPeriodProgressTable } from "@/lib/organic-dashboard/organic-dashboard-period-progress";
 import type { OrganicDashboardViewModel } from "@/lib/organic-dashboard/organic-dashboard-view-model";
 import { loadSemrushApiKeyForAppRequests } from "@/lib/api";
+import { getOpenRouterApiKeyForApp } from "@/lib/openrouter-api-key-resolve";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
 import {
   deriveKeyTakeawaysFromSummary,
   ORGANIC_GA4_DECK_LABELS,
+  deckNarrativeText,
   plainDeckText,
   sanitizeDeckOpportunity,
   sanitizeDeckOpportunityComparisonRows,
@@ -19,6 +22,8 @@ export type OrganicReportingHighlights = {
   performanceNarrative: string[];
   /** Keyword / query story for the keyword performance section (report model). */
   keywordNarrative: string[];
+  /** Paid search narrative for the Google Ads account card in the client report. */
+  googleAdsNarrative: string[];
   topOpportunities: OrganicDeckOpportunity[];
 };
 
@@ -63,6 +68,7 @@ export function normalizeOrganicReportingHighlights(raw: unknown): OrganicReport
     : [];
   const performanceNarrative = sanitizeNarrativeParagraphs(o.performanceNarrative, 3);
   const keywordNarrative = sanitizeNarrativeParagraphs(o.keywordNarrative, 2);
+  const googleAdsNarrative = sanitizeNarrativeParagraphs(o.googleAdsNarrative, 2);
 
   if (fromApi.length >= 2) {
     return {
@@ -70,6 +76,7 @@ export function normalizeOrganicReportingHighlights(raw: unknown): OrganicReport
       keyTakeaways: fromApi.slice(0, 4),
       performanceNarrative,
       keywordNarrative,
+      googleAdsNarrative,
       topOpportunities,
     };
   }
@@ -84,6 +91,7 @@ export function normalizeOrganicReportingHighlights(raw: unknown): OrganicReport
     keyTakeaways: takeaways.slice(0, 4).map(plainDeckText),
     performanceNarrative,
     keywordNarrative,
+    googleAdsNarrative,
     topOpportunities,
   };
 }
@@ -92,14 +100,40 @@ function sanitizeNarrativeParagraphs(raw: unknown, maxItems: number): string[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .filter((p) => isNonEmptyString(p))
-    .map((p) => plainDeckText(String(p)))
+    .map((p) => deckNarrativeText(String(p)))
     .slice(0, maxItems);
 }
+
+export type OrganicReportingHighlightsSnapshotPeriodQuery = {
+  query: string;
+  clicks: string;
+  impressions: string;
+  avgPosition: string;
+};
+
+export type OrganicReportingHighlightsSnapshotCompareQuery = {
+  query: string;
+  earlierClicks: string;
+  laterClicks: string;
+  earlierImpressions: string;
+  laterImpressions: string;
+  avgPosition: string;
+  clicksChangePercent: number | null;
+  impressionsChangePercent: number | null;
+};
+
+export type OrganicReportingHighlightsSnapshotMonthlyTable = {
+  title: string;
+  monthLabels: string[];
+  periodTotalColumnLabel: string;
+  rows: Array<{ label: string; months: string[]; periodTotal: string }>;
+};
 
 export type OrganicReportingHighlightsSnapshot = {
   siteName: string;
   siteUrl: string;
   showCompare: boolean;
+  reportStructure: "compare" | "period_progress";
   periods: {
     earlier: string;
     later: string;
@@ -116,20 +150,80 @@ export type OrganicReportingHighlightsSnapshot = {
     later: string;
     changePercent: number | null;
   }> | null;
-  topQueries: Array<{
-    query: string;
-    earlierClicks: string;
-    laterClicks: string;
-    earlierImpressions: string;
-    laterImpressions: string;
-    avgPosition: string;
-    clicksChangePercent: number | null;
-    impressionsChangePercent: number | null;
-  }>;
+  topQueries: Array<
+    OrganicReportingHighlightsSnapshotCompareQuery | OrganicReportingHighlightsSnapshotPeriodQuery
+  >;
+  periodTotals?: {
+    ga4: Array<{ label: string; value: string }>;
+    gsc: Array<{ label: string; value: string }> | null;
+    googleAds?: Array<{ label: string; value: string }> | null;
+  };
+  monthlyProgression?: {
+    ga4: OrganicReportingHighlightsSnapshotMonthlyTable | null;
+    gsc: OrganicReportingHighlightsSnapshotMonthlyTable | null;
+  };
+  googleAdsTotals?: Array<{
+    label: string;
+    earlier: string;
+    later: string;
+    changePercent: number | null;
+  }> | null;
+  /** Budget pacing caption for the Google Ads account card (when available). */
+  googleAdsBudgetCaption?: string | null;
 };
+
+function serializePeriodProgressTableForSnapshot(
+  table: OrganicPeriodProgressTable,
+): OrganicReportingHighlightsSnapshotMonthlyTable {
+  return {
+    title: table.title,
+    monthLabels: table.monthLabels,
+    periodTotalColumnLabel: table.periodTotalColumnLabel,
+    rows: table.rows.map((row) => ({
+      label: row.label,
+      months: row.values,
+      periodTotal: row.periodTotal,
+    })),
+  };
+}
 
 function isNonEmptyString(v: unknown): v is string {
   return typeof v === "string" && v.trim().length > 0;
+}
+
+function buildGoogleAdsSnapshotTotals(
+  viewModel: OrganicDashboardViewModel,
+  showCompare: boolean,
+): OrganicReportingHighlightsSnapshot["googleAdsTotals"] {
+  if (!viewModel.hasGoogleAds || !viewModel.googleAdsSummary) return null;
+  const s = viewModel.googleAdsSummary;
+  const rows = [
+    {
+      label: "Leads (Google Ads)",
+      earlier: s.compareLeads,
+      later: s.leads,
+      changePercent: showCompare ? s.leadsDelta.deltaPercent : null,
+    },
+    {
+      label: "Cost per lead (Google Ads)",
+      earlier: s.compareCostPerLead,
+      later: s.costPerLead,
+      changePercent: showCompare ? s.costPerLeadDelta.deltaPercent : null,
+    },
+    {
+      label: "Spend (Google Ads)",
+      earlier: s.compareSpend,
+      later: s.spend,
+      changePercent: showCompare ? s.spendDelta.deltaPercent : null,
+    },
+    {
+      label: "Clicks (Google Ads)",
+      earlier: s.compareClicks,
+      later: s.clicks,
+      changePercent: showCompare ? s.clicksDelta.deltaPercent : null,
+    },
+  ];
+  return rows;
 }
 
 export function buildOrganicReportingHighlightsSnapshot(
@@ -177,6 +271,69 @@ export function buildOrganicReportingHighlightsSnapshot(
       ]
     : null;
 
+  const reportStructure =
+    viewModel.reportStructure === "period_progress" || !showCompare ? "period_progress" : "compare";
+  const googleAdsTotalsRaw = buildGoogleAdsSnapshotTotals(viewModel, showCompare);
+
+  if (reportStructure === "period_progress") {
+    const topQueriesPeriod: OrganicReportingHighlightsSnapshotPeriodQuery[] = viewModel.gscQueries
+      .slice(0, 10)
+      .map((q) => ({
+        query: q.query,
+        clicks: q.clicks,
+        impressions: q.impressions,
+        avgPosition: q.position,
+      }));
+
+    const tables = viewModel.periodProgressTables;
+    const monthlyProgression = tables
+      ? {
+          ga4: tables.ga4 ? serializePeriodProgressTableForSnapshot(tables.ga4) : null,
+          gsc: tables.gsc ? serializePeriodProgressTableForSnapshot(tables.gsc) : null,
+        }
+      : undefined;
+
+    return {
+      siteName,
+      siteUrl,
+      showCompare: false,
+      reportStructure: "period_progress",
+      periods: {
+        earlier: "",
+        later: viewModel.periodLabels.primary,
+      },
+      ga4Rows: ga4Rows.map((row) => ({
+        ...row,
+        earlier: "n/a",
+        changePercent: null,
+      })),
+      gscTotals: gscTotals
+        ? gscTotals.map((row) => ({
+            ...row,
+            earlier: "n/a",
+            changePercent: null,
+          }))
+        : null,
+      topQueries: topQueriesPeriod,
+      periodTotals: {
+        ga4: ga4Rows.map((row) => ({ label: row.label, value: row.later })),
+        gsc: gscTotals ? gscTotals.map((row) => ({ label: row.label, value: row.later })) : null,
+        googleAds: googleAdsTotalsRaw
+          ? googleAdsTotalsRaw.map((row) => ({ label: row.label, value: row.later }))
+          : null,
+      },
+      monthlyProgression,
+      googleAdsTotals: googleAdsTotalsRaw
+        ? googleAdsTotalsRaw.map((row) => ({
+            ...row,
+            earlier: "n/a",
+            changePercent: null,
+          }))
+        : null,
+      googleAdsBudgetCaption: viewModel.googleAdsBudgetPacing?.caption ?? null,
+    };
+  }
+
   const topQueries = viewModel.gscQueries.slice(0, 10).map((q) => ({
     query: q.query,
     earlierClicks: q.previousClicks,
@@ -191,7 +348,8 @@ export function buildOrganicReportingHighlightsSnapshot(
   return {
     siteName,
     siteUrl,
-    showCompare,
+    showCompare: true,
+    reportStructure: "compare",
     periods: {
       earlier: viewModel.periodLabels.compare,
       later: viewModel.periodLabels.primary,
@@ -199,6 +357,8 @@ export function buildOrganicReportingHighlightsSnapshot(
     ga4Rows,
     gscTotals,
     topQueries,
+    googleAdsTotals: googleAdsTotalsRaw,
+    googleAdsBudgetCaption: viewModel.googleAdsBudgetPacing?.caption ?? null,
   };
 }
 
@@ -237,7 +397,7 @@ export function parseOrganicReportingHighlightsPayload(raw: string): OrganicRepo
   }
   const performanceNarrative = narrativeRaw
     .filter((p) => isNonEmptyString(p))
-    .map((p) => plainDeckText(String(p)));
+    .map((p) => deckNarrativeText(String(p)));
   if (performanceNarrative.length < 2) {
     throw new Error("performanceNarrative must include at least 2 non-empty paragraphs.");
   }
@@ -247,9 +407,20 @@ export function parseOrganicReportingHighlightsPayload(raw: string): OrganicRepo
   }
   const keywordNarrative = keywordRaw
     .filter((p) => isNonEmptyString(p))
-    .map((p) => plainDeckText(String(p)));
+    .map((p) => deckNarrativeText(String(p)));
   if (keywordNarrative.length < 1) {
     throw new Error("keywordNarrative must include at least 1 non-empty paragraph.");
+  }
+  const googleAdsRaw = o.googleAdsNarrative;
+  let googleAdsNarrative: string[] = [];
+  if (googleAdsRaw != null) {
+    if (!Array.isArray(googleAdsRaw) || googleAdsRaw.length > 2) {
+      throw new Error("googleAdsNarrative must be an array of 0–2 strings.");
+    }
+    googleAdsNarrative = googleAdsRaw
+      .filter((p) => isNonEmptyString(p))
+      .map((p) => deckNarrativeText(String(p)))
+      .slice(0, 2);
   }
   const top = o.topOpportunities;
   if (!Array.isArray(top)) throw new Error("topOpportunities must be an array.");
@@ -294,6 +465,7 @@ export function parseOrganicReportingHighlightsPayload(raw: string): OrganicRepo
     keyTakeaways,
     performanceNarrative: performanceNarrative.slice(0, 3),
     keywordNarrative: keywordNarrative.slice(0, 2),
+    googleAdsNarrative,
     topOpportunities,
   };
 }
@@ -327,6 +499,7 @@ export function buildPlaceholderOrganicReportingHighlights(
     keyTakeaways: takeaways.slice(0, 4),
     performanceNarrative: [],
     keywordNarrative: [],
+    googleAdsNarrative: [],
     topOpportunities: [],
   };
 }
@@ -348,7 +521,23 @@ function organicReportingHighlightsRequestHeaders(): HeadersInit {
   if (key) {
     headers["X-Semrush-Api-Key"] = key;
   }
+  const openRouterKey = getOpenRouterApiKeyForApp().trim();
+  if (openRouterKey) {
+    headers["X-OpenRouter-Api-Key"] = openRouterKey;
+  }
   return headers;
+}
+
+function mergeHighlightsAbortSignal(signal?: AbortSignal): AbortSignal | undefined {
+  if (typeof AbortSignal.timeout !== "function") {
+    return signal;
+  }
+  const timeoutSignal = AbortSignal.timeout(120_000);
+  if (!signal) return timeoutSignal;
+  if (typeof AbortSignal.any === "function") {
+    return AbortSignal.any([signal, timeoutSignal]);
+  }
+  return timeoutSignal;
 }
 
 export async function fetchOrganicReportingHighlights(
@@ -360,8 +549,11 @@ export async function fetchOrganicReportingHighlights(
     method: "POST",
     credentials: "include",
     headers: organicReportingHighlightsRequestHeaders(),
-    body: JSON.stringify({ siteId, snapshot }),
-    signal,
+    body: JSON.stringify({
+      siteId,
+      snapshot: { ...snapshot, periods: undefined },
+    }),
+    signal: mergeHighlightsAbortSignal(signal),
   });
 
   const data = (await response.json().catch(() => ({}))) as {
@@ -382,5 +574,9 @@ export async function fetchOrganicReportingHighlights(
     throw new Error("Highlights model returned empty content.");
   }
 
-  return parseOrganicReportingHighlightsPayload(JSON.stringify(data.highlights));
+  const normalized = normalizeOrganicReportingHighlights(data.highlights);
+  if (!normalized) {
+    throw new Error("Highlights model returned empty content.");
+  }
+  return normalized;
 }
