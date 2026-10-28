@@ -141,14 +141,14 @@ export default function OrganicClientReportPreviewPage() {
             highlights: payload.highlights,
             siteName: payload.siteName,
             siteUrl: payload.siteUrl,
-            showCompare: payload.showCompare,
+            showCompare: searchParams.get("compare") === "1",
             preparedOn: payload.preparedOn,
             localGridScan: payload.localGridScan ?? null,
             clientLogoUrl: effectiveClientLogoUrl,
             clientLogoBoxTheme: logoBoxTheme,
           })
         : null,
-    [payload, effectiveClientLogoUrl, logoBoxTheme],
+    [payload, effectiveClientLogoUrl, logoBoxTheme, searchParams],
   );
 
   useOrganicClientReportDocumentMeta(payload);
