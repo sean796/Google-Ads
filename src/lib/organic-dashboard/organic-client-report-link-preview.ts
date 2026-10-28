@@ -60,12 +60,22 @@ export function buildOrganicClientReportLinkPreviewMeta(
   return { title, description };
 }
 
+function resolveClientReportOpenLinkOrigin(appOrigin?: string, linkOrigin?: string): string {
+  const explicit = (linkOrigin ?? appOrigin ?? "").trim().replace(/\/+$/, "");
+  if (explicit) return explicit;
+  const backend = BACKEND_API_BASE.replace(/\/+$/, "");
+  if (backend) return backend;
+  return "";
+}
+
 /** Public HTML entry for Slack/link previews; redirects to the SPA client report URL. */
 export function buildOrganicClientReportOpenUrl(args: {
   siteId: string;
   search: string;
   siteDisplayName: string;
   appOrigin?: string;
+  /** Where the open HTML is served (static origin + /api rewrite, or hub). */
+  linkOrigin?: string;
 }): string {
   const appSearch = appendOrganicClientReportClientQuery(args.search, args.siteDisplayName);
   const appUrl = buildOrganicClientReportAppUrl(
@@ -77,6 +87,21 @@ export function buildOrganicClientReportOpenUrl(args: {
   const params = new URLSearchParams(appSearch.startsWith("?") ? appSearch.slice(1) : appSearch);
   params.set("siteId", args.siteId.trim());
   params.set("app", appUrl);
-  const base = BACKEND_API_BASE.replace(/\/+$/, "");
+  const base = resolveClientReportOpenLinkOrigin(args.appOrigin, args.linkOrigin);
   return `${base}/api/organic-dashboard/client-report/open?${params.toString()}`;
+}
+
+export function resolveOrganicClientReportPreviewImageUrl(
+  clientLogoUrl: string | null | undefined,
+  appUrl: string,
+): string {
+  const raw = clientLogoUrl?.trim() ?? "";
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+  try {
+    const origin = new URL(appUrl).origin;
+    return raw.startsWith("/") ? `${origin}${raw}` : `${origin}/${raw}`;
+  } catch {
+    return "";
+  }
 }

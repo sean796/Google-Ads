@@ -165,6 +165,7 @@ class Neo_Pulse_App_Organic_Dashboard_Client_Report_Share {
 		$site_name = isset( $_GET['client'] ) ? trim( (string) wp_unslash( $_GET['client'] ) ) : '';
 		$site_url  = '';
 		$period    = '';
+		$logo_url  = '';
 
 		if ( $deck_id !== '' && $site_id !== '' ) {
 			$loaded = self::load( $deck_id, $site_id );
@@ -173,6 +174,7 @@ class Neo_Pulse_App_Organic_Dashboard_Client_Report_Share {
 				$site_name = $site_name !== '' ? $site_name : trim( (string) ( $payload['siteName'] ?? '' ) );
 				$site_url  = trim( (string) ( $payload['siteUrl'] ?? '' ) );
 				$period    = self::period_line_from_payload( $payload );
+				$logo_url  = self::preview_image_from_payload( $payload, $app_url );
 			}
 		}
 
@@ -199,7 +201,12 @@ class Neo_Pulse_App_Organic_Dashboard_Client_Report_Share {
 		echo '<meta name="twitter:card" content="summary"/>';
 		echo '<meta name="twitter:title" content="' . esc_attr( $title ) . '"/>';
 		echo '<meta name="twitter:description" content="' . esc_attr( $description ) . '"/>';
+		if ( $logo_url !== '' ) {
+			echo '<meta property="og:image" content="' . esc_url( $logo_url ) . '"/>';
+			echo '<meta name="twitter:image" content="' . esc_url( $logo_url ) . '"/>';
+		}
 		if ( $redirect !== '' ) {
+			echo '<meta property="og:url" content="' . esc_url( $redirect ) . '"/>';
 			echo '<meta http-equiv="refresh" content="0;url=' . esc_attr( $redirect ) . '"/>';
 			echo '<link rel="canonical" href="' . esc_url( $redirect ) . '"/>';
 		}
@@ -248,5 +255,34 @@ class Neo_Pulse_App_Organic_Dashboard_Client_Report_Share {
 			return '';
 		}
 		return $url;
+	}
+
+	/**
+	 * @param array<string,mixed> $payload Deck payload.
+	 */
+	private static function preview_image_from_payload( array $payload, string $app_url ): string {
+		$raw = isset( $payload['clientLogoUrl'] ) ? trim( (string) $payload['clientLogoUrl'] ) : '';
+		if ( $raw === '' ) {
+			return '';
+		}
+		if ( wp_http_validate_url( $raw ) ) {
+			return $raw;
+		}
+		$app_url = trim( $app_url );
+		if ( $app_url === '' || ! wp_http_validate_url( $app_url ) ) {
+			return '';
+		}
+		$parts = wp_parse_url( $app_url );
+		if ( ! is_array( $parts ) || empty( $parts['scheme'] ) || empty( $parts['host'] ) ) {
+			return '';
+		}
+		$origin = $parts['scheme'] . '://' . $parts['host'];
+		if ( isset( $parts['port'] ) ) {
+			$origin .= ':' . (int) $parts['port'];
+		}
+		if ( str_starts_with( $raw, '/' ) ) {
+			return $origin . $raw;
+		}
+		return $origin . '/' . ltrim( $raw, '/' );
 	}
 }

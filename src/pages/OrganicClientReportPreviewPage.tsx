@@ -48,6 +48,7 @@ export default function OrganicClientReportPreviewPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const deckId = resolveOrganicClientReportDeckId(searchParams);
   const shareSearch = searchParams.toString();
+  const querySiteId = searchParams.get("siteId")?.trim() || "";
   const { sites, handlePatchSite } = useWordPressSites();
   const resolvedSiteId = useMemo(
     () => resolveClientReportSiteIdFromRoute(routeSiteSegment, shareSearch, sites),
@@ -109,7 +110,7 @@ export default function OrganicClientReportPreviewPage() {
     const fromSite = reportSite?.clientLogoUrl?.trim();
     if (fromSite) return fromSite;
 
-    const candidateSiteId = rawSiteId?.trim() || resolvedSiteId?.trim() || "";
+    const candidateSiteId = querySiteId || resolvedSiteId?.trim() || "";
     if (candidateSiteId) {
       return `/client-logos/${candidateSiteId}.png`;
     }
@@ -127,7 +128,7 @@ export default function OrganicClientReportPreviewPage() {
     payload?.siteName,
     reportSite?.clientLogoUrl,
     reportSite?.name,
-    rawSiteId,
+    querySiteId,
     resolvedSiteId,
     routeSiteSegment,
   ]);

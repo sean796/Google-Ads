@@ -18,6 +18,7 @@ android/local.properties
 .env.localdominator
 .env.residential-proxy
 .localdominator-session.json
+.local-neo-pulse-data/
 
 # WP Engine deploy config (contains credentials)
 wordpress-plugins/flowbie-wpengine.config.json

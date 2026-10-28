@@ -17,6 +17,7 @@ import {
   type SanitizedDeckOpportunity,
 } from "@/lib/organic-dashboard/organic-client-report-deck-helpers";
 import type { LocalGridReportingSnapshot } from "@/lib/organic-dashboard/local-grid-client-report";
+import { isLocalGridNarrativePlaceholder } from "@/lib/organic-dashboard/local-grid-report-narrative";
 
 export type OrganicDeckOpportunity = SanitizedDeckOpportunity;
 
@@ -79,7 +80,9 @@ export function normalizeOrganicReportingHighlights(raw: unknown): OrganicReport
   const performanceNarrative = sanitizeNarrativeParagraphs(o.performanceNarrative, 3);
   const keywordNarrative = sanitizeNarrativeParagraphs(o.keywordNarrative, 2);
   const googleAdsNarrative = sanitizeNarrativeParagraphs(o.googleAdsNarrative, 2);
-  const localGridNarrative = sanitizeNarrativeParagraphs(o.localGridNarrative, 2);
+  const localGridNarrative = sanitizeNarrativeParagraphs(o.localGridNarrative, 2).filter(
+    (p) => !isLocalGridNarrativePlaceholder(p),
+  );
 
   if (fromApi.length >= 2) {
     return {

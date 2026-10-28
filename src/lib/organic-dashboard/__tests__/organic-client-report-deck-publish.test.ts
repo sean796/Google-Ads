@@ -37,9 +37,10 @@ describe("organic-client-report-deck-publish", () => {
       origin: "https://neo-pulse-static.onrender.com",
     });
 
+    expect(shareUrl).toContain("/api/organic-dashboard/client-report/open");
     expect(shareUrl).toContain("deck=11111111-1111-4111-8111-111111111111");
     expect(shareUrl).toContain("siteId=wp-42");
     expect(shareUrl).toContain("preset=last_30");
-    expect(shareUrl).toContain("/sites/blind-magic/organic/client-report");
+    expect(shareUrl).toContain(encodeURIComponent("/sites/blind-magic/organic/client-report"));
   });
 });

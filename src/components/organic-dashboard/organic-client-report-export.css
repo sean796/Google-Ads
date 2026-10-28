@@ -509,6 +509,25 @@
   text-align: center;
 }
 
+.organic-client-report-export__highlight-metric-table {
+  table-layout: auto;
+  width: 100%;
+}
+
+.organic-client-report-export__highlight-metric-table .organic-client-report-export__highlight-metric-label {
+  width: 1%;
+  text-align: left;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.organic-client-report-export__highlight-metric-table .organic-client-report-export__highlight-metric-value {
+  width: auto;
+  text-align: right;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
 .organic-client-report-export__query-list {
   margin: 0;
   padding: 0;

@@ -63,7 +63,7 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 			$cache_key = 'neo_pulse_orh_' . md5(
 				wp_json_encode(
 					array(
-						'v'        => 4,
+						'v'        => 6,
 						'siteId'   => $site_id,
 						'model'    => $model,
 						'snapshot' => $snapshot,
@@ -249,7 +249,7 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 			);
 		}
 
-		$local_grid_narrative = self::string_list( $parsed['localGridNarrative'] ?? array(), 4 );
+		$local_grid_narrative = self::narrative_string_list( $parsed['localGridNarrative'] ?? array(), 4 );
 		if ( count( $local_grid_narrative ) < 1 ) {
 			return array(
 				'statusCode' => 502,
@@ -465,7 +465,7 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 					}
 					break;
 				case 'local_grid':
-					$highlights['localGridNarrative'] = self::string_list( $parsed['localGridNarrative'] ?? array(), 4 );
+					$highlights['localGridNarrative'] = self::narrative_string_list( $parsed['localGridNarrative'] ?? array(), 4 );
 					if ( count( $highlights['localGridNarrative'] ) < 1 ) {
 						return array( 'error' => 'Highlights slice "local_grid" missing localGridNarrative.' );
 					}
@@ -518,6 +518,39 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 	}
 
 	/**
+	 * Narrative paragraphs: drop schema placeholders (String1, string, etc.).
+	 *
+	 * @param mixed $raw
+	 * @return array<int,string>
+	 */
+	private static function narrative_string_list( $raw, int $max ): array {
+		$list = self::string_list( $raw, $max );
+		return array_values(
+			array_filter(
+				$list,
+				static function ( $str ) {
+					return ! self::is_narrative_schema_placeholder( (string) $str );
+				}
+			)
+		);
+	}
+
+	private static function is_narrative_schema_placeholder( string $text ): bool {
+		$t = trim( $text );
+		if ( $t === '' ) {
+			return true;
+		}
+		if ( preg_match( '/^(string|text|paragraph|content|placeholder|example)(\d+)?$/i', $t ) ) {
+			return true;
+		}
+		$words = preg_split( '/\s+/', $t, -1, PREG_SPLIT_NO_EMPTY );
+		if ( is_array( $words ) && count( $words ) < 6 && ! preg_match( '/\b(tarp|map|rank|grid|pin|local|pack|visibility|keyword|top)\b/i', $t ) ) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
 	 * @param mixed $value
 	 */
 	private static function is_non_empty_string( $value ): bool {
@@ -550,7 +583,11 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 	}
 
 	private static function ai_search_context_line(): string {
-		return 'AI search context: Google AI Overviews and zero-click summaries can reduce top-of-funnel clicks while high-intent demand still reaches the site. Do not treat a GSC click decline alone as SEO failure. Prioritize key events, engaged sessions, branded demand (semrushBrandedTotals and branded queries in topQueries), and Google Ads leads when present. When localGrid exists, treat map pack visibility as a core local outcome.';
+		return 'AI search context: Google AI Overviews and zero-click summaries often absorb clicks on informational, how-to, comparison, and review queries while commercial and local intent still drives site visits and conversions. Do not treat a GSC click decline alone as SEO failure. Prioritize key events, engaged sessions, transactional query demand, branded navigational queries (semrushBrandedTotals and branded rows in topQueries), and Google Ads leads when present. When localGrid exists, treat map pack visibility as a core local outcome.';
+	}
+
+	private static function transactional_highlights_opportunities_line(): string {
+		return 'Highlights opportunities (topOpportunities): prioritize transactional and commercial-intent organic demand (local service + product, buy/hire/install/custom/price/dealer/showroom/near-me patterns in topQueries). At least three of four cards must anchor on those queries with GSC clicks/impressions/position or GA4 key events/engagement metrics tied to that theme. Do not lead with pure informational queries (how to, what are, types of, vs, reviews, DIY) because AI Overviews often capture those clicks; mention informational terms only when no transactional query in topQueries supports a stronger card. Branded navigational queries may fill one card when they protect high-intent demand.';
 	}
 
 	private static function insights_system_prompt( bool $has_ads = false, bool $has_grid = false, bool $has_semrush = false ): string {
@@ -602,15 +639,17 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 		return 'Neo Digital SEO report. JSON only: {"topOpportunities":[{"rank":1,"label":"string","why":"string","comparisonRows":[{"metric":"string","comparePeriodValue":"string","primaryPeriodValue":"string"}]}]}.' . "\n\n"
 			. self::prose_line() . "\n\n"
 			. self::ai_search_context_line() . "\n\n"
+			. self::transactional_highlights_opportunities_line() . "\n\n"
 			. self::no_dates_line() . "\n\n"
-			. 'Three or four organic opportunities (GA4 key events/engagement, GSC, branded vs non-branded queries). Each why is one or two full sentences (capital letter first); bold queries in Title Case per query rules above. No Google Ads metrics. No actions.';
+			. 'Three or four organic SEO opportunity cards only (GA4 key events/engagement, GSC query or site metrics). comparisonRows: use query|Clicks, query|Impressions, query|Average position for transactional queries when showCompare is false; use primaryPeriodValue from snapshot. When showCompare is true, comparePeriodValue and primaryPeriodValue from topQueries. Each why is one or two full sentences (capital letter first); bold cited queries in Title Case. No Google Ads metrics. No actions.';
 	}
 
 	private static function local_grid_system_prompt(): string {
-		return 'Neo Digital local SEO report. JSON only: {"localGridNarrative":["string"]}.' . "\n\n"
+		return 'Neo Digital local SEO report. JSON only: {"localGridNarrative":["paragraph"]}.' . "\n\n"
+			. 'Never output the word string, String1, or other JSON schema placeholders as narrative text.' . "\n\n"
 			. self::prose_line() . "\n\n"
 			. self::no_dates_line() . "\n\n"
-			. 'Required: localGridNarrative must contain at least one non-empty string (one or two short paragraphs). Write like the keyword performance section: interpret the scan for a client, cite TARP, average rank, top-3 (high) share, and outside-top-20 (out) share from localGrid.summary, plus the tracked keyword. Explain where map pack visibility is strong vs weak and what that means for local leads. Do not invent cities or ranks not in localGrid.summary.';
+			. 'Required: localGridNarrative must contain at least one real paragraph (one or two short paragraphs). Write like the keyword performance section: interpret the scan for a client, cite TARP, average rank, top-3 (high) share, and outside-top-20 (out) share from localGrid.summary, plus the tracked keyword. Explain where map pack visibility is strong vs weak and what that means for local leads. Do not invent cities or ranks not in localGrid.summary.';
 	}
 
 	private static function google_ads_system_prompt(): string {

@@ -5,7 +5,7 @@ import {
 } from "@/lib/organic-dashboard/organic-reporting-highlights";
 import type { LocalGridScanDocument } from "@/lib/local-grid-studio/local-grid-types";
 import { buildLocalGridClientReportSection } from "@/lib/organic-dashboard/local-grid-client-report";
-import { buildLocalGridResultsNarrativeParagraph } from "@/lib/organic-dashboard/local-grid-report-narrative";
+import { resolveLocalGridNarrativeForReport } from "@/lib/organic-dashboard/local-grid-report-narrative";
 import type { LocalGridClientReportSection } from "@/lib/organic-dashboard/local-grid-client-report";
 import type { OrganicDashboardViewModel } from "@/lib/organic-dashboard/organic-dashboard-view-model";
 import {
@@ -26,11 +26,13 @@ import {
   type SectionExistenceFilterOptions,
 } from "@/lib/organic-dashboard/organic-client-report-deck-helpers";
 import {
+  clientReportSemrushKeywordHasTraffic,
   formatClientReportPeriodLine,
   normalizeClientReportPeriodLabel,
   normalizeClientReportText,
   sanitizeClientReportMetricValue,
 } from "@/lib/organic-dashboard/organic-client-report-copy";
+import { parseDeckCountDisplay } from "@/lib/organic-dashboard/organic-client-report-deck-helpers";
 import { partitionClientReportOpportunities } from "@/lib/organic-dashboard/organic-client-report-opportunities";
 import type { OrganicPeriodProgressTables } from "@/lib/organic-dashboard/organic-dashboard-period-progress";
 import { resolveAgencyReportLogoUrl } from "@/lib/organic-dashboard/organic-client-report-branding";
@@ -218,11 +220,18 @@ export function buildOrganicClientReportContent(input: OrganicClientReportDeckIn
   }));
   const googleAdsDeckRows = sanitizeSummaryRows(buildGoogleAdsDeckSummaryRows(viewModel, showCompare));
   const semrushDeckRows = sanitizeSummaryRows(buildSemrushDeckSummaryRows(viewModel, showCompare));
-  const topSemrushKeywords = viewModel.semrushKeywords.slice(0, 5).map((k) => ({
-    phrase: k.phrase,
-    traffic: sanitizeClientReportMetricValue(k.traffic),
-    volume: sanitizeClientReportMetricValue(k.volume),
-  }));
+  const topSemrushKeywords = viewModel.semrushKeywords
+    .filter((k) => {
+      const traffic = sanitizeClientReportMetricValue(k.traffic);
+      if (!clientReportSemrushKeywordHasTraffic(traffic)) return false;
+      return parseDeckCountDisplay(traffic) > 0;
+    })
+    .slice(0, 5)
+    .map((k) => ({
+      phrase: k.phrase,
+      traffic: sanitizeClientReportMetricValue(k.traffic),
+      volume: sanitizeClientReportMetricValue(k.volume),
+    }));
 
   const localGridSection = buildLocalGridClientReportSection(localGridScan);
   const showLocalGridSection = localGridSection != null;
@@ -248,17 +257,13 @@ export function buildOrganicClientReportContent(input: OrganicClientReportDeckIn
   const performanceNarrative = (clientHighlights.performanceNarrative ?? []).slice(0, 1);
   const keywordNarrative = (clientHighlights.keywordNarrative ?? []).slice(0, 1);
   const googleAdsNarrative = clientHighlights.googleAdsNarrative ?? [];
-  const localGridFromAi = clientHighlights.localGridNarrative ?? [];
-  const localGridNarrative =
-    localGridFromAi.length > 0
-      ? localGridFromAi
-      : localGridSection
-        ? [
-            normalizeClientReportText(
-              buildLocalGridResultsNarrativeParagraph(localGridSection.snapshot, siteName),
-            ),
-          ]
-        : [];
+  const localGridNarrative = localGridSection
+    ? resolveLocalGridNarrativeForReport(
+        clientHighlights.localGridNarrative ?? [],
+        localGridSection.snapshot,
+        siteName,
+      )
+    : [];
   const googleAdsAccountCard =
     viewModel.hasGoogleAds && viewModel.googleAdsSummary
       ? buildGoogleAdsReportAccountCard({

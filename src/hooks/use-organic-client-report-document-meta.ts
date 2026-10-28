@@ -1,5 +1,8 @@
 import { useEffect } from "react";
-import { buildOrganicClientReportLinkPreviewMeta } from "@/lib/organic-dashboard/organic-client-report-link-preview";
+import {
+  buildOrganicClientReportLinkPreviewMeta,
+  resolveOrganicClientReportPreviewImageUrl,
+} from "@/lib/organic-dashboard/organic-client-report-link-preview";
 import type { OrganicClientReportDeckPayload } from "@/lib/organic-dashboard/organic-client-report-deck-session";
 
 const META_KEYS = [
@@ -7,8 +10,10 @@ const META_KEYS = [
   "og:title",
   "og:description",
   "og:type",
+  "og:image",
   "twitter:title",
   "twitter:description",
+  "twitter:image",
 ] as const;
 
 function upsertMeta(property: string, content: string, attr: "name" | "property"): void {
@@ -36,6 +41,14 @@ export function useOrganicClientReportDocumentMeta(
     upsertMeta("og:type", "article", "property");
     upsertMeta("twitter:title", title, "name");
     upsertMeta("twitter:description", description, "name");
+    const imageUrl = resolveOrganicClientReportPreviewImageUrl(
+      payload.clientLogoUrl,
+      typeof window !== "undefined" ? window.location.href : "",
+    );
+    if (imageUrl) {
+      upsertMeta("og:image", imageUrl, "property");
+      upsertMeta("twitter:image", imageUrl, "name");
+    }
     return () => {
       for (const key of META_KEYS) {
         const attr = key.startsWith("og:") ? "property" : "name";

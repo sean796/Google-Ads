@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { OrganicClientReportCover } from "@/components/organic-dashboard/OrganicClientReportCover";
 import { OrganicClientReportInlineText } from "@/components/organic-dashboard/OrganicClientReportInlineText";
 import { OrganicClientReportGoogleAdsAccountPanel } from "@/components/organic-dashboard/OrganicClientReportGoogleAdsAccountPanel";
@@ -30,6 +30,7 @@ import {
 import "@/components/organic-dashboard/organic-client-report-export.css";
 import type { OrganicClientReportContent } from "@/lib/organic-dashboard/organic-client-report-content";
 import {
+  clientReportHighlightMetricLabel,
   parseDeckCountDisplay,
   type DeckHighlightAccent,
   type DeckHighlightStat,
@@ -259,16 +260,20 @@ function ExportOpportunityMetrics({
   }
 
   const rows = plan.rows;
+  const isPrimaryFlat = plan.kind === "primary-flat";
   const tableClass = cn(
     EXPORT_METRIC_TABLE_CLASS,
-    plan.kind === "primary-flat" && "organic-client-report-export__period-progress-table",
+    isPrimaryFlat && "organic-client-report-export__highlight-metric-table",
   );
 
   return (
     <table className={tableClass}>
       <thead>
         <tr>
-          <th scope="col" className={plan.kind === "primary-flat" ? "organic-period-progress-table__month-col" : undefined}>
+          <th
+            scope="col"
+            className={isPrimaryFlat ? "organic-client-report-export__highlight-metric-label" : undefined}
+          >
             {toExportTitleCase("Metric")}
           </th>
           {plan.kind === "compare-flat" ? (
@@ -277,7 +282,10 @@ function ExportOpportunityMetrics({
               <th scope="col">{primaryPeriodLabel}</th>
             </>
           ) : (
-            <th scope="col" className="organic-period-progress-table__metric-col">
+            <th
+              scope="col"
+              className={isPrimaryFlat ? "organic-client-report-export__highlight-metric-value" : undefined}
+            >
               {toExportTitleCase("Value")}
             </th>
           )}
@@ -286,8 +294,12 @@ function ExportOpportunityMetrics({
       <tbody>
         {rows.map((row, idx) => (
           <tr key={`${row.metric}-${row.comparePeriodValue}-${idx}`}>
-            <td className={plan.kind === "primary-flat" ? "organic-period-progress-table__month-col whitespace-nowrap" : undefined}>
-              {row.metric}
+            <td
+              className={
+                isPrimaryFlat ? "organic-client-report-export__highlight-metric-label whitespace-nowrap" : undefined
+              }
+            >
+              {toExportTitleCase(clientReportHighlightMetricLabel(row.metric))}
             </td>
             {plan.kind === "compare-flat" ? (
               <>
@@ -295,7 +307,14 @@ function ExportOpportunityMetrics({
                 <td className="tabular-nums font-semibold">{row.primaryPeriodValue}</td>
               </>
             ) : (
-              <td className="tabular-nums font-semibold organic-period-progress-table__metric-col">{row.primaryPeriodValue}</td>
+              <td
+                className={cn(
+                  "tabular-nums font-semibold",
+                  isPrimaryFlat && "organic-client-report-export__highlight-metric-value",
+                )}
+              >
+                {row.primaryPeriodValue}
+              </td>
             )}
           </tr>
         ))}
@@ -410,7 +429,47 @@ export function OrganicClientReportExportDocument({
 
   const ga4PeriodTable = periodProgressTables?.ga4;
   const gscPeriodTable = periodProgressTables?.gsc;
-  const semrushPeriodTable = periodProgressTables?.semrush;
+  const rawSemrushPeriodTable = periodProgressTables?.semrush;
+  const semrushPeriodTable = useMemo(() => {
+    if (!rawSemrushPeriodTable || rawSemrushPeriodTable.monthLabels.length === 0) return null;
+    const targetMonthLabels = gscPeriodTable?.monthLabels ?? ga4PeriodTable?.monthLabels;
+    if (targetMonthLabels && targetMonthLabels.length > 0) {
+      const matchIndices: number[] = [];
+      targetMonthLabels.forEach((targetLabel) => {
+        for (let i = rawSemrushPeriodTable.monthLabels.length - 1; i >= 0; i--) {
+          if (rawSemrushPeriodTable.monthLabels[i] === targetLabel && !matchIndices.includes(i)) {
+            matchIndices.push(i);
+            break;
+          }
+        }
+      });
+      matchIndices.sort((a, b) => a - b);
+      if (matchIndices.length > 0) {
+        return {
+          ...rawSemrushPeriodTable,
+          monthLabels: matchIndices.map((i) => rawSemrushPeriodTable.monthLabels[i]!),
+          rows: rawSemrushPeriodTable.rows.map((r) => ({
+            ...r,
+            values: matchIndices.map((i) => r.values[i] ?? "—"),
+          })),
+        };
+      }
+    }
+    if (rawSemrushPeriodTable.monthLabels.length > 3) {
+      const count = 3;
+      const startIdx = rawSemrushPeriodTable.monthLabels.length - count;
+      return {
+        ...rawSemrushPeriodTable,
+        monthLabels: rawSemrushPeriodTable.monthLabels.slice(startIdx),
+        rows: rawSemrushPeriodTable.rows.map((r) => ({
+          ...r,
+          values: r.values.slice(startIdx),
+        })),
+      };
+    }
+    return rawSemrushPeriodTable;
+  }, [rawSemrushPeriodTable, gscPeriodTable?.monthLabels, ga4PeriodTable?.monthLabels]);
+
   const showGa4PeriodTable = Boolean(ga4PeriodTable && ga4PeriodTable.monthLabels.length > 0);
   const showGscPeriodTable = Boolean(gscPeriodTable && gscPeriodTable.monthLabels.length > 0);
   const showSemrushPeriodTable = Boolean(semrushPeriodTable && semrushPeriodTable.monthLabels.length > 0);
@@ -516,6 +575,7 @@ export function OrganicClientReportExportDocument({
           )}
           {topSemrushKeywords.length > 0 ? (
             <>
+              <h3 className={EXPORT_H3_CLASS}>{toExportTitleCase("Sample Semrush keywords")}</h3>
               <ul className={EXPORT_QUERY_LIST_CLASS}>
                 {topSemrushKeywords.map((k, idx) => (
                   <li key={`${k.phrase}-${idx}`} className={EXPORT_QUERY_ITEM_CLASS}>

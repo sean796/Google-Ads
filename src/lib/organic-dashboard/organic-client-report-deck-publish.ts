@@ -1,6 +1,8 @@
 import { formatLocalYmd } from "@/lib/reporting/reporting-date-presets";
-import { appendOrganicClientReportClientQuery } from "@/lib/organic-dashboard/organic-client-report-link-preview";
-import { buildOrganicClientReportAppPath } from "@/lib/organic-dashboard/organic-client-report-site-path";
+import {
+  appendOrganicClientReportClientQuery,
+  buildOrganicClientReportOpenUrl,
+} from "@/lib/organic-dashboard/organic-client-report-link-preview";
 import {
   publishOrganicClientReportDeckSession,
   type OrganicClientReportDeckPayload,
@@ -61,15 +63,16 @@ export async function publishOrganicClientReportDeckAndBuildShareUrl(
     shareQs ? `${deckParam}&${shareQs}` : deckParam,
     input.siteDisplayName,
   );
-  const path = buildOrganicClientReportAppPath({
-    siteId: input.siteId,
-    siteDisplayName: input.siteDisplayName,
-    search,
-  });
   const origin =
     input.origin ??
     (typeof window !== "undefined" ? window.location.origin : "https://app.example.com");
-  const shareUrl = new URL(path, origin).href;
+  const shareUrl = buildOrganicClientReportOpenUrl({
+    siteId: input.siteId,
+    search,
+    siteDisplayName: input.siteDisplayName,
+    appOrigin: origin,
+    linkOrigin: origin,
+  });
 
   return { deckId, payload, shareUrl };
 }

@@ -18,9 +18,35 @@ const LOCAL_GRID_NARRATIVE_SCHEMA = {
   },
 } as const;
 
+/** Rejects JSON-schema filler the model sometimes echoes (e.g. String1, string). */
+export function isLocalGridNarrativePlaceholder(text: string): boolean {
+  const t = text.trim();
+  if (!t) return true;
+  if (/^(string|text|paragraph|content|placeholder|example)(\d+)?$/i.test(t)) return true;
+  const words = t.split(/\s+/).filter(Boolean);
+  if (words.length < 6 && !/\b(tarp|map|rank|grid|pin|local|pack|visibility|keyword|top)\b/i.test(t)) {
+    return true;
+  }
+  return false;
+}
+
+export function resolveLocalGridNarrativeForReport(
+  aiParagraphs: string[],
+  snapshot: LocalGridReportingSnapshot,
+  siteName: string,
+): string[] {
+  const fromAi = aiParagraphs
+    .map((p) => normalizeClientReportText(deckNarrativeText(p)))
+    .filter((p) => p.trim() && !isLocalGridNarrativePlaceholder(p))
+    .slice(0, 2);
+  if (fromAi.length > 0) return fromAi;
+  return [normalizeClientReportText(buildLocalGridResultsNarrativeParagraph(snapshot, siteName))];
+}
+
 function localGridSystemPrompt(): string {
   return [
-    "Neo Digital local SEO client report. JSON only: {\"localGridNarrative\":[\"string\"]}.",
+    'Neo Digital local SEO client report. JSON only: {"localGridNarrative":["paragraph"]}.',
+    "Never output the word string, String1, or other schema placeholders as narrative text.",
     "American English, full sentences. Use siteName for the client brand.",
     "Never write calendar dates or years.",
     "Required: one or two short paragraphs using only the localGrid stats (keyword, TARP, avg rank, high/med/low/out counts and percentages).",
@@ -99,6 +125,7 @@ export async function fetchLocalGridReportNarrativeViaOpenRouter(
   const paragraphs = raw
     .filter((p): p is string => typeof p === "string" && p.trim().length > 0)
     .map((p) => normalizeClientReportText(deckNarrativeText(p)))
+    .filter((p) => !isLocalGridNarrativePlaceholder(p))
     .slice(0, 2);
   if (paragraphs.length === 0) {
     throw new Error("Local grid narrative was empty.");

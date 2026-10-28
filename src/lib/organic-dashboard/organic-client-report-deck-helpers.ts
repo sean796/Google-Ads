@@ -145,6 +145,12 @@ export function organicGa4ClientDisplayLabel(label: string): string {
   return label;
 }
 
+/** Highlight / opportunity tables: drop redundant source tags like (GSC) and organic GA4 parens. */
+export function clientReportHighlightMetricLabel(metric: string): string {
+  const ga4 = organicGa4ClientDisplayLabel(metric.trim());
+  return ga4.replace(/\s*\(GSC\)\s*$/i, "").trim();
+}
+
 const SITE_WIDE_GA4_METRIC_KEYS = new Set([
   "total users",
   "new users",

@@ -1,6 +1,7 @@
 import type { OrganicClientReportContent } from "@/lib/organic-dashboard/organic-client-report-content";
 import { organicClientReportPdfFileName } from "@/lib/organic-dashboard/organic-client-report-pdf-filename";
 import {
+  clientReportHighlightMetricLabel,
   layoutOpportunityComparisonRows,
   type DeckSummaryRow,
 } from "@/lib/organic-dashboard/organic-client-report-deck-helpers";
@@ -136,7 +137,9 @@ function opportunityMarkdown(
         } else {
           parts.push("| Metric | Value |", "| --- | --- |");
           for (const row of layout.siteRows) {
-            parts.push(`| ${escapeMdCell(row.metric)} | ${escapeMdCell(row.primaryPeriodValue)} |`);
+            parts.push(
+              `| ${escapeMdCell(clientReportHighlightMetricLabel(row.metric))} | ${escapeMdCell(row.primaryPeriodValue)} |`,
+            );
           }
         }
       }
@@ -153,7 +156,9 @@ function opportunityMarkdown(
     } else {
       parts.push("| Metric | Value |", "| --- | --- |");
       for (const row of layout.rows) {
-        parts.push(`| ${escapeMdCell(row.metric)} | ${escapeMdCell(row.primaryPeriodValue)} |`);
+        parts.push(
+          `| ${escapeMdCell(clientReportHighlightMetricLabel(row.metric))} | ${escapeMdCell(row.primaryPeriodValue)} |`,
+        );
       }
     }
     parts.push("");
@@ -273,6 +278,7 @@ export function serializeOrganicClientReportMarkdown(content: OrganicClientRepor
       blocks.push(metricRowsMarkdown(semrushDeckRows, showCompare, comparePeriodLabel, primaryPeriodLabel), "");
     }
     if (topSemrushKeywords.length > 0) {
+      blocks.push("### Sample Semrush keywords", "");
       for (const k of topSemrushKeywords) {
         blocks.push(
           `- **${k.phrase}:** ${formatClientReportSemrushKeywordMeta(k.traffic, k.volume)}`,

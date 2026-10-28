@@ -39,6 +39,13 @@ export function formatClientReportTopQueryMeta(clicks: string): string {
   return `${sanitizeClientReportMetricValue(clicks)} clicks`;
 }
 
+export function clientReportSemrushKeywordHasTraffic(traffic: string): boolean {
+  const t = sanitizeClientReportMetricValue(traffic);
+  if (!t || t === CLIENT_REPORT_DELTA_EMPTY || /^n\/a$/i.test(t)) return false;
+  if (t === "0") return false;
+  return true;
+}
+
 export function formatClientReportSemrushKeywordMeta(traffic: string, volume: string): string {
   const trafficLabel = sanitizeClientReportMetricValue(traffic);
   const volumeLabel = sanitizeClientReportMetricValue(volume);
