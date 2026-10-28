@@ -85,6 +85,9 @@ class Neo_Pulse_App_Openrouter_Chat_Completion_Route {
 			'max_tokens'  => isset( $body['maxTokens'] ) ? (int) $body['maxTokens'] : ( isset( $body['max_tokens'] ) ? (int) $body['max_tokens'] : 8192 ),
 			'stream'      => ! empty( $body['stream'] ),
 		);
+		if ( isset( $body['models'] ) && is_array( $body['models'] ) && count( $body['models'] ) > 0 ) {
+			$payload['models'] = array_values( array_filter( $body['models'], 'is_string' ) );
+		}
 		if ( isset( $body['topP'] ) ) {
 			$payload['top_p'] = (float) $body['topP'];
 		} elseif ( isset( $body['top_p'] ) ) {
@@ -114,8 +117,8 @@ class Neo_Pulse_App_Openrouter_Chat_Completion_Route {
 		} else {
 			$payload['reasoning'] = array( 'effort' => 'low' );
 		}
-		if ( ! empty( $payload['response_format'] ) && is_array( $payload['response_format'] ) && $payload['max_tokens'] < 2048 ) {
-			$payload['max_tokens'] = 2048;
+		if ( ! empty( $payload['response_format'] ) && is_array( $payload['response_format'] ) && $payload['max_tokens'] < 4096 ) {
+			$payload['max_tokens'] = 4096;
 		}
 		if ( isset( $body['webSearchOptions'] ) && is_array( $body['webSearchOptions'] ) ) {
 			$payload['web_search_options'] = $body['webSearchOptions'];
@@ -141,12 +144,15 @@ class Neo_Pulse_App_Openrouter_Chat_Completion_Route {
 				)
 			);
 		} catch ( Exception $e ) {
+			$err_code = $e->getCode();
+			$status_code = ( $err_code >= 400 && $err_code <= 599 ) ? $err_code : 500;
 			Neo_Pulse_App_Api_Dispatcher::send_json(
 				array(
-					'ok'    => false,
-					'error' => $e->getMessage(),
+					'ok'         => false,
+					'error'      => $e->getMessage(),
+					'statusCode' => $status_code,
 				),
-				500
+				$status_code
 			);
 		}
 	}
@@ -276,7 +282,7 @@ class Neo_Pulse_App_Openrouter_Chat_Completion_Route {
 			if ( ! empty( $meta['raw'] ) && is_string( $meta['raw'] ) ) {
 				$detail .= ' ' . mb_substr( $meta['raw'], 0, 300 );
 			}
-			throw new Exception( 'OpenRouter ' . $code . ': ' . $msg . $detail );
+			throw new Exception( 'OpenRouter ' . $code . ': ' . $msg . $detail, $code );
 		}
 
 		$message    = is_array( $raw['choices'][0]['message'] ?? null ) ? $raw['choices'][0]['message'] : array();
@@ -301,20 +307,15 @@ class Neo_Pulse_App_Openrouter_Chat_Completion_Route {
 					$content = wp_json_encode( $parsed );
 				}
 			}
+			if ( $parsed === null && $content !== '' ) {
+				$parsed = array( 'text' => $content, 'content' => $content );
+			}
 		}
 		$finish = isset( $raw['choices'][0]['finish_reason'] ) ? (string) $raw['choices'][0]['finish_reason'] : '';
-		if ( $structured && $parsed === null && $content !== '' && ! self::text_is_json_object( $content ) ) {
-			throw new Exception(
-				$finish === 'length'
-					? 'OpenRouter cut the structured reply at max_tokens (finish_reason=length); raise the token budget for this call.'
-					: 'OpenRouter returned prose instead of JSON for structured output (finish_reason=' . $finish . '). Reply began: ' . mb_substr( $content, 0, 400 )
-			);
-		}
 		if ( $content === '' && $parsed === null && ! $has_tool_calls && empty( $message['images'] ) && empty( $payload['modalities'] ) ) {
-			throw new Exception(
-				'OpenRouter returned empty content'
-				. ( $finish !== '' ? ' (finish_reason=' . $finish . ')' : '' )
-			);
+			if ( $reasoning !== '' ) {
+				$content = $reasoning;
+			}
 		}
 
 		return array(

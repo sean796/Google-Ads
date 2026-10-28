@@ -12,8 +12,26 @@ import type {
   OrganicDashboardSemrushStats,
 } from "@/lib/organic-dashboard/organic-dashboard-types";
 import { semrushDomainOverviewUrl } from "@/lib/competitor-research/semrush-domain-overview-url";
+import {
+  buildGoogleAdsBudgetPacingDisplay,
+  buildGoogleAdsDailyChart,
+  buildGoogleAdsSummary,
+  buildGoogleAdsTable,
+  formatGoogleAdsLoadError,
+  readOrganicGoogleAdsPayload,
+  type OrganicGoogleAdsBudgetPacingDisplay,
+  type OrganicGoogleAdsChartPoint,
+  type OrganicGoogleAdsSummary,
+  type OrganicGoogleAdsTableRow,
+} from "@/lib/organic-dashboard/organic-dashboard-google-ads";
 import { isOrganicSkippedBlock } from "@/lib/organic-dashboard/organic-dashboard-types";
 import { formatComparePeriodLabel } from "@/lib/reporting/reporting-date-presets";
+import { formatOrganicDashboardMonthColumn } from "@/lib/organic-dashboard/organic-dashboard-month-column-label";
+import {
+  buildOrganicPeriodProgressTables,
+  normalizeOrganicDashboardYearMonth,
+  type OrganicPeriodProgressTables,
+} from "@/lib/organic-dashboard/organic-dashboard-period-progress";
 
 export type OrganicGa4TableRow = {
   label: string;
@@ -109,10 +127,19 @@ export type OrganicDashboardViewModel = {
   semrushOverviewUrl: string;
   semrushDomain: string;
   semrushDatabase: string;
+  semrushLoadError: string | null;
   periodLabels: OrganicDashboardPeriodLabels;
+  reportStructure: "compare" | "period_progress";
+  periodProgressTables: OrganicPeriodProgressTables | null;
   hasGa4: boolean;
   hasGsc: boolean;
   hasSemrush: boolean;
+  googleAdsSummary: OrganicGoogleAdsSummary | null;
+  googleAdsTable: OrganicGoogleAdsTableRow[];
+  googleAdsDailyChart: OrganicGoogleAdsChartPoint[];
+  googleAdsLoadError: string | null;
+  googleAdsBudgetPacing: OrganicGoogleAdsBudgetPacingDisplay | null;
+  hasGoogleAds: boolean;
 };
 
 const EM = "—";
@@ -401,6 +428,8 @@ function buildGscQueries(
 
 export type OrganicDashboardViewModelOptions = {
   showCompare?: boolean;
+  googleAdsCustomerIdForReporting?: string;
+  periodTotalColumnLabel?: string;
 };
 
 export function buildOrganicDashboardViewModel(
@@ -419,6 +448,33 @@ export function buildOrganicDashboardViewModel(
   const semrushOverviewUrl =
     semrush?.overviewUrl?.trim() ||
     (semrushDomain ? semrushDomainOverviewUrl(semrushDomain, semrushDatabase) : "");
+  const semrushLoadError =
+    semrush?.errors && semrush.errors.length > 0 ? semrush.errors[0]?.message ?? null : null;
+
+  const reportStructure: "compare" | "period_progress" =
+    data?.meta?.reportStructure === "period_progress" ? "period_progress" : "compare";
+  const periodTotalColumnLabel =
+    options?.periodTotalColumnLabel ?? formatOrganicDashboardMonthColumn(primary.endDate);
+
+  const googleAdsRaw = data?.googleAds;
+  const googleAdsRead = readOrganicGoogleAdsPayload(googleAdsRaw);
+  const googleAdsParsed = googleAdsRead.ok ? googleAdsRead.data : null;
+  const googleAdsLoadError = googleAdsRead.ok
+    ? null
+    : formatGoogleAdsLoadError(googleAdsRaw, options?.googleAdsCustomerIdForReporting);
+  const googleAdsSummary = googleAdsParsed
+    ? buildGoogleAdsSummary(googleAdsParsed, showCompare)
+    : null;
+  const googleAdsTable = googleAdsSummary
+    ? buildGoogleAdsTable(googleAdsSummary, showCompare)
+    : [];
+  const googleAdsDailyChart = googleAdsParsed
+    ? buildGoogleAdsDailyChart(googleAdsParsed.dailySeries)
+    : [];
+  const googleAdsBudgetPacing = googleAdsParsed?.budgetPacing
+    ? buildGoogleAdsBudgetPacingDisplay(googleAdsParsed.budgetPacing)
+    : null;
+  const hasGoogleAds = !!googleAdsSummary;
 
   const periodLabels: OrganicDashboardPeriodLabels = {
     primary:
@@ -432,23 +488,45 @@ export function buildOrganicDashboardViewModel(
   };
 
   const series = gsc?.timeseries ?? [];
-  return {
-    ga4Table: buildGa4Table(ga4, showCompare),
+  const ga4Table = buildGa4Table(ga4, showCompare);
+  const gscTrendMonthly =
+    series.length > 0 ? aggregateTimeseriesToMonthly(series) : buildGscTrendMonthly(hist, primary);
+  const gscSummary = buildGscSummary(gsc);
+
+  const partialVm = {
+    ga4Table,
     ga4MonthlyChart: buildGa4MonthlyChart(ga4, primary),
     gscQueries: buildGscQueries(gsc, showCompare),
     gscTrendDaily: buildGscTrendFromDaily(gsc),
-    gscTrendMonthly: series.length > 0 ? aggregateTimeseriesToMonthly(series) : buildGscTrendMonthly(hist, primary),
-    gscSummary: buildGscSummary(gsc),
+    gscTrendMonthly,
+    gscSummary,
     semrushSummary: buildSemrushSummary(semrush, showCompare),
     semrushTrend: buildSemrushTrend(semrush),
     semrushKeywords: buildSemrushKeywords(semrush),
     semrushOverviewUrl,
     semrushDomain,
     semrushDatabase,
+    semrushLoadError,
     periodLabels,
+    reportStructure,
+    periodProgressTables: null as OrganicPeriodProgressTables | null,
     hasGa4: !!ga4,
     hasGsc: !!gsc?.stats,
     hasSemrush: !!semrush?.current || (semrush?.history?.length ?? 0) > 0,
+    googleAdsSummary,
+    googleAdsTable,
+    googleAdsDailyChart,
+    googleAdsLoadError,
+    googleAdsBudgetPacing,
+    hasGoogleAds,
+  };
+  const periodProgressTables =
+    !showCompare && reportStructure === "period_progress"
+      ? buildOrganicPeriodProgressTables(ga4, primary, partialVm, periodTotalColumnLabel)
+      : null;
+  return {
+    ...partialVm,
+    periodProgressTables,
   };
 }
 
@@ -481,8 +559,28 @@ export function normalizeOrganicDashboardViewModelForDeck(raw: unknown): Organic
     semrushOverviewUrl: typeof r.semrushOverviewUrl === "string" ? r.semrushOverviewUrl : defaults.semrushOverviewUrl,
     semrushDomain: typeof r.semrushDomain === "string" ? r.semrushDomain : defaults.semrushDomain,
     semrushDatabase: typeof r.semrushDatabase === "string" ? r.semrushDatabase : defaults.semrushDatabase,
+    semrushLoadError:
+      r.semrushLoadError !== undefined ? r.semrushLoadError : defaults.semrushLoadError,
     hasGa4: typeof r.hasGa4 === "boolean" ? r.hasGa4 : defaults.hasGa4,
     hasGsc: typeof r.hasGsc === "boolean" ? r.hasGsc : defaults.hasGsc,
     hasSemrush: typeof r.hasSemrush === "boolean" ? r.hasSemrush : defaults.hasSemrush,
+    googleAdsSummary: r.googleAdsSummary !== undefined ? r.googleAdsSummary : defaults.googleAdsSummary,
+    googleAdsTable: Array.isArray(r.googleAdsTable) ? r.googleAdsTable : defaults.googleAdsTable,
+    googleAdsDailyChart: Array.isArray(r.googleAdsDailyChart)
+      ? r.googleAdsDailyChart
+      : defaults.googleAdsDailyChart,
+    googleAdsLoadError:
+      r.googleAdsLoadError !== undefined ? r.googleAdsLoadError : defaults.googleAdsLoadError,
+    googleAdsBudgetPacing:
+      r.googleAdsBudgetPacing !== undefined ? r.googleAdsBudgetPacing : defaults.googleAdsBudgetPacing,
+    hasGoogleAds: typeof r.hasGoogleAds === "boolean" ? r.hasGoogleAds : defaults.hasGoogleAds,
+    reportStructure:
+      r.reportStructure === "period_progress" || r.reportStructure === "compare"
+        ? r.reportStructure
+        : defaults.reportStructure,
+    periodProgressTables:
+      r.periodProgressTables && typeof r.periodProgressTables === "object"
+        ? r.periodProgressTables
+        : defaults.periodProgressTables,
   };
 }

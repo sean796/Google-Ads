@@ -143,6 +143,12 @@ class Neo_Pulse_App_Wp_Post_Crud {
 		if ( array_key_exists( 'slug', $body ) ) {
 			$post_data['slug'] = (string) $body['slug'];
 		}
+		if ( ! empty( $body['date_gmt'] ) ) {
+			$post_data['date_gmt'] = (string) $body['date_gmt'];
+			if ( strtotime( $post_data['date_gmt'] . ' UTC' ) > time() ) {
+				$post_data['status'] = 'future';
+			}
+		}
 
 		$timeout = self::write_timeout_ms( $post_data['content'] );
 		$resp    = self::request_with_transient_retry(
@@ -473,5 +479,69 @@ class Neo_Pulse_App_Wp_Post_Crud {
 		}
 		$wp_msg = is_array( $resp['body'] ) && ! empty( $resp['body']['message'] ) ? (string) $resp['body']['message'] : '';
 		return array( 200, array( 'success' => false, 'error' => 'WordPress API error: HTTP ' . $status . ( $wp_msg ? ' - ' . $wp_msg : '' ) ) );
+	}
+
+	/**
+	 * Reschedule a scheduled post by id (loads title/content, sets date_gmt + future).
+	 *
+	 * @param array<string,mixed> $body Request body.
+	 * @return array{0:int,1:array<string,mixed>}
+	 */
+	public static function reschedule_post_date( $body ) {
+		$site_url     = isset( $body['siteUrl'] ) ? (string) $body['siteUrl'] : '';
+		$username     = isset( $body['username'] ) ? (string) $body['username'] : '';
+		$app_password = isset( $body['appPassword'] ) ? (string) $body['appPassword'] : '';
+		$post_id      = Neo_Pulse_App_Wp_Url_Normalize::normalize_post_id( isset( $body['postId'] ) ? $body['postId'] : null );
+		$date_gmt     = isset( $body['date_gmt'] ) ? trim( (string) $body['date_gmt'] ) : '';
+		$post_type    = isset( $body['postType'] ) ? (string) $body['postType'] : 'post';
+
+		if ( $site_url === '' || $username === '' || $app_password === '' || $post_id === null || $date_gmt === '' ) {
+			return array( 400, array( 'success' => false, 'error' => 'Missing required fields for reschedule' ) );
+		}
+
+		$normalized = Neo_Pulse_App_Wp_Url_Normalize::normalize_url( $site_url );
+		$endpoint   = ! empty( $body['postTypeEndpoint'] )
+			? Neo_Pulse_App_Wp_Url_Normalize::resolve_wp_v2_collection_endpoint( $body['postTypeEndpoint'], $post_type )
+			: Neo_Pulse_App_Wp_Url_Normalize::resolve_wp_v2_collection_endpoint( null, $post_type );
+		$api_url    = $normalized . '/wp-json/wp/v2/' . rawurlencode( $endpoint ) . '/' . $post_id;
+
+		$warm = Neo_Pulse_App_Wp_Rest_Client::warm_origin_session( $normalized );
+		$get  = Neo_Pulse_App_Wp_Rest_Client::request(
+			'GET',
+			$api_url,
+			$username,
+			$app_password,
+			array(
+				'timeout' => 30,
+				'referer' => $normalized . '/',
+				'cookie'  => $warm['cookie'],
+			)
+		);
+		if ( $get['is_wp_error'] || (int) $get['status'] !== 200 || ! is_array( $get['body'] ) ) {
+			$transport = Neo_Pulse_App_Wp_Rest_Client::transport_error_message( $get );
+			return array( 200, array( 'success' => false, 'error' => $transport ? $transport : 'Could not load post for reschedule.' ) );
+		}
+
+		$existing = $get['body'];
+		$title    = Neo_Pulse_App_Wp_Url_Normalize::rendered_text( $existing['title'] ?? '' );
+		$content  = isset( $existing['content']['rendered'] ) ? (string) $existing['content']['rendered'] : (string) ( $existing['content'] ?? '' );
+		if ( $title === '' ) {
+			return array( 200, array( 'success' => false, 'error' => 'Post has no title.' ) );
+		}
+
+		return self::update_post(
+			array(
+				'siteUrl'           => $site_url,
+				'username'          => $username,
+				'appPassword'       => $app_password,
+				'postId'            => $post_id,
+				'title'             => $title,
+				'content'           => $content,
+				'postType'          => $post_type,
+				'postTypeEndpoint'  => isset( $body['postTypeEndpoint'] ) ? $body['postTypeEndpoint'] : null,
+				'date_gmt'          => $date_gmt,
+				'status'            => 'future',
+			)
+		);
 	}
 }

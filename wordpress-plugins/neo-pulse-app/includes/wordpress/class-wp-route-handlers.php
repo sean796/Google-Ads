@@ -123,6 +123,13 @@ class Neo_Pulse_App_Wp_Route_Handlers {
 					return self::method_not_allowed( $method, $action );
 				}
 				return Neo_Pulse_App_Wp_Post_Crud::update_post( $body );
+			case 'reschedule-post-date':
+				if ( $method !== 'POST' ) {
+					return self::method_not_allowed( $method, $action );
+				}
+				return Neo_Pulse_App_Wp_Post_Crud::reschedule_post_date( $body );
+			case 'get-scheduled-entity-posts':
+				return Neo_Pulse_App_Wp_Posts_Inventory::get_scheduled_entity_posts( $body );
 			case 'delete-post':
 				if ( $method !== 'DELETE' && $method !== 'POST' ) {
 					return self::method_not_allowed( $method, $action );

@@ -33,8 +33,8 @@ class Neo_Pulse_App_Wp_Inventory_Collector {
 		$use_ids   = is_array( $include_ids ) && count( $include_ids ) > 0;
 		$warm      = Neo_Pulse_App_Wp_Rest_Client::warm_origin_session( $normalized );
 		$fields    = ( $include_content || $include_page_heading )
-			? 'id,slug,title,link,acf,neo_pulse_fields,content,excerpt,date_gmt,featured_media'
-			: 'id,slug,title,link,acf,neo_pulse_fields,excerpt,date_gmt,featured_media';
+			? 'id,slug,title,link,neo_pulse_fields,content,excerpt,date_gmt,featured_media'
+			: 'id,slug,title,link,neo_pulse_fields,excerpt,date_gmt,featured_media';
 
 		while ( $has_more ) {
 			$params = array(
@@ -241,8 +241,8 @@ class Neo_Pulse_App_Wp_Inventory_Collector {
 		if ( $fm > 0 ) {
 			$row['featuredMediaId'] = $fm;
 		}
-		if ( $include_raw_acf && $acf ) {
-			$row['acf'] = $acf;
+		if ( ! empty( $post['neo_pulse_fields'] ) && is_array( $post['neo_pulse_fields'] ) ) {
+			$row['neo_pulse_fields'] = $post['neo_pulse_fields'];
 		}
 		return $row;
 	}

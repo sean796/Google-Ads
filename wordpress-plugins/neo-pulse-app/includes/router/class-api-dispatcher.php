@@ -231,12 +231,6 @@ class Neo_Pulse_App_Api_Dispatcher {
 			return;
 		}
 
-		if ( 0 === strpos( $route, 'elementor/' ) ) {
-			@set_time_limit( 180 );
-			Neo_Pulse_App_Elementor_Route_Handlers::dispatch_http( substr( $route, 10 ), $method, $body );
-			return;
-		}
-
 		if ( 0 === strpos( $route, 'integrations/' ) ) {
 			Neo_Pulse_App_Integrations_Route_Handlers::dispatch_http( substr( $route, 13 ), $method, $body );
 			return;
@@ -266,12 +260,6 @@ class Neo_Pulse_App_Api_Dispatcher {
 		if ( 0 === strpos( $route, 'pulse-assist/' ) || $route === 'pulse-assist' ) {
 			$assist_route = $route === 'pulse-assist' ? '' : substr( $route, 13 );
 			Neo_Pulse_App_Pulse_Assist_Route_Handlers::dispatch_http( $assist_route, $method, $body );
-			return;
-		}
-
-		if ( 0 === strpos( $route, 'internal/emcp/' ) ) {
-			@set_time_limit( 180 );
-			Neo_Pulse_App_Hub_Internal_Emcp_Route_Handlers::dispatch_http( substr( $route, 14 ), $method, $body );
 			return;
 		}
 
@@ -433,6 +421,21 @@ class Neo_Pulse_App_Api_Dispatcher {
 	}
 
 	/**
+	 * @param array<string,string> $headers
+	 */
+	public static function send_raw( int $status, string $body, array $headers = array() ): void {
+		while ( ob_get_level() > 0 ) {
+			ob_end_clean();
+		}
+		self::apply_cors_headers();
+		status_header( $status );
+		foreach ( $headers as $name => $value ) {
+			header( $name . ': ' . $value );
+		}
+		echo $body;
+	}
+
+	/**
 	 * Dashboard Settings DataForSEO key (header or body) for this request only.
 	 *
 	 * @param array<string,mixed> $body
@@ -474,7 +477,8 @@ class Neo_Pulse_App_Api_Dispatcher {
 
 		$host = (string) wp_parse_url( $origin, PHP_URL_HOST );
 		$ok   = in_array( $origin, $allowed, true )
-			|| ( $host !== '' && ( str_ends_with( $host, '.onrender.com' ) || str_ends_with( $host, '.neodigital.ca' ) ) );
+			|| ( $host !== '' && ( str_ends_with( $host, '.onrender.com' ) || str_ends_with( $host, '.neodigital.ca' ) ) )
+			|| in_array( $host, array( 'localhost', '127.0.0.1' ), true );
 
 		if ( ! $ok ) {
 			return;

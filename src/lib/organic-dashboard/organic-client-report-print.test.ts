@@ -29,6 +29,10 @@ vi.mock("@/lib/organic-dashboard/organic-client-report-pdf-canvas", () => ({
   renderReportCanvasToPdf: vi.fn(() => ({ save: saveMock })),
 }));
 
+vi.mock("@/lib/organic-dashboard/organic-client-report-cover-images", () => ({
+  withOrganicClientReportCoverDataUrls: vi.fn(async (content: unknown) => content),
+}));
+
 vi.mock("@/lib/organic-dashboard/organic-client-report-pdf-capture", () => ({
   mountOrganicClientReportPdfCapture: vi.fn(async () => ({
     rootElement: {
@@ -68,6 +72,7 @@ function sampleContent() {
       keyTakeaways: ["One.", "Two."],
       performanceNarrative: [],
       keywordNarrative: [],
+      googleAdsNarrative: [],
       topOpportunities: [],
     },
     siteName: "Blind Magic",

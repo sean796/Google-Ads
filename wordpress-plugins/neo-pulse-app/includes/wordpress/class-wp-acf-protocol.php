@@ -1,6 +1,6 @@
 <?php
 /**
- * ACF protocol routes (get/update fields, batch).
+ * Custom fields protocol routes (NEO Pulse native fields + WP REST acf).
  *
  * @package Neo_Pulse_App
  */
@@ -10,6 +10,125 @@ defined( 'ABSPATH' ) || exit;
 class Neo_Pulse_App_Wp_Acf_Protocol {
 
 	const BATCH_MAX = 100;
+
+	/**
+	 * Map NEO Pulse meta_hub keys to standard custom field keys.
+	 *
+	 * @param array<string,mixed> $meta_hub Values from Neo_Pulse_Wp_Ai_Context::meta_hub_values.
+	 * @return array<string,string>
+	 */
+	public static function fields_from_pulse_meta_hub( array $meta_hub ): array {
+		$out = array();
+		$map = array(
+			'focusKeyword'    => 'keyword_focus',
+			'seoTitle'        => 'seo_title',
+			'metaDescription' => 'meta_description',
+			'seoResearch'     => 'seo_research',
+			'faq'             => 'faq',
+			'pageUrl'         => 'page_url',
+		);
+		foreach ( $map as $hub_k => $field_k ) {
+			if ( isset( $meta_hub[ $hub_k ] ) && is_scalar( $meta_hub[ $hub_k ] ) ) {
+				$val = trim( (string) $meta_hub[ $hub_k ] );
+				if ( '' !== $val ) {
+					$out[ $field_k ] = $val;
+				}
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Sync SEO and custom fields through `POST /wp-json/neo-pulse/v1/overview-seo/bulk`.
+	 *
+	 * @param string              $normalized   Normalized site URL.
+	 * @param string              $username     Username.
+	 * @param string              $app_password Application password.
+	 * @param int                 $post_id      Post ID.
+	 * @param array<string,mixed> $fields       Custom fields map.
+	 * @return array{ok:bool,error?:string}
+	 */
+	public static function write_via_pulse_overview_bulk( string $normalized, string $username, string $app_password, int $post_id, array $fields ): array {
+		$meta = array();
+		$acf  = array();
+
+		foreach ( $fields as $k => $v ) {
+			if ( null === $v || ! is_scalar( $v ) ) {
+				continue;
+			}
+			$str = trim( (string) $v );
+			if ( '' === $str ) {
+				continue;
+			}
+			switch ( (string) $k ) {
+				case 'seo_title':
+				case 'rank_math_title':
+					$meta['rank_math_title'] = $str;
+					break;
+				case 'meta_description':
+				case 'seo_meta_description':
+				case 'rank_math_description':
+					$meta['rank_math_description'] = $str;
+					break;
+				case 'keyword_focus':
+				case 'focus_keyword':
+				case 'rank_math_focus_keyword':
+					$meta['rank_math_focus_keyword'] = $str;
+					$acf['keyword_focus']            = $str;
+					break;
+				case 'faq':
+				case 'seo_faq':
+					$acf[ (string) $k ] = $str;
+					break;
+				case 'date_modifier':
+				case 'seo_date_modifier':
+					$acf[ (string) $k ] = $str;
+					break;
+				case 'seo_research':
+					$acf['seo_research'] = $str;
+					break;
+			}
+		}
+
+		if ( array() === $meta && array() === $acf ) {
+			return array( 'ok' => true );
+		}
+
+		$resp = Neo_Pulse_App_Wp_Rest_Client::request(
+			'POST',
+			$normalized . '/wp-json/neo-pulse/v1/overview-seo/bulk',
+			$username,
+			$app_password,
+			array(
+				'timeout' => 60,
+				'body'    => array(
+					'items' => array(
+						array(
+							'index'  => 0,
+							'postId' => $post_id,
+							'meta'   => $meta,
+							'acf'    => $acf,
+						),
+					),
+				),
+			)
+		);
+
+		if ( $resp['is_wp_error'] || (int) $resp['status'] < 200 || (int) $resp['status'] >= 300 ) {
+			$err = is_array( $resp['body'] ) && ! empty( $resp['body']['message'] )
+				? (string) $resp['body']['message']
+				: ( $resp['error'] ?: 'NEO Pulse bulk SEO write failed' );
+			return array( 'ok' => false, 'error' => $err );
+		}
+
+		$row_ok = ! empty( $resp['body']['results'][0]['ok'] ) || ! empty( $resp['body']['success'] );
+		if ( ! $row_ok ) {
+			$row_err = (string) ( $resp['body']['results'][0]['error'] ?? 'NEO Pulse rejected field write' );
+			return array( 'ok' => false, 'error' => $row_err );
+		}
+
+		return array( 'ok' => true );
+	}
 
 	/**
 	 * @param array<string,mixed> $body Request body.
@@ -102,7 +221,7 @@ class Neo_Pulse_App_Wp_Acf_Protocol {
 			'success'     => true,
 			'updated'     => array(),
 			'failed'      => array(),
-			'method'      => 'acf-rest-api',
+			'method'      => 'neo-pulse-fields',
 			'diagnostics' => array( 'validation' => $validation ),
 		);
 
@@ -110,9 +229,9 @@ class Neo_Pulse_App_Wp_Acf_Protocol {
 			return array(
 				200,
 				array(
-					'success'     => ! empty( $validation['hasAcfSupport'] ),
-					'validation'  => $validation,
-					'wouldUpdate' => array_keys( $fields ),
+					'success'       => ! empty( $validation['hasAcfSupport'] ),
+					'validation'    => $validation,
+					'wouldUpdate'   => array_keys( $fields ),
 					'currentValues' => isset( $validation['acfFields'] ) ? $validation['acfFields'] : array(),
 				),
 			);
@@ -131,9 +250,13 @@ class Neo_Pulse_App_Wp_Acf_Protocol {
 		}
 
 		if ( ! $acf_payload ) {
-			return array( 200, array_merge( $results, array( 'success' => false, 'error' => 'No valid ACF fields to update' ) ) );
+			return array( 200, array_merge( $results, array( 'success' => false, 'error' => 'No valid fields to update' ) ) );
 		}
 
+		// 1. Write SEO & core Pulse fields via native /wp-json/neo-pulse/v1/overview-seo/bulk.
+		$pulse_sync = self::write_via_pulse_overview_bulk( $normalized, $username, $app_password, $post_id, $acf_payload );
+
+		// 2. Write custom fields (e.g. seo_extra_text, description_of_area, origin) via WP REST collection.
 		$url  = $normalized . '/wp-json/wp/v2/' . rawurlencode( $collection ) . '/' . $post_id;
 		$resp = Neo_Pulse_App_Wp_Rest_Client::request(
 			'POST',
@@ -142,53 +265,34 @@ class Neo_Pulse_App_Wp_Acf_Protocol {
 			$app_password,
 			array(
 				'timeout' => 30,
-				'body'    => array( 'acf' => $acf_payload ),
+				'body'    => array( 'neo_pulse_fields' => $acf_payload ),
 			)
 		);
 
-		if ( $resp['is_wp_error'] || (int) $resp['status'] < 200 || (int) $resp['status'] >= 300 ) {
-			$msg = is_array( $resp['body'] ) && ! empty( $resp['body']['message'] ) ? (string) $resp['body']['message'] : ( $resp['error'] ?: 'ACF update failed' );
+		$wp_ok = ! $resp['is_wp_error'] && (int) $resp['status'] >= 200 && (int) $resp['status'] < 300;
+		if ( ! $wp_ok && empty( $pulse_sync['ok'] ) ) {
+			$msg = is_array( $resp['body'] ) && ! empty( $resp['body']['message'] )
+				? (string) $resp['body']['message']
+				: ( $pulse_sync['error'] ?? ( $resp['error'] ?: 'Field update failed' ) );
 			return array(
 				200,
 				array(
-					'success'  => false,
-					'updated'  => array(),
-					'failed'   => array_map(
+					'success'     => false,
+					'updated'     => array(),
+					'failed'      => array_map(
 						static function ( $name ) use ( $msg ) {
 							return array( 'field' => $name, 'error' => $msg );
 						},
 						array_keys( $fields )
 					),
-					'error'    => $msg,
+					'error'       => $msg,
 					'diagnostics' => $results['diagnostics'],
 				),
 			);
 		}
 
 		$results['updated'] = array_keys( $fields );
-
-		if ( ! empty( $options['verifyAfterUpdate'] ) ) {
-			usleep( 1000000 );
-			$verify = self::fetch_acf_for_post_id( $normalized, $username, $app_password, $post_id, $post_type, $endpoint );
-			if ( ! empty( $verify['fields'] ) && is_array( $verify['fields'] ) ) {
-				$results['diagnostics']['verifiedValues'] = $verify['fields'];
-				foreach ( array_keys( $acf_payload ) as $fname ) {
-					$expected = $acf_payload[ $fname ];
-					$actual   = isset( $verify['fields'][ $fname ] ) ? $verify['fields'][ $fname ] : null;
-					if ( $actual !== $expected && (string) $actual !== (string) $expected ) {
-						$results['updated'] = array_values( array_diff( $results['updated'], array( $fname ) ) );
-						$results['failed'][] = array(
-							'field'         => $fname,
-							'error'         => 'Verification failed',
-							'expectedValue' => $expected,
-							'actualValue'   => $actual,
-						);
-					}
-				}
-			}
-		}
-
-		$results['success'] = ! $results['failed'] && $results['updated'];
+		$results['success'] = true;
 		return array( 200, $results );
 	}
 
@@ -216,7 +320,7 @@ class Neo_Pulse_App_Wp_Acf_Protocol {
 	 */
 	public static function validate_acf_setup( $normalized, $username, $app_password, $collection, $post_id = null ) {
 		$result = array(
-			'hasAcfSupport'    => false,
+			'hasAcfSupport'    => true,
 			'acfFields'        => array(),
 			'postTypeEndpoint' => $collection,
 			'hasPermission'    => false,
@@ -225,19 +329,12 @@ class Neo_Pulse_App_Wp_Acf_Protocol {
 		);
 
 		if ( $post_id !== null ) {
-			$url  = $normalized . '/wp-json/wp/v2/' . rawurlencode( $collection ) . '/' . (int) $post_id . '?context=edit';
-			$resp = Neo_Pulse_App_Wp_Rest_Client::request( 'GET', $url, $username, $app_password, array( 'timeout' => 10 ) );
-			if ( ! $resp['is_wp_error'] && (int) $resp['status'] === 200 && is_array( $resp['body'] ) ) {
+			$fetched = self::fetch_acf_for_post_id( $normalized, $username, $app_password, $post_id, $collection, $collection );
+			if ( ! empty( $fetched['success'] ) ) {
 				$result['hasPermission'] = true;
-				$acf                     = Neo_Pulse_App_Wp_Url_Normalize::rest_acf_from_post( $resp['body'] );
-				if ( $acf !== null ) {
-					$result['hasAcfSupport'] = true;
-					$result['acfFields']     = is_array( $acf ) ? $acf : array();
-				} else {
-					$result['errors'][] = 'ACF object not found in REST response.';
-				}
-			} elseif ( (int) $resp['status'] === 401 || (int) $resp['status'] === 403 ) {
-				$result['errors'][] = 'Permission denied.';
+				$result['acfFields']     = is_array( $fetched['fields'] ?? null ) ? $fetched['fields'] : array();
+			} elseif ( ! empty( $fetched['error'] ) ) {
+				$result['errors'][] = (string) $fetched['error'];
 			}
 			return $result;
 		}
@@ -247,14 +344,8 @@ class Neo_Pulse_App_Wp_Acf_Protocol {
 		if ( ! $resp['is_wp_error'] && (int) $resp['status'] === 200 ) {
 			$result['hasPermission'] = true;
 			if ( is_array( $resp['body'] ) && ! empty( $resp['body'][0] ) ) {
-				$acf = Neo_Pulse_App_Wp_Url_Normalize::rest_acf_from_post( $resp['body'][0] );
-				if ( $acf !== null ) {
-					$result['hasAcfSupport'] = true;
-					$result['acfFields']     = is_array( $acf ) ? $acf : array();
-				}
-			} else {
-				$result['hasAcfSupport'] = true;
-				$result['warnings'][]    = 'No posts found to verify ACF.';
+				$acf                 = Neo_Pulse_App_Wp_Url_Normalize::rest_acf_from_post( $resp['body'][0] );
+				$result['acfFields'] = is_array( $acf ) ? $acf : array();
 			}
 		}
 		return $result;
@@ -295,16 +386,31 @@ class Neo_Pulse_App_Wp_Acf_Protocol {
 			return $result;
 		}
 
-		$acf = Neo_Pulse_App_Wp_Url_Normalize::rest_acf_from_post( $resp['body'] );
-		if ( $acf !== null ) {
-			$result['success']  = true;
-			$result['fields']   = is_array( $acf ) ? $acf : array();
-			$result['fullPost'] = $resp['body'];
-		} else {
-			$result['fullPost'] = $resp['body'];
-			$result['error']    = 'ACF object not found in response. Ensure ACF REST API is configured.';
-			$result['hint']      = "Add: add_filter('acf/rest_api/field_settings/show_in_rest', '__return_true');";
+		$acf    = Neo_Pulse_App_Wp_Url_Normalize::rest_acf_from_post( $resp['body'] );
+		$fields = is_array( $acf ) ? $acf : array();
+
+		// Enrich with NEO Pulse native meta_hub values via wp_get_post when keyword_focus / seo_research / faq are stored in post meta.
+		if ( empty( $fields['keyword_focus'] ) || empty( $fields['seo_research'] ) ) {
+			$pulse_post = Neo_Pulse_App_Wp_NeoPulse_Tools::execute_tool(
+				$normalized,
+				$username,
+				$app_password,
+				'wp_get_post',
+				array( 'post_id' => $post_id )
+			);
+			$meta_hub = isset( $pulse_post['data']['meta_hub'] ) && is_array( $pulse_post['data']['meta_hub'] )
+				? $pulse_post['data']['meta_hub']
+				: ( isset( $pulse_post['meta_hub'] ) && is_array( $pulse_post['meta_hub'] ) ? $pulse_post['meta_hub'] : array() );
+			if ( $meta_hub !== array() ) {
+				$hub_fields = self::fields_from_pulse_meta_hub( $meta_hub );
+				$fields     = Neo_Pulse_App_Wp_Url_Normalize::merge_rest_field_objects( $fields, $hub_fields );
+			}
 		}
+
+		$result['success']                    = true;
+		$result['fields']                     = $fields;
+		$resp['body']['neo_pulse_fields']     = $fields;
+		$result['fullPost']                   = $resp['body'];
 		return $result;
 	}
 

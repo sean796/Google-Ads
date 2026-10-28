@@ -1,8 +1,8 @@
 {
   "keyword": "local-dominator-grid-export",
-  "name": "Local Dominator grid export",
+  "name": "Local Grid export",
   "executionKind": "local_dominator_export",
-  "description": "Export a Local Dominator grid scan as CSV to the automation Archive.",
+  "description": "Run in-house Local Grid scan and save CSV to the automation Archive.",
   "filters": {
     "categories": ["research"],
     "verticals": ["general", "local-seo", "home-services"]
@@ -10,7 +10,7 @@
   "defaults": {
     "executionPayload": {
       "businessName": "",
-      "keyword": "auto",
+      "keyword": "property",
       "saveLocalArchive": true,
       "saveToDisk": true
     }

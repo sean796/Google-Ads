@@ -77,6 +77,13 @@ class Neo_Pulse_App_Secrets {
 			$pass = self::env_string( 'DATAFORSEO_API_PASSWORD', 'NEO_PULSE_APP_DATAFORSEO_PASSWORD', 'DATAFORSEO_PASSWORD' );
 		}
 
+		if ( $pass === '' ) {
+			$mgr = self::dataforseo_from_manager_settings();
+			if ( $mgr['login'] !== '' && $mgr['password'] !== '' ) {
+				return $mgr;
+			}
+		}
+
 		return array(
 			'login'    => $login,
 			'password' => $pass,
@@ -170,6 +177,10 @@ class Neo_Pulse_App_Secrets {
 	 * @return array{login:string,password:string}
 	 */
 	private static function resolve_dataforseo_login_fallback(): string {
+		$mgr = self::dataforseo_from_manager_settings();
+		if ( $mgr['login'] !== '' ) {
+			return $mgr['login'];
+		}
 		if ( defined( 'NEO_PULSE_APP_DATAFORSEO_LOGIN' ) ) {
 			$login = trim( (string) NEO_PULSE_APP_DATAFORSEO_LOGIN );
 			if ( $login !== '' ) {

@@ -180,11 +180,71 @@ class Neo_Pulse_App_Wp_Bulk_Overview_Seo {
 			return array();
 		}
 
+		self::sync_pulse_overview_bulk_slice( $normalized, $username, $app_password, $to_run );
+
 		return self::write_batch_v1_slice(
 			$normalized . '/wp-json/batch/v1',
 			$username,
 			$app_password,
 			$to_run
+		);
+	}
+
+	/**
+	 * Sync SEO title, excerpt, focus keyword, FAQ, date_modifier, and seo_research via
+	 * native `POST /wp-json/neo-pulse/v1/overview-seo/bulk` on the site.
+	 *
+	 * @param string                         $normalized   Normalized site URL.
+	 * @param string                         $username     Username.
+	 * @param string                         $app_password Application password.
+	 * @param array<int,array<string,mixed>> $to_run       Items.
+	 */
+	private static function sync_pulse_overview_bulk_slice( $normalized, $username, $app_password, $to_run ): void {
+		$pulse_items = array();
+		foreach ( $to_run as $item ) {
+			$meta = array();
+			$acf  = Neo_Pulse_App_Wp_Overview_Seo_Item::direct_acf_from_client( isset( $item['acf'] ) ? $item['acf'] : array() );
+
+			if ( ! empty( $item['postTitle'] ) && is_string( $item['postTitle'] ) && trim( $item['postTitle'] ) !== '' ) {
+				$meta['rank_math_title'] = Neo_Pulse_App_Wp_Overview_Seo_Item::aligned_title( trim( $item['postTitle'] ), $acf );
+			}
+			if ( ! empty( $item['postExcerpt'] ) && is_string( $item['postExcerpt'] ) && trim( $item['postExcerpt'] ) !== '' ) {
+				$meta['rank_math_description'] = trim( $item['postExcerpt'] );
+			}
+			if ( ! empty( $acf['keyword_focus'] ) ) {
+				$meta['rank_math_focus_keyword'] = $acf['keyword_focus'];
+			}
+
+			$allowed_acf = array();
+			foreach ( array( 'keyword_focus', 'keyword_focu', 'faq', 'seo_faq', 'date_modifier', 'seo_date_modifier', 'seo_research' ) as $k ) {
+				if ( ! empty( $acf[ $k ] ) ) {
+					$allowed_acf[ $k ] = $acf[ $k ];
+				}
+			}
+
+			if ( $meta || $allowed_acf ) {
+				$pulse_items[] = array(
+					'index'  => (int) ( $item['index'] ?? 0 ),
+					'postId' => (int) $item['postId'],
+					'meta'   => $meta,
+					'acf'    => $allowed_acf,
+				);
+			}
+		}
+
+		if ( ! $pulse_items ) {
+			return;
+		}
+
+		Neo_Pulse_App_Wp_Rest_Client::request(
+			'POST',
+			$normalized . '/wp-json/neo-pulse/v1/overview-seo/bulk',
+			$username,
+			$app_password,
+			array(
+				'timeout' => Neo_Pulse_App_Wp_Overview_Seo_Item::WRITE_TIMEOUT,
+				'body'    => array( 'items' => $pulse_items ),
+			)
 		);
 	}
 

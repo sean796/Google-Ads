@@ -51,6 +51,7 @@ class Neo_Pulse_App_Loader {
 		Neo_Pulse_App_Data_Paths::subdir( 'semrush' );
 		Neo_Pulse_App_Data_Paths::subdir( 'vertical-benchmarks' );
 		Neo_Pulse_App_Data_Paths::subdir( 'knowledge-model-jobs' );
+		Neo_Pulse_App_Data_Paths::subdir( 'local-grid' );
 		Neo_Pulse_App_Data_Paths::subdir( 'support' );
 		Neo_Pulse_App_Api_Dispatcher::register_rewrites();
 		Neo_Pulse_App_Task_Trigger_Cron::activate();
@@ -128,6 +129,7 @@ class Neo_Pulse_App_Loader {
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/organic-dashboard/class-organic-dashboard-bundle.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/organic-dashboard/class-organic-dashboard-reporting-highlights.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/organic-dashboard/class-organic-dashboard-client-report-share.php';
+		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/organic-dashboard/class-organic-dashboard-local-grid.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/organic-dashboard/class-organic-dashboard-route-handlers.php';
 
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/gmb/class-gmb-oauth.php';
@@ -160,6 +162,7 @@ class Neo_Pulse_App_Loader {
 
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/integrations/class-sites-sync.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/integrations/class-integrations-route-handlers.php';
+		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/integrations/class-property-client-logo.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/integrations/class-manager-route-handlers.php';
 
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/teams/class-teams-store.php';
@@ -298,6 +301,7 @@ class Neo_Pulse_App_Loader {
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/proxy/class-wikipedia-proxy.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/proxy/class-url-text-proxy.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/ollama/class-ollama-route.php';
+		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/openrouter/class-openrouter-agent-models.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/openrouter/class-openrouter-models-catalog-route.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/openrouter/class-openrouter-chat-completion-route.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/maps/class-entity-maps-image.php';
@@ -307,10 +311,6 @@ class Neo_Pulse_App_Loader {
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/seo/class-page-address-llm.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/seo/class-seo-http.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/seo/class-seo-route-handlers.php';
-		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/elementor/class-elementor-novamira-client.php';
-		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/elementor/class-elementor-route-handlers.php';
-		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/internal/class-emcp-http-client.php';
-		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/internal/class-hub-internal-emcp-route-handlers.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/emcp/class-emcp-site-client.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/emcp/class-emcp-route-handlers.php';
 

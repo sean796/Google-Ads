@@ -32,6 +32,38 @@ export async function mountOrganicClientReportPdfCapture(
     await document.fonts.ready;
   }
 
+  if (host.querySelector(".leaflet-container")) {
+    window.dispatchEvent(new Event("resize"));
+    const started = Date.now();
+    await new Promise<void>((resolve) => {
+      const check = () => {
+        const loaded = host.querySelectorAll(".leaflet-tile-loaded").length;
+        const total = host.querySelectorAll(".leaflet-tile").length;
+        if (loaded >= 4 || (total > 0 && loaded >= total) || Date.now() - started >= 6000) {
+          resolve();
+          return;
+        }
+        setTimeout(check, 100);
+      };
+      check();
+    });
+    await new Promise((r) => setTimeout(r, 400));
+  }
+
+  const imgs = Array.from(host.querySelectorAll("img"));
+  if (imgs.length > 0) {
+    await Promise.all(
+      imgs.map((img) => {
+        if (img.complete) return Promise.resolve();
+        return new Promise<void>((resolve) => {
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+          setTimeout(resolve, 3000);
+        });
+      }),
+    );
+  }
+
   await new Promise<void>((resolve) => {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => resolve());

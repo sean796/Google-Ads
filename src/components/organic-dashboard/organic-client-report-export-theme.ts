@@ -8,6 +8,8 @@ export const EXPORT_PAGE_BREAK_CLASS = "organic-deck-export-page-break";
 
 export const EXPORT_HERO_CLASS = "organic-client-report-export__hero";
 
+export const EXPORT_COVER_PAGE_CLASS = "organic-client-report-export__cover-page";
+
 export const EXPORT_SECTION_HEAD_CLASS = "organic-client-report-export__section-head";
 
 export const EXPORT_SECTION_BODY_CLASS = "organic-client-report-export__section-body";

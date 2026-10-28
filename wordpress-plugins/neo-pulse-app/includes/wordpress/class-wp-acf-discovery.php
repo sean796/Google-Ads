@@ -35,11 +35,10 @@ class Neo_Pulse_App_Wp_Acf_Discovery {
 			'error'       => null,
 		);
 
-		$ping = Neo_Pulse_App_Wp_NeoPulse_Tools::ping_public( $normalized );
+		$ping = Neo_Pulse_App_Wp_NeoPulse_Tools::ping_public( $normalized, $username, $app_password );
 		if ( ! empty( $ping['ok'] ) ) {
-			$export = Neo_Pulse_App_Wp_NeoPulse_Tools::execute_tool( $normalized, $username, $app_password, 'wp_fields_export_json', array() );
-			$json   = isset( $export['json'] ) ? $export['json'] : ( isset( $export['data']['json'] ) ? $export['data']['json'] : ( is_string( $export['data'] ?? null ) ? $export['data'] : null ) );
-			$parsed = self::parse_neo_pulse_fields_export_json( is_string( $json ) ? $json : '' );
+			$starter = self::default_neo_pulse_fields_export();
+			$parsed  = self::parse_neo_pulse_fields_export_json( wp_json_encode( $starter ) );
 			if ( $parsed && ! empty( $parsed['fields'] ) ) {
 				return array(
 					200,
@@ -123,6 +122,57 @@ class Neo_Pulse_App_Wp_Acf_Discovery {
 			$result['error'] = $scan_rs['error'];
 		}
 		return array( 200, $result );
+	}
+
+	/**
+	 * Built-in NEO Pulse custom field groups (SEO, Extra Text, FAQ, Research, and Location fields).
+	 *
+	 * @return array<int,array<string,mixed>>
+	 */
+	public static function default_neo_pulse_fields_export() {
+		return array(
+			array(
+				'key'      => 'group_neo_pulse_seo_fields',
+				'title'    => 'NEO Pulse SEO & Content Fields',
+				'fields'   => array(
+					array( 'name' => 'keyword_focus', 'label' => 'Keyword Focus', 'type' => 'text' ),
+					array( 'name' => 'seo_title', 'label' => 'SEO Title', 'type' => 'text' ),
+					array( 'name' => 'meta_description', 'label' => 'Meta Description', 'type' => 'textarea' ),
+					array( 'name' => 'seo_extra_text', 'label' => 'Extra Text', 'type' => 'wysiwyg' ),
+					array( 'name' => 'extra_text', 'label' => 'Extra Text (Legacy)', 'type' => 'wysiwyg' ),
+					array( 'name' => 'seo_extra_image', 'label' => 'Extra Image', 'type' => 'image' ),
+					array( 'name' => 'faq', 'label' => 'FAQ Schema', 'type' => 'textarea' ),
+					array( 'name' => 'seo_faq', 'label' => 'SEO FAQ', 'type' => 'textarea' ),
+					array( 'name' => 'seo_research', 'label' => 'SEO Research Brief', 'type' => 'textarea' ),
+					array( 'name' => 'date_modifier', 'label' => 'Date Modifier', 'type' => 'date_picker' ),
+					array( 'name' => 'seo_date_modifier', 'label' => 'SEO Date Modifier', 'type' => 'date_picker' ),
+					array( 'name' => 'seo_prompt_modifier', 'label' => 'SEO Prompt Modifier', 'type' => 'textarea' ),
+					array( 'name' => 'origin', 'label' => 'Origin / Entity', 'type' => 'text' ),
+					array( 'name' => 'page_url', 'label' => 'Page URL', 'type' => 'url' ),
+				),
+				'location' => array(),
+			),
+			array(
+				'key'      => 'group_neo_pulse_location_fields',
+				'title'    => 'NEO Pulse Location & Service Area Fields',
+				'fields'   => array(
+					array( 'name' => 'showroom_or_service_area', 'label' => 'Showroom or Service Area', 'type' => 'select' ),
+					array( 'name' => 'location_name_google_maps', 'label' => 'Location Name (Google Maps)', 'type' => 'text' ),
+					array( 'name' => 'description_of_area', 'label' => 'Description of Area', 'type' => 'wysiwyg' ),
+					array( 'name' => 'description_of_area_pt_2', 'label' => 'Description of Area (Part 2)', 'type' => 'wysiwyg' ),
+					array( 'name' => 'address', 'label' => 'Address', 'type' => 'text' ),
+					array( 'name' => 'phone_number', 'label' => 'Phone Number', 'type' => 'text' ),
+					array( 'name' => 'phone_number_link', 'label' => 'Phone Number Link', 'type' => 'text' ),
+					array( 'name' => 'google_maps_link', 'label' => 'Google Maps Link', 'type' => 'url' ),
+					array( 'name' => 'condensed_hours_line', 'label' => 'Condensed Hours Line', 'type' => 'text' ),
+					array( 'name' => 'latitude', 'label' => 'Latitude', 'type' => 'text' ),
+					array( 'name' => 'longitude', 'label' => 'Longitude', 'type' => 'text' ),
+					array( 'name' => 'business_type', 'label' => 'Business Type', 'type' => 'text' ),
+					array( 'name' => 'google_business_profile', 'label' => 'Google Business Profile', 'type' => 'url' ),
+				),
+				'location' => array(),
+			),
+		);
 	}
 
 	/**

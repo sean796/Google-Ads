@@ -159,6 +159,24 @@ class Neo_Pulse_App_Manager_Route_Handlers {
 			return;
 		}
 
+		if ( $subpath === 'client-logo/upload' && $method === 'POST' ) {
+			$result = Neo_Pulse_App_Property_Client_Logo::upload( $body );
+			Neo_Pulse_App_Api_Dispatcher::send_json( $result['body'], $result['status'] );
+			return;
+		}
+
+		if ( preg_match( '#^client-logo/([^/]+)$#', $subpath, $logo_match ) && $method === 'GET' ) {
+			$site_id = rawurldecode( $logo_match[1] );
+			$result  = Neo_Pulse_App_Property_Client_Logo::serve( $site_id );
+			if ( isset( $result['raw'] ) ) {
+				$headers = isset( $result['headers'] ) && is_array( $result['headers'] ) ? $result['headers'] : array();
+				Neo_Pulse_App_Api_Dispatcher::send_raw( (int) $result['status'], $result['raw'], $headers );
+				return;
+			}
+			Neo_Pulse_App_Api_Dispatcher::send_json( $result['body'] ?? array( 'error' => 'Not found' ), (int) $result['status'] );
+			return;
+		}
+
 		if ( $subpath === 'sync-semrush' && $method === 'POST' ) {
 			$semrush = isset( $body['semrushApiKey'] ) ? trim( (string) $body['semrushApiKey'] ) : '';
 			if ( $semrush !== '' && str_starts_with( $semrush, 'semrtkn-' ) ) {

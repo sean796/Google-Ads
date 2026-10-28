@@ -5,6 +5,9 @@ import {
   buildOrganicReportingShareUrl,
   parseOrganicReportingShareParams,
 } from "@/lib/organic-dashboard/organic-reporting-share-url";
+import { refreshOrganicReportingDateHarness } from "@/lib/organic-dashboard/organic-dashboard-fetch-params";
+import { organicDashboardBundleQueryKey } from "@/lib/organic-dashboard/organic-dashboard-prefetch";
+import type { OrganicDashboardFetchParams } from "@/lib/organic-dashboard/organic-dashboard-types";
 
 describe("organic-reporting-share-url", () => {
   it("round-trips GA4 preset and section", () => {
@@ -63,10 +66,56 @@ describe("organic-reporting-share-url", () => {
         },
       },
       "https://app.example.com",
+      "Acme Blinds",
     );
-    expect(url).toContain("/sites/site-1/organic/client-report");
+    expect(url).toContain("/sites/acme-blinds/organic/client-report");
+    expect(url).toContain("siteId=site-1");
+    expect(url).toContain("client=Acme");
     expect(url).toContain("preset=last_30");
     expect(url).toContain("structure=compare");
+  });
+
+  it("last_month preset resolves to different primary range when calendar month changes", () => {
+    const search = buildOrganicReportingShareSearch({
+      section: "performance",
+      primaryPreset: "last_month",
+      compareBaseline: "previous_period",
+      compareEnabled: true,
+      compareRangeDraft: {
+        primary: { startDate: "2020-01-01", endDate: "2020-01-31" },
+        compare: { startDate: "2019-12-01", endDate: "2019-12-31" },
+      },
+    });
+    const parsed = parseOrganicReportingShareParams(`?${search}`);
+    expect(parsed).not.toBeNull();
+    const march = refreshOrganicReportingDateHarness(parsed!, new Date("2026-03-15T12:00:00"));
+    const april = refreshOrganicReportingDateHarness(parsed!, new Date("2026-04-15T12:00:00"));
+    expect(march.compareRangeDraft.primary.startDate).toBe("2026-02-01");
+    expect(march.compareRangeDraft.primary.endDate).toBe("2026-02-28");
+    expect(april.compareRangeDraft.primary.startDate).toBe("2026-03-01");
+    expect(april.compareRangeDraft.primary.endDate).toBe("2026-03-31");
+
+    const base: OrganicDashboardFetchParams = {
+      siteUrl: "https://example.com",
+      ga4PropertyId: "1",
+      semrushDatabase: "us",
+      reportStructure: "compare",
+      startDate: "",
+      endDate: "",
+      compareStartDate: "",
+      compareEndDate: "",
+    };
+    const keyMarch = organicDashboardBundleQueryKey("s1", {
+      ...base,
+      startDate: march.compareRangeDraft.primary.startDate,
+      endDate: march.compareRangeDraft.primary.endDate,
+    });
+    const keyApril = organicDashboardBundleQueryKey("s1", {
+      ...base,
+      startDate: april.compareRangeDraft.primary.startDate,
+      endDate: april.compareRangeDraft.primary.endDate,
+    });
+    expect(keyMarch).not.toEqual(keyApril);
   });
 
   it("builds absolute share url", () => {

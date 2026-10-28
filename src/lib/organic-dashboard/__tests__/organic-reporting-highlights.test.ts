@@ -156,6 +156,35 @@ describe("buildOrganicReportingHighlightsSnapshot", () => {
     expect(snap.reportStructure).toBe("compare");
   });
 
+  it("includes localGrid block when a grid snapshot is passed", () => {
+    const vm = buildOrganicDashboardViewModel(undefined, { showCompare: true });
+    const snap = buildOrganicReportingHighlightsSnapshot(vm, "Blind Magic", "https://example.com", true, {
+      scanId: "scan-abc",
+      keyword: "blinds edmonton",
+      scanDateLabel: "Jan 1, 2026",
+      scanSize: "3x3",
+      shape: "circle",
+      distance: 1,
+      distanceMeasure: "mile",
+      summary: {
+        totalPoints: 9,
+        rankedPoints: 8,
+        avgRank: 4.2,
+        tarp: 5.1,
+        highCount: 3,
+        medCount: 2,
+        lowCount: 3,
+        outCount: 1,
+        highPct: 33,
+        medPct: 22,
+        lowPct: 33,
+        outPct: 11,
+      },
+    });
+    expect(snap.localGrid?.scanId).toBe("scan-abc");
+    expect(snap.localGrid?.summary.tarp).toBe(5.1);
+  });
+
   it("period progress snapshot omits compare queries and adds monthly progression", () => {
     const data: OrganicDashboardBundleResponse = {
       success: true,
@@ -301,6 +330,7 @@ describe("parseOrganicReportingHighlightsPayload", () => {
         "Brand queries led clicks in September 1–30, 2026, with non-brand blinds terms still contributing meaningful volume.",
       ],
       googleAdsNarrative: [],
+      localGridNarrative: ["Map visibility is strong near the business center."],
       topOpportunities: [
         sampleOpportunity(1, "Brand query"),
         { ...sampleOpportunity(2, "Non-brand"), why: "**Winnable** CTR gap on a core term." },
@@ -314,6 +344,7 @@ describe("parseOrganicReportingHighlightsPayload", () => {
     expect(parsed.keywordNarrative).toHaveLength(1);
     expect(parsed.topOpportunities).toHaveLength(3);
     expect(parsed.topOpportunities[1]?.why).toBe("**Winnable** CTR gap on a core term.");
+    expect(parsed.localGridNarrative).toEqual(["Map visibility is strong near the business center."]);
   });
 
   it("sends X-OpenRouter-Api-Key header when fetching reporting highlights from backend", async () => {

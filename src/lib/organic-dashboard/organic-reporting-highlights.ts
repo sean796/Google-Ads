@@ -5,13 +5,18 @@ import { getOpenRouterApiKeyForApp } from "@/lib/openrouter-api-key-resolve";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
 import {
   deriveKeyTakeawaysFromSummary,
+  filterHighlightsTakeaways,
+  isNonExistentSectionOmissionStatement,
+  stripNonExistentOmissionClauses,
   ORGANIC_GA4_DECK_LABELS,
   deckNarrativeText,
   plainDeckText,
   sanitizeDeckOpportunity,
   sanitizeDeckOpportunityComparisonRows,
+  sanitizeExecutiveSummaryText,
   type SanitizedDeckOpportunity,
 } from "@/lib/organic-dashboard/organic-client-report-deck-helpers";
+import type { LocalGridReportingSnapshot } from "@/lib/organic-dashboard/local-grid-client-report";
 
 export type OrganicDeckOpportunity = SanitizedDeckOpportunity;
 
@@ -24,6 +29,8 @@ export type OrganicReportingHighlights = {
   keywordNarrative: string[];
   /** Paid search narrative for the Google Ads account card in the client report. */
   googleAdsNarrative: string[];
+  /** Local map grid overview when a saved Local Grid scan is on the latest report. */
+  localGridNarrative: string[];
   topOpportunities: OrganicDeckOpportunity[];
 };
 
@@ -62,25 +69,30 @@ export function normalizeOrganicReportingHighlights(raw: unknown): OrganicReport
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
   if (!isNonEmptyString(o.executiveSummary)) return null;
+  const cleanSummary = sanitizeExecutiveSummaryText(String(o.executiveSummary));
   const topOpportunities = sanitizeOpportunityList(o.topOpportunities);
   const fromApi = Array.isArray(o.keyTakeaways)
-    ? o.keyTakeaways.filter((t) => isNonEmptyString(t)).map((t) => plainDeckText(String(t)))
+    ? filterHighlightsTakeaways(
+        o.keyTakeaways.filter((t) => isNonEmptyString(t)).map((t) => plainDeckText(String(t))),
+      )
     : [];
   const performanceNarrative = sanitizeNarrativeParagraphs(o.performanceNarrative, 3);
   const keywordNarrative = sanitizeNarrativeParagraphs(o.keywordNarrative, 2);
   const googleAdsNarrative = sanitizeNarrativeParagraphs(o.googleAdsNarrative, 2);
+  const localGridNarrative = sanitizeNarrativeParagraphs(o.localGridNarrative, 2);
 
   if (fromApi.length >= 2) {
     return {
-      executiveSummary: plainDeckText(o.executiveSummary),
+      executiveSummary: cleanSummary,
       keyTakeaways: fromApi.slice(0, 4),
       performanceNarrative,
       keywordNarrative,
       googleAdsNarrative,
+      localGridNarrative,
       topOpportunities,
     };
   }
-  const derived = deriveKeyTakeawaysFromSummary(o.executiveSummary);
+  const derived = deriveKeyTakeawaysFromSummary(cleanSummary);
   const takeaways =
     fromApi.length === 1 ? [fromApi[0]!, ...derived.takeaways].slice(0, 4) : derived.takeaways;
   while (takeaways.length < 2) {
@@ -92,6 +104,7 @@ export function normalizeOrganicReportingHighlights(raw: unknown): OrganicReport
     performanceNarrative,
     keywordNarrative,
     googleAdsNarrative,
+    localGridNarrative,
     topOpportunities,
   };
 }
@@ -99,8 +112,12 @@ export function normalizeOrganicReportingHighlights(raw: unknown): OrganicReport
 function sanitizeNarrativeParagraphs(raw: unknown, maxItems: number): string[] {
   if (!Array.isArray(raw)) return [];
   return raw
-    .filter((p) => isNonEmptyString(p))
-    .map((p) => deckNarrativeText(String(p)))
+    .map((p) =>
+      isNonEmptyString(p)
+        ? stripNonExistentOmissionClauses(deckNarrativeText(String(p)))
+        : "",
+    )
+    .filter((p) => isNonEmptyString(p) && !isNonExistentSectionOmissionStatement(p))
     .slice(0, maxItems);
 }
 
@@ -170,7 +187,29 @@ export type OrganicReportingHighlightsSnapshot = {
   }> | null;
   /** Budget pacing caption for the Google Ads account card (when available). */
   googleAdsBudgetCaption?: string | null;
+  semrushBrandedTotals?: Array<{
+    label: string;
+    earlier: string;
+    later: string;
+    changePercent: number | null;
+  }> | null;
+  localGrid?: LocalGridReportingSnapshot | null;
+  leadsTotals?: Array<{ label: string; value: string }> | null;
+  leadsRoiHeadline?: string | null;
 };
+
+function buildLeadsSnapshotTotals(viewModel: OrganicDashboardViewModel): Array<{ label: string; value: string }> | null {
+  if (!viewModel.hasLeads || !viewModel.leadsSummary) return null;
+  const s = viewModel.leadsSummary;
+  return [
+    { label: "Organic inquiries (SEO)", value: s.organic.inquiries },
+    { label: "Organic closed revenue", value: s.organic.wonRevenue },
+    { label: "Paid inquiries (Google Ads)", value: s.paid.inquiries },
+    { label: "Paid closed revenue (Google Ads)", value: s.paid.wonRevenue },
+    { label: "Google Ads ROAS", value: s.paid.roas },
+    { label: "Total closed sales revenue", value: s.blended.wonRevenue },
+  ];
+}
 
 function serializePeriodProgressTableForSnapshot(
   table: OrganicPeriodProgressTable,
@@ -226,12 +265,37 @@ function buildGoogleAdsSnapshotTotals(
   return rows;
 }
 
+function buildSemrushBrandedSnapshotTotals(
+  viewModel: OrganicDashboardViewModel,
+  showCompare: boolean,
+): OrganicReportingHighlightsSnapshot["semrushBrandedTotals"] {
+  const s = viewModel.semrushSummary;
+  if (!s?.hasBrandedMetrics) return null;
+  return [
+    {
+      label: "Branded traffic (Semrush est.)",
+      earlier: showCompare ? s.compareBrandedTraffic : "n/a",
+      later: s.brandedTraffic,
+      changePercent: showCompare ? s.brandedDelta.deltaPercent : null,
+    },
+    {
+      label: "Non-branded traffic (Semrush est.)",
+      earlier: showCompare ? s.compareNonBrandedTraffic : "n/a",
+      later: s.nonBrandedTraffic,
+      changePercent: showCompare ? s.nonBrandedDelta.deltaPercent : null,
+    },
+  ];
+}
+
 export function buildOrganicReportingHighlightsSnapshot(
   viewModel: OrganicDashboardViewModel,
   siteName: string,
   siteUrl: string,
   showCompare: boolean,
+  localGrid?: LocalGridReportingSnapshot | null,
 ): OrganicReportingHighlightsSnapshot {
+  const semrushBrandedTotals = buildSemrushBrandedSnapshotTotals(viewModel, showCompare);
+  const localGridBlock = localGrid ?? null;
   const ga4Rows = viewModel.ga4Table
     .filter((row) => ORGANIC_GA4_DECK_LABELS.has(row.label))
     .map((row) => ({
@@ -298,6 +362,8 @@ export function buildOrganicReportingHighlightsSnapshot(
       siteUrl,
       showCompare: false,
       reportStructure: "period_progress",
+      semrushBrandedTotals,
+      localGrid: localGridBlock,
       periods: {
         earlier: "",
         later: viewModel.periodLabels.primary,
@@ -331,6 +397,8 @@ export function buildOrganicReportingHighlightsSnapshot(
           }))
         : null,
       googleAdsBudgetCaption: viewModel.googleAdsBudgetPacing?.caption ?? null,
+      leadsTotals: buildLeadsSnapshotTotals(viewModel),
+      leadsRoiHeadline: viewModel.leadsSummary?.roiHeadline ?? null,
     };
   }
 
@@ -359,6 +427,10 @@ export function buildOrganicReportingHighlightsSnapshot(
     topQueries,
     googleAdsTotals: googleAdsTotalsRaw,
     googleAdsBudgetCaption: viewModel.googleAdsBudgetPacing?.caption ?? null,
+    semrushBrandedTotals,
+    localGrid: localGridBlock,
+    leadsTotals: buildLeadsSnapshotTotals(viewModel),
+    leadsRoiHeadline: viewModel.leadsSummary?.roiHeadline ?? null,
   };
 }
 
@@ -385,21 +457,29 @@ export function parseOrganicReportingHighlightsPayload(raw: string): OrganicRepo
   if (!Array.isArray(takeawaysRaw) || takeawaysRaw.length < 2 || takeawaysRaw.length > 4) {
     throw new Error("keyTakeaways must be an array of 2–4 strings.");
   }
-  const keyTakeaways = takeawaysRaw
-    .filter((t) => isNonEmptyString(t))
-    .map((t) => plainDeckText(String(t)));
+  const keyTakeaways = filterHighlightsTakeaways(
+    takeawaysRaw.filter((t) => isNonEmptyString(t)).map((t) => plainDeckText(String(t))),
+  );
+  if (keyTakeaways.length < 2) {
+    const derived = deriveKeyTakeawaysFromSummary(plainDeckText(o.executiveSummary)).takeaways;
+    for (const d of derived) {
+      if (keyTakeaways.length < 2 && !keyTakeaways.includes(d)) {
+        keyTakeaways.push(d);
+      }
+    }
+  }
   if (keyTakeaways.length < 2) {
     throw new Error("keyTakeaways must include at least 2 non-empty strings.");
   }
   const narrativeRaw = o.performanceNarrative;
-  if (!Array.isArray(narrativeRaw) || narrativeRaw.length < 2 || narrativeRaw.length > 3) {
-    throw new Error("performanceNarrative must be an array of 2–3 strings.");
+  if (!Array.isArray(narrativeRaw) || narrativeRaw.length < 1 || narrativeRaw.length > 3) {
+    throw new Error("performanceNarrative must be an array of 1–3 strings.");
   }
   const performanceNarrative = narrativeRaw
     .filter((p) => isNonEmptyString(p))
     .map((p) => deckNarrativeText(String(p)));
-  if (performanceNarrative.length < 2) {
-    throw new Error("performanceNarrative must include at least 2 non-empty paragraphs.");
+  if (performanceNarrative.length < 1) {
+    throw new Error("performanceNarrative must include at least 1 non-empty paragraph.");
   }
   const keywordRaw = o.keywordNarrative;
   if (!Array.isArray(keywordRaw) || keywordRaw.length < 1 || keywordRaw.length > 2) {
@@ -418,6 +498,17 @@ export function parseOrganicReportingHighlightsPayload(raw: string): OrganicRepo
       throw new Error("googleAdsNarrative must be an array of 0–2 strings.");
     }
     googleAdsNarrative = googleAdsRaw
+      .filter((p) => isNonEmptyString(p))
+      .map((p) => deckNarrativeText(String(p)))
+      .slice(0, 2);
+  }
+  const localGridRaw = o.localGridNarrative;
+  let localGridNarrative: string[] = [];
+  if (localGridRaw != null) {
+    if (!Array.isArray(localGridRaw) || localGridRaw.length > 2) {
+      throw new Error("localGridNarrative must be an array of 0–2 strings.");
+    }
+    localGridNarrative = localGridRaw
       .filter((p) => isNonEmptyString(p))
       .map((p) => deckNarrativeText(String(p)))
       .slice(0, 2);
@@ -466,6 +557,7 @@ export function parseOrganicReportingHighlightsPayload(raw: string): OrganicRepo
     performanceNarrative: performanceNarrative.slice(0, 3),
     keywordNarrative: keywordNarrative.slice(0, 2),
     googleAdsNarrative,
+    localGridNarrative,
     topOpportunities,
   };
 }
@@ -489,17 +581,29 @@ export function buildPlaceholderOrganicReportingHighlights(
     );
   }
   if (takeaways.length < 2) {
+    const hasCompare = Boolean(viewModel?.hasCompare && viewModel?.showCompare);
     takeaways.push(
       "Headline GA4 organic traffic and Google Search Console visibility metrics are summarized in the tables below.",
-      "Top organic search queries and period comparisons are detailed by section.",
+      hasCompare
+        ? "Top organic search queries and period comparisons are detailed by section."
+        : "Top organic search queries and search visibility metrics are detailed by section.",
     );
   }
+  const hasSemrush = Boolean(
+    viewModel?.hasSemrush &&
+      ((viewModel.semrushKeywords && viewModel.semrushKeywords.length > 0) ||
+        (viewModel.semrushTable && viewModel.semrushTable.length > 0)),
+  );
+  const channelText = hasSemrush
+    ? "GA4, Google Search Console, and Semrush"
+    : "GA4 and Google Search Console";
   return {
-    executiveSummary: `${name} organic search performance summary across GA4, Google Search Console, and Semrush.`,
+    executiveSummary: `${name} organic search performance summary across ${channelText}.`,
     keyTakeaways: takeaways.slice(0, 4),
     performanceNarrative: [],
     keywordNarrative: [],
     googleAdsNarrative: [],
+    localGridNarrative: [],
     topOpportunities: [],
   };
 }
@@ -540,17 +644,30 @@ function mergeHighlightsAbortSignal(signal?: AbortSignal): AbortSignal | undefin
   return timeoutSignal;
 }
 
+export type FetchOrganicReportingHighlightsOptions = {
+  bypassCache?: boolean;
+};
+
 export async function fetchOrganicReportingHighlights(
   snapshot: OrganicReportingHighlightsSnapshot,
   siteId: string,
   signal?: AbortSignal,
+  options?: FetchOrganicReportingHighlightsOptions,
 ): Promise<OrganicReportingHighlights> {
+  const headers: Record<string, string> = {
+    ...(organicReportingHighlightsRequestHeaders() as Record<string, string>),
+  };
+  if (options?.bypassCache) {
+    headers["X-Neo-Pulse-Reporting-Highlights-Bypass-Cache"] = "1";
+  }
+
   const response = await fetch(`${BACKEND_API_BASE}/api/organic-dashboard/reporting-highlights`, {
     method: "POST",
     credentials: "include",
-    headers: organicReportingHighlightsRequestHeaders(),
+    headers,
     body: JSON.stringify({
       siteId,
+      bypassCache: options?.bypassCache === true,
       snapshot: { ...snapshot, periods: undefined },
     }),
     signal: mergeHighlightsAbortSignal(signal),
@@ -579,4 +696,56 @@ export async function fetchOrganicReportingHighlights(
     throw new Error("Highlights model returned empty content.");
   }
   return normalized;
+}
+
+function snapshotExpectsLocalGridNarrative(
+  snapshot: OrganicReportingHighlightsSnapshot,
+): boolean {
+  const grid = snapshot.localGrid;
+  return Boolean(grid && typeof grid.scanId === "string" && grid.scanId.trim());
+}
+
+export async function fetchLocalGridReportingNarrative(
+  snapshot: OrganicReportingHighlightsSnapshot,
+  siteId: string,
+  signal?: AbortSignal,
+): Promise<string[]> {
+  const localGrid = snapshot.localGrid;
+  if (!localGrid?.scanId?.trim()) {
+    return [];
+  }
+
+  const { fetchLocalGridReportNarrativeViaOpenRouter } = await import(
+    "@/lib/organic-dashboard/local-grid-report-narrative"
+  );
+
+  return fetchLocalGridReportNarrativeViaOpenRouter(
+    snapshot.siteName,
+    snapshot.siteUrl,
+    localGrid,
+    siteId,
+    signal,
+  );
+}
+
+export async function fetchOrganicReportingHighlightsForSnapshot(
+  snapshot: OrganicReportingHighlightsSnapshot,
+  siteId: string,
+  signal?: AbortSignal,
+): Promise<OrganicReportingHighlights> {
+  const highlights = await fetchOrganicReportingHighlights(snapshot, siteId, signal);
+  if (!snapshotExpectsLocalGridNarrative(snapshot) || highlights.localGridNarrative.length > 0) {
+    return highlights;
+  }
+
+  try {
+    const localGridNarrative = await fetchLocalGridReportingNarrative(snapshot, siteId, signal);
+    if (localGridNarrative.length > 0) {
+      return { ...highlights, localGridNarrative };
+    }
+  } catch {
+    /* keep main highlights; Local Map section handles empty narrative */
+  }
+
+  return highlights;
 }

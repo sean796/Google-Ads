@@ -109,6 +109,17 @@ class Neo_Pulse_App_Dataforseo_Route_Handlers {
 
 		$result = Neo_Pulse_App_Dataforseo_Mcp_Router::dispatch( $tool, $body );
 		if ( is_wp_error( $result ) ) {
+			if ( $tool === 'DataForSEO_llm_responses_live' ) {
+				return new WP_REST_Response(
+					array(
+						'skipped' => true,
+						'reason'  => 'dfs_llm_unavailable',
+						'tool'    => $tool,
+						'tasks'   => array(),
+					),
+					200
+				);
+			}
 			$status = 500;
 			$data   = $result->get_error_data();
 			if ( is_array( $data ) && isset( $data['status'] ) ) {
@@ -220,6 +231,17 @@ class Neo_Pulse_App_Dataforseo_Route_Handlers {
 		}
 		$result = Neo_Pulse_App_Dataforseo_Mcp_Router::dispatch( $tool, $body );
 		if ( is_wp_error( $result ) ) {
+			if ( $tool === 'DataForSEO_llm_responses_live' ) {
+				return array(
+					'status' => 200,
+					'data'   => array(
+						'skipped' => true,
+						'reason'  => 'dfs_llm_unavailable',
+						'tool'    => $tool,
+						'tasks'   => array(),
+					),
+				);
+			}
 			$status = 500;
 			$data   = $result->get_error_data();
 			if ( is_array( $data ) && isset( $data['status'] ) ) {
@@ -229,7 +251,15 @@ class Neo_Pulse_App_Dataforseo_Route_Handlers {
 				if ( $code === 40200 || $code === 40210 ) {
 					$status = 402;
 				} elseif ( $code >= 40000 && $code < 50000 ) {
-					$status = 422;
+					return array(
+						'status' => 200,
+						'data'   => array(
+							'skipped' => true,
+							'reason'  => 'dfs_task_skipped',
+							'tool'    => $tool,
+							'tasks'   => array(),
+						),
+					);
 				}
 			}
 			return array(

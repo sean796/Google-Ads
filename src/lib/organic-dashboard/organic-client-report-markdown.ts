@@ -1,6 +1,9 @@
 import type { OrganicClientReportContent } from "@/lib/organic-dashboard/organic-client-report-content";
 import { organicClientReportPdfFileName } from "@/lib/organic-dashboard/organic-client-report-pdf-filename";
-import type { DeckSummaryRow } from "@/lib/organic-dashboard/organic-client-report-deck-helpers";
+import {
+  layoutOpportunityComparisonRows,
+  type DeckSummaryRow,
+} from "@/lib/organic-dashboard/organic-client-report-deck-helpers";
 import type { OrganicDeckOpportunity } from "@/lib/organic-dashboard/organic-reporting-highlights";
 import {
   CLIENT_REPORT_DELTA_EMPTY,
@@ -9,6 +12,7 @@ import {
   normalizeClientReportText,
 } from "@/lib/organic-dashboard/organic-client-report-copy";
 import { AGENCY_NAME } from "@/lib/report-planner";
+import type { OrganicPeriodProgressTable } from "@/lib/organic-dashboard/organic-dashboard-period-progress";
 
 function escapeMdCell(value: string): string {
   return value.replace(/\|/g, "\\|").replace(/\n/g, " ");
@@ -40,22 +44,109 @@ function metricRowsMarkdown(
   return lines.join("\n");
 }
 
+function periodProgressTableMarkdown(table: OrganicPeriodProgressTable): string {
+  const headers = ["Month", ...table.rows.map((r) => escapeMdCell(r.label))];
+  const lines = [
+    `### ${table.title}`,
+    "",
+    "| " + headers.join(" | ") + " |",
+    "| " + headers.map(() => "---").join(" | ") + " |",
+  ];
+  for (let monthIdx = 0; monthIdx < table.monthLabels.length; monthIdx++) {
+    const monthLabel = table.monthLabels[monthIdx]!;
+    lines.push(
+      "| " +
+        [
+          escapeMdCell(monthLabel),
+          ...table.rows.map((row) => escapeMdCell(row.values[monthIdx] ?? "—")),
+        ].join(" | ") +
+        " |",
+    );
+  }
+  lines.push(
+    "| " +
+      [escapeMdCell(table.periodTotalColumnLabel), ...table.rows.map((r) => escapeMdCell(r.periodTotal))].join(
+        " | ",
+      ) +
+      " |",
+  );
+  return lines.join("\n");
+}
+
 function opportunityMarkdown(
   item: OrganicDeckOpportunity,
+  showCompare: boolean,
   compareLabel: string,
   primaryLabel: string,
 ): string {
   const parts = [`### ${item.label}`, "", "**Why it matters**", "", item.why, ""];
   if (item.comparisonRows.length > 0) {
-    parts.push("**Period comparison**", "");
-    parts.push(
-      "| Metric | " + escapeMdCell(compareLabel) + " | " + escapeMdCell(primaryLabel) + " |",
-      "| --- | --- | --- |",
-    );
-    for (const row of item.comparisonRows) {
+    parts.push(showCompare ? "**Period comparison**" : "**Period totals**", "");
+    const layout = layoutOpportunityComparisonRows(item.comparisonRows);
+    if (layout.kind === "query-grid") {
+      if (showCompare) {
+        parts.push(
+          "| Query | Metric | " + escapeMdCell(compareLabel) + " | " + escapeMdCell(primaryLabel) + " |",
+          "| --- | --- | --- | --- |",
+        );
+        for (const q of layout.queryRows) {
+          const lines = [
+            { metric: "Clicks", compare: q.clicks.compare, primary: q.clicks.primary },
+            { metric: "Impressions", compare: q.impressions.compare, primary: q.impressions.primary },
+            { metric: "Avg. position", compare: q.avgPosition.compare, primary: q.avgPosition.primary },
+          ];
+          lines.forEach((line, i) => {
+            const queryCell = i === 0 ? escapeMdCell(q.query) : "";
+            parts.push(
+              `| ${queryCell} | ${escapeMdCell(line.metric)} | ${escapeMdCell(line.compare)} | ${escapeMdCell(line.primary)} |`,
+            );
+          });
+        }
+      } else {
+        parts.push(
+          "| Query | Clicks | Impressions | Avg. position |",
+          "| --- | --- | --- | --- |",
+        );
+        for (const q of layout.queryRows) {
+          parts.push(
+            `| ${escapeMdCell(q.query)} | ${escapeMdCell(q.clicks.primary)} | ${escapeMdCell(q.impressions.primary)} | ${escapeMdCell(q.avgPosition.primary)} |`,
+          );
+        }
+      }
+      if (layout.siteRows.length > 0) {
+        parts.push("");
+        if (showCompare) {
+          parts.push(
+            "| Metric | " + escapeMdCell(compareLabel) + " | " + escapeMdCell(primaryLabel) + " |",
+            "| --- | --- | --- |",
+          );
+          for (const row of layout.siteRows) {
+            parts.push(
+              `| ${escapeMdCell(row.metric)} | ${escapeMdCell(row.comparePeriodValue)} | ${escapeMdCell(row.primaryPeriodValue)} |`,
+            );
+          }
+        } else {
+          parts.push("| Metric | " + escapeMdCell(primaryLabel) + " |", "| --- | --- |");
+          for (const row of layout.siteRows) {
+            parts.push(`| ${escapeMdCell(row.metric)} | ${escapeMdCell(row.primaryPeriodValue)} |`);
+          }
+        }
+      }
+    } else if (showCompare) {
       parts.push(
-        `| ${escapeMdCell(row.metric)} | ${escapeMdCell(row.comparePeriodValue)} | ${escapeMdCell(row.primaryPeriodValue)} |`,
+        "| Metric | " + escapeMdCell(compareLabel) + " | " + escapeMdCell(primaryLabel) + " |",
+        "| --- | --- | --- |",
       );
+      for (const row of layout.rows) {
+        parts.push(
+          `| ${escapeMdCell(row.metric)} | ${escapeMdCell(row.comparePeriodValue)} | ${escapeMdCell(row.primaryPeriodValue)} |`,
+        );
+      }
+    } else {
+      parts.push("| Metric | " + escapeMdCell(primaryLabel) + " |", "| --- | --- |");
+      for (const row of layout.rows) {
+        parts.push(`| ${escapeMdCell(row.metric)} | ${escapeMdCell(row.primaryPeriodValue)} |`);
+      }
     }
     parts.push("");
   } else if (item.metrics.trim()) {
@@ -81,21 +172,33 @@ export function serializeOrganicClientReportMarkdown(content: OrganicClientRepor
     topSemrushKeywords,
     highlightStats,
     opportunities,
+    googleAdsOpportunities,
     semrushDatabase,
     semrushOverviewUrl,
     semrushDomain,
     performanceNarrative,
     keywordNarrative,
+    googleAdsNarrative,
+    googleAdsDeckRows,
+    googleAdsLoadError,
+    showGoogleAdsSection,
     showPerformanceSection,
     showSemrushSection,
     showKeywordSection,
     showHighlightsSection,
+    periodProgressTables,
   } = content;
+
+  const agencyLogo = content.agencyLogoUrl.trim();
+  const clientLogo = content.clientLogoUrl.trim();
 
   const blocks: string[] = [
     `# ${siteName} Organic Performance`,
     "",
-    `- **Agency:** ${AGENCY_NAME}`,
+    `- **Agency:** ${AGENCY_NAME}${agencyLogo ? ` (${agencyLogo})` : ""}`,
+    ...(clientLogo
+      ? [`- **Client logo:** ${clientLogo}`]
+      : [`- **Client:** ${siteName}`]),
     `- **Site:** ${siteUrl}`,
     `- **Periods:** ${periodLine}`,
     `- **Prepared:** ${preparedOn}`,
@@ -114,17 +217,38 @@ export function serializeOrganicClientReportMarkdown(content: OrganicClientRepor
     blocks.push("");
   }
 
+  if (content.showLeadsSection && content.leadsSummary) {
+    const s = content.leadsSummary;
+    blocks.push(
+      "## Lead Generation & Revenue Outcomes (Organic vs. Paid)",
+      "",
+      `> **Google Ads ROI:** ${s.roiHeadline}`,
+      `> **Organic SEO Impact:** ${s.organicHeadline}`,
+      "",
+      "### Lead Acquisition Funnel",
+      "",
+      "| Funnel Stage | Organic (SEO) | Paid (Google Ads) | Total / Blended |",
+      "| --- | ---: | ---: | ---: |",
+    );
+    for (const r of content.leadsFunnelTable) {
+      blocks.push(`| ${r.stage} | ${r.organic} | ${r.paid} | ${r.total} |`);
+    }
+    blocks.push("");
+  }
+
   if (showPerformanceSection) {
     blocks.push("## Performance summary", "");
-    blocks.push(
-      "Headline metrics for the selected periods. Organic search traffic comes from GA4 (Organic Search channel); search visibility from Google Search Console.",
-      "",
-    );
     if (performanceNarrative.length > 0) {
-      blocks.push("### Performance breakdown", "");
+      blocks.push("### Overview", "");
       for (const p of performanceNarrative) {
         blocks.push(p, "");
       }
+    }
+    if (!showCompare && periodProgressTables?.ga4) {
+      blocks.push(periodProgressTableMarkdown(periodProgressTables.ga4), "");
+    }
+    if (!showCompare && periodProgressTables?.gsc) {
+      blocks.push(periodProgressTableMarkdown(periodProgressTables.gsc), "");
     }
     blocks.push("### Website traffic (GA4)", "");
     blocks.push(metricRowsMarkdown(traffic, showCompare, comparePeriodLabel, primaryPeriodLabel), "");
@@ -134,18 +258,9 @@ export function serializeOrganicClientReportMarkdown(content: OrganicClientRepor
 
   if (showSemrushSection) {
     blocks.push("## Semrush estimates", "");
-    blocks.push(
-      `Semrush domain overview estimates (not Google Search Console clicks). Regional database: ${semrushDatabase.toUpperCase()}.` +
-        (semrushOverviewUrl ? ` Full report: ${semrushOverviewUrl}` : ""),
-      "",
-    );
     blocks.push("### Organic visibility (Semrush)", "");
     blocks.push(metricRowsMarkdown(semrushDeckRows, showCompare, comparePeriodLabel, primaryPeriodLabel), "");
     if (topSemrushKeywords.length > 0) {
-      blocks.push(
-        `Top organic keywords by estimated traffic for ${semrushDomain || siteUrl}:`,
-        "",
-      );
       for (const k of topSemrushKeywords) {
         blocks.push(
           `- **${k.phrase}:** ${formatClientReportSemrushKeywordMeta(k.traffic, k.volume)}`,
@@ -158,14 +273,14 @@ export function serializeOrganicClientReportMarkdown(content: OrganicClientRepor
   if (showKeywordSection) {
     blocks.push("## Keyword performance", "");
     if (keywordNarrative.length > 0) {
-      blocks.push("### Keyword performance breakdown", "");
+      blocks.push("### Overview", "");
       for (const p of keywordNarrative) {
         blocks.push(p, "");
       }
     }
-    blocks.push(`Top queries by clicks in ${primaryPeriodLabel}:`, "");
+    blocks.push("### Top queries", "");
     for (const q of topQueries) {
-      blocks.push(`- **${q.query}:** ${formatClientReportTopQueryMeta(q.clicks, primaryPeriodLabel)}`);
+      blocks.push(`- **${q.query}:** ${formatClientReportTopQueryMeta(q.clicks)}`);
     }
     blocks.push("");
   }
@@ -183,7 +298,38 @@ export function serializeOrganicClientReportMarkdown(content: OrganicClientRepor
       blocks.push("");
     }
     for (const item of opportunities) {
-      blocks.push(opportunityMarkdown(item, comparePeriodLabel, primaryPeriodLabel));
+      blocks.push(opportunityMarkdown(item, showCompare, comparePeriodLabel, primaryPeriodLabel));
+    }
+  }
+
+  if (content.showLocalGridSection && content.localGridSection) {
+    const grid = content.localGridSection;
+    blocks.push("## Local Map Visibility", "");
+    const gridExplainer = content.localGridNarrative[0];
+    if (gridExplainer) {
+      blocks.push(gridExplainer, "");
+    }
+    blocks.push("### Map Pack Metrics", "");
+    blocks.push(metricRowsMarkdown(grid.summaryRows, false, comparePeriodLabel, primaryPeriodLabel), "");
+  }
+
+  if (showGoogleAdsSection) {
+    blocks.push("## Google Ads", "");
+    if (googleAdsLoadError) {
+      blocks.push(googleAdsLoadError, "");
+    } else {
+      if (googleAdsNarrative.length > 0) {
+        blocks.push("### Overview", "");
+        for (const p of googleAdsNarrative) {
+          blocks.push(p, "");
+        }
+      }
+      if (googleAdsDeckRows.length > 0) {
+        blocks.push(metricRowsMarkdown(googleAdsDeckRows, showCompare, comparePeriodLabel, primaryPeriodLabel), "");
+      }
+      for (const item of googleAdsOpportunities) {
+        blocks.push(opportunityMarkdown(item, showCompare, comparePeriodLabel, primaryPeriodLabel));
+      }
     }
   }
 

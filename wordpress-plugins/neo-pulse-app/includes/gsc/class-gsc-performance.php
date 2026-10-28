@@ -12,6 +12,11 @@ class Neo_Pulse_App_Gsc_Performance {
 	const CONTEXT_MAX_CHARS = 8000;
 	const CONTEXT_MAX_ROWS  = 5000;
 
+	/** Organic Performance dashboard: enough for top-query UI without 25k-row GSC pulls. */
+	const ORGANIC_DASHBOARD_QUERY_ROW_LIMIT = 1500;
+
+	const ORGANIC_DASHBOARD_TOP_KEYWORDS_CAP = 300;
+
 	public static function gsc_dumps_dir(): string {
 		return Neo_Pulse_App_Data_Paths::subdir( 'gsc' );
 	}
@@ -56,14 +61,20 @@ class Neo_Pulse_App_Gsc_Performance {
 		$prop   = $resolved['property'];
 		$include_pages     = ! isset( $body['includePagesCount'] ) || ! empty( $body['includePagesCount'] );
 		$include_timeseries = ! empty( $body['includeTimeseries'] );
+		$query_row_limit    = self::resolve_query_row_limit( $body );
+		$top_keywords_cap   = self::resolve_top_keywords_cap( $body );
 		if ( $include_timeseries ) {
+			$timeout = self::resolve_request_timeout_seconds( $body );
 			return self::fetch_performance_stats_parallel_batch(
 				$prop,
 				$cur['startDateStr'],
 				$cur['endDateStr'],
 				$include_compare && is_array( $cmp ) ? $cmp['startDateStr'] : null,
 				$include_compare && is_array( $cmp ) ? $cmp['endDateStr'] : null,
-				$include_compare
+				$include_compare,
+				$query_row_limit,
+				$top_keywords_cap,
+				$timeout
 			);
 		}
 		$now           = self::stats_for_range( $prop, $cur['startDateStr'], $cur['endDateStr'], $include_pages );
@@ -289,24 +300,24 @@ class Neo_Pulse_App_Gsc_Performance {
 		string $cur_end,
 		?string $cmp_start,
 		?string $cmp_end,
-		bool $include_compare
+		bool $include_compare,
+		int $query_row_limit = 25000,
+		int $top_keywords_cap = 0,
+		int $request_timeout_seconds = 60
 	): array {
-		$bodies = array(
+		$query_row_limit = max( 100, min( 25000, $query_row_limit ) );
+		$timeseries_rows = max( 32, min( 400, self::inclusive_day_span( $cur_start, $cur_end ) + 7 ) );
+		$bodies          = array(
 			'cur_totals'  => array(
 				'startDate' => $cur_start,
 				'endDate'   => $cur_end,
 			),
-			'cur_queries' => array(
-				'startDate'  => $cur_start,
-				'endDate'    => $cur_end,
-				'dimensions' => array( 'query' ),
-				'rowLimit'   => 25000,
-			),
+			'cur_queries' => self::query_dimension_request_body( $cur_start, $cur_end, $query_row_limit ),
 			'timeseries'  => array(
 				'startDate'  => $cur_start,
 				'endDate'    => $cur_end,
 				'dimensions' => array( 'date' ),
-				'rowLimit'   => 25000,
+				'rowLimit'   => $timeseries_rows,
 			),
 		);
 		if ( $include_compare && $cmp_start !== null && $cmp_end !== null ) {
@@ -314,15 +325,14 @@ class Neo_Pulse_App_Gsc_Performance {
 				'startDate' => $cmp_start,
 				'endDate'   => $cmp_end,
 			);
-			$bodies['cmp_queries'] = array(
-				'startDate'  => $cmp_start,
-				'endDate'    => $cmp_end,
-				'dimensions' => array( 'query' ),
-				'rowLimit'   => 25000,
-			);
+			$bodies['cmp_queries'] = self::query_dimension_request_body( $cmp_start, $cmp_end, $query_row_limit );
 		}
 
-		$responses = Neo_Pulse_App_Gsc_Service_Account::search_analytics_query_parallel( $prop, $bodies );
+		$responses = Neo_Pulse_App_Gsc_Service_Account::search_analytics_query_parallel(
+			$prop,
+			$bodies,
+			$request_timeout_seconds
+		);
 		foreach ( $responses as $response ) {
 			if ( is_wp_error( $response ) ) {
 				return self::err( 502, $response->get_error_message() );
@@ -342,13 +352,18 @@ class Neo_Pulse_App_Gsc_Performance {
 		}
 		$timeseries = self::timeseries_from_analytics_response( $responses['timeseries'] ?? array() );
 
+		$top_keywords = self::top_keywords( $now['queries'], $before['queries'] );
+		if ( $top_keywords_cap > 0 ) {
+			$top_keywords = array_slice( $top_keywords, 0, max( 50, min( 2500, $top_keywords_cap ) ) );
+		}
+
 		$stats_body = array(
 			'currentPeriod'    => self::period_payload( $cur_start, $cur_end, $now ),
 			'comparisonPeriod' => $include_compare && $cmp_start !== null && $cmp_end !== null
 				? self::period_payload( $cmp_start, $cmp_end, $before )
 				: self::period_payload( $cur_start, $cur_end, self::empty_stats() ),
 			'comparisons'      => self::compare_stats( $now, $before ),
-			'topKeywords'      => self::top_keywords( $now['queries'], $before['queries'] ),
+			'topKeywords'      => $top_keywords,
 		);
 
 		return array(
@@ -475,6 +490,66 @@ class Neo_Pulse_App_Gsc_Performance {
 			'pagesChange' => $a['pagesCount'] - $b['pagesCount'], 'pagesChangePercent' => $pct( $a['pagesCount'], $b['pagesCount'] ),
 			'searchTermsChange' => $a['searchTermsCount'] - $b['searchTermsCount'], 'searchTermsChangePercent' => $pct( $a['searchTermsCount'], $b['searchTermsCount'] ),
 		);
+	}
+
+	private static function inclusive_day_span( string $start, string $end ): int {
+		$start_ts = strtotime( $start . ' UTC' );
+		$end_ts   = strtotime( $end . ' UTC' );
+		if ( false === $start_ts || false === $end_ts || $end_ts < $start_ts ) {
+			return 31;
+		}
+		return (int) floor( ( $end_ts - $start_ts ) / DAY_IN_SECONDS ) + 1;
+	}
+
+	/**
+	 * @param array<string,mixed> $body
+	 */
+	private static function resolve_request_timeout_seconds( array $body ): int {
+		if ( ! isset( $body['requestTimeoutSeconds'] ) ) {
+			return 60;
+		}
+		return max( 15, min( 120, (int) $body['requestTimeoutSeconds'] ) );
+	}
+
+	/**
+	 * @param array<string,mixed> $body
+	 */
+	private static function resolve_query_row_limit( array $body ): int {
+		if ( ! isset( $body['queryRowLimit'] ) ) {
+			return 25000;
+		}
+		return max( 100, min( 25000, (int) $body['queryRowLimit'] ) );
+	}
+
+	/**
+	 * @param array<string,mixed> $body
+	 */
+	private static function resolve_top_keywords_cap( array $body ): int {
+		if ( ! isset( $body['topKeywordsCap'] ) ) {
+			return 0;
+		}
+		return max( 0, min( 2500, (int) $body['topKeywordsCap'] ) );
+	}
+
+	/**
+	 * @return array<string,mixed>
+	 */
+	private static function query_dimension_request_body( string $start, string $end, int $row_limit ): array {
+		$body = array(
+			'startDate'  => $start,
+			'endDate'    => $end,
+			'dimensions' => array( 'query' ),
+			'rowLimit'   => $row_limit,
+		);
+		if ( $row_limit < 25000 ) {
+			$body['orderBy'] = array(
+				array(
+					'fieldName' => 'impressions',
+					'sortOrder' => 'DESCENDING',
+				),
+			);
+		}
+		return $body;
 	}
 
 	/** @param array<int,array<string,mixed>> $cur @param array<int,array<string,mixed>> $prev */

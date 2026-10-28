@@ -17,8 +17,12 @@ import {
 } from "@/lib/organic-dashboard/organic-dashboard-fetch-params";
 import { buildOrganicDashboardViewModel } from "@/lib/organic-dashboard/organic-dashboard-view-model";
 import {
+  buildLocalGridReportingSnapshot,
+  fetchLatestLocalGridScanForSite,
+} from "@/lib/organic-dashboard/local-grid-client-report";
+import {
   buildOrganicReportingHighlightsSnapshot,
-  fetchOrganicReportingHighlights,
+  fetchOrganicReportingHighlightsForSnapshot,
 } from "@/lib/organic-dashboard/organic-reporting-highlights";
 import { resolveSemrushProjectDashboardUrlForSite } from "@/lib/semrush-project-id-defaults";
 
@@ -37,14 +41,17 @@ export function organicReportingHighlightsQueryKey(args: {
   showCompare: boolean;
   siteDisplayName: string;
   sitePublicUrl: string;
+  localGridScanId?: string | null;
 }) {
   return [
     "organic-reporting-highlights",
+    "v2",
     args.siteId,
     args.fetchParams,
     args.showCompare,
     args.siteDisplayName,
     args.sitePublicUrl,
+    args.localGridScanId ?? null,
   ] as const;
 }
 
@@ -90,12 +97,17 @@ export function prefetchOrganicDashboardPerformancePack(
     const siteDisplayName = site.name?.trim() || site.siteUrl;
     const sitePublicUrl = getPublicSiteUrl(site).trim() || site.siteUrl.trim();
     const siteSemrushProjectDashboardUrl = resolveSemrushProjectDashboardUrlForSite(site);
+    const latestGridScan = await fetchLatestLocalGridScanForSite(site.id).catch(() => null);
+    const localGridSnapshot = latestGridScan
+      ? buildLocalGridReportingSnapshot(latestGridScan)
+      : null;
     const highlightsKey = organicReportingHighlightsQueryKey({
       siteId: site.id,
       fetchParams: resolved.params,
       showCompare: resolved.showCompare,
       siteDisplayName,
       sitePublicUrl,
+      localGridScanId: localGridSnapshot?.scanId ?? null,
     });
     await queryClient.prefetchQuery({
       queryKey: highlightsKey,
@@ -110,8 +122,9 @@ export function prefetchOrganicDashboardPerformancePack(
           siteDisplayName,
           sitePublicUrl,
           resolved.showCompare,
+          localGridSnapshot,
         );
-        return fetchOrganicReportingHighlights(snapshot, site.id, signal);
+        return fetchOrganicReportingHighlightsForSnapshot(snapshot, site.id, signal);
       },
       staleTime: ORGANIC_DASHBOARD_QUERY_STALE_MS,
     });

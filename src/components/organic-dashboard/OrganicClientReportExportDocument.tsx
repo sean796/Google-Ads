@@ -1,19 +1,21 @@
 import type { ReactNode } from "react";
+import { OrganicClientReportCover } from "@/components/organic-dashboard/OrganicClientReportCover";
+import { OrganicClientReportInlineText } from "@/components/organic-dashboard/OrganicClientReportInlineText";
+import { OrganicClientReportGoogleAdsAccountPanel } from "@/components/organic-dashboard/OrganicClientReportGoogleAdsAccountPanel";
+import { OrganicClientReportLocalGridSection } from "@/components/organic-dashboard/OrganicClientReportLocalGridSection";
 import {
   EXPORT_BODY_CLASS,
   EXPORT_BODY_MUTED_CLASS,
-  EXPORT_BULLET_LIST_CLASS,
+  EXPORT_COVER_PAGE_CLASS,
   EXPORT_FOOTER_CLASS,
   EXPORT_H3_CLASS,
   EXPORT_H4_CLASS,
-  EXPORT_HERO_CLASS,
   EXPORT_KPI_ACCENT_CLICKS,
   EXPORT_KPI_ACCENT_IMPRESSIONS,
   EXPORT_KPI_ACCENT_NEUTRAL,
   EXPORT_KPI_ITEM_CLASS,
   EXPORT_KPI_LIST_CLASS,
   EXPORT_LABEL_CLASS,
-  EXPORT_LEAD_CLASS,
   EXPORT_METRIC_TABLE_CLASS,
   EXPORT_NARRATIVE_WELL_CLASS,
   EXPORT_OPPORTUNITY_CLASS,
@@ -37,7 +39,6 @@ import {
 import type { OrganicDeckOpportunity } from "@/lib/organic-dashboard/organic-reporting-highlights";
 import {
   CLIENT_REPORT_DELTA_EMPTY,
-  formatClientReportCoverTitle,
   formatClientReportSemrushKeywordMeta,
   formatClientReportTopQueryMeta,
 } from "@/lib/organic-dashboard/organic-client-report-copy";
@@ -46,6 +47,10 @@ import { cn } from "@/lib/utils";
 
 export type OrganicClientReportExportDocumentProps = {
   content: OrganicClientReportContent;
+  highlightsLoading?: boolean;
+  localGridNarrativeLoading?: boolean;
+  highlightsError?: string | null;
+  onToggleLogoBoxTheme?: () => void;
 };
 
 function ExportSection({
@@ -58,12 +63,14 @@ function ExportSection({
   children: ReactNode;
 }) {
   const slug = title.replace(/\s+/g, "-").toLowerCase();
+  const sectionId = `export-section-${slug}`;
   return (
     <section
+      id={sectionId}
       className={cn(EXPORT_SECTION_CLASS, pageBreak && EXPORT_PAGE_BREAK_CLASS)}
-      aria-labelledby={`export-section-${slug}`}
+      aria-labelledby={`${sectionId}-heading`}
     >
-      <h2 id={`export-section-${slug}`} className={EXPORT_SECTION_HEAD_CLASS}>
+      <h2 id={`${sectionId}-heading`} className={EXPORT_SECTION_HEAD_CLASS}>
         {title}
       </h2>
       <div className={EXPORT_SECTION_BODY_CLASS}>{children}</div>
@@ -177,7 +184,11 @@ function ExportOpportunityTable({
 }) {
   if (rows.length === 0) {
     if (!legacyMetrics.trim()) return null;
-    return <p className={EXPORT_BODY_CLASS}>{legacyMetrics}</p>;
+    return (
+      <p className={EXPORT_BODY_CLASS}>
+        <OrganicClientReportInlineText text={legacyMetrics} />
+      </p>
+    );
   }
   return (
     <table className={EXPORT_METRIC_TABLE_CLASS}>
@@ -250,12 +261,20 @@ function ExportOpportunityCard({
         primaryPeriodLabel={primaryPeriodLabel}
         legacyMetrics={item.metrics}
       />
-      <p className={EXPORT_BODY_CLASS}>{item.why}</p>
+      <p className={EXPORT_BODY_CLASS}>
+        <OrganicClientReportInlineText text={item.why} />
+      </p>
     </li>
   );
 }
 
-export function OrganicClientReportExportDocument({ content }: OrganicClientReportExportDocumentProps) {
+export function OrganicClientReportExportDocument({
+  content,
+  highlightsLoading = false,
+  localGridNarrativeLoading = false,
+  highlightsError = null,
+  onToggleLogoBoxTheme,
+}: OrganicClientReportExportDocumentProps) {
   const {
     siteName,
     siteUrl,
@@ -281,36 +300,50 @@ export function OrganicClientReportExportDocument({ content }: OrganicClientRepo
     showSemrushSection,
     showKeywordSection,
     showHighlightsSection,
+    showGoogleAdsSection,
+    showLocalGridSection,
+    localGridSection,
+    localGridNarrative,
+    googleAdsAccountCard,
+    googleAdsNarrative,
+    googleAdsDeckRows,
+    googleAdsLoadError,
+    clientLogoUrl,
+    clientLogoBoxTheme,
+    agencyLogoUrl,
   } = content;
+
+  let totalPages = 1;
+  if (showPerformanceSection) totalPages += 1;
+  if (showSemrushSection) totalPages += 1;
+  if (showKeywordSection) totalPages += 1;
+  if (showHighlightsSection) totalPages += 1;
+  if (showLocalGridSection) totalPages += 1;
+  if (showGoogleAdsSection) totalPages += 1;
 
   return (
     <article className={EXPORT_PAGE_CLASS}>
-      <header className={EXPORT_HERO_CLASS}>
-        <div className="organic-client-report-export__cover-header">
-          <div>
-            <h1 className="organic-client-report-export__cover-title">
-              {formatClientReportCoverTitle(AGENCY_NAME, siteName)}
-            </h1>
-            <p className="organic-client-report-export__cover-meta">
-              {siteUrl} | {periodLine} | Prepared {preparedOn}
-            </p>
-          </div>
-        </div>
-        <div className="organic-client-report-export__hero-body">
-          <h2 className="organic-client-report-export__insights-title">Insights</h2>
-          <p className={EXPORT_LEAD_CLASS}>{highlights.executiveSummary}</p>
-          {highlights.keyTakeaways.length > 0 ? (
-            <div>
-              <h3 className={EXPORT_H3_CLASS}>Key takeaways</h3>
-              <ul className={EXPORT_BULLET_LIST_CLASS}>
-                {highlights.keyTakeaways.map((line, idx) => (
-                  <li key={`${idx}-${line}`}>{line}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </div>
-      </header>
+      <section
+        id="report-cover"
+        className={cn(EXPORT_COVER_PAGE_CLASS, EXPORT_PAGE_BREAK_CLASS)}
+        aria-label="Executive cover and insights"
+      >
+        <OrganicClientReportCover
+          siteName={siteName}
+          siteUrl={siteUrl}
+          periodLine={periodLine}
+          preparedOn={preparedOn}
+          agencyLogoUrl={agencyLogoUrl}
+          clientLogoUrl={clientLogoUrl}
+          clientLogoBoxTheme={clientLogoBoxTheme}
+          onToggleTheme={onToggleLogoBoxTheme}
+          executiveSummary={highlights.executiveSummary}
+          keyTakeaways={highlights.keyTakeaways}
+          insightsLoading={highlightsLoading}
+          insightsError={highlightsError}
+          totalPages={totalPages}
+        />
+      </section>
 
       {showPerformanceSection ? (
         <ExportSection title="Performance summary">
@@ -328,7 +361,7 @@ export function OrganicClientReportExportDocument({ content }: OrganicClientRepo
               <h3 className={EXPORT_H3_CLASS}>Performance breakdown</h3>
               {performanceNarrative.map((p, idx) => (
                 <p key={`${idx}-${p}`} className={EXPORT_BODY_CLASS}>
-                  {p}
+                  <OrganicClientReportInlineText text={p} />
                 </p>
               ))}
             </div>
@@ -393,7 +426,7 @@ export function OrganicClientReportExportDocument({ content }: OrganicClientRepo
               <h3 className={EXPORT_H3_CLASS}>Keyword performance breakdown</h3>
               {keywordNarrative.map((p, idx) => (
                 <p key={`${idx}-${p}`} className={EXPORT_BODY_CLASS}>
-                  {p}
+                  <OrganicClientReportInlineText text={p} />
                 </p>
               ))}
             </div>
@@ -420,6 +453,40 @@ export function OrganicClientReportExportDocument({ content }: OrganicClientRepo
                 />
               ))}
             </ul>
+          ) : null}
+        </ExportSection>
+      ) : null}
+
+      {showLocalGridSection && localGridSection ? (
+        <ExportSection title="Local map visibility" pageBreak>
+          <OrganicClientReportLocalGridSection
+            section={localGridSection}
+            narrative={localGridNarrative}
+            overviewLoading={localGridNarrativeLoading}
+          />
+        </ExportSection>
+      ) : null}
+
+      {showGoogleAdsSection ? (
+        <ExportSection title="Google Ads" pageBreak>
+          {googleAdsLoadError ? (
+            <p className={EXPORT_BODY_MUTED_CLASS}>{googleAdsLoadError}</p>
+          ) : null}
+          {googleAdsAccountCard ? (
+            <OrganicClientReportGoogleAdsAccountPanel
+              card={googleAdsAccountCard}
+              narrative={googleAdsNarrative}
+              overviewLoading={highlightsLoading}
+              overviewError={highlightsError}
+            />
+          ) : googleAdsDeckRows.length > 0 ? (
+            <ExportMetricStack
+              groupTitle="Google Ads summary"
+              rows={googleAdsDeckRows}
+              showCompare={showCompare}
+              comparePeriodLabel={comparePeriodLabel}
+              primaryPeriodLabel={primaryPeriodLabel}
+            />
           ) : null}
         </ExportSection>
       ) : null}

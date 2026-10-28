@@ -108,19 +108,129 @@ class Neo_Pulse_App_Wp_Posts_Inventory {
 			$all_scheduled
 		);
 
+		$payload = array(
+			'count'        => count( $mapped ),
+			'posts'        => $mapped,
+			'month'        => $all_flag ? null : $target_month,
+			'year'         => $all_flag ? null : $target_year,
+			'allScheduled' => $all_flag,
+			'debug'        => array(
+				'totalScheduledPosts' => count( $all_posts ),
+				'targetMonth'         => $all_flag ? null : $target_month + 1,
+				'targetYear'          => $all_flag ? null : $target_year,
+			),
+		);
+
+		if ( ! empty( $body['includeEntityScheduled'] ) ) {
+			list( , $entity_payload ) = self::get_scheduled_entity_posts( $body );
+			$payload['entityPosts']            = isset( $entity_payload['posts'] ) && is_array( $entity_payload['posts'] )
+				? $entity_payload['posts']
+				: array();
+			$payload['entityPostTypeEndpoint'] = $entity_payload['postTypeEndpoint'] ?? null;
+			$payload['entityScheduledError']   = $entity_payload['error'] ?? null;
+		}
+
+		return array( 200, $payload );
+	}
+
+	/**
+	 * Future posts from the entity/SAP REST collection (manual endpoint or entity sitemap).
+	 *
+	 * @param array<string,mixed> $body Request body.
+	 * @return array{0:int,1:array<string,mixed>}
+	 */
+	public static function get_scheduled_entity_posts( $body ) {
+		$site_url     = isset( $body['siteUrl'] ) ? (string) $body['siteUrl'] : '';
+		$username     = isset( $body['username'] ) ? (string) $body['username'] : '';
+		$app_password = isset( $body['appPassword'] ) ? (string) $body['appPassword'] : '';
+		if ( $site_url === '' || $username === '' || $app_password === '' ) {
+			return array( 400, array( 'count' => 0, 'error' => 'Missing required fields: siteUrl, username, appPassword' ) );
+		}
+
+		$secondary = Neo_Pulse_App_Wp_Url_Normalize::resolve_secondary_rest_collection(
+			isset( $body['manualEndpoint'] ) ? $body['manualEndpoint'] : null,
+			isset( $body['entitySitemapUrl'] ) ? $body['entitySitemapUrl'] : null
+		);
+		if ( ! $secondary ) {
+			return array(
+				200,
+				array(
+					'count'              => 0,
+					'posts'              => array(),
+					'postTypeEndpoint'   => null,
+					'error'              => 'Entity collection not configured.',
+				),
+			);
+		}
+
+		$normalized = Neo_Pulse_App_Wp_Url_Normalize::normalize_url( $site_url );
+		$warm       = Neo_Pulse_App_Wp_Rest_Client::warm_origin_session( $normalized );
+		$all_posts  = array();
+		$page       = 1;
+		$has_more   = true;
+
+		while ( $has_more ) {
+			$resp = Neo_Pulse_App_Wp_Rest_Client::request(
+				'GET',
+				$normalized . '/wp-json/wp/v2/' . rawurlencode( $secondary ),
+				$username,
+				$app_password,
+				array(
+					'timeout' => 15,
+					'referer' => $normalized . '/',
+					'cookie'  => $warm['cookie'],
+					'params'  => array(
+						'status'   => 'future',
+						'per_page' => 100,
+						'page'     => $page,
+					),
+				)
+			);
+			if ( $resp['is_wp_error'] ) {
+				return array( 200, array( 'count' => 0, 'posts' => array(), 'error' => $resp['error'] ) );
+			}
+			if ( (int) $resp['status'] === 401 ) {
+				return array( 200, array( 'count' => 0, 'posts' => array(), 'error' => 'Authentication failed.' ) );
+			}
+			if ( (int) $resp['status'] !== 200 || ! is_array( $resp['body'] ) ) {
+				break;
+			}
+			$posts = $resp['body'];
+			if ( ! $posts ) {
+				break;
+			}
+			$all_posts   = array_merge( $all_posts, $posts );
+			$total_pages = (int) ( $resp['headers']['x-wp-totalpages'] ?? 1 );
+			if ( $page >= $total_pages || count( $posts ) < 100 ) {
+				$has_more = false;
+			} else {
+				++$page;
+			}
+		}
+
+		$mapped = array_map(
+			static function ( $post ) use ( $secondary ) {
+				$url = (string) ( $post['link'] ?? '' );
+				return array(
+					'id'                 => (int) ( $post['id'] ?? 0 ),
+					'slug'               => (string) ( $post['slug'] ?? '' ),
+					'date_gmt'           => (string) ( $post['date_gmt'] ?? '' ),
+					'title'              => Neo_Pulse_App_Wp_Url_Normalize::rendered_text( $post['title'] ?? '' ),
+					'url'                => $url,
+					'link'               => $url,
+					'status'             => 'future',
+					'postTypeEndpoint'   => $secondary,
+				);
+			},
+			$all_posts
+		);
+
 		return array(
 			200,
 			array(
-				'count'         => count( $mapped ),
-				'posts'         => $mapped,
-				'month'         => $all_flag ? null : $target_month,
-				'year'          => $all_flag ? null : $target_year,
-				'allScheduled'  => $all_flag,
-				'debug'         => array(
-					'totalScheduledPosts' => count( $all_posts ),
-					'targetMonth'         => $all_flag ? null : $target_month + 1,
-					'targetYear'          => $all_flag ? null : $target_year,
-				),
+				'count'            => count( $mapped ),
+				'posts'            => $mapped,
+				'postTypeEndpoint' => $secondary,
 			),
 		);
 	}

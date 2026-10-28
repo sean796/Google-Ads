@@ -172,11 +172,30 @@ class Neo_Pulse_App_Wp_NeoPulse_Tools {
 	}
 
 	/**
-	 * @param string $normalized Site URL.
-	 * @return array{ok:bool,version?:string}
+	 * @param string $normalized   Site URL.
+	 * @param string $username     Optional username for authenticated wp_ping.
+	 * @param string $app_password Optional application password for authenticated wp_ping.
+	 * @return array{ok:bool,version?:string|null}
 	 */
-	public static function ping_public( $normalized ) {
-		$url  = Neo_Pulse_App_Wp_Url_Normalize::normalize_url( $normalized ) . '/wp-json/neo-pulse/v1/ping';
+	public static function ping_public( $normalized, $username = '', $app_password = '' ) {
+		$base = Neo_Pulse_App_Wp_Url_Normalize::normalize_url( $normalized );
+		if ( $username !== '' && $app_password !== '' ) {
+			$exec = self::execute_tool( $base, $username, $app_password, 'wp_ping', array() );
+			if ( ! empty( $exec['ok'] ) ) {
+				$ver = null;
+				if ( isset( $exec['data']['version'] ) && is_string( $exec['data']['version'] ) ) {
+					$ver = $exec['data']['version'];
+				} elseif ( isset( $exec['version'] ) && is_string( $exec['version'] ) ) {
+					$ver = $exec['version'];
+				}
+				return array(
+					'ok'      => true,
+					'version' => $ver,
+				);
+			}
+		}
+
+		$url  = $base . '/wp-json/neo-pulse/v1';
 		$resp = wp_remote_get(
 			$url,
 			array(
@@ -188,12 +207,12 @@ class Neo_Pulse_App_Wp_NeoPulse_Tools {
 			return array( 'ok' => false );
 		}
 		$body = json_decode( (string) wp_remote_retrieve_body( $resp ), true );
-		if ( ! is_array( $body ) || empty( $body['ok'] ) ) {
+		if ( ! is_array( $body ) || ( $body['namespace'] ?? '' ) !== 'neo-pulse/v1' ) {
 			return array( 'ok' => false );
 		}
 		return array(
 			'ok'      => true,
-			'version' => isset( $body['version'] ) && is_string( $body['version'] ) ? $body['version'] : null,
+			'version' => null,
 		);
 	}
 

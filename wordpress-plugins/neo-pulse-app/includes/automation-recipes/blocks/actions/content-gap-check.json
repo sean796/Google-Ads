@@ -1,0 +1,19 @@
+{
+  "keyword": "content-gap-check",
+  "name": "Content gap check",
+  "executionKind": "content_gap_check",
+  "description": "Compare scheduled and posted content this month against the editorial package quota.",
+  "filters": {
+    "categories": ["editorial"],
+    "buckets": ["posts", "sap"],
+    "verticals": ["editorial", "general"]
+  },
+  "defaults": {
+    "executionPayload": {
+      "contentGapSitemapSource": "posts",
+      "contentGapCountMode": "editorial_month",
+      "contentGapUseEditorialPackage": true,
+      "contentGapDayOfMonth": 1
+    }
+  }
+}

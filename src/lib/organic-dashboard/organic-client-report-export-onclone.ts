@@ -14,4 +14,13 @@ export function applyOrganicClientReportExportOnclone(clonedDoc: Document): void
   body.style.margin = "0";
   body.style.height = "auto";
   body.style.overflow = "visible";
+
+  const host = clonedDoc.querySelector<HTMLElement>(".organic-client-report-pdf-capture-host");
+  if (host) {
+    host.style.position = "static";
+    host.style.left = "0";
+    host.style.top = "0";
+    host.style.zIndex = "1";
+    host.style.opacity = "1";
+  }
 }

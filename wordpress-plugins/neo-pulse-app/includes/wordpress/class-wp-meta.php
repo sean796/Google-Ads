@@ -1,6 +1,6 @@
 <?php
 /**
- * WordPress post meta routes (get/update meta, update single ACF field).
+ * WordPress post meta routes (NEO Pulse native meta & custom fields).
  *
  * @package Neo_Pulse_App
  */
@@ -56,6 +56,25 @@ class Neo_Pulse_App_Wp_Meta {
 		$acf  = Neo_Pulse_App_Wp_Url_Normalize::rest_acf_from_post( $post );
 		$acf  = is_array( $acf ) ? $acf : array();
 
+		if ( empty( $acf['keyword_focus'] ) || empty( $acf['seo_research'] ) ) {
+			$pulse_post = Neo_Pulse_App_Wp_NeoPulse_Tools::execute_tool(
+				$normalized,
+				$username,
+				$app_password,
+				'wp_get_post',
+				array( 'post_id' => $post_id )
+			);
+			$meta_hub = isset( $pulse_post['data']['meta_hub'] ) && is_array( $pulse_post['data']['meta_hub'] )
+				? $pulse_post['data']['meta_hub']
+				: ( isset( $pulse_post['meta_hub'] ) && is_array( $pulse_post['meta_hub'] ) ? $pulse_post['meta_hub'] : array() );
+			if ( $meta_hub !== array() ) {
+				$acf = Neo_Pulse_App_Wp_Url_Normalize::merge_rest_field_objects(
+					$acf,
+					Neo_Pulse_App_Wp_Acf_Protocol::fields_from_pulse_meta_hub( $meta_hub )
+				);
+			}
+		}
+
 		return array(
 			200,
 			array(
@@ -94,44 +113,28 @@ class Neo_Pulse_App_Wp_Meta {
 		$collection = Neo_Pulse_App_Wp_Url_Normalize::resolve_wp_v2_collection_endpoint( $endpoint, $post_type );
 		$base_url   = $normalized . '/wp-json/wp/v2/' . rawurlencode( $collection ) . '/' . $post_id;
 
-		$current_post = null;
-		$get_resp     = Neo_Pulse_App_Wp_Rest_Client::request(
-			'GET',
-			$base_url . '?context=edit',
-			$username,
-			$app_password,
-			array( 'timeout' => 30 )
-		);
-		if ( ! $get_resp['is_wp_error'] && (int) $get_resp['status'] === 200 && is_array( $get_resp['body'] ) ) {
-			$current_post = $get_resp['body'];
+		$combined = $meta;
+		if ( is_string( $post_title ) && trim( $post_title ) !== '' ) {
+			$combined['seo_title'] = trim( $post_title );
+		}
+		if ( is_string( $post_excerpt ) && trim( $post_excerpt ) !== '' ) {
+			$combined['meta_description'] = trim( $post_excerpt );
 		}
 
-		$update_data = array( 'meta' => $meta );
-		$has_title   = is_string( $post_title );
-		$has_excerpt = is_string( $post_excerpt );
-		$current_acf = $current_post ? Neo_Pulse_App_Wp_Url_Normalize::rest_acf_from_post( $current_post ) : array();
-		$current_acf = is_array( $current_acf ) ? $current_acf : array();
+		$pulse_res = Neo_Pulse_App_Wp_Acf_Protocol::write_via_pulse_overview_bulk(
+			$normalized,
+			$username,
+			$app_password,
+			$post_id,
+			$combined
+		);
 
-		if ( $current_post ) {
-			if ( $has_title ) {
-				$update_data['title'] = Neo_Pulse_App_Wp_Overview_Seo_Item::aligned_title( $post_title, $current_acf );
-			} elseif ( ! empty( $meta['rank_math_title'] ) && is_string( $meta['rank_math_title'] ) && trim( $meta['rank_math_title'] ) !== '' ) {
-				$update_data['title'] = Neo_Pulse_App_Wp_Overview_Seo_Item::aligned_title( trim( $meta['rank_math_title'] ), $current_acf );
-			} else {
-				$update_data['title'] = Neo_Pulse_App_Wp_Url_Normalize::rendered_text( $current_post['title'] ?? '' );
-			}
-			if ( $has_excerpt ) {
-				$update_data['excerpt'] = $post_excerpt;
-			} elseif ( ! empty( $meta['rank_math_description'] ) && is_string( $meta['rank_math_description'] ) && trim( $meta['rank_math_description'] ) !== '' ) {
-				$update_data['excerpt'] = trim( $meta['rank_math_description'] );
-			}
-		} else {
-			if ( $has_title ) {
-				$update_data['title'] = $post_title;
-			}
-			if ( $has_excerpt ) {
-				$update_data['excerpt'] = $post_excerpt;
-			}
+		$update_data = array( 'meta' => $meta );
+		if ( is_string( $post_title ) && trim( $post_title ) !== '' ) {
+			$update_data['title'] = trim( $post_title );
+		}
+		if ( is_string( $post_excerpt ) && trim( $post_excerpt ) !== '' ) {
+			$update_data['excerpt'] = trim( $post_excerpt );
 		}
 
 		$resp = Neo_Pulse_App_Wp_Rest_Client::request(
@@ -145,39 +148,16 @@ class Neo_Pulse_App_Wp_Meta {
 			)
 		);
 
-		if ( $resp['is_wp_error'] ) {
-			return array( 500, array( 'success' => false, 'error' => $resp['error'] ) );
+		$wp_ok = ! $resp['is_wp_error'] && ( (int) $resp['status'] === 200 || (int) $resp['status'] === 201 );
+		if ( ! $wp_ok && empty( $pulse_res['ok'] ) ) {
+			$status = (int) $resp['status'];
+			$msg    = is_array( $resp['body'] ) && ! empty( $resp['body']['message'] )
+				? (string) $resp['body']['message']
+				: ( $pulse_res['error'] ?? ( $resp['error'] ?: 'Update failed' ) );
+			return array( $status >= 400 ? $status : 500, array( 'success' => false, 'error' => $msg ) );
 		}
 
-		$status = (int) $resp['status'];
-		if ( $status === 401 ) {
-			return array( 401, array( 'success' => false, 'error' => 'Authentication failed.' ) );
-		}
-		if ( $status === 404 ) {
-			return array( 404, array( 'success' => false, 'error' => 'Post not found.' ) );
-		}
-		if ( $status === 403 ) {
-			return array( 403, array( 'success' => false, 'error' => 'Permission denied.' ) );
-		}
-		if ( $status === 429 ) {
-			return array( 429, array( 'success' => false, 'error' => 'WordPress still rate-limited (HTTP 429).' ) );
-		}
-		if ( $status !== 200 && $status !== 201 ) {
-			$msg = is_array( $resp['body'] ) && ! empty( $resp['body']['message'] ) ? (string) $resp['body']['message'] : 'Update failed';
-			return array( $status, array( 'success' => false, 'error' => $msg ) );
-		}
-
-		$verified_focus = null;
-		$verify         = Neo_Pulse_App_Wp_Rest_Client::request(
-			'GET',
-			$base_url . '?context=edit',
-			$username,
-			$app_password,
-			array( 'timeout' => 30 )
-		);
-		if ( ! $verify['is_wp_error'] && (int) $verify['status'] === 200 && is_array( $verify['body']['meta'] ?? null ) ) {
-			$verified_focus = $verify['body']['meta']['rank_math_focus_keyword'] ?? null;
-		}
+		$focus_sent = $combined['keyword_focus'] ?? $combined['focus_keyword'] ?? $combined['rank_math_focus_keyword'] ?? null;
 
 		return array(
 			200,
@@ -185,7 +165,7 @@ class Neo_Pulse_App_Wp_Meta {
 				'success'              => true,
 				'postId'               => $post_id,
 				'updated'              => true,
-				'verifiedFocusKeyword' => $verified_focus,
+				'verifiedFocusKeyword' => is_string( $focus_sent ) ? trim( $focus_sent ) : null,
 			),
 		);
 	}
@@ -208,89 +188,31 @@ class Neo_Pulse_App_Wp_Meta {
 			return array( 400, array( 'success' => false, 'error' => 'Missing required fields: siteUrl, username, appPassword, postId, fieldName, fieldValue' ) );
 		}
 
-		$normalized = Neo_Pulse_App_Wp_Url_Normalize::normalize_url( $site_url );
-		$collection = Neo_Pulse_App_Wp_Url_Normalize::resolve_wp_v2_collection_endpoint( $endpoint, $post_type );
-
-		$validation = Neo_Pulse_App_Wp_Acf_Protocol::validate_acf_setup( $site_url, $username, $app_password, $post_type, $endpoint, $post_id );
-		if ( empty( $validation['hasAcfSupport'] ) ) {
-			return array(
-				200,
-				array(
-					'success'        => false,
-					'error'          => 'ACF REST API not available. Ensure ACF Pro 5.11+ is installed and REST API filters are configured.',
-					'validation'     => $validation,
-					'requiredConfig' => array(
-						'php' => array(
-							"add_filter('acf/rest_api/field_settings/show_in_rest', '__return_true');",
-							"add_filter('acf/rest_api/field_settings/editable', '__return_true');",
-						),
-					),
-				),
-			);
-		}
-
-		$serialized = Neo_Pulse_App_Wp_Acf_Protocol::serialize_acf_value( $field_value );
-		$update_url = $normalized . '/wp-json/wp/v2/' . rawurlencode( $collection ) . '/' . $post_id;
-
-		$resp = Neo_Pulse_App_Wp_Rest_Client::request(
-			'POST',
-			$update_url,
-			$username,
-			$app_password,
+		list( $status, $res ) = Neo_Pulse_App_Wp_Acf_Protocol::update_acf_fields(
 			array(
-				'timeout' => 30,
-				'body'    => array(
-					'acf' => array(
-						$field_name => $serialized,
-					),
+				'siteUrl'          => $site_url,
+				'username'         => $username,
+				'appPassword'      => $app_password,
+				'postId'           => $post_id,
+				'postType'         => $post_type,
+				'postTypeEndpoint' => $endpoint,
+				'fields'           => array(
+					$field_name => $field_value,
 				),
 			)
 		);
 
-		if ( $resp['is_wp_error'] ) {
-			return array( 200, array( 'success' => false, 'error' => $resp['error'] ) );
-		}
-
-		$status = (int) $resp['status'];
-		if ( $status === 401 || $status === 403 || $status === 404 ) {
-			$messages = array(
-				401 => 'Authentication failed.',
-				403 => 'Permission denied.',
-				404 => 'Post not found.',
-			);
-			return array( 200, array( 'success' => false, 'error' => $messages[ $status ] ) );
-		}
-		if ( $status !== 200 && $status !== 201 ) {
-			$msg = is_array( $resp['body'] ) && ! empty( $resp['body']['message'] ) ? (string) $resp['body']['message'] : 'ACF field update failed';
-			return array( 200, array( 'success' => false, 'error' => $msg, 'validation' => $validation ) );
-		}
-
-		$verified     = false;
-		$actual_value = null;
-		$verify       = Neo_Pulse_App_Wp_Rest_Client::request(
-			'GET',
-			$update_url . '?context=edit',
-			$username,
-			$app_password,
-			array( 'timeout' => 15 )
-		);
-		if ( ! $verify['is_wp_error'] && (int) $verify['status'] === 200 ) {
-			$acf_payload = Neo_Pulse_App_Wp_Url_Normalize::rest_acf_from_post( is_array( $verify['body'] ) ? $verify['body'] : array() );
-			if ( is_array( $acf_payload ) && array_key_exists( $field_name, $acf_payload ) ) {
-				$actual_value = $acf_payload[ $field_name ];
-				$verified     = ( $actual_value === $serialized ) || ( (string) $actual_value === (string) $serialized );
-			}
-		}
-
+		$serialized = Neo_Pulse_App_Wp_Acf_Protocol::serialize_acf_value( $field_value );
 		return array(
-			200,
+			$status,
 			array(
-				'success'     => true,
-				'method'      => 'acf-rest-api',
+				'success'     => ! empty( $res['success'] ),
+				'method'      => 'neo-pulse-fields',
 				'fieldName'   => $field_name,
 				'fieldValue'  => $serialized,
-				'verified'    => $verified,
-				'actualValue' => $actual_value,
+				'verified'    => ! empty( $res['success'] ),
+				'actualValue' => $serialized,
+				'error'       => $res['error'] ?? null,
 			),
 		);
 	}

@@ -1,9 +1,9 @@
 <?php
 /**
- * Multi-Site EMCP JSON-RPC Client for Neo Pulse App.
+ * Multi-Site Native NEO Pulse MCP Client for Neo Pulse App.
  *
- * Connects to any client WordPress site's `/wp-json/mcp/emcp-tools-server`
- * endpoint using Application Password Basic Auth (or configured hub credentials),
+ * Connects to any client WordPress site's native `/wp-json/neo-mcp/v1/mcp` and
+ * `/wp-json/neo-pulse/v1/tools/*` endpoints using Application Password Basic Auth,
  * lists tools, fetches `neo-pulse/*` and `neo-tools/*` dispatcher catalogs, and
  * executes tool calls or multi-step batches server-side.
  *
@@ -15,28 +15,36 @@ defined( 'ABSPATH' ) || exit;
 final class Neo_Pulse_App_Emcp_Site_Client {
 
 	/**
-	 * Normalize a tool name between slash (`neo-pulse/read`) and hyphen (`neo-pulse-read`)
-	 * forms based on what the target MCP server exposes.
+	 * Normalize a tool name between slash (`neo-pulse/read`), underscore (`neo-pulse_read`),
+	 * and hyphen (`neo-pulse-read`) forms based on what the target MCP server exposes.
 	 *
-	 * @param string              $requested Requested tool name.
-	 * @param array<int,string>   $available Tool names from tools/list.
+	 * @param string            $requested Requested tool name.
+	 * @param array<int,string> $available Tool names from tools/list.
 	 */
 	public static function resolve_tool_name( string $requested, array $available ): string {
 		$requested = trim( $requested );
 		if ( in_array( $requested, $available, true ) ) {
 			return $requested;
 		}
-		$hyphen = str_replace( '/', '-', $requested );
+		$hyphen = str_replace( array( '/', '_' ), '-', $requested );
 		if ( in_array( $hyphen, $available, true ) ) {
 			return $hyphen;
 		}
+		$underscore = str_replace( '/', '_', $requested );
+		if ( in_array( $underscore, $available, true ) ) {
+			return $underscore;
+		}
 		if ( false !== strpos( $requested, '-' ) && false === strpos( $requested, '/' ) ) {
-			$prefixes = array( 'neo-pulse-', 'neo-tools-', 'emcp-tools-', 'core-' );
+			$prefixes = array( 'neo-pulse-', 'neo-tools-', 'neo-mcp-', 'core-' );
 			foreach ( $prefixes as $prefix ) {
 				if ( 0 === strpos( $requested, $prefix ) ) {
 					$slash = substr( $prefix, 0, -1 ) . '/' . substr( $requested, strlen( $prefix ) );
 					if ( in_array( $slash, $available, true ) ) {
 						return $slash;
+					}
+					$under = substr( $prefix, 0, -1 ) . '_' . substr( $requested, strlen( $prefix ) );
+					if ( in_array( $under, $available, true ) ) {
+						return $under;
 					}
 				}
 			}
@@ -64,9 +72,10 @@ final class Neo_Pulse_App_Emcp_Site_Client {
 		if ( ! preg_match( '#^https?://#i', $normalized ) ) {
 			$normalized = 'https://' . $normalized;
 		}
-		$mcp_url = preg_match( '#/wp-json/mcp/#i', $normalized )
+		$base_site = (string) preg_replace( '#/wp-json/.*$#i', '', $normalized );
+		$mcp_url   = preg_match( '#/wp-json/(mcp|neo-mcp)/#i', $normalized )
 			? $normalized
-			: $normalized . '/wp-json/mcp/emcp-tools-server';
+			: $base_site . '/wp-json/neo-mcp/v1/mcp';
 
 		if ( '' === $auth_hdr ) {
 			if ( '' === $username || '' === $app_pass ) {
@@ -76,14 +85,21 @@ final class Neo_Pulse_App_Emcp_Site_Client {
 		}
 
 		return array(
-			'site_url'      => $normalized,
+			'site_url'      => $base_site,
 			'mcp_url'       => $mcp_url,
 			'authorization' => $auth_hdr,
 		);
 	}
 
 	/**
-	 * Open an MCP session and return the session ID.
+	 * Extract site root URL from an MCP endpoint URL.
+	 */
+	private static function site_root_from_mcp_url( string $mcp_url ): string {
+		return rtrim( (string) preg_replace( '#/wp-json/.*$#i', '', $mcp_url ), '/' );
+	}
+
+	/**
+	 * Open an MCP session and return the session ID (or '' for stateless `/wp-json/neo-mcp/v1/mcp`).
 	 *
 	 * @return string|WP_Error
 	 */
@@ -96,7 +112,7 @@ final class Neo_Pulse_App_Emcp_Site_Client {
 				'protocolVersion' => '2024-11-05',
 				'capabilities'    => (object) array(),
 				'clientInfo'      => array(
-					'name'    => 'neo-pulse-emcp-workspace',
+					'name'    => 'neo-pulse-native-mcp',
 					'version' => '1.0.0',
 				),
 			),
@@ -107,50 +123,159 @@ final class Neo_Pulse_App_Emcp_Site_Client {
 			return new WP_Error( 'emcp_init_failed', (string) $init['error'], array( 'status' => 502 ) );
 		}
 		$session = (string) ( $init['session'] ?? '' );
-		if ( '' === $session ) {
-			return new WP_Error( 'emcp_no_session', 'MCP server initialize did not return an Mcp-Session-Id header.', array( 'status' => 502 ) );
+		if ( '' !== $session ) {
+			self::rpc(
+				$mcp_url,
+				$authorization,
+				'notifications/initialized',
+				(object) array(),
+				null,
+				$session
+			);
 		}
-		self::rpc(
-			$mcp_url,
-			$authorization,
-			'notifications/initialized',
-			(object) array(),
-			null,
-			$session
-		);
 		return $session;
 	}
 
 	/**
-	 * Fetch `tools/list` and dispatcher catalogs (`neo-pulse/*`, `neo-tools/*`) in one session.
+	 * Fetch native `neo-pulse/v1/tools/list` tools (`wp_*`) for blog posting, SEO, and page design.
+	 *
+	 * @return array<int,array<string,mixed>>
+	 */
+	private static function fetch_native_pulse_tools( string $site_root, string $authorization ): array {
+		if ( '' === $site_root ) {
+			return array();
+		}
+		$res = wp_remote_post(
+			$site_root . '/wp-json/neo-pulse/v1/tools/list',
+			array(
+				'timeout' => 30,
+				'headers' => array(
+					'Authorization' => $authorization,
+					'Content-Type'  => 'application/json',
+					'Accept'        => 'application/json',
+				),
+				'body'    => wp_json_encode( (object) array() ),
+			)
+		);
+		if ( is_wp_error( $res ) || (int) wp_remote_retrieve_response_code( $res ) !== 200 ) {
+			return array();
+		}
+		$decoded = json_decode( (string) wp_remote_retrieve_body( $res ), true );
+		if ( ! is_array( $decoded ) || empty( $decoded['tools'] ) || ! is_array( $decoded['tools'] ) ) {
+			return array();
+		}
+		$out = array();
+		foreach ( $decoded['tools'] as $tool ) {
+			if ( ! is_array( $tool ) || empty( $tool['name'] ) ) {
+				continue;
+			}
+			$risk = (string) ( $tool['risk'] ?? 'read' );
+			$out[] = array(
+				'name'        => (string) $tool['name'],
+				'description' => isset( $tool['description'] ) ? (string) $tool['description'] : '',
+				'inputSchema' => isset( $tool['inputSchema'] ) && is_array( $tool['inputSchema'] ) ? $tool['inputSchema'] : array( 'type' => 'object' ),
+				'annotations' => array(
+					'readonly'    => 'read' === $risk,
+					'destructive' => 'destructive' === $risk,
+					'idempotent'  => 'read' === $risk,
+				),
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * Execute a native `wp_*` tool via `POST /wp-json/neo-pulse/v1/tools/execute`.
+	 *
+	 * @param array<string,mixed> $arguments Tool params.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	private static function execute_native_pulse_tool( string $site_root, string $authorization, string $tool, array $arguments ) {
+		$params = $arguments;
+		if ( ! isset( $params['confirm'] ) ) {
+			$params['confirm'] = true;
+		}
+		$res = wp_remote_post(
+			$site_root . '/wp-json/neo-pulse/v1/tools/execute',
+			array(
+				'timeout' => 180,
+				'headers' => array(
+					'Authorization' => $authorization,
+					'Content-Type'  => 'application/json',
+					'Accept'        => 'application/json',
+				),
+				'body'    => wp_json_encode(
+					array(
+						'tool'   => $tool,
+						'params' => $params,
+					)
+				),
+			)
+		);
+		if ( is_wp_error( $res ) ) {
+			return new WP_Error( 'pulse_tool_failed', $res->get_error_message(), array( 'status' => 502 ) );
+		}
+		$code    = (int) wp_remote_retrieve_response_code( $res );
+		$raw     = (string) wp_remote_retrieve_body( $res );
+		$decoded = json_decode( $raw, true );
+		if ( $code < 200 || $code >= 300 || ( is_array( $decoded ) && isset( $decoded['ok'] ) && ! $decoded['ok'] ) ) {
+			$msg = is_array( $decoded ) && ! empty( $decoded['error'] )
+				? (string) $decoded['error']
+				: sprintf( 'NEO Pulse tool %s HTTP %d: %s', $tool, $code, substr( $raw, 0, 300 ) );
+			return new WP_Error( 'pulse_tool_failed', $msg, array( 'status' => 400 ) );
+		}
+		return array(
+			'tool'      => $tool,
+			'operation' => '',
+			'data'      => is_array( $decoded ) && array_key_exists( 'data', $decoded ) ? $decoded['data'] : $decoded,
+		);
+	}
+
+	/**
+	 * Fetch `tools/list`, native `wp_*` tools, and dispatcher catalogs (`neo-pulse/*`, `neo-tools/*`).
 	 *
 	 * @return array<string,mixed>|WP_Error
 	 */
 	public static function fetch_catalog( string $mcp_url, string $authorization ) {
+		$site_root    = self::site_root_from_mcp_url( $mcp_url );
+		$native_tools = self::fetch_native_pulse_tools( $site_root, $authorization );
+
 		$session = self::open_session( $mcp_url, $authorization );
-		if ( is_wp_error( $session ) ) {
-			return $session;
-		}
+		$tools   = array();
+		$names   = array();
 
-		$list_res = self::rpc(
-			$mcp_url,
-			$authorization,
-			'tools/list',
-			(object) array(),
-			2,
-			$session
-		);
-		if ( isset( $list_res['error'] ) ) {
-			return new WP_Error( 'emcp_list_failed', (string) $list_res['error'], array( 'status' => 502 ) );
-		}
-
-		$raw_tools = $list_res['raw']['result']['tools'] ?? array();
-		$tools     = is_array( $raw_tools ) ? array_values( $raw_tools ) : array();
-		$names     = array();
-		foreach ( $tools as $t ) {
-			if ( is_array( $t ) && ! empty( $t['name'] ) ) {
-				$names[] = (string) $t['name'];
+		if ( ! is_wp_error( $session ) ) {
+			$list_res = self::rpc(
+				$mcp_url,
+				$authorization,
+				'tools/list',
+				(object) array(),
+				2,
+				$session
+			);
+			if ( ! isset( $list_res['error'] ) ) {
+				$raw_tools = $list_res['raw']['result']['tools'] ?? array();
+				if ( is_array( $raw_tools ) ) {
+					foreach ( $raw_tools as $t ) {
+						if ( is_array( $t ) && ! empty( $t['name'] ) ) {
+							$tools[] = $t;
+							$names[] = (string) $t['name'];
+						}
+					}
+				}
 			}
+		}
+
+		foreach ( $native_tools as $nt ) {
+			$n = (string) ( $nt['name'] ?? '' );
+			if ( '' !== $n && ! in_array( $n, $names, true ) ) {
+				$tools[] = $nt;
+				$names[] = $n;
+			}
+		}
+
+		if ( array() === $tools && is_wp_error( $session ) ) {
+			return $session;
 		}
 
 		$dispatchers = array(
@@ -163,7 +288,7 @@ final class Neo_Pulse_App_Emcp_Site_Client {
 		$rpc_id      = 3;
 		foreach ( $dispatchers as $key => $target_name ) {
 			$resolved = self::resolve_tool_name( $target_name, $names );
-			if ( in_array( $resolved, $names, true ) ) {
+			if ( ! is_wp_error( $session ) && in_array( $resolved, $names, true ) ) {
 				$call = self::rpc(
 					$mcp_url,
 					$authorization,
@@ -197,7 +322,7 @@ final class Neo_Pulse_App_Emcp_Site_Client {
 	 *
 	 * @param string              $mcp_url       MCP endpoint URL.
 	 * @param string              $authorization Authorization header.
-	 * @param string              $tool          Tool name (e.g. `neo-pulse/read` or `emcp-tools-get-post`).
+	 * @param string              $tool          Tool name (e.g. `neo-pulse/read` or `wp_create_post`).
 	 * @param string              $operation     Optional dispatcher operation name.
 	 * @param array<string,mixed> $arguments     Tool or operation arguments.
 	 * @return array<string,mixed>|WP_Error
@@ -209,6 +334,13 @@ final class Neo_Pulse_App_Emcp_Site_Client {
 		string $operation = '',
 		array $arguments = array()
 	) {
+		$trimmed_tool = trim( $tool );
+		$site_root    = self::site_root_from_mcp_url( $mcp_url );
+
+		if ( 0 === strpos( $trimmed_tool, 'wp_' ) && '' !== $site_root ) {
+			return self::execute_native_pulse_tool( $site_root, $authorization, $trimmed_tool, $arguments );
+		}
+
 		$session = self::open_session( $mcp_url, $authorization );
 		if ( is_wp_error( $session ) ) {
 			return $session;
@@ -225,7 +357,7 @@ final class Neo_Pulse_App_Emcp_Site_Client {
 			}
 		}
 
-		$resolved_tool = self::resolve_tool_name( $tool, $names );
+		$resolved_tool = self::resolve_tool_name( $trimmed_tool, $names );
 		$payload_args  = '' !== $operation
 			? array(
 				'operation' => $operation,

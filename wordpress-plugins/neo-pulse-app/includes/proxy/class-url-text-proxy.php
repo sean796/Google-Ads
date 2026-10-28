@@ -9,7 +9,7 @@ defined( 'ABSPATH' ) || exit;
 
 class Neo_Pulse_App_Url_Text_Proxy {
 
-	const MAX_BYTES = 8388608;
+	const MAX_BYTES = 16777216;
 
 	/**
 	 * @param string              $subpath Path after proxy/.
@@ -38,7 +38,7 @@ class Neo_Pulse_App_Url_Text_Proxy {
 		$url = isset( $body['url'] ) ? trim( (string) $body['url'] ) : '';
 		$check = self::validate_http_url( $url );
 		if ( $check !== null ) {
-			Neo_Pulse_App_Api_Dispatcher::send_json( array( 'ok' => false, 'error' => $check ), 400 );
+			Neo_Pulse_App_Api_Dispatcher::send_json( array( 'ok' => false, 'error' => $check, 'content' => '' ), 200 );
 			return;
 		}
 
@@ -56,8 +56,8 @@ class Neo_Pulse_App_Url_Text_Proxy {
 
 		if ( is_wp_error( $response ) ) {
 			Neo_Pulse_App_Api_Dispatcher::send_json(
-				array( 'ok' => false, 'error' => $response->get_error_message() ),
-				502
+				array( 'ok' => false, 'error' => $response->get_error_message(), 'content' => '' ),
+				200
 			);
 			return;
 		}
@@ -66,24 +66,21 @@ class Neo_Pulse_App_Url_Text_Proxy {
 		$text = (string) wp_remote_retrieve_body( $response );
 		if ( $code < 200 || $code >= 300 ) {
 			Neo_Pulse_App_Api_Dispatcher::send_json(
-				array( 'ok' => false, 'error' => 'Failed to fetch URL (' . $code . ')' ),
-				502
+				array( 'ok' => false, 'error' => 'Failed to fetch URL (' . $code . ')', 'content' => '' ),
+				200
 			);
 			return;
 		}
 		if ( strlen( $text ) > self::MAX_BYTES ) {
-			Neo_Pulse_App_Api_Dispatcher::send_json(
-				array( 'ok' => false, 'error' => 'URL response too large' ),
-				413
-			);
-			return;
+			$text = substr( $text, 0, self::MAX_BYTES );
 		}
 
 		Neo_Pulse_App_Api_Dispatcher::send_json(
 			array(
 				'ok'      => true,
 				'content' => $text,
-			)
+			),
+			200
 		);
 	}
 

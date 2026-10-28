@@ -18,6 +18,7 @@ export type ReportCanvasToPdfOptions = {
   avoidRegionsCanvasPx?: PdfAvoidRegion[];
   majorSectionStartsCanvasPx?: number[];
   preparedOn: string;
+  drawFooters?: boolean;
 };
 
 function renderSliceToPage(
@@ -71,7 +72,8 @@ export function renderReportCanvasToPdf(
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
   const margin = options.margin;
-  const footerBandIn = margin > 0 ? 0.38 : 0.32;
+  const drawFooters = options.drawFooters ?? true;
+  const footerBandIn = drawFooters ? (margin > 0 ? 0.38 : 0.32) : 0;
   const innerWidth = pageWidth - margin * 2;
   const innerHeight = pageHeight - margin * 2 - footerBandIn;
   const innerRatio = innerHeight / innerWidth;
@@ -97,7 +99,13 @@ export function renderReportCanvasToPdf(
 
   const gutterColor = pdfThemeGutterColor(options.theme);
 
-  slices.forEach((slice, pageIndex) => {
+  const validSlices = slices.filter((slice, idx) => {
+    const h = slice.endPx - slice.startPx;
+    if (idx > 0 && h <= 16) return false;
+    return h > 0;
+  });
+
+  validSlices.forEach((slice, pageIndex) => {
     renderSliceToPage(
       pdf,
       canvas,
@@ -117,11 +125,13 @@ export function renderReportCanvasToPdf(
     );
   });
 
-  drawReportPdfPageFooters(pdf, {
-    preparedOn: options.preparedOn,
-    theme: options.theme,
-    marginIn: margin,
-  });
+  if (drawFooters) {
+    drawReportPdfPageFooters(pdf, {
+      preparedOn: options.preparedOn,
+      theme: options.theme,
+      marginIn: margin,
+    });
+  }
 
   return pdf;
 }

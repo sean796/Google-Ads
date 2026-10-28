@@ -1,6 +1,6 @@
 <?php
 /**
- * Local Dominator grid export execution runner (preflight + client harness contract).
+ * Local Grid export execution runner (preflight + client harness contract).
  *
  * @package Neo_Pulse_App
  */
@@ -8,6 +8,29 @@
 defined( 'ABSPATH' ) || exit;
 
 class Neo_Pulse_App_Task_Execution_Runner_Local_Dominator_Export {
+
+	/**
+	 * Resolve stored keyword sentinel for client Local Grid harness.
+	 *
+	 * @param array<string,mixed> $site
+	 */
+	private static function normalize_stored_keyword( array $site, string $keyword ): string {
+		$keyword = trim( $keyword );
+		$lower   = strtolower( $keyword );
+		if ( $lower === 'property' ) {
+			return 'property';
+		}
+		if ( $lower === 'auto' || $keyword === '' ) {
+			return 'auto';
+		}
+		if (
+			$lower === 'blinds near me'
+			&& strtolower( trim( (string) ( $site['name'] ?? '' ) ) ) !== 'advance blinds & drapery'
+		) {
+			return 'property';
+		}
+		return $keyword;
+	}
 
 	/**
 	 * @param array<string,mixed> $task
@@ -34,19 +57,22 @@ class Neo_Pulse_App_Task_Execution_Runner_Local_Dominator_Export {
 		if ( $business_name === '' ) {
 			$business_name = trim( (string) ( $site['name'] ?? '' ) );
 		}
-		$business_name = Neo_Pulse_App_Local_Dominator_Export::normalize_business_name( $business_name );
-		$keyword       = trim( (string) ( $sanitized['keyword'] ?? '' ) );
-		if ( strtolower( $keyword ) === 'auto' ) {
-			$keyword = '';
-		}
-		if (
-			strtolower( $keyword ) === 'blinds near me'
-			&& strtolower( $business_name ) !== 'advance blinds & drapery'
-		) {
-			$keyword = '';
-		}
 		if ( $business_name === '' ) {
 			return array( 'ok' => false, 'error' => 'businessName is required.' );
+		}
+
+		$keyword = self::normalize_stored_keyword(
+			$site,
+			trim( (string) ( $sanitized['keyword'] ?? '' ) )
+		);
+		if ( $keyword === 'property' ) {
+			$profile_kw = trim( (string) ( $site['primaryLocalKeyword'] ?? '' ) );
+			if ( $profile_kw === '' ) {
+				return array(
+					'ok'    => false,
+					'error' => 'Set Primary keyword on the property profile before running Local Grid export.',
+				);
+			}
 		}
 
 		$save_to_disk = ! array_key_exists( 'saveToDisk', $payload ) || ! empty( $payload['saveToDisk'] );
@@ -69,17 +95,13 @@ class Neo_Pulse_App_Task_Execution_Runner_Local_Dominator_Export {
 		);
 		$contract = array_merge( $contract, Neo_Pulse_App_Tasks_Store::google_drive_contract_fields( $payload ) );
 
-		if ( class_exists( 'Neo_Pulse_App_Agent_Run_Worker_Cron' ) ) {
-			Neo_Pulse_App_Agent_Run_Worker_Cron::kick();
-		}
-
 		return array(
 			'ok'      => true,
-			'status'  => 'running',
-			'message' => 'Queued for server Local Dominator export worker.',
+			'status'  => 'awaiting_client',
+			'message' => 'Ready for client Local Grid export harness.',
 			'payload' => array(
 				'clientRunContract' => $contract,
-				'executionMode'     => 'server',
+				'executionMode'     => 'client',
 			),
 		);
 	}

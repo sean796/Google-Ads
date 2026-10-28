@@ -1,11 +1,12 @@
 import { ORGANIC_CLIENT_REPORT_PDF_CAPTURE_SCALE } from "@/lib/organic-dashboard/organic-client-report-pdf-types";
 
 const BREAKPOINT_SELECTORS =
-  ".organic-client-report-export__hero, .organic-client-report-export__section, .organic-deck-export-page-break, .organic-client-report-export__footer";
+  ".organic-client-report-export__cover-page, .organic-client-report-export__hero, .organic-client-report-export__section, .organic-deck-export-page-break, .organic-client-report-export__footer";
 
 const MAJOR_SECTION_BREAK_SELECTOR = ".organic-deck-export-page-break";
 
 const AVOID_SPLIT_SELECTORS = [
+  ".organic-client-report-export__cover-page",
   ".organic-client-report-export__hero-body",
   ".organic-client-report-export__section-head",
   ".organic-client-report-export__narrative",
@@ -15,6 +16,7 @@ const AVOID_SPLIT_SELECTORS = [
   ".organic-client-report-export__metric-stack",
   ".organic-client-report-export__metric-table tr",
   ".organic-client-report-export__footer",
+  ".organic-client-report-export__sheet-footer",
 ].join(", ");
 
 export type PdfAvoidRegion = { topPx: number; bottomPx: number };
@@ -154,8 +156,22 @@ export function planPdfCanvasSlices(
 
   while (y < canvasHeightPx) {
     const remaining = canvasHeightPx - y;
+
+    const hasRemainingContent =
+      avoidRegionsCanvasPx.length === 0 ||
+      avoidRegionsCanvasPx.some((r) => r.bottomPx > y + 16);
+
+    if (slices.length > 0 && !hasRemainingContent) {
+      slices[slices.length - 1]!.endPx = canvasHeightPx;
+      break;
+    }
+
     if (remaining <= pxPageHeight) {
-      slices.push({ startPx: y, endPx: canvasHeightPx });
+      if (slices.length > 0 && (!hasRemainingContent || remaining < minSlicePx)) {
+        slices[slices.length - 1]!.endPx = canvasHeightPx;
+      } else {
+        slices.push({ startPx: y, endPx: canvasHeightPx });
+      }
       break;
     }
 

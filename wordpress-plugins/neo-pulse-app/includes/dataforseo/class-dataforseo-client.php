@@ -19,6 +19,20 @@ class Neo_Pulse_App_Dataforseo_Client {
 		'Australia'      => 2036,
 	);
 
+	/** @var array<string,int> City token (lowercase) => DataForSEO location_code. */
+	const CITY_LOCATION_MAP = array(
+		'calgary'         => 1006350,
+		'edmonton'        => 1006218,
+		'toronto'         => 1000296,
+		'vancouver'       => 1000268,
+		'montreal'        => 1002444,
+		'ottawa'          => 1000100,
+		'winnipeg'        => 1000173,
+		'sherwood park'   => 1006218,
+		'winkler'         => 1000173,
+		'red deer'        => 1006227,
+	);
+
 	/**
 	 * @return array{login:string,password:string}
 	 */
@@ -99,11 +113,51 @@ class Neo_Pulse_App_Dataforseo_Client {
 	}
 
 	public static function location_code_from_name( ?string $location_name ): int {
-		$name = trim( (string) $location_name );
+		$name = trim( preg_replace( '/\s+/u', ' ', (string) $location_name ) );
 		if ( $name !== '' && isset( self::LOCATION_MAP[ $name ] ) ) {
 			return (int) self::LOCATION_MAP[ $name ];
 		}
+		if ( $name === '' ) {
+			return 2840;
+		}
+
+		$parts = array_values( array_filter( array_map( 'trim', explode( ',', $name ) ) ) );
+		if ( ! empty( $parts[0] ) ) {
+			$city_key = strtolower( $parts[0] );
+			if ( isset( self::CITY_LOCATION_MAP[ $city_key ] ) ) {
+				return (int) self::CITY_LOCATION_MAP[ $city_key ];
+			}
+		}
+
+		$joined = strtolower( implode( ' ', $parts ) );
+		if (
+			strpos( $joined, 'canada' ) !== false
+			|| preg_match( '/\b(ab|bc|mb|on|sk|qc|nl|nb|ns|pe|yt|nt|nu|alberta|manitoba|ontario|saskatchewan)\b/', $joined )
+		) {
+			return (int) self::LOCATION_MAP['Canada'];
+		}
+		if ( strpos( $joined, 'united kingdom' ) !== false || strpos( $joined, ' england' ) !== false ) {
+			return (int) self::LOCATION_MAP['United Kingdom'];
+		}
+		if ( strpos( $joined, 'australia' ) !== false ) {
+			return (int) self::LOCATION_MAP['Australia'];
+		}
+
 		return 2840;
+	}
+
+	/**
+	 * @param array<string,mixed> $body
+	 */
+	public static function location_code_from_request_body( array $body ): int {
+		if ( isset( $body['location_code'] ) && is_numeric( $body['location_code'] ) ) {
+			$code = (int) $body['location_code'];
+			if ( $code > 0 ) {
+				return $code;
+			}
+		}
+		$name = isset( $body['location_name'] ) ? (string) $body['location_name'] : '';
+		return self::location_code_from_name( $name );
 	}
 
 	/**
@@ -164,9 +218,14 @@ class Neo_Pulse_App_Dataforseo_Client {
 		}
 
 		$code = (int) wp_remote_retrieve_response_code( $response );
+		$raw  = wp_remote_retrieve_body( $response );
+		$data = json_decode( $raw, true );
 
-		// If a browser-supplied X-DataForSEO-Api-Key returned 401, retry with server credentials when configured.
-		if ( $code === 401 && method_exists( 'Neo_Pulse_App_Secrets', 'server_dataforseo_credentials' ) ) {
+		$is_auth_err = ( $code === 401 )
+			|| ( is_array( $data ) && ( (int) ( $data['status_code'] ?? 0 ) === 40100 || (int) ( $data['tasks'][0]['status_code'] ?? 0 ) === 40100 ) );
+
+		// If a browser-supplied X-DataForSEO-Api-Key returned 401 / 40100, retry with server credentials when configured.
+		if ( $is_auth_err && method_exists( 'Neo_Pulse_App_Secrets', 'server_dataforseo_credentials' ) ) {
 			$server_creds = Neo_Pulse_App_Secrets::server_dataforseo_credentials();
 			if (
 				$server_creds['login'] !== '' &&
@@ -188,12 +247,11 @@ class Neo_Pulse_App_Dataforseo_Client {
 				if ( ! is_wp_error( $retry_response ) ) {
 					$response = $retry_response;
 					$code     = (int) wp_remote_retrieve_response_code( $response );
+					$raw      = wp_remote_retrieve_body( $response );
+					$data     = json_decode( $raw, true );
 				}
 			}
 		}
-
-		$raw  = wp_remote_retrieve_body( $response );
-		$data = json_decode( $raw, true );
 
 		if ( $code < 200 || $code >= 300 ) {
 			$msg = is_array( $data ) && ! empty( $data['status_message'] )

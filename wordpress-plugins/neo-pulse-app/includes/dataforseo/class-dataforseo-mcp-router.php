@@ -85,6 +85,14 @@ class Neo_Pulse_App_Dataforseo_Mcp_Router {
 		$allow_empty = strpos( $tool, 'serp_' ) !== false;
 		$check       = Neo_Pulse_App_Dataforseo_Client::assert_task_ok( $result, $allow_empty );
 		if ( is_wp_error( $check ) ) {
+			if ( $tool === 'DataForSEO_serp_organic_live_advanced' ) {
+				return array(
+					'tasks'       => array(),
+					'stored_file' => null,
+					'storedFile'  => null,
+					'serp_error'  => $check->get_error_message(),
+				);
+			}
 			if ( $tool === 'DataForSEO_business_data_google_my_business_info_live' ) {
 				$task = $result['tasks'][0] ?? array();
 				return new WP_Error(
@@ -137,7 +145,7 @@ class Neo_Pulse_App_Dataforseo_Mcp_Router {
 					'tasks' => array(
 						array(
 							'keywords'       => array_values( $body['keywords'] ),
-							'location_code'  => Neo_Pulse_App_Dataforseo_Client::location_code_from_name( $body['location_name'] ?? null ),
+							'location_code'  => Neo_Pulse_App_Dataforseo_Client::location_code_from_request_body( $body ),
 							'language_code'  => Neo_Pulse_App_Dataforseo_Client::ensure_language_code( $body['language_code'] ?? 'en' ),
 						),
 					),
@@ -148,7 +156,7 @@ class Neo_Pulse_App_Dataforseo_Mcp_Router {
 					'tasks' => array(
 						array(
 							'keywords'       => $body['keywords'] ?? array(),
-							'location_code'  => Neo_Pulse_App_Dataforseo_Client::location_code_from_name( $body['location_name'] ?? null ),
+							'location_code'  => Neo_Pulse_App_Dataforseo_Client::location_code_from_request_body( $body ),
 							'language_code'  => Neo_Pulse_App_Dataforseo_Client::ensure_language_code( $body['language_code'] ?? 'en' ),
 							'limit'          => isset( $body['limit'] ) ? (int) $body['limit'] : 20,
 						),
@@ -160,7 +168,7 @@ class Neo_Pulse_App_Dataforseo_Mcp_Router {
 					'tasks' => array(
 						array(
 							'keyword'        => (string) ( $body['keyword'] ?? '' ),
-							'location_code'  => Neo_Pulse_App_Dataforseo_Client::location_code_from_name( $body['location_name'] ?? null ),
+							'location_code'  => Neo_Pulse_App_Dataforseo_Client::location_code_from_request_body( $body ),
 							'language_code'  => Neo_Pulse_App_Dataforseo_Client::ensure_language_code( $body['language_code'] ?? 'en' ),
 							'depth'          => isset( $body['limit'] ) ? min( (int) $body['limit'], 4 ) : 1,
 						),
@@ -185,7 +193,7 @@ class Neo_Pulse_App_Dataforseo_Mcp_Router {
 					'tasks' => array(
 						array(
 							'keywords'       => $kw,
-							'location_code'  => Neo_Pulse_App_Dataforseo_Client::location_code_from_name( $body['location_name'] ?? null ),
+							'location_code'  => Neo_Pulse_App_Dataforseo_Client::location_code_from_request_body( $body ),
 							'language_code'  => Neo_Pulse_App_Dataforseo_Client::ensure_language_code( $body['language_code'] ?? 'en' ),
 						),
 					),
@@ -212,7 +220,7 @@ class Neo_Pulse_App_Dataforseo_Mcp_Router {
 				if ( isset( $body['location_code'] ) && is_numeric( $body['location_code'] ) ) {
 					$task['location_code'] = (int) $body['location_code'];
 				} else {
-					$task['location_code'] = Neo_Pulse_App_Dataforseo_Client::location_code_from_name( $body['location_name'] ?? 'United States' );
+					$task['location_code'] = Neo_Pulse_App_Dataforseo_Client::location_code_from_request_body( $body );
 				}
 				foreach ( array( 'date_from', 'date_to', 'time_range' ) as $f ) {
 					if ( ! empty( $body[ $f ] ) && is_string( $body[ $f ] ) ) {
@@ -222,12 +230,21 @@ class Neo_Pulse_App_Dataforseo_Mcp_Router {
 				return array( 'tasks' => array( $task ) );
 
 			case 'DataForSEO_serp_organic_live_advanced':
-				if ( empty( $body['keyword'] ) ) {
+				$raw_kw = trim( (string) ( $body['keyword'] ?? '' ) );
+				$raw_kw = preg_replace( '/\s+/u', ' ', $raw_kw );
+				if ( $raw_kw === '' ) {
 					return new WP_Error( 'neo-pulse_dfs_validate', 'keyword is required', array( 'status' => 400 ) );
 				}
+				if ( mb_strlen( $raw_kw ) > 200 ) {
+					$raw_kw = trim( mb_substr( $raw_kw, 0, 200 ) );
+				}
+				$words = preg_split( '/\s+/u', $raw_kw, -1, PREG_SPLIT_NO_EMPTY );
+				if ( is_array( $words ) && count( $words ) > 10 ) {
+					$raw_kw = implode( ' ', array_slice( $words, 0, 10 ) );
+				}
 				$task = array(
-					'keyword'       => (string) $body['keyword'],
-					'location_code' => Neo_Pulse_App_Dataforseo_Client::location_code_from_name( $body['location_name'] ?? null ),
+					'keyword'       => $raw_kw,
+					'location_code' => Neo_Pulse_App_Dataforseo_Client::location_code_from_request_body( $body ),
 					'language_code' => Neo_Pulse_App_Dataforseo_Client::ensure_language_code( $body['language_code'] ?? 'en' ),
 					'depth'         => isset( $body['depth'] ) ? (int) $body['depth'] : 10,
 					'device'        => 'desktop',
@@ -261,7 +278,7 @@ class Neo_Pulse_App_Dataforseo_Mcp_Router {
 					'tasks' => array(
 						array(
 							'keyword'       => (string) $body['keyword'],
-							'location_code' => Neo_Pulse_App_Dataforseo_Client::location_code_from_name( $body['location_name'] ?? null ),
+							'location_code' => Neo_Pulse_App_Dataforseo_Client::location_code_from_request_body( $body ),
 							'language_code' => Neo_Pulse_App_Dataforseo_Client::ensure_language_code( $body['language_code'] ?? 'en' ),
 							'device'        => 'desktop',
 							'os'            => 'windows',
@@ -317,7 +334,7 @@ class Neo_Pulse_App_Dataforseo_Mcp_Router {
 					'tasks' => array(
 						array(
 							'pages'              => $pages,
-							'location_code'      => Neo_Pulse_App_Dataforseo_Client::location_code_from_name( $body['location_name'] ?? null ),
+							'location_code'      => Neo_Pulse_App_Dataforseo_Client::location_code_from_request_body( $body ),
 							'language_code'      => Neo_Pulse_App_Dataforseo_Client::ensure_language_code( $body['language_code'] ?? 'en' ),
 							'intersection_mode'  => $mode,
 						),
@@ -339,7 +356,7 @@ class Neo_Pulse_App_Dataforseo_Mcp_Router {
 				if ( isset( $body['location_code'] ) && is_numeric( $body['location_code'] ) ) {
 					$task['location_code'] = (int) $body['location_code'];
 				} else {
-					$task['location_code'] = Neo_Pulse_App_Dataforseo_Client::location_code_from_name( $body['location_name'] ?? null );
+					$task['location_code'] = Neo_Pulse_App_Dataforseo_Client::location_code_from_request_body( $body );
 				}
 				foreach ( array( 'limit', 'offset' ) as $n ) {
 					if ( isset( $body[ $n ] ) && is_numeric( $body[ $n ] ) ) {
@@ -471,17 +488,17 @@ class Neo_Pulse_App_Dataforseo_Mcp_Router {
 	private static function dispatch_llm_responses_live( array $body ) {
 		$platform = isset( $body['platform'] ) ? trim( (string) $body['platform'] ) : '';
 		if ( $platform === '' || ! isset( self::LLM_RESPONSES_PLATFORMS[ $platform ] ) ) {
-			return new WP_Error(
-				'neo-pulse_dfs_validate',
-				'platform must be one of: chat_gpt, gemini, perplexity',
-				array( 'status' => 400 )
+			return array(
+				'skipped' => true,
+				'reason'  => 'dfs_invalid_platform',
+				'tasks'   => array(),
 			);
 		}
 		if ( empty( $body['model_name'] ) || empty( $body['user_prompt'] ) ) {
-			return new WP_Error(
-				'neo-pulse_dfs_validate',
-				'model_name and user_prompt are required',
-				array( 'status' => 400 )
+			return array(
+				'skipped' => true,
+				'reason'  => 'dfs_missing_params',
+				'tasks'   => array(),
 			);
 		}
 
@@ -531,12 +548,22 @@ class Neo_Pulse_App_Dataforseo_Mcp_Router {
 			array( 'timeout' => 130000 )
 		);
 		if ( is_wp_error( $result ) ) {
-			return $result;
+			return array(
+				'skipped' => true,
+				'reason'  => 'dfs_request_error',
+				'tasks'   => array(),
+				'error'   => $result->get_error_message(),
+			);
 		}
 
 		$check = Neo_Pulse_App_Dataforseo_Client::assert_task_ok( $result, false );
 		if ( is_wp_error( $check ) ) {
-			return $check;
+			return array(
+				'skipped' => true,
+				'reason'  => 'dfs_task_error',
+				'tasks'   => array(),
+				'error'   => $check->get_error_message(),
+			);
 		}
 
 		return $result;

@@ -1,0 +1,117 @@
+{
+  "keyword": "blog-content-gap-check",
+  "name": "Blog Content Gap Check",
+  "description": "Find content gaps for selected clients. Create and schedule blog posts.",
+  "notes": [
+    "Step 1 counts posts scheduled and published this month against the site editorial package (Standard 2, Lite 1).",
+    "Step 2 runs Post creator only when the gap is greater than zero; post count and GSC keywords come from the gap step.",
+    "Bind a workflow client with Standard or Lite set on Integrations (or a known property name map)."
+  ],
+  "category": "editorial",
+  "verticals": ["editorial", "general"],
+  "tags": ["posts", "editorial", "content-gap", "workflow", "monthly"],
+  "prerequisites": ["wordpress", "gsc"],
+  "filters": {
+    "executionKinds": ["content_gap_check", "post_creator"],
+    "targetBuckets": ["posts"],
+    "actionCount": 2
+  },
+  "defaultTasks": [
+    {
+      "keyword": "content-gap-check",
+      "title": "Check blog content gap",
+      "status": "todo",
+      "assignPulse": true,
+      "scheduleMode": "calendar",
+      "dueDate": "2026-09-01",
+      "dueTime": "09:00",
+      "recurrenceRule": "monthly",
+      "executionKind": "content_gap_check",
+      "executionPayload": {
+        "contentGapSitemapSource": "posts",
+        "contentGapCountMode": "editorial_month",
+        "contentGapUseEditorialPackage": true,
+        "contentGapDayOfMonth": 1,
+        "saveLocalArchive": true
+      }
+    },
+    {
+      "keyword": "post-creator-monthly",
+      "title": "Create scheduled blog posts",
+      "status": "todo",
+      "assignPulse": true,
+      "scheduleMode": "calendar",
+      "dueDate": "2026-09-01",
+      "dueTime": "09:00",
+      "recurrenceRule": "monthly",
+      "executionKind": "post_creator",
+      "executionPayload": {
+        "postCount": 1,
+        "keywordSource": "gsc",
+        "featuredImage": true,
+        "sitemapType": "post",
+        "postDestination": "wordpress",
+        "scheduleTimesPerMonth": 1,
+        "scheduleStartDay": 1,
+        "scheduleStartTime": "09:00",
+        "scheduleStaggerOptimized": true,
+        "targetBucket": "posts",
+        "saveLocalArchive": true
+      }
+    }
+  ],
+  "kind": "workflow_template",
+  "triggerBlock": {
+    "keyword": "schedule-monthly",
+    "kind": "calendar",
+    "frequency": "monthly",
+    "startDate": "2026-09-01",
+    "time": "09:00",
+    "targetBucket": "posts"
+  },
+  "actionBlock": {
+    "keyword": "content-gap-check",
+    "executionKind": "content_gap_check",
+    "executionPayload": {
+      "contentGapSitemapSource": "posts",
+      "contentGapCountMode": "editorial_month",
+      "contentGapUseEditorialPackage": true,
+      "contentGapDayOfMonth": 1,
+      "saveLocalArchive": true
+    },
+    "title": "Check blog content gap"
+  },
+  "actionBlocks": [
+    {
+      "keyword": "content-gap-check",
+      "executionKind": "content_gap_check",
+      "executionPayload": {
+        "contentGapSitemapSource": "posts",
+        "contentGapCountMode": "editorial_month",
+        "contentGapUseEditorialPackage": true,
+        "contentGapDayOfMonth": 1,
+        "saveLocalArchive": true
+      },
+      "title": "Check blog content gap"
+    },
+    {
+      "keyword": "post-creator-monthly",
+      "executionKind": "post_creator",
+      "executionPayload": {
+        "postCount": 1,
+        "keywordSource": "gsc",
+        "featuredImage": true,
+        "sitemapType": "post",
+        "postDestination": "wordpress",
+        "scheduleTimesPerMonth": 1,
+        "scheduleStartDay": 1,
+        "scheduleStartTime": "09:00",
+        "scheduleStaggerOptimized": true,
+        "targetBucket": "posts",
+        "saveLocalArchive": true
+      },
+      "title": "Create scheduled blog posts"
+    }
+  ],
+  "isAutomation": true
+}

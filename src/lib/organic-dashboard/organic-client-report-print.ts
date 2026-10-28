@@ -11,6 +11,7 @@ import { applyOrganicClientReportExportOnclone } from "@/lib/organic-dashboard/o
 import { organicClientReportPdfFileName } from "@/lib/organic-dashboard/organic-client-report-pdf-filename";
 import type { OrganicClientReportContent } from "@/lib/organic-dashboard/organic-client-report-content";
 import { mountOrganicClientReportPdfCapture } from "@/lib/organic-dashboard/organic-client-report-pdf-capture";
+import { withOrganicClientReportCoverDataUrls } from "@/lib/organic-dashboard/organic-client-report-cover-images";
 import {
   ORGANIC_CLIENT_REPORT_PDF_CAPTURE_CLASS,
   ORGANIC_CLIENT_REPORT_PDF_CONTENT_WIDTH_PX,
@@ -84,7 +85,8 @@ export async function downloadOrganicClientReportPdf(
   const fileName = organicClientReportPdfFileName(content.siteName);
   const pdfOptions = buildOrganicClientReportPdfOptions(fileName);
 
-  const capture = await mountOrganicClientReportPdfCapture(content);
+  const contentForCapture = await withOrganicClientReportCoverDataUrls(content);
+  const capture = await mountOrganicClientReportPdfCapture(contentForCapture);
   const rootElement = capture.rootElement;
 
   try {
@@ -111,6 +113,7 @@ export async function downloadOrganicClientReportPdf(
       avoidRegionsCanvasPx,
       majorSectionStartsCanvasPx,
       preparedOn,
+      drawFooters: false,
     });
     pdf.save(fileName);
   } finally {

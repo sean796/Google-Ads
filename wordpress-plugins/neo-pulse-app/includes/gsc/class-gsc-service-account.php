@@ -520,7 +520,7 @@ class Neo_Pulse_App_Gsc_Service_Account {
 	 * @param array<string,array<string,mixed>> $keyed_bodies Request bodies keyed by caller id.
 	 * @return array<string,array<string,mixed>|WP_Error>
 	 */
-	public static function search_analytics_query_parallel( string $property, array $keyed_bodies ): array {
+	public static function search_analytics_query_parallel( string $property, array $keyed_bodies, int $timeout_seconds = 90 ): array {
 		if ( count( $keyed_bodies ) === 0 ) {
 			return array();
 		}
@@ -540,6 +540,8 @@ class Neo_Pulse_App_Gsc_Service_Account {
 			'Content-Type: application/json',
 			'Accept: application/json',
 		);
+
+		$timeout_seconds = max( 15, min( 120, $timeout_seconds ) );
 
 		if ( ! function_exists( 'curl_multi_init' ) ) {
 			$out = array();
@@ -563,7 +565,7 @@ class Neo_Pulse_App_Gsc_Service_Account {
 					CURLOPT_POSTFIELDS     => wp_json_encode( $body ),
 					CURLOPT_HTTPHEADER     => $headers,
 					CURLOPT_RETURNTRANSFER => true,
-					CURLOPT_TIMEOUT        => 90,
+					CURLOPT_TIMEOUT        => $timeout_seconds,
 				)
 			);
 			curl_multi_add_handle( $mh, $ch );
@@ -575,7 +577,7 @@ class Neo_Pulse_App_Gsc_Service_Account {
 		do {
 			$status = curl_multi_exec( $mh, $running );
 			if ( $running ) {
-				curl_multi_select( $mh, 0.5 );
+				curl_multi_select( $mh, 1.0 );
 			}
 		} while ( $running && $status === CURLM_OK );
 

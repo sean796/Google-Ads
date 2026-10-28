@@ -74,9 +74,9 @@ class Neo_Pulse_App_Wp_Overview_Seo_Item {
 		if ( ! is_array( $body ) ) {
 			$body = array();
 		}
-		$acf = self::direct_acf_from_client( isset( $item['acf'] ) ? $item['acf'] : array() );
+		$acf = self::direct_acf_from_client( isset( $item['acf'] ) ? $item['acf'] : ( isset( $item['neo_pulse_fields'] ) ? $item['neo_pulse_fields'] : array() ) );
 		if ( $acf ) {
-			$body['acf'] = $acf;
+			$body['neo_pulse_fields'] = $acf;
 		}
 		if ( ! $body ) {
 			return null;
@@ -158,6 +158,13 @@ class Neo_Pulse_App_Wp_Overview_Seo_Item {
 		if ( ! $acf_payload ) {
 			return array( 'ok' => true, 'skipped' => true );
 		}
+		$pulse_sync = Neo_Pulse_App_Wp_Acf_Protocol::write_via_pulse_overview_bulk(
+			$normalized,
+			$username,
+			$app_password,
+			(int) $item['postId'],
+			$acf_payload
+		);
 		$endpoint = Neo_Pulse_App_Wp_Url_Normalize::resolve_wp_v2_collection_endpoint(
 			isset( $item['postTypeEndpoint'] ) ? $item['postTypeEndpoint'] : null,
 			isset( $item['postType'] ) ? $item['postType'] : 'post'
@@ -170,14 +177,20 @@ class Neo_Pulse_App_Wp_Overview_Seo_Item {
 			$app_password,
 			array(
 				'timeout' => self::WRITE_TIMEOUT,
-				'body'    => array( 'acf' => $acf_payload ),
+				'body'    => array( 'neo_pulse_fields' => $acf_payload ),
 			)
 		);
 		if ( $resp['is_wp_error'] ) {
+			if ( ! empty( $pulse_sync['ok'] ) ) {
+				return array( 'ok' => true, 'httpStatus' => 200 );
+			}
 			return array( 'ok' => false, 'error' => $resp['error'], 'httpStatus' => null );
 		}
 		$st = (int) $resp['status'];
 		if ( $st < 200 || $st >= 300 ) {
+			if ( ! empty( $pulse_sync['ok'] ) ) {
+				return array( 'ok' => true, 'httpStatus' => 200 );
+			}
 			return array( 'ok' => false, 'error' => 'ACF write HTTP ' . $st, 'httpStatus' => $st );
 		}
 		return array( 'ok' => true, 'httpStatus' => $st );

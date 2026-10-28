@@ -20,56 +20,273 @@
   font-family: Lato, ui-sans-serif, system-ui, sans-serif;
 }
 
-.organic-client-report-export__hero {
+.organic-client-report-export__cover-page {
   margin: 0 0 1.5rem;
-  padding: 0 0 1.25rem;
-  border: 0;
-  border-bottom: 2px solid #18181b;
+  padding: 0;
+  background: #ffffff;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.organic-client-report-export__cover-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 36rem;
   background: #ffffff;
 }
 
-.organic-client-report-export__cover-header {
+.organic-client-report-export__cover-hero-banner {
+  position: relative;
+  width: 100%;
+  line-height: 0;
+}
+
+.organic-client-report-export__cover-top-logo-slot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  padding: 0.65rem 1rem 0 0;
+  line-height: normal;
+}
+
+.organic-client-report-export__cover-agency-logo {
+  display: block;
+  max-height: 2.25rem;
+  width: auto;
+}
+
+.organic-client-report-export__cover-graphic-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.organic-client-report-export__cover-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.35rem 0 0;
+}
+
+.organic-client-report-export__cover-title-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 0.5rem 1rem;
-  margin-bottom: 1rem;
+  gap: 1rem 1.25rem;
 }
 
-.organic-client-report-export__cover-title {
+.organic-client-report-export__cover-title-heading {
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+
+.organic-client-report-export__cover-title-text {
   margin: 0;
-  padding: 0;
-  font-size: 1.5rem;
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: #02050a;
+}
+
+.organic-client-report-export__cover-client-name {
+  margin: 0.35rem 0 0;
+  font-size: 1.125rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.25;
-  color: #09090b;
+  line-height: 1.3;
+  color: #18181b;
 }
 
-.organic-client-report-export__cover-meta {
-  margin: 0.25rem 0 0;
-  padding: 0;
+.organic-client-report-export__cover-byline {
+  margin: 0.5rem 0 0;
   font-size: 1rem;
+  line-height: 1.45;
   color: #52525b;
-  font-variant-numeric: tabular-nums;
 }
 
-.organic-client-report-export__hero-body {
-  padding: 1rem 1.25rem;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-left: 4px solid #18181b;
+.organic-client-report-export__cover-emblem {
+  width: 4.5rem;
+  height: 4.5rem;
+}
+
+.organic-client-report-export__cover-insights-box {
+  padding: 1rem 1.15rem 1.1rem;
+  background: #fafafa;
+  border: 1px solid #e4e4e7;
+  border-left: 4px solid #84bd00;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.65rem;
 }
 
-.organic-client-report-export__insights-title {
+.organic-client-report-export__cover-insights-heading {
   margin: 0;
   font-size: 1.125rem;
   font-weight: 700;
+  color: #02050a;
+}
+
+.organic-client-report-export__cover-insights-summary {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: #18181b;
+}
+
+.organic-client-report-export__cover-insights-takeaways {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.organic-client-report-export__cover-insights-takeaways-title {
+  margin: 0.15rem 0 0;
+  font-size: 1rem;
+  font-weight: 700;
   color: #09090b;
+}
+
+.organic-client-report-export__cover-insights-bullets {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.organic-client-report-export__cover-insights-bullet-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-size: 1rem;
+  line-height: 1.45;
+  color: #18181b;
+}
+
+.organic-client-report-export__cover-insights-bullet-dot {
+  margin-top: 0.45rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: #84bd00;
+}
+
+.organic-client-report-export__cover-insights-bullet-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.organic-client-report-export__sheet-footer {
+  font-size: 1rem;
+  color: #71717a;
+}
+
+.organic-client-report-export__ads-account {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.organic-client-report-export__ads-account-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: #fafafa;
+  border: 1px solid #e4e4e7;
+}
+
+.organic-client-report-export__ads-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.organic-client-report-export__ads-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.organic-client-report-export__ads-kpi-value {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #09090b;
+}
+
+.organic-client-report-export__ads-chart {
+  display: block;
+  width: 100%;
+  height: 5.5rem;
+}
+
+.organic-client-report-export__ads-chart-area {
+  fill: rgba(132, 189, 0, 0.18);
+}
+
+.organic-client-report-export__ads-chart-line {
+  stroke: #84bd00;
+  stroke-width: 2;
+}
+
+.organic-client-report-export__ads-budget-caption {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  color: #52525b;
+}
+
+.organic-client-report-export__ads-budget-track {
+  position: relative;
+  height: 0.5rem;
+  width: 100%;
+  background: #e4e4e7;
+}
+
+.organic-client-report-export__ads-budget-fill {
+  height: 100%;
+  background: #84bd00;
+}
+
+.organic-client-report-export__ads-budget-time-marker {
+  position: absolute;
+  top: -0.15rem;
+  width: 2px;
+  height: 0.8rem;
+  background: #18181b;
+  transform: translateX(-50%);
+}
+
+.organic-client-report-export__local-grid-map {
+  width: 100%;
+  max-width: 42rem;
+  margin: 0 auto;
+  aspect-ratio: 1 / 1;
+  min-height: 22rem;
+  overflow: hidden;
+  border: 1px solid #e4e4e7;
+  background: #f4f4f5;
+}
+
+.organic-client-report-export__local-grid-map-live {
+  height: 100%;
+  min-height: 22rem;
+}
+
+.organic-client-report-export__local-grid-map-live .leaflet-container {
+  width: 100%;
+  height: 100%;
+  min-height: 22rem;
 }
 
 .organic-client-report-export__section {
@@ -313,7 +530,10 @@
 .organic-client-report-export__kpi-item,
 .organic-client-report-export__metric-stack,
 .organic-client-report-export__narrative,
-.organic-client-report-export__hero-body {
+.organic-client-report-export__cover-page,
+.organic-client-report-export__cover-wrapper,
+.organic-client-report-export__cover-insights-box,
+.organic-client-report-export__ads-account-card {
   break-inside: avoid;
   page-break-inside: avoid;
 }

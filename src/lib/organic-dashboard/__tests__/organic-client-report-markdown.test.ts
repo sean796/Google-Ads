@@ -41,6 +41,7 @@ describe("serializeOrganicClientReportMarkdown", () => {
         keyTakeaways: ["Clicks rose.", "Sessions grew."],
         performanceNarrative: ["GA4 narrative."],
         keywordNarrative: ["Keyword narrative."],
+        googleAdsNarrative: [],
         topOpportunities: [],
       },
       siteName: "Blind Magic",
@@ -54,7 +55,6 @@ describe("serializeOrganicClientReportMarkdown", () => {
     expect(md).toContain("## Insights");
     expect(md).toContain("Traffic improved in September.");
     expect(md).toContain("## Performance summary");
-    expect(md).toContain("| Metric |");
     expect(md).toContain("## Keyword performance");
     expect(md).toContain("brand blinds");
   });

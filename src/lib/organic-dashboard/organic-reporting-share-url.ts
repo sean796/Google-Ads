@@ -15,6 +15,8 @@ import {
   validateReportingCompareFetchRanges,
   validateReportingPrimaryFetchRange,
 } from "@/lib/reporting/reporting-date-presets";
+import { appendOrganicClientReportClientQuery } from "@/lib/organic-dashboard/organic-client-report-link-preview";
+import { buildOrganicClientReportAppPath } from "@/lib/organic-dashboard/organic-client-report-site-path";
 
 export type OrganicReportingShareState = {
   section: ReportingSectionId;
@@ -196,12 +198,19 @@ export function buildOrganicClientReportShareUrl(
   siteId: string,
   state: OrganicReportingShareState,
   origin?: string,
+  siteDisplayName?: string,
 ): string {
   const base = origin ?? (typeof window !== "undefined" ? window.location.origin : "");
-  const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
-  const path = `${basePath}/sites/${encodeURIComponent(siteId)}/organic/client-report`;
-  const qs = buildOrganicReportingShareSearch(state);
-  return `${base}${path}?${qs}`;
+  const qs = appendOrganicClientReportClientQuery(
+    buildOrganicReportingShareSearch(state),
+    siteDisplayName?.trim() ?? "",
+  );
+  const path = buildOrganicClientReportAppPath({
+    siteId,
+    siteDisplayName: siteDisplayName?.trim() || siteId,
+    search: qs,
+  });
+  return `${base}${path}`;
 }
 
 export function shareStateFromDateHarness(

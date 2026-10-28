@@ -108,7 +108,7 @@ class Neo_Pulse_App_Semrush_Client {
 	 * @param array<string,array<string,string|int>> $keyed_params
 	 * @return array<string,string|WP_Error>
 	 */
-	public static function request_reports_parallel( array $keyed_params ): array {
+	public static function request_reports_parallel( array $keyed_params, int $timeout_seconds = 60 ): array {
 		if ( count( $keyed_params ) === 0 ) {
 			return array();
 		}
@@ -122,6 +122,8 @@ class Neo_Pulse_App_Semrush_Client {
 			}
 			return $out;
 		}
+
+		$timeout_seconds = max( 10, min( 120, $timeout_seconds ) );
 
 		if ( count( $keyed_params ) === 1 || ! function_exists( 'curl_multi_init' ) ) {
 			$out = array();
@@ -145,7 +147,7 @@ class Neo_Pulse_App_Semrush_Client {
 					CURLOPT_HTTPGET        => true,
 					CURLOPT_HTTPHEADER     => self::curl_headers_from_assoc( $auth['headers'] ),
 					CURLOPT_RETURNTRANSFER => true,
-					CURLOPT_TIMEOUT        => 60,
+					CURLOPT_TIMEOUT        => $timeout_seconds,
 				)
 			);
 			curl_multi_add_handle( $mh, $ch );
@@ -156,7 +158,7 @@ class Neo_Pulse_App_Semrush_Client {
 		do {
 			$status = curl_multi_exec( $mh, $running );
 			if ( $running ) {
-				curl_multi_select( $mh, 0.5 );
+				curl_multi_select( $mh, 1.0 );
 			}
 		} while ( $running && $status === CURLM_OK );
 

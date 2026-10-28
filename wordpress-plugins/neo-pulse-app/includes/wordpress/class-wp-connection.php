@@ -126,17 +126,29 @@ class Neo_Pulse_App_Wp_Connection {
 	 */
 	private static function probe_capabilities( $normalized_url, $username, $app_password, $cookie ) {
 		$ping = Neo_Pulse_App_Wp_Rest_Client::request(
-			'GET',
-			$normalized_url . '/wp-json/neo-pulse/v1/ping',
+			'POST',
+			$normalized_url . '/wp-json/neo-pulse/v1/tools/execute',
 			$username,
 			$app_password,
 			array(
-				'timeout' => 8,
+				'timeout' => 10,
 				'cookie'  => $cookie,
 				'referer' => $normalized_url . '/',
+				'body'    => array(
+					'tool'   => 'wp_ping',
+					'params' => (object) array(),
+				),
 			)
 		);
 		$neo_pulse_ok = ! $ping['is_wp_error'] && (int) $ping['status'] >= 200 && (int) $ping['status'] < 300;
+		$version      = null;
+		if ( $neo_pulse_ok && is_array( $ping['body'] ) ) {
+			if ( isset( $ping['body']['data']['version'] ) && is_string( $ping['body']['data']['version'] ) ) {
+				$version = $ping['body']['data']['version'];
+			} elseif ( isset( $ping['body']['version'] ) && is_string( $ping['body']['version'] ) ) {
+				$version = $ping['body']['version'];
+			}
+		}
 
 		$types_resp = Neo_Pulse_App_Wp_Rest_Client::request(
 			'GET',
@@ -155,9 +167,13 @@ class Neo_Pulse_App_Wp_Connection {
 		}
 
 		return array(
-			'neoPulseWp'  => $neo_pulse_ok,
-			'postTypes'  => $types,
-			'restRoot'   => $normalized_url . '/wp-json/',
+			'hasNeoPulseWp'        => $neo_pulse_ok,
+			'neoPulseWp'           => $neo_pulse_ok,
+			'neoPulseWpVersion'    => $version,
+			'fieldsBackend'        => $neo_pulse_ok ? 'neo_pulse_fields' : 'none',
+			'acfRestObjectPresent' => true,
+			'postTypes'            => $types,
+			'restRoot'             => $normalized_url . '/wp-json/',
 		);
 	}
 }

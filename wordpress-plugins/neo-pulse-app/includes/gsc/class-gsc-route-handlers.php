@@ -234,6 +234,15 @@ class Neo_Pulse_App_Gsc_Route_Handlers {
 		}
 
 		$content = trim( (string) ( $raw['choices'][0]['message']['content'] ?? '' ) );
+		if ( $content === '' && isset( $raw['choices'][0]['message']['parsed'] ) ) {
+			$parsed_msg = $raw['choices'][0]['message']['parsed'];
+			if ( is_array( $parsed_msg ) || is_object( $parsed_msg ) ) {
+				$encoded = wp_json_encode( $parsed_msg );
+				if ( is_string( $encoded ) && $encoded !== '' && $encoded !== 'null' ) {
+					$content = $encoded;
+				}
+			}
+		}
 		if ( $content === '' ) {
 			throw new Exception( 'OpenRouter returned empty content' );
 		}

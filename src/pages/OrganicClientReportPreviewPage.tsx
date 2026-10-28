@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, Square } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { resolveGoogleAdsCustomerIdForReporting } from "@/lib/ads-reporting/ads-reporting-metrics";
-import { resolveGa4PropertyIdForReporting } from "@/lib/ga4-property-id";
+import {
+  buildOrganicReportingShareSearch,
+  shareStateFromDateHarness,
+} from "@/lib/organic-dashboard/organic-reporting-share-url";
+import { writeOrganicDashboardDateSession } from "@/lib/organic-dashboard/organic-dashboard-date-session";
 import { useWordPressSites } from "@/hooks/use-wordpress-sites";
 import { resolveOrganicDashboardSite } from "@/lib/organic-dashboard/resolve-organic-dashboard-site";
 import {
@@ -11,16 +13,11 @@ import {
 } from "@/lib/organic-dashboard/organic-client-report-share-hydrate";
 import { resolveSiteForClientReport } from "@/lib/organic-dashboard/resolve-site-for-client-report";
 import {
-  buildOrganicReportingShareSearch,
-  shareStateFromDateHarness,
-} from "@/lib/organic-dashboard/organic-reporting-share-url";
-import {
   fetchOrganicClientReportDeckShare,
   resolveOrganicClientReportDeckId,
 } from "@/lib/organic-dashboard/organic-client-report-share-api";
 import { resolveOrganicReportingDateHarnessFromSearch } from "@/lib/organic-dashboard/organic-dashboard-fetch-params";
 import type { WordPressSite } from "@/components/integrations/types";
-import { writeOrganicDashboardDateSession } from "@/lib/organic-dashboard/organic-dashboard-date-session";
 import {
   Ga4ReportingDateRangePopover,
   type Ga4ReportingDateHarness,
@@ -30,18 +27,10 @@ import { OrganicClientReportExportDocument } from "@/components/organic-dashboar
 import { Button } from "@/components/ui/button";
 import "@/components/organic-dashboard/organic-reporting-client-deck.css";
 import {
-  publishOrganicClientReportDeckSession,
   readOrganicClientReportDeckSession,
   type OrganicClientReportDeckPayload,
 } from "@/lib/organic-dashboard/organic-client-report-deck-session";
 import { buildOrganicClientReportContent } from "@/lib/organic-dashboard/organic-client-report-content";
-import { clientReportDeckNeedsAgentHighlights } from "@/lib/organic-dashboard/organic-client-report-highlights-status";
-import { buildOrganicDashboardFetchParams } from "@/lib/organic-dashboard/organic-dashboard-fetch-params";
-import { ORGANIC_DASHBOARD_QUERY_STALE_MS } from "@/lib/organic-dashboard/organic-dashboard-prefetch";
-import { buildOrganicReportingHighlightsSnapshot, fetchOrganicReportingHighlights } from "@/lib/organic-dashboard/organic-reporting-highlights";
-import {
-  organicReportingHighlightsQueryKey,
-} from "@/hooks/use-organic-reporting-highlights-query";
 import { downloadOrganicClientReportMarkdown } from "@/lib/organic-dashboard/organic-client-report-markdown";
 import { downloadOrganicClientReportPdf } from "@/lib/organic-dashboard/organic-client-report-print";
 import { readOrganicClientReportClientLabel } from "@/lib/organic-dashboard/organic-client-report-link-preview";
@@ -60,42 +49,74 @@ export default function OrganicClientReportPreviewPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const deckId = resolveOrganicClientReportDeckId(searchParams);
   const shareSearch = searchParams.toString();
-  const { sites } = useWordPressSites();
+  const { sites, handlePatchSite } = useWordPressSites();
   const resolvedSiteId = useMemo(
     () => resolveClientReportSiteIdFromRoute(routeSiteSegment, shareSearch, sites),
     [routeSiteSegment, shareSearch, sites],
   );
-  const [deckUseLiveFallback, setDeckUseLiveFallback] = useState(false);
-  const liveReportMode = (!deckId || deckUseLiveFallback) && resolvedSiteId !== "";
+  const isPublishedDeckLink = Boolean(deckId && resolvedSiteId);
+  const liveReportMode = !deckId && resolvedSiteId !== "";
   const siteFromList = useMemo(
     () => resolveOrganicDashboardSite(sites, resolvedSiteId, null),
     [resolvedSiteId, sites],
   );
   const [resolvedSite, setResolvedSite] = useState<WordPressSite | undefined>(undefined);
-  const [siteResolving, setSiteResolving] = useState(Boolean(resolvedSiteId));
+  const [siteResolving, setSiteResolving] = useState(Boolean(resolvedSiteId) && !isPublishedDeckLink);
   const reportSite = resolvedSite ?? siteFromList;
   const dashboardSiteId = reportSite?.id ?? resolvedSiteId;
-  const queryClient = useQueryClient();
 
-  const [dateHarness, setDateHarness] = useState<Ga4ReportingDateHarness>(() =>
-    resolveOrganicReportingDateHarnessFromSearch(shareSearch),
+  const dateHarness = useMemo(
+    () => resolveOrganicReportingDateHarnessFromSearch(shareSearch),
+    [shareSearch],
   );
   const todayYmdMax = formatLocalYmd(new Date());
 
   const [payload, setPayload] = useState<OrganicClientReportDeckPayload | null>(() =>
-    readDeckPayload(deckId, resolvedSiteId),
+    isPublishedDeckLink ? readDeckPayload(deckId, resolvedSiteId) : null,
   );
   const [shareHydrating, setShareHydrating] = useState(liveReportMode);
   const [shareHydrateError, setShareHydrateError] = useState<string | null>(null);
-  const [deckLoading, setDeckLoading] = useState(Boolean(deckId && resolvedSiteId));
+  const [deckLoading, setDeckLoading] = useState(isPublishedDeckLink);
+  const [deckLoadFailed, setDeckLoadFailed] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
-  const [highlightsLoading, setHighlightsLoading] = useState(false);
-  const [highlightsError, setHighlightsError] = useState<string | null>(null);
+
+  const [logoBoxTheme, setLogoBoxTheme] = useState<"black" | "white">(
+    () => reportSite?.clientLogoBoxTheme ?? "black",
+  );
+
+  useEffect(() => {
+    if (reportSite?.clientLogoBoxTheme) {
+      setLogoBoxTheme(reportSite.clientLogoBoxTheme);
+    }
+  }, [reportSite?.id, reportSite?.clientLogoBoxTheme]);
+
+  const handleToggleLogoBoxTheme = useCallback(() => {
+    setLogoBoxTheme((prev) => {
+      const nextTheme: "black" | "white" = prev === "black" ? "white" : "black";
+      if (reportSite?.id) {
+        handlePatchSite(reportSite.id, { clientLogoBoxTheme: nextTheme });
+      }
+      return nextTheme;
+    });
+  }, [handlePatchSite, reportSite?.id]);
 
   const reportContent = useMemo(
-    () => (payload ? buildOrganicClientReportContent(payload) : null),
-    [payload],
+    () =>
+      payload?.highlights
+        ? buildOrganicClientReportContent({
+            viewModel: payload.viewModel,
+            highlights: payload.highlights,
+            siteName: payload.siteName,
+            siteUrl: payload.siteUrl,
+            showCompare: payload.showCompare,
+            preparedOn: payload.preparedOn,
+            localGridScan: payload.localGridScan ?? null,
+            clientLogoUrl: reportSite?.clientLogoUrl,
+            clientLogoBoxTheme: logoBoxTheme,
+          })
+        : null,
+    [payload, reportSite?.clientLogoUrl, logoBoxTheme],
   );
 
   useOrganicClientReportDocumentMeta(payload);
@@ -107,47 +128,41 @@ export default function OrganicClientReportPreviewPage() {
     routeSiteSegment;
 
   useEffect(() => {
+    if (!isPublishedDeckLink) return;
     const data = readDeckPayload(deckId, resolvedSiteId);
-    setPayload(data);
+    if (data) setPayload(data);
     if (data) {
       document.title = `${data.siteName} Organic Performance`;
     }
-  }, [deckId, resolvedSiteId]);
+  }, [deckId, isPublishedDeckLink, resolvedSiteId]);
 
   useEffect(() => {
-    setDeckUseLiveFallback(false);
-  }, [deckId, resolvedSiteId]);
-
-  const needsAgentHighlights = Boolean(
-    payload &&
-      reportSite &&
-      !liveReportMode &&
-      clientReportDeckNeedsAgentHighlights(payload.highlights, payload.viewModel),
-  );
-
-  useEffect(() => {
-    if (!deckId || !resolvedSiteId) {
+    if (!isPublishedDeckLink) {
       setDeckLoading(false);
+      setDeckLoadFailed(false);
       return;
     }
 
     const local = readDeckPayload(deckId, resolvedSiteId);
     if (local) {
       setDeckLoading(false);
+      setDeckLoadFailed(false);
       return;
     }
 
     let cancelled = false;
     setDeckLoading(true);
+    setDeckLoadFailed(false);
 
     void fetchOrganicClientReportDeckShare(deckId, resolvedSiteId).then((remote) => {
       if (cancelled) return;
       if (remote) {
         setPayload(remote);
         document.title = `${remote.siteName} Organic Performance`;
+        setDeckLoadFailed(false);
       } else {
         setPayload(null);
-        setDeckUseLiveFallback(true);
+        setDeckLoadFailed(true);
       }
       setDeckLoading(false);
     });
@@ -155,9 +170,14 @@ export default function OrganicClientReportPreviewPage() {
     return () => {
       cancelled = true;
     };
-  }, [deckId, resolvedSiteId]);
+  }, [deckId, isPublishedDeckLink, resolvedSiteId]);
 
   useEffect(() => {
+    if (isPublishedDeckLink) {
+      setResolvedSite(undefined);
+      setSiteResolving(false);
+      return;
+    }
     if (!resolvedSiteId) {
       setResolvedSite(undefined);
       setSiteResolving(false);
@@ -174,108 +194,10 @@ export default function OrganicClientReportPreviewPage() {
     return () => {
       cancelled = true;
     };
-  }, [resolvedSiteId, sites]);
-
-  useEffect(() => {
-    setDateHarness(resolveOrganicReportingDateHarnessFromSearch(shareSearch));
-  }, [shareSearch]);
-
-  const handleDateHarnessApply = useCallback(
-    (next: Ga4ReportingDateHarness) => {
-      setDateHarness(next);
-      writeOrganicDashboardDateSession(next);
-      const qs = buildOrganicReportingShareSearch(shareStateFromDateHarness("performance", next));
-      setSearchParams(new URLSearchParams(qs), { replace: true });
-      if (deckId) {
-        setDeckUseLiveFallback(true);
-      }
-      setPayload(null);
-      setShareHydrateError(null);
-    },
-    [deckId, setSearchParams],
-  );
-
-  useEffect(() => {
-    if (!needsAgentHighlights || !payload || !reportSite) {
-      setHighlightsLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setHighlightsLoading(true);
-    setHighlightsError(null);
-
-    const deckPayload = payload;
-    const ga4PropertyId = resolveGa4PropertyIdForReporting(reportSite);
-    const googleAdsCustomerId = resolveGoogleAdsCustomerIdForReporting(reportSite);
-    const fetchParams = buildOrganicDashboardFetchParams(
-      reportSite,
-      dateHarness,
-      ga4PropertyId,
-      googleAdsCustomerId,
-    );
-    const queryKey = organicReportingHighlightsQueryKey({
-      siteId: reportSite.id,
-      fetchParams,
-      showCompare: deckPayload.showCompare,
-      siteDisplayName: deckPayload.siteName,
-      sitePublicUrl: deckPayload.siteUrl,
-    });
-
-    void (async () => {
-      try {
-        const cached = queryClient.getQueryData(queryKey);
-        if (
-          cached &&
-          !clientReportDeckNeedsAgentHighlights(cached, deckPayload.viewModel)
-        ) {
-          if (!cancelled) {
-            setPayload((prev) => (prev ? { ...prev, highlights: cached } : null));
-          }
-          return;
-        }
-        const next = await queryClient.fetchQuery({
-          queryKey,
-          staleTime: ORGANIC_DASHBOARD_QUERY_STALE_MS,
-          retry: 0,
-          queryFn: ({ signal }) => {
-            const snapshot = buildOrganicReportingHighlightsSnapshot(
-              deckPayload.viewModel,
-              deckPayload.siteName,
-              deckPayload.siteUrl,
-              deckPayload.showCompare,
-            );
-            return fetchOrganicReportingHighlights(snapshot, reportSite.id, signal);
-          },
-        });
-        if (cancelled) return;
-        const updated = { ...deckPayload, highlights: next };
-        setPayload(updated);
-        if (deckId) {
-          void publishOrganicClientReportDeckSession(deckId, updated).catch(() => {
-            /* session storage already updated */
-          });
-        }
-      } catch (err) {
-        if (!cancelled) {
-          const message = err instanceof Error ? err.message : "Overview could not be generated.";
-          setHighlightsError(message);
-        }
-      } finally {
-        if (!cancelled) setHighlightsLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      void queryClient.cancelQueries({ queryKey });
-      setHighlightsLoading(false);
-    };
-  }, [dateHarness, deckId, needsAgentHighlights, payload, queryClient, reportSite]);
+  }, [isPublishedDeckLink, resolvedSiteId, sites]);
 
   useEffect(() => {
     if (!liveReportMode || !reportSite) return;
-    if (deckId && !deckUseLiveFallback) return;
 
     let cancelled = false;
     setShareHydrateError(null);
@@ -305,7 +227,17 @@ export default function OrganicClientReportPreviewPage() {
     return () => {
       cancelled = true;
     };
-  }, [dateHarness, deckId, deckUseLiveFallback, liveReportMode, reportSite]);
+  }, [dateHarness, liveReportMode, reportSite]);
+
+  const handleDateHarnessApply = useCallback(
+    (next: Ga4ReportingDateHarness) => {
+      if (isPublishedDeckLink) return;
+      writeOrganicDashboardDateSession(next);
+      const qs = buildOrganicReportingShareSearch(shareStateFromDateHarness("performance", next));
+      setSearchParams(new URLSearchParams(qs), { replace: true });
+    },
+    [isPublishedDeckLink, setSearchParams],
+  );
 
   const handleDownloadPdf = useCallback(async () => {
     if (!reportContent || !payload) return;
@@ -336,7 +268,7 @@ export default function OrganicClientReportPreviewPage() {
     !shareHydrateError &&
     (shareHydrating || siteResolving || !reportSite);
 
-  if (deckId && deckLoading) {
+  if (isPublishedDeckLink && deckLoading) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#f4f4f5] px-6 font-sans text-base text-[#18181b]">
         <p>Loading client report…</p>
@@ -376,6 +308,23 @@ export default function OrganicClientReportPreviewPage() {
     );
   }
 
+  if (isPublishedDeckLink && deckLoadFailed) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#f4f4f5] px-6 font-sans text-base text-[#18181b]">
+        <p>This client report link is missing or expired. Generate it again from Reporting.</p>
+        {dashboardSiteId ? (
+          <Link className="text-base font-semibold text-[#18181b] underline" to={`/sites/${dashboardSiteId}/organic?section=performance`}>
+            Back to Reporting
+          </Link>
+        ) : (
+          <Link className="text-base font-semibold text-[#18181b] underline" to="/">
+            Back to Neo Pulse
+          </Link>
+        )}
+      </div>
+    );
+  }
+
   if (!liveReportMode && !deckId) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#f4f4f5] px-6 font-sans text-base text-[#18181b]">
@@ -410,8 +359,6 @@ export default function OrganicClientReportPreviewPage() {
     );
   }
 
-  const pdfDisabled = pdfBusy || highlightsLoading;
-
   return (
     <div className="organic-client-report-preview-shell min-h-dvh overflow-auto">
       <div className="organic-client-report-preview-toolbar">
@@ -419,21 +366,34 @@ export default function OrganicClientReportPreviewPage() {
           {`${toolbarClientLabel} · Client report`}
         </div>
         <div className="organic-client-report-preview-toolbar-actions">
-          <div className="organic-client-report-preview-date-slot">
-            <Ga4ReportingDateRangePopover
-              busy={shareHydrating}
-              value={dateHarness}
-              onApply={handleDateHarnessApply}
-              todayYmdMax={todayYmdMax}
-            />
-          </div>
+          {liveReportMode ? (
+            <div className="organic-client-report-preview-date-slot">
+              <Ga4ReportingDateRangePopover
+                busy={shareHydrating}
+                value={dateHarness}
+                onApply={handleDateHarnessApply}
+                todayYmdMax={todayYmdMax}
+              />
+            </div>
+          ) : null}
           <Button
             type="button"
             variant="ghost"
-            disabled={pdfDisabled}
+            className={cn(REPORTING_TOOLBAR_ACTION_BTN, "tabular-nums")}
+            title="Toggle logo box black or white theme"
+            aria-label="Toggle logo box theme"
+            onClick={handleToggleLogoBoxTheme}
+          >
+            <Square className="h-4 w-4 shrink-0" aria-hidden />
+            {logoBoxTheme === "white" ? "White Box" : "Black Box"}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={pdfBusy}
             className={cn(REPORTING_TOOLBAR_ACTION_BTN, "min-w-[4.75rem] tabular-nums")}
             aria-busy={pdfBusy}
-            aria-label={pdfBusy ? "Preparing PDF" : "Download PDF"}
+            aria-label={pdfBusy ? "Preparing PDF" : "PDF"}
             onClick={() => void handleDownloadPdf()}
           >
             <Download className="h-4 w-4 shrink-0" aria-hidden />
@@ -443,7 +403,7 @@ export default function OrganicClientReportPreviewPage() {
             type="button"
             variant="ghost"
             className={cn(REPORTING_TOOLBAR_ACTION_BTN, "min-w-8 px-2")}
-            aria-label="Download Markdown"
+            aria-label="Markdown"
             onClick={handleDownloadMarkdown}
           >
             <FileText className="h-4 w-4 shrink-0" aria-hidden />
@@ -457,8 +417,10 @@ export default function OrganicClientReportPreviewPage() {
       ) : null}
       <OrganicClientReportExportDocument
         content={reportContent}
-        highlightsLoading={highlightsLoading}
-        highlightsError={highlightsError}
+        highlightsLoading={false}
+        localGridNarrativeLoading={false}
+        highlightsError={null}
+        onToggleLogoBoxTheme={handleToggleLogoBoxTheme}
       />
     </div>
   );

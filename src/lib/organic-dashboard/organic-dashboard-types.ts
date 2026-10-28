@@ -83,6 +83,46 @@ export type OrganicDashboardSemrushKeyword = {
   position?: number | null;
 };
 
+export type OrganicDashboardGoogleAdsDailyPoint = {
+  date: string;
+  costMicros: number;
+  conversions: number;
+  clicks: number;
+};
+
+export type OrganicDashboardGoogleAdsSuccess = {
+  success?: true;
+  customerId?: string;
+  currencyCode?: string;
+  account?: {
+    impressions?: number;
+    clicks?: number;
+    costMicros?: number;
+    conversions?: number;
+    ctr?: number;
+    averageCpc?: number;
+  };
+  compareAccount?: {
+    impressions?: number;
+    clicks?: number;
+    costMicros?: number;
+    conversions?: number;
+    ctr?: number;
+    averageCpc?: number;
+  };
+  dailySeries?: OrganicDashboardGoogleAdsDailyPoint[];
+  budgetPacing?: {
+    spendMicros: number;
+    budgetMicros: number;
+    periodStart: string;
+    periodEnd: string;
+  };
+};
+
+export type OrganicDashboardGoogleAdsPayload =
+  | OrganicDashboardGoogleAdsSuccess
+  | OrganicDashboardSkippedBlock;
+
 export type OrganicDashboardSemrushStats = {
   success?: boolean;
   database?: string;
@@ -106,26 +146,34 @@ export type OrganicDashboardBundleResponse = {
   meta?: {
     fetchedAt: string;
     primary: { startDate: string; endDate: string };
-    compare: { startDate: string; endDate: string };
+    compare: { startDate: string; endDate: string } | null;
+    reportStructure?: "compare" | "period_progress";
     gscProperty?: string | null;
     ga4PropertyId?: string | null;
+    googleAdsCustomerId?: string | null;
   };
   ga4?: GA4ReportData | OrganicDashboardSkippedBlock;
   gsc?: OrganicDashboardGscStats | OrganicDashboardSkippedBlock;
   gscHistorical?: OrganicDashboardGscHistorical | OrganicDashboardSkippedBlock;
   semrush?: OrganicDashboardSemrushStats | OrganicDashboardSkippedBlock;
+  googleAds?: OrganicDashboardGoogleAdsPayload;
   sources?: {
     ga4: OrganicDashboardSourceStatus;
     gsc: OrganicDashboardSourceStatus;
     gscHistorical?: OrganicDashboardSourceStatus;
     semrush?: OrganicDashboardSourceStatus;
+    googleAds?: OrganicDashboardSourceStatus;
   };
 };
 
 export type OrganicDashboardFetchParams = {
   siteUrl: string;
   ga4PropertyId: string;
+  /** 10-digit Google Ads customer ID when set on the property. */
+  googleAdsCustomerId?: string;
   semrushDatabase?: string;
+  /** Semrush SEO project id (Site Audit / PT hub); used for dashboard link + server context. */
+  semrushProjectId?: string;
   reportStructure: "compare" | "period_progress";
   startDate: string;
   endDate: string;

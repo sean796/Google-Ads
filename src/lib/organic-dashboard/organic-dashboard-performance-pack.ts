@@ -1,6 +1,11 @@
+import type { QueryClient } from "@tanstack/react-query";
 import type { WordPressSite } from "@/components/integrations/types";
-import { deckHighlightsNeedsAgentNarratives } from "@/lib/organic-dashboard/organic-client-report-deck-session";
+import { resolveGoogleAdsCustomerIdForReporting } from "@/lib/ads-reporting/ads-reporting-metrics";
 import { fetchOrganicDashboardBundle } from "@/lib/organic-dashboard/organic-dashboard-fetch";
+import {
+  ORGANIC_DASHBOARD_QUERY_STALE_MS,
+  organicDashboardBundleQueryKey,
+} from "@/lib/organic-dashboard/organic-dashboard-prefetch";
 import type { OrganicDashboardFetchParams } from "@/lib/organic-dashboard/organic-dashboard-types";
 import {
   buildOrganicDashboardViewModel,
@@ -8,7 +13,7 @@ import {
 } from "@/lib/organic-dashboard/organic-dashboard-view-model";
 import {
   buildOrganicReportingHighlightsSnapshot,
-  fetchOrganicReportingHighlights,
+  fetchOrganicReportingHighlightsForSnapshot,
   type OrganicReportingHighlights,
 } from "@/lib/organic-dashboard/organic-reporting-highlights";
 import type { OrganicDashboardBundleResponse } from "@/lib/organic-dashboard/organic-dashboard-types";
@@ -27,11 +32,20 @@ export async function fetchOrganicDashboardPerformancePack(args: {
   showCompare: boolean;
   siteSemrushProjectDashboardUrl?: string;
   signal?: AbortSignal;
+  queryClient?: QueryClient;
 }): Promise<OrganicDashboardPerformancePack> {
-  const bundle = await fetchOrganicDashboardBundle(args.fetchParams);
+  const bundleKey = organicDashboardBundleQueryKey(args.siteId, args.fetchParams);
+  const bundle = args.queryClient
+    ? await args.queryClient.fetchQuery({
+        queryKey: bundleKey,
+        queryFn: () => fetchOrganicDashboardBundle(args.fetchParams),
+        staleTime: ORGANIC_DASHBOARD_QUERY_STALE_MS,
+      })
+    : await fetchOrganicDashboardBundle(args.fetchParams);
   const viewModel = buildOrganicDashboardViewModel(bundle, {
     showCompare: args.showCompare,
     siteSemrushProjectDashboardUrl: args.siteSemrushProjectDashboardUrl,
+    googleAdsCustomerIdForReporting: resolveGoogleAdsCustomerIdForReporting(args.site),
   });
   const snapshot = buildOrganicReportingHighlightsSnapshot(
     viewModel,
@@ -39,14 +53,11 @@ export async function fetchOrganicDashboardPerformancePack(args: {
     args.sitePublicUrl,
     args.showCompare,
   );
-  const highlights = await fetchOrganicReportingHighlights(
+  const highlights = await fetchOrganicReportingHighlightsForSnapshot(
     snapshot,
     args.siteId,
     args.signal,
   );
-  if (deckHighlightsNeedsAgentNarratives(highlights)) {
-    throw new Error("Report narratives did not return complete content.");
-  }
   return { bundle, highlights, viewModel };
 }
 

@@ -6,7 +6,9 @@ import {
   normalizeOrganicDashboardViewModelForDeck,
   type OrganicDashboardViewModel,
 } from "@/lib/organic-dashboard/organic-dashboard-view-model";
+import { EMPTY_CLIENT_REPORT_HIGHLIGHTS } from "@/lib/organic-dashboard/organic-client-report-content";
 import { saveOrganicClientReportDeckShare } from "@/lib/organic-dashboard/organic-client-report-share-api";
+import type { LocalGridScanDocument } from "@/lib/local-grid-studio/local-grid-types";
 
 export type OrganicClientReportDeckPayload = {
   siteId: string;
@@ -16,7 +18,17 @@ export type OrganicClientReportDeckPayload = {
   siteUrl: string;
   showCompare: boolean;
   preparedOn: string;
+  localGridScan?: LocalGridScanDocument | null;
 };
+
+function parseDeckLocalGridScan(raw: unknown): LocalGridScanDocument | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  if (typeof o.scanId !== "string" || !Array.isArray(o.points) || o.points.length === 0) {
+    return null;
+  }
+  return raw as LocalGridScanDocument;
+}
 
 const STORAGE_PREFIX = "neo-pulse:organic-client-report:";
 const EPHEMERAL_CACHE_PREFIXES = [
@@ -110,7 +122,7 @@ export function deckHighlightsNeedsAgentNarratives(
     (o) => o.comparisonRows.length < 1,
   );
   return (
-    highlights.performanceNarrative.length < 2 ||
+    highlights.performanceNarrative.length < 1 ||
     highlights.keywordNarrative.length < 1 ||
     staleOpportunities
   );
@@ -125,10 +137,11 @@ export function parseOrganicClientReportDeckPayload(
   if (o.siteId !== siteId) return null;
   if (typeof o.siteName !== "string" || typeof o.siteUrl !== "string") return null;
   if (typeof o.showCompare !== "boolean" || typeof o.preparedOn !== "string") return null;
-  if (!o.highlights || typeof o.highlights !== "object") return null;
   if (!o.viewModel || typeof o.viewModel !== "object") return null;
-  const highlights = normalizeOrganicReportingHighlights(o.highlights);
-  if (!highlights) return null;
+  const highlightsRaw = o.highlights && typeof o.highlights === "object" ? o.highlights : null;
+  const highlights =
+    (highlightsRaw ? normalizeOrganicReportingHighlights(highlightsRaw) : null) ??
+    EMPTY_CLIENT_REPORT_HIGHLIGHTS;
   return {
     siteId,
     siteName: o.siteName,
@@ -137,6 +150,7 @@ export function parseOrganicClientReportDeckPayload(
     preparedOn: o.preparedOn,
     viewModel: normalizeOrganicDashboardViewModelForDeck(o.viewModel),
     highlights,
+    localGridScan: parseDeckLocalGridScan(o.localGridScan),
   };
 }
 

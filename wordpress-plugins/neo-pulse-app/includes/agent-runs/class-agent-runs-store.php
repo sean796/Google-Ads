@@ -103,7 +103,7 @@ class Neo_Pulse_App_Agent_Runs_Store {
 		if ( isset( $body['planJson'] ) && is_array( $body['planJson'] ) ) {
 			$plan = $body['planJson'];
 		}
-		if ( in_array( $recipe_key, array( 'post_creator', 'local_dominator_export' ), true ) && empty( $plan['executionMode'] ) ) {
+		if ( in_array( $recipe_key, array( 'post_creator' ), true ) && empty( $plan['executionMode'] ) ) {
 			$plan['executionMode'] = 'server';
 		}
 
@@ -115,7 +115,7 @@ class Neo_Pulse_App_Agent_Runs_Store {
 			}
 		}
 
-		$uses_server = in_array( $recipe_key, array( 'post_creator', 'local_dominator_export' ), true )
+		$uses_server = in_array( $recipe_key, array( 'post_creator' ), true )
 			|| ( sanitize_key( (string) ( $plan['executionMode'] ?? '' ) ) === 'server' );
 		$initial_status = $uses_server ? 'running' : 'queued';
 
@@ -730,7 +730,7 @@ class Neo_Pulse_App_Agent_Runs_Store {
 			return true;
 		}
 		$recipe = sanitize_key( (string) ( $run['recipeKey'] ?? '' ) );
-		return in_array( $recipe, array( 'post_creator', 'local_dominator_export' ), true );
+		return in_array( $recipe, array( 'post_creator' ), true );
 	}
 
 	/**

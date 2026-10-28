@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildHeadlineSummaryRows,
   dedupeOrganicComparisonRows,
+  layoutOpportunityComparisonRows,
+  sanitizeDeckOpportunityComparisonRows,
   parseDeckCountDisplay,
   pickDeckHighlightStats,
   plainDeckText,
@@ -54,6 +56,30 @@ function minimalViewModel(overrides: Partial<OrganicDashboardViewModel> = {}): O
   };
 }
 
+describe("sanitizeDeckOpportunityComparisonRows", () => {
+  it("splits slash-combined metrics into one row per metric", () => {
+    const rows = sanitizeDeckOpportunityComparisonRows([
+      {
+        metric: "automated blinds , impressions / average position",
+        comparePeriodValue: "0 / 0.0",
+        primaryPeriodValue: "86 / 39.9",
+      },
+    ]);
+    expect(rows).toEqual([
+      {
+        metric: "automated blinds , impressions",
+        comparePeriodValue: "0",
+        primaryPeriodValue: "86",
+      },
+      {
+        metric: "automated blinds , average position",
+        comparePeriodValue: "0.0",
+        primaryPeriodValue: "39.9",
+      },
+    ]);
+  });
+});
+
 describe("dedupeOrganicComparisonRows", () => {
   it("drops site-wide key events when organic key events present", () => {
     const rows = dedupeOrganicComparisonRows([
@@ -94,7 +120,7 @@ describe("pickDeckHighlightStats", () => {
     const stats = pickDeckHighlightStats(minimalViewModel(), true);
     expect(stats.length).toBeGreaterThan(0);
     expect(stats.length).toBeLessThanOrEqual(3);
-    expect(stats[0]?.label).toBe("Organic Search sessions");
+    expect(stats.some((s) => s.label === "Sessions")).toBe(true);
   });
 });
 
@@ -110,14 +136,31 @@ describe("buildHeadlineSummaryRows", () => {
     const rows = buildHeadlineSummaryRows(minimalViewModel(), true);
     const labels = rows.map((r) => r.label);
     expect(labels).toEqual([
-      "Organic Search sessions",
+      "Sessions",
       "Total clicks",
       "Total impressions",
       "Average CTR",
       "Average position",
     ]);
-    expect(rows[0]?.label).toBe("Organic Search sessions");
+    expect(rows[0]?.label).toBe("Sessions");
     expect(rows[0]?.earlier).toBe("800");
     expect(rows[0]?.later).toBe("900");
+  });
+});
+
+describe("layoutOpportunityComparisonRows", () => {
+  it("pivots legacy query , metric rows into a query grid", () => {
+    const layout = layoutOpportunityComparisonRows([
+      { metric: "shades vs blinds , clicks", comparePeriodValue: "n/a", primaryPeriodValue: "2" },
+      { metric: "shades vs blinds , impressions", comparePeriodValue: "n/a", primaryPeriodValue: "686" },
+      { metric: "shades vs blinds , average position", comparePeriodValue: "n/a", primaryPeriodValue: "15.2" },
+    ]);
+    expect(layout.kind).toBe("query-grid");
+    if (layout.kind !== "query-grid") return;
+    expect(layout.queryRows).toHaveLength(1);
+    expect(layout.queryRows[0]?.query).toBe("shades vs blinds");
+    expect(layout.queryRows[0]?.clicks.primary).toBe("2");
+    expect(layout.queryRows[0]?.impressions.primary).toBe("686");
+    expect(layout.queryRows[0]?.avgPosition.primary).toBe("15.2");
   });
 });

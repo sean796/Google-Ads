@@ -39,6 +39,10 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 		}
 
 		try {
+			if ( ! empty( $body['localGridNarrativeOnly'] ) ) {
+				return self::generate_local_grid_report_narrative( $body, $site_id, $snapshot );
+			}
+
 			$model = Neo_Pulse_App_Openrouter_Agent_Models::resolve(
 				Neo_Pulse_App_Openrouter_Agent_Models::CATEGORY_REPORT,
 				isset( $body['model'] ) ? (string) $body['model'] : ''
@@ -53,26 +57,40 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 				),
 			);
 
+			$has_grid     = isset( $snapshot['localGrid'] ) && is_array( $snapshot['localGrid'] ) && ! empty( $snapshot['localGrid']['scanId'] );
+			$bypass_cache = self::reporting_highlights_bypass_cache( $body );
+
 			$cache_key = 'neo_pulse_orh_' . md5(
 				wp_json_encode(
 					array(
-						'v'        => 2,
+						'v'        => 4,
 						'siteId'   => $site_id,
 						'model'    => $model,
 						'snapshot' => $snapshot,
 					)
 				)
 			);
-			$cached = get_transient( $cache_key );
-			if ( is_array( $cached ) && ! empty( $cached['executiveSummary'] ) ) {
-				return array(
-					'statusCode' => 200,
-					'body'       => array(
-						'success'    => true,
-						'highlights' => $cached,
-						'cached'     => true,
-					),
-				);
+			if ( ! $bypass_cache ) {
+				$cached = get_transient( $cache_key );
+				if ( is_array( $cached ) && ! empty( $cached['executiveSummary'] ) ) {
+					if ( $has_grid && empty( $cached['localGridNarrative'] ) ) {
+						$cached = self::patch_local_grid_narrative( $body, $site_id, $snapshot, $cached );
+						if ( ! empty( $cached['localGridNarrative'] ) ) {
+							set_transient( $cache_key, $cached, 6 * HOUR_IN_SECONDS );
+						}
+					}
+					$cached_grid_ok = ! $has_grid || ! empty( $cached['localGridNarrative'] );
+					if ( $cached_grid_ok ) {
+						return array(
+							'statusCode' => 200,
+							'body'       => array(
+								'success'    => true,
+								'highlights' => $cached,
+								'cached'     => true,
+							),
+						);
+					}
+				}
 			}
 
 			$slice_specs = self::build_parallel_slice_specs( $snapshot );
@@ -108,13 +126,15 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 				);
 			}
 
-			set_transient( $cache_key, $merged['highlights'], 6 * HOUR_IN_SECONDS );
+			$highlights_out = self::patch_local_grid_narrative( $body, $site_id, $snapshot, $merged['highlights'] );
+
+			set_transient( $cache_key, $highlights_out, 6 * HOUR_IN_SECONDS );
 
 			return array(
 				'statusCode' => 200,
 				'body'       => array(
 					'success'    => true,
-					'highlights' => $merged['highlights'],
+					'highlights' => $highlights_out,
 				),
 			);
 		} catch ( Exception $e ) {
@@ -136,19 +156,140 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 	 * @param array<string,mixed> $snapshot
 	 * @return array<int,array{id:string,system:string,snapshot:array<string,mixed>}>
 	 */
+	/**
+	 * @param array<string,mixed> $body
+	 * @param array<string,mixed> $snapshot
+	 * @return array{statusCode:int,body:array<string,mixed>}
+	 */
+	/**
+	 * @param array<string,mixed> $body
+	 * @param array<string,mixed> $snapshot
+	 * @param array<string,mixed> $highlights
+	 * @return array<string,mixed>
+	 */
+	private static function patch_local_grid_narrative( array $body, string $site_id, array $snapshot, array $highlights ): array {
+		$has_grid = isset( $snapshot['localGrid'] ) && is_array( $snapshot['localGrid'] ) && ! empty( $snapshot['localGrid']['scanId'] );
+		if ( ! $has_grid || ! empty( $highlights['localGridNarrative'] ) ) {
+			return $highlights;
+		}
+
+		$only = self::generate_local_grid_report_narrative( $body, $site_id, $snapshot );
+		if ( (int) ( $only['statusCode'] ?? 500 ) !== 200 ) {
+			return $highlights;
+		}
+
+		$list = isset( $only['body']['highlights']['localGridNarrative'] ) && is_array( $only['body']['highlights']['localGridNarrative'] )
+			? $only['body']['highlights']['localGridNarrative']
+			: array();
+		if ( count( $list ) < 1 ) {
+			return $highlights;
+		}
+
+		$highlights['localGridNarrative'] = $list;
+		return $highlights;
+	}
+
+	/**
+	 * @param array<string,mixed> $body
+	 * @param array<string,mixed> $snapshot
+	 * @return array{statusCode:int,body:array<string,mixed>}
+	 */
+	public static function generate_local_grid_report_narrative( array $body, string $site_id, array $snapshot ): array {
+		$has_grid = isset( $snapshot['localGrid'] ) && is_array( $snapshot['localGrid'] ) && ! empty( $snapshot['localGrid']['scanId'] );
+		if ( ! $has_grid ) {
+			return array(
+				'statusCode' => 400,
+				'body'       => array(
+					'success' => false,
+					'error'   => 'snapshot.localGrid with scanId is required',
+				),
+			);
+		}
+
+		$model = Neo_Pulse_App_Openrouter_Agent_Models::resolve(
+			Neo_Pulse_App_Openrouter_Agent_Models::CATEGORY_REPORT,
+			isset( $body['model'] ) ? (string) $body['model'] : ''
+		);
+		$job_opts = array(
+			'model'       => $model,
+			'temperature' => 0.15,
+			'maxTokens'   => 2048,
+			'reasoning'   => array(
+				'effort'  => 'none',
+				'exclude' => true,
+			),
+		);
+
+		$slice_snapshot = array_merge(
+			self::snapshot_common_fields( $snapshot ),
+			self::pick_snapshot_fields( $snapshot, array( 'localGrid' ) )
+		);
+
+		$parsed = Neo_Pulse_App_Chat_Openrouter::json_completion(
+			array(
+				array(
+					'role'    => 'system',
+					'content' => self::local_grid_system_prompt(),
+				),
+				array(
+					'role'    => 'user',
+					'content' => self::snapshot_user_message( $slice_snapshot ),
+				),
+			),
+			$job_opts
+		);
+
+		if ( ! is_array( $parsed ) ) {
+			return array(
+				'statusCode' => 502,
+				'body'       => array(
+					'success' => false,
+					'error'   => 'Local grid narrative returned invalid JSON.',
+				),
+			);
+		}
+
+		$local_grid_narrative = self::string_list( $parsed['localGridNarrative'] ?? array(), 4 );
+		if ( count( $local_grid_narrative ) < 1 ) {
+			return array(
+				'statusCode' => 502,
+				'body'       => array(
+					'success' => false,
+					'error'   => 'Highlights slice "local_grid" missing localGridNarrative.',
+				),
+			);
+		}
+
+		return array(
+			'statusCode' => 200,
+			'body'       => array(
+				'success'    => true,
+				'highlights' => array(
+					'localGridNarrative' => $local_grid_narrative,
+				),
+			),
+		);
+	}
+
+	/**
+	 * @param array<string,mixed> $snapshot
+	 * @return array<int,array{id:string,system:string,snapshot:array<string,mixed>}>
+	 */
 	private static function build_parallel_slice_specs( array $snapshot ): array {
 		$common = self::snapshot_common_fields( $snapshot );
-		$has_ads = isset( $snapshot['googleAdsTotals'] ) && is_array( $snapshot['googleAdsTotals'] ) && $snapshot['googleAdsTotals'] !== array();
+		$has_ads   = isset( $snapshot['googleAdsTotals'] ) && is_array( $snapshot['googleAdsTotals'] ) && $snapshot['googleAdsTotals'] !== array();
+		$has_grid  = isset( $snapshot['localGrid'] ) && is_array( $snapshot['localGrid'] ) && ! empty( $snapshot['localGrid']['scanId'] );
+		$has_semrush = isset( $snapshot['semrushBrandedTotals'] ) && is_array( $snapshot['semrushBrandedTotals'] ) && ! empty( $snapshot['semrushBrandedTotals'] );
 
 		$specs = array(
 			array(
 				'id'       => 'insights',
-				'system'   => self::insights_system_prompt(),
+				'system'   => self::insights_system_prompt( $has_ads, $has_grid, $has_semrush ),
 				'snapshot' => array_merge(
 					$common,
 					self::pick_snapshot_fields(
 						$snapshot,
-						array( 'ga4Rows', 'gscTotals', 'googleAdsTotals', 'periodTotals' )
+						array( 'ga4Rows', 'gscTotals', 'googleAdsTotals', 'periodTotals', 'semrushBrandedTotals', 'localGrid' )
 					)
 				),
 			),
@@ -159,7 +300,7 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 					$common,
 					self::pick_snapshot_fields(
 						$snapshot,
-						array( 'ga4Rows', 'gscTotals', 'monthlyProgression', 'periodTotals' )
+						array( 'ga4Rows', 'gscTotals', 'monthlyProgression', 'periodTotals', 'semrushBrandedTotals' )
 					)
 				),
 			),
@@ -168,7 +309,7 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 				'system'   => self::keyword_system_prompt(),
 				'snapshot' => array_merge(
 					$common,
-					self::pick_snapshot_fields( $snapshot, array( 'topQueries' ) )
+					self::pick_snapshot_fields( $snapshot, array( 'topQueries', 'semrushBrandedTotals' ) )
 				),
 			),
 			array(
@@ -178,11 +319,22 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 					$common,
 					self::pick_snapshot_fields(
 						$snapshot,
-						array( 'ga4Rows', 'gscTotals', 'topQueries' )
+						array( 'ga4Rows', 'gscTotals', 'topQueries', 'semrushBrandedTotals' )
 					)
 				),
 			),
 		);
+
+		if ( $has_grid ) {
+			$specs[] = array(
+				'id'       => 'local_grid',
+				'system'   => self::local_grid_system_prompt(),
+				'snapshot' => array_merge(
+					$common,
+					self::pick_snapshot_fields( $snapshot, array( 'localGrid' ) )
+				),
+			);
+		}
 
 		if ( $has_ads ) {
 			$specs[] = array(
@@ -250,6 +402,7 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 			'performanceNarrative' => array(),
 			'keywordNarrative'     => array(),
 			'googleAdsNarrative'   => array(),
+			'localGridNarrative'   => array(),
 			'topOpportunities'     => array(),
 		);
 
@@ -272,6 +425,9 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 					}
 					$highlights['executiveSummary'] = trim( (string) $parsed['executiveSummary'] );
 					$highlights['keyTakeaways']     = self::string_list( $parsed['keyTakeaways'] ?? array(), 8 );
+					if ( count( $highlights['keyTakeaways'] ) === 1 ) {
+						$highlights['keyTakeaways'][] = 'Search Console and GA4 engagement metrics are detailed in the performance sections below.';
+					}
 					if ( count( $highlights['keyTakeaways'] ) < 2 ) {
 						return array( 'error' => 'Highlights slice "insights" missing keyTakeaways.' );
 					}
@@ -308,10 +464,32 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 						);
 					}
 					break;
+				case 'local_grid':
+					$highlights['localGridNarrative'] = self::string_list( $parsed['localGridNarrative'] ?? array(), 4 );
+					if ( count( $highlights['localGridNarrative'] ) < 1 ) {
+						return array( 'error' => 'Highlights slice "local_grid" missing localGridNarrative.' );
+					}
+					break;
 			}
 		}
 
 		return array( 'highlights' => $highlights );
+	}
+
+	private static function is_negative_omission_statement( string $text ): bool {
+		$t = trim( $text );
+		if ( $t === '' ) {
+			return false;
+		}
+		$channel = '/(?:google\s+ads|paid\s+search|semrush|local\s+grid|local\s+map|map\s+pack|local\s+falcon|tarp)/i';
+		if ( ! preg_match( $channel, $t ) ) {
+			return false;
+		}
+		$no_channel = '/\bno\s+(?:google\s+ads|paid\s+search|semrush|local\s+grid|local\s+map|map\s+pack|local\s+falcon|data\s+for\s+google\s+ads)[^.]*?(?:available|reported|recorded|supplied|provided|found|configured|tracked|data|figures?|totals?|metrics?|results?|included|active|inquiries|leads)/i';
+		$channel_negative = '/\b(?:google\s+ads|paid\s+search|semrush|local\s+grid|local\s+map|map\s+pack|local\s+falcon)[^.]*?(?:(?:(?:is|was|are|were|has\s+been)\s+)?(?:omitted|unavailable|not\s+configured|not\s+available|not\s+connected|not\s+reported|not\s+tracked|not\s+supplied|not\s+provided|not\s+active|excluded)|returned\s+no\s+data|contained\s+no|is\s+omitted|omitted\s+from\s+this\s+report|was\s+not\s+recorded|were\s+not\s+recorded)/i';
+		$omitted = '/(?:omitted\s+from\s+this\s+report|(?:not|no)\s+(?:data|metrics|figures|totals)\s+(?:are|is|were|was)?\s*(?:available|reported|found|supplied|provided)\s+for\s+(?:google\s+ads|paid\s+search|semrush|local\s+map|local\s+grid))/i';
+
+		return (bool) ( preg_match( $no_channel, $t ) || preg_match( $channel_negative, $t ) || preg_match( $omitted, $t ) );
 	}
 
 	/**
@@ -327,7 +505,11 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 			if ( ! self::is_non_empty_string( $item ) ) {
 				continue;
 			}
-			$out[] = trim( (string) $item );
+			$str = trim( (string) $item );
+			if ( self::is_negative_omission_statement( $str ) ) {
+				continue;
+			}
+			$out[] = $str;
 			if ( count( $out ) >= $max ) {
 				break;
 			}
@@ -342,6 +524,19 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 		return is_string( $value ) && trim( $value ) !== '';
 	}
 
+	/**
+	 * @param array<string,mixed> $body
+	 */
+	private static function reporting_highlights_bypass_cache( array $body ): bool {
+		if ( ! empty( $body['bypassCache'] ) ) {
+			return true;
+		}
+		if ( isset( $_SERVER['HTTP_X_NEO_PULSE_REPORTING_HIGHLIGHTS_BYPASS_CACHE'] ) ) {
+			return trim( (string) wp_unslash( $_SERVER['HTTP_X_NEO_PULSE_REPORTING_HIGHLIGHTS_BYPASS_CACHE'] ) ) === '1';
+		}
+		return false;
+	}
+
 	private static function no_dates_line(): string {
 		return 'Never write calendar dates or date ranges in your output (no month-day-year, no "Sep 21 - Oct 20", no years). Tables already show dates. When showCompare is true, say the reporting period and the prior period with metrics only.';
 	}
@@ -354,32 +549,68 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 		return 'American English with full sentence grammar. Use snapshot.siteName for the client brand in prose. ' . self::query_prose_line();
 	}
 
-	private static function insights_system_prompt(): string {
+	private static function ai_search_context_line(): string {
+		return 'AI search context: Google AI Overviews and zero-click summaries can reduce top-of-funnel clicks while high-intent demand still reaches the site. Do not treat a GSC click decline alone as SEO failure. Prioritize key events, engaged sessions, branded demand (semrushBrandedTotals and branded queries in topQueries), and Google Ads leads when present. When localGrid exists, treat map pack visibility as a core local outcome.';
+	}
+
+	private static function insights_system_prompt( bool $has_ads = false, bool $has_grid = false, bool $has_semrush = false ): string {
+		$channel_rules = 'Strict rule: ONLY discuss and report on sections and channels that actually exist in the snapshot with active data. Never write negative or omission statements about missing or unconfigured channels (e.g. NEVER write "No Google Ads data is available", "Google Ads is omitted", "No Semrush data reported", or "No local map data"). If a channel or section has no data or is not present, completely omit it without any comment.';
+
+		$takeaway_instructions = 'keyTakeaways: 2–4 sentences covering GA4 engagement/key events and GSC visibility with AI-aware framing.';
+		if ( $has_semrush ) {
+			$takeaway_instructions .= ' Include Semrush branded vs non-branded search split.';
+		} else {
+			$takeaway_instructions .= ' Do NOT mention Semrush.';
+		}
+		if ( $has_grid ) {
+			$takeaway_instructions .= ' Include localGrid TARP and local map visibility.';
+		} else {
+			$takeaway_instructions .= ' Do NOT mention local grid or local map.';
+		}
+		if ( $has_ads ) {
+			$takeaway_instructions .= ' Include one concise line summarizing Google Ads leads/spend from googleAdsTotals.';
+		} else {
+			$takeaway_instructions .= ' Do NOT mention Google Ads or paid search at all.';
+		}
+
 		return 'Neo Digital SEO report. JSON only: {"executiveSummary":"string","keyTakeaways":["string"]}.' . "\n\n"
 			. self::prose_line() . "\n\n"
+			. self::ai_search_context_line() . "\n\n"
 			. self::no_dates_line() . "\n\n"
-			. 'executiveSummary: one sentence. keyTakeaways: 2–4 sentences (GA4 organic, GSC visibility; optional one Google Ads line if googleAdsTotals exists).';
+			. $channel_rules . "\n\n"
+			. 'executiveSummary: one sentence on business outcomes (demand quality, leads/key events, branded visibility), not vanity traffic alone. '
+			. $takeaway_instructions;
 	}
 
 	private static function performance_system_prompt(): string {
 		return 'Neo Digital SEO report. JSON only: {"performanceNarrative":["string"]}.' . "\n\n"
 			. self::prose_line() . "\n\n"
+			. self::ai_search_context_line() . "\n\n"
 			. self::no_dates_line() . "\n\n"
-			. 'Two or three short paragraphs: (1) GA4 organic sessions and engagement, (2) GSC clicks, impressions, CTR, position. No Google Ads.';
+			. 'Exactly one concise paragraph: synthesize GA4 organic sessions (engaged sessions, key events) and GSC search visibility (clicks, impressions, CTR, position) with AI-aware interpretation. Mention semrushBrandedTotals when present. No Google Ads.';
 	}
 
 	private static function keyword_system_prompt(): string {
 		return 'Neo Digital SEO report. JSON only: {"keywordNarrative":["string"]}.' . "\n\n"
 			. self::prose_line() . "\n\n"
+			. self::ai_search_context_line() . "\n\n"
 			. self::no_dates_line() . "\n\n"
-			. 'Write one or two paragraphs summarizing topQueries only. When showCompare is true, compare laterClicks and earlierClicks across top queries (e.g. **Blind Magic Edmonton** recorded 27 clicks compared with 44 in the prior period). When showCompare is false, summarize clicks, impressions, and avgPosition for the leading queries. If topQueries is empty, return one factual sentence stating that query-level Search Console data was not recorded for the period.';
+			. 'Write one or two paragraphs summarizing topQueries. Separate branded queries (containing snapshot.siteName tokens) from non-branded demand. When showCompare is true, compare laterClicks and earlierClicks across top queries. When showCompare is false, summarize clicks, impressions, and avgPosition for the leading queries. If topQueries is empty, return one factual sentence stating that query-level Search Console data was not recorded for the period.';
 	}
 
 	private static function seo_opportunities_system_prompt(): string {
 		return 'Neo Digital SEO report. JSON only: {"topOpportunities":[{"rank":1,"label":"string","why":"string","comparisonRows":[{"metric":"string","comparePeriodValue":"string","primaryPeriodValue":"string"}]}]}.' . "\n\n"
 			. self::prose_line() . "\n\n"
+			. self::ai_search_context_line() . "\n\n"
 			. self::no_dates_line() . "\n\n"
-			. 'Three or four organic opportunities (GA4, GSC, queries). Each why is one or two full sentences (capital letter first); bold queries in Title Case per query rules above. No Google Ads metrics. No actions.';
+			. 'Three or four organic opportunities (GA4 key events/engagement, GSC, branded vs non-branded queries). Each why is one or two full sentences (capital letter first); bold queries in Title Case per query rules above. No Google Ads metrics. No actions.';
+	}
+
+	private static function local_grid_system_prompt(): string {
+		return 'Neo Digital local SEO report. JSON only: {"localGridNarrative":["string"]}.' . "\n\n"
+			. self::prose_line() . "\n\n"
+			. self::no_dates_line() . "\n\n"
+			. 'Required: localGridNarrative must contain at least one non-empty string (one or two short paragraphs). Write like the keyword performance section: interpret the scan for a client, cite TARP, average rank, top-3 (high) share, and outside-top-20 (out) share from localGrid.summary, plus the tracked keyword. Explain where map pack visibility is strong vs weak and what that means for local leads. Do not invent cities or ranks not in localGrid.summary.';
 	}
 
 	private static function google_ads_system_prompt(): string {

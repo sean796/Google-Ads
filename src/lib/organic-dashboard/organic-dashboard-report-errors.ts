@@ -19,8 +19,9 @@ function shouldReportOrganicSkippedBlock(
   if (!isOrganicSkippedBlock(block)) return false;
   const reason = block.reason?.trim() ?? "";
   if (isSilentOrganicSourceReason(reason)) return false;
-  if (status === "skipped") return false;
   if (status === "error") return true;
+  if (status === "skipped" && block.reason?.trim() === "semrush_error") return true;
+  if (status === "skipped") return false;
   return false;
 }
 

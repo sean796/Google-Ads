@@ -85,6 +85,7 @@ class Neo_Pulse_App_Organic_Dashboard_Semrush {
 	 */
 	private static function fetch_with_bound_key( array $body ): array {
 		$site_url = isset( $body['siteUrl'] ) ? trim( (string) $body['siteUrl'] ) : '';
+		$project_id = isset( $body['semrushProjectId'] ) ? trim( (string) $body['semrushProjectId'] ) : '';
 		$database = Neo_Pulse_App_Semrush_Competitor_Shared::resolve_database(
 			$body['semrushDatabase'] ?? null,
 			$site_url,
@@ -97,10 +98,15 @@ class Neo_Pulse_App_Organic_Dashboard_Semrush {
 		if ( ! Neo_Pulse_App_Semrush_Client::has_api_key() ) {
 			return array(
 				'status'  => 'skipped',
-				'payload' => array(
-					'skipped' => true,
-					'reason'  => 'no_api_key',
-					'error'   => 'SEMRUSH_API_KEY is not set',
+				'payload' => self::payload_with_project_context(
+					array(
+						'skipped' => true,
+						'reason'  => 'no_api_key',
+						'error'   => 'SEMRUSH_API_KEY is not set',
+					),
+					$project_id,
+					$database,
+					''
 				),
 			);
 		}
@@ -110,10 +116,15 @@ class Neo_Pulse_App_Organic_Dashboard_Semrush {
 		if ( $domain === '' ) {
 			return array(
 				'status'  => 'skipped',
-				'payload' => array(
-					'skipped' => true,
-					'reason'  => 'missing_domain',
-					'error'   => 'Site URL is required for Semrush domain overview.',
+				'payload' => self::payload_with_project_context(
+					array(
+						'skipped' => true,
+						'reason'  => 'missing_domain',
+						'error'   => 'Site URL is required for Semrush domain overview.',
+					),
+					$project_id,
+					$database,
+					''
 				),
 			);
 		}
@@ -161,7 +172,11 @@ class Neo_Pulse_App_Organic_Dashboard_Semrush {
 			}
 		}
 
-		$parallel_results = Neo_Pulse_App_Semrush_Client::request_reports_parallel( $parallel_params );
+		$timeout = 60;
+		if ( isset( $body['requestTimeoutSeconds'] ) ) {
+			$timeout = max( 10, min( 120, (int) $body['requestTimeoutSeconds'] ) );
+		}
+		$parallel_results = Neo_Pulse_App_Semrush_Client::request_reports_parallel( $parallel_params, $timeout );
 
 		$rank_csv = self::csv_from_parallel_result( $parallel_results, 'current:domain_rank', $errors );
 		if ( $include_compare && isset( $parallel_params['compare:domain_rank'] ) ) {
@@ -185,13 +200,18 @@ class Neo_Pulse_App_Organic_Dashboard_Semrush {
 			$first = $errors[0]['message'] ?? 'Semrush fetch failed';
 			return array(
 				'status'  => 'error',
-				'payload' => array(
-					'skipped' => true,
-					'reason'  => 'semrush_error',
-					'error'   => (string) $first,
-					'database' => $database,
-					'domain'   => $domain,
-					'errors'   => $errors,
+				'payload' => self::payload_with_project_context(
+					array(
+						'skipped' => true,
+						'reason'  => 'semrush_error',
+						'error'   => (string) $first,
+						'database' => $database,
+						'domain'   => $domain,
+						'errors'   => $errors,
+					),
+					$project_id,
+					$database,
+					$domain
 				),
 			);
 		}
@@ -200,19 +220,56 @@ class Neo_Pulse_App_Organic_Dashboard_Semrush {
 
 		return array(
 			'status'  => $has_data ? 'ok' : 'skipped',
-			'payload' => array(
-				'success'      => $has_data,
-				'database'     => $database,
-				'domain'       => $domain,
-				'overviewUrl'  => self::overview_url( $domain, $database ),
-				'current'      => $current,
-				'compare'      => $compare,
-				'comparisons'  => $comparisons,
-				'history'      => $history,
-				'topKeywords'  => $keywords,
-				'errors'       => $errors,
+			'payload' => self::payload_with_project_context(
+				array(
+					'success'      => $has_data,
+					'database'     => $database,
+					'domain'       => $domain,
+					'overviewUrl'  => self::overview_url( $domain, $database ),
+					'current'      => $current,
+					'compare'      => $compare,
+					'comparisons'  => $comparisons,
+					'history'      => $history,
+					'topKeywords'  => $keywords,
+					'errors'       => $errors,
+				),
+				$project_id,
+				$database,
+				$domain
 			),
 		);
+	}
+
+	/**
+	 * @param array<string,mixed> $payload
+	 * @return array<string,mixed>
+	 */
+	private static function payload_with_project_context(
+		array $payload,
+		string $project_id,
+		string $database,
+		string $domain
+	): array {
+		if ( $project_id !== '' ) {
+			$payload['projectId'] = $project_id;
+			$payload['projectDashboardUrl'] = self::seo_project_dashboard_url( $project_id );
+		}
+		if ( ! isset( $payload['overviewUrl'] ) || trim( (string) ( $payload['overviewUrl'] ?? '' ) ) === '' ) {
+			if ( $domain !== '' ) {
+				$payload['overviewUrl'] = self::overview_url( $domain, $database );
+			} elseif ( $project_id !== '' ) {
+				$payload['overviewUrl'] = self::seo_project_dashboard_url( $project_id );
+			}
+		}
+		return $payload;
+	}
+
+	private static function seo_project_dashboard_url( string $project_id ): string {
+		$id = trim( $project_id );
+		if ( $id === '' ) {
+			return '';
+		}
+		return 'https://www.semrush.com/seo/' . rawurlencode( $id ) . '/';
 	}
 
 	/**

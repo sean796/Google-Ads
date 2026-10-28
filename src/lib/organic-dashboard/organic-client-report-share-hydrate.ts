@@ -6,7 +6,14 @@ import {
   resolveGa4PropertyIdForReportingAsync,
 } from "@/lib/ga4-reporting-property";
 import { getPublicSiteUrl } from "@/lib/wordpress-site-public-url";
-import { buildOrganicDashboardFetchParams } from "@/lib/organic-dashboard/organic-dashboard-fetch-params";
+import {
+  resolveGoogleAdsCustomerIdForReporting,
+  resolveGoogleAdsCustomerIdForReportingAsync,
+} from "@/lib/ads-reporting/ads-reporting-metrics";
+import {
+  buildOrganicDashboardFetchParams,
+  refreshOrganicReportingDateHarness,
+} from "@/lib/organic-dashboard/organic-dashboard-fetch-params";
 import { fetchOrganicDashboardPerformancePackForSite } from "@/lib/organic-dashboard/organic-dashboard-performance-pack";
 import type { OrganicClientReportDeckPayload } from "@/lib/organic-dashboard/organic-client-report-deck-session";
 import { resolveOrganicReportingDateHarnessFromSearch } from "@/lib/organic-dashboard/organic-dashboard-fetch-params";
@@ -15,12 +22,21 @@ export async function hydrateOrganicClientReportForHarness(
   site: WordPressSite,
   dateHarness: Ga4ReportingDateHarness,
 ): Promise<OrganicClientReportDeckPayload | null> {
+  const refreshedHarness = refreshOrganicReportingDateHarness(dateHarness);
   const ga4PropertyId =
     (await resolveGa4PropertyIdForReportingAsync(site)) || resolveGa4PropertyIdForReporting(site);
-  const fetchParams = buildOrganicDashboardFetchParams(site, dateHarness, ga4PropertyId);
+  const googleAdsCustomerId =
+    (await resolveGoogleAdsCustomerIdForReportingAsync(site)) ||
+    resolveGoogleAdsCustomerIdForReporting(site);
+  const fetchParams = buildOrganicDashboardFetchParams(
+    site,
+    refreshedHarness,
+    ga4PropertyId,
+    googleAdsCustomerId,
+  );
   if (!fetchParams) return null;
 
-  const showCompare = dateHarness.compareEnabled;
+  const showCompare = refreshedHarness.compareEnabled;
   const siteName = site.name?.trim() || site.siteUrl.trim();
   const siteUrl = getPublicSiteUrl(site).trim() || site.siteUrl.trim();
   const pack = await fetchOrganicDashboardPerformancePackForSite({
