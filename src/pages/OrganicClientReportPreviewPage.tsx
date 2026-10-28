@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Download, FileText, Square } from "lucide-react";
+import { Download } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   buildOrganicReportingShareSearch,
@@ -31,7 +31,6 @@ import {
   type OrganicClientReportDeckPayload,
 } from "@/lib/organic-dashboard/organic-client-report-deck-session";
 import { buildOrganicClientReportContent } from "@/lib/organic-dashboard/organic-client-report-content";
-import { downloadOrganicClientReportMarkdown } from "@/lib/organic-dashboard/organic-client-report-markdown";
 import { downloadOrganicClientReportPdf } from "@/lib/organic-dashboard/organic-client-report-print";
 import { readOrganicClientReportClientLabel } from "@/lib/organic-dashboard/organic-client-report-link-preview";
 import { resolveClientReportSiteIdFromRoute } from "@/lib/organic-dashboard/organic-client-report-site-path";
@@ -82,14 +81,16 @@ export default function OrganicClientReportPreviewPage() {
   const [pdfError, setPdfError] = useState<string | null>(null);
 
   const [logoBoxTheme, setLogoBoxTheme] = useState<"black" | "white">(
-    () => reportSite?.clientLogoBoxTheme ?? "black",
+    () => payload?.clientLogoBoxTheme ?? reportSite?.clientLogoBoxTheme ?? "black",
   );
 
   useEffect(() => {
-    if (reportSite?.clientLogoBoxTheme) {
+    if (payload?.clientLogoBoxTheme) {
+      setLogoBoxTheme(payload.clientLogoBoxTheme);
+    } else if (reportSite?.clientLogoBoxTheme) {
       setLogoBoxTheme(reportSite.clientLogoBoxTheme);
     }
-  }, [reportSite?.id, reportSite?.clientLogoBoxTheme]);
+  }, [payload?.clientLogoBoxTheme, reportSite?.id, reportSite?.clientLogoBoxTheme]);
 
   const handleToggleLogoBoxTheme = useCallback(() => {
     setLogoBoxTheme((prev) => {
@@ -100,6 +101,36 @@ export default function OrganicClientReportPreviewPage() {
       return nextTheme;
     });
   }, [handlePatchSite, reportSite?.id]);
+
+  const effectiveClientLogoUrl = useMemo(() => {
+    const fromPayload = payload?.clientLogoUrl?.trim();
+    if (fromPayload) return fromPayload;
+
+    const fromSite = reportSite?.clientLogoUrl?.trim();
+    if (fromSite) return fromSite;
+
+    const candidateSiteId = rawSiteId?.trim() || resolvedSiteId?.trim() || "";
+    if (candidateSiteId) {
+      return `/client-logos/${candidateSiteId}.png`;
+    }
+    const candidateSlug = routeSiteSegment?.trim() || "";
+    if (candidateSlug) {
+      return `/client-logos/${candidateSlug}.png`;
+    }
+    const lowerName = (payload?.siteName || reportSite?.name || "").toLowerCase();
+    if (lowerName.includes("blind magic")) {
+      return "/client-logos/blind-magic.png";
+    }
+    return undefined;
+  }, [
+    payload?.clientLogoUrl,
+    payload?.siteName,
+    reportSite?.clientLogoUrl,
+    reportSite?.name,
+    rawSiteId,
+    resolvedSiteId,
+    routeSiteSegment,
+  ]);
 
   const reportContent = useMemo(
     () =>
@@ -112,11 +143,11 @@ export default function OrganicClientReportPreviewPage() {
             showCompare: payload.showCompare,
             preparedOn: payload.preparedOn,
             localGridScan: payload.localGridScan ?? null,
-            clientLogoUrl: reportSite?.clientLogoUrl,
+            clientLogoUrl: effectiveClientLogoUrl,
             clientLogoBoxTheme: logoBoxTheme,
           })
         : null,
-    [payload, reportSite?.clientLogoUrl, logoBoxTheme],
+    [payload, effectiveClientLogoUrl, logoBoxTheme],
   );
 
   useOrganicClientReportDocumentMeta(payload);
@@ -256,11 +287,6 @@ export default function OrganicClientReportPreviewPage() {
     }
   }, [payload, reportContent]);
 
-  const handleDownloadMarkdown = useCallback(() => {
-    if (!reportContent) return;
-    setPdfError(null);
-    downloadOrganicClientReportMarkdown(reportContent);
-  }, [reportContent]);
 
   const awaitingShareHydrate =
     liveReportMode &&
@@ -379,17 +405,6 @@ export default function OrganicClientReportPreviewPage() {
           <Button
             type="button"
             variant="ghost"
-            className={cn(REPORTING_TOOLBAR_ACTION_BTN, "tabular-nums")}
-            title="Toggle logo box black or white theme"
-            aria-label="Toggle logo box theme"
-            onClick={handleToggleLogoBoxTheme}
-          >
-            <Square className="h-4 w-4 shrink-0" aria-hidden />
-            {logoBoxTheme === "white" ? "White Box" : "Black Box"}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
             disabled={pdfBusy}
             className={cn(REPORTING_TOOLBAR_ACTION_BTN, "min-w-[4.75rem] tabular-nums")}
             aria-busy={pdfBusy}
@@ -398,15 +413,6 @@ export default function OrganicClientReportPreviewPage() {
           >
             <Download className="h-4 w-4 shrink-0" aria-hidden />
             {pdfBusy ? "…" : "PDF"}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            className={cn(REPORTING_TOOLBAR_ACTION_BTN, "min-w-8 px-2")}
-            aria-label="Markdown"
-            onClick={handleDownloadMarkdown}
-          >
-            <FileText className="h-4 w-4 shrink-0" aria-hidden />
           </Button>
         </div>
       </div>

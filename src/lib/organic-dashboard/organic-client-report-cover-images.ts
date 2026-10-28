@@ -4,21 +4,29 @@ import type { OrganicClientReportContent } from "@/lib/organic-dashboard/organic
 async function toDataUrlIfRemote(url: string): Promise<string> {
   const trimmed = url.trim();
   if (!trimmed || trimmed.startsWith("data:")) return trimmed;
-  if (!/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (!/^https?:\/\//i.test(trimmed) && !trimmed.startsWith("/")) return trimmed;
   try {
-    if (typeof window !== "undefined" && window.location.origin && trimmed.startsWith(window.location.origin)) {
-      const res = await fetch(trimmed);
-      if (res.ok) {
-        const blob = await res.blob();
-        return await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve((reader.result as string) || trimmed);
-          reader.onerror = () => resolve(trimmed);
-          reader.readAsDataURL(blob);
-        });
+    if (typeof window !== "undefined" && window.location?.origin) {
+      const isRelative = trimmed.startsWith("/");
+      const isSameOrigin = trimmed.startsWith(window.location.origin);
+      if (isRelative || isSameOrigin) {
+        const fullUrl = isRelative ? `${window.location.origin}${trimmed}` : trimmed;
+        const res = await fetch(fullUrl);
+        if (res.ok) {
+          const blob = await res.blob();
+          return await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve((reader.result as string) || trimmed);
+            reader.onerror = () => resolve(trimmed);
+            reader.readAsDataURL(blob);
+          });
+        }
       }
     }
-    return await fetchImageDataUrlViaApi(trimmed);
+    if (/^https?:\/\//i.test(trimmed)) {
+      return await fetchImageDataUrlViaApi(trimmed);
+    }
+    return trimmed;
   } catch (err) {
     console.warn("Could not pre-fetch logo data URL for PDF capture, using original URL:", err);
     return trimmed;
