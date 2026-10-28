@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.join(__dirname, "..");
 const API = "https://api.render.com/v1";
-const REPO = "https://github.com/neodigitalca/neo-pulse";
+const REPO = "https://github.com/neodigitalca/Google-Ads";
 const BRANCH = "main";
 const WORKSPACE_ID = "tea-d6135s14tr6s73b0v1s0";
 const STATIC_ID = "srv-db01a9jtqb8s73e54iug";

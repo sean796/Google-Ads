@@ -12,7 +12,7 @@ const repoRoot = path.join(__dirname, "..");
 
 const profile = (process.env.RENDER_PROFILE || "demo").trim().toLowerCase();
 const renderApiBase =
-  (process.env.NEO_PULSE_RENDER_API_BASE || "https://flowbieone.onrender.com/api/mcp").trim();
+  (process.env.NEO_PULSE_RENDER_API_BASE || "https://pulse-host-wp-hub.onrender.com/api/mcp").trim();
 
 const defaults =
   profile === "prod"

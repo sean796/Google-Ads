@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { OrganicReportingPrintFrame } from "@/components/organic-dashboard/OrganicReportingPrintFrame";
 import {
-  buildOrganicClientReportShareUrl,
   buildOrganicReportingShareSearch,
   parseOrganicReportingShareParams,
   type OrganicReportingShareState,
@@ -68,12 +67,7 @@ import {
 } from "@/lib/organic-dashboard/organic-dashboard-report-errors";
 import { resolveSemrushProjectDashboardUrlForSite } from "@/lib/semrush-project-id-defaults";
 import { buildOrganicClientReportContent } from "@/lib/organic-dashboard/organic-client-report-content";
-import { appendOrganicClientReportClientQuery } from "@/lib/organic-dashboard/organic-client-report-link-preview";
-import { buildOrganicClientReportAppPath } from "@/lib/organic-dashboard/organic-client-report-site-path";
-import {
-  publishOrganicClientReportDeckSession,
-  writeOrganicClientReportDeckSession,
-} from "@/lib/organic-dashboard/organic-client-report-deck-session";
+import { publishOrganicClientReportDeckAndBuildShareUrl } from "@/lib/organic-dashboard/organic-client-report-deck-publish";
 import { downloadOrganicClientReportPdf } from "@/lib/organic-dashboard/organic-client-report-print";
 import { writeOrganicDashboardDateSession } from "@/lib/organic-dashboard/organic-dashboard-date-session";
 import { formatLocalYmd } from "@/lib/reporting/reporting-date-presets";
@@ -171,11 +165,6 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
   const sitePublicUrl = useMemo(
     () => getPublicSiteUrl(site).trim() || site.siteUrl.trim(),
     [site],
-  );
-
-  const shareUrl = useMemo(
-    () => buildOrganicClientReportShareUrl(site.id, shareState, undefined, siteDisplayName),
-    [site.id, shareState, siteDisplayName],
   );
 
   useEffect(() => {
@@ -384,33 +373,15 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     void (async () => {
       try {
         const readyHighlights = await resolveReadyHighlights();
-        const preparedOn = formatLocalYmd(new Date());
-        const deckId = crypto.randomUUID();
-        const deckPayload = {
+        const { shareUrl: absolute } = await publishOrganicClientReportDeckAndBuildShareUrl({
           siteId: site.id,
-          highlights: readyHighlights,
+          siteDisplayName,
+          sitePublicUrl,
+          shareState,
           viewModel,
-          siteName: siteDisplayName,
-          siteUrl: sitePublicUrl,
+          readyHighlights,
           showCompare,
-          preparedOn,
-        };
-        writeOrganicClientReportDeckSession(deckId, deckPayload);
-        void publishOrganicClientReportDeckSession(deckId, deckPayload).catch(() => {
-          /* local session already written for same-browser tab */
         });
-        const shareQs = buildOrganicReportingShareSearch(shareState);
-        const deckParam = `deck=${encodeURIComponent(deckId)}`;
-        const search = appendOrganicClientReportClientQuery(
-          shareQs ? `${deckParam}&${shareQs}` : deckParam,
-          siteDisplayName,
-        );
-        const path = buildOrganicClientReportAppPath({
-          siteId: site.id,
-          siteDisplayName,
-          search,
-        });
-        const absolute = new URL(path, window.location.origin).href;
         window.open(absolute, "_blank", "noopener,noreferrer");
       } catch (err) {
         const message = err instanceof Error ? err.message : "Could not open client report.";
@@ -472,14 +443,50 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
   ]);
 
   const handleShareLink = useCallback(async () => {
+    if (reportingSection !== "performance" || clientReportBusy || clientReportOpenLock.current) {
+      return;
+    }
+    if (!viewModel || !reportExportReady) {
+      reportError("Client report · wait for Performance metrics to finish loading.");
+      return;
+    }
+    clientReportOpenLock.current = true;
+    setClientReportBusy(true);
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      const readyHighlights = await resolveReadyHighlights();
+      const { shareUrl: publishedUrl } = await publishOrganicClientReportDeckAndBuildShareUrl({
+        siteId: site.id,
+        siteDisplayName,
+        sitePublicUrl,
+        shareState,
+        viewModel,
+        readyHighlights,
+        showCompare,
+      });
+      await navigator.clipboard.writeText(publishedUrl);
       setShareCopied(true);
       window.setTimeout(() => setShareCopied(false), 2000);
-    } catch {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not publish share link.";
+      reportError(`Client report · ${message}`);
       setShareCopied(false);
+    } finally {
+      clientReportOpenLock.current = false;
+      setClientReportBusy(false);
     }
-  }, [shareUrl]);
+  }, [
+    clientReportBusy,
+    reportExportReady,
+    reportError,
+    reportingSection,
+    resolveReadyHighlights,
+    shareState,
+    showCompare,
+    site.id,
+    siteDisplayName,
+    sitePublicUrl,
+    viewModel,
+  ]);
 
   return (
     <div className={CONTENT_OPTIMIZER_WORKSPACE_SHELL_CLASS}>
