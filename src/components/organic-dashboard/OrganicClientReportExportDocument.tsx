@@ -508,11 +508,6 @@ export function OrganicClientReportExportDocument({
 
       {showPerformanceSection ? (
         <ExportSection title="Performance summary">
-          {showCompare ? (
-            <p className="tabular-nums text-base text-[#52525b]">
-              {comparePeriodLabel} vs {primaryPeriodLabel}
-            </p>
-          ) : null}
           {performanceNarrative.length > 0 ? (
             <div className={EXPORT_NARRATIVE_WELL_CLASS}>
               {performanceNarrative.map((p, idx) => (
