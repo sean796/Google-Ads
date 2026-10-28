@@ -6,6 +6,7 @@ import {
   isNonExistentSectionOmissionStatement,
   stripNonExistentOmissionClauses,
 } from "@/lib/organic-dashboard/organic-client-report-deck-helpers";
+import { toExportTitleCase } from "@/lib/organic-dashboard/organic-client-report-copy";
 
 export type OrganicClientReportCoverProps = {
   siteName: string;
@@ -232,7 +233,7 @@ export function OrganicClientReportCover({
         <div className="organic-client-report-export__cover-title-row">
           <div className="organic-client-report-export__cover-title-heading">
             <h1 className="organic-client-report-export__cover-title-text">
-              Performance Report
+              {toExportTitleCase("Performance Report")}
             </h1>
             <p className="organic-client-report-export__cover-client-name">
               {name}
@@ -253,7 +254,7 @@ export function OrganicClientReportCover({
         {/* Insights Box (Integrated with Neo Digital signature brand styling) */}
         <div className="organic-client-report-export__cover-insights-box">
           <h2 className="organic-client-report-export__cover-insights-heading">
-            Insights
+            {toExportTitleCase("Insights")}
           </h2>
 
           {summaryText ? (
@@ -280,7 +281,7 @@ export function OrganicClientReportCover({
             return (
               <div className="organic-client-report-export__cover-insights-takeaways">
                 <h3 className="organic-client-report-export__cover-insights-takeaways-title">
-                  Key Takeaways
+                  {toExportTitleCase("Key Takeaways")}
                 </h3>
                 <ul className="organic-client-report-export__cover-insights-bullets">
                   {visibleTakeaways.map((takeaway, idx) => {

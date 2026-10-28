@@ -13,6 +13,7 @@ import {
 } from "@/lib/organic-dashboard/organic-client-report-copy";
 import { AGENCY_NAME } from "@/lib/report-planner";
 import type { OrganicPeriodProgressTable } from "@/lib/organic-dashboard/organic-dashboard-period-progress";
+import { deckOpportunityShowCompare } from "@/lib/organic-dashboard/organic-opportunity-export-tables";
 
 function escapeMdCell(value: string): string {
   return value.replace(/\|/g, "\\|").replace(/\n/g, " ");
@@ -44,7 +45,11 @@ function metricRowsMarkdown(
   return lines.join("\n");
 }
 
-function periodProgressTableMarkdown(table: OrganicPeriodProgressTable): string {
+function periodProgressTableMarkdown(
+  table: OrganicPeriodProgressTable,
+  options?: { showTotalRow?: boolean },
+): string {
+  const showTotalRow = options?.showTotalRow !== false;
   const headers = ["Month", ...table.rows.map((r) => escapeMdCell(r.label))];
   const lines = [
     `### ${table.title}`,
@@ -63,13 +68,15 @@ function periodProgressTableMarkdown(table: OrganicPeriodProgressTable): string 
         " |",
     );
   }
-  lines.push(
-    "| " +
-      [escapeMdCell(table.periodTotalColumnLabel), ...table.rows.map((r) => escapeMdCell(r.periodTotal))].join(
-        " | ",
-      ) +
-      " |",
-  );
+  if (showTotalRow && table.monthLabels.length > 1) {
+    lines.push(
+      "| " +
+        [escapeMdCell("Total"), ...table.rows.map((r) => escapeMdCell(r.periodTotal))].join(
+          " | ",
+        ) +
+        " |",
+    );
+  }
   return lines.join("\n");
 }
 
@@ -81,10 +88,11 @@ function opportunityMarkdown(
 ): string {
   const parts = [`### ${item.label}`, "", "**Why it matters**", "", item.why, ""];
   if (item.comparisonRows.length > 0) {
-    parts.push(showCompare ? "**Period comparison**" : "**Period totals**", "");
+    const compare = deckOpportunityShowCompare(showCompare, item.comparisonRows);
+    parts.push(compare ? "**Period comparison**" : "**Period totals**", "");
     const layout = layoutOpportunityComparisonRows(item.comparisonRows);
     if (layout.kind === "query-grid") {
-      if (showCompare) {
+      if (compare) {
         parts.push(
           "| Query | Metric | " + escapeMdCell(compareLabel) + " | " + escapeMdCell(primaryLabel) + " |",
           "| --- | --- | --- | --- |",
@@ -115,7 +123,7 @@ function opportunityMarkdown(
       }
       if (layout.siteRows.length > 0) {
         parts.push("");
-        if (showCompare) {
+        if (compare) {
           parts.push(
             "| Metric | " + escapeMdCell(compareLabel) + " | " + escapeMdCell(primaryLabel) + " |",
             "| --- | --- | --- |",
@@ -126,13 +134,13 @@ function opportunityMarkdown(
             );
           }
         } else {
-          parts.push("| Metric | " + escapeMdCell(primaryLabel) + " |", "| --- | --- |");
+          parts.push("| Metric | Value |", "| --- | --- |");
           for (const row of layout.siteRows) {
             parts.push(`| ${escapeMdCell(row.metric)} | ${escapeMdCell(row.primaryPeriodValue)} |`);
           }
         }
       }
-    } else if (showCompare) {
+    } else if (compare) {
       parts.push(
         "| Metric | " + escapeMdCell(compareLabel) + " | " + escapeMdCell(primaryLabel) + " |",
         "| --- | --- | --- |",
@@ -143,7 +151,7 @@ function opportunityMarkdown(
         );
       }
     } else {
-      parts.push("| Metric | " + escapeMdCell(primaryLabel) + " |", "| --- | --- |");
+      parts.push("| Metric | Value |", "| --- | --- |");
       for (const row of layout.rows) {
         parts.push(`| ${escapeMdCell(row.metric)} | ${escapeMdCell(row.primaryPeriodValue)} |`);
       }
@@ -244,10 +252,10 @@ export function serializeOrganicClientReportMarkdown(content: OrganicClientRepor
         blocks.push(p, "");
       }
     }
-    if (!showCompare && periodProgressTables?.ga4) {
+    if (periodProgressTables?.ga4) {
       blocks.push(periodProgressTableMarkdown(periodProgressTables.ga4), "");
     }
-    if (!showCompare && periodProgressTables?.gsc) {
+    if (periodProgressTables?.gsc) {
       blocks.push(periodProgressTableMarkdown(periodProgressTables.gsc), "");
     }
     blocks.push("### Website traffic (GA4)", "");
@@ -259,7 +267,11 @@ export function serializeOrganicClientReportMarkdown(content: OrganicClientRepor
   if (showSemrushSection) {
     blocks.push("## Semrush estimates", "");
     blocks.push("### Organic visibility (Semrush)", "");
-    blocks.push(metricRowsMarkdown(semrushDeckRows, showCompare, comparePeriodLabel, primaryPeriodLabel), "");
+    if (periodProgressTables?.semrush) {
+      blocks.push(periodProgressTableMarkdown(periodProgressTables.semrush, { showTotalRow: false }), "");
+    } else {
+      blocks.push(metricRowsMarkdown(semrushDeckRows, showCompare, comparePeriodLabel, primaryPeriodLabel), "");
+    }
     if (topSemrushKeywords.length > 0) {
       for (const k of topSemrushKeywords) {
         blocks.push(

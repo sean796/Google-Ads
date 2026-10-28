@@ -3,6 +3,7 @@ import { OrganicClientReportCover } from "@/components/organic-dashboard/Organic
 import { OrganicClientReportInlineText } from "@/components/organic-dashboard/OrganicClientReportInlineText";
 import { OrganicClientReportGoogleAdsAccountPanel } from "@/components/organic-dashboard/OrganicClientReportGoogleAdsAccountPanel";
 import { OrganicClientReportLocalGridSection } from "@/components/organic-dashboard/OrganicClientReportLocalGridSection";
+import { OrganicPeriodProgressTable } from "@/components/organic-dashboard/OrganicPeriodProgressTable";
 import {
   EXPORT_BODY_CLASS,
   EXPORT_BODY_MUTED_CLASS,
@@ -32,14 +33,16 @@ import {
   parseDeckCountDisplay,
   type DeckHighlightAccent,
   type DeckHighlightStat,
-  type DeckOpportunityComparisonRow,
   type DeckSummaryRow,
 } from "@/lib/organic-dashboard/organic-client-report-deck-helpers";
 import type { OrganicDeckOpportunity } from "@/lib/organic-dashboard/organic-reporting-highlights";
+import type { OrganicPeriodProgressTables } from "@/lib/organic-dashboard/organic-dashboard-period-progress";
+import { planOpportunityExportTable } from "@/lib/organic-dashboard/organic-opportunity-export-tables";
 import {
   CLIENT_REPORT_DELTA_EMPTY,
   formatClientReportSemrushKeywordMeta,
   formatClientReportTopQueryMeta,
+  toExportTitleCase,
 } from "@/lib/organic-dashboard/organic-client-report-copy";
 import { cn } from "@/lib/utils";
 
@@ -69,7 +72,7 @@ function ExportSection({
       aria-labelledby={`${sectionId}-heading`}
     >
       <h2 id={`${sectionId}-heading`} className={EXPORT_SECTION_HEAD_CLASS}>
-        {title}
+        {toExportTitleCase(title)}
       </h2>
       <div className={EXPORT_SECTION_BODY_CLASS}>{children}</div>
     </section>
@@ -99,15 +102,15 @@ function ExportDelta({ delta }: { delta: DeckSummaryRow["delta"] }) {
   );
 }
 
-function ExportKpiStrip({ stats }: { stats: DeckHighlightStat[] }) {
+function ExportKpiStrip({ stats, showCompare }: { stats: DeckHighlightStat[]; showCompare: boolean }) {
   if (stats.length === 0) return null;
   return (
     <ul className={EXPORT_KPI_LIST_CLASS}>
       {stats.map((stat, idx) => (
         <li key={`${stat.label}-${idx}`} className={cn(EXPORT_KPI_ITEM_CLASS, kpiAccentClass(stat.accent))}>
-          <p className={EXPORT_LABEL_CLASS}>{stat.label}</p>
+          <p className={EXPORT_LABEL_CLASS}>{toExportTitleCase(stat.label)}</p>
           <p className="organic-client-report-export__kpi-value tabular-nums">{stat.value}</p>
-          <ExportDelta delta={stat.delta} />
+          {showCompare ? <ExportDelta delta={stat.delta} /> : null}
         </li>
       ))}
     </ul>
@@ -128,17 +131,20 @@ function ExportMetricStack({
   primaryPeriodLabel: string;
 }) {
   if (rows.length === 0) return null;
+  const titledGroup = groupTitle.trim();
   return (
     <div className="organic-client-report-export__metric-stack">
-      <h3 className={EXPORT_H3_CLASS}>{groupTitle}</h3>
+      {titledGroup ? (
+        <h3 className={EXPORT_H3_CLASS}>{toExportTitleCase(titledGroup)}</h3>
+      ) : null}
       <table className={EXPORT_METRIC_TABLE_CLASS}>
         <thead>
           <tr>
-            <th scope="col">Metric</th>
+            <th scope="col">{toExportTitleCase("Metric")}</th>
             {showCompare ? (
               <>
                 <th scope="col">{comparePeriodLabel}</th>
-                <th scope="col">Change</th>
+                <th scope="col">{toExportTitleCase("Change")}</th>
                 <th scope="col">{primaryPeriodLabel}</th>
               </>
             ) : (
@@ -169,40 +175,128 @@ function ExportMetricStack({
   );
 }
 
-function ExportOpportunityTable({
-  rows,
+function ExportOpportunityMetrics({
+  item,
+  showCompare,
   comparePeriodLabel,
   primaryPeriodLabel,
-  legacyMetrics,
+  periodProgressTables,
 }: {
-  rows: DeckOpportunityComparisonRow[];
+  item: OrganicDeckOpportunity;
+  showCompare: boolean;
   comparePeriodLabel: string;
   primaryPeriodLabel: string;
-  legacyMetrics: string;
+  periodProgressTables: OrganicPeriodProgressTables | null;
 }) {
-  if (rows.length === 0) {
-    if (!legacyMetrics.trim()) return null;
+  const plan = planOpportunityExportTable(item, showCompare, periodProgressTables);
+
+  if (plan.kind === "legacy") {
+    if (!plan.metrics.trim()) return null;
     return (
       <p className={EXPORT_BODY_CLASS}>
-        <OrganicClientReportInlineText text={legacyMetrics} />
+        <OrganicClientReportInlineText text={plan.metrics} />
       </p>
     );
   }
+
+  if (plan.kind === "period") {
+    return (
+      <OrganicPeriodProgressTable
+        table={plan.table}
+        exportMode
+        showTotalRow={false}
+        className="organic-client-report-export__metric-stack"
+      />
+    );
+  }
+
+  if (plan.kind === "query-primary") {
+    return (
+      <>
+        <table
+          className={cn(
+            EXPORT_METRIC_TABLE_CLASS,
+            "organic-client-report-export__period-progress-table",
+          )}
+        >
+          <thead>
+            <tr>
+              <th scope="col" className="organic-period-progress-table__month-col">
+                {toExportTitleCase("Query")}
+              </th>
+              <th scope="col" className="organic-period-progress-table__metric-col">
+                {toExportTitleCase("Clicks")}
+              </th>
+              <th scope="col" className="organic-period-progress-table__metric-col">
+                {toExportTitleCase("Impressions")}
+              </th>
+              <th scope="col" className="organic-period-progress-table__metric-col">
+                {toExportTitleCase("Avg. position")}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {plan.queryRows.queryRows.map((q) => (
+              <tr key={q.query}>
+                <td className="organic-period-progress-table__month-col whitespace-nowrap">{q.query}</td>
+                <td className="organic-period-progress-table__metric-col tabular-nums">{q.clicks.primary}</td>
+                <td className="organic-period-progress-table__metric-col tabular-nums">{q.impressions.primary}</td>
+                <td className="organic-period-progress-table__metric-col tabular-nums">{q.avgPosition.primary}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {plan.sitePeriodTable ? (
+          <OrganicPeriodProgressTable
+            table={plan.sitePeriodTable}
+            exportMode
+            showTotalRow={false}
+            className="organic-client-report-export__metric-stack mt-3"
+          />
+        ) : null}
+      </>
+    );
+  }
+
+  const rows = plan.rows;
+  const tableClass = cn(
+    EXPORT_METRIC_TABLE_CLASS,
+    plan.kind === "primary-flat" && "organic-client-report-export__period-progress-table",
+  );
+
   return (
-    <table className={EXPORT_METRIC_TABLE_CLASS}>
+    <table className={tableClass}>
       <thead>
         <tr>
-          <th scope="col">Metric</th>
-          <th scope="col">{comparePeriodLabel}</th>
-          <th scope="col">{primaryPeriodLabel}</th>
+          <th scope="col" className={plan.kind === "primary-flat" ? "organic-period-progress-table__month-col" : undefined}>
+            {toExportTitleCase("Metric")}
+          </th>
+          {plan.kind === "compare-flat" ? (
+            <>
+              <th scope="col">{comparePeriodLabel}</th>
+              <th scope="col">{primaryPeriodLabel}</th>
+            </>
+          ) : (
+            <th scope="col" className="organic-period-progress-table__metric-col">
+              {toExportTitleCase("Value")}
+            </th>
+          )}
         </tr>
       </thead>
       <tbody>
         {rows.map((row, idx) => (
           <tr key={`${row.metric}-${row.comparePeriodValue}-${idx}`}>
-            <td>{row.metric}</td>
-            <td className="tabular-nums">{row.comparePeriodValue}</td>
-            <td className="tabular-nums font-semibold">{row.primaryPeriodValue}</td>
+            <td className={plan.kind === "primary-flat" ? "organic-period-progress-table__month-col whitespace-nowrap" : undefined}>
+              {row.metric}
+            </td>
+            {plan.kind === "compare-flat" ? (
+              <>
+                <td className="tabular-nums">{row.comparePeriodValue}</td>
+                <td className="tabular-nums font-semibold">{row.primaryPeriodValue}</td>
+              </>
+            ) : (
+              <td className="tabular-nums font-semibold organic-period-progress-table__metric-col">{row.primaryPeriodValue}</td>
+            )}
           </tr>
         ))}
       </tbody>
@@ -243,21 +337,26 @@ function ExportKeywordList({
 
 function ExportOpportunityCard({
   item,
+  showCompare,
   comparePeriodLabel,
   primaryPeriodLabel,
+  periodProgressTables,
 }: {
   item: OrganicDeckOpportunity;
+  showCompare: boolean;
   comparePeriodLabel: string;
   primaryPeriodLabel: string;
+  periodProgressTables: OrganicPeriodProgressTables | null;
 }) {
   return (
     <li className={EXPORT_OPPORTUNITY_CLASS}>
-      <h3 className={EXPORT_H3_CLASS}>{item.label}</h3>
-      <ExportOpportunityTable
-        rows={item.comparisonRows}
+      <h3 className={EXPORT_H3_CLASS}>{toExportTitleCase(item.label)}</h3>
+      <ExportOpportunityMetrics
+        item={item}
+        showCompare={showCompare}
         comparePeriodLabel={comparePeriodLabel}
         primaryPeriodLabel={primaryPeriodLabel}
-        legacyMetrics={item.metrics}
+        periodProgressTables={periodProgressTables}
       />
       <p className={EXPORT_BODY_CLASS}>
         <OrganicClientReportInlineText text={item.why} />
@@ -303,10 +402,18 @@ export function OrganicClientReportExportDocument({
     googleAdsNarrative,
     googleAdsDeckRows,
     googleAdsLoadError,
+    periodProgressTables,
     clientLogoUrl,
     clientLogoBoxTheme,
     agencyLogoUrl,
   } = content;
+
+  const ga4PeriodTable = periodProgressTables?.ga4;
+  const gscPeriodTable = periodProgressTables?.gsc;
+  const semrushPeriodTable = periodProgressTables?.semrush;
+  const showGa4PeriodTable = Boolean(ga4PeriodTable && ga4PeriodTable.monthLabels.length > 0);
+  const showGscPeriodTable = Boolean(gscPeriodTable && gscPeriodTable.monthLabels.length > 0);
+  const showSemrushPeriodTable = Boolean(semrushPeriodTable && semrushPeriodTable.monthLabels.length > 0);
 
   let totalPages = 1;
   if (showPerformanceSection) totalPages += 1;
@@ -349,7 +456,6 @@ export function OrganicClientReportExportDocument({
           ) : null}
           {performanceNarrative.length > 0 ? (
             <div className={EXPORT_NARRATIVE_WELL_CLASS}>
-              <h3 className={EXPORT_H3_CLASS}>Performance breakdown</h3>
               {performanceNarrative.map((p, idx) => (
                 <p key={`${idx}-${p}`} className={EXPORT_BODY_CLASS}>
                   <OrganicClientReportInlineText text={p} />
@@ -357,32 +463,57 @@ export function OrganicClientReportExportDocument({
               ))}
             </div>
           ) : null}
-          <ExportMetricStack
-            groupTitle="Website traffic (GA4)"
-            rows={traffic}
-            showCompare={showCompare}
-            comparePeriodLabel={comparePeriodLabel}
-            primaryPeriodLabel={primaryPeriodLabel}
-          />
-          <ExportMetricStack
-            groupTitle="Search visibility (GSC)"
-            rows={search}
-            showCompare={showCompare}
-            comparePeriodLabel={comparePeriodLabel}
-            primaryPeriodLabel={primaryPeriodLabel}
-          />
+          {showGa4PeriodTable && ga4PeriodTable ? (
+            <OrganicPeriodProgressTable
+              table={ga4PeriodTable}
+              exportMode
+              className="organic-client-report-export__metric-stack"
+            />
+          ) : (
+            <ExportMetricStack
+              groupTitle="Website traffic (GA4)"
+              rows={traffic}
+              showCompare={showCompare}
+              comparePeriodLabel={comparePeriodLabel}
+              primaryPeriodLabel={primaryPeriodLabel}
+            />
+          )}
+          {showGscPeriodTable && gscPeriodTable ? (
+            <OrganicPeriodProgressTable
+              table={gscPeriodTable}
+              exportMode
+              className="organic-client-report-export__metric-stack"
+            />
+          ) : (
+            <ExportMetricStack
+              groupTitle="Search visibility (GSC)"
+              rows={search}
+              showCompare={showCompare}
+              comparePeriodLabel={comparePeriodLabel}
+              primaryPeriodLabel={primaryPeriodLabel}
+            />
+          )}
         </ExportSection>
       ) : null}
 
       {showSemrushSection ? (
         <ExportSection title="Semrush estimates">
-          <ExportMetricStack
-            groupTitle="Organic visibility (Semrush)"
-            rows={semrushDeckRows}
-            showCompare={showCompare}
-            comparePeriodLabel={comparePeriodLabel}
-            primaryPeriodLabel={primaryPeriodLabel}
-          />
+          {showSemrushPeriodTable && semrushPeriodTable ? (
+            <OrganicPeriodProgressTable
+              table={semrushPeriodTable}
+              exportMode
+              showTotalRow={false}
+              className="organic-client-report-export__metric-stack"
+            />
+          ) : (
+            <ExportMetricStack
+              groupTitle="Organic visibility (Semrush)"
+              rows={semrushDeckRows}
+              showCompare={showCompare}
+              comparePeriodLabel={comparePeriodLabel}
+              primaryPeriodLabel={primaryPeriodLabel}
+            />
+          )}
           {topSemrushKeywords.length > 0 ? (
             <>
               <ul className={EXPORT_QUERY_LIST_CLASS}>
@@ -406,7 +537,6 @@ export function OrganicClientReportExportDocument({
         <ExportSection title="Keyword performance">
           {keywordNarrative.length > 0 ? (
             <div className={EXPORT_NARRATIVE_WELL_CLASS}>
-              <h3 className={EXPORT_H3_CLASS}>Keyword performance breakdown</h3>
               {keywordNarrative.map((p, idx) => (
                 <p key={`${idx}-${p}`} className={EXPORT_BODY_CLASS}>
                   <OrganicClientReportInlineText text={p} />
@@ -420,15 +550,17 @@ export function OrganicClientReportExportDocument({
 
       {showHighlightsSection ? (
         <ExportSection title="Highlights">
-          <ExportKpiStrip stats={highlightStats} />
+          <ExportKpiStrip stats={highlightStats} showCompare={showCompare} />
           {opportunities.length > 0 ? (
             <ul className="m-0 flex list-none flex-col gap-4 p-0">
               {opportunities.map((item, idx) => (
                 <ExportOpportunityCard
                   key={`${item.rank}-${item.label}-${idx}`}
                   item={item}
+                  showCompare={showCompare}
                   comparePeriodLabel={comparePeriodLabel}
                   primaryPeriodLabel={primaryPeriodLabel}
+                  periodProgressTables={periodProgressTables}
                 />
               ))}
             </ul>
@@ -460,7 +592,7 @@ export function OrganicClientReportExportDocument({
             />
           ) : googleAdsDeckRows.length > 0 ? (
             <ExportMetricStack
-              groupTitle="Google Ads summary"
+              groupTitle=""
               rows={googleAdsDeckRows}
               showCompare={showCompare}
               comparePeriodLabel={comparePeriodLabel}

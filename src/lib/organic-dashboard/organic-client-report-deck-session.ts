@@ -19,6 +19,8 @@ export type OrganicClientReportDeckPayload = {
   showCompare: boolean;
   preparedOn: string;
   localGridScan?: LocalGridScanDocument | null;
+  clientLogoUrl?: string | null;
+  clientLogoBoxTheme?: "black" | "white" | null;
 };
 
 function parseDeckLocalGridScan(raw: unknown): LocalGridScanDocument | null {
@@ -151,6 +153,12 @@ export function parseOrganicClientReportDeckPayload(
     viewModel: normalizeOrganicDashboardViewModelForDeck(o.viewModel),
     highlights,
     localGridScan: parseDeckLocalGridScan(o.localGridScan),
+    ...(typeof o.clientLogoUrl === "string" && o.clientLogoUrl.trim()
+      ? { clientLogoUrl: o.clientLogoUrl.trim() }
+      : {}),
+    ...(o.clientLogoBoxTheme === "white" || o.clientLogoBoxTheme === "black"
+      ? { clientLogoBoxTheme: o.clientLogoBoxTheme }
+      : {}),
   };
 }
 

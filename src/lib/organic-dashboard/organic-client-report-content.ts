@@ -318,6 +318,6 @@ export function buildOrganicClientReportContent(input: OrganicClientReportDeckIn
     showLocalGridSection: localGridSection != null,
     localGridSection,
     localGridNarrative,
-    periodProgressTables: showCompare ? null : viewModel.periodProgressTables,
+    periodProgressTables: viewModel.periodProgressTables,
   };
 }

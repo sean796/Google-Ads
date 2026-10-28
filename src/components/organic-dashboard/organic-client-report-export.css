@@ -462,6 +462,53 @@
   color: #09090b;
 }
 
+.organic-client-report-export__period-progress-table {
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.15rem 0 0;
+}
+
+.organic-client-report-export__period-progress-table th,
+.organic-client-report-export__period-progress-table td {
+  padding: 0.45rem 0.35rem;
+  border: 1px solid #d4d4d8;
+  vertical-align: middle;
+  color: #18181b;
+}
+
+.organic-client-report-export__period-progress-table thead th {
+  background: #f4f4f5;
+  font-weight: 700;
+  color: #09090b;
+  text-align: center;
+  line-height: 1.25;
+}
+
+.organic-client-report-export__period-progress-table thead th.organic-period-progress-table__metric-col {
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.organic-client-report-export__period-progress-table col.organic-period-progress-table__month-col {
+  width: 4.75rem;
+}
+
+.organic-client-report-export .organic-period-progress-table__month-col {
+  width: 4.75rem;
+  min-width: 4.75rem;
+  max-width: 4.75rem;
+  text-align: left;
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
+.organic-client-report-export .organic-period-progress-table__metric-col {
+  text-align: center;
+}
+
 .organic-client-report-export__query-list {
   margin: 0;
   padding: 0;

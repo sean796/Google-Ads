@@ -25,6 +25,8 @@ export type PublishOrganicClientReportDeckInput = {
   preparedOn?: string;
   deckId?: string;
   origin?: string;
+  clientLogoUrl?: string | null;
+  clientLogoBoxTheme?: "black" | "white" | null;
 };
 
 export type PublishOrganicClientReportDeckResult = {
@@ -48,6 +50,8 @@ export async function publishOrganicClientReportDeckAndBuildShareUrl(
     showCompare: input.showCompare,
     preparedOn,
     localGridScan: input.localGridScan ?? null,
+    clientLogoUrl: input.clientLogoUrl ?? null,
+    clientLogoBoxTheme: input.clientLogoBoxTheme ?? null,
   };
   await publishOrganicClientReportDeckSession(deckId, payload);
 

@@ -238,14 +238,15 @@ export function buildGoogleAdsReportAccountCard(args: {
   showCompare: boolean;
 }): OrganicGoogleAdsReportAccountCard {
   const topLabels = ["Leads", "Cost per lead", "Spend"] as const;
+  const compareRows = buildGoogleAdsTable(args.summary, args.showCompare);
   const kpis: OrganicGoogleAdsReportKpi[] = [];
   for (const label of topLabels) {
-    const row = args.tableRows.find((r) => r.label === label);
+    const row = compareRows.find((r) => r.label === label);
     if (!row) continue;
     kpis.push({
       label,
       value: row.current,
-      delta: args.showCompare ? row.delta : EMPTY_DELTA,
+      delta: row.delta,
       favorableWhenDown: label === "Cost per lead",
     });
   }

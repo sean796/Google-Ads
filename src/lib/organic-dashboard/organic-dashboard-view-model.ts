@@ -30,6 +30,7 @@ import { formatOrganicDashboardMonthColumn } from "@/lib/organic-dashboard/organ
 import {
   buildOrganicPeriodProgressTables,
   normalizeOrganicDashboardYearMonth,
+  reconcilePeriodProgressTablesForDeck,
   type OrganicPeriodProgressTables,
 } from "@/lib/organic-dashboard/organic-dashboard-period-progress";
 
@@ -453,8 +454,6 @@ export function buildOrganicDashboardViewModel(
 
   const reportStructure: "compare" | "period_progress" =
     data?.meta?.reportStructure === "period_progress" ? "period_progress" : "compare";
-  const periodTotalColumnLabel =
-    options?.periodTotalColumnLabel ?? formatOrganicDashboardMonthColumn(primary.endDate);
 
   const googleAdsRaw = data?.googleAds;
   const googleAdsRead = readOrganicGoogleAdsPayload(googleAdsRaw);
@@ -486,6 +485,10 @@ export function buildOrganicDashboardViewModel(
         ? formatComparePeriodLabel(compare.startDate, compare.endDate)
         : "Compare period",
   };
+
+  const periodTotalColumnLabel =
+    options?.periodTotalColumnLabel ??
+    (periodLabels.primary !== "Current period" ? periodLabels.primary : "Total");
 
   const series = gsc?.timeseries ?? [];
   const ga4Table = buildGa4Table(ga4, showCompare);
@@ -520,10 +523,12 @@ export function buildOrganicDashboardViewModel(
     googleAdsBudgetPacing,
     hasGoogleAds,
   };
-  const periodProgressTables =
-    !showCompare && reportStructure === "period_progress"
-      ? buildOrganicPeriodProgressTables(ga4, primary, partialVm, periodTotalColumnLabel)
-      : null;
+  const periodProgressTables = buildOrganicPeriodProgressTables(
+    ga4,
+    primary,
+    partialVm,
+    periodTotalColumnLabel,
+  );
   return {
     ...partialVm,
     periodProgressTables,
@@ -578,9 +583,29 @@ export function normalizeOrganicDashboardViewModelForDeck(raw: unknown): Organic
       r.reportStructure === "period_progress" || r.reportStructure === "compare"
         ? r.reportStructure
         : defaults.reportStructure,
-    periodProgressTables:
-      r.periodProgressTables && typeof r.periodProgressTables === "object"
-        ? r.periodProgressTables
-        : defaults.periodProgressTables,
+    periodProgressTables: reconcilePeriodProgressTablesForDeck({
+      ...defaults,
+      ...r,
+      ga4Table: Array.isArray(r.ga4Table) ? r.ga4Table : defaults.ga4Table,
+      gscTrendMonthly: Array.isArray(r.gscTrendMonthly) ? r.gscTrendMonthly : defaults.gscTrendMonthly,
+      gscSummary: r.gscSummary !== undefined ? r.gscSummary : defaults.gscSummary,
+      periodLabels:
+        r.periodLabels && typeof r.periodLabels === "object"
+          ? {
+              primary:
+                typeof r.periodLabels.primary === "string"
+                  ? r.periodLabels.primary
+                  : defaults.periodLabels.primary,
+              compare:
+                typeof r.periodLabels.compare === "string"
+                  ? r.periodLabels.compare
+                  : defaults.periodLabels.compare,
+            }
+          : defaults.periodLabels,
+      periodProgressTables:
+        r.periodProgressTables && typeof r.periodProgressTables === "object"
+          ? r.periodProgressTables
+          : null,
+    }),
   };
 }

@@ -3,7 +3,10 @@ import { EXPORT_LABEL_CLASS } from "@/components/organic-dashboard/organic-clien
 import type { OrganicGoogleAdsReportAccountCard } from "@/lib/organic-dashboard/organic-dashboard-google-ads";
 import { buildGoogleAdsSparklineAreaPath } from "@/lib/organic-dashboard/organic-dashboard-google-ads";
 import type { OrganicGscMetricDelta } from "@/lib/organic-dashboard/organic-dashboard-view-model";
-import { CLIENT_REPORT_DELTA_EMPTY } from "@/lib/organic-dashboard/organic-client-report-copy";
+import {
+  CLIENT_REPORT_DELTA_EMPTY,
+  toExportTitleCase,
+} from "@/lib/organic-dashboard/organic-client-report-copy";
 import { cn } from "@/lib/utils";
 
 const CHART_WIDTH = 640;
@@ -52,6 +55,7 @@ export function OrganicClientReportGoogleAdsAccountPanel({
   return (
     <div className="organic-client-report-export__ads-account">
       <OrganicClientReportOverviewSlot
+        heading=""
         paragraphs={narrative}
         loading={overviewLoading && narrative.length === 0}
         error={!overviewLoading && narrative.length === 0 ? overviewError : null}
@@ -61,7 +65,7 @@ export function OrganicClientReportGoogleAdsAccountPanel({
         <ul className="organic-client-report-export__ads-kpi-row">
           {card.kpis.map((kpi) => (
             <li key={kpi.label} className="organic-client-report-export__ads-kpi">
-              <p className={EXPORT_LABEL_CLASS}>{kpi.label}</p>
+              <p className={EXPORT_LABEL_CLASS}>{toExportTitleCase(kpi.label)}</p>
               <p className="organic-client-report-export__ads-kpi-value tabular-nums">{kpi.value}</p>
               <ReportKpiDelta delta={kpi.delta} favorableWhenDown={kpi.favorableWhenDown} />
             </li>

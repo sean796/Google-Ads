@@ -444,6 +444,8 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
         readyHighlights,
         showCompare,
         localGridScan: localGridScanQuery.data ?? null,
+        clientLogoUrl: site.clientLogoUrl,
+        clientLogoBoxTheme: logoBoxTheme,
       });
       await navigator.clipboard.writeText(publishedUrl);
       setShareCopied(true);
@@ -464,6 +466,8 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     shareState,
     showCompare,
     site.id,
+    site.clientLogoUrl,
+    logoBoxTheme,
     siteDisplayName,
     sitePublicUrl,
     viewModel,

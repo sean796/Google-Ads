@@ -3,6 +3,8 @@ import {
   buildGa4PeriodProgressTable,
   buildGscPeriodProgressTable,
   buildOrganicPeriodProgressTables,
+  buildSemrushPeriodProgressTable,
+  reconcilePeriodProgressTablesForDeck,
 } from "@/lib/organic-dashboard/organic-dashboard-period-progress";
 import { buildOrganicDashboardViewModel } from "@/lib/organic-dashboard/organic-dashboard-view-model";
 import type { OrganicDashboardBundleResponse } from "@/lib/organic-dashboard/organic-dashboard-types";
@@ -232,5 +234,123 @@ describe("organic-dashboard-period-progress", () => {
     );
     expect(tables.ga4).not.toBeNull();
     expect(vm.periodProgressTables?.ga4).not.toBeNull();
+  });
+
+  it("uses full primary period label for period total row, not end month only", () => {
+    const vm = buildOrganicDashboardViewModel(
+      {
+        success: true,
+        meta: {
+          fetchedAt: "2026-01-01T00:00:00Z",
+          reportStructure: "compare",
+          primary: { startDate: "2026-07-01", endDate: "2026-09-30" },
+          compare: { startDate: "2026-03-31", endDate: "2026-06-30" },
+        },
+        gsc: {
+          stats: {
+            currentPeriod: {
+              startDate: "2026-07-01",
+              endDate: "2026-09-30",
+              clicks: 2700,
+              impressions: 247800,
+              ctr: 0.011,
+              avgPosition: 15.3,
+            },
+            topKeywords: [],
+          },
+          timeseries: [
+            { date: "2026-07-15", clicks: 300, impressions: 25000, ctr: 0.012, avgPosition: 16 },
+            { date: "2026-08-15", clicks: 280, impressions: 26000, ctr: 0.011, avgPosition: 16 },
+            { date: "2026-09-15", clicks: 290, impressions: 24000, ctr: 0.012, avgPosition: 13 },
+          ],
+        },
+        sources: { ga4: "skipped", gsc: "ok", gscHistorical: "skipped" },
+      } satisfies OrganicDashboardBundleResponse,
+      { showCompare: true },
+    );
+    expect(vm.periodProgressTables?.gsc?.periodTotalColumnLabel).toContain("Jul");
+    expect(vm.periodProgressTables?.gsc?.periodTotalColumnLabel).not.toBe("Sep");
+  });
+
+  it("rebuilds GSC period table from gscTrendMonthly when deck omitted periodProgressTables", () => {
+    const vm = buildOrganicDashboardViewModel(
+      {
+        success: true,
+        meta: {
+          fetchedAt: "2026-01-01T00:00:00Z",
+          reportStructure: "compare",
+          primary: { startDate: "2026-07-01", endDate: "2026-09-30" },
+          compare: null,
+        },
+        gsc: {
+          stats: {
+            currentPeriod: {
+              startDate: "2026-07-01",
+              endDate: "2026-09-30",
+              clicks: 100,
+              impressions: 10000,
+              ctr: 0.01,
+              avgPosition: 10,
+            },
+            topKeywords: [],
+          },
+          timeseries: [
+            { date: "2026-07-10", clicks: 30, impressions: 3000, ctr: 0.01, avgPosition: 11 },
+            { date: "2026-08-10", clicks: 35, impressions: 3500, ctr: 0.01, avgPosition: 10 },
+            { date: "2026-09-10", clicks: 35, impressions: 3500, ctr: 0.01, avgPosition: 9 },
+          ],
+        },
+        sources: { ga4: "skipped", gsc: "ok", gscHistorical: "skipped" },
+      } satisfies OrganicDashboardBundleResponse,
+      { showCompare: true },
+    );
+    const reconciled = reconcilePeriodProgressTablesForDeck({
+      ...vm,
+      periodProgressTables: null,
+    });
+    expect(reconciled?.gsc?.monthLabels.length).toBeGreaterThan(0);
+    expect(reconciled?.gsc?.rows.length).toBe(4);
+  });
+
+  it("builds Semrush monthly table from semrushTrend", () => {
+    const vm = buildOrganicDashboardViewModel(
+      {
+        success: true,
+        meta: {
+          fetchedAt: "2026-01-01T00:00:00Z",
+          reportStructure: "compare",
+          primary: { startDate: "2026-07-01", endDate: "2026-09-30" },
+          compare: null,
+        },
+        semrush: {
+          current: {
+            organicKeywords: 626,
+            organicTraffic: 184,
+            trafficCost: 240,
+          },
+          history: [
+            { month: "2026-07", organicKeywords: 699, organicTraffic: 277, trafficCost: 343 },
+            { month: "2026-08", organicKeywords: 720, organicTraffic: 251, trafficCost: 328 },
+            { month: "2026-09", organicKeywords: 748, organicTraffic: 181, trafficCost: 251 },
+          ],
+        },
+        sources: { ga4: "skipped", gsc: "skipped", gscHistorical: "skipped", semrush: "ok" },
+      } satisfies OrganicDashboardBundleResponse,
+      { showCompare: true },
+    );
+    expect(vm.periodProgressTables?.semrush?.monthLabels).toEqual(["Jul", "Aug", "Sep"]);
+    expect(vm.periodProgressTables?.semrush?.rows.map((r) => r.label)).toEqual([
+      "Keywords",
+      "Est. organic traffic",
+      "Traffic cost",
+    ]);
+    const table = buildSemrushPeriodProgressTable(vm.semrushTrend, vm.semrushSummary, "Total", {
+      startDate: "2026-07-01",
+      endDate: "2026-09-30",
+    });
+    expect(table?.rows[0]?.values).toEqual(["699", "720", "748"]);
+    expect(table?.rows[0]?.periodTotal).toBe("748");
+    expect(table?.rows[1]?.periodTotal).toBe("709");
+    expect(table?.rows[2]?.periodTotal).toBe("$922");
   });
 });

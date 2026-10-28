@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildGoogleAdsReportAccountCard,
   buildGoogleAdsSummary,
   buildGoogleAdsTable,
   formatGoogleAdsLoadError,
@@ -89,6 +90,48 @@ describe("organic-dashboard-google-ads", () => {
     );
     expect(summary?.costPerLead).toMatch(/^CA\$/);
     expect(buildGoogleAdsTable(summary, true)).toHaveLength(4);
+  });
+
+  it("account card KPI deltas come from summary when saved table rows omit delta", () => {
+    const summary = buildGoogleAdsSummary(
+      {
+        account: {
+          impressions: 0,
+          clicks: 100,
+          costMicros: 2_995_000_000,
+          conversions: 78,
+          ctr: 0,
+          averageCpc: 0,
+        },
+        compareAccount: {
+          impressions: 0,
+          clicks: 90,
+          costMicros: 3_500_000_000,
+          conversions: 73,
+          ctr: 0,
+          averageCpc: 0,
+        },
+        currencyCode: "CAD",
+        customerId: "1234567890",
+        dailySeries: [],
+      },
+      true,
+    );
+    if (!summary) throw new Error("expected summary");
+    const staleRows = buildGoogleAdsTable(summary, true).map((row) => ({
+      ...row,
+      delta: { deltaPercent: null, deltaPositive: null },
+    }));
+    const card = buildGoogleAdsReportAccountCard({
+      siteName: "Test",
+      summary,
+      tableRows: staleRows,
+      chartPoints: [],
+      budgetPacing: null,
+      preparedOn: "2026-10-28",
+      showCompare: true,
+    });
+    expect(card.kpis[0]?.delta.deltaPercent).not.toBeNull();
   });
 
   it("shows a load error when property has Ads ID but payload is missing", () => {

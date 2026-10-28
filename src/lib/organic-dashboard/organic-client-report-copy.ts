@@ -40,7 +40,16 @@ export function formatClientReportTopQueryMeta(clicks: string): string {
 }
 
 export function formatClientReportSemrushKeywordMeta(traffic: string, volume: string): string {
-  return `${sanitizeClientReportMetricValue(traffic)} est. traffic, vol. ${sanitizeClientReportMetricValue(volume)}`;
+  const trafficLabel = sanitizeClientReportMetricValue(traffic);
+  const volumeLabel = sanitizeClientReportMetricValue(volume);
+  const trafficMissing =
+    !trafficLabel ||
+    trafficLabel === CLIENT_REPORT_DELTA_EMPTY ||
+    /^n\/a$/i.test(trafficLabel);
+  if (trafficMissing) {
+    return `vol. ${volumeLabel}`;
+  }
+  return `${trafficLabel} est. traffic, vol. ${volumeLabel}`;
 }
 
 export function formatClientReportCoverTitle(agencyName: string, siteName: string): string {
