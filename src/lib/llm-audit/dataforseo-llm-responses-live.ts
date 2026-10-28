@@ -126,8 +126,12 @@ export async function dataforseoLlmResponsesLive(
 
     if (json && typeof json === "object") {
       const obj = json as Record<string, unknown>;
+      if (obj.skipped === true) {
+        return DFS_LLM_UNAVAILABLE_SKIP;
+      }
       if (typeof obj.error === "string" && obj.error.trim() && !Array.isArray(obj.tasks)) {
-        throw new Error(obj.error.trim());
+        console.warn(`[DFS LLM] LLM response contained task error: ${obj.error}; continuing without live facts`);
+        return DFS_LLM_UNAVAILABLE_SKIP;
       }
     }
 
@@ -139,18 +143,7 @@ export async function dataforseoLlmResponsesLive(
       markDfsPaymentFailed();
       return DFS_LLM_PAYMENT_SKIP;
     }
-    if (status && isGatewayHttpStatus(status)) {
-      console.warn(`[DFS LLM] MCP llm_responses_live HTTP ${status}; continuing without ChatGPT facts`);
-      return DFS_LLM_UNAVAILABLE_SKIP;
-    }
-    const lower = message.toLowerCase();
-    if (
-      lower.includes("502 bad gateway")
-      || lower.includes("503 service")
-      || lower.includes("504 gateway")
-    ) {
-      return DFS_LLM_UNAVAILABLE_SKIP;
-    }
-    throw err;
+    console.warn(`[DFS LLM] MCP llm_responses_live failed (${status ?? message}); continuing without live facts`);
+    return DFS_LLM_UNAVAILABLE_SKIP;
   }
 }

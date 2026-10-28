@@ -1,8 +1,26 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { BulkProcessingOptions } from "@/lib/bulk-auto-generate";
 import { generateRowOutputs } from "@/lib/bulk-auto-generate";
 import { BulkFileManager } from "@/lib/bulk-file-manager";
 import type { CSVRow } from "@/lib/bulk/bulk-csv-parser";
+import type { KeywordAnalysisComplete } from "@/lib/keyword-types";
+
+const analyzeBulkCsvKeywordMock = vi.fn();
+
+vi.mock("@/lib/bulk/bulk-csv-keyword-analyze", () => ({
+  analyzeBulkCsvKeyword: (...args: unknown[]) => analyzeBulkCsvKeywordMock(...args),
+  applyCsvPrimaryKeywordToResearch: (
+    research: KeywordAnalysisComplete,
+    csvKeyword: string,
+  ) => ({
+    ...research,
+    result: {
+      ...research.result,
+      primaryKeyword: csvKeyword,
+      keywordData: { ...research.result.keywordData, keyword: csvKeyword },
+    },
+  }),
+}));
 
 describe("bulk CSV keyword research", () => {
   const row: CSVRow = {
@@ -16,30 +34,17 @@ describe("bulk CSV keyword research", () => {
     onProgress: vi.fn(),
   } as BulkProcessingOptions;
 
-  it("uses CSV keyword when DataForSEO returns nothing", async () => {
-    const fileManager = new BulkFileManager();
-    const analyzeKeywordFn = vi.fn().mockResolvedValue(null);
-
-    const { research } = await generateRowOutputs(
-      0,
-      row,
-      options,
-      fileManager,
-      analyzeKeywordFn,
-    );
-
-    expect(research?.result.primaryKeyword).toBe("Hunter Douglas warranty");
-    expect(research?.result.keywordData.keyword).toBe("Hunter Douglas warranty");
-    expect(research?.aiAnalysis).toBeTruthy();
+  beforeEach(() => {
+    analyzeBulkCsvKeywordMock.mockReset();
   });
 
-  it("keeps CSV keyword when DataForSEO returns a different primary", async () => {
+  it("uses CSV keyword when parallel analyzer returns data", async () => {
     const fileManager = new BulkFileManager();
-    const analyzeKeywordFn = vi.fn().mockResolvedValue({
+    analyzeBulkCsvKeywordMock.mockResolvedValue({
       result: {
-        primaryKeyword: "different keyword",
+        primaryKeyword: "Hunter Douglas warranty",
         keywordData: {
-          keyword: "different keyword",
+          keyword: "Hunter Douglas warranty",
           difficulty: 10,
           searchVolume: 100,
           cpc: 1,
@@ -52,13 +57,14 @@ describe("bulk CSV keyword research", () => {
         searchIntent: "informational",
       },
       aiAnalysis: {
-        keywordSuggestions: { primary: "different keyword", variations: [], longTail: [], semantic: [] },
+        keywordSuggestions: { primary: "Hunter Douglas warranty", variations: [], longTail: [], semantic: [] },
         h2Suggestions: [],
         contentGaps: [],
         peopleAlsoAsk: [],
         researchLinks: [],
       },
       keywordsVolumeData: [],
+      paaRawResponse: { tasks: [] },
     });
 
     const { research } = await generateRowOutputs(
@@ -66,27 +72,25 @@ describe("bulk CSV keyword research", () => {
       row,
       options,
       fileManager,
-      analyzeKeywordFn,
+      vi.fn(),
     );
 
     expect(research?.result.primaryKeyword).toBe("Hunter Douglas warranty");
     expect(research?.result.keywordData.keyword).toBe("Hunter Douglas warranty");
+    expect(analyzeBulkCsvKeywordMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        primaryKeyword: "Hunter Douglas warranty",
+        options: expect.objectContaining({ language: "en" }),
+      }),
+    );
   });
 
-  it("falls back to CSV stub when DataForSEO throws", async () => {
+  it("propagates when parallel analyzer throws", async () => {
     const fileManager = new BulkFileManager();
-    const analyzeKeywordFn = vi.fn().mockRejectedValue(
-      new Error("Could not extract keyword data from DataForSEO response"),
-    );
+    analyzeBulkCsvKeywordMock.mockRejectedValue(new Error("MCP timeout"));
 
-    const { research } = await generateRowOutputs(
-      0,
-      row,
-      options,
-      fileManager,
-      analyzeKeywordFn,
-    );
-
-    expect(research?.result.primaryKeyword).toBe("Hunter Douglas warranty");
+    await expect(
+      generateRowOutputs(0, row, options, fileManager, vi.fn()),
+    ).rejects.toThrow("MCP timeout");
   });
 });

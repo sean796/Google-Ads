@@ -17,6 +17,7 @@ export const PROPERTIES_LIST_STACK = "flex flex-col gap-0";
 /**
  * Collapsed property row shell (stripe applied via propertiesRowStripeClass).
  */
+/** Shared row height shell (real rows + filler stripes). */
 export const PROPERTIES_ROW_OUTER_BASE = cn(
   "flex min-h-[4.5rem] w-full min-w-0 items-stretch gap-3 rounded-none border-0 px-2 py-2 shadow-none transition-colors sm:gap-4 sm:px-3",
 );

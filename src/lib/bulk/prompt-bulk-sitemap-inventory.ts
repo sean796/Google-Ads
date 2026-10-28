@@ -1,5 +1,8 @@
 import type { WordPressSite } from "@/components/integrations/types";
 import type { OverviewInventoryRow } from "@/lib/overview/overview-inventory-csv";
+import {
+  splitOverviewInventoryRowsBySource,
+} from "@/lib/overview/overview-unified-sitemap-inventory";
 import { fetchAllOverviewInventoriesParallel } from "@/lib/overview/overview-parallel-inventory-fetch";
 import {
   OVERVIEW_SITEMAP_SOURCE_LABELS,
@@ -145,6 +148,42 @@ export function recreatePromptBulkSitemapInventoryLinks(
   return links;
 }
 
+/** Build Pages + Posts + SAP buckets and hosted links synchronously from already-loaded inventory rows. */
+export function buildPromptBulkSitemapInventoryFromRows(
+  site: WordPressSite,
+  mergedRows: OverviewInventoryRow[],
+): PromptBulkSitemapInventoryResult {
+  const sources = overviewSitemapSourcesForSite(site);
+  const buckets = emptyBuckets();
+  const links: PromptBulkSitemapInventoryLink[] = [];
+  const bySource = splitOverviewInventoryRowsBySource(site, mergedRows);
+
+  let totalRows = 0;
+  for (const source of sources) {
+    const rows = bySource[source] ?? [];
+    const urls = compactInventoryUrlsForJson(rows);
+    const json = stringifyContentBucketPostsJson(source, rows);
+    buckets[source] = { json, rowCount: urls.length };
+    totalRows += urls.length;
+    if (urls.length > 0 && site.siteUrl?.trim()) {
+      links.push(createBucketHostedLink(site.siteUrl, source, urls));
+    }
+  }
+
+  const customBuilt = buildCustomScopeBucketsFromRows(site, mergedRows);
+  if (Object.keys(customBuilt).length > 0) {
+    buckets.customByScope = customBuilt;
+  }
+
+  return {
+    links,
+    buckets,
+    totalRows,
+    sources,
+    errors: {},
+  };
+}
+
 /** Fetch Pages + Posts + SAP buckets and build hosted JSON links for the Details drawer. */
 export async function fetchPromptBulkSitemapInventory(
   site: WordPressSite,
@@ -162,7 +201,9 @@ export async function fetchPromptBulkSitemapInventory(
   onProgress?.(`Loading sitemap inventory (${sources.length} buckets: ${sources.join(", ")})…`);
 
   const parallel = await fetchAllOverviewInventoriesParallel(site, {
-    includeRawAcf: true,
+    includeContent: false,
+    includePageHeading: false,
+    includeRawAcf: false,
     includeScheduled: true,
   });
   seedBulkGenerationWpInventoryFromParallel(site, parallel);

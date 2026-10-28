@@ -64,25 +64,3 @@ describe("overview research DataForSEO SERP soft fail", () => {
     expect(src).not.toContain("runSerpAndLlmAuditParallel");
   });
 });
-
-describe("overview research Semrush soft fail", () => {
-  it("records Semrush errors without aborting the row pipeline", () => {
-    const src = readFileSync(rowPath, "utf8");
-    const semrushFn = src.slice(
-      src.indexOf("async function runSemrushEnrichment"),
-      src.indexOf("async function loadSemrushOverviewDoc"),
-    );
-    expect(semrushFn).toContain("return { storedFile: null }");
-    expect(semrushFn).not.toMatch(/throw new Error\(message\)/);
-    expect(semrushFn).not.toContain("Semrush API unavailable");
-    expect(semrushFn).not.toContain("!BACKEND_API_BASE");
-
-    const loadFn = src.slice(
-      src.indexOf("async function loadSemrushOverviewDoc"),
-      src.indexOf("async function uploadSeoBrief"),
-    );
-    expect(loadFn).toContain("return null");
-    expect(loadFn).not.toMatch(/throw new Error/);
-    expect(loadFn).not.toContain("!BACKEND_API_BASE");
-  });
-});

@@ -12,6 +12,8 @@ import {
   resolveSiteSitemapMode,
   resolveUploadSitemapType,
   seedCustomRowSitemaps,
+  overviewSitemapSourceToUploadConfig,
+  resolveBulkEditorialScopeTag,
 } from "@/lib/bulk/bulk-sitemap-mode";
 
 describe("parseBulkRowSitemapCell", () => {
@@ -167,5 +169,34 @@ describe("filterPromptBulkSitemapBucketsByScopes", () => {
     expect(filtered.pages.rowCount).toBe(2);
     expect(filtered.posts.rowCount).toBe(0);
     expect(filtered.sap.rowCount).toBe(0);
+  });
+});
+
+describe("overviewSitemapSourceToUploadConfig", () => {
+  it("maps dock source to WP upload target", () => {
+    expect(overviewSitemapSourceToUploadConfig("posts")).toEqual({
+      sitemapType: "post",
+      wordpressRestEndpoint: "posts",
+    });
+    expect(overviewSitemapSourceToUploadConfig("pages")).toEqual({
+      sitemapType: "post",
+      wordpressRestEndpoint: "pages",
+    });
+    expect(overviewSitemapSourceToUploadConfig("sap")).toEqual({
+      sitemapType: "entity",
+      wordpressRestEndpoint: "posts",
+    });
+  });
+});
+
+describe("resolveBulkEditorialScopeTag", () => {
+  it("uses entity mode when sitemapType is entity without scopeTags", () => {
+    expect(resolveBulkEditorialScopeTag({ sitemapType: "entity" })).toBe("entities");
+  });
+
+  it("prefers explicit scopeTags over sitemapType", () => {
+    expect(
+      resolveBulkEditorialScopeTag({ sitemapType: "entity", scopeTags: ["posts"] }),
+    ).toBe("posts");
   });
 });

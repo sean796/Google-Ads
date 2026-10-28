@@ -37,7 +37,9 @@ import {
   stripLeadingAnswerSection,
   stripLeadingOverviewSection,
 } from "@/lib/overview/overview-blog-overview-prepend";
+import { headingTitleToHarnessAnchorId } from "@/lib/bulk/harness-section-anchor-ids";
 import {
+  buildH2OpenTagForTitle,
   rewriteBlogPassageSection,
   splitHtmlBodyIntoH2PassageSections,
   stitchHtmlBodyFromH2PassageSections,
@@ -83,7 +85,7 @@ export interface OverviewDocSectionBlocksProps {
 }
 
 const QUIET_PILL_BTN =
-  "h-8 shrink-0 rounded-none border-0 bg-zinc-900 px-2.5 text-base font-normal text-muted-foreground hover:bg-zinc-800 hover:text-white disabled:opacity-45";
+  "h-8 shrink-0 rounded-md border border-white/10 bg-zinc-900/90 px-2.5 text-xs font-medium text-muted-foreground hover:bg-zinc-800 hover:text-white disabled:opacity-45";
 
 export function OverviewDocSectionBlocks({
   row,
@@ -145,7 +147,14 @@ export function OverviewDocSectionBlocks({
     () =>
       elementorSectionHeadersFromCachedRow(row).filter((sec) => {
         const key = (sec.title ?? "").trim().toLowerCase();
-        return key !== "faq" && key !== "frequently asked questions";
+        return (
+          key !== "faq" &&
+          key !== "frequently asked questions" &&
+          key !== "answer" &&
+          key !== "direct answer" &&
+          key !== "overview" &&
+          key !== "ai overview"
+        );
       }),
     [row],
   );
@@ -185,18 +194,20 @@ export function OverviewDocSectionBlocks({
     sectionIdx: number,
     patch: { title?: string; bodyHtml?: string },
   ) => {
-    const nextSections = parsedPassageDoc.sections.map((sec, idx) =>
-      idx === sectionIdx
-        ? {
-            ...sec,
-            title: patch.title ?? sec.title,
-            bodyHtml:
-              patch.bodyHtml != null
-                ? normalizeSectionProseHtml(patch.bodyHtml)
-                : sec.bodyHtml,
-          }
-        : sec,
-    );
+    const nextSections = parsedPassageDoc.sections.map((sec, idx) => {
+      if (idx !== sectionIdx) return sec;
+      const nextTitle = patch.title ?? sec.title;
+      return {
+        ...sec,
+        id: patch.title != null ? headingTitleToHarnessAnchorId(nextTitle) : sec.id,
+        h2OpenTag: patch.title != null ? buildH2OpenTagForTitle(nextTitle) : sec.h2OpenTag,
+        title: nextTitle,
+        bodyHtml:
+          patch.bodyHtml != null
+            ? normalizeSectionProseHtml(patch.bodyHtml)
+            : sec.bodyHtml,
+      };
+    });
     const nextCore = stitchHtmlBodyFromH2PassageSections({
       leadingHtml: parsedPassageDoc.leadingHtml,
       sections: nextSections,
@@ -498,7 +509,7 @@ export function OverviewDocSectionBlocks({
             }
           >
             <Heading2 className="mr-1.5 h-3.5 w-3.5 text-primary" aria-hidden />
-            {isPagesSource ? "All Headers" : "All H2s"}
+            {isPagesSource ? "Headers" : "Headings"}
           </Button>
 
           <Button
@@ -513,7 +524,7 @@ export function OverviewDocSectionBlocks({
             title="Weave contextual internal links"
           >
             <Link2 className="mr-1.5 h-3.5 w-3.5 text-cyan-400" aria-hidden />
-            Weave Links
+            Internal Links
           </Button>
 
           {!isPagesSource ? (
@@ -550,7 +561,7 @@ export function OverviewDocSectionBlocks({
               }
             >
               <ImageIcon className="mr-1.5 h-3.5 w-3.5 text-cyan-400" aria-hidden />
-              {isSapSource ? "Local / Section Image" : "Section Image"}
+              Section Image
             </Button>
           ) : null}
         </div>
@@ -623,7 +634,9 @@ export function OverviewDocSectionBlocks({
           id="studio-sec-answer"
           className={cn(
             "group relative flex scroll-mt-6 flex-col gap-2 border-b border-white/10 pb-5",
-            row.status === "ai-answer" && CONTENT_OPTIMIZER_ACTIVE_ROW_HIGHLIGHT_CLASS,
+            (row.status === "ai-answer" ||
+              (busy && activeStepTitleKey === "answer")) &&
+              "animate-meta-opt-breathe border-semantic-data/40 bg-zinc-900/35 px-3 py-3",
           )}
           aria-label="Direct Answer Block"
         >
@@ -631,7 +644,8 @@ export function OverviewDocSectionBlocks({
             <span
               className={cn(
                 "text-base font-semibold",
-                row.status === "ai-answer"
+                row.status === "ai-answer" ||
+                  (busy && activeStepTitleKey === "answer")
                   ? CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS
                   : "text-primary",
               )}
@@ -662,7 +676,9 @@ export function OverviewDocSectionBlocks({
           id="studio-sec-overview"
           className={cn(
             "group relative flex scroll-mt-6 flex-col gap-2 border-b border-white/10 pb-5",
-            row.status === "ai-overview" && CONTENT_OPTIMIZER_ACTIVE_ROW_HIGHLIGHT_CLASS,
+            (row.status === "ai-overview" ||
+              (busy && activeStepTitleKey === "overview")) &&
+              "animate-meta-opt-breathe border-semantic-data/40 bg-zinc-900/35 px-3 py-3",
           )}
           aria-label="Overview and Citations Block"
         >
@@ -670,7 +686,8 @@ export function OverviewDocSectionBlocks({
             <span
               className={cn(
                 "flex items-center gap-1.5 text-base font-semibold",
-                row.status === "ai-overview"
+                row.status === "ai-overview" ||
+                  (busy && activeStepTitleKey === "overview")
                   ? CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS
                   : "text-primary",
               )}

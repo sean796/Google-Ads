@@ -3,16 +3,27 @@
  */
 import { describe, expect, it } from "vitest";
 import { parseNeoPulseFieldsExportJson } from "../neo-pulse-fields-discovery.cjs";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+
+const NEO_PULSE_STARTER_GROUPS = [
+  {
+    key: "group_neo_pulse_seo_fields",
+    title: "NEO Pulse SEO & Content Fields",
+    fields: [
+      { name: "keyword_focus", label: "Keyword Focus", type: "text" },
+      { name: "seo_title", label: "SEO Title", type: "text" },
+      { name: "meta_description", label: "Meta Description", type: "textarea" },
+      { name: "seo_extra_text", label: "Extra Text", type: "wysiwyg" },
+      { name: "seo_faq", label: "SEO FAQ", type: "textarea" },
+      { name: "seo_research", label: "SEO Research Brief", type: "textarea" },
+      { name: "date_modifier", label: "Date Modifier", type: "date_picker" },
+    ],
+    location: [],
+  },
+];
 
 describe("parseNeoPulseFieldsExportJson", () => {
-  it("parses ACF-compatible export fixture into field definitions", () => {
-    const fixturePath = join(
-      process.cwd(),
-      "wordpress-plugins/neo-pulse-wp/includes/fields/fixtures/acf-export-starter.json",
-    );
-    const json = readFileSync(fixturePath, "utf8");
+  it("parses NEO Pulse fields export JSON into field definitions", () => {
+    const json = JSON.stringify(NEO_PULSE_STARTER_GROUPS);
     const parsed = parseNeoPulseFieldsExportJson(json);
     expect(parsed).not.toBeNull();
     expect(parsed!.fields.length).toBeGreaterThan(0);

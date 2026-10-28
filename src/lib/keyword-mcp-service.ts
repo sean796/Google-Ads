@@ -5,6 +5,7 @@
 
 import type { KeywordData, KeywordResearchResult } from "./keyword-types";
 import { loadDataForSEOApiKey } from "./api";
+import { withDataForSeoLocationCode } from "./dataforseo-location-code";
 
 // Location and language code mappings
 const LOCATION_CODES: Record<string, number> = {
@@ -51,11 +52,13 @@ export async function callMCPKeywordOverview(
     
     const { mcp_DataForSEO_dataforseo_labs_google_keyword_overview } = await import('@/lib/mcp-tools');
 
-    const result = await mcp_DataForSEO_dataforseo_labs_google_keyword_overview({
-      keywords: labsKeywords,
-      location_name: locationName,
-      language_code: languageCode,
-    });
+    const result = await mcp_DataForSEO_dataforseo_labs_google_keyword_overview(
+      withDataForSeoLocationCode({
+        keywords: labsKeywords,
+        location_name: locationName,
+        language_code: languageCode,
+      }),
+    );
     
     console.log('[MCP Service] Raw result from API:', result);
 
@@ -90,12 +93,14 @@ export async function callMCPSemanticKeywords(
   try {
     const { mcp_DataForSEO_dataforseo_labs_google_keyword_ideas } = await import('@/lib/mcp-tools');
 
-    const result = await mcp_DataForSEO_dataforseo_labs_google_keyword_ideas({
-      keywords: [keyword],
-      location_name: locationName,
-      language_code: languageCode,
-      limit,
-    });
+    const result = await mcp_DataForSEO_dataforseo_labs_google_keyword_ideas(
+      withDataForSeoLocationCode({
+        keywords: [keyword],
+        location_name: locationName,
+        language_code: languageCode,
+        limit,
+      }),
+    );
     return transformMCPSemanticData(result);
   } catch (error) {
     console.error("MCP semantic keywords error:", error);

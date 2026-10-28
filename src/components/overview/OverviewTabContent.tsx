@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   isOverviewBulkWorkerActive,
   resolveOverviewOptimizingRowUrl,
@@ -11,6 +11,7 @@ import { useOverviewTabController } from "@/hooks/overview/use-overview-tab-cont
 import { useOverviewTabShellDerived } from "@/hooks/overview/use-overview-tab-shell-derived";
 import { usePulseAssistOverviewBridge } from "@/hooks/use-pulse-assist-overview-bridge";
 import { consumeOverviewOptimizedUpload } from "@/lib/overview/overview-content-opt-html-store";
+import { resolveStudioDrawerElementorHeaders } from "@/lib/overview/overview-studio-drawer-section-headers";
 import { setStudioDocRevisionsViewBridge } from "@/lib/overview/studio-doc-revisions-view-bridge";
 import { normalizePageUrlKey } from "@/lib/sitemap-optimizer/normalize-page-url";
 export type StudioCenterView = "document" | "revisions";
@@ -83,8 +84,22 @@ export function OverviewTabContent(props: OverviewTabContentProps) {
     }
   }, [derived.batchBulkState?.urlStatuses, ctrl]);
 
+  const prevSitemapSourceRef = useRef(ctrl.sitemapSource);
   // Auto-select the first available article when none is selected so the Visual Doc Studio is immediately active
   useEffect(() => {
+    const sitemapSourceChanged = prevSitemapSourceRef.current !== ctrl.sitemapSource;
+    prevSitemapSourceRef.current = ctrl.sitemapSource;
+
+    if (sitemapSourceChanged) {
+      const firstUrl = ctrl.displayRows[0]?.url;
+      if (firstUrl) {
+        ctrl.setExpandedPageUrl(firstUrl);
+        return;
+      }
+      ctrl.setExpandedPageUrl(null);
+      return;
+    }
+
     if (ctrl.expandedPageUrl) {
       const activeKey = normalizePageUrlKey(ctrl.expandedPageUrl);
       const exists = ctrl.displayRows.some(
@@ -96,7 +111,12 @@ export function OverviewTabContent(props: OverviewTabContentProps) {
     if (firstUrl) {
       ctrl.setExpandedPageUrl(firstUrl);
     }
-  }, [ctrl.expandedPageUrl, ctrl.displayRows, ctrl.setExpandedPageUrl]);
+  }, [
+    ctrl.sitemapSource,
+    ctrl.expandedPageUrl,
+    ctrl.displayRows,
+    ctrl.setExpandedPageUrl,
+  ]);
 
   const activeRowIndex = useMemo(() => {
     if (!ctrl.expandedPageUrl) return -1;
@@ -128,6 +148,74 @@ export function OverviewTabContent(props: OverviewTabContentProps) {
     setStudioCenterView("document");
   }, [activeRow?.url]);
 
+  const isStudioDataReady = useMemo(() => {
+    if (props.studioRowSource === "bulk-generator") return true;
+    if (!ctrl.site?.id) return true;
+    if (ctrl.displayRows.length === 0) return false;
+    if (!activeRow) return false;
+    if (activeRow.status === "scraping") return false;
+    const hasTitle = Boolean(
+      (
+        activeRow.title ||
+        activeRow.pageHeading ||
+        ctrl.wpTitlesByUrl[activeRow.url] ||
+        ""
+      ).trim(),
+    );
+    if (!hasTitle) return false;
+    const headerCount = resolveStudioDrawerElementorHeaders(
+      activeRow,
+      ctrl.site,
+      ctrl.sitemapSource,
+    ).length;
+    const rawBody = (
+      activeRow.postContentOptimized ||
+      activeRow.postContent ||
+      ""
+    ).trim();
+    const hasBody = rawBody.length > 0 && rawBody !== "<p></p>";
+    return headerCount > 0 || hasBody;
+  }, [
+    props.studioRowSource,
+    ctrl.site,
+    ctrl.displayRows.length,
+    ctrl.wpTitlesByUrl,
+    ctrl.sitemapSource,
+    activeRow,
+  ]);
+
+  const [splashDismissedForSiteId, setSplashDismissedForSiteId] = useState<string | null>(
+    null,
+  );
+  const [minSplashElapsed, setMinSplashElapsed] = useState(false);
+
+  useEffect(() => {
+    setMinSplashElapsed(false);
+    const minTimer = window.setTimeout(() => {
+      setMinSplashElapsed(true);
+    }, 650);
+    const maxTimer = window.setTimeout(() => {
+      if (ctrl.site?.id) {
+        setSplashDismissedForSiteId(ctrl.site.id);
+      }
+    }, 6000);
+    return () => {
+      window.clearTimeout(minTimer);
+      window.clearTimeout(maxTimer);
+    };
+  }, [ctrl.site?.id]);
+
+  useEffect(() => {
+    if (isStudioDataReady && minSplashElapsed && ctrl.site?.id) {
+      setSplashDismissedForSiteId(ctrl.site.id);
+    }
+  }, [isStudioDataReady, minSplashElapsed, ctrl.site?.id]);
+
+  const splashVisible =
+    props.studioRowSource !== "bulk-generator" &&
+    Boolean(ctrl.site?.id) &&
+    (splashDismissedForSiteId !== ctrl.site?.id || activeRow?.status === "scraping");
+
   const selectDocUrl = (url: string) => {
     if (normalizePageUrlKey(ctrl.expandedPageUrl ?? "") === normalizePageUrlKey(url)) {
       return;
@@ -137,6 +225,7 @@ export function OverviewTabContent(props: OverviewTabContentProps) {
 
   return (
     <OverviewStudioTabShell
+      splashVisible={splashVisible}
       dock={{
         ctrl,
         activeUrl: activeRow?.url ?? ctrl.expandedPageUrl,

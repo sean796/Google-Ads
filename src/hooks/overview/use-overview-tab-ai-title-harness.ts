@@ -108,12 +108,14 @@ export function useOverviewTabAiTitleHarness({
   );
 
   const runTitleForIndices = useCallback(
-    async (indices: number[]) => {
+    async (indices: number[], options?: { ignoreBulkScope?: boolean }) => {
       if (!site) return;
 
-      const scoped = indices.filter((index) =>
-        overviewRowInBulkScope(rowsRef.current[index]?.url ?? "", bulkScopeUrlKeys),
-      );
+      const scoped = options?.ignoreBulkScope
+        ? indices.filter((index) => Boolean(rowsRef.current[index]?.url?.trim()))
+        : indices.filter((index) =>
+            overviewRowInBulkScope(rowsRef.current[index]?.url ?? "", bulkScopeUrlKeys),
+          );
       const eligible = scoped.filter(
         (index) => !overviewTitleOptimizationExcluded(rowsRef.current[index]!, sitemapSource),
       );
@@ -184,7 +186,7 @@ export function useOverviewTabAiTitleHarness({
 
   const handleAiTitleRow = useCallback(
     async (index: number) => {
-      await runTitleForIndices([index]);
+      await runTitleForIndices([index], { ignoreBulkScope: true });
     },
     [runTitleForIndices],
   );

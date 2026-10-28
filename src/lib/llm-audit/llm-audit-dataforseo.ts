@@ -41,7 +41,7 @@ const PLATFORM_CONFIG: Array<{
   web_search_country_iso_code: boolean;
   web_search_city: boolean;
 }> = [
-  { platform: "chat_gpt", label: "ChatGPT", model_name: "o4-mini", force_web_search: false, web_search_country_iso_code: true, web_search_city: true },
+  { platform: "chat_gpt", label: "ChatGPT", model_name: "gpt-4o-mini", force_web_search: false, web_search_country_iso_code: true, web_search_city: true },
   { platform: "gemini", label: "Gemini", model_name: "gemini-2.5-flash", force_web_search: false, web_search_country_iso_code: false, web_search_city: false },
   { platform: "perplexity", label: "Perplexity", model_name: "sonar", force_web_search: false, web_search_country_iso_code: false, web_search_city: false },
 ];

@@ -2,7 +2,7 @@ export type PropertyConnectionActionGroupId = "wordpress" | "google" | "discover
 
 export type PropertyConnectionActionKey =
   | "test"
-  | "acf"
+  | "neo-fields"
   | "gmb"
   | "ga"
   | "nap"
@@ -17,7 +17,7 @@ export const PROPERTY_CONNECTION_GROUP_LABELS: Record<PropertyConnectionActionGr
 
 const GROUP_BY_KEY: Record<PropertyConnectionActionKey, PropertyConnectionActionGroupId> = {
   test: "wordpress",
-  acf: "wordpress",
+  "neo-fields": "wordpress",
   gmb: "google",
   ga: "google",
   nap: "google",

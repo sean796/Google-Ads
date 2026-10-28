@@ -462,11 +462,6 @@ export interface MetaOptimizerPageRowDetailsProps {
   handleAiOverviewRow: (index: number) => void | Promise<void>;
   handleAiScenarioRow: (index: number) => void | Promise<void>;
   handleAiInContentImageRow: (index: number) => void | Promise<void>;
-  handleAiElementorSectionRow?: (index: number, sectionId: string) => void | Promise<void>;
-  handleAiElementorSectionHeaderRow?: (index: number, sectionId: string) => void | Promise<void>;
-  handleAiElementorSectionContentRow?: (index: number, sectionId: string) => void | Promise<void>;
-  handleAiElementorSectionLinkRow?: (index: number, sectionId: string, linkIndex: number) => void | Promise<void>;
-  handleAiElementorFullPageRow?: (index: number) => void | Promise<void>;
   /** Shell-only tile: empty fields, actions disabled (no URLs loaded yet). */
   placeholder?: boolean;
   /** Nested inside compact accordion shell: skip outer row border/background. */
@@ -512,11 +507,6 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
   handleAiOverviewRow,
   handleAiScenarioRow,
   handleAiInContentImageRow,
-  handleAiElementorSectionRow,
-  handleAiElementorSectionHeaderRow,
-  handleAiElementorSectionContentRow,
-  handleAiElementorSectionLinkRow,
-  handleAiElementorFullPageRow,
   placeholder = false,
   accordionBody = false,
   isSelected = false,
@@ -1375,30 +1365,6 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
             }
           />
           <CollapsibleContent className="space-y-3 pt-3">
-            {isElementorRow && handleAiElementorFullPageRow && elementorHeaders.length > 0 ? (
-              <Button
-                type="button"
-                variant="ghost"
-                className="h-8 w-full justify-start gap-2 rounded-none border-0 bg-zinc-900 px-3 text-base text-left hover:bg-zinc-800 disabled:opacity-45"
-                disabled={shellOnly || !elementorFullPageReady || row.status === "scraping"}
-                title={
-                  elementorFullPageReady
-                    ? "Rewrite all section copy in place from the research brief"
-                    : "Run Research on this row first"
-                }
-                onClick={() => void handleAiElementorFullPageRow(index)}
-              >
-                {row.status === "scraping" ? (
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-sky-400" />
-                ) : (
-                  <Sparkles className="h-4 w-4 shrink-0 text-sky-400" />
-                )}
-                Full page optimize
-              </Button>
-            ) : null}
-            {isElementorRow && elementorRunError ? (
-              <p className="text-base text-red-400">{elementorRunError}</p>
-            ) : null}
             {headerList.length > 0 ? (
               isElementorRow ? (
                 <div className="space-y-3 text-base">
@@ -1441,32 +1407,6 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                                   }}
                                 />
                               )}
-                              {handleAiElementorSectionHeaderRow &&
-                              section.id &&
-                              !visualOnly &&
-                              section.hasHeadingWidget ? (
-                                <MetaFieldEndRail align="top">
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className={META_FIELD_END_RAIL_BTN}
-                                    disabled={shellOnly || row.status === "ai-headers"}
-                                    title={`AI header: ${section.title || `Section ${i + 1}`}`}
-                                    onClick={(event) => {
-                                      event.preventDefault();
-                                      event.stopPropagation();
-                                      void handleAiElementorSectionHeaderRow(index, section.id);
-                                    }}
-                                  >
-                                    {row.status === "ai-headers" ? (
-                                      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-400" />
-                                    ) : (
-                                      <Wand2 className="h-4 w-4 shrink-0 text-emerald-400" />
-                                    )}
-                                  </Button>
-                                </MetaFieldEndRail>
-                              ) : null}
                             </div>
                             {!visualOnly && section.id ? (
                               <Input
@@ -1503,29 +1443,6 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                                   commitElementorSectionField(section.id, { bodyHtml: nextHtml });
                                 }}
                               />
-                              {handleAiElementorSectionContentRow && section.id ? (
-                                <MetaFieldEndRail align="top">
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className={META_FIELD_END_RAIL_BTN}
-                                    disabled={shellOnly || row.status === "ai-headers"}
-                                    title={`AI content: ${section.title?.trim() || `Section ${i + 1}`}`}
-                                    onClick={(event) => {
-                                      event.preventDefault();
-                                      event.stopPropagation();
-                                      void handleAiElementorSectionContentRow(index, section.id);
-                                    }}
-                                  >
-                                    {row.status === "ai-headers" ? (
-                                      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-sky-400" />
-                                    ) : (
-                                      <Wand2 className="h-4 w-4 shrink-0 text-sky-400" />
-                                    )}
-                                  </Button>
-                                </MetaFieldEndRail>
-                              ) : null}
                             </div>
                           ) : (
                             <p className="min-h-12 px-3 py-2 text-base text-muted-foreground">
@@ -1539,12 +1456,6 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                               onBodyChange={(nextHtml) => {
                                 commitElementorSectionField(section.id, { bodyHtml: nextHtml });
                               }}
-                              onAiLinkRow={
-                                handleAiElementorSectionLinkRow
-                                  ? (linkIndex) =>
-                                      handleAiElementorSectionLinkRow(index, section.id, linkIndex)
-                                  : undefined
-                              }
                             />
                           ) : null}
                         </div>

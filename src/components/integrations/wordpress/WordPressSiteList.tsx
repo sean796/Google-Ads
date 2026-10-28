@@ -29,6 +29,7 @@ import {
   propertiesRowOuterClass,
 } from "./wordpress-properties-surfaces";
 import { isEntitySitemapDisabled } from "@/lib/entity-endpoint-extractor";
+import { editorialQuotasForSite } from "@/lib/editorial-content-package";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getPropertyListRowBlackMetricFrameClass } from "./cyberpunk-theme";
 
@@ -141,6 +142,16 @@ function formatQuarterCountCell(n: number | null, loading: boolean): string {
   return "0";
 }
 
+function formatScheduledVsQuota(
+  scheduled: number | null,
+  quota: number,
+  loading: boolean,
+): string {
+  if (loading && scheduled === null) return "—";
+  const n = typeof scheduled === "number" && Number.isFinite(scheduled) ? scheduled : 0;
+  return `${n}/${quota}`;
+}
+
 function quarterStripTooltip(stats: QuarterEditorialTileStats, postsLoading?: boolean): string {
   const postL = postsLoading ?? stats.loading;
   const postsTotal = quarterPairTotalForStrip(stats.postsLive, stats.postsScheduled, postL);
@@ -173,6 +184,8 @@ function QuarterEditorialCountsStrip({
   onMonthChange?: (monthKey: string) => void;
 }) {
   if (!siteHasWpCredentials(site) || !stats) return null;
+
+  const editorialQuotas = editorialQuotasForSite(site);
 
   const hasManualEndpoint = Boolean(site.manualEndpoint?.trim());
   const entitySitemapUrlActive = isEntitySitemapDisabled(site)
@@ -212,12 +225,29 @@ function QuarterEditorialCountsStrip({
   const iconClass = cn("shrink-0 text-green-400", compact ? "h-4 w-4" : "h-5 w-5");
   const postsCountClass = cn(
     PROPERTY_METRIC_COUNT_SLOT_CLASS,
+    editorialQuotas && "min-w-[2.75rem]",
     "shrink-0 font-light tracking-tight text-green-100",
     compact ? "text-lg leading-none" : "text-xl leading-none",
   );
+  const postsMetricLabel = editorialQuotas
+    ? formatScheduledVsQuota(
+        stats.postsScheduled,
+        editorialQuotas.blogsPerMonth,
+        postsDisplayLoading,
+      )
+    : formatQuarterCountCell(postsTotal, postsDisplayLoading);
+  const entityMetricLabel =
+    editorialQuotas && showEntityCount
+      ? formatScheduledVsQuota(
+          stats.entityScheduled,
+          editorialQuotas.sapsPerMonth,
+          entityDisplayLoading,
+        )
+      : formatQuarterCountCell(entitiesTotal, entityDisplayLoading);
   const entityIconClass = cn("shrink-0 text-green-400", compact ? "h-4 w-4" : "h-5 w-5");
   const entityCountClass = cn(
     PROPERTY_METRIC_COUNT_SLOT_CLASS,
+    editorialQuotas && "min-w-[2.75rem]",
     "shrink-0 font-light tracking-tight text-green-100",
     compact ? "text-lg leading-none" : "text-xl leading-none",
   );
@@ -239,10 +269,14 @@ function QuarterEditorialCountsStrip({
         "flex min-w-0 items-center justify-center gap-1 text-green-200",
         postsTooltip && "cursor-default",
       )}
-      aria-label={`Posts in period: ${formatQuarterCountCell(postsTotal, postsDisplayLoading)}`}
+      aria-label={
+        editorialQuotas
+          ? `Blog posts scheduled this month: ${postsMetricLabel}`
+          : `Posts in period: ${postsMetricLabel}`
+      }
     >
       <FileText className={iconClass} aria-hidden />
-      <span className={postsCountClass}>{formatQuarterCountCell(postsTotal, postsDisplayLoading)}</span>
+      <span className={postsCountClass}>{postsMetricLabel}</span>
     </span>
   );
 
@@ -276,12 +310,14 @@ function QuarterEditorialCountsStrip({
       title={stripSummaryTitle}
       onClick={stop}
       onPointerDown={stop}
-      aria-label={`Entities in period: ${formatQuarterCountCell(entitiesTotal, entityDisplayLoading)}`}
+      aria-label={
+        editorialQuotas
+          ? `SAP posts scheduled this month: ${entityMetricLabel}`
+          : `Entities in period: ${entityMetricLabel}`
+      }
     >
       <MapPin className={entityIconClass} aria-hidden />
-      <span className={entityCountClass}>
-        {formatQuarterCountCell(entitiesTotal, entityDisplayLoading)}
-      </span>
+      <span className={entityCountClass}>{entityMetricLabel}</span>
     </div>
   ) : (
     <div
@@ -401,6 +437,7 @@ function OptimizationActivityStrip({
 interface WordPressSiteListProps {
   sites: WordPressSite[];
   filteredSites: WordPressSite[];
+  editorialPackageFilter?: "all" | "standard" | "lite" | "unassigned";
   siteSearchQuery: string;
   onSearchChange: (query: string) => void;
   onOpenProfile: (site: WordPressSite) => void;
@@ -445,6 +482,7 @@ interface WordPressSiteListProps {
 export const WordPressSiteList: React.FC<WordPressSiteListProps> = ({
   sites,
   filteredSites,
+  editorialPackageFilter = "all",
   siteSearchQuery,
   onSearchChange,
   onOpenProfile,
@@ -555,7 +593,11 @@ export const WordPressSiteList: React.FC<WordPressSiteListProps> = ({
       {filteredSites.length === 0 ? (
         <div className={cn(PROPERTIES_EMPTY, "shrink-0 py-8 sm:py-10")}>
           <p className="text-base text-zinc-200">
-            No sites found matching &quot;{siteSearchQuery}&quot;
+            {siteSearchQuery.trim()
+              ? `No sites found matching "${siteSearchQuery.trim()}".`
+              : editorialPackageFilter !== "all"
+                ? `No properties in the ${editorialPackageFilter === "unassigned" ? "Unassigned" : editorialPackageFilter === "lite" ? "Lite" : "Standard"} editorial tier.`
+                : "No properties to show."}
           </p>
         </div>
       ) : (

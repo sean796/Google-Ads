@@ -6,11 +6,10 @@ import type { CSVRow } from '@/lib/bulk-auto-generate';
 import { parseTitleTemplate } from '@/lib/title-template-parser';
 import type { Message } from '@/lib/api';
 import type { PromptBulkIdeasContext } from '@/lib/bulk/prompt-bulk-ideas-context';
-import { buildPromptBulkIdeasContextForSite } from '@/lib/bulk/prompt-bulk-ideas-context';
+import { resolvePromptBulkIdeasContext } from '@/lib/bulk/prompt-bulk-ideas-context';
 import { getStoredSites, type WordPressSite } from '@/components/IntegrationsTab';
-import { ensureEntitySiteWarmCache } from '@/lib/local-analysis/entity-site-warm-cache';
 import type { ConnectedSiteSummary } from '@/components/integrations/types';
-import { getResearchModel } from '@/lib/optimization-settings-storage';
+import { getBlogModel, getResearchModel } from '@/lib/optimization-settings-storage';
 import { resolveModelForAgentCategory } from '@/lib/openrouter-agent-category-api';
 import type { KeywordAIAnalysis } from '@/lib/keyword-types';
 import { mergePromptBulkIdeaSlots } from '@/lib/bulk/merge-prompt-bulk-idea-slots';
@@ -60,7 +59,7 @@ export interface UsePromptBulkGenerateProps {
 export function usePromptBulkGenerate({
   apiKey,
   openRouterApiKey,
-  selectedModel = getResearchModel(),
+  selectedModel = getBlogModel(),
   temperature = 1.0,
   maxTokens = 4000,
   topP = 0.9,
@@ -149,14 +148,27 @@ export function usePromptBulkGenerate({
     let rowsInFlight: CSVRow[] = [];
     try {
       const logPromptBulkProgress = (step: string, pct: number) => {
-        if (import.meta.env.DEV) {
-          console.info(
-            `[prompt-bulk] ${step} (${pct}%)`,
-            { blogsToGenerate, topicLine: topicLine || "(empty)" },
-          );
-        }
+        console.log(
+          `%c[Blog Ideas] ${step} (${pct}%)`,
+          "color: #84bc00; font-weight: bold;",
+          { blogsToGenerate, topicLine: topicLine || "(empty)" },
+        );
         onProgress?.(step, pct);
       };
+
+      console.log(
+        "%c[Blog Ideas] 🚀 Starting generation",
+        "color: #84bc00; font-weight: bold; font-size: 13px;",
+        {
+          connectedSite: connectedSite?.name || connectedSite?.siteUrl || "None",
+          siteUrl: connectedSite?.siteUrl,
+          numberOfBlogs,
+          blogsToGenerate,
+          flowPurpose,
+          optionalPrompt,
+          topicLine,
+        },
+      );
 
       logPromptBulkProgress("Starting ideas…", 0);
 
@@ -171,16 +183,29 @@ export function usePromptBulkGenerate({
 
       let ideasContext = promptIdeasContext;
       if (connectedSite && matchedWpSite) {
+        console.log(
+          "%c[Blog Ideas] 🔍 Resolving site inventory and GSC for " + (matchedWpSite.name || matchedWpSite.siteUrl),
+          "color: #84bc00; font-weight: bold;",
+          { siteUrl: matchedWpSite.siteUrl, isReady: Boolean(ideasContext?.isReady) },
+        );
         if (!ideasContext?.isReady) {
           logPromptBulkProgress("Loading site inventory and GSC…", 5);
-          const warm = await ensureEntitySiteWarmCache(matchedWpSite, { requireGsc: true });
-          ideasContext = await buildPromptBulkIdeasContextForSite(matchedWpSite, warm);
+          ideasContext = await resolvePromptBulkIdeasContext(matchedWpSite);
         }
-        if (!ideasContext?.isReady) {
+        if (!ideasContext.isReady) {
           throw new Error(
-            "Site inventory and GSC keywords must load before generating ideas.",
+            "Site sitemap inventory and GSC keywords must be loaded before generating ideas.",
           );
         }
+        console.log(
+          "%c[Blog Ideas] 📦 Site inventory loaded:",
+          "color: #84bc00; font-weight: bold;",
+          {
+            site: matchedWpSite.name,
+            urls: ideasContext.inventoryUrlCount,
+            gscKeywords: ideasContext.gscKeywords.length,
+          },
+        );
       }
 
       const promptSiteId =
@@ -190,8 +215,15 @@ export function usePromptBulkGenerate({
       );
       const contentScope =
         scopeFromConfig.length > 0 ? scopeFromConfig : (["posts"] as const);
-
-      const ideaModel = resolveModelForAgentCategory("research", matchedWpSite?.id);
+      const ideaModel =
+        getResearchModel(matchedWpSite?.id)?.trim() ||
+        resolveModelForAgentCategory("research", matchedWpSite?.id)?.trim() ||
+        "google/gemini-2.5-flash";
+      console.log(
+        `%c[Blog Ideas] 🧠 Requesting ${blogsToGenerate} ideas with model: ${ideaModel}`,
+        "color: #84bc00; font-weight: bold;",
+        { contentScope, slots: slotKeywordsForGeneration },
+      );
       logPromptBulkProgress("Generating blog ideas…", 25);
 
       let cappedParsedRows = await generateSimplePromptIdeas({
@@ -208,6 +240,12 @@ export function usePromptBulkGenerate({
         gscKeywords: ideasContext?.gscKeywords,
         contentScope: [...contentScope],
       });
+
+      console.log(
+        `%c[Blog Ideas] ✨ Received ${cappedParsedRows.length} ideas from AI:`,
+        "color: #84bc00; font-weight: bold;",
+        cappedParsedRows,
+      );
 
       if (ideasContext?.inventoryUrlCount != null) {
         setLastInventorySentToAiCount(ideasContext.inventoryUrlCount);
@@ -306,7 +344,7 @@ export function usePromptBulkGenerate({
         lockedSlotKeywords,
         strict: false,
         singlePass: true,
-        modelCategory: "research",
+        modelCategory: "meta",
         onProgress: (done, total) => {
           if (total > 0) {
             logPromptBulkProgress(`Focus keywords ${done}/${total}…`, 55 + Math.round((done / total) * 15));
@@ -348,6 +386,7 @@ export function usePromptBulkGenerate({
         ...row,
         meta_description: metaRows[i]?.meta_description ?? row.meta_description,
         target_slug: slugRows[i]?.target_slug ?? row.target_slug,
+        destination_url: undefined,
       }));
       rowsInFlight = cappedParsedRows.map((r) => ({ ...r }));
 
@@ -375,18 +414,11 @@ export function usePromptBulkGenerate({
       setHasGeneratedChecklist(true);
       return finalRows;
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error("[prompt-bulk] ideas generation failed", error);
-      }
-      if (rowsInFlight.length > 0) {
-        setGeneratedRows(rowsInFlight);
-        setHasGeneratedChecklist(true);
-        onProgress?.("Done (partial)", 100);
-        notify.error(
-          error instanceof Error ? error.message : NOTIFY_FAILED_TO_GENERATE_CHECKLIST_PLEASE_TRY_,
-        );
-        return rowsInFlight;
-      }
+      console.error(
+        "%c[Blog Ideas] ❌ Generation failed:",
+        "color: #ff4444; font-weight: bold; font-size: 13px;",
+        error,
+      );
       onProgress?.("Generation failed", 0);
       const msg = error instanceof Error ? error.message : NOTIFY_FAILED_TO_GENERATE_CHECKLIST_PLEASE_TRY_;
       notify.error(msg);
@@ -471,6 +503,7 @@ export function usePromptBulkGenerate({
     chatMessages,
     isGeneratingChecklist,
     hasGeneratedChecklist,
+    setHasGeneratedChecklist,
     generatedRows,
     setGeneratedRows,
     wordPressPostsMetadata,

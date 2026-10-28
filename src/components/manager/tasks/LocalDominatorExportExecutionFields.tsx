@@ -8,7 +8,9 @@ import {
 } from "@/components/manager/tasks/TaskFormLayout";
 import {
   LOCAL_DOMINATOR_GRID_KEYWORD_AUTO,
+  LOCAL_DOMINATOR_GRID_KEYWORD_PROPERTY,
   isLocalDominatorAutoGridKeyword,
+  isLocalDominatorPropertyGridKeyword,
   normalizeLocalDominatorGridKeywordStored,
 } from "@/lib/local-dominator/local-dominator-export-keyword";
 import type { TaskExecutionPayload } from "@/lib/tasks-types";
@@ -22,8 +24,15 @@ export type LocalDominatorExportExecutionFieldsProps = {
   onChange: (payload: TaskExecutionPayload) => void;
 };
 
+const KEYWORD_MODE_PROPERTY = "property";
 const KEYWORD_MODE_AUTO = "auto";
 const KEYWORD_MODE_CUSTOM = "custom";
+
+function keywordModeFromStored(stored: string): string {
+  if (isLocalDominatorPropertyGridKeyword(stored)) return KEYWORD_MODE_PROPERTY;
+  if (isLocalDominatorAutoGridKeyword(stored)) return KEYWORD_MODE_AUTO;
+  return KEYWORD_MODE_CUSTOM;
+}
 
 export function LocalDominatorExportExecutionFields({
   executionPayload,
@@ -35,9 +44,7 @@ export function LocalDominatorExportExecutionFields({
   const payload = executionPayload ?? {};
   const businessNameStored = String(payload.businessName ?? "").trim();
   const storedKeyword = normalizeLocalDominatorGridKeywordStored(payload.keyword);
-  const keywordMode = isLocalDominatorAutoGridKeyword(storedKeyword)
-    ? KEYWORD_MODE_AUTO
-    : KEYWORD_MODE_CUSTOM;
+  const keywordMode = keywordModeFromStored(storedKeyword);
   const customKeyword = keywordMode === KEYWORD_MODE_CUSTOM ? storedKeyword : "";
   const inline = layout === "inline";
   const clientName = clientSiteName.trim();
@@ -57,10 +64,19 @@ export function LocalDominatorExportExecutionFields({
   useEffect(() => {
     if (seededKeywordRef.current || disabled) return;
     const raw = String(payload.keyword ?? "").trim();
-    if (raw === LOCAL_DOMINATOR_GRID_KEYWORD_AUTO) return;
+    if (
+      raw === LOCAL_DOMINATOR_GRID_KEYWORD_PROPERTY ||
+      raw === LOCAL_DOMINATOR_GRID_KEYWORD_AUTO
+    ) {
+      return;
+    }
     if (isLocalDominatorAutoGridKeyword(raw)) {
       seededKeywordRef.current = true;
-      patch({ keyword: LOCAL_DOMINATOR_GRID_KEYWORD_AUTO });
+      patch({
+        keyword: workflowClientBound
+          ? LOCAL_DOMINATOR_GRID_KEYWORD_PROPERTY
+          : LOCAL_DOMINATOR_GRID_KEYWORD_AUTO,
+      });
       return;
     }
     const business = workflowClientBound ? clientName : businessNameStored;
@@ -69,9 +85,22 @@ export function LocalDominatorExportExecutionFields({
       && business.toLowerCase() !== "advance blinds & drapery"
     ) {
       seededKeywordRef.current = true;
-      patch({ keyword: LOCAL_DOMINATOR_GRID_KEYWORD_AUTO });
+      patch({
+        keyword: workflowClientBound
+          ? LOCAL_DOMINATOR_GRID_KEYWORD_PROPERTY
+          : LOCAL_DOMINATOR_GRID_KEYWORD_AUTO,
+      });
     }
   }, [businessNameStored, clientName, disabled, payload.keyword, workflowClientBound]);
+
+  useEffect(() => {
+    if (disabled || !workflowClientBound || seededKeywordRef.current) return;
+    const raw = String(payload.keyword ?? "").trim();
+    if (!raw || isLocalDominatorAutoGridKeyword(raw)) {
+      seededKeywordRef.current = true;
+      patch({ keyword: LOCAL_DOMINATOR_GRID_KEYWORD_PROPERTY });
+    }
+  }, [disabled, payload.keyword, workflowClientBound]);
 
   const fields = (
     <>
@@ -95,6 +124,10 @@ export function LocalDominatorExportExecutionFields({
           value={keywordMode}
           disabled={disabled}
           onChange={(value) => {
+            if (value === KEYWORD_MODE_PROPERTY) {
+              patch({ keyword: LOCAL_DOMINATOR_GRID_KEYWORD_PROPERTY });
+              return;
+            }
             if (value === KEYWORD_MODE_AUTO) {
               patch({ keyword: LOCAL_DOMINATOR_GRID_KEYWORD_AUTO });
               return;
@@ -102,6 +135,7 @@ export function LocalDominatorExportExecutionFields({
             patch({ keyword: customKeyword });
           }}
           options={[
+            { value: KEYWORD_MODE_PROPERTY, label: "Property primary" },
             { value: KEYWORD_MODE_AUTO, label: "Auto (first grid)" },
             { value: KEYWORD_MODE_CUSTOM, label: "Custom keyword" },
           ]}

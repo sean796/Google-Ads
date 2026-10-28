@@ -34,6 +34,7 @@ import type { PromptBulkSitemapInventoryLink } from "@/lib/bulk/prompt-bulk-site
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import type { ResearchBatchSignals } from "@/lib/overview/overview-bulk-pipeline-titles";
 import { BulkSitemapInventoryRunDetail } from "@/components/keyword-research/bulk/BulkSitemapInventoryRunDetail";
+import { WordBlacklistRunDetail } from "@/components/keyword-research/bulk/WordBlacklistRunDetail";
 import { SitemapInventoryLinksList } from "@/components/keyword-research/bulk/SitemapInventoryLinksList";
 import { workspaceDetailsCanOpen } from "@/lib/workspace/workspace-details-can-open";
 
@@ -71,7 +72,9 @@ export type BulkGeneratorDetailsPanelProps = {
   generatedRowCount?: number;
   selectedCount?: number;
   sitemapInventoryLinks?: PromptBulkSitemapInventoryLink[];
+  inventoryRows?: import("@/lib/overview/site-warm-inventory-display-rows").SiteWarmInventoryDisplayRow[];
   siteKwHostedLink?: import("@/lib/bulk/prompt-bulk-site-kw-scrape").PromptBulkSiteKwHostedLink | null;
+  inventoryRows?: import("@/lib/overview/site-warm-inventory-display-rows").SiteWarmInventoryDisplayRow[];
   sitemapInventoryLoading?: boolean;
   filesByRow?: Map<number, BulkGeneratedFile[]>;
   downloadFile?: (file: BulkGeneratedFile) => void;
@@ -425,15 +428,16 @@ export function BulkGeneratorDetailsPanel(props: BulkGeneratorDetailsPanelProps)
       )}
 
       <WorkspaceDetailsSection title="Run detail" stripeIndex={1} defaultOpen>
-        {(variant === "prompt" || variant === "csv") &&
-        ((props.sitemapInventoryLinks?.length ?? 0) > 0 ||
-          props.siteKwHostedLink ||
-          props.sitemapInventoryLoading) ? (
-          <BulkSitemapInventoryRunDetail
-            links={props.sitemapInventoryLinks ?? []}
-            gscHostedLink={props.siteKwHostedLink ?? null}
-            loading={props.sitemapInventoryLoading}
-          />
+        {variant === "prompt" || variant === "csv" ? (
+          <>
+            <WordBlacklistRunDetail />
+            <BulkSitemapInventoryRunDetail
+              links={props.sitemapInventoryLinks ?? []}
+              gscHostedLink={props.siteKwHostedLink ?? null}
+              inventoryRows={props.inventoryRows}
+              pinned
+            />
+          </>
         ) : null}
 
         {pipelineBusy && headerProgress && isBlogImport ? (

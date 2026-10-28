@@ -6,6 +6,10 @@ import {
   workflowNeedsThenMigration,
 } from "@/lib/workflow/workflow-migrate-then-steps";
 import {
+  applyGridToEntityToSapMigrationIfNeeded,
+  workflowNeedsGridToEntityToSapMigration,
+} from "@/lib/workflow/workflow-migrate-grid-to-entity-to-sap";
+import {
   applyScheduleStampToUpstream,
   syncAdjacentScheduleFromClient,
 } from "@/lib/workflow/workflow-schedule-upstream";
@@ -68,6 +72,16 @@ export function applyThenMigrationIfNeeded(workflow: WorkflowDefinition): Workfl
   );
 }
 
+export function applyWorkflowLoadMigrations(workflow: WorkflowDefinition): {
+  workflow: WorkflowDefinition;
+  structuralMigration: boolean;
+} {
+  const afterThen = applyThenMigrationIfNeeded(workflow);
+  const needsGrid = workflowNeedsGridToEntityToSapMigration(afterThen);
+  const afterGrid = needsGrid ? applyGridToEntityToSapMigrationIfNeeded(afterThen) : afterThen;
+  return { workflow: afterGrid, structuralMigration: needsGrid };
+}
+
 async function resolveDescriptionForPersist(
   teamId: number,
   workflow: WorkflowDefinition,
@@ -114,7 +128,7 @@ export async function persistWorkflowDefinition(
   source: WorkflowDefinition,
   options?: { compile?: boolean },
 ): Promise<PersistWorkflowResult> {
-  const migrated = applyThenMigrationIfNeeded(source);
+  const migrated = applyWorkflowLoadMigrations(source).workflow;
   const shouldCompile = options?.compile !== false;
   const description = await resolveDescriptionForPersist(teamId, migrated);
 

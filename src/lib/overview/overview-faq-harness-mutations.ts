@@ -223,7 +223,11 @@ export function finishFaqRowHarness(
     };
   });
 
-  const rowPatch: Partial<OverviewRow> = { faq, status: "idle" };
+  const rowPatch: Partial<OverviewRow> = {
+    faq,
+    status: "idle",
+    ...(postHtml ? { postContent: postHtml, postContentOptimized: postHtml } : {}),
+  };
   if (postHtml && cacheWrite) {
     cacheWrite.push(url, postHtml);
   }

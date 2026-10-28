@@ -7,6 +7,7 @@ export const WP_ENGINE_ACCOUNT_ID = "ed80c554-dc67-4796-a9b8-805665019c16";
 export const WP_ENGINE_INSTALL_BY_HOST_LABEL: Record<string, string> = {
   advanceblindsanddrapery: "advanceblinds",
   blindmagic: "blindmagic",
+  blindmagic1stg: "blindmagic1stg",
   blindswest: "blindswestcgy",
   dminteriorsanddesign: "dminteriors",
   eliteshadings: "eliteshadings",

@@ -2,7 +2,6 @@ import type React from "react";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import type { OverviewBinding } from "@/hooks/overview/use-overview-wordpress-binding";
 import type { WordPressSite } from "@/components/integrations/types";
-import { applyElementorOptimization } from "@/lib/elementor-api";
 import type { OverviewInventoryRow } from "@/lib/overview/overview-inventory-csv";
 import { getWordPressPostMeta, updateOverviewSeoItem } from "@/lib/wordpress-api/meta";
 import type { BulkOverviewSeoResultRow } from "@/lib/wordpress-api/meta";
@@ -235,15 +234,13 @@ export function buildOverviewBulkSeoItem(
   const seoTrimmed = (row.seoResearch ?? "").trim();
   const faqRaw = (row.faq ?? "").trim();
   const dateRaw = (row.dateModifier ?? "").trim();
-  const postContentForUpload =
-    row.contentFormat === "elementor"
-      ? ""
-      : resolveOverviewPostContentForUpload(row, options?.inventoryContent);
-  const hasElementorPayload =
-    row.contentFormat === "elementor" && Boolean(row.elementorDataJson?.trim());
+  const postContentForUpload = resolveOverviewPostContentForUpload(
+    row,
+    options?.inventoryContent,
+  );
 
   const hasGridFields =
-    Boolean(et || em || focusTrimmed || faqRaw || dateRaw || seoTrimmed || postContentForUpload || hasElementorPayload);
+    Boolean(et || em || focusTrimmed || faqRaw || dateRaw || seoTrimmed || postContentForUpload);
   if (!hasGridFields && !options?.forWordPressUpload) {
     return null;
   }
@@ -396,17 +393,6 @@ export async function uploadOverviewRowSeoToWordPress(
   binding: OverviewBinding,
   options?: Pick<BuildOverviewBulkSeoItemOptions, "inventoryContent">,
 ): Promise<{ ok: boolean; error?: string; link?: string }> {
-  if (row.contentFormat === "elementor" && row.elementorDataJson?.trim()) {
-    try {
-      await applyElementorOptimization(site, binding.postId, row.elementorDataJson.trim());
-    } catch (e) {
-      return {
-        ok: false,
-        error: e instanceof Error ? e.message : "Elementor upload failed.",
-      };
-    }
-  }
-
   const item = buildOverviewBulkSeoItem(row, binding, {
     forWordPressUpload: true,
     inventoryContent: options?.inventoryContent,
@@ -414,7 +400,6 @@ export async function uploadOverviewRowSeoToWordPress(
   if (!item) {
     return { ok: false, error: "Nothing to upload for this row." };
   }
-  const contentLen = (item.postContent ?? "").trim().length;
   const rowRes = await uploadOverviewSeoApiItemAvoidingBatchV1(site, item);
   if (!rowRes.ok) {
     return { ok: false, error: rowRes.error || "WordPress rejected the update." };

@@ -29,7 +29,7 @@ describe("restoreSitesFromServerMirrorIfEmpty", () => {
       vi.fn(async () => ({
         ok: true,
         json: async () => ({
-          sites: [site("heritage", "Heritage Dental Center"), site("ridgeline", "Ridgeline Solar")],
+          sites: [site("heritage", "Heritage Dental Center"), site("sunnydale", "Sunnydale Solar")],
         }),
       })),
     );

@@ -2,7 +2,7 @@
 
 :root {
   --neo-pulse-shortcut-rail-width: 5rem;
-  /* Sticky manager nav band (pt + row py + h-9 chips + pb) — rail starts below this */
+  /* Sticky manager nav band (h-9 row centered in this height) — rail starts below this */
   --neo-pulse-manager-sticky-nav-height: 4.25rem;
   /* Embedded manager footer row (py + h-9 controls) */
   --neo-pulse-manager-footer-height: 3.75rem;
@@ -28,6 +28,10 @@
 [data-neo-pulse-manager-sticky-nav] {
   position: relative;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  min-height: var(--neo-pulse-manager-sticky-nav-height);
+  box-sizing: border-box;
 }
 
 /* Full-viewport black footer band above docked rail (no green in footer zone) */
@@ -292,7 +296,8 @@
 }
 
 .pulse-assist-root--docked .fai-sidebar-backdrop {
-  z-index: calc(var(--fai-sidebar-z-index) - 1);
+  display: none;
+  pointer-events: none;
 }
 
 .pulse-assist-root--docked .pulse-assist-panel.fai-sidebar-panel {
@@ -303,8 +308,8 @@
   left: auto;
   height: auto;
   max-height: 100%;
-  overflow: hidden;
-  contain: layout paint;
+  overflow: visible;
+  contain: none;
   z-index: var(--fai-sidebar-z-index);
 }
 
@@ -351,27 +356,28 @@
   position: absolute;
   left: 0;
   top: 50%;
-  z-index: 2;
+  z-index: 20;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  min-height: 72px;
-  padding: 12px 8px;
+  width: 32px;
+  min-height: 64px;
+  padding: 10px 6px;
   margin: 0;
-  border: none;
-  border-radius: 0;
-  background-color: #000;
+  border: 1px solid #27272a;
+  border-right: none;
+  border-radius: 6px 0 0 6px;
+  background-color: #02050a;
   color: #fff;
   cursor: pointer;
   transform: translate(-100%, -50%);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
-  border-right: 3px solid transparent;
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.45);
   transition:
     transform 200ms ease,
     box-shadow 160ms ease,
     border-color 160ms ease,
-    color 160ms ease;
+    color 160ms ease,
+    background-color 160ms ease;
   appearance: none;
   -webkit-appearance: none;
   pointer-events: auto;
@@ -379,14 +385,13 @@
 
 .pulse-assist-panel-close-tab:hover,
 .pulse-assist-panel-close-tab:focus-visible {
-  transform: translate(calc(-100% + 6px), -50%);
-  background-color: #000;
+  transform: translate(-100%, -50%);
+  background-color: #09090b;
   color: hsl(var(--primary));
-  border-right-color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
   box-shadow:
-    0 0 18px hsl(var(--primary) / 0.65),
-    0 0 36px hsl(var(--primary) / 0.35),
-    inset 0 0 28px hsl(var(--primary) / 0.14);
+    -4px 0 20px hsl(var(--primary) / 0.4),
+    0 0 12px hsl(var(--primary) / 0.25);
 }
 
 .pulse-assist-panel-close-tab:focus-visible {

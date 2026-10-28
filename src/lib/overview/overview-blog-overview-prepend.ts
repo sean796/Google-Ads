@@ -68,6 +68,12 @@ import {
 import type { WordPressSite } from "@/components/integrations/types";
 import { formatEntityReferencePromptBlock } from "@/lib/entity-place-reference";
 import { normalizeEntityHintCommaLabel } from "@/lib/comma-place-label";
+import {
+  formatAnswerMoneyPageLinksPromptBlock,
+  rankFuzzyMoneyPageLinksForAnswer,
+  resolveSitemapFuzzyLinkPool,
+  type SitemapFuzzyLinkCandidate,
+} from "@/lib/overview/overview-blog-sitemap-fuzzy-links";
 
 export type OverviewHarnessPageKind = "post" | "entity";
 
@@ -668,6 +674,8 @@ export type GenerateAnswerSectionArgs = {
   entity?: string;
   pageKind?: OverviewHarnessPageKind;
   seoResearchBrief?: string;
+  previousAnswerHtml?: string;
+  moneyPageCandidates?: SitemapFuzzyLinkCandidate[];
   apiKey: string;
   model?: string;
   signal?: AbortSignal;
@@ -683,19 +691,48 @@ export async function generateAnswerSectionHtml(args: GenerateAnswerSectionArgs)
       ? normalizeEntityHintCommaLabel(args.entity.trim())
       : "";
   const pageLabel = harnessPageKindLabel(args.pageKind);
+
+  let moneyPages = args.moneyPageCandidates ?? [];
+  if (moneyPages.length === 0 && (args.site?.id || args.connectedSite?.siteUrl)) {
+    const pool = await resolveSitemapFuzzyLinkPool({
+      site: args.site,
+      siteId: args.site?.id ?? null,
+      pageUrl: args.pageUrl,
+    });
+    moneyPages = rankFuzzyMoneyPageLinksForAnswer({
+      pool,
+      articleTitle: title,
+      focusKeyword: keyword,
+      bodyH2Titles: args.bodyH2Titles,
+      pageUrl: args.pageUrl,
+      limit: 6,
+    });
+  }
+  const moneyPageLinksBlock = formatAnswerMoneyPageLinksPromptBlock(moneyPages);
+  const linkRule = moneyPages.length > 0
+    ? " Weave 1 contextual <a href=\"...\">product/service anchor</a> link from PAGE SITEMAP MONEY PAGE TARGETS in the Answer paragraph to support the customer's transaction."
+    : "";
+
   const answerSystem = entityCanonical
-    ? `You write the Answer section for an existing ${pageLabel}. Output HTML only: <h2>Answer</h2> and one <p> with two or three sentences. No other headings. Primary keyword: ${keyword}. Place entity (comma label): ${entityCanonical}. Mention the connected business name somewhere in the Answer paragraph when one is listed.`
-    : `You write the Answer section for an existing ${pageLabel}. Output HTML only: <h2>Answer</h2> and one <p> with two or three sentences. No other headings. Primary keyword: ${keyword}. Mention the connected business name somewhere in the Answer paragraph when one is listed.`;
+    ? `You write a brand-new Answer section from scratch for an existing ${pageLabel}. Output HTML only: <h2>Answer</h2> and one <p> with two or three sentences. No other headings. Primary keyword: ${keyword}. Place entity (comma label): ${entityCanonical}. Mention the connected business name somewhere in the Answer paragraph when one is listed.${linkRule} Respect official ® / ™ / © symbols on proprietary product lines and automation systems where applicable. Never copy or paraphrase a previous Answer block.`
+    : `You write a brand-new Answer section from scratch for an existing ${pageLabel}. Output HTML only: <h2>Answer</h2> and one <p> with two or three sentences. No other headings. Primary keyword: ${keyword}. Mention the connected business name somewhere in the Answer paragraph when one is listed.${linkRule} Respect official ® / ™ / © symbols on proprietary product lines and automation systems where applicable. Never copy or paraphrase a previous Answer block.`;
   const answerUserPrompt = [
     `Title: ${title}`,
     `Keyword: ${keyword}`,
     businessName ? `Business name (mention somewhere in the Answer): ${businessName}` : "",
     entityCanonical ? `Place entity: ${entityCanonical}` : "",
+    args.bodyH2Titles.length > 0
+      ? `Article H2 sections covered: ${args.bodyH2Titles.join(" | ")}`
+      : "",
+    moneyPageLinksBlock,
+    args.previousAnswerHtml?.trim()
+      ? `Legacy Answer to replace completely (do NOT copy or synonym-swap its sentences):\n${args.previousAnswerHtml.trim()}`
+      : "",
     args.pageKind === "entity" ? "This is a service-area entity page." : "",
-    "Write the Answer HTML now.",
+    "Write the brand-new Answer HTML from scratch now.",
   ]
     .filter(Boolean)
-    .join("\n");
+    .join("\n\n");
 
   const model = args.model?.trim() || getProductionModel();
   const answerResult = await callOpenRouterChatCompletion({
@@ -704,7 +741,7 @@ export async function generateAnswerSectionHtml(args: GenerateAnswerSectionArgs)
     system: answerSystem,
     user: answerUserPrompt,
     maxTokens: 384,
-    temperature: 0.35,
+    temperature: 0.6,
     signal: args.signal,
   });
   const rawAnswer = (answerResult.content || "").trim();
@@ -735,10 +772,13 @@ export async function generateAndPrependAnswerHtml(args: {
   entity?: string;
   pageKind?: OverviewHarnessPageKind;
   seoResearchBrief?: string;
+  previousAnswerHtml?: string;
+  moneyPageCandidates?: SitemapFuzzyLinkCandidate[];
   apiKey: string;
   model?: string;
   signal?: AbortSignal;
 }): Promise<PrependAnswerResult> {
+  const existingAnswer = args.previousAnswerHtml?.trim() || extractAnswerSectionHtml(args.sourceHtml ?? "");
   const stripped = stripLeadingDuplicateArticleTitleHeading(
     stripLeadingAnswerSection(args.sourceHtml ?? ""),
     args.articleTitle,
@@ -764,6 +804,8 @@ export async function generateAndPrependAnswerHtml(args: {
     entity: args.entity,
     pageKind: args.pageKind,
     seoResearchBrief: args.seoResearchBrief,
+    previousAnswerHtml: existingAnswer || undefined,
+    moneyPageCandidates: args.moneyPageCandidates,
     apiKey: args.apiKey,
     model: args.model,
     signal: args.signal,
@@ -786,6 +828,7 @@ export async function generateAndPrependOverviewHtml(args: {
   entity?: string;
   pageKind?: OverviewHarnessPageKind;
   seoResearchBrief?: string;
+  pregeneratedAnswerHtml?: string;
   apiKey: string;
   model?: string;
   signal?: AbortSignal;
@@ -822,21 +865,24 @@ export async function generateAndPrependOverviewHtml(args: {
   const publishedTitles = ["Answer", "Overview", ...bodyH2Titles];
 
   const model = args.model?.trim() || getProductionModel();
-  let answerHtml = await generateAnswerSectionHtml({
-    articleTitle: args.articleTitle,
-    focusKeyword: args.focusKeyword,
-    bodyH2Titles,
-    includeOverviewInOutline: true,
-    pageUrl: args.pageUrl,
-    connectedSite: args.connectedSite,
-    site: args.site,
-    entity: args.entity,
-    pageKind: args.pageKind,
-    seoResearchBrief: args.seoResearchBrief,
-    apiKey: args.apiKey,
-    model: args.model,
-    signal: args.signal,
-  });
+  let answerHtml = args.pregeneratedAnswerHtml?.trim() || "";
+  if (!answerHtml) {
+    answerHtml = await generateAnswerSectionHtml({
+      articleTitle: args.articleTitle,
+      focusKeyword: args.focusKeyword,
+      bodyH2Titles,
+      includeOverviewInOutline: true,
+      pageUrl: args.pageUrl,
+      connectedSite: args.connectedSite,
+      site: args.site,
+      entity: args.entity,
+      pageKind: args.pageKind,
+      seoResearchBrief: args.seoResearchBrief,
+      apiKey: args.apiKey,
+      model: args.model,
+      signal: args.signal,
+    });
+  }
   if (!answerHtml.trim()) {
     throw new Error("Answer section could not be generated (single pass)");
   }

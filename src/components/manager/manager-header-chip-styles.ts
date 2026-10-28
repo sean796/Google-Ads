@@ -105,3 +105,24 @@ export function managerDisplayErrorLogSquareClass(hasErrors: boolean): string {
 export function managerDisplayNotifySquareButtonClass(variant: NotifyVariant | null): string {
   return cn(MANAGER_DISPLAY_SQUARE_BASE, managerDisplayNotifySquareClass(variant));
 }
+
+/** Semantic tint on the site name band when app notify or error log is active (no separate bell/tray). */
+export function managerDisplayNameBandAlertClass(kind: NotifyVariant | "error" | null): string | false {
+  if (!kind) return false;
+  if (kind === "error") {
+    return "bg-red-500/15 text-red-400";
+  }
+  switch (kind) {
+    case "success":
+      return "bg-green-500/15 text-green-400";
+    case "warning":
+      return "bg-amber-500/15 text-amber-400";
+    case "info":
+    case "default":
+      return "bg-zinc-800 text-foreground";
+    case "loading":
+      return false;
+    default:
+      return false;
+  }
+}

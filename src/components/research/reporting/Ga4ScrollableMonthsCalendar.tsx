@@ -2,7 +2,11 @@ import { useLayoutEffect, useMemo, useRef } from "react";
 import type { DateRange } from "react-day-picker";
 import { DayPicker } from "react-day-picker";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { ga4CalendarMonthKey, ga4CalendarSpan } from "@/lib/reporting/ga4-calendar-month-span";
+import {
+  ga4CalendarMonthIndex,
+  ga4CalendarMonthKey,
+  ga4CalendarSpan,
+} from "@/lib/reporting/ga4-calendar-month-span";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -30,12 +34,42 @@ export function Ga4ScrollableMonthsCalendar({
 
   useLayoutEffect(() => {
     if (!scrollToDate || !scrollRef.current) return;
-    const key = ga4CalendarMonthKey(
-      new Date(scrollToDate.getFullYear(), scrollToDate.getMonth(), 1),
-    );
-    const el = scrollRef.current.querySelector(`[data-ga4-month="${key}"]`);
-    el?.scrollIntoView({ block: "center" });
-  }, [scrollToDate, scrollKey]);
+    const monthStart = new Date(scrollToDate.getFullYear(), scrollToDate.getMonth(), 1);
+    const key = ga4CalendarMonthKey(monthStart);
+    const monthIndex = ga4CalendarMonthIndex(startMonth, monthStart);
+
+    let cancelled = false;
+    let attempts = 0;
+
+    const scrollToMonth = () => {
+      if (cancelled || !scrollRef.current) return;
+      const root = scrollRef.current;
+
+      const marked = root.querySelector(`[data-ga4-month="${key}"]`);
+      if (marked) {
+        marked.scrollIntoView({ block: "start" });
+        return;
+      }
+
+      const monthBlocks = root.querySelectorAll("[data-ga4-month-block]");
+      const byIndex = monthBlocks[monthIndex];
+      if (byIndex) {
+        byIndex.scrollIntoView({ block: "start" });
+        return;
+      }
+
+      if (attempts < 24) {
+        attempts += 1;
+        requestAnimationFrame(scrollToMonth);
+      }
+    };
+
+    scrollToMonth();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [scrollToDate, scrollKey, monthCount, startMonth]);
 
   return (
     <div className="flex min-h-[14rem] min-w-0 flex-1 flex-col">
@@ -55,6 +89,7 @@ export function Ga4ScrollableMonthsCalendar({
         </div>
         <DayPicker
           mode="range"
+          disableNavigation
           month={startMonth}
           numberOfMonths={monthCount}
           showOutsideDays
@@ -87,14 +122,29 @@ export function Ga4ScrollableMonthsCalendar({
           components={{
             IconLeft: () => <ChevronLeft className="h-4 w-4" />,
             IconRight: () => <ChevronRight className="h-4 w-4" />,
-            Month: ({ displayMonth, children, className }) => (
-              <div
-                className={className}
-                data-ga4-month={ga4CalendarMonthKey(displayMonth)}
-              >
-                {children}
-              </div>
-            ),
+            Caption: ({ id, displayMonth }) => {
+              const monthKey = ga4CalendarMonthKey(displayMonth);
+              const label = displayMonth.toLocaleString("en-US", {
+                month: "long",
+                year: "numeric",
+              });
+              return (
+                <div
+                  className="relative flex items-center justify-center pb-1"
+                  data-ga4-month={monthKey}
+                  data-ga4-month-block=""
+                >
+                  <div
+                    id={id}
+                    role="presentation"
+                    aria-live="polite"
+                    className="text-base font-medium uppercase tracking-wide text-muted-foreground"
+                  >
+                    {label}
+                  </div>
+                </div>
+              );
+            },
           }}
         />
       </div>

@@ -1,4 +1,5 @@
 import { stitchHarnessSections } from "@/lib/bulk/bulk-harness-outline";
+import { headingTitleToHarnessAnchorId } from "@/lib/bulk/harness-section-anchor-ids";
 import { parseJsonStrict } from "@/lib/json-repair-utility";
 import { callAgentCategoryOpenRouterChat } from "@/lib/openrouter-agent-category-api";
 import {
@@ -11,6 +12,12 @@ import {
   prosePlainText,
 } from "@/lib/elementor-page-content/extract-text-editor-prose";
 import { extractExactInternalLinkTagsFromHtml } from "@/lib/overview/overview-blog-links-extract";
+import {
+  formatFuzzySitemapLinksPromptBlock,
+  rankFuzzySitemapLinksForSection,
+  resolveSitemapFuzzyLinkPool,
+  type SitemapFuzzyLinkCandidate,
+} from "@/lib/overview/overview-blog-sitemap-fuzzy-links";
 import {
   AISEO_FULL_REWRITE_BODY_OUTPUT_CONTRACT,
   AISEO_FULL_REWRITE_HEADING_OUTPUT_CONTRACT,
@@ -89,6 +96,11 @@ export function splitHtmlBodyIntoH2PassageSections(html: string): ParsedBlogPass
   return { leadingHtml, sections };
 }
 
+export function buildH2OpenTagForTitle(title: string): string {
+  const anchorId = headingTitleToHarnessAnchorId(title);
+  return `<h2 id="${anchorId}">`;
+}
+
 /**
  * Stitch discrete H2 passage sections back into clean HTML while preserving H2 attributes (like `#id` jump anchors).
  */
@@ -99,7 +111,7 @@ export function stitchHtmlBodyFromH2PassageSections(doc: ParsedBlogPassageDocume
   }
 
   for (const sec of doc.sections) {
-    const openTag = sec.h2OpenTag.trim() || "<h2>";
+    const openTag = sec.h2OpenTag.trim() || buildH2OpenTagForTitle(sec.title);
     const headingLine = `${openTag}${escapeHtmlText(sec.title.trim())}</h2>`;
     const body = sec.bodyHtml.trim();
     parts.push(body ? `${headingLine}\n${body}` : headingLine);
@@ -141,6 +153,7 @@ export async function rewriteBlogPassageSection(args: {
   pageUrl?: string;
   businessName?: string;
   apiKey?: string;
+  sitemapLinkCandidates?: SitemapFuzzyLinkCandidate[];
 }): Promise<{ title: string; bodyHtml: string }> {
   const {
     mode,
@@ -154,6 +167,7 @@ export async function rewriteBlogPassageSection(args: {
     pageUrl,
     businessName,
     apiKey,
+    sitemapLinkCandidates,
   } = args;
 
   const lockedLinks =
@@ -161,20 +175,34 @@ export async function rewriteBlogPassageSection(args: {
       ? extractExactInternalLinkTagsFromHtml(section.bodyHtml, siteUrl.trim(), pageUrl)
       : [];
 
-  const lockedLinksBlock =
-    lockedLinks.length > 0
-      ? [
-          "LOCKED LINKS (mandatory - preserve every <a> tag below with identical href and anchor text in bodyHtml):",
-          ...lockedLinks.map((tag, idx) => `${idx + 1}. ${tag}`),
-        ].join("\n")
-      : "LOCKED LINKS: keep any existing <a href> links intact; do not invent broken URLs.";
+  let resolvedLinkCandidates: SitemapFuzzyLinkCandidate[] = sitemapLinkCandidates ?? [];
+  if (mode !== "header" && resolvedLinkCandidates.length === 0 && (siteId || siteUrl)) {
+    const pool = await resolveSitemapFuzzyLinkPool({
+      siteId,
+      pageUrl,
+    });
+    resolvedLinkCandidates = rankFuzzySitemapLinksForSection({
+      pool,
+      sectionTitle: section.title,
+      sectionBodyHtml: section.bodyHtml,
+      articleTitle,
+      focusKeyword,
+      pageUrl,
+      limit: 8,
+    });
+  }
+
+  const lockedLinksBlock = formatFuzzySitemapLinksPromptBlock(
+    resolvedLinkCandidates,
+    lockedLinks,
+  );
 
   if (mode === "header") {
     const system = [
-      "You are a Mastra AISEO Passage Heading Optimizer.",
+      "You are a Mastra AISEO Passage Heading Architect.",
       AISEO_FULL_REWRITE_SYSTEM_RULE,
-      "Rewrite the single H2 heading so it is specific, search-intent aligned, and distinct from sibling H2s.",
-      'Return JSON only: {"title":"..."}. Plain text only, no HTML tags or colons.',
+      "Author a brand-new, specific, search-intent-aligned H2 heading from scratch that replaces the legacy heading and is distinct from sibling H2s.",
+      'Return JSON only: {"title":"..."}. Plain text only, Title Case, no HTML tags or colons.',
     ].join(" ");
 
     const user = [
@@ -182,8 +210,9 @@ export async function rewriteBlogPassageSection(args: {
       `Focus keyword: ${focusKeyword || "(none)"}`,
       businessName ? `Business name: ${businessName}` : "",
       `Sibling H2 headings: ${siblingTitles.filter(Boolean).join(" | ") || "(none)"}`,
-      `Current H2 heading: ${section.title}`,
-      `Passage content summary:\n${section.bodyHtml.slice(0, 1200)}`,
+      `Legacy H2 heading to replace: ${section.title}`,
+      `Section topic reference:\n${section.bodyHtml.slice(0, 1200)}`,
+      AISEO_FULL_REWRITE_HEADING_OUTPUT_CONTRACT,
       'Return JSON: {"title":"..."}',
     ]
       .filter(Boolean)
@@ -195,7 +224,7 @@ export async function rewriteBlogPassageSection(args: {
       apiKey,
       system,
       user,
-      temperature: 0.35,
+      temperature: 0.55,
       maxTokens: 512,
       responseFormat: { type: "json_object" },
       useMasterInstructions: true,
@@ -221,21 +250,27 @@ export async function rewriteBlogPassageSection(args: {
   const system =
     mode === "copy"
       ? [
-          "You are a Mastra AISEO Passage Optimizer.",
+          "You are a Mastra AISEO Section Author.",
           AISEO_FULL_REWRITE_SYSTEM_RULE,
-          "Fully rewrite this H2 passage body for passage-level ranking, AI Overviews citation clarity, and factual specificity.",
+          "Author a complete from-scratch replacement for this H2 section body for passage-level ranking, AI Overviews citation clarity, and factual specificity.",
           'Return JSON only: {"bodyHtml":"..."}.',
           "Do NOT include the outer <h2> tag in bodyHtml.",
-          "Keep the same section depth, HTML structure (<p>, <ul>, <ol>, <table>, <h3>, <blockquote>), facts, and every LOCKED LINK.",
+          "Discard the legacy sentence order and paragraph structure completely. Never do a sentence-by-sentence synonym swap.",
+          "Structure the new section cleanly using semantic HTML (<p>, <ul>, <ol>, <table>, <h3>, <blockquote>): break up dense or run-on blocks into clear paragraphs, scannable bullet/numbered lists, or comparison tables where appropriate while preserving core facts.",
+          "MANDATORY INTERNAL LINKS (1 to 3 per section): weave 1 to 3 contextual <a href=\"...\">anchor</a> links in bodyHtml using URLs from SITEMAP INTERNAL LINK TARGETS (prioritizing [PRODUCT / PAGE] URLs over [BLOG POST] URLs, never entity/service-area URLs). Front-load links in the opening clause / first half of sentences; never dump links at the end of a paragraph or list them standalone.",
+          "TRADEMARKS & COPYRIGHTS: always include official ® / ™ / © symbols on proprietary product lines, automation systems, and brand names in both prose and link anchor text where applicable from the research brief and manufacturer standards.",
           "Obey the WORD BLACKLIST in the user message (no em dashes, no banned words).",
         ].join(" ")
       : [
-          "You are a Mastra AISEO Passage & Heading Optimizer.",
+          "You are a Mastra AISEO Section & Heading Architect.",
           AISEO_FULL_REWRITE_SYSTEM_RULE,
-          "Fully rewrite the H2 heading and passage body for passage-level ranking, AI Overviews citation clarity, and factual specificity.",
+          "Author a brand-new H2 heading (Title Case, plain text, no colons) and a complete from-scratch replacement for the section body for passage-level ranking, AI Overviews citation clarity, and factual specificity.",
           'Return JSON only: {"title":"...","bodyHtml":"..."}.',
           "Do NOT include the outer <h2> tag inside bodyHtml.",
-          "Keep the same section depth, HTML structure, facts, and every LOCKED LINK.",
+          "Discard the legacy sentence order and paragraph structure completely. Never do a sentence-by-sentence synonym swap.",
+          "Structure the new section cleanly using semantic HTML (<p>, <ul>, <ol>, <table>, <h3>, <blockquote>): break up dense or run-on blocks into clear paragraphs, scannable bullet/numbered lists, or comparison tables where appropriate while preserving core facts.",
+          "MANDATORY INTERNAL LINKS (1 to 3 per section): weave 1 to 3 contextual <a href=\"...\">anchor</a> links in bodyHtml using URLs from SITEMAP INTERNAL LINK TARGETS (prioritizing [PRODUCT / PAGE] URLs over [BLOG POST] URLs, never entity/service-area URLs). Front-load links in the opening clause / first half of sentences; never dump links at the end of a paragraph or list them standalone.",
+          "TRADEMARKS & COPYRIGHTS: always include official ® / ™ / © symbols on proprietary product lines, automation systems, and brand names in both prose and link anchor text where applicable from the research brief and manufacturer standards.",
           "Obey the WORD BLACKLIST in the user message (no em dashes, no banned words).",
         ].join(" ");
 
@@ -243,11 +278,12 @@ export async function rewriteBlogPassageSection(args: {
     `Article title: ${articleTitle || "(untitled)"}`,
     `Focus keyword: ${focusKeyword || "(none)"}`,
     businessName ? `Business name: ${businessName}` : "",
-    `Current H2 heading: ${section.title}`,
-    `CURRENT PASSAGE HTML:\n${section.bodyHtml}`,
+    `Sibling H2 headings (do not duplicate): ${siblingTitles.filter(Boolean).join(" | ") || "(none)"}`,
+    `Legacy H2 heading to replace: ${section.title}`,
+    `LEGACY SECTION REFERENCE (extract core facts and topic scope only; do NOT paraphrase sentence-by-sentence, do NOT copy sentence order, and do NOT keep run-on formatting; write the section from scratch):\n${section.bodyHtml}`,
     lockedLinksBlock,
     seoResearchBrief?.trim()
-      ? `RESEARCH BRIEF CONTEXT:\n${seoResearchBrief.trim().slice(0, 2500)}`
+      ? `RESEARCH BRIEF CONTEXT (use searcher intent, angles, and specifics from here):\n${seoResearchBrief.trim().slice(0, 2500)}`
       : "",
     mode === "copy"
       ? 'Return JSON only: {"bodyHtml":"..."}'
@@ -264,7 +300,7 @@ export async function rewriteBlogPassageSection(args: {
     apiKey,
     system,
     user,
-    temperature: 0.5,
+    temperature: 0.65,
     maxTokens: 4096,
     responseFormat: { type: "json_object" },
     useMasterInstructions: true,

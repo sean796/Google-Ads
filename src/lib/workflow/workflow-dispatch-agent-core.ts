@@ -52,6 +52,8 @@ import {
 import { fetchTaskDetail } from "@/lib/tasks-api";
 import { resolveDfsArticleAuditWorkflowPayload } from "@/lib/workflow/resolve-dfs-article-audit-workflow-payload";
 import { ensureChatGptAuditExecutionPayload } from "@/lib/workflow/resolve-chatgpt-audit-workflow-payload";
+import { applyEditorialPackageContentGapTarget } from "@/lib/content-gap/apply-editorial-package-content-gap-target";
+import { applyEditorialPackageEntityPageCount } from "@/lib/editorial/apply-editorial-package-entity-page-count";
 import { resolveWorkflowActionPayload } from "@/lib/workflow/resolve-workflow-action-payload";
 import { applyCsvRowsPayloadForNode } from "@/lib/workflow/apply-csv-rows-payload";
 import {
@@ -529,6 +531,22 @@ async function buildActionPayload(
   if (resolvedSiteId) {
     payload = { ...payload, siteId: resolvedSiteId };
   }
+  if (kind === "content_gap_check") {
+    const gapSite = resolvedSiteId
+      ? getStoredSites().find((item) => item.id === resolvedSiteId) ?? siteContext.site
+      : siteContext.site;
+    payload = applyEditorialPackageContentGapTarget(payload, gapSite ?? undefined);
+  }
+  if (
+    kind === "entity_generator"
+    || kind === "sap_generator"
+    || kind === "entity_page_creator"
+  ) {
+    const entitySite = resolvedSiteId
+      ? getStoredSites().find((item) => item.id === resolvedSiteId) ?? siteContext.site
+      : siteContext.site;
+    payload = applyEditorialPackageEntityPageCount(payload, entitySite ?? undefined);
+  }
   const clientSiteUrl = (siteContext.url ?? siteContext.site.siteUrl ?? siteContext.site.productionSiteUrl ?? "").trim();
   if (clientSiteUrl) {
     payload = {
@@ -582,7 +600,6 @@ async function buildActionPayload(
       workflowNodeId: node.id,
       ragVariableKey: config.ragVariableKey ?? `step_${node.id}`,
       workflowThenDelivery: true,
-      ...(kind === "local_dominator_export" ? { executionMode: "server" as const } : {}),
     },
   };
 }

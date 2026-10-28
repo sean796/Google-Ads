@@ -175,14 +175,6 @@ export const PULSE_AGENT_REGISTRY: readonly PulseRegisteredAgentEntry[] = [
     useWordBlacklist: true,
     sourceModule: "src/lib/content-generation/page-extra-content-generator.ts",
   },
-  {
-    id: "aiseo.content.elementor",
-    label: "AISEO Elementor Section & Page Optimizer",
-    category: "blog",
-    domain: "aiseo",
-    reason: "Breaks down Elementor JSON layout and rewrites section headings, body copy, and internal links in place.",
-    sourceModule: "src/lib/elementor-page-content/run-elementor-harness-row.ts",
-  },
 
   // 2. Blog Generator & Bulk Pipeline
   {
@@ -401,7 +393,7 @@ export const PULSE_AGENT_REGISTRY: readonly PulseRegisteredAgentEntry[] = [
     sourceModule: "src/lib/wikipedia/validate-wikipedia-place-page-openrouter.ts",
   },
 
-  // 11. Neo EMCP (WordPress & Elementor MCP Engine)
+  // 11. Neo EMCP (Native NEO Pulse MCP Engine)
   {
     id: "emcp.audit.site-schema-doctor",
     label: "Neo EMCP Site & Schema Doctor Agent",
@@ -413,19 +405,19 @@ export const PULSE_AGENT_REGISTRY: readonly PulseRegisteredAgentEntry[] = [
   },
   {
     id: "emcp.builder.elementor-architect",
-    label: "Neo EMCP Elementor & Widget Architect Agent",
+    label: "Neo Pulse Native Web Design & Stitched Content Architect Agent",
     category: "blog",
     domain: "emcp",
-    reason: "Plans Elementor container/widget mutations and Neo Tools widget placements using live site widget schemas.",
+    reason: "Plans native NEO Pulse stitched HTML page design, section rewrites, and SEO metadata updates without external page-builder dependencies.",
     useMasterInstructions: true,
     sourceModule: "src/lib/emcp/neo-emcp-mastra-agents.ts",
   },
   {
     id: "emcp.ops.command-planner",
-    label: "Neo EMCP Multi-Tool Command Planner Agent",
+    label: "Neo Pulse Native Multi-Tool Command Planner Agent",
     category: "research",
     domain: "emcp",
-    reason: "Translates natural-language WordPress, SEO, and Elementor instructions into an ordered sequence of Neo EMCP tool calls with dry_run and expected_version safety.",
+    reason: "Translates natural-language blog posting, stitched web design, custom field, and SEO instructions into an ordered sequence of native NEO Pulse tool calls.",
     useMasterInstructions: true,
     sourceModule: "src/lib/emcp/neo-emcp-mastra-agents.ts",
   },

@@ -122,6 +122,10 @@ export type WordPressScheduleFieldsProps = {
   outputDestinationMode?: "scheduled" | "draft" | "local" | "email" | "google_drive";
   /** When set, preset buttons apply all schedule fields in one update. */
   onApplySchedulePreset?: (next: BulkSchedulePresetFields) => void;
+  /** Replaces legacy 3×/15× quick buttons (e.g. Standard / Lite editorial packages). */
+  packageQuickPresets?: BulkNamedSchedulePreset[];
+  /** Highlights the preset that matches the connected property tier. */
+  activePackagePresetId?: string | null;
 };
 
 export function WordPressScheduleFields({
@@ -159,6 +163,8 @@ export function WordPressScheduleFields({
   setOutputDestinationMode,
   outputDestinationMode,
   onApplySchedulePreset,
+  packageQuickPresets,
+  activePackagePresetId,
 }: WordPressScheduleFieldsProps) {
   const fieldTrigger = variant === "forge" ? FORGE_FIELD_TRIGGER : BULK_FIELD_TRIGGER;
   const fieldInput = variant === "forge" ? FORGE_FIELD_INPUT : BULK_FIELD_INPUT;
@@ -306,6 +312,11 @@ export function WordPressScheduleFields({
       ? true
       : !automationEmailDelivery && !googleDriveDelivery && !localArchive && !wordpressDraftOnly;
 
+  const quickPresets =
+    packageQuickPresets && packageQuickPresets.length > 0
+      ? packageQuickPresets
+      : namedPresets.slice(0, 2);
+
   return (
     <div className={gridClass}>
       <div className={cn("min-w-0", layout === "grid" && "sm:col-span-2")}>
@@ -376,20 +387,26 @@ export function WordPressScheduleFields({
       </div>
       {!showPlatformSchedule ? null : (
         <>
-      <div className={cn("grid min-w-0 grid-cols-2 gap-2", layout === "grid" && "sm:col-span-2")}>
-        {namedPresets.slice(0, 2).map((preset) => (
-          <Button
-            key={preset.id}
-            type="button"
-            variant="secondary"
-            className={presetBtnClass}
-            disabled={isDisabled}
-            onClick={() => applyNamedPreset(preset)}
-          >
-            {preset.label}
-          </Button>
-        ))}
-      </div>
+      {quickPresets.length > 0 ? (
+        <div className={cn("grid min-w-0 grid-cols-2 gap-2", layout === "grid" && "sm:col-span-2")}>
+          {quickPresets.map((preset) => (
+            <Button
+              key={preset.id}
+              type="button"
+              variant="secondary"
+              className={cn(
+                presetBtnClass,
+                activePackagePresetId === preset.id &&
+                  "ring-2 ring-primary ring-offset-2 ring-offset-background",
+              )}
+              disabled={isDisabled}
+              onClick={() => applyNamedPreset(preset)}
+            >
+              {preset.label}
+            </Button>
+          ))}
+        </div>
+      ) : null}
       <div className={cn("flex min-w-0 gap-2", layout === "grid" && "sm:col-span-2")}>
         <Select
           onValueChange={(id) => {

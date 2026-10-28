@@ -34,10 +34,16 @@ import type { WordPressSiteAdminSectionId } from "./wordpress/WordPressSiteAdmin
 import type { PropertySettingsSubSectionId } from "./wordpress/property-settings-types";
 import { BulkImportClientsDialog } from "./wordpress/BulkImportClientsDialog";
 import { useQuarterEditorialCounts } from "@/hooks/use-quarter-editorial-counts";
+import { resolveEditorialContentPackageForSite } from "@/lib/editorial-content-package";
 import { useOptimizationActivityCounts } from "@/hooks/use-optimization-activity-counts";
 import { OPTIMIZATION_TILE_COUNTS_ENABLED } from "@/lib/wordpress-optimization-tile-counts";
 import type { WordPressSite } from "./types";
-import { sortWordPressSitesByName, mergeServerGbpLocationIdsIntoLocalSites } from "./storage";
+import {
+  getStoredSites,
+  sortWordPressSitesByName,
+  mergeServerGbpLocationIdsIntoLocalSites,
+  fetchAndPersistMissingClientLogos,
+} from "./storage";
 import { normalizeGbpLocationIdInput } from "@/lib/gbp-post/normalize-gbp-location-id";
 import { saveWordPressProperties, syncOpenRouterToWorkspace } from "@/lib/manager-wordpress-properties-api";
 import { loadApiKey } from "@/lib/api";
@@ -103,6 +109,20 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
     if (!key) return;
     void syncOpenRouterToWorkspace({ openRouterApiKey: key });
   }, [user]);
+
+  const clientLogosBootstrappedRef = useRef(false);
+  useEffect(() => {
+    if (clientLogosBootstrappedRef.current) return;
+    clientLogosBootstrappedRef.current = true;
+    void (async () => {
+      await mergeServerGbpLocationIdsIntoLocalSites();
+      reloadSitesFromStorage();
+      const updated = await fetchAndPersistMissingClientLogos(getStoredSites());
+      if (updated) {
+        reloadSitesFromStorage();
+      }
+    })();
+  }, [reloadSitesFromStorage]);
 
   const {
     bySiteId: quarterStatsBySite,
@@ -189,7 +209,15 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
   const [formSemrushPositionTrackingCampaignId, setFormSemrushPositionTrackingCampaignId] = useState("");
   const [formEditorialCountsPeriodStartYmd, setFormEditorialCountsPeriodStartYmd] = useState("");
   const [formOptimizationPackage, setFormOptimizationPackage] = useState("basic");
+  const [formEditorialContentPackage, setFormEditorialContentPackage] = useState("");
+  const [formEditorialPublishTimeLocal, setFormEditorialPublishTimeLocal] = useState("");
+  const [editorialPackageFilter, setEditorialPackageFilter] = useState<
+    "all" | "standard" | "lite" | "unassigned"
+  >("all");
   const [formBenchmarkCustomTag, setFormBenchmarkCustomTag] = useState("");
+  const [formPrimaryLocalKeyword, setFormPrimaryLocalKeyword] = useState("");
+  const [formClientLogoUrl, setFormClientLogoUrl] = useState("");
+  const [formClientLogoBoxTheme, setFormClientLogoBoxTheme] = useState<"black" | "white">("black");
   const [formProfileTags, setFormProfileTags] = useState<string[]>([]);
   const [formServiceCity, setFormServiceCity] = useState("");
   const [formServiceState, setFormServiceState] = useState("");
@@ -218,14 +246,23 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
     const query = siteSearchQuery.toLowerCase();
     return sites.filter(site => site.name.toLowerCase().includes(query));
   }, [sites, siteSearchQuery]);
+
+  const tierFilteredSites = useMemo(() => {
+    if (editorialPackageFilter === "all") return filteredSites;
+    return filteredSites.filter((site) => {
+      const pkg = resolveEditorialContentPackageForSite(site);
+      if (editorialPackageFilter === "unassigned") return !pkg;
+      return pkg === editorialPackageFilter;
+    });
+  }, [filteredSites, editorialPackageFilter]);
   
   const handleSelectAll = useCallback((selected: boolean) => {
     if (selected) {
-      setSelectedSiteIds(new Set(filteredSites.map((s) => s.id)));
+      setSelectedSiteIds(new Set(tierFilteredSites.map((s) => s.id)));
     } else {
       setSelectedSiteIds(new Set());
     }
-  }, [filteredSites]);
+  }, [tierFilteredSites]);
 
   const handleDeleteSelected = useCallback(() => {
     handleDeleteSitesBulk(Array.from(selectedSiteIds));
@@ -258,7 +295,12 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
       setFormSemrushPositionTrackingCampaignId(formData.semrushPositionTrackingCampaignId ?? "");
       setFormEditorialCountsPeriodStartYmd(formData.editorialCountsPeriodStartYmd ?? "");
       setFormOptimizationPackage(formData.optimizationPackage ?? "");
+      setFormEditorialContentPackage(formData.editorialContentPackage ?? "");
+      setFormEditorialPublishTimeLocal(formData.editorialPublishTimeLocal ?? "");
       setFormBenchmarkCustomTag(formData.benchmarkCustomTag ?? "");
+      setFormPrimaryLocalKeyword(formData.primaryLocalKeyword ?? "");
+      setFormClientLogoUrl(formData.clientLogoUrl ?? "");
+      setFormClientLogoBoxTheme(site.clientLogoBoxTheme ?? "black");
       setFormProfileTags(formData.profileTags ?? []);
       setFormServiceCity(formData.serviceCity ?? "");
       setFormServiceState(formData.serviceState ?? "");
@@ -271,13 +313,20 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
     (siteId: string, sectionId?: WordPressSiteAdminSectionId) => {
       const site = sites.find((s) => s.id === siteId);
       if (!site) return;
-      void mergeServerGbpLocationIdsIntoLocalSites().then((merged) => {
-        if (merged) reloadSitesFromStorage();
-      });
-      populateFormFromSite(site);
       setProfileSiteId(siteId);
       setProfileSectionId(sectionId ?? "overview");
       setSettingsSubSectionId("profile");
+      void (async () => {
+        await mergeServerGbpLocationIdsIntoLocalSites();
+        reloadSitesFromStorage();
+        let fresh = getStoredSites().find((s) => s.id === siteId) ?? site;
+        if (!fresh.clientLogoUrl?.trim()) {
+          await fetchAndPersistMissingClientLogos([fresh]);
+          reloadSitesFromStorage();
+          fresh = getStoredSites().find((s) => s.id === siteId) ?? fresh;
+        }
+        populateFormFromSite(fresh);
+      })();
     },
     [sites, reloadSitesFromStorage, populateFormFromSite],
   );
@@ -303,7 +352,7 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
     }
     const site = sites.find((s) => s.id === profileSiteId);
     if (!site) return;
-    const syncKey = `${profileSiteId}:${site.gbpLocationId ?? ""}:${site.ga4PropertyId ?? ""}:${site.googleAdsCustomerId ?? ""}`;
+    const syncKey = `${profileSiteId}:${site.gbpLocationId ?? ""}:${site.ga4PropertyId ?? ""}:${site.googleAdsCustomerId ?? ""}:${site.clientLogoUrl ?? ""}:${site.clientLogoFetchedAt ?? ""}`;
     if (lastProfileSyncedRef.current === syncKey) return;
     lastProfileSyncedRef.current = syncKey;
     populateFormFromSite(site);
@@ -337,7 +386,12 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
       setFormSemrushPositionTrackingCampaignId(formData.semrushPositionTrackingCampaignId ?? "");
       setFormEditorialCountsPeriodStartYmd(formData.editorialCountsPeriodStartYmd ?? "");
       setFormOptimizationPackage(formData.optimizationPackage ?? "");
+      setFormEditorialContentPackage(formData.editorialContentPackage ?? "");
+      setFormEditorialPublishTimeLocal(formData.editorialPublishTimeLocal ?? "");
       setFormBenchmarkCustomTag(formData.benchmarkCustomTag ?? "");
+      setFormPrimaryLocalKeyword(formData.primaryLocalKeyword ?? "");
+      setFormClientLogoUrl(formData.clientLogoUrl ?? "");
+      setFormClientLogoBoxTheme("black");
       setFormProfileTags(formData.profileTags ?? []);
       setFormServiceCity("");
     setFormServiceState("");
@@ -382,12 +436,17 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
       formSemrushPositionTrackingCampaignId,
       formEditorialCountsPeriodStartYmd,
       formOptimizationPackage,
+      formEditorialContentPackage,
+      formEditorialPublishTimeLocal,
       formBenchmarkCustomTag,
+      formPrimaryLocalKeyword,
+      formClientLogoUrl,
       formProfileTags,
       formServiceCity,
       formServiceState,
       formServiceCountry,
       adsForSave,
+      formClientLogoBoxTheme,
     );
     if (saved) {
       setIsDialogOpen(false);
@@ -423,9 +482,14 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
     formSemrushSiteAuditProjectId,
     formSemrushPositionTrackingProjectId,
     formSemrushPositionTrackingCampaignId,
-    formEditorialCountsPeriodStartYmd,
-    formOptimizationPackage,
-    formBenchmarkCustomTag,
+      formEditorialCountsPeriodStartYmd,
+      formOptimizationPackage,
+      formEditorialContentPackage,
+      formEditorialPublishTimeLocal,
+      formBenchmarkCustomTag,
+      formPrimaryLocalKeyword,
+      formClientLogoUrl,
+      formClientLogoBoxTheme,
     formProfileTags,
     formServiceCity,
     formServiceState,
@@ -456,7 +520,12 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
       formSemrushPositionTrackingCampaignId={formSemrushPositionTrackingCampaignId}
       formEditorialCountsPeriodStartYmd={formEditorialCountsPeriodStartYmd}
       formOptimizationPackage={formOptimizationPackage}
+      formEditorialContentPackage={formEditorialContentPackage}
+      formEditorialPublishTimeLocal={formEditorialPublishTimeLocal}
       formBenchmarkCustomTag={formBenchmarkCustomTag}
+      formPrimaryLocalKeyword={formPrimaryLocalKeyword}
+      formClientLogoUrl={formClientLogoUrl}
+      formClientLogoBoxTheme={formClientLogoBoxTheme}
       formProfileTags={formProfileTags}
       formServiceCity={formServiceCity}
       formServiceState={formServiceState}
@@ -474,7 +543,12 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
       onFormSemrushPositionTrackingCampaignIdChange={setFormSemrushPositionTrackingCampaignId}
       onFormEditorialCountsPeriodStartYmdChange={setFormEditorialCountsPeriodStartYmd}
       onFormOptimizationPackageChange={setFormOptimizationPackage}
+      onFormEditorialContentPackageChange={setFormEditorialContentPackage}
+      onFormEditorialPublishTimeLocalChange={setFormEditorialPublishTimeLocal}
       onFormBenchmarkCustomTagChange={setFormBenchmarkCustomTag}
+      onFormPrimaryLocalKeywordChange={setFormPrimaryLocalKeyword}
+      onFormClientLogoUrlChange={setFormClientLogoUrl}
+      onFormClientLogoBoxThemeChange={setFormClientLogoBoxTheme}
       onFormProfileTagsChange={setFormProfileTags}
       onFormServiceCityChange={setFormServiceCity}
       onFormServiceStateChange={setFormServiceState}
@@ -621,13 +695,33 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
   }, [filteredSites, handlePatchSite]);
 
   const selectedCount = selectedSiteIds.size;
-  const allSelected = filteredSites.length > 0 && selectedCount === filteredSites.length;
+  const allSelected = tierFilteredSites.length > 0 && selectedCount === tierFilteredSites.length;
   const selectAllChecked: boolean | "indeterminate" =
     allSelected ? true : selectedCount > 0 ? "indeterminate" : false;
 
   const trailingToolbarActions = useMemo(
     () => (
       <>
+        <Select
+          value={editorialPackageFilter}
+          onValueChange={(v) =>
+            setEditorialPackageFilter(v as "all" | "standard" | "lite" | "unassigned")
+          }
+        >
+          <SelectTrigger
+            className={cn(BULK_HEADER_SELECT_TRIGGER, "min-w-[5.5rem]")}
+            aria-label="Editorial package filter"
+            title="Filter properties by editorial package tier"
+          >
+            <SelectValue placeholder="Editorial tier" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All tiers</SelectItem>
+            <SelectItem value="standard">Standard</SelectItem>
+            <SelectItem value="lite">Lite</SelectItem>
+            <SelectItem value="unassigned">Unassigned</SelectItem>
+          </SelectContent>
+        </Select>
         {editorialMonthOptions.length > 0 && editorialSelectedMonthKey ? (
           <Select value={editorialSelectedMonthKey} onValueChange={setEditorialSelectedMonthKey}>
             <SelectTrigger
@@ -730,6 +824,7 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
     ),
     [
       credentialedSiteCount,
+      editorialPackageFilter,
       editorialMonthOptions,
       editorialSelectedMonthKey,
       setEditorialSelectedMonthKey,
@@ -814,7 +909,8 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
       <div className="flex min-h-0 flex-1 flex-col">
       <WordPressSiteList
         sites={sites}
-        filteredSites={filteredSites}
+        filteredSites={tierFilteredSites}
+        editorialPackageFilter={editorialPackageFilter}
         siteSearchQuery={siteSearchQuery}
         onSearchChange={setSiteSearchQuery}
         onOpenProfile={(site) => openProfile(site.id)}
@@ -883,7 +979,12 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
         formSemrushPositionTrackingCampaignId={formSemrushPositionTrackingCampaignId}
         formEditorialCountsPeriodStartYmd={formEditorialCountsPeriodStartYmd}
         formOptimizationPackage={formOptimizationPackage}
+        formEditorialContentPackage={formEditorialContentPackage}
+        formEditorialPublishTimeLocal={formEditorialPublishTimeLocal}
         formBenchmarkCustomTag={formBenchmarkCustomTag}
+        formPrimaryLocalKeyword={formPrimaryLocalKeyword}
+        formClientLogoUrl={formClientLogoUrl}
+        formClientLogoBoxTheme={formClientLogoBoxTheme}
         formProfileTags={formProfileTags}
         formServiceCity={formServiceCity}
         formServiceState={formServiceState}
@@ -901,7 +1002,12 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
         onFormSemrushPositionTrackingCampaignIdChange={setFormSemrushPositionTrackingCampaignId}
         onFormEditorialCountsPeriodStartYmdChange={setFormEditorialCountsPeriodStartYmd}
         onFormOptimizationPackageChange={setFormOptimizationPackage}
+        onFormEditorialContentPackageChange={setFormEditorialContentPackage}
+        onFormEditorialPublishTimeLocalChange={setFormEditorialPublishTimeLocal}
         onFormBenchmarkCustomTagChange={setFormBenchmarkCustomTag}
+        onFormPrimaryLocalKeywordChange={setFormPrimaryLocalKeyword}
+        onFormClientLogoUrlChange={setFormClientLogoUrl}
+        onFormClientLogoBoxThemeChange={setFormClientLogoBoxTheme}
         onFormProfileTagsChange={setFormProfileTags}
         onFormServiceCityChange={setFormServiceCity}
         onFormServiceStateChange={setFormServiceState}

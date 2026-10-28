@@ -166,6 +166,8 @@ export type FillEntitySlotKeywordsFromGscArgs = {
   gridLocations: string[];
   entityTypeFocus?: readonly string[];
   clientAudienceContextMarkdown?: string;
+  /** When true, throw if any entity row has no keyword after GSC fill (no deterministic fallback). */
+  failOnBlankKeywords?: boolean;
   onPhase?: (phase: string, completed?: number, stepTotal?: number) => void;
   onRowsUpdate?: (rows: CSVRow[]) => void;
 };
@@ -241,6 +243,20 @@ export async function fillEntitySlotKeywordsFromGsc(
   });
 
   const finalized = finalizeEntitySapRowsForAdGroups(withKeywords.map((row) => ({ ...row })));
+  if (args.failOnBlankKeywords) {
+    const missing = finalized.filter((r) => r.entity?.trim() && !r.keyword?.trim());
+    if (missing.length > 0) {
+      const preview = missing
+        .slice(0, 5)
+        .map((r) => r.entity?.trim())
+        .filter(Boolean)
+        .join(", ");
+      throw new Error(
+        `GSC did not assign a keyword for ${missing.length} entity row(s)${preview ? `: ${preview}` : ""}.`,
+      );
+    }
+    return { rows: finalized, keywordSources };
+  }
   const seedBase =
     finalized.find((r) => r.keyword?.trim())?.keyword?.trim() || args.siteName.trim() || "services";
   const filled = fillBlankEntitySapKeywordsDeterministic(finalized, seedBase);

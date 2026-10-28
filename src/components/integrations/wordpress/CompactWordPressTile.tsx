@@ -14,6 +14,7 @@ import { loadApiKey } from "@/lib/api";
 import { applyGbpPropertyWand } from "@/lib/wordpress-site-display-name-from-dfs-gmb";
 import { wordpressSiteCanonicalName } from "@/lib/wordpress-site-display-name";
 import { type WordPressSite } from "../types";
+import { editorialContentPackageShortLabelForSite } from "@/lib/editorial-content-package";
 import type { WordPressPropertyRowDisplay } from "@/lib/wordpress-properties-row-display";
 import { getCyberpunkCardClasses, getCyberpunkTextClasses, getPropertyListRowBlackIconButtonClass, getPropertyListRowIconButtonHoverGlowClass } from "./cyberpunk-theme";
 
@@ -232,6 +233,14 @@ function menuInnerSummary(
           {displayName}
         </h3>
       )}
+      {options?.listRowActions && editorialContentPackageShortLabelForSite(site) ? (
+        <span
+          className="shrink-0 rounded-none bg-zinc-900 px-2 py-0.5 text-base font-medium tabular-nums text-zinc-300"
+          title="Editorial content package"
+        >
+          {editorialContentPackageShortLabelForSite(site)}
+        </span>
+      ) : null}
     </div>
   );
 }

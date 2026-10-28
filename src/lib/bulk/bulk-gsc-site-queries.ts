@@ -7,6 +7,7 @@ import type { GscCompetitorDateRange, GscSiteQueryRow } from "@/lib/competitor-r
 import { isBlockedContentTopicPhrase } from "@/lib/content-topic-blocklist";
 import { isOffensiveGscQuery } from "@/lib/gsc-offensive-word-blocklist";
 import { keywordUniquenessKey } from "@/lib/local-analysis-fill-keywords-from-wp-inventory";
+import { gscQueryMatchesTradingName } from "@/lib/sap-brand-and-brevity";
 
 export const BULK_GSC_QUERY_ROW_LIMIT = 10000;
 
@@ -90,7 +91,10 @@ export function isConnectedSiteBrandAsKeyword(
   const kw = (keyword || "").trim();
   const company = (companyName || "").trim();
   if (!kw || !company) return false;
-  return gscQueryContainsBrandPhrase(kw, brandExclusionPhrasesFromNames(company));
+  const phrases = brandExclusionPhrasesFromNames(company);
+  return (
+    gscQueryContainsBrandPhrase(kw, phrases) || gscQueryMatchesTradingName(kw, company, phrases)
+  );
 }
 
 /** GSC query suitable as SAP base keyword: 2–4 words, not a question. */
@@ -216,13 +220,16 @@ export function gscShortTailKeywordsForOpenRouter(
 export function gscAllQueryStringsForEntityKeywordFill(
   queries: GscSiteQueryRow[],
   excludeBrandPhrases: readonly string[] = [],
+  siteName?: string,
 ): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
+  const company = siteName?.trim() ?? "";
   for (const row of sortGscQueriesByStats(queries)) {
     const kw = row.query?.trim();
     if (!kw || isOffensiveGscQuery(kw) || isBlockedContentTopicPhrase(kw)) continue;
     if (gscQueryContainsBrandPhrase(kw, excludeBrandPhrases)) continue;
+    if (company && gscQueryMatchesTradingName(kw, company, excludeBrandPhrases)) continue;
     const key = keywordUniquenessKey(kw);
     if (!key || seen.has(key)) continue;
     seen.add(key);

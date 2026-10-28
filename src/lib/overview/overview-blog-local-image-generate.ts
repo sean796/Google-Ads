@@ -325,7 +325,7 @@ Return compact JSON only:
       },
     ],
     temperature: 0,
-    maxTokens: 120,
+    maxTokens: 1024,
   });
   const parsed = parseJsonObjectFromModelText(rawText);
   const usable = parsed.usable === true || parsed.usable === "true";

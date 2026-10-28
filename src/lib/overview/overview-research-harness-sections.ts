@@ -4,7 +4,6 @@ import { reduceHarnessSectionList, type HarnessSectionListItem } from "@/lib/bul
 export const RESEARCH_HARNESS_SECTION_TITLES = [
   "DataForSEO SERP",
   "GSC CSV",
-  "Semrush enrichment",
   "LLM audit",
   "SERP dump load",
   "GSC quick-wins context",
@@ -19,13 +18,12 @@ export const RESEARCH_STEP_ARTIFACT_SLUGS: Partial<
   Record<(typeof RESEARCH_HARNESS_SECTION_TITLES)[number], string>
 > = {
   "DataForSEO SERP": "dataforseo-serp",
-  "Semrush enrichment": "semrush-enrichment",
   "LLM audit": "llm-audit",
   "SERP dump load": "serp-dump-load",
   "GSC quick-wins context": "gsc-quick-wins-context",
 };
 
-/** Per-row Generated files pipeline during research (8 harness steps, no blueprint/content). */
+/** Per-row Generated files pipeline during research (7 harness steps, no blueprint/content). */
 export const RESEARCH_HARNESS_PIPELINE_TITLES = RESEARCH_HARNESS_SECTION_TITLES;
 
 export function isResearchHarnessPipelineTitles(
@@ -147,7 +145,6 @@ export function researchStepArtifactFile(
   switch (title) {
     case "DataForSEO SERP":
     case "GSC CSV":
-    case "Semrush enrichment":
     case "LLM audit":
     case "SERP dump load":
     case "GSC quick-wins context":

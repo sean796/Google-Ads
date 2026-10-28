@@ -53,7 +53,6 @@ import type { LinkTargetsPlan } from "@/lib/bulk/bulk-generation-wp-inventory";
 import {
   runContentLinkTargetsHarness,
 } from "@/lib/overview/overview-content-link-targets-harness-run";
-import { runContinueOptimizationElementorPage } from "@/lib/elementor-page-content/continue-optimization-elementor";
 
 export interface ContinueOptimizationTryBodyInput {
   siteId: string;
@@ -337,9 +336,13 @@ async function runContinueOptimizationTryBodyInner(input: ContinueOptimizationTr
   const wordPressPagesForOfferTable = pending.wordPressPagesForOfferTable ?? [];
 
   if (site.username && site.appPassword) {
-    const merged = await ensureMergedPostsPagesLinkPool(site, (msg) => {
-      updateOptimizationProgress(setOptimizationProgress, siteId, "plan", 0.5, msg);
-    });
+    const merged = await ensureMergedPostsPagesLinkPool(
+      site,
+      (msg) => {
+        updateOptimizationProgress(setOptimizationProgress, siteId, "plan", 0.5, msg);
+      },
+      { warmCacheOnly: true },
+    );
     wordPressPosts = buildMergedLinkPoolRows(merged, site.siteUrl);
     if (wordPressPosts.length > 0) seedSiteCacheFromLinkablePosts(site, wordPressPosts);
   } else if (pending.wordPressPosts?.length) {
@@ -404,30 +407,6 @@ async function runContinueOptimizationTryBodyInner(input: ContinueOptimizationTr
     flushGeneratedFiles();
   }
   const llmAuditSummary = llmAuditSummaryFromSeoResearchBrief(seoResearchRaw);
-
-  const resolvedSubtype = String(
-    (resolved as { subtype?: string; postType?: string } | undefined)?.subtype ?? "",
-  ).toLowerCase();
-
-  if (resolvedSubtype === "page") {
-    const internalLinkHints = wordPressPosts
-      .slice(0, 40)
-      .map((p) => `${p.title}: ${p.link}`)
-      .join("\n");
-    await runContinueOptimizationElementorPage({
-      site,
-      siteId,
-      url,
-      focusKeyword: resolvedPrimaryKeyword,
-      pageTitle: resolved?.title?.trim() || undefined,
-      seoResearchRaw,
-      internalLinkHints,
-      setOptimizationProgress,
-      contentPrepHarnessSetters,
-      flushGeneratedFiles,
-    });
-    return;
-  }
 
   updateOptimizationProgress(setOptimizationProgress, siteId, "plan", 0.68, "Building blueprint…");
   const forbiddenLiveH2s = existingContent?.trim() ? extractH2Titles(existingContent) : undefined;

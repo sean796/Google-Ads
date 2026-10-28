@@ -144,7 +144,6 @@ export async function generateBlueprintAndContent(
   const bulkOptions: BulkProcessingOptions = {
     ...options,
     useEntitySitemapTemplate,
-    ...(entityForLocalTemplate ? { sequentialHarnessSections: true } : {}),
   };
   const postsForInternalLinks = keepBlogPlayLinkTargets(wordPressPosts ?? []);
 

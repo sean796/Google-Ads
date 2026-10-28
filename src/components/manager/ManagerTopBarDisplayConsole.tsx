@@ -1,7 +1,9 @@
-import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, Download, Pencil, Power, RefreshCw, RotateCcw } from "lucide-react";
-import { ManagerErrorLogBell } from "@/components/manager/ManagerErrorLogBell";
+import { Download, Pencil, RefreshCw } from "lucide-react";
+import { ManagerErrorLogDropdownSection } from "@/components/manager/ManagerErrorLogBell";
+import { useManagerErrorLog } from "@/contexts/manager-error-log-context";
+import { getAppNotificationState, subscribeAppNotifications } from "@/lib/app-notifications";
 import { useWordPressSites } from "@/hooks/use-wordpress-sites";
 import { useActiveWordPressSite } from "@/contexts/active-wordpress-site-context";
 import {
@@ -17,11 +19,10 @@ import {
   MANAGER_DISPLAY_CONSOLE_ROW,
   MANAGER_DISPLAY_DROPDOWN_PANEL,
   MANAGER_DISPLAY_NAME_LABEL,
+  MANAGER_DISPLAY_NAME_BAND,
   MANAGER_DISPLAY_SITE_WARMING,
-  MANAGER_DISPLAY_SQUARE_BASE,
   MANAGER_HEADER_BADGE_SIZE,
-  managerDisplayKbSquareClass,
-  managerDisplayResetSquareClass,
+  managerDisplayNameBandAlertClass,
 } from "@/components/manager/manager-header-chip-styles";
 import {
   MANAGER_NAV_DROPDOWN_ITEM_BASE,
@@ -38,8 +39,7 @@ import {
 } from "@/lib/local-analysis/entity-site-warm-cache";
 import { htmlToMarkdown } from "@/lib/wordpress-converter";
 
-const POWER_PX = 36;
-const SQUARE_PX = 36;
+const NAME_CHEVRON_PX = 28;
 
 function chipLabelWidthPx(root: HTMLElement, labelMeasure: string): number {
   let maxLabel = 0;
@@ -49,7 +49,7 @@ function chipLabelWidthPx(root: HTMLElement, labelMeasure: string): number {
       maxLabel = Math.max(maxLabel, row.offsetWidth);
     }
   }
-  return maxLabel > 0 ? POWER_PX + maxLabel + 28 : 0;
+  return maxLabel > 0 ? maxLabel + NAME_CHEVRON_PX : 0;
 }
 
 function menuRowWidthPx(root: HTMLElement, rowMeasure: string): number {
@@ -161,16 +161,8 @@ function downloadSitePrefetchBundle(site: WordPressSite): boolean {
 
 export function ManagerTopBarDisplayConsole({
   variant,
-  managerTab,
-  onManagerTabChange,
-  onResetWorkspace,
-  showReset,
 }: {
   variant: "embedded" | "compact";
-  managerTab: string;
-  onManagerTabChange: (tab: string) => void;
-  onResetWorkspace?: () => void;
-  showReset: boolean;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -188,6 +180,21 @@ export function ManagerTopBarDisplayConsole({
   const { loading: isSiteWarmLoading, refreshing } = useSitePrefetchState(activeSite?.id);
   const activeSitePrefetch = activeSite ? getEntitySiteWarmCacheIfReady(activeSite.id) : null;
   const utilityRowCount = 1 + (activeSitePrefetch ? 1 : 0);
+  const [notifyPrimary, setNotifyPrimary] = useState(() => getAppNotificationState().primary);
+  useEffect(() => {
+    const sync = () => setNotifyPrimary(getAppNotificationState().primary);
+    sync();
+    return subscribeAppNotifications(sync);
+  }, []);
+  const { entries: errorLogEntries } = useManagerErrorLog();
+  const hasErrorLog = errorLogEntries.length > 0;
+  const nameAlertKind =
+    !isSiteWarmLoading && hasErrorLog
+      ? ("error" as const)
+      : notifyPrimary && notifyPrimary.variant !== "loading"
+        ? notifyPrimary.variant
+        : null;
+  const nameBandAlertClass = managerDisplayNameBandAlertClass(nameAlertKind);
 
   useLayoutEffect(() => {
     const root = measureRef.current;
@@ -195,10 +202,8 @@ export function ManagerTopBarDisplayConsole({
     setSiteMenuWidthPx(chipMenuWidthPx(root, "site-label", "site-row"));
   }, [displayLabels]);
 
-  const utilitySquareCount = 3 + (showReset && onResetWorkspace ? 1 : 0);
-  const siteChipWidthPx =
-    sites.length === 0 || !activeSite ? SQUARE_PX : siteMenuWidthPx > 0 ? siteMenuWidthPx : SQUARE_PX;
-  const consoleWidthPx = siteChipWidthPx + SQUARE_PX * utilitySquareCount;
+  const siteChipWidthPx = siteMenuWidthPx > 0 ? siteMenuWidthPx : 120;
+  const consoleWidthPx = siteChipWidthPx;
 
   const siteMenuWidthStyle: CSSProperties | undefined =
     siteMenuWidthPx > 0 ? { width: siteMenuWidthPx, minWidth: siteMenuWidthPx } : undefined;
@@ -235,7 +240,6 @@ export function ManagerTopBarDisplayConsole({
             data-measure="site-row"
             className="inline-flex items-center gap-2.5 px-3"
           >
-            <Power className="h-4 w-4 shrink-0" aria-hidden />
             <Pencil className="h-4 w-4 shrink-0" aria-hidden />
             <span className="whitespace-nowrap text-base font-normal leading-tight">
               {wordpressSiteMenuDisplayName(site)}
@@ -250,12 +254,12 @@ export function ManagerTopBarDisplayConsole({
               <span
                 className={cn(
                   MANAGER_HEADER_BADGE_SIZE,
-                  MANAGER_DISPLAY_SQUARE_BASE,
-                  "bg-black/30 text-muted-foreground opacity-60",
+                  MANAGER_DISPLAY_NAME_BAND,
+                  "inline-flex min-w-[7rem] items-center px-2.5 text-muted-foreground opacity-60",
                 )}
                 aria-label="None connected"
               >
-                <Power className="h-4 w-4 shrink-0 text-current" aria-hidden />
+                None connected
               </span>
             </TooltipTrigger>
             <TooltipContent>None connected</TooltipContent>
@@ -272,13 +276,14 @@ export function ManagerTopBarDisplayConsole({
                   triggerHoverClass,
                   isSiteWarmLoading && MANAGER_DISPLAY_SITE_WARMING,
                 )}
-                aria-label={`Connected site: ${wordpressSiteMenuDisplayName(activeSite)}${isSiteWarmLoading ? " (loading site data)" : ""}`}
+                aria-label={`Connected site: ${wordpressSiteMenuDisplayName(activeSite)}${isSiteWarmLoading ? " (loading site data)" : ""}${notifyPrimary ? ` · ${notifyPrimary.title}` : ""}${hasErrorLog ? ` · ${errorLogEntries.length} error(s)` : ""}`}
                 aria-haspopup="menu"
               >
                 <ManagerDisplayChipFace
-                  icon={Power}
+                  icon={null}
                   label={wordpressSiteMenuDisplayName(activeSite)}
                   isWarming={isSiteWarmLoading}
+                  nameBandClassName={nameBandAlertClass || undefined}
                 />
               </button>
             </DropdownMenuTrigger>
@@ -322,7 +327,7 @@ export function ManagerTopBarDisplayConsole({
               {sites.map((site, index) => {
                 const selected = site.id === activeSite.id;
                 const label = wordpressSiteMenuDisplayName(site);
-                const iconClass = selected ? "text-black" : "text-muted-foreground";
+                const iconClass = selected ? "text-primary" : "text-muted-foreground";
                 return (
                   <DropdownMenuItem
                     key={site.id}
@@ -340,7 +345,6 @@ export function ManagerTopBarDisplayConsole({
                     }}
                   >
                     <div className="flex w-full shrink-0 items-center gap-2.5">
-                      <Power className={cn("h-4 w-4 shrink-0", iconClass)} aria-hidden />
                       <button
                         type="button"
                         aria-label={`Rename ${label}`}
@@ -368,30 +372,10 @@ export function ManagerTopBarDisplayConsole({
                   </DropdownMenuItem>
                 );
               })}
+              <ManagerErrorLogDropdownSection />
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-        <button
-          type="button"
-          className={managerDisplayKbSquareClass(managerTab === "knowledge")}
-          onClick={() => onManagerTabChange("knowledge")}
-          aria-label="Knowledge Base"
-          title="Knowledge Base"
-        >
-          <BookOpen className="shrink-0" />
-        </button>
-        <ManagerErrorLogBell />
-        {showReset && onResetWorkspace ? (
-          <button
-            type="button"
-            className={managerDisplayResetSquareClass()}
-            onClick={onResetWorkspace}
-            aria-label="Reset all"
-            title="Reset all"
-          >
-            <RotateCcw className="shrink-0" />
-          </button>
-        ) : null}
       </div>
       <SiteDisplayNameDialog
         open={renameDialogOpen}

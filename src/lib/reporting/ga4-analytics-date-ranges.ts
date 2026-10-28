@@ -3,7 +3,10 @@ import {
   calculateYearOverYear,
   formatDateForAPI,
 } from "@/lib/gsc-date-helpers";
-import type { ReportingCompareRanges } from "@/lib/reporting/reporting-date-presets";
+import {
+  computeTrailingFullMonthsCompareRanges,
+  type ReportingCompareRanges,
+} from "@/lib/reporting/reporting-date-presets";
 
 export type Ga4PrimaryPresetId =
   | "today"
@@ -101,10 +104,8 @@ function mondayOfWeekContaining(d: Date): Date {
   return x;
 }
 
-/** First calendar day of the month `monthsBefore` months prior to `ref`'s month. */
-function firstDayOfMonthMonthsBefore(ref: Date, monthsBefore: number): Date {
-  const anchor = startOfLocalDay(ref);
-  return new Date(anchor.getFullYear(), anchor.getMonth() - monthsBefore, 1);
+function trailingFullMonthsPrimary(monthCount: number, reference: Date): { startDate: string; endDate: string } {
+  return computeTrailingFullMonthsCompareRanges(monthCount, reference).primary;
 }
 
 export function computeGa4PrimaryRange(
@@ -147,15 +148,15 @@ export function computeGa4PrimaryRange(
   }
 
   if (preset === "last_3_months") {
-    return toYmdRange(firstDayOfMonthMonthsBefore(ref, 2), ref);
+    return trailingFullMonthsPrimary(3, ref);
   }
 
   if (preset === "last_6_months") {
-    return toYmdRange(firstDayOfMonthMonthsBefore(ref, 5), ref);
+    return trailingFullMonthsPrimary(6, ref);
   }
 
   if (preset === "last_12_months") {
-    return toYmdRange(firstDayOfMonthMonthsBefore(ref, 11), ref);
+    return trailingFullMonthsPrimary(12, ref);
   }
 
   if (preset === "this_month") {

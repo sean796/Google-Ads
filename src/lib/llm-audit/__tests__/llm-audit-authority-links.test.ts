@@ -200,6 +200,21 @@ describe("resolveLlmAuditAuthorityLinksForChecklist", () => {
     });
     expect(out).toEqual([]);
   });
+
+  it("returns no links on valid JSON with wrong shape (fail-open)", async () => {
+    vi.mocked(callOpenRouterChatCompletion).mockResolvedValue({
+      content: '{"links":"not-an-array"}',
+    } as never);
+
+    const failures: string[] = [];
+    const out = await classifyLlmAuditAuthorityLinksOpenRouter({
+      urls: ["https://www.edmonton.ca/"],
+      siteUrl: "https://ridgelinesolar.ca",
+      onClassifierJsonFailure: (detail) => failures.push(detail.error),
+    });
+    expect(out).toEqual([]);
+    expect(failures.length).toBeGreaterThan(0);
+  });
 });
 
 describe("buildRowExplicitExternalAllowlist with llm audit authority", () => {

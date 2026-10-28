@@ -26,9 +26,25 @@ export async function fetchQuarterEditorialCounts(payload: {
     }),
   });
 
-  const data = (await response.json()) as QuarterEditorialCountsResult;
+  let data: QuarterEditorialCountsResult;
+  try {
+    data = (await response.json()) as QuarterEditorialCountsResult;
+  } catch {
+    data = {
+      ok: false,
+      postsPublished: null,
+      postsScheduled: null,
+      entityPublished: null,
+      entityScheduled: null,
+      entityConfigured: false,
+      entityCountsAvailable: false,
+      published: null,
+      scheduled: null,
+      error: `HTTP ${response.status}`,
+    };
+  }
 
-  if (!response.ok) {
+  if (!response.ok || !data.ok) {
     return {
       ok: false,
       postsPublished: null,

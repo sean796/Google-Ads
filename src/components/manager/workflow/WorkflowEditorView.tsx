@@ -17,7 +17,7 @@ import {
 } from "@/lib/workflow/workflow-editor-load-guard";
 import { emptyWorkflowDraft, ensureWorkflowClientNode } from "@/lib/workflow/workflow-migrate-from-planner";
 import {
-  applyThenMigrationIfNeeded,
+  applyWorkflowLoadMigrations,
   compileAndPersistWorkflowNodes,
   persistWorkflowDefinition,
 } from "@/lib/workflow/workflow-persist";
@@ -68,10 +68,8 @@ import {
 } from "@/lib/workflow/workflow-step-test";
 import { fetchAgentRun } from "@/lib/agent-runs-api";
 import { getStoredSites } from "@/components/integrations/storage";
-import {
-  ensureContentGapCheckPayload,
-  resolveContentGapCount,
-} from "@/lib/content-gap/resolve-content-gap-count";
+import { resolveContentGapCheckExecutionPayload } from "@/lib/content-gap/apply-editorial-package-content-gap-target";
+import { resolveContentGapCount } from "@/lib/content-gap/resolve-content-gap-count";
 import type { WorkflowActionConfig } from "@/lib/workflow/workflow-types";
 import { thenConfig } from "@/lib/workflow/workflow-then-utils";
 import { workflowClientSiteIds } from "@/components/manager/workflow/forge-workflow-styles";
@@ -124,7 +122,10 @@ async function testContentGapAgentNode(
     };
   }
 
-  const gap = await resolveContentGapCount(site, ensureContentGapCheckPayload(config.executionPayload));
+  const gap = await resolveContentGapCount(
+    site,
+    resolveContentGapCheckExecutionPayload(config.executionPayload, site),
+  );
   return {
     nodeId,
     ok: true,
@@ -178,6 +179,7 @@ export function WorkflowEditorView({
   const [clientsMenuOpen, setClientsMenuOpen] = useState(false);
   const persistSeqRef = useRef(0);
   const loadSeqRef = useRef(0);
+  const gridAutoPersistRef = useRef<number | null>(null);
   const dirtyRef = useRef(false);
   const namePersistTimerRef = useRef<number | null>(null);
   const newDraftScopeRef = useRef<string | null>(null);
@@ -244,7 +246,9 @@ export function WorkflowEditorView({
         return;
       }
       const withClient = existing ? ensureWorkflowClientNode(existing, defaultSiteIdRef.current ?? null) : existing;
-      const migrated = withClient ? applyThenMigrationIfNeeded(withClient) : withClient;
+      const { workflow: migrated, structuralMigration: gridMigrated } = withClient
+        ? applyWorkflowLoadMigrations(withClient)
+        : { workflow: withClient, structuralMigration: false };
       const synced = migrated
         ? {
             ...migrated,
@@ -258,6 +262,24 @@ export function WorkflowEditorView({
       if (synced?.name) onNameChangeRef.current?.(synced.name);
       clearDirty();
       setLoading(false);
+      if (
+        synced &&
+        workflowId &&
+        gridMigrated &&
+        gridAutoPersistRef.current !== workflowId &&
+        !dirtyRef.current
+      ) {
+        gridAutoPersistRef.current = workflowId;
+        void persistWorkflowDefinition(teamId, synced, { compile: false }).then((result) => {
+          if (result.workflow && shouldApplyFetchedWorkflow({
+            responseSeq: seq,
+            latestLoadSeq: loadSeqRef.current,
+            isDirty: dirtyRef.current,
+          })) {
+            setWorkflow(result.workflow);
+          }
+        });
+      }
     })();
     return () => {
       cancelled = true;

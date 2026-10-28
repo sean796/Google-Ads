@@ -11,17 +11,18 @@ import {
 
 const SLUG_FILL_CHUNK = 10;
 
-const BLOG_SLUG_AGENT_SYSTEM = `You are a URL slug agent for national blog posts.
+const BLOG_SLUG_AGENT_SYSTEM = `You are a URL slug agent for WordPress blog posts and service-area (SAP) pages.
 
 Output **only** valid JSON: {"slugs":["..."]} with **exactly one** slug per input row in \`rows[]\`, same order.
 
-Each row has \`title\` and \`keyword\`. \`entity\` may be empty.
+Each row has \`title\` and \`keyword\`. \`entity\` may be empty (local landmark or city — use it only when it appears in the title).
 
 **Slug rules (mandatory):**
+- **Primary source is \`title\`**, not the raw keyword. The slug must match what a reader expects from the title (service + location).
+- **Forbidden in slugs:** keyword-only dumps, news or political tokens, year noise, or any phrase that does **not** appear in the title (e.g. electoral redistribution when the title says window treatments near Sherwood Park).
 - Lowercase, hyphen-separated \`[a-z0-9-]\` only. Every word token must be separated by hyphens.
 - **Forbidden:** concatenating words into one token (e.g. hunterdouglastopdown), copying the full title verbatim, leading/trailing hyphens.
-- As short as reasonable while keeping search intent from the keyword. Drop glue words (the, for, and, a).
-- Include the core keyword phrase; you may shorten brand/product names only when the hyphenated form stays readable.
+- As short as reasonable. Drop glue words (the, for, and, a, near).
 - Max 80 characters. No file extension, no path, no domain.`;
 
 type SlugAgentResponse = {
@@ -29,13 +30,13 @@ type SlugAgentResponse = {
 };
 
 function slugFallbackFromRow(row: CSVRow): string {
-  const kw = (row.keyword ?? "").trim();
-  const fromKw = sanitizeWordPressSlugSegment(kw.replace(/\s+/g, "-").toLowerCase());
-  if (fromKw.length >= 2) return fromKw.slice(0, 80);
   const fromTitle = sanitizeWordPressSlugSegment(
     (row.title ?? "").trim().toLowerCase().replace(/\s+/g, "-"),
   );
   if (fromTitle.length >= 2) return fromTitle.slice(0, 80);
+  const kw = (row.keyword ?? "").trim();
+  const fromKw = sanitizeWordPressSlugSegment(kw.replace(/\s+/g, "-").toLowerCase());
+  if (fromKw.length >= 2) return fromKw.slice(0, 80);
   return "blog-post";
 }
 

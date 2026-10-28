@@ -25,10 +25,10 @@ import { cn } from "@/lib/utils";
 import { HOST_DIVIDER } from "@/components/hosting/my-sites/my-sites-theme";
 import { PROFILE_CARD, PROFILE_CARD_HEAD, PROFILE_CARD_TITLE } from "@/components/hosting/site-profile/site-profile-theme";
 
-interface ACFTestResult {
+interface NeoFieldsTestResult {
   success: boolean;
-  hasAcfSupport?: boolean;
-  acfFields?: Record<string, unknown>;
+  hasNeoFieldsSupport?: boolean;
+  neoFields?: Record<string, unknown>;
   error?: string;
   requiredConfig?: { php: string[] };
 }
@@ -63,12 +63,12 @@ export const WordPressCardActions: React.FC<WordPressCardActionsProps> = ({
   const isPropertyBlack = tone === "propertyBlack";
   const isProfileCard = layout === "profileCard";
   const isDisabled = site.enabled === false;
-  const [isTestingACF, setIsTestingACF] = useState(false);
+  const [isTestingNeoFields, setIsTestingNeoFields] = useState(false);
   const [isTestingGA, setIsTestingGA] = useState(false);
   const [isTestingGMB, setIsTestingGMB] = useState(false);
   const [isPullingGMBStats, setIsPullingGMBStats] = useState(false);
   const pullGMBInProgressRef = useRef(false);
-  const [acfTestResult, setAcfTestResult] = useState<ACFTestResult & { dateModifierSet?: boolean; postId?: number; postUrl?: string } | null>(null);
+  const [neoFieldsTestResult, setNeoFieldsTestResult] = useState<NeoFieldsTestResult & { dateModifierSet?: boolean; postId?: number; postUrl?: string } | null>(null);
 
   const handlePullGMBStats = async () => {
     if (pullGMBInProgressRef.current) return;
@@ -197,11 +197,10 @@ ${footnote}`;
     }
   };
 
-  const handleTestACFRest = async () => {
-    setIsTestingACF(true);
-    setAcfTestResult(null);
+  const handleTestNeoFields = async () => {
+    setIsTestingNeoFields(true);
+    setNeoFieldsTestResult(null);
     
-        
     try {
       // Use entity sitemap URL to determine the correct endpoint
       let testPostType = 'post';
@@ -211,17 +210,17 @@ ${footnote}`;
       if (site.entitySitemapUrl) {
         testEndpoint = extractEndpointFromEntitySitemapUrl(site.entitySitemapUrl);
         testPostType = testEndpoint; // For CPTs, type and endpoint are usually the same
-                console.log('[ACF Test] Using entity endpoint from entitySitemapUrl:', testEndpoint);
+        console.log('[NEO Fields Test] Using entity endpoint from entitySitemapUrl:', testEndpoint);
       }
       
-      // CREATE A NEW POST with date_modifier set to today - skip validation, just do it
+      // CREATE A NEW POST with date_modifier set to today
       let dateModifierSet = false;
       let newPostId: number | undefined;
       let postUrl: string | undefined;
       let createError: string | undefined;
       const today = new Date().toISOString().split('T')[0]; // "2026-01-19"
       
-      console.log('[ACF Test] Creating new entity post with endpoint:', testEndpoint);
+      console.log('[NEO Fields Test] Creating new entity post with endpoint:', testEndpoint);
 
       let authorId: number | undefined;
       try {
@@ -240,16 +239,15 @@ ${footnote}`;
           siteUrl: site.siteUrl,
           username: site.username,
           appPassword: site.appPassword,
-          title: `ACF Test - ${today}`,
-          content: `<p>Test post created to verify ACF REST API. Date modifier: ${today}</p>`,
+          title: `NEO Test - ${today}`,
+          content: `<p>Test post created to verify NEO Fields REST API. Date modifier: ${today}</p>`,
           status: 'draft',
           postType: testPostType,
           postTypeEndpoint: testEndpoint
         };
         if (authorId != null) requestBody.author = authorId;
         
-                
-        // Create a new post in the entity CPT (use BACKEND_API_BASE for Render/cross-origin)
+        // Create a new post in the entity CPT
         const createResponse = await fetch(`${BACKEND_API_BASE}/api/wordpress/create-post`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -267,22 +265,14 @@ ${footnote}`;
           );
         }
         
-                
-        console.log('[ACF Test] Create response:', createData);
-        console.log('[ACF Test] Request was:', {
-          siteUrl: site.siteUrl,
-          postType: testPostType,
-          postTypeEndpoint: testEndpoint,
-          entitySitemapUrl: site.entitySitemapUrl
-        });
+        console.log('[NEO Fields Test] Create response:', createData);
         
         if (createData.success && (createData.postId || createData.id)) {
           newPostId = createData.postId || createData.id;
           postUrl = createData.link || createData.url;
-                    
-          // Now set the date_modifier ACF field on the new post
-                    
-          const acfUpdateResponse = await fetch(`${BACKEND_API_BASE}/api/wordpress/update-acf-fields`, {
+          
+          // Now set the date_modifier field on the new post
+          const updateResponse = await fetch(`${BACKEND_API_BASE}/api/wordpress/update-acf-fields`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -301,40 +291,39 @@ ${footnote}`;
             })
           });
 
-          const acfUpdateText = await acfUpdateResponse.text();
-          let acfUpdateData: { success?: boolean; error?: string; updated?: unknown; failed?: unknown };
+          const updateText = await updateResponse.text();
+          let updateData: { success?: boolean; error?: string; updated?: unknown; failed?: unknown };
           try {
-            acfUpdateData = acfUpdateText ? JSON.parse(acfUpdateText) : {};
+            updateData = updateText ? JSON.parse(updateText) : {};
           } catch {
             throw new Error(
-              `ACF update returned invalid JSON. Status: ${acfUpdateResponse.status}. ` +
-              `Body: ${acfUpdateText.slice(0, 150) || "empty"}`
+              `NEO Fields update returned invalid JSON. Status: ${updateResponse.status}. ` +
+              `Body: ${updateText.slice(0, 150) || "empty"}`
             );
           }
           
-                    
-          console.log('[ACF Test] ACF update response:', acfUpdateData);
-          dateModifierSet = acfUpdateData.success;
+          console.log('[NEO Fields Test] Update response:', updateData);
+          dateModifierSet = updateData.success;
           
           if (dateModifierSet) {
-            console.log(`[ACF Test] Created new post ${newPostId} with date_modifier = ${today}`);
+            console.log(`[NEO Fields Test] Created new post ${newPostId} with date_modifier = ${today}`);
           } else {
-            console.warn('[ACF Test] Post created but failed to set date_modifier:', acfUpdateData.error || acfUpdateData.failed);
+            console.warn('[NEO Fields Test] Post created but failed to set date_modifier:', updateData.error || updateData.failed);
           }
         } else {
           createError = createData.error || 'Failed to create post';
-                    console.error('[ACF Test] Failed to create test post:', createError);
+          console.error('[NEO Fields Test] Failed to create test post:', createError);
         }
       } catch (err) {
         createError = err instanceof Error ? err.message : 'Unknown error';
-        console.error('[ACF Test] Error creating test post:', err);
+        console.error('[NEO Fields Test] Error creating test post:', err);
       }
       
       const success = !!newPostId;
       
-      setAcfTestResult({
+      setNeoFieldsTestResult({
         success,
-        hasAcfSupport: success,
+        hasNeoFieldsSupport: success,
         dateModifierSet,
         postId: newPostId,
         postUrl,
@@ -343,10 +332,10 @@ ${footnote}`;
       
       if (success) {
         if (dateModifierSet && newPostId) {
-          console.log("[ACF Test] date_modifier set", { newPostId, testEndpoint, today });
+          console.log("[NEO Fields Test] date_modifier set", { newPostId, testEndpoint, today });
           notify.success(NOTIFY_ENTITY_POST_CREATED_DATE_MODIFIER);
         } else if (newPostId) {
-          console.warn("[ACF Test] date_modifier not set", newPostId);
+          console.warn("[NEO Fields Test] date_modifier not set", newPostId);
           notify.warning(NOTIFY_POST_CREATED_NO_DATE_MODIFIER);
         }
       } else {
@@ -358,15 +347,15 @@ ${footnote}`;
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      setAcfTestResult({
+      setNeoFieldsTestResult({
         success: false,
         error: errorMsg
       });
       const short =
         errorMsg.length > 100 ? `${errorMsg.slice(0, 97)}...` : errorMsg;
-      notify.error(notifyAcfRestFailedX(short));
+      notify.error(`NEO Fields failed: ${short}`);
     } finally {
-      setIsTestingACF(false);
+      setIsTestingNeoFields(false);
     }
   };
 
@@ -427,30 +416,30 @@ ${footnote}`;
       disabled: isTesting || isDisabled,
     },
     {
-      key: "acf",
-      label: isTestingACF
-        ? "Testing ACF REST…"
-        : acfTestResult?.success
-          ? "ACF REST OK"
-          : acfTestResult?.success === false
-            ? "ACF REST Failed"
-            : "Test ACF REST",
-      icon: isTestingACF ? (
+      key: "neoFields",
+      label: isTestingNeoFields
+        ? "Testing NEO Fields…"
+        : neoFieldsTestResult?.success
+          ? "NEO Fields OK"
+          : neoFieldsTestResult?.success === false
+            ? "NEO Fields Failed"
+            : "Test NEO Fields",
+      icon: isTestingNeoFields ? (
         <Loader2 className="animate-spin" />
-      ) : acfTestResult?.success ? (
+      ) : neoFieldsTestResult?.success ? (
         <CheckCircle2 className="text-green-500" />
-      ) : acfTestResult?.success === false ? (
+      ) : neoFieldsTestResult?.success === false ? (
         <XCircle className="text-red-500" />
       ) : (
         <Database />
       ),
-      onClick: handleTestACFRest,
-      disabled: isTestingACF || isDisabled,
+      onClick: handleTestNeoFields,
+      disabled: isTestingNeoFields || isDisabled,
       className: cn(
-        acfTestResult?.success && "bg-green-500/12 hover:bg-green-500/18",
-        acfTestResult?.success === false && "bg-red-500/10 hover:bg-red-500/16",
+        neoFieldsTestResult?.success && "bg-green-500/12 hover:bg-green-500/18",
+        neoFieldsTestResult?.success === false && "bg-red-500/10 hover:bg-red-500/16",
       ),
-      title: "Test ACF REST API and set date_modifier to today on the first sitemap post",
+      title: "Test NEO Fields API and set date_modifier to today on entity post",
     },
     {
       key: "gmb",
@@ -529,22 +518,22 @@ ${footnote}`;
           ))}
         </div>
 
-        {acfTestResult ? (
+        {neoFieldsTestResult ? (
           <div
             className={cn(
               "px-5 py-3 text-base",
-              acfTestResult.success ? "bg-green-500/12" : "bg-red-500/12",
+              neoFieldsTestResult.success ? "bg-green-500/12" : "bg-red-500/12",
             )}
           >
-            {acfTestResult.success ? (
+            {neoFieldsTestResult.success ? (
               <div className="space-y-1.5">
                 <div className="font-medium text-white">
                   <CheckCircle2 className="mr-1 inline h-4 w-4" aria-hidden />
                   ACF REST API Configured Correctly
                 </div>
-                {acfTestResult.dateModifierSet && acfTestResult.postId ? (
+                {neoFieldsTestResult.dateModifierSet && neoFieldsTestResult.postId ? (
                   <div className="text-base text-green-400">
-                    Set date_modifier on post {acfTestResult.postId}
+                    Set date_modifier on post {neoFieldsTestResult.postId}
                   </div>
                 ) : null}
               </div>
@@ -554,8 +543,8 @@ ${footnote}`;
                   <XCircle className="mr-1 inline h-4 w-4" aria-hidden />
                   ACF REST API Not Configured
                 </div>
-                {acfTestResult.error ? (
-                  <div className="text-base text-red-300/80">{acfTestResult.error}</div>
+                {neoFieldsTestResult.error ? (
+                  <div className="text-base text-red-300/80">{neoFieldsTestResult.error}</div>
                 ) : null}
               </div>
             )}
@@ -585,34 +574,34 @@ ${footnote}`;
           <li className="min-w-0">
             <button
               type="button"
-              onClick={handleTestACFRest}
-              disabled={isTestingACF || isDisabled}
+              onClick={handleTestNeoFields}
+              disabled={isTestingNeoFields || isDisabled}
               className={cn(
                 rowBase,
-                acfTestResult?.success && "bg-green-500/12 hover:bg-green-500/18",
-                acfTestResult?.success === false && "bg-red-500/10 hover:bg-red-500/16",
+                neoFieldsTestResult?.success && "bg-green-500/12 hover:bg-green-500/18",
+                neoFieldsTestResult?.success === false && "bg-red-500/10 hover:bg-red-500/16",
               )}
-              title="Test ACF REST API and set date_modifier to today on the first sitemap post"
+              title="Test NEO Fields API and set date_modifier to today on entity post"
             >
               <span className={iconSlot} aria-hidden>
-                {isTestingACF ? (
+                {isTestingNeoFields ? (
                   <Loader2 className="animate-spin" />
-                ) : acfTestResult?.success ? (
+                ) : neoFieldsTestResult?.success ? (
                   <CheckCircle2 className="text-green-500" />
-                ) : acfTestResult?.success === false ? (
+                ) : neoFieldsTestResult?.success === false ? (
                   <XCircle className="text-red-500" />
                 ) : (
                   <Database />
                 )}
               </span>
               <span className={rowLabel}>
-                {isTestingACF
-                  ? "Testing ACF REST…"
-                  : acfTestResult?.success
-                    ? "ACF REST OK"
-                    : acfTestResult?.success === false
-                      ? "ACF REST Failed"
-                      : "Test ACF REST"}
+                {isTestingNeoFields
+                  ? "Testing NEO Fields…"
+                  : neoFieldsTestResult?.success
+                    ? "NEO Fields OK"
+                    : neoFieldsTestResult?.success === false
+                      ? "NEO Fields Failed"
+                      : "Test NEO Fields"}
               </span>
             </button>
           </li>
@@ -690,29 +679,29 @@ ${footnote}`;
         </ul>
       </section>
 
-      {acfTestResult && (
+      {neoFieldsTestResult && (
         <div
           className={cn(
             "rounded-lg p-3 text-sm shadow-none ring-0",
-            acfTestResult.success ? "bg-green-500/12" : "bg-red-500/12",
+            neoFieldsTestResult.success ? "bg-green-500/12" : "bg-red-500/12",
           )}
         >
-          {acfTestResult.success ? (
+          {neoFieldsTestResult.success ? (
             <div className="space-y-1.5">
               <div className={`font-medium ${getCyberpunkTextClasses("primary")}`}>
                 <CheckCircle2 className="mr-1 inline h-3.5 w-3.5" aria-hidden />
                 ACF REST API Configured Correctly
               </div>
-              {acfTestResult.dateModifierSet && acfTestResult.postId && (
+              {neoFieldsTestResult.dateModifierSet && neoFieldsTestResult.postId && (
                 <div className="text-sm text-green-400">
                   <CheckCircle2 className="mr-1 inline h-3.5 w-3.5" aria-hidden />
-                  Set date_modifier to {new Date().toISOString().split("T")[0]} on post {acfTestResult.postId}
+                  Set date_modifier to {new Date().toISOString().split("T")[0]} on post {neoFieldsTestResult.postId}
                 </div>
               )}
-              {acfTestResult.postUrl && (
+              {neoFieldsTestResult.postUrl && (
                 <div className={getCyberpunkTextClasses("muted")}>
                   <a
-                    href={acfTestResult.postUrl}
+                    href={neoFieldsTestResult.postUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary underline underline-offset-2 hover:text-primary/90"
@@ -721,11 +710,11 @@ ${footnote}`;
                   </a>
                 </div>
               )}
-              {acfTestResult.acfFields && Object.keys(acfTestResult.acfFields).length > 0 && (
+              {neoFieldsTestResult.neoFields && Object.keys(neoFieldsTestResult.neoFields).length > 0 && (
                 <div className={getCyberpunkTextClasses("muted")}>
                   <span className="font-medium">Fields Found</span>
                   {": "}
-                  {Object.keys(acfTestResult.acfFields).join(", ")}
+                  {Object.keys(neoFieldsTestResult.neoFields).join(", ")}
                 </div>
               )}
             </div>
@@ -735,14 +724,14 @@ ${footnote}`;
                 <XCircle className="mr-1 inline h-3.5 w-3.5" aria-hidden />
                 ACF REST API Not Configured
               </div>
-              {acfTestResult.error && <div className="text-red-300/80">{acfTestResult.error}</div>}
-              {acfTestResult.requiredConfig?.php && (
+              {neoFieldsTestResult.error && <div className="text-red-300/80">{neoFieldsTestResult.error}</div>}
+              {neoFieldsTestResult.requiredConfig?.php && (
                 <div className="mt-2">
                   <div className={`mb-1 font-medium ${getCyberpunkTextClasses("secondary")}`}>
                     Add to functions.php
                   </div>
                   <pre className="overflow-x-auto rounded-md bg-muted/50 p-2 text-xs">
-                    {acfTestResult.requiredConfig.php.join("\n")}
+                    {neoFieldsTestResult.requiredConfig.php.join("\n")}
                   </pre>
                 </div>
               )}

@@ -135,6 +135,7 @@ export function MultiSiteContentOptimizerWorkspaceHeader({
       rowProgressDs={rowProgressDs}
       sitemapInventoryLinks={warmDetails.sitemapInventoryLinks}
       gscHostedLink={warmDetails.gscHostedLink}
+      inventoryRows={warmDetails.inventoryRows}
       sitemapInventoryLoading={warmDetails.sitemapInventoryLoading}
       isOptimizingContent={isOptimizingContent}
       optimizationFileManagers={optimizationFileManagers}

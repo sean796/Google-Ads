@@ -1,6 +1,9 @@
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Download, FileText } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Download, FileText, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { MY_SITES_FIELD } from "@/components/hosting/my-sites/my-sites-theme";
 import {
   WorkspaceNestedInput,
   WorkspaceNestedTextarea,
@@ -75,6 +78,7 @@ import { DEFAULT_SETTINGS } from "@/components/integrations/wordpress/Optimizati
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_ANALYZE_DONE, NOTIFY_CLIENT_MEETING_SCRIPT_IS_NOT_READY_YET, NOTIFY_COULD_NOT_COPY, NOTIFY_DOWNLOADED_CLIENT_MEETING_SCRIPT_MD, NOTIFY_DOWNLOADED_STRATEGY_MD, NOTIFY_ENTER_A_SEED_SITE_URL_FIRST, NOTIFY_ENTER_A_SEED_SITE_URL_HTTPS_EXAMPLE_COM, NOTIFY_ENTITY_SAP_CSV_IS_NOT_READY_YET, NOTIFY_GENERATE_A_PROPOSAL_FIRST, NOTIFY_GRID_CSV_DOWNLOADED, NOTIFY_GRID_IMPORT_DONE, NOTIFY_LOCAL_ANALYSIS_DID_NOT_RETURN_COMPETITOR, NOTIFY_NO_NEW_COMPETITORS_FROM_GRID, NOTIFY_POSTS_CSV_IS_NOT_READY_YET, NOTIFY_PROPOSAL_COPIED, NOTIFY_PROPOSAL_INCOMPLETE_BLOG_ROWS_SAVED, NOTIFY_PROPOSAL_INCOMPLETE_SAP_AND_BLOG_ROWS_SA, NOTIFY_PROPOSAL_INCOMPLETE_SAP_ROWS_SAVED, NOTIFY_RUN_ANALYZE_FIRST_OR_IMPORT_A_GRID_CSV, NOTIFY_SELECT_AT_LEAST_ONE_COMPETITOR, NOTIFY_SELECT_A_CONNECTED_SITE_WITH_A_URL, NOTIFY_STRATEGY_MARKDOWN_IS_NOT_READY_YET, notifyAddedXCompetitorSFromGridCsv, notifyAddedXCompetitorSFromGridCsvUpdat, notifyFileTooLargeMaxXMb, notifyGridCsvSapScanX, notifyGridSkipX, notifyGridXXNoWebsite, notifyGridXXX, notifyGscX2, notifyPresenterTalkScriptFailedX, notifyResearchXX, notifySiteAuditFinishedWithXPartialError, notifySiteAuditSkippedX, notifySiteAuditSkippedX2, notifyUpdatedXCompetitorSFromGridCsvWer } from "@/lib/notify-messages";
 import { CompetitorSiteGrid } from "@/components/research/competitor/CompetitorSiteGrid";
+import { ProposalToolbar } from "@/components/research/proposal/ProposalToolbar";
 import { ProposalWorkspaceHeader } from "@/components/research/proposal/ProposalWorkspaceHeader";
 import type { GeneratorWorkspaceChromeBindings } from "@/components/blog-generator/generator-workspace-chrome-bindings";
 import { WORKSPACE_DETAILS_DIM_OVERLAY_CLASS } from "@/components/overview/overview-tab/overview-tab-content-constants";
@@ -84,6 +88,7 @@ import {
   SEO_WORKSPACE_SHELL_CLASS,
   SEO_WORKSPACE_TYPO_CLASS,
 } from "@/components/seo/seo-workspace-layout";
+import { BULK_HEADER_RUN_BTN } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import { buildProposalReportMarkdown, downloadLocalAnalysisBulkCsv } from "@/lib/local-analysis-csv-export";
 import { getOptimizationSettings, getResearchModel } from "@/lib/optimization-settings-storage";
 import { getPrimaryCityStateLabel, resolvePrimaryLocationLabel } from "@/lib/primary-location-from-site";
@@ -172,10 +177,21 @@ function buildCombinedProposalMarkdown(args: {
 
 export type ProposalResearchTabProps = {
   generatorChrome: GeneratorWorkspaceChromeBindings;
+  studioEmbedded?: boolean;
 };
 
-export function ProposalResearchTab({ generatorChrome }: ProposalResearchTabProps) {
+export function ProposalResearchTab({
+  generatorChrome,
+  studioEmbedded = false,
+}: ProposalResearchTabProps) {
   const [detailsDrawerOpen, setDetailsDrawerOpen] = useState(false);
+  const [band2Target, setBand2Target] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!studioEmbedded) return;
+    const el = document.getElementById("universal-studio-band-2-filters");
+    setBand2Target(el);
+  }, [studioEmbedded]);
   const { sites } = useWordPressSites();
   const {
     mode: workspaceMode,
@@ -1531,7 +1547,35 @@ export function ProposalResearchTab({ generatorChrome }: ProposalResearchTabProp
   );
 
   return (
-    <div className={cn(SEO_WORKSPACE_SHELL_CLASS, SEO_WORKSPACE_TYPO_CLASS)}>
+    <div
+      className={cn(
+        studioEmbedded
+          ? "flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-zinc-950"
+          : SEO_WORKSPACE_SHELL_CLASS,
+        SEO_WORKSPACE_TYPO_CLASS,
+      )}
+    >
+      {studioEmbedded && band2Target
+        ? createPortal(
+            <ProposalToolbar
+              busy={busy}
+              phase={phase}
+              gridCsvBusy={gridCsvBusy}
+              hasSemrushRows={Boolean(semrushData?.rows?.length)}
+              proposalPackageDisabled={proposalPackageDisabled}
+              hasCombinedMd={Boolean(combinedMd?.trim())}
+              gridCsvFileRef={gridCsvFileRef}
+              onGridCsvFileChange={onGridCsvFileChange}
+              onDownloadGridCsv={downloadGridCsv}
+              onAnalyze={() => void analyze()}
+              onGenerateProposal={() => void generateProposal()}
+              onCopyProposal={() => void copyProposalPackage()}
+              onDownloadProposalPackage={downloadProposalPackage}
+            />,
+            band2Target,
+          )
+        : null}
+
       {workspaceMode === "connected" && (!site || !site.siteUrl?.trim()) ? (
         <div className="neo-pulse-zone-tile--data px-2 py-3 text-base leading-normal text-muted-foreground">
           {!site
@@ -1540,60 +1584,154 @@ export function ProposalResearchTab({ generatorChrome }: ProposalResearchTabProp
         </div>
       ) : (
         <>
-          <div className={SEO_WORKSPACE_HEADER_CLASS}>
-            <ProposalWorkspaceHeader
-              {...generatorChrome}
-              onDetailsOpenChange={setDetailsDrawerOpen}
-              busy={busy}
-              phase={phase}
-              proposalSubphase={proposalSubphase}
-              competitorPipelineStep={competitorPipelineStep}
-              competitorPipelineLabel={competitorPipelineLabel}
-              localPipelineStep={localPipelineStep}
-              localPipelineLabel={localPipelineLabel}
-              reportMicroLabel={reportMicroLabel}
-              reportProgressPct={reportProgressPct}
-              canOpenDetails={canOpenDetails}
-              toolbarProps={{
-                busy,
-                phase,
-                gridCsvBusy,
-                hasSemrushRows: Boolean(semrushData?.rows?.length),
-                proposalPackageDisabled,
-                hasCombinedMd: Boolean(combinedMd?.trim()),
-                gridCsvFileRef,
-                onGridCsvFileChange,
-                onDownloadGridCsv: downloadGridCsv,
-                onAnalyze: () => void analyze(),
-                onGenerateProposal: () => void generateProposal(),
-                onCopyProposal: () => void copyProposalPackage(),
-                onDownloadProposalPackage: downloadProposalPackage,
-              }}
-              detailsProps={{
-                workspaceMode,
-                phase,
-                proposalSubphase,
-                competitorPipelineStep,
-                competitorPipelineLabel,
-                localPipelineStep,
-                localPipelineLabel,
-                reportMicroLabel,
-                gscError,
-                gridSapSummaryMarkdown,
-                gridCsvBusy,
-                gridCsvProgress,
-                error,
-                hasSapScheduleRows: Boolean(lastSapScheduleRows?.length),
-                onDownloadEntitySapCsv: downloadEntitySapCsv,
-              }}
-            />
-          </div>
+          {!studioEmbedded ? (
+            <div className={SEO_WORKSPACE_HEADER_CLASS}>
+              <ProposalWorkspaceHeader
+                {...generatorChrome}
+                onDetailsOpenChange={setDetailsDrawerOpen}
+                busy={busy}
+                phase={phase}
+                proposalSubphase={proposalSubphase}
+                competitorPipelineStep={competitorPipelineStep}
+                competitorPipelineLabel={competitorPipelineLabel}
+                localPipelineStep={localPipelineStep}
+                localPipelineLabel={localPipelineLabel}
+                reportMicroLabel={reportMicroLabel}
+                reportProgressPct={reportProgressPct}
+                canOpenDetails={canOpenDetails}
+                toolbarProps={{
+                  busy,
+                  phase,
+                  gridCsvBusy,
+                  hasSemrushRows: Boolean(semrushData?.rows?.length),
+                  proposalPackageDisabled,
+                  hasCombinedMd: Boolean(combinedMd?.trim()),
+                  gridCsvFileRef,
+                  onGridCsvFileChange,
+                  onDownloadGridCsv: downloadGridCsv,
+                  onAnalyze: () => void analyze(),
+                  onGenerateProposal: () => void generateProposal(),
+                  onCopyProposal: () => void copyProposalPackage(),
+                  onDownloadProposalPackage: downloadProposalPackage,
+                }}
+                detailsProps={{
+                  workspaceMode,
+                  phase,
+                  proposalSubphase,
+                  competitorPipelineStep,
+                  competitorPipelineLabel,
+                  localPipelineStep,
+                  localPipelineLabel,
+                  reportMicroLabel,
+                  gscError,
+                  gridSapSummaryMarkdown,
+                  gridCsvBusy,
+                  gridCsvProgress,
+                  error,
+                  hasSapScheduleRows: Boolean(lastSapScheduleRows?.length),
+                  onDownloadEntitySapCsv: downloadEntitySapCsv,
+                }}
+              />
+            </div>
+          ) : null}
 
-          <div className={cn(SEO_WORKSPACE_BODY_SCROLL_CLASS, "relative space-y-2")}>
+          <div
+            className={cn(
+              studioEmbedded
+                ? "flex h-full min-h-0 w-full flex-1 flex-col overflow-y-auto bg-zinc-950 px-4 py-6 sm:px-8"
+                : cn(SEO_WORKSPACE_BODY_SCROLL_CLASS, "relative space-y-4"),
+            )}
+          >
             {detailsDrawerOpen ? (
               <div className={WORKSPACE_DETAILS_DIM_OVERLAY_CLASS} aria-hidden />
             ) : null}
-            <div className="flex flex-col gap-2.5">
+            {studioEmbedded ? (
+              <div className="mx-auto w-full max-w-4xl">
+                <section className="flex flex-col gap-4 border border-white/10 bg-zinc-900/60 px-6 py-7 sm:px-10 sm:py-8">
+                  {/* Slot 1: Header */}
+                  <div className="flex w-full items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-base font-semibold text-white">
+                      <Sparkles className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                      <span>Content & Keyword Strategy</span>
+                    </div>
+                    <span className="text-xs font-mono text-muted-foreground">
+                      Research Blueprint & Sizing
+                    </span>
+                  </div>
+
+                  {/* Slot 2: Primary Textarea */}
+                  <Textarea
+                    id="proposal-strategist-guidance"
+                    value={strategistGuidance}
+                    onChange={(e) => setStrategistGuidance(e.target.value)}
+                    disabled={busy}
+                    rows={3}
+                    aria-label="Strategy guidance"
+                    placeholder="Angles, tone, priorities, or constraints…"
+                    className={cn(
+                      MY_SITES_FIELD,
+                      "min-h-[7.5rem] h-[7.5rem] w-full resize-y bg-zinc-900 p-3.5 text-sm",
+                    )}
+                  />
+
+                  {/* Slot 3: Secondary Parameters Grid */}
+                  <div className="grid w-full grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="flex h-10 items-center justify-between rounded-none border border-white/10 bg-zinc-900 px-3">
+                      <span className="text-xs text-muted-foreground">Months:</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={6}
+                        value={scheduleMonths}
+                        onChange={(e) => setScheduleMonths(Number(e.target.value))}
+                        disabled={busy}
+                        className="h-8 w-16 border-0 bg-transparent text-right font-mono text-sm text-white tabular-nums focus:outline-none"
+                      />
+                    </div>
+                    <div className="flex h-10 items-center justify-between rounded-none border border-white/10 bg-zinc-900 px-3">
+                      <span className="text-xs text-muted-foreground">Entity/Month:</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={50}
+                        value={entitySapPerMonth}
+                        onChange={(e) => setEntitySapPerMonth(Number(e.target.value))}
+                        disabled={busy}
+                        title="Planning only"
+                        className="h-8 w-16 border-0 bg-transparent text-right font-mono text-sm text-white tabular-nums focus:outline-none"
+                      />
+                    </div>
+                    <div className="flex h-10 items-center justify-between rounded-none border border-white/10 bg-zinc-900 px-3">
+                      <span className="text-xs text-muted-foreground">Content/Month:</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={50}
+                        value={contentBlogsPerMonth}
+                        onChange={(e) => setContentBlogsPerMonth(Number(e.target.value))}
+                        disabled={busy}
+                        className="h-8 w-16 border-0 bg-transparent text-right font-mono text-sm text-white tabular-nums focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Slot 4: Action Footer */}
+                  <div className="flex items-center justify-start gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => void generateProposal()}
+                      className={cn(BULK_HEADER_RUN_BTN, "h-10 min-w-[8.5rem] px-4")}
+                    >
+                      <Sparkles className="mr-1.5 h-4 w-4 shrink-0" aria-hidden />
+                      Proposal
+                    </Button>
+                  </div>
+                </section>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2.5">
                 <WorkspaceNestedTextarea
                   id="proposal-strategist-guidance"
                   label="Strategy"
@@ -1637,7 +1775,8 @@ export function ProposalResearchTab({ generatorChrome }: ProposalResearchTabProp
                     disabled={busy}
                   />
                 </div>
-            </div>
+              </div>
+            )}
 
             {showBlueprintSectionsPanel ? (
               <div

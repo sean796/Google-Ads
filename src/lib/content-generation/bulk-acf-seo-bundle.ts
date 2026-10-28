@@ -181,7 +181,7 @@ export async function buildPostMarkdownAcfSeoFaqBundle(
     }
   } else if (primaryKw && markdownContent && openRouterApiKey?.trim()) {
     const napLocs = napLocationsFromSite(site);
-    onProgress?.(`Generating in-context FAQ for ACF...`);
+    onProgress?.(`Generating in-context FAQ...`);
     const briefForFaq = JSON.stringify(seoResearchObj).slice(0, 24000);
     const entries = await generateBulkFaqEntriesInContext({
       markdownContent,

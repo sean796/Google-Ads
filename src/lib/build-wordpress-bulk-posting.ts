@@ -11,7 +11,10 @@ import { resolveBulkWordPressPublishDate, resolveTimesPerMonthAnchorStart, type 
 import type { BulkSitemapMode } from '@/lib/bulk/bulk-sitemap-mode';
 import { defaultBulkSitemapMode, postingSitemapPlaceholder } from '@/lib/bulk/bulk-sitemap-mode';
 
-type SiteCfg = { sitemapType: BulkSitemapMode };
+type SiteCfg = {
+  sitemapType: BulkSitemapMode;
+  wordpressRestEndpoint?: 'posts' | 'pages';
+};
 
 /** When UI selection is empty, use the enabled / connected stored site (workspace chrome path). */
 export function resolveDefaultWordPressSiteSelection(): {
@@ -122,6 +125,8 @@ export function buildWordPressPostingFromSelection(params: {
     useGapScheduling: gapActive,
     draftOnly: draftOnly || undefined,
     publishDays: scheduleFrequency === 'custom' ? publishDays : undefined,
+    wordpressRestEndpoint:
+      firstCfg.wordpressRestEndpoint === 'pages' ? 'pages' : 'posts',
   };
 }
 

@@ -4,6 +4,7 @@ import {
   combineKeywordWithFullEntity,
   cycleItemsForRowCount,
   isDirectionalCompassPlaceLabel,
+  neighbourhoodPicksFromWikiPool,
   pickNeighbourhoodEntitiesForCluster,
   runEntityGridLocationClusterAgent,
 } from "@/lib/local-analysis/entity-grid-location-wiki-agent";
@@ -24,13 +25,12 @@ describe("pickNeighbourhoodEntitiesForCluster client context", () => {
       "fetch",
       vi.fn(async (_input: RequestInfo, init?: RequestInit) => {
         const body = JSON.parse(String(init?.body ?? "{}")) as {
-          messages?: { role: string; content: string }[];
+          system?: string;
+          user?: string;
         };
-        const system = body.messages?.find((m) => m.role === "system")?.content ?? "";
-        const user = body.messages?.find((m) => m.role === "user")?.content ?? "";
-        expect(system).toContain("Client-aware entity preference");
-        expect(user).toContain("clientAudienceContextMarkdown");
-        expect(user).toContain("Business districts and downtown cores");
+        expect(body.system ?? "").toContain("Client-aware entity preference");
+        expect(body.user ?? "").toContain("clientAudienceContextMarkdown");
+        expect(body.user ?? "").toContain("Business districts and downtown cores");
         const content = JSON.stringify({
           parentCity: "Sherwood Park, AB",
           entities: [{ name: "Baseline, Sherwood Park, AB", posWeight: 12 }],
@@ -71,16 +71,46 @@ describe("pickNeighbourhoodEntitiesForCluster client context", () => {
     expect(picks[0]?.name).toBe("Baseline, Sherwood Park, AB");
   });
 
+  it("fills from wikipedia pool when the model reply is not JSON", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            ok: true,
+            content:
+              "We need answer only valid JSON. Need plan sub-ad neighbourhoods under parent city Calgary, AB",
+            raw: { choices: [{ message: { content: "not json" } }] },
+          }),
+          { status: 200 },
+        ),
+      ),
+    );
+
+    const picks = await pickNeighbourhoodEntitiesForCluster(
+      sampleBucket,
+      ["Calgary, AB"],
+      [],
+      2,
+      "test-key",
+      undefined,
+      {
+        wikipediaPool: [
+          { entityLabel: "Baseline, Sherwood Park, AB", wikipediaTitle: "Baseline, Sherwood Park" },
+          { entityLabel: "Summerside, Sherwood Park, AB", wikipediaTitle: "Summerside, Edmonton" },
+        ],
+      },
+    );
+    expect(picks).toHaveLength(2);
+    expect(picks[0]?.name).toContain("Sherwood Park");
+  });
+
   it("forwards entitiesAlreadyUsed from entity sitemap into neighbourhood pick payload", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (_input: RequestInfo, init?: RequestInit) => {
-        const body = JSON.parse(String(init?.body ?? "{}")) as {
-          messages?: { role: string; content: string }[];
-        };
-        const user = JSON.parse(
-          body.messages?.find((m) => m.role === "user")?.content ?? "{}",
-        ) as { entitiesAlreadyUsed?: string[] };
+        const body = JSON.parse(String(init?.body ?? "{}")) as { user?: string };
+        const user = JSON.parse(body.user ?? "{}") as { entitiesAlreadyUsed?: string[] };
         expect(user.entitiesAlreadyUsed).toContain("Existing Neighbourhood, Sherwood Park, AB");
         const content = JSON.stringify({
           parentCity: "Sherwood Park, AB",
@@ -113,6 +143,20 @@ describe("pickNeighbourhoodEntitiesForCluster client context", () => {
     );
     expect(picks).toHaveLength(1);
     expect(picks[0]?.name).toBe("Baseline, Sherwood Park, AB");
+  });
+});
+
+describe("neighbourhoodPicksFromWikiPool", () => {
+  it("returns the requested count from harvested labels", () => {
+    const picks = neighbourhoodPicksFromWikiPool(
+      [
+        { entityLabel: "Millwoods, Edmonton, AB" },
+        { entityLabel: "Summerside, Edmonton, AB" },
+      ],
+      2,
+      [],
+    );
+    expect(picks).toHaveLength(2);
   });
 });
 

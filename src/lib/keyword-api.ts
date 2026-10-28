@@ -86,11 +86,31 @@ function setCachedData<T>(keyword: string, data: T, cacheKey: string): void {
       timestamp: Date.now(),
     });
 
-    // Keep only last 50 entries
-    const trimmed = filtered.slice(-50);
-    localStorage.setItem(cacheKey, JSON.stringify(trimmed));
+    // Keep only last 20 entries normally to prevent quota bloat
+    const trimmed = filtered.slice(-20);
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(trimmed));
+    } catch (quotaErr) {
+      // Quota exceeded: prune aggressively to keep only the most recent items
+      try {
+        const compact = trimmed.slice(-5);
+        localStorage.setItem(cacheKey, JSON.stringify(compact));
+      } catch {
+        try {
+          // Keep only current entry if quota is still tight
+          localStorage.setItem(cacheKey, JSON.stringify([filtered[filtered.length - 1]]));
+        } catch {
+          // If storage is completely full, remove the cache key so it does not block execution
+          try {
+            localStorage.removeItem(cacheKey);
+          } catch {
+            // Ignore
+          }
+        }
+      }
+    }
   } catch (e) {
-    console.error("Error writing cache:", e);
+    console.warn("[Keyword API] Cache write skipped (non-critical):", e);
   }
 }
 

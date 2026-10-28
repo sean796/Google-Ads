@@ -75,12 +75,8 @@ export function ManagerMegaMenuNav({
     "bg-primary/12 text-foreground shadow-none ring-1 ring-inset ring-primary/35";
 
   const contentClass = cn(
-    variant === "embedded"
-      ? MANAGER_NAV_DROPDOWN_PANEL
-      : cn(
-          MANAGER_NAV_DROPDOWN_Z,
-          "min-w-[16.5rem] rounded-xl border border-primary/45 bg-black/90 p-1.5 shadow-none backdrop-blur-md text-popover-foreground",
-        ),
+    MANAGER_NAV_DROPDOWN_PANEL,
+    variant === "compact" && "border border-white/[0.08]",
     "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
     "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-1",
     "duration-200",
@@ -94,7 +90,8 @@ export function ManagerMegaMenuNav({
   const queryClient = useQueryClient();
   const isOrganicDashboardRoute =
     /^\/sites\/[^/]+\/organic\/?$/.test(location.pathname) ||
-    managerTab === "organic-reporting";
+    managerTab === "organic-reporting" ||
+    managerTab === "local-dominator";
 
   const resolveOrganicNavSite = useCallback((): WordPressSite | undefined => {
     const enabled = sites.filter((s) => s.enabled !== false);
@@ -154,14 +151,15 @@ export function ManagerMegaMenuNav({
   );
 
   const dropdownItemClass = (index: number, selected: boolean) =>
-    variant === "embedded"
-      ? cn(MANAGER_NAV_DROPDOWN_ITEM_BASE, managerNavDropdownRowClass(index, selected))
-      : cn(
-          "cursor-pointer rounded-lg px-2.5 py-2 outline-none transition-colors duration-150",
-          selected
-            ? "bg-primary text-black focus:bg-primary data-[highlighted]:bg-primary"
-            : "focus:bg-accent data-[highlighted]:bg-accent",
-        );
+    cn(
+      variant === "embedded"
+        ? MANAGER_NAV_DROPDOWN_ITEM_BASE
+        : cn(
+            MANAGER_NAV_DROPDOWN_ITEM_BASE,
+            "px-2.5 py-2 duration-150",
+          ),
+      managerNavDropdownRowClass(index, selected),
+    );
 
   const dropdownIconClass = (selected: boolean) =>
     variant === "embedded"
@@ -199,14 +197,7 @@ export function ManagerMegaMenuNav({
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent
             sideOffset={2}
-            className={cn(
-              variant === "embedded"
-                ? cn(MANAGER_NAV_DROPDOWN_PANEL, "border border-white/[0.08]")
-                : cn(
-                    MANAGER_NAV_DROPDOWN_Z,
-                    "min-w-[12rem] rounded-xl border border-primary/45 bg-black/90 p-1.5 shadow-none backdrop-blur-md text-popover-foreground",
-                  ),
-            )}
+            className={cn(MANAGER_NAV_DROPDOWN_PANEL, "min-w-[12rem] border border-white/[0.08]")}
           >
             {item.children.map((child, childIndex) => {
               const ChildIcon = child.icon;
@@ -215,6 +206,7 @@ export function ManagerMegaMenuNav({
                 child,
                 dashboardCluster,
                 activeGeneratorSection,
+                location.pathname,
               );
               const prefetchOnHover =
                 child.organicDashboard === true
@@ -245,9 +237,13 @@ export function ManagerMegaMenuNav({
       );
     }
 
-    const selected = item.organicDashboard
-      ? isOrganicDashboardRoute
-      : isManagerNavItemSelected(managerTab, item, dashboardCluster, activeGeneratorSection);
+    const selected = isManagerNavItemSelected(
+      managerTab,
+      item,
+      dashboardCluster,
+      activeGeneratorSection,
+      location.pathname,
+    );
     return (
       <DropdownMenuItem
         key={item.id ?? item.value}

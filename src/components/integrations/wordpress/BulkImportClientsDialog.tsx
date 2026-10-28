@@ -22,8 +22,8 @@ import Papa from "papaparse";
 import { BulkImportClientRow, type BulkImportClient } from "./BulkImportClientRow";
 import { getCyberpunkTextClasses, getCyberpunkButtonClasses } from "./cyberpunk-theme";
 
-const TEMPLATE_CSV = `name,siteUrl,username,appPassword,googleAdsCustomerId
-"My Client","https://example.com","admin","xxxx xxxx xxxx xxxx","1234567890"`;
+const TEMPLATE_CSV = `name,siteUrl,username,appPassword,googleAdsCustomerId,primaryLocalKeyword
+"My Client","https://example.com","admin","xxxx xxxx xxxx xxxx","1234567890","blinds near me"`;
 
 function normalizeHeader(h: string): string {
   const s = (h || "").trim().toLowerCase().replace(/\s+/g, "");
@@ -32,6 +32,14 @@ function normalizeHeader(h: string): string {
   if (s === "username" || s === "user") return "username";
   if (s === "apppassword" || s === "applicationpassword" || s === "apppass") return "appPassword";
   if (s === "googleadscustomerid" || s === "adscustomerid" || s === "googleadsid") return "googleAdsCustomerId";
+  if (
+    s === "primarylocalkeyword" ||
+    s === "primarykeyword" ||
+    s === "localgridkeyword" ||
+    s === "localkeyword"
+  ) {
+    return "primaryLocalKeyword";
+  }
   return s;
 }
 
@@ -60,6 +68,7 @@ function parseClientCSV(file: File): Promise<{ clients: BulkImportClient[]; skip
         let username: string;
         let appPassword: string;
         let googleAdsCustomerId: string;
+        let primaryLocalKeyword: string;
 
         if (hasHeaders && row && typeof row === "object" && !Array.isArray(row)) {
           const r = row as Record<string, string>;
@@ -69,6 +78,7 @@ function parseClientCSV(file: File): Promise<{ clients: BulkImportClient[]; skip
           username = get("username");
           appPassword = get("appPassword");
           googleAdsCustomerId = get("googleAdsCustomerId").replace(/\D/g, "");
+          primaryLocalKeyword = get("primaryLocalKeyword");
         } else {
           const arr = Array.isArray(row) ? row : Object.values(row as Record<string, unknown>);
           name = String(arr[0] ?? "").trim();
@@ -76,6 +86,7 @@ function parseClientCSV(file: File): Promise<{ clients: BulkImportClient[]; skip
           username = String(arr[2] ?? "").trim();
           appPassword = String(arr[3] ?? "").trim();
           googleAdsCustomerId = "";
+          primaryLocalKeyword = "";
         }
 
         siteUrl = ensureHttps(siteUrl);
@@ -91,6 +102,7 @@ function parseClientCSV(file: File): Promise<{ clients: BulkImportClient[]; skip
           username,
           appPassword,
           googleAdsCustomerId: googleAdsCustomerId || undefined,
+          primaryLocalKeyword: primaryLocalKeyword || undefined,
         });
       }
       return { clients, skipped, errors };
@@ -234,7 +246,7 @@ export const BulkImportClientsDialog: React.FC<BulkImportClientsDialogProps> = (
             Bulk Import Clients
           </DialogTitle>
           <DialogDescription className="text-foreground">
-            Upload a CSV with columns: name, siteUrl, username, appPassword. Optional: googleAdsCustomerId. Review and approve, then add all.
+            Upload a CSV with columns: name, siteUrl, username, appPassword. Optional: googleAdsCustomerId, primaryLocalKeyword. Review and approve, then add all.
           </DialogDescription>
         </DialogHeader>
 

@@ -145,7 +145,7 @@ export async function runBulkRowBlueprintDraftPhase(input: {
     topP: options.topP || 0.9,
   };
 
-  const sequentialDraft = Boolean(options.sequentialHarnessSections || useGoogleMaps);
+  const sequentialDraft = Boolean(useGoogleMaps || options.sequentialHarnessSections);
   options.onProgress?.(
     rowIndex,
     0,
@@ -202,7 +202,7 @@ export async function runBulkRowBlueprintDraftPhase(input: {
           flowPurposeStr,
           outlineTextForImage,
           imageChecklistLlmOptions,
-        )
+        ).catch(() => [])
       : [];
     precomputedMetaDescription = csvMetaDescription
       ? csvMetaDescription
@@ -213,7 +213,7 @@ export async function runBulkRowBlueprintDraftPhase(input: {
           pipelineSiteId,
           metaTitleForBulk,
           false,
-        );
+        ).catch(() => "");
   } else {
     [blueprintResultRaw, precomputedImageChecklist, , precomputedMetaDescription] = await Promise.all([
       generateBlueprintFromTemplate(pipelineChecklist, context, blueprintTemplateArgs),
@@ -223,7 +223,7 @@ export async function runBulkRowBlueprintDraftPhase(input: {
             flowPurposeStr,
             outlineTextForImage,
             imageChecklistLlmOptions,
-          )
+          ).catch(() => [] as ImageChecklistItem[])
         : Promise.resolve([] as ImageChecklistItem[]),
       Promise.resolve(preBlogSeoSkeleton),
       csvMetaDescription
@@ -235,7 +235,7 @@ export async function runBulkRowBlueprintDraftPhase(input: {
             pipelineSiteId,
             metaTitleForBulk,
             false,
-          ),
+          ).catch(() => ""),
     ]);
   }
   const blueprintAgentsWithImports = injectImportedLinksIntoBlueprintAgents(
@@ -359,7 +359,7 @@ export async function runBulkRowBlueprintDraftPhase(input: {
         csvTitle: enrichedRow.title,
         blueprintTitle: blueprintResult.title,
       },
-    });
+    }).catch(() => enrichedRow.title?.trim() || blueprintResult.title?.trim() || bulkPrimaryKwResolved);
     enrichedRow = { ...enrichedRow, title: bulkResolvedPostTitle };
   }
 

@@ -103,6 +103,10 @@ export type EntityPageCreatorExecutionPayload = PostCreatorExecutionPayload & {
   entityAdGroupCount?: number;
   entityAdsPerGroup?: number;
   entityPageCount?: number;
+  /** When true, SAP page count comes from the site editorial package (Standard/Lite). */
+  entityUseEditorialPackage?: boolean;
+  /** When package mode is on, which tier quota to use (defaults to the workflow client package). */
+  entityEditorialPackageTier?: import("@/lib/editorial-content-package").EditorialContentPackageTier;
   focusKeyword?: string;
   gridCsvUrl?: string;
   gridCsvBase64?: string;
@@ -183,6 +187,10 @@ export type TaskExecutionPayload = {
   entityAdGroupCount?: number;
   entityAdsPerGroup?: number;
   entityPageCount?: number;
+  /** When true, SAP page count comes from the site editorial package (Standard/Lite). */
+  entityUseEditorialPackage?: boolean;
+  /** When package mode is on, which tier quota to use (defaults to the workflow client package). */
+  entityEditorialPackageTier?: import("@/lib/editorial-content-package").EditorialContentPackageTier;
   focusKeyword?: string;
   /** Clipped ACF seo_research snippet for DFS article audit. */
   seoResearchBrief?: string;
@@ -226,6 +234,8 @@ export type TaskExecutionPayload = {
   contentGapSitemapSource?: ContentGapSitemapSource;
   contentGapCountMode?: ContentGapCountMode;
   contentGapTargetCount?: number;
+  /** When true, target count comes from the site editorial package (blogs or SAP quota). */
+  contentGapUseEditorialPackage?: boolean;
   /** Calendar month for scheduled/posted counts (YYYY-MM). Defaults to current month at run time. */
   contentGapCountMonth?: string;
   /** Day of every month this check is for (1–31). */

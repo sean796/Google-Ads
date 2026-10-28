@@ -39,10 +39,9 @@ const SYSTEM = `You are an expert SEO copywriter optimizing Overview grid rows i
 For EVERY url in allowedUrls return exactly one result object with that exact url.
 
 Meta rules (always):
-- metaDescription: 130-150 characters, natural language, specific value for the searcher, neutral tone.
+- metaDescription: 130-155 characters, natural language, specific value for the searcher, neutral tone, standard sentence case (capitalize the first word of the sentence and proper nouns/trademarks only).
 - ${META_DESCRIPTION_ANTI_CLICKBAIT_RULE}
-- ${UNIFIED_COPY_FORMATTING_RULE}
-- Include the full focusKeyword phrase exactly as WRITING KEYWORD in catalog (Title Case every word). Do not add brand or site names. Do not paste JSON briefs into output.
+- **Grammar and natural flow come first**: Never dump the focusKeyword at the start with a colon, dash, or comma (e.g. FORBIDDEN: "energy efficient windows science: How Low-E..."). Weave the topic words from focusKeyword naturally into a complete, grammatically sound sentence using prepositions, articles, and natural word order. Do not add brand or site names. Do not paste JSON briefs into output.
 - Use seoResearchBrief as primary intent signal per row.
 
 Title rules (only when includeTitle is true for that row):

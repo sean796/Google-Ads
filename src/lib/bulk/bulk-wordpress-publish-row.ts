@@ -61,14 +61,12 @@ import {
 import {
   createWordPressPost,
   updateWordPressPost,
-  updateWordPressPostMeta,
   uploadWordPressMedia,
 } from '@/lib/wordpress-api';
-import { getACFFieldsForPost, resolveAcfFieldsForMapping } from '@/lib/wordpress-api/acf-discovery';
+import { updateOverviewSeoItem } from '@/lib/wordpress-api/meta';
 import { resolveRecommendedAuthor } from '@/lib/wordpress-api/author-resolver';
 import { validateAndStripInvalidLinksFromContent } from '@/lib/wordpress-api/validate-internal-links';
-import { discoverACFFieldMapping, fallbackFieldMapping } from '@/lib/content-generation/acf-field-mapper';
-import { updateACFFields } from '@/lib/wordpress-acf-origin';
+import { NEO_PULSE_DEFAULT_FIELD_MAPPING } from '@/lib/content-generation/acf-field-mapper';
 import {
   getSapMapsMediaId,
   sapMapsImageFileName,
@@ -360,10 +358,12 @@ export async function publishBulkRowToWordPressSites(
           // Always attempt upload for each row. (We no longer skip when an entity label appears in the entity
           // sitemap - titles/slugs differ per post; users asked to never skip scheduled rows for that reason.)
 
+          const standardRestEndpoint =
+            options.wordPressPosting?.wordpressRestEndpoint === 'pages' ? 'pages' : 'posts';
           const entityEndpoint =
             sitemapType === 'entity'
               ? resolveEntityEndpointForRow(site, enrichedRow, sitemapType)
-              : 'posts';
+              : standardRestEndpoint;
 
           let siteFeaturedImageId = featuredImageId;
           if (siteIndex > 0 && useGoogleMaps && entityForImage) {
@@ -602,38 +602,19 @@ export async function publishBulkRowToWordPressSites(
               site.siteUrl
             );
 
-            /** Hoisted so research JSON + bulk ACF SEO apply share the same merged string. */
             let seoResearchJson = '';
             try {
-              options.onProgress?.(rowIndex, 0, `Discovering ACF fields for post ${postResult.postId}...`);
-              const acfResult = await getACFFieldsForPost(
-                site,
-                postResult.postId,
-                postTypeForAcf,
-                entityEndpoint
-              );
-              const existingAcfFields = acfResult.success && acfResult.fields ? acfResult.fields : {};
-              const fieldsForMapping = await resolveAcfFieldsForMapping(
-                site,
-                existingAcfFields as Record<string, unknown>,
-              );
               const openRouterApiKey = options.openRouterApiKey || loadApiKey();
-              const fbMapping = fallbackFieldMapping(fieldsForMapping);
-              const discoveredMapping = await discoverACFFieldMapping(
-                fieldsForMapping,
-                postTypeForAcf,
-                openRouterApiKey || '',
-                site.siteUrl
-              );
-              const fieldMapping = { ...fbMapping, ...discoveredMapping };
+              const existingAcfFields: Record<string, unknown> = {};
+              const fieldMapping = { ...NEO_PULSE_DEFAULT_FIELD_MAPPING };
               const fieldNames = {
-                dateModifier: fieldMapping.dateModifier || 'date_modifier',
-                faq: fieldMapping.faq || 'faq',
-                promptModifier: fieldMapping.promptModifier || 'prompt_modifier',
-                origin: fieldMapping.origin || 'origin',
-                competitor: fieldMapping.competitor || 'competitor',
-                keywordFocus: fieldMapping.keywordFocus || 'keyword_focus',
-                seoResearch: fieldMapping.seoResearch || 'seo_research',
+                dateModifier: fieldMapping.dateModifier,
+                faq: fieldMapping.faq,
+                promptModifier: fieldMapping.promptModifier,
+                origin: fieldMapping.origin,
+                competitor: 'competitor',
+                keywordFocus: fieldMapping.keywordFocus,
+                seoResearch: fieldMapping.seoResearch,
               };
 
               let faqForAcf = '';
@@ -725,7 +706,7 @@ export async function publishBulkRowToWordPressSites(
                   options.onProgress?.(
                     rowIndex,
                     0,
-                    `Generating in-context FAQ for ACF...`
+                    `Generating in-context FAQ...`
                   );
                   const briefForFaq = JSON.stringify(seoResearchObj).slice(0, 24000);
                   const entries = await generateBulkFaqEntriesInContext({
@@ -870,74 +851,63 @@ export async function publishBulkRowToWordPressSites(
               options.onProgress?.(
                 rowIndex,
                 0,
-                `SEO meta + ACF (single batch) for post ${postResult.postId}...`,
+                `Syncing NEO Pulse SEO & fields for post ${postResult.postId}...`,
               );
 
-              const rankMathPromise = updateWordPressPostMeta(
-                site.siteUrl,
-                site.username,
-                site.appPassword,
-                postResult.postId,
-                postTypeForAcf,
-                entityEndpoint,
-                {
-                  rank_math_title: optimizedMetaForSync.rank_math_title,
-                  rank_math_description: optimizedMetaForSync.rank_math_description,
-                  rank_math_focus_keyword: optimizedMetaForSync.rank_math_focus_keyword,
-                },
-              ).catch((rmErr) => {
-                console.warn('[Bulk Upload] SEO post meta sync failed (non-fatal):', rmErr);
-              });
+              if (Object.keys(acfWritePayload).length > 0) {
+                const pulseRes = await updateOverviewSeoItem(
+                  site.siteUrl,
+                  site.username,
+                  site.appPassword,
+                  {
+                    postId: postResult.postId,
+                    postType: postTypeForAcf,
+                    postTypeEndpoint: entityEndpoint,
+                    postTitle: acfWritePayload.seo_title || postTitle,
+                    postExcerpt: acfWritePayload.meta_description || excerpt,
+                    acf: acfWritePayload,
+                  },
+                );
+                if (pulseRes.ok) {
+                  acfUpdatedList = Object.keys(acfWritePayload);
+                  console.log(
+                    `[Bulk Upload] NEO Pulse SEO synced [${acfUpdatedList.join(', ')}] post ${postResult.postId}`,
+                  );
+                  options.onProgress?.(
+                    rowIndex,
+                    0,
+                    `NEO Pulse saved: ${acfUpdatedList.join(', ')}`,
+                  );
+                } else {
+                  console.warn(
+                    `[Bulk Upload] NEO Pulse SEO sync failed for post ${postResult.postId}:`,
+                    pulseRes.error,
+                  );
+                  options.onProgress?.(
+                    rowIndex,
+                    0,
+                    `NEO Pulse sync failed: ${pulseRes.error || 'Unknown error'}`,
+                  );
+                }
+              }
 
-              const acfPromise =
-                Object.keys(acfWritePayload).length > 0
-                  ? updateACFFields(
-                      site.siteUrl,
-                      site.username,
-                      site.appPassword,
-                      postResult.postId,
-                      acfWritePayload,
-                      postTypeForAcf,
-                      entityEndpoint,
-                    ).then((acfUpdateResult) => {
-                      if (acfUpdateResult.success) {
-                        acfUpdatedList = acfUpdateResult.updated;
-                        console.log(
-                          `[Bulk Upload] ACF batch OK [${acfUpdateResult.updated.join(', ')}] post ${postResult.postId}`,
-                        );
-                        options.onProgress?.(
-                          rowIndex,
-                          0,
-                          `ACF saved: ${acfUpdateResult.updated.join(', ')}`,
-                        );
-                      } else {
-                        const errMsg =
-                          acfUpdateResult.error ||
-                          (acfUpdateResult.failed?.length
-                            ? acfUpdateResult.failed.map((f) => `${f.field}: ${f.error}`).join('; ')
-                            : 'Unknown error');
-                        console.warn(
-                          `[Bulk Upload] ACF batch failed for post ${postResult.postId}:`,
-                          acfUpdateResult,
-                        );
-                        options.onProgress?.(rowIndex, 0, `ACF batch failed: ${errMsg}`);
-                      }
-                    })
-                  : Promise.resolve();
-
-              await Promise.all([rankMathPromise, acfPromise]);
-
-              if (siteIndex === 0) {
+              if (siteIndex === 0 && seoResearchJsonForDownload) {
                 const researchSlug = (enrichedRow.title || blueprintResult.title || 'post')
                   .replace(/[^a-zA-Z0-9]+/g, '-')
                   .toLowerCase();
                 const researchFileName = `seo-research-${researchSlug}-${timestamp}.json`;
                 const researchFileId = BulkFileManager.createFileId(rowIndex, 'seo-research', timestamp);
+                let formattedSeoResearch = seoResearchJsonForDownload;
+                try {
+                  formattedSeoResearch = JSON.stringify(JSON.parse(seoResearchJsonForDownload), null, 2);
+                } catch {
+                  formattedSeoResearch = seoResearchJsonForDownload;
+                }
                 const seoResearchFile: BulkGeneratedFile = {
                   id: researchFileId,
                   rowIndex,
                   fileName: researchFileName,
-                  content: JSON.stringify(JSON.parse(seoResearchJsonForDownload), null, 2),
+                  content: formattedSeoResearch,
                   mimeType: 'application/json',
                   status: 'completed',
                   timestamp,
@@ -946,10 +916,10 @@ export async function publishBulkRowToWordPressSites(
                 fileManager.addFile(seoResearchFile);
                 generatedFiles.push(seoResearchFile);
               }
-            } catch (acfError) {
-              const errMsg = acfError instanceof Error ? acfError.message : String(acfError);
-              console.warn(`[Bulk Upload] Error updating ACF fields for post ${postResult.postId}:`, acfError);
-              options.onProgress?.(rowIndex, 0, `ACF update failed: ${errMsg}`);
+            } catch (seoError) {
+              const errMsg = seoError instanceof Error ? seoError.message : String(seoError);
+              console.warn(`[Bulk Upload] NEO Pulse SEO sync warning for post ${postResult.postId}:`, seoError);
+              options.onProgress?.(rowIndex, 0, `NEO Pulse SEO sync warning: ${errMsg}`);
             }
 
             // Create wordpress-post JSON file for this site
@@ -984,6 +954,25 @@ export async function publishBulkRowToWordPressSites(
             generatedFiles.push(wordPressPostFile);
 
             if (siteIndex === 0) {
+              const finalHtmlTimestamp = Date.now();
+              const finalContentHtmlFileName = BulkFileManager.generateFileName(
+                row,
+                "content",
+                timestamp,
+              ).replace(/\.md$/i, ".html");
+              const finalContentHtmlFile: BulkGeneratedFile = {
+                id: BulkFileManager.createFileId(rowIndex, "content-html-final", finalHtmlTimestamp),
+                rowIndex,
+                fileName: finalContentHtmlFileName,
+                content: contentForUpload,
+                mimeType: "text/html",
+                status: "completed",
+                timestamp: finalHtmlTimestamp,
+                rowData: enrichedRow,
+              };
+              fileManager.addFile(finalContentHtmlFile);
+              generatedFiles.push(finalContentHtmlFile);
+
               const pageUrl =
                 (typeof postResult.link === "string" && postResult.link.trim()) ||
                 `${String(site.siteUrl).replace(/\/$/, "")}/?p=${postResult.postId}`;

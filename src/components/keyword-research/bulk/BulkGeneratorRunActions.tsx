@@ -64,9 +64,9 @@ export function BulkGeneratorRunActions({
       {trailing}
       <Button
         type="button"
-        variant="outline"
+        variant="ghost"
         size="sm"
-        className={BULK_HEADER_DANGER_ICON_BTN}
+        className="h-8 w-8 shrink-0 rounded-none border border-white/10 bg-zinc-900 p-0 text-muted-foreground hover:bg-zinc-800 hover:text-red-400"
         disabled={workspaceBusy}
         aria-label="Clear"
         title="Clear"

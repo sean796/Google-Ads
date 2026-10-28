@@ -132,12 +132,14 @@ export function useOverviewTabAiMetaHarness({
   );
 
   const runMetaForIndices = useCallback(
-    async (indices: number[]) => {
+    async (indices: number[], options?: { ignoreBulkScope?: boolean }) => {
       if (!site) return;
 
-      const scoped = indices.filter((index) =>
-        overviewRowInBulkScope(rowsRef.current[index]?.url ?? "", bulkScopeUrlKeys),
-      );
+      const scoped = options?.ignoreBulkScope
+        ? indices.filter((index) => Boolean(rowsRef.current[index]?.url?.trim()))
+        : indices.filter((index) =>
+            overviewRowInBulkScope(rowsRef.current[index]?.url ?? "", bulkScopeUrlKeys),
+          );
       if (!scoped.length) return;
 
       const catalog = buildMetaCatalog(rowsRef.current, scoped);
@@ -204,7 +206,7 @@ export function useOverviewTabAiMetaHarness({
 
   const handleAiMetaRow = useCallback(
     async (index: number) => {
-      await runMetaForIndices([index]);
+      await runMetaForIndices([index], { ignoreBulkScope: true });
     },
     [runMetaForIndices],
   );

@@ -1,5 +1,4 @@
-import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useWordPressSites } from "@/hooks/use-wordpress-sites";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useOverviewSitemap } from "@/hooks/overview/use-overview-sitemap";
 import { useOverviewScrape } from "@/hooks/overview/use-overview-scrape";
 import { useOverviewAiOptimize } from "@/hooks/overview/use-overview-ai-optimize";
@@ -11,7 +10,6 @@ import {
 import { useOverviewDownloadFromSite } from "@/hooks/overview/use-overview-download";
 import { useOverviewUploadToSite } from "@/hooks/overview/use-overview-upload";
 import { createNAPSummary } from "@/lib/nap-kb-template";
-import { buildPortfolioBlockedHosts } from "@/lib/portfolio-link-blocklist";
 import { getWordPressPostContent } from "@/lib/wordpress-api";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
@@ -28,7 +26,17 @@ import {
 import {
   getOverviewRowsSessionCache,
   setOverviewRowsSessionCache,
+  writeLocalActiveRowBody,
 } from "@/lib/overview/overview-rows-session-cache";
+import {
+  resolveOverviewStudioActiveUrlForPaint,
+  writeOverviewStudioActiveUrl,
+} from "@/lib/overview/overview-studio-active-url-persist";
+import {
+  NEO_PULSE_OVERVIEW_CACHE_HYDRATED_EVENT,
+  type OverviewCacheHydratedDetail,
+} from "@/lib/overview/overview-cache-hydrated-event";
+import { loadCachedOverviewRows } from "@/lib/overview/overview-sitemap-warm-rows-sync";
 import { resolveOverviewGridPaginationLayoutTotal } from "@/lib/overview/overview-grid-pagination-layout-total";
 import {
   overviewRowIndexMatchesSemrushFilter,
@@ -59,8 +67,29 @@ export function useOverviewTabBase({
   studioRowSource = "sitemap",
   onBulkGeneratorOverviewRowPatched,
 }: OverviewTabContentProps) {
-  const [sitemapSource, setSitemapSource] = useState<OverviewSitemapSource>("pages");
-  const [rows, setRows] = useState<OverviewRow[]>([]);
+  const [sitemapSource, setSitemapSource] = useState<OverviewSitemapSource>(
+    studioRowSource === "bulk-generator" ? "posts" : "pages",
+  );
+  const [rows, setRows] = useState<OverviewRow[]>(() => {
+    if (studioRowSource === "bulk-generator") return [];
+    const initial = loadCachedOverviewRows(site, "pages");
+    const frame1 = {
+      siteId: site?.id,
+      siteName: site?.name,
+      initialRowCount: initial.length,
+      firstUrl: initial[0]?.url ?? null,
+      firstPostContentLength: (initial[0]?.postContent ?? "").length,
+      firstH2Count: initial[0]?.blogH2List?.length ?? 0,
+      hasFirstBody: Boolean(
+        initial[0]?.postContent?.trim() || initial[0]?.elementorDataJson?.trim(),
+      ),
+    };
+    if (typeof window !== "undefined") {
+      (window as unknown as Record<string, unknown>).__OVERVIEW_FRAME_1__ = frame1;
+    }
+    console.info("[OverviewStudioFrame1]", frame1);
+    return initial;
+  });
   const rowsRef = useRef(rows);
   rowsRef.current = rows;
   const sitemapSourceRef = useRef(sitemapSource);
@@ -113,17 +142,45 @@ export function useOverviewTabBase({
     return (batch?.urls?.length ?? 0) > 1;
   }, [bulkBatchKey]);
 
-  const { sites: wordPressSites } = useWordPressSites();
-  const portfolioBlockedHostsForSemrush = useMemo(
-    () => buildPortfolioBlockedHosts(wordPressSites, { excludeSiteId: site?.id }),
-    [wordPressSites, site?.id],
-  );
   const [expandedContentUrl, setExpandedContentUrl] = useState<string | null>(null);
   const [expandedResearchBriefUrl, setExpandedResearchBriefUrl] = useState<string | null>(null);
-  const [expandedPageUrl, setExpandedPageUrl] = useState<string | null>(null);
+  const [expandedPageUrl, setExpandedPageUrlState] = useState<string | null>(() => {
+    if (studioRowSource === "bulk-generator") return null;
+    return resolveOverviewStudioActiveUrlForPaint(site, "pages");
+  });
+  const setExpandedPageUrl = useCallback(
+    (next: string | null) => {
+      setExpandedPageUrlState(next);
+      if (site?.id && studioRowSource !== "bulk-generator") {
+        writeOverviewStudioActiveUrl(site.id, next);
+        if (next) {
+          const activeKey = normalizePageUrlKey(next);
+          const match = rowsRef.current.find((r) => normalizePageUrlKey(r.url) === activeKey);
+          if (match) {
+            writeLocalActiveRowBody(site.id, sitemapSourceRef.current, match);
+          }
+        }
+      }
+    },
+    [site?.id, studioRowSource],
+  );
   const toggleExpandedPageUrl = useCallback(
-    (url: string) => setExpandedPageUrl((prev) => (prev === url ? null : url)),
-    [],
+    (url: string) =>
+      setExpandedPageUrlState((prev) => {
+        const next = prev === url ? null : url;
+        if (site?.id && studioRowSource !== "bulk-generator") {
+          writeOverviewStudioActiveUrl(site.id, next);
+          if (next) {
+            const activeKey = normalizePageUrlKey(next);
+            const match = rowsRef.current.find((r) => normalizePageUrlKey(r.url) === activeKey);
+            if (match) {
+              writeLocalActiveRowBody(site.id, sitemapSourceRef.current, match);
+            }
+          }
+        }
+        return next;
+      }),
+    [site?.id, studioRowSource],
   );
   const [sortColumn, setSortColumn] = useState<"title" | "date" | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -277,35 +334,33 @@ export function useOverviewTabBase({
     setSitemapSource("pages");
   }, [site?.id, site?.sitemaps?.mainSitemapUrl, studioRowSource]);
 
-  useEffect(() => {
-    if (!site?.id) {
-      setRows([]);
-      return;
-    }
-    if (studioRowSource === "bulk-generator") {
-      return;
-    }
-    let cancelled = false;
-    const idleId = requestIdleCallback(
-      () => {
-        if (cancelled) return;
-        const cached = (getOverviewRowsSessionCache(site.id, sitemapSource) ?? []).filter((row) =>
-          Boolean(row.url?.trim()),
-        );
-        if (cached.length) {
-          startTransition(() => {
-            if (!cancelled) setRows(cached);
-          });
+  useLayoutEffect(() => {
+    if (!site?.id || studioRowSource === "bulk-generator") return;
+    const cachedRows = loadCachedOverviewRows(site, sitemapSource);
+    if (cachedRows.length) {
+      setRows(cachedRows);
+      setExpandedPageUrlState((prev) => {
+        if (prev && cachedRows.some((r) => normalizePageUrlKey(r.url) === normalizePageUrlKey(prev))) {
+          return prev;
         }
-        activateInventoryCacheForSource(site.id, sitemapSource);
-      },
-      { timeout: 500 },
-    );
-    return () => {
-      cancelled = true;
-      cancelIdleCallback(idleId);
+        return resolveOverviewStudioActiveUrlForPaint(site, sitemapSource);
+      });
+    }
+    activateInventoryCacheForSource(site.id, sitemapSource);
+  }, [site?.id, sitemapSource, activateInventoryCacheForSource, studioRowSource, site]);
+
+  useEffect(() => {
+    if (!site?.id || studioRowSource === "bulk-generator") return;
+    const onHydrated = (event: Event) => {
+      const detail = (event as CustomEvent<OverviewCacheHydratedDetail>).detail;
+      if (detail?.siteId !== site.id) return;
+      const cachedRows = loadCachedOverviewRows(site, sitemapSource);
+      if (cachedRows.length) setRows(cachedRows);
     };
-  }, [site?.id, sitemapSource, activateInventoryCacheForSource, studioRowSource]);
+    window.addEventListener(NEO_PULSE_OVERVIEW_CACHE_HYDRATED_EVENT, onHydrated);
+    return () =>
+      window.removeEventListener(NEO_PULSE_OVERVIEW_CACHE_HYDRATED_EVENT, onHydrated);
+  }, [site?.id, sitemapSource, studioRowSource, site]);
 
   useEffect(() => {
     if (!site?.id || studioRowSource === "bulk-generator") return;
@@ -376,8 +431,9 @@ export function useOverviewTabBase({
   }, [sitemapSource, site?.id, displayRows.length, semrushFilterUrlKeys, activeErrorFilters]);
 
   useEffect(() => {
+    if (studioRowSource === "bulk-generator") return;
     setExpandedPageUrl(null);
-  }, [site?.id, sitemapSource, gridPageIndex]);
+  }, [site?.id, sitemapSource, gridPageIndex, studioRowSource]);
 
   const gridPaginationLayoutTotal = useMemo(() => {
     if (!site?.id) return displayRows.length;
@@ -503,6 +559,9 @@ export function useOverviewTabBase({
     const flushStudioLive =
       patch.status !== undefined ||
       studioLiveKeys.some((key) => Object.prototype.hasOwnProperty.call(patch, key));
+    if (site?.id && studioRowSource !== "bulk-generator" && patch.status === "idle") {
+      setOverviewRowsSessionCache(site.id, sitemapSourceRef.current, next);
+    }
     if (flushStudioLive) {
       setRows(next);
       return;
@@ -510,7 +569,7 @@ export function useOverviewTabBase({
     startTransition(() => {
       setRows(next);
     });
-  }, [studioRowSource, onBulkGeneratorOverviewRowPatched]);
+  }, [site?.id, studioRowSource, onBulkGeneratorOverviewRowPatched]);
 
   const setSemrushCsvUpload = useCallback((file: File) => {
     void file.text().then((text) => {
@@ -554,7 +613,6 @@ export function useOverviewTabBase({
     setOverviewMetaCsvExportBusy,
     opt: overviewOpt,
     syncOpt: opt,
-    portfolioBlockedHostsForSemrush,
     expandedContentUrl,
     setExpandedContentUrl,
     expandedResearchBriefUrl,

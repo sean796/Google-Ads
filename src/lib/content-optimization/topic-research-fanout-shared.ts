@@ -22,8 +22,9 @@ export const TOPIC_RESEARCH_PLAN_SYSTEM = `You invent localized buyer research q
 Return JSON only: { "researchQueries": string[], "namedPrograms": string[] }.
 
 researchQueries: 3 to 5 distinct questions a real local buyer in Location would ask about THIS Keyword and Title. Each question must:
-- Read like a natural question or conversational search phrase (how/what/when/can/does/why, or "compare…").
-- Mention the city (and province or state when Location includes it) inside the question, not as a trailing keyword suffix.
+- Be 4 to 9 words maximum (DataForSEO SERP rejects queries over 10 words).
+- Read like a concise natural question or search phrase (how/what/when/can/does/why, or "compare…").
+- Mention the city inside the question, not as a trailing keyword suffix.
 - Target a different buyer intent derived from Keyword, Title, and page context only (compare, quality, features, climate fit, process). Do not force cost, incentives, examples, or any other slot.
 - Be a topic-research question whose SERP answers the Keyword decision. Do not repeat the seed keyword verbatim as the whole query.
 

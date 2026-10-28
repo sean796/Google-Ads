@@ -1,6 +1,12 @@
 import type { WordPressSite } from "@/components/integrations/types";
-import { fetchWordPressSitesMirror } from "@/components/integrations/storage";
+import {
+  fetchWordPressSitesMirror,
+  getStoredSites,
+  saveSites,
+} from "@/components/integrations/storage";
+import { findConnectedWordPressSite } from "@/lib/agent-runs/resolve-agent-run-site";
 import { IN_THE_SHADE_GOOGLE_ADS_CUSTOMER_ID } from "@/lib/neo-digital-google-ads-customer-ids";
+import { wordPressSiteHostKey } from "@/lib/wordpress-site-host-key";
 
 export { IN_THE_SHADE_GOOGLE_ADS_CUSTOMER_ID };
 
@@ -8,20 +14,57 @@ export function normalizeGoogleAdsCustomerId(raw: string): string {
   return raw.replace(/\D+/g, "");
 }
 
-/** Google Ads customer ID from the property only (browser copy). */
-export function resolveGoogleAdsCustomerIdForReporting(site: WordPressSite): string {
-  return normalizeGoogleAdsCustomerId(site.googleAdsCustomerId?.trim() ?? "");
+function pickGoogleAdsCustomerIdFromSite(site: WordPressSite | null | undefined): string {
+  return normalizeGoogleAdsCustomerId(site?.googleAdsCustomerId?.trim() ?? "");
 }
 
-/** Same site id on server property mirror (sites.json) when the browser copy is empty. */
-export async function resolveGoogleAdsCustomerIdForReportingAsync(site: WordPressSite): Promise<string> {
-  const direct = resolveGoogleAdsCustomerIdForReporting(site);
+function mirrorRowForSite(site: WordPressSite, serverSites: WordPressSite[]): WordPressSite | undefined {
+  const byId = serverSites.find((s) => s.id === site.id);
+  if (byId) return byId;
+  const host = wordPressSiteHostKey(site.siteUrl);
+  if (host) {
+    const byHost = serverSites.find((s) => wordPressSiteHostKey(s.siteUrl) === host);
+    if (byHost) return byHost;
+  }
+  const nameKey = (site.name ?? "").trim().toLowerCase();
+  if (!nameKey) return undefined;
+  return serverSites.find((s) => (s.name ?? "").trim().toLowerCase() === nameKey);
+}
+
+/** Site field, stored copy, connected site (same resolution order as GA4 reporting). */
+export function resolveGoogleAdsCustomerIdForReporting(site: WordPressSite): string {
+  const direct = pickGoogleAdsCustomerIdFromSite(site);
   if (direct.length === 10) return direct;
-  const siteId = site.id?.trim();
-  if (!siteId) return "";
+  const stored = getStoredSites().find((s) => s.id === site.id);
+  const fromStored = pickGoogleAdsCustomerIdFromSite(stored);
+  if (fromStored.length === 10) return fromStored;
+  const connected = site.id ? findConnectedWordPressSite(site.id) : null;
+  return pickGoogleAdsCustomerIdFromSite(connected);
+}
+
+/** Local fields first; then server property mirror (Integrations sites.json). */
+export async function resolveGoogleAdsCustomerIdForReportingAsync(site: WordPressSite): Promise<string> {
+  const sync = resolveGoogleAdsCustomerIdForReporting(site);
+  if (sync.length === 10) return sync;
   const serverSites = await fetchWordPressSitesMirror();
-  const row = serverSites.find((s) => s.id === siteId);
-  return normalizeGoogleAdsCustomerId(row?.googleAdsCustomerId?.trim() ?? "");
+  if (serverSites.length === 0) return sync;
+  const row = mirrorRowForSite(site, serverSites);
+  const fromMirror = pickGoogleAdsCustomerIdFromSite(row);
+  if (fromMirror.length !== 10) return sync;
+  const local = getStoredSites();
+  let idx = local.findIndex((s) => s.id === site.id);
+  if (idx < 0) {
+    const nameKey = (site.name ?? "").trim().toLowerCase();
+    if (nameKey) {
+      idx = local.findIndex((s) => (s.name ?? "").trim().toLowerCase() === nameKey);
+    }
+  }
+  if (idx >= 0 && pickGoogleAdsCustomerIdFromSite(local[idx]!).length !== 10) {
+    const next = [...local];
+    next[idx] = { ...next[idx]!, googleAdsCustomerId: fromMirror };
+    saveSites(next);
+  }
+  return fromMirror;
 }
 
 export function formatGoogleAdsCustomerId(raw: string): string {

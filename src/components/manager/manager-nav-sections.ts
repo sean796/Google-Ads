@@ -4,6 +4,7 @@ import {
   Clapperboard,
   Cpu,
   Film,
+  Image,
   UserRound,
   Users,
   Cloud,
@@ -35,9 +36,9 @@ import {
 
 const GENERATOR_NAV_DESCRIPTIONS: Record<BlogGeneratorSectionId, string> = {
   opt: "Pages grid, AISEO, meta, and WordPress publish",
-  "bulk-csv": "Bulk articles from CSV upload rows",
-  "bulk-prompt": "Bulk articles from prompt slots",
-  "bulk-blog-import": "Import existing posts for optimization",
+  "bulk-csv": "Unified batch studio for prompts, CSV, and file imports",
+  "bulk-prompt": "Unified batch studio for prompts, CSV, and file imports",
+  "bulk-blog-import": "Unified batch studio for prompts, CSV, and file imports",
   "bulk-press-release": "Press release bulk pipeline",
   entity: "Entity and competitor page generation",
   flow: "Freeform multi-agent flow builder",
@@ -130,12 +131,6 @@ export const MANAGER_NAV_SECTIONS: ManagerNavSection[] = [
         description: "Managed WordPress sites",
         icon: Server,
       },
-      {
-        value: "neo-emcp",
-        label: "Neo EMCP",
-        description: "WordPress Abilities API, Elementor MCP tools, and 8-point schema doctor",
-        icon: Cpu,
-      },
     ],
   },
   {
@@ -150,6 +145,13 @@ export const MANAGER_NAV_SECTIONS: ManagerNavSection[] = [
         description: "GA4 organic traffic and Search Console for the active property",
         icon: LineChart,
         organicDashboard: true,
+      },
+      {
+        id: "reporting-local-dominator",
+        value: "local-dominator",
+        label: "Local Grid",
+        description: "Google Maps geo-grid rank studio powered by DataForSEO",
+        icon: Crosshair,
       },
     ],
   },
@@ -274,14 +276,20 @@ export const MANAGER_NAV_SECTIONS: ManagerNavSection[] = [
       },
       {
         id: "tools-video",
-        value: "video",
-        label: "Video",
-        description: "Storyboard and video generation",
+        value: "media",
+        label: "Media",
+        description: "Image and video studio generation",
         icon: Clapperboard,
         children: [
           {
+            value: "image-generator",
+            label: "Image",
+            description: "AI image studio with grounded references and scene checklist",
+            icon: Image,
+          },
+          {
             value: "video-generator",
-            label: "Generator",
+            label: "Video",
             description: "Brief, storyboard, HeyGen render with narration",
             icon: Film,
           },
@@ -311,18 +319,23 @@ export function isManagerNavItemActive(
   return isManagerNavItemSelected(managerTab, item, dashboardCluster, activeGeneratorSection);
 }
 
+function isOrganicPerformanceNavPath(pathname: string): boolean {
+  return /^\/sites\/[^/]+\/organic\/?$/.test(pathname);
+}
+
 /** Mega menu: dashboard rows use `dashboardCluster`; generator rows use `generatorSection`. */
 export function isManagerNavItemSelected(
   managerTab: string,
   item: ManagerNavItem,
   dashboardCluster: ManagerSettingsClusterId | undefined,
   activeGeneratorSection?: BlogGeneratorSectionId,
+  pathname?: string,
 ): boolean {
   if (item.dashboardCluster) {
     return managerTab === "dashboard" && dashboardCluster === item.dashboardCluster;
   }
   if (item.organicDashboard) {
-    return managerTab === "organic-reporting";
+    return managerTab === "organic-reporting" || (pathname ? isOrganicPerformanceNavPath(pathname) : false);
   }
   if (item.generatorSection) {
     return managerTab === "generator" && activeGeneratorSection === item.generatorSection;

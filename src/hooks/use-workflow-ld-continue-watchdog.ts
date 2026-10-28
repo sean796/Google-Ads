@@ -50,5 +50,5 @@ export function useWorkflowLdContinueWatchdog({
     tick();
     const id = window.setInterval(tick, WAKE_MS);
     return () => window.clearInterval(id);
-  }, [teamId, runs]);
+  }, [teamId]);
 }

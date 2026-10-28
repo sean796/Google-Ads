@@ -36,6 +36,7 @@ type PulseAssistSidebarShellProps = {
   onOpenChange: (open: boolean) => void;
   panel: SidebarPanel;
   onPanelChange: (panel: SidebarPanel) => void;
+  showSeo?: boolean;
   children: ReactNode;
 };
 
@@ -75,11 +76,13 @@ function MobileAssistCircle({ onOpen }: { onOpen: () => void }): ReactElement | 
 
 function ShortcutLaunchers({
   docked,
+  showSeo = true,
   onOpenSeo,
   onOpenAgents,
   onOpenAssist,
 }: {
   docked: boolean;
+  showSeo?: boolean;
   onOpenSeo: () => void;
   onOpenAgents: () => void;
   onOpenAssist: () => void;
@@ -128,7 +131,7 @@ function ShortcutLaunchers({
   if (docked) {
     return (
       <aside className="pulse-assist-shortcut-rail" aria-label="Sidebar shortcuts">
-        {seoButton}
+        {showSeo ? seoButton : null}
         {agentsButton}
         {assistButton}
       </aside>
@@ -137,7 +140,7 @@ function ShortcutLaunchers({
 
   return (
     <>
-      {seoButton}
+      {showSeo ? seoButton : null}
       {agentsButton}
       {assistButton}
     </>
@@ -150,6 +153,7 @@ export function PulseAssistSidebarShell({
   onOpenChange,
   panel,
   onPanelChange,
+  showSeo = true,
   children,
 }: PulseAssistSidebarShellProps): ReactElement {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -186,13 +190,11 @@ export function PulseAssistSidebarShell({
   }, [open, useDockedChrome]);
 
   useEffect(() => {
-    const inset =
-      useDockedChrome && open && !isMobile ? `${width}px` : "0px";
-    document.documentElement.style.setProperty("--neo-pulse-assist-panel-width", inset);
+    document.documentElement.style.setProperty("--neo-pulse-assist-panel-width", "0px");
     return () => {
       document.documentElement.style.setProperty("--neo-pulse-assist-panel-width", "0px");
     };
-  }, [useDockedChrome, open, isMobile, width]);
+  }, []);
 
   useEffect(() => {
     if (panel === "seo" && open && !isMobile) {
@@ -220,6 +222,7 @@ export function PulseAssistSidebarShell({
       {!open && !isMobile ? (
         <ShortcutLaunchers
           docked={useDockedChrome}
+          showSeo={showSeo}
           onOpenSeo={() => openPanel("seo")}
           onOpenAgents={() => openPanel("agents")}
           onOpenAssist={() => openPanel("assist")}
@@ -247,7 +250,8 @@ export function PulseAssistSidebarShell({
             type="button"
             className="pulse-assist-panel-close-tab"
             onClick={() => onOpenChange(false)}
-            aria-label="Close sidebar"
+            aria-label="Close sidebar and minimize to dock"
+            title="Minimize to dock"
           >
             <ChevronRight className="h-5 w-5" aria-hidden />
           </button>
@@ -273,13 +277,15 @@ export function PulseAssistSidebarShell({
               onClick={() => onPanelChange("agents")}
               className="h-8 min-w-[4.5rem] shrink-0"
             />
-            <WorkspacePill
-              label="SEO"
-              active={panel === "seo"}
-              square
-              onClick={() => onPanelChange("seo")}
-              className="h-8 min-w-[4.5rem] shrink-0"
-            />
+            {showSeo ? (
+              <WorkspacePill
+                label="SEO"
+                active={panel === "seo"}
+                square
+                onClick={() => onPanelChange("seo")}
+                className="h-8 min-w-[4.5rem] shrink-0"
+              />
+            ) : null}
             <div className="ml-auto flex min-w-0 items-center justify-end gap-1">
               {isMobile ? (
                 <button
@@ -323,7 +329,9 @@ export function PulseAssistSidebarShell({
             </div>
           </div>
         ) : null}
-        {open ? children : null}
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          {open ? children : null}
+        </div>
       </div>
     </div>
   );

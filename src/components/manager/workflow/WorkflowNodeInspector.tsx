@@ -417,6 +417,7 @@ export function WorkflowNodeInspector({
           {executionKind === "entity_page_creator" ? (
             <EntityPageCreatorExecutionFields
               surface="what"
+              clientSiteId={clientSiteId}
               executionPayload={executionPayload}
               onChange={patchExecutionPayload}
             />
@@ -424,12 +425,14 @@ export function WorkflowNodeInspector({
           {executionKind === "entity_generator" ? (
             <EntityGeneratorExecutionFields
               surface="what"
+              clientSiteId={clientSiteId}
               executionPayload={executionPayload}
               onChange={patchExecutionPayload}
             />
           ) : null}
           {executionKind === "sap_generator" ? (
             <SapGeneratorExecutionFields
+              clientSiteId={clientSiteId}
               executionPayload={executionPayload}
               workflowEntityCsvLocked={
                 (executionPayload as { entityCsvInputSource?: string }).entityCsvInputSource === "workflow"

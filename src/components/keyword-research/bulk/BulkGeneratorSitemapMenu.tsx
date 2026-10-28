@@ -15,6 +15,8 @@ import { listSitemapScopeOptions } from "@/lib/sitemap-child-tags";
 export type BulkSiteSitemapConfig = {
   sitemapType: BulkSitemapMode;
   scopeTags?: BulkSitemapScopeTag[];
+  /** WP REST collection for blog uploads when sitemapType is post (Pages vs Posts dock). */
+  wordpressRestEndpoint?: "posts" | "pages";
 };
 
 export type BulkGeneratorSitemapMenuProps = {

@@ -29,13 +29,13 @@ export const BULK_HEADER_RUN_BTN =
 /** Verb-only grey toolbar control (icon carries the action). */
 export const BULK_HEADER_ICON_TOOL_BTN = cn(
   BULK_HEADER_TOOL_BTN,
-  "w-8 justify-center px-0",
+  "w-8 min-w-8 max-w-8 shrink-0 justify-center border border-white/10 px-0",
 );
 
 /** Verb-only green run control (icon carries the action). */
 export const BULK_HEADER_ICON_RUN_BTN = cn(
   BULK_HEADER_RUN_BTN,
-  "w-8 justify-center px-0 [&_svg]:text-black",
+  "w-8 min-w-8 max-w-8 shrink-0 justify-center border border-white/10 px-0 [&_svg]:text-black",
 );
 
 /** Upload control after a file is loaded (green/black, matches run). */

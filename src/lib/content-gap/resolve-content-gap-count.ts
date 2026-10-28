@@ -241,9 +241,13 @@ export function ensureContentGapCheckPayload(payload?: TaskExecutionPayload | nu
     contentGapCountMonth: defaultLocalCalendarMonthKey(),
     contentGapDayOfMonth: dayOfMonth,
     contentGapTargetCount:
-      typeof base.contentGapTargetCount === "number" && base.contentGapTargetCount > 0
-        ? base.contentGapTargetCount
-        : 4,
+      base.contentGapUseEditorialPackage === true
+        ? typeof base.contentGapTargetCount === "number" && base.contentGapTargetCount > 0
+          ? base.contentGapTargetCount
+          : undefined
+        : typeof base.contentGapTargetCount === "number" && base.contentGapTargetCount > 0
+          ? base.contentGapTargetCount
+          : 4,
   };
 }
 

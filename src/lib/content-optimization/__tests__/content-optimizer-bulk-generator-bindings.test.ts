@@ -145,9 +145,9 @@ describe("buildContentOptimizerBulkGeneratorDetailsProps", () => {
     expect(props.harnessSections).toHaveLength(1);
     expect(props.batchPrepHarnessSections).toEqual([]);
     expect(props.pipelineSectionTitles).toHaveLength(INIT_OPTIMIZE_PIPELINE_TITLES.length);
-    expect(props.pipelineSectionTitles?.[0]).toBe("Keyword research");
-    expect(props.pipelineSectionTitles?.[2]).toBe("SERP research brief");
-    expect(props.pipelineSectionTitles?.[4]).toBe("Blueprint");
+    expect(props.pipelineSectionTitles?.[0]).toBe("Checklist");
+    expect(props.pipelineSectionTitles?.[1]).toBe("Blueprint");
+    expect(props.pipelineSectionTitles?.[2]).toBe("Link targets");
   });
 
   it("does not attach a cached overview seoResearch file while optimizing", () => {
@@ -184,16 +184,15 @@ describe("buildContentOptimizerBulkGeneratorDetailsProps", () => {
     expect(files).toEqual([]);
   });
 
-  it("shows 8 research harness placeholders on every row from batch start", () => {
+  it("shows 7 research harness placeholders on every row from batch start", () => {
     const waiting = [
       { sectionIndex: 0, title: "DataForSEO SERP", status: "waiting" as const },
       { sectionIndex: 1, title: "GSC CSV", status: "waiting" as const },
-      { sectionIndex: 2, title: "Semrush enrichment", status: "waiting" as const },
-      { sectionIndex: 3, title: "LLM audit", status: "waiting" as const },
-      { sectionIndex: 4, title: "SERP dump load", status: "waiting" as const },
-      { sectionIndex: 5, title: "GSC quick-wins context", status: "waiting" as const },
-      { sectionIndex: 6, title: "Brief merge", status: "waiting" as const },
-      { sectionIndex: 7, title: "Brief upload", status: "waiting" as const },
+      { sectionIndex: 2, title: "LLM audit", status: "waiting" as const },
+      { sectionIndex: 3, title: "SERP dump load", status: "waiting" as const },
+      { sectionIndex: 4, title: "GSC quick-wins context", status: "waiting" as const },
+      { sectionIndex: 5, title: "Brief merge", status: "waiting" as const },
+      { sectionIndex: 6, title: "Brief upload", status: "waiting" as const },
     ];
     const props = buildContentOptimizerBulkGeneratorDetailsProps(
       {
@@ -239,21 +238,20 @@ describe("buildContentOptimizerBulkGeneratorDetailsProps", () => {
       },
       true,
     );
-    expect(props.harnessByRow.get(0)).toHaveLength(8);
-    expect(props.harnessByRow.get(1)).toHaveLength(8);
-    expect(props.pipelineSectionTitles).toHaveLength(8);
+    expect(props.harnessByRow.get(0)).toHaveLength(7);
+    expect(props.harnessByRow.get(1)).toHaveLength(7);
+    expect(props.pipelineSectionTitles).toHaveLength(7);
   });
 
-  it("keeps 8 research harness rows after batch completion when files exist", () => {
+  it("keeps 7 research harness rows after batch completion when files exist", () => {
     const doneHarness = [
       { sectionIndex: 0, title: "DataForSEO SERP", status: "done" as const },
       { sectionIndex: 1, title: "GSC CSV", status: "done" as const },
-      { sectionIndex: 2, title: "Semrush enrichment", status: "done" as const },
-      { sectionIndex: 3, title: "LLM audit", status: "done" as const },
-      { sectionIndex: 4, title: "SERP dump load", status: "done" as const },
-      { sectionIndex: 5, title: "GSC quick-wins context", status: "done" as const },
-      { sectionIndex: 6, title: "Brief merge", status: "done" as const },
-      { sectionIndex: 7, title: "Brief upload", status: "done" as const },
+      { sectionIndex: 2, title: "LLM audit", status: "done" as const },
+      { sectionIndex: 3, title: "SERP dump load", status: "done" as const },
+      { sectionIndex: 4, title: "GSC quick-wins context", status: "done" as const },
+      { sectionIndex: 5, title: "Brief merge", status: "done" as const },
+      { sectionIndex: 6, title: "Brief upload", status: "done" as const },
     ];
     const props = buildContentOptimizerBulkGeneratorDetailsProps(
       {
@@ -293,8 +291,8 @@ describe("buildContentOptimizerBulkGeneratorDetailsProps", () => {
       },
       false,
     );
-    expect(props.harnessByRow.get(0)).toHaveLength(8);
-    expect(props.pipelineSectionTitles).toHaveLength(8);
+    expect(props.harnessByRow.get(0)).toHaveLength(7);
+    expect(props.pipelineSectionTitles).toHaveLength(7);
     expect(props.filesByRow.get(0)?.some((f) => f.fileName.includes("llm-audit"))).toBe(true);
   });
 
@@ -348,8 +346,8 @@ describe("buildContentOptimizerBulkGeneratorDetailsProps", () => {
     expect(props.runKind).not.toBe("research");
     expect(props.pipelineSectionTitles?.length).toBe(INIT_OPTIMIZE_PIPELINE_TITLES.length);
     expect(props.harnessByRow.get(0)).toHaveLength(INIT_OPTIMIZE_PIPELINE_TITLES.length);
-    expect(props.harnessByRow.get(0)?.[0]?.title).toBe("Keyword research");
-    expect(props.harnessByRow.get(0)?.[2]?.title).toBe("SERP research brief");
+    expect(props.harnessByRow.get(0)?.[0]?.title).toBe("Checklist");
+    expect(props.harnessByRow.get(0)?.[2]?.title).toBe("Link targets");
   });
 
   it("keeps completed-row files in filesByRow", () => {

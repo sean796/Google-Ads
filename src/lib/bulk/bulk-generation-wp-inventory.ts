@@ -419,7 +419,6 @@ export async function ensureBulkGenerationWpInventory(
 
   if (force && site.siteUrl?.trim() && site.username?.trim() && site.appPassword?.trim()) {
     const parallel = await fetchAllOverviewInventoriesParallel(site, {
-      includeRawAcf: true,
       includeScheduled: true,
     });
     seedBulkGenerationWpInventoryFromParallel(site, parallel);

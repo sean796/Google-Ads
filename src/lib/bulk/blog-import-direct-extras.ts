@@ -6,11 +6,10 @@ import {
 } from "@/lib/bulk-auto-generate";
 import type { CSVRow } from "@/lib/bulk/bulk-csv-parser";
 import { htmlTextFingerprint } from "@/lib/bulk/blog-import-format-blocks";
-import { runIntelligentKeywordResearchMerge } from "@/lib/bulk/intelligent-keyword-research-merge";
 import { generateFeaturedImage, generateImageChecklist } from "@/lib/bulk/bulk-image-generator";
 import { BulkFileManager, type BulkGeneratedFile } from "@/lib/bulk-file-manager";
 import { fetchGoogleMapsImageForEntity } from "@/lib/content-generation/google-maps-image-api";
-import { discoverACFFieldMapping, fallbackFieldMapping } from "@/lib/content-generation/acf-field-mapper";
+import { NEO_PULSE_DEFAULT_FIELD_MAPPING } from "@/lib/content-generation/acf-field-mapper";
 import { buildAcfPayload } from "@/lib/content-generation/apply-meta-acf-payload";
 import { buildOptimizedMetaFromKeywordResearch } from "@/lib/content-generation/apply-bulk-meta-from-seo-json";
 import {
@@ -34,11 +33,8 @@ import {
   stripTrailingFaqSection,
 } from "@/lib/overview/overview-blog-faq-append";
 import { buildBlogImportKeywordResearchStub } from "@/lib/bulk/blog-import-parse";
-import { getResearchModel } from "@/lib/optimization-settings-storage";
-import { getACFFieldsForPost, resolveAcfFieldsForMapping } from "@/lib/wordpress-api/acf-discovery";
-import { fetchSemrushBulkEnrichment } from "@/lib/wordpress-api/semrush";
-import { uploadWordPressMedia, updateWordPressPostMeta } from "@/lib/wordpress-api";
-import { updateACFFields } from "@/lib/wordpress-acf-origin";
+import { uploadWordPressMedia } from "@/lib/wordpress-api";
+import { updateOverviewSeoItem } from "@/lib/wordpress-api/meta";
 import { getPublicSiteUrl } from "@/lib/wordpress-site-public-url";
 
 export type DirectAnalyzeKeywordFn = (
@@ -145,18 +141,6 @@ export async function runDirectKeywordResearch(args: {
 
   const { keywordData, aiAnalysis } = resolveDirectKeywordResearchFromAnalyze(args.row, research);
 
-  const semrush = await fetchSemrushBulkEnrichment({
-    pageUrl: args.pageUrl,
-    seedKeyword: keyword,
-    portfolioBlockedHosts: args.options.portfolioBlockedHosts,
-  });
-
-  args.options.onProgress?.(args.rowIndex, 0, "Merging keyword research with Semrush...");
-  const mergeResult = await runIntelligentKeywordResearchMerge(args.row, keywordData, semrush, {
-    apiKey: args.options.openRouterApiKey,
-    model: args.options.selectedModel || getResearchModel(),
-  });
-
   const timestamp = Date.now();
   const snapshot = addKeywordResearchSnapshotToBulkFiles(
     args.rowIndex,
@@ -170,9 +154,9 @@ export async function runDirectKeywordResearch(args: {
       keywordsVolumeData: research?.keywordsVolumeData ?? [],
       paaRawResponse: research?.paaRawResponse ?? null,
       primaryKeyword: keyword,
-      semrush,
-      intelligentMerge: mergeResult.merge,
-      primaryExternalCitationUrl: mergeResult.primaryExternalCitationUrl,
+      semrush: null,
+      intelligentMerge: null,
+      primaryExternalCitationUrl: null,
     },
   );
 
@@ -181,10 +165,7 @@ export async function runDirectKeywordResearch(args: {
     enrichedRow: args.row,
     flowTitle: args.row.title.trim(),
   });
-  if (mergeResult.primaryExternalCitationUrl) {
-    skeleton.semrush_primary_external_url = mergeResult.primaryExternalCitationUrl;
-  }
-  skeleton.research_intent = mergeResult.merge.primaryIntent ?? keywordData.intent;
+  skeleton.research_intent = keywordData.intent || "informational";
 
   return {
     keywordData,
@@ -346,27 +327,11 @@ export async function writeDirectImportMetaOnly(args: {
     args.site.siteUrl,
   );
 
-  const acfResult = await getACFFieldsForPost(
-    args.site,
-    args.postId,
-    args.postTypeForAcf,
-    args.entityEndpoint,
-  );
-  const existingAcfFields =
-    acfResult.success && acfResult.fields ? (acfResult.fields as Record<string, unknown>) : {};
-  const fieldsForMapping = await resolveAcfFieldsForMapping(args.site, existingAcfFields);
-  const fieldMapping = {
-    ...fallbackFieldMapping(fieldsForMapping),
-    ...(await discoverACFFieldMapping(
-      fieldsForMapping,
-      args.postTypeForAcf,
-      args.apiKey,
-      args.site.siteUrl,
-    )),
-  };
+  const existingAcfFields: Record<string, unknown> = {};
+  const fieldMapping = { ...NEO_PULSE_DEFAULT_FIELD_MAPPING };
 
   const acfWrite: Record<string, string> = { ...args.baseAcf };
-  acfWrite[fieldMapping.keywordFocus || "keyword_focus"] = args.primaryKw.slice(0, 500);
+  acfWrite[fieldMapping.keywordFocus] = args.primaryKw.slice(0, 500);
   const mappedMeta = buildAcfPayload(
     fieldMapping,
     optimizedMeta,
@@ -377,34 +342,21 @@ export async function writeDirectImportMetaOnly(args: {
   );
   Object.assign(acfWrite, mappedMeta);
 
-  const acfUpdate = await updateACFFields(
+  const pulseRes = await updateOverviewSeoItem(
     args.site.siteUrl,
     args.site.username,
     args.site.appPassword,
-    args.postId,
-    acfWrite,
-    args.postTypeForAcf,
-    args.entityEndpoint,
-  );
-  if (!acfUpdate.success) {
-    throw new Error(acfUpdate.error || "Direct ACF write failed");
-  }
-
-  const rankMath = await updateWordPressPostMeta(
-    args.site.siteUrl,
-    args.site.username,
-    args.site.appPassword,
-    args.postId,
-    args.postTypeForAcf,
-    args.entityEndpoint,
     {
-      rank_math_title: optimizedMeta.rank_math_title,
-      rank_math_description: optimizedMeta.rank_math_description,
-      rank_math_focus_keyword: optimizedMeta.rank_math_focus_keyword,
+      postId: args.postId,
+      postType: args.postTypeForAcf,
+      postTypeEndpoint: args.entityEndpoint,
+      postTitle: acfWrite.seo_title || args.postTitle,
+      postExcerpt: acfWrite.meta_description || args.excerpt,
+      acf: acfWrite,
     },
   );
-  if (!rankMath.success) {
-    throw new Error(rankMath.error || "Direct Rank Math meta write failed");
+  if (!pulseRes.ok) {
+    throw new Error(pulseRes.error || "Direct NEO Pulse SEO write failed");
   }
 
   return acfWrite;
@@ -443,29 +395,13 @@ export async function writeDirectSeoAcfAndRankMath(args: {
     args.site.siteUrl,
   );
 
-  const acfResult = await getACFFieldsForPost(
-    args.site,
-    args.postId,
-    args.postTypeForAcf,
-    args.entityEndpoint,
-  );
-  const existingAcfFields =
-    acfResult.success && acfResult.fields ? (acfResult.fields as Record<string, unknown>) : {};
-  const fieldsForMapping = await resolveAcfFieldsForMapping(args.site, existingAcfFields);
-  const fieldMapping = {
-    ...fallbackFieldMapping(fieldsForMapping),
-    ...(await discoverACFFieldMapping(
-      fieldsForMapping,
-      args.postTypeForAcf,
-      args.apiKey,
-      args.site.siteUrl,
-    )),
-  };
+  const existingAcfFields: Record<string, unknown> = {};
+  const fieldMapping = { ...NEO_PULSE_DEFAULT_FIELD_MAPPING };
 
   const acfWrite: Record<string, string> = { ...args.baseAcf };
-  acfWrite[fieldMapping.keywordFocus || "keyword_focus"] = args.primaryKw.slice(0, 500);
-  acfWrite[fieldMapping.seoResearch || "seo_research"] = seoResearchJson;
-  acfWrite[fieldMapping.faq || "faq"] = args.bundle.faqForAcf;
+  acfWrite[fieldMapping.keywordFocus] = args.primaryKw.slice(0, 500);
+  acfWrite[fieldMapping.seoResearch] = seoResearchJson;
+  acfWrite[fieldMapping.faq] = args.bundle.faqForAcf;
   const mappedMeta = buildAcfPayload(
     fieldMapping,
     optimizedMeta,
@@ -476,34 +412,21 @@ export async function writeDirectSeoAcfAndRankMath(args: {
   );
   Object.assign(acfWrite, mappedMeta);
 
-  const acfUpdate = await updateACFFields(
+  const pulseRes = await updateOverviewSeoItem(
     args.site.siteUrl,
     args.site.username,
     args.site.appPassword,
-    args.postId,
-    acfWrite,
-    args.postTypeForAcf,
-    args.entityEndpoint,
-  );
-  if (!acfUpdate.success) {
-    throw new Error(acfUpdate.error || "Direct ACF write failed");
-  }
-
-  const rankMath = await updateWordPressPostMeta(
-    args.site.siteUrl,
-    args.site.username,
-    args.site.appPassword,
-    args.postId,
-    args.postTypeForAcf,
-    args.entityEndpoint,
     {
-      rank_math_title: optimizedMeta.rank_math_title,
-      rank_math_description: optimizedMeta.rank_math_description,
-      rank_math_focus_keyword: optimizedMeta.rank_math_focus_keyword,
+      postId: args.postId,
+      postType: args.postTypeForAcf,
+      postTypeEndpoint: args.entityEndpoint,
+      postTitle: acfWrite.seo_title || args.postTitle,
+      postExcerpt: acfWrite.meta_description || args.excerpt,
+      acf: acfWrite,
     },
   );
-  if (!rankMath.success) {
-    throw new Error(rankMath.error || "Direct Rank Math meta write failed");
+  if (!pulseRes.ok) {
+    throw new Error(pulseRes.error || "Direct NEO Pulse SEO write failed");
   }
 
   return acfWrite;

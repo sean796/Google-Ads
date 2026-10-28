@@ -84,6 +84,25 @@ export function TaskFormPanel({
   );
 }
 
+/** Panel title + one black well; no duplicate infield label. */
+export function TaskFormPanelWell({
+  title,
+  children,
+  className,
+  wellClassName,
+}: {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+  wellClassName?: string;
+}): React.ReactElement {
+  return (
+    <TaskFormPanel title={title} className={className}>
+      <div className={cn(TASK_FORM_INFIELD_SHELL_CLASS, wellClassName)}>{children}</div>
+    </TaskFormPanel>
+  );
+}
+
 export function TaskFormInfield({
   label,
   htmlFor,

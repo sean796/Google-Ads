@@ -244,43 +244,47 @@ export async function runBulkRowChecklistAndBlueprintPhase(input: {
       bodyTitlesForLinkPlan.length > 0
     ) {
       options.onProgress?.(rowIndex, 0, "Planning internal link targets...");
-      const linkOptFileManager = new OptimizationFileManager();
-      const linkFileSlug =
-        sanitizeWordPressSlugSegment(enrichedRow.target_slug ?? "") ||
-        sanitizeWordPressSlugSegment(keywordData.keyword) ||
-        "article";
-      linkTargetsPlan = await runContentLinkTargetsHarness({
-        apiKey: linkApiKey,
-        siteId: linkSiteId,
-        primaryKeyword: prosePrimaryKeyword,
-        bodySectionTitles: bodyTitlesForLinkPlan,
-        linkPool: bulkPostsToExtraTextLinkRows(linkPoolSource),
-        fileManager: linkOptFileManager,
-        fileSlug: linkFileSlug,
-      });
-      const linkTargetsOptFile = linkOptFileManager
-        .getFiles()
-        .find((file) => file.name.toLowerCase().startsWith("link-targets-"));
-      if (linkTargetsOptFile) {
-        const linkTargetsFile: BulkGeneratedFile = {
-          id: BulkFileManager.createFileId(rowIndex, "link-targets", timestamp),
-          rowIndex,
-          fileName: linkTargetsOptFile.name,
-          content: linkTargetsOptFile.content,
-          mimeType: linkTargetsOptFile.mimeType,
-          status: "completed",
-          timestamp,
-          rowData: enrichedRow,
-        };
-        fileManager.addFile(linkTargetsFile);
-        generatedFiles.push(linkTargetsFile);
-        emitEntitySapPipelineHarnessDone(
-          options,
-          rowIndex,
-          enrichedRow,
-          "Link targets",
-          checklistResult.h2Outline ?? [],
-        );
+      try {
+        const linkOptFileManager = new OptimizationFileManager();
+        const linkFileSlug =
+          sanitizeWordPressSlugSegment(enrichedRow.target_slug ?? "") ||
+          sanitizeWordPressSlugSegment(keywordData.keyword) ||
+          "article";
+        linkTargetsPlan = await runContentLinkTargetsHarness({
+          apiKey: linkApiKey,
+          siteId: linkSiteId,
+          primaryKeyword: prosePrimaryKeyword,
+          bodySectionTitles: bodyTitlesForLinkPlan,
+          linkPool: bulkPostsToExtraTextLinkRows(linkPoolSource),
+          fileManager: linkOptFileManager,
+          fileSlug: linkFileSlug,
+        });
+        const linkTargetsOptFile = linkOptFileManager
+          .getFiles()
+          .find((file) => file.name.toLowerCase().startsWith("link-targets-"));
+        if (linkTargetsOptFile) {
+          const linkTargetsFile: BulkGeneratedFile = {
+            id: BulkFileManager.createFileId(rowIndex, "link-targets", timestamp),
+            rowIndex,
+            fileName: linkTargetsOptFile.name,
+            content: linkTargetsOptFile.content,
+            mimeType: linkTargetsOptFile.mimeType,
+            status: "completed",
+            timestamp,
+            rowData: enrichedRow,
+          };
+          fileManager.addFile(linkTargetsFile);
+          generatedFiles.push(linkTargetsFile);
+          emitEntitySapPipelineHarnessDone(
+            options,
+            rowIndex,
+            enrichedRow,
+            "Link targets",
+            checklistResult.h2Outline ?? [],
+          );
+        }
+      } catch (e) {
+        console.warn("[Bulk Auto-Generate] Internal link target planning failed (non-fatal):", e);
       }
     }
 

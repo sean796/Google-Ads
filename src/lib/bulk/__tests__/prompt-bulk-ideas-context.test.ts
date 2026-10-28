@@ -5,6 +5,7 @@ import {
   PROMPT_IDEAS_GSC_LIMIT,
   buildPromptBulkIdeasContextFromWarm,
   fetchPromptIdeasGscQueries,
+  promptBulkIdeasContextIsReady,
 } from "@/lib/bulk/prompt-bulk-ideas-context";
 
 vi.mock("@/lib/competitor-research/competitor-gsc-queries", async (importOriginal) => {
@@ -84,6 +85,26 @@ describe("buildPromptBulkIdeasContextFromWarm", () => {
   it("is not ready when GSC is empty", () => {
     const ctx = buildPromptBulkIdeasContextFromWarm(site, warmBundle(), []);
     expect(ctx?.isReady).toBe(false);
+  });
+
+  it("is not ready when inventory total is zero even with GSC", () => {
+    const bundle = warmBundle({
+      counts: {
+        inventoryTotal: 0,
+        pages: 0,
+        posts: 0,
+        sap: 0,
+        gscQueries: 5,
+      },
+    });
+    expect(promptBulkIdeasContextIsReady(bundle, 5)).toBe(false);
+    const ctx = buildPromptBulkIdeasContextFromWarm(site, bundle, gscQueries(5));
+    expect(ctx?.isReady).toBe(false);
+  });
+
+  it("is not ready when bundle has error", () => {
+    const bundle = warmBundle({ error: "GSC failed" });
+    expect(promptBulkIdeasContextIsReady(bundle, 10)).toBe(false);
   });
 
   it("includes inventory JSON with posts bucket", () => {

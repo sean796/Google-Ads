@@ -32,7 +32,7 @@ export function mergeSeoResearchWithMeta(
   base.meta_description = optimized.rank_math_description ?? base.meta_description;
   base.focus_keyword = optimized.rank_math_focus_keyword ?? primaryKeyword ?? base.focus_keyword;
   base.updated_at = new Date().toISOString();
-  return JSON.stringify(base).slice(0, SEO_RESEARCH_JSON_MAX);
+  return JSON.stringify(base);
 }
 
 export function buildAcfPayload(

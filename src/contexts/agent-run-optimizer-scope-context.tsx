@@ -30,7 +30,7 @@ import { useActiveWordPressSite } from "@/contexts/active-wordpress-site-context
 const SCOPE_STORAGE_KEY = "neo-pulse-agent-run-optimizer-scope";
 
 function isStoredGeneratorSection(value: unknown): value is BlogGeneratorSectionId {
-  return value === "opt" || value === "bulk-csv";
+  return value === "opt" || value === "bulk-csv" || value === "bulk-prompt";
 }
 
 export type AgentRunOptimizerScope = {

@@ -1,14 +1,13 @@
-import React, { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Download,
   ExternalLink,
   FileText,
-  History,
+  Loader2,
   Play,
   RefreshCw,
   Sparkles,
   Upload,
-  Workflow,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAgentRunsContext } from "@/contexts/use-agent-runs-context";
@@ -40,6 +39,8 @@ import {
 } from "@/lib/content-optimization/content-optimizer-bulk-generator-bindings";
 import { buildElementorPageHtml } from "@/lib/elementor-page-content/elementor-page-html";
 import { elementorSectionHeadersFromCachedRow } from "@/lib/elementor-page-content/elementor-section-headers-from-cache";
+import { resolveStudioDrawerElementorHeaders } from "@/lib/overview/overview-studio-drawer-section-headers";
+import { overviewStudioRowFromWarmInventory } from "@/lib/overview/overview-studio-row-inventory-merge";
 import { normalizeSectionProseHtml, prosePlainText } from "@/lib/elementor-page-content/extract-text-editor-prose";
 import { parseFaqEntries, serializeFaqEntriesPlain } from "@/lib/faq-entries";
 import { NOTIFY_CSV_DOWNLOADED } from "@/lib/notify-messages";
@@ -54,16 +55,17 @@ import {
 import {
   isOverviewRowOptimizationActive,
 } from "@/components/overview/overview-tab/overview-bulk-run-helpers";
+import { runAutoSeoBlogBodyRewrite } from "@/lib/overview/overview-auto-seo-blog-rewrite";
 import {
-  rewriteBlogLeadSectionBlock,
   rewriteBlogPassageSection,
   splitHtmlBodyIntoH2PassageSections,
-  stitchOverviewBlogPostHtml,
 } from "@/lib/overview/overview-blog-passage-sections";
 import { normalizePageUrlKey } from "@/lib/sitemap-optimizer/normalize-page-url";
 import { extractFaqFromPostHtml } from "@/lib/overview/overview-row-scrape";
 import {
   metaDisplayTitle,
+  bulkStudioRowPathLabel,
+  bulkStudioRowPublicUrl,
   overviewRowUrlPathLabel,
   overviewTitlePrimarySegment,
 } from "@/lib/overview/overview-tab-display";
@@ -71,7 +73,24 @@ import { setStudioDocMetaInspectorBridge } from "@/lib/overview/studio-doc-meta-
 import { writeSidebarOpen, writeSidebarPanel } from "@/lib/pulse-assist/storage";
 import { BulkGeneratorDetailsDrawer } from "@/components/keyword-research/bulk/BulkGeneratorDetailsDrawer";
 import type { BulkGeneratorDetailsPanelProps } from "@/components/keyword-research/bulk/BulkGeneratorDetailsPanel";
+import { BulkSitemapInventoryRunDetail } from "@/components/keyword-research/bulk/BulkSitemapInventoryRunDetail";
+import { WordBlacklistRunDetail } from "@/components/keyword-research/bulk/WordBlacklistRunDetail";
+import {
+  isResearchStudioMode,
+  STUDIO_EDITOR_MODE_OPTIONS,
+  type StudioEditorModeId,
+} from "@/components/keyword-research/bulk/studio-editor-modes";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useOverviewSiteWarmDetails } from "@/hooks/overview/use-overview-site-warm-details";
+import { ContentOptimizerSplashOverlay } from "@/components/overview/studio/ContentOptimizerSplashOverlay";
 import { OverviewStudioGeneratedFilesBand } from "@/components/overview/studio/OverviewStudioGeneratedFilesBand";
+import { UniversalStudioHeader } from "@/components/overview/studio/UniversalStudioHeader";
 import { cn } from "@/lib/utils";
 
 export interface OverviewVisualDocCanvasProps {
@@ -89,11 +108,16 @@ export interface OverviewVisualDocCanvasProps {
     canGenerateContent: boolean;
   };
   bulkGeneratorDetailsPanel?: BulkGeneratorDetailsPanelProps;
+  customDrawerContent?: ReactNode;
   bulkGeneratedFilesPanelId?: string;
   bulkGeneratedFilesStepTotal?: number;
   bulkGeneratedFilesStepCompleted?: number;
   bulkGeneratorBand2Toolbar?: ReactNode;
   studioBody?: ReactNode;
+  studioEditorMode?: StudioEditorModeId;
+  onStudioEditorModeChange?: (mode: StudioEditorModeId) => void;
+  /** CSV title + URL slug agents in flight (hide raw keyword paths in header). */
+  bulkTitleUrlOptimizing?: boolean;
 }
 
 type StudioDrawerStepRow = {
@@ -123,7 +147,7 @@ function triggerBlobDownload(file: BulkDetailsDownloadable) {
 
 const ROW_STATUS_LABELS: Partial<Record<RowStatus, { label: string; pct: number }>> = {
   uploading: { label: "Uploading to WordPress", pct: 90 },
-  "research-faq": { label: "SERP Research Brief (DataForSEO + GSC + Semrush)", pct: 25 },
+  "research-faq": { label: "SERP Research Brief (DataForSEO + GSC)", pct: 25 },
   "ai-focus-kw": { label: "Deriving Focus Keyword", pct: 40 },
   "ai-title": { label: "Optimizing SEO Title", pct: 55 },
   "ai-meta": { label: "Optimizing Meta Description", pct: 70 },
@@ -151,16 +175,21 @@ export function OverviewVisualDocCanvas({
   onOpenRevisions,
   bulkGeneratorStudioActions,
   bulkGeneratorDetailsPanel,
+  customDrawerContent,
   bulkGeneratedFilesPanelId = "bulk-generator-generated-files-panel",
   bulkGeneratedFilesStepTotal = 0,
   bulkGeneratedFilesStepCompleted = 0,
   bulkGeneratorBand2Toolbar,
   studioBody,
+  studioEditorMode,
+  onStudioEditorModeChange,
+  bulkTitleUrlOptimizing = false,
 }: OverviewVisualDocCanvasProps) {
-  const isBulkGeneratorStudio = Boolean(bulkGeneratorStudioActions);
+  const isBulkGeneratorStudio = Boolean(bulkGeneratorStudioActions || studioEditorMode);
+  const siteWarm = useOverviewSiteWarmDetails(c.site ?? undefined);
   const hasRow = Boolean(row && rowIndex >= 0);
+  const showStudioEmptyPrompt = !c.site?.id;
   const { setSidebarOpen, setSidebarPanel } = useAgentRunsContext();
-  const autoScrapedUrlsRef = useRef<Set<string>>(new Set());
   const [fullAutoRunning, setFullAutoRunning] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [passageStatus, setPassageStatus] = useState<{
@@ -169,17 +198,23 @@ export function OverviewVisualDocCanvas({
     total: number;
   } | null>(null);
 
+  const studioRow = useMemo(() => {
+    if (!row || !c.site) return row ?? null;
+    return overviewStudioRowFromWarmInventory(row, c.site, c.sitemapSource);
+  }, [row, c.site, c.sitemapSource]);
+
   const isElementorRow = Boolean(
-    row &&
+    !isBulkGeneratorStudio &&
+      studioRow &&
       (c.sitemapSource === "pages" ||
-        row.contentFormat === "elementor" ||
-        Boolean(row.elementorDataJson?.trim())),
+        studioRow.contentFormat === "elementor" ||
+        Boolean(studioRow.elementorDataJson?.trim())),
   );
 
   const bodyHtml = useMemo(() => {
-    if (!row) return "";
-    const liveHtml = row.postContentOptimized?.trim() || row.postContent?.trim() || "";
-    const optimizingThisRow = isOverviewRowOptimizationActive(row.url, optimizingRowUrl);
+    if (!studioRow) return "";
+    const liveHtml = studioRow.postContentOptimized?.trim() || studioRow.postContent?.trim() || "";
+    const optimizingThisRow = isOverviewRowOptimizationActive(studioRow.url, optimizingRowUrl);
 
     if (isBulkGeneratorStudio) {
       return liveHtml;
@@ -187,8 +222,8 @@ export function OverviewVisualDocCanvas({
 
     if (isElementorRow) {
       if (optimizingThisRow && liveHtml) return liveHtml;
-      if (row.elementorDataJson?.trim()) {
-        return buildElementorPageHtml(row.elementorDataJson);
+      if (studioRow.elementorDataJson?.trim()) {
+        return buildElementorPageHtml(studioRow.elementorDataJson);
       }
       return liveHtml;
     }
@@ -199,7 +234,7 @@ export function OverviewVisualDocCanvas({
 
     if (c.site) {
       return resolveAiseoHarnessSourceHtmlFromCache({
-        row,
+        row: studioRow,
         site: c.site,
         sitemapSource: c.sitemapSource,
         getInventoryMatchForUrl: c.getInventoryMatchForUrl,
@@ -207,12 +242,13 @@ export function OverviewVisualDocCanvas({
     }
     return liveHtml;
   }, [
-    row,
+    studioRow,
     isElementorRow,
     optimizingRowUrl,
     c.site,
     c.sitemapSource,
     c.getInventoryMatchForUrl,
+    isBulkGeneratorStudio,
   ]);
 
   const siteId = c.site?.id ?? "";
@@ -263,7 +299,8 @@ export function OverviewVisualDocCanvas({
 
   // Build stable, non-jumping drawer rows using actual page headers (never "Post content")
   const drawerStepRows = useMemo((): StudioDrawerStepRow[] => {
-    if (!row) return [];
+    if (!studioRow) return [];
+    const row = studioRow;
     const items: StudioDrawerStepRow[] = [];
     const isPages = c.sitemapSource === "pages" || isElementorRow;
     const runKind = activeBatchState?.runKind;
@@ -300,15 +337,29 @@ export function OverviewVisualDocCanvas({
       downloadFile: serpBriefDownload,
     });
 
+    const passageStepTitle = passageStatus?.label?.includes(":")
+      ? passageStatus.label.split(":").slice(1).join(":").trim()
+      : passageStatus?.label?.trim() ?? "";
+
     // 3. Answer & Overview (for Posts / SAP when present or actively running)
     if (!isPages) {
       const ansHtml = extractAnswerSectionHtml(bodyHtml);
-      if (ansHtml || row.status === "ai-answer" || (busy && runKind === "aiAnswer")) {
+      if (
+        ansHtml ||
+        row.status === "ai-answer" ||
+        batchActiveStepLabel === "Answer" ||
+        passageStepTitle === "Answer" ||
+        (busy && runKind === "aiAnswer")
+      ) {
         items.push({
           id: "step-answer",
           title: "Answer",
           anchorId: "studio-sec-answer",
-          isActive: row.status === "ai-answer" || (busy && runKind === "aiAnswer"),
+          isActive:
+            row.status === "ai-answer" ||
+            batchActiveStepLabel === "Answer" ||
+            passageStepTitle === "Answer" ||
+            (busy && runKind === "aiAnswer"),
           isDone: Boolean(ansHtml),
           downloadFile: ansHtml
             ? {
@@ -321,12 +372,22 @@ export function OverviewVisualDocCanvas({
       }
 
       const ovHtml = extractOverviewSectionHtml(bodyHtml);
-      if (ovHtml || row.status === "ai-overview" || (busy && runKind === "aiOverview")) {
+      if (
+        ovHtml ||
+        row.status === "ai-overview" ||
+        batchActiveStepLabel === "Overview" ||
+        passageStepTitle === "Overview" ||
+        (busy && runKind === "aiOverview")
+      ) {
         items.push({
           id: "step-overview",
           title: "Overview",
           anchorId: "studio-sec-overview",
-          isActive: row.status === "ai-overview" || (busy && runKind === "aiOverview"),
+          isActive:
+            row.status === "ai-overview" ||
+            batchActiveStepLabel === "Overview" ||
+            passageStepTitle === "Overview" ||
+            (busy && runKind === "aiOverview"),
           isDone: Boolean(ovHtml),
           downloadFile: ovHtml
             ? {
@@ -346,10 +407,7 @@ export function OverviewVisualDocCanvas({
       (busy && (runKind === "aiHeaders" || runKind === "aiLinks"));
 
     if (isElementorRow) {
-      const elHeaders = elementorSectionHeadersFromCachedRow(row).filter((sec) => {
-        const key = (sec.title ?? "").trim().toLowerCase();
-        return key !== "faq" && key !== "frequently asked questions";
-      });
+      const elHeaders = resolveStudioDrawerElementorHeaders(row, c.site ?? undefined, c.sitemapSource);
       elHeaders.forEach((sec, idx) => {
         const headingTitle = sec.title?.trim() || `Section ${idx + 1}`;
         const secHtml = (sec.bodyHtml || sec.bodyText || "").trim();
@@ -360,7 +418,7 @@ export function OverviewVisualDocCanvas({
           isActive:
             headersRunning ||
             batchActiveStepLabel === headingTitle ||
-            (passageStatus !== null && passageStatus.current === idx + 1),
+            passageStepTitle === headingTitle,
           isDone: Boolean(secHtml || sec.title?.trim()),
           downloadFile: secHtml
             ? {
@@ -385,7 +443,7 @@ export function OverviewVisualDocCanvas({
           isActive:
             headersRunning ||
             batchActiveStepLabel === headingTitle ||
-            (passageStatus !== null && passageStatus.current === idx + 1),
+            passageStepTitle === headingTitle,
           isDone: Boolean(sec.bodyHtml.trim()),
           downloadFile: sec.bodyHtml.trim()
             ? {
@@ -409,7 +467,7 @@ export function OverviewVisualDocCanvas({
         row.status === "ai-meta" ||
         row.status === "ai-focus-kw" ||
         batchActiveStepLabel === "SEO Title & Meta Description" ||
-        batchActiveStepLabel === "SEO Meta & FAQs" ||
+        passageStepTitle === "SEO Title & Meta Description" ||
         (busy && (runKind === "aiTitle" || runKind === "aiMeta" || runKind === "aiAllMeta")),
       isDone: Boolean(titleVal && metaVal),
       downloadFile:
@@ -445,7 +503,7 @@ export function OverviewVisualDocCanvas({
       isActive:
         row.status === "ai-faq" ||
         batchActiveStepLabel === "FAQs" ||
-        batchActiveStepLabel === "SEO Meta & FAQs" ||
+        passageStepTitle === "FAQs" ||
         batchActiveStepLabel === "AI FAQs" ||
         activeBatchState?.currentStepProgress?.step === "AI FAQs" ||
         (busy && runKind === "aiFaq"),
@@ -481,7 +539,8 @@ export function OverviewVisualDocCanvas({
 
     return items;
   }, [
-    row,
+    studioRow,
+    c.site,
     c.sitemapSource,
     isElementorRow,
     activeBatchState?.runKind,
@@ -604,7 +663,9 @@ export function OverviewVisualDocCanvas({
         totalStepCount,
         1,
       )
-    : Math.max(totalStepCount, 1);
+    : hasRow
+      ? Math.max(totalStepCount, 1)
+      : 0;
 
   const bandDisplayCurrent = isBulkGeneratorStudio
     ? Math.min(
@@ -619,11 +680,21 @@ export function OverviewVisualDocCanvas({
     : Math.min(displayStepCurrent, bandDisplayTotal);
 
   const bandHeadlineText =
-    isBulkGeneratorStudio && bulkMicroSnapshot?.label?.trim()
-      ? bulkMicroSnapshot.label.trim()
-      : activeHeadlineText;
+    bulkTitleUrlOptimizing && isBulkGeneratorStudio
+      ? "Optimizing title & URL"
+      : isBulkGeneratorStudio && bulkMicroSnapshot?.label?.trim()
+        ? bulkMicroSnapshot.label.trim()
+        : activeHeadlineText;
 
-  const bandBusy = isBulkGeneratorStudio ? bulkWorkspaceBusy || busy : busy;
+  const bandBusy =
+    isBulkGeneratorStudio ? bulkWorkspaceBusy || busy || bulkTitleUrlOptimizing : busy;
+
+  const bulkContentSplashVisible =
+    isBulkGeneratorStudio &&
+    !studioBody &&
+    hasRow &&
+    !bodyHtml.trim() &&
+    row?.status === "ai-headers";
 
   const scrollToSection = (anchorId?: string) => {
     if (!anchorId) return;
@@ -679,17 +750,6 @@ export function OverviewVisualDocCanvas({
     c.commitRowDateModifier,
   ]);
 
-  // Murphy's Law check: auto-pull live WordPress body & ACF once per selected URL
-  useEffect(() => {
-    if (isBulkGeneratorStudio) return;
-    if (!row?.url || rowIndex < 0 || !c.site) return;
-    if (row.status !== "idle") return;
-    const scrapeKey = `${c.site.id}:${c.sitemapSource}:${row.url}`;
-    if (autoScrapedUrlsRef.current.has(scrapeKey)) return;
-    autoScrapedUrlsRef.current.add(scrapeKey);
-    void c.handleScrapeRow(rowIndex);
-  }, [row?.url, row?.status, rowIndex, c, isBulkGeneratorStudio]);
-
   const openMastraSidebar = () => {
     setSidebarPanel("seo");
     writeSidebarPanel("seo");
@@ -701,16 +761,34 @@ export function OverviewVisualDocCanvas({
   const displayTitle =
     hasRow && row
       ? overviewTitlePrimarySegment(rawTitle) ||
-        overviewRowUrlPathLabel(row.url) ||
+        (isBulkGeneratorStudio ? bulkStudioRowPathLabel(row) : overviewRowUrlPathLabel(row.url)) ||
         row.url
       : isBulkGeneratorStudio
         ? "Blog batch studio"
         : "Visual document studio";
 
-  const drawerBody = bulkGeneratorDetailsPanel ? (
+  const drawerBody = customDrawerContent ? (
+    customDrawerContent
+  ) : bulkGeneratorDetailsPanel ? (
     <BulkGeneratorDetailsDrawer {...bulkGeneratorDetailsPanel} />
   ) : (
-    <ul className="flex flex-col divide-y divide-white/5">
+    <div className="flex flex-col">
+      {c.site ? (
+        <>
+          <div className={contentOptimizerRowStripeClass(0)}>
+            <WordBlacklistRunDetail />
+          </div>
+          <div className={contentOptimizerRowStripeClass(1)}>
+            <BulkSitemapInventoryRunDetail
+              links={siteWarm.sitemapInventoryLinks}
+              gscHostedLink={siteWarm.gscHostedLink}
+              inventoryRows={siteWarm.inventoryRows}
+              pinned
+            />
+          </div>
+        </>
+      ) : null}
+      <ul className="flex flex-col divide-y divide-white/5">
       {drawerStepRows.map((step, idx) => {
         const canDownload = Boolean(step.downloadFile);
         return (
@@ -785,514 +863,364 @@ export function OverviewVisualDocCanvas({
           </li>
         );
       })}
-    </ul>
+      </ul>
+    </div>
+  );
+
+  const handleAutoSeo = useCallback(() => {
+    if (c.selectedCount > 0) {
+      void c.handleOptimizeAll();
+      return;
+    }
+    if (!row?.url) return;
+    const targetUrl = row.url;
+    const resolveTargetIndex = () =>
+      c.rowsRef.current.findIndex(
+        (r) => normalizePageUrlKey(r.url) === normalizePageUrlKey(targetUrl),
+      );
+    onInFlightAutoSeoUrlChange?.(targetUrl);
+    clearOverviewStudioRevisions(targetUrl);
+    setFullAutoRunning(true);
+    void (async () => {
+      try {
+        let idx = resolveTargetIndex();
+        if (idx < 0) return;
+
+        // 1. Focus keyword from slug only; research brief is never changed during Auto SEO.
+        let latestRow = c.rowsRef.current[idx] ?? row;
+        if (!latestRow.focusKeyword?.trim()) {
+          const slugHint = normalizeFocusKeywordPhrase(
+            pathSlugToFocusHint(latestRow.url) || "",
+          );
+          if (slugHint) {
+            c.updateRow(idx, { focusKeyword: slugHint });
+            idx = resolveTargetIndex();
+            if (idx < 0) return;
+            latestRow = c.rowsRef.current[idx] ?? latestRow;
+          }
+        }
+        if (!latestRow.seoResearch?.trim()) {
+          try {
+            await c.handleDataForSeoResearch(idx, { silent: true });
+            idx = resolveTargetIndex();
+            if (idx < 0) return;
+            latestRow = c.rowsRef.current[idx] ?? latestRow;
+          } catch (err) {
+            console.warn("[Auto SEO] Research step warning:", err);
+          }
+        }
+
+        // 2. Content sections (Answer, Overview, passages, Elementor)
+        idx = resolveTargetIndex();
+        if (idx < 0) return;
+        latestRow = c.rowsRef.current[idx] ?? latestRow;
+
+        // Content Sections (Passage-by-Passage or Elementor Sections)
+        const isPages =
+          c.sitemapSource === "pages" ||
+          latestRow.contentFormat === "elementor" ||
+          Boolean(latestRow.elementorDataJson?.trim());
+
+        if (isPages) {
+          const headers = elementorSectionHeadersFromCachedRow(latestRow).filter(
+            (sec) => {
+              const key = (sec.title ?? "").trim().toLowerCase();
+              return key !== "faq" && key !== "frequently asked questions";
+            },
+          );
+          const siblingTitles = headers.map((s) => s.title);
+          const workingHeaders = [...headers];
+
+          for (let i = 0; i < workingHeaders.length; i += 1) {
+            const sec = workingHeaders[i]!;
+            const secBody = (sec.bodyHtml || sec.bodyText || "").trim();
+            if (!secBody) continue;
+            setPassageStatus({
+              label: `Section ${i + 1}/${workingHeaders.length}: ${sec.title || `Section ${i + 1}`}`,
+              current: i + 1,
+              total: workingHeaders.length,
+            });
+            const elBefore = secBody;
+            try {
+              const rewritten = await rewriteBlogPassageSection({
+                mode: "copy",
+                section: {
+                  id: sec.id || `sec-${i}`,
+                  index: i,
+                  h2OpenTag: "<h2>",
+                  title: sec.title,
+                  bodyHtml: secBody,
+                },
+                siblingTitles: siblingTitles.filter((_, idx) => idx !== i),
+                articleTitle: latestRow.aiTitle?.trim() || latestRow.title || "",
+                focusKeyword: latestRow.focusKeyword?.trim() || "",
+                seoResearchBrief: latestRow.seoResearch,
+                siteId: c.site?.id,
+                siteUrl: c.site?.siteUrl,
+                pageUrl: latestRow.url,
+                businessName: c.site?.name,
+              });
+              const normalizedHtml = normalizeSectionProseHtml(rewritten.bodyHtml);
+              recordOverviewStudioRevision({
+                pageUrl: targetUrl,
+                stepLabel: sec.title?.trim() || `Section ${i + 1}`,
+                sectionTitle: sec.title?.trim() || undefined,
+                beforeHtml: elBefore,
+                afterHtml: normalizedHtml,
+              });
+              workingHeaders[i] = {
+                ...sec,
+                bodyHtml: normalizedHtml,
+                bodyText: prosePlainText(normalizedHtml),
+              };
+              idx = resolveTargetIndex();
+              if (idx < 0) return;
+              c.updateRow(idx, {
+                elementorSectionHeaders: [...workingHeaders],
+              });
+            } catch (err) {
+              console.warn(`[Auto SEO] Page section ${i + 1} warning:`, err);
+            }
+          }
+          setPassageStatus(null);
+        } else {
+          const currentBody =
+            latestRow.postContentOptimized?.trim() ||
+            latestRow.postContent?.trim() ||
+            bodyHtml;
+          await runAutoSeoBlogBodyRewrite({
+            sourceHtml: currentBody,
+            articleTitle: latestRow.aiTitle?.trim() || latestRow.title || "",
+            focusKeyword: latestRow.focusKeyword?.trim() || "",
+            seoResearchBrief: latestRow.seoResearch,
+            site: c.site,
+            pageUrl: targetUrl,
+            sitemapSource: c.sitemapSource,
+            onStepProgress: (stepIndex, totalBodySteps, stepLabel) => {
+              setPassageStatus({
+                label: `Step ${stepIndex}/${totalBodySteps}: ${stepLabel}`,
+                current: stepIndex,
+                total: totalBodySteps,
+              });
+            },
+            onCommitHtml: (html, h2Titles) => {
+              idx = resolveTargetIndex();
+              if (idx < 0) return;
+              c.updateRow(idx, {
+                postContentOptimized: html,
+                postContent: html,
+                ...(h2Titles.length > 0 ? { blogH2List: h2Titles } : {}),
+              });
+            },
+          });
+          setPassageStatus(null);
+        }
+
+        idx = resolveTargetIndex();
+        if (idx >= 0) {
+          await runAutoSeoMetaAndFaqFinale({
+            rowIndex: idx,
+            pageUrl: targetUrl,
+            getRow: () => {
+              const i = resolveTargetIndex();
+              return i >= 0 ? c.rowsRef.current[i] : undefined;
+            },
+            handleAiTitleRow: (i) => c.handleAiTitleRow(i),
+            handleAiMetaRow: (i) => c.handleAiMetaRow(i),
+            handleAiFaqRowAll: (i, r, opts) => c.handleAiFaqRowAll(i, r, opts),
+            faqOptions: { silentToast: false, skipFaqLoading: true },
+            onStepStart: (stepLabel) => {
+              setPassageStatus({
+                label: stepLabel,
+                current: stepLabel === "SEO Title & Meta Description" ? 1 : 2,
+                total: 2,
+              });
+            },
+          });
+        }
+      } finally {
+        onInFlightAutoSeoUrlChange?.(null);
+        setPassageStatus(null);
+        setFullAutoRunning(false);
+      }
+    })();
+  }, [c, row, bodyHtml, onInFlightAutoSeoUrlChange]);
+
+  const studioActionButtons = (
+    <>
+      {!isBulkGeneratorStudio && hasRow ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={busy}
+          onClick={() => void c.handleScrapeRow(rowIndex)}
+          className={cn(
+            "h-8 w-[4.75rem] min-w-[4.75rem] max-w-[4.75rem] shrink-0 justify-center gap-1.5 rounded-none border border-white/10 bg-zinc-900 px-2 text-xs text-white hover:bg-zinc-800",
+            row!.status === "scraping" && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
+          )}
+          title="Re-scrape live WordPress HTML & ACF fields"
+        >
+          <RefreshCw className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
+          <span>Sync</span>
+        </Button>
+      ) : null}
+
+      {!isBulkGeneratorStudio && hasRow && row ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={busy}
+          onClick={handleAutoSeo}
+          className={cn(
+            "h-8 w-[7.5rem] min-w-[7.5rem] max-w-[7.5rem] shrink-0 justify-center gap-1.5 rounded-none border border-white/10 bg-zinc-900 px-2 text-xs font-medium text-primary hover:bg-zinc-800",
+            fullAutoRunning &&
+              isViewedRowOptimizing &&
+              CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
+          )}
+          title="Execute Auto SEO pipeline (chains all selected posts if multiple are selected)"
+        >
+          <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+          <span className="truncate">{c.selectedCount > 1 ? `Auto SEO (${c.selectedCount})` : "Auto SEO"}</span>
+        </Button>
+      ) : null}
+
+      {bulkGeneratorStudioActions ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={busy || !bulkGeneratorStudioActions.canGenerateContent}
+          onClick={bulkGeneratorStudioActions.onGenerateContent}
+          className={cn(
+            "h-8 min-w-[7.5rem] shrink-0 justify-center gap-1.5 rounded-none border border-white/10 bg-zinc-900 px-3 text-xs font-medium text-primary hover:bg-zinc-800",
+            busy && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
+          )}
+          title="Generate content for CSV rows"
+        >
+          {busy ? (
+            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
+          ) : (
+            <Play className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+          )}
+          <span className="truncate">{busy ? "Generating…" : "Generate"}</span>
+        </Button>
+      ) : null}
+
+      {!isResearchStudioMode(studioEditorMode) ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={busy || !hasRow || !row || row?.status === "uploading"}
+          onClick={() => {
+            if (!row) return;
+            void c.handleUpdateWordPressForRow(row, { rowIndex });
+          }}
+          className={cn(
+            "h-8 w-[7rem] min-w-[7rem] max-w-[7rem] shrink-0 justify-center gap-1.5 rounded-none border-0 bg-primary px-2 text-xs font-semibold text-black hover:bg-primary/90",
+            row?.status === "uploading" && "opacity-90",
+          )}
+          title="Publish staged meta, prose, and FAQs to WordPress"
+        >
+          {row?.status === "uploading" ? (
+            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
+          ) : (
+            <Upload className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          )}
+          <span className="truncate">{row?.status === "uploading" ? "Publishing..." : "Publish"}</span>
+        </Button>
+      ) : null}
+    </>
   );
 
   return (
     <div className="flex h-full min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden bg-zinc-950 font-sans text-base text-white">
-      {/* Studio Top Header + Overlay Collapsible Drawer (Zero Jumping, Real Page Headers) */}
-      <header
-        className={cn(
-          "relative z-30 flex shrink-0 flex-col border-b bg-black transition-colors",
-          busy ? "animate-meta-opt-breathe border-semantic-data/40" : "border-white/10",
-        )}
-      >
-        <div className="flex flex-col gap-2 px-4 py-2.5">
-          {/* Band 1: Full Untruncated Document Title + Focus Keyword Badge */}
-          <div className="flex w-full items-center justify-between gap-3">
-            <h1
-              className={cn(
-                "text-base font-semibold",
-                busy ? CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS : "text-white",
-              )}
-            >
-              {displayTitle}
-            </h1>
-            {hasRow && row?.focusKeyword?.trim() ? (
-              <span className="shrink-0 bg-zinc-900 px-2.5 py-0.5 text-base text-cyan-400">
-                {row.focusKeyword.trim()}
-              </span>
-            ) : null}
-          </div>
-
-          {/* Band 2: URL + bulk batch controls + studio actions (bulk uses stacked rows to avoid overflow) */}
-          <div
-            className={cn(
-              "w-full min-w-0",
-              bulkGeneratorBand2Toolbar
-                ? "flex flex-col gap-2"
-                : "flex flex-wrap items-center justify-between gap-2",
-            )}
-          >
-            {hasRow && row ? (
-              <a
-                href={row.url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex min-w-0 items-center gap-1.5 font-mono text-base text-cyan-400 hover:underline"
-                title={row.url}
-              >
-                <span>{overviewRowUrlPathLabel(row.url)}</span>
-                <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              </a>
-            ) : !isBulkGeneratorStudio ? (
-              <span className="font-mono text-base text-muted-foreground">
-                Select an article in the left dock
-              </span>
-            ) : null}
-
-            {bulkGeneratorBand2Toolbar ? (
-              <div className="w-full min-w-0">{bulkGeneratorBand2Toolbar}</div>
-            ) : null}
-
-            {!isBulkGeneratorStudio || (hasRow && !studioBody) ? (
-            <div
-              className={cn(
-                "flex flex-wrap items-center gap-1.5",
-                bulkGeneratorBand2Toolbar ? "w-full justify-end" : "ml-auto shrink-0 justify-end",
-              )}
-            >
-              {onOpenRevisions ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={onOpenRevisions}
-                  className="h-8 rounded-none border-0 bg-zinc-900 px-2.5 text-base text-cyan-400 hover:bg-zinc-800 hover:text-white"
-                  title="Open full-page before/after revisions for this URL"
-                >
-                  <History className="mr-1.5 h-4 w-4" aria-hidden />
-                  Revisions
-                </Button>
-              ) : null}
-              {!isBulkGeneratorStudio && hasRow ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={busy}
-                  onClick={() => void c.handleScrapeRow(rowIndex)}
-                  className={cn(
-                    "h-8 rounded-none border-0 bg-zinc-900 px-2.5 text-base text-white hover:bg-zinc-800",
-                    row!.status === "scraping" && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-                  )}
-                  title="Re-scrape live WordPress HTML & ACF fields"
-                >
-                  <RefreshCw className="mr-1.5 h-4 w-4 text-muted-foreground" aria-hidden />
-                  Pull WP
-                </Button>
-              ) : null}
-
-              {!isBulkGeneratorStudio && hasRow && row ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                disabled={busy}
-                onClick={() => {
-                  if (c.selectedCount > 0) {
-                    void c.handleOptimizeAll();
-                    return;
-                  }
-                  if (!row?.url) return;
-                  const targetUrl = row.url;
-                  const resolveTargetIndex = () =>
-                    c.rowsRef.current.findIndex(
-                      (r) => normalizePageUrlKey(r.url) === normalizePageUrlKey(targetUrl),
-                    );
-                  onInFlightAutoSeoUrlChange?.(targetUrl);
-                  clearOverviewStudioRevisions(targetUrl);
-                  setFullAutoRunning(true);
-                  void (async () => {
-                    try {
-                      let idx = resolveTargetIndex();
-                      if (idx < 0) return;
-
-                      // 1. Focus keyword from slug only; research brief is never changed during Auto SEO.
-                      let latestRow = c.rowsRef.current[idx] ?? row;
-                      if (!latestRow.focusKeyword?.trim()) {
-                        const slugHint = normalizeFocusKeywordPhrase(
-                          pathSlugToFocusHint(latestRow.url) || "",
-                        );
-                        if (slugHint) {
-                          c.updateRow(idx, { focusKeyword: slugHint });
-                          idx = resolveTargetIndex();
-                          if (idx < 0) return;
-                          latestRow = c.rowsRef.current[idx] ?? latestRow;
-                        }
-                      }
-                      if (!latestRow.seoResearch?.trim()) {
-                        try {
-                          await c.handleDataForSeoResearch(idx, { silent: true });
-                          idx = resolveTargetIndex();
-                          if (idx < 0) return;
-                          latestRow = c.rowsRef.current[idx] ?? latestRow;
-                        } catch (err) {
-                          console.warn("[Auto SEO] Research step warning:", err);
-                        }
-                      }
-
-                      // 2. Content sections (Answer, Overview, passages, Elementor)
-                      idx = resolveTargetIndex();
-                      if (idx < 0) return;
-                      latestRow = c.rowsRef.current[idx] ?? latestRow;
-
-                      // Content Sections (Passage-by-Passage or Elementor Sections)
-                      const isPages =
-                        c.sitemapSource === "pages" ||
-                        latestRow.contentFormat === "elementor" ||
-                        Boolean(latestRow.elementorDataJson?.trim());
-
-                      if (isPages && latestRow.elementorDataJson?.trim() && c.handleAiElementorFullPageRow) {
-                        await c.handleAiElementorFullPageRow(idx);
-                      } else if (isPages) {
-                        const headers = elementorSectionHeadersFromCachedRow(latestRow).filter(
-                          (sec) => {
-                            const key = (sec.title ?? "").trim().toLowerCase();
-                            return key !== "faq" && key !== "frequently asked questions";
-                          },
-                        );
-                        const siblingTitles = headers.map((s) => s.title);
-                        const workingHeaders = [...headers];
-
-                        for (let i = 0; i < workingHeaders.length; i += 1) {
-                          const sec = workingHeaders[i]!;
-                          const secBody = (sec.bodyHtml || sec.bodyText || "").trim();
-                          if (!secBody) continue;
-                          setPassageStatus({
-                            label: `Section ${i + 1}/${workingHeaders.length}: ${sec.title || `Section ${i + 1}`}`,
-                            current: i + 1,
-                            total: workingHeaders.length,
-                          });
-                          const elBefore = secBody;
-                          try {
-                            const rewritten = await rewriteBlogPassageSection({
-                              mode: "copy",
-                              section: {
-                                id: sec.id || `sec-${i}`,
-                                index: i,
-                                h2OpenTag: "<h2>",
-                                title: sec.title,
-                                bodyHtml: secBody,
-                              },
-                              siblingTitles: siblingTitles.filter((_, idx) => idx !== i),
-                              articleTitle: latestRow.aiTitle?.trim() || latestRow.title || "",
-                              focusKeyword: latestRow.focusKeyword?.trim() || "",
-                              seoResearchBrief: latestRow.seoResearch,
-                              siteId: c.site?.id,
-                              siteUrl: c.site?.siteUrl,
-                              pageUrl: latestRow.url,
-                              businessName: c.site?.name,
-                            });
-                            const normalizedHtml = normalizeSectionProseHtml(rewritten.bodyHtml);
-                            recordOverviewStudioRevision({
-                              pageUrl: targetUrl,
-                              stepLabel: sec.title?.trim() || `Section ${i + 1}`,
-                              sectionTitle: sec.title?.trim() || undefined,
-                              beforeHtml: elBefore,
-                              afterHtml: normalizedHtml,
-                            });
-                            workingHeaders[i] = {
-                              ...sec,
-                              bodyHtml: normalizedHtml,
-                              bodyText: prosePlainText(normalizedHtml),
-                            };
-                            idx = resolveTargetIndex();
-                            if (idx < 0) return;
-                            c.updateRow(idx, {
-                              elementorSectionHeaders: [...workingHeaders],
-                            });
-                          } catch (err) {
-                            console.warn(`[Auto SEO] Page section ${i + 1} warning:`, err);
-                          }
-                        }
-                        setPassageStatus(null);
-                      } else {
-                        const currentBody =
-                          latestRow.postContentOptimized?.trim() ||
-                          latestRow.postContent?.trim() ||
-                          bodyHtml;
-                        let ansHtml = extractAnswerSectionHtml(currentBody);
-                        let ovHtml = extractOverviewSectionHtml(currentBody);
-                        const withoutLead = stripLeadingOverviewSection(
-                          stripLeadingAnswerSection(currentBody),
-                        );
-                        const coreOnly = stripTrailingFaqSection(withoutLead);
-                        const trailingFaq =
-                          withoutLead.length > coreOnly.length
-                            ? withoutLead.slice(coreOnly.length).trim()
-                            : "";
-                        const parsed = splitHtmlBodyIntoH2PassageSections(coreOnly);
-                        let leadingHtml = parsed.leadingHtml;
-                        const workingSections = [...parsed.sections];
-                        const passageCtx = {
-                          articleTitle: latestRow.aiTitle?.trim() || latestRow.title || "",
-                          focusKeyword: latestRow.focusKeyword?.trim() || "",
-                          seoResearchBrief: latestRow.seoResearch,
-                          siteId: c.site?.id,
-                          siteUrl: c.site?.siteUrl,
-                          pageUrl: latestRow.url,
-                          businessName: c.site?.name,
-                        };
-                        const siblingTitles = workingSections.map((s) => s.title);
-                        const commitBlogHtml = () => {
-                          const html = stitchOverviewBlogPostHtml({
-                            ansHtml,
-                            ovHtml,
-                            leadingHtml,
-                            sections: workingSections,
-                            trailingFaq,
-                          });
-                          idx = resolveTargetIndex();
-                          if (idx < 0) return;
-                          c.updateRow(idx, {
-                            postContentOptimized: html,
-                            postContent: html,
-                          });
-                        };
-                        if (ansHtml.trim()) {
-                          const ansBefore = ansHtml;
-                          try {
-                            ansHtml = await rewriteBlogLeadSectionBlock(ansHtml, {
-                              ...passageCtx,
-                              siblingTitles,
-                            });
-                            recordOverviewStudioRevision({
-                              pageUrl: targetUrl,
-                              stepLabel: "Answer",
-                              beforeHtml: ansBefore,
-                              afterHtml: ansHtml,
-                            });
-                            commitBlogHtml();
-                          } catch (err) {
-                            console.warn("[Auto SEO] Answer section warning:", err);
-                          }
-                        }
-                        if (ovHtml.trim()) {
-                          const ovBefore = ovHtml;
-                          try {
-                            ovHtml = await rewriteBlogLeadSectionBlock(ovHtml, {
-                              ...passageCtx,
-                              siblingTitles,
-                            });
-                            recordOverviewStudioRevision({
-                              pageUrl: targetUrl,
-                              stepLabel: "Overview",
-                              beforeHtml: ovBefore,
-                              afterHtml: ovHtml,
-                            });
-                            commitBlogHtml();
-                          } catch (err) {
-                            console.warn("[Auto SEO] Overview section warning:", err);
-                          }
-                        }
-                        if (leadingHtml.trim()) {
-                          const introBefore = leadingHtml;
-                          try {
-                            leadingHtml = await rewriteBlogLeadSectionBlock(leadingHtml, {
-                              ...passageCtx,
-                              siblingTitles,
-                            });
-                            recordOverviewStudioRevision({
-                              pageUrl: targetUrl,
-                              stepLabel: "Introduction",
-                              beforeHtml: introBefore,
-                              afterHtml: leadingHtml,
-                            });
-                            commitBlogHtml();
-                          } catch (err) {
-                            console.warn("[Auto SEO] Intro lead warning:", err);
-                          }
-                        }
-
-                        for (let i = 0; i < workingSections.length; i += 1) {
-                          const sec = workingSections[i]!;
-                          if (!sec.bodyHtml.trim()) continue;
-                          setPassageStatus({
-                            label: `Section ${i + 1}/${workingSections.length}: ${sec.title || `Section ${i + 1}`}`,
-                            current: i + 1,
-                            total: workingSections.length,
-                          });
-                          const passageBefore = sec.bodyHtml;
-                          try {
-                            const rewritten = await rewriteBlogPassageSection({
-                              mode: "copy",
-                              section: sec,
-                              siblingTitles: workingSections
-                                .filter((_, idx) => idx !== i)
-                                .map((s) => s.title),
-                              articleTitle: latestRow.aiTitle?.trim() || latestRow.title || "",
-                              focusKeyword: latestRow.focusKeyword?.trim() || "",
-                              seoResearchBrief: latestRow.seoResearch,
-                              siteId: c.site?.id,
-                              siteUrl: c.site?.siteUrl,
-                              pageUrl: latestRow.url,
-                              businessName: c.site?.name,
-                            });
-                            const nextBody = normalizeSectionProseHtml(rewritten.bodyHtml);
-                            recordOverviewStudioRevision({
-                              pageUrl: targetUrl,
-                              stepLabel: sec.title?.trim() || `Section ${i + 1}`,
-                              sectionTitle: sec.title?.trim() || undefined,
-                              beforeHtml: passageBefore,
-                              afterHtml: nextBody,
-                            });
-                            workingSections[i] = {
-                              ...sec,
-                              bodyHtml: nextBody,
-                            };
-                            commitBlogHtml();
-                          } catch (err) {
-                            console.warn(`[Auto SEO] Passage ${i + 1} warning:`, err);
-                          }
-                        }
-                        setPassageStatus(null);
-                      }
-
-                      idx = resolveTargetIndex();
-                      if (idx >= 0) {
-                        await runAutoSeoMetaAndFaqFinale({
-                          rowIndex: idx,
-                          pageUrl: targetUrl,
-                          getRow: () => {
-                            const i = resolveTargetIndex();
-                            return i >= 0 ? c.rowsRef.current[i] : undefined;
-                          },
-                          handleAiTitleRow: (i) => c.handleAiTitleRow(i),
-                          handleAiMetaRow: (i) => c.handleAiMetaRow(i),
-                          handleAiFaqRowAll: (i, r, opts) => c.handleAiFaqRowAll(i, r, opts),
-                          faqOptions: { silentToast: false, skipFaqLoading: true },
-                        });
-                      }
-                    } finally {
-                      onInFlightAutoSeoUrlChange?.(null);
-                      setPassageStatus(null);
-                      setFullAutoRunning(false);
-                    }
-                  })();
-                }}
-                className={cn(
-                  "h-8 rounded-none border-0 bg-zinc-900 px-3 text-base font-medium text-primary hover:bg-zinc-800",
-                  fullAutoRunning &&
-                    isViewedRowOptimizing &&
-                    CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-                )}
-                title="Execute Auto SEO pipeline (chains all selected posts if multiple are selected)"
-              >
-                <Sparkles className="mr-1.5 h-4 w-4 text-primary" aria-hidden />
-                {c.selectedCount > 1 ? `Auto SEO (${c.selectedCount})` : "Auto SEO"}
-              </Button>
-              ) : null}
-
-              {bulkGeneratorStudioActions ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={busy || !bulkGeneratorStudioActions.canGenerateContent}
-                  onClick={bulkGeneratorStudioActions.onGenerateContent}
-                  className="h-8 rounded-none border-0 bg-zinc-900 px-3 text-base font-medium text-primary hover:bg-zinc-800"
-                  title="Run the blog content pipeline for this batch"
-                >
-                  <Play className="mr-1.5 h-4 w-4 text-primary" aria-hidden />
-                  Generate content
-                </Button>
-              ) : null}
-
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={openMastraSidebar}
-                className="h-8 rounded-none border-0 bg-zinc-900 px-2.5 text-base text-cyan-400 hover:bg-zinc-800"
-                title="Open the Right-Hand Page SEO & Meta Inspector Drawer"
-              >
-                <Workflow className="mr-1.5 h-4 w-4" aria-hidden />
-                SEO Inspector
-              </Button>
-
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                disabled={busy || !hasRow || !row}
-                onClick={() => {
-                  if (!row) return;
-                  void c.handleUpdateWordPressForRow(row, { rowIndex });
-                }}
-                className={cn(
-                  "h-8 rounded-none border-0 bg-primary px-3 text-base font-semibold text-black hover:bg-primary/90",
-                  row?.status === "uploading" && "opacity-90",
-                )}
-                title="Publish staged meta, prose, and FAQs to WordPress"
-              >
-                <Upload className="mr-1.5 h-4 w-4" aria-hidden />
-                Upload to WP
-              </Button>
-            </div>
-            ) : null}
-          </div>
-        </div>
-
-        <OverviewStudioGeneratedFilesBand
-          busy={bandBusy}
-          activeHeadlineText={bandHeadlineText}
-          displayStepCurrent={bandDisplayCurrent}
-          totalStepCount={bandDisplayTotal}
-          allReadyFiles={allReadyFiles}
-          detailsPanelId={
-            isBulkGeneratorStudio ? bulkGeneratedFilesPanelId : "opt-generated-files-panel"
-          }
-          drawerOpen={drawerOpen}
-          onToggleDrawer={() => setDrawerOpen((prev) => !prev)}
-          drawerContent={drawerBody}
-          endRailTitle={
-            isBulkGeneratorStudio ? "Run steps and site inventory" : "Sections & SEO artifacts"
-          }
-        />
-      </header>
+      {/* Universal Stacked Studio Header: Row 1 (Studio Mode + External URL Link Out + Drawer Toggle), Row 2 (Filters + Actions), Detailed Drawer */}
+      <UniversalStudioHeader
+        studioEditorMode={studioEditorMode}
+        onStudioEditorModeChange={onStudioEditorModeChange}
+        bulkWorkspaceBusy={bulkWorkspaceBusy}
+        activeUrl={row?.url ?? null}
+        publicUrl={row ? bulkStudioRowPublicUrl(row, c.site?.siteUrl) : (c.site?.siteUrl ?? null)}
+        titleUrlOptimizing={bulkTitleUrlOptimizing}
+        urlDisplayLabel={
+          bulkTitleUrlOptimizing
+            ? null
+            : row
+              ? (bulkStudioRowPathLabel(row) || overviewRowUrlPathLabel(row.url) || row.url)
+              : (c.site?.siteUrl ?? null)
+        }
+        siteUrl={c.site?.siteUrl ?? null}
+        filters={bulkGeneratorBand2Toolbar}
+        actions={studioActionButtons}
+        busy={bandBusy}
+        activeHeadlineText={bandHeadlineText}
+        displayStepCurrent={bandDisplayCurrent}
+        totalStepCount={bandDisplayTotal}
+        allReadyFiles={allReadyFiles}
+        drawerOpen={drawerOpen}
+        onToggleDrawer={() => setDrawerOpen((prev) => !prev)}
+        drawerContent={drawerBody}
+        detailsPanelId={
+          isBulkGeneratorStudio ? bulkGeneratedFilesPanelId : "opt-generated-files-panel"
+        }
+        endRailTitle={
+          isBulkGeneratorStudio ? "Run steps and site inventory" : "Sections & SEO artifacts"
+        }
+      />
 
       {studioBody ? (
         <div className="min-h-0 flex-1 overflow-hidden">{studioBody}</div>
       ) : !hasRow || !row ? (
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-hidden bg-zinc-950 p-8 text-center text-base text-muted-foreground">
-          <FileText className="h-8 w-8 shrink-0 text-primary" aria-hidden />
-          <p className="max-w-md text-white">
-            {isBulkGeneratorStudio
-              ? "Select a row from the left list to open it in the studio editor."
-              : "Select an article from the Left Sitemap Dock to open it in the Visual Document Studio."}
-          </p>
-        </div>
+        showStudioEmptyPrompt ? (
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-hidden bg-zinc-950 p-8 text-center text-base text-muted-foreground">
+            <FileText className="h-8 w-8 shrink-0 text-primary" aria-hidden />
+            <p className="max-w-md text-white">
+              {isBulkGeneratorStudio
+                ? "Select a row from the left list to open it in the studio editor."
+                : "Select an article from the Left Sitemap Dock to open it in the Visual Document Studio."}
+            </p>
+          </div>
+        ) : (
+          <div className="min-h-0 flex-1 bg-zinc-950" aria-hidden />
+        )
       ) : (
-      <div className="min-h-0 flex-1 overflow-y-auto bg-zinc-900/40 px-4 py-6 sm:px-8">
-        <div className="mx-auto flex w-full max-w-4xl flex-col bg-zinc-950 px-6 py-7 sm:px-10 sm:py-9">
-          <OverviewDocSectionBlocks
-            row={row}
-            rowIndex={rowIndex}
-            sitemapSource={c.sitemapSource}
-            siteId={c.site?.id}
-            siteUrl={c.site?.siteUrl}
-            businessName={c.site?.name}
-            isElementorRow={isElementorRow}
-            bodyHtml={bodyHtml}
-            busy={busy}
-            onUpdateRow={c.updateRow}
-            onAiAnswer={c.handleAiAnswerRow}
-            onAiOverview={c.handleAiOverviewRow}
-            onAiHeaders={c.handleAiHeadersRow}
-            onAiLinks={c.handleAiLinksRow}
-            onAiWikipediaLink={c.handleAiWikipediaLinkRow}
-            onAiScenario={c.handleAiScenarioRow}
-            onAiInContentImage={c.handleAiInContentImageRow}
-            onAiFaqAll={c.handleAiFaqRowAll}
-            onAiFaqQuestion={c.handleAiFaqQuestion}
-            onAiFaqAnswer={c.handleAiFaqAnswer}
-            onAiElementorSection={c.handleAiElementorSectionRow}
-            onAiElementorSectionHeader={c.handleAiElementorSectionHeaderRow}
-            onAiElementorSectionContent={c.handleAiElementorSectionContentRow}
-            onPassageStatusChange={setPassageStatus}
-            activeOptimizingSectionTitle={activeOptimizingSectionTitle}
-          />
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-zinc-950">
+        <ContentOptimizerSplashOverlay visible={bulkContentSplashVisible} />
+        <div
+          className={cn(
+            "min-h-0 flex-1 overflow-y-auto overscroll-y-contain bg-zinc-950 px-4 py-6 sm:px-8",
+            bulkContentSplashVisible && "invisible pointer-events-none",
+          )}
+        >
+          <div className="mx-auto flex w-full max-w-4xl flex-col bg-zinc-950 px-6 py-7 sm:px-10 sm:py-9">
+            <OverviewDocSectionBlocks
+              row={row}
+              rowIndex={rowIndex}
+              sitemapSource={c.sitemapSource}
+              siteId={c.site?.id}
+              siteUrl={c.site?.siteUrl}
+              businessName={c.site?.name}
+              isElementorRow={isElementorRow}
+              bodyHtml={bodyHtml}
+              busy={busy}
+              onUpdateRow={c.updateRow}
+              onAiAnswer={c.handleAiAnswerRow}
+              onAiOverview={c.handleAiOverviewRow}
+              onAiHeaders={c.handleAiHeadersRow}
+              onAiLinks={c.handleAiLinksRow}
+              onAiWikipediaLink={c.handleAiWikipediaLinkRow}
+              onAiScenario={c.handleAiScenarioRow}
+              onAiInContentImage={c.handleAiInContentImageRow}
+              onAiFaqAll={c.handleAiFaqRowAll}
+              onAiFaqQuestion={c.handleAiFaqQuestion}
+              onAiFaqAnswer={c.handleAiFaqAnswer}
+              onPassageStatusChange={setPassageStatus}
+              activeOptimizingSectionTitle={activeOptimizingSectionTitle}
+            />
+          </div>
         </div>
       </div>
       )}

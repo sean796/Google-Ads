@@ -415,6 +415,7 @@ export function PulseForgeShell(): React.ReactElement {
               teamId={teamId}
               sites={siteOptions}
               route={route}
+              defaultSiteId={activeWordPressSiteId}
               onOpenWorkflow={openWorkflow}
               onNewWorkflow={openCreateWorkflow}
               onLoadErrorChange={handleWorkflowError}

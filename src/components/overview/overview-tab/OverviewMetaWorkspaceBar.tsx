@@ -244,6 +244,7 @@ export function OverviewContentHeader({
       opt={opt}
       sitemapInventoryLinks={warmDetails.sitemapInventoryLinks}
       gscHostedLink={warmDetails.gscHostedLink}
+      inventoryRows={warmDetails.inventoryRows}
       sitemapInventoryLoading={warmDetails.sitemapInventoryLoading}
     />
   ) : null;

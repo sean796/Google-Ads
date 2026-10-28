@@ -69,7 +69,7 @@ Featured images should end with -featured when it fits.`;
       system: systemPrompt,
       user: userPrompt,
       temperature: 0.2,
-      maxTokens: 64,
+      maxTokens: 1024,
     });
 
     const responseText = content.trim();

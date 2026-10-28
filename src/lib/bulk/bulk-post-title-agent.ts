@@ -1,4 +1,5 @@
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
+import { getCompetitorReportMaxOutputTokens } from "@/lib/competitor-research/competitor-report-openrouter-limits";
 import { getBlogModel } from "@/lib/optimization-settings-storage";
 import { BULK_WORDPRESS_POST_TITLE_RULE } from "@/lib/prompt-builders/title-rules";
 import { buildKeywordPunctuationPromptBlock } from "@/lib/prompt-builders/keyword-canonical-punctuation";
@@ -111,7 +112,7 @@ JSON contract: respond with one object only. Double-quoted key wordpress_title. 
     model,
     system: SYSTEM,
     user,
-    maxTokens: 512,
+    maxTokens: getCompetitorReportMaxOutputTokens(model),
     temperature: 0.25,
     responseFormat: BULK_WORDPRESS_TITLE_RESPONSE_FORMAT,
     signal: args.signal,

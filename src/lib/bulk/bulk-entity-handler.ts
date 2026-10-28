@@ -34,7 +34,7 @@ export async function generateEntityTitleFromSitemap(
 
     if (!parseResult.urls || parseResult.urls.length === 0) {
       console.warn('[Entity Title] No URLs found in entity sitemap');
-      return keyword ? `${keyword} Near ${entity}` : `${site.name} Near ${entity}`;
+      return keyword ? `${keyword} Near ${entity}` : `Local Service Near ${entity}`;
     }
 
     // Fetch published posts
@@ -50,7 +50,7 @@ export async function generateEntityTitleFromSitemap(
 
     if (!publishedResult.posts || publishedResult.posts.length === 0) {
       console.warn('[Entity Title] No published posts found');
-      return keyword ? `${keyword} Near ${entity}` : `${site.name} Near ${entity}`;
+      return keyword ? `${keyword} Near ${entity}` : `Local Service Near ${entity}`;
     }
 
     // Match posts to sitemap URLs and collect titles
@@ -82,7 +82,7 @@ export async function generateEntityTitleFromSitemap(
 
     if (titles.length === 0) {
       console.warn('[Entity Title] No matching titles found');
-      return keyword ? `${keyword} Near ${entity}` : `${site.name} Near ${entity}`;
+      return keyword ? `${keyword} Near ${entity}` : `Local Service Near ${entity}`;
     }
 
     // Use AI to analyze titles and extract service nickname
@@ -90,7 +90,7 @@ export async function generateEntityTitleFromSitemap(
     
     // ALWAYS generate title following "Service Near Entity" pattern for "near me" searches
     // This is critical for local SEO and Google local pack optimization
-    const serviceName = serviceNickname || keyword || site.name;
+    const serviceName = serviceNickname || keyword || "Local Service";
     const title = `${serviceName} Near ${entity}`;
     
     // Ensure "Near" is always present (double-check)
@@ -101,7 +101,7 @@ export async function generateEntityTitleFromSitemap(
   } catch (error) {
     console.error('[Entity Title] Error generating title from sitemap:', error);
     // Fallback to simple pattern
-    return keyword ? `${keyword} Near ${entity}` : `${site.name} Near ${entity}`;
+    return keyword ? `${keyword} Near ${entity}` : `Local Service Near ${entity}`;
   }
 }
 

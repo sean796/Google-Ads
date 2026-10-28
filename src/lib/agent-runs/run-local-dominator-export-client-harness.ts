@@ -1,25 +1,8 @@
 import type { WordPressSite } from "@/components/integrations/types";
 import { getStoredSites } from "@/components/integrations/storage";
 import type { AgentRunHarnessContext } from "@/lib/agent-runs/harness-registry";
-import type { AgentRun, AgentRunResult, AgentRunStepArtifact } from "@/lib/agent-runs-types";
+import type { AgentRun, AgentRunResult } from "@/lib/agent-runs-types";
 import { persistAgentRunArtifact } from "@/lib/agent-runs/agent-run-artifacts";
-import {
-  agentRunBrowserPreviewDataUrl,
-} from "@/lib/agent-runs/agent-run-browser-preview";
-import { patchAgentRunInList } from "@/lib/agent-runs/agent-runs-local-patch";
-import {
-  registerLocalDominatorExportJob,
-  unregisterLocalDominatorExportJob,
-  cancelLocalDominatorExportJobForAgentRun,
-} from "@/lib/local-dominator/local-dominator-export-job-registry";
-import {
-  decodeLocalDominatorCsvBase64,
-  downloadLocalDominatorCsv,
-  startLocalDominatorExportJob,
-  waitForLocalDominatorExportJob,
-  type LocalDominatorExportJobProgress,
-  type LocalDominatorExportResponse,
-} from "@/lib/local-dominator-export-api";
 import type { TaskExecutionClientRunContract } from "@/lib/tasks-types";
 import { patchTaskExecutionProgress } from "@/lib/tasks-api";
 import {
@@ -44,16 +27,21 @@ import {
   parseLocalDominatorCsv,
 } from "@/lib/local-dominator-csv";
 import {
-  resolveLocalDominatorExportKeyword,
+  isLocalDominatorAutoGridKeyword,
+  isLocalDominatorPropertyGridKeyword,
   resolveWorkflowLocalDominatorGridKeyword,
 } from "@/lib/local-dominator/local-dominator-export-keyword";
+import { resolvePropertyPrimaryLocalKeyword } from "@/lib/local-grid-studio/resolve-property-primary-local-keyword";
+import { saveLocalGridScanOnServer } from "@/lib/local-grid-studio/local-grid-api";
+import { runLocalGridExportForSite } from "@/lib/local-grid-studio/run-local-grid-export-for-site";
+import { downloadLocalDominatorCsv } from "@/lib/local-dominator-export-api";
 
 function resolveSite(siteId: string, sites: WordPressSite[]): WordPressSite {
   const fromList = sites.find((s) => s.id === siteId);
   if (fromList) return fromList;
   const stored = getStoredSites().find((s) => s.id === siteId);
   if (stored) return stored;
-  throw new Error("WordPress site not found for this research export run.");
+  throw new Error("WordPress site not found for this Local Grid export run.");
 }
 
 export function resolveEffectiveGridKeyword(
@@ -61,8 +49,14 @@ export function resolveEffectiveGridKeyword(
   csvContent: string,
   businessName?: string,
 ): string {
-  const trimmed = resolveLocalDominatorExportKeyword(keyword);
-  if (trimmed) return trimmed;
+  const stored = String(keyword ?? "").trim();
+  if (
+    stored &&
+    !isLocalDominatorAutoGridKeyword(stored) &&
+    !isLocalDominatorPropertyGridKeyword(stored)
+  ) {
+    return stored;
+  }
   const fallback = businessName?.trim() ?? "";
   const parsed = parseLocalDominatorCsv(csvContent, { defaultKeyword: fallback });
   const fromRows = dominantKeywordFromRows(parsed.rows).trim();
@@ -76,17 +70,21 @@ function contractFields(
   const rawBusinessName = String((contract as TaskExecutionClientRunContract).businessName ?? "").trim();
   const businessName = rawBusinessName || site?.name?.trim() || "";
   const rawKeyword = String((contract as TaskExecutionClientRunContract).keyword ?? "");
-  const keyword = resolveLocalDominatorExportKeyword(
-    resolveWorkflowLocalDominatorGridKeyword(
-      { keyword: rawKeyword, businessName },
-      rawKeyword,
-      businessName,
-    ),
+  const storedKeyword = resolveWorkflowLocalDominatorGridKeyword(
+    { keyword: rawKeyword, businessName },
+    rawKeyword,
+    businessName,
   );
+  const keyword = resolvePropertyPrimaryLocalKeyword(site, storedKeyword);
   if (!businessName) {
-    throw new Error("businessName is required for Local Dominator export.");
+    throw new Error("businessName is required for Local Grid export.");
   }
-  return { businessName, keyword };
+  if (!keyword.trim()) {
+    throw new Error(
+      "Keyword is required for Local Grid export. Set Primary keyword on the property profile or choose a custom keyword on the task.",
+    );
+  }
+  return { businessName, keyword: keyword.trim(), storedKeyword };
 }
 
 function executionPayloadFromRun(run: AgentRun): TaskExecutionClientRunContract | Record<string, unknown> {
@@ -145,8 +143,8 @@ async function persistLocalDominatorDeliverable(
     const contract = executionPayloadFromRun(run);
     const siteId = String(run.context?.siteId ?? "").trim();
     const site = siteId ? resolveSite(siteId, getStoredSites()) : undefined;
-    const { businessName, keyword } = contractFields(contract, site);
-    const effectiveKeyword = resolveEffectiveGridKeyword(keyword, file.content, businessName);
+    const { businessName, storedKeyword } = contractFields(contract, site);
+    const effectiveKeyword = resolveEffectiveGridKeyword(storedKeyword, file.content, businessName);
     stashWorkflowGridCsv(binding.workflowRunId, file.content, fileRefs, effectiveKeyword);
     const workflow = await fetchWorkflow(run.teamId, binding.workflowId);
     if (workflow) {
@@ -177,133 +175,22 @@ async function persistLocalDominatorDeliverable(
   }
 }
 
-async function patchBrowserPreviewLocally(
-  runId: number,
-  label: string,
-  screenshotBase64: string,
-  mime = "image/jpeg",
-): Promise<void> {
-  const artifact: AgentRunStepArtifact = {
-    id: "preview-live",
-    name: "browser-preview.jpg",
-    url: agentRunBrowserPreviewDataUrl(screenshotBase64, mime),
-    mime,
-  };
-  const at = new Date().toISOString();
-  patchAgentRunInList(runId, (run) => {
-    const steps = run.steps ?? [];
-    const idx = steps.findIndex((step) => step.stepKey === "browser_preview");
-    if (idx >= 0) {
-      const next = [...steps];
-      next[idx] = {
-        ...steps[idx]!,
-        label,
-        status: "running",
-        payload: { artifacts: [artifact] },
-        updatedAt: at,
-      };
-      return { steps: next };
-    }
-    return {
-      steps: [
-        ...steps,
-        {
-          id: Date.now(),
-          stepIndex: steps.length,
-          stepKey: "browser_preview",
-          label,
-          status: "running",
-          payload: { artifacts: [artifact] },
-          createdAt: at,
-          updatedAt: at,
-        },
-      ],
-    };
-  });
-}
-
-async function handleExportProgress(
+async function finalizeLocalGridExport(
   run: AgentRun,
-  ctx: AgentRunHarnessContext,
-  progress: LocalDominatorExportJobProgress,
-  state: { lastLabel: string; lastScreenshot: string | null; lastPreviewLabel: string },
-): Promise<void> {
-  const label = progress.label?.trim();
-  if (label && label !== state.lastLabel) {
-    state.lastLabel = label;
-    await ctx.onStep?.(label, "running");
-  }
-
-  const screenshot = progress.screenshotBase64?.trim();
-  const previewLabel = label || state.lastLabel || "Browser preview";
-  const shouldUpdatePreview =
-    Boolean(screenshot) &&
-    (screenshot !== state.lastScreenshot || previewLabel !== state.lastPreviewLabel);
-  if (shouldUpdatePreview && screenshot) {
-    state.lastScreenshot = screenshot;
-    state.lastPreviewLabel = previewLabel;
-    await patchBrowserPreviewLocally(run.id, previewLabel, screenshot);
-  }
-}
-
-async function runLocalDominatorExportWithPreview(
-  run: AgentRun,
-  ctx: AgentRunHarnessContext,
-  businessName: string,
-  keyword: string,
-): Promise<LocalDominatorExportResponse> {
-  const started = await startLocalDominatorExportJob({ businessName, keyword });
-  if (!started.ok || !started.jobId) {
-    throw new Error(started.error ?? "Local Dominator export worker is not configured.");
-  }
-
-  registerLocalDominatorExportJob(run.id, started.jobId);
-
-  const state = { lastLabel: "", lastScreenshot: null as string | null, lastPreviewLabel: "" };
-  try {
-    const response = await waitForLocalDominatorExportJob(started.jobId, {
-      onProgress: (progress) => handleExportProgress(run, ctx, progress, state),
-      shouldAbort: async () => {
-        const cancelled = (await ctx.isCancelled?.()) ?? false;
-        if (cancelled) {
-          await cancelLocalDominatorExportJobForAgentRun(run.id);
-        }
-        return cancelled;
-      },
-    });
-
-    if (state.lastScreenshot) {
-      await persistAgentRunArtifact(run.teamId, run, {
-        stepKey: "browser_preview",
-        stepLabel: state.lastLabel || "Browser preview",
-        name: "browser-preview.jpg",
-        mime: "image/jpeg",
-        content: state.lastScreenshot,
-      });
-    }
-
-    return response;
-  } finally {
-    unregisterLocalDominatorExportJob(run.id);
-  }
-}
-
-async function finalizeLocalDominatorExport(
-  run: AgentRun,
-  response: LocalDominatorExportResponse,
+  site: WordPressSite,
   contract: TaskExecutionClientRunContract | Record<string, unknown>,
-  businessName: string,
-  keyword: string,
+  exportResult: Awaited<ReturnType<typeof runLocalGridExportForSite>>,
   onChainStep?: (label: string, status: "running" | "error") => void | Promise<void>,
 ): Promise<{ csvContent: string; archiveFiles: ReturnType<typeof localDominatorArchiveFiles> }> {
-  if (!response.csvBase64 || !response.fileName) {
-    throw new Error(response.error ?? "Local Dominator export failed.");
-  }
-
-  const csvContent = decodeLocalDominatorCsvBase64(response.csvBase64);
-  const effectiveKeyword = resolveEffectiveGridKeyword(keyword, csvContent, businessName);
+  const { businessName, storedKeyword } = contractFields(contract, site);
+  const csvContent = exportResult.csvContent;
+  const effectiveKeyword = resolveEffectiveGridKeyword(
+    storedKeyword,
+    csvContent,
+    businessName,
+  );
   const archiveFiles = localDominatorArchiveFiles({
-    fileName: response.fileName,
+    fileName: exportResult.fileName,
     csvContent,
     businessName,
     keyword: effectiveKeyword,
@@ -313,16 +200,22 @@ async function finalizeLocalDominatorExport(
   const saveLocalArchive = effectiveSaveLocalArchive("local_dominator_export", contract);
 
   if (saveToDisk && !saveLocalArchive) {
-    downloadLocalDominatorCsv(archiveFiles[0]?.fileName ?? response.fileName, csvContent);
+    downloadLocalDominatorCsv(archiveFiles[0]?.fileName ?? exportResult.fileName, csvContent);
   }
 
   syncLocalDominatorHostedFile(
     run.id,
-    archiveFiles[0]?.fileName ?? response.fileName,
+    archiveFiles[0]?.fileName ?? exportResult.fileName,
     csvContent,
     businessName,
     effectiveKeyword,
   );
+
+  await onChainStep?.("Saving Local Grid draft…", "running");
+  const savedScan = await saveLocalGridScanOnServer(site.id, exportResult.scan);
+  if (!savedScan) {
+    throw new Error("Local Grid draft could not be saved. Open Local Grid for this property and retry.");
+  }
 
   await persistLocalDominatorDeliverable(run, archiveFiles, onChainStep);
 
@@ -340,24 +233,24 @@ export async function runLocalDominatorExportDirectHarness(
 
   const site = resolveSite(siteId, getStoredSites());
   const contract = executionPayloadFromRun(run);
-  const { businessName, keyword } = contractFields(contract, site);
+  const { keyword } = contractFields(contract, site);
 
   await ctx.onStep?.("Preflight", "running");
   await ctx.onStep?.("Export grid CSV", "running");
 
-  const response = await runLocalDominatorExportWithPreview(run, ctx, businessName, keyword);
-  await finalizeLocalDominatorExport(
-    run,
-    response,
-    contract,
-    businessName,
+  const exportResult = await runLocalGridExportForSite(site, {
     keyword,
-    (label, status) => ctx.onStep?.(label, status === "error" ? "error" : "running"),
+    onProgress: (label) => ctx.onStep?.(label, "running"),
+    shouldAbort: async () => (await ctx.isCancelled?.()) ?? false,
+  });
+
+  await finalizeLocalGridExport(run, site, contract, exportResult, (label, status) =>
+    ctx.onStep?.(label, status === "error" ? "error" : "running"),
   );
 
   return {
     updated: 1,
-    message: `Exported Local Dominator grid for ${businessName}`,
+    message: `Exported Local Grid for ${exportResult.businessName}`,
     batchKey: run.clientBatchKey || undefined,
   };
 }
@@ -375,28 +268,38 @@ export async function runLocalDominatorExportClientHarness(
   await ctx.onStep?.("Preflight", "running");
   await patchTaskExecutionProgress(run.teamId, executionId, {
     stepId: "preflight",
-    message: "Starting Local Dominator export…",
+    message: "Starting Local Grid export…",
     progress: 0.05,
   });
 
   await ctx.onStep?.("Export grid CSV", "running");
   await patchTaskExecutionProgress(run.teamId, executionId, {
-    message: `Exporting ${businessName}…`,
+    message: `Scanning grid for ${businessName}…`,
     progress: 0.2,
   });
 
-  const response = await runLocalDominatorExportWithPreview(run, ctx, businessName, keyword);
-  const { archiveFiles } = await finalizeLocalDominatorExport(
-    run,
-    response,
-    contract,
-    businessName,
+  const exportResult = await runLocalGridExportForSite(site, {
     keyword,
+    onProgress: (label, progress) => {
+      void patchTaskExecutionProgress(run.teamId, executionId, {
+        message: label,
+        progress: progress ?? undefined,
+      });
+      void ctx.onStep?.(label, "running");
+    },
+    shouldAbort: async () => (await ctx.isCancelled?.()) ?? false,
+  });
+
+  const { archiveFiles } = await finalizeLocalGridExport(
+    run,
+    site,
+    contract,
+    exportResult,
     (label, status) => ctx.onStep?.(label, status === "error" ? "error" : "running"),
   );
 
   const saveLocalArchive = effectiveSaveLocalArchive("local_dominator_export", contract);
-  const fileName = archiveFiles[0]?.fileName ?? response.fileName;
+  const fileName = archiveFiles[0]?.fileName ?? exportResult.fileName;
 
   const deliveryResult = await completeAgentRunExecution({
     teamId: run.teamId,
@@ -411,11 +314,11 @@ export async function runLocalDominatorExportClientHarness(
       siteName: site.name,
       automationTitle: automationTitleFromRun(run),
       executionKind: "local_dominator_export",
-      summary: `Exported Local Dominator grid for ${businessName}`,
+      summary: `Exported Local Grid for ${businessName}`,
     },
     result: {
       businessName,
-      keyword,
+      keyword: exportResult.effectiveKeyword,
       fileName,
       siteName: site.name,
     },
@@ -424,7 +327,7 @@ export async function runLocalDominatorExportClientHarness(
 
   return {
     updated: 1,
-    message: `Exported Local Dominator grid for ${businessName}`,
+    message: `Exported Local Grid for ${businessName}`,
     batchKey,
     ...deliveryResult,
   };

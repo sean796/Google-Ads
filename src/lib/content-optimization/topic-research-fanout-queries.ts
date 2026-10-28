@@ -41,7 +41,7 @@ export function attachLocationToQfoQuery(query: string, location: string): strin
   const city = cityTokenFromLocation(loc);
   if (!city || !q) return q;
   if (q.toLowerCase().includes(city.toLowerCase())) return q;
-  return `${q} ${loc}`;
+  return `${q} ${city}`;
 }
 
 export function attachLocationToQfoQueries(queries: string[], location: string): string[] {

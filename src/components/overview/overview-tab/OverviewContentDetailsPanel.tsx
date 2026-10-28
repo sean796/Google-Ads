@@ -26,6 +26,9 @@ import type { BulkOptimizationState } from "@/hooks/content-optimization/use-opt
 import type { OptimizationProgressState } from "@/hooks/content-optimization/use-optimization-state";
 import type { OptimizationFileManager } from "@/lib/optimization-file-manager";
 import { hasActiveBulkActionProgress } from "@/lib/overview/overview-bulk-inline-status";
+import { BulkSitemapInventoryRunDetail } from "@/components/keyword-research/bulk/BulkSitemapInventoryRunDetail";
+import { WordBlacklistRunDetail } from "@/components/keyword-research/bulk/WordBlacklistRunDetail";
+import { contentOptimizerRowStripeClass } from "@/components/overview/overview-tab/overview-tab-content-constants";
 
 type Opt = ReturnType<typeof useWordPressOptimization>;
 
@@ -60,6 +63,7 @@ export type OverviewContentDetailsPanelProps = {
   opt: Opt;
   sitemapInventoryLinks?: PromptBulkSitemapInventoryLink[];
   gscHostedLink?: BulkGscKeywordsHostedLink | null;
+  inventoryRows?: import("@/lib/overview/site-warm-inventory-display-rows").SiteWarmInventoryDisplayRow[];
   sitemapInventoryLoading?: boolean;
 };
 
@@ -119,6 +123,7 @@ export function OverviewContentDetailsPanel({
   opt,
   sitemapInventoryLinks = [],
   gscHostedLink = null,
+  inventoryRows,
   sitemapInventoryLoading = false,
 }: OverviewContentDetailsPanelProps) {
   const site = c.site;
@@ -216,23 +221,17 @@ export function OverviewContentDetailsPanel({
           )
         : null;
 
-  const showWarmInventoryOnly =
-    !bulkDetailsProps &&
-    !researchWorkerActive &&
-    !isOverviewResearchBatchInFlight(effectiveBatchState) &&
-    !hasSiteResearchBatch &&
-    overviewBulkDetailsCanOpenFromWarm(sitemapInventoryLinks, gscHostedLink, sitemapInventoryLoading);
-
-  const warmOnlyProps = showWarmInventoryOnly
-    ? buildOverviewWarmInventoryDetailsProps({
-        overviewRows: c.displayRows,
-        gridPageIndex: c.gridPageIndex,
-        sitemapInventoryLinks,
-        siteKwHostedLink: gscHostedLink,
-        sitemapInventoryLoading,
-        sitemapSource: c.sitemapSource,
-      })
-    : null;
+  const warmOnlyProps =
+    site && !bulkDetailsProps
+      ? buildOverviewWarmInventoryDetailsProps({
+          overviewRows: c.displayRows,
+          gridPageIndex: c.gridPageIndex,
+          sitemapInventoryLinks,
+          siteKwHostedLink: gscHostedLink,
+          sitemapInventoryLoading,
+          sitemapSource: c.sitemapSource,
+        })
+      : null;
 
   const drawerProps = bulkDetailsProps ?? warmOnlyProps;
 
@@ -244,6 +243,21 @@ export function OverviewContentDetailsPanel({
 
   return (
     <WorkspaceDetailsStack>
+      {site && !drawerProps ? (
+        <>
+          <div className={contentOptimizerRowStripeClass(0)}>
+            <WordBlacklistRunDetail />
+          </div>
+          <div className={contentOptimizerRowStripeClass(1)}>
+            <BulkSitemapInventoryRunDetail
+              links={sitemapInventoryLinks}
+              gscHostedLink={gscHostedLink}
+              inventoryRows={inventoryRows}
+              pinned
+            />
+          </div>
+        </>
+      ) : null}
       {showSinglePage && (!hideSinglePageForResearch || isSinglePageOptimizing) ? (
         <SinglePageOptimizationDetailsPanel
           siteId={siteId}
@@ -264,14 +278,14 @@ export function overviewContentDetailsCanOpen(
   bulkActionProgress: Partial<Record<MetaBulkActionKey, BulkProgressSlice>>,
   batchBulkState: BulkOptimizationState | undefined,
   singlePageCtx?: OverviewSinglePageDetailsContext,
-  warmInventory?: {
-    sitemapInventoryLinks: PromptBulkSitemapInventoryLink[];
-    gscHostedLink: BulkGscKeywordsHostedLink | null;
-    sitemapInventoryLoading: boolean;
-  },
-): boolean {
-  return Boolean(
-    site &&
+  if (!site) return false;
+  return (
+    hasOverviewContentDetailsActivity(
+      bulkActionProgress,
+      batchBulkState,
+      singlePageCtx,
+      warmInventory,
+    ) || Boolean(warmInventory)
       hasOverviewContentDetailsActivity(
         bulkActionProgress,
         batchBulkState,

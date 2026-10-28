@@ -19,7 +19,6 @@ type Args = Pick<
   | "deriveFocusKeywordFromPageContext"
 > & {
   site: WordPressSite | undefined;
-  portfolioBlockedHostsForSemrush: string[];
   sitemapSource: OverviewSitemapSource;
   bindings: OverviewTabBase["bindings"];
   resolveBindings: OverviewTabBase["resolveBindings"];
@@ -32,7 +31,6 @@ export function useOverviewTabDfsResearch({
   site,
   gscQuickWinsFile,
   serpDumpUrl,
-  portfolioBlockedHostsForSemrush,
   sitemapSource,
   deriveEntityKeyword,
   deriveFocusKeywordFromPageContext,
@@ -105,7 +103,6 @@ export function useOverviewTabDfsResearch({
           site,
           gscQuickWinsFile,
           serpDumpUrl,
-          portfolioBlockedHostsForSemrush,
           skipGsc,
           silent,
         });
@@ -126,7 +123,6 @@ export function useOverviewTabDfsResearch({
       site,
       gscQuickWinsFile,
       serpDumpUrl,
-      portfolioBlockedHostsForSemrush,
       sitemapSource,
       deriveEntityKeyword,
       deriveFocusKeywordFromPageContext,

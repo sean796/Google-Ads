@@ -1,21 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FileText,
-  Loader2,
   RefreshCw,
   Search,
-  Upload,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ContentOptimizerSectionPills } from "@/components/content-optimizer/ContentOptimizerSectionPills";
 import type { ContentOptimizerSectionId } from "@/components/content-optimizer/content-optimizer-sections";
 import { isOverviewRowOptimizationActive } from "@/components/overview/overview-tab/overview-bulk-run-helpers";
 import { OverviewBulkClusterFlyout } from "@/components/overview/overview-tab/OverviewBulkClusterFlyout";
-import { OverviewErrorsFilterMenu } from "@/components/overview/overview-tab/OverviewErrorsFilterMenu";
-import { OverviewSemrushCsvUpload } from "@/components/overview/overview-tab/OverviewSemrushCsvUpload";
 import {
   CONTENT_OPTIMIZER_ACTIVE_ROW_HIGHLIGHT_CLASS,
   CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
@@ -34,24 +30,26 @@ import {
   type OverviewSitemapSource,
 } from "@/lib/overview/overview-sitemap-source";
 import {
+  bulkStudioRowPathLabel,
   metaDisplayTitle,
   overviewRowUrlPathLabel,
   overviewTitlePrimarySegment,
 } from "@/lib/overview/overview-tab-display";
 import { normalizePageUrlKey } from "@/lib/sitemap-optimizer/normalize-page-url";
 import { cn } from "@/lib/utils";
-import type { BulkGeneratorStudioVariant } from "@/lib/bulk/bulk-generator-studio-rows";
 import {
-  BULK_AUTO_GENERATE_TEMPLATE_FILENAME,
-  BULK_AUTO_GENERATE_TEMPLATE_HREF,
-} from "@/lib/bulk/bulk-auto-generate-template-columns";
-import { BLOG_IMPORT_FILE_ACCEPT } from "@/lib/bulk/blog-import-parser";
+  bulkGeneratorSapPathConfigError,
+  type BulkGeneratorStudioVariant,
+} from "@/lib/bulk/bulk-generator-studio-rows";
 import { rowIndexForOverviewUrl } from "@/lib/bulk/bulk-generator-overview-row-bridge";
+import { BulkStudioTitleUrlOptimizingBlock } from "@/components/keyword-research/bulk/BulkStudioTitleUrlOptimizingBlock";
 
 export type OverviewSitemapLeftDockBulkGeneratorDock = {
   variant: BulkGeneratorStudioVariant;
   emptyListCopy: string;
   csvLoading?: boolean;
+  /** Title + URL slug agents running (CSV enrich). */
+  csvEnrichingTitlesUrls?: boolean;
   importParsing?: boolean;
   importedFileName?: string | null;
   csvFileName?: string | null;
@@ -123,8 +121,6 @@ export function OverviewSitemapLeftDock({
   const [isResizing, setIsResizing] = useState(false);
   const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const rowRefs = useRef<Map<string, HTMLLIElement>>(new Map());
-  const csvInputRef = useRef<HTMLInputElement>(null);
-  const importInputRef = useRef<HTMLInputElement>(null);
   const hasDetectedSitemaps = Boolean(c.site?.sitemaps?.mainSitemapUrl);
   const isBulkGeneratorDock = Boolean(bulkGeneratorDock);
 
@@ -196,6 +192,13 @@ export function OverviewSitemapLeftDock({
         })),
     [c.site],
   );
+
+  const sitemapSelectValue = useMemo(() => {
+    if (sourceOptions.some((opt) => opt.id === c.sitemapSource)) {
+      return c.sitemapSource;
+    }
+    return sourceOptions[0]?.id ?? "pages";
+  }, [c.sitemapSource, sourceOptions]);
 
   const filteredRows = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -284,13 +287,13 @@ export function OverviewSitemapLeftDock({
     <aside
       aria-label={isBulkGeneratorDock ? "Generator rows" : "Sitemap article navigator"}
       style={{ width: `${dockWidth}px` }}
-      className="relative flex h-full shrink-0 flex-col border-r border-white/10 bg-black font-sans text-base text-white"
+      className="relative flex h-full min-h-0 shrink-0 flex-col border-r border-white/10 bg-black font-sans text-base text-white"
     >
       {/* Top Sitemap Scope & Mode Row (OPT parity for bulk + optimizer) */}
       <div className="flex h-11 shrink-0 items-center justify-between gap-2 bg-zinc-900 px-3">
         <div className="flex min-w-0 flex-1 items-center gap-1.5">
           <Select
-            value={c.sitemapSource}
+            value={sitemapSelectValue}
             onValueChange={(val) => c.setSitemapSource(val as OverviewSitemapSource)}
           >
             <SelectTrigger
@@ -324,104 +327,55 @@ export function OverviewSitemapLeftDock({
             <RefreshCw className="h-4 w-4" aria-hidden />
           </Button>
         </div>
-
-        <ContentOptimizerSectionPills
-          activeSection={optimizerSection}
-          onSectionChange={onOptimizerSectionChange}
-          disabled={bulkWorkspaceBusy}
-        />
       </div>
 
-      {/* Inline Search + Error/SEMrush Filter Row */}
-      <div className="flex flex-col gap-1.5 border-b border-white/10 bg-black p-2.5">
-        {isBulkGeneratorDock && bulkGeneratorDock!.variant === "csv" ? (
-          <div className="flex flex-wrap items-center gap-1">
-            <input
-              ref={csvInputRef}
-              type="file"
-              accept=".csv,text/csv"
-              className="hidden"
-              onChange={(e) => {
-                bulkGeneratorDock!.onPickCsvFile?.(e.target.files?.[0] ?? null);
-                e.target.value = "";
-              }}
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={bulkWorkspaceBusy || bulkGeneratorDock!.csvLoading}
-              onClick={() => csvInputRef.current?.click()}
-              className="h-8 rounded-none border-0 bg-zinc-900 px-2 text-base text-primary hover:bg-zinc-800"
-            >
-              {bulkGeneratorDock!.csvLoading ? (
-                <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden />
-              ) : (
-                <Upload className="mr-1 h-4 w-4" aria-hidden />
-              )}
-              CSV
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 rounded-none border-0 bg-zinc-900 px-2 text-base hover:bg-zinc-800"
-              asChild
-            >
-              <a href={BULK_AUTO_GENERATE_TEMPLATE_HREF} download={BULK_AUTO_GENERATE_TEMPLATE_FILENAME}>
-                Template
-              </a>
-            </Button>
-            {bulkGeneratorDock!.csvFileName ? (
-              <span className="truncate text-base text-muted-foreground" title={bulkGeneratorDock!.csvFileName}>
-                {bulkGeneratorDock!.csvFileName}
+      {/* Single Collapsed Action Strip: Checkbox + Items -> Search -> AISEO & WordPress */}
+      <div className="flex h-10 shrink-0 items-center gap-2 border-b border-white/10 bg-black px-2.5">
+        {/* Left: Items Checkbox & Count */}
+        <div className="flex shrink-0 items-center gap-1.5 pl-0.5">
+          {isBulkGeneratorDock && bulkGeneratorDock!.promptSelection ? (
+            <>
+              <Checkbox
+                checked={generatorAllSelected ? true : generatorSomeSelected ? "indeterminate" : false}
+                onCheckedChange={toggleGeneratorSelectAll}
+                disabled={generatorSelectableIndices.length === 0 || bulkWorkspaceBusy}
+                aria-label={generatorAllSelected ? "Deselect all rows" : "Select all rows"}
+                className={DASHBOARD_LIST_CHECKBOX_CLASS}
+              />
+              <span className="tabular-nums text-xs text-muted-foreground whitespace-nowrap">
+                {bulkGeneratorDock!.selectedBlogIndices.size > 0 ? (
+                  <span className="font-medium text-primary">
+                    {bulkGeneratorDock!.selectedBlogIndices.size} selected
+                  </span>
+                ) : (
+                  <span>{filteredRows.length} items</span>
+                )}
               </span>
-            ) : null}
-          </div>
-        ) : null}
-
-        {isBulkGeneratorDock && bulkGeneratorDock!.variant === "blog-import" ? (
-          <div className="flex flex-wrap items-center gap-1">
-            <input
-              ref={importInputRef}
-              type="file"
-              className="hidden"
-              multiple
-              accept={BLOG_IMPORT_FILE_ACCEPT}
-              onChange={(e) => {
-                bulkGeneratorDock!.onPickImportFiles?.(Array.from(e.target.files ?? []));
-                e.target.value = "";
-              }}
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={bulkWorkspaceBusy || bulkGeneratorDock!.importParsing}
-              onClick={() => importInputRef.current?.click()}
-              className="h-8 rounded-none border-0 bg-zinc-900 px-2 text-base text-primary hover:bg-zinc-800"
-            >
-              {bulkGeneratorDock!.importParsing ? (
-                <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden />
-              ) : (
-                <Upload className="mr-1 h-4 w-4" aria-hidden />
-              )}
-              Files
-            </Button>
-            {bulkGeneratorDock!.importedFileName ? (
-              <span
-                className="truncate text-base text-muted-foreground"
-                title={bulkGeneratorDock!.importedFileName}
-              >
-                {bulkGeneratorDock!.importedFileName}
+            </>
+          ) : (
+            <>
+              <Checkbox
+                checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                onCheckedChange={() => c.toggleSelectPageRows(filteredRows)}
+                disabled={pageKeys.length === 0}
+                aria-label={allSelected ? "Deselect all visible articles" : "Select all visible articles"}
+                className={DASHBOARD_LIST_CHECKBOX_CLASS}
+              />
+              <span className="tabular-nums text-xs text-muted-foreground whitespace-nowrap">
+                {c.selectedCount > 0 ? (
+                  <span className="font-medium text-primary">{c.selectedCount} selected</span>
+                ) : (
+                  <span>{filteredRows.length} items</span>
+                )}
               </span>
-            ) : null}
-          </div>
-        ) : null}
+            </>
+          )}
+        </div>
 
-        <div className="relative flex items-center">
+        {/* Center: Search Input */}
+        <div className="relative flex min-w-0 flex-1 items-center">
           <Search
-            className="pointer-events-none absolute left-2.5 h-4 w-4 text-muted-foreground"
+            className="pointer-events-none absolute left-2 h-3.5 w-3.5 text-muted-foreground"
             aria-hidden
           />
           <Input
@@ -433,71 +387,12 @@ export function OverviewSitemapLeftDock({
                 : `Search ${c.displayRows.length} articles...`
             }
             aria-label={isBulkGeneratorDock ? "Search generator rows" : "Search sitemap articles"}
-            className="h-8 w-full rounded-none border-0 bg-zinc-900 pl-8 pr-2.5 text-base text-white placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary"
+            className="h-7 w-full rounded-none border-0 bg-zinc-900 pl-7 pr-2 text-xs text-white placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-primary"
           />
         </div>
 
-        {isBulkGeneratorDock && bulkGeneratorDock!.promptSelection ? (
-          <div className="flex items-center gap-2 pl-1">
-            <Checkbox
-              checked={generatorAllSelected ? true : generatorSomeSelected ? "indeterminate" : false}
-              onCheckedChange={toggleGeneratorSelectAll}
-              disabled={generatorSelectableIndices.length === 0 || bulkWorkspaceBusy}
-              aria-label={generatorAllSelected ? "Deselect all rows" : "Select all rows"}
-              className={DASHBOARD_LIST_CHECKBOX_CLASS}
-            />
-            <span className="tabular-nums text-base text-muted-foreground">
-              {bulkGeneratorDock!.selectedBlogIndices.size > 0 ? (
-                <span className="font-medium text-primary">
-                  {bulkGeneratorDock!.selectedBlogIndices.size} selected
-                </span>
-              ) : (
-                <span>{filteredRows.length} items</span>
-              )}
-            </span>
-          </div>
-        ) : (
-        <div className="flex flex-wrap items-center justify-between gap-1">
-          <div className="flex items-center gap-2 pl-1">
-            <Checkbox
-              checked={allSelected ? true : someSelected ? "indeterminate" : false}
-              onCheckedChange={() => c.toggleSelectPageRows(filteredRows)}
-              disabled={pageKeys.length === 0}
-              aria-label={allSelected ? "Deselect all visible articles" : "Select all visible articles"}
-              className={DASHBOARD_LIST_CHECKBOX_CLASS}
-            />
-            <span className="tabular-nums text-muted-foreground">
-              {c.selectedCount > 0 ? (
-                <span className="font-medium text-primary">{c.selectedCount} selected</span>
-              ) : (
-                <span>{filteredRows.length} items</span>
-              )}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <OverviewErrorsFilterMenu
-              rows={c.rows}
-              activeFilters={c.activeErrorFilters}
-              onToggle={c.toggleErrorFilter}
-              onClear={c.clearErrorFilters}
-              disabled={bulkWorkspaceBusy}
-            />
-            <OverviewSemrushCsvUpload
-              fileName={c.semrushCsvFileName}
-              urlCount={c.semrushFilterUrlKeys?.size ?? 0}
-              disabled={bulkWorkspaceBusy}
-              onUpload={c.setSemrushCsvUpload}
-              onClear={c.clearSemrushCsvUpload}
-            />
-          </div>
-        </div>
-        )}
-      </div>
-
-      {/* Batch Mastra Action Strip (Always accessible, zero CLS) */}
-      <div className="flex h-10 shrink-0 items-center justify-between gap-1 border-b border-white/10 bg-zinc-950 px-2.5">
-        <div className="flex items-center gap-1">
+        {/* Right: AISEO and WordPress Flyouts */}
+        <div className="flex shrink-0 items-center gap-1">
           {clusters.map((cluster) => (
             <OverviewBulkClusterFlyout
               key={cluster.id}
@@ -506,33 +401,25 @@ export function OverviewSitemapLeftDock({
             />
           ))}
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          disabled={c.displayRows.length === 0 || bulkWorkspaceBusy}
-          onClick={() => void c.handleBulkUploadToWordPress()}
-          className="h-7 rounded-none border-0 bg-zinc-900 px-2 text-base font-medium text-primary hover:bg-zinc-800"
-          title="Upload staged changes to WordPress"
-        >
-          <Upload className="mr-1 h-3.5 w-3.5" aria-hidden />
-          Push
-        </Button>
       </div>
+
+      {isBulkGeneratorDock && bulkGeneratorSapPathConfigError(c.site, c.sitemapSource) ? (
+        <p className="border-b border-white/10 bg-black px-2.5 py-1 text-xs text-destructive" role="status">
+          {bulkGeneratorSapPathConfigError(c.site, c.sitemapSource)}
+        </p>
+      ) : null}
 
       {/* Scrollable Sitemap Article List */}
       <div className="min-h-0 flex-1 overflow-y-auto">
         {filteredRows.length === 0 ? (
-          <div className="flex h-48 flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground">
-            <FileText className="h-5 w-5 text-muted-foreground" aria-hidden />
-            <p className="text-base">
-              {isBulkGeneratorDock
-                ? bulkGeneratorDock!.emptyListCopy
-                : c.overviewSitemapLoadBusy
-                  ? "Loading sitemap inventory..."
-                  : "No articles match the current filter."}
-            </p>
-          </div>
+          isBulkGeneratorDock ? (
+            <div className="flex h-48 flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground">
+              <FileText className="h-5 w-5 text-muted-foreground" aria-hidden />
+              <p className="text-base">{bulkGeneratorDock!.emptyListCopy}</p>
+            </div>
+          ) : (
+            <div className="min-h-48" aria-hidden />
+          )
         ) : (
           <ul
             className="divide-y divide-white/5"
@@ -543,23 +430,48 @@ export function OverviewSitemapLeftDock({
               const rowKey = normalizePageUrlKey(row.url);
               const isSelected = Boolean(rowKey && c.selectedUrlKeys?.has(rowKey));
               const isActive = Boolean(rowKey && rowKey === activeUrlKey);
-              const isBlogSlotLabel = /^Blog slot \d+$/.test(row.title.trim());
+              const isBlogSlotLabel =
+                /^Blog slot \d+$/i.test(row.title.trim()) ||
+                row.title.trim().toLowerCase().startsWith("blog slot") ||
+                row.title.trim() === "New blog slot";
               const isPromptPlaceholder =
                 isBulkGeneratorDock && bulkGeneratorDock!.promptSelection && isBlogSlotLabel;
               const isPreIdeasPlaceholder =
                 isBulkGeneratorDock && !bulkGeneratorDock!.promptSelection && isBlogSlotLabel;
+              const isPromptSlotUrl = row.url.includes("__prompt-slot-");
+              const isPlaceholderRow =
+                isBlogSlotLabel ||
+                isPromptSlotUrl ||
+                Boolean(isPromptPlaceholder) ||
+                Boolean(isPreIdeasPlaceholder);
+
+              const slotMatch = row.title.match(/\d+/) || row.url.match(/__prompt-slot-(\d+)/);
+              let slotNum = 1;
+              if (slotMatch) {
+                const parsed = parseInt(slotMatch[1] ?? slotMatch[0], 10);
+                slotNum = row.url.includes("__prompt-slot-") && !row.title.match(/\d+/) ? parsed + 1 : parsed;
+                if (slotNum === 0) slotNum = 1;
+              } else if (displayIndex >= 0) {
+                slotNum = displayIndex + 1;
+              }
+
               const rawTitle = metaDisplayTitle(row, c.wpTitlesByUrl);
               const displayTitle =
                 overviewTitlePrimarySegment(rawTitle) ||
                 overviewRowUrlPathLabel(row.url) ||
                 row.url;
-              const pathLabel = overviewRowUrlPathLabel(row.url);
+              const pathLabel = isBulkGeneratorDock
+                ? bulkStudioRowPathLabel(row)
+                : overviewRowUrlPathLabel(row.url, { source: c.sitemapSource });
               const isRowStatusBusy =
                 row.status !== "idle" &&
                 row.status !== "error" &&
                 row.status !== "scraping";
               const isOptimizingRow = isOverviewRowOptimizationActive(row.url, optimizingRowUrl);
               const isBusy = isOptimizingRow || (!optimizingRowUrl && isRowStatusBusy);
+              const isTitleUrlOptimizing =
+                Boolean(isBulkGeneratorDock && bulkGeneratorDock!.csvEnrichingTitlesUrls) &&
+                !isPlaceholderRow;
 
               return (
                 <li
@@ -581,7 +493,7 @@ export function OverviewSitemapLeftDock({
                         : "bg-black hover:bg-zinc-950",
                   )}
                 >
-                  {isBulkGeneratorDock && bulkGeneratorDock!.promptSelection && !isPromptPlaceholder && displayIndex >= 0 ? (
+                  {isBulkGeneratorDock && bulkGeneratorDock!.promptSelection && !isPlaceholderRow && displayIndex >= 0 ? (
                     <div className="pt-1">
                       <Checkbox
                         checked={bulkGeneratorDock!.selectedBlogIndices.has(displayIndex)}
@@ -594,7 +506,7 @@ export function OverviewSitemapLeftDock({
                         className={DASHBOARD_LIST_CHECKBOX_CLASS}
                       />
                     </div>
-                  ) : !isBulkGeneratorDock ? (
+                  ) : !isBulkGeneratorDock && !isPlaceholderRow ? (
                     <div className="pt-1">
                       <Checkbox
                         checked={isSelected}
@@ -621,31 +533,118 @@ export function OverviewSitemapLeftDock({
                     }}
                     className="flex min-w-0 flex-1 flex-col items-start gap-1 text-left outline-none focus:outline-none focus-visible:outline-none"
                   >
-                    <div className="flex w-full items-center justify-between gap-2">
-                      <span
-                        className={cn(
-                          "line-clamp-1 text-base font-medium leading-snug",
-                          isBusy
-                            ? CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS
-                            : isPreIdeasPlaceholder
-                              ? "text-muted-foreground"
-                              : isActive
-                                ? "text-primary"
-                                : "text-white group-hover:text-primary/90",
-                        )}
-                      >
-                        {displayTitle}
-                      </span>
-                    </div>
+                    {isTitleUrlOptimizing ? (
+                      <BulkStudioTitleUrlOptimizingBlock />
+                    ) : isPlaceholderRow ? (
+                      <div className="flex w-full items-center gap-3 rounded-lg border border-dashed border-zinc-700/60 bg-zinc-900/40 p-2.5 transition-all group-hover:border-primary/50 group-hover:bg-zinc-900/80">
+                        {/* Blueprint Article Graphic */}
+                        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-zinc-700/60 bg-gradient-to-b from-zinc-800 to-zinc-900 shadow-inner group-hover:border-primary/40 transition-colors">
+                          <svg
+                            viewBox="0 0 28 28"
+                            fill="none"
+                            className="h-6 w-6 text-zinc-400 transition-colors group-hover:text-primary"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                          >
+                            <rect
+                              x="2"
+                              y="2"
+                              width="24"
+                              height="24"
+                              rx="3"
+                              strokeDasharray="2.5 2.5"
+                              className="stroke-zinc-600 group-hover:stroke-primary/50"
+                            />
+                            <rect
+                              x="6"
+                              y="6"
+                              width="6"
+                              height="6"
+                              rx="1.5"
+                              className="fill-zinc-700/50 stroke-zinc-500 group-hover:fill-primary/20 group-hover:stroke-primary/60"
+                            />
+                            <line
+                              x1="15"
+                              y1="7"
+                              x2="22"
+                              y2="7"
+                              strokeLinecap="round"
+                              className="stroke-zinc-500 group-hover:stroke-primary/70"
+                            />
+                            <line
+                              x1="15"
+                              y1="10.5"
+                              x2="20"
+                              y2="10.5"
+                              strokeLinecap="round"
+                              className="stroke-zinc-600"
+                            />
+                            <line
+                              x1="6"
+                              y1="16"
+                              x2="22"
+                              y2="16"
+                              strokeLinecap="round"
+                              className="stroke-zinc-600"
+                            />
+                            <line
+                              x1="6"
+                              y1="19.5"
+                              x2="17"
+                              y2="19.5"
+                              strokeLinecap="round"
+                              className="stroke-zinc-700"
+                            />
+                          </svg>
+                          <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-40" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                          </span>
+                        </div>
 
-                    <span
-                      className={cn(
-                        "w-full truncate text-base",
-                        isBusy ? CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS : "text-muted-foreground",
-                      )}
-                    >
-                      {pathLabel}
-                    </span>
+                        {/* Graphic details and wireframe bars */}
+                        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 rounded bg-zinc-800/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-300 group-hover:bg-primary/20 group-hover:text-primary transition-colors">
+                              <Sparkles className="h-2.5 w-2.5 text-emerald-400" />
+                              Slot {slotNum}
+                            </span>
+                          </div>
+                          <div className="flex flex-col gap-1 w-full pt-0.5">
+                            <div className="h-2 w-4/5 rounded-full bg-zinc-800 group-hover:bg-zinc-700/60 transition-colors" />
+                            <div className="h-1.5 w-1/2 rounded-full bg-zinc-800/60 group-hover:bg-zinc-700/40 transition-colors" />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex w-full items-center justify-between gap-2">
+                          <span
+                            className={cn(
+                              "line-clamp-1 text-base font-medium leading-snug",
+                              isBusy
+                                ? CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS
+                                : isPreIdeasPlaceholder
+                                  ? "text-muted-foreground"
+                                  : isActive
+                                    ? "text-primary"
+                                    : "text-white group-hover:text-primary/90",
+                            )}
+                          >
+                            {displayTitle}
+                          </span>
+                        </div>
+
+                        <span
+                          className={cn(
+                            "w-full truncate text-base",
+                            isBusy ? CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS : "text-muted-foreground",
+                          )}
+                        >
+                          {pathLabel}
+                        </span>
+                      </>
+                    )}
                   </button>
                 </li>
               );

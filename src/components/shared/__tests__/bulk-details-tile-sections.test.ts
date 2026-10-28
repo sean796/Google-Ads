@@ -142,15 +142,15 @@ describe("resolveDetailsPipelineSections", () => {
       undefined,
       RESEARCH_HARNESS_SECTION_TITLES,
     );
-    expect(sections).toHaveLength(8);
+    expect(sections).toHaveLength(7);
     expect(sections.map((section) => section.title)).toEqual([...RESEARCH_HARNESS_SECTION_TITLES]);
-    expect(sections.filter((section) => section.status === "waiting")).toHaveLength(7);
+    expect(sections.filter((section) => section.status === "waiting")).toHaveLength(6);
     expect(sections.find((section) => section.title === "DataForSEO SERP")?.status).toBe("generating");
   });
 
-  it("fills all 8 research titles from empty persisted harness", () => {
+  it("fills all 7 research titles from empty persisted harness", () => {
     const sections = resolveDetailsPipelineSections(undefined, undefined, RESEARCH_HARNESS_SECTION_TITLES);
-    expect(sections).toHaveLength(8);
+    expect(sections).toHaveLength(7);
     expect(sections.every((section) => section.status === "waiting")).toBe(true);
   });
 
@@ -244,8 +244,9 @@ describe("SAP content optimize downloads", () => {
     expect(titles).toContain("Local SEO Fit");
     expect(titles).toContain("What This Agency Offers");
     expect(titles).not.toContain("Sunlight And Privacy Challenges");
-    expect(titles[titles.length - 3]).toBe("Post content");
-    expect(titles[titles.length - 2]).toBe("Content Markdown");
+    expect(titles[titles.length - 4]).toBe("Post content");
+    expect(titles[titles.length - 3]).toBe("Content Markdown");
+    expect(titles[titles.length - 2]).toBe("Implementation report");
     expect(titles[titles.length - 1]).toBe("WordPress upload");
 
     const ready = resolveReadyDownloads(sapOptimizeSections(), [
@@ -399,7 +400,7 @@ describe("research pipeline step labels", () => {
     const sections = resolveDetailsPipelineSections(
       [
         { sectionIndex: 0, title: "DataForSEO SERP", status: "done" },
-        { sectionIndex: 3, title: "LLM audit", status: "generating" },
+        { sectionIndex: 2, title: "LLM audit", status: "generating" },
       ],
       undefined,
       RESEARCH_HARNESS_SECTION_TITLES,
@@ -422,12 +423,12 @@ describe("research pipeline downloads", () => {
     ];
     const linked = resolvePipelineSectionDownloadable(
       {
-        sectionIndex: 3,
+        sectionIndex: 2,
         title: "LLM audit",
         status: "done",
         markdown: "LLM audit: 1/1 ok",
       },
-      3,
+      2,
       files,
       claimed,
       null,
@@ -467,8 +468,8 @@ describe("research pipeline downloads", () => {
       },
     ];
     const linked = resolvePipelineSectionDownloadable(
-      { sectionIndex: 7, title: "Brief upload", status: "done", markdown: "Brief saved: seo_brief__2026-08-27T18-04-1400-00__42076bdc.json" },
-      7,
+      { sectionIndex: 6, title: "Brief upload", status: "done", markdown: "Brief saved: seo_brief__2026-08-27T18-04-1400-00__42076bdc.json" },
+      6,
       files,
       claimed,
       null,
@@ -501,8 +502,8 @@ describe("research pipeline downloads", () => {
     );
     expect(serp?.name).toBe("research-solar-dataforseo-serp.json");
     const llm = resolvePipelineSectionDownloadable(
-      { sectionIndex: 3, title: "LLM audit", status: "done" },
-      3,
+      { sectionIndex: 2, title: "LLM audit", status: "done" },
+      2,
       files,
       claimed,
       null,

@@ -22,7 +22,6 @@ import {
   type ResearchHarnessDoneSummary,
 } from "@/lib/overview/overview-research-harness-sections";
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
-import { fetchSemrushBulkEnrichment } from "@/lib/wordpress-api/semrush";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import type { WordPressSite } from "@/components/integrations/types";
 
@@ -61,7 +60,6 @@ export type OverviewResearchRowInput = {
   resolveGscCsv?: () => Promise<string | null>;
   batchResearchMode?: boolean;
   serpDumpUrl: (filename: string) => string;
-  portfolioBlockedHostsForSemrush: string[];
   skipGsc?: boolean;
   silent?: boolean;
   onHarnessSection?: (payload: BulkHarnessSectionPayload) => void;
@@ -200,43 +198,6 @@ async function resolveGscFilenameForRow(
   return emitGscCsvDone(input, null, harnessSummaries);
 }
 
-async function runSemrushEnrichment(
-  input: OverviewResearchRowInput,
-  keyword: string,
-  harnessSummaries: ResearchHarnessDoneSummary,
-): Promise<{ storedFile: string | null }> {
-  const { row, portfolioBlockedHostsForSemrush } = input;
-  emitHarnessSection(input, 2, "start");
-  try {
-    const result = await fetchSemrushBulkEnrichment({
-      pageUrl: row.url?.trim() ?? "",
-      seedKeyword: keyword,
-      portfolioBlockedHosts:
-        portfolioBlockedHostsForSemrush.length > 0 ? portfolioBlockedHostsForSemrush : undefined,
-    });
-    if (!result?.storedFile) {
-      const message =
-        result?.errors?.[0]?.message?.trim() || "Semrush enrichment failed";
-      emitHarnessError(input, 2, message, harnessSummaries);
-      return { storedFile: null };
-    }
-    harnessSummaries["Semrush enrichment"] = `Semrush: ${result.storedFile}`;
-    emitHarnessSection(input, 2, "done", harnessSummaries["Semrush enrichment"]);
-    const semrushDoc = await loadSemrushOverviewDoc(result.storedFile);
-    emitResearchArtifact(
-      input,
-      keyword,
-      "semrush-enrichment",
-      semrushDoc ?? { storedFile: result.storedFile },
-    );
-    return { storedFile: result.storedFile };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Semrush enrichment failed";
-    emitHarnessError(input, 2, message, harnessSummaries);
-    return { storedFile: null };
-  }
-}
-
 async function loadGscBriefContext(
   filename: string,
   pageUrl: string,
@@ -286,22 +247,8 @@ function emitGscQuickWinsNoData(
   harnessSummaries: ResearchHarnessDoneSummary,
 ): { queries: string[]; pageUrl: string } {
   harnessSummaries["GSC quick-wins context"] = RESEARCH_NO_GSC_DATA;
-  emitHarnessSection(input, 5, "done", RESEARCH_NO_GSC_DATA);
+  emitHarnessSection(input, 4, "done", RESEARCH_NO_GSC_DATA);
   return { queries: [], pageUrl: input.row.url?.trim() ?? "" };
-}
-
-async function loadSemrushOverviewDoc(filename: string | null): Promise<unknown | null> {
-  if (!filename?.trim()) return null;
-  try {
-    const sr = await fetch(
-      backendApiUrl(`/semrush/overview-json/${encodeURIComponent(filename.trim())}`),
-    );
-    if (!sr.ok) return null;
-    const doc = await sr.json().catch(() => null);
-    return doc ?? null;
-  } catch {
-    return null;
-  }
 }
 
 async function uploadSeoBrief(content: string, keyword: string): Promise<string | null> {
@@ -381,7 +328,7 @@ async function runOpenRouterLlmAuditStep(
   harnessSummaries: ResearchHarnessDoneSummary,
   serpPeopleAlsoAsk: string[] = [],
 ): Promise<{ llmAudit: LlmAuditBrief; queryFanout?: QueryFanout }> {
-  emitHarnessSection(input, 3, "start");
+  emitHarnessSection(input, 2, "start");
   const pageExcerpt = input.row.postContent?.trim()
     ? stripHtmlToPlainText(input.row.postContent).slice(0, 1200)
     : undefined;
@@ -417,11 +364,11 @@ async function runOpenRouterLlmAuditStep(
       queryCount > 0
         ? `LLM audit: ${llmOkCount}/${llmAudit.platforms.length} ok (${queryCount} QFO questions)`
         : `LLM audit: ${llmOkCount}/${llmAudit.platforms.length} ok`;
-    emitHarnessSection(input, 3, "done", harnessSummaries["LLM audit"]);
+    emitHarnessSection(input, 2, "done", harnessSummaries["LLM audit"]);
   } else {
     const llmErr =
       llmAudit.platforms.find((platform) => platform.error)?.error?.trim() || "LLM audit failed";
-    emitHarnessError(input, 3, llmErr, harnessSummaries);
+    emitHarnessError(input, 2, llmErr, harnessSummaries);
   }
   emitResearchArtifact(input, keyword, "llm-audit", llmAudit);
   if (queryFanout?.queries?.length) {
@@ -436,17 +383,17 @@ async function runGscQuickWinsContextStep(
   pageUrl: string,
   harnessSummaries: ResearchHarnessDoneSummary,
 ): Promise<{ queries: string[]; pageUrl: string }> {
-  emitHarnessSection(input, 5, "start");
+  emitHarnessSection(input, 4, "start");
   try {
     const ctx = await loadGscBriefContext(filename, pageUrl);
     const summary =
       ctx.queries.length > 0 ? `${ctx.queries.length} GSC queries` : RESEARCH_NO_GSC_DATA;
     harnessSummaries["GSC quick-wins context"] = summary;
-    emitHarnessSection(input, 5, "done", summary);
+    emitHarnessSection(input, 4, "done", summary);
     return ctx;
   } catch (err) {
     const message = err instanceof Error ? err.message : "GSC quick-wins context failed";
-    emitHarnessError(input, 5, message, harnessSummaries);
+    emitHarnessError(input, 4, message, harnessSummaries);
     return { queries: [], pageUrl };
   }
 }
@@ -476,7 +423,6 @@ export async function runOverviewResearchForRow(
   let storedFile: string | null = null;
   let serpMcpJson: Awaited<ReturnType<typeof fetchOptionalDataForSeoSerp>>["serpMcpJson"] = null;
   let gscFilename: string | null = null;
-  let nextSemrushFile: string | null = null;
   let llmAudit: LlmAuditBrief = emptyLlmAudit(pageUrl);
   let queryFanout: QueryFanout | undefined;
   let serpDumpJson: Record<string, unknown> = { tasks: [] };
@@ -508,18 +454,12 @@ export async function runOverviewResearchForRow(
       emitHarnessError(input, 0, serpMsg, harnessSummaries);
     }
 
-    // Steps 1–2: GSC CSV and Semrush enrichment (independent after SERP)
-    const gscFilenamePromise = skipGsc
-      ? Promise.resolve(emitGscCsvDone(input, null, harnessSummaries))
-      : resolveGscFilenameForRow(input, harnessSummaries);
-    const [resolvedGscFilename, semrushRes] = await Promise.all([
-      gscFilenamePromise,
-      runSemrushEnrichment(input, keyword, harnessSummaries),
-    ]);
-    gscFilename = resolvedGscFilename;
-    nextSemrushFile = semrushRes.storedFile;
+    // Step 1: GSC CSV
+    gscFilename = skipGsc
+      ? emitGscCsvDone(input, null, harnessSummaries)
+      : await resolveGscFilenameForRow(input, harnessSummaries);
 
-    // Step 3: OpenRouter LLM audit (required for brief)
+    // Step 2: OpenRouter LLM audit (required for brief)
     const serpPeopleAlsoAsk = serpPeopleAlsoAskFromMcp(
       serpMcpJson as Record<string, unknown> | null | undefined,
     );
@@ -533,8 +473,8 @@ export async function runOverviewResearchForRow(
     llmAudit = llmStep.llmAudit;
     queryFanout = llmStep.queryFanout;
 
-    // Step 4: SERP dump load
-    emitHarnessSection(input, 4, "start");
+    // Step 3: SERP dump load
+    emitHarnessSection(input, 3, "start");
     const serpLoad = await resolveSerpDumpJsonForBrief({
       storedFile,
       serpMcpJson,
@@ -542,7 +482,7 @@ export async function runOverviewResearchForRow(
     });
     serpDumpJson = serpLoad.serpDumpJson;
     harnessSummaries["SERP dump load"] = serpLoad.loadSummary;
-    emitHarnessSection(input, 4, "done", serpLoad.loadSummary);
+    emitHarnessSection(input, 3, "done", serpLoad.loadSummary);
     emitResearchArtifact(input, keyword, "serp-dump-load", serpDumpJson);
     const serpInlineAfterLoad = extractSerpDumpJsonFromMcpResponse(
       serpMcpJson as Record<string, unknown> | null | undefined,
@@ -551,9 +491,9 @@ export async function runOverviewResearchForRow(
       emitResearchArtifact(input, keyword, "dataforseo-serp", serpDumpJson);
     }
 
-    // Step 5: GSC quick-wins context (after GSC filename is known)
+    // Step 4: GSC quick-wins context (after GSC filename is known)
     if (skipGsc) {
-      emitHarnessSection(input, 5, "start");
+      emitHarnessSection(input, 4, "start");
       gscContext = emitGscQuickWinsNoData(input, harnessSummaries);
     } else if (hasValidGscDumpFilename(gscFilename)) {
       gscContext = await runGscQuickWinsContextStep(
@@ -563,27 +503,26 @@ export async function runOverviewResearchForRow(
         harnessSummaries,
       );
     } else {
-      emitHarnessSection(input, 5, "start");
+      emitHarnessSection(input, 4, "start");
       gscContext = emitGscQuickWinsNoData(input, harnessSummaries);
     }
     emitResearchArtifact(input, keyword, "gsc-quick-wins-context", gscContext);
 
-    // Step 6: Brief merge
-    emitHarnessSection(input, 6, "start");
-    const semrushDoc = await loadSemrushOverviewDoc(nextSemrushFile);
+    // Step 5: Brief merge
+    emitHarnessSection(input, 5, "start");
     const merged = mergeSeoContentBriefFromParts({
       serpDumpJson,
       pageUrl,
       focusKeyword: keyword,
       gscPageUrl: gscContext.pageUrl,
       gscQueries: gscContext.queries,
-      semrushOverviewJson: semrushDoc,
+      semrushOverviewJson: null,
       llmAudit,
       queryFanout,
     });
     briefText = JSON.stringify(merged, null, 2);
     harnessSummaries["Brief merge"] = "Brief merged";
-    emitHarnessSection(input, 6, "done", harnessSummaries["Brief merge"]);
+    emitHarnessSection(input, 5, "done", harnessSummaries["Brief merge"]);
 
     const briefSlug = keyword.replace(/[^a-z0-9._-]+/gi, "_").slice(0, 60) || "brief";
     const briefFileName = `serp-research-brief-${briefSlug}.json`;
@@ -593,12 +532,12 @@ export async function runOverviewResearchForRow(
       mimeType: "application/json;charset=utf-8",
     });
 
-    // Step 7: Brief upload
-    emitHarnessSection(input, 7, "start");
+    // Step 6: Brief upload
+    emitHarnessSection(input, 6, "start");
     const briefStored = await uploadSeoBrief(briefText, keyword);
     if (briefStored) {
       harnessSummaries["Brief upload"] = `Brief saved: ${briefStored}`;
-      emitHarnessSection(input, 7, "done", harnessSummaries["Brief upload"]);
+      emitHarnessSection(input, 6, "done", harnessSummaries["Brief upload"]);
       input.onResearchArtifact?.({
         name: briefStored,
         content: briefText,
@@ -607,7 +546,7 @@ export async function runOverviewResearchForRow(
     } else {
       emitHarnessError(
         input,
-        7,
+        6,
         "Brief upload unavailable; brief JSON saved in generated files",
         harnessSummaries,
       );
@@ -630,23 +569,22 @@ export async function runOverviewResearchForRow(
 
   if (!briefText.trim()) {
     try {
-      if (!harnessStepIsDone(harnessSummaries, 6)) {
-        emitHarnessSection(input, 6, "start");
+      if (!harnessStepIsDone(harnessSummaries, 5)) {
+        emitHarnessSection(input, 5, "start");
       }
-      const semrushDoc = await loadSemrushOverviewDoc(nextSemrushFile);
       const merged = mergeSeoContentBriefFromParts({
         serpDumpJson,
         pageUrl,
         focusKeyword: keyword,
         gscPageUrl: gscContext.pageUrl,
         gscQueries: gscContext.queries,
-        semrushOverviewJson: semrushDoc,
+        semrushOverviewJson: null,
         llmAudit,
         queryFanout,
       });
       briefText = JSON.stringify(merged, null, 2);
       harnessSummaries["Brief merge"] = "Brief merged";
-      emitHarnessSection(input, 6, "done", harnessSummaries["Brief merge"]);
+      emitHarnessSection(input, 5, "done", harnessSummaries["Brief merge"]);
       const briefSlug = keyword.replace(/[^a-z0-9._-]+/gi, "_").slice(0, 60) || "brief";
       input.onResearchArtifact?.({
         name: `serp-research-brief-${briefSlug}.json`,
@@ -655,16 +593,16 @@ export async function runOverviewResearchForRow(
       });
     } catch (mergeErr) {
       const mergeMessage = mergeErr instanceof Error ? mergeErr.message : String(mergeErr);
-      emitHarnessError(input, 6, mergeMessage, harnessSummaries);
+      emitHarnessError(input, 5, mergeMessage, harnessSummaries);
     }
   }
 
-  if (!harnessStepIsDone(harnessSummaries, 7)) {
-    emitHarnessSection(input, 7, "start");
+  if (!harnessStepIsDone(harnessSummaries, 6)) {
+    emitHarnessSection(input, 6, "start");
     const briefStored = briefText.trim() ? await uploadSeoBrief(briefText, keyword) : null;
     if (briefStored) {
       harnessSummaries["Brief upload"] = `Brief saved: ${briefStored}`;
-      emitHarnessSection(input, 7, "done", harnessSummaries["Brief upload"]);
+      emitHarnessSection(input, 6, "done", harnessSummaries["Brief upload"]);
       input.onResearchArtifact?.({
         name: briefStored,
         content: briefText,
@@ -673,7 +611,7 @@ export async function runOverviewResearchForRow(
     } else {
       emitHarnessError(
         input,
-        7,
+        6,
         briefText.trim()
           ? "Brief upload unavailable; brief JSON saved in generated files"
           : "Brief upload skipped; brief merge did not produce JSON",
@@ -694,7 +632,6 @@ export async function runOverviewResearchForRow(
 
   const researchPatch: Partial<OverviewRow> = {
     ...(storedFile ? { researchFileName: storedFile } : {}),
-    semrushJsonFilename: nextSemrushFile,
     ...(!skipGsc && hasValidGscDumpFilename(gscFilename)
       ? { gscQuickWinsCsvFilename: gscFilename }
       : {}),

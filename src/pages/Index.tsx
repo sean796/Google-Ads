@@ -47,6 +47,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useWordPressSites } from "@/hooks/use-wordpress-sites";
 import { useActiveWordPressSite } from "@/contexts/active-wordpress-site-context";
 import { prefetchOrganicDashboardBundle } from "@/lib/organic-dashboard/organic-dashboard-prefetch";
+import { resolveOrganicDashboardSite } from "@/lib/organic-dashboard/resolve-organic-dashboard-site";
 import {
   NEO_PULSE_OPEN_ORGANIC_REPORTING_EVENT,
   ORGANIC_REPORTING_MANAGER_TAB,
@@ -122,9 +123,10 @@ const VALID_MANAGER_TABS = new Set([
   "api",
   "pulse-forge",
   "organic-reporting",
+  "local-dominator",
   "pulse-host",
+  "image-generator",
   "video-generator",
-  "neo-emcp",
 ]);
 
 const Index = () => {
@@ -140,7 +142,16 @@ const Index = () => {
   // const [showKnowledgeBase, setShowKnowledgeBase] = useState(false); // Removed
   const [managerTab, setManagerTab] = useState<string>(() => {
     try {
+      if (typeof localStorage !== "undefined" && localStorage.getItem(MANAGER_TAB_STORAGE_KEY) === "neo-emcp") {
+        localStorage.setItem(MANAGER_TAB_STORAGE_KEY, "dashboard");
+      }
       const hashTab = window.location.hash.replace(/^#/, "").trim();
+      if (!hashTab || hashTab === "settings" || hashTab === "dashboard" || hashTab === "neo-emcp") {
+        if (window.location.hash === "#neo-emcp") {
+          window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#settings`);
+        }
+        return "dashboard";
+      }
       if (hashTab === ORGANIC_REPORTING_MANAGER_TAB) {
         return ORGANIC_REPORTING_MANAGER_TAB;
       }
@@ -156,20 +167,16 @@ const Index = () => {
       if (isPulseHostHash(hashTab)) {
         return "pulse-host";
       }
-      if (hashTab === "settings") {
-        return "dashboard";
+      if (hashTab === "local-grid" || hashTab === "local-dominator") {
+        return "local-dominator";
       }
       if (hashTab && VALID_MANAGER_TABS.has(hashTab)) {
         return hashTab;
       }
-      const t = localStorage.getItem(MANAGER_TAB_STORAGE_KEY);
-      if (t && VALID_MANAGER_TABS.has(t)) {
-        return t;
-      }
     } catch {
       /* ignore */
     }
-    return "integrations";
+    return "dashboard";
   });
 
   const [managerDashboardCluster, setManagerDashboardCluster] = useState<ManagerSettingsClusterId>(() =>
@@ -204,6 +211,8 @@ const Index = () => {
         let hash: string;
         if (tab === "dashboard") {
           hash = "settings";
+        } else if (tab === "local-dominator") {
+          hash = "local-grid";
         } else if (tab === "api") {
           const current = window.location.hash.replace(/^#/, "").trim();
           hash = current.startsWith("api") ? current : "api";
@@ -230,21 +239,13 @@ const Index = () => {
   );
 
   const handleNavigateToSapGenerator = useCallback(
-    (_site: WordPressSite, _sitemapUrl: string) => {
-      try {
-        writeStoredBlogGeneratorSection("entity");
-      } catch {
-        /* ignore */
+    (site: WordPressSite, _sitemapUrl: string) => {
+      if (site?.id) {
+        setActiveWordPressSiteId(site.id);
       }
-      setManagerTab("generator");
-      try {
-        writeGeneratorSectionHash("entity");
-        localStorage.setItem(MANAGER_TAB_STORAGE_KEY, "generator");
-      } catch {
-        /* ignore */
-      }
+      handleManagerTabChange("local-dominator");
     },
-    []
+    [setActiveWordPressSiteId, handleManagerTabChange]
   );
 
   const openOrganicReportingTab = useCallback(
@@ -271,8 +272,16 @@ const Index = () => {
   useEffect(() => {
     const syncTabFromHash = () => {
       const hashTab = window.location.hash.replace(/^#/, "").trim();
-      if (hashTab === ORGANIC_REPORTING_MANAGER_TAB && managerTab !== ORGANIC_REPORTING_MANAGER_TAB) {
+      if (!hashTab || hashTab === "settings" || hashTab === "dashboard" || hashTab === "neo-emcp") {
+        if (managerTab !== "dashboard") setManagerTab("dashboard");
+      } else if (hashTab === ORGANIC_REPORTING_MANAGER_TAB && managerTab !== ORGANIC_REPORTING_MANAGER_TAB) {
         setManagerTab(ORGANIC_REPORTING_MANAGER_TAB);
+      } else if (isGeneratorHash(window.location.hash) && managerTab !== "generator") {
+        setManagerTab("generator");
+      } else if (hashTab === "local-grid" || hashTab === "local-dominator") {
+        if (managerTab !== "local-dominator") setManagerTab("local-dominator");
+      } else if (VALID_MANAGER_TABS.has(hashTab) && managerTab !== hashTab) {
+        setManagerTab(hashTab);
       }
     };
     syncTabFromHash();

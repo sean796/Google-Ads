@@ -27,38 +27,7 @@ export type BulkNamedSchedulePreset = {
   builtin?: boolean;
 };
 
-/** 3× per month starting first of next month. */
-export const BUILTIN_PRESET_3X_NEXT_MONTH: BulkNamedSchedulePreset = {
-  id: "builtin-3x-next-month",
-  label: "3× / month · next month",
-  builtin: true,
-  values: {
-    scheduleFrequency: "custom",
-    customInterval: 3,
-    dayOfWeek: 1,
-    startPreset: "firstOfNextMonth",
-    startTime: "09:00",
-  },
-};
-
-/** 15× per month starting at the next available slot (next available month via gap/AI). */
-export const BUILTIN_PRESET_15X_NEXT_AVAILABLE: BulkNamedSchedulePreset = {
-  id: "builtin-15x-next-available",
-  label: "15× / month · next available",
-  builtin: true,
-  values: {
-    scheduleFrequency: "custom",
-    customInterval: 15,
-    dayOfWeek: 1,
-    startPreset: "immediate",
-    startTime: "09:00",
-  },
-};
-
-const BUILTINS: BulkNamedSchedulePreset[] = [
-  BUILTIN_PRESET_3X_NEXT_MONTH,
-  BUILTIN_PRESET_15X_NEXT_AVAILABLE,
-];
+const BUILTINS: BulkNamedSchedulePreset[] = [];
 
 type StoredV1 = {
   v: 1;

@@ -1,9 +1,5 @@
-import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
-import { parseJsonStrict } from "@/lib/json-repair-utility";
-import { getResearchModel } from "@/lib/optimization-settings-storage";
-
 /**
- * Mapping of field purposes to their actual ACF field names
+ * NEO Pulse native field mapping (substitutes legacy ACF discovery).
  */
 export interface ACFFieldMapping {
   dateModifier?: string;
@@ -14,62 +10,51 @@ export interface ACFFieldMapping {
   extraImage?: string;
   origin?: string;
   keywordFocus?: string;
-  /** SEO research / brief JSON (e.g. seo_research) */
   seoResearch?: string;
-  /** SEO title field if separate from post title */
   seoTitle?: string;
 }
 
-/**
- * Cache for field mappings to avoid repeated AI calls
- * Key: `${siteUrl}|${postType}`
- * Value: { mapping, timestamp }
- */
-const fieldMappingCache = new Map<
-  string,
-  { mapping: ACFFieldMapping; timestamp: number }
->();
+export const NEO_PULSE_DEFAULT_FIELD_MAPPING: Required<ACFFieldMapping> = {
+  dateModifier: "date_modifier",
+  faq: "faq",
+  metaDescription: "meta_description",
+  promptModifier: "prompt_modifier",
+  extraText: "seo_extra_text",
+  extraImage: "seo_extra_image",
+  origin: "origin",
+  keywordFocus: "keyword_focus",
+  seoResearch: "seo_research",
+  seoTitle: "seo_title",
+};
 
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
-
-/**
- * Get prompt modifier value from ACF fields (pattern-based fallback).
- * @deprecated Use readACFFieldsAgentically from ai-driven-acf-reader for AI-driven interpretation. No static key names in read path.
- */
 export function getPromptModifierValueFromACFFields(acfFields: Record<string, any>): string {
-  if (!acfFields || typeof acfFields !== 'object') return '';
+  if (!acfFields || typeof acfFields !== "object") return "";
   const mapping = fallbackFieldMapping(acfFields);
   const key = mapping.promptModifier;
-  if (!key || !(key in acfFields)) return '';
+  if (!key || !(key in acfFields)) return "";
   const v = acfFields[key];
-  return typeof v === 'string' ? v.trim() : '';
+  return typeof v === "string" ? v.trim() : "";
 }
 
-/**
- * Get meta description value from ACF fields (pattern-based fallback).
- * @deprecated Use readACFFieldsAgentically from ai-driven-acf-reader for AI-driven interpretation. No static key names in read path.
- */
 export function getMetaDescriptionValueFromACFFields(acfFields: Record<string, any>): string {
-  if (!acfFields || typeof acfFields !== 'object') return '';
+  if (!acfFields || typeof acfFields !== "object") return "";
   const mapping = fallbackFieldMapping(acfFields);
   const key = mapping.metaDescription;
-  if (!key || !(key in acfFields)) return '';
+  if (!key || !(key in acfFields)) return "";
   const v = acfFields[key];
-  return typeof v === 'string' ? v.trim() : '';
+  return typeof v === "string" ? v.trim() : "";
 }
 
-/**
- * Fallback pattern matching when AI is unavailable
- */
 export function fallbackFieldMapping(acfFields: Record<string, any>): ACFFieldMapping {
-  const fieldNames = Object.keys(acfFields);
+  const fieldNames = Object.keys(acfFields ?? {});
+  if (fieldNames.length === 0) {
+    return { ...NEO_PULSE_DEFAULT_FIELD_MAPPING };
+  }
   const mapping: ACFFieldMapping = {};
 
-  // Pattern matching for common field name variations
   for (const fieldName of fieldNames) {
     const lowerFieldName = fieldName.toLowerCase();
 
-    // Date modifier patterns
     if (!mapping.dateModifier) {
       if (
         lowerFieldName.includes("date_modifier") ||
@@ -80,17 +65,12 @@ export function fallbackFieldMapping(acfFields: Record<string, any>): ACFFieldMa
       }
     }
 
-    // FAQ patterns
     if (!mapping.faq) {
-      if (
-        lowerFieldName.includes("faq") ||
-        lowerFieldName === "seo_faq"
-      ) {
+      if (lowerFieldName.includes("faq") || lowerFieldName === "seo_faq") {
         mapping.faq = fieldName;
       }
     }
 
-    // Meta description patterns
     if (!mapping.metaDescription) {
       if (
         lowerFieldName.includes("meta_description") ||
@@ -101,7 +81,6 @@ export function fallbackFieldMapping(acfFields: Record<string, any>): ACFFieldMa
       }
     }
 
-    // Prompt modifier patterns
     if (!mapping.promptModifier) {
       if (
         lowerFieldName.includes("prompt_modifier") ||
@@ -112,34 +91,22 @@ export function fallbackFieldMapping(acfFields: Record<string, any>): ACFFieldMa
       }
     }
 
-    // Extra text patterns
     if (!mapping.extraText) {
-      if (
-        lowerFieldName.includes("extra_text") ||
-        lowerFieldName === "seo_extra_text"
-      ) {
+      if (lowerFieldName.includes("extra_text") || lowerFieldName === "seo_extra_text") {
         mapping.extraText = fieldName;
       }
     }
 
-    // Extra image patterns
     if (!mapping.extraImage) {
-      if (
-        lowerFieldName.includes("extra_image") ||
-        lowerFieldName === "seo_extra_image"
-      ) {
+      if (lowerFieldName.includes("extra_image") || lowerFieldName === "seo_extra_image") {
         mapping.extraImage = fieldName;
       }
     }
 
-    // Origin patterns
-    if (!mapping.origin) {
-      if (lowerFieldName === "origin") {
-        mapping.origin = fieldName;
-      }
+    if (!mapping.origin && lowerFieldName === "origin") {
+      mapping.origin = fieldName;
     }
 
-    // Keyword focus patterns (includes common typo keyword_focu)
     if (!mapping.keywordFocus) {
       if (
         lowerFieldName.includes("keyword_focus") ||
@@ -150,10 +117,8 @@ export function fallbackFieldMapping(acfFields: Record<string, any>): ACFFieldMa
       }
     }
 
-    if (!mapping.seoResearch) {
-      if (lowerFieldName.includes("seo_research") || lowerFieldName === "seo_research") {
-        mapping.seoResearch = fieldName;
-      }
+    if (!mapping.seoResearch && lowerFieldName.includes("seo_research")) {
+      mapping.seoResearch = fieldName;
     }
 
     if (!mapping.seoTitle) {
@@ -170,149 +135,19 @@ export function fallbackFieldMapping(acfFields: Record<string, any>): ACFFieldMa
   return mapping;
 }
 
-/**
- * Use AI to intelligently map ACF field purposes to actual field names
- */
 export async function discoverACFFieldMapping(
   acfFields: Record<string, any>,
-  postType: string,
-  apiKey: string,
-  siteUrl?: string,
-  model?: string
+  _postType: string,
+  _apiKey: string,
+  _siteUrl?: string,
+  _model?: string,
 ): Promise<ACFFieldMapping> {
-  // Check cache first
-  if (siteUrl) {
-    const cacheKey = `${siteUrl}|${postType}`;
-    const cached = fieldMappingCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-      console.log(`[ACF Field Mapper] Using cached mapping for ${cacheKey}`);
-      return cached.mapping;
-    }
-  }
-
-  // If no API key, use fallback
-  if (!apiKey || !apiKey.trim()) {
-    console.warn("[ACF Field Mapper] No API key provided, using fallback pattern matching");
-    const fallbackMapping = fallbackFieldMapping(acfFields);
-    if (siteUrl) {
-      const cacheKey = `${siteUrl}|${postType}`;
-      fieldMappingCache.set(cacheKey, {
-        mapping: fallbackMapping,
-        timestamp: Date.now(),
-      });
-    }
-    return fallbackMapping;
-  }
-
-  const fieldNames = Object.keys(acfFields);
-  if (fieldNames.length === 0) {
-    return fallbackFieldMapping(acfFields);
-  }
-
-  const systemPrompt = `You are an expert WordPress developer analyzing ACF (Advanced Custom Fields) field names. Your task is to map field purposes to actual field names found in a WordPress site.
-
-Field purposes to map:
-1. dateModifier - A field that stores a date (typically YYYY-MM-DD format) for SEO date modified
-2. faq - A field that stores FAQ schema JSON-LD script
-3. metaDescription - A field that stores meta description text
-4. promptModifier - A field that stores prompt/instruction text for content optimization
-5. extraText - A field that stores additional text content (typically for pages)
-6. extraImage - A field that stores an image ID or URL (typically for pages)
-7. origin - A field that stores location/entity information
-8. keywordFocus - A field that stores keyword focus information
-9. seoResearch - A field that stores SEO research brief / JSON (often seo_research)
-10. seoTitle - A field for SEO title distinct from WordPress title (optional)
-
-Analyze the provided ACF field names and map them to these purposes. Consider:
-- Field name patterns (e.g., "seo_" prefix, underscores, abbreviations)
-- Common WordPress/ACF naming conventions
-- Context clues from field names
-
-Return ONLY a valid JSON object with this exact structure:
-{
-  "dateModifier": "field_name_or_null",
-  "faq": "field_name_or_null",
-  "metaDescription": "field_name_or_null",
-  "promptModifier": "field_name_or_null",
-  "extraText": "field_name_or_null",
-  "extraImage": "field_name_or_null",
-  "origin": "field_name_or_null",
-  "keywordFocus": "field_name_or_null",
-  "seoResearch": "field_name_or_null",
-  "seoTitle": "field_name_or_null"
-}
-
-Use null for purposes that don't have a matching field. Use the exact field name as it appears in the ACF fields object.`;
-
-  const userPrompt = `ACF Fields found (post type: ${postType}):
-${JSON.stringify(acfFields, null, 2)}
-
-Field names: ${fieldNames.join(", ")}
-
-Map these fields to the purposes listed above. Return only the JSON mapping object.`;
-
-  try {
-  const { content, parsed: structuredParsed } = await callOpenRouterChatCompletion({
-    apiKey,
-    model: model || getResearchModel(),
-    system: systemPrompt,
-    user: userPrompt,
-    temperature: 0.2,
-    maxTokens: 1000,
-    responseFormat: { type: "json_object" },
-  });
-
-  const parsed =
-    structuredParsed ??
-    parseJsonStrict<Record<string, string | null>>(content);
-  const mapping: ACFFieldMapping = {
-    dateModifier: parsed.dateModifier || undefined,
-    faq: parsed.faq || undefined,
-    metaDescription: parsed.metaDescription || undefined,
-    promptModifier: parsed.promptModifier || undefined,
-    extraText: parsed.extraText || undefined,
-    extraImage: parsed.extraImage || undefined,
-    origin: parsed.origin || undefined,
-    keywordFocus: parsed.keywordFocus || undefined,
-    seoResearch: parsed.seoResearch || undefined,
-    seoTitle: parsed.seoTitle || undefined,
+  return {
+    ...NEO_PULSE_DEFAULT_FIELD_MAPPING,
+    ...fallbackFieldMapping(acfFields),
   };
-
-  const validatedMapping: ACFFieldMapping = {};
-  for (const [purpose, fieldName] of Object.entries(mapping)) {
-    if (fieldName && fieldNames.includes(fieldName)) {
-      validatedMapping[purpose as keyof ACFFieldMapping] = fieldName;
-    }
-  }
-
-  if (siteUrl) {
-    const cacheKey = `${siteUrl}|${postType}`;
-    fieldMappingCache.set(cacheKey, {
-      mapping: validatedMapping,
-      timestamp: Date.now(),
-    });
-  }
-
-  console.log(`[ACF Field Mapper] Discovered mapping:`, validatedMapping);
-  return validatedMapping;
-  } catch {
-    return fallbackFieldMapping(acfFields);
-  }
 }
 
-/**
- * Clear the field mapping cache (useful for testing or when field structure changes)
- */
-export function clearACFFieldMappingCache(siteUrl?: string): void {
-  if (siteUrl) {
-    // Clear only entries for this site
-    for (const key of fieldMappingCache.keys()) {
-      if (key.startsWith(`${siteUrl}|`)) {
-        fieldMappingCache.delete(key);
-      }
-    }
-  } else {
-    // Clear all entries
-    fieldMappingCache.clear();
-  }
+export function clearACFFieldMappingCache(_siteUrl?: string): void {
+  // No-op: NEO Pulse field mapping is deterministic.
 }

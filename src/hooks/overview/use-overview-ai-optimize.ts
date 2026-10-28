@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { streamChatCompletion, type Message } from "@/lib/api";
+import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
 import { enforceExactFocusKeyword } from "@/lib/overview/enforce-exact-focus-keyword";
 export { enforceExactFocusKeyword } from "@/lib/overview/enforce-exact-focus-keyword";
 import { META_DESCRIPTION_ANTI_CLICKBAIT_RULE, TITLE_ANTI_CLICKBAIT_RULE, TITLE_KEYWORD_WEAVING_RULE, TITLE_CASE_RULE, TITLE_WELL_KNOWN_ACRONYMS_RULE } from "@/lib/prompt-builders/title-rules";
@@ -157,8 +158,14 @@ export function useOverviewAiOptimize(options: UseOverviewAiOptions): UseOvervie
   const [error, setError] = useState<string | null>(null);
 
   const runCompletion = useCallback(
-    async (systemPrompt: string, userPrompt: string, signal?: AbortSignal): Promise<string> => {
-      if (!apiKey || !apiKey.trim()) {
+    async (
+      systemPrompt: string,
+      userPrompt: string,
+      signal?: AbortSignal,
+      maxTokensOverride?: number,
+    ): Promise<string> => {
+      const resolvedKey = apiKey?.trim() || (await resolveOpenRouterApiKeyForHarness());
+      if (!resolvedKey) {
         throw new Error("OpenRouter API key is missing. Set it in Settings first.");
       }
 
@@ -174,13 +181,20 @@ export function useOverviewAiOptimize(options: UseOverviewAiOptions): UseOvervie
         { role: "user", content: userPrompt },
       ];
 
+      const startedAt = Date.now();
+      const activeModel = resolveMetaModel();
+      console.log("[Auto SEO][OpenRouter Start]", {
+        model: activeModel,
+        maxTokens: maxTokensOverride ?? Math.min(maxTokens || 1024, 1500),
+      });
+
       let result = "";
-      await streamChatCompletion({
-        apiKey,
-        model: resolveMetaModel(),
+      const completion = await streamChatCompletion({
+        apiKey: resolvedKey,
+        model: activeModel,
         messages,
         temperature,
-        maxTokens,
+        maxTokens: maxTokensOverride ?? Math.min(maxTokens || 1024, 1500),
         topP,
         signal,
         contentHarness: true,
@@ -189,7 +203,15 @@ export function useOverviewAiOptimize(options: UseOverviewAiOptions): UseOvervie
         },
       });
 
-      return scrubOverviewContentOutput(result.trim());
+      const finalRaw = (result.trim() || completion?.content?.trim() || "").trim();
+      const cleaned = scrubOverviewContentOutput(finalRaw);
+      console.log("[Auto SEO][OpenRouter Done]", {
+        model: activeModel,
+        ms: Date.now() - startedAt,
+        chars: cleaned.length,
+        preview: cleaned.slice(0, 140),
+      });
+      return cleaned;
     },
     [apiKey, resolveMetaModel, temperature, maxTokens, topP, wordPressSiteId],
   );
@@ -245,7 +267,7 @@ export function useOverviewAiOptimize(options: UseOverviewAiOptions): UseOvervie
 ${titleMode === "sap" ? sapTitleRules : defaultTitleRules}
 ${
   hasBrief
-    ? `- A cached **JSON SEO content brief** is below (SERP highlights, PAA, GSC queries, Semrush). Parse it for intent and angles. Do NOT paste JSON into the title; write a short, specific title that reflects that intent.
+    ? `- A cached **JSON SEO content brief** is below (SERP highlights, PAA, GSC queries). Parse it for intent and angles. Do NOT paste JSON into the title; write a short, specific title that reflects that intent.
 `
     : ""
 }
@@ -268,16 +290,16 @@ ${briefTrimmed.slice(0, 24000)}
 }URL
 ${url}
 
-Existing title
+Existing title (replace completely - do NOT return this exact title; author a fresh, distinct SEO title)
 ${existingTitle}
 
-Return only the title text with no quotes. Every word must be Title Case.`;
+Return only the new title text with no quotes. Every word must be Title Case.`;
 
         const systemPrompt = hasBrief
-          ? `You are a senior SEO content title specialist. Write accurate, neutral titles in full Title Case (every word capitalized), even when the focus keyword input is lowercase. A structured JSON SEO content brief is provided - use it as the main signal for searcher intent and angles while following all title rules. ${TITLE_CASE_RULE}`
-          : `You are a senior SEO content title specialist. Write accurate, neutral titles in full Title Case (every word capitalized), even when the focus keyword input is lowercase. ${TITLE_CASE_RULE}`;
+          ? `You are a senior SEO content title specialist. Write a brand-new, accurate, neutral title from scratch in full Title Case (every word capitalized) that is distinct from the existing title. A structured JSON SEO content brief is provided - use it as the main signal for searcher intent and angles while following all title rules. ${TITLE_CASE_RULE}`
+          : `You are a senior SEO content title specialist. Write a brand-new, accurate, neutral title from scratch in full Title Case (every word capitalized) that is distinct from the existing title. ${TITLE_CASE_RULE}`;
         const raw = await runCompletion(systemPrompt, prompt, options?.signal);
-        return raw || existingTitle;
+        return raw || null;
       } catch (err: any) {
         if (!skipLoadingState) {
           setError(err?.message || "AI title optimization failed.");
@@ -317,33 +339,27 @@ Return only the title text with no quotes. Every word must be Title Case.`;
           typeof gscQuickWinsContext === "string" &&
           gscQuickWinsContext.trim().length > 0;
 
-        const prompt = `Optimize this meta description for SEO.
+        const prompt = `Write a brand-new, grammatically natural SEO meta description from scratch.
 
 Rules
-- 130-150 characters
+- 130-155 characters
 - ${META_DESCRIPTION_ANTI_CLICKBAIT_RULE}
-- Include the full focus keyword phrase below as the WRITING KEYWORD string — same spelling, words, spacing, hyphens, and **full Title Case on every word**. Do NOT paste the raw lowercase slug. Do NOT add words to the phrase, do NOT slugify, or rephrase it.
-- Natural placement: When you use a buffer before the keyword, choose a plain, factual lead-in - vary the angle (what the page covers, who it helps, or a concrete detail). Do NOT default to the same word every time, and do not use promotional openers. One or two words before the keyword is enough; only start with the raw keyword when nothing else fits cleanly in the character limit.
-- If the focus keyword does not fit grammatically into a natural sentence (e.g. "Blinds Bushnell FL"), front-load it at the start, then continue in the same sentence. Use a comma or colon if needed; never an em dash. Do NOT use a pipe (|) and do NOT start with a business name, site name, or distributor name. Examples:
-  "Blinds Bushnell FL – Window treatment options, materials, and installation details."
-  "Blinds Bushnell FL: Styles, materials, and how installation works."
-- Do NOT try to force the keyword into the middle of a sentence where it sounds unnatural (e.g. NEVER write "Find the perfect Blinds Bushnell FL").
-- If focus keyword is empty, infer the main keyword from the URL.
-- Do not add brand names
-- Do not add site name
-- Use natural language
+- **Grammar and natural flow come first (NON-NEGOTIABLE)**: Write one or two complete, fluent English sentences in standard sentence case (capitalize the first word of the sentence and proper nouns/trademarks only; never start a sentence with a lowercase letter, and never Title Case generic keyword words mid-sentence).
+- **Never shove or prefix the raw keyword**: NEVER dump the focus keyword at the start of the meta description followed by a colon, dash, comma, or pipe (e.g. FORBIDDEN: "energy efficient windows science: How Low-E coatings..." or "Blinds Bushnell FL: Window treatment options...").
+- **Flexible, grammatical keyword weaving**: Treat the focus keyword as the topic signal, not a rigid contiguous string. If the focus keyword is phrased like a raw search query or slug (e.g. "energy efficient windows science", "blinds bushnell fl", "roman shades cost edmonton"), reorder the words and add natural prepositions, articles, or hyphens so the sentence reads effortlessly to a human (e.g. "Explore the science behind energy-efficient windows, including how Low-E coatings, argon gas fills, and insulated frames reduce heat transfer.").
+- Do not add brand names or site name.
 ${
   hasBrief
-    ? `- A cached **JSON SEO content brief** is below (DataForSEO SERP highlights + GSC queries + Semrush keywords/URLs). Parse it mentally for intent, questions, and angles. Do NOT paste JSON into the meta; write one fresh sentence that reflects that intent.
+    ? `- A cached **JSON SEO content brief** is below (DataForSEO SERP highlights + GSC queries). Parse it mentally for intent, questions, and angles. Do NOT paste JSON into the meta; write fresh, natural sentences that reflect that intent.
 `
     : ""
 }${
   hasGsc
-    ? `- Real Google search queries for this page are provided below as JSON. Use them actively as inspiration: infer intent, pain points, and how people phrase searches; reflect that in your benefit and angle while keeping one natural sentence flow. Do NOT paste or list queries, do NOT keyword-stuff, and do NOT copy wording verbatim - write fresh copy that still feels aligned with what searchers want.
+    ? `- Real Google search queries for this page are provided below as JSON. Use them actively as inspiration: infer intent, pain points, and how people phrase searches; reflect that in your benefit and angle while keeping natural sentence flow. Do NOT paste or list queries, do NOT keyword-stuff, and do NOT copy wording verbatim.
 `
     : ""
 }
-Focus keyword (include once in full; match spelling and casing as below - no wording variations to the phrase itself)
+Focus keyword (topic signal - weave its words naturally with proper grammar and sentence case; never paste as a raw prefix or ungrammatical block)
 ${focusKeyword?.trim() || "(none)"}
 
 FAQ content (use as context only – summarize the value, do NOT list questions verbatim)
@@ -354,7 +370,7 @@ ${sentimentSource || "(none)"}
 
 ${
   hasBrief
-    ? `JSON SEO content brief (primary intent - organics, PAA, related searches, GSC queries, Semrush lists; do not copy into output)
+    ? `JSON SEO content brief (primary intent - organics, PAA, related searches, GSC queries; do not copy into output)
 ${briefTrimmed.slice(0, 24000)}
 
 `
@@ -365,19 +381,19 @@ ${hasBrief ? "(none - use JSON SEO content brief above)" : gscQuickWinsContext |
 URL
 ${url}
 
-Existing meta description
+Existing meta description (replace completely - do NOT return or lightly tweak this existing text; author a fresh meta description from scratch)
 ${existingMeta}
 
-Return only the optimized meta description with no quotes.`;
+Return only the newly authored meta description with no quotes.`;
 
         const systemPrompt = hasBrief
-          ? "You are a senior SEO content specialist who writes neutral, factual meta descriptions. A structured JSON SEO content brief is provided - use it as the main signal for intent, questions, and angles. When you use a short lead-in before the keyword, pick a different clear angle each time - never rely on one default opener."
+          ? "You are a senior SEO content specialist who authors brand-new, grammatically fluent, neutral meta descriptions in natural sentence case. Never front-load a raw keyword with a colon or force an ungrammatical keyword string into a sentence; weave the topic words naturally with connecting prepositions and articles. Use the structured JSON SEO content brief as the main signal for intent and specifics."
           : hasGsc
-            ? "You are a senior SEO content specialist who writes neutral, factual meta descriptions. When Search Console query data is provided, treat it as primary inspiration for searcher intent and phrasing while producing original, natural copy that follows all user rules. When you use a short lead-in before the keyword, pick a different clear angle each time - never rely on one default opener. Avoid opening every meta with the focus keyword alone unless the rules say otherwise."
-            : "You are a senior SEO content specialist who writes neutral, factual meta descriptions. When you use a short lead-in before the keyword, pick a different clear angle each time - never rely on one default opener. Avoid opening every meta with the focus keyword alone unless the rules say otherwise.";
+            ? "You are a senior SEO content specialist who authors brand-new, grammatically fluent, neutral meta descriptions in natural sentence case. Never front-load a raw keyword with a colon or force an ungrammatical keyword string into a sentence; weave the topic words naturally with connecting prepositions and articles. Treat Search Console query data as inspiration for searcher intent."
+            : "You are a senior SEO content specialist who authors brand-new, grammatically fluent, neutral meta descriptions in natural sentence case. Never front-load a raw keyword with a colon or force an ungrammatical keyword string into a sentence; weave the topic words naturally with connecting prepositions and articles.";
         const raw = await runCompletion(systemPrompt, prompt, options?.signal);
         const text = raw ? enforceExactFocusKeyword(raw, focusKeyword) : null;
-        return text || existingMeta;
+        return text || null;
       } catch (err: any) {
         if (!skipLoadingState) {
           setError(err?.message || "AI meta optimization failed.");
@@ -436,7 +452,7 @@ Meta: ${pageMeta || "(none)"}
 
 ${
   hasBrief
-    ? `JSON SEO content brief (primary - organics, PAA, related, GSC, Semrush; parse intent; do not copy verbatim)
+    ? `JSON SEO content brief (primary - organics, PAA, related, GSC; parse intent; do not copy verbatim)
 ${briefTrimmed.slice(0, 24000)}
 
 `
@@ -515,7 +531,7 @@ Return only the questions, one per line, no extra text.`;
             ? `You are an SEO specialist who writes high-quality FAQ questions. A structured JSON SEO content brief is provided - use it as the main signal for searcher intent and question ideas. Align with the business's service area and NAP without broadening geography; preserve sentiment. ${FAQ_CONVERSATIONAL_RULE} ${PRIMARY_CITY_CONSISTENCY_RULE}`
             : `You are an SEO specialist who writes high-quality FAQ questions that match searcher intent and align with the business's service area and NAP (city/state, phone, etc.). You must localize questions to that area without broadening it and you must preserve the original sentiment of each question. ${FAQ_CONVERSATIONAL_RULE} ${PRIMARY_CITY_CONSISTENCY_RULE}`;
         const text = await runCompletion(systemPrompt, prompt);
-        return text || existingFaq || "";
+        return text || null;
       } catch (err: any) {
         if (!skipLoadingState) {
           setError(err?.message || "AI FAQ optimization failed.");
@@ -557,12 +573,12 @@ Return only the questions, one per line, no extra text.`;
 
         const localContextBlock = faqPrimaryLocalPromptBlock(wordPressSite, focusKeyword);
 
-        const prompt = `${localContextBlock ? `${localContextBlock}\n\n` : ""}You are acting as a senior SEO strategist refining FAQ schema.
+        const prompt = `${localContextBlock ? `${localContextBlock}\n\n` : ""}You are acting as a senior SEO strategist rewriting FAQ schema from scratch.
 
-Improve this FAQ question so it is clearer, more elegant, and more helpful for searchers, but keep the same intent and page/topic.
+Rewrite this FAQ question from scratch with fresh wording so it is clearer, more specific, and better aligned with searcher intent for this page. Never return the Current question unchanged.
 
 Rules
-- Keep it as a single question sentence.
+- Keep it as a single question sentence with completely new wording.
 - Do NOT answer the question.
 - Keep brand names and entities consistent with the page.
 - Keep the sentiment (positive/neutral/negative) the same; do not soften or exaggerate it.
@@ -594,7 +610,7 @@ Meta: ${pageMeta || "(none)"}
 
 ${
   hasBrief
-    ? `JSON SEO content brief (primary - organics, PAA, related, GSC, Semrush; parse intent; do not copy verbatim)
+    ? `JSON SEO content brief (primary - organics, PAA, related, GSC; parse intent; do not copy verbatim)
 ${briefTrimmed.slice(0, 24000)}
 
 `
@@ -602,16 +618,16 @@ ${briefTrimmed.slice(0, 24000)}
 }DataForSEO SERP research context (filtered People Also Ask, organic results; use ONLY to understand search intent and what users are asking; do NOT copy text verbatim. If this is "(none)" or says to use the brief above, skip this block. If this context appears off-topic for the page intent, IGNORE it completely.)
 ${dfsForPrompt}
 
-Current question
+Current question (replace with fresh wording - do not return unchanged)
 ${currentQuestion}
 
-Return only the improved question, no quotes or bullets.`;
+Return only the rewritten question, no quotes or bullets.`;
 
         const systemPrompt = hasBrief
-          ? `You are an SEO specialist who rewrites FAQ questions to be clearer and better aligned with search intent. A structured JSON SEO content brief is provided - use it as the main signal. Preserve sentiment; localize geography to the NAP/service area without broadening it. ${PRIMARY_CITY_CONSISTENCY_RULE}`
-          : `You are an SEO specialist who rewrites FAQ questions to be clearer and better aligned with search intent and the site's local service area. Preserve original sentiment and only adjust geography to match the NAP/service area (never broaden it). ${PRIMARY_CITY_CONSISTENCY_RULE}`;
+          ? `You are an SEO specialist who rewrites FAQ questions from scratch with fresh phrasing aligned with search intent. A structured JSON SEO content brief is provided - use it as the main signal. Preserve sentiment; localize geography to the NAP/service area without broadening it. ${PRIMARY_CITY_CONSISTENCY_RULE}`
+          : `You are an SEO specialist who rewrites FAQ questions from scratch with fresh phrasing aligned with search intent and the site's local service area. Preserve original sentiment and only adjust geography to match the NAP/service area (never broaden it). ${PRIMARY_CITY_CONSISTENCY_RULE}`;
         const text = await runCompletion(systemPrompt, prompt);
-        return text || currentQuestion;
+        return text || null;
       } catch (err: any) {
         if (!skipLoadingState) {
           setError(err?.message || "AI FAQ question optimization failed.");
@@ -655,13 +671,13 @@ Return only the improved question, no quotes or bullets.`;
         const hasExistingAnswer = String(currentAnswer ?? "").trim().length > 0;
         const localContextBlock = faqPrimaryLocalPromptBlock(wordPressSite, focusKeyword);
 
-        const prompt = `${localContextBlock ? `${localContextBlock}\n\n` : ""}You are acting as a senior SEO strategist writing FAQ answers for schema.
+        const prompt = `${localContextBlock ? `${localContextBlock}\n\n` : ""}You are acting as a senior SEO strategist writing FAQ answers for schema from scratch.
 
-${hasExistingAnswer ? "Improve this FAQ answer in the context of the page and its search intent." : "There is no existing answer - write a new, helpful FAQ answer from scratch using the page context, NAP/service area, and the question below."}
+${hasExistingAnswer ? "Author a brand-new replacement for this FAQ answer from scratch with fresh sentence structure and wording (never return or synonym-swap the Current answer)." : "There is no existing answer - write a new, helpful FAQ answer from scratch using the page context, NAP/service area, and the question below."}
 
 Rules
 - Stay strictly on-topic for the question.
-- 2-4 concise sentences max.
+- 2-4 concise sentences max, freshly written from scratch.
 - Do NOT mention brand names or site name unless already present.
 - Use the page context and NAP/location to add missing but obviously helpful local details.
 - Keep the sentiment (positive/neutral/negative) the same; do not over-hype or downplay compared to the original.
@@ -691,7 +707,7 @@ Meta: ${pageMeta || "(none)"}
 
 ${
   hasBrief
-    ? `JSON SEO content brief (primary - organics, PAA, related, GSC, Semrush; parse intent; do not copy verbatim)
+    ? `JSON SEO content brief (primary - organics, PAA, related, GSC; parse intent; do not copy verbatim)
 ${briefTrimmed.slice(0, 24000)}
 
 `
@@ -702,16 +718,16 @@ ${dfsForPrompt}
 Question
 ${question}
 
-Current answer
+Current answer (replace completely with fresh sentences - do not copy or synonym-swap)
 ${currentAnswer}
 
-Return only the improved answer text, no quotes or bullets.`;
+Return only the newly written answer text, no quotes or bullets.`;
 
         const systemPrompt = hasBrief
-          ? `You are an SEO specialist who writes clear, concise FAQ answers. A structured JSON SEO content brief is provided - use it as the main signal for searcher intent while staying on-topic for the question. ${PRIMARY_CITY_CONSISTENCY_RULE}`
-          : `You are an SEO specialist who writes clear, concise FAQ answers that directly address the question using the page context. ${PRIMARY_CITY_CONSISTENCY_RULE}`;
+          ? `You are an SEO specialist who writes clear, concise FAQ answers from scratch with fresh sentence structure. A structured JSON SEO content brief is provided - use it as the main signal for searcher intent while staying on-topic for the question. ${PRIMARY_CITY_CONSISTENCY_RULE}`
+          : `You are an SEO specialist who writes clear, concise FAQ answers from scratch with fresh sentence structure that directly address the question using the page context. ${PRIMARY_CITY_CONSISTENCY_RULE}`;
         const text = await runCompletion(systemPrompt, prompt);
-        return text || currentAnswer;
+        return text || null;
       } catch (err: any) {
         if (!skipLoadingState) {
           setError(err?.message || "AI FAQ answer optimization failed.");
@@ -1071,8 +1087,9 @@ Rules:
 
   const deriveFocusKeywordsFromPageContextBatch = useCallback(
     async (catalog: OverviewKeywordCatalogRow[]): Promise<Map<string, string>> => {
+      const resolvedKey = apiKey?.trim() || (await resolveOpenRouterApiKeyForHarness());
       return runContentKeywordsBatch(catalog, {
-        apiKey,
+        apiKey: resolvedKey,
         model: resolveMetaModel(),
         siteId: wordPressSiteId,
         napSummary,
@@ -1083,8 +1100,9 @@ Rules:
 
   const deriveEntityKeywordsBatch = useCallback(
     async (catalog: OverviewKeywordCatalogRow[]): Promise<Map<string, string>> => {
+      const resolvedKey = apiKey?.trim() || (await resolveOpenRouterApiKeyForHarness());
       return runEntityKeywordsBatch(catalog, {
-        apiKey,
+        apiKey: resolvedKey,
         model: resolveMetaModel(),
         siteId: wordPressSiteId,
         napSummary,
@@ -1095,8 +1113,9 @@ Rules:
 
   const runAiAllMetaBatchForCatalog = useCallback(
     async (catalog: AiAllMetaCatalogRow[]): Promise<Map<string, AiAllMetaRowPatch>> => {
+      const resolvedKey = apiKey?.trim() || (await resolveOpenRouterApiKeyForHarness());
       return runAiAllMetaBatch(catalog, {
-        apiKey,
+        apiKey: resolvedKey,
         model: resolveMetaModel(),
         siteId: wordPressSiteId,
         napSummary,

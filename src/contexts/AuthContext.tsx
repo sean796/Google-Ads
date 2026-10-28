@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
 import { clearAllMasterInstructionsMemory } from "@/lib/master-instructions-storage";
 import { clearDeviceAuth, loadDeviceAuth, saveDeviceAuth, setSessionToken, getSessionToken } from "@/lib/auth-device";
-import { AUTH_DISABLED, LOCAL_DEMO_EMAIL, LOCAL_DEMO_PASSWORD } from "@/lib/auth-disabled";
+import { AUTH_DISABLED, LOCAL_DEMO_EMAIL, LOCAL_DEMO_PASSWORD, LOCAL_DEMO_TEAM } from "@/lib/auth-disabled";
 import { fetchAuthMe, loginWithEmail, logoutApi } from "@/lib/teams-api";
 import type { AuthUser, TeamPermissions, TeamSummary } from "@/lib/teams-types";
 
@@ -20,7 +20,13 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    const d = loadDeviceAuth();
+    if (d?.email) {
+      return { id: 1, email: d.email, displayName: d.email };
+    }
+    return null;
+  });
   const [activeTeam, setActiveTeam] = useState<TeamSummary | null>(null);
   const [permissions, setPermissions] = useState<TeamPermissions | null>(null);
   const [loading, setLoading] = useState(!AUTH_DISABLED);
@@ -43,8 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     try {
-      saveDeviceAuth(LOCAL_DEMO_EMAIL, LOCAL_DEMO_PASSWORD);
-      const device = loadDeviceAuth();
+      let device = loadDeviceAuth();
+      if (!device) {
+        saveDeviceAuth(LOCAL_DEMO_EMAIL, LOCAL_DEMO_PASSWORD);
+        device = loadDeviceAuth();
+      }
       if (device?.sessionToken && !getSessionToken()) {
         setSessionToken(device.sessionToken);
       }
@@ -59,15 +68,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               saveDeviceAuth(saved.email, saved.password, loginResult.sessionToken);
             }
             data = await fetchAuthMe();
-          } else {
-            clearDeviceAuth();
           }
         }
       }
-      applyMe(data);
+      if (data.user || data.username) {
+        applyMe(data);
+      } else {
+        const fallbackDevice = loadDeviceAuth();
+        if (fallbackDevice?.email) {
+          setUser({
+            id: 1,
+            email: fallbackDevice.email,
+            displayName: fallbackDevice.email,
+          });
+          setActiveTeam(LOCAL_DEMO_TEAM);
+        } else {
+          applyMe(data);
+        }
+      }
     } catch {
-      setUser(null);
-      setActiveTeam(null);
+      const fallbackDevice = loadDeviceAuth();
+      if (fallbackDevice?.email) {
+        setUser({
+          id: 1,
+          email: fallbackDevice.email,
+          displayName: fallbackDevice.email,
+        });
+        setActiveTeam(LOCAL_DEMO_TEAM);
+      } else {
+        setUser(null);
+        setActiveTeam(null);
+      }
       setPermissions(null);
     } finally {
       setLoading(false);

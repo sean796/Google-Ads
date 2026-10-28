@@ -111,22 +111,21 @@ async function generateSectionCopy(args: {
   const system =
     kind === "section-header"
       ? [
-          "Rewrite one Elementor section heading for SEO and on-page context.",
+          "Author one brand-new Elementor section heading from scratch for SEO and on-page context.",
           AISEO_FULL_REWRITE_SYSTEM_RULE,
           'Return JSON only: {"title":"..."}. Plain title text, no markdown or HTML.',
           headerStylePrompt ?? "One concise section heading.",
         ].join(" ")
       : [
-          "You fully rewrite one existing Elementor section body for SEO and AI citation clarity.",
+          "You author a complete from-scratch replacement for one Elementor section body for SEO and AI citation clarity.",
           AISEO_FULL_REWRITE_SYSTEM_RULE,
           'Return JSON only: {"bodyHtml":"..."}.',
-          "Read the full CURRENT SECTION in the user message before writing.",
-          "Keep the same topics, factual coverage, and detail level. Never summarize. Never shorten. Never replace a full section with a blurb.",
-          "Rephrase every non-link sentence; do not copy phrasing verbatim.",
+          "Read the full LEGACY SECTION in the user message before writing.",
+          "Discard the legacy sentence order and phrasing completely; author fresh, authoritative prose from scratch that covers every topic, offer, and factual detail in full depth. Never summarize. Never shorten. Never replace a full section with a blurb, and never do a sentence-by-sentence synonym swap.",
           "Every existing internal link tag must appear in bodyHtml exactly as provided in LOCKED INTERNAL LINKS (same href and anchor text).",
           "Do NOT add links. Do NOT remove links. Do NOT change any href or anchor on existing links.",
           "Follow every COPY BLUEPRINT checklist item. Allowed HTML and forbidden HTML are layout constraints only.",
-          "When COPY BLUEPRINT forbids lists and CURRENT SECTION has a list, convert each list item into its own <p> (preserve every item and detail, no lists in output).",
+          "When COPY BLUEPRINT forbids lists and LEGACY SECTION has a list, convert each list item into its own <p> (preserve every item and detail, no lists in output).",
           `Allowed HTML: ${allowedLabel}. Forbidden HTML: ${forbiddenLabel}.`,
         ].join(" ");
 
@@ -188,8 +187,8 @@ async function generateSectionCopy(args: {
   }
 
   const user = [
-    `CURRENT SECTION (read this entire block before writing):\n${currentBody}`,
-    `CURRENT STRUCTURE: ${currentStructure.paragraphs} paragraph(s), ${currentStructure.listBlocks} list block(s), ~${currentStructure.words} words.`,
+    `LEGACY SECTION (extract facts and topic coverage only; do NOT paraphrase sentence-by-sentence):\n${currentBody}`,
+    `LEGACY STRUCTURE: ${currentStructure.paragraphs} paragraph(s), ${currentStructure.listBlocks} list block(s), ~${currentStructure.words} words.`,
     sectionContextPrompt?.trim() ?? "",
     lockedHeadingBlock,
     lockedLinksBlock,
@@ -198,11 +197,11 @@ async function generateSectionCopy(args: {
     `Section title (unchanged): ${section.title}`,
     seoResearch?.trim()
       ? `Research brief (use specific angles, entities, and benefits from here):\n${seoResearch.trim().slice(0, 3000)}`
-      : "No research brief on this row. Still fully rewrite the current section for the focus keyword.",
+      : "No research brief on this row. Still author the section from scratch for the focus keyword.",
     [
-      "Your bodyHtml must keep CURRENT SECTION coverage and detail while fully rewriting prose.",
+      "Your bodyHtml must author completely new prose from scratch with fresh sentence structure while keeping full factual coverage and detail.",
       "Keep LOCKED SECTION HEADING and every LOCKED INTERNAL LINK tag unchanged.",
-      "Rephrase every non-link sentence. Do not drop paragraphs, list items, offers, or themes.",
+      "Never do a sentence-by-sentence synonym swap. Do not drop offers, facts, or themes.",
       "Obey every COPY BLUEPRINT checklist item (including list-to-paragraph conversion when lists are forbidden).",
       AISEO_FULL_REWRITE_BODY_OUTPUT_CONTRACT,
       businessName?.trim()
@@ -225,7 +224,7 @@ async function generateSectionCopy(args: {
       { role: "system", content: system },
       { role: "user", content: user },
     ],
-    temperature: 0.5,
+    temperature: 0.65,
     maxTokens: 8192,
     topP: 1,
     onContentChunk: () => {},

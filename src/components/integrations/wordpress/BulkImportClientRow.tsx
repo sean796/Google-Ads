@@ -13,6 +13,7 @@ export interface BulkImportClient {
   username: string;
   appPassword: string;
   googleAdsCustomerId?: string;
+  primaryLocalKeyword?: string;
 }
 
 interface BulkImportClientRowProps {

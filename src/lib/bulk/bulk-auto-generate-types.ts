@@ -58,6 +58,8 @@ export interface WordPressPostingOptions {
   gapDatesBySlot?: Date[];
   draftOnly?: boolean;
   publishDays?: number[];
+  /** wp/v2/posts vs pages for standard (non-entity) creates/updates. */
+  wordpressRestEndpoint?: 'posts' | 'pages';
 }
 
 export type BulkHarnessSectionPayload = {

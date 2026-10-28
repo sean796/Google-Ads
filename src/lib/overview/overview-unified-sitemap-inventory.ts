@@ -251,7 +251,6 @@ export async function fetchUnifiedOverviewSitemapInventory(
   if (collections.length > 0) {
     try {
       const bulk = await getSiteInventoryBulk(site.siteUrl, site.username!, site.appPassword!, {
-        includeRawAcf: true,
         includeContent: options?.includeContent === true,
         includePageHeading: options?.includePageHeading === true,
         includeScheduled: options?.includeScheduled === true,

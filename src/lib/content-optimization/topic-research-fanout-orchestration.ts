@@ -240,114 +240,127 @@ export async function runTopicResearchFanout(input: {
       pageUrl: input.brief.pageUrl,
       swotText: input.swotText,
       pageExcerpt: input.pageExcerpt,
+    }).catch((err) => {
+      console.warn("[Topic Research Fan-out] Planning topic questions failed (non-fatal):", err);
+      return null;
     });
-    input.onProgress?.("Fan-out SERP");
-    const serpByQuery = isDfsPaymentLatched()
-      ? plan.researchQueries.map((query) => ({ query, organicTop: [], organicTitles: [], paa: [] }))
-      : await Promise.all(
-          plan.researchQueries.map(async (query) => {
-            if (isDfsPaymentLatched()) {
-              return { query, organicTop: [], organicTitles: [], paa: [] };
-            }
-            try {
-              const { serpDumpJson } = await fetchSerpOrganicForQuery({
-                keyword: query,
-                location,
-                site: input.site,
-              });
-              return serpRowFromDump(query, serpDumpJson);
-            } catch {
-              return { query, organicTop: [], organicTitles: [], paa: [] };
-            }
-          }),
-        );
-    input.onProgress?.("ChatGPT company facts");
-    const authorityTopics = [
-      ...plan.namedPrograms.map((program) => ({
-        query: attachLocationToQfoQuery(program, location),
-        topic: input.keyword,
-        namedProgram: program,
-      })),
-      {
-        query: attachLocationToQfoQuery(`${input.companyName} official facts`, location),
-        topic: input.keyword,
-        namedProgram: undefined as string | undefined,
-      },
-    ];
-    const seenAuthority = new Set<string>();
-    const uniqueAuthority = authorityTopics.filter((row) => {
-      const key = row.query.toLowerCase();
-      if (seenAuthority.has(key)) return false;
-      seenAuthority.add(key);
-      return true;
-    });
-    const chatGptByQuery = await Promise.all(
-      uniqueAuthority.map(async ({ query, topic, namedProgram }) => {
-        const result = await fetchChatGptCompanyAuthority({
-          companyName: input.companyName,
-          location,
-          topic,
-          namedProgram,
-          siteUrl,
-        }).catch(() => null);
-        return { query, responseText: result?.responseText ?? "" };
-      }),
-    );
-    fanout = {
-      queries: plan.researchQueries,
-      namedPrograms: plan.namedPrograms,
-      plannerModel: plan.plannerModel,
-      plannedAt: plan.plannedAt,
-      researchAsOf: plan.researchAsOf,
-      illustrativeExampleQuery: plan.illustrativeExampleQuery,
-      programStatusQuery: plan.programStatusQuery,
-      serpByQuery,
-      chatGptByQuery,
-    };
-    if (plan.illustrativeExampleQuery?.trim()) {
-      input.onProgress?.("Illustrative example extract");
-      const illustrativeExample = await extractIllustrativeExample({
-        keyword: input.keyword,
-        location,
-        researchAsOf: plan.researchAsOf ?? formatResearchAsOfLabel(new Date()),
+    if (plan) {
+      input.onProgress?.("Fan-out SERP");
+      const serpByQuery = isDfsPaymentLatched()
+        ? plan.researchQueries.map((query) => ({ query, organicTop: [], organicTitles: [], paa: [] }))
+        : await Promise.all(
+            plan.researchQueries.map(async (query) => {
+              if (isDfsPaymentLatched()) {
+                return { query, organicTop: [], organicTitles: [], paa: [] };
+              }
+              try {
+                const { serpDumpJson } = await fetchSerpOrganicForQuery({
+                  keyword: query,
+                  location,
+                  site: input.site,
+                });
+                return serpRowFromDump(query, serpDumpJson);
+              } catch {
+                return { query, organicTop: [], organicTitles: [], paa: [] };
+              }
+            }),
+          );
+      input.onProgress?.("ChatGPT company facts");
+      const authorityTopics = [
+        ...plan.namedPrograms.map((program) => ({
+          query: attachLocationToQfoQuery(program, location),
+          topic: input.keyword,
+          namedProgram: program,
+        })),
+        {
+          query: attachLocationToQfoQuery(`${input.companyName} official facts`, location),
+          topic: input.keyword,
+          namedProgram: undefined as string | undefined,
+        },
+      ];
+      const seenAuthority = new Set<string>();
+      const uniqueAuthority = authorityTopics.filter((row) => {
+        const key = row.query.toLowerCase();
+        if (seenAuthority.has(key)) return false;
+        seenAuthority.add(key);
+        return true;
+      });
+      const chatGptByQuery = await Promise.all(
+        uniqueAuthority.map(async ({ query, topic, namedProgram }) => {
+          const result = await fetchChatGptCompanyAuthority({
+            companyName: input.companyName,
+            location,
+            topic,
+            namedProgram,
+            siteUrl,
+          }).catch(() => null);
+          return { query, responseText: result?.responseText ?? "" };
+        }),
+      );
+      fanout = {
+        queries: plan.researchQueries,
+        namedPrograms: plan.namedPrograms,
+        plannerModel: plan.plannerModel,
+        plannedAt: plan.plannedAt,
+        researchAsOf: plan.researchAsOf,
         illustrativeExampleQuery: plan.illustrativeExampleQuery,
-        companyName: input.companyName,
+        programStatusQuery: plan.programStatusQuery,
         serpByQuery,
         chatGptByQuery,
-        pageTitle: input.title,
-        pageExcerpt: input.pageExcerpt,
-        siteId: input.site?.id,
-        site: input.site,
-      }).catch(() => undefined);
-      if (illustrativeExample) {
-        fanout = { ...fanout, illustrativeExample };
+      };
+      if (plan.illustrativeExampleQuery?.trim()) {
+        input.onProgress?.("Illustrative example extract");
+        const illustrativeExample = await extractIllustrativeExample({
+          keyword: input.keyword,
+          location,
+          researchAsOf: plan.researchAsOf ?? formatResearchAsOfLabel(new Date()),
+          illustrativeExampleQuery: plan.illustrativeExampleQuery,
+          companyName: input.companyName,
+          serpByQuery,
+          chatGptByQuery,
+          pageTitle: input.title,
+          pageExcerpt: input.pageExcerpt,
+          siteId: input.site?.id,
+          site: input.site,
+        }).catch(() => undefined);
+        if (illustrativeExample) {
+          fanout = { ...fanout, illustrativeExample };
+        }
       }
     }
   }
 
   const researchAsOf =
-    fanout.researchAsOf ?? formatResearchAsOfLabel(new Date());
-  if (!fanout.verifiedFacts && cityTokenFromLocation(location) && !isDfsPaymentLatched()) {
+    fanout?.researchAsOf ?? formatResearchAsOfLabel(new Date());
+  if (fanout && !fanout.verifiedFacts && cityTokenFromLocation(location) && !isDfsPaymentLatched()) {
     input.onProgress?.("Factual verification");
-    const verification = await runFactualVerificationPass({
-      keyword: input.keyword,
-      title: input.title,
-      location,
-      researchAsOf,
-      pageExcerpt: input.pageExcerpt,
-      site: input.site,
-      siteId: input.site?.id,
-      onProgress: input.onProgress,
-    });
-    if (verification.factualVerificationQueries.length) {
-      fanout = {
-        ...fanout,
+    try {
+      const verification = await runFactualVerificationPass({
+        keyword: input.keyword,
+        title: input.title,
+        location,
         researchAsOf,
-        factualVerificationQueries: verification.factualVerificationQueries,
-        verifiedFacts: verification.verifiedFacts,
-        serpByQuery: [...(fanout.serpByQuery ?? []), ...verification.verificationSerpRows],
-      };
+        pageExcerpt: input.pageExcerpt,
+        site: input.site,
+        siteId: input.site?.id,
+        onProgress: input.onProgress,
+      });
+      if (verification.factualVerificationQueries.length) {
+        fanout = {
+          ...fanout,
+          researchAsOf,
+          factualVerificationQueries: verification.factualVerificationQueries,
+          verifiedFacts: verification.verifiedFacts,
+          serpByQuery: [...(fanout.serpByQuery ?? []), ...verification.verificationSerpRows],
+        };
+      }
+    } catch (e) {
+      console.warn("[Topic Research Fan-out] Factual verification failed (non-fatal):", e);
     }
+  }
+
+  if (!fanout) {
+    return input.brief;
   }
 
   const addedVerifiedFacts =
@@ -365,6 +378,6 @@ export async function runTopicResearchFanout(input: {
     companyContext: companyContextFromSite(input.site),
     siteUrl,
     location,
-  });
+  }).catch(() => []);
   return mergeFanoutIntoBrief(input.brief, fanout, claims);
 }

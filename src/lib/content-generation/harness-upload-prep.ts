@@ -124,10 +124,10 @@ export async function prepareHarnessContentForUpload(
 
   htmlContent = injectHarnessH2AnchorIdsForStitchedBlog(htmlContent, bodyAnchors);
 
-  if (canResolveLinks && siteUrl && (inputIsHtml || htmlContent.includes("[[LINK:"))) {
+  if ((canResolveLinks && siteUrl && inputIsHtml) || htmlContent.includes("[[LINK:")) {
     htmlContent = await resolveInternalLinkPlaceholdersInHtml(htmlContent, {
       siteId,
-      siteUrl,
+      siteUrl: siteUrl ?? "",
       currentPageUrl,
       wordPressPosts: linkCatalog,
       apiKey,

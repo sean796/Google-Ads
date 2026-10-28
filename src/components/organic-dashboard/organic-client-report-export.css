@@ -162,7 +162,7 @@
 
 .organic-client-report-export__cover-insights-bullet-item {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.55rem;
   font-size: 1rem;
   line-height: 1.45;
@@ -170,7 +170,6 @@
 }
 
 .organic-client-report-export__cover-insights-bullet-dot {
-  margin-top: 0.45rem;
   width: 0.45rem;
   height: 0.45rem;
   flex-shrink: 0;

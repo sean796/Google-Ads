@@ -4,7 +4,11 @@
  * Posts to this app's /api/openrouter/chat-completion (server talks to OpenRouter).
  */
 
-import { openRouterAppApiHeaders, openRouterChatCompletionUrl } from "@/lib/openrouter-app-api";
+import {
+  openRouterAppApiHeaders,
+  openRouterChatCompletionUrl,
+  postOpenRouterAppChat,
+} from "@/lib/openrouter-app-api";
 import { getOpenRouterApiKeyForApp } from "@/lib/openrouter-api-key-resolve";
 import {
   clampOpenRouterMaxTokens,
@@ -67,17 +71,11 @@ export async function streamOpenRouterChatCompletionCore({
   onContentChunk,
   onFinishReason,
 }: StreamOpenRouterCoreParams): Promise<{ content: string; isGenerating: boolean; finishReason?: string }> {
-  const acc = { fullContent: "", lastFinishReason: null as string | null };
-
   const safeMaxTokens = clampOpenRouterMaxTokens(maxTokens);
-
   const resolvedKey = (apiKey.trim() || getOpenRouterApiKeyForApp()).trim();
-  const response = await fetch(openRouterChatCompletionUrl(), {
-    method: 'POST',
-    credentials: 'include',
-    cache: 'no-store',
-    headers: openRouterAppApiHeaders(resolvedKey),
-    body: JSON.stringify({
+
+  if (typeof window !== "undefined") {
+    const res = await postOpenRouterAppChat({
       apiKey: resolvedKey || undefined,
       model,
       messages,
@@ -85,10 +83,54 @@ export async function streamOpenRouterChatCompletionCore({
       maxTokens: safeMaxTokens,
       topP,
       reasoning: { effort: "low" },
-      stream: true,
-    }),
-    signal,
-  });
+      signal,
+    });
+    const content = (res.content ?? "").trim();
+    if (content) {
+      onContentChunk(content);
+    }
+    if (res.finishReason) {
+      onFinishReason?.(res.finishReason);
+    }
+    return {
+      content,
+      isGenerating: false,
+      finishReason: res.finishReason || undefined,
+    };
+  }
+
+  const acc = { fullContent: "", lastFinishReason: null as string | null };
+  let response: Response | undefined;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    response = await fetch(openRouterChatCompletionUrl(), {
+      method: 'POST',
+      credentials: 'include',
+      cache: 'no-store',
+      headers: openRouterAppApiHeaders(resolvedKey),
+      body: JSON.stringify({
+        apiKey: resolvedKey || undefined,
+        model,
+        messages,
+        temperature,
+        maxTokens: safeMaxTokens,
+        topP,
+        reasoning: { effort: "low" },
+        stream: true,
+      }),
+      signal,
+    });
+    if (
+      attempt < 3 &&
+      (response.status === 502 || response.status === 503 || response.status === 504)
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 1500 * attempt));
+      continue;
+    }
+    break;
+  }
+  if (!response) {
+    throw new Error("OpenRouter stream request failed");
+  }
 
   if (!response.ok) {
     try {

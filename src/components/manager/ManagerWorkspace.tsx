@@ -19,8 +19,8 @@ import { SocialCreatorCampaignWorkspace } from "@/components/social/creator/Soci
 import { SitemapOptimizerResearchTab } from "@/components/research/sitemap-optimizer/SitemapOptimizerResearchTab";
 import { VerticalBenchmarkShell } from "@/components/vertical-benchmark/VerticalBenchmarkShell";
 import { PulseHostTabContent } from "@/components/hosting/PulseHostTabContent";
+import { ImageStudioTabContent } from "@/components/video-generator/ImageStudioTabContent";
 import { VideoGeneratorTabContent } from "@/components/video-generator/VideoGeneratorTabContent";
-import { NeoEmcpTabContent } from "@/components/neo-emcp/NeoEmcpTabContent";
 
 const ApiDocsTabContent = lazy(() =>
   import("@/components/api-docs/ApiDocsTabContent").then((m) => ({ default: m.ApiDocsTabContent })),
@@ -36,12 +36,17 @@ import { ManagerTopBarDisplayConsole } from "@/components/manager/ManagerTopBarD
 import { ManagerSeedWorkspaceProvider } from "@/contexts/manager-seed-workspace-context";
 import { ManagerErrorLogProvider } from "@/contexts/manager-error-log-context";
 import {
+  MANAGER_SITE_CONSOLE_DOCK_CLASS,
   MANAGER_TOP_BAR_CLASS,
+  MANAGER_TOP_BAR_EDGE_INSET_CLASS,
+  MANAGER_TOP_BAR_MENU_RAIL_RESERVE_CLASS,
+  MANAGER_TOP_BAR_ROW_CLASS,
 } from "@/components/manager/manager-top-bar-nav-styles";
 import { PulseAssistContextProvider } from "@/contexts/pulse-assist-context";
 import { PulseAssistRoot } from "@/components/pulse-assist/PulseAssistRoot";
 import { AgentRunsShell } from "@/components/agent-runs/AgentRunsShell";
 import { OrganicReportingEmbeddedPanel } from "@/components/organic-dashboard/OrganicReportingEmbeddedPanel";
+import { OrganicReportingLocalGridSection } from "@/components/organic-dashboard/local-grid/OrganicReportingLocalGridSection";
 
 export interface ManagerWorkspaceProps {
   variant: "embedded" | "overlay";
@@ -153,22 +158,16 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
     }
   });
   const embedded = variant === "embedded";
-  const displayConsole = (
-    <ManagerTopBarDisplayConsole
-      variant="embedded"
-      managerTab={managerTab}
-      onManagerTabChange={onManagerTabChange}
-      onResetWorkspace={onResetWorkspace}
-      showReset
-    />
-  );
+  const displayConsole = <ManagerTopBarDisplayConsole variant="embedded" />;
   const chatFullBleed =
     embedded &&
     (managerTab === "chat" ||
       managerTab === "tasks" ||
       managerTab === "pulse-forge" ||
+      managerTab === "image-generator" ||
       managerTab === "video-generator" ||
       managerTab === "generator" ||
+      managerTab === "local-dominator" ||
       managerTab === "api");
   /** Radix tabpanel must participate in flex-1 chain when embedded; parent-only selectors are unreliable. */
   const embeddedTabPanelStretch = embedded ? "flex h-full min-h-0 flex-1 flex-col overflow-hidden" : undefined;
@@ -177,38 +176,38 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
   /** Embedded: small air gap below the sticky mega menu; overlay keeps classic inset. */
   const embeddedTabPanelTopClass = embedded ? "mt-0" : "mt-2";
   const embeddedMainColumnTopClass = embedded ? "pt-3 md:pt-4" : "pt-2 md:pt-3";
-  /** Keeps generator (and other tabs) full width beside docked SEO/Assist panel. */
-  const embeddedAssistAwareInsetClass =
-    "pr-[calc(var(--neo-pulse-shortcut-rail-width)+var(--neo-pulse-assist-panel-width,0px))]";
+  /** Keeps content width static beside docked rail without shifting when sidebar drawer opens. */
+  const embeddedAssistAwareInsetClass = "pr-[var(--neo-pulse-shortcut-rail-width)]";
 
   const embeddedManagerStickyHeader =
     embedded && showResetToolbar ? (
       <div className="neo-pulse-embedded-sticky-chrome sticky top-0 z-[60] w-full shrink-0 bg-black">
         <div
           data-neo-pulse-manager-sticky-nav
-          className={cn(
-            "flex w-full shrink-0 flex-col pt-2.5 pb-2.5 text-foreground shadow-none md:pt-3 md:pb-3",
-            MANAGER_TOP_BAR_CLASS,
-          )}
+          className={cn(MANAGER_TOP_BAR_ROW_CLASS, MANAGER_TOP_BAR_CLASS, "text-foreground shadow-none")}
         >
-          <div className="relative z-[1] flex w-full min-w-0 flex-nowrap items-center gap-2.5 py-1.5 pl-3 pr-0 md:pl-5">
-            <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
-              {embeddedTopBarStart ? (
-                <div className="flex shrink-0 items-center">{embeddedTopBarStart}</div>
-              ) : null}
-              <div className="flex min-w-0 items-center overflow-x-auto">
-                <ManagerMegaMenuNav
-                  managerTab={managerTab}
-                  onManagerTabChange={onManagerTabChange}
-                  onGeneratorSectionChange={onGeneratorSectionChange}
-                  variant="embedded"
-                  dashboardCluster={managerDashboardCluster}
-                  onDashboardClusterChange={onManagerDashboardClusterChange}
-                />
-              </div>
+          <div
+            className={cn(
+              "flex h-9 min-h-9 items-center gap-2 overflow-hidden self-center",
+              MANAGER_TOP_BAR_EDGE_INSET_CLASS,
+              MANAGER_TOP_BAR_MENU_RAIL_RESERVE_CLASS,
+            )}
+          >
+            {embeddedTopBarStart ? (
+              <div className="flex shrink-0 items-center">{embeddedTopBarStart}</div>
+            ) : null}
+            <div className="flex min-w-0 items-center overflow-x-auto">
+              <ManagerMegaMenuNav
+                managerTab={managerTab}
+                onManagerTabChange={onManagerTabChange}
+                onGeneratorSectionChange={onGeneratorSectionChange}
+                variant="embedded"
+                dashboardCluster={managerDashboardCluster}
+                onDashboardClusterChange={onManagerDashboardClusterChange}
+              />
             </div>
-            <div className="ml-auto flex shrink-0">{displayConsole}</div>
           </div>
+          <div className={MANAGER_SITE_CONSOLE_DOCK_CLASS}>{displayConsole}</div>
         </div>
         {embeddedTopBarProgress ? (
           <div className="relative z-[1] shrink-0 bg-zinc-900 px-3 py-1.5 md:px-5 md:py-2">
@@ -255,13 +254,7 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
                 />
               </div>
               <div className="flex shrink-0">
-                <ManagerTopBarDisplayConsole
-                  variant="compact"
-                  managerTab={managerTab}
-                  onManagerTabChange={onManagerTabChange}
-                  onResetWorkspace={onResetWorkspace}
-                  showReset={Boolean(showResetToolbar)}
-                />
+                <ManagerTopBarDisplayConsole variant="compact" />
               </div>
             </div>
           </div>
@@ -290,9 +283,10 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
                   managerTab === "chat" ||
                   managerTab === "tasks" ||
                   managerTab === "pulse-forge" ||
+                  managerTab === "image-generator" ||
                   managerTab === "video-generator" ||
-                  managerTab === "neo-emcp" ||
                   managerTab === "api" ||
+                  managerTab === "local-dominator" ||
                   managerTab === "organic-reporting"
                   ? "overflow-y-hidden"
                   : "neo-pulse-embedded-tab-scroller overflow-y-auto",
@@ -310,7 +304,19 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
             embedded && "overflow-hidden",
           )}
         >
-          <OrganicReportingEmbeddedPanel />
+          {managerTab === "organic-reporting" ? <OrganicReportingEmbeddedPanel /> : null}
+        </TabsContent>
+
+        <TabsContent
+          value="local-dominator"
+          className={cn(
+            embeddedTabPanelTopClass,
+            "data-[state=inactive]:hidden",
+            embeddedTabPanelStretch,
+            embedded && "overflow-hidden",
+          )}
+        >
+          <OrganicReportingLocalGridSection />
         </TabsContent>
 
         <TabsContent
@@ -512,17 +518,17 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
         </TabsContent>
 
         <TabsContent
+          value="image-generator"
+          className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}
+        >
+          <ImageStudioTabContent apiKey={apiKey} bindings={freeFlowBindings} />
+        </TabsContent>
+
+        <TabsContent
           value="video-generator"
           className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}
         >
           <VideoGeneratorTabContent apiKey={apiKey} />
-        </TabsContent>
-
-        <TabsContent
-          value="neo-emcp"
-          className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}
-        >
-          <NeoEmcpTabContent apiKey={apiKey} />
         </TabsContent>
 
         <TabsContent value="api" className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}>
@@ -559,23 +565,25 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
     <AgentRunsShell>
       <PulseAssistContextProvider managerTab={managerTab} onAssistNavigate={onAssistNavigate}>
         <div className="relative flex h-full min-h-0 min-w-0 w-full max-w-none flex-1 flex-col overflow-hidden bg-background">
-          <div
-            className={cn(
-              "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
-              embeddedAssistAwareInsetClass,
-            )}
-          >
-            {embeddedManagerStickyHeader}
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{inner}</div>
-            {embeddedFooter ? (
-              <div className="neo-pulse-embedded-footer-chrome relative z-[60] w-full shrink-0">
-                {embeddedFooter}
-              </div>
-            ) : null}
+          {embeddedManagerStickyHeader}
+          <div className="relative flex min-h-0 min-w-0 flex-1 flex-row overflow-hidden">
+            <div
+              className={cn(
+                "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+                embeddedAssistAwareInsetClass,
+              )}
+            >
+              {inner}
+            </div>
+            <div className="neo-pulse-docked-rail-slot pointer-events-none absolute inset-y-0 right-0 z-30 w-[var(--neo-pulse-shortcut-rail-width)]">
+              <PulseAssistRoot layout="docked" />
+            </div>
           </div>
-          <div className="neo-pulse-docked-rail-slot pointer-events-none absolute inset-y-0 right-0 z-30 w-[var(--neo-pulse-shortcut-rail-width)]">
-            <PulseAssistRoot layout="docked" />
-          </div>
+          {embeddedFooter ? (
+            <div className="neo-pulse-embedded-footer-chrome relative z-[60] w-full shrink-0">
+              {embeddedFooter}
+            </div>
+          ) : null}
         </div>
       </PulseAssistContextProvider>
     </AgentRunsShell>

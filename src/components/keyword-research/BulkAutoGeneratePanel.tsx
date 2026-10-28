@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from 'react';
 import type { CSVRow, WordPressPostDestination } from '@/lib/bulk-auto-generate';
+import { parseCsvStatic } from '@/lib/bulk-auto-generate';
 import {
   BLOG_IMPORT_POST_DESTINATION_CHOICES,
   BULK_POST_DESTINATION_CHOICES,
@@ -27,6 +28,8 @@ import { useBulkProcessing } from './bulk/useBulkProcessing';
 import { useBulkAutoGenerate } from '@/hooks/use-bulk-auto-generate';
 import { usePromptBulkGenerate } from '@/hooks/use-prompt-bulk-generate';
 import { usePromptBulkSiteContext } from '@/hooks/use-prompt-bulk-site-context';
+import { useActiveWordPressSite } from '@/contexts/active-wordpress-site-context';
+import { resolveActiveIntegrationSite } from '@/lib/integrations/resolve-active-integration-site';
 import { getStoredSites, type WordPressSite } from '@/components/IntegrationsTab';
 import type { ConnectedSiteSummary } from '@/components/integrations/types';
 import { CSVUploadSection } from './bulk/CSVUploadSection';
@@ -112,8 +115,10 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
   bulkGeneratorWorkspace = false,
   onBulkGeneratorWorkspaceBindings,
 }) => {
+  const { activeWordPressSiteId } = useActiveWordPressSite();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvParsing, setCsvParsing] = useState(false);
   const [inputMode, setInputMode] = useState<"csv" | "prompt">(() =>
     sapMode ? "csv" : forcedInputMode === "prompt" ? "prompt" : "csv",
   );
@@ -163,29 +168,21 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
     if (sapMode) setFeaturedImageType("google-maps");
   }, [sapMode]);
 
-  // Track the currently ENABLED site (the active/current site)
-  // When a site is enabled, all others are disabled - so there's only one enabled site at a time
+  // Track the active site matching the header picker (activeWordPressSiteId),
+  // falling back to enabled site with successful connection status.
   useEffect(() => {
-    const updateToEnabledSite = () => {
+    const updateToActiveSite = () => {
       const sites = getStoredSites();
+      const resolved = resolveActiveIntegrationSite(sites, activeWordPressSiteId);
       
-      // Priority 1: Find enabled site with successful connection status
-      let enabledSite = sites.find(s => s.connectionStatus === 'success' && s.enabled !== false);
-      
-      // Priority 2: If no enabled site with success, find ANY enabled site (newly connected sites may not be tested yet)
-      if (!enabledSite) {
-        enabledSite = sites.find(s => s.enabled !== false);
-      }
-      
-      if (enabledSite) {
+      if (resolved) {
         const newConnectedSite: ConnectedSiteSummary = {
-          name: enabledSite.name,
-          siteUrl: enabledSite.siteUrl,
-          productionSiteUrl: enabledSite.productionSiteUrl,
+          name: resolved.name,
+          siteUrl: resolved.siteUrl,
+          productionSiteUrl: resolved.productionSiteUrl,
         };
         
         setConnectedSite(prev => {
-          // Only update if the site has actually changed
           if (
             !prev ||
             prev.name !== newConnectedSite.name ||
@@ -196,47 +193,18 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
           }
           return prev;
         });
-        setWordPressSite(enabledSite);
-      } else if (sites.length > 0) {
-        // Fallback: if no enabled site, use most recent successfully connected site
-        const connectedSites = sites.filter(s => s.connectionStatus === 'success');
-        const fallbackSite = connectedSites.length > 0 
-          ? connectedSites.sort((a, b) => (b.connectedAt || 0) - (a.connectedAt || 0))[0]
-          : sites.sort((a, b) => (b.connectedAt || 0) - (a.connectedAt || 0))[0];
-        
-        if (fallbackSite) {
-          const newConnectedSite: ConnectedSiteSummary = {
-            name: fallbackSite.name,
-            siteUrl: fallbackSite.siteUrl,
-            productionSiteUrl: fallbackSite.productionSiteUrl,
-          };
-          setConnectedSite(prev => {
-            if (
-              !prev ||
-              prev.name !== newConnectedSite.name ||
-              prev.siteUrl !== newConnectedSite.siteUrl ||
-              prev.productionSiteUrl !== newConnectedSite.productionSiteUrl
-            ) {
-              return newConnectedSite;
-            }
-            return prev;
-          });
-          setWordPressSite(fallbackSite);
-        }
+        setWordPressSite(resolved);
       } else {
-        // No sites available
         setConnectedSite(null);
         setWordPressSite(null);
       }
     };
 
-    // Initial load
-    updateToEnabledSite();
+    updateToActiveSite();
 
-    // Listen for storage changes (when sites are enabled/disabled)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'wordpress_sites' || e.key?.includes('wordpress') || e.key?.includes('site')) {
-        updateToEnabledSite();
+        updateToActiveSite();
       }
     };
 
@@ -245,7 +213,7 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []); // Empty deps - effect manages its own state updates
+  }, [activeWordPressSiteId]);
 
   /** SAP generator: restore schedule from localStorage or apply defaults (custom times/month, start 1st of this month, 09:00). */
   useEffect(() => {
@@ -344,15 +312,14 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
 
   const effectiveFlowPurpose = inputMode === 'prompt' ? (generalIntent?.trim() || flowPurpose || '') : (flowPurpose || '');
 
-  const promptSiteContext = usePromptBulkSiteContext(
-    inputMode === 'prompt' ? wordPressSite : null,
-  );
+  const promptSiteContext = usePromptBulkSiteContext(wordPressSite);
 
   const {
     userInput,
     setUserInput,
     isGeneratingChecklist,
     hasGeneratedChecklist,
+    setHasGeneratedChecklist,
     generatedRows,
     setGeneratedRows,
     wordPressPostsMetadata,
@@ -439,6 +406,7 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
     setTotalRows,
     fileManager,
     loadCSV,
+    isCsvEnriching,
     processAllRows,
     cancelProcessing,
     downloadFile,
@@ -643,29 +611,56 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
 
   const sitemapSeedLoadedRef = useRef(false);
   const pendingEntityAutoRunRef = useRef(false);
+
+  const ingestSeedCsvString = useCallback(
+    (csv: string, autoRun = false) => {
+      const file = new File([csv], "local-grid-bulk-template.csv", { type: "text/csv" });
+      void loadCSV(file).then((parsed) => {
+        const normalized = applyCsvSitemapInference(parsed);
+        if (normalized.length > 0) {
+          setCsvFile(file);
+          if (inputMode === "prompt") {
+            setGeneratedRows(normalized);
+            setHasGeneratedChecklist(true);
+            setNumberOfBlogs(normalized.length);
+            setSelectedBlogIndices(allRowIndicesSet(normalized.length));
+            setTotalRows(normalized.length);
+          } else {
+            setRows(normalized);
+            setTotalRows(normalized.length);
+          }
+          if (autoRun) {
+            pendingEntityAutoRunRef.current = true;
+          } else {
+            notify.success(notifyLoadedXRowSFromSitemapMergePlan(normalized.length));
+          }
+        }
+      });
+    },
+    [loadCSV, applyCsvSitemapInference, inputMode, setGeneratedRows, setHasGeneratedChecklist, setRows, setTotalRows],
+  );
+
   useEffect(() => {
-    if (sapMode || forcedInputMode === "prompt" || sitemapSeedLoadedRef.current) return;
+    if (sapMode) return;
+    const onGridCsv = (event: Event) => {
+      const custom = event as CustomEvent<{ csv?: string }>;
+      const raw = custom.detail?.csv?.trim() || consumeSitemapOptimizerBulkCsvSeed();
+      if (!raw) return;
+      sitemapSeedLoadedRef.current = true;
+      ingestSeedCsvString(raw, false);
+    };
+    window.addEventListener("neo-pulse:open-bulk-csv-from-grid", onGridCsv);
+    return () => window.removeEventListener("neo-pulse:open-bulk-csv-from-grid", onGridCsv);
+  }, [sapMode, ingestSeedCsvString]);
+
+  useEffect(() => {
+    if (sapMode || sitemapSeedLoadedRef.current) return;
     const csv = consumeSitemapOptimizerBulkCsvSeed();
     if (!csv?.trim()) return;
     sitemapSeedLoadedRef.current = true;
     const autoRun = consumeEntityBulkCsvAutoRun();
-    const file = new File([csv], "sitemap-merge-content-upload.csv", { type: "text/csv" });
-    void loadCSV(file).then((parsed) => {
-      const normalized = applyCsvSitemapInference(parsed);
-      if (normalized.length > 0) {
-        setCsvFile(file);
-        if (normalized !== parsed) {
-          setRows(normalized);
-          setTotalRows(normalized.length);
-        }
-        if (autoRun) {
-          pendingEntityAutoRunRef.current = true;
-        } else {
-          notify.success(notifyLoadedXRowSFromSitemapMergePlan(normalized.length));
-        }
-      }
-    });
-  }, [sapMode, forcedInputMode, loadCSV, applyCsvSitemapInference]);
+    ingestSeedCsvString(csv, autoRun);
+  }, [sapMode, ingestSeedCsvString]);
 
   const { handleStartProcessing } = useBulkProcessing({
     inputMode,
@@ -732,10 +727,11 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
   );
 
   useEffect(() => {
-    if (!pendingEntityAutoRunRef.current || rows.length === 0) return;
+    const activeCount = inputMode === "prompt" ? generatedRows.length : rows.length;
+    if (!pendingEntityAutoRunRef.current || activeCount === 0) return;
     pendingEntityAutoRunRef.current = false;
     void handleStartProcessing();
-  }, [rows, handleStartProcessing]);
+  }, [inputMode, rows.length, generatedRows.length, handleStartProcessing]);
 
   const handleGeneratedRowChange = useCallback(
     (index: number, patch: Partial<CSVRow>) => {
@@ -859,14 +855,52 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
       scheduleOccupancy,
       scheduleOccupancyLoading,
       csvFileName: csvFile?.name ?? null,
+      csvLoading: csvParsing,
+      csvEnrichingTitlesUrls: Boolean(isCsvEnriching),
       onPickCsvFile: async (file: File) => {
         setCsvFile(file);
-        const parsed = await loadCSV(file);
-        const normalized = applyCsvSitemapInference(parsed);
-        if (normalized !== parsed) {
+        setCsvParsing(true);
+        try {
+          const staticRows = await parseCsvStatic(file);
+          if (staticRows.length > 0) {
+            const quick = applyCsvSitemapInference(staticRows);
+            if (inputMode === "prompt") {
+              setGeneratedRows(quick);
+              setHasGeneratedChecklist(true);
+              setNumberOfBlogs(Math.max(quick.length, 1));
+              setSelectedBlogIndices(allRowIndicesSet(quick.length));
+              setTotalRows(quick.length);
+            } else {
+              setRows(quick);
+              setTotalRows(quick.length);
+            }
+          }
+        } finally {
+          setCsvParsing(false);
+        }
+        void loadCSV(file).then((parsed) => {
+          if (parsed.length === 0) return;
+          const normalized = applyCsvSitemapInference(parsed);
+          if (inputMode === "prompt") {
+            setGeneratedRows(normalized);
+            setHasGeneratedChecklist(normalized.length > 0);
+            setNumberOfBlogs(Math.max(normalized.length, 1));
+            setSelectedBlogIndices(allRowIndicesSet(normalized.length));
+            setTotalRows(normalized.length);
+            return;
+          }
           setRows(normalized);
           setTotalRows(normalized.length);
-        }
+        });
+      },
+      onLoadImportRows: (imported: CSVRow[]) => {
+        if (imported.length === 0) return;
+        const normalized = applyCsvSitemapInference(imported);
+        setGeneratedRows(normalized);
+        setHasGeneratedChecklist(true);
+        setNumberOfBlogs(normalized.length);
+        setSelectedBlogIndices(allRowIndicesSet(normalized.length));
+        setTotalRows(normalized.length);
       },
       onClearCsv: () => {
         setCsvFile(null);
@@ -975,6 +1009,8 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
     scheduleOccupancy,
     scheduleOccupancyLoading,
     csvFile,
+    csvParsing,
+    isCsvEnriching,
     loadCSV,
     applyCsvSitemapInference,
     resetPromptGeneration,

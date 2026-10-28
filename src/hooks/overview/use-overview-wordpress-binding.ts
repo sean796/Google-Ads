@@ -37,8 +37,10 @@ import {
   ensureEntitySiteWarmInventory,
   getEntitySiteWarmCacheIfReady,
   getSitePrefetchOverviewRowsForSource,
+  getSitePrefetchOverviewRowsForSourceSync,
   getSitePrefetchUrlsForSource,
   mergeSitePrefetchBulkInventoryRows,
+  resolveEntitySiteWarmBundleSync,
 } from "@/lib/local-analysis/entity-site-warm-cache";
 import { getBulkGenerationWpInventoryIfReady } from "@/lib/bulk/bulk-generation-inventory-cache-store";
 import { bindingsFromInventorySnapshot } from "@/lib/overview/overview-inventory-bindings";
@@ -204,7 +206,7 @@ function seedOverviewInventoryCacheFromPrefetch(
   site: WordPressSite,
   cacheByKey: Map<string, CachedInventory>,
 ): boolean {
-  const bundle = getEntitySiteWarmCacheIfReady(site.id);
+  const bundle = resolveEntitySiteWarmBundleSync(site) ?? getEntitySiteWarmCacheIfReady(site.id);
   const bulkRows = bundle?.bulkInventoryRows ?? getBulkGenerationWpInventoryIfReady(site.id);
   const bucketSources: OverviewSitemapSource[] = ["pages", "posts", "sap"];
   let seeded = false;
@@ -244,7 +246,9 @@ function seedOverviewInventoryCacheFromPrefetch(
   }
 
   for (const bucket of bucketSources) {
-    const rows = getSitePrefetchOverviewRowsForSource(site, bucket);
+    const rows =
+      getSitePrefetchOverviewRowsForSourceSync(site, bucket) ??
+      getSitePrefetchOverviewRowsForSource(site, bucket);
     if (!rows?.length || !inventoryRowsHaveMetadata(rows)) continue;
     const key = inventoryCacheMapKey(site.id, bucket);
     const existing = cacheByKey.get(key);
@@ -278,13 +282,17 @@ function getCachedInventoryForSource(
 ): CachedInventory | null {
   const key = inventoryCacheMapKey(siteId, source);
   const fromKey = cacheByKey.get(key);
-  if (fromKey?.siteId === siteId && fromKey.source === source && fromKey.mergedRows.length > 0) {
+  if (
+    fromKey?.siteId === siteId &&
+    fromKey.source === source &&
+    (fromKey.mergedRows.length > 0 || snapshotHasInventoryEntries(fromKey.snapshot))
+  ) {
     return fromKey;
   }
   if (
     activeRef?.siteId === siteId &&
     activeRef.source === source &&
-    activeRef.mergedRows.length > 0
+    (activeRef.mergedRows.length > 0 || snapshotHasInventoryEntries(activeRef.snapshot))
   ) {
     return activeRef;
   }
@@ -406,11 +414,6 @@ export function useOverviewWordPressBinding(
   useEffect(() => {
     const prev = prevSiteIdRef.current;
     if (prev !== undefined && prev !== activeSiteId) {
-      if (prev) {
-        clearBulkInventorySessionSnapshot(prev);
-        clearOverviewRowsSessionCache(prev);
-      }
-      inventoryCacheByKeyRef.current.clear();
       activeInventoryRef.current = null;
       setBindings({});
       setWpTitlesByUrl({});
@@ -622,12 +625,21 @@ export function useOverviewWordPressBinding(
     ): OverviewInventoryUrlMatch | undefined => {
       if (!siteArg) return undefined;
       const cacheSource = sourceOverride ?? activeSitemapSourceRef.current;
-      const cached = getCachedInventoryForSource(
+      let cached = getCachedInventoryForSource(
         siteArg.id,
         cacheSource,
         inventoryCacheByKeyRef.current,
         activeInventoryRef.current,
       );
+      if (!cached) {
+        seedOverviewInventoryCacheFromPrefetch(siteArg, inventoryCacheByKeyRef.current);
+        cached = getCachedInventoryForSource(
+          siteArg.id,
+          cacheSource,
+          inventoryCacheByKeyRef.current,
+          activeInventoryRef.current,
+        );
+      }
       if (!cached) return undefined;
       const hit = lookupInventoryRowWithSource(cached.snapshot, siteArg.siteUrl, url, "other");
       if (hit?.row) {

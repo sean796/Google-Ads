@@ -50,6 +50,8 @@ export interface KeywordAnalysisOptions {
   forceRefresh?: boolean; // If true, bypass cache and fetch fresh data from API
   /** When true, throw on API/AI failures instead of returning partial stub data. */
   strict?: boolean;
+  /** When false, use legacy sequential keyword research path in the hook. Default true. */
+  useParallelPipeline?: boolean;
 }
 
 export interface KeywordAnalysisComplete {

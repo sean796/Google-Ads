@@ -10,7 +10,7 @@ import {
   resolveFaqEntriesForVisibleTable,
 } from "@/lib/content-generation/bulk-acf-seo-bundle";
 import { buildOptimizedMetaFromKeywordResearch } from "@/lib/content-generation/apply-bulk-meta-from-seo-json";
-import { discoverACFFieldMapping, fallbackFieldMapping } from "@/lib/content-generation/acf-field-mapper";
+import { NEO_PULSE_DEFAULT_FIELD_MAPPING } from "@/lib/content-generation/acf-field-mapper";
 import { buildAcfPayload } from "@/lib/content-generation/apply-meta-acf-payload";
 import { sanitizeContentForUpload } from "@/lib/content-generation/content-sanitizer";
 import { prepareHarnessContentForUpload } from "@/lib/content-generation/harness-upload-prep";
@@ -25,9 +25,8 @@ import {
 import { generateSEOSlug } from "@/lib/seo-slug-generator";
 import { extractOriginFromSapTitle } from "@/lib/sap-origin-from-title";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
-import { updateACFFields } from "@/lib/wordpress-acf-origin";
-import { createWordPressPost, updateWordPressPost, updateWordPressPostMeta } from "@/lib/wordpress-api";
-import { getACFFieldsForPost, resolveAcfFieldsForMapping } from "@/lib/wordpress-api/acf-discovery";
+import { createWordPressPost, updateWordPressPost } from "@/lib/wordpress-api";
+import { updateOverviewSeoItem } from "@/lib/wordpress-api/meta";
 
 export type PostCreatorWordPressUploadResult = {
   postId: number;
@@ -245,37 +244,26 @@ export async function uploadPostCreatorRowToWordPress(
     site.siteUrl,
   );
 
-  onProgress?.("Writing ACF and Rank Math meta...");
-  const acfResult = await getACFFieldsForPost(
-    site,
-    postResult.postId,
-    postTypeSubtype,
-    postTypeEndpoint,
-  );
-  const existingAcfFields =
-    acfResult.success && acfResult.fields ? (acfResult.fields as Record<string, unknown>) : {};
-  const fieldsForMapping = await resolveAcfFieldsForMapping(site, existingAcfFields);
-  const fieldMapping = {
-    ...fallbackFieldMapping(fieldsForMapping),
-    ...(await discoverACFFieldMapping(fieldsForMapping, postTypeSubtype, apiKey, site.siteUrl)),
-  };
+  onProgress?.("Writing NEO Pulse custom fields and SEO meta...");
+  const existingAcfFields: Record<string, unknown> = {};
+  const fieldMapping = { ...NEO_PULSE_DEFAULT_FIELD_MAPPING };
 
   const entity =
     row.entity?.trim() && row.entity.trim() !== "N/A" ? row.entity.trim() : undefined;
   const acfWrite: Record<string, string> = {};
-  acfWrite[fieldMapping.dateModifier || "date_modifier"] = new Date().toISOString().split("T")[0]!;
-  acfWrite[fieldMapping.keywordFocus || "keyword_focus"] = primaryKw.slice(0, 500);
-  acfWrite[fieldMapping.seoResearch || "seo_research"] = seoResearchJson;
+  acfWrite[fieldMapping.dateModifier] = new Date().toISOString().split("T")[0]!;
+  acfWrite[fieldMapping.keywordFocus] = primaryKw.slice(0, 500);
+  acfWrite[fieldMapping.seoResearch] = seoResearchJson;
   if (faqBundle?.faqForAcf) {
-    acfWrite[fieldMapping.faq || "faq"] = faqBundle.faqForAcf;
+    acfWrite[fieldMapping.faq] = faqBundle.faqForAcf;
   }
   const originFromTitle = extractOriginFromSapTitle(postTitle);
   if (row.origin?.trim() && row.origin.trim() !== "N/A") {
-    acfWrite[fieldMapping.origin || "origin"] = row.origin.trim();
+    acfWrite[fieldMapping.origin] = row.origin.trim();
   } else if (originFromTitle) {
-    acfWrite[fieldMapping.origin || "origin"] = originFromTitle;
+    acfWrite[fieldMapping.origin] = originFromTitle;
   } else if (entity) {
-    acfWrite[fieldMapping.origin || "origin"] = entity;
+    acfWrite[fieldMapping.origin] = entity;
   }
 
   const mappedMeta = buildAcfPayload(
@@ -288,30 +276,14 @@ export async function uploadPostCreatorRowToWordPress(
   );
   Object.assign(acfWrite, mappedMeta);
 
-  await updateACFFields(
-    site.siteUrl,
-    site.username,
-    site.appPassword,
-    postResult.postId,
-    acfWrite,
-    postTypeSubtype,
+  await updateOverviewSeoItem(site.siteUrl, site.username, site.appPassword, {
+    postId: postResult.postId,
+    postType: postTypeSubtype,
     postTypeEndpoint,
-  );
-
-  await updateWordPressPostMeta(
-    site.siteUrl,
-    site.username,
-    site.appPassword,
-    postResult.postId,
-    postTypeSubtype,
-    postTypeEndpoint,
-    {
-      rank_math_title: optimizedMeta.rank_math_title,
-      rank_math_description: optimizedMeta.rank_math_description,
-      rank_math_focus_keyword: optimizedMeta.rank_math_focus_keyword,
-      rank_math_canonical_url: optimizedMeta.rank_math_canonical_url,
-    },
-  );
+    postTitle: acfWrite.seo_title || postTitle,
+    postExcerpt: acfWrite.meta_description || excerpt,
+    acf: acfWrite,
+  });
 
   if (
     visibleFaqEntries.length &&

@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
+import type { WordPressSite } from "@/components/integrations/types";
 import { resolveEffectiveGridKeyword } from "@/lib/agent-runs/run-local-dominator-export-client-harness";
 import {
+  LOCAL_DOMINATOR_GRID_KEYWORD_PROPERTY,
   resolveLocalDominatorExportKeyword,
   resolveWorkflowLocalDominatorGridKeyword,
 } from "@/lib/local-dominator/local-dominator-export-keyword";
+import { resolvePropertyPrimaryLocalKeyword } from "@/lib/local-grid-studio/resolve-property-primary-local-keyword";
 
 describe("resolveEffectiveGridKeyword", () => {
   it("returns explicit keyword when provided", () => {
@@ -30,12 +33,35 @@ describe("resolveEffectiveGridKeyword", () => {
     expect(resolveEffectiveGridKeyword("auto", csv, "Advance Blinds")).toBe("Advance Blinds");
   });
 
-  it("exports without keyword filter when template keyword leaked for another business", () => {
+  it("uses property keyword mode when template keyword leaked for another business", () => {
     const stored = resolveWorkflowLocalDominatorGridKeyword(
       { keyword: "blinds near me", businessName: "KWB" },
       "blinds near me",
       "KWB",
     );
-    expect(resolveLocalDominatorExportKeyword(stored)).toBe("");
+    expect(stored).toBe(LOCAL_DOMINATOR_GRID_KEYWORD_PROPERTY);
+    expect(resolveLocalDominatorExportKeyword(stored)).toBe(LOCAL_DOMINATOR_GRID_KEYWORD_PROPERTY);
+  });
+});
+
+describe("resolvePropertyPrimaryLocalKeyword", () => {
+  const site = {
+    id: "wp-1",
+    name: "Test Client",
+    siteUrl: "https://example.com",
+    username: "u",
+    appPassword: "p",
+    connectedAt: 1,
+    primaryLocalKeyword: "blinds near me",
+  } satisfies WordPressSite;
+
+  it("returns profile keyword for property mode", () => {
+    expect(resolvePropertyPrimaryLocalKeyword(site, "property")).toBe("blinds near me");
+  });
+
+  it("throws when property mode and profile keyword missing", () => {
+    expect(() =>
+      resolvePropertyPrimaryLocalKeyword({ ...site, primaryLocalKeyword: undefined }, "property"),
+    ).toThrow(/Primary keyword/);
   });
 });

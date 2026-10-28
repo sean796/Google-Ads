@@ -185,7 +185,6 @@ async function fetchSiteInventory(
   appPassword: string,
   options?: {
     includeContent?: boolean;
-    includeRawAcf?: boolean;
     /** When true, append scheduled (future) posts in the same request (posts collection only). */
     includeScheduled?: boolean;
     collection?: SiteInventoryCollection;
@@ -203,7 +202,6 @@ async function fetchSiteInventory(
         username,
         appPassword,
         includeContent: Boolean(options?.includeContent),
-        includeRawAcf: Boolean(options?.includeRawAcf),
         includeScheduled: Boolean(options?.includeScheduled),
         collection,
       }),
@@ -230,7 +228,7 @@ async function fetchSiteInventory(
 }
 
 /**
- * Full published-post inventory (url + ACF, optional body) via paginated wp/v2/posts.
+ * Full published-post inventory via paginated wp/v2/posts.
  */
 export async function getSitePostInventory(
   siteUrl: string,
@@ -238,7 +236,6 @@ export async function getSitePostInventory(
   appPassword: string,
   options?: {
     includeContent?: boolean;
-    includeRawAcf?: boolean;
     includeScheduled?: boolean;
   },
 ): Promise<SitePostInventoryResponse> {
@@ -255,7 +252,7 @@ export async function getSitePageInventory(
   siteUrl: string,
   username: string,
   appPassword: string,
-  options?: { includeContent?: boolean; includeRawAcf?: boolean },
+  options?: { includeContent?: boolean },
 ): Promise<SitePostInventoryResponse> {
   return fetchSiteInventory(siteUrl, username, appPassword, {
     ...options,
@@ -274,7 +271,6 @@ export async function getSiteInventoryBulk(
     includeContent?: boolean;
     /** Fetch post body only to extract first H1 (fields.pageHeading); does not store full content. */
     includePageHeading?: boolean;
-    includeRawAcf?: boolean;
     /** When true, merge scheduled (future) posts for the posts collection (server-side). */
     includeScheduled?: boolean;
     collections?: SiteInventoryCollection[];
@@ -300,7 +296,6 @@ export async function getSiteInventoryBulk(
         appPassword,
         includeContent: Boolean(options?.includeContent),
         includePageHeading: Boolean(options?.includePageHeading),
-        includeRawAcf: Boolean(options?.includeRawAcf),
         includeScheduled: Boolean(options?.includeScheduled),
         inventorySizing: options?.inventorySizing,
         maxRowsPerCollection: options?.maxRowsPerCollection,

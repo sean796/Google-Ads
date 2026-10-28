@@ -80,6 +80,21 @@ describe("gscAllQueryStringsForEntityKeywordFill", () => {
     expect(bases).toContain("how to fix cordless blinds that won't go up");
     expect(bases).toContain("designer roller blinds");
   });
+
+  it("drops fuzzy brand navigational queries before keyword fill", () => {
+    const queries = [
+      { query: "neo digital", clicks: 100, impressions: 1000, position: 1 },
+      { query: "neodigital", clicks: 90, impressions: 900, position: 2 },
+      { query: "local seo services", clicks: 50, impressions: 500, position: 3 },
+      { query: "marketing agency", clicks: 40, impressions: 400, position: 4 },
+    ];
+    const brand = brandExclusionPhrasesFromNames("Neo Digital");
+    const bases = gscAllQueryStringsForEntityKeywordFill(queries, brand, "Neo Digital");
+    expect(bases).not.toContain("neo digital");
+    expect(bases).not.toContain("neodigital");
+    expect(bases).toContain("local seo services");
+    expect(bases).toContain("marketing agency");
+  });
 });
 
 describe("gscSapKeywordBasesForOpenRouter", () => {

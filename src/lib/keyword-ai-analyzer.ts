@@ -1,5 +1,6 @@
 import { streamChatCompletion } from "./api";
 import type { KeywordData, KeywordAIAnalysis, PeopleAlsoAsk } from "./keyword-types";
+import { extractPeopleAlsoAskFromSerp } from "./paa-extractor";
 import { buildKeywordAnalysisPrompt } from "./prompt-builders-keyword";
 import { formatKeyword, formatKeywords } from "./keyword-formatter";
 import { getResearchModel } from "./optimization-settings-storage";
@@ -484,7 +485,7 @@ Return ONLY this JSON structure. NO markdown, NO explanations, NO code blocks.`;
 
     return analysis;
   } catch (error) {
-    console.error("Error in AI keyword analysis:", error);
+    console.warn("[Keyword AI Analyzer] Non-fatal keyword analysis fallback:", error);
     
     // Return empty structure if parsing fails - no manual fallback
     return {
@@ -516,61 +517,36 @@ export async function extractPeopleAlsoAskWithAI(
     topP?: number;
   }
 ): Promise<{ rawResponse: string; questions: PeopleAlsoAsk[] }> {
-  if (!serpData || !options.apiKey || !options.apiKey.trim()) {
+  // If SERP data is absent, errored, or has zero tasks/items, immediately return empty in 0ms
+  if (
+    !serpData ||
+    serpData.serp_error ||
+    !Array.isArray(serpData.tasks) ||
+    serpData.tasks.length === 0
+  ) {
     return { rawResponse: '', questions: [] };
   }
 
-  // PRINT RAW SERP DATA BEFORE AI PROCESSING
-  console.log('='.repeat(80));
-  console.log('[PAA EXTRACTION] RAW SERP DATA (BEFORE AI PROCESSING):');
-  console.log('='.repeat(80));
-  console.log(JSON.stringify(serpData, null, 2));
-  console.log('='.repeat(80));
-  console.log('[PAA EXTRACTION] SERP data size:', JSON.stringify(serpData).length, 'characters');
-  console.log('[PAA EXTRACTION] SERP data keys:', Object.keys(serpData || {}));
-  if (serpData?.tasks && Array.isArray(serpData.tasks)) {
-    console.log('[PAA EXTRACTION] Number of tasks:', serpData.tasks.length);
-    serpData.tasks.forEach((task: any, idx: number) => {
-      console.log(`[PAA EXTRACTION] Task ${idx}:`, {
-        hasResult: !!task.result,
-        resultType: typeof task.result,
-        isArray: Array.isArray(task.result),
-        itemTypes: task.result?.[0]?.item_types || 'N/A',
-      });
-    });
+  // 1. Fast direct JSON extraction (0ms single pass, no LLM required)
+  const direct = extractPeopleAlsoAskFromSerp(serpData);
+  if (direct.items.length > 0) {
+    return { rawResponse: '', questions: direct.items };
   }
 
-  const systemPrompt = `You are an expert at extracting "People Also Ask" questions from SERP JSON data. Your job is to find ALL questions, regardless of how they're structured in the JSON. Be flexible and creative - don't just look for exact type matches. Search recursively through all nested objects and arrays. If questions exist in the data, you WILL find them.
+  // If no items exist in tasks, or no API key, move on immediately without calling LLM
+  const hasItems = serpData.tasks.some((t: any) =>
+    Array.isArray(t?.result) && t.result.some((r: any) => Array.isArray(r?.items) && r.items.length > 0)
+  );
+  if (!hasItems || !options.apiKey?.trim()) {
+    return { rawResponse: '', questions: [] };
+  }
 
-CRITICAL REQUIREMENTS:
-1. Search the ENTIRE JSON recursively - don't just look for specific types
-2. Look for ANY objects that contain question-like text, even if the type field doesn't say "people_also_ask"
-3. Check these locations (but don't limit yourself to these):
-   - tasks[].result[].items[] - any item that has a question, title, or text field
-   - items[].items[] - nested items arrays
-   - items[].people_also_ask_items[] - if this array exists
-   - Any object with fields like: question, title, text, text_pre, text_post
-4. If you see "item_types" that includes "people_also_ask", the questions ARE in the data somewhere - find them!
-5. Be creative - questions might be in unexpected places
-
-For each question you find, extract:
-- question: Look in question, title, text, text_pre, text_post fields
-- answer: Look in answer, description, snippet, text fields  
-- url: Look in url, link fields
-
-Return ONLY a JSON array with ALL questions found. If you find questions, return them. If you truly find zero questions after searching everywhere, return an empty array [].
-
-IMPORTANT: Return ONLY the JSON array, no markdown, no explanations, no code blocks.`;
-
-  const userPrompt = `Extract all "People Also Ask" questions from this SERP JSON data. Search recursively through ALL nested structures.
-
-${JSON.stringify(serpData, null, 2)}
-
-Return format (JSON array only, no explanations):
-[{"question": "question text", "answer": "answer text if available", "url": "url if available"}, ...]`;
+  // 2. Single AI pass only if SERP had items but direct parser found 0 PAA
+  const systemPrompt = `You are an expert at extracting "People Also Ask" questions from SERP JSON data. Return ONLY a JSON array with questions found. If none found, return []. No markdown, no explanations.`;
+  const itemsSample = serpData.tasks[0]?.result?.[0]?.items?.slice(0, 15) ?? serpData;
+  const userPrompt = `Extract People Also Ask questions from this SERP JSON:\n${JSON.stringify(itemsSample, null, 2)}\nReturn format: [{"question": "...", "answer": "...", "url": "..."}]`;
 
   let fullResponse = "";
-
   try {
     await streamChatCompletion({
       apiKey: options.apiKey,
@@ -579,23 +555,14 @@ Return format (JSON array only, no explanations):
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      temperature: Math.min((options.temperature || 1.0) * 1.1, 1.5), // Slightly higher temperature for more creative searching
-      maxTokens: options.maxTokens || 4000,
+      temperature: 0.2,
+      maxTokens: Math.min(options.maxTokens || 1000, 2000),
       topP: options.topP || 0.9,
       onContentChunk: (chunk) => {
         fullResponse += chunk;
       },
     });
 
-    // PRINT RAW AI RESPONSE SEPARATELY
-    console.log('='.repeat(80));
-    console.log('[PAA EXTRACTION] RAW AI RESPONSE (BEFORE PARSING):');
-    console.log('='.repeat(80));
-    console.log(fullResponse);
-    console.log('='.repeat(80));
-    console.log('[PAA EXTRACTION] AI response length:', fullResponse.length, 'characters');
-
-    // Clean the response - remove markdown code blocks if present
     let cleanedResponse = fullResponse.trim();
     if (cleanedResponse.startsWith("```json")) {
       cleanedResponse = cleanedResponse.replace(/^```json\s*/, "").replace(/\s*```$/, "");
@@ -603,57 +570,20 @@ Return format (JSON array only, no explanations):
       cleanedResponse = cleanedResponse.replace(/^```\s*/, "").replace(/\s*```$/, "");
     }
 
-    // Parse JSON response
-    let questions: PeopleAlsoAsk[] = [];
-    try {
-      const parsed = JSON.parse(cleanedResponse);
-      
-      if (Array.isArray(parsed)) {
-        questions = parsed.map((item: any) => ({
-          question: item.question || item.title || item.text || '',
-          answer: item.answer || item.description || item.snippet || undefined,
-          url: item.url || item.link || undefined,
-          domain: item.domain || (item.url ? new URL(item.url).hostname : undefined),
-        })).filter((item: PeopleAlsoAsk) => item.question && item.question.trim().length > 0);
-        
-        console.log('[PAA EXTRACTION] Successfully parsed', questions.length, 'questions from AI response');
-      } else {
-        console.warn('[PAA EXTRACTION] AI response is not an array:', typeof parsed);
-      }
-    } catch (parseError) {
-      console.error('[PAA EXTRACTION] Error parsing AI response:', parseError);
-      console.error('[PAA EXTRACTION] Cleaned response that failed to parse:', cleanedResponse.substring(0, 500));
+    const parsed = JSON.parse(cleanedResponse);
+    if (Array.isArray(parsed)) {
+      const questions = parsed.map((item: any) => ({
+        question: item.question || item.title || item.text || '',
+        answer: item.answer || item.description || item.snippet || undefined,
+        url: item.url || item.link || undefined,
+        domain: item.domain || (item.url ? new URL(item.url).hostname : undefined),
+      })).filter((item: PeopleAlsoAsk) => item.question && item.question.trim().length > 0);
+      return { rawResponse: fullResponse, questions };
     }
-
-    // Fallback to paa-extractor if AI didn't find anything
-    if (questions.length === 0) {
-      console.log('[PAA EXTRACTION] AI found 0 questions, trying fallback extractor...');
-      try {
-        const { extractPeopleAlsoAskFromSerp } = await import('./paa-extractor');
-        const fallbackResult = extractPeopleAlsoAskFromSerp(serpData);
-        if (fallbackResult.items.length > 0) {
-          console.log('[PAA EXTRACTION] Fallback extractor found', fallbackResult.items.length, 'questions');
-          questions = fallbackResult.items;
-        }
-      } catch (fallbackError) {
-        console.error('[PAA EXTRACTION] Fallback extractor also failed:', fallbackError);
-      }
-    }
-
-    return { rawResponse: fullResponse, questions };
-  } catch (error) {
-    console.error("[PAA EXTRACTION] Error extracting People Also Ask with AI:", error);
-    
-    // Try fallback extractor on error
-    try {
-      const { extractPeopleAlsoAskFromSerp } = await import('./paa-extractor');
-      const fallbackResult = extractPeopleAlsoAskFromSerp(serpData);
-      console.log('[PAA EXTRACTION] Using fallback extractor after error, found', fallbackResult.items.length, 'questions');
-      return { rawResponse: '', questions: fallbackResult.items };
-    } catch (fallbackError) {
-      console.error('[PAA EXTRACTION] Fallback extractor failed:', fallbackError);
-      return { rawResponse: '', questions: [] };
-    }
+    return { rawResponse: fullResponse, questions: [] };
+  } catch {
+    // If extraction errors: single pass is done, move on immediately with zero retries/fallbacks
+    return { rawResponse: '', questions: [] };
   }
 }
 

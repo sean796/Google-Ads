@@ -107,8 +107,8 @@ describe("fillSapRowTitlesFromOpenRouter", () => {
     });
 
     expect(openRouterCalls).toBe(1);
-    expect(filled[0]!.title).toBe("Custom Blinds in A, City, CA");
-    expect(filled[1]!.title).toBe("Custom Blinds in B, City, CA");
+    expect(filled[0]!.title).toBe("Custom Blinds in A, City");
+    expect(filled[1]!.title).toBe("Custom Blinds in B, City");
   });
 
   it("retries the batch until all titles are returned", async () => {
@@ -141,7 +141,7 @@ describe("fillSapRowTitlesFromOpenRouter", () => {
 
     expect(openRouterCalls).toBe(2);
     expect(filled.every((r) => r.title?.trim())).toBe(true);
-    expect(filled[0]!.title).toBe("custom blinds Near A, City, CA");
+    expect(filled[0]!.title).toBe("custom blinds Near A, City");
   });
 
   it("calls OpenRouter when forceRewrite is true even if title is prefilled", async () => {

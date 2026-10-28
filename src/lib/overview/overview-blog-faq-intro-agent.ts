@@ -99,7 +99,7 @@ Write the FAQ intro paragraph now.`;
     model: args.model?.trim() || getProductionModel(),
     system: SYSTEM,
     user,
-    maxTokens: 512,
+    maxTokens: 2048,
     temperature: 0.4,
     signal: args.signal,
   });

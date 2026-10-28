@@ -27,6 +27,7 @@ import {
   dataForSeoRequestHeaders,
   withDataForSeoRequestAuth,
 } from "@/lib/dataforseo-request-auth";
+import { analyzeBulkCsvKeyword } from "@/lib/bulk/bulk-csv-keyword-analyze";
 
 function emptyKeywordAiAnalysis(primaryKeyword: string): KeywordAIAnalysis {
   const primary = primaryKeyword.trim();
@@ -103,6 +104,43 @@ export function useKeywordResearch({
       let capturedPaaRawResponse: unknown = null;
 
       try {
+        if (options.useParallelPipeline !== false) {
+          setIsAnalyzingWithAI(true);
+          try {
+            const parallelResult = await analyzeBulkCsvKeyword({
+              primaryKeyword,
+              options,
+              openRouterApiKey,
+              selectedModel,
+              temperature,
+              maxTokens,
+              topP,
+              entity,
+              connectedSite,
+            });
+            capturedPaaRawResponse = parallelResult.paaRawResponse ?? null;
+            setPaaRawResponse(capturedPaaRawResponse);
+            setRawApiData({
+              keywordOverview: null,
+              serpData: capturedPaaRawResponse,
+            });
+            volumeKeywords = parallelResult.keywordsVolumeData ?? [];
+            const volumeMap = new Map<string, KeywordData>();
+            volumeKeywords.forEach((kw) => volumeMap.set(kw.keyword.toLowerCase(), kw));
+            setKeywordsVolumeData(volumeMap);
+            setAiAnalysis(parallelResult.aiAnalysis);
+            setCurrentResult(parallelResult.result);
+            onKeywordsUpdate?.(parallelResult.result);
+            notify.success(NOTIFY_RAW_DATA_RECEIVED_KEYWORD_OVERVIEW_SERP);
+            analysisComplete = parallelResult;
+          } finally {
+            setIsAnalyzingWithAI(false);
+          }
+          return analysisComplete
+            ? { ...analysisComplete, paaRawResponse: capturedPaaRawResponse ?? undefined }
+            : null;
+        }
+
         // Get RAW JSON from backend - EXACTLY as it appears in PowerShell
         const MCP_API_BASE = import.meta.env.VITE_MCP_API_BASE || 
           (import.meta.env.DEV ? 'http://localhost:3001/api/mcp' : '/api/mcp');

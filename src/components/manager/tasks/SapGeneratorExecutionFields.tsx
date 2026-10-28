@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import {
   TASK_FORM_FLAT_CONTROL_CLASS,
@@ -6,15 +6,17 @@ import {
   TaskFormInfield,
   TaskFormPanel,
 } from "@/components/manager/tasks/TaskFormLayout";
+import { EntitySapPageCountFields } from "@/components/manager/tasks/EntitySapPageCountFields";
 import { PulseForgePostSchedulePanel } from "@/components/manager/tasks/planner/PulseForgePostSchedulePanel";
 import { ensureEntityPageCreatorPayload } from "@/lib/entity-page-creator/entity-page-creator-defaults";
-import { entitySapTotalFromParts } from "@/lib/local-analysis/entity-ad-group-budget";
+import { entityInspectorPayloadForClientSite } from "@/lib/editorial/sync-editorial-sap-payload-from-site";
 import type { EntityPageCreatorExecutionPayload, TaskExecutionPayload } from "@/lib/tasks-types";
 
 export type SapGeneratorExecutionFieldsProps = {
   executionPayload?: TaskExecutionPayload | null;
   disabled?: boolean;
   workflowEntityCsvLocked?: boolean;
+  clientSiteId?: string;
   onChange: (payload: TaskExecutionPayload) => void;
 };
 
@@ -22,17 +24,23 @@ export function SapGeneratorExecutionFields({
   executionPayload,
   disabled = false,
   workflowEntityCsvLocked = false,
+  clientSiteId = "",
   onChange,
 }: SapGeneratorExecutionFieldsProps): React.ReactElement {
-  const payload = ensureEntityPageCreatorPayload(executionPayload as EntityPageCreatorExecutionPayload);
-  const total = useMemo(
-    () => entitySapTotalFromParts(payload.entityAdGroupCount ?? 1, payload.entityAdsPerGroup ?? 1),
-    [payload.entityAdGroupCount, payload.entityAdsPerGroup],
+  const payload = ensureEntityPageCreatorPayload(
+    executionPayload as EntityPageCreatorExecutionPayload,
   );
 
   const patch = (partial: Partial<EntityPageCreatorExecutionPayload>) => {
     onChange(ensureEntityPageCreatorPayload({ ...payload, ...partial }));
   };
+
+  useEffect(() => {
+    const next = entityInspectorPayloadForClientSite(clientSiteId, payload);
+    if (!next) return;
+    onChange(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync from workflow client
+  }, [clientSiteId]);
 
   const handleEntityCsvFile = async (file: File | null) => {
     if (!file) {
@@ -76,39 +84,12 @@ export function SapGeneratorExecutionFields({
         )}
       </TaskFormPanel>
 
-      <TaskFormPanel title="SAP pages">
-        <TaskFormFieldGrid>
-          <TaskFormInfield label="Ad groups">
-            <Input
-              type="number"
-              min={1}
-              max={15}
-              value={payload.entityAdGroupCount ?? 3}
-              disabled={disabled}
-              className={TASK_FORM_FLAT_CONTROL_CLASS}
-              onChange={(e) =>
-                patch({ entityAdGroupCount: Math.max(1, Math.min(15, Number(e.target.value) || 1)) })
-              }
-            />
-          </TaskFormInfield>
-          <TaskFormInfield label="Locations per ad group">
-            <Input
-              type="number"
-              min={1}
-              max={15}
-              value={payload.entityAdsPerGroup ?? 5}
-              disabled={disabled}
-              className={TASK_FORM_FLAT_CONTROL_CLASS}
-              onChange={(e) =>
-                patch({ entityAdsPerGroup: Math.max(1, Math.min(15, Number(e.target.value) || 1)) })
-              }
-            />
-          </TaskFormInfield>
-          <TaskFormInfield label="Total pages">
-            <Input value={String(total)} disabled className={TASK_FORM_FLAT_CONTROL_CLASS} readOnly />
-          </TaskFormInfield>
-        </TaskFormFieldGrid>
-      </TaskFormPanel>
+      <EntitySapPageCountFields
+        executionPayload={payload}
+        disabled={disabled}
+        clientSiteId={clientSiteId}
+        onChange={(next) => onChange(next)}
+      />
 
       <PulseForgePostSchedulePanel
         executionKind="sap_generator"

@@ -27,12 +27,14 @@ import { persistGbpLocationIdInput } from "@/lib/gbp-post/normalize-gbp-location
 import {
   getStoredSites,
   mergeServerGbpLocationIdsIntoLocalSites,
+  recordDeletedSite,
   restoreOriginalPropertyNamesOnce,
   restoreSitesFromServerMirrorIfEmpty,
   saveSites,
 } from "@/components/integrations/storage";
 import { type WordPressSite } from "@/components/integrations/types";
 import { wordpressSiteMenuDisplayName } from "@/lib/wordpress-site-display-name";
+import { isEditorialContentPackageTier } from "@/lib/editorial-content-package";
 import { isOptimizationPackageTier } from "@/lib/wordpress-optimization-package";
 import { normalizeProfileTags } from "@/lib/wordpress-property-profile-tags";
 import { scrapeChildSitemap } from "@/lib/wordpress-sitemap-scraper";
@@ -114,6 +116,7 @@ function useWordPressSitesState() {
       semrushPositionTrackingCampaignId: "",
       editorialCountsPeriodStartYmd: "",
       benchmarkCustomTag: "",
+      primaryLocalKeyword: "",
       profileTags: [] as string[],
       slackEnabledForProperty: true,
       slackChannelId: "",
@@ -142,7 +145,15 @@ function useWordPressSitesState() {
         site.optimizationPackage?.trim() && isOptimizationPackageTier(site.optimizationPackage.trim())
           ? site.optimizationPackage.trim()
           : "",
+      editorialContentPackage:
+        site.editorialContentPackage?.trim() &&
+        isEditorialContentPackageTier(site.editorialContentPackage.trim())
+          ? site.editorialContentPackage.trim()
+          : "",
+      editorialPublishTimeLocal: site.editorialPublishTimeLocal?.trim() ?? "",
       benchmarkCustomTag: site.benchmarkCustomTag?.trim() ?? "",
+      primaryLocalKeyword: site.primaryLocalKeyword?.trim() ?? "",
+      clientLogoUrl: site.clientLogoUrl?.trim() ?? "",
       profileTags: site.profileTags ?? [],
       serviceCity: readSiteServiceCity(site),
       serviceState: readSiteServiceState(site),
@@ -156,6 +167,10 @@ function useWordPressSitesState() {
   }, []);
 
   const handleDeleteSite = useCallback((id: string) => {
+    const targetSite = sites.find((s) => s.id === id);
+    if (targetSite) {
+      recordDeletedSite(targetSite);
+    }
     const updated = sites.filter((s) => s.id !== id);
     setSites(updated);
     saveSites(updated);
@@ -166,6 +181,11 @@ function useWordPressSitesState() {
   const handleDeleteSitesBulk = useCallback((ids: string[]) => {
     if (ids.length === 0) return;
     const idSet = new Set(ids);
+    for (const site of sites) {
+      if (idSet.has(site.id)) {
+        recordDeletedSite(site);
+      }
+    }
     const updated = sites.filter((s) => !idSet.has(s.id));
     setSites(updated);
     saveSites(updated);
@@ -550,12 +570,17 @@ function useWordPressSitesState() {
     formSemrushPositionTrackingCampaignId?: string,
     formEditorialCountsPeriodStartYmd?: string,
     formOptimizationPackage?: string,
+    formEditorialContentPackage?: string,
+    formEditorialPublishTimeLocal?: string,
     formBenchmarkCustomTag?: string,
+    formPrimaryLocalKeyword?: string,
+    formClientLogoUrl?: string,
     formProfileTags?: string[],
     formServiceCity?: string,
     formServiceState?: string,
     formServiceCountry?: string,
     formGoogleAdsCustomerId?: string,
+    formClientLogoBoxTheme?: "black" | "white",
   ): WordPressSite | false => {
     if (!formName.trim()) {
       notify.error(NOTIFY_ENTER_A_SITE_NAME);
@@ -570,6 +595,10 @@ function useWordPressSitesState() {
     const rawOptPkg = (formOptimizationPackage ?? "").trim();
     const optimizationPackage: "basic" | "pro" | "plus" | undefined =
       rawOptPkg && isOptimizationPackageTier(rawOptPkg) ? rawOptPkg : undefined;
+    const rawEditorialPkg = (formEditorialContentPackage ?? "").trim();
+    const editorialContentPackage: "standard" | "lite" | undefined =
+      rawEditorialPkg && isEditorialContentPackageTier(rawEditorialPkg) ? rawEditorialPkg : undefined;
+    const editorialPublishTimeLocal = (formEditorialPublishTimeLocal ?? "").trim() || undefined;
     const siteData: WordPressSite = {
       ...base,
       id: editingSite?.id || `wp-${Date.now()}`,
@@ -594,7 +623,27 @@ function useWordPressSitesState() {
       semrushPositionTrackingCampaignId: formSemrushPositionTrackingCampaignId?.trim() || undefined,
       editorialCountsPeriodStartYmd: formEditorialCountsPeriodStartYmd?.trim() || undefined,
       optimizationPackage,
+      editorialContentPackage,
+      editorialPublishTimeLocal,
       benchmarkCustomTag: formBenchmarkCustomTag?.trim() || undefined,
+      primaryLocalKeyword: formPrimaryLocalKeyword?.trim() || undefined,
+      clientLogoUrl: (() => {
+        const url = (formClientLogoUrl ?? editingSite?.clientLogoUrl ?? "").trim();
+        return url || undefined;
+      })(),
+      clientLogoSource: (() => {
+        const url = (formClientLogoUrl ?? editingSite?.clientLogoUrl ?? "").trim();
+        if (!url) return undefined;
+        if (url === editingSite?.clientLogoUrl?.trim()) return editingSite?.clientLogoSource;
+        return "manual" as const;
+      })(),
+      clientLogoFetchedAt: (() => {
+        const url = (formClientLogoUrl ?? editingSite?.clientLogoUrl ?? "").trim();
+        if (!url) return undefined;
+        if (url === editingSite?.clientLogoUrl?.trim()) return editingSite?.clientLogoFetchedAt;
+        return Date.now();
+      })(),
+      clientLogoBoxTheme: formClientLogoBoxTheme ?? editingSite?.clientLogoBoxTheme,
       profileTags: normalizeProfileTags(formProfileTags ?? editingSite?.profileTags),
       postBankEnabled: true,
     };
@@ -629,7 +678,14 @@ function useWordPressSitesState() {
   }, [runAutoSetupForNewSite]);
 
   const handleSaveSitesBulk = useCallback((
-    clients: Array<{ name: string; siteUrl: string; username: string; appPassword: string; googleAdsCustomerId?: string }>
+    clients: Array<{
+      name: string;
+      siteUrl: string;
+      username: string;
+      appPassword: string;
+      googleAdsCustomerId?: string;
+      primaryLocalKeyword?: string;
+    }>
   ) => {
     if (clients.length === 0) return;
     const baseId = Date.now();
@@ -642,6 +698,7 @@ function useWordPressSitesState() {
         username: c.username.trim(),
         appPassword: c.appPassword.trim(),
         googleAdsCustomerId: ads || undefined,
+        primaryLocalKeyword: (c.primaryLocalKeyword ?? "").trim() || undefined,
         connectedAt: Date.now(),
         enabled: true,
         postBankEnabled: true,

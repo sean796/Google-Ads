@@ -248,9 +248,9 @@ export const OptimizationSettingsAccordion: React.FC<OptimizationSettingsAccordi
                     <Label
                       htmlFor="use-acf-keyword"
                       className="text-sm font-medium cursor-pointer"
-                      title="Use the ACF keyword_focus field as the primary focus keyword. Locks the focus keyword, but still fetches GSC + PAA (manual override still wins)."
+                      title="Use the NEO Fields keyword_focus field as the primary focus keyword. Locks the focus keyword, but still fetches GSC + PAA (manual override still wins)."
                     >
-                      ACF Keyword
+                      NEO Pulse Keyword
                     </Label>
                   </div>
                 )}

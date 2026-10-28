@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { buildBulkGeneratorOverviewRows } from "@/lib/bulk/bulk-generator-overview-row-bridge";
+import {
+  buildBulkGeneratorOverviewRows,
+  bulkCsvRowPatchForSitemapSource,
+} from "@/lib/bulk/bulk-generator-overview-row-bridge";
 import type { BulkHarnessSectionUi } from "@/hooks/use-bulk-auto-generate";
 
 describe("buildBulkGeneratorOverviewRows", () => {
@@ -155,5 +158,29 @@ describe("buildBulkGeneratorOverviewRows", () => {
     expect(rows[0]?.postContent).toContain("Hello world");
     expect(rows[0]?.title).toBe("Test Title");
     expect(rows[0]?.focusKeyword).toBe("test kw");
+  });
+
+  it("bulkCsvRowPatchForSitemapSource rewrites blog destination to entity SAP path", () => {
+    const patch = bulkCsvRowPatchForSitemapSource(
+      {
+        keyword: "custom blinds",
+        title: "Custom Blinds",
+        destination_url: "https://blindmagic.com/blog/custom-blinds-beltline-calgary/",
+        entity: "Beltline, Calgary, AB",
+        target_slug: "custom-blinds-beltline-calgary",
+      },
+      "https://blindmagic.com",
+      "sap",
+      {
+        site: {
+          siteUrl: "https://blindmagic.com",
+          entitySitemapUrl: "https://blindmagic.com/service-area-sitemap.xml",
+        },
+      },
+    );
+    expect(patch.sitemap_type).toBe("entity");
+    expect(patch.destination_url).toBe(
+      "https://blindmagic.com/service-area/custom-blinds-beltline-calgary/",
+    );
   });
 });

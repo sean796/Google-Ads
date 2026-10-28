@@ -121,31 +121,33 @@ const FORBIDDEN_SENTENCE_SHAPES = `- Never write importance-claim openers like "
 /** Max uses of understand-forms across one full article (title, body, FAQ, meta). Prefer 1. */
 export const UNDERSTAND_FORMS_ARTICLE_MAX = 2;
 
-export const UNDERSTAND_FORMS_USAGE_RULE = `- **HEADINGS (H2/H3/H4) — ZERO TOLERANCE**: Never use understand, understanding, understands, understood, navigating, or navigate in any heading or agent title. Use active, direct titles (e.g. "5 New PST Categories", "2026 BC PST Expansion Rules", "How Businesses Comply").
+export const UNDERSTAND_FORMS_USAGE_RULE = `- **HEADINGS (H2/H3/H4): ZERO TOLERANCE**: Never use understand, understanding, understands, understood, navigating, or navigate in any heading or agent title. Use active, direct titles (e.g. "5 New PST Categories", "2026 BC PST Expansion Rules", "How Businesses Comply").
 - **Body copy**: understand-forms at most **once** per full article when possible; **hard maximum 2** total. Never repeat in every section.
 - **Active voice (mandatory)**: Write direct statements ("Businesses must register by…") not passive padding ("Understanding X is important", "Navigating compliance requires…").`;
 
 export const ACTIVE_VOICE_HEADING_RULE = `[HEADING STYLE]: Active, direct H2/H3 titles only. FORBIDDEN in headings: Understanding, Understand, Navigating, Navigate, Overview (except the fixed Overview block). Good: "5 New PST Categories", "2026 BC PST Rules for Businesses", "How to Register for PST". Bad: "Understanding the 5 New PST Categories", "Navigating the 2026 BC PST Expansion".`;
 
 /** Full policy block (system prompts + saved artifact headers). */
-export const GLOBAL_FORBIDDEN_WORDS_PROMPT_BLOCK = `WORD BLACKLIST (mandatory — all clients, all sitemap/content output):
+export const GLOBAL_FORBIDDEN_WORDS_PROMPT_BLOCK = `WORD BLACKLIST (mandatory; all clients, all sitemap/content output):
 - Never use these words: ${GLOBAL_FORBIDDEN_WORDS.join(", ")}.
 - Never use these phrases: ${GLOBAL_FORBIDDEN_PHRASES.join("; ")}.
 - Punctuation: never use em dash (U+2014) or en dash (U+2013). Use a comma, period, or hyphen-minus for short joins. Never use HTML &mdash; or &ndash; entities in output.
+- Trademarks & Copyrights (mandatory): always respect and include official registered trademark (®), trademark (™), or copyright (©) symbols on proprietary manufacturer product lines, automation systems, and brand names where applicable (infer from SERP research brief, page context, and official manufacturer naming, including inside link anchor text and prose).
+- Customer-facing language in tables and prose (mandatory): never use internal estimator, invoice, or quote-sheet jargon such as "opening" / "openings" (e.g. "(Single Opening)", "(5 Openings)"), internal fabric/swatch SKU codes, or work-order shorthand in tables or prose. Always use plain customer-facing terms (e.g. "single window", "5 windows", or describe the fabric/opacity in plain English).
 ${FORBIDDEN_SENTENCE_SHAPES}
 ${UNDERSTAND_FORMS_USAGE_RULE}
 - ${ACTIVE_VOICE_HEADING_RULE.replace(/\[HEADING STYLE\]: /, "")}
 - Applies to titles, headings, body, meta, FAQ, excerpts, and rationale. Use plain, direct language.`;
 
-export const FORBIDDEN_WORDS_MANDATORY_TAG = "[FORBIDDEN_WORDS — MANDATORY GLOBAL]";
+export const FORBIDDEN_WORDS_MANDATORY_TAG = "[FORBIDDEN_WORDS - MANDATORY GLOBAL]";
 
-export const FORBIDDEN_WORDS_USER_PROMPT_REMINDER = `[WORD BLACKLIST — NON-NEGOTIABLE]: Obey the full WORD BLACKLIST in the system prompt. Zero banned words in this section (headings, body, lists, link text). Never use crucial, vital, navigate, navigating, understand, understanding, or any word or phrase listed in the system blacklist.`;
+export const FORBIDDEN_WORDS_USER_PROMPT_REMINDER = `[WORD BLACKLIST - NON-NEGOTIABLE]: Obey the full WORD BLACKLIST in the system prompt. Zero banned words in this section (headings, body, lists, link text). Never use crucial, vital, navigate, navigating, understand, understanding, or any word or phrase listed in the system blacklist.`;
 
 export const FORBIDDEN_WORDS_CHECKLIST_SUFFIX = `${FORBIDDEN_WORDS_MANDATORY_TAG}: ${GLOBAL_FORBIDDEN_WORDS_PROMPT_BLOCK}`;
 
 export const FORBIDDEN_WORDS_BLUEPRINT_FEATURE = FORBIDDEN_WORDS_CHECKLIST_SUFFIX;
 
-export const ARTICLE_WORD_FREQUENCY_CHECKLIST_ITEM = `[WORD_FREQUENCY]: Full article — understand-forms max ${UNDERSTAND_FORMS_ARTICLE_MAX} in body only (zero in headings). ${ACTIVE_VOICE_HEADING_RULE}`;
+export const ARTICLE_WORD_FREQUENCY_CHECKLIST_ITEM = `[WORD_FREQUENCY]: Full article; understand-forms max ${UNDERSTAND_FORMS_ARTICLE_MAX} in body only (zero in headings). ${ACTIVE_VOICE_HEADING_RULE}`;
 
 const CHECKLIST_FILE_HEADER = `${FORBIDDEN_WORDS_MANDATORY_TAG}\n${GLOBAL_FORBIDDEN_WORDS_PROMPT_BLOCK}\n\n---\n\n`;
 
@@ -155,7 +157,7 @@ const WORD_FREQUENCY_TAG = "[WORD_FREQUENCY]";
 
 const SYSTEM_PROMPT_BLACKLIST_PREFIX = `${FORBIDDEN_WORDS_MANDATORY_TAG}\n${GLOBAL_FORBIDDEN_WORDS_PROMPT_BLOCK}\n\n`;
 
-const BLACKLIST_RAG_OPEN = "=== WORD BLACKLIST (READ ONLY — master rule; read fully before any output) ===";
+const BLACKLIST_RAG_OPEN = "=== WORD BLACKLIST (READ ONLY: master rule; read fully before any output) ===";
 const BLACKLIST_RAG_CLOSE = "=== END WORD BLACKLIST ===";
 
 /** Full policy text for the Content Optimizer Generated files drawer and downloads. */
@@ -283,7 +285,7 @@ function checklistItemHasFaqStyleHeading(item: string): boolean {
   return false;
 }
 
-/** Clean checklist for LLM pipeline (blueprint gen). Sanitize only — no blacklist text. */
+/** Clean checklist for LLM pipeline (blueprint gen). Sanitize only; no blacklist text. */
 export function prepareChecklistForPipeline(
   checklist: string[],
   options?: { allowFaqItems?: boolean; sapEntity?: string },
@@ -447,7 +449,8 @@ export function scrubOverviewContentOutput(html: string): string {
 /** Deterministic scrub of banned words/phrases before WordPress upload. */
 export function scrubForbiddenWordsFromHtml(html: string): string {
   if (!html.trim()) return html;
-  let out = html.replace(HEADING_TAG_RE, (_full, tag: string, attrs: string, inner: string) => {
+  let out = removeEmDashes(html);
+  out = out.replace(HEADING_TAG_RE, (_full, tag: string, attrs: string, inner: string) => {
     const plain = inner.replace(/<[^>]+>/g, "").trim();
     let fixed = sanitizeForbiddenHeadingTitle(plain);
     fixed = stripForbiddenWordsFromText(fixed);
@@ -553,7 +556,7 @@ export function sanitizeBlueprintAgentsForPipeline<T extends BlueprintAgentLike>
     });
 }
 
-/** @deprecated Use sanitizeBlueprintAgentsForPipeline — kept for existing imports. */
+/** @deprecated Use sanitizeBlueprintAgentsForPipeline; kept for existing imports. */
 export function enforceForbiddenWordsOnBlueprintAgents<T extends BlueprintAgentLike>(agents: T[]): T[] {
   return sanitizeBlueprintAgentsForPipeline(agents);
 }

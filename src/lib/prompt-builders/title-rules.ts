@@ -1,7 +1,7 @@
 /** Well-known acronyms in titles. */
 export const TITLE_WELL_KNOWN_ACRONYMS_RULE = `**Well-known acronyms (mandatory)**:
 - Spell recognized initialisms in **ALL CAPS**, even when every other title word uses Title Case.
-- Examples: CRA, RRSP, TFSA, RESP, CPP, OAS, RRIF, HST, GST, IRS, SEO, KWB.
+- Examples: CRA, RRSP, TFSA, RESP, CPP, OAS, RRIF, HST, GST, IRS, SEO.
 - Forbidden: Cra, Rrsp, rrsp, or other mixed/lowercase forms when the term is a standard acronym in the article's domain.`;
 
 export const TITLE_CASE_RULE = `**Title Case (mandatory - blog headline style)**:
@@ -14,12 +14,12 @@ export const TITLE_CASE_RULE = `**Title Case (mandatory - blog headline style)**
 - Forbidden: "Need a Holding Company? …", "Canada arctic investment: …", "when CRA tax instalments are required", or any headline that leaves **any** word starting with a lowercase letter (except mixed-case brand names like QuickBooks when already correct).`;
 
 /** One formatting contract for SAP, blog, titles, meta, Answer, body, FAQ, and keyword mentions. */
-export const UNIFIED_COPY_FORMATTING_RULE = `**UNIFIED COPY FORMATTING (SAP + blog — mandatory)**:
-- **Title Case everywhere**: Capitalize the first letter of **every** word in post titles, meta (when keyword appears), Answer, Overview, all body H2/H3, FAQ, table headers, and **every exact WRITING KEYWORD mention** in generated copy. Includes articles, conjunctions, and short prepositions (A, An, The, And, Or, But, For, In, On, At, To, Of, With, Near, Vs). No "sentence casing OK" exceptions for the keyword.
-- **Link anchor text (exception)**: [[LINK:...|anchor]], same-site <a> anchor text, and Overview # scroll link phrases use **sentence case** (lowercase generic words; capitalize only brand names and proper nouns such as Hunter Douglas and PowerView). Title Case does **not** apply to link anchor phrases.
-- **WRITING KEYWORD**: When an exact phrase is required, paste the WRITING KEYWORD string from the KEYWORD PUNCTUATION block exactly (canonical punctuation + Title Case). Never paste the raw lowercase ACF slug. Never stack keyword+place slug in headings.
-- **Keyword placement**: WRITING KEYWORD may appear in post/SEO title (once, woven), Answer body, section **body** copy ([EXACT PRIMARY PER H2]), meta (once), and FAQ answers. **Forbidden** in any body H2 or H3 title text. **Forbidden**: repeating the keyword slug in every heading, anchor, or sentence.
-- **Body H2/H3**: 3–10 words, full Title Case, **zero colons** (no \`Topic: subtitle\`). Use the exact blueprint <h2> title in harness output — do not paraphrase.
+export const UNIFIED_COPY_FORMATTING_RULE = `**UNIFIED COPY FORMATTING (SAP + blog - mandatory)**:
+- **Title Case in headings and titles**: Capitalize the first letter of **every** word in post titles, Answer heading, Overview heading, all body H2/H3, FAQ headings, and table headers. Includes articles, conjunctions, and short prepositions (A, An, The, And, Or, But, For, In, On, At, To, Of, With, Near, Vs).
+- **Meta descriptions and body prose (natural grammar + sentence case)**: In meta descriptions and body prose, **grammar and natural flow come first**. Use normal sentence case (capitalize the first word of a sentence and proper nouns/trademarks only; never Title Case generic keyword words mid-sentence, and never dump a raw keyword with a colon at the start of a meta description). Weave keyword terms naturally using prepositions and articles.
+- **Link anchor text (exception)**: [[LINK:...|anchor]], same-site <a> anchor text, and Overview # scroll link phrases use **sentence case** (lowercase generic words; capitalize only brand names and proper nouns such as Hunter Douglas and PowerView®). Title Case does **not** apply to link anchor phrases.
+- **WRITING KEYWORD**: Never paste the raw lowercase ACF slug as an ungrammatical block. Never stack keyword+place slug in headings.
+- **Body H2/H3**: 3-10 words, full Title Case, **zero colons** (no \`Topic: subtitle\`). Use the exact blueprint <h2> title in harness output - do not paraphrase.
 - **No colons** in post titles or body headings. One flowing phrase only.`;
 
 /** Body harness H2/H3 in section writer output (not post title). */
@@ -50,6 +50,7 @@ export const TITLE_ANTI_CLICKBAIT_RULE = `**SEO editorial standard (mandatory)**
 /** Editorial judgment for accurate, neutral, non-clickbait meta descriptions. */
 export const META_DESCRIPTION_ANTI_CLICKBAIT_RULE = `**SEO editorial standard (mandatory)**:
 - Act as a senior SEO content specialist. Use editorial judgment to summarize the page accurately in **neutral**, factual language and communicate its concrete value to the searcher.
+- **Grammar and natural flow come first**: Write complete, fluent sentences in standard sentence case. Never front-load or shove a raw keyword phrase at the start with a colon, dash, or comma (e.g. never write "keyword phrase: How X works..."). Reorder keyword tokens or add prepositions/articles as needed so the sentence reads naturally.
 - Prefer plain, restrained wording. Reject clickbait, sensationalism, manufactured urgency, exaggerated importance, empty promotional claims, and sales-driven calls to action.
 - Avoid promotional hype verbs and marketing stock language such as boost, maximize, unlock, and similar. Prefer calm, descriptive phrasing over salesy intensity.
 - Keep every claim proportionate to what the page actually supports.`;

@@ -28,7 +28,12 @@ interface SiteDialogProps {
   formSemrushPositionTrackingCampaignId: string;
   formEditorialCountsPeriodStartYmd: string;
   formOptimizationPackage: string;
+  formEditorialContentPackage: string;
+  formEditorialPublishTimeLocal: string;
   formBenchmarkCustomTag: string;
+  formPrimaryLocalKeyword: string;
+  formClientLogoUrl: string;
+  formClientLogoBoxTheme?: "black" | "white";
   formProfileTags: string[];
   formServiceCity: string;
   formServiceState: string;
@@ -46,7 +51,12 @@ interface SiteDialogProps {
   onFormSemrushPositionTrackingCampaignIdChange: (value: string) => void;
   onFormEditorialCountsPeriodStartYmdChange: (value: string) => void;
   onFormOptimizationPackageChange: (value: string) => void;
+  onFormEditorialContentPackageChange: (value: string) => void;
+  onFormEditorialPublishTimeLocalChange: (value: string) => void;
   onFormBenchmarkCustomTagChange: (value: string) => void;
+  onFormPrimaryLocalKeywordChange: (value: string) => void;
+  onFormClientLogoUrlChange: (value: string) => void;
+  onFormClientLogoBoxThemeChange?: (theme: "black" | "white") => void;
   onFormProfileTagsChange: (tags: string[]) => void;
   onFormServiceCityChange: (value: string) => void;
   onFormServiceStateChange: (value: string) => void;
@@ -72,7 +82,13 @@ export const SiteDialog: React.FC<SiteDialogProps> = ({
   formSemrushPositionTrackingCampaignId,
   formEditorialCountsPeriodStartYmd,
   formOptimizationPackage,
+  formEditorialContentPackage,
+  formEditorialPublishTimeLocal,
   formBenchmarkCustomTag,
+  formPrimaryLocalKeyword,
+  formClientLogoUrl,
+  formClientLogoBoxTheme = "black",
+  onFormClientLogoBoxThemeChange,
   formProfileTags,
   formServiceCity,
   formServiceState,
@@ -90,7 +106,11 @@ export const SiteDialog: React.FC<SiteDialogProps> = ({
   onFormSemrushPositionTrackingCampaignIdChange,
   onFormEditorialCountsPeriodStartYmdChange,
   onFormOptimizationPackageChange,
+  onFormEditorialContentPackageChange,
+  onFormEditorialPublishTimeLocalChange,
   onFormBenchmarkCustomTagChange,
+  onFormPrimaryLocalKeywordChange,
+  onFormClientLogoUrlChange,
   onFormProfileTagsChange,
   onFormServiceCityChange,
   onFormServiceStateChange,
@@ -124,7 +144,13 @@ export const SiteDialog: React.FC<SiteDialogProps> = ({
           formSemrushPositionTrackingCampaignId={formSemrushPositionTrackingCampaignId}
           formEditorialCountsPeriodStartYmd={formEditorialCountsPeriodStartYmd}
           formOptimizationPackage={formOptimizationPackage}
+          formEditorialContentPackage={formEditorialContentPackage}
+          formEditorialPublishTimeLocal={formEditorialPublishTimeLocal}
           formBenchmarkCustomTag={formBenchmarkCustomTag}
+          formPrimaryLocalKeyword={formPrimaryLocalKeyword}
+          formClientLogoUrl={formClientLogoUrl}
+          formClientLogoBoxTheme={formClientLogoBoxTheme}
+          onFormClientLogoBoxThemeChange={onFormClientLogoBoxThemeChange}
           formProfileTags={formProfileTags}
           formServiceCity={formServiceCity}
           formServiceState={formServiceState}
@@ -142,7 +168,11 @@ export const SiteDialog: React.FC<SiteDialogProps> = ({
           onFormSemrushPositionTrackingCampaignIdChange={onFormSemrushPositionTrackingCampaignIdChange}
           onFormEditorialCountsPeriodStartYmdChange={onFormEditorialCountsPeriodStartYmdChange}
           onFormOptimizationPackageChange={onFormOptimizationPackageChange}
+          onFormEditorialContentPackageChange={onFormEditorialContentPackageChange}
+          onFormEditorialPublishTimeLocalChange={onFormEditorialPublishTimeLocalChange}
           onFormBenchmarkCustomTagChange={onFormBenchmarkCustomTagChange}
+          onFormPrimaryLocalKeywordChange={onFormPrimaryLocalKeywordChange}
+          onFormClientLogoUrlChange={onFormClientLogoUrlChange}
           onFormProfileTagsChange={onFormProfileTagsChange}
           onFormServiceCityChange={onFormServiceCityChange}
           onFormServiceStateChange={onFormServiceStateChange}

@@ -11,7 +11,13 @@ import {
   writeStoredManagerSettingsCluster,
   type ManagerSettingsClusterId,
 } from "@/components/manager/manager-settings-cluster";
-import { MANAGER_TOP_BAR_CLASS } from "@/components/manager/manager-top-bar-nav-styles";
+import {
+  MANAGER_SITE_CONSOLE_DOCK_CLASS,
+  MANAGER_TOP_BAR_CLASS,
+  MANAGER_TOP_BAR_EDGE_INSET_CLASS,
+  MANAGER_TOP_BAR_MENU_RAIL_RESERVE_CLASS,
+  MANAGER_TOP_BAR_ROW_CLASS,
+} from "@/components/manager/manager-top-bar-nav-styles";
 import { cn } from "@/lib/utils";
 
 const MANAGER_TAB_STORAGE_KEY = "neo-pulse-manager-tab";
@@ -56,34 +62,34 @@ export function ManagerEmbeddedPageChrome({ children }: { children: ReactNode })
           <div
             data-neo-pulse-manager-sticky-nav
             className={cn(
-              "sticky top-0 z-50 flex w-full shrink-0 flex-col pt-2.5 pb-2.5 text-foreground shadow-none md:pt-3 md:pb-3",
+              "sticky top-0 z-50",
+              MANAGER_TOP_BAR_ROW_CLASS,
               MANAGER_TOP_BAR_CLASS,
+              "text-foreground shadow-none",
             )}
           >
-            <div className="flex w-full min-w-0 flex-nowrap items-center gap-2.5 py-1.5 pl-3 md:pl-5">
-              <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
-                <div className="flex shrink-0 items-center">
-                  <NeoPulseAppBrand variant="default" showVersion onClick={onDashboardBrandClick} />
-                </div>
-                <div className="flex min-w-0 items-center overflow-x-auto">
-                  <ManagerMegaMenuNav
-                    managerTab={managerTab}
-                    onManagerTabChange={onManagerTabChange}
-                    variant="embedded"
-                    dashboardCluster={managerDashboardCluster}
-                    onDashboardClusterChange={onManagerDashboardClusterChange}
-                  />
-                </div>
+            <div
+              className={cn(
+                "flex h-9 min-h-9 items-center gap-2 overflow-hidden self-center",
+                MANAGER_TOP_BAR_EDGE_INSET_CLASS,
+                MANAGER_TOP_BAR_MENU_RAIL_RESERVE_CLASS,
+              )}
+            >
+              <div className="flex shrink-0 items-center">
+                <NeoPulseAppBrand variant="default" showVersion onClick={onDashboardBrandClick} />
               </div>
-              <div className="ml-auto flex shrink-0">
-                <ManagerTopBarDisplayConsole
-                  variant="embedded"
+              <div className="flex min-w-0 items-center overflow-x-auto">
+                <ManagerMegaMenuNav
                   managerTab={managerTab}
                   onManagerTabChange={onManagerTabChange}
-                  onResetWorkspace={() => onManagerTabChange("integrations")}
-                  showReset
+                  variant="embedded"
+                  dashboardCluster={managerDashboardCluster}
+                  onDashboardClusterChange={onManagerDashboardClusterChange}
                 />
               </div>
+            </div>
+            <div className={MANAGER_SITE_CONSOLE_DOCK_CLASS}>
+              <ManagerTopBarDisplayConsole variant="embedded" />
             </div>
           </div>
 

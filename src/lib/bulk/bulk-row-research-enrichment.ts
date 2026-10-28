@@ -6,11 +6,8 @@ import type { ModifierExternalLink } from "./modifier-external-links";
 import { formatPrefilledBulkRowContractFromCsvRow } from "./prefilled-bulk-row-contract";
 import { autoSelectKeywords, autoSelectH2Sections, autoSelectPeopleAlsoAsk } from "./bulk-blueprint-generator";
 import { generateSEOSlug } from "../seo-slug-generator";
-import { fetchSemrushBulkEnrichment } from "../wordpress-api/semrush";
 import type { SemrushBulkEnrichmentResult } from "../wordpress-api/semrush";
 import type { IntelligentKeywordResearchMergeResult } from "./intelligent-keyword-research-merge";
-import { buildSemrushKeywordsRagJson } from "../semrush-keywords-rag";
-import { buildSemrushClusterScatterPlan, buildSemrushScatterContextJson } from "../semrush-cluster-scatter";
 import { fetchSeoContentBriefWave } from "@/lib/llm-audit/fetch-seo-content-brief-wave";
 import { mergeSeoBriefIntoBulkSkeleton } from "@/lib/llm-audit/fetch-merged-seo-content-brief";
 import { llmAuditGuidanceFromBrief } from "@/lib/llm-audit/llm-audit-dataforseo";
@@ -175,83 +172,9 @@ export async function runBulkRowResearchEnrichmentPhase(input: {
       }
     }
 
-    // Semrush keyword enrichment (bulk hook prefetches in parallel with DFS when provided)
-    try {
-      const baseUrl = connectedSite?.siteUrl?.replace(/\/+$/, '') || '';
-      const seed =
-        row.keyword?.trim() ||
-        row.keyword_focus?.trim() ||
-        keywordData.keyword?.trim() ||
-        '';
-      const slug = seed ? generateSEOSlug(seed) : '';
-      const pageUrl = baseUrl && slug ? `${baseUrl}/${slug}` : '';
-      const portfolioBlockedHosts =
-        options.portfolioBlockedHosts && options.portfolioBlockedHosts.length > 0
-          ? options.portfolioBlockedHosts
-          : undefined;
+    semrushCitationForAcf = prefetchedResearch?.primaryExternalCitationUrl ?? null;
+    intelligentMergeForAcf = prefetchedResearch?.intelligentMerge ?? null;
 
-      const semrush: SemrushBulkEnrichmentResult =
-        prefetchedResearch?.semrush != null
-          ? prefetchedResearch.semrush
-          : await fetchSemrushBulkEnrichment({
-              pageUrl,
-              seedKeyword: seed,
-              portfolioBlockedHosts,
-            });
-
-      const ragJson = buildSemrushKeywordsRagJson(semrush);
-      if (ragJson.trim()) {
-        semrushKeywordsContext = ragJson;
-      }
-      const clusterScatter =
-        !semrush.skipped &&
-        ((semrush.urlOrganicKeywords?.length ?? 0) > 0 || (semrush.phraseRelatedKeywords?.length ?? 0) > 0)
-          ? buildSemrushClusterScatterPlan({
-              acfKeyword: seed || keywordData.keyword || '',
-              urlOrganicKeywords: semrush.urlOrganicKeywords ?? [],
-              phraseRelatedKeywords: semrush.phraseRelatedKeywords ?? [],
-            })
-          : undefined;
-      const scatterJson = buildSemrushScatterContextJson(clusterScatter);
-      if (scatterJson) {
-        semrushScatterContext = scatterJson;
-      }
-      const semrushFileName = BulkFileManager.generateFileName(row, 'sem_rush', timestamp);
-      const semrushFileId = BulkFileManager.createFileId(rowIndex, 'sem_rush', timestamp);
-      const semrushFile: BulkGeneratedFile = {
-        id: semrushFileId,
-        rowIndex,
-        fileName: semrushFileName,
-        content: JSON.stringify(
-          {
-            generatedAt: new Date().toISOString(),
-            pageUrl,
-            seedKeyword: seed,
-            semrush,
-            externalSemrushUrls: semrush.externalSemrushUrls ?? [],
-            clusterScatter: clusterScatter ?? undefined,
-            primaryExternalCitationUrl: prefetchedResearch?.primaryExternalCitationUrl ?? null,
-            intelligentMerge: prefetchedResearch?.intelligentMerge ?? null,
-          },
-          null,
-          2
-        ),
-        mimeType: 'application/json',
-        status: 'completed',
-        timestamp,
-        rowData: row,
-      };
-      fileManager.addFile(semrushFile);
-      generatedFiles.push(semrushFile);
-      options.onProgress?.(rowIndex, 0, 'Semrush enrichment ready');
-
-      semrushSnapshotForAcf = semrush;
-      semrushCitationForAcf = prefetchedResearch?.primaryExternalCitationUrl ?? null;
-      intelligentMergeForAcf = prefetchedResearch?.intelligentMerge ?? null;
-    } catch (e) {
-      console.warn('[Bulk Auto-Generate] Semrush enrichment failed (non-fatal):', e);
-    }
-    
     selectedKeywords = autoSelectKeywords(aiAnalysis, keywordsWithVolumeData);
     selectedH2Sections = autoSelectH2Sections(aiAnalysis);
     selectedPeopleAlsoAsk = autoSelectPeopleAlsoAsk(aiAnalysis);
@@ -291,37 +214,47 @@ export async function runBulkRowResearchEnrichmentPhase(input: {
         (link) => link.url,
       ) ?? [];
     modifierExternalLinks = [];
-    if (modifierUrls.length > 0) {
-      options.onProgress?.(rowIndex, 0, 'Research external links...');
-      modifierExternalLinks = await researchModifierExternalLinks(modifierUrls);
-      const modifierLinksFileName = BulkFileManager.generateFileName(enrichedRow, 'modifier_external_links', timestamp);
+
+    const persistModifierLinksFile = (links: ModifierExternalLink[]) => {
+      const modifierLinksFileName = BulkFileManager.generateFileName(
+        enrichedRow,
+        "modifier_external_links",
+        timestamp,
+      );
       const modifierLinksFile: BulkGeneratedFile = {
-        id: BulkFileManager.createFileId(rowIndex, 'modifier-external-links', timestamp),
+        id: BulkFileManager.createFileId(rowIndex, "modifier-external-links", timestamp),
         rowIndex,
         fileName: modifierLinksFileName,
         content: JSON.stringify(
           {
             generatedAt: new Date().toISOString(),
             modifier_links_json: enrichedRow.modifier_links_json ?? row.modifier_links_json,
-            links: modifierExternalLinks,
+            links,
           },
           null,
           2,
         ),
-        mimeType: 'application/json',
-        status: 'completed',
+        mimeType: "application/json",
+        status: "completed",
         timestamp,
         rowData: enrichedRow,
       };
       fileManager.addFile(modifierLinksFile);
       generatedFiles.push(modifierLinksFile);
-    }
+    };
 
-    rowExplicitExternalPairs = buildRowExplicitExternalAllowlist({
-      modifierExternalLinks,
-      importedDraftLinks,
-    });
-    rowExternalUrlsForSanitize = externalUrlsFromPairs(rowExplicitExternalPairs);
+    const runModifierLinkResearch = async (): Promise<ModifierExternalLink[]> => {
+      if (modifierUrls.length === 0) return [];
+      options.onProgress?.(rowIndex, 0, "Research external links...");
+      try {
+        const links = await researchModifierExternalLinks(modifierUrls);
+        persistModifierLinksFile(links);
+        return links;
+      } catch (e) {
+        console.warn("[Bulk Auto-Generate] Modifier external links research failed (non-fatal):", e);
+        return [];
+      }
+    };
 
     prefilledRowContract = formatPrefilledBulkRowContractFromCsvRow(enrichedRow);
 
@@ -345,7 +278,7 @@ export async function runBulkRowResearchEnrichmentPhase(input: {
     const serpBaseUrl =
       serpSite?.siteUrl?.replace(/\/+$/, '') ||
       connectedSite?.siteUrl?.replace(/\/+$/, '') ||
-      '';
+      'https://example.com';
     const serpSlug = serpKeyword ? generateSEOSlug(serpKeyword) : '';
     destinationPageUrl = enrichedRow.destination_url?.trim() || row.destination_url?.trim() || "";
     const serpPageUrl =
@@ -360,53 +293,69 @@ export async function runBulkRowResearchEnrichmentPhase(input: {
         : entityPlace
       : cityLabel;
 
-    if (!serpKeyword) {
-      throw new Error('SERP + LLM audit requires a row keyword');
-    }
-    if (!serpPageUrl) {
-      throw new Error('SERP + LLM audit requires a site URL for the target page');
-    }
-
     options.onProgress?.(rowIndex, 0, 'Running SERP + LLM audit (before checklist)...');
     const serpKeywordNorm = serpKeyword.trim().toLowerCase();
     const workflowSerpOutputs =
       options.workflowSerpResearch?.getOutputs?.()
       ?? options.workflowSerpResearch?.outputs;
     const cachedRowBrief = parseSeoContentBriefFromRow(enrichedRow);
-    const cachedWorkflowBrief = workflowSerpOutputs?.length
-      ? await loadWorkflowSerpResearchBrief(workflowSerpOutputs, serpKeyword)
+    const cachedWorkflowBrief = workflowSerpOutputs?.length && serpKeyword
+      ? await loadWorkflowSerpResearchBrief(workflowSerpOutputs, serpKeyword).catch(() => null)
       : null;
 
-    let serpLlmBrief: SeoContentBriefV1;
-    let serpStoredFile: string | null = null;
-
-    if (
+    const briefFromRowCache =
       cachedRowBrief
       && (
         cachedRowBrief.focusKeyword.trim().toLowerCase() === serpKeywordNorm
         || options.updateTargetPostId != null
-      )
-    ) {
-      serpLlmBrief = cachedRowBrief;
-      options.onProgress?.(rowIndex, 0, 'SERP brief loaded from row');
-    } else if (
-      cachedWorkflowBrief
-      && cachedWorkflowBrief.brief.focusKeyword.trim().toLowerCase() === serpKeywordNorm
-    ) {
+      );
+    const briefFromWorkflowCache =
+      Boolean(
+        cachedWorkflowBrief
+        && cachedWorkflowBrief.brief.focusKeyword.trim().toLowerCase() === serpKeywordNorm,
+      );
+
+    if (briefFromRowCache) {
+      modifierExternalLinks = await runModifierLinkResearch();
+      serpLlmBrief = cachedRowBrief!;
+      options.onProgress?.(rowIndex, 0, "SERP brief loaded from row");
+    } else if (briefFromWorkflowCache && cachedWorkflowBrief) {
+      modifierExternalLinks = await runModifierLinkResearch();
       serpLlmBrief = cachedWorkflowBrief.brief;
       serpStoredFile = cachedWorkflowBrief.storedFile;
-      options.onProgress?.(rowIndex, 0, 'SERP brief loaded from workflow RAG');
+      options.onProgress?.(rowIndex, 0, "SERP brief loaded from workflow RAG");
     } else {
-      const wave = await fetchSeoContentBriefWave({
-        keyword: serpKeyword,
+      options.onProgress?.(rowIndex, 0, "SERP brief + external links (parallel)...");
+      const waveKeyword = serpKeyword || enrichedRow.title || "window treatments";
+      const wavePromise = fetchSeoContentBriefWave({
+        keyword: waveKeyword,
         pageUrl: serpPageUrl,
         site: serpSite,
         location: serpLocation || undefined,
         geoHint: enrichedRow.title?.trim() || row.title?.trim(),
+        prefetchedSerpMcpJson: paaRawResponse,
         callbacks: {
           onProgress: (message) => options.onProgress?.(rowIndex, 0, message),
         },
+      }).catch((e) => {
+        console.warn("[Bulk Auto-Generate] SERP + LLM wave failed (non-fatal):", e);
+        const fallbackBrief: SeoContentBriefV1 = {
+          version: 1,
+          generatedAt: new Date().toISOString(),
+          pageUrl: serpPageUrl,
+          focusKeyword: waveKeyword,
+          gsc: { pageUrl: serpPageUrl, topQueries: [] },
+          dataforseo: { organic: [], peopleAlsoAsk: [], relatedSearches: [] },
+          semrush: { urlOrganicKeywords: [], phraseRelatedKeywords: [], externalUrls: [] },
+          llmAudit: { ranAt: new Date().toISOString(), platforms: [] },
+        };
+        return { brief: fallbackBrief, storedFile: null as string | null };
       });
+      const [modifierLinks, wave] = await Promise.all([
+        runModifierLinkResearch(),
+        wavePromise,
+      ]);
+      modifierExternalLinks = modifierLinks;
       serpLlmBrief = wave.brief;
       serpStoredFile = wave.storedFile;
     }
@@ -418,59 +367,65 @@ export async function runBulkRowResearchEnrichmentPhase(input: {
       promptModifier: enrichedRow.prompt_modifier,
       seoResearch: enrichedRow.seo_research,
     });
-    const companyName = (serpSite?.name || connectedSite?.name || "").trim();
-    if (!companyName) {
-      throw new Error("Topic fan-out requires a connected site name");
-    }
+    const companyName = (serpSite?.name || connectedSite?.name || "Client").trim();
     const pageExcerptFromImport = importedSections
       ?.map((s) => `${s.h2}\n${s.body}`)
       .join("\n\n");
-    serpLlmBrief = await runTopicResearchFanout({
-      brief: serpLlmBrief,
-      keyword: serpKeyword,
-      title: enrichedRow.title,
-      companyName,
-      location: serpLocation || undefined,
-      site: serpSite,
-      swotText,
-      pageExcerpt: pageExcerptFromImport || enrichedRow.imported_preamble_html?.trim(),
-      onProgress: (message) => options.onProgress?.(rowIndex, 0, message),
-      forceRefresh: options.forceFreshTopicFanout === true,
-    });
+    try {
+      serpLlmBrief = await runTopicResearchFanout({
+        brief: serpLlmBrief,
+        keyword: serpKeyword,
+        title: enrichedRow.title,
+        companyName,
+        location: serpLocation || undefined,
+        site: serpSite,
+        swotText,
+        pageExcerpt: pageExcerptFromImport || enrichedRow.imported_preamble_html?.trim(),
+        onProgress: (message) => options.onProgress?.(rowIndex, 0, message),
+        forceRefresh: options.forceFreshTopicFanout === true,
+      });
+    } catch (e) {
+      console.warn("[Bulk Auto-Generate] Topic research fan-out failed (non-fatal):", e);
+    }
     firstPartyAuthorityBlock = firstPartyAuthorityBlockFromBrief(serpLlmBrief, swotText);
 
-    options.onProgress?.(rowIndex, 0, 'Classifying LLM audit authority links…');
-    const llmAuditAuthorityLinks = await resolveLlmAuditAuthorityLinksForChecklist({
-      brief: serpLlmBrief,
-      siteUrl: serpSite?.siteUrl ?? connectedSite?.siteUrl,
-      companyName,
-      location: serpLocation || undefined,
-      siteId: serpSite?.id ?? connectedSite?.id,
-      onClassifierJsonFailure: (detail) => {
-        const artifactBody = JSON.stringify(
-          {
-            error: detail.error,
-            repairSteps: detail.repairSteps,
-            rawLlmOutput: detail.rawText,
-          },
-          null,
-          2,
-        );
-        const failureFile: BulkGeneratedFile = {
-          id: BulkFileManager.createFileId(rowIndex, "llm-audit-classifier-raw", timestamp),
-          rowIndex,
-          fileName: BulkFileManager.generateFileName(enrichedRow, "llm_audit_classifier_raw", timestamp),
-          content: artifactBody,
-          mimeType: "application/json",
-          status: "error",
-          timestamp,
-          rowData: enrichedRow,
-        };
-        fileManager.addFile(failureFile);
-        generatedFiles.push(failureFile);
-        console.warn("[Bulk] LLM audit authority classifier JSON failed; continuing row:", detail.error);
-      },
-    });
+    options.onProgress?.(rowIndex, 0, "Classifying LLM audit authority links…");
+    try {
+      llmAuditAuthorityLinks = await resolveLlmAuditAuthorityLinksForChecklist({
+        brief: serpLlmBrief,
+        siteUrl: serpSite?.siteUrl ?? connectedSite?.siteUrl,
+        companyName,
+        location: serpLocation || undefined,
+        siteId: serpSite?.id ?? connectedSite?.id,
+        onClassifierJsonFailure: (detail) => {
+          const artifactBody = JSON.stringify(
+            {
+              error: detail.error,
+              repairSteps: detail.repairSteps,
+              rawLlmOutput: detail.rawText,
+            },
+            null,
+            2,
+          );
+          const failureFile: BulkGeneratedFile = {
+            id: BulkFileManager.createFileId(rowIndex, "llm-audit-classifier-raw", timestamp),
+            rowIndex,
+            fileName: BulkFileManager.generateFileName(enrichedRow, "llm_audit_classifier_raw", timestamp),
+            content: artifactBody,
+            mimeType: "application/json",
+            status: "error",
+            timestamp,
+            rowData: enrichedRow,
+          };
+          fileManager.addFile(failureFile);
+          generatedFiles.push(failureFile);
+          console.warn("[Bulk] LLM audit authority classifier JSON failed; continuing row:", detail.error);
+        },
+      });
+    } catch (e) {
+      console.warn("[Bulk Auto-Generate] Authority links classification failed (non-fatal):", e);
+      llmAuditAuthorityLinks = [];
+    }
     rowExplicitExternalPairs = buildRowExplicitExternalAllowlist({
       modifierExternalLinks,
       importedDraftLinks,

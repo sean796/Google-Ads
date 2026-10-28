@@ -2,18 +2,23 @@ import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
 
 export async function fetchUrlTextViaApi(url: string): Promise<string> {
-  const response = await fetch(backendApiUrl("/proxy/fetch-text"), {
-    method: "POST",
-    credentials: "include",
-    cache: "no-store",
-    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ url }),
-  });
-  const data = (await response.json()) as { ok?: boolean; error?: string; content?: string };
-  if (!response.ok || !data.ok || typeof data.content !== "string") {
-    throw new Error(data.error?.trim() || `Could not fetch URL (${response.status})`);
+  try {
+    const response = await fetch(backendApiUrl("/proxy/fetch-text"), {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ url }),
+    });
+    if (!response.ok) return "";
+    const data = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string; content?: string };
+    if (!data.ok || typeof data.content !== "string") {
+      return "";
+    }
+    return data.content;
+  } catch {
+    return "";
   }
-  return data.content;
 }
 
 export function isAppApiUrl(url: string): boolean {

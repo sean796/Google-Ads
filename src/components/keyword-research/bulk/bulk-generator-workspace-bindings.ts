@@ -58,7 +58,11 @@ export type BulkGeneratorWorkspaceBindings = {
   scheduleOccupancy: ScheduleOccupancy | null;
   scheduleOccupancyLoading: boolean;
   csvFileName: string | null;
+  csvLoading?: boolean;
+  /** OpenRouter title + URL slug agents running after CSV parse. */
+  csvEnrichingTitlesUrls?: boolean;
   onPickCsvFile: (file: File) => Promise<void>;
+  onLoadImportRows?: (rows: CSVRow[]) => void;
   onClearCsv: () => void;
   onClearPrompt: () => void;
   numberOfBlogs: number;

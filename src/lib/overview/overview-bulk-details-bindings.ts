@@ -599,12 +599,11 @@ export function buildOverviewBulkMicroSnapshot(
 }
 
 export function overviewBulkDetailsCanOpenFromWarm(
-  sitemapInventoryLinks: PromptBulkSitemapInventoryLink[],
-  gscHostedLink: BulkGscKeywordsHostedLink | null,
-  sitemapInventoryLoading: boolean,
+  _sitemapInventoryLinks: PromptBulkSitemapInventoryLink[],
+  _gscHostedLink: BulkGscKeywordsHostedLink | null,
+  _sitemapInventoryLoading: boolean,
 ): boolean {
-  if (sitemapInventoryLoading) return true;
-  return sitemapInventoryLinks.length > 0 || Boolean(gscHostedLink);
+  return true;
 }
 
 export function overviewRowByUrlMap(rows: OverviewRow[]): Map<string, OverviewRow> {

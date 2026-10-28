@@ -104,7 +104,7 @@ describe("Neo EMCP Mastra Agents & Workflows Contract", () => {
         durationMs: 42,
         data: {
           ok: true,
-          site_url: "https://blindswebsitet.wpenginepowered.com/",
+          site_url: "https://blindmagic1stg.wpenginepowered.com/",
           finding_count: 1,
           findings: [
             {
@@ -123,7 +123,7 @@ describe("Neo EMCP Mastra Agents & Workflows Contract", () => {
         operation: "get-business-details",
         durationMs: 25,
         data: {
-          name: "DRC Blinds",
+          name: "Blind Magic Window Coverings",
           version: "abc123def4560001",
         },
       })
@@ -157,7 +157,7 @@ describe("Neo EMCP Mastra Agents & Workflows Contract", () => {
 
     executeEmcpBatchMock.mockResolvedValueOnce({
       ok: true,
-      siteUrl: "https://blindswebsitet.wpenginepowered.com",
+      siteUrl: "https://blindmagic1stg.wpenginepowered.com",
       results: [
         {
           id: "fix-page-article_dry_run",
@@ -173,7 +173,7 @@ describe("Neo EMCP Mastra Agents & Workflows Contract", () => {
     const events: string[] = [];
     const { output, artifacts } = await neoEmcpAuditAndFixWorkflow.run(
       {
-        siteUrl: "https://blindswebsitet.wpenginepowered.com",
+        siteUrl: "https://blindmagic1stg.wpenginepowered.com",
         username: "sean@neodigital.ca",
         appPassword: "test-password",
         dryRunOnly: true,
@@ -205,9 +205,9 @@ describe("Neo EMCP Mastra Agents & Workflows Contract", () => {
 
   it("runs neoEmcpCommandWorkflow to discover catalog and execute planned MCP operations", async () => {
     fetchEmcpSiteCatalogMock.mockResolvedValueOnce({
-      mcpUrl: "https://blindswebsitet.wpenginepowered.com/wp-json/mcp/emcp-tools-server",
-      toolCount: 2,
-      tools: [{ name: "neo-pulse/read" }, { name: "neo-pulse/write" }],
+      mcpUrl: "https://blindmagic1stg.wpenginepowered.com/wp-json/neo-mcp/v1/mcp",
+      toolCount: 4,
+      tools: [{ name: "neo-pulse/read" }, { name: "neo-pulse/write" }, { name: "wp_create_post" }, { name: "wp_ai_save_meta" }],
       neoPulseRead: {
         dispatcher: "neo-pulse/read",
         operations: {
@@ -243,7 +243,7 @@ describe("Neo EMCP Mastra Agents & Workflows Contract", () => {
 
     executeEmcpBatchMock.mockResolvedValueOnce({
       ok: true,
-      siteUrl: "https://blindswebsitet.wpenginepowered.com",
+      siteUrl: "https://blindmagic1stg.wpenginepowered.com",
       results: [
         {
           id: "step-read-biz",
@@ -251,14 +251,14 @@ describe("Neo EMCP Mastra Agents & Workflows Contract", () => {
           operation: "get-business-details",
           ok: true,
           durationMs: 22,
-          data: { name: "DRC Blinds", version: "v1" },
+          data: { name: "Blind Magic Window Coverings", version: "v1" },
         },
       ],
     });
 
     const { output } = await neoEmcpCommandWorkflow.run(
       {
-        siteUrl: "https://blindswebsitet.wpenginepowered.com",
+        siteUrl: "https://blindmagic1stg.wpenginepowered.com",
         username: "sean@neodigital.ca",
         appPassword: "test-password",
         dryRunOnly: true,

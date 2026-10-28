@@ -4,8 +4,6 @@ import type { ResearchSectionId } from "@/components/research/research-workspace
 
 const MODES: { id: ResearchSectionId; label: string }[] = [
   { id: "research-proposal", label: "Proposal" },
-  { id: "research-citation", label: "Citation" },
-  { id: "research-backlinking", label: "Backlinking" },
 ];
 
 export type ResearchToolbarModeMenuProps = {

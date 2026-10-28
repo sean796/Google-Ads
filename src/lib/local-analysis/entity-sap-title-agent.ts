@@ -11,6 +11,15 @@ import { normalizeEntityHintCommaLabel } from "@/lib/comma-place-label";
 import { aiRejectBrandOrBlockedTexts } from "@/lib/content-brand-ai-gate";
 import { collapseRepeatedPlaceSegmentsInKeyword, serviceKeywordForSapTitle } from "@/lib/local-analysis/entity-sap-row-keyword-fill";
 import { buildSapSlugFromKeywordEntity } from "@/lib/sap-slug-from-keyword-entity";
+import {
+  limitServiceWords,
+  SAP_TITLE_MAX_CHARS,
+  shortPlaceLabelForSapTitle,
+  stripTradingNameFromPhrase,
+  tradingNameAppearsInText,
+  truncateAtWordBoundary,
+  formatSapHeadlineTitleCase,
+} from "@/lib/sap-brand-and-brevity";
 import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
 import { extractFirstBalancedJsonValue } from "@/lib/competitor-research/competitor-report-json-parse";
 import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
@@ -46,6 +55,8 @@ When \`titleTemplate\` is provided, weave the service \`keyword\` and \`entity\`
 - Connect service and place with **"Near"**, **"in"**, or **"for"** (prefer the connector shown in \`titleTemplate\` when provided).
 - **Forbidden:** colons, pipe suffixes, brand/site name, em dash, duplicating the keyword then repeating it after a colon.
 - Vary phrasing across rows in the batch.
+- **Length (mandatory):** One short headline, **at most ${SAP_TITLE_MAX_CHARS} characters** total. Use a **2–4 word** service phrase plus a compact place label. Forbidden: long keyword dumps, full landmark addresses, or repeating every word from the focus keyword.
+- **Compact place:** Prefer neighbourhood or landmark plus city only (drop province codes from the visible title when the city is already named).
 
 ${BULK_WORDPRESS_POST_TITLE_RULE}`;
 
@@ -106,9 +117,16 @@ function entityRepresentedInTitle(title: string, entity: string): boolean {
 }
 
 /** Validates agent-crafted SAP titles before upload. */
-export function isValidEntitySapTitle(title: string, keyword: string, entity: string): boolean {
+export function isValidEntitySapTitle(
+  title: string,
+  keyword: string,
+  entity: string,
+  siteName?: string,
+): boolean {
   const t = title.trim();
   if (!t) return false;
+  if (t.length > SAP_TITLE_MAX_CHARS) return false;
+  if (siteName?.trim() && tradingNameAppearsInText(t, siteName)) return false;
   if (t.includes(":")) return false;
   if (!entityRepresentedInTitle(t, entity)) return false;
   const tokens = keywordTokens(keyword);
@@ -123,11 +141,17 @@ export function resolveEntitySapTitleFromTemplate(
   keyword: string,
   entity: string,
   titleTemplate: string = DEFAULT_ENTITY_TITLE_TEMPLATE,
+  siteName?: string,
 ): string {
   const template = titleTemplate.trim() || DEFAULT_ENTITY_TITLE_TEMPLATE;
-  const kw = serviceKeywordForSapTitle(keyword, entity) || "service area";
-  const ent = normalizeEntityHintCommaLabel(entity.trim()) || entity.trim();
-  return replaceTemplateVariables(template, ent, kw).trim();
+  let kw = serviceKeywordForSapTitle(keyword, entity) || "service area";
+  if (siteName?.trim()) {
+    kw = stripTradingNameFromPhrase(kw, siteName) || kw;
+  }
+  kw = limitServiceWords(kw, 4);
+  const ent = shortPlaceLabelForSapTitle(entity.trim()) || entity.trim();
+  const title = formatSapHeadlineTitleCase(replaceTemplateVariables(template, ent, kw).trim());
+  return truncateAtWordBoundary(title, SAP_TITLE_MAX_CHARS);
 }
 
 /** Final SAP post title: keep valid agent/CSV title or fall back to template. */
@@ -136,16 +160,17 @@ export function resolveEntitySapPostTitle(
   entity: string,
   existingTitle?: string,
   titleTemplate?: string,
+  siteName?: string,
 ): string {
   const existing = existingTitle?.trim();
   if (
     existing &&
-    isValidEntitySapTitle(existing, keyword, entity) &&
+    isValidEntitySapTitle(existing, keyword, entity, siteName) &&
     /(\bnear\b|\bin\b|\bfor\b)/i.test(existing)
   ) {
-    return existing;
+    return formatSapHeadlineTitleCase(existing);
   }
-  return resolveEntitySapTitleFromTemplate(keyword, entity, titleTemplate);
+  return resolveEntitySapTitleFromTemplate(keyword, entity, titleTemplate, siteName);
 }
 
 export const DEFAULT_ENTITY_SAP_TITLE_TEMPLATE = DEFAULT_ENTITY_TITLE_TEMPLATE;
@@ -175,14 +200,23 @@ function sapRowPath(row: CSVRow): string {
   return slug ? `/${slug}/` : "";
 }
 
-function buildTitleFillPayload(rows: CSVRow[], sapOccupancy?: EntitySapOccupancy): TitleFillRow[] {
+function buildTitleFillPayload(
+  rows: CSVRow[],
+  siteName: string,
+  sapOccupancy?: EntitySapOccupancy,
+): TitleFillRow[] {
   return rows.map((row) => {
     const entity = normalizeEntityHintCommaLabel(row.entity ?? "");
     const blocked =
       sapOccupancy && entity ? collectBlockedForEntity(sapOccupancy, entity).titles : [];
+    let keyword = serviceKeywordForSapTitle((row.keyword ?? "").trim(), entity);
+    if (siteName.trim()) {
+      keyword = stripTradingNameFromPhrase(keyword, siteName) || keyword;
+    }
+    keyword = limitServiceWords(keyword, 4);
     return {
-      keyword: serviceKeywordForSapTitle((row.keyword ?? "").trim(), entity),
-      entity,
+      keyword,
+      entity: shortPlaceLabelForSapTitle(entity) || entity,
       path: sapRowPath(row),
       ...(blocked.length > 0 ? { blockedTitles: blocked } : {}),
     };
@@ -206,7 +240,7 @@ async function fetchTitlesBatch(
 ): Promise<string[]> {
   if (rows.length === 0) return [];
   await ensureMasterInstructionsInMemory(siteId);
-  const payload = buildTitleFillPayload(rows, sapOccupancy);
+  const payload = buildTitleFillPayload(rows, siteName, sapOccupancy);
   const neighbourhoodRule = entityTypeFocusWantsNeighbourhoods(entityTypeFocus)
     ? " Entity focus is neighbourhoods only — never use street names in any title."
     : "";
@@ -238,7 +272,7 @@ async function fetchTitlesBatch(
             gridLocations,
             titleTemplate: titleTemplate?.trim() || DEFAULT_ENTITY_TITLE_TEMPLATE,
             titlePatternRule: templateRule,
-            titleBan: `Never put "${siteName}" or a shortened company/brand form of that name in any title.`,
+            titleBan: `Never put "${siteName}" or any trading-name token from it (including acronyms like KWB or LLP) in any title. Max ${SAP_TITLE_MAX_CHARS} characters per title.`,
           }),
         },
       ],
@@ -260,12 +294,22 @@ async function fetchTitlesBatch(
   };
   const raw = data.choices?.[0]?.message?.content ?? "";
   const template = titleTemplate?.trim() || DEFAULT_ENTITY_TITLE_TEMPLATE;
-  let titles = titlesFromOpenRouterContent(raw).map((t) => collapseRepeatedPlaceSegmentsInKeyword(t));
+  let titles = titlesFromOpenRouterContent(raw).map((t) =>
+    truncateAtWordBoundary(
+      formatSapHeadlineTitleCase(collapseRepeatedPlaceSegmentsInKeyword(t)),
+      SAP_TITLE_MAX_CHARS,
+    ),
+  );
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]!;
     let title = titles[i]?.trim() ?? "";
     if (!title) {
-      title = resolveEntitySapTitleFromTemplate(row.keyword ?? "", row.entity ?? "", template);
+      title = resolveEntitySapTitleFromTemplate(
+        row.keyword ?? "",
+        row.entity ?? "",
+        template,
+        siteName,
+      );
     }
     titles[i] = title;
   }
@@ -285,19 +329,21 @@ function applyValidatedOrFallbackTitle(
   index: number,
   candidateTitle: string,
   titleTemplate: string,
+  siteName: string,
 ): void {
   const row = out[index]!;
   const keyword = (row.keyword ?? "").trim();
   const entity = (row.entity ?? "").trim();
   const serviceKw = serviceKeywordForSapTitle(keyword, entity);
-  const cleaned = candidateTitle.trim();
-  if (cleaned && isValidEntitySapTitle(cleaned, serviceKw || keyword, entity)) {
-    out[index] = { ...row, title: cleaned };
+  const cleaned = truncateAtWordBoundary(candidateTitle.trim(), SAP_TITLE_MAX_CHARS);
+  const titled = formatSapHeadlineTitleCase(cleaned);
+  if (titled && isValidEntitySapTitle(titled, serviceKw || keyword, entity, siteName)) {
+    out[index] = { ...row, title: titled };
     return;
   }
   out[index] = {
     ...row,
-    title: resolveEntitySapTitleFromTemplate(keyword, entity, titleTemplate),
+    title: resolveEntitySapTitleFromTemplate(keyword, entity, titleTemplate, siteName),
   };
 }
 
@@ -305,6 +351,7 @@ function applyTemplateFallbackForIndices(
   out: CSVRow[],
   indices: number[],
   titleTemplate: string,
+  siteName: string,
 ): void {
   for (const i of indices) {
     const row = out[i];
@@ -315,6 +362,7 @@ function applyTemplateFallbackForIndices(
         (row.keyword ?? "").trim(),
         (row.entity ?? "").trim(),
         titleTemplate,
+        siteName,
       ),
     };
   }
@@ -373,7 +421,7 @@ export async function fillSapRowTitlesFromOpenRouter(
       );
       for (let j = 0; j < pendingIndices.length; j++) {
         const idx = pendingIndices[j]!;
-        applyValidatedOrFallbackTitle(out, idx, titles[j] ?? "", titleTemplate);
+        applyValidatedOrFallbackTitle(out, idx, titles[j] ?? "", titleTemplate, options.siteName);
       }
 
       const titled = pendingIndices
@@ -401,6 +449,7 @@ export async function fillSapRowTitlesFromOpenRouter(
                   (row.keyword ?? "").trim(),
                   (row.entity ?? "").trim(),
                   titleTemplate,
+                  options.siteName,
                 ),
               };
             }
@@ -419,7 +468,7 @@ export async function fillSapRowTitlesFromOpenRouter(
 
   const stillBlank = pendingIndices.filter((i) => !out[i]!.title?.trim());
   if (stillBlank.length > 0) {
-    applyTemplateFallbackForIndices(out, stillBlank, titleTemplate);
+    applyTemplateFallbackForIndices(out, stillBlank, titleTemplate, options.siteName);
     options.onRowsUpdate?.(out.map((row) => ({ ...row })));
   }
 
@@ -453,10 +502,10 @@ export async function fillSapRowTitlesFromOpenRouter(
         );
         for (let j = 0; j < titleRetryIndices.length; j++) {
           const idx = titleRetryIndices[j]!;
-          applyValidatedOrFallbackTitle(out, idx, retryTitles[j] ?? "", titleTemplate);
+          applyValidatedOrFallbackTitle(out, idx, retryTitles[j] ?? "", titleTemplate, options.siteName);
         }
       } catch {
-        applyTemplateFallbackForIndices(out, titleRetryIndices, titleTemplate);
+        applyTemplateFallbackForIndices(out, titleRetryIndices, titleTemplate, options.siteName);
       }
       options.onRowsUpdate?.(out.map((row) => ({ ...row })));
     }

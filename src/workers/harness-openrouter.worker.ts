@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 
-import { streamOpenRouterChatCompletionCore } from '../lib/openrouter-stream-chat-core';
+import { postOpenRouterAppChat } from '../lib/openrouter-app-api';
+import { clampOpenRouterMaxTokens } from '../lib/openrouter-stream-token-limits';
 import type { HarnessOpenRouterWorkerPayload } from '../lib/bulk/harness-openrouter-payload';
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
@@ -9,21 +10,19 @@ ctx.onmessage = (e: MessageEvent<HarnessOpenRouterWorkerPayload>) => {
   const data = e.data;
   void (async () => {
     try {
-      const result = await streamOpenRouterChatCompletionCore({
+      const result = await postOpenRouterAppChat({
         apiKey: data.apiKey,
         model: data.model,
         messages: data.messages,
         temperature: data.temperature,
-        maxTokens: data.maxTokens,
+        maxTokens: clampOpenRouterMaxTokens(data.maxTokens),
         topP: data.topP,
-        httpReferer: data.httpReferer,
-        onContentChunk: () => {},
-        onFinishReason: () => {},
+        reasoning: { effort: 'low' },
       });
       ctx.postMessage({
         type: 'done' as const,
         sectionIndex: data.sectionIndex,
-        content: result.content,
+        content: (result.content ?? '').trim(),
         finishReason: result.finishReason,
       });
     } catch (err) {

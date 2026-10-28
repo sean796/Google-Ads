@@ -15,7 +15,7 @@ import {
   resolveIllustrativeH2Title,
 } from "@/lib/content-optimization/first-party-authority-prompt";
 import { markdownToHtml } from "@/lib/markdown-to-html";
-import { flattenListItemBlockWrappers } from "@/lib/content-generation/content-sanitizer";
+import { flattenListItemBlockWrappers, removeEmDashes } from "@/lib/content-generation/content-sanitizer";
 import { MIN_INTERNAL_LINKS_PER_BODY_H2 } from "@/lib/content-generation/link-anchor-text-case";
 
 function isHarnessPlaceholderToken(token: string): boolean {
@@ -340,6 +340,7 @@ export function finalizeHarnessSectionHtml(
     s = injectHarnessSectionH2AnchorId(s, headingTitleToHarnessAnchorId(opts.title));
   }
   s = flattenListItemBlockWrappers(s);
+  s = removeEmDashes(s);
   if (opts.isIllustrative) {
     s = enforceHarnessSectionHeadingTitle(s, resolveIllustrativeH2Title(opts.title));
   }

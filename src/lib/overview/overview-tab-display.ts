@@ -18,13 +18,15 @@ export function metaDisplayTitle(
   row: OverviewRow,
   wpTitlesByUrl?: Record<string, string> | null,
 ): string {
-  const h1 = overviewTitlePrimarySegment(row.pageHeading);
+  const ai = overviewTitlePrimarySegment(row.aiTitle);
   const t = overviewTitlePrimarySegment(row.title);
+  const h1 = overviewTitlePrimarySegment(row.pageHeading);
   const fromWp = overviewTitlePrimarySegment(
     wpTitlesByUrl && typeof wpTitlesByUrl === "object" ? wpTitlesByUrl[row.url] : undefined,
   );
-  if (h1) return decodeOverviewDisplayText(h1);
+  if (ai) return decodeOverviewDisplayText(ai);
   if (t) return decodeOverviewDisplayText(t);
+  if (h1) return decodeOverviewDisplayText(h1);
   if (fromWp) return decodeOverviewDisplayText(fromWp);
   try {
     const u = new URL(row.url);
@@ -103,6 +105,34 @@ export function overviewRowUrlPathLabel(
   }
 
   return pathname;
+}
+
+/** Bulk generator studio: show computed relative path (/blog/…, page, or SAP) without Posts strip. */
+export function bulkStudioRowPathLabel(row: Pick<OverviewRow, "url" | "aiSuggestedPath">): string {
+  const suggested = row.aiSuggestedPath?.trim();
+  if (suggested) {
+    return suggested.startsWith("/") ? suggested : `/${suggested}`;
+  }
+  return overviewRowUrlPathLabel(row.url);
+}
+
+/** Public href for bulk studio rows (dock sitemap path + site origin). */
+export function bulkStudioRowPublicUrl(
+  row: Pick<OverviewRow, "url" | "aiSuggestedPath">,
+  siteUrl: string | null | undefined,
+): string {
+  const path = bulkStudioRowPathLabel(row);
+  const raw = siteUrl?.trim();
+  if (raw) {
+    try {
+      const withProto = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+      const origin = new URL(withProto).origin.replace(/\/$/, "");
+      if (path.startsWith("/")) return `${origin}${path}`;
+    } catch {
+      // fall through
+    }
+  }
+  return row.url;
 }
 
 export function overviewRowDateLabel(row: OverviewRow): string {

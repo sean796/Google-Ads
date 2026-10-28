@@ -16,7 +16,7 @@ kind:
 - district — urban district / borough / named area within a city (same treatment as neighbourhood for SAP)
 - city — whole-city or municipality article
 - disambiguation — surname, given-name, "may refer to", or other mix of unrelated topics
-- other — person, company, ship, media, non-geographic topic, wrong place type
+- other — person, company, ship, media, non-geographic topic, wrong place type, law enforcement HQ, jail, courthouse, fire department as an organization, abstract concept
 
 matchesExpectedCity: true only when the page is clearly about a place in \`expectedCity\` (and \`expectedRegion\` when the intro gives a region). False for wrong cities, national lists, or person/disambiguation pages.`;
 

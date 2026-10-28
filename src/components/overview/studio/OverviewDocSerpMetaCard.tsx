@@ -87,7 +87,7 @@ export function OverviewDocSerpMetaCard({
             row.seoResearch?.trim() && "text-primary",
             row.status === "research-faq" && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
           )}
-          title="Run DataForSEO + GSC + Semrush Research Brief"
+          title="Run DataForSEO + GSC Research Brief"
         >
           <Search className="mr-2 h-4 w-4 text-cyan-400" aria-hidden />
           {row.seoResearch?.trim() ? "Brief Ready" : "Research"}

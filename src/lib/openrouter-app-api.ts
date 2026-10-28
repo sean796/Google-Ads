@@ -171,9 +171,16 @@ export function buildOpenRouterAppChatRequestBody(args: {
   const user = openRouterPromptText(args.user);
   const filteredMessages = filterOpenRouterAppMessages(args.messages);
 
+  const fallbackModel = "google/gemini-2.5-flash";
+  const isSpecialModality = args.model?.includes("image") || args.model?.includes("video");
+  const models = args.model && args.model !== fallbackModel && !isSpecialModality
+    ? [args.model, fallbackModel]
+    : undefined;
+
   const base: Record<string, unknown> = {
     apiKey: apiKey || undefined,
     model: args.model,
+    ...(models ? { models } : {}),
     temperature: args.temperature,
     maxTokens: args.maxTokens,
     topP: args.topP,
@@ -229,16 +236,49 @@ export async function postOpenRouterAppChat(args: {
 }> {
   const apiKey = (args.apiKey ?? getOpenRouterApiKeyForApp()).trim();
   const requestBody = buildOpenRouterAppChatRequestBody({ ...args, apiKey });
-  const response = await fetch(openRouterChatCompletionUrl(), {
-    method: "POST",
-    credentials: "include",
-    cache: "no-store",
-    signal: args.signal,
-    headers: openRouterAppApiHeaders(apiKey),
-    body: JSON.stringify(requestBody),
-  });
+  const payloadStr = JSON.stringify(requestBody);
+  const openRouterStart = Date.now();
+  console.log(
+    `%c[OpenRouter API] 🚀 POST /openrouter/chat-completion`,
+    "color: #84bc00; font-weight: bold;",
+    {
+      model: args.model,
+      maxTokens: args.maxTokens,
+      temperature: args.temperature,
+      payloadBytes: payloadStr.length,
+    },
+  );
+  let response: Response | undefined;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    response = await fetch(openRouterChatCompletionUrl(), {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+      signal: args.signal,
+      headers: openRouterAppApiHeaders(apiKey),
+      body: payloadStr,
+    });
+    if (
+      attempt < 3 &&
+      (response.status === 502 || response.status === 503 || response.status === 504)
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 1500 * attempt));
+      continue;
+    }
+    break;
+  }
+  if (!response) {
+    throw new Error("OpenRouter request failed");
+  }
 
-  const data = (await response.json()) as {
+  const elapsedSec = ((Date.now() - openRouterStart) / 1000).toFixed(1);
+  console.log(
+    `%c[OpenRouter API] 🏁 Response in ${elapsedSec}s (HTTP ${response.status})`,
+    response.ok ? "color: #84bc00; font-weight: bold;" : "color: #ff4444; font-weight: bold;",
+    { status: response.status },
+  );
+
+  let data: {
     ok?: boolean;
     error?: string;
     content?: string;
@@ -247,9 +287,20 @@ export async function postOpenRouterAppChat(args: {
     raw?: unknown;
     parsed?: Record<string, unknown>;
   };
+  try {
+    data = (await response.json()) as typeof data;
+  } catch {
+    throw new Error(`OpenRouter error (${response.status})`);
+  }
 
   if (!response.ok || !data.ok) {
-    throw new Error(data.error?.trim() || `OpenRouter error (${response.status})`);
+    const errorMsg = data.error?.trim() || `OpenRouter error (${response.status})`;
+    console.error(
+      `%c[OpenRouter API] ❌ Error (${response.status}):`,
+      "color: #ff4444; font-weight: bold;",
+      errorMsg,
+    );
+    throw new Error(errorMsg);
   }
   const hasParsed =
     data.parsed && typeof data.parsed === "object" && !Array.isArray(data.parsed);

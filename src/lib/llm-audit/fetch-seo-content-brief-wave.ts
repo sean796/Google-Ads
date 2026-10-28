@@ -203,6 +203,8 @@ export async function runSerpAndLlmAuditParallel(input: {
   location?: string;
   geoHint?: string;
   requireSerpDump?: boolean;
+  /** When set and contains SERP tasks, skips live DataForSEO SERP fetch. */
+  prefetchedSerpMcpJson?: unknown;
   callbacks?: SerpLlmWaveCallbacks;
 }): Promise<SerpLlmWaveResult> {
   const keyword = input.keyword.trim();
@@ -214,6 +216,7 @@ export async function runSerpAndLlmAuditParallel(input: {
   const serpLocation = resolveSerpLocationName(location, serpGeoKeywordText(keyword, input.geoHint));
   const report = (message: string) => input.callbacks?.onProgress?.(message);
 
+  const prefetchedInline = extractSerpDumpJsonFromMcpResponse(input.prefetchedSerpMcpJson);
   const runSerp = () => fetchDataForSeoSerpMcpSafe({ keyword, location_name: serpLocation });
   const runAudit = () =>
     fetchLlmAuditParallel({
@@ -224,15 +227,24 @@ export async function runSerpAndLlmAuditParallel(input: {
       onProgress: report,
     });
 
-  report(`Live DataForSEO SERP (${serpLocation})`);
   let serpMcpJson: Awaited<ReturnType<typeof fetchDataForSeoSerpMcpSafe>>["serpMcpJson"];
   let serpError: string | null;
   let llmAudit: Awaited<ReturnType<typeof fetchLlmAuditParallel>>;
 
-  if (input.requireSerpDump) {
-    ({ serpMcpJson, serpError } = await runSerp());
+  if (prefetchedInline) {
+    report("SERP reused from keyword research");
+    serpMcpJson = prefetchedInline as Awaited<
+      ReturnType<typeof fetchDataForSeoSerpMcpSafe>
+    >["serpMcpJson"];
+    serpError = null;
+    llmAudit = await runAudit();
   } else {
-    [{ serpMcpJson, serpError }, llmAudit] = await Promise.all([runSerp(), runAudit()]);
+    report(`Live DataForSEO SERP (${serpLocation})`);
+    if (input.requireSerpDump) {
+      ({ serpMcpJson, serpError } = await runSerp());
+    } else {
+      [{ serpMcpJson, serpError }, llmAudit] = await Promise.all([runSerp(), runAudit()]);
+    }
   }
 
   const storedFile = storedFileFromSerpMcpResponse(
@@ -253,7 +265,7 @@ export async function runSerpAndLlmAuditParallel(input: {
     report(serpSummary);
   }
 
-  if (input.requireSerpDump) {
+  if (!prefetchedInline && input.requireSerpDump) {
     llmAudit = await runAudit();
   }
 
@@ -355,6 +367,7 @@ export type FetchSeoContentBriefWaveInput = {
   semrushOverviewJson?: unknown | null;
   serpDumpUrl?: (filename: string) => string;
   requireSerpDump?: boolean;
+  prefetchedSerpMcpJson?: unknown;
   callbacks?: SerpLlmWaveCallbacks;
 };
 
@@ -369,6 +382,7 @@ export async function fetchSeoContentBriefWave(
     location: input.location,
     geoHint: input.geoHint,
     requireSerpDump: input.requireSerpDump,
+    prefetchedSerpMcpJson: input.prefetchedSerpMcpJson,
     callbacks: input.callbacks,
   });
 

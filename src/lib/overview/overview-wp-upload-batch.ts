@@ -1,7 +1,6 @@
 import { flushSync } from "react-dom";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import type { WordPressSite } from "@/components/integrations/types";
-import { applyElementorOptimization } from "@/lib/elementor-api";
 import {
   buildOverviewUploadPayloadBundle,
   overviewBindingForRow,
@@ -253,25 +252,6 @@ async function uploadPreparedChunk(
     }
   });
 
-  const elementorErrorsByLocalIdx = new Map<number, string>();
-  for (let localIdx = 0; localIdx < chunkPrepared.length; localIdx += 1) {
-    const { entry } = chunkPrepared[localIdx]!;
-    if (entry.row.contentFormat === "elementor" && entry.row.elementorDataJson?.trim()) {
-      try {
-        await applyElementorOptimization(
-          site,
-          entry.bundle.item.postId,
-          entry.row.elementorDataJson.trim(),
-        );
-      } catch (err) {
-        elementorErrorsByLocalIdx.set(
-          localIdx,
-          err instanceof Error ? err.message : "Elementor upload failed.",
-        );
-      }
-    }
-  }
-
   const items = chunkPrepared.map(({ entry }) => entry.bundle.item);
   const first = chunkPrepared[0];
   console.info("[WP upload] POST", `${wpBatch}/${wpBatchCount}`, {
@@ -304,17 +284,9 @@ async function uploadPreparedChunk(
 
   for (let localIdx = 0; localIdx < chunkPrepared.length; localIdx += 1) {
     const { entry, url } = chunkPrepared[localIdx]!;
-    const elementorError = elementorErrorsByLocalIdx.get(localIdx);
     const uploadResult =
       resultByIndex.get(localIdx) ?? resultByPostId.get(entry.bundle.item.postId);
-    const rawResult = rowResultFromBulk(entry, localIdx, uploadResult);
-    const rowResult: WpUploadRowResult = elementorError
-      ? {
-          ...rawResult,
-          ok: false,
-          error: elementorError,
-        }
-      : rawResult;
+    const rowResult = rowResultFromBulk(entry, localIdx, uploadResult);
     results.push(rowResult);
 
     const proofFiles = buildOverviewRowWpUploadProofFiles({

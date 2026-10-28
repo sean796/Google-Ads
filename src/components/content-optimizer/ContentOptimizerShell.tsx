@@ -9,7 +9,7 @@ import {
   writeStoredContentOptimizerSection,
 } from "./content-optimizer-sections";
 import type { ContentOptimizerGeneratorChrome } from "./content-optimizer-generator-chrome";
-import { MultiSiteContentOptimizerPanel } from "./MultiSiteContentOptimizerPanel";
+import { resolveActiveIntegrationSite } from "@/lib/integrations/resolve-active-integration-site";
 import { resolveOverviewGridPaginationLayoutTotal } from "@/lib/overview/overview-grid-pagination-layout-total";
 
 const CONTENT_OPTIMIZER_SHELL_FRAME_CLASS =
@@ -77,19 +77,8 @@ export const ContentOptimizerShell: React.FC<ContentOptimizerShellProps> = ({
     );
   }
 
-  if (!site) return null;
-
-  if (section === "multi-site") {
-    return (
-      <div className={CONTENT_OPTIMIZER_SHELL_FRAME_CLASS}>
-        <MultiSiteContentOptimizerPanel
-          optimizerSection={section}
-          onOptimizerSectionChange={setSection}
-          paginationLayoutTotal={paginationLayoutTotal}
-          generatorChrome={generatorChrome}
-        />
-      </div>
-    );
+  if (!site) {
+    return <div className={CONTENT_OPTIMIZER_SHELL_FRAME_CLASS} />;
   }
 
   return (

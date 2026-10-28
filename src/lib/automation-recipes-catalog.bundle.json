@@ -128,6 +128,140 @@
     "kind": "template"
   },
   {
+    "keyword": "blog-content-gap-check",
+    "name": "Blog Content Gap Check",
+    "description": "Find content gaps for selected clients. Create and schedule blog posts.",
+    "notes": [
+      "Step 1 counts posts scheduled and published this month against the site editorial package (Standard 2, Lite 1).",
+      "Step 2 runs Post creator only when the gap is greater than zero; post count and GSC keywords come from the gap step.",
+      "Bind a workflow client with Standard or Lite set on Integrations (or a known property name map)."
+    ],
+    "isAutomation": true,
+    "category": "editorial",
+    "verticals": [
+      "editorial",
+      "general"
+    ],
+    "tags": [
+      "posts",
+      "editorial",
+      "content-gap",
+      "workflow",
+      "monthly"
+    ],
+    "prerequisites": [
+      "wordpress",
+      "gsc"
+    ],
+    "filters": {
+      "executionKinds": [
+        "content_gap_check",
+        "post_creator"
+      ],
+      "targetBuckets": [
+        "posts"
+      ],
+      "actionCount": 2
+    },
+    "defaultTasks": [
+      {
+        "keyword": "content-gap-check",
+        "title": "Check blog content gap",
+        "status": "todo",
+        "assignPulse": true,
+        "scheduleMode": "calendar",
+        "dueDate": "2026-09-01",
+        "dueTime": "09:00",
+        "recurrenceRule": "monthly",
+        "executionKind": "content_gap_check",
+        "executionPayload": {
+          "contentGapSitemapSource": "posts",
+          "contentGapCountMode": "editorial_month",
+          "contentGapUseEditorialPackage": true,
+          "contentGapDayOfMonth": 1,
+          "saveLocalArchive": true
+        }
+      },
+      {
+        "keyword": "post-creator-monthly",
+        "title": "Create scheduled blog posts",
+        "status": "todo",
+        "assignPulse": true,
+        "scheduleMode": "calendar",
+        "dueDate": "2026-09-01",
+        "dueTime": "09:00",
+        "recurrenceRule": "monthly",
+        "executionKind": "post_creator",
+        "executionPayload": {
+          "postCount": 1,
+          "keywordSource": "gsc",
+          "featuredImage": true,
+          "sitemapType": "post",
+          "postDestination": "wordpress",
+          "scheduleTimesPerMonth": 1,
+          "scheduleStartDay": 1,
+          "scheduleStartTime": "09:00",
+          "scheduleStaggerOptimized": true,
+          "targetBucket": "posts",
+          "saveLocalArchive": true
+        }
+      }
+    ],
+    "triggerBlock": {
+      "keyword": "schedule-monthly",
+      "kind": "calendar",
+      "frequency": "monthly",
+      "startDate": "2026-09-01",
+      "time": "09:00",
+      "targetBucket": "posts"
+    },
+    "actionBlock": {
+      "keyword": "content-gap-check",
+      "executionKind": "content_gap_check",
+      "executionPayload": {
+        "contentGapSitemapSource": "posts",
+        "contentGapCountMode": "editorial_month",
+        "contentGapUseEditorialPackage": true,
+        "contentGapDayOfMonth": 1,
+        "saveLocalArchive": true
+      },
+      "title": "Check blog content gap"
+    },
+    "actionBlocks": [
+      {
+        "keyword": "content-gap-check",
+        "executionKind": "content_gap_check",
+        "executionPayload": {
+          "contentGapSitemapSource": "posts",
+          "contentGapCountMode": "editorial_month",
+          "contentGapUseEditorialPackage": true,
+          "contentGapDayOfMonth": 1,
+          "saveLocalArchive": true
+        },
+        "title": "Check blog content gap"
+      },
+      {
+        "keyword": "post-creator-monthly",
+        "executionKind": "post_creator",
+        "executionPayload": {
+          "postCount": 1,
+          "keywordSource": "gsc",
+          "featuredImage": true,
+          "sitemapType": "post",
+          "postDestination": "wordpress",
+          "scheduleTimesPerMonth": 1,
+          "scheduleStartDay": 1,
+          "scheduleStartTime": "09:00",
+          "scheduleStaggerOptimized": true,
+          "targetBucket": "posts",
+          "saveLocalArchive": true
+        },
+        "title": "Create scheduled blog posts"
+      }
+    ],
+    "kind": "workflow_template"
+  },
+  {
     "keyword": "blog-freshness-radar",
     "name": "Blog Freshness Radar",
     "description": "Full AISEO on blog posts when total search clicks decline.",
@@ -1206,164 +1340,13 @@
     "kind": "workflow_template"
   },
   {
-    "keyword": "grid-to-entity-pages-monthly",
-    "name": "Grid to entity pages",
-    "description": "Export a Local Dominator grid, then generate and schedule entity pages from grid locations.",
-    "notes": [
-      "Sequential workflow: Local Dominator grid export, then entity page creator (grid mode only).",
-      "Install creates a workflow with two action steps; step 2 fails if step 1 produces no CSV.",
-      "Default: 3 ad groups × 5 locations = 15 entity pages scheduled evenly across the month."
-    ],
-    "isAutomation": true,
-    "category": "local-seo",
-    "verticals": [
-      "local-seo",
-      "general"
-    ],
-    "tags": [
-      "entity",
-      "grid",
-      "local-dominator",
-      "workflow",
-      "monthly"
-    ],
-    "prerequisites": [
-      "wordpress",
-      "gsc",
-      "entity-sitemap"
-    ],
-    "filters": {
-      "executionKinds": [
-        "local_dominator_export",
-        "entity_page_creator"
-      ],
-      "targetBuckets": [
-        "sap"
-      ],
-      "actionCount": 2
-    },
-    "defaultTasks": [
-      {
-        "keyword": "local-dominator-grid-export",
-        "title": "Export Local Dominator grid CSV",
-        "status": "todo",
-        "assignPulse": true,
-        "scheduleMode": "calendar",
-        "dueDate": "2026-09-01",
-        "dueTime": "09:00",
-        "recurrenceRule": "monthly",
-        "executionKind": "local_dominator_export",
-        "executionPayload": {
-          "businessName": "",
-          "keyword": "",
-          "saveLocalArchive": true,
-          "saveToDisk": true
-        }
-      },
-      {
-        "keyword": "entity-page-creator-grid-run",
-        "title": "Create entity pages from grid",
-        "status": "todo",
-        "assignPulse": true,
-        "scheduleMode": "calendar",
-        "dueDate": "2026-09-01",
-        "dueTime": "09:00",
-        "recurrenceRule": "monthly",
-        "executionKind": "entity_page_creator",
-        "executionPayload": {
-          "locationSource": "grid",
-          "gridInputSource": "workflow",
-          "entityAdGroupCount": 3,
-          "entityAdsPerGroup": 5,
-          "entityPageCount": 15,
-          "postCount": 15,
-          "focusKeyword": "",
-          "titleTemplate": "{keyword} Near {entity}",
-          "sitemapType": "entity",
-          "featuredImage": false,
-          "postDestination": "wordpress",
-          "scheduleTimesPerMonth": 15,
-          "scheduleCustomInterval": 15,
-          "scheduleStartDay": 1,
-          "scheduleStartTime": "09:00",
-          "scheduleStaggerOptimized": true,
-          "targetBucket": "sap",
-          "saveLocalArchive": true,
-          "ragInputKeys": [
-            "local_dominator_export_1"
-          ]
-        }
-      }
-    ],
-    "triggerBlock": {
-      "keyword": "schedule-monthly",
-      "kind": "calendar",
-      "frequency": "monthly",
-      "startDate": "2026-09-01",
-      "time": "09:00"
-    },
-    "actionBlock": {
-      "keyword": "action-local_dominator_export",
-      "executionKind": "local_dominator_export",
-      "executionPayload": {
-        "businessName": "",
-        "keyword": "",
-        "saveLocalArchive": true,
-        "saveToDisk": true
-      },
-      "title": "Export Local Dominator grid CSV"
-    },
-    "actionBlocks": [
-      {
-        "keyword": "action-local_dominator_export",
-        "executionKind": "local_dominator_export",
-        "executionPayload": {
-          "businessName": "",
-          "keyword": "",
-          "saveLocalArchive": true,
-          "saveToDisk": true
-        },
-        "title": "Export Local Dominator grid CSV"
-      },
-      {
-        "keyword": "action-entity_page_creator",
-        "executionKind": "entity_page_creator",
-        "executionPayload": {
-          "locationSource": "grid",
-          "gridInputSource": "workflow",
-          "entityAdGroupCount": 3,
-          "entityAdsPerGroup": 5,
-          "entityPageCount": 15,
-          "postCount": 15,
-          "focusKeyword": "",
-          "titleTemplate": "{keyword} Near {entity}",
-          "sitemapType": "entity",
-          "featuredImage": false,
-          "postDestination": "wordpress",
-          "scheduleTimesPerMonth": 15,
-          "scheduleCustomInterval": 15,
-          "scheduleStartDay": 1,
-          "scheduleStartTime": "09:00",
-          "scheduleStaggerOptimized": true,
-          "targetBucket": "sap",
-          "saveLocalArchive": true,
-          "ragInputKeys": [
-            "local_dominator_export_1"
-          ]
-        },
-        "title": "Create entity pages from grid"
-      }
-    ],
-    "kind": "workflow_template"
-  },
-  {
     "keyword": "grid-to-entity-to-sap-monthly",
     "name": "Grid to entity to SAP",
-    "description": "Export a Local Dominator grid, generate entity CSV, then schedule SAP pages.",
+    "description": "Local Grid scan, entity CSV from grid, then SAP pages for the client package.",
     "notes": [
-      "Three-step workflow: Local Dominator export, Entity generator, SAP generator.",
-      "Each step passes CSV output to the next via workflow RAG.",
-      "Default: 15 SAP pages scheduled evenly across the month."
+      "Three steps: Local Grid scan, entities from grid, SAP pages.",
+      "Uses the in-house Local Grid plugin (not browser export).",
+      "Page counts follow Standard or Lite on the workflow client."
     ],
     "isAutomation": true,
     "category": "local-seo",
@@ -1374,9 +1357,10 @@
     "tags": [
       "entity",
       "grid",
-      "local-dominator",
+      "local-grid",
       "workflow",
-      "monthly"
+      "monthly",
+      "sap"
     ],
     "prerequisites": [
       "wordpress",
@@ -1397,7 +1381,7 @@
     "defaultTasks": [
       {
         "keyword": "local-dominator-grid-export",
-        "title": "Export Local Dominator grid CSV",
+        "title": "Local Grid scan",
         "status": "todo",
         "assignPulse": true,
         "scheduleMode": "calendar",
@@ -1407,14 +1391,14 @@
         "executionKind": "local_dominator_export",
         "executionPayload": {
           "businessName": "",
-          "keyword": "",
+          "keyword": "property",
           "saveLocalArchive": true,
-          "saveToDisk": true
+          "saveToDisk": false
         }
       },
       {
         "keyword": "entity-generator-grid-run",
-        "title": "Generate entity CSV from grid",
+        "title": "Entities from grid",
         "status": "todo",
         "assignPulse": true,
         "scheduleMode": "calendar",
@@ -1425,10 +1409,7 @@
         "executionPayload": {
           "locationSource": "grid",
           "gridInputSource": "workflow",
-          "entityAdGroupCount": 3,
-          "entityAdsPerGroup": 5,
-          "entityPageCount": 15,
-          "postCount": 15,
+          "entityUseEditorialPackage": true,
           "focusKeyword": "",
           "titleTemplate": "{keyword} Near {entity}",
           "sitemapType": "entity",
@@ -1441,7 +1422,7 @@
       },
       {
         "keyword": "sap-generator-run",
-        "title": "Create SAP pages from entity CSV",
+        "title": "SAP pages",
         "status": "todo",
         "assignPulse": true,
         "scheduleMode": "calendar",
@@ -1450,16 +1431,11 @@
         "recurrenceRule": "monthly",
         "executionKind": "sap_generator",
         "executionPayload": {
-          "entityAdGroupCount": 3,
-          "entityAdsPerGroup": 5,
-          "entityPageCount": 15,
-          "postCount": 15,
+          "entityUseEditorialPackage": true,
           "entityCsvInputSource": "workflow",
           "sitemapType": "entity",
           "featuredImage": false,
           "postDestination": "wordpress",
-          "scheduleTimesPerMonth": 15,
-          "scheduleCustomInterval": 15,
           "scheduleStartDay": 1,
           "scheduleStartTime": "09:00",
           "scheduleStaggerOptimized": true,
@@ -1476,18 +1452,19 @@
       "kind": "calendar",
       "frequency": "monthly",
       "startDate": "2026-09-01",
-      "time": "09:00"
+      "time": "09:00",
+      "targetBucket": "sap"
     },
     "actionBlock": {
       "keyword": "action-local_dominator_export",
       "executionKind": "local_dominator_export",
       "executionPayload": {
         "businessName": "",
-        "keyword": "",
+        "keyword": "property",
         "saveLocalArchive": true,
-        "saveToDisk": true
+        "saveToDisk": false
       },
-      "title": "Export Local Dominator grid CSV"
+      "title": "Local Grid scan"
     },
     "actionBlocks": [
       {
@@ -1495,11 +1472,11 @@
         "executionKind": "local_dominator_export",
         "executionPayload": {
           "businessName": "",
-          "keyword": "",
+          "keyword": "property",
           "saveLocalArchive": true,
-          "saveToDisk": true
+          "saveToDisk": false
         },
-        "title": "Export Local Dominator grid CSV"
+        "title": "Local Grid scan"
       },
       {
         "keyword": "action-entity_generator",
@@ -1507,10 +1484,7 @@
         "executionPayload": {
           "locationSource": "grid",
           "gridInputSource": "workflow",
-          "entityAdGroupCount": 3,
-          "entityAdsPerGroup": 5,
-          "entityPageCount": 15,
-          "postCount": 15,
+          "entityUseEditorialPackage": true,
           "focusKeyword": "",
           "titleTemplate": "{keyword} Near {entity}",
           "sitemapType": "entity",
@@ -1520,22 +1494,17 @@
             "local_dominator_export_1"
           ]
         },
-        "title": "Generate entity CSV from grid"
+        "title": "Entities from grid"
       },
       {
         "keyword": "action-sap_generator",
         "executionKind": "sap_generator",
         "executionPayload": {
-          "entityAdGroupCount": 3,
-          "entityAdsPerGroup": 5,
-          "entityPageCount": 15,
-          "postCount": 15,
+          "entityUseEditorialPackage": true,
           "entityCsvInputSource": "workflow",
           "sitemapType": "entity",
           "featuredImage": false,
           "postDestination": "wordpress",
-          "scheduleTimesPerMonth": 15,
-          "scheduleCustomInterval": 15,
           "scheduleStartDay": 1,
           "scheduleStartTime": "09:00",
           "scheduleStaggerOptimized": true,
@@ -1545,7 +1514,7 @@
             "entity_generator_2"
           ]
         },
-        "title": "Create SAP pages from entity CSV"
+        "title": "SAP pages"
       }
     ],
     "kind": "workflow_template"

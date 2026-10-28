@@ -11,11 +11,12 @@ import {
 import { cn } from "@/lib/utils";
 
 export type ManagerDisplayChipFaceProps = {
-  icon: LucideIcon;
+  icon?: LucideIcon | null;
   label: string;
   isWarming?: boolean;
   squareClassName?: string;
   warmingSquareClassName?: string;
+  nameBandClassName?: string;
 };
 
 export function ManagerDisplayChipFace({
@@ -24,23 +25,28 @@ export function ManagerDisplayChipFace({
   isWarming = false,
   squareClassName = MANAGER_DISPLAY_SQUARE_POWER,
   warmingSquareClassName = MANAGER_DISPLAY_SQUARE_POWER_WARMING,
+  nameBandClassName,
 }: ManagerDisplayChipFaceProps) {
   return (
     <span className="flex h-9 w-full min-w-0 shrink-0 items-stretch overflow-visible">
-      <span
-        className={cn(
-          MANAGER_DISPLAY_SQUARE_BASE,
-          isWarming ? warmingSquareClassName : squareClassName,
-        )}
-        aria-hidden
-      >
-        <Icon className="h-4 w-4 shrink-0 text-black" />
-      </span>
+      {Icon ? (
+        <span
+          className={cn(
+            MANAGER_DISPLAY_SQUARE_BASE,
+            isWarming ? warmingSquareClassName : squareClassName,
+          )}
+          aria-hidden
+        >
+          <Icon className="h-4 w-4 shrink-0 text-black" />
+        </span>
+      ) : null}
       <span
         className={cn(
           MANAGER_DISPLAY_NAME_BAND,
           "min-w-0 flex-1",
+          !Icon && "rounded-none",
           isWarming && MANAGER_DISPLAY_NAME_BAND_WARMING,
+          nameBandClassName,
         )}
       >
         <span className={MANAGER_DISPLAY_NAME_LABEL}>{label}</span>

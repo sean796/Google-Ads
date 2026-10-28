@@ -40,12 +40,12 @@ describe("isResearchBatchState", () => {
     ).toBe(true);
   });
 
-  it("detects research when planned count is 8 and harness has research titles", () => {
+  it("detects research when planned count is 7 and harness has research titles", () => {
     const url = "https://example.com/a";
     expect(
       isResearchBatchState({
         currentStepProgress: {
-          harnessPlannedSectionCount: 8,
+          harnessPlannedSectionCount: 7,
           message: "Researching 1 page(s)…",
         },
         urlHarnessSections: {
@@ -108,7 +108,7 @@ describe("resolveBulkRowPipelineTitles", () => {
     ).toEqual([...RESEARCH_HARNESS_PIPELINE_TITLES]);
   });
 
-  it("research runKind returns 8 harness pipeline titles", () => {
+  it("research runKind returns 7 harness pipeline titles", () => {
     expect(
       resolveBulkRowPipelineTitles("research", staleContentPrepHarness, []),
     ).toEqual([...RESEARCH_HARNESS_PIPELINE_TITLES]);
@@ -129,7 +129,7 @@ describe("resolveBulkRowPipelineTitles", () => {
     const bulkState = {
       currentStep: "Researching…",
       currentStepProgress: {
-        harnessPlannedSectionCount: 8,
+        harnessPlannedSectionCount: 7,
         message: "Researching 2 page(s)…",
       },
       urlHarnessSections: {

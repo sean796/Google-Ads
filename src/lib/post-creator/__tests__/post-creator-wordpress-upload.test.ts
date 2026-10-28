@@ -63,11 +63,23 @@ vi.mock("@/lib/seo-slug-generator", () => ({
   generateSEOSlug: vi.fn(async () => "test-slug"),
 }));
 
-vi.mock("@/lib/wordpress-acf-origin", () => ({
-  updateACFFields: vi.fn(async () => ({ success: true })),
+vi.mock("@/lib/wordpress-api/meta", () => ({
+  updateOverviewSeoItem: vi.fn(async () => ({ ok: true, postId: 99 })),
 }));
 
 vi.mock("@/lib/content-generation/acf-field-mapper", () => ({
+  NEO_PULSE_DEFAULT_FIELD_MAPPING: {
+    dateModifier: "date_modifier",
+    faq: "faq",
+    metaDescription: "meta_description",
+    promptModifier: "prompt_modifier",
+    extraText: "seo_extra_text",
+    extraImage: "seo_extra_image",
+    origin: "origin",
+    keywordFocus: "keyword_focus",
+    seoResearch: "seo_research",
+    seoTitle: "seo_title",
+  },
   discoverACFFieldMapping: vi.fn(async () => ({})),
   fallbackFieldMapping: vi.fn(() => ({
     date_modifier: "date_modifier",

@@ -10,6 +10,7 @@ import {
   addKeywordResearchSnapshotToBulkFiles,
   emitEntitySapPipelineHarnessDone,
   buildSitesToPostFromPosting,
+  prefetchBulkWordPressLinkValidationForRun,
   type CSVRow,
   type BulkProcessingOptions,
   type BulkHarnessSectionPayload,
@@ -17,9 +18,6 @@ import {
   type WordPressPostDestination,
 } from '@/lib/bulk-auto-generate';
 import { reduceHarnessSectionList } from '@/lib/bulk/harness-sections-reducer';
-import { fetchSemrushBulkEnrichment } from '@/lib/wordpress-api/semrush';
-import { generateSEOSlug } from '@/lib/seo-slug-generator';
-import { runIntelligentKeywordResearchMerge } from '@/lib/bulk/intelligent-keyword-research-merge';
 import { getResearchModel } from '@/lib/optimization-settings-storage';
 import { enrichCsvRowsFromSheet } from '@/lib/bulk/bulk-csv-enrich';
 import { BulkFileManager, type BulkGeneratedFile } from '@/lib/bulk-file-manager';
@@ -27,7 +25,6 @@ import { useKeywordResearch } from './use-keyword-research';
 import type { KeywordData, KeywordAIAnalysis } from '@/lib/keyword-types';
 import type { StoredFile } from '@/components/KnowledgeBaseTab';
 import { reassembleChunkedFiles } from '@/lib/utils';
-import { fetchWikipediaContent, generateWikipediaCSV, type WikipediaFetchOptions } from '@/lib/wikipedia-api';
 import {
   ensureBulkGenerationWpInventory,
   loadBlogPlayLinkablesForSite,
@@ -342,6 +339,8 @@ isAnalyzingRef.current = isAnalyzing;
   currentResultRef.current = currentResult;
   aiAnalysisRef.current = aiAnalysis;
 
+  const [isCsvEnriching, setIsCsvEnriching] = useState(false);
+
   /**
    * Load CSV file: Papa static parse first, then optional OpenRouter enrich for missing fields.
    */
@@ -362,27 +361,32 @@ isAnalyzingRef.current = isAnalyzing;
         apiKey = "";
       }
       if (apiKey) {
-        const sites = getStoredSites();
-        const normalizeSiteUrl = (url: string) =>
-          url.trim().toLowerCase().replace(/\/$/, "").replace(/^https?:\/\/(www\.)?/, "");
-        const matched = connectedSite
-          ? sites.find((s) => normalizeSiteUrl(s.siteUrl) === normalizeSiteUrl(connectedSite.siteUrl))
-          : undefined;
-        const gridLocations = [
-          ...new Set(staticRows.map((r) => r.entity?.trim()).filter(Boolean)),
-        ] as string[];
-        const enriched = await enrichCsvRowsFromSheet(staticRows, {
-          apiKey,
-          model: selectedModel || getResearchModel(),
-          siteId: matched?.id,
-          siteName: matched?.name || connectedSite?.siteUrl || "",
-          gridLocations,
-          onRowsUpdate: (next) => {
-            setRows(next);
-            setTotalRows(next.length);
-          },
-        });
-        return enriched;
+        setIsCsvEnriching(true);
+        try {
+          const sites = getStoredSites();
+          const normalizeSiteUrl = (url: string) =>
+            url.trim().toLowerCase().replace(/\/$/, "").replace(/^https?:\/\/(www\.)?/, "");
+          const matched = connectedSite
+            ? sites.find((s) => normalizeSiteUrl(s.siteUrl) === normalizeSiteUrl(connectedSite.siteUrl))
+            : undefined;
+          const gridLocations = [
+            ...new Set(staticRows.map((r) => r.entity?.trim()).filter(Boolean)),
+          ] as string[];
+          const enriched = await enrichCsvRowsFromSheet(staticRows, {
+            apiKey,
+            model: selectedModel || getResearchModel(),
+            siteId: matched?.id,
+            siteName: matched?.name || connectedSite?.siteUrl || "",
+            gridLocations,
+            onRowsUpdate: (next) => {
+              setRows(next);
+              setTotalRows(next.length);
+            },
+          });
+          return enriched;
+        } finally {
+          setIsCsvEnriching(false);
+        }
       }
       return staticRows;
     } catch (error) {
@@ -436,20 +440,6 @@ isAnalyzingRef.current = isAnalyzing;
           setRows((prev) => prev.map((r, i) => (i === rowIndex ? { ...r, ...activeRow } : r)));
         }
       }
-
-      const baseUrl = connectedSite
-        ? getPublicSiteUrl(connectedSite).replace(/\/+$/, '') || ''
-        : '';
-      const seedEarly =
-        activeRow.keyword?.trim() ||
-        activeRow.keyword_focus?.trim() ||
-        '';
-      const slugEarly = seedEarly ? generateSEOSlug(seedEarly) : '';
-      const pageUrlEarly = baseUrl && slugEarly ? `${baseUrl}/${slugEarly}` : '';
-      const portfolioBlockedHosts =
-        options.portfolioBlockedHosts && options.portfolioBlockedHosts.length > 0
-          ? options.portfolioBlockedHosts
-          : undefined;
 
       const pushHarness = (payload: BulkHarnessSectionPayload) => {
         setHarnessPlannedSectionCount(payload.totalSections);
@@ -523,29 +513,22 @@ isAnalyzingRef.current = isAnalyzing;
       }
 
       // Step 1: Fetch Wikipedia and run keyword research
-      const { files: initialFiles, research: keywordResearchFromRow } = await generateRowOutputs(
+      let initialFiles: BulkGeneratedFile[] = [];
+      const rowOut = await generateRowOutputs(
         rowIndex,
         activeRow,
         options,
         fileManager,
-        analyzeKeyword
+        analyzeKeyword,
       );
+      initialFiles = rowOut.files;
+      const keywordResearchFromRow = rowOut.research;
       allFiles.push(...initialFiles);
-
-      options.onProgress?.(rowIndex, 0, "Semrush enrichment...");
-      const semrushResult = await fetchSemrushBulkEnrichment({
-        pageUrl: pageUrlEarly,
-        seedKeyword: seedEarly,
-        portfolioBlockedHosts,
-      });
 
       const useOpenRouterOnly = Boolean(options.openRouterOnly);
       let finalKeywordData: import('@/lib/keyword-types').KeywordData;
       let finalAiAnalysis: import('@/lib/keyword-types').KeywordAIAnalysis;
-      let intelligentMerge: Awaited<
-        ReturnType<typeof runIntelligentKeywordResearchMerge>
-      >['merge'];
-      let primaryExternalCitationUrl: string | null;
+      const primaryExternalCitationUrl: string | null = null;
       let volumeDataForBlueprint: import('@/lib/keyword-types').KeywordData[];
 
       if (useOpenRouterOnly) {
@@ -553,12 +536,6 @@ isAnalyzingRef.current = isAnalyzing;
         const stub = buildBlogImportKeywordResearchStub(activeRow);
         finalKeywordData = stub.keywordData;
         finalAiAnalysis = stub.aiAnalysis;
-        const mergeResult = await runIntelligentKeywordResearchMerge(activeRow, stub.keywordData, semrushResult, {
-          apiKey: options.openRouterApiKey,
-          model: selectedModel || getResearchModel(),
-        });
-        intelligentMerge = mergeResult.merge;
-        primaryExternalCitationUrl = mergeResult.primaryExternalCitationUrl;
         volumeDataForBlueprint = [];
 
         const dfsSnapshotTs = Date.now();
@@ -574,8 +551,8 @@ isAnalyzingRef.current = isAnalyzing;
             keywordsVolumeData: [],
             paaRawResponse: null,
             primaryKeyword: stub.primaryKeyword,
-            semrush: semrushResult,
-            intelligentMerge,
+            semrush: null,
+            intelligentMerge: null,
             primaryExternalCitationUrl,
           },
         );
@@ -584,25 +561,15 @@ isAnalyzingRef.current = isAnalyzing;
       } else {
         const csvPrimary = activeRow.keyword?.trim() || activeRow.keyword_focus?.trim() || '';
         if (!keywordResearchFromRow?.result?.keywordData || !keywordResearchFromRow.aiAnalysis) {
-          const stub = buildBlogImportKeywordResearchStub(activeRow);
-          finalKeywordData = stub.keywordData;
-          finalAiAnalysis = stub.aiAnalysis;
-        } else {
-          finalKeywordData = {
-            ...keywordResearchFromRow.result.keywordData,
-            keyword: csvPrimary || keywordResearchFromRow.result.keywordData.keyword,
-          };
-          finalAiAnalysis = keywordResearchFromRow.aiAnalysis;
+          throw new Error("Keyword research did not return keyword data for this row");
         }
-        options.onProgress?.(rowIndex, 0, 'Merging keyword research with Semrush...');
-        const mergeResult = await runIntelligentKeywordResearchMerge(row, finalKeywordData, semrushResult, {
-          apiKey: openRouterApiKey,
-          model: selectedModel || getResearchModel(),
-        });
-        intelligentMerge = mergeResult.merge;
-        primaryExternalCitationUrl = mergeResult.primaryExternalCitationUrl;
-        const rowPaaRawResponse = keywordResearchFromRow.paaRawResponse ?? paaRawResponse;
-        volumeDataForBlueprint = keywordResearchFromRow.keywordsVolumeData;
+        finalKeywordData = {
+          ...keywordResearchFromRow.result.keywordData,
+          keyword: csvPrimary || keywordResearchFromRow.result.keywordData.keyword,
+        };
+        finalAiAnalysis = keywordResearchFromRow.aiAnalysis;
+        const rowPaaRawResponse = keywordResearchFromRow?.paaRawResponse ?? paaRawResponse;
+        volumeDataForBlueprint = keywordResearchFromRow?.keywordsVolumeData ?? [];
 
         const dfsSnapshotTs = Date.now();
         const dfsFile = addKeywordResearchSnapshotToBulkFiles(
@@ -617,8 +584,8 @@ isAnalyzingRef.current = isAnalyzing;
             keywordsVolumeData: volumeDataForBlueprint,
             paaRawResponse: rowPaaRawResponse,
             primaryKeyword: csvPrimary || keywordResearchFromRow?.result?.primaryKeyword || finalKeywordData.keyword,
-            semrush: semrushResult,
-            intelligentMerge,
+            semrush: null,
+            intelligentMerge: null,
             primaryExternalCitationUrl,
           },
         );
@@ -626,65 +593,12 @@ isAnalyzingRef.current = isAnalyzing;
         emitEntitySapPipelineHarnessDone(options, rowIndex, activeRow, "Keyword research");
       }
 
-      // Step 3: Load knowledge base from localStorage
+      // Step 3: Load knowledge base from localStorage (+ Wikipedia artifact from generateRowOutputs)
       let { knowledgeFiles, activeKnowledgeBaseText } = loadKnowledgeBaseFromStorage();
-
-      // Step 3.5: Fetch Wikipedia KB only when CSV did not already provide wikipedia_url
-      if (row.entity && row.entity.trim() && !row.wikipedia_url?.trim()) {
-        try {
-          options.onProgress?.(rowIndex, 0, `Fetching Wikipedia content for entity: ${row.entity}...`);
-          
-          // Load OpenRouter API key for AI summarization
-          const openRouterApiKeyForSummary = options.openRouterApiKey;
-          const useAISummarization = !!openRouterApiKeyForSummary && openRouterApiKeyForSummary.trim().length > 0;
-          
-          // Prepare fetch options with AI summarization
-          const fetchOptions: WikipediaFetchOptions | undefined = useAISummarization ? {
-            summarizeWithAI: true,
-            openRouterApiKey: openRouterApiKeyForSummary,
-            onSummarizeProgress: (message) => {
-              options.onProgress?.(rowIndex, 0, `Wikipedia AI: ${message}`);
-            },
-          } : undefined;
-          
-          const wikipediaChunks = await fetchWikipediaContent(row.entity.trim(), fetchOptions);
-          
-          if (wikipediaChunks.length > 0) {
-            // Convert Wikipedia chunks to CSV format
-            const wikipediaCSV = generateWikipediaCSV(wikipediaChunks);
-            
-            // Add Wikipedia content as a knowledge file
-            const wikipediaFileName = `Wikipedia_${row.entity.trim().replace(/[^a-zA-Z0-9]/g, '_')}.csv`;
-            knowledgeFiles.push({
-              name: wikipediaFileName,
-              content: wikipediaCSV,
-            });
-            
-            // Also add to activeKnowledgeBaseText for RAG context
-            const wikipediaText = wikipediaChunks
-              .map(chunk => {
-                const section = chunk.section !== 'Introduction' && chunk.section !== 'Overview'
-                  ? `${chunk.section} - ${chunk.text}`
-                  : chunk.text;
-                return section;
-              })
-              .join('\n\n---\n\n');
-            
-            if (activeKnowledgeBaseText) {
-              activeKnowledgeBaseText += `\n\n--- Wikipedia Content for ${row.entity} ---\n${wikipediaText}`;
-            } else {
-              activeKnowledgeBaseText = `--- Wikipedia Content for ${row.entity} ---\n${wikipediaText}`;
-            }
-            
-            options.onProgress?.(rowIndex, 0, `Wikipedia content added to knowledge base for ${row.entity}`);
-          }
-        } catch (error) {
-          console.error(`[Bulk Generate] Error fetching Wikipedia for entity "${row.entity}":`, error);
-          // Continue without Wikipedia content - don't fail the entire process
-          options.onProgress?.(rowIndex, 0, `Warning: Could not fetch Wikipedia for ${row.entity}, continuing...`);
+      for (const f of initialFiles) {
+        if (f.mimeType.includes("csv") && f.fileName.toLowerCase().includes("wikipedia")) {
+          knowledgeFiles.push({ name: f.fileName, content: f.content });
         }
-      } else if (row.wikipedia_url?.trim()) {
-        options.onProgress?.(rowIndex, 0, `Using CSV wikipedia_url; skipping Wikipedia KB fetch/summarize`);
       }
 
       // Step 4: Retrieve WordPress posts for this keyword (if available)
@@ -736,11 +650,7 @@ isAnalyzingRef.current = isAnalyzing;
         activeKnowledgeBaseText,
         connectedSite,
         wordPressPosts,
-        {
-          semrush: semrushResult,
-          primaryExternalCitationUrl,
-          intelligentMerge,
-        }
+        null
       );
       allFiles.push(...blueprintFiles);
 
@@ -888,6 +798,14 @@ isAnalyzingRef.current = isAnalyzing;
       peerFeaturedCsvByName.set(file.name, merged.join('\n'));
     };
 
+    let linkPrefetchPromise: Promise<void> | undefined;
+    if (postingForLoop?.enabled) {
+      const sitesToPost = buildSitesToPostFromPosting(postingForLoop);
+      if (sitesToPost.length > 0) {
+        linkPrefetchPromise = prefetchBulkWordPressLinkValidationForRun(sitesToPost);
+      }
+    }
+
     try {
       let runHadFailure = false;
 
@@ -960,6 +878,7 @@ isAnalyzingRef.current = isAnalyzing;
           sapMapsEntityRowCounts,
           peerFeaturedReport,
           onPeerFeaturedCsv: mergePeerFeaturedCsv,
+          linkPrefetchPromise,
           // Inner pipeline passes the *storage* row index (displayRows index). Progress UI must stay batch-based (i).
           onProgress: (_storageRowIndex, _total, statusText) => {
             setCurrentRow(i);
@@ -994,9 +913,11 @@ isAnalyzingRef.current = isAnalyzing;
       }
 
       if (!runHadFailure) {
-        recordRunStatus('All rows processed');
+        recordRunStatus("All rows processed");
+        notify.success(notifyBulkProcessingCompleteXFilesGenerat(fileManager.getStats().completed, ""));
+      } else {
+        recordRunStatus("Bulk run finished with row errors");
       }
-      notify.success(notifyBulkProcessingCompleteXFilesGenerat(fileManager.getStats().completed, ''));
     } catch (error) {
       if (error instanceof Error && error.message === 'Processing cancelled') {
         notify.warning(NOTIFY_PROCESSING_CANCELLED_BY_USER);
@@ -1094,6 +1015,8 @@ isAnalyzingRef.current = isAnalyzing;
     setRows,
     fileManager,
     
+    isCsvEnriching,
+
     // Actions
     loadCSV,
     processAllRows,

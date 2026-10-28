@@ -8,9 +8,9 @@ import {
 } from "@/lib/overview/overview-research-harness-sections";
 
 describe("RESEARCH_HARNESS_PIPELINE_TITLES", () => {
-  it("matches the 8 harness section titles", () => {
+  it("matches the 7 harness section titles", () => {
     expect(RESEARCH_HARNESS_PIPELINE_TITLES).toEqual(RESEARCH_HARNESS_SECTION_TITLES);
-    expect(RESEARCH_HARNESS_PIPELINE_TITLES).toHaveLength(8);
+    expect(RESEARCH_HARNESS_PIPELINE_TITLES).toHaveLength(7);
   });
 });
 

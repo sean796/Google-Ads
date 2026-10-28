@@ -1,3 +1,4 @@
+import { isLocalGridWikiConsoleTraceActive, localGridWikiConsoleLog, localGridWikiConsoleWarn } from "@/lib/local-grid-studio/local-grid-wiki-console-trace";
 import { getMediaWikiApiUrlWithQuery } from "./mediawiki-api-url";
 
 /**
@@ -108,6 +109,16 @@ export async function searchWikipediaPages(query: string, limit: number = 50): P
   });
 
   const apiUrl = getMediaWikiApiUrlWithQuery(params);
+  const trace = isLocalGridWikiConsoleTraceActive();
+  const started = trace ? performance.now() : 0;
+
+  if (trace) {
+    localGridWikiConsoleLog("MediaWiki API search →", {
+      query: query.trim(),
+      limit: cap,
+      url: apiUrl,
+    });
+  }
 
   try {
     const response = await fetch(apiUrl, {
@@ -117,15 +128,37 @@ export async function searchWikipediaPages(query: string, limit: number = 50): P
     });
 
     if (!response.ok) {
+      if (trace) {
+        localGridWikiConsoleWarn(`MediaWiki API search HTTP ${response.status}`, { query: query.trim() });
+      }
       return [];
     }
 
     const data = await response.json();
     if (data.query && data.query.search) {
-      return data.query.search.map((result: { title: string }) => result.title);
+      const titles = data.query.search.map((result: { title: string }) => result.title);
+      if (trace) {
+        localGridWikiConsoleLog(`MediaWiki API search ← ${titles.length} title(s) in ${Math.round(performance.now() - started)}ms`, {
+          query: query.trim(),
+          sample: titles.slice(0, 6),
+        });
+      }
+      return titles;
+    }
+    if (trace) {
+      localGridWikiConsoleLog(`MediaWiki API search ← 0 titles in ${Math.round(performance.now() - started)}ms`, {
+        query: query.trim(),
+      });
     }
   } catch (error) {
-    console.warn(`[Wikipedia API] Error searching Wikipedia for "${query}":`, error);
+    if (trace) {
+      localGridWikiConsoleWarn(`MediaWiki API search failed (${Math.round(performance.now() - started)}ms)`, {
+        query: query.trim(),
+        error,
+      });
+    } else {
+      console.warn(`[Wikipedia API] Error searching Wikipedia for "${query}":`, error);
+    }
   }
 
   return [];

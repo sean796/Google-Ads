@@ -56,7 +56,7 @@ export function resolveAgentRunRecipeKey(
 
 export function agentRunGeneratorSection(recipeKey: string): BlogGeneratorSectionId {
   if (recipeKey === "gsc_reporting" || recipeKey === "ads_reporting") return "opt";
-  if (recipeKey === "post_creator") return "bulk-csv";
+  if (recipeKey === "post_creator") return "bulk-prompt";
   return "opt";
 }
 
@@ -81,7 +81,7 @@ export function agentRunShowsUrlProgress(recipeKey: string): boolean {
 }
 
 export function agentRunShowsBrowserPreview(recipeKey: string): boolean {
-  return recipeKey === "local_dominator_export" || recipeKey === "chatgpt_website_audit" || recipeKey === "browser_automation";
+  return recipeKey === "chatgpt_website_audit" || recipeKey === "browser_automation";
 }
 
 function isKnownNonOptimizerRecipe(recipeKey: string): recipeKey is AgentRunRecipeKey {

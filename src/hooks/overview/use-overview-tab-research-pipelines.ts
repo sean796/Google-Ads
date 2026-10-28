@@ -72,18 +72,12 @@ import {
 } from "@/lib/content-optimization/content-optimizer-bulk-generator-bindings";
 import { elementorSectionHeadersFromCachedRow } from "@/lib/elementor-page-content/elementor-section-headers-from-cache";
 import { normalizeSectionProseHtml, prosePlainText } from "@/lib/elementor-page-content/extract-text-editor-prose";
-import { stripTrailingFaqSection } from "@/lib/overview/overview-blog-faq-append";
 import {
-  extractAnswerSectionHtml,
-  extractOverviewSectionHtml,
-  stripLeadingAnswerSection,
-  stripLeadingOverviewSection,
-} from "@/lib/overview/overview-blog-overview-prepend";
+  countAutoSeoBlogBodySteps,
+  runAutoSeoBlogBodyRewrite,
+} from "@/lib/overview/overview-auto-seo-blog-rewrite";
 import {
-  rewriteBlogLeadSectionBlock,
   rewriteBlogPassageSection,
-  splitHtmlBodyIntoH2PassageSections,
-  stitchOverviewBlogPostHtml,
 } from "@/lib/overview/overview-blog-passage-sections";
 import { mergeGeneratedFilesByName } from "@/lib/overview/overview-peer-csv-details";
 import { setOptimizingState } from "@/hooks/content-optimization/optimization-helpers-a";
@@ -140,7 +134,6 @@ type Args = Pick<
   site: WordPressSite | undefined;
   gscQuickWinsFile: string | null;
   serpDumpUrl: (filename: string) => string;
-  portfolioBlockedHostsForSemrush: string[];
   handleDataForSeoResearch: (
     rowIndex: number,
     options?: { skipGsc?: boolean; silent?: boolean },
@@ -206,7 +199,6 @@ export function useOverviewTabResearchPipelines({
   site,
   gscQuickWinsFile,
   serpDumpUrl,
-  portfolioBlockedHostsForSemrush,
   opt,
   bulkSeoExtraOptions,
   bindings,
@@ -274,7 +266,6 @@ export function useOverviewTabResearchPipelines({
           site,
           gscQuickWinsFile: null,
           serpDumpUrl,
-          portfolioBlockedHostsForSemrush,
           skipGsc: false,
           silent: true,
         };
@@ -582,7 +573,6 @@ export function useOverviewTabResearchPipelines({
       site,
       gscQuickWinsFile,
       serpDumpUrl,
-      portfolioBlockedHostsForSemrush,
       setGscQuickWinsFile,
       updateRow,
       bindings,
@@ -740,27 +730,10 @@ export function useOverviewTabResearchPipelines({
               })
             : [];
 
-          let ansHtml = !isPages ? extractAnswerSectionHtml(resolvedHtml) : "";
-          let ovHtml = !isPages ? extractOverviewSectionHtml(resolvedHtml) : "";
-          const withoutLead = !isPages
-            ? stripLeadingOverviewSection(stripLeadingAnswerSection(resolvedHtml))
-            : "";
-          const coreOnly = !isPages ? stripTrailingFaqSection(withoutLead) : "";
-          const trailingFaq =
-            !isPages && withoutLead.length > coreOnly.length
-              ? withoutLead.slice(coreOnly.length).trim()
-              : "";
-          const parsedBlog = !isPages
-            ? splitHtmlBodyIntoH2PassageSections(coreOnly)
-            : { leadingHtml: "", sections: [] };
-
-          let leadingHtml = parsedBlog.leadingHtml;
-          const leadCount =
-            (!isPages && ansHtml.trim() ? 1 : 0) +
-            (!isPages && ovHtml.trim() ? 1 : 0) +
-            (!isPages && leadingHtml.trim() ? 1 : 0);
-          const sectionCount = isPages ? pageHeaders.length : parsedBlog.sections.length;
-          const totalSteps = 1 + leadCount + sectionCount + 1;
+          const bodyStepsCount = isPages
+            ? pageHeaders.length
+            : countAutoSeoBlogBodySteps(resolvedHtml);
+          const totalSteps = 1 + bodyStepsCount + 2;
 
           // Step 1: SERP Research Brief (never gate the run if DataForSEO has a payment/auth issue)
           setStepTelemetry(url, pos, 1, totalSteps, "SERP Research Brief");
@@ -783,101 +756,6 @@ export function useOverviewTabResearchPipelines({
               console.warn("[Auto SEO] Research step warning for", url, err);
             } finally {
               updateRow(idx, { status: "idle" });
-            }
-          }
-
-          const passageRewriteCtx = {
-            articleTitle: latestRow.aiTitle?.trim() || latestRow.title || "",
-            focusKeyword: latestRow.focusKeyword?.trim() || "",
-            seoResearchBrief: latestRow.seoResearch,
-            siteId: site.id,
-            siteUrl: site.siteUrl,
-            pageUrl: url,
-            businessName: site.name,
-          };
-
-          // Step 3+: Answer, Overview, intro lead, then H2 passages (full blog)
-          if (!isPages) {
-            let stepNum = 2;
-            const siblingTitles = parsedBlog.sections.map((s) => s.title);
-            const commitBlogHtml = (sections: typeof parsedBlog.sections) => {
-              const html = stitchOverviewBlogPostHtml({
-                ansHtml,
-                ovHtml,
-                leadingHtml,
-                sections,
-                trailingFaq,
-              });
-              updateRow(idx, {
-                postContentOptimized: html,
-                postContent: html,
-              });
-            };
-            if (ansHtml.trim()) {
-              if (!isOptimizeAllRunCurrent(runId)) return;
-              setStepTelemetry(url, pos, stepNum, totalSteps, "Answer");
-              stepNum += 1;
-              const ansBefore = ansHtml;
-              try {
-                ansHtml = await rewriteBlogLeadSectionBlock(ansHtml, {
-                  ...passageRewriteCtx,
-                  siblingTitles,
-                });
-                recordOverviewStudioRevision({
-                  pageUrl: url,
-                  stepLabel: "Answer",
-                  runId: revisionRunId,
-                  beforeHtml: ansBefore,
-                  afterHtml: ansHtml,
-                });
-                commitBlogHtml(parsedBlog.sections);
-              } catch (err) {
-                console.warn("[Auto SEO] Answer section warning for", url, err);
-              }
-            }
-            if (ovHtml.trim()) {
-              if (!isOptimizeAllRunCurrent(runId)) return;
-              setStepTelemetry(url, pos, stepNum, totalSteps, "Overview");
-              stepNum += 1;
-              const ovBefore = ovHtml;
-              try {
-                ovHtml = await rewriteBlogLeadSectionBlock(ovHtml, {
-                  ...passageRewriteCtx,
-                  siblingTitles,
-                });
-                recordOverviewStudioRevision({
-                  pageUrl: url,
-                  stepLabel: "Overview",
-                  runId: revisionRunId,
-                  beforeHtml: ovBefore,
-                  afterHtml: ovHtml,
-                });
-                commitBlogHtml(parsedBlog.sections);
-              } catch (err) {
-                console.warn("[Auto SEO] Overview section warning for", url, err);
-              }
-            }
-            if (leadingHtml.trim()) {
-              if (!isOptimizeAllRunCurrent(runId)) return;
-              setStepTelemetry(url, pos, stepNum, totalSteps, "Introduction");
-              stepNum += 1;
-              const introBefore = leadingHtml;
-              try {
-                leadingHtml = await rewriteBlogLeadSectionBlock(leadingHtml, {
-                  ...passageRewriteCtx,
-                  siblingTitles,
-                });
-                recordOverviewStudioRevision({
-                  pageUrl: url,
-                  stepLabel: "Introduction",
-                  runId: revisionRunId,
-                  beforeHtml: introBefore,
-                  afterHtml: leadingHtml,
-                });
-                commitBlogHtml(parsedBlog.sections);
-              } catch (err) {
-                console.warn("[Auto SEO] Intro lead warning for", url, err);
-              }
             }
           }
 
@@ -943,73 +821,31 @@ export function useOverviewTabResearchPipelines({
               }
             }
           } else {
-            const workingSections = [...parsedBlog.sections];
-            for (let sIdx = 0; sIdx < workingSections.length; sIdx += 1) {
-              if (!isOptimizeAllRunCurrent(runId)) return;
-              const sec = workingSections[sIdx]!;
-              const stepNum = 1 + leadCount + sIdx + 1;
-              setStepTelemetry(
-                url,
-                pos,
-                stepNum,
-                totalSteps,
-                sec.title?.trim() || `Section ${sIdx + 1}`,
-              );
-              if (!sec.bodyHtml.trim()) continue;
-
-              const passageBefore = sec.bodyHtml;
-              try {
-                const rewritten = await rewriteBlogPassageSection({
-                  mode: "copy",
-                  section: sec,
-                  siblingTitles: workingSections
-                    .filter((_, i) => i !== sIdx)
-                    .map((s) => s.title),
-                  articleTitle: latestRow.aiTitle?.trim() || latestRow.title || "",
-                  focusKeyword: latestRow.focusKeyword?.trim() || "",
-                  seoResearchBrief: latestRow.seoResearch,
-                  siteId: site.id,
-                  siteUrl: site.siteUrl,
-                  pageUrl: url,
-                  businessName: site.name,
-                });
-                if (!isOptimizeAllRunCurrent(runId)) return;
-                const nextBody = normalizeSectionProseHtml(rewritten.bodyHtml);
-                recordOverviewStudioRevision({
-                  pageUrl: url,
-                  stepLabel: sec.title?.trim() || `Section ${sIdx + 1}`,
-                  sectionTitle: sec.title?.trim() || undefined,
-                  runId: revisionRunId,
-                  beforeHtml: passageBefore,
-                  afterHtml: nextBody,
-                });
-                workingSections[sIdx] = {
-                  ...sec,
-                  bodyHtml: nextBody,
-                };
-                const nextFull = stitchOverviewBlogPostHtml({
-                  ansHtml,
-                  ovHtml,
-                  leadingHtml,
-                  sections: workingSections,
-                  trailingFaq,
-                });
+            await runAutoSeoBlogBodyRewrite({
+              sourceHtml: resolvedHtml,
+              articleTitle: latestRow.aiTitle?.trim() || latestRow.title || "",
+              focusKeyword: latestRow.focusKeyword?.trim() || "",
+              seoResearchBrief: latestRow.seoResearch,
+              site,
+              pageUrl: url,
+              sitemapSource,
+              revisionRunId,
+              shouldContinue: () => isOptimizeAllRunCurrent(runId),
+              onStepProgress: (stepIndex, _totalBodySteps, stepLabel) => {
+                setStepTelemetry(url, pos, 1 + stepIndex, totalSteps, stepLabel);
+              },
+              onCommitHtml: (nextFull, h2Titles) => {
                 updateRow(idx, {
                   postContentOptimized: nextFull,
                   postContent: nextFull,
+                  ...(h2Titles.length > 0 ? { blogH2List: h2Titles } : {}),
                 });
-              } catch (err) {
-                console.warn(
-                  `[Auto SEO] Blog passage ${sIdx + 1} (${sec.title}) warning for ${url}:`,
-                  err,
-                );
-              }
-            }
+              },
+            });
           }
 
-          // Final step: SEO title + meta (sequential) parallel with FAQs
+          // Final steps: SEO Title & Meta Description, then FAQs (strictly one by one)
           if (!isOptimizeAllRunCurrent(runId)) return;
-          setStepTelemetry(url, pos, totalSteps, totalSteps, "SEO Meta & FAQs");
           try {
             await runAutoSeoMetaAndFaqFinale({
               rowIndex: idx,
@@ -1019,6 +855,13 @@ export function useOverviewTabResearchPipelines({
               handleAiTitleRow,
               handleAiMetaRow,
               handleAiFaqRowAll,
+              onStepStart: (stepLabel) => {
+                const stepNum =
+                  stepLabel === "SEO Title & Meta Description"
+                    ? totalSteps - 1
+                    : totalSteps;
+                setStepTelemetry(url, pos, stepNum, totalSteps, stepLabel);
+              },
             });
           } finally {
             updateRow(idx, { status: "idle" });

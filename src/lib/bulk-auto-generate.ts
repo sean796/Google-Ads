@@ -1,11 +1,15 @@
 import { resolveSerpLocationName } from '@/lib/llm-audit/fetch-seo-content-brief-wave';
+import {
+  analyzeBulkCsvKeyword,
+  applyCsvPrimaryKeywordToResearch,
+} from '@/lib/bulk/bulk-csv-keyword-analyze';
+import { getResearchModel } from '@/lib/optimization-settings-storage';
 import { BulkFileManager, type BulkGeneratedFile } from './bulk-file-manager';
 import type {
   KeywordAnalysisComplete,
   KeywordAnalysisOptions,
 } from './keyword-types';
 import { hasCsvFilledWikipediaUrl } from './bulk/prefilled-bulk-row-contract';
-import { buildBlogImportKeywordResearchStub } from './bulk/blog-import-parse';
 import type { BulkProcessingOptions } from './bulk/bulk-auto-generate-types';
 import type { CSVRow } from './bulk/bulk-csv-parser';
 
@@ -159,48 +163,21 @@ export async function generateRowOutputs(
       throw new Error('CSV row missing keyword');
     }
 
-    const buildCsvKeywordResearch = (): KeywordAnalysisComplete => {
-      const stub = buildBlogImportKeywordResearchStub(row);
-      return {
-        result: {
-          primaryKeyword: stub.primaryKeyword,
-          keywordData: stub.keywordData,
-          semanticKeywords: [],
-          searchIntent: stub.keywordData.intent || 'informational',
-        },
-        aiAnalysis: stub.aiAnalysis,
-        keywordsVolumeData: [],
-        paaRawResponse: null,
-      };
-    };
-
     options.onProgress?.(rowIndex, 0, 'Running keyword research...');
-    let research: KeywordAnalysisComplete | null = null;
-    try {
-      research = await analyzeKeywordFn(csvKeyword, {
+    void analyzeKeywordFn;
+    let research = await analyzeBulkCsvKeyword({
+      primaryKeyword: csvKeyword,
+      options: {
         location: bulkRowSerpLocationName(row),
         language: 'en',
-        strict: false,
-      });
-    } catch (err) {
-      console.warn('[Bulk Generator] DataForSEO keyword research failed, using CSV keyword:', err);
-    }
-
-    if (!research?.result?.keywordData || !research.aiAnalysis) {
-      research = buildCsvKeywordResearch();
-    } else {
-      research = {
-        ...research,
-        result: {
-          ...research.result,
-          primaryKeyword: csvKeyword,
-          keywordData: {
-            ...research.result.keywordData,
-            keyword: csvKeyword,
-          },
-        },
-      };
-    }
+      },
+      openRouterApiKey: options.openRouterApiKey,
+      selectedModel: options.selectedModel?.trim() || getResearchModel(),
+      temperature: options.temperature,
+      maxTokens: options.maxTokens,
+      topP: options.topP,
+    });
+    research = applyCsvPrimaryKeywordToResearch(research, csvKeyword);
 
     return { files: generatedFiles, research };
   } catch (error) {

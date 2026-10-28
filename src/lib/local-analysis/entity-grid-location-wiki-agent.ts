@@ -38,9 +38,9 @@ import {
   LOCAL_ANALYSIS_SUGGEST_SAP_MIN_PER_TARGET,
 } from "@/lib/local-analysis-target-constants";
 import { entityTypeFocusWantsNeighbourhoods } from "@/lib/entity-geographic-level";
+import { isLeakedInstructionEntityLabel } from "@/lib/local-analysis/entity-label-guards";
 import { isCityLevelOnlyEntity } from "@/lib/local-analysis/entity-preload-suggested-keywords";
 import { sapKeywordFromShortBaseAndEntity } from "@/lib/local-analysis/entity-sap-row-keyword-fill";
-import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
 import {
   bucketPlaceHints,
   harvestWikiPlacesForCity,
@@ -49,9 +49,9 @@ import {
   wikiEntryToGridClusterWiki,
   type WikiGeoEntry,
 } from "@/lib/wikipedia/wiki-entity-pool";
-import { filterWikipediaTitlesForCommunityEntity } from "@/lib/wikipedia/filter-wikipedia-titles-for-community-entity-openrouter";
+import { isRejectedSapGridEntityLabel } from "@/lib/local-analysis/sap-grid-entity-reject";
 import { appendMasterInstructionsToSystemPrompt } from "@/lib/master-instructions-storage";
-import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
+import { openRouterAssistantTextFromMessage, postOpenRouterAppChat } from "@/lib/openrouter-app-api";
 
 export { isCityLevelOnlyEntity };
 
@@ -63,8 +63,9 @@ Output **only** valid JSON:
 Rules:
 - \`parentCity\` must echo \`gridPlaceLabel\` (the parent MapPin city ad group).
 - Return **exactly** \`count\` distinct sub-ads in \`entities\` — each a **child neighbourhood inside parentCity**, not a different city.
-- **name:** first segment must be a **named community or landmark** (neighbourhood, district, park, mall, civic complex), then city, then province/state (e.g. "Millwood, Altona, MB", "Altona Community Centre, Altona, MB"). **Not** a street token, civic number, or ordinal route (\`2 St\`, \`130 Ave\`).
-- **Priority order for first segment:** (1) neighbourhoods and residential quarters; (2) business or historic districts; (3) parks, landmarks, malls, civic complexes; (4) only if nothing else fits from grid evidence, a named corridor — never numbered routes or bare address fragments.
+- **name:** first segment must be a **named community or consumer-facing place** (neighbourhood, district, park, mall, community centre), then city, then province/state (e.g. "Millwood, Altona, MB", "Altona Community Centre, Altona, MB"). **Not** a street token, civic number, or ordinal route (\`2 St\`, \`130 Ave\`).
+- **Priority order for first segment:** (1) neighbourhoods and residential quarters; (2) business or historic districts; (3) parks, malls, community centres; (4) only if nothing else fits from grid evidence, a named corridor — never numbered routes or bare address fragments.
+- **Never use:** police/sheriff/fire HQs, jails, courthouses, embassies, military bases, person names, crime/news events, abstract topics, or country names alone unless grid \`sampleAddresses\` name that local place.
 - **posWeight:** positive number from grid POS — higher when more/weaker pins in \`sampleAddresses\` fall in that neighbourhood.
 - **Forbidden:** parent city only (e.g. "Altona, MB"), directional composites ("South West Altona", "North East City"), street names, avenues, roads, highways, corridors, bare addresses.
 - Use \`sampleAddresses\` and \`gridLocations\` to pick neighbourhoods that contain those pins within parentCity.
@@ -75,7 +76,9 @@ Rules:
 - Read **Client & site context** from the user payload. When the client serves **professional / B2B services** (accounting, tax, legal, advisory, consulting), **prioritize** business districts, downtown cores, commercial corridors, business parks, and industrial pockets; **deprioritize** individual schools, school districts, school boards, and campus-only labels.
 - Grid pins near a school are **scan evidence only**; do not use the school as the entity unless client context is education-focused.
 - When \`entityTypeFocus\` includes business or industrial types, reorder priority accordingly (business districts before residential quarters when both fit grid evidence).
-- When no client context is provided, keep the default priority order above.`;
+- When no client context is provided, keep the default priority order above.
+
+When \`wikipediaPool\` is in the user payload, every \`entities[].name\` MUST be copied **exactly** from one \`entityLabel\` in that list (same spelling and commas). Do not invent names outside the pool.`;
 
 const DIRECTIONAL_COMPASS_PREFIX = /^(North|South)\s+(East|West)\s+/i;
 
@@ -217,6 +220,9 @@ function assertNeighbourhoodSubAdEntity(
   if (isCityLevelOnlyEntity(entity, parentLabel)) {
     throw new Error(`Neighbourhood entity "${entity}" is city-level only for ${parentLabel}.`);
   }
+  if (isRejectedSapGridEntityLabel(entity)) {
+    throw new Error(`Neighbourhood entity "${entity}" is not an allowed local grid place.`);
+  }
   const key = entity.trim().toLowerCase();
   if (usedKeys.has(key)) {
     throw new Error(`Neighbourhood entity "${entity}" is already used in this run.`);
@@ -227,7 +233,109 @@ function assertNeighbourhoodSubAdEntity(
 export type PickNeighbourhoodEntitiesOptions = {
   clientAudienceContextMarkdown?: string;
   entityTypeFocus?: readonly string[];
+  wikipediaPool?: readonly { entityLabel: string; wikipediaTitle: string }[];
 };
+
+function neighbourhoodPicksFromOpenRouterContent(raw: string): NeighbourhoodPick[] {
+  let text = raw.trim();
+  if (!text) return [];
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced?.[1]?.trim()) {
+    text = fenced[1].trim();
+  }
+  const list: NeighbourhoodPick[] = [];
+  const pushName = (name: string, posWeight?: unknown) => {
+    const trimmedName = name.trim();
+    if (!trimmedName || isLeakedInstructionEntityLabel(trimmedName)) return;
+    if (isRejectedSapGridEntityLabel(trimmedName)) return;
+    const w = Number(posWeight);
+    list.push({
+      name: trimmedName,
+      posWeight: Number.isFinite(w) && w > 0 ? w : 1,
+    });
+  };
+  try {
+    const parsed = JSON.parse(text) as { entities?: unknown; entity?: unknown };
+    if (Array.isArray(parsed.entities)) {
+      for (const item of parsed.entities) {
+        if (typeof item === "string") {
+          pushName(item);
+          continue;
+        }
+        if (item && typeof item === "object") {
+          const rec = item as { name?: unknown; posWeight?: unknown; entity?: unknown };
+          pushName(String(rec.name ?? rec.entity ?? ""), rec.posWeight);
+        }
+      }
+    } else if (typeof parsed.entity === "string") {
+      pushName(parsed.entity);
+    }
+  } catch {
+    return [];
+  }
+  return list;
+}
+
+/** Harvested Wikipedia rows → neighbourhood picks (no second OpenRouter pass). */
+export function neighbourhoodPicksFromWikiPool(
+  pool: readonly { entityLabel: string }[],
+  count: number,
+  entitiesAlreadyUsed: readonly string[],
+): NeighbourhoodPick[] {
+  const need = Math.max(1, Math.floor(count));
+  const used = new Set(entitiesAlreadyUsed.map((s) => s.trim().toLowerCase()).filter(Boolean));
+  const picks: NeighbourhoodPick[] = [];
+  const push = (raw: string) => {
+    const name = normalizeEntityHintCommaLabel(raw.trim());
+    if (!name || isLeakedInstructionEntityLabel(name)) return;
+    if (isRejectedSapGridEntityLabel(name)) return;
+    const key = name.toLowerCase();
+    if (used.has(key)) return;
+    used.add(key);
+    picks.push({ name, posWeight: 1 });
+  };
+  for (const entry of pool) {
+    if (picks.length >= need) break;
+    push(entry.entityLabel);
+  }
+  if (pool.length === 0) return picks;
+  let guard = 0;
+  while (picks.length < need && guard < need * pool.length * 3) {
+    const entry = pool[guard % pool.length]!;
+    push(entry.entityLabel);
+    guard += 1;
+  }
+  return picks.slice(0, need);
+}
+
+function neighbourhoodPicksFromChatResult(
+  result: Awaited<ReturnType<typeof postOpenRouterAppChat>>,
+): NeighbourhoodPick[] {
+  const chunks: string[] = [];
+  if (result.parsed && typeof result.parsed === "object" && !Array.isArray(result.parsed)) {
+    chunks.push(JSON.stringify(result.parsed));
+  }
+  if (typeof result.content === "string" && result.content.trim()) {
+    chunks.push(result.content);
+  }
+  const raw = result.raw;
+  if (raw && typeof raw === "object") {
+    const choices = Array.isArray((raw as { choices?: unknown }).choices)
+      ? (raw as { choices: unknown[] }).choices
+      : null;
+    const message =
+      choices?.[0] && typeof choices[0] === "object"
+        ? (choices[0] as { message?: unknown }).message
+        : undefined;
+    const fromMessage = openRouterAssistantTextFromMessage(message);
+    if (fromMessage.trim()) chunks.push(fromMessage);
+  }
+  for (const chunk of chunks) {
+    const picks = neighbourhoodPicksFromOpenRouterContent(chunk);
+    if (picks.length > 0) return picks;
+  }
+  return [];
+}
 
 export async function pickNeighbourhoodEntitiesForCluster(
   bucket: GridLocationBucket,
@@ -253,65 +361,42 @@ export async function pickNeighbourhoodEntitiesForCluster(
   };
   if (clientCtx) userPayload.clientAudienceContextMarkdown = clientCtx;
   if (entityTypeFocus?.length) userPayload.entityTypeFocus = entityTypeFocus;
+  const pool = options?.wikipediaPool?.filter((e) => e.entityLabel?.trim() && e.wikipediaTitle?.trim());
+  if (pool?.length) userPayload.wikipediaPool = pool.slice(0, 80);
 
   const systemPrompt = appendMasterInstructionsToSystemPrompt(NEIGHBOURHOOD_PICK_SYSTEM, siteId ?? null);
-  const res = await postOpenRouterAppChatFetch( {
-    method: "POST",
-    headers: openRouterWebAppHeaders(apiKey),
-    body: JSON.stringify({
-      model: getResearchModel(siteId),
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: JSON.stringify(userPayload),
-        },
-      ],
-      temperature: 0.2,
-      response_format: { type: "json_object" },
-      stream: false,
-    }),
+  const result = await postOpenRouterAppChat({
+    apiKey,
+    model: getResearchModel(siteId),
+    system: systemPrompt,
+    user: JSON.stringify(userPayload),
+    temperature: 0.2,
+    responseFormat: { type: "json_object" },
   });
-
-  if (!res.ok) {
-    throw new Error(`Neighbourhood pick request failed for ${bucket.placeLabel}.`);
-  }
-
-  const j = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-  const raw = j.choices?.[0]?.message?.content ?? "";
-  if (!raw.trim()) {
-    throw new Error(`Neighbourhood pick returned empty content for ${bucket.placeLabel}.`);
-  }
-
-  const parsed = JSON.parse(raw) as { entities?: unknown; entity?: unknown };
-  const list: NeighbourhoodPick[] = [];
-  if (Array.isArray(parsed.entities)) {
-    for (const item of parsed.entities) {
-      if (typeof item === "string" && item.trim()) {
-        list.push({ name: item.trim(), posWeight: 1 });
-        continue;
-      }
-      if (item && typeof item === "object") {
-        const rec = item as { name?: unknown; posWeight?: unknown; entity?: unknown };
-        const name = String(rec.name ?? rec.entity ?? "").trim();
-        if (!name) {
-          throw new Error(`Neighbourhood pick returned an entity with no name for ${bucket.placeLabel}.`);
-        }
-        const w = Number(rec.posWeight);
-        list.push({
-          name,
-          posWeight: Number.isFinite(w) && w > 0 ? w : 1,
-        });
-      }
+  let picks = neighbourhoodPicksFromChatResult(result).slice(0, n);
+  const wikiPool = pool ?? options?.wikipediaPool;
+  if (picks.length < n && wikiPool?.length) {
+    const fromPool = neighbourhoodPicksFromWikiPool(
+      wikiPool,
+      n,
+      [...entitiesAlreadyUsed, ...picks.map((p) => p.name)],
+    );
+    const seen = new Set(picks.map((p) => p.name.trim().toLowerCase()));
+    for (const p of fromPool) {
+      if (picks.length >= n) break;
+      const key = p.name.trim().toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      picks.push(p);
     }
-  } else if (typeof parsed.entity === "string" && parsed.entity.trim()) {
-    list.push({ name: parsed.entity.trim(), posWeight: 1 });
   }
-
-  if (list.length !== n) {
-    throw new Error(`Neighbourhood pick returned ${list.length}/${n} entities for ${bucket.placeLabel}.`);
+  if (picks.length < n && wikiPool?.length) {
+    picks = cycleItemsForRowCount(
+      picks.length > 0 ? picks : neighbourhoodPicksFromWikiPool(wikiPool, 1, entitiesAlreadyUsed),
+      n,
+    );
   }
-  return list;
+  return picks.slice(0, n);
 }
 
 /**
@@ -488,35 +573,34 @@ type FillDistinctNeighbourhoodSlotsOptions = {
   progressTotal?: number;
 };
 
-async function filterWikiPoolForClientContext(args: {
-  pool: WikiGeoEntry[];
-  apiKey: string;
-  siteId?: string;
-  clientAudienceContextMarkdown?: string;
-}): Promise<WikiGeoEntry[]> {
-  const ctx = args.clientAudienceContextMarkdown?.trim();
-  if (!ctx || args.pool.length === 0) return args.pool;
-  const kept = await filterWikipediaTitlesForCommunityEntity({
-    apiKey: args.apiKey,
-    siteId: args.siteId,
-    titles: args.pool.map((e) => e.wikipediaTitle),
-    clientAudienceContextMarkdown: ctx,
-  });
-  if (kept.length === 0) return [];
-  const keptSet = new Set(kept.map((t) => t.toLowerCase()));
-  return args.pool.filter((e) => keptSet.has(e.wikipediaTitle.toLowerCase()));
-}
-
 function isAcceptableSubAdEntity(
   entity: string,
   parentLabel: string,
   usedKeys: Set<string>,
 ): boolean {
-  if (!entity || isStreetCorridorPlaceLabel(entity)) return false;
+  if (!entity || isLeakedInstructionEntityLabel(entity)) return false;
+  if (isRejectedSapGridEntityLabel(entity)) return false;
+  if (isStreetCorridorPlaceLabel(entity)) return false;
   if (isDirectionalCompassPlaceLabel(entity)) return false;
   if (isCityLevelOnlyEntity(entity, parentLabel)) return false;
   const key = entity.trim().toLowerCase();
   return !usedKeys.has(key);
+}
+
+function wikiGeoEntryForPickName(pool: readonly WikiGeoEntry[], pickName: string): WikiGeoEntry | undefined {
+  const normalizedPick = normalizeEntityHintCommaLabel(pickName).trim().toLowerCase();
+  if (!normalizedPick) return undefined;
+  for (const entry of pool) {
+    const label = normalizeEntityHintCommaLabel(entry.entityLabel).trim().toLowerCase();
+    if (label === normalizedPick) return entry;
+  }
+  const head = normalizedPick.split(",")[0]?.trim() ?? "";
+  if (!head) return undefined;
+  for (const entry of pool) {
+    const label = normalizeEntityHintCommaLabel(entry.entityLabel).trim().toLowerCase();
+    if (label.startsWith(head)) return entry;
+  }
+  return undefined;
 }
 
 /** One distinct sub-ad entity per slot under a parent city bucket (Wikipedia harvest → AI pick). */
@@ -550,103 +634,93 @@ async function fillDistinctNeighbourhoodSlotsForBucket(
 
   onProgress?.(`Harvesting Wikipedia places for ${parentLabel}`, progressCompleted, progressTotal);
 
+  const harvestMin = Math.max(ads, 12);
+  const harvestHints = [
+    ...new Set([...localHints, ...gridLocations.map((s) => s.trim()).filter(Boolean)].slice(0, 48)),
+  ];
   const { pool: rawPool } = await harvestWikiPlacesForCity({
     bucket,
-    gridPlaceHints: localHints,
-    minCount: ads,
+    gridPlaceHints: harvestHints.length > 0 ? harvestHints : localHints,
+    minCount: harvestMin,
     wikipediaSearchAugment,
   });
 
-  const pool = await filterWikiPoolForClientContext({
-    pool: rawPool,
-    apiKey,
-    siteId,
-    clientAudienceContextMarkdown,
-  });
+  onProgress?.(`Selecting ${ads} neighbourhoods for ${parentLabel}`, progressCompleted, progressTotal);
 
-  const excludeTitles = [
-    ...globalUsedNames,
-    ...[...globalUsedKeys].map((k) => k),
-  ];
+  let pickedFromPool: WikiGeoEntry[] = [];
+  if (rawPool.length > 0 && apiKey.trim() && gridSummaryMarkdown.trim()) {
+    pickedFromPool = await pickWikiEntriesFromPool({
+      pool: rawPool,
+      count: ads,
+      parentCity: parentLabel,
+      sampleAddresses: bucket.sampleAddresses,
+      gridLocations: harvestHints.length > 0 ? harvestHints : localHints,
+      gridSummaryMarkdown,
+      excludeTitles: globalUsedNames,
+      apiKey,
+      siteId,
+      clientAudienceContextMarkdown,
+      entityTypeFocus,
+    });
+  }
 
-  onProgress?.(`Selecting ${ads} Wikipedia places for ${parentLabel}`, progressCompleted, progressTotal);
+  const nhPicks: NeighbourhoodPick[] =
+    pickedFromPool.length > 0
+      ? pickedFromPool.map((e) => ({
+          name: normalizeEntityHintCommaLabel(e.entityLabel) || e.entityLabel.trim(),
+          posWeight: 1,
+        }))
+      : neighbourhoodPicksFromWikiPool(
+          rawPool.map((e) => ({ entityLabel: e.entityLabel })),
+          ads,
+          globalUsedNames,
+        );
 
-  const picked = await pickWikiEntriesFromPool({
-    pool,
-    count: ads,
-    parentCity: parentLabel,
-    sampleAddresses: bucket.sampleAddresses,
-    gridLocations: localHints,
-    gridSummaryMarkdown,
-    excludeTitles,
-    apiKey,
-    siteId,
-    clientAudienceContextMarkdown,
-    entityTypeFocus,
-  });
+  let picks = nhPicks.filter((p) => p.name.trim() && !isRejectedSapGridEntityLabel(p.name));
+  if (picks.length < ads) {
+    picks = cycleItemsForRowCount(
+      picks.length > 0 ? picks : [{ name: parentLabel, posWeight: 1 }],
+      ads,
+    );
+  }
 
   const slots: SubAdSlot[] = [];
-  const addSlot = (entry: WikiGeoEntry) => {
-    if (!isWikiTitleScopedToParentCity(entry.wikipediaTitle, parentLabel)) return;
-    const entity = normalizeEntityHintCommaLabel(entry.entityLabel);
-    if (!entity || !isAcceptableSubAdEntity(entity, parentLabel, globalUsedKeys)) return;
+  for (const pick of picks.slice(0, ads)) {
+    const entity = normalizeEntityHintCommaLabel(pick.name) || pick.name.trim();
+    if (!entity || isRejectedSapGridEntityLabel(entity)) continue;
+    const matched = wikiGeoEntryForPickName(rawPool, entity) ?? pickedFromPool.find(
+      (e) =>
+        normalizeEntityHintCommaLabel(e.entityLabel).trim().toLowerCase() === entity.trim().toLowerCase(),
+    );
+    let wiki: GridClusterWikipedia | null = matched
+      ? wikiEntryToGridClusterWiki(matched, bucket.placeLabel)
+      : null;
+    if (!wiki) {
+      wiki = await resolveNeighbourhoodWikiOnly(entity, bucket, apiKey, siteId);
+    }
+    if (!wiki) {
+      wiki = cityWikiStampFromParent(entity, bucket);
+    }
+    if (!wiki) {
+      const title = matched?.wikipediaTitle?.trim() || entity.split(",")[0]?.trim() || entity;
+      wiki = {
+        gridPlaceLabel: bucket.placeLabel,
+        title,
+        url: wikipediaArticleUrl(title),
+      };
+    }
     const key = entity.trim().toLowerCase();
     globalUsedKeys.add(key);
     globalUsedNames.push(entity);
-    slots.push({
-      entity,
-      wiki: wikiEntryToGridClusterWiki(entry, bucket.placeLabel),
-    });
-  };
-
-  for (const entry of picked) {
-    addSlot(entry);
+    slots.push({ entity, wiki });
+    if (slots.length >= ads) break;
   }
 
-  if (slots.length < ads) {
-    const need = ads - slots.length;
-    onProgress?.(
-      `Supplementing ${need} neighbourhood slots for ${parentLabel}`,
-      progressCompleted,
-      progressTotal,
-    );
-    try {
-      const nhPicks = await pickNeighbourhoodEntitiesForCluster(
-        bucket,
-        localHints,
-        globalUsedNames,
-        need,
-        apiKey,
-        siteId,
-        { clientAudienceContextMarkdown, entityTypeFocus },
-      );
-      for (const pick of nhPicks) {
-        if (slots.length >= ads) break;
-        const entity = normalizeEntityHintCommaLabel(pick.name);
-        if (!entity || !isAcceptableSubAdEntity(entity, parentLabel, globalUsedKeys)) continue;
-        const wiki = await resolveNeighbourhoodWikiOnly(entity, bucket, apiKey, siteId);
-        if (!wiki) continue;
-        const wikiGeo = buildClusterWikiCandidateTiers(entity, bucket).geo;
-        const wikiIsCityContent = isCityLevelWikiTitle(wiki.title, wikiGeo);
-        if (!wikiIsCityContent && !isWikiTitleScopedToParentCity(wiki.title, parentLabel)) continue;
-        const key = entity.trim().toLowerCase();
-        globalUsedKeys.add(key);
-        globalUsedNames.push(entity);
-        slots.push({ entity, wiki });
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      throw new Error(`Neighbourhood supplement failed for ${parentLabel}: ${msg}`);
-    }
+  if (slots.length > 0 && slots.length < ads) {
+    return cycleItemsForRowCount(slots, ads);
   }
 
-  if (slots.length < ads) {
-    throw new Error(
-      `Only ${slots.length} of ${ads} distinct neighbourhoods for ${parentLabel}.`,
-    );
-  }
-
-  return slots;
+  return slots.slice(0, ads);
 }
 
 /** OpenRouter plans sub-ads per parent city; every slot gets a distinct entity and Wikipedia stamp. */
@@ -723,7 +797,7 @@ export async function resolveNeighbourhoodSapSlotsForLayout(
       progressTotal: total,
     });
 
-    for (const row of cycleItemsForRowCount(slots, ads)) {
+    for (const row of slots) {
       out.push({
         keyword: "",
         entity: row.entity,
@@ -737,11 +811,11 @@ export async function resolveNeighbourhoodSapSlotsForLayout(
     }
   }
 
-  if (out.length === 0) {
-    throw new Error(`Planned 0 of ${total} sub-ad slots. Check grid Address column and entity type focus.`);
+  if (out.length !== total) {
+    throw new Error(`Planned ${out.length} of ${total} sub-ad slots. Check grid Address column and entity type focus.`);
   }
 
-  return cycleItemsForRowCount(out, total);
+  return out;
 }
 
 function buildWikiMarkdown(entries: GridClusterWikipedia[]): string {
@@ -832,6 +906,8 @@ export type EntityLocationClusterFromBucketsOptions = {
   /** Existing entity labels from entity sitemap / origin ACF to exclude during clustering. */
   entitiesAlreadyUsedFromSitemap?: readonly string[];
   onClusterProgress?: (done: number, total: number, placeLabel: string, cumulativeSapRows: number) => void;
+  /** Human-readable phase labels for long wiki harvest / pick steps. */
+  onClusterPhase?: (phase: string) => void;
 };
 
 export type EntityGridLocationClusterOptions = EntityLocationClusterFromBucketsOptions & {
@@ -870,6 +946,7 @@ export async function runEntityLocationClusterFromBuckets(
     wikipediaSearchAugment,
     entitiesAlreadyUsedFromSitemap,
     onClusterProgress,
+    onClusterPhase,
   } = options;
   if (!apiKey.trim()) {
     throw new Error("OpenRouter API key is required for neighbourhood clustering.");
@@ -943,13 +1020,9 @@ export async function runEntityLocationClusterFromBuckets(
           entityTypeFocus,
           globalUsedKeys: usedKeys,
           globalUsedNames: entitiesUsed,
+          onProgress: (phase) => onClusterPhase?.(phase),
         });
-        if (slots.length < sapPageCount) {
-          throw new Error(
-            `Only ${slots.length} of ${sapPageCount} distinct neighbourhoods for ${parentLabel}.`,
-          );
-        }
-        for (const slot of slots.slice(0, sapPageCount)) {
+        for (const slot of slots) {
           clusterPlans.push({
             bucket,
             entity: slot.entity,
@@ -964,50 +1037,23 @@ export async function runEntityLocationClusterFromBuckets(
       }
 
       const neighbourhoodPickCount = Math.max(1, maxClustersForBudget(sapPageCount));
-      const parentLabel = normalizeEntityHintCommaLabel(cityLabel);
-      const localHints = bucketPlaceHints(bucket);
-      const { pool: rawPool } = await harvestWikiPlacesForCity({
+      const slots = await fillDistinctNeighbourhoodSlotsForBucket({
         bucket,
-        gridPlaceHints: localHints,
-        minCount: neighbourhoodPickCount,
-        wikipediaSearchAugment,
-      });
-      const pool = await filterWikiPoolForClientContext({
-        pool: rawPool,
-        apiKey,
-        siteId,
-        clientAudienceContextMarkdown,
-      });
-      const picked = await pickWikiEntriesFromPool({
-        pool,
-        count: neighbourhoodPickCount,
-        parentCity: parentLabel,
-        sampleAddresses: bucket.sampleAddresses,
-        gridLocations: localHints,
+        slotCount: neighbourhoodPickCount,
+        gridRows: gridRows ?? [],
+        gridLocations,
         gridSummaryMarkdown,
-        excludeTitles: entitiesUsed,
+        wikipediaSearchAugment,
         apiKey,
         siteId,
         clientAudienceContextMarkdown,
         entityTypeFocus,
+        globalUsedKeys: usedKeys,
+        globalUsedNames: entitiesUsed,
+        onProgress: (phase) => onClusterPhase?.(phase),
       });
-      const wikiByEntity = new Map<string, GridClusterWikipedia>();
-      const validPicks: NeighbourhoodPick[] = [];
-      for (const entry of picked) {
-        const entity = normalizeEntityHintCommaLabel(entry.entityLabel);
-        if (!entity || isStreetCorridorPlaceLabel(entity)) continue;
-        if (isDirectionalCompassPlaceLabel(entity)) continue;
-        if (isCityLevelOnlyEntity(entity, cityLabel)) continue;
-        const key = entity.trim().toLowerCase();
-        if (usedKeys.has(key)) continue;
-        usedKeys.add(key);
-        entitiesUsed.push(entity);
-        wikiByEntity.set(entity, wikiEntryToGridClusterWiki(entry, bucket.placeLabel));
-        validPicks.push({ name: entity, posWeight: 1 });
-      }
-      if (validPicks.length === 0) {
-        continue;
-      }
+      const wikiByEntity = new Map(slots.map((s) => [s.entity, s.wiki]));
+      const validPicks: NeighbourhoodPick[] = slots.map((s) => ({ name: s.entity, posWeight: 1 }));
       const allocations = allocatePagesAcrossNeighbourhoodPicks(validPicks, sapPageCount);
       for (const alloc of allocations) {
         const pages = Math.max(1, alloc.pages);
@@ -1065,13 +1111,8 @@ export async function runEntityLocationClusterFromBuckets(
   let sapRows = clusterSapRowsFromResolved(resolvedClusters);
   if (hasExplicitLayout) {
     const targetRows = explicitLayoutRowBudget(entityAdGroupCount!, entityAdsPerGroup!);
-    if (sapRows.length === 0) {
-      throw new Error(`Grid clustering produced 0 of ${targetRows} configured entity rows.`);
-    }
     if (sapRows.length !== targetRows) {
-      throw new Error(
-        `Grid clustering produced ${sapRows.length} entity row(s), expected ${targetRows}.`,
-      );
+      throw new Error(`Grid clustering produced ${sapRows.length} of ${targetRows} configured entity rows.`);
     }
   }
 

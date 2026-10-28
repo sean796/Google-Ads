@@ -86,7 +86,7 @@ export async function generateOptimizedMetaFields(
 
 CRITICAL REQUIREMENTS:
 1. SEO title: Act as a senior SEO content title specialist. Must be 50-60 characters, include primary keyword naturally near the BEGINNING (first few words), and be accurate, specific, and neutral. Treat the title as a neutral page label, not an advertisement. Reject clickbait, sensationalism, manufactured urgency, exaggerated importance, empty promotional claims, sales-driven calls to action, and immediate-action or acquisition framing. Avoid promotional hype verbs and marketing stock language such as boost, maximize, unlock, and similar. Do NOT prepend site name, business name, or brand. Forbidden: leading company/site before the topic (e.g. "Brand | …", "Brand – …", "Company: …", or "EJH Distribution …"). Output ONLY the topic-focused SEO title text - the same rule applies to Facebook and Twitter titles (no brand prefix; topic only)
-2. Meta description: MUST include the Focus Keyword (primary keyword) clearly.${isPage ? ' Naturally FRONT-LOAD the exact post title at the very beginning of the description (no quotes, no labels), then continue with a clear value proposition.' : ' Do NOT include the post title in the description. Start with a direct question hook or concrete benefit statement, then include a clear value proposition.'}
+2. Meta description: Write a grammatically natural, fluent 140-155 character sentence in standard sentence case. Weave the topic words from the Focus Keyword naturally with prepositions/articles (never shove the raw keyword at the start with a colon or force an ungrammatical keyword string).${isPage ? ' Naturally weave the page topic into the opening clause, then continue with a clear value proposition.' : ' Do NOT copy the post title verbatim; summarize the concrete value and specifics of the article in natural prose.'}
 ${META_DESCRIPTION_ANTI_CLICKBAIT_RULE}
 3. Focus keyword: Use the exact primary keyword provided
 4. Canonical URL: Use the post link if provided, otherwise construct from site URL and title
@@ -255,12 +255,6 @@ Return ONLY a JSON object with the optimized meta fields.`;
     optimizedMeta.rank_math_title = fullPostTitle;
   } else if (optimizedMeta.rank_math_title) {
     optimizedMeta.rank_math_title = String(optimizedMeta.rank_math_title).trim();
-  }
-  // Meta description must include focus keyword; if missing, append short phrase
-  const desc = optimizedMeta.rank_math_description || '';
-  if (desc && primaryKeyword && !desc.toLowerCase().includes(primaryKeyword.toLowerCase())) {
-    const suffix = ` Learn more about ${primaryKeyword}.`;
-    optimizedMeta.rank_math_description = `${desc.trim()}${suffix}`;
   }
 
   // Ensure focus keyword is set

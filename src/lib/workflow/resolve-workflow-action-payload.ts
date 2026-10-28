@@ -11,6 +11,7 @@ import {
   peekWorkflowGridCsvText,
   peekWorkflowGridKeyword,
 } from "@/lib/workflow/workflow-grid-csv-stash";
+import { readSitePrimaryLocalKeyword } from "@/lib/local-grid-studio/resolve-property-primary-local-keyword";
 
 type SiteNameSource = Pick<WordPressSite, "name" | "siteUrl" | "productionSiteUrl"> | null | undefined;
 
@@ -56,6 +57,7 @@ export function applyEntityPageCreatorWorkflowFocusKeyword(
   payload: TaskExecutionPayload,
   workflowRunId: number,
   fallbackKeyword?: string,
+  site?: SiteNameSource,
 ): TaskExecutionPayload {
   const next: TaskExecutionPayload = {
     ...payload,
@@ -64,6 +66,13 @@ export function applyEntityPageCreatorWorkflowFocusKeyword(
     gridCsvBase64: undefined,
     gridCsvUrl: undefined,
   };
+
+  if (!next.focusKeyword?.trim()) {
+    const profileKw = site ? readSitePrimaryLocalKeyword(site as WordPressSite) : "";
+    if (profileKw) {
+      next.focusKeyword = profileKw;
+    }
+  }
 
   if (!next.focusKeyword?.trim()) {
     const gridKeyword = resolveStashedGridFocusKeyword(workflowRunId, fallbackKeyword);
@@ -86,11 +95,16 @@ export function resolveWorkflowActionPayload(
   if (WORKFLOW_CLIENT_BUSINESS_KINDS.has(kind)) {
     resolved = withWorkflowClientBusinessName(resolved, site);
   }
-  if ((kind === "entity_page_creator" || kind === "entity_generator") && workflowRunId != null && workflowRunId > 0) {
+  if (
+    (kind === "entity_page_creator" || kind === "entity_generator" || kind === "sap_generator")
+    && workflowRunId != null
+    && workflowRunId > 0
+  ) {
     resolved = applyEntityPageCreatorWorkflowFocusKeyword(
       resolved,
       workflowRunId,
       siteBusinessName(site),
+      site,
     );
   }
   if (kind === "browser_automation") {

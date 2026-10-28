@@ -669,6 +669,14 @@ export async function fetchAndExtractVerifiedFact(input: {
   }
   try {
     const pageText = await fetchUrlTextViaApi(pageUrl);
+    if (!pageText || !pageText.trim()) {
+      return verifyClaimViaOpenRouter({
+        item: input.item,
+        keyword: input.keyword,
+        location: input.location,
+        researchAsOf: input.researchAsOf,
+      });
+    }
     return await extractVerifiedFactFromPageText({
       claimLabel: input.item.claimLabel,
       pageUrl,

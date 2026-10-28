@@ -20,13 +20,11 @@ import { useOverviewTabFaqHandlers } from "@/hooks/overview/use-overview-tab-faq
 import { useOverviewTabDfsResearch } from "@/hooks/overview/use-overview-tab-dfs-research";
 import { useOverviewTabResearchPipelines } from "@/hooks/overview/use-overview-tab-research-pipelines";
 import { useOverviewTabBulkSeoWp } from "@/hooks/overview/use-overview-tab-bulk-seo-wp";
-import { useOverviewTabElementorHarness } from "@/hooks/overview/use-overview-tab-elementor-harness";
 import {
   uploadAiseoRowAfterWrite,
   uploadOverviewAiseoWrittenRows,
   type AiseoAfterRowWriteFn,
 } from "@/lib/overview/overview-aiseo-after-upload";
-import { overviewBulkRowIndices } from "@/lib/overview/overview-bulk-row-scope";
 import { useCallback, useRef } from "react";
 
 export function useOverviewTabController(props: OverviewTabContentProps) {
@@ -66,18 +64,6 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
     [site, base.rowsRef, base.resolveBindings, base.getInventoryMatchForUrl, base.opt.setBulkOptimizationState],
   );
 
-  const elementorHarness = useOverviewTabElementorHarness({
-    site,
-    sitemapSource: base.sitemapSource,
-    rowsRef: base.visibleRowsRef,
-    bindingsRef,
-    getInventoryMatchForUrl: base.getInventoryMatchForUrl,
-    updateRow: base.updateRow,
-    opt: base.opt,
-    apiKey: props.apiKey,
-    selectedModel: props.selectedModel,
-  });
-
   const scrapeWp = useOverviewTabScrapeWp({
     site,
     sitemapSource: base.sitemapSource,
@@ -94,7 +80,6 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
     remapBindingUrl: base.remapBindingUrl,
     mergeInventoryContentForSource: base.mergeInventoryContentForSource,
     bulkScopeUrlKeys: base.bulkScopeUrlKeys,
-    hydrateElementorRowAtIndex: elementorHarness.hydrateRowAtIndex,
   });
 
   const faq = useOverviewTabFaqHandlers({
@@ -213,7 +198,6 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
     site,
     gscQuickWinsFile: base.gscQuickWinsFile,
     serpDumpUrl: base.serpDumpUrl,
-    portfolioBlockedHostsForSemrush: base.portfolioBlockedHostsForSemrush,
     sitemapSource: base.sitemapSource,
     deriveEntityKeyword: base.deriveEntityKeyword,
     deriveFocusKeywordFromPageContext: base.deriveFocusKeywordFromPageContext,
@@ -232,7 +216,6 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
     setGscQuickWinsFile: base.setGscQuickWinsFile,
     gscQuickWinsFile: base.gscQuickWinsFile,
     serpDumpUrl: base.serpDumpUrl,
-    portfolioBlockedHostsForSemrush: base.portfolioBlockedHostsForSemrush,
     site,
     opt: base.syncOpt,
     bulkSeoExtraOptions: base.bulkSeoExtraOptions,
@@ -271,6 +254,8 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
     selectedUrlKeys: base.selectedUrlKeys,
     setBulkActionProgress: base.setBulkActionProgress,
     getInventoryMatchForUrl: base.getInventoryMatchForUrl,
+    studioRowSource: props.studioRowSource,
+    getBulkGeneratorPushBindings: props.getBulkGeneratorPushBindings,
   });
 
   const blogHeaders = useOverviewTabBlogHeaders({
@@ -287,7 +272,6 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
     bulkScopeUrlKeys: base.bulkScopeUrlKeys,
     getInventoryMatchForUrl: base.getInventoryMatchForUrl,
     mergeInventoryContentForSource: base.mergeInventoryContentForSource,
-    shouldSkipRow: (row) => elementorHarness.shouldUseElementorPageHarness(row),
     uploadAfterRowWrite: aiseoUploadAfterRowWrite,
   });
 
@@ -378,7 +362,6 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
     bulkScopeUrlKeys: base.bulkScopeUrlKeys,
     getInventoryMatchForUrl: base.getInventoryMatchForUrl,
     uploadAfterRowWrite: aiseoUploadAfterRowWrite,
-    shouldSkipRow: (row) => elementorHarness.shouldUseElementorPageHarness(row),
   });
 
   const blogInContentImage = useOverviewTabBlogInContentImage({
@@ -397,8 +380,6 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
     prefetchOverviewInventory: base.prefetchOverviewInventory,
     uploadAfterRowWrite: aiseoUploadAfterRowWrite,
   });
-
-  const elementorHarnessHandlers = elementorHarness;
 
   const uploadAfterAiseo = useCallback(
     async (indices: number[]) => {
@@ -427,16 +408,10 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
 
   const handleAiAnswerRow = useCallback(
     async (index: number) => {
-      const row = base.visibleRows[index];
-      if (row && elementorHarnessHandlers.shouldUseElementorPageHarness(row)) {
-        await elementorHarnessHandlers.runHarness(index, "answer");
-        await uploadAfterAiseo([index]);
-      } else {
-        await blogAnswer.handleAiAnswerRow(index);
-      }
+      await blogAnswer.handleAiAnswerRow(index);
       base.syncRowsFromRef();
     },
-    [base.visibleRows, elementorHarnessHandlers, blogAnswer, uploadAfterAiseo, base.syncRowsFromRef],
+    [blogAnswer, base.syncRowsFromRef],
   );
 
   const handleAiAnswerAll = useCallback(
@@ -446,15 +421,10 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
 
   const handleAiOverviewRow = useCallback(
     async (index: number) => {
-      const row = base.visibleRows[index];
-      if (row && elementorHarnessHandlers.shouldUseElementorPageHarness(row)) {
-        await elementorHarnessHandlers.runHarness(index, "overview");
-      } else {
-        await blogOverview.handleAiOverviewRow(index);
-      }
+      await blogOverview.handleAiOverviewRow(index);
       base.syncRowsFromRef();
     },
-    [base.visibleRows, elementorHarnessHandlers, blogOverview, base.syncRowsFromRef],
+    [blogOverview, base.syncRowsFromRef],
   );
 
   const handleAiOverviewAll = useCallback(
@@ -464,56 +434,24 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
 
   const handleAiScenarioRow = useCallback(
     async (index: number) => {
-      const row = base.rowsRef.current[index];
-      if (row && elementorHarnessHandlers.shouldUseElementorPageHarness(row)) {
-        await elementorHarnessHandlers.runHarness(index, "scenario");
-        await uploadAfterAiseo([index]);
-      } else {
-        await blogScenario.handleAiScenarioRow(index);
-      }
+      await blogScenario.handleAiScenarioRow(index);
       base.syncRowsFromRef();
     },
-    [base.rowsRef, elementorHarnessHandlers, blogScenario, uploadAfterAiseo, base.syncRowsFromRef],
+    [blogScenario, base.syncRowsFromRef],
   );
 
   const handleAiScenarioAll = useCallback(
-    () =>
-      runAiseoBulkAll(async () => {
-        await blogScenario.handleAiScenarioAll();
-        const elementorIndices = overviewBulkRowIndices(
-          base.rowsRef.current,
-          base.bulkScopeUrlKeys,
-        ).filter((index) => {
-          const row = base.rowsRef.current[index];
-          return row?.url?.trim() && elementorHarnessHandlers.shouldUseElementorPageHarness(row);
-        });
-        for (const index of elementorIndices) {
-          await elementorHarnessHandlers.runHarness(index, "scenario");
-          await uploadAfterAiseo([index]);
-        }
-      }),
-    [
-      runAiseoBulkAll,
-      blogScenario,
-      base.rowsRef,
-      base.bulkScopeUrlKeys,
-      elementorHarnessHandlers,
-      uploadAfterAiseo,
-    ],
+    () => runAiseoBulkAll(() => blogScenario.handleAiScenarioAll()),
+    [runAiseoBulkAll, blogScenario],
   );
 
   const handleAiHeadersRow = useCallback(
     async (index: number) => {
-      const row = base.visibleRows[index];
-      if (row && elementorHarnessHandlers.shouldUseElementorPageHarness(row)) {
-        await elementorHarnessHandlers.handleAiElementorHeadersRow(index);
-      } else {
-        await blogHeaders.handleAiHeadersRow(index);
-      }
+      await blogHeaders.handleAiHeadersRow(index);
       await uploadAfterAiseo([index]);
       base.syncRowsFromRef();
     },
-    [base.visibleRows, elementorHarnessHandlers, blogHeaders, uploadAfterAiseo, base.syncRowsFromRef],
+    [blogHeaders, uploadAfterAiseo, base.syncRowsFromRef],
   );
 
   const handleAiHeadersAll = useCallback(
@@ -660,46 +598,6 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
     [runAiseoBulkAll, pipelines],
   );
 
-  const handleAiElementorSectionRow = useCallback(
-    async (...args: Parameters<typeof elementorHarnessHandlers.handleAiElementorSectionRow>) => {
-      await elementorHarnessHandlers.handleAiElementorSectionRow(...args);
-      await uploadAfterAiseo([args[0]]);
-    },
-    [elementorHarnessHandlers, uploadAfterAiseo],
-  );
-
-  const handleAiElementorSectionHeaderRow = useCallback(
-    async (...args: Parameters<typeof elementorHarnessHandlers.handleAiElementorSectionHeaderRow>) => {
-      await elementorHarnessHandlers.handleAiElementorSectionHeaderRow(...args);
-      await uploadAfterAiseo([args[0]]);
-    },
-    [elementorHarnessHandlers, uploadAfterAiseo],
-  );
-
-  const handleAiElementorSectionContentRow = useCallback(
-    async (...args: Parameters<typeof elementorHarnessHandlers.handleAiElementorSectionContentRow>) => {
-      await elementorHarnessHandlers.handleAiElementorSectionContentRow(...args);
-      await uploadAfterAiseo([args[0]]);
-    },
-    [elementorHarnessHandlers, uploadAfterAiseo],
-  );
-
-  const handleAiElementorSectionLinkRow = useCallback(
-    async (...args: Parameters<typeof elementorHarnessHandlers.handleAiElementorSectionLinkRow>) => {
-      await elementorHarnessHandlers.handleAiElementorSectionLinkRow(...args);
-      await uploadAfterAiseo([args[0]]);
-    },
-    [elementorHarnessHandlers, uploadAfterAiseo],
-  );
-
-  const handleAiElementorFullPageRow = useCallback(
-    async (index: number) => {
-      await elementorHarnessHandlers.handleAiElementorFullPageRow(index);
-      await uploadAfterAiseo([index]);
-    },
-    [elementorHarnessHandlers, uploadAfterAiseo],
-  );
-
   const handleContentCleanupRow = useCallback(
     async (index: number) => {
       await contentCleanup.handleContentCleanupRow(index);
@@ -768,12 +666,6 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
     handleGenerateLocalImageAll,
     handleContentCleanupRow,
     handleContentCleanupAll,
-    handleAiElementorSectionRow,
-    handleAiElementorSectionHeaderRow,
-    handleAiElementorSectionContentRow,
-    handleAiElementorSectionLinkRow,
-    handleAiElementorFullPageRow,
-    hydrateElementorRowAtIndex: elementorHarnessHandlers.hydrateRowAtIndex,
   };
 }
 

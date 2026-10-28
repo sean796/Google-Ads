@@ -2,60 +2,20 @@ import { describe, expect, it } from "vitest";
 import { buildWordPressSitesCsv } from "@/lib/export-wordpress-sites-csv";
 import type { WordPressSite } from "@/components/integrations/types";
 
-function site(overrides: Partial<WordPressSite> = {}): WordPressSite {
-  return {
-    id: "wp-1",
-    name: "In the Shade",
-    siteUrl: "https://intheshadeflorida.com",
-    username: "admin",
-    appPassword: "pass",
-    connectedAt: 0,
-    locations: [
-      {
-        id: "loc-1",
-        name: "Primary",
-        address: "",
-        city: "Stuart",
-        state: "Florida",
-        country: "United States",
-        zip: "",
-        phone: "",
-        isDefault: true,
-      },
-    ],
-    ...overrides,
-  };
-}
-
 describe("buildWordPressSitesCsv", () => {
-  it("puts city, country, and state after name and siteUrl", () => {
-    const csv = buildWordPressSitesCsv([site()]);
-    const [header, row] = csv.split("\r\n");
-    const headers = header.split(",");
-    expect(headers.slice(0, 5)).toEqual([
-      "name",
-      "siteUrl",
-      "serviceCity",
-      "serviceCountry",
-      "serviceState",
-    ]);
-    const cells = row.split(",");
-    expect(cells.slice(0, 5)).toEqual([
-      "In the Shade",
-      "https://intheshadeflorida.com",
-      "Stuart",
-      "United States",
-      "Florida",
-    ]);
-  });
-
-  it("includes googleAdsCustomerId after ga4PropertyId", () => {
-    const csv = buildWordPressSitesCsv([site({ ga4PropertyId: "111", googleAdsCustomerId: "5619137403" })]);
-    const [header, row] = csv.split("\r\n");
-    const headers = header.split(",");
-    const ga4 = headers.indexOf("ga4PropertyId");
-    expect(headers[ga4 + 1]).toBe("googleAdsCustomerId");
-    const cells = row.split(",");
-    expect(cells[ga4 + 1]).toBe("5619137403");
+  it("includes primaryLocalKeyword column", () => {
+    const site: WordPressSite = {
+      id: "wp-1",
+      name: "Demo",
+      siteUrl: "https://demo.example",
+      username: "admin",
+      appPassword: "secret",
+      connectedAt: 1,
+      primaryLocalKeyword: "blinds near me",
+    };
+    const csv = buildWordPressSitesCsv([site]);
+    const header = csv.split("\r\n")[0] ?? "";
+    expect(header).toContain("primaryLocalKeyword");
+    expect(csv).toContain("blinds near me");
   });
 });

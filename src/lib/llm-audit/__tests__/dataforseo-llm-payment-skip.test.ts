@@ -55,6 +55,26 @@ describe("DFS payment latch", () => {
     expect(result).toEqual(DFS_LLM_UNAVAILABLE_SKIP);
   });
 
+  it("returns unavailable skip on HTTP 422 Unprocessable Entity without throwing or gating", async () => {
+    const err = new Error("MCP API error (422): Unprocessable Entity");
+    (err as Error & { status?: number }).status = 422;
+    vi.mocked(mcp_DataForSEO_llm_responses_live).mockRejectedValue(err);
+
+    const result = await dataforseoLlmResponsesLive(liveParams);
+    expect(result).toEqual(DFS_LLM_UNAVAILABLE_SKIP);
+  });
+
+  it("returns unavailable skip on skipped payload without throwing", async () => {
+    vi.mocked(mcp_DataForSEO_llm_responses_live).mockResolvedValue({
+      skipped: true,
+      reason: "dfs_task_error",
+      tasks: [],
+    });
+
+    const result = await dataforseoLlmResponsesLive(liveParams);
+    expect(result).toEqual(DFS_LLM_UNAVAILABLE_SKIP);
+  });
+
   it("skips later live calls after payment failure JSON", async () => {
     vi.mocked(mcp_DataForSEO_llm_responses_live).mockResolvedValue({
       status_code: 40200,

@@ -9,16 +9,16 @@ export function useTeamPermission() {
   return useMemo(() => {
     const canRead = (area: TeamPermissionArea): boolean => {
       if (AUTH_DISABLED) return true;
-      if (!activeTeam) return area === "teams";
-      if (activeTeam.accessRole === "owner" || activeTeam.accessRole === "admin") return true;
+      if (!activeTeam) return true;
+      if (!activeTeam.accessRole || activeTeam.accessRole === "owner" || activeTeam.accessRole === "admin") return true;
       const p = permissions?.[area];
       return Boolean(p?.read || p?.write);
     };
 
     const canWrite = (area: TeamPermissionArea): boolean => {
       if (AUTH_DISABLED) return true;
-      if (!activeTeam) return false;
-      if (activeTeam.accessRole === "owner" || activeTeam.accessRole === "admin") return true;
+      if (!activeTeam) return true;
+      if (!activeTeam.accessRole || activeTeam.accessRole === "owner" || activeTeam.accessRole === "admin") return true;
       return Boolean(permissions?.[area]?.write);
     };
 
@@ -52,6 +52,7 @@ export function managerTabToArea(tab: string): TeamPermissionArea | null {
     users: "teams",
     support: "teams",
     "pulse-host": "hosting",
+    "image-generator": "generator",
     "video-generator": "generator",
   };
   return map[tab] ?? null;

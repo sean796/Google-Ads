@@ -11,7 +11,6 @@ const rowPath = join(dirname(fileURLToPath(import.meta.url)), "../overview-resea
 const mockFetchOptionalDataForSeoSerp = vi.fn();
 const mockFetchLlmAuditOpenRouter = vi.fn();
 const mockResolveSerpDumpJsonForBrief = vi.fn();
-const mockFetchSemrushBulkEnrichment = vi.fn();
 
 vi.mock("@/lib/llm-audit/fetch-seo-content-brief-wave", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/llm-audit/fetch-seo-content-brief-wave")>();
@@ -24,10 +23,6 @@ vi.mock("@/lib/llm-audit/fetch-seo-content-brief-wave", async (importOriginal) =
 
 vi.mock("@/lib/llm-audit/llm-audit-openrouter", () => ({
   fetchLlmAuditOpenRouterWithQfo: (...args: unknown[]) => mockFetchLlmAuditOpenRouter(...args),
-}));
-
-vi.mock("@/lib/wordpress-api/semrush", () => ({
-  fetchSemrushBulkEnrichment: (...args: unknown[]) => mockFetchSemrushBulkEnrichment(...args),
 }));
 
 function makeRow(): OverviewRow {
@@ -48,16 +43,14 @@ describe("runOverviewResearchForRow sequential harness", () => {
     mockFetchOptionalDataForSeoSerp.mockReset();
     mockFetchLlmAuditOpenRouter.mockReset();
     mockResolveSerpDumpJsonForBrief.mockReset();
-    mockFetchSemrushBulkEnrichment.mockReset();
   });
 
-  it("runs all 8 harness steps and returns brief when DataForSEO SERP fails", async () => {
+  it("runs all 7 harness steps and returns brief when DataForSEO SERP fails", async () => {
     mockFetchOptionalDataForSeoSerp.mockResolvedValue({
       storedFile: null,
       serpMcpJson: null,
       serpError: "DFS unavailable",
     });
-    mockFetchSemrushBulkEnrichment.mockResolvedValue({ storedFile: null, errors: [] });
     mockFetchLlmAuditOpenRouter.mockResolvedValue({
       llmAudit: {
         siteUrl: "https://example.com/solar-installer",
@@ -94,7 +87,6 @@ describe("runOverviewResearchForRow sequential harness", () => {
       site: undefined,
       gscQuickWinsFile: null,
       serpDumpUrl: (f) => `https://api.test/serp/${f}`,
-      portfolioBlockedHostsForSemrush: [],
       skipGsc: true,
       silent: true,
       onHarnessSection: (payload) => harness.push(payload),
@@ -103,20 +95,19 @@ describe("runOverviewResearchForRow sequential harness", () => {
 
     expect(result.patch?.seoResearch).toContain('"focusKeyword": "solar installer"');
     expect(mockFetchLlmAuditOpenRouter).toHaveBeenCalled();
-    expect(harness.filter((h) => h.phase === "done").length).toBe(8);
+    expect(harness.filter((h) => h.phase === "done").length).toBe(7);
     expect(harness.some((h) => h.title === "LLM audit" && h.phase === "done")).toBe(true);
     expect(harness.some((h) => h.title === "Brief merge" && h.phase === "done")).toBe(true);
     expect(artifacts.some((f) => f.name.includes("llm-audit"))).toBe(true);
     expect(artifacts.some((f) => f.name.startsWith("serp-research-brief-"))).toBe(true);
   });
 
-  it("still completes all 8 steps when OpenRouter LLM audit times out", async () => {
+  it("still completes all 7 steps when OpenRouter LLM audit times out", async () => {
     mockFetchOptionalDataForSeoSerp.mockResolvedValue({
       storedFile: "serp-dump.json",
       serpMcpJson: { tasks: [{ result: [] }] },
       serpError: null,
     });
-    mockFetchSemrushBulkEnrichment.mockResolvedValue({ storedFile: null, errors: [] });
     mockFetchLlmAuditOpenRouter.mockResolvedValue({
       llmAudit: {
         siteUrl: "https://example.com/solar-installer",
@@ -146,7 +137,6 @@ describe("runOverviewResearchForRow sequential harness", () => {
       site: undefined,
       gscQuickWinsFile: null,
       serpDumpUrl: (f) => `https://api.test/serp/${f}`,
-      portfolioBlockedHostsForSemrush: [],
       skipGsc: true,
       silent: true,
       onHarnessSection: (payload) => harness.push(payload),
@@ -154,7 +144,7 @@ describe("runOverviewResearchForRow sequential harness", () => {
 
     expect(result.patch?.seoResearch).toContain('"focusKeyword": "solar installer"');
     expect(mockFetchLlmAuditOpenRouter).toHaveBeenCalledTimes(1);
-    expect(harness.filter((h) => h.phase === "done").length).toBe(8);
+    expect(harness.filter((h) => h.phase === "done").length).toBe(7);
   });
 });
 
@@ -165,6 +155,6 @@ describe("overview research row source contract", () => {
     expect(src).toContain("runOpenRouterLlmAuditStep");
     expect(src).not.toContain("runSerpAndLlmAuditParallel");
     expect(src).not.toContain("Promise.all");
-    expect(RESEARCH_HARNESS_SECTION_TITLES).toHaveLength(8);
+    expect(RESEARCH_HARNESS_SECTION_TITLES).toHaveLength(7);
   });
 });

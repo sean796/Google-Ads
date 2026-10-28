@@ -113,11 +113,6 @@ export interface OverviewPagesSectionProps {
   handleAiOverviewRow: (index: number) => Promise<void>;
   handleAiScenarioRow: (index: number) => Promise<void>;
   handleAiInContentImageRow: (index: number) => Promise<void>;
-  handleAiElementorSectionRow?: (index: number, sectionId: string) => Promise<void>;
-  handleAiElementorSectionHeaderRow?: (index: number, sectionId: string) => Promise<void>;
-  handleAiElementorSectionContentRow?: (index: number, sectionId: string) => Promise<void>;
-  handleAiElementorSectionLinkRow?: (index: number, sectionId: string, linkIndex: number) => Promise<void>;
-  handleAiElementorFullPageRow?: (index: number) => Promise<void>;
 }
 
 export function OverviewPagesSection({
@@ -161,11 +156,6 @@ export function OverviewPagesSection({
   handleAiOverviewRow,
   handleAiScenarioRow,
   handleAiInContentImageRow,
-  handleAiElementorSectionRow,
-  handleAiElementorSectionHeaderRow,
-  handleAiElementorSectionContentRow,
-  handleAiElementorSectionLinkRow,
-  handleAiElementorFullPageRow,
 }: OverviewPagesSectionProps) {
   const batchKey = `${site.id}-batch`;
   const batchBulkState = opt.bulkOptimizationState[batchKey];
@@ -214,11 +204,6 @@ export function OverviewPagesSection({
     handleAiOverviewRow,
     handleAiScenarioRow,
     handleAiInContentImageRow,
-    handleAiElementorSectionRow,
-    handleAiElementorSectionHeaderRow,
-    handleAiElementorSectionContentRow,
-    handleAiElementorSectionLinkRow,
-    handleAiElementorFullPageRow,
   } satisfies Omit<
     MetaOptimizerPageRowDetailsProps,
     | "row"

@@ -13,6 +13,11 @@ import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { searchWikipediaPages } from "@/lib/wikipedia/mediawiki-search";
 import { matchTitleInList } from "@/lib/wikipedia/entity-hint-openrouter";
 import { appendMasterInstructionsToSystemPrompt } from "@/lib/master-instructions-storage";
+import { isLocalGridWikiConsoleTraceActive, localGridWikiConsoleLog } from "@/lib/local-grid-studio/local-grid-wiki-console-trace";
+import {
+  isRejectedSapGridEntityLabel,
+  isRejectedSapGridWikiTitle,
+} from "@/lib/local-analysis/sap-grid-entity-reject";
 
 export type WikiGeoTier = "place" | "building_landmark";
 
@@ -51,6 +56,7 @@ export function isListIndexWikiTitle(title: string): boolean {
 
 /** Reject org/gov/conference/news titles that are not physical places. */
 export function isRejectedNonPlaceWikiTitle(title: string): boolean {
+  if (isRejectedSapGridWikiTitle(title)) return true;
   const lower = title.trim().toLowerCase();
   if (!lower) return true;
   if (/\bconference\b/.test(lower)) return true;
@@ -110,7 +116,7 @@ export function wikiPoolEntriesForParentCity(
     if (isRejectedNeighbourhoodWikiTitle(entry.wikipediaTitle, geo)) return false;
     if (isCityOnlyWikiTitle(entry.wikipediaTitle, geo)) return false;
     const entity = normalizeEntityHintCommaLabel(entry.entityLabel);
-    if (!entity) return false;
+    if (!entity || isRejectedSapGridEntityLabel(entity)) return false;
     return entityBelongsToParentCity(entity, parentLabel);
   });
 }
@@ -166,6 +172,23 @@ function addTitlesToPool(
   }
 }
 
+function harvestPoolTarget(minCount: number): number {
+  return Math.max(minCount + 2, Math.min(36, minCount * 5));
+}
+
+function harvestQueryCap(minCount: number, queryCount: number): number {
+  if (minCount <= 1) return Math.min(4, queryCount);
+  if (minCount <= 3) return Math.min(8, queryCount);
+  if (minCount <= 9) return Math.min(14, queryCount);
+  return queryCount;
+}
+
+function harvestLimitPerQuery(minCount: number, defaultLimit: number): number {
+  if (minCount <= 1) return Math.min(8, defaultLimit);
+  if (minCount <= 3) return Math.min(15, defaultLimit);
+  return defaultLimit;
+}
+
 async function collectFromQueries(
   queries: string[],
   tier: WikiGeoTier,
@@ -173,12 +196,36 @@ async function collectFromQueries(
   geo: ClusterWikiGeo | null,
   limitPerQuery: number,
   wikipediaSearchAugment?: string,
+  poolTarget?: number,
 ): Promise<void> {
-  for (const query of queries) {
+  const trace = isLocalGridWikiConsoleTraceActive();
+  const target = poolTarget ?? Number.POSITIVE_INFINITY;
+  if (trace) {
+    localGridWikiConsoleLog(`collectFromQueries start (${tier})`, {
+      queryCount: queries.length,
+      limitPerQuery,
+      poolSizeBefore: pool.size,
+      poolTarget: Number.isFinite(target) ? target : null,
+    });
+  }
+  for (let i = 0; i < queries.length; i++) {
+    if (pool.size >= target) break;
+    const query = queries[i]!;
     const q = withSearchAugment(query, wikipediaSearchAugment);
     if (!q) continue;
+    const before = pool.size;
     const titles = await searchWikipediaPages(q, limitPerQuery);
     addTitlesToPool(titles, tier, pool, geo);
+    if (trace) {
+      localGridWikiConsoleLog(`collectFromQueries [${i + 1}/${queries.length}] ${tier}`, {
+        query: q,
+        newTitles: pool.size - before,
+        poolSize: pool.size,
+      });
+    }
+  }
+  if (trace) {
+    localGridWikiConsoleLog(`collectFromQueries done (${tier})`, { poolSize: pool.size });
   }
 }
 
@@ -222,8 +269,8 @@ function tier2BuildingQueries(geo: ClusterWikiGeo): string[] {
     `${city}, ${regionName} commercial district`,
     `downtown ${city}, ${regionName}`,
     `${city}, ${regionName} industrial park`,
-    `${city}, ${regionName} landmarks`,
-    `landmarks in ${city}, ${regionCode}`,
+    `${city}, ${regionName} shopping mall`,
+    `shopping centers in ${city}, ${regionCode}`,
     `${city}, ${regionName} buildings`,
     `buildings in ${city}, ${regionCode}`,
     `${city}, ${regionName} parks`,
@@ -273,11 +320,16 @@ function ruralHamletPlaceQueries(geo: ClusterWikiGeo, bucket: GridLocationBucket
     `${city}, ${regionCode}`,
     `${city} ${regionCode} Canada`,
     `${city} community ${regionName}`,
-    `${city} Manitoba`,
-    `Rural Municipality of Rhineland ${regionName}`,
-    `Pembina Valley ${city}`,
-    `Pembina Valley Region ${regionName}`,
   ];
+  const regionUpper = regionCode.trim().toUpperCase();
+  if (regionUpper === "MB") {
+    queries.push(
+      `${city} Manitoba`,
+      `Rural Municipality of Rhineland ${regionName}`,
+      `Pembina Valley ${city}`,
+      `Pembina Valley Region ${regionName}`,
+    );
+  }
   for (const addr of bucket.sampleAddresses.slice(0, 8)) {
     const parts = addr.split(",").map((s) => s.trim()).filter(Boolean);
     for (const part of parts.slice(0, 3)) {
@@ -306,15 +358,77 @@ export async function harvestWikiPlacesForCity(args: {
   const augment = args.wikipediaSearchAugment;
   const pool = new Map<string, WikiGeoEntry>();
 
-  await collectFromQueries(tier1PlaceQueries(geo, hints), "place", pool, geo, 40, augment);
+  if (isLocalGridWikiConsoleTraceActive()) {
+    localGridWikiConsoleLog("harvestWikiPlacesForCity start", {
+      parentLabel,
+      minCount,
+      hintCount: hints.length,
+      wikipediaSearchAugment: augment ?? null,
+      bucketPlaceLabel: args.bucket.placeLabel,
+    });
+  }
+
+  const poolTarget = harvestPoolTarget(minCount);
+  const tier1All = tier1PlaceQueries(geo, hints);
+  const tier1Queries = tier1All.slice(0, harvestQueryCap(minCount, tier1All.length));
+  const tier1Limit = harvestLimitPerQuery(minCount, 40);
+
+  await collectFromQueries(tier1Queries, "place", pool, geo, tier1Limit, augment, poolTarget);
   const tier1Count = pool.size;
 
-  await collectFromQueries(tier2BuildingQueries(geo), "building_landmark", pool, geo, 40, augment);
-  await collectFromQueries(bucketAddressQueries(args.bucket, geo), "place", pool, geo, 30, augment);
-  await collectFromQueries(ruralHamletPlaceQueries(geo, args.bucket), "place", pool, geo, 30, augment);
+  if (pool.size < poolTarget) {
+    const tier2All = tier2BuildingQueries(geo);
+    const tier2 = tier2All.slice(0, harvestQueryCap(minCount, tier2All.length));
+    await collectFromQueries(
+      tier2,
+      "building_landmark",
+      pool,
+      geo,
+      harvestLimitPerQuery(minCount, 40),
+      augment,
+      poolTarget,
+    );
+  }
+  if (pool.size < poolTarget && minCount > 1) {
+    const addrAll = bucketAddressQueries(args.bucket, geo);
+    const addrQ = addrAll.slice(0, harvestQueryCap(minCount, addrAll.length));
+    await collectFromQueries(
+      addrQ,
+      "place",
+      pool,
+      geo,
+      harvestLimitPerQuery(minCount, 30),
+      augment,
+      poolTarget,
+    );
+  }
+  if (pool.size < poolTarget && minCount > 3) {
+    const ruralAll = ruralHamletPlaceQueries(geo, args.bucket);
+    const ruralQ = ruralAll.slice(0, harvestQueryCap(minCount, ruralAll.length));
+    await collectFromQueries(
+      ruralQ,
+      "place",
+      pool,
+      geo,
+      harvestLimitPerQuery(minCount, 30),
+      augment,
+      poolTarget,
+    );
+  }
 
   const tier2Count = pool.size - tier1Count;
   const filtered = wikiPoolEntriesForParentCity([...pool.values()], parentLabel, geo);
+
+  if (isLocalGridWikiConsoleTraceActive()) {
+    localGridWikiConsoleLog("harvestWikiPlacesForCity done", {
+      parentLabel,
+      tier1Count,
+      tier2Count,
+      rawPool: pool.size,
+      filteredPool: filtered.length,
+      sampleTitles: filtered.slice(0, 8).map((e) => e.wikipediaTitle),
+    });
+  }
 
   return {
     pool: filtered,
@@ -367,10 +481,13 @@ FORBIDDEN (never pick, even if listed):
 - Places in a different country (homonym cities abroad)
 - Murders, deaths, crimes, trials, disasters, accidents, shootings, news events
 - Biographies of people, companies, conferences, religious organizations, sports teams
+- Law enforcement and emergency HQs (police department, sheriff, jail, prison, fire department as an org)
+- Government offices (city hall, courthouse, embassy, military base) unless the client is public-sector
+- Abstract topics (multiculturalism, ideologies) and person surnames used as the place name
 - "List of …" index pages
 - Anything that is not a physical place or building in the parent city
 
-Prefer neighbourhoods and communities over buildings when both fit. Buildings and landmarks are OK for variety.
+Prefer neighbourhoods, suburbs, and residential communities where the client's customers live. Malls and parks are OK; police stations and courthouses are not.
 
 **Client-aware preference (when Client & site context is in the user message):**
 - Act as a **senior local SEO specialist**: re-rank among allowed titles to match **who** the client serves and **where** those people work, shop, or commute.
@@ -398,14 +515,29 @@ export async function pickWikiEntriesFromPool(args: {
   const exclude = new Set(args.excludeTitles.map((t) => t.trim().toLowerCase()).filter(Boolean));
 
   const byTitle = new Map(args.pool.map((e) => [e.wikipediaTitle.toLowerCase(), e]));
+  const excludeLabels = new Set(
+    args.excludeTitles.map((t) => t.trim().toLowerCase()).filter(Boolean),
+  );
   const available = args.pool.filter((e) => {
     if (exclude.has(e.wikipediaTitle.toLowerCase())) return false;
+    const labelKey = normalizeEntityHintCommaLabel(e.entityLabel).trim().toLowerCase();
+    if (labelKey && excludeLabels.has(labelKey)) return false;
+    if (isRejectedSapGridWikiTitle(e.wikipediaTitle)) return false;
+    if (isRejectedSapGridEntityLabel(e.entityLabel)) return false;
     return isWikiTitleScopedToParentCity(e.wikipediaTitle, args.parentCity);
   });
   if (available.length === 0) return [];
 
   const n = Math.min(count, available.length);
   const candidates = available.map((e) => e.wikipediaTitle);
+  if (isLocalGridWikiConsoleTraceActive()) {
+    localGridWikiConsoleLog("OpenRouter pickWikiEntriesFromPool →", {
+      parentCity: args.parentCity,
+      pickCount: n,
+      poolAvailable: available.length,
+      excludeCount: exclude.size,
+    });
+  }
   const list = candidates.slice(0, 80).map((t, i) => `${i + 1}. ${t}`).join("\n");
   const gridBlock = args.gridSummaryMarkdown.trim();
   const clientCtx = args.clientAudienceContextMarkdown?.trim();
@@ -486,7 +618,17 @@ Return JSON only: {"titles":["...", ...]} with length ${n}.`;
     picked.push(entry);
   }
 
-  return picked.slice(0, count);
+  const result = picked.slice(0, count);
+  if (isLocalGridWikiConsoleTraceActive()) {
+    localGridWikiConsoleLog("OpenRouter pickWikiEntriesFromPool ←", {
+      requested: count,
+      parsedTitleCount: titles.length,
+      picked: result.length,
+      titles: result.map((e) => e.wikipediaTitle),
+    });
+  }
+
+  return result;
 }
 
 export function wikiEntryToGridClusterWiki(

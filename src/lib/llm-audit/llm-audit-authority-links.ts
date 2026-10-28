@@ -1,4 +1,5 @@
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
+import { getCompetitorReportMaxOutputTokens } from "@/lib/competitor-research/competitor-report-openrouter-limits";
 import { parseJsonStrict } from "@/lib/json-repair-utility";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
@@ -165,6 +166,31 @@ export function normalizeClassifiedAuthorityLinks(raw: unknown, inputUrls: strin
   return out;
 }
 
+function reportClassifierJsonFailure(
+  onFailure: ((detail: LlmAuditClassifierJsonFailure) => void) | undefined,
+  detail: LlmAuditClassifierJsonFailure,
+): void {
+  onFailure?.(detail);
+}
+
+function safeNormalizeClassifiedAuthorityLinks(
+  raw: unknown,
+  inputUrls: string[],
+  onFailure?: (detail: LlmAuditClassifierJsonFailure) => void,
+): LlmAuditAuthorityLink[] {
+  try {
+    return normalizeClassifiedAuthorityLinks(raw, inputUrls);
+  } catch (e) {
+    const error = e instanceof Error ? e.message : String(e);
+    reportClassifierJsonFailure(onFailure, {
+      rawText: typeof raw === "string" ? raw : JSON.stringify(raw ?? null),
+      error,
+      repairSteps: [],
+    });
+    return [];
+  }
+}
+
 function parseClassifierJson(
   content: string,
   onFailure?: (detail: LlmAuditClassifierJsonFailure) => void,
@@ -199,9 +225,10 @@ async function classifyLlmAuditAuthorityLinkBatchOpenRouter(input: {
 
   const city = cityTokenFromLocation(input.location ?? "");
   const apiKey = await resolveOpenRouterApiKeyForHarness();
+  const model = getResearchModel(input.siteId);
   const { content, parsed: structuredParsed } = await callOpenRouterChatCompletion({
     apiKey,
-    model: getResearchModel(input.siteId),
+    model,
     system: LLM_AUDIT_AUTHORITY_CLASSIFY_SYSTEM,
     user: [
       `Connected company: ${(input.companyName ?? "").trim() || "(unknown)"}`,
@@ -216,7 +243,7 @@ async function classifyLlmAuditAuthorityLinkBatchOpenRouter(input: {
     ]
       .filter(Boolean)
       .join("\n"),
-    maxTokens: 900,
+    maxTokens: getCompetitorReportMaxOutputTokens(model),
     temperature: LLM_AUDIT_AUTHORITY_CLASSIFY_TEMPERATURE,
     responseFormat: {
       type: "json_schema",
@@ -225,11 +252,15 @@ async function classifyLlmAuditAuthorityLinkBatchOpenRouter(input: {
   });
 
   if (structuredParsed != null && typeof structuredParsed === "object") {
-    return normalizeClassifiedAuthorityLinks(structuredParsed, urls);
+    return safeNormalizeClassifiedAuthorityLinks(
+      structuredParsed,
+      urls,
+      input.onClassifierJsonFailure,
+    );
   }
   const parsed = parseClassifierJson(content, input.onClassifierJsonFailure);
   if (parsed == null) return [];
-  return normalizeClassifiedAuthorityLinks(parsed, urls);
+  return safeNormalizeClassifiedAuthorityLinks(parsed, urls, input.onClassifierJsonFailure);
 }
 
 export async function classifyLlmAuditAuthorityLinksOpenRouter(input: {

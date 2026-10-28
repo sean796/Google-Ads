@@ -41,7 +41,7 @@ export const emcpSiteSchemaDoctorAgent = createPulseAgent({
   outputSchema: EmcpSchemaDoctorOutputSchema,
   buildSystemPrompt: () =>
     [
-      "You are the Neo EMCP Site & Schema Doctor for Neo Digital WordPress properties.",
+      "You are the Neo Pulse Native Site & Schema Doctor for Neo Digital WordPress properties.",
       "Your job is to inspect the site's audit findings from `neo-pulse/read` (`audit`), its shared business details (`get-business-details`), and its locations (`list-locations`), and produce an exact JSON remediation plan.",
       "CRITICAL CONTRACT RULES:",
       "1. Never write options, post meta, or tables directly. Route all Neo Pulse fixes through `neo-pulse/write` operations (`update-business-details`, `update-location`, `set-page-faqs`, `set-page-schema`, `set-type-rules`, `update-settings`).",
@@ -84,10 +84,10 @@ export type EmcpCommandPlannerOutput = z.infer<typeof EmcpCommandPlannerOutputSc
 
 export const emcpCommandPlannerAgent = createPulseAgent({
   id: "emcp.ops.command-planner",
-  label: "Neo EMCP Multi-Tool Command Planner Agent",
+  label: "Neo Pulse Native Multi-Tool Command Planner Agent",
   category: "research",
   domain: "emcp",
-  reason: "Translates natural-language WordPress, SEO, and Elementor instructions into an ordered sequence of Neo EMCP tool calls with dry_run and expected_version safety.",
+  reason: "Translates natural-language blog posting, stitched web design, custom field, and SEO instructions into an ordered sequence of native NEO Pulse tool calls.",
   useMasterInstructions: true,
   temperature: 0.2,
   maxTokens: 4096,
@@ -95,12 +95,12 @@ export const emcpCommandPlannerAgent = createPulseAgent({
   outputSchema: EmcpCommandPlannerOutputSchema,
   buildSystemPrompt: () =>
     [
-      "You are the Neo EMCP Multi-Tool Command Planner.",
-      "Given a natural-language instruction for a WordPress + Elementor site, plan the minimal sequence of MCP tool calls using the site's registered tools.",
+      "You are the Neo Pulse Native Multi-Tool Command Planner.",
+      "Given a natural-language instruction for a NEO Pulse WordPress site, plan the minimal sequence of native tool calls using the site's registered tools.",
       "CRITICAL CONTRACT RULES:",
       "1. For Neo Pulse SEO, schema, shared business details, and location fields, always use `neo-pulse/read` and `neo-pulse/write` with the `operation` field.",
-      "2. For Neo Tools widgets, settings, and status, always use `neo-tools/read` and `neo-tools/write` with the `operation` field.",
-      "3. For Elementor pages, containers, widgets, media, posts, and redirects, use the matching `emcp-tools/*` tool from `availableTools` (set `operation: \"\"`).",
+      "2. For Neo Tools settings and status, always use `neo-tools/read` and `neo-tools/write` with the `operation` field.",
+      "3. For blog posting, stitched HTML page design, custom fields, redirects, scripts, and sitemaps, use the matching native `wp_*` tool from `availableTools` (`wp_create_post`, `wp_create_page`, `wp_update_post`, `wp_add_content`, `wp_replace_content`, `wp_ai_save_meta`, `wp_body_plan`, `wp_body_section_preview`, `wp_body_section_apply`, `wp_assist_chat`, `wp_redirects_*`, `wp_scripts_*`, `wp_sitemap_*`) with `operation: \"\"`.",
       "4. Set `supportsDryRun: true` whenever `tool` is `neo-pulse/write` or `neo-tools/write`.",
       "Return strict JSON matching `{ \"summary\": string, \"steps\": Array<{ \"id\": string, \"title\": string, \"tool\": string, \"operation\": string, \"arguments\": object, \"supportsDryRun\": boolean, \"reason\": string }> }`.",
     ].join("\n"),
@@ -135,10 +135,10 @@ export const EmcpElementorArchitectOutputSchema = z.object({
 
 export const emcpElementorArchitectAgent = createPulseAgent({
   id: "emcp.builder.elementor-architect",
-  label: "Neo EMCP Elementor & Widget Architect Agent",
+  label: "Neo Pulse Native Web Design & Stitched Content Architect Agent",
   category: "blog",
   domain: "emcp",
-  reason: "Plans Elementor container/widget mutations and Neo Tools widget placements using live site widget schemas.",
+  reason: "Plans native NEO Pulse stitched HTML page design, section rewrites, and SEO metadata updates without external page-builder dependencies.",
   useMasterInstructions: true,
   temperature: 0.3,
   maxTokens: 4096,
@@ -146,9 +146,9 @@ export const emcpElementorArchitectAgent = createPulseAgent({
   outputSchema: EmcpElementorArchitectOutputSchema,
   buildSystemPrompt: () =>
     [
-      "You are the Neo EMCP Elementor & Widget Architect.",
-      "Plan native Elementor container and widget operations (`emcp-tools/add-container`, `emcp-tools/add-free-widget`, `emcp-tools/update-element`, `emcp-tools/regenerate-css`) for the target postId.",
-      "Only place Neo Tools widgets that are marked available on the site in `availableNeoWidgets`.",
+      "You are the Neo Pulse Native Web Design & Stitched Content Architect.",
+      "Plan native NEO Pulse stitched HTML page and post operations (`wp_replace_content`, `wp_add_content`, `wp_body_plan`, `wp_body_section_preview`, `wp_body_section_apply`, `wp_ai_save_meta`, `neo-pulse/write`) for the target postId.",
+      "Do not rely on Elementor, Rank Math, or third-party page builders; use stitched semantic HTML (`<h2>`, `<p>`, `<ul>`, `<table>`) and native NEO Pulse fields.",
       "Return strict JSON matching `{ \"summary\": string, \"steps\": Array<{ \"id\": string, \"title\": string, \"tool\": string, \"operation\": string, \"arguments\": object, \"supportsDryRun\": boolean, \"reason\": string }> }`.",
     ].join("\n"),
   buildUserPrompt: (input) =>
@@ -157,7 +157,6 @@ export const emcpElementorArchitectAgent = createPulseAgent({
       `Target Post ID: ${input.postId}`,
       `Design Goal: ${input.goal}`,
       input.pageStructure ? `Current Page Structure:\n${JSON.stringify(input.pageStructure, null, 2)}` : "",
-      input.availableNeoWidgets ? `Available Neo Tools Widgets:\n${JSON.stringify(input.availableNeoWidgets, null, 2)}` : "",
     ]
       .filter(Boolean)
       .join("\n\n"),

@@ -88,7 +88,7 @@ const ACTION_KIND_PILLS: { keyword: string; label: string; kind: TaskExecutionKi
   { keyword: "entity-page-creator-monthly", label: "Entity pages", kind: "entity_page_creator" },
   { keyword: "entity-generator-monthly", label: "Entity generator", kind: "entity_generator" },
   { keyword: "sap-generator-monthly", label: "SAP generator", kind: "sap_generator" },
-  { keyword: "local-dominator-grid-export", label: "Local Dominator grid", kind: "local_dominator_export" },
+  { keyword: "local-dominator-grid-export", label: "Local Grid export", kind: "local_dominator_export" },
   { keyword: "chatgpt-website-audit", label: "ChatGPT website audit", kind: "chatgpt_website_audit" },
   { keyword: "dfs-llm-article-audit", label: "DFS LLM article audit", kind: "dfs_llm_article_audit" },
   { keyword: "residential-browser-automation", label: "Residential browser automation", kind: "browser_automation" },
@@ -415,7 +415,7 @@ export function AutomationWhatPanel({
       ) : null}
 
       {kind === "local_dominator_export" ? (
-        <TaskFormPanel title="Local Dominator grid">
+        <TaskFormPanel title="Local Grid export">
           <LocalDominatorExportExecutionFields
             layout="inline"
             executionPayload={action.executionPayload}

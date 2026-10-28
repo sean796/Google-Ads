@@ -42,3 +42,10 @@ export function ga4CalendarSpan(reference: Date = new Date()): {
     monthCount: ga4CalendarMonthCount(startMonth, endMonth),
   };
 }
+
+/** Zero-based index of `target` month within the scroll list that starts at `listStartMonth`. */
+export function ga4CalendarMonthIndex(listStartMonth: Date, target: Date): number {
+  const start = new Date(listStartMonth.getFullYear(), listStartMonth.getMonth(), 1);
+  const t = new Date(target.getFullYear(), target.getMonth(), 1);
+  return (t.getFullYear() - start.getFullYear()) * 12 + (t.getMonth() - start.getMonth());
+}

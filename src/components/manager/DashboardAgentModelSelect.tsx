@@ -103,10 +103,13 @@ export function DashboardAgentModelSelect({
     const presetIds = new Set(presets.map((p) => p.value));
     const q = query.trim();
     const out: ListRow[] = [];
+    const seenValues = new Set<string>();
 
     for (const p of presets) {
+      if (seenValues.has(p.value)) continue;
       const probe = { id: p.value, name: p.label };
       if (!modelMatchesOpenRouterQuery(probe, q)) continue;
+      seenValues.add(p.value);
       out.push({
         value: p.value,
         label: optionLabel(p, p.value, catalogEntryById(catalog, p.value), agentKind, nameOnly),
@@ -115,24 +118,29 @@ export function DashboardAgentModelSelect({
     }
 
     if (!presets.some((p) => p.value === value) && value.trim()) {
-      const probe = { id: value, name: value };
-      if (modelMatchesOpenRouterQuery(probe, q)) {
-        out.push({
-          value,
-          label: optionLabel(undefined, value, catalogEntryById(catalog, value), agentKind, nameOnly),
-          group: "Recommended",
-        });
+      if (!seenValues.has(value)) {
+        const probe = { id: value, name: value };
+        if (modelMatchesOpenRouterQuery(probe, q)) {
+          seenValues.add(value);
+          out.push({
+            value,
+            label: optionLabel(undefined, value, catalogEntryById(catalog, value), agentKind, nameOnly),
+            group: "Recommended",
+          });
+        }
       }
     }
 
     if (catalog?.length) {
       const forKind = filterCatalogForAgentKind(catalog, agentKind);
-      let catalogRows = forKind.filter((m) => !presetIds.has(m.id));
+      let catalogRows = forKind.filter((m) => !presetIds.has(m.id) && !seenValues.has(m.id));
       if (q) {
         catalogRows = catalogRows.filter((m) => modelMatchesOpenRouterQuery(m, q));
       }
       const catalogCap = q ? 250 : 80;
       for (const m of catalogRows.slice(0, catalogCap)) {
+        if (seenValues.has(m.id)) continue;
+        seenValues.add(m.id);
         out.push({
           value: m.id,
           label: optionLabel(undefined, m.id, m, agentKind, nameOnly),
@@ -240,7 +248,7 @@ export function DashboardAgentModelSelect({
               const showHeading = row.group !== lastGroup;
               lastGroup = row.group;
               return (
-                <React.Fragment key={row.value}>
+                <React.Fragment key={`${row.group}-${row.value}-${index}`}>
                   {showHeading ? (
                     <p className="px-3 py-1.5 text-base text-white/70">{row.group}</p>
                   ) : null}

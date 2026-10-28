@@ -126,7 +126,7 @@ export async function matchInternalLinkQueriesToCatalog(args: {
           (q.bucket ? `Allowed bucket: [${q.bucket}]. Rank only [${q.bucket}] rows.\n` : "") +
           `Must return 1 to 5 inventory numbers from the allowed bucket. Never return 0.\n\n` +
           `Available pages:\n${list}`,
-        maxTokens: 30,
+        maxTokens: 1024,
         temperature: 0,
         signal: args.signal,
       });

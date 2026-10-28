@@ -40,7 +40,13 @@ export function isProductionBackendMisconfigured(): boolean {
   return !mcp.startsWith("http");
 }
 
+export function isBackendDownMcpError(message: string): boolean {
+  const m = message.toLowerCase();
+  return m.includes("econnrefused") || m.includes("enotfound") || m.includes("ehostunreach");
+}
+
 export function isTransientMcpError(message: string, status?: number): boolean {
+  if (isBackendDownMcpError(message)) return false;
   if (status === 502 || status === 503 || status === 504) return true;
   const m = message.toLowerCase();
   return (
@@ -137,6 +143,11 @@ async function callMCPToolOnce(toolName: string, params: unknown): Promise<unkno
     }
 
     const errorMessage = errorData?.error || errorData?.message || errorText;
+    if (toolName === "DataForSEO_llm_responses_live") {
+      console.warn(`[MCP] DataForSEO_llm_responses_live HTTP ${response.status}; continuing with non-blocking skip`);
+      return { skipped: true, reason: "dfs_llm_unavailable", tasks: [] };
+    }
+
     if (
       toolName.startsWith("DataForSEO_") &&
       isDfsAuthOrPaymentSkip(response.status, errorMessage, errorData?.details ?? errorData)

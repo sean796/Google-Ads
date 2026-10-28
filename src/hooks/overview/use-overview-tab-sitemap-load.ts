@@ -27,6 +27,9 @@ import {
   getSitePrefetchUrlsForSource,
   NEO_PULSE_SITE_DATA_REFRESHED_EVENT,
 } from "@/lib/local-analysis/entity-site-warm-cache";
+import { applyOverviewStudioInventoryFromCache } from "@/lib/overview/overview-studio-inventory-init";
+import { syncOverviewRowsFromWarmCache } from "@/lib/overview/overview-sitemap-warm-rows-sync";
+import { fetchOverviewStudioSnapshotFromServer } from "@/lib/overview/overview-studio-snapshot-api";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { OverviewBinding } from "@/hooks/overview/use-overview-wordpress-binding";
 import type { OverviewTabBase } from "@/hooks/overview/use-overview-tab-base";
@@ -162,7 +165,10 @@ export function useOverviewTabSitemapLoad({
 
       inFlightBySourceRef.current.add(source);
 
-      const sessionRows = getOverviewRowsSessionCache(activeSite.id, source) ?? [];
+      const warmSyncRows = syncOverviewRowsFromWarmCache(activeSite, source);
+      const sessionRows =
+        getOverviewRowsSessionCache(activeSite.id, source) ??
+        (warmSyncRows.length ? warmSyncRows : []);
       const hasImmediateRows =
         sessionRows.length > 0 ||
         (applyToUi &&
@@ -176,12 +182,6 @@ export function useOverviewTabSitemapLoad({
         if (sessionRows.length) {
           setRows(sessionRows);
         }
-      }
-
-      let uiLoadOpen = false;
-      if (!silent && applyToUi && !hasImmediateRows) {
-        beginUiLoad(generation);
-        uiLoadOpen = true;
       }
 
       try {
@@ -275,9 +275,6 @@ export function useOverviewTabSitemapLoad({
         }
       } finally {
         inFlightBySourceRef.current.delete(source);
-        if (uiLoadOpen) {
-          endUiLoad(generation);
-        }
       }
     },
     [
@@ -365,20 +362,41 @@ export function useOverviewTabSitemapLoad({
       setOverviewSitemapLoadBusy(false);
     }
 
-    if (sourceChanged) {
-      const cachedRows = getOverviewRowsSessionCache(site.id, activeSource);
-      if (cachedRows?.length) {
-        setRows(cachedRows);
-      }
+    applyOverviewStudioInventoryFromCache(site);
+    const syncedRows = syncOverviewRowsFromWarmCache(site, activeSource);
+    const cachedRows = getOverviewRowsSessionCache(site.id, activeSource);
+    const initialRows = syncedRows.length ? syncedRows : cachedRows ?? [];
+    if (initialRows.length) {
+      setRows(initialRows);
     }
+    const needsBodies =
+      !initialRows.length ||
+      !initialRows.some(
+        (r) => Boolean(r.postContent?.trim() || r.elementorDataJson?.trim()),
+      );
 
     const generation = loadGenerationRef.current;
+    if (!needsBodies) {
+      return;
+    }
 
-    void loadOverviewSourceRef.current(site, activeSource, {
-      force: false,
-      silent: false,
-      applyToUi: true,
-      generation,
+    void fetchOverviewStudioSnapshotFromServer(site.id, activeSource).then((serverSnap) => {
+      if (isStaleLoad(generation) || activeSource !== sitemapSourceRef.current) return;
+      if (serverSnap?.rows?.length) {
+        setOverviewRowsSessionCache(site.id, activeSource, serverSnap.rows, {
+          skipServerSync: true,
+        });
+        setRows(serverSnap.rows);
+        return;
+      }
+      if (!initialRows.length) {
+        void loadOverviewSourceRef.current(site, activeSource, {
+          force: false,
+          silent: true,
+          applyToUi: true,
+          generation,
+        });
+      }
     });
   }, [
     site?.id,
@@ -388,6 +406,7 @@ export function useOverviewTabSitemapLoad({
     sitemapSource,
     setRows,
     disableAutoSitemapLoad,
+    isStaleLoad,
   ]);
 
   return { handleLoadSitemap, overviewSitemapLoadBusy };

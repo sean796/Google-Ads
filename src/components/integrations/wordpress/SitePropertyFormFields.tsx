@@ -19,7 +19,18 @@ import {
 } from "@/lib/notify-messages";
 import type { WordPressSite } from "../types";
 import { matchSemrushProjectForSite } from "@/lib/wordpress-api/semrush";
+import {
+  EDITORIAL_CONTENT_PACKAGE_LABELS,
+  isEditorialContentPackageTier,
+} from "@/lib/editorial-content-package";
 import { isOptimizationPackageTier } from "@/lib/wordpress-optimization-package";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { persistGbpLocationIdInput } from "@/lib/gbp-post/normalize-gbp-location-id";
 import { PropertyProfileTagPills } from "./PropertyProfileTagPills";
 import { normalizeProfileTags } from "@/lib/wordpress-property-profile-tags";
@@ -39,6 +50,7 @@ import {
 import { type PropertySettingsSubSectionId } from "./property-settings-types";
 import { buildSiteLocationsPatch } from "@/lib/wordpress-api/site-service-area";
 import { BenchmarkCategoryTagField } from "./BenchmarkCategoryTagField";
+import { PropertyClientLogoFields } from "./PropertyClientLogoFields";
 import { WpEngineHostingFields } from "./WpEngineHostingFields";
 import {
   nextStateForCountry,
@@ -195,7 +207,13 @@ export interface SitePropertyFormFieldsProps {
   formEditorialCountsPeriodStartYmd: string;
   /** Empty string = no package (unlimited). */
   formOptimizationPackage: string;
+  /** Empty string = unset editorial package. */
+  formEditorialContentPackage: string;
+  formEditorialPublishTimeLocal: string;
   formBenchmarkCustomTag: string;
+  formPrimaryLocalKeyword: string;
+  formClientLogoUrl: string;
+  formClientLogoBoxTheme?: "black" | "white";
   formProfileTags: string[];
   formServiceCity: string;
   formServiceState: string;
@@ -213,7 +231,12 @@ export interface SitePropertyFormFieldsProps {
   onFormSemrushPositionTrackingCampaignIdChange: (value: string) => void;
   onFormEditorialCountsPeriodStartYmdChange: (value: string) => void;
   onFormOptimizationPackageChange: (value: string) => void;
+  onFormEditorialContentPackageChange: (value: string) => void;
+  onFormEditorialPublishTimeLocalChange: (value: string) => void;
   onFormBenchmarkCustomTagChange: (value: string) => void;
+  onFormPrimaryLocalKeywordChange: (value: string) => void;
+  onFormClientLogoUrlChange: (value: string) => void;
+  onFormClientLogoBoxThemeChange?: (theme: "black" | "white") => void;
   onFormProfileTagsChange: (tags: string[]) => void;
   onFormServiceCityChange: (value: string) => void;
   onFormServiceStateChange: (value: string) => void;
@@ -249,7 +272,12 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
   formSemrushPositionTrackingCampaignId,
   formEditorialCountsPeriodStartYmd,
   formOptimizationPackage,
+  formEditorialContentPackage,
+  formEditorialPublishTimeLocal,
   formBenchmarkCustomTag,
+  formPrimaryLocalKeyword,
+  formClientLogoUrl,
+  formClientLogoBoxTheme = "black",
   formProfileTags,
   formServiceCity,
   formServiceState,
@@ -267,7 +295,12 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
   onFormSemrushPositionTrackingCampaignIdChange,
   onFormEditorialCountsPeriodStartYmdChange,
   onFormOptimizationPackageChange,
+  onFormEditorialContentPackageChange,
+  onFormEditorialPublishTimeLocalChange,
   onFormBenchmarkCustomTagChange,
+  onFormPrimaryLocalKeywordChange,
+  onFormClientLogoUrlChange,
+  onFormClientLogoBoxThemeChange,
   onFormProfileTagsChange,
   onFormServiceCityChange,
   onFormServiceStateChange,
@@ -413,6 +446,22 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
           </TaskFormPlaceholderCell>
         </TaskFormFlatGrid>
         <div className="mt-2">
+          <PropertyClientLogoFields
+            flat
+            formClientLogoUrl={formClientLogoUrl}
+            onFormClientLogoUrlChange={onFormClientLogoUrlChange}
+            formClientLogoBoxTheme={formClientLogoBoxTheme}
+            onFormClientLogoBoxThemeChange={onFormClientLogoBoxThemeChange}
+            siteForFetch={{
+              siteUrl: formSiteUrl,
+              productionSiteUrl: formProductionSiteUrl,
+              name: formName,
+            }}
+            onPatchSite={onPatchSite}
+            patchSiteId={patchSiteId}
+          />
+        </div>
+        <div className="mt-2">
           <PropertyProfileTagPills
             value={formProfileTags}
             onChange={onFormProfileTagsChange}
@@ -429,6 +478,22 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
         <TaskFormFlatGrid className="grid-cols-2">
           <TaskFormPlaceholderCell>
             <Input
+              value={formPrimaryLocalKeyword}
+              onChange={(e) => onFormPrimaryLocalKeywordChange(e.target.value)}
+              onBlur={() => {
+                if (onPatchSite && patchSiteId) {
+                  const kw = formPrimaryLocalKeyword.trim();
+                  onPatchSite(patchSiteId, { primaryLocalKeyword: kw || undefined });
+                }
+              }}
+              placeholder="Primary keyword"
+              aria-label="Primary keyword"
+              autoComplete="off"
+              className={flatInputClass}
+            />
+          </TaskFormPlaceholderCell>
+          <TaskFormPlaceholderCell>
+            <Input
               value={formServiceCity}
               onChange={(e) => onFormServiceCityChange(e.target.value)}
               onBlur={persistServiceArea}
@@ -439,6 +504,8 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
               className={flatInputClass}
             />
           </TaskFormPlaceholderCell>
+        </TaskFormFlatGrid>
+        <TaskFormFlatGrid className="grid-cols-2">
           <TaskFormPlaceholderCell>
             <ProfileLocationSelect
               chrome="dark"
@@ -448,8 +515,6 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
               onChange={applyServiceCountry}
             />
           </TaskFormPlaceholderCell>
-        </TaskFormFlatGrid>
-        <TaskFormFlatGrid className="grid-cols-2">
           <TaskFormPlaceholderCell>
             <ProfileLocationSelect
               chrome="dark"
@@ -459,9 +524,6 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
               onChange={applyServiceState}
               disabled={!formServiceCountry}
             />
-          </TaskFormPlaceholderCell>
-          <TaskFormPlaceholderCell>
-            <div className="h-9 min-h-9" aria-hidden />
           </TaskFormPlaceholderCell>
         </TaskFormFlatGrid>
       </TaskFormSideSection>
@@ -633,6 +695,39 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
               className={flatInputClass}
             />
           </TaskFormPlaceholderCell>
+          <TaskFormPlaceholderCell>
+            <Select
+              value={formEditorialContentPackage || "__unset__"}
+              onValueChange={(v) => {
+                const next = v === "__unset__" ? "" : v;
+                onFormEditorialContentPackageChange(next);
+                if (onPatchSite && patchSiteId && (next === "" || isEditorialContentPackageTier(next))) {
+                  onPatchSite(patchSiteId, {
+                    editorialContentPackage:
+                      next && isEditorialContentPackageTier(next) ? next : undefined,
+                  });
+                }
+              }}
+            >
+              <SelectTrigger className={flatInputClass} aria-label="Editorial package">
+                <SelectValue placeholder="Editorial package" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__unset__">No editorial package</SelectItem>
+                <SelectItem value="standard">{EDITORIAL_CONTENT_PACKAGE_LABELS.standard}</SelectItem>
+                <SelectItem value="lite">{EDITORIAL_CONTENT_PACKAGE_LABELS.lite}</SelectItem>
+              </SelectContent>
+            </Select>
+          </TaskFormPlaceholderCell>
+          <TaskFormPlaceholderCell>
+            <Input
+              value={formEditorialPublishTimeLocal}
+              onChange={(e) => onFormEditorialPublishTimeLocalChange(e.target.value)}
+              placeholder="Publish time (HH:MM)"
+              aria-label="Editorial publish time"
+              className={flatInputClass}
+            />
+          </TaskFormPlaceholderCell>
         </TaskFormFlatGrid>
         <div className="mt-2 flex flex-col gap-3 px-1">
           <div className="flex items-center justify-between gap-3">
@@ -787,6 +882,45 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
           }}
         />
       </div>
+
+      <div className="py-2">
+        <PropertyClientLogoFields
+          chrome={chrome}
+          formClientLogoUrl={formClientLogoUrl}
+          onFormClientLogoUrlChange={onFormClientLogoUrlChange}
+          formClientLogoBoxTheme={formClientLogoBoxTheme}
+          onFormClientLogoBoxThemeChange={onFormClientLogoBoxThemeChange}
+          siteForFetch={{
+            siteUrl: formSiteUrl,
+            productionSiteUrl: formProductionSiteUrl,
+            name: formName,
+          }}
+          onPatchSite={onPatchSite}
+          patchSiteId={patchSiteId}
+        />
+      </div>
+
+      <FieldBlock
+        chrome={chrome}
+        label="Primary keyword"
+        htmlFor="primaryLocalKeyword"
+        field={
+          <SitePropertyInput
+            chrome={chrome}
+            id="primaryLocalKeyword"
+            value={formPrimaryLocalKeyword}
+            onChange={(e) => onFormPrimaryLocalKeywordChange(e.target.value)}
+            onBlur={() => {
+              if (onPatchSite && patchSiteId) {
+                const kw = formPrimaryLocalKeyword.trim();
+                onPatchSite(patchSiteId, { primaryLocalKeyword: kw || undefined });
+              }
+            }}
+            placeholder="blinds near me"
+            autoComplete="off"
+          />
+        }
+      />
 
       <FieldBlock
         chrome={chrome}

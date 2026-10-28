@@ -3,6 +3,10 @@ import { PROFILE_CARD, PROFILE_CARD_HEAD, PROFILE_CARD_TITLE, PROFILE_STAT_GRID 
 import type { WordPressSite } from "../types";
 import { isWpEngineHosted, propertyHostingLabel, propertyHostingNote, propertyWpEngineInstall } from "./property-profile-view-model";
 import { WordPressCardActions } from "./WordPressCardActions";
+import {
+  editorialContentPackageShortLabelForSite,
+  editorialQuotasForSite,
+} from "@/lib/editorial-content-package";
 
 export type PropertyOverviewSectionProps = {
   site: WordPressSite;
@@ -37,10 +41,16 @@ export function PropertyOverviewSection({ site, isTesting, isDetecting, isExtrac
   const ads = integrationStat(site.googleAdsCustomerId);
   const gbp = integrationStat(site.gbpLocationId);
   const semrush = integrationStat(site.semrushSiteAuditProjectId ?? site.semrushPositionTrackingProjectId);
+  const editorialTier = editorialContentPackageShortLabelForSite(site);
+  const editorialQuotas = editorialQuotasForSite(site);
+  const editorialNote = editorialQuotas
+    ? `${editorialQuotas.blogsPerMonth} blogs, ${editorialQuotas.sapsPerMonth} SAP per month`
+    : "";
   const wpEngineAccountId = site.wpEngineAccountId?.trim() ?? "";
   const wpEngine = wpEngineAccountId
     ? { value: propertyWpEngineInstall(site) || "Configured", note: wpEngineAccountId }
     : { value: "Not set", note: "" };
+  const primaryKeyword = site.primaryLocalKeyword?.trim() ?? "";
 
   return (
     <div className="flex flex-col gap-5">
@@ -48,7 +58,7 @@ export function PropertyOverviewSection({ site, isTesting, isDetecting, isExtrac
         <div className={PROFILE_CARD_HEAD}>
           <h2 className={PROFILE_CARD_TITLE}>Connection</h2>
         </div>
-        <div className={`${PROFILE_STAT_GRID} grid-cols-4`}>
+        <div className={`${PROFILE_STAT_GRID} grid-cols-2 sm:grid-cols-3 xl:grid-cols-6`}>
           <StatCell
             label="WordPress"
             value={propertyHostingLabel(site)}
@@ -57,6 +67,16 @@ export function PropertyOverviewSection({ site, isTesting, isDetecting, isExtrac
           />
           <StatCell label="Sitemaps" value={sitemaps.value} note={sitemaps.note} />
           <StatCell label="Scheduled" value={scheduled ? String(scheduled.count) : "0"} note={scheduled ? (scheduled.count === 1 ? "post" : "posts") : "Not loaded"} />
+          <StatCell
+            label="Editorial"
+            value={editorialTier ?? "Not set"}
+            note={editorialNote}
+          />
+          <StatCell
+            label="Primary keyword"
+            value={primaryKeyword || "Not set"}
+            note={primaryKeyword ? "Local Grid default" : "Set in Settings → Profile"}
+          />
           <StatCell label="Property" value={site.enabled === false ? "Disabled" : "Enabled"} note={site.optimizationPackage ? `${site.optimizationPackage} package` : "No package"} />
         </div>
       </section>

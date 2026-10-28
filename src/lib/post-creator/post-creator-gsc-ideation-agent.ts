@@ -11,7 +11,7 @@ type IdeaRow = { keyword: string; title: string; entity: string };
 
 const POST_CREATOR_INVENTORY_CANNIBALIZATION = BENCHMARK_SITE_INVENTORY_CANNIBALIZATION.replace(
   /GSC OUTPUT line you adapt/g,
-  "GSC or Semrush line you select",
+  "GSC line you select",
 )
   .replace(
     /keep source_exemplar_url on the GSC line but choose/g,
@@ -30,7 +30,7 @@ OUTPUT CONTRACT:
 - Return valid JSON only: {"rows":[{"keyword":"","title":"","entity":""}]}
 - Exactly the requested number of rows.
 - Read SITE_INVENTORY_CACHE completely before selecting any keyword from SITE_KW_JSON.
-- Each keyword must come from a GSC or Semrush line in SITE_KW_JSON, distilled to a clean short-tail phrase when needed.
+- Each keyword must come from a GSC line in SITE_KW_JSON, distilled to a clean short-tail phrase when needed.
 - Every title must be original. Never copy any inventory title.
 - Inventory wins over GSC when they conflict.`;
 }
@@ -53,7 +53,7 @@ function buildUserPrompt(args: {
     "=== END SITE_INVENTORY_CACHE ===",
     "",
     "STEP 2 — READ SITE_KW_JSON (mandatory):",
-    "GSC and Semrush keyword lists sorted by opportunity.",
+    "GSC keyword lists sorted by opportunity.",
     "",
     "=== SITE_KW_JSON ===",
     args.siteKwJsonText.trim(),

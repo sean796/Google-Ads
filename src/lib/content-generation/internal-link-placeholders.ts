@@ -149,7 +149,25 @@ async function resolveQueryUrls(
 ): Promise<Map<string, string>> {
   if (!queries.length) return new Map();
   if (opts.linkTargetsPlan) {
-    return matchInternalLinkQueriesFromPlan(queries, opts.linkTargetsPlan);
+    const planMatches = matchInternalLinkQueriesFromPlan(queries, opts.linkTargetsPlan);
+    const unmatched = queries.filter((q) => !planMatches.has(q.id));
+    if (unmatched.length === 0 || !catalog.length) {
+      return planMatches;
+    }
+    const catalogMatches = opts.matchQueriesToUrls
+      ? await opts.matchQueriesToUrls(unmatched, catalog)
+      : await matchInternalLinkQueriesToCatalog({
+          queries: unmatched,
+          catalog: linkCatalogFromPosts(catalog),
+          apiKey: opts.apiKey?.trim() ?? "",
+          model: opts.model,
+          siteId: opts.siteId,
+          signal: opts.signal,
+        });
+    for (const [id, url] of catalogMatches) {
+      planMatches.set(id, url);
+    }
+    return planMatches;
   }
   if (!catalog.length) return new Map();
   if (opts.matchQueriesToUrls) {

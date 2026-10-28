@@ -69,8 +69,13 @@ export type BulkTemplateCsvExportOptions = {
 
 function resolveExportTargetSlug(row: CSVRow, entityAfter: string): string {
   const existing = row.target_slug?.trim();
-  if (existing) return existing;
-  return buildSapSlugFromKeywordEntity(row.keyword ?? "", entityAfter || (row.entity ?? ""));
+  if (!existing) return "";
+  const fromKeyword = buildSapSlugFromKeywordEntity(
+    row.keyword ?? "",
+    entityAfter || (row.entity ?? ""),
+  );
+  if (fromKeyword.length >= 2 && existing === fromKeyword) return "";
+  return existing;
 }
 
 /** Matches `public/bulk-auto-generate-template.csv` column order. */

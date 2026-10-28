@@ -165,7 +165,6 @@ export function PromptInputSection({
         onClick={async () => {
           await handleGenerateChecklist();
         }}
-        disabled={isGeneratingChecklist || isProcessing || !apiKey || !openRouterApiKey}
         className={cn(
           'neo-pulse-btn-semantic-analysis w-full text-lg h-12',
           REPORTING_TOOLBAR_BTN,

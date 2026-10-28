@@ -33,22 +33,22 @@ describe("computeGa4PrimaryRange", () => {
     expect(r.endDate).toBe("2026-03-31");
   });
 
-  it("last 3 months starts on first day of month two months before reference", () => {
+  it("last 3 months is three full calendar months before the current month", () => {
     const r = computeGa4PrimaryRange("last_3_months", REF);
-    expect(r.startDate).toBe("2026-02-01");
-    expect(r.endDate).toBe("2026-04-13");
+    expect(r.startDate).toBe("2026-01-01");
+    expect(r.endDate).toBe("2026-03-31");
   });
 
-  it("last 6 months spans six calendar months including reference month", () => {
+  it("last 6 months is six full calendar months before the current month", () => {
     const r = computeGa4PrimaryRange("last_6_months", REF);
-    expect(r.startDate).toBe("2025-11-01");
-    expect(r.endDate).toBe("2026-04-13");
+    expect(r.startDate).toBe("2025-10-01");
+    expect(r.endDate).toBe("2026-03-31");
   });
 
-  it("last 12 months spans twelve calendar months including reference month", () => {
+  it("last 12 months is twelve full calendar months before the current month", () => {
     const r = computeGa4PrimaryRange("last_12_months", REF);
-    expect(r.startDate).toBe("2025-05-01");
-    expect(r.endDate).toBe("2026-04-13");
+    expect(r.startDate).toBe("2025-04-01");
+    expect(r.endDate).toBe("2026-03-31");
   });
 
   it("this week Mon starts on Monday of reference week", () => {
@@ -100,6 +100,21 @@ describe("buildGa4ReportingRanges", () => {
       reference: REF,
     });
     expect(r.primary.endDate).toBe("2026-04-13");
+    expect(r.compare).toEqual(r.primary);
+  });
+
+  it("compare off last 6 months uses six full calendar months excluding the current month", () => {
+    const ref = new Date(2026, 9, 19);
+    const r = buildGa4ReportingRanges({
+      primaryPreset: "last_6_months",
+      primaryCustom: { startDate: "", endDate: "" },
+      compareEnabled: false,
+      compareBaseline: "previous_period",
+      compareCustom: { startDate: "", endDate: "" },
+      reference: ref,
+    });
+    expect(r.primary.startDate).toBe("2026-04-01");
+    expect(r.primary.endDate).toBe("2026-09-30");
     expect(r.compare).toEqual(r.primary);
   });
 });

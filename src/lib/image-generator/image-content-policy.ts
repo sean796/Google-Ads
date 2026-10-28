@@ -32,7 +32,7 @@ export async function detectMatureImageRequest(args: {
       system: SYSTEM,
       user: userPrompt,
       temperature: 0,
-      maxTokens: 64,
+      maxTokens: 1024,
       responseFormat: { type: "json_object" },
     });
 

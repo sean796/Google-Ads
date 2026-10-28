@@ -32,7 +32,7 @@ export function createBulkGscKeywordsHostedLink(
   const text = stringifyInventoryKeywordList(keywords);
   const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
   return {
-    label: "GSC",
+    label: "GSC (28 days)",
     href: URL.createObjectURL(blob),
     filename,
     rowCount: keywords.length,

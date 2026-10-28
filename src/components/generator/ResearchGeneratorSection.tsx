@@ -1,7 +1,5 @@
 import { useCallback, useState } from "react";
 import { ProposalResearchTab } from "@/components/research/proposal/ProposalResearchTab";
-import { CitationResearchTab } from "@/components/research/citation/CitationResearchTab";
-import { BacklinkingResearchTab } from "@/components/research/backlinking/BacklinkingResearchTab";
 import { ResearchWorkspaceNavProvider } from "@/components/research/ResearchWorkspaceNavContext";
 import type { GeneratorWorkspaceChromeBindings } from "@/components/blog-generator/generator-workspace-chrome-bindings";
 import {
@@ -34,13 +32,7 @@ export function ResearchGeneratorSection({
         onSectionChange: setResearchSection,
       }}
     >
-      {researchSection === "research-citation" ? (
-        <CitationResearchTab generatorChrome={generatorChrome} />
-      ) : researchSection === "research-backlinking" ? (
-        <BacklinkingResearchTab generatorChrome={generatorChrome} />
-      ) : (
-        <ProposalResearchTab generatorChrome={generatorChrome} />
-      )}
+      <ProposalResearchTab generatorChrome={generatorChrome} />
     </ResearchWorkspaceNavProvider>
   );
 }

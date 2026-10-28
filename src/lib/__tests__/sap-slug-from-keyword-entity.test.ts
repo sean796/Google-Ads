@@ -35,7 +35,7 @@ describe("buildSapSlugFromKeywordEntity", () => {
       "albertas-productivity-grant",
     );
     expect(buildSapSlugFromKeywordEntity("Canada's 35 billion arctic investment", "")).toBe(
-      "canadas-35-billion-arctic-investment",
+      "canadas-35-billion-arctic",
     );
   });
 });

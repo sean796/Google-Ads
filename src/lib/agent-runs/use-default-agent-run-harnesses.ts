@@ -14,6 +14,7 @@ import { runPostCreatorDirectHarness } from "@/lib/agent-runs/run-post-creator-c
 import { runEntityPageCreatorDirectHarness } from "@/lib/agent-runs/run-entity-page-creator-client-harness";
 import { runEntityGeneratorDirectHarness } from "@/lib/agent-runs/run-entity-generator-client-harness";
 import { runSapGeneratorDirectHarness } from "@/lib/agent-runs/run-sap-generator-client-harness";
+import { runLocalDominatorExportDirectHarness } from "@/lib/agent-runs/run-local-dominator-export-client-harness";
 import type { AgentRun, AgentRunResult } from "@/lib/agent-runs-types";
 
 async function stubHarness(run: AgentRun, _ctx: AgentRunHarnessContext): Promise<AgentRunResult> {
@@ -33,6 +34,7 @@ export function useDefaultAgentRunHarnesses(): void {
     registerAgentRunHarness("entity_page_creator", runEntityPageCreatorDirectHarness);
     registerAgentRunHarness("entity_generator", runEntityGeneratorDirectHarness);
     registerAgentRunHarness("sap_generator", runSapGeneratorDirectHarness);
+    registerAgentRunHarness("local_dominator_export", runLocalDominatorExportDirectHarness);
     registerAgentRunHarness("chatgpt_website_audit", runChatGptAuditDirectHarness);
     registerAgentRunHarness("dfs_llm_article_audit", runDfsArticleAuditDirectHarness);
     registerAgentRunHarness("browser_automation", runBrowserAutomationDirectHarness);
@@ -46,6 +48,7 @@ export function useDefaultAgentRunHarnesses(): void {
       unregisterAgentRunHarness("entity_page_creator");
       unregisterAgentRunHarness("entity_generator");
       unregisterAgentRunHarness("sap_generator");
+      unregisterAgentRunHarness("local_dominator_export");
       unregisterAgentRunHarness("chatgpt_website_audit");
       unregisterAgentRunHarness("dfs_llm_article_audit");
       unregisterAgentRunHarness("browser_automation");

@@ -1,18 +1,13 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  ArrowUpToLine,
   Crosshair,
-  FileSpreadsheet,
   FlaskConical,
   Image,
-  MapPinHouse,
   MessageSquare,
   Newspaper,
   Workflow,
 } from "lucide-react";
-import {
-  writeStoredEntitySubmode,
-} from "@/components/sap-generator/entity-generator-submode";
+import { parseGeneratorSectionFromHash } from "@/lib/agent-runs/agent-run-optimizer-url";
 
 export type BlogGeneratorSectionId =
   | "opt"
@@ -27,13 +22,9 @@ export type BlogGeneratorSectionId =
 
 const BLOG_GENERATOR_SECTION_IDS: BlogGeneratorSectionId[] = [
   "opt",
-  "bulk-csv",
   "bulk-prompt",
-  "bulk-blog-import",
   "bulk-press-release",
-  "entity",
   "flow",
-  "image",
   "research",
 ];
 
@@ -41,11 +32,19 @@ export function isBlogGeneratorSectionId(value: string): value is BlogGeneratorS
   return (BLOG_GENERATOR_SECTION_IDS as string[]).includes(value);
 }
 
-/** Legacy generator/report tab and deep links map to Opt. */
+/** Legacy generator/report/entity/csv/import tab and deep links map to Opt or Studio (bulk-prompt). */
 export function coerceBlogGeneratorSectionId(value: string): BlogGeneratorSectionId {
   if (value === "report") return "opt";
+  if (
+    value === "entity" ||
+    value === "competitor" ||
+    value === "bulk-csv" ||
+    value === "bulk-blog-import"
+  ) {
+    return "bulk-prompt";
+  }
   if (isBlogGeneratorSectionId(value)) return value;
-  return "bulk-csv";
+  return "bulk-prompt";
 }
 
 export type BlogGeneratorSectionDef = {
@@ -56,13 +55,9 @@ export type BlogGeneratorSectionDef = {
 
 export const BLOG_GENERATOR_SECTION_DEFS: BlogGeneratorSectionDef[] = [
   { id: "opt", label: "Opt", icon: Crosshair },
-  { id: "bulk-csv", label: "CSV", icon: FileSpreadsheet },
-  { id: "bulk-prompt", label: "Prompt", icon: MessageSquare },
-  { id: "bulk-blog-import", label: "Import", icon: ArrowUpToLine },
+  { id: "bulk-prompt", label: "Studio", icon: MessageSquare },
   { id: "bulk-press-release", label: "PR", icon: Newspaper },
-  { id: "entity", label: "Entities", icon: MapPinHouse },
   { id: "flow", label: "Flow", icon: Workflow },
-  { id: "image", label: "Image", icon: Image },
   { id: "research", label: "Research", icon: FlaskConical },
 ];
 
@@ -89,23 +84,35 @@ export const BLOG_GENERATOR_SECTION_STORAGE_KEY = "neo-pulse-blog-generator-sect
 
 export function readStoredBlogGeneratorSection(): BlogGeneratorSectionId {
   try {
+    if (typeof window !== "undefined" && window.location?.hash) {
+      const fromHash = parseGeneratorSectionFromHash(window.location.hash);
+      if (fromHash) {
+        const coerced = coerceBlogGeneratorSectionId(fromHash);
+        sessionStorage.setItem(BLOG_GENERATOR_SECTION_STORAGE_KEY, coerced);
+        return coerced;
+      }
+    }
     const v = sessionStorage.getItem(BLOG_GENERATOR_SECTION_STORAGE_KEY);
-    if (v === "competitor") {
-      writeStoredEntitySubmode("competitors");
-      sessionStorage.setItem(BLOG_GENERATOR_SECTION_STORAGE_KEY, "entity");
-      return "entity";
+    if (
+      v === "competitor" ||
+      v === "entity" ||
+      v === "bulk-csv" ||
+      v === "bulk-blog-import"
+    ) {
+      sessionStorage.setItem(BLOG_GENERATOR_SECTION_STORAGE_KEY, "bulk-prompt");
+      return "bulk-prompt";
     }
     if (v === "report") {
       sessionStorage.setItem(BLOG_GENERATOR_SECTION_STORAGE_KEY, "opt");
       return "opt";
     }
-    if (isBlogGeneratorSectionId(v)) {
+    if (v && isBlogGeneratorSectionId(v)) {
       return v;
     }
   } catch {
     /* ignore */
   }
-  return "bulk-csv";
+  return "bulk-prompt";
 }
 
 type BlogGeneratorSectionListener = (section: BlogGeneratorSectionId) => void;

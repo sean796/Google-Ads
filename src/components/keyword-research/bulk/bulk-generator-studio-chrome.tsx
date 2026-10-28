@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Download } from "lucide-react";
+import { Download, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -75,61 +75,59 @@ export function BulkPromptDockToolbar({
   };
 
   return (
-    <GeneratorToolbarFrame
-      className={GENERATOR_STUDIO_BAND2_TOOLBAR_CLASS}
-      options={
-        <>
-          <Select
-            value={featuredImageMode}
-            onValueChange={(v) => handleFeaturedImageMode(v as FeaturedImageMode)}
-            disabled={workspaceBusy}
-          >
-            <SelectTrigger className={GENERATOR_SELECT} aria-label="Image">
-              <SelectValue placeholder="Image" />
-            </SelectTrigger>
-            <SelectContent position="popper">
-              <SelectItem className="text-base" value="ai-generated">
-                AI image
-              </SelectItem>
-              <SelectItem className="text-base" value="google-maps">
-                Google Maps
-              </SelectItem>
-              <SelectItem className="text-base" value="off">
-                None
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          <Select
-            value={postDestination}
-            onValueChange={(v) => onPostDestinationChange(v as WordPressPostDestination)}
-            disabled={workspaceBusy}
-          >
-            <SelectTrigger className={GENERATOR_SELECT} aria-label="Destination">
-              <SelectValue placeholder="Destination" />
-            </SelectTrigger>
-            <SelectContent position="popper">
-              {postDestinationChoices.map((choice) => (
-                <SelectItem key={choice} className="text-base" value={choice}>
-                  {WORDPRESS_POST_DESTINATION_SHORT[choice]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {scheduleMenu}
-        </>
-      }
-      actions={
-        <BulkGeneratorRunActions
-          isProcessing={isProcessing}
-          canRun={false}
-          workspaceBusy={workspaceBusy}
-          onRun={() => {}}
-          onCancel={onCancel}
-          onClear={onClear}
-          hideRunButton
-        />
-      }
-    />
+    <div className="flex shrink-0 flex-nowrap items-center gap-1.5 whitespace-nowrap">
+      <Select
+        value={featuredImageMode}
+        onValueChange={(v) => handleFeaturedImageMode(v as FeaturedImageMode)}
+        disabled={workspaceBusy}
+      >
+        <SelectTrigger className="h-8 w-[8.25rem] min-w-[8.25rem] max-w-[8.25rem] shrink-0 justify-between rounded-none border border-white/10 bg-zinc-900 px-2 text-xs text-white hover:bg-zinc-800" aria-label="Image">
+          <SelectValue placeholder="Image" />
+        </SelectTrigger>
+        <SelectContent position="popper" className="rounded-none border border-white/10 bg-zinc-900 text-xs text-white">
+          <SelectItem className="rounded-none text-xs" value="ai-generated">
+            AI image
+          </SelectItem>
+          <SelectItem className="rounded-none text-xs" value="google-maps">
+            Google Maps
+          </SelectItem>
+          <SelectItem className="rounded-none text-xs" value="off">
+            None
+          </SelectItem>
+        </SelectContent>
+      </Select>
+      <Select
+        value={postDestination}
+        onValueChange={(v) => onPostDestinationChange(v as WordPressPostDestination)}
+        disabled={workspaceBusy}
+      >
+        <SelectTrigger className="h-8 w-[8.25rem] min-w-[8.25rem] max-w-[8.25rem] shrink-0 justify-between rounded-none border border-white/10 bg-zinc-900 px-2 text-xs text-white hover:bg-zinc-800" aria-label="Destination">
+          <SelectValue placeholder="Destination" />
+        </SelectTrigger>
+        <SelectContent position="popper" className="rounded-none border border-white/10 bg-zinc-900 text-xs text-white">
+          {postDestinationChoices.map((choice) => (
+            <SelectItem key={choice} className="rounded-none text-xs" value={choice}>
+              {WORDPRESS_POST_DESTINATION_SHORT[choice]}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {scheduleMenu}
+      {onClear ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 min-w-8 max-w-8 shrink-0 justify-center rounded-none border border-white/10 bg-zinc-900 p-0 text-muted-foreground hover:bg-zinc-800 hover:text-red-400"
+          disabled={workspaceBusy}
+          aria-label="Clear batch"
+          title="Clear batch"
+          onClick={onClear}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      ) : null}
+    </div>
   );
 }
 

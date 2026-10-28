@@ -19,11 +19,11 @@ describe("researchBriefGeneratedFile", () => {
 });
 
 describe("collapseResearchHarnessToBrief", () => {
-  it("collapses eight research steps into one brief row", () => {
+  it("collapses seven research steps into one brief row", () => {
     const collapsed = collapseResearchHarnessToBrief([
       { sectionIndex: 0, title: "DataForSEO SERP", status: "done" },
       { sectionIndex: 1, title: "GSC CSV", status: "done" },
-      { sectionIndex: 2, title: "Semrush enrichment", status: "generating" },
+      { sectionIndex: 2, title: "LLM audit", status: "generating" },
     ]);
     expect(collapsed).toEqual([
       {

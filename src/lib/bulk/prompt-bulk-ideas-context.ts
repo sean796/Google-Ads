@@ -13,7 +13,11 @@ import {
   buildPromptBulkKwConnectedSiteContext,
   type PromptBulkKwConnectedSiteContext,
 } from "@/lib/bulk/prompt-bulk-kw-research-agent";
-import type { EntitySiteWarmBundle } from "@/lib/local-analysis/entity-site-warm-cache";
+import {
+  ensureEntitySiteWarmCache,
+  gscAllQueriesFromWarmBundle,
+  type EntitySiteWarmBundle,
+} from "@/lib/local-analysis/entity-site-warm-cache";
 
 /** Top GSC query strings for Prompt Ideas (last 6 months, stats-sorted). */
 export const PROMPT_IDEAS_GSC_LIMIT = 500;
@@ -57,6 +61,25 @@ function postsFromBucketJson(json: string): InventoryPost[] {
   return richRowsToPosts(parseContentBucketRichRows(json));
 }
 
+function warmInventoryBucketLegsCommitted(bundle: EntitySiteWarmBundle): boolean {
+  const buckets = bundle.inventory.buckets;
+  return (
+    typeof buckets.pages.json === "string" &&
+    typeof buckets.posts.json === "string" &&
+    typeof buckets.sap.json === "string"
+  );
+}
+
+export function promptBulkIdeasContextIsReady(
+  bundle: EntitySiteWarmBundle,
+  gscKeywordCount: number,
+): boolean {
+  if (bundle.error) return false;
+  if (bundle.counts.inventoryTotal <= 0) return false;
+  if (!warmInventoryBucketLegsCommitted(bundle)) return false;
+  return gscKeywordCount > 0;
+}
+
 export async function fetchPromptIdeasGscQueries(site: WordPressSite): Promise<GscSiteQueryRow[]> {
   const siteUrl = site.siteUrl?.trim();
   if (!siteUrl) {
@@ -98,13 +121,7 @@ export function buildPromptBulkIdeasContextFromWarm(
 
   const gscKeywords = gscKeywordsForOpenRouter(gscQueries, PROMPT_IDEAS_GSC_LIMIT);
   const inventoryUrlCount = bundle.counts.inventoryTotal;
-  const hasInventory =
-    siteInventoryObj.pages.posts.length > 0 ||
-    siteInventoryObj.posts.posts.length > 0 ||
-    siteInventoryObj.sap.posts.length > 0 ||
-    inventoryUrlCount > 0;
-
-  const isReady = hasInventory && gscKeywords.length > 0;
+  const isReady = promptBulkIdeasContextIsReady(bundle, gscKeywords.length);
 
   return {
     siteInventoryJson: JSON.stringify(siteInventoryObj),
@@ -115,10 +132,19 @@ export function buildPromptBulkIdeasContextFromWarm(
   };
 }
 
-export async function buildPromptBulkIdeasContextForSite(
+/** Loads Pages + Posts + SAP inventory and GSC from the entity site warm cache only. */
+export async function resolvePromptBulkIdeasContext(
   site: WordPressSite,
-  bundle: EntitySiteWarmBundle,
-): Promise<PromptBulkIdeasContext | null> {
-  const gscQueries = await fetchPromptIdeasGscQueries(site);
-  return buildPromptBulkIdeasContextFromWarm(site, bundle, gscQueries);
+): Promise<PromptBulkIdeasContext> {
+  const bundle = await ensureEntitySiteWarmCache(site, { requireGsc: true });
+  const gscQueries = gscAllQueriesFromWarmBundle(bundle);
+  const ctx = buildPromptBulkIdeasContextFromWarm(site, bundle, gscQueries);
+  if (!ctx?.isReady) {
+    const detail = bundle.error?.trim();
+    throw new Error(
+      detail ||
+        "Site sitemap inventory and GSC keywords are still loading. Wait for site data to finish warming, then try again.",
+    );
+  }
+  return ctx;
 }

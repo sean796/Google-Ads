@@ -93,7 +93,7 @@ Choose afterSectionHeader and illustrativeH2Title.`;
     model: args.model?.trim() || getResearchModel(),
     system: systemPrompt,
     user: userPrompt,
-    maxTokens: 400,
+    maxTokens: 2048,
     temperature: 0.4,
     responseFormat: { type: "json_object" },
     signal: args.signal,

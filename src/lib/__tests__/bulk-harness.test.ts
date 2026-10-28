@@ -78,7 +78,7 @@ describe('generateSingleSectionPrompt', () => {
       step: 3,
       title: '5 New PST Categories',
       description: 'PST rules',
-      features: ['[LIST] bullets', '[FORBIDDEN_WORDS — MANDATORY GLOBAL]: compact policy tag'],
+      features: ['[LIST] bullets', '[FORBIDDEN_WORDS - MANDATORY GLOBAL]: compact policy tag'],
     };
     const prompt = generateSingleSectionPrompt(agent, 'markdown');
     expect(prompt).not.toMatch(/WORD BLACKLIST \(mandatory/i);

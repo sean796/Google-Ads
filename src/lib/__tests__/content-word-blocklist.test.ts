@@ -22,6 +22,10 @@ import {
 } from "../content-word-blocklist";
 
 describe("GLOBAL_FORBIDDEN_WORDS_PROMPT_BLOCK", () => {
+  it("contains no em dash (U+2014) in blacklist copy", () => {
+    expect(GLOBAL_FORBIDDEN_WORDS_PROMPT_BLOCK).not.toMatch(/\u2014/);
+  });
+
   it("includes crucial, vital, and understanding/crucial sentence-shape rule", () => {
     expect(GLOBAL_FORBIDDEN_WORDS_PROMPT_BLOCK).toMatch(/crucial/i);
     expect(GLOBAL_FORBIDDEN_WORDS_PROMPT_BLOCK).toMatch(/vital/i);
@@ -79,7 +83,7 @@ describe("enforceForbiddenWordsOnBlueprintAgents", () => {
       { title: "Understanding the 5 New PST Categories", features: ["[LINK]: 3-5 internal links"] },
       {
         title: "Section B",
-        features: ["[FORBIDDEN_WORDS — MANDATORY GLOBAL]: WORD BLACKLIST (mandatory — all clients)"],
+        features: ["[FORBIDDEN_WORDS - MANDATORY GLOBAL]: WORD BLACKLIST (mandatory; all clients)"],
       },
     ]);
     expect(agents).toHaveLength(2);
@@ -144,7 +148,7 @@ describe("appendUniversalContentRulesToSystemPrompt", () => {
   it("prepends blacklist once and is idempotent", () => {
     const input = "You are a writer.";
     const once = appendUniversalContentRulesToSystemPrompt(input);
-    expect(once).toMatch(/^(\[FORBIDDEN_WORDS — MANDATORY GLOBAL\])/);
+    expect(once).toMatch(/^(\[FORBIDDEN_WORDS - MANDATORY GLOBAL\])/);
     expect(once).toMatch(/WORD BLACKLIST \(mandatory/i);
     expect(once).toContain(input);
     expect(once).toMatch(/Obey the WORD BLACKLIST block in the user message/i);
@@ -186,7 +190,7 @@ describe("blacklist RAG helpers", () => {
 describe("formatChecklistFileContent", () => {
   it("prepends full policy header once, numbered lines have no blacklist", () => {
     const out = formatChecklistFileContent(["Create H2 section.", "Add FAQ table."]);
-    expect(out.startsWith("[FORBIDDEN_WORDS — MANDATORY GLOBAL]")).toBe(true);
+    expect(out.startsWith("[FORBIDDEN_WORDS - MANDATORY GLOBAL]")).toBe(true);
     expect(out).toMatch(/WORD BLACKLIST \(mandatory/i);
     expect(out.indexOf("1. Create H2 section.")).toBeGreaterThan(0);
     expect(out.match(/WORD BLACKLIST \(mandatory/g)?.length).toBe(1);
@@ -207,7 +211,7 @@ describe("formatBlueprintFileContent", () => {
           title: "Navigating Compliance",
           features: [
             "[LINK]: 3-5 internal links",
-            "[FORBIDDEN_WORDS — MANDATORY GLOBAL]: WORD BLACKLIST (mandatory — all clients)",
+            "[FORBIDDEN_WORDS - MANDATORY GLOBAL]: WORD BLACKLIST (mandatory; all clients)",
           ],
         },
       ],
@@ -290,7 +294,7 @@ describe("sanitizeForbiddenWordsInChecklistItem", () => {
 
   it("removes injected blacklist suffix", () => {
     const out = sanitizeForbiddenWordsInChecklistItem(
-      "Create H2 section. [FORBIDDEN_WORDS — MANDATORY GLOBAL]: Apply global word blacklist.",
+      "Create H2 section. [FORBIDDEN_WORDS - MANDATORY GLOBAL]: Apply global word blacklist.",
     );
     expect(out).toBe("Create H2 section.");
   });

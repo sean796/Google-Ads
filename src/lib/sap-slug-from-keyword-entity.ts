@@ -1,8 +1,13 @@
 import { sanitizeWordPressSlugSegment } from "@/lib/rank-math-redirect-csv";
 import { stripApostrophesForSlug } from "@/lib/slug-word-normalize";
 import type { CSVRow } from "@/lib/bulk/bulk-csv-parser";
+import {
+  SAP_SLUG_KEYWORD_MAX_WORDS,
+  SAP_SLUG_MAX_LENGTH,
+  limitServiceWords,
+} from "@/lib/sap-brand-and-brevity";
 
-const SLUG_MAX_LENGTH = 80;
+const SLUG_MAX_LENGTH = SAP_SLUG_MAX_LENGTH;
 
 function stripDiacritics(value: string): string {
   return value.normalize("NFD").replace(/\p{M}+/gu, "");
@@ -53,7 +58,9 @@ function parseEntityParts(entity: string): ParsedEntity {
 
 /** Keyword segment: dashed words; drops entity city tokens so city can sit last on the entity block. */
 function slugifyKeywordPart(keyword: string, entityCityWords: string[]): string {
-  const normalized = stripDiacritics(stripApostrophesForSlug(keyword.trim().toLowerCase()));
+  const normalized = stripDiacritics(
+    stripApostrophesForSlug(limitServiceWords(keyword.trim().toLowerCase(), SAP_SLUG_KEYWORD_MAX_WORDS)),
+  );
   if (!normalized) return "";
   const citySet = new Set(entityCityWords);
   const words = normalized
@@ -63,7 +70,7 @@ function slugifyKeywordPart(keyword: string, entityCityWords: string[]): string 
     .split(/\s+/)
     .filter(Boolean)
     .filter((word) => !citySet.has(word));
-  return words.join("-");
+  return words.slice(0, SAP_SLUG_KEYWORD_MAX_WORDS).join("-");
 }
 
 function keywordWordSet(keyword: string, entityCityWords: string[]): Set<string> {

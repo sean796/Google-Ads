@@ -30,7 +30,9 @@ import {
 } from "@/lib/overview/overview-faq-source-html";
 import type { OverviewSitemapSource } from "@/lib/overview/overview-sitemap-source";
 import { generateFaqIntroParagraph } from "@/lib/overview/overview-blog-faq-intro-agent";
+import { extractFaqFromPostHtml } from "@/lib/overview/overview-row-scrape";
 import { loadApiKey } from "@/lib/api";
+import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
 import { getMetaModel } from "@/lib/optimization-settings-storage";
 import { mapOverviewAiCopyWithConcurrency } from "@/lib/overview/overview-ai-copy-concurrency";
 import { overviewBulkPageRanges } from "@/lib/overview/overview-bulk-page-size";
@@ -247,116 +249,68 @@ export async function runFaqPairsForRow(params: RunFaqPairsForRowParams): Promis
     updateRow(rowIndex, { postContent: liveHtml });
   }
 
-  let workingEntries = parseFaqEntries(row.faq);
+  let existingEntries = parseFaqEntries(row.faq);
+  if (existingEntries.length === 0) {
+    const htmlFaq = extractFaqFromPostHtml(sourceHtml);
+    if (htmlFaq) {
+      existingEntries = parseFaqEntries(htmlFaq);
+    }
+  }
   const pairCount =
-    workingEntries.length > 0
-      ? workingEntries.length
+    existingEntries.length > 0
+      ? existingEntries.length
       : clampBulkAiFaqSeed(bulkAiFaqSeedCount);
   const totalSections = totalHarnessSectionsIn ?? pairCount;
 
-  if (!workingEntries.length) {
-    updateRow(rowIndex, { status: "ai-faq" });
-    const briefSeed = row.seoResearch?.trim();
-    const dfsContextSeed = briefSeed ? undefined : await deps.getDfsSerpContext(row);
-    const generated = await deps.optimizeFaq(
-      row.url,
-      row.focusKeyword,
-      "(none)",
-      dfsContextSeed,
-      row.title,
-      row.metaDescription,
-      briefSeed || undefined,
-      {
-        exactQuestionCount: pairCount,
-        includeAnswers: true,
-        skipLoadingState,
-      },
-    );
-    if (!generated?.trim()) {
-      markFaqRowError(url, rowIndex, harnessSetters, updateRow, NOTIFY_FAQS_NOT_GENERATED);
-      return false;
-    }
-    workingEntries = parseFaqEntries(generated);
-    if (!workingEntries.length) {
-      markFaqRowError(url, rowIndex, harnessSetters, updateRow, "Could not parse generated FAQs");
-      return false;
-    }
-    updateRow(rowIndex, { faq: serializeFaqEntriesPlain(workingEntries), status: "ai-faq" });
-  }
-
-  const brief = row.seoResearch?.trim();
-  const dfsContext = brief ? undefined : await deps.getDfsSerpContext(row);
-  const faqOpts = skipLoadingState ? { skipLoadingState: true as const } : undefined;
-  const snapshotEntries = [...workingEntries];
-
-  const pairResults = await Promise.all(
-    snapshotEntries.map(async (entry, pairIndex) => {
-      const sectionIndex = sectionIndexOffset + pairIndex;
-      emitFaqHarnessPayload(
-        url,
-        makeFaqPairHarnessStartPayload(rowIndex, pairIndex, totalSections, sectionIndex),
-        harnessSetters,
-      );
-
-      const improvedQ = await deps.optimizeFaqQuestion(
-        row.url,
-        row.focusKeyword,
-        entry.question,
-        serializeFaqEntriesPlain(snapshotEntries),
-        dfsContext,
-        row.title,
-        row.metaDescription,
-        brief || undefined,
-        faqOpts,
-      );
-      if (!improvedQ) {
-        return null;
-      }
-
-      const improvedA = await deps.optimizeFaqAnswer(
-        row.url,
-        row.focusKeyword,
-        improvedQ,
-        entry.answer,
-        serializeFaqEntriesPlain(snapshotEntries),
-        dfsContext,
-        row.title,
-        row.metaDescription,
-        brief || undefined,
-        faqOpts,
-      );
-      if (!improvedA) {
-        return null;
-      }
-
-      const result: FaqEntry = { question: improvedQ, answer: improvedA };
-      emitFaqHarnessPayload(
-        url,
-        makeFaqPairHarnessDonePayload(rowIndex, pairIndex, totalSections, sectionIndex, result),
-        harnessSetters,
-      );
-      return { pairIndex, entry: result };
-    }),
+  console.log("[Auto SEO] Generating all FAQs in 1 pass ->", { url, pairCount });
+  updateRow(rowIndex, { status: "ai-faq" });
+  const briefSeed = row.seoResearch?.trim();
+  const dfsContextSeed = briefSeed ? undefined : await deps.getDfsSerpContext(row);
+  const existingFaqText =
+    existingEntries.length > 0 ? serializeFaqEntriesPlain(existingEntries) : "(none)";
+  const generated = await deps.optimizeFaq(
+    row.url,
+    row.focusKeyword,
+    existingFaqText,
+    dfsContextSeed,
+    row.title,
+    row.metaDescription,
+    briefSeed || undefined,
+    {
+      exactQuestionCount: pairCount,
+      includeAnswers: true,
+      skipLoadingState,
+    },
   );
-
-  const merged = [...snapshotEntries];
-  let anyFailed = false;
-  for (const result of pairResults) {
-    if (!result) {
-      anyFailed = true;
-      continue;
-    }
-    merged[result.pairIndex] = result.entry;
-  }
-
-  if (anyFailed && pairResults.every((r) => !r)) {
-    markFaqRowError(url, rowIndex, harnessSetters, updateRow);
+  if (!generated?.trim()) {
+    markFaqRowError(url, rowIndex, harnessSetters, updateRow, NOTIFY_FAQS_NOT_GENERATED);
     return false;
   }
+  const merged = parseFaqEntries(generated);
+  if (!merged.length) {
+    markFaqRowError(url, rowIndex, harnessSetters, updateRow, "Could not parse generated FAQs");
+    return false;
+  }
+  updateRow(rowIndex, { faq: serializeFaqEntriesPlain(merged), status: "ai-faq" });
+
+  merged.forEach((entry, pairIndex) => {
+    const sectionIndex = sectionIndexOffset + pairIndex;
+    emitFaqHarnessPayload(
+      url,
+      makeFaqPairHarnessStartPayload(rowIndex, pairIndex, totalSections, sectionIndex),
+      harnessSetters,
+    );
+    emitFaqHarnessPayload(
+      url,
+      makeFaqPairHarnessDonePayload(rowIndex, pairIndex, totalSections, sectionIndex, entry),
+      harnessSetters,
+    );
+  });
 
   let appended: ReturnType<typeof appendFaqSectionToPostHtml> = null;
   try {
-    const apiKey = (loadApiKey() ?? "").trim();
+    const apiKey =
+      (loadApiKey() ?? "").trim() || (await resolveOpenRouterApiKeyForHarness());
     if (!apiKey) {
       throw new Error("OpenRouter API key required for FAQ intro");
     }

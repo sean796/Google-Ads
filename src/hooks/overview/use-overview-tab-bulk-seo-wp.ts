@@ -7,6 +7,7 @@ import {
   NOTIFY_CSV_DOWNLOADED,
   NOTIFY_NO_ROWS_MATCHED_WORDPRESS_INVENTORY,
 } from "@/lib/notify-messages";
+import type { OverviewStudioRowSource } from "@/components/overview/overview-tab/overview-tab-content-types";
 
 import {
   overviewDateModifierTodayIso,
@@ -20,6 +21,7 @@ import {
   triggerOverviewCsvDownload,
 } from "@/lib/overview/overview-wordpress-export-csv";
 
+import type { OverviewBinding } from "@/hooks/overview/use-overview-wordpress-binding";
 import type { WordPressSite } from "@/components/integrations/types";
 
 import type { OverviewTabBase } from "@/hooks/overview/use-overview-tab-base";
@@ -62,6 +64,8 @@ type Args = Pick<
     site: WordPressSite | null,
     url: string,
   ) => OverviewInventoryUrlMatch | undefined;
+  studioRowSource?: OverviewStudioRowSource;
+  getBulkGeneratorPushBindings?: () => Record<string, OverviewBinding>;
 };
 
 export function useOverviewTabBulkSeoWp({
@@ -79,6 +83,8 @@ export function useOverviewTabBulkSeoWp({
   selectedUrlKeys,
   setBulkActionProgress,
   getInventoryMatchForUrl,
+  studioRowSource = "sitemap",
+  getBulkGeneratorPushBindings,
 }: Args) {
   const inventoryCollections = overviewInventoryCollectionsForSite(site, sitemapSource);
 
@@ -140,17 +146,26 @@ export function useOverviewTabBulkSeoWp({
       scoped: overviewRowsInBulkScope(rows, bulkScopeUrlKeys).length,
     });
     if (!site?.username || !site.appPassword) {
-      console.info("[WP upload] aborted: missing WordPress credentials");
+      notify.error(NOTIFY_CONNECT_A_WORDPRESS_SITE_FIRST_IN_THE_IN);
       return;
     }
 
     const scopedRows = overviewRowsInBulkScope(rows, bulkScopeUrlKeys);
     if (!scopedRows.length) {
-      console.info("[WP upload] aborted: no scoped rows");
+      notify.error("No rows in scope to upload.");
       return;
     }
 
-    const mergedBindings = { ...bindings };
+    if (studioRowSource === "bulk-generator") {
+      await prefetchOverviewInventory(site, {
+        downloadCsv: false,
+        collections: inventoryCollections,
+        source: sitemapSource,
+        silent: true,
+      });
+    }
+
+    const mergedBindings = { ...bindings, ...(getBulkGeneratorPushBindings?.() ?? {}) };
     const missingBindingUrls = scopedRows
       .filter((row) => !resolveOverviewBindingForRow(row, mergedBindings, getInventoryMatchForUrl(site, row.url))?.postId)
       .map((row) => row.url);
@@ -214,6 +229,7 @@ export function useOverviewTabBulkSeoWp({
         opt.setIsOptimizingContent,
         noEligibleMessage,
       );
+      notify.error(noEligibleMessage);
       return;
     }
 
@@ -273,6 +289,11 @@ export function useOverviewTabBulkSeoWp({
     getInventoryMatchForUrl,
     opt,
     setBulkActionProgress,
+    studioRowSource,
+    getBulkGeneratorPushBindings,
+    prefetchOverviewInventory,
+    inventoryCollections,
+    sitemapSource,
   ]);
 
   return { handleBulkExportSeoCsv, handleBulkUploadToWordPress };

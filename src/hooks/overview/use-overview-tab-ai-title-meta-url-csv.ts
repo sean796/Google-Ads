@@ -83,15 +83,13 @@ export function useOverviewTabAiTitleMetaUrlCsv({
           aiTitle: row.aiTitle || row.title,
         };
       }
+      console.log("[Auto SEO] Step: Optimizing SEO Title ->", row.url);
       updateRow(index, { status: "ai-title" });
-      let sentimentSource: string | undefined;
-      if (site) {
+      const inlineBody = (row.postContentOptimized || row.postContent || "").trim();
+      let sentimentSource: string | undefined = inlineBody ? inlineBody.slice(0, 2000) : undefined;
+      if (!sentimentSource && site) {
         try {
-          let binding = bindings[row.url];
-          if (!binding) {
-            const singleBindingMap = await resolveBindings([row.url], site, undefined, { inventoryOnly: true });
-            binding = singleBindingMap[row.url];
-          }
+          const binding = bindings[row.url];
           if (binding?.postId) {
             sentimentSource = await resolvePostBodyHtmlForSentiment(row, binding);
           }
@@ -112,14 +110,16 @@ export function useOverviewTabAiTitleMetaUrlCsv({
         },
       );
       if (!result) {
+        console.warn("[Auto SEO] SEO Title failed for", row.url);
         updateRow(index, { status: "error" });
         return null;
       }
       const cleaned = overviewTitlePrimarySegment(result);
+      console.log("[Auto SEO] SEO Title done ->", cleaned);
       updateRow(index, { title: cleaned, aiTitle: cleaned, status: "idle" });
       return { title: cleaned, aiTitle: cleaned };
     },
-    [rows, optimizeTitle, updateRow, site, bindings, resolveBindings, resolvePostBodyHtmlForSentiment, sitemapSource],
+    [rows, optimizeTitle, updateRow, site, bindings, resolvePostBodyHtmlForSentiment, sitemapSource],
   );
 
   const handleAiTitleAll = useCallback(async () => {
@@ -172,16 +172,14 @@ export function useOverviewTabAiTitleMetaUrlCsv({
     ): Promise<{ metaDescription: string; aiMeta: string } | null> => {
       const row = rowOverride ?? rows[index];
       if (!row) return null;
+      console.log("[Auto SEO] Step: Optimizing Meta Description ->", row.url);
       updateRow(index, { status: "ai-meta" });
       const base = row.metaDescription || row.aiMeta || "";
-      let sentimentSource: string | undefined = base;
-      if (site) {
+      const inlineBody = (row.postContentOptimized || row.postContent || "").trim();
+      let sentimentSource: string | undefined = inlineBody ? inlineBody.slice(0, 2000) : base;
+      if (!inlineBody && site) {
         try {
-          let binding = bindings[row.url];
-          if (!binding) {
-            const singleBindingMap = await resolveBindings([row.url], site, undefined, { inventoryOnly: true });
-            binding = singleBindingMap[row.url];
-          }
+          const binding = bindings[row.url];
           if (binding?.postId) {
             sentimentSource = await resolvePostBodyHtmlForSentiment(row, binding);
           }
@@ -224,13 +222,15 @@ export function useOverviewTabAiTitleMetaUrlCsv({
         },
       );
       if (!result) {
+        console.warn("[Auto SEO] Meta Description failed for", row.url);
         updateRow(index, { status: "error" });
         return null;
       }
+      console.log("[Auto SEO] Meta Description done ->", result);
       updateRow(index, { metaDescription: result, aiMeta: result, status: "idle" });
       return { metaDescription: result, aiMeta: result };
     },
-    [rows, optimizeMeta, updateRow, gscQuickWinsFile, site, bindings, resolveBindings, resolvePostBodyHtmlForSentiment],
+    [rows, optimizeMeta, updateRow, gscQuickWinsFile, site, bindings, resolvePostBodyHtmlForSentiment],
   );
 
   const handleAiMetaAll = useCallback(async () => {

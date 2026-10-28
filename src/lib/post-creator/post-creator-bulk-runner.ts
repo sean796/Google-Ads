@@ -20,16 +20,13 @@ import {
   type WordPressPostingOptions,
 } from "@/lib/bulk-auto-generate";
 import { buildBlogImportKeywordResearchStub } from "@/lib/bulk/blog-import-parse";
-import { runIntelligentKeywordResearchMerge, type IntelligentKeywordResearchMergeResult } from "@/lib/bulk/intelligent-keyword-research-merge";
+import type { IntelligentKeywordResearchMergeResult } from "@/lib/bulk/intelligent-keyword-research-merge";
 import type { CSVRow } from "@/lib/bulk/bulk-csv-parser";
 import { BulkFileManager } from "@/lib/bulk-file-manager";
 import { loadKnowledgeBaseForBulkIdeas } from "@/lib/kb-for-bulk-ideas";
 import { buildPortfolioBlockedHosts } from "@/lib/portfolio-link-blocklist";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import type { PostCreatorUploadedPost } from "@/lib/post-creator/post-creator-agent-harness";
-import { getPublicSiteUrl } from "@/lib/wordpress-site-public-url";
-import { fetchSemrushBulkEnrichment } from "@/lib/wordpress-api/semrush";
-import { generateSEOSlug } from "@/lib/seo-slug-generator";
 import type { KeywordAnalysisComplete, KeywordAnalysisOptions } from "@/lib/keyword-types";
 import type { ResolvedPostCreatorSchedule } from "@/lib/post-creator/post-creator-schedule";
 import { extractChecklistItemTitle } from "@/lib/post-creator/post-creator-checklist-post-process";
@@ -153,13 +150,6 @@ async function processPostCreatorRow(
     return;
   }
 
-  const baseUrl = getPublicSiteUrl(connectedSite as WordPressSite).replace(/\/+$/, "") || "";
-  const seedEarly = row.keyword?.trim() || row.keyword_focus?.trim() || "";
-  const slugEarly = seedEarly
-    ? await generateSEOSlug(row.title || seedEarly, seedEarly, row.entity, openRouterApiKey)
-    : "";
-  const pageUrlEarly = baseUrl && slugEarly ? `${baseUrl}/${slugEarly}` : "";
-
   let keywordResearchFromRow: Awaited<ReturnType<typeof generateRowOutputs>>["research"] | null = null;
   if (!shouldSkipPhase(resumeFromPhase, "keyword")) {
     reportPostPhaseProgress(options, rowIndex, totalRows, "keyword");
@@ -175,27 +165,10 @@ async function processPostCreatorRow(
   }
 
   const stub = buildBlogImportKeywordResearchStub(row);
-  let finalKeywordData = keywordResearchFromRow?.result?.keywordData ?? stub.keywordData;
-  let finalAiAnalysis = keywordResearchFromRow?.aiAnalysis ?? stub.aiAnalysis;
-  const semrushResult = shouldSkipPhase(resumeFromPhase, "keyword")
-    ? null
-    : await fetchSemrushBulkEnrichment({
-        pageUrl: pageUrlEarly,
-        seedKeyword: seedEarly,
-        portfolioBlockedHosts: options.portfolioBlockedHosts,
-      });
-
-  let keywordMergeResult: {
-    merge: IntelligentKeywordResearchMergeResult;
-    primaryExternalCitationUrl: string | null;
-  } | null = null;
+  const finalKeywordData = keywordResearchFromRow?.result?.keywordData ?? stub.keywordData;
+  const finalAiAnalysis = keywordResearchFromRow?.aiAnalysis ?? stub.aiAnalysis;
 
   if (!shouldSkipPhase(resumeFromPhase, "keyword")) {
-    keywordMergeResult = await runIntelligentKeywordResearchMerge(row, finalKeywordData, semrushResult, {
-      apiKey: openRouterApiKey,
-      model: selectedModel,
-    });
-
     const volumeDataForSnapshot = keywordResearchFromRow?.keywordsVolumeData ?? [];
     addKeywordResearchSnapshotToBulkFiles(rowIndex, row, fileManager, options, Date.now(), {
       keywordData: finalKeywordData,
@@ -203,9 +176,9 @@ async function processPostCreatorRow(
       keywordsVolumeData: volumeDataForSnapshot,
       paaRawResponse: keywordResearchFromRow?.paaRawResponse ?? null,
       primaryKeyword: row.keyword?.trim() || stub.primaryKeyword,
-      semrush: semrushResult,
-      intelligentMerge: keywordMergeResult.merge,
-      primaryExternalCitationUrl: keywordMergeResult.primaryExternalCitationUrl,
+      semrush: null,
+      intelligentMerge: null,
+      primaryExternalCitationUrl: null,
     });
     const keywordJson = fileManager
       .getAllFiles()
@@ -264,10 +237,7 @@ async function processPostCreatorRow(
     activeKnowledgeBaseText,
     connectedSite,
     wordPressPosts,
-    {
-      semrush: semrushResult,
-      ...postCreatorBlueprintMergeFields(keywordMergeResult),
-    },
+    null,
   );
 }
 

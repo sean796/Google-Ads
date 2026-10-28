@@ -19,7 +19,11 @@ export interface WordPressSiteFormDialogsProps {
   formSemrushPositionTrackingCampaignId: string;
   formEditorialCountsPeriodStartYmd: string;
   formOptimizationPackage: string;
+  formEditorialContentPackage: string;
+  formEditorialPublishTimeLocal: string;
   formBenchmarkCustomTag: string;
+  formPrimaryLocalKeyword: string;
+  formClientLogoUrl: string;
   formProfileTags: string[];
   formServiceCity: string;
   formServiceState: string;
@@ -37,7 +41,11 @@ export interface WordPressSiteFormDialogsProps {
   onFormSemrushPositionTrackingCampaignIdChange: (value: string) => void;
   onFormEditorialCountsPeriodStartYmdChange: (value: string) => void;
   onFormOptimizationPackageChange: (value: string) => void;
+  onFormEditorialContentPackageChange: (value: string) => void;
+  onFormEditorialPublishTimeLocalChange: (value: string) => void;
   onFormBenchmarkCustomTagChange: (value: string) => void;
+  onFormPrimaryLocalKeywordChange: (value: string) => void;
+  onFormClientLogoUrlChange: (value: string) => void;
   onFormProfileTagsChange: (tags: string[]) => void;
   onFormServiceCityChange: (value: string) => void;
   onFormServiceStateChange: (value: string) => void;
@@ -64,7 +72,11 @@ export const WordPressDialogs: React.FC<WordPressSiteFormDialogsProps> = ({
   formSemrushPositionTrackingCampaignId,
   formEditorialCountsPeriodStartYmd,
   formOptimizationPackage,
+  formEditorialContentPackage,
+  formEditorialPublishTimeLocal,
   formBenchmarkCustomTag,
+  formPrimaryLocalKeyword,
+  formClientLogoUrl,
   formProfileTags,
   formServiceCity,
   formServiceState,
@@ -82,7 +94,11 @@ export const WordPressDialogs: React.FC<WordPressSiteFormDialogsProps> = ({
   onFormSemrushPositionTrackingCampaignIdChange,
   onFormEditorialCountsPeriodStartYmdChange,
   onFormOptimizationPackageChange,
+  onFormEditorialContentPackageChange,
+  onFormEditorialPublishTimeLocalChange,
   onFormBenchmarkCustomTagChange,
+  onFormPrimaryLocalKeywordChange,
+  onFormClientLogoUrlChange,
   onFormProfileTagsChange,
   onFormServiceCityChange,
   onFormServiceStateChange,
@@ -108,7 +124,11 @@ export const WordPressDialogs: React.FC<WordPressSiteFormDialogsProps> = ({
       formSemrushPositionTrackingCampaignId={formSemrushPositionTrackingCampaignId}
       formEditorialCountsPeriodStartYmd={formEditorialCountsPeriodStartYmd}
       formOptimizationPackage={formOptimizationPackage}
+      formEditorialContentPackage={formEditorialContentPackage}
+      formEditorialPublishTimeLocal={formEditorialPublishTimeLocal}
       formBenchmarkCustomTag={formBenchmarkCustomTag}
+      formPrimaryLocalKeyword={formPrimaryLocalKeyword}
+      formClientLogoUrl={formClientLogoUrl}
       formProfileTags={formProfileTags}
       formServiceCity={formServiceCity}
       formServiceState={formServiceState}
@@ -126,7 +146,11 @@ export const WordPressDialogs: React.FC<WordPressSiteFormDialogsProps> = ({
       onFormSemrushPositionTrackingCampaignIdChange={onFormSemrushPositionTrackingCampaignIdChange}
       onFormEditorialCountsPeriodStartYmdChange={onFormEditorialCountsPeriodStartYmdChange}
       onFormOptimizationPackageChange={onFormOptimizationPackageChange}
+      onFormEditorialContentPackageChange={onFormEditorialContentPackageChange}
+      onFormEditorialPublishTimeLocalChange={onFormEditorialPublishTimeLocalChange}
       onFormBenchmarkCustomTagChange={onFormBenchmarkCustomTagChange}
+      onFormPrimaryLocalKeywordChange={onFormPrimaryLocalKeywordChange}
+      onFormClientLogoUrlChange={onFormClientLogoUrlChange}
       onFormProfileTagsChange={onFormProfileTagsChange}
       onFormServiceCityChange={onFormServiceCityChange}
       onFormServiceStateChange={onFormServiceStateChange}

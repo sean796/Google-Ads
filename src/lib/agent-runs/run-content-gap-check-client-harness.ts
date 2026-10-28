@@ -2,6 +2,7 @@ import type { WordPressSite } from "@/components/integrations/types";
 import { getStoredSites } from "@/components/integrations/storage";
 import type { AgentRunHarnessContext } from "@/lib/agent-runs/harness-registry";
 import { AGENT_RUN_STEP_KEYS } from "@/lib/agent-runs/agent-run-step-keys";
+import { resolveContentGapCheckExecutionPayload } from "@/lib/content-gap/apply-editorial-package-content-gap-target";
 import {
   contentGapOutcomeStepLabel,
   formatContentGapRunMessage,
@@ -70,7 +71,7 @@ export async function runContentGapCheckClientHarness(
     return existing;
   }
 
-  const payload = executionPayloadFromSource(contract);
+  const payload = resolveContentGapCheckExecutionPayload(executionPayloadFromSource(contract), site);
   const saveLocalArchive = effectiveSaveLocalArchive("content_gap_check", contract);
 
   await ctx.onStep?.("Counting content", "running", undefined, AGENT_RUN_STEP_KEYS.contentGap);
@@ -165,7 +166,10 @@ export async function runContentGapCheckDirectHarness(
   }
 
   await ctx.onStep?.("Counting content", "running", undefined, AGENT_RUN_STEP_KEYS.contentGap);
-  const gap = await resolveContentGapCount(site, executionPayloadFromSource(contract));
+  const gap = await resolveContentGapCount(
+    site,
+    resolveContentGapCheckExecutionPayload(executionPayloadFromSource(contract), site),
+  );
   await ctx.onStep?.(contentGapOutcomeStepLabel(gap), "done", undefined, AGENT_RUN_STEP_KEYS.contentGap);
 
   return {

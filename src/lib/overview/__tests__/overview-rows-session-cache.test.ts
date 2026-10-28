@@ -1,73 +1,112 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import {
   clearOverviewRowsSessionCache,
   getOverviewRowsSessionCache,
-  mergeOverviewRowsForSitemapLoad,
   setOverviewRowsSessionCache,
 } from "@/lib/overview/overview-rows-session-cache";
 
-function row(url: string): OverviewRow {
+vi.mock("@/lib/overview/overview-studio-snapshot-api", () => ({
+  saveOverviewStudioSnapshotToServer: vi.fn(),
+  fetchOverviewStudioSnapshotFromServer: vi.fn(),
+}));
+
+const SITE_ID = "blind-magic-stg";
+
+function makeStorageMock(): Storage {
+  const store = new Map<string, string>();
   return {
-    url,
-    title: url,
-    metaDescription: "",
-    focusKeyword: "",
-    faq: "",
-    schemaJson: "",
-    seoResearch: "",
-    dateModifier: "",
-    status: "idle",
-    aiTitle: "",
-    aiMeta: "",
-    postId: null,
-    postType: null,
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      store.set(key, value);
+    },
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+    key: (index: number) => Array.from(store.keys())[index] ?? null,
+    get length() {
+      return store.size;
+    },
+    clear: () => store.clear(),
   };
 }
 
-describe("overview-rows-session-cache", () => {
-  const siteId = "test-site";
+function makeRow(index: number, withHeavyBody = true): OverviewRow {
+  return {
+    url: `https://blindmagic.com/page-${index}/`,
+    title: `Page ${index}`,
+    pageHeading: `Heading ${index}`,
+    metaDescription: `Meta ${index}`,
+    aiTitle: "",
+    aiMeta: "",
+    status: "idle",
+    postContent: withHeavyBody ? `<p>${"x".repeat(2000)}</p>` : undefined,
+    elementorDataJson: withHeavyBody ? JSON.stringify({ widget: index }) : undefined,
+  };
+}
+
+describe("overview-rows-session-cache slim localStorage + active row body", () => {
+  let localMock: Storage;
+  let sessionMock: Storage;
 
   beforeEach(() => {
-    clearOverviewRowsSessionCache(siteId);
+    localMock = makeStorageMock();
+    sessionMock = makeStorageMock();
+    vi.stubGlobal("localStorage", localMock);
+    vi.stubGlobal("sessionStorage", sessionMock);
+    clearOverviewRowsSessionCache(SITE_ID);
   });
 
-  it("stores each sitemap bucket under a separate cache key", () => {
-    setOverviewRowsSessionCache(siteId, "pages", [row("https://example.com/page/")]);
-    setOverviewRowsSessionCache(siteId, "posts", [row("https://example.com/blog/post/")]);
-    setOverviewRowsSessionCache(siteId, "sap", [row("https://example.com/service-area/a/")]);
-
-    expect(getOverviewRowsSessionCache(siteId, "pages")?.[0]?.url).toBe("https://example.com/page/");
-    expect(getOverviewRowsSessionCache(siteId, "posts")?.[0]?.url).toBe("https://example.com/blog/post/");
-    expect(getOverviewRowsSessionCache(siteId, "sap")?.[0]?.url).toBe("https://example.com/service-area/a/");
-  });
-
-  it("does not cross-write when switching bucket keys", () => {
-    setOverviewRowsSessionCache(siteId, "pages", [row("https://example.com/giving-back/")]);
-    setOverviewRowsSessionCache(siteId, "posts", [row("https://example.com/blog/commercial-blinds/")]);
-
-    const pages = getOverviewRowsSessionCache(siteId, "pages");
-    const posts = getOverviewRowsSessionCache(siteId, "posts");
-
-    expect(pages?.[0]?.url).toContain("giving-back");
-    expect(posts?.[0]?.url).toContain("commercial-blinds");
-    expect(posts?.[0]?.url).not.toContain("giving-back");
-  });
-
-  it("reattaches session row data when refresh only changes the trailing slash", () => {
-    const session = new Map<string, OverviewRow>([
-      ["https://example.com/how-tariffs", { ...row("https://example.com/how-tariffs"), title: "How Tariffs", postId: 9 }],
-    ]);
-    const merged = mergeOverviewRowsForSitemapLoad(
-      ["https://example.com/how-tariffs/"],
-      new Map(),
-      session,
-      (url) => row(url),
+  it("persists 100 slim rows to localStorage while keeping active row full body on cold read", () => {
+    localMock.setItem(
+      `neo-pulse-overview-studio-active-url-v1:${SITE_ID}`,
+      "https://blindmagic.com/page-0/",
     );
+    const rows = Array.from({ length: 100 }, (_, i) => makeRow(i, true));
+    setOverviewRowsSessionCache(SITE_ID, "pages", rows);
 
-    expect(merged).toHaveLength(1);
-    expect(merged[0]?.url).toBe("https://example.com/how-tariffs/");
-    expect(merged[0]?.title).toBe("How Tariffs");
-    expect(merged[0]?.postId).toBe(9);
+    // Simulate page reload: clear sessionStorage and module memory by reading after session clear
+    sessionMock.clear();
+    const rawList = localMock.getItem(`neo-pulse-overview-rows-local:v4:${SITE_ID}:pages`);
+    expect(rawList).toBeTruthy();
+    const parsedList = JSON.parse(rawList!) as OverviewRow[];
+    expect(parsedList).toHaveLength(100);
+    // Non-active rows in raw localStorage list have heavy body stripped
+    expect(parsedList[1].postContent).toBeUndefined();
+    expect(parsedList[1].elementorDataJson).toBeUndefined();
+
+    // Active row body key preserves full postContent + elementorDataJson
+    const rawActive = localMock.getItem(
+      `neo-pulse-overview-active-row-body:v1:${SITE_ID}:pages`,
+    );
+    expect(rawActive).toBeTruthy();
+    const parsedActive = JSON.parse(rawActive!) as OverviewRow;
+    expect(parsedActive.url).toBe("https://blindmagic.com/page-0/");
+    expect(parsedActive.postContent).toContain("xxxx");
+    expect(parsedActive.elementorDataJson).toBeTruthy();
+  });
+
+  it("restores all 100 rows plus active row body from localStorage when sessionStorage is empty", () => {
+    localMock.setItem(
+      `neo-pulse-overview-studio-active-url-v1:${SITE_ID}`,
+      "https://blindmagic.com/page-2/",
+    );
+    const rows = Array.from({ length: 10 }, (_, i) => makeRow(i, true));
+    setOverviewRowsSessionCache(SITE_ID, "pages", rows);
+
+    // Force read from localStorage by clearing memory via clear + re-seeding localStorage keys
+    const savedList = localMock.getItem(`neo-pulse-overview-rows-local:v4:${SITE_ID}:pages`)!;
+    const savedActive = localMock.getItem(
+      `neo-pulse-overview-active-row-body:v1:${SITE_ID}:pages`,
+    )!;
+    clearOverviewRowsSessionCache(SITE_ID);
+    localMock.setItem(`neo-pulse-overview-rows-local:v4:${SITE_ID}:pages`, savedList);
+    localMock.setItem(`neo-pulse-overview-active-row-body:v1:${SITE_ID}:pages`, savedActive);
+
+    const restored = getOverviewRowsSessionCache(SITE_ID, "pages");
+    expect(restored).toHaveLength(10);
+    expect(restored![2].postContent).toContain("xxxx");
+    expect(restored![2].elementorDataJson).toBeTruthy();
+    expect(restored![1].title).toBe("Page 1");
   });
 });

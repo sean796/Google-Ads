@@ -238,19 +238,23 @@ export function Ga4ReportingDateRangePopover({
   const maxDate = ymdToDate(todayYmdMax) ?? new Date();
 
   const scrollToDate = useMemo(() => {
-    const active =
-      calendarTarget === "compare" && draft.compareEnabled
-        ? compareRange
-        : primaryRange;
-    return ymdToDate(active.startDate) ?? ymdToDate(active.endDate) ?? maxDate;
+    if (calendarTarget === "compare" && draft.compareEnabled) {
+      const d =
+        ymdToDate(compareRange.startDate) ??
+        ymdToDate(compareRange.endDate) ??
+        maxDate;
+      return new Date(d.getFullYear(), d.getMonth(), 1);
+    }
+    const today = ymdToDate(todayYmdMax) ?? maxDate;
+    return new Date(today.getFullYear(), today.getMonth(), 1);
   }, [
     calendarTarget,
     draft.compareEnabled,
     compareRange.startDate,
     compareRange.endDate,
-    primaryRange.startDate,
-    primaryRange.endDate,
+    todayYmdMax,
     maxDate,
+    scrollKey,
   ]);
 
   const handleCalendarSelect = (range: DateRange | undefined) => {
@@ -478,7 +482,10 @@ export function Ga4ReportingDateRangePopover({
                   value={primaryRange.startDate}
                   max={todayYmdMax}
                   disabled={busy}
-                  onFocus={() => setCalendarTarget("primary")}
+                  onFocus={() => {
+                    setCalendarTarget("primary");
+                    setScrollKey((k) => k + 1);
+                  }}
                   onChange={(startDate) => setPrimaryYmd({ startDate })}
                 />
                 <span className="shrink-0 text-muted-foreground" aria-hidden>
@@ -489,7 +496,10 @@ export function Ga4ReportingDateRangePopover({
                   value={primaryRange.endDate}
                   max={todayYmdMax}
                   disabled={busy}
-                  onFocus={() => setCalendarTarget("primary")}
+                  onFocus={() => {
+                    setCalendarTarget("primary");
+                    setScrollKey((k) => k + 1);
+                  }}
                   onChange={(endDate) => setPrimaryYmd({ endDate })}
                 />
               </div>
@@ -502,7 +512,10 @@ export function Ga4ReportingDateRangePopover({
                       value={compareRange.startDate}
                       max={todayYmdMax}
                       disabled={busy}
-                      onFocus={() => setCalendarTarget("compare")}
+                      onFocus={() => {
+                        setCalendarTarget("compare");
+                        setScrollKey((k) => k + 1);
+                      }}
                       onChange={(startDate) => setCompareYmd({ startDate })}
                     />
                     <span className="shrink-0 text-muted-foreground" aria-hidden>
@@ -513,7 +526,10 @@ export function Ga4ReportingDateRangePopover({
                       value={compareRange.endDate}
                       max={todayYmdMax}
                       disabled={busy}
-                      onFocus={() => setCalendarTarget("compare")}
+                      onFocus={() => {
+                        setCalendarTarget("compare");
+                        setScrollKey((k) => k + 1);
+                      }}
                       onChange={(endDate) => setCompareYmd({ endDate })}
                     />
                   </div>

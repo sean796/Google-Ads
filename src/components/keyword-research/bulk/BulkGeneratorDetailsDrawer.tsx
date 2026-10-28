@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MetaOptimizerPageRowCompact } from "@/components/overview/MetaOptimizerPageRowCompact";
 import { BulkSitemapInventoryRunDetail } from "@/components/keyword-research/bulk/BulkSitemapInventoryRunDetail";
+import { WordBlacklistRunDetail } from "@/components/keyword-research/bulk/WordBlacklistRunDetail";
 import {
   csvRowToEntitySapOverviewRowDisplay,
   csvRowToOverviewRowDisplay,
@@ -75,6 +76,7 @@ export function BulkGeneratorDetailsDrawer(props: BulkGeneratorDetailsPanelProps
     downloadFile,
     sitemapInventoryLinks,
     siteKwHostedLink,
+    inventoryRows,
     sitemapInventoryLoading = false,
     publishDateLabelByIndex,
     draftOnly,
@@ -150,11 +152,7 @@ export function BulkGeneratorDetailsDrawer(props: BulkGeneratorDetailsPanelProps
     isProcessing &&
     researchBatchSignals?.currentStep !== "Batch complete";
 
-  const showInventory =
-    !isResearchBatch &&
-    (sitemapInventoryLoading ||
-      (sitemapInventoryLinks?.length ?? 0) > 0 ||
-      Boolean(siteKwHostedLink));
+  const showInventory = !isResearchBatch;
 
   const entityRowExpandSignature = useMemo(() => {
     if (!entitySapRowDisplay) return "";
@@ -274,13 +272,19 @@ export function BulkGeneratorDetailsDrawer(props: BulkGeneratorDetailsPanelProps
         return (
           <>
             {showInventory ? (
-              <div className={contentOptimizerRowStripeClass(rowStripeBase++)}>
-                <BulkSitemapInventoryRunDetail
-                  links={sitemapInventoryLinks ?? []}
-                  gscHostedLink={siteKwHostedLink ?? null}
-                  loading={sitemapInventoryLoading}
-                />
-              </div>
+              <>
+                <div className={contentOptimizerRowStripeClass(rowStripeBase++)}>
+                  <WordBlacklistRunDetail />
+                </div>
+                <div className={contentOptimizerRowStripeClass(rowStripeBase++)}>
+                  <BulkSitemapInventoryRunDetail
+                    links={sitemapInventoryLinks ?? []}
+                    gscHostedLink={siteKwHostedLink ?? null}
+                    inventoryRows={inventoryRows}
+                    pinned
+                  />
+                </div>
+              </>
             ) : null}
 
             {rows.map((row, index) => {

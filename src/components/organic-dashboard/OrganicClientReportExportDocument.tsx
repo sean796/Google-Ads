@@ -7,7 +7,6 @@ import {
   EXPORT_BODY_CLASS,
   EXPORT_BODY_MUTED_CLASS,
   EXPORT_COVER_PAGE_CLASS,
-  EXPORT_FOOTER_CLASS,
   EXPORT_H3_CLASS,
   EXPORT_H4_CLASS,
   EXPORT_KPI_ACCENT_CLICKS,
@@ -42,7 +41,6 @@ import {
   formatClientReportSemrushKeywordMeta,
   formatClientReportTopQueryMeta,
 } from "@/lib/organic-dashboard/organic-client-report-copy";
-import { AGENCY_NAME } from "@/lib/report-planner";
 import { cn } from "@/lib/utils";
 
 export type OrganicClientReportExportDocumentProps = {
@@ -293,9 +291,6 @@ export function OrganicClientReportExportDocument({
     topSemrushKeywords,
     highlightStats,
     opportunities,
-    semrushDatabase,
-    semrushOverviewUrl,
-    semrushDomain,
     showPerformanceSection,
     showSemrushSection,
     showKeywordSection,
@@ -347,10 +342,6 @@ export function OrganicClientReportExportDocument({
 
       {showPerformanceSection ? (
         <ExportSection title="Performance summary">
-          <p className={EXPORT_BODY_MUTED_CLASS}>
-            Headline metrics for the selected periods. Organic search traffic comes from GA4 (Organic Search
-            channel); search visibility from Google Search Console.
-          </p>
           {showCompare ? (
             <p className="tabular-nums text-base text-[#52525b]">
               {comparePeriodLabel} vs {primaryPeriodLabel}
@@ -385,11 +376,6 @@ export function OrganicClientReportExportDocument({
 
       {showSemrushSection ? (
         <ExportSection title="Semrush estimates">
-          <p className={EXPORT_BODY_MUTED_CLASS}>
-            Semrush domain overview estimates (not Google Search Console clicks). Regional database:{" "}
-            {semrushDatabase.toUpperCase()}.
-            {semrushOverviewUrl ? <> Full report: {semrushOverviewUrl}</> : null}
-          </p>
           <ExportMetricStack
             groupTitle="Organic visibility (Semrush)"
             rows={semrushDeckRows}
@@ -399,9 +385,6 @@ export function OrganicClientReportExportDocument({
           />
           {topSemrushKeywords.length > 0 ? (
             <>
-              <p className={EXPORT_BODY_MUTED_CLASS}>
-                Top organic keywords by estimated traffic for {semrushDomain || siteUrl}.
-              </p>
               <ul className={EXPORT_QUERY_LIST_CLASS}>
                 {topSemrushKeywords.map((k, idx) => (
                   <li key={`${k.phrase}-${idx}`} className={EXPORT_QUERY_ITEM_CLASS}>
@@ -431,10 +414,6 @@ export function OrganicClientReportExportDocument({
               ))}
             </div>
           ) : null}
-          <p className={EXPORT_BODY_MUTED_CLASS}>
-            Top queries by clicks in {primaryPeriodLabel}. Align titles, headings, and internal links with terms
-            that already earn clicks.
-          </p>
           <ExportKeywordList queries={topQueries} primaryPeriodLabel={primaryPeriodLabel} />
         </ExportSection>
       ) : null}
@@ -490,12 +469,6 @@ export function OrganicClientReportExportDocument({
           ) : null}
         </ExportSection>
       ) : null}
-
-      <footer className={EXPORT_FOOTER_CLASS}>
-        <span className="min-w-0 truncate">{siteUrl}</span>
-        <span className="font-medium text-[#18181b]">{AGENCY_NAME}</span>
-        <span className="tabular-nums">Prepared {preparedOn}</span>
-      </footer>
     </article>
   );
 }

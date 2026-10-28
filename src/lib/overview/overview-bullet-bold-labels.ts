@@ -54,6 +54,11 @@ function forceColonAfterBoldClose(s: string): string {
   if (ch === ",") {
     return `${s.slice(0, closeAt + closeLen)}${afterClose.slice(0, i)}:${afterClose.slice(i + 1)}`;
   }
+  if (ch === "\u2014" || ch === "\u2013" || ch === "-") {
+    let j = i + 1;
+    while (j < afterClose.length && (afterClose[j] === " " || afterClose[j] === "\t")) j += 1;
+    return `${s.slice(0, closeAt + closeLen)}:${afterClose.slice(j) ? ` ${afterClose.slice(j)}` : ""}`;
+  }
   return `${s.slice(0, closeAt + closeLen)}:${afterClose.slice(i) ? ` ${afterClose.slice(i)}` : ""}`;
 }
 

@@ -45,6 +45,47 @@ export function scopeTagToOverviewSource(
   return "sap";
 }
 
+export type BulkWordPressRestCollection = "posts" | "pages";
+
+/** Left-dock sitemap source (Posts / Pages / SAP) drives WP REST collection for uploads. */
+export function overviewSitemapSourceToUploadConfig(source: OverviewSitemapSource): {
+  sitemapType: BulkSitemapMode;
+  wordpressRestEndpoint: BulkWordPressRestCollection;
+} {
+  if (source === "sap") {
+    return { sitemapType: "entity", wordpressRestEndpoint: "posts" };
+  }
+  if (source === "pages") {
+    return { sitemapType: "post", wordpressRestEndpoint: "pages" };
+  }
+  return { sitemapType: "post", wordpressRestEndpoint: "posts" };
+}
+
+export function overviewSitemapSourceToScopeTag(
+  source: OverviewSitemapSource,
+): Extract<BulkSitemapScopeTag, "pages" | "posts" | "entities"> {
+  if (source === "sap") return "entities";
+  if (source === "pages") return "pages";
+  return "posts";
+}
+
+export type BulkSiteEditorialScopeConfig = {
+  scopeTags?: BulkSitemapScopeTag[];
+  sitemapType?: BulkSitemapMode;
+};
+
+/** Editorial schedule quotas follow left-dock sitemap / entity upload mode, not stale scopeTags alone. */
+export function resolveBulkEditorialScopeTag(
+  config: BulkSiteEditorialScopeConfig | undefined,
+): Extract<BulkSitemapScopeTag, "pages" | "posts" | "entities"> {
+  const tags = normalizeBulkSitemapScopeTags(config?.scopeTags);
+  if (tags[0] === "pages" || tags[0] === "posts" || tags[0] === "entities") {
+    return tags[0];
+  }
+  if (config?.sitemapType === "entity") return "entities";
+  return "posts";
+}
+
 export function normalizeBulkSitemapScopeTags(raw: unknown): BulkSitemapScopeTag[] {
   if (!Array.isArray(raw)) return [];
   const out: BulkSitemapScopeTag[] = [];

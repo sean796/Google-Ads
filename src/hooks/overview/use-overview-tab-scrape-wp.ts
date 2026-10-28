@@ -7,6 +7,7 @@ import {
   resolveOverviewBindingForRow,
   uploadOverviewRowSeoToWordPress,
 } from "@/lib/overview/overview-bulk-seo-payload";
+import { createWordPressPost } from "@/lib/wordpress-api";
 import {
   applyOverviewRowSlugChangeToWordPress,
   overviewRowSlugChangePlan,
@@ -53,7 +54,6 @@ type Args = Pick<
     site: WordPressSite | null,
     url: string,
   ) => OverviewInventoryUrlMatch | undefined;
-  hydrateElementorRowAtIndex?: (index: number) => Promise<boolean>;
 };
 
 export function useOverviewTabScrapeWp({
@@ -72,7 +72,6 @@ export function useOverviewTabScrapeWp({
   remapBindingUrl,
   mergeInventoryContentForSource,
   bulkScopeUrlKeys,
-  hydrateElementorRowAtIndex,
 }: Args) {
   const handleUpdateWordPressForRow = useCallback(
     async (
@@ -80,16 +79,96 @@ export function useOverviewTabScrapeWp({
       options?: { silent?: boolean; binding?: OverviewBinding; rowIndex?: number },
     ): Promise<boolean> => {
       try {
-        if (!site) return false;
+        if (!site || !site.siteUrl) {
+          if (!options?.silent) {
+            notify.error("No WordPress site selected. Connect or select a site in Integrations.");
+          }
+          return false;
+        }
 
         const invMatch = getInventoryMatchForUrl(site, row.url);
         let binding =
           options?.binding ?? resolveOverviewBindingForRow(row, bindings, invMatch);
+        if (!binding?.postId && row.postId != null && Number.isFinite(row.postId) && row.postId > 0) {
+          binding = { postId: row.postId, subtype: row.postType || "post" };
+        }
+
         if (!binding?.postId) {
-          if (!options?.silent) {
-            notify.error(NOTIFY_NO_WORDPRESS_POST_ID_FOR_THIS_URL_REFRES);
+          if (!site.username || !site.appPassword) {
+            if (!options?.silent) {
+              notify.error(NOTIFY_NO_WORDPRESS_POST_ID_FOR_THIS_URL_REFRES);
+            }
+            return false;
           }
-          return false;
+
+          const rowIndex = options?.rowIndex;
+          if (rowIndex !== undefined) {
+            updateRow(rowIndex, { status: "uploading" });
+          }
+
+          const postTitle = (row.aiTitle || row.title || row.focusKeyword || "New Post").trim();
+          const postBody = (row.postContentOptimized || row.postContent || "").trim();
+          const postExcerpt = (row.aiMeta || row.metaDescription || "").trim();
+          const slugFromUrl = row.url
+            ? row.url.replace(/^https?:\/\/[^/]+/i, "").replace(/^\/+|\/+$/g, "").split("/").pop()
+            : "";
+          const slug = (slugFromUrl || row.focusKeyword || "")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+
+          try {
+            const createResult = await createWordPressPost(
+              site.siteUrl,
+              site.username,
+              site.appPassword,
+              postTitle,
+              postBody,
+              postExcerpt,
+              "publish",
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              slug || undefined,
+            );
+
+            if (createResult.success && createResult.postId) {
+              binding = {
+                postId: createResult.postId,
+                subtype: "post",
+              };
+              const createdUrl = createResult.link || row.url;
+              if (rowIndex !== undefined) {
+                updateRow(rowIndex, {
+                  postId: createResult.postId,
+                  postType: "post",
+                  url: createdUrl,
+                });
+              }
+              if (row.url && createdUrl && row.url !== createdUrl) {
+                remapBindingUrl(row.url, createdUrl);
+              }
+            } else {
+              if (rowIndex !== undefined) {
+                updateRow(rowIndex, { status: "idle" });
+              }
+              if (!options?.silent) {
+                notify.error(createResult.error || "WordPress failed to create post.");
+              }
+              return false;
+            }
+          } catch (createErr) {
+            if (rowIndex !== undefined) {
+              updateRow(rowIndex, { status: "idle" });
+            }
+            if (!options?.silent) {
+              notify.error(createErr instanceof Error ? createErr.message : "Failed to create post on WordPress.");
+            }
+            return false;
+          }
         }
 
         const rowIndex = options?.rowIndex;
@@ -210,19 +289,26 @@ export function useOverviewTabScrapeWp({
   const handleScrapeRow = useCallback(
     async (index: number) => {
       const row = rows[index];
-      if (!row) return;
-      updateRow(index, { status: "scraping" });
+      if (!row?.url) return;
+      const targetUrlKey = normalizePageUrlKey(row.url);
+      const applyTargetPatch = (patch: Partial<OverviewRow>) => {
+        const currentIdx = rows.findIndex(
+          (r) => normalizePageUrlKey(r.url) === targetUrlKey,
+        );
+        updateRow(currentIdx >= 0 ? currentIdx : index, patch);
+      };
+      applyTargetPatch({ status: "scraping" });
       try {
         if (!site) {
           notify.error(NOTIFY_CONNECT_A_WORDPRESS_SITE_TO_SCRAPE_FROM_);
-          updateRow(index, { status: "idle" });
+          applyTargetPatch({ status: "idle" });
           return;
         }
 
         const invMatch = getInventoryMatchForUrl(site, row.url);
         if (!invMatch?.row) {
           notify.error(NOTIFY_LOAD_THIS_TAB_S_INVENTORY_FIRST_SCRAPE_R);
-          updateRow(index, { status: "idle" });
+          applyTargetPatch({ status: "idle" });
           return;
         }
 
@@ -243,7 +329,7 @@ export function useOverviewTabScrapeWp({
         ]);
         const patch = buildOverviewRowPatchFromInventory(row, invMatchAfter, binding, site.siteUrl);
         if (!patch) {
-          updateRow(index, { status: "error" });
+          applyTargetPatch({ status: "error" });
           return;
         }
         if (liveBodyHtml?.trim()) {
@@ -277,12 +363,12 @@ export function useOverviewTabScrapeWp({
           const faqFromHtml = extractFaqFromPostHtml(patch.postContent!);
           if (faqFromHtml) patch.faq = faqFromHtml;
         }
-        updateRow(index, { ...patch, status: "idle" });
+        applyTargetPatch({ ...patch, status: "idle" });
       } catch {
-        updateRow(index, { status: "error" });
+        applyTargetPatch({ status: "error" });
       }
     },
-    [rows, site, sitemapSource, bindings, updateRow, getInventoryMatchForUrl, mergeInventoryContentForSource, downloadRow, hydrateElementorRowAtIndex],
+    [rows, site, sitemapSource, bindings, updateRow, getInventoryMatchForUrl, mergeInventoryContentForSource, downloadRow],
   );
 
   const handleScrapeAll = useCallback(async () => {

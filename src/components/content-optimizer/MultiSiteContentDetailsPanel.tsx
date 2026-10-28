@@ -6,10 +6,11 @@ import type { WordPressSite } from "@/components/integrations/types";
 import type { BulkGscKeywordsHostedLink } from "@/lib/bulk/bulk-gsc-keywords-hosted-link";
 import type { PromptBulkSitemapInventoryLink } from "@/lib/bulk/prompt-bulk-sitemap-inventory";
 import type { OptimizationFileManager } from "@/lib/optimization-file-manager";
+import { BulkSitemapInventoryRunDetail } from "@/components/keyword-research/bulk/BulkSitemapInventoryRunDetail";
+import { WordBlacklistRunDetail } from "@/components/keyword-research/bulk/WordBlacklistRunDetail";
 import {
   buildMultiSiteBulkGeneratorDetailsProps,
   buildOverviewWarmInventoryDetailsProps,
-  overviewBulkDetailsCanOpenFromWarm,
 } from "@/lib/overview/overview-bulk-details-bindings";
 import { WorkspaceDetailsStack } from "@/components/shared/WorkspaceDetailsStack";
 
@@ -21,6 +22,7 @@ export type MultiSiteContentDetailsPanelProps = {
   rowProgressDs: OptimizationProgressState | { step?: string; message?: string } | undefined;
   sitemapInventoryLinks?: PromptBulkSitemapInventoryLink[];
   gscHostedLink?: BulkGscKeywordsHostedLink | null;
+  inventoryRows?: import("@/lib/overview/site-warm-inventory-display-rows").SiteWarmInventoryDisplayRow[];
   sitemapInventoryLoading?: boolean;
   overviewRows?: OverviewRow[];
   isOptimizingContent: Record<string, boolean>;
@@ -36,12 +38,7 @@ export function multiSiteContentDetailsCanOpen(
   },
 ): boolean {
   if (Boolean(batchBulkState?.urls?.length)) return true;
-  if (!warmInventory) return false;
-  return overviewBulkDetailsCanOpenFromWarm(
-    warmInventory.sitemapInventoryLinks,
-    warmInventory.gscHostedLink,
-    warmInventory.sitemapInventoryLoading,
-  );
+  return Boolean(warmInventory);
 }
 
 export function MultiSiteContentDetailsPanel({
@@ -52,6 +49,7 @@ export function MultiSiteContentDetailsPanel({
   rowProgressDs,
   sitemapInventoryLinks = [],
   gscHostedLink = null,
+  inventoryRows,
   sitemapInventoryLoading = false,
   overviewRows = [],
   isOptimizingContent,
@@ -83,23 +81,31 @@ export function MultiSiteContentDetailsPanel({
         )
       : null;
 
-  const warmOnlyProps =
-    !bulkDetailsProps &&
-    overviewBulkDetailsCanOpenFromWarm(sitemapInventoryLinks, gscHostedLink, sitemapInventoryLoading)
-      ? buildOverviewWarmInventoryDetailsProps({
-          overviewRows,
-          sitemapInventoryLinks,
-          siteKwHostedLink: gscHostedLink,
-          sitemapInventoryLoading,
-        })
-      : null;
+  const warmOnlyProps = batchSite && !bulkDetailsProps
+    ? buildOverviewWarmInventoryDetailsProps({
+        overviewRows,
+        sitemapInventoryLinks,
+        siteKwHostedLink: gscHostedLink,
+        sitemapInventoryLoading,
+      })
+    : null;
 
   const drawerProps = bulkDetailsProps ?? warmOnlyProps;
-  if (!drawerProps) return null;
 
   return (
     <WorkspaceDetailsStack>
-      <ContentOptimizerDetailsDrawer {...drawerProps} />
+      {batchSite && !drawerProps ? (
+        <>
+          <WordBlacklistRunDetail />
+          <BulkSitemapInventoryRunDetail
+            links={sitemapInventoryLinks}
+            gscHostedLink={gscHostedLink}
+            inventoryRows={inventoryRows}
+            pinned
+          />
+        </>
+      ) : null}
+      {drawerProps ? <ContentOptimizerDetailsDrawer {...drawerProps} /> : null}
     </WorkspaceDetailsStack>
   );
 }

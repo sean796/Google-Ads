@@ -52,7 +52,7 @@ describe("isOverviewBulkDetailsRun", () => {
 });
 
 describe("resolveOverviewBulkPipelineTitles", () => {
-  it("maps research run kind to 8 harness steps", () => {
+  it("maps research run kind to 7 harness steps", () => {
     expect(resolveOverviewBulkPipelineTitles("research")).toEqual([
       ...RESEARCH_HARNESS_PIPELINE_TITLES,
     ]);
@@ -70,7 +70,7 @@ describe("resolveOverviewBulkPipelineTitles", () => {
     ]);
   });
 
-  it("returns 8 research titles when runKind is missing but batch has research signals", () => {
+  it("returns 7 research titles when runKind is missing but batch has research signals", () => {
     const url = "https://example.com/page";
     expect(
       resolveOverviewBulkPipelineTitles(undefined, {
@@ -79,7 +79,7 @@ describe("resolveOverviewBulkPipelineTitles", () => {
         urlStatuses: { [url]: "optimizing" },
         currentStep: "Researching…",
         currentStepProgress: {
-          harnessPlannedSectionCount: 8,
+          harnessPlannedSectionCount: 7,
           message: "Researching 1 page(s)…",
         },
         urlHarnessSections: {
@@ -283,7 +283,7 @@ describe("buildOverviewBulkGeneratorDetailsProps", () => {
     expect(props?.pipelineSectionTitles).toEqual([...RESEARCH_HARNESS_PIPELINE_TITLES]);
   });
 
-  it("shows 8-step harness for research runs without collapsing", () => {
+  it("shows 7-step harness for research runs without collapsing", () => {
     const url = "https://example.com/page";
     const harnessSections = RESEARCH_HARNESS_SECTION_TITLES.map((title, sectionIndex) => ({
       sectionIndex,
@@ -310,7 +310,7 @@ describe("buildOverviewBulkGeneratorDetailsProps", () => {
       true,
     );
     const rowHarness = props?.harnessByRow?.get(0) ?? [];
-    expect(rowHarness).toHaveLength(8);
+    expect(rowHarness).toHaveLength(7);
     expect(rowHarness[0]?.title).toBe("DataForSEO SERP");
   });
 
@@ -355,14 +355,14 @@ describe("buildOverviewBulkGeneratorDetailsProps", () => {
       },
       true,
     );
-    expect(props?.harnessByRow?.get(0)).toHaveLength(8);
+    expect(props?.harnessByRow?.get(0)).toHaveLength(7);
     expect(props?.harnessByRow?.get(0)?.every((section) => section.status === "done")).toBe(true);
-    expect(props?.harnessByRow?.get(1)).toHaveLength(8);
-    expect(props?.harnessByRow?.get(2)).toHaveLength(8);
+    expect(props?.harnessByRow?.get(1)).toHaveLength(7);
+    expect(props?.harnessByRow?.get(2)).toHaveLength(7);
     expect(props?.harnessByRow?.get(2)?.every((section) => section.status === "waiting")).toBe(true);
   });
 
-  it("seeds 8 waiting harness rows when research batch has stale content-prep harness", () => {
+  it("seeds 7 waiting harness rows when research batch has stale content-prep harness", () => {
     const url = "https://example.com/page";
     const props = buildOverviewBulkGeneratorDetailsProps(
       {
@@ -390,9 +390,9 @@ describe("buildOverviewBulkGeneratorDetailsProps", () => {
       true,
     );
     const rowHarness = props?.harnessByRow?.get(0) ?? [];
-    expect(rowHarness).toHaveLength(8);
+    expect(rowHarness).toHaveLength(7);
     expect(rowHarness.map((section) => section.title)).toEqual([...RESEARCH_HARNESS_SECTION_TITLES]);
-    expect(props?.pipelineSectionTitles).toHaveLength(8);
+    expect(props?.pipelineSectionTitles).toHaveLength(7);
   });
 });
 

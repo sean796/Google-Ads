@@ -150,7 +150,7 @@ Write ONLY the meta description (120-150 characters). Output a single line of pl
           }
         ],
       temperature: 0.7,
-      maxTokens: 200,
+      maxTokens: 2048,
     });
 
     let excerpt = excerptRaw.trim();

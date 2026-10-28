@@ -8,15 +8,21 @@ import {
 } from "@/lib/master-instructions-storage";
 import type { PromptBulkSitemapInventoryBuckets, PromptBulkSitemapInventoryLink } from "@/lib/bulk/prompt-bulk-sitemap-inventory";
 import {
+  brandExclusionPhrasesFromNames,
   fetchEntityGscKeywordBundle,
   gscAllQueryStringsForEntityKeywordFill,
 } from "@/lib/bulk/bulk-gsc-site-queries";
+import {
+  gscQueryMatchesTradingName,
+  stripTradingNameFromPhrase,
+} from "@/lib/sap-brand-and-brevity";
 import {
   ensureEntitySiteWarmCache,
   gscAllQueriesFromWarmBundle,
 } from "@/lib/local-analysis/entity-site-warm-cache";
 import type { GscCompetitorDateRange, GscSiteQueryRow } from "@/lib/competitor-research/types";
 import type { CSVRow } from "@/lib/bulk/bulk-csv-parser";
+import { isLeakedInstructionEntityLabel } from "@/lib/local-analysis/entity-label-guards";
 import { keywordUniquenessKey } from "@/lib/local-analysis-fill-keywords-from-wp-inventory";
 import { normalizeEntityHintCommaLabel } from "@/lib/comma-place-label";
 import { buildEntityAdGroupSections, type EntityAdGroupSection } from "@/lib/local-analysis/sap-entity-ad-groups";
@@ -562,13 +568,21 @@ export function padGscProductBasesFromCandidates(args: {
   gscKeywords: string[];
   entity: string;
   gridLocations: readonly string[];
+  siteName?: string;
 }): string[] {
+  const brandPhrases = args.siteName?.trim()
+    ? brandExclusionPhrasesFromNames(args.siteName)
+    : [];
+  const company = args.siteName?.trim() ?? "";
   const places = [args.entity, ...args.gridLocations].filter((p) => p.trim());
   const out: string[] = [];
   const seen = new Set<string>();
   for (const raw of args.bases) {
-    const stripped = stripAllPlaceTokensFromKeyword(raw, places).trim();
-    if (!stripped) continue;
+    let stripped = stripAllPlaceTokensFromKeyword(raw, places).trim();
+    if (company) {
+      stripped = stripTradingNameFromPhrase(stripped, company);
+    }
+    if (!stripped || isRejectedEntitySapKeywordSync(stripped, company)) continue;
     const key = stripped.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
@@ -578,8 +592,11 @@ export function padGscProductBasesFromCandidates(args: {
   while (out.length < args.count && args.gscKeywords.length > 0 && cursor < args.gscKeywords.length) {
     const candidate = args.gscKeywords[cursor]!;
     cursor += 1;
-    const stripped = stripAllPlaceTokensFromKeyword(candidate, places).trim();
-    if (!stripped) continue;
+    let stripped = stripAllPlaceTokensFromKeyword(candidate, places).trim();
+    if (company) {
+      stripped = stripTradingNameFromPhrase(stripped, company);
+    }
+    if (!stripped || isRejectedEntitySapKeywordSync(stripped, company)) continue;
     const key = stripped.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
@@ -699,10 +716,15 @@ type GroupRowRequest = {
   seedKeyword: string;
 };
 
-function isRejectedEntitySapKeywordSync(keyword: string): boolean {
+function isRejectedEntitySapKeywordSync(keyword: string, siteName?: string): boolean {
   const k = keyword.trim();
   if (!k) return true;
+  if (isLeakedInstructionEntityLabel(k)) return true;
   if (isOffensiveGscQuery(k)) return true;
+  const company = siteName?.trim() ?? "";
+  if (company && gscQueryMatchesTradingName(k, company, brandExclusionPhrasesFromNames(company))) {
+    return true;
+  }
   return false;
 }
 
@@ -831,6 +853,7 @@ async function pickProductKeywordBasesFromGsc(args: {
     gscKeywords: args.gscKeywords,
     entity: args.entity,
     gridLocations: args.gridLocations,
+    siteName: args.siteName,
   });
 }
 
@@ -841,6 +864,7 @@ function applyPickedBasesToSection(
   bases: string[],
   fills: Map<number, string>,
   placeCorpus: readonly string[] = [],
+  siteName?: string,
 ): number {
   if (bases.length === 0) return 0;
   let assigned = 0;
@@ -849,11 +873,15 @@ function applyPickedBasesToSection(
     if (fills.get(globalIdx)?.trim()) continue;
     const entity = normalizeEntityHintCommaLabel((rows[globalIdx]?.entity ?? section.entity).trim());
     if (!entity) continue;
-    const base = (bases[i] ?? bases[i % bases.length] ?? "").trim();
-    if (!base) continue;
+    let base = (bases[i] ?? bases[i % bases.length] ?? "").trim();
+    if (siteName?.trim()) {
+      base = stripTradingNameFromPhrase(base, siteName);
+    }
+    if (!base || isRejectedEntitySapKeywordSync(base, siteName)) continue;
     const keyword =
       sapKeywordFromShortBaseAndEntity(base, entity, placeCorpus) ||
       composeServiceKeywordWithAdGroupEntity(base, entity);
+    if (isRejectedEntitySapKeywordSync(keyword, siteName)) continue;
     fills.set(globalIdx, keyword);
     assigned += 1;
   }
@@ -936,7 +964,7 @@ async function inventGroupKeywordsViaOpenRouter(args: {
           args.gridLocations,
         ),
       )
-      .filter((k) => k.length > 0 && !isRejectedEntitySapKeywordSync(k));
+      .filter((k) => k.length > 0 && !isRejectedEntitySapKeywordSync(k, args.siteName));
     return normalized;
   } catch {
     return [];
@@ -1028,7 +1056,14 @@ async function runEntityAdGroupKeywordSubAgent(args: {
     temperature: fillTemperature,
     topP,
   });
-  const aiAssigned = applyPickedBasesToSection(section, rows, bases, allFills, gridLocations);
+  const aiAssigned = applyPickedBasesToSection(
+    section,
+    rows,
+    bases,
+    allFills,
+    gridLocations,
+    siteName,
+  );
   return { gscAssigned: 0, aiAssigned };
 }
 
@@ -1061,7 +1096,8 @@ export async function fillEntitySapRowKeywordsFromInventoryAndGsc(
   const reservedSlugsInRun = reservedSlugsInRunArg ?? new Set<string>();
 
   const fillTemperature = rows.length >= 2 ? Math.max(temperature, 0.45) : temperature;
-  const gscKeywords = gscAllQueryStringsForEntityKeywordFill(gscQueries);
+  const brandPhrases = brandExclusionPhrasesFromNames(siteName, siteUrl);
+  const gscKeywords = gscAllQueryStringsForEntityKeywordFill(gscQueries, brandPhrases, siteName);
   const sections = buildEntityAdGroupSections(rows);
   const allFills = new Map<number, string>();
 

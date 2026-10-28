@@ -28,6 +28,8 @@ export type OverviewStudioGeneratedFilesBandProps = {
   drawerContent: ReactNode;
   endRailTitle?: string;
   onDownloadAll?: () => void;
+  /** Override drawer surface (e.g. solid panel over a map instead of glass). */
+  detailsDrawerClassName?: string;
 };
 
 function triggerBlobDownload(file: BulkDetailsDownloadable) {
@@ -52,9 +54,11 @@ export function OverviewStudioGeneratedFilesBand({
   drawerContent,
   endRailTitle = "Sections & SEO artifacts",
   onDownloadAll,
+  detailsDrawerClassName,
 }: OverviewStudioGeneratedFilesBandProps) {
-  const displayTotal = Math.max(totalStepCount, 1);
-  const displayCompleted = Math.min(displayStepCurrent, displayTotal);
+  const displayTotal = Math.max(totalStepCount, 0);
+  const displayCompleted =
+    displayTotal > 0 ? Math.min(displayStepCurrent, displayTotal) : 0;
 
   const handleDownloadAll = () => {
     if (onDownloadAll) {
@@ -94,11 +98,17 @@ export function OverviewStudioGeneratedFilesBand({
         <span className="min-w-0 flex-1" aria-hidden />
       )}
 
-      <span className="shrink-0 tabular-nums text-muted-foreground">
-        <span className={cn(busy ? CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS : "text-white")}>
-          {displayCompleted}
-        </span>
-        /{displayTotal}
+      <span className="inline-flex min-w-[4.5rem] shrink-0 justify-end tabular-nums text-muted-foreground">
+        {displayTotal > 0 ? (
+          <>
+            <span className={cn(busy ? CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS : "text-white")}>
+              {displayCompleted}
+            </span>
+            /{displayTotal}
+          </>
+        ) : (
+          <span className="text-muted-foreground">0/0</span>
+        )}
       </span>
 
       <div className={cn(META_FIELD_END_RAIL, "shrink-0")}>
@@ -110,9 +120,9 @@ export function OverviewStudioGeneratedFilesBand({
           )}
           title={endRailTitle}
         >
-          {displayTotal}
+          {displayTotal > 0 ? displayTotal : "0"}
         </span>
-        {allReadyFiles.length > 0 ? (
+        {allReadyFiles.length > 0 || onDownloadAll ? (
           <button
             type="button"
             className={META_FIELD_END_RAIL_BTN}
@@ -140,7 +150,15 @@ export function OverviewStudioGeneratedFilesBand({
       </button>
 
       {drawerOpen ? (
-        <div id={detailsPanelId} className={cn(DETAILS_DRAWER_SHELL, DETAILS_DRAWER_PANEL)}>
+        <div
+          id={detailsPanelId}
+          className={cn(
+            DETAILS_DRAWER_SHELL,
+            DETAILS_DRAWER_PANEL,
+            detailsDrawerClassName,
+          )}
+          aria-hidden={false}
+        >
           {drawerContent}
         </div>
       ) : null}

@@ -1,4 +1,5 @@
 import type { WordPressSite } from "@/components/integrations/types";
+import type { OverviewBinding } from "@/hooks/overview/use-overview-wordpress-binding";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import type { ContentOptimizerSectionId } from "@/components/content-optimizer/content-optimizer-sections";
 import type { ContentOptimizerGeneratorChrome } from "@/components/content-optimizer/content-optimizer-generator-chrome";
@@ -21,4 +22,6 @@ export interface OverviewTabContentProps {
   studioRowSource?: OverviewStudioRowSource;
   /** Called after updateRow when studioRowSource is bulk-generator. */
   onBulkGeneratorOverviewRowPatched?: (displayIndex: number, patch: Partial<OverviewRow>) => void;
+  /** Post IDs from bulk run proof files (wordpress.json), keyed by normalized URL. */
+  getBulkGeneratorPushBindings?: () => Record<string, OverviewBinding>;
 }

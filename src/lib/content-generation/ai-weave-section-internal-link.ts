@@ -71,7 +71,7 @@ export async function aiWeaveInternalLinkInSectionHtml(
       model: opts.model?.trim() || getProductionModel(),
       system: WEAVE_SYSTEM,
       user: JSON.stringify({ paragraphText, allowedUrls }),
-      maxTokens: 256,
+      maxTokens: 2048,
       temperature: 0.15,
       responseFormat: { type: "json_object" },
       signal: opts.signal,

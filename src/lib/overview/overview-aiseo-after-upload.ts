@@ -4,7 +4,6 @@ import type { WordPressSite } from "@/components/integrations/types";
 import type { OverviewBinding } from "@/hooks/overview/use-overview-wordpress-binding";
 import type { OverviewInventoryUrlMatch } from "@/lib/overview/overview-row-scrape";
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
-import { applyElementorOptimization } from "@/lib/elementor-api";
 import {
   buildOverviewBulkSeoItem,
   resolveOverviewBindingForRow,
@@ -210,14 +209,6 @@ export async function uploadOverviewAiseoRowToWordPress(
   }
 
   try {
-    if (params.row.contentFormat === "elementor" && params.row.elementorDataJson?.trim()) {
-      await applyElementorOptimization(
-        params.site,
-        binding.postId,
-        params.row.elementorDataJson.trim(),
-      );
-    }
-
     const item = buildOverviewBulkSeoItem(params.row, binding, {
       forWordPressUpload: true,
       inventoryContent,
@@ -509,25 +500,6 @@ export async function uploadOverviewAiseoWrittenRows(
     );
 
     for (const chunk of chunks) {
-      const elementorErrors = new Map<number, string>();
-      for (let i = 0; i < chunk.length; i += 1) {
-        const entry = chunk[i]!;
-        if (entry.row.contentFormat === "elementor" && entry.row.elementorDataJson?.trim()) {
-          try {
-            await applyElementorOptimization(
-              site,
-              entry.binding.postId,
-              entry.row.elementorDataJson.trim(),
-            );
-          } catch (err) {
-            elementorErrors.set(
-              i,
-              err instanceof Error ? err.message : "Elementor upload failed.",
-            );
-          }
-        }
-      }
-
       try {
         const bulkRes = await bulkUpdateOverviewSeo(
           site.siteUrl,
@@ -545,9 +517,8 @@ export async function uploadOverviewAiseoWrittenRows(
         for (let i = 0; i < chunk.length; i += 1) {
           const entry = chunk[i]!;
           const apiRow = byIndex.get(i) ?? byPostId.get(entry.binding.postId);
-          const elErr = elementorErrors.get(i);
-          const ok = Boolean(apiRow?.ok) && !elErr;
-          const error = elErr || (ok ? undefined : apiRow?.error || "WordPress rejected the update.");
+          const ok = Boolean(apiRow?.ok);
+          const error = ok ? undefined : apiRow?.error || "WordPress rejected the update.";
           const files = buildOverviewRowWpUploadProofFiles({
             site,
             row: entry.row,

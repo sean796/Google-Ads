@@ -1,5 +1,6 @@
 import type { EntityPageCreatorExecutionPayload } from "@/lib/tasks-types";
 import { DEFAULT_ENTITY_PAGE_CREATOR_ENTITY_TYPE_FOCUS } from "@/lib/entity-page-creator/entity-page-creator-cluster-context";
+import { splitEntityTotalIntoAdGroupsAndAds } from "@/lib/local-analysis/entity-ad-group-budget";
 
 export const DEFAULT_ENTITY_AD_GROUP_COUNT = 3;
 export const DEFAULT_ENTITY_ADS_PER_GROUP = 5;
@@ -42,17 +43,34 @@ export function ensureEntityPageCreatorPayload(
   merged.gridInputSource = "workflow";
   merged.gridCsvBase64 = undefined;
   merged.gridCsvUrl = undefined;
-  const groups = Math.max(1, Math.floor(Number(merged.entityAdGroupCount) || DEFAULT_ENTITY_AD_GROUP_COUNT));
-  const ads = Math.max(1, Math.floor(Number(merged.entityAdsPerGroup) || DEFAULT_ENTITY_ADS_PER_GROUP));
-  const total = groups * ads;
+
+  const explicitPages =
+    merged.entityUseEditorialPackage === true
+      ? typeof merged.entityPageCount === "number" && merged.entityPageCount > 0
+        ? Math.floor(merged.entityPageCount)
+        : undefined
+      : typeof merged.entityPageCount === "number" && merged.entityPageCount > 0
+        ? Math.floor(merged.entityPageCount)
+        : undefined;
+
+  const legacyTotal =
+    Math.max(1, Math.floor(Number(merged.entityAdGroupCount) || DEFAULT_ENTITY_AD_GROUP_COUNT))
+    * Math.max(1, Math.floor(Number(merged.entityAdsPerGroup) || DEFAULT_ENTITY_ADS_PER_GROUP));
+
+  const total = explicitPages ?? legacyTotal;
+  const { adGroupCount, adsPerGroup } = splitEntityTotalIntoAdGroupsAndAds(total);
+
+  const packageDrivenSchedule =
+    merged.entityUseEditorialPackage === true || explicitPages != null;
+
   return {
     ...merged,
-    entityAdGroupCount: groups,
-    entityAdsPerGroup: ads,
+    entityAdGroupCount: adGroupCount,
+    entityAdsPerGroup: adsPerGroup,
     entityPageCount: total,
     postCount: total,
-    scheduleTimesPerMonth: merged.scheduleTimesPerMonth ?? total,
-    scheduleCustomInterval: merged.scheduleCustomInterval ?? total,
+    scheduleTimesPerMonth: packageDrivenSchedule ? total : (merged.scheduleTimesPerMonth ?? total),
+    scheduleCustomInterval: packageDrivenSchedule ? total : (merged.scheduleCustomInterval ?? total),
     sitemapType: "entity",
     targetBucket: "sap",
   };

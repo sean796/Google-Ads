@@ -292,7 +292,6 @@ export function resolveResearchLocalDominatorTask(
     recurrenceRule: task.recurrenceRule ?? "none",
     executionPayload: {
       businessName: task.executionPayload?.businessName ?? "",
-      keyword: normalizeLocalDominatorGridKeywordStored(task.executionPayload?.keyword),
       saveLocalArchive: task.executionPayload?.saveLocalArchive ?? true,
       saveToDisk: task.executionPayload?.saveToDisk !== false,
       ...task.executionPayload,

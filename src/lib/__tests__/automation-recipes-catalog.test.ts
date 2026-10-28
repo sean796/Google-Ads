@@ -24,7 +24,7 @@ describe("automation-recipes-catalog", () => {
     expect(keywords).toContain("ads-monthly-mom-report");
     expect(keywords).toContain("ads-monthly-yoy-report");
     expect(keywords).toContain("entity-page-creator-monthly");
-    expect(keywords).toContain("grid-to-entity-pages-monthly");
+    expect(keywords).toContain("grid-to-entity-to-sap-monthly");
     expect(keywords).toContain("missing-template-aiseo");
     const missingTemplate = merged.find((recipe) => recipe.keyword === "missing-template-aiseo");
     expect(missingTemplate?.filters.targetBuckets).toEqual(["posts"]);
@@ -53,6 +53,6 @@ describe("automation-recipes-catalog", () => {
 
     const localSeo = merged.filter((recipe) => recipe.category === "local-seo");
     expect(localSeo.some((recipe) => recipe.keyword === "entity-page-creator-monthly")).toBe(true);
-    expect(localSeo.some((recipe) => recipe.keyword === "grid-to-entity-pages-monthly")).toBe(true);
+    expect(localSeo.some((recipe) => recipe.keyword === "grid-to-entity-to-sap-monthly")).toBe(true);
   });
 });

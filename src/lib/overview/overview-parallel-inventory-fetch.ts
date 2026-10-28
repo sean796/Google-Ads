@@ -19,7 +19,6 @@ import {
 export type OverviewInventoryFetchOptions = {
   includeContent?: boolean;
   includePageHeading?: boolean;
-  includeRawAcf?: boolean;
   includeScheduled?: boolean;
 };
 

@@ -100,6 +100,12 @@ export interface WordPressSite {
    */
   optimizationPackage?: "basic" | "pro" | "plus";
 
+  /** Monthly blog + SAP editorial quotas (Standard 2+4, Lite 1+2). */
+  editorialContentPackage?: "standard" | "lite";
+
+  /** Local publish time for editorial schedule alignment (`HH:MM`, site timezone). */
+  editorialPublishTimeLocal?: string;
+
   /** Portfolio industry vertical for GSC benchmarks and CSV packages (controlled taxonomy). */
   industryVertical?: string;
 
@@ -111,6 +117,24 @@ export interface WordPressSite {
 
   /** Multi-select profile tags (Integrations → property Profile). */
   profileTags?: string[];
+
+  /** Default local grid / geo-grid keyword (e.g. blinds near me). */
+  primaryLocalKeyword?: string;
+
+  /** Client site logo URL for reports (Integrations → Profile). */
+  clientLogoUrl?: string;
+  /** When the logo URL was last fetched from the live site (epoch ms). */
+  clientLogoFetchedAt?: number;
+  clientLogoSource?:
+    | "og:image"
+    | "twitter:image"
+    | "apple-touch-icon"
+    | "icon"
+    | "json-ld"
+    | "manual"
+    | "upload";
+  /** Background box theme for client logo on executive report covers. Defaults to "black". */
+  clientLogoBoxTheme?: "black" | "white";
 
   /** @deprecated Use per-sitemap exclusions (`sitemaps.disabledChildSitemapUrls`) instead. */
   sitemapsEnabledForProperty?: boolean;

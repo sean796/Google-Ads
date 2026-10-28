@@ -27,7 +27,11 @@ export const WORKFLOW_ACTION_AGENT_PRESETS: WorkflowActionAgentPreset[] = [
     label: "Content gap check",
     description: "Count posts or SAP against a target before creating content",
     executionKind: "content_gap_check",
-    buildPayload: () => ensureContentGapCheckPayload({}),
+    buildPayload: () =>
+      ensureContentGapCheckPayload({
+        contentGapUseEditorialPackage: true,
+        contentGapSitemapSource: "posts",
+      }),
   },
 ];
 

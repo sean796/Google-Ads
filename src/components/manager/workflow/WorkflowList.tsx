@@ -23,6 +23,7 @@ export type WorkflowListProps = {
   onOpenWorkflow: (workflowId: number) => void;
   onNewWorkflow: () => void;
   onLoadErrorChange?: (error: string | null) => void;
+  defaultSiteId?: string | null;
 };
 
 export function WorkflowList({
@@ -32,6 +33,7 @@ export function WorkflowList({
   onOpenWorkflow,
   onNewWorkflow,
   onLoadErrorChange,
+  defaultSiteId = null,
 }: WorkflowListProps): React.ReactElement {
   const [workflows, setWorkflows] = useState<WorkflowDefinition[]>([]);
   const [loading, setLoading] = useState(true);

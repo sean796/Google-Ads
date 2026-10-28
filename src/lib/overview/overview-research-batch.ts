@@ -37,7 +37,6 @@ export type OverviewResearchBatchDeps = {
   site: WordPressSite | undefined;
   gscQuickWinsFile: string | null;
   serpDumpUrl: (filename: string) => string;
-  portfolioBlockedHostsForSemrush: string[];
   skipGsc?: boolean;
   silent?: boolean;
 };
@@ -165,7 +164,6 @@ export async function runOverviewResearchBatch(
             gscCsvForBatch: resolvedBatchGsc,
             batchResearchMode: true,
             serpDumpUrl: deps.serpDumpUrl,
-            portfolioBlockedHostsForSemrush: deps.portfolioBlockedHostsForSemrush,
             skipGsc,
             silent: deps.silent ?? true,
             onHarnessSection: onHarnessSection

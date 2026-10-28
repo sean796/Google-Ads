@@ -154,53 +154,61 @@ export function ForgeWhatPublishScheduleFields({
   return (
     <TaskFormPanel title="Publish">
       <div className="flex flex-col gap-0.5">
-        <Select value={cadence} onValueChange={(v) => handleCadence(v as WhatCadence)} disabled={disabled}>
-          <SelectTrigger
-            aria-label="Publish"
-            className={cn(TASK_FORM_SELECT_TRIGGER_CLASS, "h-8 min-h-8 w-full rounded-none border-0 bg-black px-2")}
-          >
-            <SelectValue placeholder="Publish" />
-          </SelectTrigger>
-          <SelectContent className={TASK_FORM_SELECT_CONTENT_CLASS}>
-            <SelectItem value="immediately" className={TASK_FORM_SELECT_ITEM_CLASS}>
-              Immediately
-            </SelectItem>
-            <SelectItem value="draft" className={TASK_FORM_SELECT_ITEM_CLASS}>
-              Draft
-            </SelectItem>
-            <SelectItem value="times_per_month" className={TASK_FORM_SELECT_ITEM_CLASS}>
-              Times per month
-            </SelectItem>
-          </SelectContent>
-        </Select>
-
         <div className="flex min-w-0 items-center gap-0.5">
-          <div className="flex h-8 min-h-8 min-w-0 flex-1 items-center rounded-none bg-black px-2">
-            <Input
-              type="number"
-              min={1}
-              max={lastAllowed}
-              placeholder="Times per month"
-              aria-label="Times per month"
-              value={times}
-              disabled={disabled || !timesMode}
-              className={cn(TASK_FORM_FLAT_CONTROL_CLASS, "h-8 min-h-8")}
-              onChange={(e) => {
-                const last = lastAllowedPublishDay(startDate.getFullYear(), startDate.getMonth());
-                const n = Math.min(clampTimesPerMonth(Number(e.target.value) || 1), last);
-                patch(timesPatch(n, evenSpreadPublishDays(n, last)));
-              }}
-            />
-          </div>
-          <button
-            type="button"
-            aria-label="Shuffle days"
-            disabled={disabled || !timesMode}
-            className={BULK_HEADER_ICON_TOOL_BTN}
-            onClick={() => patch(timesPatch(times, shufflePublishDays(times, lastAllowed)))}
+          <Select
+            value={cadence}
+            onValueChange={(v) => handleCadence(v as WhatCadence)}
+            disabled={disabled}
           >
-            <Shuffle className="h-4 w-4" />
-          </button>
+            <SelectTrigger
+              aria-label="Publish"
+              className={cn(
+                TASK_FORM_SELECT_TRIGGER_CLASS,
+                "h-8 min-h-8 min-w-0 flex-1 rounded-none border-0 bg-black px-2",
+              )}
+            >
+              <SelectValue placeholder="Publish" />
+            </SelectTrigger>
+            <SelectContent className={TASK_FORM_SELECT_CONTENT_CLASS}>
+              <SelectItem value="immediately" className={TASK_FORM_SELECT_ITEM_CLASS}>
+                Immediately
+              </SelectItem>
+              <SelectItem value="draft" className={TASK_FORM_SELECT_ITEM_CLASS}>
+                Draft
+              </SelectItem>
+              <SelectItem value="times_per_month" className={TASK_FORM_SELECT_ITEM_CLASS}>
+                Times per month
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          {timesMode ? (
+            <>
+              <Input
+                type="number"
+                min={1}
+                max={lastAllowed}
+                placeholder="Count"
+                aria-label="Times per month"
+                value={times}
+                disabled={disabled}
+                className={cn(TASK_FORM_FLAT_CONTROL_CLASS, "h-8 w-16 shrink-0 tabular-nums")}
+                onChange={(e) => {
+                  const last = lastAllowedPublishDay(startDate.getFullYear(), startDate.getMonth());
+                  const n = Math.min(clampTimesPerMonth(Number(e.target.value) || 1), last);
+                  patch(timesPatch(n, evenSpreadPublishDays(n, last)));
+                }}
+              />
+              <button
+                type="button"
+                aria-label="Shuffle days"
+                disabled={disabled}
+                className={BULK_HEADER_ICON_TOOL_BTN}
+                onClick={() => patch(timesPatch(times, shufflePublishDays(times, lastAllowed)))}
+              >
+                <Shuffle className="h-4 w-4" />
+              </button>
+            </>
+          ) : null}
         </div>
 
         {timesMode ? (

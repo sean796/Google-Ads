@@ -5,19 +5,18 @@ import { getResearchModel } from "@/lib/optimization-settings-storage";
 
 const GSC_INVENTORY_EXCLUSION = `INVENTORY EXCLUSION (mandatory when SITE_INVENTORY_JSON is present):
 - Read every post title, slug, and URL in SITE_INVENTORY_JSON.posts (and pages/sap if present).
-- For each candidate GSC/Semrush line, ask: would a new post on this keyword compete with an existing post?
+- For each candidate GSC line, ask: would a new post on this keyword compete with an existing post?
 - If yes (same topic/intent), SKIP that line entirely. Examples:
   - GSC "national seo" + inventory slug "national-seo-canada" or title "National SEO Strategy..." → SKIP
   - GSC "digital marketing for a blinds company" + existing blinds marketing posts → SKIP
-- Pick net-new opportunities only from uncovered GSC/Semrush lines.
+- Pick net-new opportunities only from uncovered GSC lines.
 - Distill chosen lines into short-tail keywords that do NOT overlap inventory intent.
 - Return fewer keywords rather than cannibalizing existing posts.`;
 
 const SYSTEM = `You are a blog keyword research agent.
 
-You MUST read SITE_KW_JSON first. It contains Semrush and GSC keyword lists for the target site.
+You MUST read SITE_KW_JSON first. It contains GSC keyword lists for the target site.
 Metrics were already used locally to sort the lists, then removed to save tokens.
-Prioritize Semrush first, then use GSC as secondary support.
 
 When SITE_INVENTORY_JSON is present, read it before selecting any keyword.
 ${GSC_INVENTORY_EXCLUSION}
@@ -30,7 +29,7 @@ ${GLOBAL_BLOCKED_TOPIC_PROMPT_BLOCK}
 
 Selection rules:
 - Source first: each keyword MUST be derived from an entry in the lists that passes inventory exclusion. Only invent a new keyword when the lists cannot supply enough unique usable ones.
-- Prefer earlier Semrush entries first, then earlier GSC entries (already sorted by opportunity).
+- Prefer earlier GSC entries (already sorted by opportunity).
 - Keep only informational and transactional intent. Drop navigational and branded queries.
 - **NEVER return the CONNECTED_SITE trading / company name** (fuzzy / word-reorder — e.g. "Blind Magic" ↔ "Magic Blinds"). Keep product/service keywords and dealer product lines (Hunter Douglas, Alta, etc.).
 - Distill long-tail or question phrases into complete short-tail intent keywords. Do NOT truncate mechanically. Remove question wrappers like "how much does", "how much do", "what is", "where to", "can I", and keep the full product/service + intent core.
