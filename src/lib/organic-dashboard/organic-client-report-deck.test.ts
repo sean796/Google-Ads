@@ -3,6 +3,7 @@ import {
   buildHeadlineSummaryRows,
   dedupeOrganicComparisonRows,
   expandClientReportNarrativeParagraphs,
+  isNonExistentSectionOmissionStatement,
   layoutOpportunityComparisonRows,
   sanitizeDeckOpportunityComparisonRows,
   parseDeckCountDisplay,
@@ -146,6 +147,16 @@ describe("buildHeadlineSummaryRows", () => {
     expect(rows[0]?.label).toBe("Sessions");
     expect(rows[0]?.earlier).toBe("800");
     expect(rows[0]?.later).toBe("900");
+  });
+});
+
+describe("isNonExistentSectionOmissionStatement", () => {
+  it("flags Semrush branded totals absence disclaimers", () => {
+    expect(
+      isNonExistentSectionOmissionStatement(
+        "No branded search totals were available for this period, so branded demand cannot be confirmed from Semrush data alone.",
+      ),
+    ).toBe(true);
   });
 });
 

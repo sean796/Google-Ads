@@ -15,10 +15,12 @@ import {
   buildGoogleAdsDeckSummaryRows,
   buildHeadlineSummaryRows,
   buildSemrushDeckSummaryRows,
+  deckNarrativeText,
   deriveKeyTakeawaysFromSummary,
   filterHighlightsTakeaways,
   isNonExistentSectionOmissionStatement,
   pickDeckHighlightStats,
+  stripNonExistentOmissionClauses,
   sanitizeExecutiveSummaryText,
   splitHeadlineSummaryRows,
   type DeckHighlightStat,
@@ -143,12 +145,22 @@ function sanitizeHighlightsForClientReport(
     cleanTakeaways.push("See performance summary and highlights below for detail.");
   }
 
+  const filterNarrativeParagraph = (p: string, allowSemrush: boolean, allowPaid: boolean): string | null => {
+    const cleaned = stripNonExistentOmissionClauses(deckNarrativeText(p));
+    if (!cleaned.trim()) return null;
+    if (isNonExistentSectionOmissionStatement(cleaned)) return null;
+    if (!allowSemrush && /semrush/i.test(cleaned)) return null;
+    if (!allowPaid && /(?:google\s+ads|paid\s+search)/i.test(cleaned)) return null;
+    return normalizeClientReportText(cleaned);
+  };
+  const allowSemrush = options?.hasSemrush !== false;
+  const allowPaid = options?.hasGoogleAds !== false;
   const performanceNarrative = (highlights.performanceNarrative ?? [])
-    .filter((p) => !isNonExistentSectionOmissionStatement(p))
-    .map((p) => normalizeClientReportText(p));
+    .map((p) => filterNarrativeParagraph(p, allowSemrush, allowPaid))
+    .filter((p): p is string => p != null);
   const keywordNarrative = (highlights.keywordNarrative ?? [])
-    .filter((p) => !isNonExistentSectionOmissionStatement(p))
-    .map((p) => normalizeClientReportText(p));
+    .map((p) => filterNarrativeParagraph(p, allowSemrush, allowPaid))
+    .filter((p): p is string => p != null);
   const googleAdsNarrative =
     options?.hasGoogleAds === false
       ? []

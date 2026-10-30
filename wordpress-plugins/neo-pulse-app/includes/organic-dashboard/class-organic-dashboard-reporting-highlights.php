@@ -66,7 +66,7 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 			$cache_key = 'neo_pulse_orh_' . md5(
 				wp_json_encode(
 					array(
-						'v'        => 7,
+						'v'        => 8,
 						'siteId'   => $site_id,
 						'model'    => $model,
 						'snapshot' => $snapshot,
@@ -298,18 +298,20 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 			),
 			array(
 				'id'       => 'performance',
-				'system'   => self::performance_system_prompt(),
+				'system'   => self::performance_system_prompt( $has_semrush ),
 				'snapshot' => array_merge(
 					$common,
 					self::pick_snapshot_fields(
 						$snapshot,
-						array( 'ga4Rows', 'gscTotals', 'monthlyProgression', 'periodTotals', 'semrushBrandedTotals' )
+						$has_semrush
+							? array( 'ga4Rows', 'gscTotals', 'monthlyProgression', 'periodTotals', 'semrushBrandedTotals' )
+							: array( 'ga4Rows', 'gscTotals', 'monthlyProgression', 'periodTotals' )
 					)
 				),
 			),
 			array(
 				'id'       => 'keyword',
-				'system'   => self::keyword_system_prompt(),
+				'system'   => self::keyword_system_prompt( $has_semrush ),
 				'snapshot' => array_merge(
 					$common,
 					self::pick_snapshot_fields( $snapshot, array( 'topQueries', 'semrushBrandedTotals' ) )
@@ -317,7 +319,7 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 			),
 			array(
 				'id'       => 'seo_opportunities',
-				'system'   => self::seo_opportunities_system_prompt(),
+				'system'   => self::seo_opportunities_system_prompt( $has_semrush ),
 				'snapshot' => array_merge(
 					$common,
 					self::pick_snapshot_fields(
@@ -484,6 +486,18 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 		if ( $t === '' ) {
 			return false;
 		}
+		if ( preg_match( '/\bno\s+branded\s+search\s+totals?\s+(?:were|are|was)\s+available\b/i', $t ) ) {
+			return true;
+		}
+		if ( preg_match( '/\bbranded\s+demand\s+cannot\s+be\s+(?:confirmed|verified|measured)\b/i', $t ) ) {
+			return true;
+		}
+		if ( preg_match( '/\bcannot\s+be\s+confirmed\s+from\s+semrush\b/i', $t ) ) {
+			return true;
+		}
+		if ( preg_match( '/\bsemrush\b/i', $t ) && preg_match( '/\b(?:not|no|cannot|can\'t)\s+[^.]{0,140}(?:available|confirmed|verified|alone)\b/i', $t ) ) {
+			return true;
+		}
 		$channel = '/(?:google\s+ads|paid\s+search|semrush|local\s+grid|local\s+map|map\s+pack|local\s+falcon|tarp)/i';
 		if ( ! preg_match( $channel, $t ) ) {
 			return false;
@@ -552,8 +566,22 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 		return 'American English with full sentence grammar. Use snapshot.siteName for the client brand in prose. ' . self::query_prose_line();
 	}
 
-	private static function ai_search_context_line(): string {
-		return 'AI search context: Google AI Overviews and zero-click summaries can reduce top-of-funnel clicks while high-intent demand still reaches the site. Do not treat a GSC click decline alone as SEO failure. Prioritize key events, engaged sessions, branded demand (semrushBrandedTotals and branded queries in topQueries), and Google Ads leads when present. When localGrid exists, treat map pack visibility as a core local outcome.';
+	private static function ai_search_context_line( bool $has_semrush = false, bool $has_ads = false, bool $has_grid = false ): string {
+		$line = 'AI search context: Google AI Overviews and zero-click summaries can reduce top-of-funnel clicks while high-intent demand still reaches the site. Do not treat a GSC click decline alone as SEO failure. Prioritize key events, engaged sessions, and branded queries in topQueries when present.';
+		if ( $has_semrush ) {
+			$line .= ' Use semrushBrandedTotals only when that object is in the snapshot.';
+		}
+		if ( $has_ads ) {
+			$line .= ' Include Google Ads leads when googleAdsTotals is in the snapshot.';
+		}
+		if ( $has_grid ) {
+			$line .= ' When localGrid exists, treat map pack visibility as a core local outcome.';
+		}
+		return $line;
+	}
+
+	private static function missing_channel_rules_line(): string {
+		return 'Strict rule: ONLY discuss channels and metrics present in the snapshot JSON. Never state that data is missing, unavailable, omitted, or cannot be confirmed (never write "No Semrush data", "branded search totals were not available", or "cannot be confirmed from Semrush"). If semrushBrandedTotals, googleAdsTotals, or localGrid are absent or empty, do not mention that channel at all.';
 	}
 
 	private static function insights_system_prompt( bool $has_ads = false, bool $has_grid = false, bool $has_semrush = false ): string {
@@ -578,35 +606,53 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 
 		return 'Neo Digital SEO report. JSON only: {"executiveSummary":"string","keyTakeaways":["string"]}.' . "\n\n"
 			. self::prose_line() . "\n\n"
-			. self::ai_search_context_line() . "\n\n"
+			. self::ai_search_context_line( $has_semrush, $has_ads, $has_grid ) . "\n\n"
 			. self::no_dates_line() . "\n\n"
 			. $channel_rules . "\n\n"
 			. 'executiveSummary: one sentence on business outcomes (demand quality, leads/key events, branded visibility), not vanity traffic alone. '
 			. $takeaway_instructions;
 	}
 
-	private static function performance_system_prompt(): string {
+	private static function performance_system_prompt( bool $has_semrush = false ): string {
+		$semrush_line = $has_semrush
+			? 'When semrushBrandedTotals is in the snapshot, briefly note branded vs non-branded search volume alongside GA4 and GSC.'
+			: 'Do NOT mention Semrush, branded search totals, or branded vs non-branded volume. Use only GA4 and GSC from the snapshot.';
+
 		return 'Neo Digital SEO report. JSON only: {"performanceNarrative":["string"]}.' . "\n\n"
 			. self::prose_line() . "\n\n"
-			. self::ai_search_context_line() . "\n\n"
+			. self::ai_search_context_line( $has_semrush, false, false ) . "\n\n"
 			. self::no_dates_line() . "\n\n"
-			. 'Exactly one concise paragraph (maximum 150 words): synthesize GA4 organic sessions (engaged sessions, key events) and GSC search visibility (clicks, impressions, CTR, position) with AI-aware interpretation. Mention semrushBrandedTotals when present. No Google Ads. Output only the JSON object.';
+			. self::missing_channel_rules_line() . "\n\n"
+			. 'Write 2–4 short paragraphs (about 80–120 words total): synthesize GA4 organic sessions (engaged sessions, key events) and GSC search visibility (clicks, impressions, CTR, position) with AI-aware interpretation. '
+			. $semrush_line . ' No Google Ads. Output only the JSON object.';
 	}
 
-	private static function keyword_system_prompt(): string {
+	private static function keyword_system_prompt( bool $has_semrush = false ): string {
+		$semrush_line = $has_semrush
+			? ' You may reference Semrush branded totals only when semrushBrandedTotals is in the snapshot.'
+			: ' Do NOT mention Semrush or branded search totals.';
+
 		return 'Neo Digital SEO report. JSON only: {"keywordNarrative":["string"]}.' . "\n\n"
 			. self::prose_line() . "\n\n"
-			. self::ai_search_context_line() . "\n\n"
+			. self::ai_search_context_line( $has_semrush, false, false ) . "\n\n"
 			. self::no_dates_line() . "\n\n"
-			. 'Write one or two concise paragraphs (maximum 200 words total) summarizing topQueries. Separate branded queries (containing snapshot.siteName tokens) from non-branded demand. When showCompare is true, compare laterClicks and earlierClicks across top queries. When showCompare is false, summarize clicks, impressions, and avgPosition for the leading queries. If topQueries is empty, return one factual sentence stating that query-level Search Console data was not recorded for the period. Output only the JSON object.';
+			. self::missing_channel_rules_line() . "\n\n"
+			. 'Write one or two concise paragraphs (maximum 200 words total) summarizing topQueries. Separate branded queries (containing snapshot.siteName tokens) from non-branded demand.'
+			. $semrush_line
+			. ' When showCompare is true, compare laterClicks and earlierClicks across top queries. When showCompare is false, summarize clicks, impressions, and avgPosition for the leading queries. If topQueries is empty, return one factual sentence stating that query-level Search Console data was not recorded for the period. Output only the JSON object.';
 	}
 
-	private static function seo_opportunities_system_prompt(): string {
+	private static function seo_opportunities_system_prompt( bool $has_semrush = false ): string {
+		$branded = $has_semrush
+			? 'GA4 key events/engagement, GSC, and branded vs non-branded queries when data exists.'
+			: 'GA4 key events/engagement and GSC only; do not mention Semrush or branded search totals.';
+
 		return 'Neo Digital SEO report. JSON only: {"topOpportunities":[{"rank":1,"label":"string","why":"string","comparisonRows":[{"metric":"string","comparePeriodValue":"string","primaryPeriodValue":"string"}]}]}.' . "\n\n"
 			. self::prose_line() . "\n\n"
-			. self::ai_search_context_line() . "\n\n"
+			. self::ai_search_context_line( $has_semrush, false, false ) . "\n\n"
 			. self::no_dates_line() . "\n\n"
-			. 'Three or four organic opportunities (GA4 key events/engagement, GSC, branded vs non-branded queries). Each why is one or two full sentences (capital letter first); bold queries in Title Case per query rules above. No Google Ads metrics. No actions.';
+			. self::missing_channel_rules_line() . "\n\n"
+			. 'Three or four organic opportunities (' . $branded . ') Each why is one or two full sentences (capital letter first); bold queries in Title Case per query rules above. No Google Ads metrics. No actions.';
 	}
 
 	private static function local_grid_system_prompt(): string {

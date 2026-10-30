@@ -453,6 +453,16 @@ export function isNonExistentSectionOmissionStatement(text: string): boolean {
   const t = text.trim();
   if (!t) return false;
 
+  const brandedSemrushAbsence =
+    /\bno\s+branded\s+search\s+totals?\s+(?:were|are|was)\s+available\b/i.test(t) ||
+    /\bbranded\s+demand\s+cannot\s+be\s+(?:confirmed|verified|measured)\b/i.test(t) ||
+    /\bcannot\s+be\s+confirmed\s+from\s+semrush\b/i.test(t) ||
+    (/\bsemrush\b/i.test(t) &&
+      /\b(?:not|no|cannot|can't)\s+[^.]{0,140}(?:available|confirmed|verified|alone)\b/i.test(t));
+  if (brandedSemrushAbsence) {
+    return true;
+  }
+
   // 1. Channel omission statements (Google Ads, Semrush, Local Map, etc.)
   const channel =
     /(?:google\s+ads|paid\s+search|semrush|local\s+grid|local\s+map|map\s+pack|local\s+falcon|tarp)/i;
