@@ -178,6 +178,52 @@ async function syncHubDataFiles(localBase, hubBase, token) {
   }
 }
 
+function normalizePropertyClientLogoUrlsForHub(sites) {
+  const stamp = Date.now();
+  for (const site of sites) {
+    if (!site || typeof site.id !== "string") continue;
+    const raw = typeof site.clientLogoUrl === "string" ? site.clientLogoUrl.trim() : "";
+    if (!raw) continue;
+    if (raw.startsWith("/api/")) continue;
+    const isDevHosted =
+      /client-logo/i.test(raw) &&
+      (/localhost|127\.0\.0\.1|neopulse\.local/i.test(raw) || raw.includes(":8080"));
+    if (isDevHosted) {
+      site.clientLogoUrl = `/api/manager-wordpress-properties/client-logo/${encodeURIComponent(site.id)}?v=${stamp}`;
+    }
+  }
+}
+
+async function syncClientLogosToHub(localBase, hubBase, sites) {
+  let copied = 0;
+  for (const site of sites) {
+    const siteId = site?.id;
+    if (typeof siteId !== "string" || siteId.trim() === "") continue;
+    const logoRes = await fetch(
+      `${localBase}/api/manager-wordpress-properties/client-logo/${encodeURIComponent(siteId)}`,
+      { headers: { Accept: "*/*" } },
+    );
+    if (!logoRes.ok) continue;
+    const mime = logoRes.headers.get("content-type") || "image/png";
+    const buf = Buffer.from(await logoRes.arrayBuffer());
+    if (!buf.length) continue;
+    const dataUrl = `data:${mime};base64,${buf.toString("base64")}`;
+    const upload = await fetch(`${hubBase}/api/manager-wordpress-properties/client-logo/upload`, {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({ siteId, dataUrl }),
+    });
+    const body = await upload.json().catch(() => ({}));
+    if (!upload.ok || !body.ok) {
+      console.log(`[hub] client-logo ${siteId}: ${body.error || upload.status}`);
+      continue;
+    }
+    copied += 1;
+    console.log(`[hub] client-logo ${siteId}`);
+  }
+  console.log(`[hub] client-logos copied: ${copied}`);
+}
+
 async function syncLocalGridScans(localBase, hubBase, siteId) {
   const historyRes = await fetch(
     `${localBase}/api/organic-dashboard/local-grid/history?siteId=${encodeURIComponent(siteId)}`,
@@ -218,6 +264,9 @@ async function main() {
   if (!snapshot?.keys) throw new Error("Local manager settings snapshot has no keys");
 
   console.log(`[local] ${sites.length} sites, ${Object.keys(snapshot.keys).length} manager keys`);
+
+  await syncClientLogosToHub(LOCAL_API, HUB_API, sites);
+  normalizePropertyClientLogoUrlsForHub(sites);
 
   const hubProps = await apiJson(HUB_API, "manager-wordpress-properties/save", {
     method: "POST",

@@ -61,6 +61,7 @@ import { downloadOrganicClientReportMarkdown } from "@/lib/organic-dashboard/org
 import { downloadOrganicClientReportPdf } from "@/lib/organic-dashboard/organic-client-report-print";
 import { writeOrganicDashboardDateSession } from "@/lib/organic-dashboard/organic-dashboard-date-session";
 import { formatLocalYmd } from "@/lib/reporting/reporting-date-presets";
+import { resolvePropertyClientLogoUrl } from "@/lib/integrations/client-site-logo";
 
 /** Deep links only: hand off to the main app Reporting tab (same shell as Generator). */
 export default function OrganicDashboardPage() {
@@ -303,6 +304,11 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
 
   const preparedOn = formatLocalYmd(new Date());
 
+  const clientLogoUrl = useMemo(
+    () => resolvePropertyClientLogoUrl(site.id, site.clientLogoUrl),
+    [site.id, site.clientLogoUrl],
+  );
+
   const reportContent = useMemo(
     () =>
       viewModel && mergedHighlights
@@ -314,7 +320,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
             showCompare,
             preparedOn,
             localGridScan: localGridScanQuery.data ?? null,
-            clientLogoUrl: site.clientLogoUrl,
+            clientLogoUrl,
             clientLogoBoxTheme: logoBoxTheme,
           })
         : null,
@@ -326,7 +332,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
       showCompare,
       preparedOn,
       localGridScanQuery.data,
-      site.clientLogoUrl,
+      clientLogoUrl,
       logoBoxTheme,
     ],
   );
@@ -458,7 +464,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
         readyHighlights,
         showCompare,
         localGridScan: localGridScanQuery.data ?? null,
-        clientLogoUrl: site.clientLogoUrl,
+        clientLogoUrl,
         clientLogoBoxTheme: logoBoxTheme,
       });
       await navigator.clipboard.writeText(publishedUrl);
@@ -480,7 +486,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     shareState,
     showCompare,
     site.id,
-    site.clientLogoUrl,
+    clientLogoUrl,
     logoBoxTheme,
     siteDisplayName,
     sitePublicUrl,
@@ -505,7 +511,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
         showCompare,
         preparedOn,
         localGridScan: localGridScanQuery.data ?? null,
-        clientLogoUrl: site.clientLogoUrl,
+        clientLogoUrl,
         clientLogoBoxTheme: logoBoxTheme,
       });
       await downloadOrganicClientReportPdf({ content, preparedOn });
@@ -525,7 +531,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     sitePublicUrl,
     viewModel,
     localGridScanQuery.data,
-    site.clientLogoUrl,
+    clientLogoUrl,
     logoBoxTheme,
     preparedOn,
   ]);

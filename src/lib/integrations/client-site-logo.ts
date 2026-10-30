@@ -139,6 +139,25 @@ export function extractLogoUrlFromHtml(html: string, pageUrl: string): ClientSit
   return null;
 }
 
+/** Same-origin /api path works on Render static (proxied to hub) and local dev. */
+export function resolvePropertyClientLogoUrl(
+  siteId: string,
+  clientLogoUrl?: string | null,
+): string {
+  const id = siteId.trim();
+  const raw = (clientLogoUrl ?? "").trim();
+  if (!raw) return "";
+  if (raw.startsWith("/api/")) return raw;
+  const isDevHostedApiLogo =
+    /client-logo/i.test(raw) &&
+    (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//i.test(raw) ||
+      /^https?:\/\/neopulse\.local\//i.test(raw));
+  if (isDevHostedApiLogo && id) {
+    return `/api/manager-wordpress-properties/client-logo/${encodeURIComponent(id)}`;
+  }
+  return raw;
+}
+
 export async function fetchClientSiteLogoUrl(
   site: Pick<WordPressSite, "siteUrl" | "productionSiteUrl">,
 ): Promise<ClientSiteLogoResult> {
