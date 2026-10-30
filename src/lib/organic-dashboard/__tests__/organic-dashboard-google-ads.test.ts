@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildGoogleAdsBudgetPacingDisplay,
   buildGoogleAdsReportAccountCard,
   buildGoogleAdsSummary,
   buildGoogleAdsTable,
@@ -11,6 +12,22 @@ import { buildOrganicDashboardViewModel } from "@/lib/organic-dashboard/organic-
 import type { OrganicDashboardBundleResponse } from "@/lib/organic-dashboard/organic-dashboard-types";
 
 describe("organic-dashboard-google-ads", () => {
+  it("builds budget pacing display with period caption and as-of date", () => {
+    const display = buildGoogleAdsBudgetPacingDisplay(
+      {
+        spendMicros: 500_000_000,
+        budgetMicros: 1_000_000_000,
+        periodStart: "2026-10-01",
+        periodEnd: "2026-10-19",
+      },
+      "CAD",
+      "Oct 1–19, 2026",
+      "2026-10-19",
+    );
+    expect(display.caption).toContain("Oct 1–19, 2026");
+    expect(display.spendRatio).toBeGreaterThan(0);
+  });
+
   it("formats CAD and USD spend labels", () => {
     expect(formatGoogleAdsMoney(2995.5, "CAD")).toMatch(/^CA\$/);
     expect(formatGoogleAdsMoney(100, "USD")).toMatch(/^\$/);
@@ -48,6 +65,12 @@ describe("organic-dashboard-google-ads", () => {
           impressions: 4800,
         },
         dailySeries: [{ date: "2026-10-01", costMicros: 100_000_000, conversions: 4, clicks: 5 }],
+        budgetPacing: {
+          spendMicros: 500_000_000,
+          budgetMicros: 2_000_000_000,
+          periodStart: "2026-10-01",
+          periodEnd: "2026-10-19",
+        },
       },
       sources: { ga4: "skipped", gsc: "skipped", semrush: "skipped", googleAds: "ok" },
     };
@@ -58,6 +81,7 @@ describe("organic-dashboard-google-ads", () => {
     expect(vm.hasGoogleAds).toBe(true);
     expect(vm.googleAdsLoadError).toBeNull();
     expect(vm.googleAdsSummary?.leads).toBe("78");
+    expect(vm.googleAdsBudgetPacing?.caption).toContain("CA$");
     expect(vm.googleAdsTable.map((r) => r.label)).toEqual([
       "Leads",
       "Cost per lead",

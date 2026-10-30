@@ -42,18 +42,21 @@ export function ActiveWordPressSiteProvider({ children }: { children: ReactNode 
   });
 
   const setActiveWordPressSiteId = useCallback((id: string | null) => {
-    setActiveWordPressSiteIdState(id);
-    try {
-      if (id) localStorage.setItem(ACTIVE_WP_SITE_STORAGE_KEY, id);
-      else localStorage.removeItem(ACTIVE_WP_SITE_STORAGE_KEY);
-    } catch {
-      /* ignore */
-    }
-    void syncActiveWordPressSiteToServer(id);
+    setActiveWordPressSiteIdState((current) => {
+      if (current === id) return current;
+      try {
+        if (id) localStorage.setItem(ACTIVE_WP_SITE_STORAGE_KEY, id);
+        else localStorage.removeItem(ACTIVE_WP_SITE_STORAGE_KEY);
+      } catch {
+        /* ignore */
+      }
+      void syncActiveWordPressSiteToServer(id);
+      return id;
+    });
   }, []);
 
   useEffect(() => {
-    if (enabledSites.length === 0) {
+    if (sites.length === 0) {
       setActiveWordPressSiteIdState(null);
       try {
         localStorage.removeItem(ACTIVE_WP_SITE_STORAGE_KEY);
@@ -63,18 +66,19 @@ export function ActiveWordPressSiteProvider({ children }: { children: ReactNode 
       return;
     }
     setActiveWordPressSiteIdState((current) => {
-      const keep = current && enabledSites.some((s) => s.id === current);
-      const next = keep ? current : enabledSites[0]!.id;
+      const keep = Boolean(current && sites.some((s) => s.id === current));
       if (keep) return current;
+      const fallback = enabledSites[0]?.id ?? sites[0]?.id ?? null;
+      if (!fallback || fallback === current) return current;
       try {
-        localStorage.setItem(ACTIVE_WP_SITE_STORAGE_KEY, next);
+        localStorage.setItem(ACTIVE_WP_SITE_STORAGE_KEY, fallback);
       } catch {
         /* ignore */
       }
-      void syncActiveWordPressSiteToServer(next);
-      return next;
+      void syncActiveWordPressSiteToServer(fallback);
+      return fallback;
     });
-  }, [siteIdsKey]);
+  }, [sites, siteIdsKey]);
 
   const value = useMemo(
     () => ({ activeWordPressSiteId, setActiveWordPressSiteId }),

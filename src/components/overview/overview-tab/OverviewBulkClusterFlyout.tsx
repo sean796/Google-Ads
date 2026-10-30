@@ -1,5 +1,5 @@
 import React from "react";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BULK_HEADER_TOOL_BTN } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
@@ -85,8 +85,8 @@ export function OverviewBulkClusterFlyout({
   );
 
   return (
-    <HoverCard open={open} onOpenChange={setOpen} openDelay={120} closeDelay={80}>
-      <HoverCardTrigger asChild>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
         <button
           type="button"
           disabled={workspaceBusy}
@@ -96,15 +96,11 @@ export function OverviewBulkClusterFlyout({
           )}
           aria-haspopup="menu"
           aria-expanded={open}
-          onClick={() => {
-            if (workspaceBusy) return;
-            setOpen((prev) => !prev);
-          }}
         >
           {cluster.label}
         </button>
-      </HoverCardTrigger>
-      <HoverCardContent
+      </PopoverTrigger>
+      <PopoverContent
         align="start"
         side="bottom"
         sideOffset={6}
@@ -144,7 +140,7 @@ export function OverviewBulkClusterFlyout({
             </div>
           ))}
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      </PopoverContent>
+    </Popover>
   );
 }

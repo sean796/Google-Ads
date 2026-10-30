@@ -96,6 +96,8 @@ export type OrganicReportingStudioShellProps = {
   exportDisabled: boolean;
   clientLogoBoxTheme?: "black" | "white";
   onToggleLogoBoxTheme?: () => void;
+  /** Shown when the shell is idle but reportContent is still null (failed or blocked load). */
+  reportIdleMessage?: string | null;
 };
 
 export function OrganicReportingStudioShell({
@@ -121,6 +123,7 @@ export function OrganicReportingStudioShell({
   exportDisabled,
   clientLogoBoxTheme,
   onToggleLogoBoxTheme,
+  reportIdleMessage = null,
 }: OrganicReportingStudioShellProps) {
   const [dockWidth, setDockWidth] = useState<number>(() => readLeftDockWidth());
   const [isResizing, setIsResizing] = useState(false);
@@ -668,6 +671,10 @@ export function OrganicReportingStudioShell({
                     highlightsError={highlightsError}
                     onToggleLogoBoxTheme={onToggleLogoBoxTheme}
                   />
+                </div>
+              ) : reportIdleMessage ? (
+                <div className="mx-auto flex min-h-[12rem] w-full max-w-[52rem] flex-col items-center justify-center gap-2 px-4 text-center text-base text-muted-foreground">
+                  <p>{reportIdleMessage}</p>
                 </div>
               ) : (
                 <div className="min-h-0 flex-1" aria-hidden />

@@ -470,10 +470,6 @@ export function buildOrganicDashboardViewModel(
   const googleAdsDailyChart = googleAdsParsed
     ? buildGoogleAdsDailyChart(googleAdsParsed.dailySeries)
     : [];
-  const googleAdsBudgetPacing = googleAdsParsed?.budgetPacing
-    ? buildGoogleAdsBudgetPacingDisplay(googleAdsParsed.budgetPacing)
-    : null;
-  const hasGoogleAds = !!googleAdsSummary;
 
   const periodLabels: OrganicDashboardPeriodLabels = {
     primary:
@@ -485,6 +481,16 @@ export function buildOrganicDashboardViewModel(
         ? formatComparePeriodLabel(compare.startDate, compare.endDate)
         : "Compare period",
   };
+
+  const googleAdsBudgetPacing = googleAdsParsed?.budgetPacing
+    ? buildGoogleAdsBudgetPacingDisplay(
+        googleAdsParsed.budgetPacing,
+        googleAdsParsed.currencyCode,
+        periodLabels.primary,
+        primary.endDate || data?.meta?.fetchedAt?.slice(0, 10) || "",
+      )
+    : null;
+  const hasGoogleAds = !!googleAdsSummary;
 
   const periodTotalColumnLabel =
     options?.periodTotalColumnLabel ??

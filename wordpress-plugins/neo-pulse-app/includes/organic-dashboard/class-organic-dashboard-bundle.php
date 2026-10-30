@@ -9,6 +9,9 @@ defined( 'ABSPATH' ) || exit;
 
 class Neo_Pulse_App_Organic_Dashboard_Bundle {
 
+	/** @var list<string> */
+	private const FETCH_PARTS = array( 'ga4', 'gsc', 'semrush', 'googleAds' );
+
 	/**
 	 * @param array<string,mixed> $body
 	 * @return array{statusCode:int,body:array<string,mixed>}
@@ -19,6 +22,118 @@ class Neo_Pulse_App_Organic_Dashboard_Bundle {
 			return $db_validation;
 		}
 
+		$context = self::build_fetch_context( $body );
+		if ( isset( $context['statusCode'] ) ) {
+			return $context;
+		}
+
+		$source_results = self::fetch_dashboard_sources( $context );
+
+		$ga4_result     = $source_results['ga4'];
+		$gsc_result     = $source_results['gsc'];
+		$semrush_result = $source_results['semrush'];
+
+		$sources = array(
+			'ga4'     => $ga4_result['status'],
+			'gsc'     => $gsc_result['status'],
+			'semrush' => $semrush_result['status'],
+		);
+
+		return array(
+			'statusCode' => 200,
+			'body'       => array(
+				'success' => true,
+				'meta'    => self::build_response_meta( $context, $gsc_result['gsc_property'] ),
+				'ga4'     => $ga4_result['payload'],
+				'gsc'     => $gsc_result['payload'],
+				'semrush' => $semrush_result['payload'],
+				'sources' => $sources,
+			),
+		);
+	}
+
+	/**
+	 * Parallel client loads: one source per request (ga4, gsc, semrush, googleAds).
+	 *
+	 * @param array<string,mixed> $body
+	 * @return array{statusCode:int,body:array<string,mixed>}
+	 */
+	public static function fetch_part( array $body ): array {
+		$part = isset( $body['part'] ) ? trim( (string) $body['part'] ) : '';
+		if ( ! in_array( $part, self::FETCH_PARTS, true ) ) {
+			return array(
+				'statusCode' => 400,
+				'body'       => array(
+					'success' => false,
+					'error'   => 'Invalid or missing part',
+				),
+			);
+		}
+
+		$db_validation = Neo_Pulse_App_Organic_Dashboard_Semrush::validate_database_param( $body );
+		if ( is_array( $db_validation ) ) {
+			return $db_validation;
+		}
+
+		$context = self::build_fetch_context( $body );
+		if ( isset( $context['statusCode'] ) ) {
+			return $context;
+		}
+
+		$stub = self::partial_request_stub();
+
+		$sources = array(
+			'ga4'       => 'skipped',
+			'gsc'       => 'skipped',
+			'semrush'   => 'skipped',
+			'googleAds' => 'skipped',
+		);
+
+		$ga4_payload        = $stub;
+		$gsc_payload        = $stub;
+		$semrush_payload    = $stub;
+		$google_ads_payload = $stub;
+		$gsc_property       = null;
+
+		if ( $part === 'ga4' ) {
+			$ga4_result     = self::resolve_ga4_source( $context );
+			$ga4_payload    = $ga4_result['payload'];
+			$sources['ga4'] = $ga4_result['status'];
+		} elseif ( $part === 'gsc' ) {
+			$gsc_result     = self::resolve_gsc_source( $context );
+			$gsc_payload    = $gsc_result['payload'];
+			$sources['gsc'] = $gsc_result['status'];
+			$gsc_property   = $gsc_result['gsc_property'];
+		} elseif ( $part === 'semrush' ) {
+			$semrush_result     = self::resolve_semrush_source( $context );
+			$semrush_payload    = $semrush_result['payload'];
+			$sources['semrush'] = $semrush_result['status'];
+		} elseif ( $part === 'googleAds' ) {
+			$ads_result            = self::resolve_google_ads_source( $context );
+			$google_ads_payload    = $ads_result['payload'];
+			$sources['googleAds'] = $ads_result['status'];
+		}
+
+		return array(
+			'statusCode' => 200,
+			'body'       => array(
+				'success'   => true,
+				'meta'      => self::build_response_meta( $context, $gsc_property ),
+				'ga4'       => $ga4_payload,
+				'gsc'       => $gsc_payload,
+				'semrush'   => $semrush_payload,
+				'googleAds' => $google_ads_payload,
+				'sources'   => $sources,
+				'part'      => $part,
+			),
+		);
+	}
+
+	/**
+	 * @param array<string,mixed> $body
+	 * @return array<string,mixed>|array{statusCode:int,body:array<string,mixed>}
+	 */
+	private static function build_fetch_context( array $body ) {
 		$site_url        = isset( $body['siteUrl'] ) ? trim( (string) $body['siteUrl'] ) : '';
 		$ga4_property_id = isset( $body['ga4PropertyId'] ) ? trim( (string) $body['ga4PropertyId'] ) : '';
 
@@ -53,7 +168,7 @@ class Neo_Pulse_App_Organic_Dashboard_Bundle {
 			);
 		}
 
-		$context = array(
+		return array(
 			'body'            => $body,
 			'site_url'        => $site_url,
 			'ga4_property_id' => $ga4_property_id,
@@ -62,36 +177,36 @@ class Neo_Pulse_App_Organic_Dashboard_Bundle {
 			'include_compare' => $include_compare,
 			'period_progress' => $period_progress,
 		);
+	}
 
-		$source_results = self::fetch_dashboard_sources( $context );
-
-		$ga4_result     = $source_results['ga4'];
-		$gsc_result     = $source_results['gsc'];
-		$semrush_result = $source_results['semrush'];
-
-		$sources = array(
-			'ga4'     => $ga4_result['status'],
-			'gsc'     => $gsc_result['status'],
-			'semrush' => $semrush_result['status'],
-		);
+	/**
+	 * @param array<string,mixed> $context
+	 * @return array<string,mixed>
+	 */
+	private static function build_response_meta( array $context, ?string $gsc_property ): array {
+		$primary         = is_array( $context['primary'] ?? null ) ? $context['primary'] : array();
+		$compare         = is_array( $context['compare'] ?? null ) ? $context['compare'] : array();
+		$include_compare = ! empty( $context['include_compare'] );
+		$period_progress = ! empty( $context['period_progress'] );
+		$ga4_property_id = (string) ( $context['ga4_property_id'] ?? '' );
 
 		return array(
-			'statusCode' => 200,
-			'body'       => array(
-				'success'        => true,
-				'meta'           => array(
-					'fetchedAt'       => gmdate( 'c' ),
-					'primary'         => $primary,
-					'compare'         => $include_compare ? $compare : null,
-					'reportStructure' => $period_progress ? 'period_progress' : 'compare',
-					'gscProperty'     => $gsc_result['gsc_property'],
-					'ga4PropertyId'   => $ga4_property_id !== '' ? $ga4_property_id : null,
-				),
-				'ga4'     => $ga4_result['payload'],
-				'gsc'     => $gsc_result['payload'],
-				'semrush' => $semrush_result['payload'],
-				'sources' => $sources,
-			),
+			'fetchedAt'       => gmdate( 'c' ),
+			'primary'         => $primary,
+			'compare'         => $include_compare ? $compare : null,
+			'reportStructure' => $period_progress ? 'period_progress' : 'compare',
+			'gscProperty'     => $gsc_property,
+			'ga4PropertyId'   => $ga4_property_id !== '' ? $ga4_property_id : null,
+		);
+	}
+
+	/**
+	 * @return array{skipped:bool,reason:string}
+	 */
+	private static function partial_request_stub(): array {
+		return array(
+			'skipped' => true,
+			'reason'  => 'partial_request',
 		);
 	}
 
@@ -228,6 +343,60 @@ class Neo_Pulse_App_Organic_Dashboard_Bundle {
 			'status'       => 'error',
 			'payload'      => $payload,
 			'gsc_property' => null,
+		);
+	}
+
+	/**
+	 * @param array<string,mixed> $context
+	 * @return array{status:string,payload:array<string,mixed>}
+	 */
+	private static function resolve_google_ads_source( array $context ): array {
+		$body            = is_array( $context['body'] ?? null ) ? $context['body'] : array();
+		$primary         = is_array( $context['primary'] ?? null ) ? $context['primary'] : array();
+		$compare         = is_array( $context['compare'] ?? null ) ? $context['compare'] : array();
+		$period_progress = ! empty( $context['period_progress'] );
+
+		$customer_id = Neo_Pulse_App_Google_Ads_Credentials::normalize_customer_id(
+			(string) ( $body['googleAdsCustomerId'] ?? '' )
+		);
+		if ( strlen( $customer_id ) !== 10 ) {
+			return array(
+				'status'  => 'skipped',
+				'payload' => array(
+					'skipped' => true,
+					'reason'  => 'missing_google_ads_customer_id',
+					'error'   => 'Google Ads customer ID is not set for this property.',
+				),
+			);
+		}
+
+		$ads_body = array_merge(
+			$body,
+			array(
+				'googleAdsCustomerId' => $customer_id,
+				'startDate'           => $primary['startDate'] ?? '',
+				'endDate'             => $primary['endDate'] ?? '',
+				'compareStartDate'    => $compare['startDate'] ?? '',
+				'compareEndDate'      => $compare['endDate'] ?? '',
+				'reportStructure'     => $period_progress ? 'period_progress' : 'compare',
+			)
+		);
+
+		$result = Neo_Pulse_App_Google_Ads_Reporting_Bundle::fetch_organic_dashboard_google_ads( $ads_body );
+		if ( empty( $result['success'] ) ) {
+			return array(
+				'status'  => 'error',
+				'payload' => array(
+					'skipped' => true,
+					'reason'  => 'google_ads_error',
+					'error'   => (string) ( $result['error'] ?? 'Google Ads fetch failed' ),
+				),
+			);
+		}
+
+		return array(
+			'status'  => 'ok',
+			'payload' => $result,
 		);
 	}
 

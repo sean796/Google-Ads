@@ -191,7 +191,10 @@ export function buildGoogleAdsBudgetPacingDisplay(
   const budget = microsToSpend(pacing.budgetMicros);
   const spendRatio = clampRatio(pacing.spendMicros / pacing.budgetMicros);
   const periodDays = inclusiveDaysBetween(pacing.periodStart, pacing.periodEnd);
-  const asOf = asOfYmd.slice(0, 10);
+  const asOf = (typeof asOfYmd === "string" && asOfYmd.trim() ? asOfYmd : pacing.periodEnd).slice(
+    0,
+    10,
+  );
   let elapsedDays = periodDays;
   if (asOf >= pacing.periodStart && asOf <= pacing.periodEnd) {
     elapsedDays = inclusiveDaysBetween(pacing.periodStart, asOf);

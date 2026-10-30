@@ -130,7 +130,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
 
   useEffect(() => {
     setActiveWordPressSiteId(site.id);
-  }, [site, setActiveWordPressSiteId]);
+  }, [site.id, setActiveWordPressSiteId]);
 
   useEffect(() => {
     if (site.clientLogoBoxTheme) {
@@ -531,6 +531,32 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
 
   const splashVisible = studioBusy && !reportContent;
 
+  const reportIdleMessage = useMemo(() => {
+    if (reportContent || splashVisible) return null;
+    if (!fetchParams) {
+      return "Reporting date range is invalid. Open the date filter and apply a valid range.";
+    }
+    if (bundleQuery.isError) {
+      return bundleQuery.error instanceof Error
+        ? bundleQuery.error.message
+        : "Could not load GA4, Search Console, Semrush, or Google Ads metrics.";
+    }
+    if (bundleQuery.data && !mergedHighlights) {
+      if (highlightsError) return highlightsError;
+      return "Could not generate the AI overview for this report. Use Refresh to try again.";
+    }
+    return "Report data is not ready yet. Use Refresh to load metrics for this property.";
+  }, [
+    reportContent,
+    splashVisible,
+    fetchParams,
+    bundleQuery.isError,
+    bundleQuery.error,
+    bundleQuery.data,
+    mergedHighlights,
+    highlightsError,
+  ]);
+
   const activeStatusText = useMemo(() => {
     if (performanceLoading || bundleQuery.isFetching) {
       return "Loading GA4, Search Console, Semrush & Google Ads metrics";
@@ -578,6 +604,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
       exportDisabled={!reportExportReady}
       clientLogoBoxTheme={logoBoxTheme}
       onToggleLogoBoxTheme={handleToggleLogoBoxTheme}
+      reportIdleMessage={reportIdleMessage}
     />
   );
 }
