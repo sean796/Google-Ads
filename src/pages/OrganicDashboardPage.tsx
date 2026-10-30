@@ -8,7 +8,7 @@ import {
 import { resolveOrganicDashboardSite } from "@/lib/organic-dashboard/resolve-organic-dashboard-site";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { WordPressSite } from "@/components/integrations/types";
-import { getStoredSites } from "@/components/integrations/storage";
+import { getStoredSites, mergeServerGbpLocationIdsIntoLocalSites } from "@/components/integrations/storage";
 import { useWordPressSites } from "@/hooks/use-wordpress-sites";
 import { useActiveWordPressSite } from "@/contexts/active-wordpress-site-context";
 import { useManagerErrorLog } from "@/contexts/manager-error-log-context";
@@ -124,6 +124,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
   const [googleAdsCustomerId, setGoogleAdsCustomerId] = useState(() =>
     resolveGoogleAdsCustomerIdForReporting(site),
   );
+  const [reportingIdsReady, setReportingIdsReady] = useState(false);
   const [logoBoxTheme, setLogoBoxTheme] = useState<"black" | "white">(
     () => site.clientLogoBoxTheme ?? "black",
   );
@@ -172,15 +173,28 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
   }, [inAppTab]);
 
   useEffect(() => {
+    let cancelled = false;
+    setReportingIdsReady(false);
     setGa4PropertyId(resolveGa4PropertyIdForReporting(site));
     setGoogleAdsCustomerId(resolveGoogleAdsCustomerIdForReporting(site));
-    let cancelled = false;
-    void resolveGa4PropertyIdForReportingAsync(site).then((id) => {
-      if (!cancelled) setGa4PropertyId(id);
-    });
-    void resolveGoogleAdsCustomerIdForReportingAsync(site).then((id) => {
-      if (!cancelled) setGoogleAdsCustomerId(id);
-    });
+    void (async () => {
+      await mergeServerGbpLocationIdsIntoLocalSites();
+      const stored =
+        getStoredSites().find((s) => s.id === site.id) ??
+        getStoredSites().find(
+          (s) =>
+            (s.name ?? "").trim().toLowerCase() === (site.name ?? "").trim().toLowerCase(),
+        ) ??
+        site;
+      const [ga4, ads] = await Promise.all([
+        resolveGa4PropertyIdForReportingAsync(stored),
+        resolveGoogleAdsCustomerIdForReportingAsync(stored),
+      ]);
+      if (cancelled) return;
+      setGa4PropertyId(ga4);
+      setGoogleAdsCustomerId(ads);
+      setReportingIdsReady(true);
+    })();
     return () => {
       cancelled = true;
     };
@@ -206,7 +220,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
   const bundleQuery = useOrganicDashboardBundleQuery({
     siteId: site.id,
     fetchParams,
-    enabled: fetchParams != null,
+    enabled: fetchParams != null && reportingIdsReady,
   });
 
   const localGridScanQuery = useQuery({
