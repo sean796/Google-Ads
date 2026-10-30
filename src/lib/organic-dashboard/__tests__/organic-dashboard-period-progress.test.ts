@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  alignSemrushTrendToGscMonths,
   buildGa4PeriodProgressTable,
   buildGscPeriodProgressTable,
   buildOrganicPeriodProgressTables,
@@ -352,5 +353,87 @@ describe("organic-dashboard-period-progress", () => {
     expect(table?.rows[0]?.periodTotal).toBe("748");
     expect(table?.rows[1]?.periodTotal).toBe("709");
     expect(table?.rows[2]?.periodTotal).toBe("$922");
+  });
+
+  it("appends Semrush remainder month when primary ends mid-month", () => {
+    const vm = buildOrganicDashboardViewModel(
+      {
+        success: true,
+        meta: {
+          fetchedAt: "2026-10-30T00:00:00Z",
+          reportStructure: "period_progress",
+          primary: { startDate: "2026-08-01", endDate: "2026-10-30" },
+          compare: null,
+        },
+        gsc: {
+          stats: {
+            currentPeriod: {
+              startDate: "2026-08-01",
+              endDate: "2026-10-30",
+              clicks: 2500,
+              impressions: 223700,
+              ctr: 0.011,
+              avgPosition: 14.3,
+            },
+            topKeywords: [],
+          },
+          timeseries: [
+            { date: "2026-08-15", clicks: 400, impressions: 40000, ctr: 0.01, avgPosition: 14 },
+            { date: "2026-09-15", clicks: 350, impressions: 35000, ctr: 0.01, avgPosition: 14 },
+            { date: "2026-10-15", clicks: 300, impressions: 30000, ctr: 0.01, avgPosition: 13 },
+          ],
+        },
+        semrush: {
+          current: {
+            organicKeywords: 756,
+            organicTraffic: 210,
+            trafficCost: 275,
+          },
+          history: [
+            { month: "2026-08", organicKeywords: 720, organicTraffic: 251, trafficCost: 328 },
+            { month: "2026-09", organicKeywords: 748, organicTraffic: 181, trafficCost: 251 },
+          ],
+        },
+        sources: { ga4: "skipped", gsc: "ok", gscHistorical: "skipped", semrush: "ok" },
+      } satisfies OrganicDashboardBundleResponse,
+      { showCompare: false },
+    );
+    expect(vm.gscTrendMonthly.map((p) => p.label)).toEqual(["2026-08", "2026-09", "2026-10"]);
+    expect(vm.semrushTrend.map((p) => p.label)).toEqual(["2026-08", "2026-09", "2026-10"]);
+    expect(vm.periodProgressTables?.semrush?.monthLabels).toEqual(["Aug", "Sep", "Oct"]);
+    expect(vm.periodProgressTables?.semrush?.rows[0]?.values[2]).toBe("756");
+  });
+
+  it("alignSemrushTrendToGscMonths fills trailing month from summary on deck payloads", () => {
+    const gscTrend = [
+      { label: "2026-08", gscClicks: 100 },
+      { label: "2026-09", gscClicks: 90 },
+      { label: "2026-10", gscClicks: 80 },
+    ];
+    const semrushTrend = [
+      { label: "2026-08", semrushKeywords: 720, semrushTraffic: 251, semrushTrafficCost: 328 },
+      { label: "2026-09", semrushKeywords: 748, semrushTraffic: 181, semrushTrafficCost: 251 },
+    ];
+    const summary = {
+      keywords: "756",
+      traffic: "210",
+      trafficCost: "$275",
+      brandedTraffic: "0",
+      nonBrandedTraffic: "0",
+      compareKeywords: "—",
+      compareTraffic: "—",
+      compareTrafficCost: "—",
+      compareBrandedTraffic: "—",
+      compareNonBrandedTraffic: "—",
+      keywordsDelta: { deltaPercent: null, deltaPositive: null },
+      trafficDelta: { deltaPercent: null, deltaPositive: null },
+      trafficCostDelta: { deltaPercent: null, deltaPositive: null },
+      brandedDelta: { deltaPercent: null, deltaPositive: null },
+      nonBrandedDelta: { deltaPercent: null, deltaPositive: null },
+      hasBrandedMetrics: false,
+    };
+    const aligned = alignSemrushTrendToGscMonths(semrushTrend, gscTrend, summary);
+    expect(aligned.map((p) => p.label)).toEqual(["2026-08", "2026-09", "2026-10"]);
+    expect(aligned[2]?.semrushKeywords).toBe(756);
   });
 });

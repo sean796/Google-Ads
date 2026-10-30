@@ -73,6 +73,40 @@ function monthInRange(monthKey: string, startYmd: string, endYmd: string): boole
   return mk >= start && mk <= end;
 }
 
+function parseSemrushDeckMetricNumber(raw: string | undefined): number | undefined {
+  if (!raw || raw === EM) return undefined;
+  const n = Number.parseFloat(raw.replace(/,/g, "").replace(/[^\d.-]/g, ""));
+  return Number.isFinite(n) ? n : undefined;
+}
+
+/** Match Semrush monthly columns to GSC month buckets (including partial trailing month). */
+export function alignSemrushTrendToGscMonths(
+  semrushTrend: OrganicChartPoint[],
+  gscTrendMonthly: OrganicChartPoint[],
+  semrushSummary: OrganicDashboardViewModel["semrushSummary"],
+): OrganicChartPoint[] {
+  if (gscTrendMonthly.length === 0) return semrushTrend;
+  const byMonth = new Map(
+    semrushTrend.map((p) => [normalizeOrganicDashboardYearMonth(p.label), p] as const),
+  );
+  const gscMonths = gscTrendMonthly.map((g) => normalizeOrganicDashboardYearMonth(g.label));
+  const lastGscMonth = gscMonths[gscMonths.length - 1] ?? "";
+
+  return gscMonths.map((mk) => {
+    const existing = byMonth.get(mk);
+    if (existing) return existing;
+    if (mk === lastGscMonth && semrushSummary) {
+      return {
+        label: mk,
+        semrushKeywords: parseSemrushDeckMetricNumber(semrushSummary.keywords),
+        semrushTraffic: parseSemrushDeckMetricNumber(semrushSummary.traffic),
+        semrushTrafficCost: parseSemrushDeckMetricNumber(semrushSummary.trafficCost),
+      };
+    }
+    return { label: mk };
+  });
+}
+
 function formatMonthHeader(_label: string, yearMonth: string): string {
   return formatOrganicDashboardMonthColumn(yearMonth);
 }
@@ -405,7 +439,21 @@ export function reconcilePeriodProgressTablesForDeck(
   if (!gsc && viewModel.gscTrendMonthly.length > 0) {
     gsc = buildGscPeriodProgressTable(viewModel.gscTrendMonthly, viewModel.gscSummary, totalLabel);
   }
-  if (!semrush && viewModel.semrushTrend.length > 0) {
+  const semrushTrendForTable =
+    gsc && viewModel.gscTrendMonthly.length > 0
+      ? alignSemrushTrendToGscMonths(
+          viewModel.semrushTrend,
+          viewModel.gscTrendMonthly,
+          viewModel.semrushSummary,
+        )
+      : viewModel.semrushTrend;
+  if (semrushTrendForTable.length > 0) {
+    semrush = buildSemrushPeriodProgressTable(
+      semrushTrendForTable,
+      viewModel.semrushSummary,
+      totalLabel,
+    );
+  } else if (!semrush && viewModel.semrushTrend.length > 0) {
     semrush = buildSemrushPeriodProgressTable(viewModel.semrushTrend, viewModel.semrushSummary, totalLabel);
   }
   if (!ga4 && viewModel.hasGa4 && gsc && gsc.monthLabels.length > 0) {

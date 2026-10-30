@@ -54,7 +54,7 @@ export default function OrganicClientReportPreviewPage() {
     () => resolveClientReportSiteIdFromRoute(routeSiteSegment, shareSearch, sites),
     [routeSiteSegment, shareSearch, sites],
   );
-  const isPublishedDeckLink = Boolean(deckId && resolvedSiteId);
+  const isPublishedDeckLink = Boolean(deckId);
   const liveReportMode = !deckId && resolvedSiteId !== "";
   const siteFromList = useMemo(
     () => resolveOrganicDashboardSite(sites, resolvedSiteId, null),
@@ -186,23 +186,30 @@ export default function OrganicClientReportPreviewPage() {
     setDeckLoading(true);
     setDeckLoadFailed(false);
 
-    void fetchOrganicClientReportDeckShare(deckId, resolvedSiteId).then((remote) => {
-      if (cancelled) return;
-      if (remote) {
-        setPayload(remote);
-        document.title = `${remote.siteName} Organic Performance`;
-        setDeckLoadFailed(false);
-      } else {
+    void fetchOrganicClientReportDeckShare(deckId, resolvedSiteId || querySiteId)
+      .then((remote) => {
+        if (cancelled) return;
+        if (remote) {
+          setPayload(remote);
+          document.title = `${remote.siteName} Organic Performance`;
+          setDeckLoadFailed(false);
+        } else {
+          setPayload(null);
+          setDeckLoadFailed(true);
+        }
+        setDeckLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
         setPayload(null);
         setDeckLoadFailed(true);
-      }
-      setDeckLoading(false);
-    });
+        setDeckLoading(false);
+      });
 
     return () => {
       cancelled = true;
     };
-  }, [deckId, isPublishedDeckLink, resolvedSiteId]);
+  }, [deckId, isPublishedDeckLink, querySiteId, resolvedSiteId]);
 
   useEffect(() => {
     if (isPublishedDeckLink) {

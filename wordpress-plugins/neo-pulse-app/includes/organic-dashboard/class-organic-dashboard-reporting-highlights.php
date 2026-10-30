@@ -66,7 +66,7 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 			$cache_key = 'neo_pulse_orh_' . md5(
 				wp_json_encode(
 					array(
-						'v'        => 8,
+						'v'        => 9,
 						'siteId'   => $site_id,
 						'model'    => $model,
 						'snapshot' => $snapshot,
@@ -76,14 +76,22 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 			if ( ! $bypass_cache ) {
 				$cached = get_transient( $cache_key );
 				if ( is_array( $cached ) && ! empty( $cached['executiveSummary'] ) ) {
+					$has_ads = self::snapshot_has_google_ads( $snapshot );
 					if ( $has_grid && empty( $cached['localGridNarrative'] ) ) {
 						$cached = self::patch_local_grid_narrative( $body, $site_id, $snapshot, $cached );
 						if ( ! empty( $cached['localGridNarrative'] ) ) {
 							set_transient( $cache_key, $cached, 6 * HOUR_IN_SECONDS );
 						}
 					}
+					if ( $has_ads && empty( $cached['googleAdsNarrative'] ) ) {
+						$cached = self::patch_google_ads_narrative( $body, $site_id, $snapshot, $cached );
+						if ( ! empty( $cached['googleAdsNarrative'] ) ) {
+							set_transient( $cache_key, $cached, 6 * HOUR_IN_SECONDS );
+						}
+					}
 					$cached_grid_ok = ! $has_grid || ! empty( $cached['localGridNarrative'] );
-					if ( $cached_grid_ok ) {
+					$cached_ads_ok  = ! $has_ads || ! empty( $cached['googleAdsNarrative'] );
+					if ( $cached_grid_ok && $cached_ads_ok ) {
 						return array(
 							'statusCode' => 200,
 							'body'       => array(
@@ -101,7 +109,11 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 			$slice_ids   = array();
 			foreach ( $slice_specs as $spec ) {
 				$slice_ids[] = $spec['id'];
-				$jobs[]      = array(
+				$slice_opts  = $job_opts;
+				if ( $spec['id'] === 'google_ads' ) {
+					$slice_opts['responseFormat'] = self::google_ads_response_format();
+				}
+				$jobs[] = array(
 					'messages' => array(
 						array(
 							'role'    => 'system',
@@ -112,7 +124,7 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 							'content' => self::snapshot_user_message( $spec['snapshot'] ),
 						),
 					),
-					'opts'     => $job_opts,
+					'opts'     => $slice_opts,
 				);
 			}
 
@@ -129,7 +141,18 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 				);
 			}
 
-			$highlights_out = self::patch_local_grid_narrative( $body, $site_id, $snapshot, $merged['highlights'] );
+			$highlights_out = self::patch_google_ads_narrative( $body, $site_id, $snapshot, $merged['highlights'] );
+			$highlights_out = self::patch_local_grid_narrative( $body, $site_id, $snapshot, $highlights_out );
+
+			if ( self::snapshot_has_google_ads( $snapshot ) && empty( $highlights_out['googleAdsNarrative'] ) ) {
+				return array(
+					'statusCode' => 502,
+					'body'       => array(
+						'success' => false,
+						'error'   => 'Highlights slice "google_ads" missing googleAdsNarrative.',
+					),
+				);
+			}
 
 			set_transient( $cache_key, $highlights_out, 6 * HOUR_IN_SECONDS );
 
@@ -170,6 +193,118 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 	 * @param array<string,mixed> $highlights
 	 * @return array<string,mixed>
 	 */
+	/**
+	 * @param array<string,mixed> $snapshot
+	 */
+	private static function snapshot_has_google_ads( array $snapshot ): bool {
+		return isset( $snapshot['googleAdsTotals'] )
+			&& is_array( $snapshot['googleAdsTotals'] )
+			&& $snapshot['googleAdsTotals'] !== array();
+	}
+
+	/**
+	 * @return array{type:string,json_schema:array<string,mixed>}
+	 */
+	private static function google_ads_response_format(): array {
+		return array(
+			'type'        => 'json_schema',
+			'json_schema' => array(
+				'name'   => 'organic_google_ads_highlights',
+				'strict' => true,
+				'schema' => array(
+					'type'                 => 'object',
+					'additionalProperties' => false,
+					'required'             => array( 'googleAdsNarrative' ),
+					'properties'           => array(
+						'googleAdsNarrative' => array(
+							'type'     => 'array',
+							'minItems' => 1,
+							'maxItems' => 2,
+							'items'    => array(
+								'type'      => 'string',
+								'minLength' => 24,
+							),
+						),
+					),
+				),
+			),
+		);
+	}
+
+	/**
+	 * @param array<string,mixed> $body
+	 * @param array<string,mixed> $snapshot
+	 * @param array<string,mixed> $highlights
+	 * @return array<string,mixed>
+	 */
+	private static function patch_google_ads_narrative( array $body, string $site_id, array $snapshot, array $highlights ): array {
+		if ( ! self::snapshot_has_google_ads( $snapshot ) || ! empty( $highlights['googleAdsNarrative'] ) ) {
+			return $highlights;
+		}
+
+		$model = Neo_Pulse_App_Openrouter_Agent_Models::resolve(
+			Neo_Pulse_App_Openrouter_Agent_Models::CATEGORY_REPORT,
+			isset( $body['model'] ) ? (string) $body['model'] : ''
+		);
+
+		$slice_snapshot = array_merge(
+			self::snapshot_common_fields( $snapshot ),
+			self::pick_snapshot_fields(
+				$snapshot,
+				array( 'googleAdsTotals', 'googleAdsBudgetCaption' )
+			)
+		);
+
+		try {
+			$parsed = Neo_Pulse_App_Chat_Openrouter::json_completion(
+				array(
+					array(
+						'role'    => 'system',
+						'content' => self::google_ads_system_prompt(),
+					),
+					array(
+						'role'    => 'user',
+						'content' => self::snapshot_user_message( $slice_snapshot ),
+					),
+				),
+				array(
+					'model'          => $model,
+					'temperature'    => 0.15,
+					'maxTokens'      => 8192,
+					'responseFormat' => self::google_ads_response_format(),
+					'reasoning'      => array(
+						'effort'  => 'none',
+						'exclude' => true,
+					),
+				)
+			);
+		} catch ( Exception $e ) {
+			return $highlights;
+		}
+
+		if ( ! is_array( $parsed ) ) {
+			return $highlights;
+		}
+
+		$list = self::string_list( $parsed['googleAdsNarrative'] ?? array(), 4 );
+		if ( count( $list ) < 1 ) {
+			return $highlights;
+		}
+
+		$highlights['googleAdsNarrative'] = $list;
+		$ads_top                          = $parsed['topOpportunities'] ?? array();
+		if ( is_array( $ads_top ) && count( $ads_top ) > 0 ) {
+			$highlights['topOpportunities'] = array_merge(
+				isset( $highlights['topOpportunities'] ) && is_array( $highlights['topOpportunities'] )
+					? $highlights['topOpportunities']
+					: array(),
+				$ads_top
+			);
+		}
+
+		return $highlights;
+	}
+
 	private static function patch_local_grid_narrative( array $body, string $site_id, array $snapshot, array $highlights ): array {
 		$has_grid = isset( $snapshot['localGrid'] ) && is_array( $snapshot['localGrid'] ) && ! empty( $snapshot['localGrid']['scanId'] );
 		if ( ! $has_grid || ! empty( $highlights['localGridNarrative'] ) ) {
@@ -280,7 +415,7 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 	 */
 	private static function build_parallel_slice_specs( array $snapshot ): array {
 		$common = self::snapshot_common_fields( $snapshot );
-		$has_ads   = isset( $snapshot['googleAdsTotals'] ) && is_array( $snapshot['googleAdsTotals'] ) && $snapshot['googleAdsTotals'] !== array();
+		$has_ads   = self::snapshot_has_google_ads( $snapshot );
 		$has_grid  = isset( $snapshot['localGrid'] ) && is_array( $snapshot['localGrid'] ) && ! empty( $snapshot['localGrid']['scanId'] );
 		$has_semrush = isset( $snapshot['semrushBrandedTotals'] ) && is_array( $snapshot['semrushBrandedTotals'] ) && ! empty( $snapshot['semrushBrandedTotals'] );
 
@@ -458,9 +593,6 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 					break;
 				case 'google_ads':
 					$highlights['googleAdsNarrative'] = self::string_list( $parsed['googleAdsNarrative'] ?? array(), 4 );
-					if ( count( $highlights['googleAdsNarrative'] ) < 1 ) {
-						return array( 'error' => 'Highlights slice "google_ads" missing googleAdsNarrative.' );
-					}
 					$ads_top = $parsed['topOpportunities'] ?? array();
 					if ( is_array( $ads_top ) && count( $ads_top ) > 0 ) {
 						$highlights['topOpportunities'] = array_merge(
@@ -666,6 +798,7 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 		return 'Neo Digital SEO report. JSON only: {"googleAdsNarrative":["string"],"topOpportunities":[{"rank":1,"label":"string","why":"string","comparisonRows":[{"metric":"string","comparePeriodValue":"string","primaryPeriodValue":"string"}]}]}.' . "\n\n"
 			. self::prose_line() . "\n\n"
 			. self::no_dates_line() . "\n\n"
-			. 'googleAdsNarrative: paid search from googleAdsTotals only. topOpportunities: 0–2 paid items with (Google Ads) metrics.';
+			. 'Required: googleAdsNarrative must contain 1 or 2 non-empty strings (each at least two sentences). Interpret leads, cost per lead, spend, and clicks strictly from googleAdsTotals and googleAdsBudgetCaption when present. Write substantive paid-search analysis only; never say Google Ads data is missing, omitted, unavailable, or not configured.' . "\n\n"
+			. 'topOpportunities: optional 0–2 paid items with (Google Ads) in the label and comparisonRows from googleAdsTotals.';
 	}
 }

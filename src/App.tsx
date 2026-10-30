@@ -103,7 +103,11 @@ const App = () => {
                       />
                       <Route
                         path="/sites/:siteId/organic/client-report"
-                        element={<OrganicClientReportPreviewPage />}
+                        element={
+                          <div className="fixed inset-0 z-50 min-h-dvh overflow-auto bg-[#f4f4f5]">
+                            <OrganicClientReportPreviewPage />
+                          </div>
+                        }
                       />
                       <Route
                         path="/sites/:siteId/organic"

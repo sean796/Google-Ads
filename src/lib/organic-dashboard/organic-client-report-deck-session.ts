@@ -8,6 +8,7 @@ import {
 } from "@/lib/organic-dashboard/organic-dashboard-view-model";
 import { EMPTY_CLIENT_REPORT_HIGHLIGHTS } from "@/lib/organic-dashboard/organic-client-report-content";
 import { saveOrganicClientReportDeckShare } from "@/lib/organic-dashboard/organic-client-report-share-api";
+import { isWordPressIntegrationsSiteId } from "@/lib/organic-dashboard/organic-client-report-site-path";
 import type { LocalGridScanDocument } from "@/lib/local-grid-studio/local-grid-types";
 
 export type OrganicClientReportDeckPayload = {
@@ -131,12 +132,20 @@ export function deckHighlightsNeedsAgentNarratives(
 }
 
 export function parseOrganicClientReportDeckPayload(
-  siteId: string,
+  siteIdHint: string,
   parsed: unknown,
 ): OrganicClientReportDeckPayload | null {
   if (!parsed || typeof parsed !== "object") return null;
   const o = parsed as Record<string, unknown>;
-  if (o.siteId !== siteId) return null;
+  const payloadSiteId = typeof o.siteId === "string" ? o.siteId.trim() : "";
+  const hint = siteIdHint.trim();
+  if (payloadSiteId && hint && payloadSiteId !== hint) {
+    if (isWordPressIntegrationsSiteId(hint) && isWordPressIntegrationsSiteId(payloadSiteId)) {
+      return null;
+    }
+  }
+  const siteId = payloadSiteId || hint;
+  if (!siteId) return null;
   if (typeof o.siteName !== "string" || typeof o.siteUrl !== "string") return null;
   if (typeof o.showCompare !== "boolean" || typeof o.preparedOn !== "string") return null;
   if (!o.viewModel || typeof o.viewModel !== "object") return null;

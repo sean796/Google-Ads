@@ -1,4 +1,4 @@
-import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
+import { backendApiUrl } from "@/lib/wordpress-api/connection";
 import {
   parseOrganicClientReportDeckPayload,
   type OrganicClientReportDeckPayload,
@@ -20,7 +20,7 @@ export async function saveOrganicClientReportDeckShare(
   payload: OrganicClientReportDeckPayload,
 ): Promise<void> {
   if (!UUID_RE.test(deckId.trim())) return;
-  const response = await fetch(`${BACKEND_API_BASE}/api/organic-dashboard/client-report/save`, {
+  const response = await fetch(backendApiUrl("/organic-dashboard/client-report/save"), {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -38,17 +38,21 @@ export async function saveOrganicClientReportDeckShare(
 
 export async function fetchOrganicClientReportDeckShare(
   deckId: string,
-  siteId: string,
+  siteIdHint: string,
 ): Promise<OrganicClientReportDeckPayload | null> {
-  if (!UUID_RE.test(deckId.trim()) || !siteId.trim()) return null;
-  const params = new URLSearchParams({
-    deckId: deckId.trim(),
-    siteId: siteId.trim(),
-  });
-  const response = await fetch(
-    `${BACKEND_API_BASE}/api/organic-dashboard/client-report/load?${params.toString()}`,
-    { credentials: "include", cache: "no-store" },
-  );
+  if (!UUID_RE.test(deckId.trim())) return null;
+  const params = new URLSearchParams({ deckId: deckId.trim() });
+  const hinted = siteIdHint.trim();
+  if (hinted) params.set("siteId", hinted);
+  let response: Response;
+  try {
+    response = await fetch(backendApiUrl(`/organic-dashboard/client-report/load?${params.toString()}`), {
+      credentials: "include",
+      cache: "no-store",
+    });
+  } catch {
+    return null;
+  }
   const data = (await response.json().catch(() => ({}))) as {
     ok?: boolean;
     payload?: unknown;
@@ -57,5 +61,12 @@ export async function fetchOrganicClientReportDeckShare(
   if (!response.ok || !data.ok || !data.payload) {
     return null;
   }
-  return parseOrganicClientReportDeckPayload(siteId, data.payload);
+  const payloadSiteId =
+    data.payload &&
+    typeof data.payload === "object" &&
+    typeof (data.payload as { siteId?: unknown }).siteId === "string"
+      ? (data.payload as { siteId: string }).siteId.trim()
+      : "";
+  const parseHint = payloadSiteId || hinted;
+  return parseOrganicClientReportDeckPayload(parseHint, data.payload);
 }

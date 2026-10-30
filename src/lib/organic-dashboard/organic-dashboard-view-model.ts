@@ -326,14 +326,57 @@ function chartMetricNumber(value: number | null | undefined): number | undefined
   return value == null || typeof value !== "number" || !Number.isFinite(value) ? undefined : value;
 }
 
-function buildSemrushTrend(semrush: OrganicDashboardSemrushStats | undefined): OrganicChartPoint[] {
+function lastDayOfMonthYm(monthYm: string): number {
+  const [y, m] = monthYm.split("-").map((n) => Number.parseInt(n, 10));
+  if (!Number.isFinite(y) || !Number.isFinite(m)) return 31;
+  return new Date(y, m, 0).getDate();
+}
+
+function appendSemrushRemainderMonthToTrend(
+  trend: OrganicChartPoint[],
+  semrush: OrganicDashboardSemrushStats | undefined,
+  primary: { startDate: string; endDate: string },
+): OrganicChartPoint[] {
+  const current = semrush?.current;
+  if (!current || !primary.endDate) return trend;
+  const endMonth = primary.endDate.slice(0, 7);
+  if (!monthInRange(endMonth, primary.startDate, primary.endDate)) return trend;
+
+  const point: OrganicChartPoint = {
+    label: endMonth,
+    semrushTraffic: chartMetricNumber(current.organicTraffic),
+    semrushKeywords: chartMetricNumber(current.organicKeywords),
+    semrushTrafficCost: chartMetricNumber(current.trafficCost),
+  };
+
+  const idx = trend.findIndex((p) => p.label.slice(0, 7) === endMonth);
+  const endDay = Number.parseInt(primary.endDate.slice(8, 10), 10);
+  const monthEndsEarly =
+    Number.isFinite(endDay) && endDay > 0 && endDay < lastDayOfMonthYm(endMonth);
+
+  if (idx >= 0) {
+    if (!monthEndsEarly) return trend;
+    const copy = [...trend];
+    copy[idx] = point;
+    return copy;
+  }
+
+  return [...trend, point].sort((a, b) => a.label.localeCompare(b.label));
+}
+
+function buildSemrushTrend(
+  semrush: OrganicDashboardSemrushStats | undefined,
+  primary?: { startDate: string; endDate: string },
+): OrganicChartPoint[] {
   const history = [...(semrush?.history ?? [])].sort((a, b) => a.month.localeCompare(b.month));
-  return history.map((row) => ({
+  const fromHistory = history.map((row) => ({
     label: row.month,
     semrushTraffic: chartMetricNumber(row.organicTraffic),
     semrushKeywords: chartMetricNumber(row.organicKeywords),
     semrushTrafficCost: chartMetricNumber(row.trafficCost),
   }));
+  if (!primary?.startDate || !primary?.endDate) return fromHistory;
+  return appendSemrushRemainderMonthToTrend(fromHistory, semrush, primary);
 }
 
 function metricStrings(m: OrganicDashboardSemrushMetrics | null | undefined) {
@@ -510,7 +553,7 @@ export function buildOrganicDashboardViewModel(
     gscTrendMonthly,
     gscSummary,
     semrushSummary: buildSemrushSummary(semrush, showCompare),
-    semrushTrend: buildSemrushTrend(semrush),
+    semrushTrend: buildSemrushTrend(semrush, primary),
     semrushKeywords: buildSemrushKeywords(semrush),
     semrushOverviewUrl,
     semrushDomain,

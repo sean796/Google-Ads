@@ -99,13 +99,13 @@ class Neo_Pulse_App_Organic_Dashboard_Client_Report_Share {
 	 */
 	public static function load( string $deck_id_raw, string $site_id_raw ): array {
 		$deck_id = self::normalize_deck_id( $deck_id_raw );
-		$site_id = trim( $site_id_raw );
-		if ( $deck_id === null || $site_id === '' ) {
+		$site_id_hint = trim( $site_id_raw );
+		if ( $deck_id === null ) {
 			return array(
 				'statusCode' => 400,
 				'body'       => array(
 					'ok'    => false,
-					'error' => 'Invalid deckId or siteId.',
+					'error' => 'Invalid deckId.',
 				),
 			);
 		}
@@ -121,7 +121,11 @@ class Neo_Pulse_App_Organic_Dashboard_Client_Report_Share {
 			);
 		}
 
-		if ( trim( (string) ( $data['siteId'] ?? '' ) ) !== $site_id ) {
+		$record_site_id = trim( (string) ( $data['siteId'] ?? '' ) );
+		$payload         = $data['payload'];
+		$payload_site_id = trim( (string) ( $payload['siteId'] ?? '' ) );
+		$canonical_site  = $payload_site_id !== '' ? $payload_site_id : $record_site_id;
+		if ( $canonical_site === '' ) {
 			return array(
 				'statusCode' => 404,
 				'body'       => array(
@@ -131,8 +135,7 @@ class Neo_Pulse_App_Organic_Dashboard_Client_Report_Share {
 			);
 		}
 
-		$payload = $data['payload'];
-		if ( trim( (string) ( $payload['siteId'] ?? '' ) ) !== $site_id ) {
+		if ( $site_id_hint !== '' && $site_id_hint !== $canonical_site && self::looks_like_integrations_site_id( $site_id_hint ) ) {
 			return array(
 				'statusCode' => 404,
 				'body'       => array(
@@ -161,6 +164,10 @@ class Neo_Pulse_App_Organic_Dashboard_Client_Report_Share {
 		}
 		$data = Neo_Pulse_App_Json_File_Store::read( self::file_path( $deck_id ) );
 		return is_array( $data ) ? $data : null;
+	}
+
+	private static function looks_like_integrations_site_id( string $site_id ): bool {
+		return (bool) preg_match( '/^wp-\d+(-\d+)?$/', trim( $site_id ) );
 	}
 
 	private static function client_report_site_path_segment( string $display_name ): string {

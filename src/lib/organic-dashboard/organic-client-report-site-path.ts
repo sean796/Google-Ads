@@ -15,7 +15,7 @@ export function clientReportSitePathSegmentFromDisplayName(siteDisplayName: stri
 }
 
 export function isWordPressIntegrationsSiteId(segment: string): boolean {
-  return /^wp-\d+$/.test(segment.trim());
+  return /^wp-\d+(-\d+)?$/.test(segment.trim());
 }
 
 export function resolveClientReportSiteIdFromRoute(
