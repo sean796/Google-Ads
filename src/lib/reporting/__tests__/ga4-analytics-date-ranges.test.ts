@@ -33,6 +33,18 @@ describe("computeGa4PrimaryRange", () => {
     expect(r.endDate).toBe("2026-03-31");
   });
 
+  it("last 60 days includes reference day", () => {
+    const r = computeGa4PrimaryRange("last_60", REF);
+    expect(r.endDate).toBe("2026-04-13");
+    expect(r.startDate).toBe("2026-02-13");
+  });
+
+  it("last 90 days includes reference day", () => {
+    const r = computeGa4PrimaryRange("last_90", REF);
+    expect(r.endDate).toBe("2026-04-13");
+    expect(r.startDate).toBe("2026-01-14");
+  });
+
   it("last 3 months is three full calendar months before the current month", () => {
     const r = computeGa4PrimaryRange("last_3_months", REF);
     expect(r.startDate).toBe("2026-01-01");

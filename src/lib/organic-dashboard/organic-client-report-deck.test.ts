@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildHeadlineSummaryRows,
   dedupeOrganicComparisonRows,
+  expandClientReportNarrativeParagraphs,
   layoutOpportunityComparisonRows,
   sanitizeDeckOpportunityComparisonRows,
   parseDeckCountDisplay,
@@ -145,6 +146,19 @@ describe("buildHeadlineSummaryRows", () => {
     expect(rows[0]?.label).toBe("Sessions");
     expect(rows[0]?.earlier).toBe("800");
     expect(rows[0]?.later).toBe("900");
+  });
+});
+
+describe("expandClientReportNarrativeParagraphs", () => {
+  it("splits a long single paragraph into multiple blocks", () => {
+    const wall =
+      "Organic Search sessions fell from 4,775 in the prior period to 2,539 in the reporting period, while engaged sessions declined more modestly from 3,683 to 2,475 and the engagement rate climbed from 77.1% to 97.5%. " +
+      "Key events dropped sharply from 61 to 12, so the conversion loss is real and warrants attention, though Google Search Console clicks eased only from 3.4K to 2.7K. " +
+      "This pattern is consistent with AI Overviews absorbing informational demand for queries such as Hunter Douglas blinds. " +
+      "The priority should be protecting transactional visibility while rebuilding key-event volume through clearer conversion paths.";
+    const parts = expandClientReportNarrativeParagraphs([wall], 4);
+    expect(parts.length).toBeGreaterThan(1);
+    expect(parts[0]).toContain("sessions");
   });
 });
 

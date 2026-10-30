@@ -10,6 +10,7 @@ import {
   stripNonExistentOmissionClauses,
   ORGANIC_GA4_DECK_LABELS,
   deckNarrativeText,
+  expandClientReportNarrativeParagraphs,
   plainDeckText,
   sanitizeDeckOpportunity,
   sanitizeDeckOpportunityComparisonRows,
@@ -77,8 +78,8 @@ export function normalizeOrganicReportingHighlights(raw: unknown): OrganicReport
         o.keyTakeaways.filter((t) => isNonEmptyString(t)).map((t) => plainDeckText(String(t))),
       )
     : [];
-  const performanceNarrative = sanitizeNarrativeParagraphs(o.performanceNarrative, 3);
-  const keywordNarrative = sanitizeNarrativeParagraphs(o.keywordNarrative, 2);
+  const performanceNarrative = sanitizeNarrativeParagraphs(o.performanceNarrative, 4);
+  const keywordNarrative = sanitizeNarrativeParagraphs(o.keywordNarrative, 4);
   const googleAdsNarrative = sanitizeNarrativeParagraphs(o.googleAdsNarrative, 2);
   const localGridNarrative = sanitizeNarrativeParagraphs(o.localGridNarrative, 2).filter(
     (p) => !isLocalGridNarrativePlaceholder(p),
@@ -114,14 +115,14 @@ export function normalizeOrganicReportingHighlights(raw: unknown): OrganicReport
 
 function sanitizeNarrativeParagraphs(raw: unknown, maxItems: number): string[] {
   if (!Array.isArray(raw)) return [];
-  return raw
+  const cleaned = raw
     .map((p) =>
       isNonEmptyString(p)
         ? stripNonExistentOmissionClauses(deckNarrativeText(String(p)))
         : "",
     )
-    .filter((p) => isNonEmptyString(p) && !isNonExistentSectionOmissionStatement(p))
-    .slice(0, maxItems);
+    .filter((p) => isNonEmptyString(p) && !isNonExistentSectionOmissionStatement(p));
+  return expandClientReportNarrativeParagraphs(cleaned, maxItems);
 }
 
 export type OrganicReportingHighlightsSnapshotPeriodQuery = {
@@ -557,8 +558,8 @@ export function parseOrganicReportingHighlightsPayload(raw: string): OrganicRepo
   return {
     executiveSummary: plainDeckText(o.executiveSummary),
     keyTakeaways,
-    performanceNarrative: performanceNarrative.slice(0, 3),
-    keywordNarrative: keywordNarrative.slice(0, 2),
+    performanceNarrative: performanceNarrative.slice(0, 4),
+    keywordNarrative: keywordNarrative.slice(0, 4),
     googleAdsNarrative,
     localGridNarrative,
     topOpportunities,

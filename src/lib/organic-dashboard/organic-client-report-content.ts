@@ -254,8 +254,8 @@ export function buildOrganicClientReportContent(input: OrganicClientReportDeckIn
   const googleAdsOpportunities = partitioned.googleAdsOpportunities.slice(0, 4);
   const comparePeriodLabel = normalizeClientReportPeriodLabel(viewModel.periodLabels.compare);
   const primaryPeriodLabel = normalizeClientReportPeriodLabel(viewModel.periodLabels.primary);
-  const performanceNarrative = (clientHighlights.performanceNarrative ?? []).slice(0, 1);
-  const keywordNarrative = (clientHighlights.keywordNarrative ?? []).slice(0, 1);
+  const performanceNarrative = clientHighlights.performanceNarrative ?? [];
+  const keywordNarrative = clientHighlights.keywordNarrative ?? [];
   const googleAdsNarrative = clientHighlights.googleAdsNarrative ?? [];
   const localGridNarrative = localGridSection
     ? resolveLocalGridNarrativeForReport(

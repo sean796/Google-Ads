@@ -14,6 +14,8 @@ export type Ga4PrimaryPresetId =
   | "last_7"
   | "last_28"
   | "last_30"
+  | "last_60"
+  | "last_90"
   | "last_month"
   | "last_3_months"
   | "last_6_months"
@@ -42,6 +44,8 @@ export const GA4_PRIMARY_PRESET_OPTIONS: { id: Ga4PrimaryPresetId; label: string
   { id: "last_week_sun_sat", label: "Last week (Sun – Sat)", submenu: true },
   { id: "last_28", label: "Last 28 days" },
   { id: "last_30", label: "Last 30 days" },
+  { id: "last_60", label: "Last 60 days" },
+  { id: "last_90", label: "Last 90 days" },
   { id: "last_month", label: "Last month" },
   { id: "last_3_months", label: "Last 3 months" },
   { id: "last_6_months", label: "Last 6 months" },
@@ -139,6 +143,14 @@ export function computeGa4PrimaryRange(
 
   if (preset === "last_30") {
     return toYmdRange(addDays(ref, -29), ref);
+  }
+
+  if (preset === "last_60") {
+    return toYmdRange(addDays(ref, -59), ref);
+  }
+
+  if (preset === "last_90") {
+    return toYmdRange(addDays(ref, -89), ref);
   }
 
   if (preset === "last_month") {
@@ -324,6 +336,8 @@ const GA4_PRESET_TRIGGER_SHORT: Partial<Record<Ga4PrimaryPresetId, string>> = {
   last_7: "Last 7d",
   last_28: "Last 28d",
   last_30: "Last 30d",
+  last_60: "Last 60d",
+  last_90: "Last 90d",
   last_month: "Last month",
   last_3_months: "Last 3 mo",
   last_6_months: "Last 6 mo",

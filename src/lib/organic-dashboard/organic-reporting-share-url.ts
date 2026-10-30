@@ -30,6 +30,8 @@ const PRIMARY_PRESETS = new Set<Ga4PrimaryPresetId>([
   "last_7",
   "last_28",
   "last_30",
+  "last_60",
+  "last_90",
   "last_month",
   "last_3_months",
   "last_6_months",

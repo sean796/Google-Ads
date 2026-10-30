@@ -214,6 +214,51 @@ export function deckNarrativeText(raw: string): string {
   return raw.replace(/\s+/g, " ").trim();
 }
 
+const CLIENT_REPORT_NARRATIVE_CHUNK_CHARS = 340;
+
+/** Split long model paragraphs into shorter blocks for client report readability. */
+export function expandClientReportNarrativeParagraphs(
+  paragraphs: readonly string[],
+  maxItems: number,
+): string[] {
+  if (maxItems < 1) return [];
+  const out: string[] = [];
+
+  for (const paragraph of paragraphs) {
+    if (out.length >= maxItems) break;
+    const text = paragraph.trim();
+    if (!text) continue;
+
+    if (text.length <= CLIENT_REPORT_NARRATIVE_CHUNK_CHARS) {
+      out.push(text);
+      continue;
+    }
+
+    const sentences = text.split(/(?<=[.!?])\s+/).filter((s) => s.trim());
+    if (sentences.length <= 1) {
+      out.push(text);
+      continue;
+    }
+
+    let chunk = "";
+    for (const sentence of sentences) {
+      const next = chunk ? `${chunk} ${sentence}` : sentence;
+      if (next.length > CLIENT_REPORT_NARRATIVE_CHUNK_CHARS && chunk) {
+        out.push(chunk.trim());
+        chunk = sentence;
+        if (out.length >= maxItems) break;
+      } else {
+        chunk = next;
+      }
+    }
+    if (out.length < maxItems && chunk.trim()) {
+      out.push(chunk.trim());
+    }
+  }
+
+  return out.slice(0, maxItems);
+}
+
 /** @deprecated use plainDeckText */
 export const plainTextSummary = plainDeckText;
 
