@@ -495,6 +495,10 @@
   width: 4.75rem;
 }
 
+.organic-client-report-export__period-progress-table col.organic-period-progress-table__query-col {
+  width: 42%;
+}
+
 .organic-client-report-export .organic-period-progress-table__month-col {
   width: 4.75rem;
   min-width: 4.75rem;
@@ -505,8 +509,21 @@
   overflow-wrap: normal;
 }
 
+.organic-client-report-export .organic-period-progress-table__query-col {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
 .organic-client-report-export .organic-period-progress-table__metric-col {
   text-align: center;
+  white-space: nowrap;
 }
 
 .organic-client-report-export__highlight-metric-table {

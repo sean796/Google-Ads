@@ -220,9 +220,15 @@ function ExportOpportunityMetrics({
             "organic-client-report-export__period-progress-table",
           )}
         >
+          <colgroup>
+            <col className="organic-period-progress-table__query-col" />
+            <col className="organic-period-progress-table__metric-col" />
+            <col className="organic-period-progress-table__metric-col" />
+            <col className="organic-period-progress-table__metric-col" />
+          </colgroup>
           <thead>
             <tr>
-              <th scope="col" className="organic-period-progress-table__month-col">
+              <th scope="col" className="organic-period-progress-table__query-col">
                 {toExportTitleCase("Query")}
               </th>
               <th scope="col" className="organic-period-progress-table__metric-col">
@@ -239,7 +245,7 @@ function ExportOpportunityMetrics({
           <tbody>
             {plan.queryRows.queryRows.map((q) => (
               <tr key={q.query}>
-                <td className="organic-period-progress-table__month-col whitespace-nowrap">{q.query}</td>
+                <td className="organic-period-progress-table__query-col">{q.query}</td>
                 <td className="organic-period-progress-table__metric-col tabular-nums">{q.clicks.primary}</td>
                 <td className="organic-period-progress-table__metric-col tabular-nums">{q.impressions.primary}</td>
                 <td className="organic-period-progress-table__metric-col tabular-nums">{q.avgPosition.primary}</td>

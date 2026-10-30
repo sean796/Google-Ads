@@ -152,6 +152,75 @@ class Neo_Pulse_App_Organic_Dashboard_Client_Report_Share {
 	}
 
 	/**
+	 * @return array<string,mixed>|null
+	 */
+	private static function read_deck_record( string $deck_id_raw ): ?array {
+		$deck_id = self::normalize_deck_id( $deck_id_raw );
+		if ( $deck_id === null ) {
+			return null;
+		}
+		$data = Neo_Pulse_App_Json_File_Store::read( self::file_path( $deck_id ) );
+		return is_array( $data ) ? $data : null;
+	}
+
+	private static function client_report_site_path_segment( string $display_name ): string {
+		$base = strtolower( trim( $display_name ) );
+		$base = preg_replace( '/[^a-z0-9]+/', '-', $base );
+		$base = trim( (string) $base, '-' );
+		return $base !== '' ? $base : 'client';
+	}
+
+	private static function spa_frontend_origin(): string {
+		if ( class_exists( 'Neo_Pulse_App_Gmb_Oauth' ) ) {
+			$frontend = trim( (string) Neo_Pulse_App_Gmb_Oauth::frontend_url() );
+			if ( $frontend !== '' ) {
+				$parts = wp_parse_url( $frontend );
+				if ( is_array( $parts ) && ! empty( $parts['scheme'] ) && ! empty( $parts['host'] ) ) {
+					$origin = $parts['scheme'] . '://' . $parts['host'];
+					if ( isset( $parts['port'] ) ) {
+						$origin .= ':' . (int) $parts['port'];
+					}
+					return $origin;
+				}
+			}
+		}
+		return '';
+	}
+
+	/**
+	 * Build SPA client report URL when the open link omits the app query param.
+	 */
+	private static function build_spa_client_report_redirect_url(
+		string $deck_id,
+		string $site_id,
+		string $site_name
+	): string {
+		$origin = self::spa_frontend_origin();
+		if ( $origin === '' || $deck_id === '' || $site_id === '' ) {
+			return '';
+		}
+		$params = array(
+			'deck'   => $deck_id,
+			'siteId' => $site_id,
+		);
+		if ( $site_name !== '' ) {
+			$params['client'] = $site_name;
+		}
+		foreach ( array( 'section', 'structure', 'preset', 'baseline' ) as $key ) {
+			if ( ! isset( $_GET[ $key ] ) ) {
+				continue;
+			}
+			$value = trim( (string) wp_unslash( $_GET[ $key ] ) );
+			if ( $value !== '' ) {
+				$params[ $key ] = $value;
+			}
+		}
+		$slug  = self::client_report_site_path_segment( $site_name !== '' ? $site_name : $site_id );
+		$query = http_build_query( $params, '', '&', PHP_QUERY_RFC3986 );
+		return $origin . '/sites/' . rawurlencode( $slug ) . '/organic/client-report?' . $query;
+	}
+
+	/**
 	 * HTML link preview + redirect to the SPA client report (Slack, iMessage, etc.).
 	 */
 	public static function open_link_preview(): void {
@@ -159,6 +228,7 @@ class Neo_Pulse_App_Organic_Dashboard_Client_Report_Share {
 		if ( $deck_id === '' && isset( $_GET['deck'] ) ) {
 			$deck_id = (string) wp_unslash( $_GET['deck'] );
 		}
+		$deck_id = self::normalize_deck_id( $deck_id ) ?? '';
 		$site_id = isset( $_GET['siteId'] ) ? trim( (string) wp_unslash( $_GET['siteId'] ) ) : '';
 		$app_url = isset( $_GET['app'] ) ? trim( (string) wp_unslash( $_GET['app'] ) ) : '';
 
@@ -166,6 +236,14 @@ class Neo_Pulse_App_Organic_Dashboard_Client_Report_Share {
 		$site_url  = '';
 		$period    = '';
 		$logo_url  = '';
+		$payload   = null;
+
+		if ( $deck_id !== '' && $site_id === '' ) {
+			$record = self::read_deck_record( $deck_id );
+			if ( is_array( $record ) ) {
+				$site_id = trim( (string) ( $record['siteId'] ?? '' ) );
+			}
+		}
 
 		if ( $deck_id !== '' && $site_id !== '' ) {
 			$loaded = self::load( $deck_id, $site_id );
@@ -185,6 +263,9 @@ class Neo_Pulse_App_Organic_Dashboard_Client_Report_Share {
 		$title       = $site_name . ' · Organic performance report';
 		$description = self::build_preview_description( $site_url, $period );
 		$redirect    = self::sanitize_app_redirect_url( $app_url );
+		if ( $redirect === '' && is_array( $payload ) ) {
+			$redirect = self::build_spa_client_report_redirect_url( $deck_id, $site_id, $site_name );
+		}
 
 		status_header( 200 );
 		header( 'Content-Type: text/html; charset=utf-8' );
@@ -213,6 +294,8 @@ class Neo_Pulse_App_Organic_Dashboard_Client_Report_Share {
 		echo '</head><body>';
 		if ( $redirect !== '' ) {
 			echo '<p><a href="' . esc_url( $redirect ) . '">Open ' . esc_html( $site_name ) . ' client report</a></p>';
+		} elseif ( $deck_id !== '' && ! is_array( $payload ) ) {
+			echo '<p>Client report not found. Ask your Neo Digital contact to publish a new share link.</p>';
 		} else {
 			echo '<p>Client report link preview.</p>';
 		}
@@ -251,7 +334,15 @@ class Neo_Pulse_App_Organic_Dashboard_Client_Report_Share {
 
 	private static function sanitize_app_redirect_url( string $url ): string {
 		$url = trim( $url );
-		if ( $url === '' || ! wp_http_validate_url( $url ) ) {
+		if ( $url === '' ) {
+			return '';
+		}
+		$parts = wp_parse_url( $url );
+		if ( ! is_array( $parts ) || empty( $parts['scheme'] ) || empty( $parts['host'] ) ) {
+			return '';
+		}
+		$scheme = strtolower( (string) $parts['scheme'] );
+		if ( $scheme !== 'http' && $scheme !== 'https' ) {
 			return '';
 		}
 		return $url;
