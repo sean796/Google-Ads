@@ -10,6 +10,28 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.join(__dirname, "..");
 
+function loadDotEnv(filePath) {
+  /** @type {Record<string, string>} */
+  const out = {};
+  if (!fs.existsSync(filePath)) return out;
+  for (const line of fs.readFileSync(filePath, "utf8").split(/\r?\n/)) {
+    const t = line.trim();
+    if (!t || t.startsWith("#")) continue;
+    const eq = t.indexOf("=");
+    if (eq < 1) continue;
+    const k = t.slice(0, eq).trim();
+    let v = t.slice(eq + 1).trim();
+    if (
+      (v.startsWith('"') && v.endsWith('"')) ||
+      (v.startsWith("'") && v.endsWith("'"))
+    ) {
+      v = v.slice(1, -1);
+    }
+    out[k] = v;
+  }
+  return out;
+}
+
 const LOCAL_API = (process.env.NEO_PULSE_LOCAL_API_BASE || "http://127.0.0.1:8080").replace(
   /\/+$/,
   "",
@@ -101,6 +123,10 @@ async function loadHubSyncTokenFromRender() {
 async function loadHubSyncToken() {
   const fromEnv = (process.env.PULSE_HOST_API_TOKEN || "").trim();
   if (fromEnv) return fromEnv;
+  const dotenv = loadDotEnv(path.join(REPO_ROOT, ".env"));
+  const dotenvLocal = loadDotEnv(path.join(REPO_ROOT, ".env.local"));
+  const fromFile = (dotenvLocal.PULSE_HOST_API_TOKEN || dotenv.PULSE_HOST_API_TOKEN || "").trim();
+  if (fromFile) return fromFile;
   const candidates = [
     path.join(REPO_ROOT, ".secrets", "pulse-host-api-token.txt"),
     path.join(REPO_ROOT, ".secrets", "render-pulse-host-api-token.txt"),
@@ -253,13 +279,12 @@ async function main() {
     });
   }
 
-  const localApi = loadLocalApiBase();
   const hubToken = await loadHubSyncToken();
-  await syncHubDataFiles(localApi, HUB_API, hubToken);
+  await syncHubDataFiles(LOCAL_API, HUB_API, hubToken);
   for (const site of sites) {
     const id = site?.id;
     if (typeof id === "string" && id.trim() !== "") {
-      await syncLocalGridScans(localApi, HUB_API, id.trim());
+      await syncLocalGridScans(LOCAL_API, HUB_API, id.trim());
     }
   }
 

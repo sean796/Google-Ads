@@ -162,7 +162,17 @@ class Neo_Pulse_App_Hub_Data_Sync {
 		if ( defined( 'PULSE_HOST_API_TOKEN' ) && is_string( PULSE_HOST_API_TOKEN ) ) {
 			return trim( PULSE_HOST_API_TOKEN );
 		}
-		return trim( (string) getenv( 'PULSE_HOST_API_TOKEN' ) );
+		$from_getenv = getenv( 'PULSE_HOST_API_TOKEN' );
+		if ( is_string( $from_getenv ) && trim( $from_getenv ) !== '' ) {
+			return trim( $from_getenv );
+		}
+		if ( isset( $_SERVER['PULSE_HOST_API_TOKEN'] ) ) {
+			$from_server = trim( (string) wp_unslash( $_SERVER['PULSE_HOST_API_TOKEN'] ) );
+			if ( $from_server !== '' ) {
+				return $from_server;
+			}
+		}
+		return '';
 	}
 
 	private static function require_sync_token_for_import(): bool {

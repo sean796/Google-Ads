@@ -201,6 +201,7 @@ async function buildHubEnvVars() {
   );
   add("GMB_CLIENT_ID", pick(merged, "NEO_PULSE_APP_GMB_CLIENT_ID", "GMB_CLIENT_ID"));
   add("GMB_CLIENT_SECRET", pick(merged, "NEO_PULSE_APP_GMB_CLIENT_SECRET", "GMB_CLIENT_SECRET"));
+  add("PULSE_HOST_API_TOKEN", pick(merged, "PULSE_HOST_API_TOKEN", "NEO_HOST_API_TOKEN"));
 
   return vars;
 }
