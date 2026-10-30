@@ -26,6 +26,16 @@ function loadLocalWpRoot() {
   return String(cfg.wpRoot || "").trim();
 }
 
+function loadLocalApiBase() {
+  const cfgPath = path.join(REPO_ROOT, "scripts", "local-wp-staging.config.json");
+  if (fs.existsSync(cfgPath)) {
+    const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
+    const proxy = String(cfg.apiProxyTarget || cfg.siteUrl || "").trim();
+    if (proxy) return proxy.replace(/\/+$/, "");
+  }
+  return LOCAL_API;
+}
+
 async function apiJson(base, route, init) {
   const res = await fetch(`${base}/api/${route.replace(/^\//, "")}`, {
     ...init,
@@ -52,6 +62,120 @@ function readNeoPulseDataFile(wpRoot, name) {
   const abs = path.join(wpRoot, "wp-content", "uploads", "neo-pulse-data", name);
   if (!fs.existsSync(abs)) return null;
   return fs.readFileSync(abs, "utf8");
+}
+
+function loadRenderApiKey() {
+  const fromEnv = (process.env.RENDER_API_KEY || "").trim();
+  if (fromEnv) return fromEnv;
+  const filePath = path.join(REPO_ROOT, ".secrets", "render-api-key.txt");
+  if (fs.existsSync(filePath)) return fs.readFileSync(filePath, "utf8").trim();
+  return "";
+}
+
+async function loadHubSyncTokenFromRender() {
+  const apiKey = loadRenderApiKey();
+  if (!apiKey) return "";
+  const res = await fetch("https://api.render.com/v1/services?limit=100", {
+    headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" },
+  });
+  if (!res.ok) return "";
+  const rows = await res.json();
+  const list = Array.isArray(rows) ? rows : rows?.services ?? [];
+  const hub = list.map((r) => r.service ?? r).find((s) => s.name === "pulse-host-wp-hub");
+  if (!hub?.id) return "";
+  const envRes = await fetch(`https://api.render.com/v1/services/${hub.id}/env-vars?limit=100`, {
+    headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" },
+  });
+  if (!envRes.ok) return "";
+  const envRows = await envRes.json();
+  const envList = Array.isArray(envRows) ? envRows : [];
+  for (const row of envList) {
+    const v = row.envVar ?? row;
+    if (v?.key === "PULSE_HOST_API_TOKEN" && typeof v.value === "string" && v.value.trim()) {
+      return v.value.trim();
+    }
+  }
+  return "";
+}
+
+async function loadHubSyncToken() {
+  const fromEnv = (process.env.PULSE_HOST_API_TOKEN || "").trim();
+  if (fromEnv) return fromEnv;
+  const candidates = [
+    path.join(REPO_ROOT, ".secrets", "pulse-host-api-token.txt"),
+    path.join(REPO_ROOT, ".secrets", "render-pulse-host-api-token.txt"),
+  ];
+  for (const filePath of candidates) {
+    if (fs.existsSync(filePath)) return fs.readFileSync(filePath, "utf8").trim();
+  }
+  return loadHubSyncTokenFromRender();
+}
+
+async function hubDataRequest(base, route, body, token) {
+  const res = await fetch(`${base}/api/${route}`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...(token ? { "X-Pulse-Host-Api-Token": token } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  const text = await res.text();
+  let data;
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error(`${route} (${res.status}): non-JSON ${text.slice(0, 120)}`);
+  }
+  if (!res.ok || data.ok === false) {
+    throw new Error(`${route} (${res.status}): ${data.error || text.slice(0, 200)}`);
+  }
+  return data;
+}
+
+const HUB_DATA_KEYS = ["google-ads-tokens", "google-ads-api", "gmb-oauth"];
+
+async function syncHubDataFiles(localBase, hubBase, token) {
+  if (!token) {
+    console.log("[skip] hub-data sync: PULSE_HOST_API_TOKEN not set");
+    return;
+  }
+  for (const key of HUB_DATA_KEYS) {
+    try {
+      const exported = await hubDataRequest(localBase, "integrations/hub-data-export", { key }, token);
+      await hubDataRequest(hubBase, "integrations/hub-data-import", { key, data: exported.data }, token);
+      console.log(`[hub] synced ${key}`);
+    } catch (err) {
+      console.log(`[hub] ${key}: ${err.message || err}`);
+    }
+  }
+}
+
+async function syncLocalGridScans(localBase, hubBase, siteId) {
+  const historyRes = await fetch(
+    `${localBase}/api/organic-dashboard/local-grid/history?siteId=${encodeURIComponent(siteId)}`,
+    { headers: { Accept: "application/json" } },
+  );
+  const history = await historyRes.json();
+  const scans = Array.isArray(history?.scans) ? history.scans : [];
+  if (!scans.length) return;
+  for (const row of scans.slice(0, 5)) {
+    const scanId = row?.scanId;
+    if (!scanId) continue;
+    const scanRes = await fetch(
+      `${localBase}/api/organic-dashboard/local-grid/scan?siteId=${encodeURIComponent(siteId)}&scanId=${encodeURIComponent(scanId)}`,
+      { headers: { Accept: "application/json" } },
+    );
+    const scanPayload = await scanRes.json();
+    const scan = scanPayload?.scan;
+    if (!scan?.scanId) continue;
+    await apiJson(hubBase, "organic-dashboard/local-grid/save", {
+      method: "POST",
+      body: JSON.stringify({ siteId, scan }),
+    });
+    console.log(`[hub] local-grid scan ${scanId} for ${siteId}`);
+  }
 }
 
 async function main() {
@@ -129,6 +253,16 @@ async function main() {
     });
   }
 
+  const localApi = loadLocalApiBase();
+  const hubToken = await loadHubSyncToken();
+  await syncHubDataFiles(localApi, HUB_API, hubToken);
+  for (const site of sites) {
+    const id = site?.id;
+    if (typeof id === "string" && id.trim() !== "") {
+      await syncLocalGridScans(localApi, HUB_API, id.trim());
+    }
+  }
+
   const verify = await Promise.all([
     apiJson(HUB_API, "manager-wordpress-properties/load"),
     apiJson(HUB_API, "manager-cloud-settings/load"),
@@ -136,6 +270,7 @@ async function main() {
     apiJson(HUB_API, "gsc/credentials-status"),
     apiJson(HUB_API, "gsc/test-connection"),
     apiJson(HUB_API, "integrations/resolved-openrouter-key"),
+    apiJson(HUB_API, "google-ads/status"),
   ]);
   const hubSites = verify[0].sites?.length ?? 0;
   const hubKeys = Object.keys(verify[1].snapshot?.keys || {}).length;
@@ -143,10 +278,19 @@ async function main() {
   const gscOk = Boolean(verify[3].configured);
   const gscConnected = Boolean(verify[4].success);
   const orLen = (verify[5].key || "").length;
+  const adsConnected = Boolean(verify[6]?.connected);
   console.log(
-    `[verify] hub sites=${hubSites} managerKeys=${hubKeys} gaConfigured=${gaOk} gscConfigured=${gscOk} gscConnected=${gscConnected} openRouterKeyLen=${orLen}`,
+    `[verify] hub sites=${hubSites} managerKeys=${hubKeys} gaConfigured=${gaOk} gscConfigured=${gscOk} gscConnected=${gscConnected} openRouterKeyLen=${orLen} googleAdsConnected=${adsConnected}`,
   );
-  if (hubSites !== sites.length || hubKeys < 1 || !gaOk || !gscOk || !gscConnected || orLen < 10) {
+  if (
+    hubSites !== sites.length ||
+    hubKeys < 1 ||
+    !gaOk ||
+    !gscOk ||
+    !gscConnected ||
+    orLen < 10 ||
+    !adsConnected
+  ) {
     process.exitCode = 1;
   }
 }

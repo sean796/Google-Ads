@@ -55,6 +55,16 @@ class Neo_Pulse_App_Integrations_Route_Handlers {
 			return;
 		}
 
+		if ( $subpath === 'hub-data-export' && $method === 'POST' ) {
+			Neo_Pulse_App_Hub_Data_Sync::export( $body );
+			return;
+		}
+
+		if ( $subpath === 'hub-data-import' && $method === 'POST' ) {
+			Neo_Pulse_App_Hub_Data_Sync::import( $body );
+			return;
+		}
+
 		if ( $subpath === 'sync-email-worker-keys' && $method === 'POST' ) {
 			$openrouter = isset( $body['openRouterApiKey'] ) ? trim( (string) $body['openRouterApiKey'] ) : '';
 			$inbox      = isset( $body['agentmailGeneralEmail'] ) ? sanitize_email( strtolower( trim( (string) $body['agentmailGeneralEmail'] ) ) ) : '';

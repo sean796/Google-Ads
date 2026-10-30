@@ -161,6 +161,7 @@ class Neo_Pulse_App_Loader {
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/overview/class-overview-route-handlers.php';
 
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/integrations/class-sites-sync.php';
+		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/integrations/class-hub-data-sync.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/integrations/class-integrations-route-handlers.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/integrations/class-property-client-logo.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/integrations/class-manager-route-handlers.php';

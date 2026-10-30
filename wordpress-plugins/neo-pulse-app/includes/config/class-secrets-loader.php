@@ -463,6 +463,18 @@ class Neo_Pulse_App_Secrets {
 		$secret    = defined( 'NEO_PULSE_APP_GMB_CLIENT_SECRET' ) ? trim( (string) NEO_PULSE_APP_GMB_CLIENT_SECRET ) : '';
 		$redirect  = defined( 'NEO_PULSE_APP_GMB_REDIRECT_URI' ) ? trim( (string) NEO_PULSE_APP_GMB_REDIRECT_URI ) : '';
 		$frontend  = defined( 'NEO_PULSE_APP_FRONTEND_URL' ) ? trim( (string) NEO_PULSE_APP_FRONTEND_URL ) : '';
+		if ( $client_id === '' ) {
+			$client_id = self::env_string( 'NEO_PULSE_APP_GMB_CLIENT_ID', 'GMB_CLIENT_ID' );
+		}
+		if ( $secret === '' ) {
+			$secret = self::env_string( 'NEO_PULSE_APP_GMB_CLIENT_SECRET', 'GMB_CLIENT_SECRET' );
+		}
+		if ( $redirect === '' ) {
+			$redirect = self::env_string( 'NEO_PULSE_APP_GMB_REDIRECT_URI', 'GMB_REDIRECT_URI' );
+		}
+		if ( $frontend === '' ) {
+			$frontend = self::env_string( 'NEO_PULSE_APP_FRONTEND_URL', 'NEO_PULSE_FRONTEND_URL' );
+		}
 		if ( $client_id === '' && defined( 'NEO_PULSE_WP_GMB_CLIENT_ID' ) ) {
 			$client_id = trim( (string) NEO_PULSE_WP_GMB_CLIENT_ID );
 		}
@@ -481,6 +493,10 @@ class Neo_Pulse_App_Secrets {
 		if ( defined( 'NEO_PULSE_APP_GOOGLE_ADS_DEVELOPER_TOKEN' ) && NEO_PULSE_APP_GOOGLE_ADS_DEVELOPER_TOKEN !== '' ) {
 			return trim( (string) NEO_PULSE_APP_GOOGLE_ADS_DEVELOPER_TOKEN );
 		}
+		$from_env = self::env_string( 'NEO_PULSE_APP_GOOGLE_ADS_DEVELOPER_TOKEN', 'GOOGLE_ADS_DEVELOPER_TOKEN' );
+		if ( $from_env !== '' ) {
+			return $from_env;
+		}
 		$file = Neo_Pulse_App_Json_File_Store::read( Neo_Pulse_App_Data_Paths::google_ads_api_path() );
 		if ( is_array( $file ) && ! empty( $file['developerToken'] ) ) {
 			return trim( (string) $file['developerToken'] );
@@ -495,6 +511,10 @@ class Neo_Pulse_App_Secrets {
 		}
 		if ( $from_env !== '' ) {
 			return $from_env;
+		}
+		$env_mcc = self::env_string( 'NEO_PULSE_APP_GOOGLE_ADS_MCC_ID', 'GOOGLE_ADS_MCC_ID' );
+		if ( $env_mcc !== '' ) {
+			return preg_replace( '/\D+/', '', $env_mcc ) ?? '';
 		}
 		$file = Neo_Pulse_App_Json_File_Store::read( Neo_Pulse_App_Data_Paths::google_ads_api_path() );
 		if ( is_array( $file ) && ! empty( $file['mccId'] ) ) {

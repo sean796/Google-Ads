@@ -181,6 +181,26 @@ async function buildHubEnvVars() {
     "NEO_PULSE_APP_GMB_CLIENT_SECRET",
     pick(merged, "NEO_PULSE_APP_GMB_CLIENT_SECRET", "GMB_CLIENT_SECRET"),
   );
+  add(
+    "NEO_PULSE_APP_GMB_REDIRECT_URI",
+    pick(merged, "NEO_PULSE_APP_GMB_REDIRECT_URI") ||
+      "https://pulse-host-wp-hub.onrender.com/api/gmb/callback",
+  );
+  add(
+    "NEO_PULSE_APP_FRONTEND_URL",
+    pick(merged, "NEO_PULSE_APP_FRONTEND_URL", "NEO_PULSE_FRONTEND_URL") ||
+      "https://neo-pulse-static.onrender.com/",
+  );
+  add(
+    "NEO_PULSE_APP_GOOGLE_ADS_MCC_ID",
+    pick(merged, "NEO_PULSE_APP_GOOGLE_ADS_MCC_ID", "GOOGLE_ADS_MCC_ID") || "3937136350",
+  );
+  add(
+    "NEO_PULSE_APP_GOOGLE_ADS_DEVELOPER_TOKEN",
+    pick(merged, "NEO_PULSE_APP_GOOGLE_ADS_DEVELOPER_TOKEN", "GOOGLE_ADS_DEVELOPER_TOKEN"),
+  );
+  add("GMB_CLIENT_ID", pick(merged, "NEO_PULSE_APP_GMB_CLIENT_ID", "GMB_CLIENT_ID"));
+  add("GMB_CLIENT_SECRET", pick(merged, "NEO_PULSE_APP_GMB_CLIENT_SECRET", "GMB_CLIENT_SECRET"));
 
   return vars;
 }
