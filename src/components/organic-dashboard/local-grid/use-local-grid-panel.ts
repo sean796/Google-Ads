@@ -73,6 +73,7 @@ import type { LocalGridPanelViewportProps } from "./LocalGridPanelViewport";
 
 export type LocalGridPanelDockSummary = {
   businessLabel: string;
+  locationLabel: string;
   keyword: string;
   scanning: boolean;
   avgRank: number | null;
@@ -135,6 +136,7 @@ export function useLocalGridPanel(
   reportError: (message: string) => void,
   layoutLocked = false,
   persistedLayout?: LocalGridLayoutSnapshot | null,
+  onSaveSnapshot?: (snapshot: LocalGridLayoutSnapshot) => void,
 ): {
   dockSummary: LocalGridPanelDockSummary;
   abortScan: () => void;
@@ -182,10 +184,9 @@ export function useLocalGridPanel(
     return "";
   }, [site, defaultLoc]);
 
-  const seededFromPersist =
-    layoutLocked && persistedLayout
-      ? persistedLayout
-      : null;
+  const seededFromPersist = persistedLayout ?? null;
+  const onSaveSnapshotRef = useRef(onSaveSnapshot);
+  onSaveSnapshotRef.current = onSaveSnapshot;
 
   const [keyword, setKeyword] = useState(() =>
     seededFromPersist?.keyword?.trim() ||
@@ -194,10 +195,10 @@ export function useLocalGridPanel(
   const [centerLat, setCenterLat] = useState(() => seededFromPersist?.centerLat ?? 53.551864);
   const [centerLng, setCenterLng] = useState(() => seededFromPersist?.centerLng ?? -113.614238);
   const [scanSize, setScanSize] = useState<LocalGridScanSize>(
-    () => seededFromPersist?.scanSize ?? "1x1",
+    () => seededFromPersist?.scanSize ?? "7x7",
   );
   const [shape, setShape] = useState<LocalGridShape>(() => seededFromPersist?.shape ?? "circle");
-  const [distance, setDistance] = useState<number>(() => seededFromPersist?.distance ?? 1);
+  const [distance, setDistance] = useState<number>(() => seededFromPersist?.distance ?? 3);
   const [distanceMeasure, setDistanceMeasure] = useState<LocalGridDistanceMeasure>(
     () => seededFromPersist?.distanceMeasure ?? "mile",
   );
@@ -367,23 +368,27 @@ export function useLocalGridPanel(
 
     void (async () => {
       const frozen = persistedLayoutRef.current;
-      if (layoutLockedRef.current && frozen?.activeScanId) {
+      if (frozen) {
+        setKeyword(frozen.keyword);
+        setScanSize(frozen.scanSize);
+        setShape(frozen.shape);
+        setDistance(frozen.distance);
+        setDistanceMeasure(frozen.distanceMeasure);
+        setCenterLat(frozen.centerLat);
+        setCenterLng(frozen.centerLng);
+        setActiveBusiness(frozen.activeBusiness);
+        setRecenterSignal((n) => n + 1);
+
         const scans = await fetchLocalGridHistory(currentSite.id);
         if (cancelled) return;
         setHistory(scans.filter((s) => (s.avgRank ?? 21) < 21 || s.pointCount > 1));
-        const loaded = await fetchLocalGridScanById(currentSite.id, frozen.activeScanId);
-        if (!cancelled && loaded) {
-          setActiveScan(loaded);
-          setRecenterSignal((n) => n + 1);
-        }
-        return;
-      }
 
-      if (layoutLockedRef.current && frozen) {
-        setRecenterSignal((n) => n + 1);
-        const scans = await fetchLocalGridHistory(currentSite.id);
-        if (!cancelled) {
-          setHistory(scans.filter((s) => (s.avgRank ?? 21) < 21 || s.pointCount > 1));
+        if (frozen.activeScanId) {
+          const loaded = await fetchLocalGridScanById(currentSite.id, frozen.activeScanId);
+          if (!cancelled && loaded) {
+            setActiveScan(loaded);
+            setRecenterSignal((n) => n + 1);
+          }
         }
         return;
       }
@@ -685,6 +690,17 @@ export function useLocalGridPanel(
             ...prev.filter((h) => h.scanId !== savedSummary.scanId),
           ]);
         }
+        onSaveSnapshotRef.current?.({
+          keyword: kw,
+          centerLat,
+          centerLng,
+          scanSize: targetSize,
+          shape,
+          distance,
+          distanceMeasure,
+          activeBusiness: resolvedTarget,
+          activeScanId: completedDoc.scanId,
+        });
       } catch (err) {
         if (!controller.signal.aborted) {
           const msg = err instanceof Error ? err.message : "Grid scan failed.";
@@ -892,6 +908,7 @@ export function useLocalGridPanel(
       activeBusiness.address?.trim() ||
       site.name?.trim() ||
       "Grid";
+    const locationLabel = activeBusiness.address?.trim() || "";
     const avg =
       aggregatedView?.summary.avgRank != null && Number.isFinite(aggregatedView.summary.avgRank)
         ? aggregatedView.summary.avgRank
@@ -899,12 +916,11 @@ export function useLocalGridPanel(
     const rawDate =
       activeScan?.scanDateLabel ??
       activeScan?.scanDateIso ??
-      history[0]?.scanDateLabel ??
-      history[0]?.scanDateIso ??
-      null;
+      (!persistedLayout ? (history[0]?.scanDateLabel ?? history[0]?.scanDateIso ?? null) : null);
     const dateLabel = formatHumanFriendlyScanDate(rawDate);
     return {
       businessLabel: label,
+      locationLabel,
       keyword: kw || "—",
       scanning,
       avgRank: avg,
@@ -919,6 +935,7 @@ export function useLocalGridPanel(
     scanning,
     aggregatedView,
     history,
+    persistedLayout,
   ]);
 
   const getLayoutSnapshot = useCallback((): LocalGridLayoutSnapshot => {
@@ -1035,6 +1052,8 @@ export function useLocalGridPanel(
     },
     onCloseEditMode: () => setEditMode(false),
     onSaveEdit: () => {
+      const snap = getLayoutSnapshot();
+      onSaveSnapshotRef.current?.(snap);
       setEditMode(false);
       notify.success("Grid configuration saved");
     },

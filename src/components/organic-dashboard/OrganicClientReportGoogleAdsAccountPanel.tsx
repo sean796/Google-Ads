@@ -1,12 +1,8 @@
-import { OrganicClientReportOverviewSlot } from "@/components/organic-dashboard/OrganicClientReportOverviewSlot";
 import { EXPORT_LABEL_CLASS } from "@/components/organic-dashboard/organic-client-report-export-theme";
 import type { OrganicGoogleAdsReportAccountCard } from "@/lib/organic-dashboard/organic-dashboard-google-ads";
 import { buildGoogleAdsSparklineAreaPath } from "@/lib/organic-dashboard/organic-dashboard-google-ads";
 import type { OrganicGscMetricDelta } from "@/lib/organic-dashboard/organic-dashboard-view-model";
-import {
-  CLIENT_REPORT_DELTA_EMPTY,
-  toExportTitleCase,
-} from "@/lib/organic-dashboard/organic-client-report-copy";
+import { formatOwnerReportMetricLabel } from "@/lib/organic-dashboard/organic-client-report-copy";
 import { cn } from "@/lib/utils";
 
 const CHART_WIDTH = 640;
@@ -15,12 +11,14 @@ const CHART_HEIGHT = 88;
 function ReportKpiDelta({
   delta,
   favorableWhenDown,
+  showCompare = false,
 }: {
   delta: OrganicGscMetricDelta;
   favorableWhenDown?: boolean;
+  showCompare?: boolean;
 }) {
-  if (delta.deltaPercent == null) {
-    return <span className="text-[#52525b]">{CLIENT_REPORT_DELTA_EMPTY}</span>;
+  if (!showCompare || delta.deltaPercent == null) {
+    return null;
   }
   const up = delta.deltaPositive === true;
   const favorable = favorableWhenDown ? !up : up;
@@ -38,36 +36,32 @@ function ReportKpiDelta({
 
 export type OrganicClientReportGoogleAdsAccountPanelProps = {
   card: OrganicGoogleAdsReportAccountCard;
-  narrative: string[];
+  showCompare?: boolean;
+  narrative?: string[];
   overviewLoading?: boolean;
   overviewError?: string | null;
 };
 
 export function OrganicClientReportGoogleAdsAccountPanel({
   card,
-  narrative,
-  overviewLoading = false,
-  overviewError = null,
+  showCompare = false,
 }: OrganicClientReportGoogleAdsAccountPanelProps) {
   const sparkline = buildGoogleAdsSparklineAreaPath(card.chartPoints, CHART_WIDTH, CHART_HEIGHT);
   const pacing = card.budgetPacing;
 
   return (
     <div className="organic-client-report-export__ads-account">
-      <OrganicClientReportOverviewSlot
-        heading=""
-        paragraphs={narrative}
-        loading={overviewLoading && narrative.length === 0}
-        error={!overviewLoading && narrative.length === 0 ? overviewError : null}
-      />
-
       <div className="organic-client-report-export__ads-account-card">
         <ul className="organic-client-report-export__ads-kpi-row">
           {card.kpis.map((kpi) => (
             <li key={kpi.label} className="organic-client-report-export__ads-kpi">
-              <p className={EXPORT_LABEL_CLASS}>{toExportTitleCase(kpi.label)}</p>
+              <p className={EXPORT_LABEL_CLASS}>{formatOwnerReportMetricLabel(kpi.label)}</p>
               <p className="organic-client-report-export__ads-kpi-value tabular-nums">{kpi.value}</p>
-              <ReportKpiDelta delta={kpi.delta} favorableWhenDown={kpi.favorableWhenDown} />
+              <ReportKpiDelta
+                delta={kpi.delta}
+                favorableWhenDown={kpi.favorableWhenDown}
+                showCompare={showCompare}
+              />
             </li>
           ))}
         </ul>

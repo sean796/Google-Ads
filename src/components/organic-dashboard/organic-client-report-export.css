@@ -1,3 +1,10 @@
+/* Prevent Tailwind preflight `img { display: block }` from breaking html2canvas FontMetrics baseline probe */
+img[width="1"][height="1"],
+img[src^="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP"] {
+  display: inline !important;
+  vertical-align: baseline !important;
+}
+
 .organic-client-report-export {
   box-sizing: border-box;
   width: 100%;
@@ -32,7 +39,7 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  min-height: 36rem;
+  min-height: 24rem;
   background: #ffffff;
 }
 
@@ -114,13 +121,13 @@
 }
 
 .organic-client-report-export__cover-insights-box {
-  padding: 1rem 1.15rem 1.1rem;
+  padding: 0.75rem 1rem;
   background: #fafafa;
   border: 1px solid #e4e4e7;
   border-left: 4px solid #84bd00;
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.45rem;
 }
 
 .organic-client-report-export__cover-insights-heading {
@@ -267,43 +274,63 @@
 }
 
 .organic-client-report-export__local-grid-map {
-  width: 100%;
-  max-width: 42rem;
+  width: 21.25rem;
+  max-width: 100%;
+  height: 21.25rem;
   margin: 0 auto;
   aspect-ratio: 1 / 1;
-  min-height: 22rem;
+  min-height: 21.25rem;
   overflow: hidden;
   border: 1px solid #e4e4e7;
   background: #f4f4f5;
 }
 
 .organic-client-report-export__local-grid-map-live {
-  height: 100%;
-  min-height: 22rem;
+  height: 21.25rem;
+  min-height: 21.25rem;
 }
 
 .organic-client-report-export__local-grid-map-live .leaflet-container {
   width: 100%;
   height: 100%;
-  min-height: 22rem;
+  min-height: 21.25rem;
+}
+
+.organic-client-report-export__local-grid--single .organic-client-report-export__local-grid-map,
+.organic-client-report-export__local-grid--single .organic-client-report-export__local-grid-map-live,
+.organic-client-report-export__local-grid--single .organic-client-report-export__local-grid-map-live .leaflet-container {
+  width: 26rem;
+  height: 26rem;
+  min-height: 26rem;
 }
 
 .organic-client-report-export__section {
-  margin: 0 0 1.5rem;
+  margin: 0 0 1.35rem;
   padding: 0;
   border: 0;
   background: #ffffff;
 }
 
 .organic-client-report-export__section-head {
-  margin: 0 0 0.75rem;
-  padding: 0.35rem 0;
-  font-size: 1.25rem;
-  font-weight: 700;
+  margin: 0 0 0.65rem;
+  padding: 0.35rem 0 0.5rem !important;
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
   color: #09090b;
   background: transparent;
   border: 0;
   border-bottom: 2px solid #d4d4d8;
+  white-space: normal;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+
+.organic-client-report-export__h2-text {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+  color: #09090b;
 }
 
 .organic-client-report-export__section-body {
@@ -340,21 +367,30 @@
   margin: 0.25rem 0 0.15rem;
   font-size: 1rem;
   font-weight: 700;
+  line-height: 1.35;
   color: #09090b;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .organic-client-report-export__h4 {
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
+  line-height: 1.35;
   color: #18181b;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .organic-client-report-export__label {
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
+  line-height: 1.35;
   color: #52525b;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .organic-client-report-export__bullets {
@@ -374,13 +410,73 @@
 }
 
 .organic-client-report-export__narrative {
-  padding: 0.875rem 1rem;
+  padding: 0.65rem 1rem;
   margin: 0;
   background: #fafafa;
   border: 1px solid #e4e4e7;
+  border-left: 4px solid #84bd00;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.organic-client-report-export__narrative .organic-client-report-export__body {
+  margin: 0;
+}
+
+.organic-client-report-export__accordion {
+  width: 100%;
+}
+
+.organic-client-report-export__accordion-trigger {
+  width: 100%;
+  min-height: 1.75rem;
+  padding: 0.15rem 0 !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+  color: #09090b;
+  background: transparent;
+  border: 0;
+  outline: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.organic-client-report-export__accordion-trigger:focus,
+.organic-client-report-export__accordion-trigger:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.organic-client-report-export__accordion-trigger--section {
+  margin: 0 0 0.65rem;
+  padding: 0.35rem 0 0.5rem !important;
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+  color: #09090b;
+  border: 0;
+  border-bottom: 2px solid #d4d4d8;
+}
+
+.organic-client-report-export__accordion-content {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #18181b;
+}
+
+.organic-client-report-export__tooltip-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.organic-client-report-export__tooltip-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+  color: #71717a;
+  flex-shrink: 0;
 }
 
 .organic-client-report-export__kpi-list {
@@ -459,7 +555,11 @@
 .organic-client-report-export__metric-table th {
   background: #f4f4f5;
   font-weight: 700;
+  line-height: 1.3;
   color: #09090b;
+  white-space: normal;
+  overflow-wrap: break-word;
+  text-wrap: balance;
 }
 
 .organic-client-report-export__period-progress-table {
@@ -471,9 +571,10 @@
 
 .organic-client-report-export__period-progress-table th,
 .organic-client-report-export__period-progress-table td {
-  padding: 0.45rem 0.35rem;
+  padding: 0.55rem 0.6rem;
   border: 1px solid #d4d4d8;
   vertical-align: middle;
+  line-height: 1.4;
   color: #18181b;
 }
 
@@ -482,17 +583,22 @@
   font-weight: 700;
   color: #09090b;
   text-align: center;
-  line-height: 1.25;
+  line-height: 1.3;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+  text-wrap: balance;
 }
 
 .organic-client-report-export__period-progress-table thead th.organic-period-progress-table__metric-col {
   white-space: normal;
   overflow-wrap: break-word;
   word-break: normal;
+  text-wrap: balance;
 }
 
 .organic-client-report-export__period-progress-table col.organic-period-progress-table__month-col {
-  width: 4.75rem;
+  width: 6.5rem;
 }
 
 .organic-client-report-export__period-progress-table col.organic-period-progress-table__query-col {
@@ -500,13 +606,13 @@
 }
 
 .organic-client-report-export .organic-period-progress-table__month-col {
-  width: 4.75rem;
-  min-width: 4.75rem;
-  max-width: 4.75rem;
+  width: 6.5rem;
+  min-width: 6.5rem;
+  max-width: 6.5rem;
   text-align: left;
-  white-space: nowrap;
+  white-space: normal;
   word-break: keep-all;
-  overflow-wrap: normal;
+  overflow-wrap: break-word;
 }
 
 .organic-client-report-export .organic-period-progress-table__query-col {
@@ -573,14 +679,15 @@
 }
 
 .organic-client-report-export__opportunity {
-  padding: 0.875rem 1rem;
+  padding: 0.55rem 0.9rem;
   background: #fafafa;
   border: 1px solid #e4e4e7;
   border-left: 4px solid #18181b;
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  justify-content: center;
+  gap: 0.25rem;
 }
 
 .organic-client-report-export__footer {
@@ -603,6 +710,20 @@
   background: #ffffff;
 }
 
+.organic-client-report--pdf-capture .organic-client-report-export__tooltip-trigger,
+.organic-client-report--pdf-capture .organic-client-report-export__tooltip-icon,
+.organic-client-report--pdf-capture .organic-client-report-export__accordion-trigger > svg {
+  display: none !important;
+}
+
+@media print {
+  .organic-client-report-export__tooltip-trigger,
+  .organic-client-report-export__tooltip-icon,
+  .organic-client-report-export__accordion-trigger > svg {
+    display: none !important;
+  }
+}
+
 .organic-deck-export-page-break {
   /* Slice planner handles explicit page breaks when requested. */
 }
@@ -612,10 +733,13 @@
 .organic-client-report-export__kpi-item,
 .organic-client-report-export__metric-stack,
 .organic-client-report-export__narrative,
+.organic-client-report-export__accordion,
 .organic-client-report-export__cover-page,
 .organic-client-report-export__cover-wrapper,
 .organic-client-report-export__cover-insights-box,
-.organic-client-report-export__ads-account-card {
+.organic-client-report-export__ads-account-card,
+.organic-client-report-export__local-grid-item,
+.organic-client-report-export__local-grid-map {
   break-inside: avoid;
   page-break-inside: avoid;
 }

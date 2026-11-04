@@ -130,6 +130,14 @@ export type SanitizedDeckOpportunity = {
   evidence?: string[];
 };
 
+/** GA4 User acquisition rows (firstUserDefaultChannelGroup = Organic Search). */
+export const ORGANIC_GA4_USER_ACQ_LABELS = new Set([
+  "Total users",
+  "New users",
+  "User key event rate",
+  "Key events",
+]);
+
 /** GA4 rows shown on the client deck (organic channel only, no site-wide duplicates). */
 export const ORGANIC_GA4_DECK_LABELS = new Set([
   "Organic Search sessions",
@@ -664,9 +672,11 @@ export function buildHeadlineSummaryRows(
 ): DeckSummaryRow[] {
   const emptyDelta = { deltaPercent: null, deltaPositive: null };
   const rows: DeckSummaryRow[] = [];
+  const hasUserAcqRows = viewModel.ga4Table.some((r) => ORGANIC_GA4_USER_ACQ_LABELS.has(r.label));
+  const allowedGa4Labels = hasUserAcqRows ? ORGANIC_GA4_USER_ACQ_LABELS : ORGANIC_GA4_DECK_LABELS;
 
   for (const r of viewModel.ga4Table) {
-    if (!ORGANIC_GA4_DECK_LABELS.has(r.label)) continue;
+    if (!allowedGa4Labels.has(r.label)) continue;
     rows.push({
       label: organicGa4ClientDisplayLabel(r.label),
       earlier: r.previous,

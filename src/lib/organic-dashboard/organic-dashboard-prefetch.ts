@@ -32,7 +32,7 @@ export function organicDashboardBundleQueryKey(
   siteId: string,
   fetchParams: OrganicDashboardFetchParams,
 ) {
-  return ["organic-dashboard-bundle", "v2", siteId, fetchParams] as const;
+  return ["organic-dashboard-bundle", "v3", siteId, fetchParams] as const;
 }
 
 export function organicReportingHighlightsQueryKey(args: {

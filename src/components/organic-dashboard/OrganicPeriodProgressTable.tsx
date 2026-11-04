@@ -1,5 +1,8 @@
 import type { OrganicPeriodProgressTable as OrganicPeriodProgressTableModel } from "@/lib/organic-dashboard/organic-dashboard-period-progress";
-import { toExportTitleCase } from "@/lib/organic-dashboard/organic-client-report-copy";
+import {
+  formatOwnerReportHeading,
+  formatOwnerReportMetricLabel,
+} from "@/lib/organic-dashboard/organic-client-report-copy";
 import { cn } from "@/lib/utils";
 
 export type OrganicPeriodProgressTableProps = {
@@ -9,6 +12,8 @@ export type OrganicPeriodProgressTableProps = {
   className?: string;
   /** When false, omit the bottom total row (e.g. Semrush monthly estimates). */
   showTotalRow?: boolean;
+  /** When true, show the table sub-heading. Defaults to false in exportMode to avoid redundant headings. */
+  showTitle?: boolean;
 };
 
 export function OrganicPeriodProgressTable({
@@ -16,11 +21,13 @@ export function OrganicPeriodProgressTable({
   exportMode = false,
   className = "",
   showTotalRow = true,
+  showTitle,
 }: OrganicPeriodProgressTableProps) {
   if (table.rows.length === 0) return null;
 
+  const shouldShowTitle = showTitle ?? !exportMode;
   const titleClass = exportMode
-    ? "text-base font-semibold text-[#18181b] mb-2"
+    ? "text-base font-semibold text-[#18181b] mb-2 leading-snug"
     : "text-base font-normal text-white";
   const thClass = exportMode
     ? "pb-2 font-normal text-[#52525b]"
@@ -33,8 +40,8 @@ export function OrganicPeriodProgressTable({
     ? "py-2 tabular-nums font-semibold text-[#18181b]"
     : "py-2 tabular-nums font-semibold text-white";
   const borderClass = exportMode ? "border-t border-[#e4e4e7]" : "border-t border-white/5";
-  const displayTitle = exportMode ? toExportTitleCase(table.title) : table.title;
-  const totalRowLabel = exportMode ? toExportTitleCase("Total") : "Total";
+  const displayTitle = exportMode ? formatOwnerReportHeading(table.title) : table.title;
+  const totalRowLabel = exportMode ? formatOwnerReportMetricLabel("Total") : "Total";
   const tableClass = cn(
     "w-full min-w-[20rem] text-base",
     exportMode && "organic-client-report-export__period-progress-table",
@@ -43,7 +50,7 @@ export function OrganicPeriodProgressTable({
 
   return (
     <div className={className}>
-      {displayTitle.trim() ? <h3 className={titleClass}>{displayTitle}</h3> : null}
+      {shouldShowTitle && displayTitle.trim() ? <h3 className={titleClass}>{displayTitle}</h3> : null}
       <div className="overflow-x-auto">
         <table className={tableClass}>
           <colgroup>
@@ -55,7 +62,7 @@ export function OrganicPeriodProgressTable({
           <thead>
             <tr>
               <th scope="col" className={cn(thClass, "organic-period-progress-table__month-col")}>
-                {exportMode ? toExportTitleCase("Month") : "Month"}
+                {exportMode ? formatOwnerReportMetricLabel("Month") : "Month"}
               </th>
               {table.rows.map((row) => (
                 <th
@@ -63,7 +70,7 @@ export function OrganicPeriodProgressTable({
                   scope="col"
                   className={cn(thClass, "organic-period-progress-table__metric-col")}
                 >
-                  {exportMode ? toExportTitleCase(row.label) : row.label}
+                  {exportMode ? formatOwnerReportMetricLabel(row.label) : row.label}
                 </th>
               ))}
             </tr>

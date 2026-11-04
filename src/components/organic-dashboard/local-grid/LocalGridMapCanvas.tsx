@@ -25,13 +25,19 @@ function buildPinSvgHtml(
   selected: boolean,
   isPreviewNode = false,
   isBreathing = false,
+  compact = false,
 ): string {
   const selectedAttr = selected ? 'data-selected="true"' : "";
   const breathingAttr = isBreathing ? 'data-breathing="true"' : "";
+  const starSize = compact ? 36 : 46;
+  const xSize = compact ? 34 : 42;
+  const dropW = compact ? 32 : 40;
+  const dropH = compact ? 36 : 45;
+  const wrapperStyle = compact ? 'style="width:36px;height:36px;"' : "";
 
   if (isPreviewNode) {
-    return `<div class="local-grid-pin-wrapper" title="Drag X to move grid center" ${selectedAttr} ${breathingAttr}>
-      <svg width="42" height="42" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+    return `<div class="local-grid-pin-wrapper" ${wrapperStyle} title="Drag X to move grid center" ${selectedAttr} ${breathingAttr}>
+      <svg width="${xSize}" height="${xSize}" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
         <polygon
           points="${X_POLYGON_POINTS}"
           fill="${isBreathing ? "#d1d5db" : "#dce1e7"}"
@@ -44,8 +50,8 @@ function buildPinSvgHtml(
   }
 
   if (bucket === "rank1" || rank === 1) {
-    return `<div class="local-grid-pin-wrapper" title="Drag to move grid center or click to inspect" ${selectedAttr}>
-      <svg width="46" height="46" viewBox="0 0 46 46" xmlns="http://www.w3.org/2000/svg">
+    return `<div class="local-grid-pin-wrapper" ${wrapperStyle} title="Drag to move grid center or click to inspect" ${selectedAttr}>
+      <svg width="${starSize}" height="${starSize}" viewBox="0 0 46 46" xmlns="http://www.w3.org/2000/svg">
         <polygon
           points="23,2.5 28.8,15.2 42.6,16.8 32.3,26.2 35.1,39.8 23,32.9 10.9,39.8 13.7,26.2 3.4,16.8 17.2,15.2"
           fill="#84bc00"
@@ -59,8 +65,8 @@ function buildPinSvgHtml(
   }
 
   if (bucket === "out" || rank == null) {
-    return `<div class="local-grid-pin-wrapper" title="Drag X to move grid center or click to inspect" ${selectedAttr}>
-      <svg width="42" height="42" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+    return `<div class="local-grid-pin-wrapper" ${wrapperStyle} title="Drag X to move grid center or click to inspect" ${selectedAttr}>
+      <svg width="${xSize}" height="${xSize}" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
         <polygon
           points="${X_POLYGON_POINTS}"
           fill="#d4d8dd"
@@ -112,8 +118,8 @@ function buildPinSvgHtml(
     textFill = "#ffffff";
   }
 
-  return `<div class="local-grid-pin-wrapper" title="Drag to move grid center or click to inspect" ${selectedAttr}>
-    <svg width="40" height="45" viewBox="0 0 42 46" xmlns="http://www.w3.org/2000/svg">
+  return `<div class="local-grid-pin-wrapper" ${wrapperStyle} title="Drag to move grid center or click to inspect" ${selectedAttr}>
+    <svg width="${dropW}" height="${dropH}" viewBox="0 0 42 46" xmlns="http://www.w3.org/2000/svg">
       <path
         d="M21 2C11.3 2 3.5 9.8 3.5 19.5c0 11.4 17.5 24 17.5 24s17.5-12.6 17.5-24C38.5 9.8 30.7 2 21 2z"
         fill="${fill}"
@@ -143,25 +149,30 @@ function MapViewportSync({
   const map = useMap();
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      map.invalidateSize();
-    }, 50);
-    return () => window.clearTimeout(timer);
-  }, [map]);
+    const applyFit = () => {
+      map.invalidateSize({ pan: false });
+      const { minLat, maxLat, minLng, maxLng } = bounds;
+      const latLngBounds = L.latLngBounds(
+        [minLat, minLng],
+        [maxLat, maxLng],
+      );
+      const isReport = viewportProfile === "report";
+      map.fitBounds(latLngBounds, {
+        padding: isReport ? [22, 22] : [40, 40],
+        animate: false,
+        maxZoom: isReport ? 18 : 16,
+      });
+    };
 
-  useEffect(() => {
-    map.invalidateSize();
-    const { minLat, maxLat, minLng, maxLng } = bounds;
-    const latLngBounds = L.latLngBounds(
-      [minLat, minLng],
-      [maxLat, maxLng],
-    );
-    const isReport = viewportProfile === "report";
-    map.fitBounds(latLngBounds, {
-      padding: isReport ? [18, 18] : [40, 40],
-      animate: false,
-      maxZoom: isReport ? 17 : 16,
-    });
+    applyFit();
+    const timer1 = window.setTimeout(applyFit, 50);
+    const timer2 = window.setTimeout(applyFit, 200);
+    window.addEventListener("resize", applyFit);
+    return () => {
+      window.clearTimeout(timer1);
+      window.clearTimeout(timer2);
+      window.removeEventListener("resize", applyFit);
+    };
   }, [
     map,
     bounds.minLat,
@@ -263,6 +274,9 @@ export function LocalGridMapCanvas({
 
   const iconsByKey = useMemo(() => {
     const out = new Map<string, L.DivIcon>();
+    const compact = viewportProfile === "report";
+    const size = compact ? 36 : 46;
+    const anchor = compact ? 18 : 23;
     for (const pt of displayPoints) {
       const isPreview = Boolean(pt.isPreview);
       const isBreathing = Boolean(pt.isBreathing);
@@ -271,19 +285,21 @@ export function LocalGridMapCanvas({
         pt.pointId,
         L.divIcon({
           className: "local-grid-pin-icon",
-          html: buildPinSvgHtml(pt.targetRank, pt.bucket, selected, isPreview, isBreathing),
-          iconSize: [46, 46],
-          iconAnchor: [23, 23],
+          html: buildPinSvgHtml(pt.targetRank, pt.bucket, selected, isPreview, isBreathing, compact),
+          iconSize: [size, size],
+          iconAnchor: [anchor, anchor],
         }),
       );
     }
     return out;
-  }, [displayPoints, selectedPointId]);
+  }, [displayPoints, selectedPointId, viewportProfile]);
 
   return (
     <MapContainer
       center={[bounds.centerLat, bounds.centerLng]}
       zoom={bounds.recommendedZoom}
+      zoomSnap={viewportProfile === "report" ? 0.05 : 1}
+      zoomDelta={viewportProfile === "report" ? 0.25 : 1}
       scrollWheelZoom={!readOnly}
       dragging={!readOnly}
       zoomControl={false}

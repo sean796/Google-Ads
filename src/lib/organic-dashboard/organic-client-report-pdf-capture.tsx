@@ -25,7 +25,7 @@ export async function mountOrganicClientReportPdfCapture(
 
   let reactRoot: Root | null = createRoot(host);
   flushSync(() => {
-    reactRoot!.render(<OrganicClientReportExportDocument content={content} />);
+    reactRoot!.render(<OrganicClientReportExportDocument content={content} pdfExport />);
   });
 
   if (document.fonts?.ready) {

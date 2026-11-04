@@ -15,6 +15,7 @@ import {
   refreshOrganicReportingDateHarness,
 } from "@/lib/organic-dashboard/organic-dashboard-fetch-params";
 import { fetchOrganicDashboardPerformancePackForSite } from "@/lib/organic-dashboard/organic-dashboard-performance-pack";
+import { fetchAllLocalGridScansForSite } from "@/lib/organic-dashboard/local-grid-client-report";
 import type { OrganicClientReportDeckPayload } from "@/lib/organic-dashboard/organic-client-report-deck-session";
 import { resolveOrganicReportingDateHarnessFromSearch } from "@/lib/organic-dashboard/organic-dashboard-fetch-params";
 
@@ -39,13 +40,16 @@ export async function hydrateOrganicClientReportForHarness(
   const showCompare = refreshedHarness.compareEnabled;
   const siteName = site.name?.trim() || site.siteUrl.trim();
   const siteUrl = getPublicSiteUrl(site).trim() || site.siteUrl.trim();
-  const pack = await fetchOrganicDashboardPerformancePackForSite({
-    site,
-    fetchParams,
-    showCompare,
-    siteDisplayName: siteName,
-    sitePublicUrl: siteUrl,
-  });
+  const [pack, localGridScans] = await Promise.all([
+    fetchOrganicDashboardPerformancePackForSite({
+      site,
+      fetchParams,
+      showCompare,
+      siteDisplayName: siteName,
+      sitePublicUrl: siteUrl,
+    }),
+    fetchAllLocalGridScansForSite(site.id),
+  ]);
   const preparedOn = formatLocalYmd(new Date());
 
   return {
@@ -56,6 +60,8 @@ export async function hydrateOrganicClientReportForHarness(
     siteUrl,
     showCompare,
     preparedOn,
+    localGridScan: localGridScans[0] ?? null,
+    localGridScans,
   };
 }
 

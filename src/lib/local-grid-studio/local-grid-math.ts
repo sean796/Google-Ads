@@ -264,8 +264,8 @@ export function computeLocalGridReportViewportBounds(options: {
 
   const latSpan = maxLat - minLat;
   const lngSpan = maxLng - minLng;
-  const padLat = Math.max(latSpan * 0.04, 0.0025);
-  const padLng = Math.max(lngSpan * 0.04, 0.0025);
+  const padLat = Math.max(latSpan * 0.005, 0.0002);
+  const padLng = Math.max(lngSpan * 0.005, 0.0002);
 
   const centerLat = options.centerLat;
   const centerLng = options.centerLng;

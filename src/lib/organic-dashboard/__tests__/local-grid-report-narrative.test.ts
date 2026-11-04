@@ -40,7 +40,7 @@ describe("local-grid-report-narrative", () => {
     const paragraphs = resolveLocalGridNarrativeForReport(["String1"], snapshot, "Blind Magic");
     expect(paragraphs).toHaveLength(1);
     expect(paragraphs[0]).toContain("custom blinds edmonton");
-    expect(paragraphs[0]).toContain("TARP");
+    expect(paragraphs[0]).toContain("Google Maps");
   });
 
   it("keeps valid AI narrative", () => {

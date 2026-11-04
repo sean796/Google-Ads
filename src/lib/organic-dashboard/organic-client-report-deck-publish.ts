@@ -24,6 +24,7 @@ export type PublishOrganicClientReportDeckInput = {
   readyHighlights: OrganicReportingHighlights;
   showCompare: boolean;
   localGridScan?: LocalGridScanDocument | null;
+  localGridScans?: LocalGridScanDocument[] | null;
   preparedOn?: string;
   deckId?: string;
   origin?: string;
@@ -52,6 +53,7 @@ export async function publishOrganicClientReportDeckAndBuildShareUrl(
     showCompare: input.showCompare,
     preparedOn,
     localGridScan: input.localGridScan ?? null,
+    localGridScans: input.localGridScans ?? null,
     clientLogoUrl: input.clientLogoUrl ?? null,
     clientLogoBoxTheme: input.clientLogoBoxTheme ?? null,
   };

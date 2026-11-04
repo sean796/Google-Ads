@@ -45,13 +45,12 @@ export function resolveLocalGridNarrativeForReport(
 
 function localGridSystemPrompt(): string {
   return [
-    'Neo Digital local SEO client report. JSON only: {"localGridNarrative":["paragraph"]}.',
+    'Neo Digital owner-friendly local report. JSON only: {"localGridNarrative":["paragraph"]}.',
     "Never output the word string, String1, or other schema placeholders as narrative text.",
-    "American English, full sentences. Use siteName for the client brand.",
-    "Never write calendar dates or years.",
-    "Required: one or two short paragraphs using only the localGrid stats (keyword, TARP, avg rank, high/med/low/out counts and percentages).",
-    "Explain where map visibility is strong vs weak and what that means for local leads. Bold the keyword once using **keyword**.",
-    "Do not invent cities or ranks not in the data.",
+    "Write in plain, everyday business English for a busy CEO or business owner (such as the owner of Blind Magic). Use siteName for the client brand.",
+    "Never write calendar dates or years, and do not use technical acronyms like TARP.",
+    "Required: one short, easy-to-read paragraph explaining where the business shows up in the top 3 on Google Maps for the tracked search term and where outlying neighborhoods have room to grow to bring in more local customers. Bold the search term once using **keyword**.",
+    "Do not invent cities or ranks not in the data, and avoid dumping raw stats that are already shown in the scorecard table.",
   ].join("\n\n");
 }
 
@@ -78,18 +77,13 @@ export function buildLocalGridResultsNarrativeParagraph(
 ): string {
   const { summary, keyword } = snapshot;
   const brand = siteName.trim() || "The business";
-  const kw = keyword.trim() || "the tracked local keyword";
-  const tarp = summary.tarp.toFixed(1);
-  const avgRank =
-    summary.rankedPoints > 0 ? summary.avgRank.toFixed(1) : "20+";
-  const top3 = `${summary.highPct}% (${summary.highCount}/${summary.totalPoints} pins)`;
-  const outside = `${summary.outPct}% (${summary.outCount}/${summary.totalPoints} pins)`;
+  const kw = keyword.trim() || "the tracked local search term";
 
   if (summary.highPct >= 25) {
-    return `${brand} shows solid map pack presence for **${kw}**: TARP ${tarp} with ${top3} in positions 1–3, while ranked pins average ${avgRank}. ${outside} still sit outside the top 20, mostly in outlying grid cells, so pushing those areas into the top 10 is the next step for more local discovery clicks.`;
+    return `${brand} has a strong neighborhood presence on Google Maps when local shoppers search for **${kw}**, appearing in the top 3 map results across ${summary.highPct}% of the area while averaging spot #${summary.avgRank.toFixed(1)} where found. Expanding that visibility into the remaining outlying neighborhoods is the clearest next step to bring in even more local calls and quote requests.`;
   }
 
-  return `For **${kw}**, ${brand} averages ${tarp} TARP across the scan with only ${top3} in the top 3 and ${outside} outside the top 20 (avg rank ${avgRank} on ranked pins). Visibility clusters near the center of the grid and weakens toward the edges, which caps map pack traffic until more pins break into page-one local results.`;
+  return `When local shoppers search for **${kw}** on Google Maps, ${brand} currently shows up strongest right around the core business location (${summary.highPct}% in the top 3 results) and tapers off in outer neighborhoods. Moving those surrounding neighborhood points onto the first page of Google Maps will help capture more local homeowners looking for service.`;
 }
 
 export async function fetchLocalGridReportNarrativeViaOpenRouter(

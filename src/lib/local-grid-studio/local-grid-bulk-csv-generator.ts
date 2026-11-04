@@ -8,20 +8,15 @@ import { parseCompetitorGridTopPlaces } from "@/lib/competitor-research/local-do
 import { DEFAULT_ENTITY_PAGE_CREATOR_ENTITY_TYPE_FOCUS, resolveEntityPageCreatorClusterContext } from "@/lib/entity-page-creator/entity-page-creator-cluster-context";
 import { ensureEntityPageCreatorPayload } from "@/lib/entity-page-creator/entity-page-creator-defaults";
 import { splitEntityTotalIntoAdGroupsAndAds } from "@/lib/local-analysis/entity-ad-group-budget";
-import {
-  applyGridClusterWikipediaToSapRows,
-  runEntityGridLocationClusterAgent,
-} from "@/lib/local-analysis/entity-grid-location-wiki-agent";
+import { resolveNeighbourhoodWikiOnly } from "@/lib/local-analysis/entity-grid-location-wiki-agent";
+import { cityBucketFromLocationLabel } from "@/lib/local-analysis/grid-location-buckets";
 import { fillEntitySlotKeywordsFromGsc } from "@/lib/local-analysis/entity-preload-clusters-hydrate";
 import { finalizeEntitySapRowsForAdGroups } from "@/lib/local-analysis/sap-entity-ad-groups";
 import { buildBulkAutoGenerateTemplateCsvFromRows } from "@/lib/local-analysis-csv-export";
 import { parseLocalGridEntityRowCount } from "@/lib/local-grid-studio/local-grid-entity-template-rows";
-import {
-  parseLocalDominatorCsv,
-  wikipediaSearchAugmentFromGridRows,
-} from "@/lib/local-dominator-csv";
+import { parseLocalDominatorCsv } from "@/lib/local-dominator-csv";
 import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
-import { getResearchModel } from "@/lib/optimization-settings-storage";
+import { getBlogModel } from "@/lib/optimization-settings-storage";
 import { processParsedLocalDominatorRows } from "@/lib/process-local-dominator-upload";
 import { assertSapRowsHaveLinkedWikipedia } from "@/lib/wikipedia/enrich-sap-rows-with-wikipedia";
 import { writeSitemapOptimizerBulkCsvSeed } from "@/lib/sitemap-optimizer/sitemap-optimizer-bulk-handoff";
@@ -31,6 +26,7 @@ import {
   normalizeDomainHost,
 } from "./local-grid-aggregator";
 import { serializeLocalGridScanToCsv } from "./local-grid-csv";
+import { planWeightedGridPlaces } from "./local-grid-decision-weights";
 import type { LocalGridScanDocument } from "./local-grid-types";
 
 export type LocalGridBulkCsvMode = "locations" | "competitors" | "both";
@@ -79,7 +75,6 @@ export async function generateLocationsWikiRowsFromGrid(options: {
     throw new Error(processed.error);
   }
 
-  const wikipediaSearchAugment = wikipediaSearchAugmentFromGridRows(parsed.rows);
   const businessName =
     scan.targetBusiness.business.trim() ||
     site.napInfo?.name?.trim() ||
@@ -101,46 +96,44 @@ export async function generateLocationsWikiRowsFromGrid(options: {
     focusKeyword: scan.keyword,
   });
 
-  report(`Planning ${total} neighbourhood entit${total === 1 ? "y" : "ies"} from grid…`);
-  const clusterResult = await runEntityGridLocationClusterAgent({
-    apiKey,
-    siteId: site.id,
-    gridRows: parsed.rows,
-    gridKeywordWeights: processed.gridKeywordWeights,
-    gridLocations: processed.placeHints,
-    gridSummaryMarkdown: processed.gridSummaryMarkdown,
-    wikipediaSearchAugment,
-    totalSapBudget: total,
-    entityAdGroupCount: adGroupCount,
-    entityAdsPerGroup: adsPerGroup,
-    entityTypeFocus: [...clusterContext.entityTypeFocus],
-    gridFallbackKeywordBases: scan.keyword.trim() ? [scan.keyword.trim()] : [],
+  report(`Weighting grid cities for ${total} row${total === 1 ? "" : "s"}…`);
+  const planned = await planWeightedGridPlaces({
+    pins: aggregateLocalGridScan(scan.points, scan.targetBusiness).evaluatedPins,
+    keyword: scan.keyword,
     businessName: clusterContext.businessName,
-    siteName: site.name?.trim() || clusterContext.businessName,
     ...(clusterContext.clientAudienceContextMarkdown
       ? { clientAudienceContextMarkdown: clusterContext.clientAudienceContextMarkdown }
       : {}),
-    onClusterPhase: (msg) => report(msg),
-    onClusterProgress: (_done, _total, placeLabel, cumulativeRows) => {
-      report(`Entity ${cumulativeRows}/${total}: ${placeLabel}`);
-    },
+    totalRows: total,
+    apiKey,
+    siteId: site.id,
+    onProgress: report,
   });
 
-  if (clusterResult.sapRows.length !== total) {
-    throw new Error(
-      `Grid clustering produced ${clusterResult.sapRows.length} entity row(s), expected ${total}.`,
-    );
-  }
-
-  let baseRows = finalizeEntitySapRowsForAdGroups(
-    clusterResult.sapRows.map((row) => ({
-      ...row,
-      sitemap_type: "entity" as const,
-      featuredImage: row.featuredImage ?? "google-maps",
-    })),
+  const wikiByCity = new Map(
+    await Promise.all(
+      planned.map(async ({ place }) => {
+        const wiki = await resolveNeighbourhoodWikiOnly(place, cityBucketFromLocationLabel(place), apiKey, site.id);
+        if (!wiki) throw new Error(`No Wikipedia article found for ${place}.`);
+        return [place, wiki] as const;
+      }),
+    ),
   );
 
-  baseRows = applyGridClusterWikipediaToSapRows(baseRows, clusterResult.clusterWikipedia);
+  const baseRows = finalizeEntitySapRowsForAdGroups(
+    planned.flatMap(({ place, pages }) =>
+      Array.from({ length: pages }, (): CSVRow => ({
+        keyword: "",
+        entity: place,
+        title: "",
+        modifier: "",
+        featuredImage: "google-maps",
+        sitemap_type: "entity",
+        wikipedia_url: wikiByCity.get(place)!.url,
+        wikipedia_title: wikiByCity.get(place)!.title,
+      })),
+    ),
+  );
   assertSapRowsHaveLinkedWikipedia(baseRows);
 
   const siteName = site.name?.trim() || businessName;
@@ -149,7 +142,7 @@ export async function generateLocationsWikiRowsFromGrid(options: {
   const { rows: withKeywords } = await fillEntitySlotKeywordsFromGsc({
     site,
     apiKey,
-    model: getResearchModel(site.id),
+    model: getBlogModel(site.id),
     siteName,
     siteUrl,
     rows: baseRows,

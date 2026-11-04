@@ -1,3 +1,4 @@
+import { OrganicClientReportAccordion } from "@/components/organic-dashboard/OrganicClientReportAccordion";
 import { OrganicClientReportInlineText } from "@/components/organic-dashboard/OrganicClientReportInlineText";
 import {
   EXPORT_BODY_CLASS,
@@ -5,10 +6,15 @@ import {
   EXPORT_H3_CLASS,
   EXPORT_NARRATIVE_WELL_CLASS,
 } from "@/components/organic-dashboard/organic-client-report-export-theme";
-import { toExportTitleCase } from "@/lib/organic-dashboard/organic-client-report-copy";
+import {
+  CLIENT_REPORT_ACCORDION_COPY,
+  toExportTitleCase,
+} from "@/lib/organic-dashboard/organic-client-report-copy";
 
 export type OrganicClientReportOverviewSlotProps = {
+  accordionId?: string;
   heading?: string;
+  tooltip?: string;
   headingLevel?: "h2" | "h3";
   paragraphs: string[];
   loading?: boolean;
@@ -17,7 +23,9 @@ export type OrganicClientReportOverviewSlotProps = {
 };
 
 export function OrganicClientReportOverviewSlot({
-  heading = "Overview",
+  accordionId,
+  heading = CLIENT_REPORT_ACCORDION_COPY.performanceStory.label,
+  tooltip = CLIENT_REPORT_ACCORDION_COPY.performanceStory.tooltip,
   headingLevel = "h3",
   paragraphs,
   loading = false,
@@ -27,17 +35,26 @@ export function OrganicClientReportOverviewSlot({
   const HeadingTag = headingLevel === "h2" ? "h2" : "h3";
   const headingClass =
     headingLevel === "h2" ? "organic-client-report-export__insights-title" : EXPORT_H3_CLASS;
-  const headingText = heading ? toExportTitleCase(heading) : "";
+  const headingText = heading ? toExportTitleCase(heading) : CLIENT_REPORT_ACCORDION_COPY.performanceStory.label;
+  const resolvedId =
+    accordionId ||
+    `overview-${headingText.replace(/[^a-zA-Z0-9]+/g, "-").toLowerCase()}`;
 
   if (paragraphs.length > 0) {
     return (
       <div className={EXPORT_NARRATIVE_WELL_CLASS}>
-        {headingText ? <HeadingTag className={headingClass}>{headingText}</HeadingTag> : null}
-        {paragraphs.map((p, idx) => (
-          <p key={`${idx}-${p.slice(0, 24)}`} className={EXPORT_BODY_CLASS}>
-            <OrganicClientReportInlineText text={p} />
-          </p>
-        ))}
+        <OrganicClientReportAccordion
+          id={resolvedId}
+          title={headingText}
+          tooltip={tooltip}
+          contentClassName="flex flex-col gap-3 pt-2"
+        >
+          {paragraphs.map((p, idx) => (
+            <p key={`${idx}-${p.slice(0, 24)}`} className={EXPORT_BODY_CLASS}>
+              <OrganicClientReportInlineText text={p} />
+            </p>
+          ))}
+        </OrganicClientReportAccordion>
       </div>
     );
   }

@@ -13,6 +13,7 @@ export type LocalGridPanelRunnerProps = {
   persistedLayout: LocalGridLayoutSnapshot | null;
   reportError: (message: string) => void;
   onDockSummaryChange: (panelId: string, summary: LocalGridPanelDockSummary) => void;
+  onSaveSnapshot?: (panelId: string, snapshot: LocalGridLayoutSnapshot) => void;
   registerAbort: (panelId: string, abort: () => void) => void;
   unregisterAbort: (panelId: string) => void;
   registerLayoutSnapshot: (panelId: string, getter: () => LocalGridLayoutSnapshot) => void;
@@ -27,6 +28,7 @@ export function LocalGridPanelRunner({
   persistedLayout,
   reportError,
   onDockSummaryChange,
+  onSaveSnapshot,
   registerAbort,
   unregisterAbort,
   registerLayoutSnapshot,
@@ -37,6 +39,7 @@ export function LocalGridPanelRunner({
     reportError,
     layoutLocked,
     persistedLayout,
+    onSaveSnapshot ? (snap) => onSaveSnapshot(panelId, snap) : undefined,
   );
 
   useEffect(() => {

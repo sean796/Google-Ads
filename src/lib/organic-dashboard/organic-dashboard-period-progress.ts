@@ -1,6 +1,7 @@
 import { pickGa4OrganicAcquisition, type GA4ReportData } from "@/components/integrations/types";
 import {
   ORGANIC_GA4_DECK_LABELS,
+  ORGANIC_GA4_USER_ACQ_LABELS,
   organicGa4ClientDisplayLabel,
 } from "@/lib/organic-dashboard/organic-client-report-deck-helpers";
 import {
@@ -172,12 +173,16 @@ export function buildGa4PeriodProgressTable(
   const acqByMonth = new Map(acqMonths.map((m) => [m.yearMonth, m]));
 
   const tableLabels = new Set(ga4Table.map((r) => r.label));
-  const specs = GA4_PERIOD_ROW_SPECS.filter(
-    (s) =>
-      ORGANIC_GA4_DECK_LABELS.has(s.label) &&
-      tableLabels.has(s.label) &&
-      (s.usersField ? usersByMonth.size > 0 : acqByMonth.size > 0),
-  );
+  const useUserAcqSpecs =
+    usersByMonth.size > 0 &&
+    GA4_PERIOD_ROW_SPECS.some((s) => s.usersField && tableLabels.has(s.label));
+  const specs = GA4_PERIOD_ROW_SPECS.filter((s) => {
+    if (!tableLabels.has(s.label)) return false;
+    if (useUserAcqSpecs) {
+      return Boolean(s.usersField) && ORGANIC_GA4_USER_ACQ_LABELS.has(s.label);
+    }
+    return Boolean(s.acqField) && acqByMonth.size > 0 && ORGANIC_GA4_DECK_LABELS.has(s.label);
+  });
   if (specs.length === 0) return null;
 
   const totalsByLabel = new Map(ga4Table.map((r) => [r.label, r.current]));

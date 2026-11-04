@@ -4,7 +4,10 @@ import {
   type OrganicReportingHighlights,
 } from "@/lib/organic-dashboard/organic-reporting-highlights";
 import type { LocalGridScanDocument } from "@/lib/local-grid-studio/local-grid-types";
-import { buildLocalGridClientReportSection } from "@/lib/organic-dashboard/local-grid-client-report";
+import {
+  buildLocalGridClientReportSection,
+  buildLocalGridClientReportSections,
+} from "@/lib/organic-dashboard/local-grid-client-report";
 import { resolveLocalGridNarrativeForReport } from "@/lib/organic-dashboard/local-grid-report-narrative";
 import type { LocalGridClientReportSection } from "@/lib/organic-dashboard/local-grid-client-report";
 import type { OrganicDashboardViewModel } from "@/lib/organic-dashboard/organic-dashboard-view-model";
@@ -58,6 +61,7 @@ export type OrganicClientReportDeckInput = {
   showCompare: boolean;
   preparedOn: string;
   localGridScan?: LocalGridScanDocument | null;
+  localGridScans?: LocalGridScanDocument[] | null;
   clientLogoUrl?: string;
   agencyLogoUrl?: string;
   clientLogoBoxTheme?: "black" | "white";
@@ -99,6 +103,7 @@ export type OrganicClientReportContent = {
   semrushOverviewUrl: string;
   semrushDomain: string;
   performanceNarrative: string[];
+  semrushNarrative: string[];
   keywordNarrative: string[];
   googleAdsDeckRows: DeckSummaryRow[];
   googleAdsAccountCard: ReturnType<typeof buildGoogleAdsReportAccountCard> | null;
@@ -111,6 +116,7 @@ export type OrganicClientReportContent = {
   showHighlightsSection: boolean;
   showLocalGridSection: boolean;
   localGridSection: LocalGridClientReportSection | null;
+  localGridSections: LocalGridClientReportSection[];
   localGridNarrative: string[];
   periodProgressTables: OrganicPeriodProgressTables | null;
 };
@@ -202,6 +208,50 @@ function sanitizeHighlightsForClientReport(
   };
 }
 
+function buildSemrushOwnerNarrative(
+  siteName: string,
+  semrushDeckRows: DeckSummaryRow[],
+  topSemrushKeywords: OrganicClientReportSemrushKeywordRow[],
+): string[] {
+  const brand = normalizeClientReportText(siteName.trim() || "Your business");
+  const findVal = (label: string) =>
+    semrushDeckRows.find((r) => r.label.toLowerCase() === label.toLowerCase())?.later;
+  const keywords = findVal("Keywords");
+  const traffic = findVal("Est. organic traffic");
+  const cost = findVal("Traffic cost");
+
+  const parts: string[] = [];
+  if (keywords && traffic && cost) {
+    parts.push(
+      `${brand} currently ranks on Google for ${keywords} search phrases, bringing in an estimated ${traffic} monthly visitors worth ${cost} in equivalent paid ad value.`,
+    );
+  } else if (keywords && traffic) {
+    parts.push(
+      `${brand} currently ranks on Google for ${keywords} search phrases, driving an estimated ${traffic} monthly visitors from unpaid search results.`,
+    );
+  } else if (keywords) {
+    parts.push(`${brand} currently appears in Google results across ${keywords} tracked search phrases.`);
+  }
+
+  if (topSemrushKeywords.length > 0) {
+    const topPhrases = topSemrushKeywords
+      .slice(0, 3)
+      .map((k) => `**${normalizeClientReportText(k.phrase)}**`)
+      .join(", ");
+    parts.push(
+      `Leading search terms driving visibility include ${topPhrases}.`,
+    );
+  }
+
+  if (parts.length === 0) {
+    return [
+      `${brand} maintains active Google search rankings across tracked industry and local keywords.`,
+    ];
+  }
+
+  return [parts.join(" ")];
+}
+
 export function buildOrganicClientReportContent(input: OrganicClientReportDeckInput): OrganicClientReportContent {
   const {
     viewModel,
@@ -211,6 +261,7 @@ export function buildOrganicClientReportContent(input: OrganicClientReportDeckIn
     showCompare,
     preparedOn,
     localGridScan,
+    localGridScans,
     clientLogoUrl: clientLogoInput,
     agencyLogoUrl: agencyLogoInput,
   } = input;
@@ -245,8 +296,9 @@ export function buildOrganicClientReportContent(input: OrganicClientReportDeckIn
       volume: sanitizeClientReportMetricValue(k.volume),
     }));
 
-  const localGridSection = buildLocalGridClientReportSection(localGridScan);
-  const showLocalGridSection = localGridSection != null;
+  const localGridSections = buildLocalGridClientReportSections(localGridScans, localGridScan);
+  const localGridSection = localGridSections[0] ?? buildLocalGridClientReportSection(localGridScan);
+  const showLocalGridSection = localGridSections.length > 0;
   const showSemrushSection =
     viewModel.hasSemrush && (semrushDeckRows.length > 0 || topSemrushKeywords.length > 0);
   const hasGoogleAds =
@@ -267,6 +319,9 @@ export function buildOrganicClientReportContent(input: OrganicClientReportDeckIn
   const comparePeriodLabel = normalizeClientReportPeriodLabel(viewModel.periodLabels.compare);
   const primaryPeriodLabel = normalizeClientReportPeriodLabel(viewModel.periodLabels.primary);
   const performanceNarrative = clientHighlights.performanceNarrative ?? [];
+  const semrushNarrative = showSemrushSection
+    ? buildSemrushOwnerNarrative(siteName, semrushDeckRows, topSemrushKeywords)
+    : [];
   const keywordNarrative = clientHighlights.keywordNarrative ?? [];
   const googleAdsNarrative = clientHighlights.googleAdsNarrative ?? [];
   const localGridNarrative = localGridSection
@@ -317,6 +372,7 @@ export function buildOrganicClientReportContent(input: OrganicClientReportDeckIn
     semrushOverviewUrl: viewModel.semrushOverviewUrl,
     semrushDomain: viewModel.semrushDomain,
     performanceNarrative,
+    semrushNarrative,
     keywordNarrative,
     googleAdsDeckRows,
     googleAdsAccountCard,
@@ -330,10 +386,11 @@ export function buildOrganicClientReportContent(input: OrganicClientReportDeckIn
         googleAdsOpportunities.length > 0),
     googleAdsLoadError: viewModel.googleAdsLoadError,
     showSemrushSection,
-    showKeywordSection: topQueries.length > 0,
+    showKeywordSection: false,
     showHighlightsSection: highlightStats.length > 0 || opportunities.length > 0,
-    showLocalGridSection: localGridSection != null,
+    showLocalGridSection: localGridSections.length > 0,
     localGridSection,
+    localGridSections,
     localGridNarrative,
     periodProgressTables: viewModel.periodProgressTables,
   };

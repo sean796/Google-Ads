@@ -20,6 +20,7 @@ export type OrganicClientReportDeckPayload = {
   showCompare: boolean;
   preparedOn: string;
   localGridScan?: LocalGridScanDocument | null;
+  localGridScans?: LocalGridScanDocument[] | null;
   clientLogoUrl?: string | null;
   clientLogoBoxTheme?: "black" | "white" | null;
 };
@@ -31,6 +32,14 @@ function parseDeckLocalGridScan(raw: unknown): LocalGridScanDocument | null {
     return null;
   }
   return raw as LocalGridScanDocument;
+}
+
+function parseDeckLocalGridScans(raw: unknown): LocalGridScanDocument[] | null {
+  if (!Array.isArray(raw)) return null;
+  const list = raw
+    .map((item) => parseDeckLocalGridScan(item))
+    .filter((item): item is LocalGridScanDocument => item !== null);
+  return list.length > 0 ? list : null;
 }
 
 const STORAGE_PREFIX = "neo-pulse:organic-client-report:";
@@ -153,6 +162,7 @@ export function parseOrganicClientReportDeckPayload(
   const highlights =
     (highlightsRaw ? normalizeOrganicReportingHighlights(highlightsRaw) : null) ??
     EMPTY_CLIENT_REPORT_HIGHLIGHTS;
+  const localGridScans = parseDeckLocalGridScans(o.localGridScans);
   return {
     siteId,
     siteName: o.siteName,
@@ -162,6 +172,7 @@ export function parseOrganicClientReportDeckPayload(
     viewModel: normalizeOrganicDashboardViewModelForDeck(o.viewModel),
     highlights,
     localGridScan: parseDeckLocalGridScan(o.localGridScan),
+    ...(localGridScans ? { localGridScans } : {}),
     ...(typeof o.clientLogoUrl === "string" && o.clientLogoUrl.trim()
       ? { clientLogoUrl: o.clientLogoUrl.trim() }
       : {}),

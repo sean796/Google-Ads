@@ -66,7 +66,7 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 			$cache_key = 'neo_pulse_orh_' . md5(
 				wp_json_encode(
 					array(
-						'v'        => 9,
+						'v'        => 11,
 						'siteId'   => $site_id,
 						'model'    => $model,
 						'snapshot' => $snapshot,
@@ -89,9 +89,16 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 							set_transient( $cache_key, $cached, 6 * HOUR_IN_SECONDS );
 						}
 					}
+					if ( self::snapshot_has_top_queries( $snapshot ) && empty( $cached['keywordNarrative'] ) ) {
+						$cached = self::patch_keyword_narrative( $body, $site_id, $snapshot, $cached );
+						if ( ! empty( $cached['keywordNarrative'] ) ) {
+							set_transient( $cache_key, $cached, 6 * HOUR_IN_SECONDS );
+						}
+					}
 					$cached_grid_ok = ! $has_grid || ! empty( $cached['localGridNarrative'] );
 					$cached_ads_ok  = ! $has_ads || ! empty( $cached['googleAdsNarrative'] );
-					if ( $cached_grid_ok && $cached_ads_ok ) {
+					$cached_kw_ok   = ! self::snapshot_has_top_queries( $snapshot ) || ! empty( $cached['keywordNarrative'] );
+					if ( $cached_grid_ok && $cached_ads_ok && $cached_kw_ok ) {
 						return array(
 							'statusCode' => 200,
 							'body'       => array(
@@ -112,6 +119,9 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 				$slice_opts  = $job_opts;
 				if ( $spec['id'] === 'google_ads' ) {
 					$slice_opts['responseFormat'] = self::google_ads_response_format();
+				}
+				if ( $spec['id'] === 'keyword' ) {
+					$slice_opts['responseFormat'] = self::keyword_response_format();
 				}
 				$jobs[] = array(
 					'messages' => array(
@@ -141,8 +151,19 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 				);
 			}
 
-			$highlights_out = self::patch_google_ads_narrative( $body, $site_id, $snapshot, $merged['highlights'] );
+			$highlights_out = self::patch_keyword_narrative( $body, $site_id, $snapshot, $merged['highlights'] );
+			$highlights_out = self::patch_google_ads_narrative( $body, $site_id, $snapshot, $highlights_out );
 			$highlights_out = self::patch_local_grid_narrative( $body, $site_id, $snapshot, $highlights_out );
+
+			if ( self::snapshot_has_top_queries( $snapshot ) && empty( $highlights_out['keywordNarrative'] ) ) {
+				return array(
+					'statusCode' => 502,
+					'body'       => array(
+						'success' => false,
+						'error'   => 'Highlights slice "keyword" missing keywordNarrative.',
+					),
+				);
+			}
 
 			if ( self::snapshot_has_google_ads( $snapshot ) && empty( $highlights_out['googleAdsNarrative'] ) ) {
 				return array(
@@ -203,6 +224,43 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 	}
 
 	/**
+	 * @param array<string,mixed> $snapshot
+	 */
+	private static function snapshot_has_top_queries( array $snapshot ): bool {
+		$queries = $snapshot['topQueries'] ?? null;
+		return is_array( $queries ) && count( $queries ) > 0;
+	}
+
+	/**
+	 * @return array{type:string,json_schema:array<string,mixed>}
+	 */
+	private static function keyword_response_format(): array {
+		return array(
+			'type'        => 'json_schema',
+			'json_schema' => array(
+				'name'   => 'organic_keyword_highlights',
+				'strict' => true,
+				'schema' => array(
+					'type'                 => 'object',
+					'additionalProperties' => false,
+					'required'             => array( 'keywordNarrative' ),
+					'properties'           => array(
+						'keywordNarrative' => array(
+							'type'     => 'array',
+							'minItems' => 1,
+							'maxItems' => 2,
+							'items'    => array(
+								'type'      => 'string',
+								'minLength' => 24,
+							),
+						),
+					),
+				),
+			),
+		);
+	}
+
+	/**
 	 * @return array{type:string,json_schema:array<string,mixed>}
 	 */
 	private static function google_ads_response_format(): array {
@@ -237,6 +295,62 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 	 * @param array<string,mixed> $highlights
 	 * @return array<string,mixed>
 	 */
+	private static function patch_keyword_narrative( array $body, string $site_id, array $snapshot, array $highlights ): array {
+		if ( ! self::snapshot_has_top_queries( $snapshot ) || ! empty( $highlights['keywordNarrative'] ) ) {
+			return $highlights;
+		}
+
+		$model = Neo_Pulse_App_Openrouter_Agent_Models::resolve(
+			Neo_Pulse_App_Openrouter_Agent_Models::CATEGORY_REPORT,
+			isset( $body['model'] ) ? (string) $body['model'] : ''
+		);
+
+		$has_semrush = isset( $snapshot['semrushBrandedTotals'] ) && is_array( $snapshot['semrushBrandedTotals'] ) && ! empty( $snapshot['semrushBrandedTotals'] );
+		$slice_snapshot = array_merge(
+			self::snapshot_common_fields( $snapshot ),
+			self::pick_snapshot_fields( $snapshot, array( 'topQueries', 'semrushBrandedTotals' ) )
+		);
+
+		try {
+			$parsed = Neo_Pulse_App_Chat_Openrouter::json_completion(
+				array(
+					array(
+						'role'    => 'system',
+						'content' => self::keyword_system_prompt( $has_semrush ),
+					),
+					array(
+						'role'    => 'user',
+						'content' => self::snapshot_user_message( $slice_snapshot ),
+					),
+				),
+				array(
+					'model'          => $model,
+					'temperature'    => 0.15,
+					'maxTokens'      => 8192,
+					'responseFormat' => self::keyword_response_format(),
+					'reasoning'      => array(
+						'effort'  => 'none',
+						'exclude' => true,
+					),
+				)
+			);
+		} catch ( Exception $e ) {
+			return $highlights;
+		}
+
+		if ( ! is_array( $parsed ) ) {
+			return $highlights;
+		}
+
+		$list = self::string_list( $parsed['keywordNarrative'] ?? array(), 4 );
+		if ( count( $list ) < 1 ) {
+			return $highlights;
+		}
+
+		$highlights['keywordNarrative'] = $list;
+		return $highlights;
+	}
+
 	private static function patch_google_ads_narrative( array $body, string $site_id, array $snapshot, array $highlights ): array {
 		if ( ! self::snapshot_has_google_ads( $snapshot ) || ! empty( $highlights['googleAdsNarrative'] ) ) {
 			return $highlights;
@@ -580,9 +694,6 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 					break;
 				case 'keyword':
 					$highlights['keywordNarrative'] = self::string_list( $parsed['keywordNarrative'] ?? array(), 4 );
-					if ( count( $highlights['keywordNarrative'] ) < 1 ) {
-						return array( 'error' => 'Highlights slice "keyword" missing keywordNarrative.' );
-					}
 					break;
 				case 'seo_opportunities':
 					$top = $parsed['topOpportunities'] ?? array();
@@ -695,19 +806,19 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 	}
 
 	private static function prose_line(): string {
-		return 'American English with full sentence grammar. Use snapshot.siteName for the client brand in prose. ' . self::query_prose_line();
+		return 'Write in plain, everyday business English directly to a busy CEO or business owner (such as the owner of Blind Magic). Use snapshot.siteName for the client brand. Keep sentences simple, warm, and conversational. Avoid stat-heavy dumps because the numbers are already shown in the tables below. Never use technical SEO or analytics acronyms like GA4, GSC, Google Search Console, CTR, SERP, TARP, key events, or impressions; instead say website visits, shoppers seeing your business on Google, clicks to your website, quote and call actions, and neighborhood map spots. ' . self::query_prose_line();
 	}
 
 	private static function ai_search_context_line( bool $has_semrush = false, bool $has_ads = false, bool $has_grid = false ): string {
-		$line = 'AI search context: Google AI Overviews and zero-click summaries can reduce top-of-funnel clicks while high-intent demand still reaches the site. Do not treat a GSC click decline alone as SEO failure. Prioritize key events, engaged sessions, and branded queries in topQueries when present.';
+		$line = 'Owner business context: Google AI summaries answer simple questions right on the search page, so the shoppers who click through to your website are higher-intent buyers ready to browse products or request a quote. Focus on buyer interest, website visits, quote/call actions, and people searching for your brand or products.';
 		if ( $has_semrush ) {
-			$line .= ' Use semrushBrandedTotals only when that object is in the snapshot.';
+			$line .= ' Reference people searching your brand name vs general product searches only when semrushBrandedTotals is in the snapshot.';
 		}
 		if ( $has_ads ) {
-			$line .= ' Include Google Ads leads when googleAdsTotals is in the snapshot.';
+			$line .= ' Mention paid Google Ads leads when googleAdsTotals is in the snapshot.';
 		}
 		if ( $has_grid ) {
-			$line .= ' When localGrid exists, treat map pack visibility as a core local outcome.';
+			$line .= ' When localGrid exists, highlight how well the business shows up in local Google Maps results.';
 		}
 		return $line;
 	}
@@ -719,86 +830,86 @@ class Neo_Pulse_App_Organic_Dashboard_Reporting_Highlights {
 	private static function insights_system_prompt( bool $has_ads = false, bool $has_grid = false, bool $has_semrush = false ): string {
 		$channel_rules = 'Strict rule: ONLY discuss and report on sections and channels that actually exist in the snapshot with active data. Never write negative or omission statements about missing or unconfigured channels (e.g. NEVER write "No Google Ads data is available", "Google Ads is omitted", "No Semrush data reported", or "No local map data"). If a channel or section has no data or is not present, completely omit it without any comment.';
 
-		$takeaway_instructions = 'keyTakeaways: 2–4 sentences covering GA4 engagement/key events and GSC visibility with AI-aware framing.';
+		$takeaway_instructions = 'keyTakeaways: 2–4 short, plain-English bullet sentences for the business owner explaining how website visits, buyer interest on Google, and customer actions moved.';
 		if ( $has_semrush ) {
-			$takeaway_instructions .= ' Include Semrush branded vs non-branded search split.';
+			$takeaway_instructions .= ' Include a simple takeaway on people searching your brand name versus general product searches.';
 		} else {
 			$takeaway_instructions .= ' Do NOT mention Semrush.';
 		}
 		if ( $has_grid ) {
-			$takeaway_instructions .= ' Include localGrid TARP and local map visibility.';
+			$takeaway_instructions .= ' Include a plain-English takeaway on neighborhood Google Maps visibility.';
 		} else {
 			$takeaway_instructions .= ' Do NOT mention local grid or local map.';
 		}
 		if ( $has_ads ) {
-			$takeaway_instructions .= ' Include one concise line summarizing Google Ads leads/spend from googleAdsTotals.';
+			$takeaway_instructions .= ' Include one clear line on customer leads and ad spend from paid Google Ads.';
 		} else {
 			$takeaway_instructions .= ' Do NOT mention Google Ads or paid search at all.';
 		}
 
-		return 'Neo Digital SEO report. JSON only: {"executiveSummary":"string","keyTakeaways":["string"]}.' . "\n\n"
+		return 'Neo Digital owner-friendly performance report. JSON only: {"executiveSummary":"string","keyTakeaways":["string"]}.' . "\n\n"
 			. self::prose_line() . "\n\n"
 			. self::ai_search_context_line( $has_semrush, $has_ads, $has_grid ) . "\n\n"
 			. self::no_dates_line() . "\n\n"
 			. $channel_rules . "\n\n"
-			. 'executiveSummary: one sentence on business outcomes (demand quality, leads/key events, branded visibility), not vanity traffic alone. '
+			. 'executiveSummary: one simple, direct sentence for the CEO/owner explaining the bottom-line business story (customer demand, quote/call actions, and brand presence) without listing a string of raw numbers. '
 			. $takeaway_instructions;
 	}
 
 	private static function performance_system_prompt( bool $has_semrush = false ): string {
 		$semrush_line = $has_semrush
-			? 'When semrushBrandedTotals is in the snapshot, briefly note branded vs non-branded search volume alongside GA4 and GSC.'
-			: 'Do NOT mention Semrush, branded search totals, or branded vs non-branded volume. Use only GA4 and GSC from the snapshot.';
+			? 'When semrushBrandedTotals is in the snapshot, briefly explain how many people searched directly for the company name versus general product terms.'
+			: 'Do NOT mention Semrush, branded search totals, or branded vs non-branded volume.';
 
-		return 'Neo Digital SEO report. JSON only: {"performanceNarrative":["string"]}.' . "\n\n"
+		return 'Neo Digital owner-friendly performance report. JSON only: {"performanceNarrative":["string"]}.' . "\n\n"
 			. self::prose_line() . "\n\n"
 			. self::ai_search_context_line( $has_semrush, false, false ) . "\n\n"
 			. self::no_dates_line() . "\n\n"
 			. self::missing_channel_rules_line() . "\n\n"
-			. 'Write 2–4 short paragraphs (about 80–120 words total): synthesize GA4 organic sessions (engaged sessions, key events) and GSC search visibility (clicks, impressions, CTR, position) with AI-aware interpretation. '
+			. 'Write 1 or 2 short, easy-to-read paragraphs (about 60–90 words total) for a business owner: explain in plain language how website visits, active shoppers on the site, and visibility on Google moved, focusing on what it means for customer inquiries rather than reciting every number from the table. '
 			. $semrush_line . ' No Google Ads. Output only the JSON object.';
 	}
 
 	private static function keyword_system_prompt( bool $has_semrush = false ): string {
 		$semrush_line = $has_semrush
-			? ' You may reference Semrush branded totals only when semrushBrandedTotals is in the snapshot.'
+			? ' You may briefly note brand-name demand when semrushBrandedTotals is in the snapshot.'
 			: ' Do NOT mention Semrush or branded search totals.';
 
-		return 'Neo Digital SEO report. JSON only: {"keywordNarrative":["string"]}.' . "\n\n"
+		return 'Neo Digital owner-friendly performance report. JSON only: {"keywordNarrative":["string"]}.' . "\n\n"
 			. self::prose_line() . "\n\n"
 			. self::ai_search_context_line( $has_semrush, false, false ) . "\n\n"
 			. self::no_dates_line() . "\n\n"
 			. self::missing_channel_rules_line() . "\n\n"
-			. 'Write one or two concise paragraphs (maximum 200 words total) summarizing topQueries. Separate branded queries (containing snapshot.siteName tokens) from non-branded demand.'
+			. 'Required: keywordNarrative must contain 1 or 2 short, plain-English paragraphs (each at least two sentences, maximum 140 words total). Explain to the business owner what customers are typing into Google to find them, distinguishing people searching directly for their company name from shoppers looking for specific products or services (such as custom blinds, shades, or local installers) without overloading the paragraph with raw numbers.'
 			. $semrush_line
-			. ' When showCompare is true, compare laterClicks and earlierClicks across top queries. When showCompare is false, summarize clicks, impressions, and avgPosition for the leading queries. If topQueries is empty, return one factual sentence stating that query-level Search Console data was not recorded for the period. Output only the JSON object.';
+			. ' If topQueries is empty, return one simple sentence stating that individual search terms were not recorded for this window. Output only the JSON object.';
 	}
 
 	private static function seo_opportunities_system_prompt( bool $has_semrush = false ): string {
 		$branded = $has_semrush
-			? 'GA4 key events/engagement, GSC, and branded vs non-branded queries when data exists.'
-			: 'GA4 key events/engagement and GSC only; do not mention Semrush or branded search totals.';
+			? 'customer actions, Google search terms, and brand vs product demand when data exists.'
+			: 'customer actions and Google search terms only; do not mention Semrush or branded search totals.';
 
-		return 'Neo Digital SEO report. JSON only: {"topOpportunities":[{"rank":1,"label":"string","why":"string","comparisonRows":[{"metric":"string","comparePeriodValue":"string","primaryPeriodValue":"string"}]}]}.' . "\n\n"
+		return 'Neo Digital owner-friendly performance report. JSON only: {"topOpportunities":[{"rank":1,"label":"string","why":"string","comparisonRows":[{"metric":"string","comparePeriodValue":"string","primaryPeriodValue":"string"}]}]}.' . "\n\n"
 			. self::prose_line() . "\n\n"
 			. self::ai_search_context_line( $has_semrush, false, false ) . "\n\n"
 			. self::no_dates_line() . "\n\n"
 			. self::missing_channel_rules_line() . "\n\n"
-			. 'Three or four organic opportunities (' . $branded . ') Each why is one or two full sentences (capital letter first); bold queries in Title Case per query rules above. No Google Ads metrics. No actions.';
+			. 'Three or four growth opportunities (' . $branded . ') Write each label as a clear, owner-friendly headline (no SEO jargon). Each why is one or two simple sentences explaining in plain business speak why this search term or trend matters for bringing in more customers and quotes; bold search terms in Title Case per query rules above. Do not cram raw stats into why because the table below already shows the numbers. No Google Ads metrics.';
 	}
 
 	private static function local_grid_system_prompt(): string {
-		return 'Neo Digital local SEO report. JSON only: {"localGridNarrative":["string"]}.' . "\n\n"
+		return 'Neo Digital owner-friendly local report. JSON only: {"localGridNarrative":["string"]}.' . "\n\n"
 			. self::prose_line() . "\n\n"
 			. self::no_dates_line() . "\n\n"
-			. 'Required: localGridNarrative must contain at least one non-empty string (one or two short paragraphs). Write like the keyword performance section: interpret the scan for a client, cite TARP, average rank, top-3 (high) share, and outside-top-20 (out) share from localGrid.summary, plus the tracked keyword. Explain where map pack visibility is strong vs weak and what that means for local leads. Do not invent cities or ranks not in localGrid.summary.';
+			. 'Required: localGridNarrative must contain 1 short, plain-English paragraph for a business owner. Explain where the business shows up in the top 3 on Google Maps for the tracked search term and where outlying neighborhoods have room to grow to bring in more local callers and showroom/in-home visits. Avoid technical acronyms like TARP; use everyday language and let the scorecard table below carry the exact percentages.';
 	}
 
 	private static function google_ads_system_prompt(): string {
-		return 'Neo Digital SEO report. JSON only: {"googleAdsNarrative":["string"],"topOpportunities":[{"rank":1,"label":"string","why":"string","comparisonRows":[{"metric":"string","comparePeriodValue":"string","primaryPeriodValue":"string"}]}]}.' . "\n\n"
+		return 'Neo Digital owner-friendly report. JSON only: {"googleAdsNarrative":["string"],"topOpportunities":[{"rank":1,"label":"string","why":"string","comparisonRows":[{"metric":"string","comparePeriodValue":"string","primaryPeriodValue":"string"}]}]}.' . "\n\n"
 			. self::prose_line() . "\n\n"
 			. self::no_dates_line() . "\n\n"
-			. 'Required: googleAdsNarrative must contain 1 or 2 non-empty strings (each at least two sentences). Interpret leads, cost per lead, spend, and clicks strictly from googleAdsTotals and googleAdsBudgetCaption when present. Write substantive paid-search analysis only; never say Google Ads data is missing, omitted, unavailable, or not configured.' . "\n\n"
+			. 'Required: googleAdsNarrative must contain 1 or 2 short, plain-English paragraphs (each at least two sentences) for the business owner. Explain how the paid ad budget performed in bringing in customer leads, calls, and website visits without repeating every number in the scorecard. Never say Google Ads data is missing, omitted, unavailable, or not configured.' . "\n\n"
 			. 'topOpportunities: optional 0–2 paid items with (Google Ads) in the label and comparisonRows from googleAdsTotals.';
 	}
 }

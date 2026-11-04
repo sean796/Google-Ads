@@ -320,15 +320,21 @@ export function serializeOrganicClientReportMarkdown(content: OrganicClientRepor
     }
   }
 
-  if (content.showLocalGridSection && content.localGridSection) {
-    const grid = content.localGridSection;
+  if (content.showLocalGridSection && (content.localGridSections?.length || content.localGridSection)) {
+    const grids = content.localGridSections?.length
+      ? content.localGridSections
+      : content.localGridSection
+        ? [content.localGridSection]
+        : [];
     blocks.push("## Local Map Visibility", "");
     const gridExplainer = content.localGridNarrative[0];
     if (gridExplainer) {
       blocks.push(gridExplainer, "");
     }
-    blocks.push("### Map Pack Metrics", "");
-    blocks.push(metricRowsMarkdown(grid.summaryRows, false, comparePeriodLabel, primaryPeriodLabel), "");
+    for (const grid of grids) {
+      const heading = grid.meta.locationLabel || grid.meta.businessLabel || "Local Map Grid";
+      blocks.push(`### ${heading} (${grid.meta.keyword})`, "");
+    }
   }
 
   if (showGoogleAdsSection) {

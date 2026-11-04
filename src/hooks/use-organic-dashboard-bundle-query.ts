@@ -14,7 +14,7 @@ export function useOrganicDashboardBundleQuery(args: {
   const queryKey =
     args.fetchParams != null
       ? organicDashboardBundleQueryKey(args.siteId, args.fetchParams)
-      : (["organic-dashboard-bundle", "v2", args.siteId, null] as const);
+      : (["organic-dashboard-bundle", "v3", args.siteId, null] as const);
 
   return useQuery({
     queryKey,

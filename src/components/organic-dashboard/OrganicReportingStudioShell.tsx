@@ -22,6 +22,7 @@ import {
   type Ga4ReportingDateHarness,
 } from "@/components/research/reporting/Ga4ReportingDateRangePopover";
 import type { OrganicClientReportContent } from "@/lib/organic-dashboard/organic-client-report-content";
+import { formatOwnerReportHeading } from "@/lib/organic-dashboard/organic-client-report-copy";
 import { NOTIFY_CSV_DOWNLOADED } from "@/lib/notify-messages";
 import { notify } from "@/lib/app-notifications";
 import { cn } from "@/lib/utils";
@@ -225,8 +226,8 @@ export function OrganicReportingStudioShell({
     if (reportContent.showPerformanceSection) {
       items.push({
         id: "outline-performance",
-        title: "Performance Summary (GA4 & GSC)",
-        subtitle: "/performance-summary",
+        title: formatOwnerReportHeading("Performance summary"),
+        subtitle: "/ga4",
         anchorId: "export-section-performance-summary",
         isReady: reportContent.traffic.length > 0 || reportContent.search.length > 0,
         downloadFile: {
@@ -248,8 +249,8 @@ export function OrganicReportingStudioShell({
     if (reportContent.showSemrushSection) {
       items.push({
         id: "outline-semrush",
-        title: "Semrush Estimates",
-        subtitle: "/semrush-estimates",
+        title: formatOwnerReportHeading("Semrush estimates"),
+        subtitle: "/semrush",
         anchorId: "export-section-semrush-estimates",
         isReady:
           reportContent.semrushDeckRows.length > 0 ||
@@ -272,7 +273,7 @@ export function OrganicReportingStudioShell({
     if (reportContent.showKeywordSection) {
       items.push({
         id: "outline-keywords",
-        title: "Keyword Performance",
+        title: formatOwnerReportHeading("Keyword performance"),
         subtitle: "/keyword-performance",
         anchorId: "export-section-keyword-performance",
         isReady: reportContent.topQueries.length > 0,
@@ -294,7 +295,7 @@ export function OrganicReportingStudioShell({
     if (reportContent.showHighlightsSection) {
       items.push({
         id: "outline-highlights",
-        title: "Highlights & Opportunities",
+        title: formatOwnerReportHeading("Highlights"),
         subtitle: "/highlights",
         anchorId: "export-section-highlights",
         isReady:
@@ -314,19 +315,26 @@ export function OrganicReportingStudioShell({
       });
     }
 
-    if (reportContent.showLocalGridSection && reportContent.localGridSection) {
+    if (reportContent.showLocalGridSection && (reportContent.localGridSections?.length || reportContent.localGridSection)) {
+      const sections = reportContent.localGridSections?.length
+        ? reportContent.localGridSections
+        : reportContent.localGridSection
+          ? [reportContent.localGridSection]
+          : [];
       items.push({
         id: "outline-local-grid",
-        title: "Local map visibility",
-        subtitle: "/local-map",
+        title: formatOwnerReportHeading("Local map visibility"),
+        subtitle: `/local-map (${sections.length})`,
         anchorId: "export-section-local-map-visibility",
         isReady: true,
         downloadFile: {
           name: "local-grid.json",
           content: JSON.stringify(
             {
-              meta: reportContent.localGridSection.meta,
-              summaryRows: reportContent.localGridSection.summaryRows,
+              locations: sections.map((s) => ({
+                meta: s.meta,
+                summaryRows: s.summaryRows,
+              })),
               narrative: reportContent.localGridNarrative,
             },
             null,
@@ -340,7 +348,7 @@ export function OrganicReportingStudioShell({
     if (reportContent.showGoogleAdsSection) {
       items.push({
         id: "outline-google-ads",
-        title: "Google Ads",
+        title: formatOwnerReportHeading("Google Ads"),
         subtitle: "/google-ads",
         anchorId: "export-section-google-ads",
         isReady:

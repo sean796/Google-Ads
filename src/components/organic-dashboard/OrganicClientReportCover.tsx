@@ -1,12 +1,16 @@
 import { useId } from "react";
 import { cn } from "@/lib/utils";
+import { OrganicClientReportAccordion } from "@/components/organic-dashboard/OrganicClientReportAccordion";
 import { OrganicClientReportInlineText } from "@/components/organic-dashboard/OrganicClientReportInlineText";
 import {
   cleanTakeawayBulletText,
   isNonExistentSectionOmissionStatement,
   stripNonExistentOmissionClauses,
 } from "@/lib/organic-dashboard/organic-client-report-deck-helpers";
-import { toExportTitleCase } from "@/lib/organic-dashboard/organic-client-report-copy";
+import {
+  CLIENT_REPORT_ACCORDION_COPY,
+  toExportTitleCase,
+} from "@/lib/organic-dashboard/organic-client-report-copy";
 
 export type OrganicClientReportCoverProps = {
   siteName: string;
@@ -22,6 +26,7 @@ export type OrganicClientReportCoverProps = {
   insightsLoading?: boolean;
   insightsError?: string | null;
   totalPages?: number;
+  pdfExport?: boolean;
   className?: string;
 };
 
@@ -105,6 +110,7 @@ export function OrganicClientReportCover({
   insightsLoading = false,
   insightsError = null,
   totalPages,
+  pdfExport = false,
   className,
 }: OrganicClientReportCoverProps) {
   const clipId = useId().replace(/:/g, "");
@@ -251,60 +257,104 @@ export function OrganicClientReportCover({
           <ReportNetworkGlobeEmblem className="organic-client-report-export__cover-emblem" />
         </div>
 
-        {/* Insights Box (Integrated with Neo Digital signature brand styling) */}
+        {/* Insights Box (Always expanded on PDF; collapsible accordion on screen) */}
         <div className="organic-client-report-export__cover-insights-box">
-          <h2 className="organic-client-report-export__cover-insights-heading">
-            {toExportTitleCase("Insights")}
-          </h2>
+          {pdfExport ? (
+            <div className="flex flex-col gap-2">
+              <h2 className="m-0 text-base font-bold text-[#09090b]">
+                {CLIENT_REPORT_ACCORDION_COPY.coverInsights.label}
+              </h2>
+              {summaryText ? (
+                <p className="organic-client-report-export__cover-insights-summary">
+                  <OrganicClientReportInlineText text={summaryText} />
+                </p>
+              ) : null}
+              {(() => {
+                const visibleTakeaways = keyTakeaways
+                  .map((t) => cleanTakeawayBulletText(stripNonExistentOmissionClauses(t)))
+                  .filter(
+                    (t) => t.length > 0 && !isNonExistentSectionOmissionStatement(t),
+                  );
+                if (visibleTakeaways.length === 0) return null;
+                return (
+                  <div className="organic-client-report-export__cover-insights-takeaways">
+                    <ul className="organic-client-report-export__cover-insights-bullets">
+                      {visibleTakeaways.map((takeaway, idx) => {
+                        const text = cleanTakeawayBulletText(takeaway);
+                        return (
+                          <li
+                            key={`${idx}-${text}`}
+                            className="organic-client-report-export__cover-insights-bullet-item"
+                          >
+                            <span
+                              className="organic-client-report-export__cover-insights-bullet-dot"
+                              aria-hidden="true"
+                            />
+                            <span className="organic-client-report-export__cover-insights-bullet-text">
+                              <OrganicClientReportInlineText text={text} />
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                );
+              })()}
+            </div>
+          ) : (
+            <OrganicClientReportAccordion
+              id="cover-insights"
+              title={CLIENT_REPORT_ACCORDION_COPY.coverInsights.label}
+              tooltip={CLIENT_REPORT_ACCORDION_COPY.coverInsights.tooltip}
+              contentClassName="flex flex-col gap-3 pt-2"
+            >
+              {summaryText ? (
+                <p className="organic-client-report-export__cover-insights-summary">
+                  <OrganicClientReportInlineText text={summaryText} />
+                </p>
+              ) : insightsLoading ? (
+                <p className="organic-client-report-export__cover-insights-summary text-slate-500 italic">
+                  Generating executive summary…
+                </p>
+              ) : insightsError ? (
+                <p className="organic-client-report-export__cover-insights-summary text-rose-600">
+                  {insightsError}
+                </p>
+              ) : null}
 
-          {summaryText ? (
-            <p className="organic-client-report-export__cover-insights-summary">
-              <OrganicClientReportInlineText text={summaryText} />
-            </p>
-          ) : insightsLoading ? (
-            <p className="organic-client-report-export__cover-insights-summary text-slate-500 italic">
-              Generating executive summary…
-            </p>
-          ) : insightsError ? (
-            <p className="organic-client-report-export__cover-insights-summary text-rose-600">
-              {insightsError}
-            </p>
-          ) : null}
-
-          {(() => {
-            const visibleTakeaways = keyTakeaways
-              .map((t) => cleanTakeawayBulletText(stripNonExistentOmissionClauses(t)))
-              .filter(
-                (t) => t.length > 0 && !isNonExistentSectionOmissionStatement(t),
-              );
-            if (visibleTakeaways.length === 0) return null;
-            return (
-              <div className="organic-client-report-export__cover-insights-takeaways">
-                <h3 className="organic-client-report-export__cover-insights-takeaways-title">
-                  {toExportTitleCase("Key Takeaways")}
-                </h3>
-                <ul className="organic-client-report-export__cover-insights-bullets">
-                  {visibleTakeaways.map((takeaway, idx) => {
-                    const text = cleanTakeawayBulletText(takeaway);
-                    return (
-                      <li
-                        key={`${idx}-${text}`}
-                        className="organic-client-report-export__cover-insights-bullet-item"
-                      >
-                        <span
-                          className="organic-client-report-export__cover-insights-bullet-dot"
-                          aria-hidden="true"
-                        />
-                        <span className="organic-client-report-export__cover-insights-bullet-text">
-                          <OrganicClientReportInlineText text={text} />
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            );
-          })()}
+              {(() => {
+                const visibleTakeaways = keyTakeaways
+                  .map((t) => cleanTakeawayBulletText(stripNonExistentOmissionClauses(t)))
+                  .filter(
+                    (t) => t.length > 0 && !isNonExistentSectionOmissionStatement(t),
+                  );
+                if (visibleTakeaways.length === 0) return null;
+                return (
+                  <div className="organic-client-report-export__cover-insights-takeaways">
+                    <ul className="organic-client-report-export__cover-insights-bullets">
+                      {visibleTakeaways.map((takeaway, idx) => {
+                        const text = cleanTakeawayBulletText(takeaway);
+                        return (
+                          <li
+                            key={`${idx}-${text}`}
+                            className="organic-client-report-export__cover-insights-bullet-item"
+                          >
+                            <span
+                              className="organic-client-report-export__cover-insights-bullet-dot"
+                              aria-hidden="true"
+                            />
+                            <span className="organic-client-report-export__cover-insights-bullet-text">
+                              <OrganicClientReportInlineText text={text} />
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                );
+              })()}
+            </OrganicClientReportAccordion>
+          )}
         </div>
         <footer className="organic-client-report-export__sheet-footer mt-auto pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
           <span>Neo Digital Inc</span>

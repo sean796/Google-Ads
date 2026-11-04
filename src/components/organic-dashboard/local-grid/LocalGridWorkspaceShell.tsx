@@ -33,21 +33,62 @@ function createPanelId(): string {
   return `panel_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
+export function createDefaultPanelsForSite(
+  site: WordPressSite | undefined,
+  defaultSiteId: string,
+  createId: () => string,
+): { panels: LocalGridWorkspacePanel[]; activePanelId: string } {
+  const kw = site?.primaryLocalKeyword?.trim() || "blinds near me";
+  const locs =
+    site?.locations && site.locations.length > 0
+      ? site.locations
+      : site?.napInfo?.locations ?? [];
+  if (locs.length === 0) {
+    return createFallbackWorkspace(defaultSiteId, createId);
+  }
+  const panels: LocalGridWorkspacePanel[] = locs.map((loc, idx) => {
+    const addr = [loc.address, loc.city, loc.state, loc.zip].filter(Boolean).join(", ");
+    return {
+      id: `grid_${defaultSiteId}_loc_${idx + 1}`,
+      siteId: defaultSiteId,
+      layoutLocked: false,
+      layoutSnapshot: {
+        keyword: kw,
+        centerLat: 53.5461,
+        centerLng: -113.4938,
+        scanSize: "7x7",
+        shape: "circle",
+        distance: 3,
+        distanceMeasure: "mile",
+        activeBusiness: {
+          key: `biz:${defaultSiteId}:loc:${idx + 1}`,
+          business: loc.name || site?.napInfo?.name || site?.name || "",
+          address: addr,
+          placeId: site?.gbpLocationId?.trim() || "",
+          cid: site?.gbpLocationId?.trim() || "",
+          websiteUrl: (site?.productionSiteUrl || site?.siteUrl || "").trim(),
+          primaryCategory: "",
+          secondaryCategories: "",
+          rating: null,
+          reviews: null,
+          latitude: null,
+          longitude: null,
+        },
+        activeScanId: null,
+      },
+    };
+  });
+  return {
+    panels,
+    activePanelId: panels[0]!.id,
+  };
+}
+
 export function LocalGridWorkspaceShell({
   sites,
   defaultSiteId,
   reportError,
 }: LocalGridWorkspaceShellProps) {
-  const [{ panels, activePanelId }, setWorkspace] = useState(() =>
-    createFallbackWorkspace(defaultSiteId, createPanelId),
-  );
-  const [hydrated, setHydrated] = useState(false);
-  const [dockSummaries, setDockSummaries] = useState<
-    Record<string, LocalGridPanelDockSummary | undefined>
-  >({});
-  const abortByPanelRef = useRef<Map<string, () => void>>(new Map());
-  const snapshotByPanelRef = useRef<Map<string, () => LocalGridLayoutSnapshot>>(new Map());
-
   const siteById = useMemo(() => {
     const map = new Map<string, WordPressSite>();
     for (const s of sites) {
@@ -56,12 +97,23 @@ export function LocalGridWorkspaceShell({
     return map;
   }, [sites]);
 
+  const [{ panels, activePanelId }, setWorkspace] = useState(() =>
+    createDefaultPanelsForSite(siteById.get(defaultSiteId), defaultSiteId, createPanelId),
+  );
+  const [hydrated, setHydrated] = useState(false);
+  const [dockSummaries, setDockSummaries] = useState<
+    Record<string, LocalGridPanelDockSummary | undefined>
+  >({});
+  const abortByPanelRef = useRef<Map<string, () => void>>(new Map());
+  const snapshotByPanelRef = useRef<Map<string, () => LocalGridLayoutSnapshot>>(new Map());
+
   useEffect(() => {
     let cancelled = false;
     setDockSummaries({});
     void (async () => {
       const raw = await fetchLocalGridWorkspace(defaultSiteId);
       if (cancelled) return;
+      const defaultSite = siteById.get(defaultSiteId);
       const parsed = parsePersistedWorkspace(raw, defaultSiteId, createPanelId);
       if (parsed) {
         const clientPanels = parsed.panels.filter((p) => p.siteId === defaultSiteId);
@@ -72,17 +124,17 @@ export function LocalGridWorkspaceShell({
             activePanelId: activeOk ? parsed.activePanelId : clientPanels[0]!.id,
           });
         } else {
-          setWorkspace(createFallbackWorkspace(defaultSiteId, createPanelId));
+          setWorkspace(createDefaultPanelsForSite(defaultSite, defaultSiteId, createPanelId));
         }
       } else {
-        setWorkspace(createFallbackWorkspace(defaultSiteId, createPanelId));
+        setWorkspace(createDefaultPanelsForSite(defaultSite, defaultSiteId, createPanelId));
       }
       setHydrated(true);
     })();
     return () => {
       cancelled = true;
     };
-  }, [defaultSiteId]);
+  }, [defaultSiteId, siteById]);
 
   const persistWorkspace = useCallback(
     (state: { panels: LocalGridWorkspacePanel[]; activePanelId: string }) => {
@@ -106,14 +158,25 @@ export function LocalGridWorkspaceShell({
       if (
         cur &&
         cur.businessLabel === summary.businessLabel &&
+        cur.locationLabel === summary.locationLabel &&
         cur.keyword === summary.keyword &&
         cur.scanning === summary.scanning &&
-        cur.avgRank === summary.avgRank
+        cur.avgRank === summary.avgRank &&
+        cur.lastScanDateLabel === summary.lastScanDateLabel
       ) {
         return prev;
       }
       return { ...prev, [panelId]: summary };
     });
+  }, []);
+
+  const handleSaveSnapshot = useCallback((panelId: string, snapshot: LocalGridLayoutSnapshot) => {
+    setWorkspace((prev) => ({
+      ...prev,
+      panels: prev.panels.map((p) =>
+        p.id === panelId ? { ...p, layoutSnapshot: snapshot } : p,
+      ),
+    }));
   }, []);
 
   const registerAbort = useCallback((panelId: string, abort: () => void) => {
@@ -188,9 +251,10 @@ export function LocalGridWorkspaceShell({
         site={site}
         isActive={isActive}
         layoutLocked={panel.layoutLocked}
-        persistedLayout={panel.layoutLocked ? panel.layoutSnapshot ?? null : null}
+        persistedLayout={panel.layoutSnapshot ?? null}
         reportError={reportError}
         onDockSummaryChange={handleDockSummaryChange}
+        onSaveSnapshot={handleSaveSnapshot}
         registerAbort={registerAbort}
         unregisterAbort={unregisterAbort}
         registerLayoutSnapshot={registerLayoutSnapshot}

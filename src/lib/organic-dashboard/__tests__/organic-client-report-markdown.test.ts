@@ -55,8 +55,7 @@ describe("serializeOrganicClientReportMarkdown", () => {
     expect(md).toContain("## Insights");
     expect(md).toContain("Traffic improved in September.");
     expect(md).toContain("## Performance summary");
-    expect(md).toContain("## Keyword performance");
-    expect(md).toContain("brand blinds");
+    expect(md).not.toContain("## Keyword performance");
   });
 });
 

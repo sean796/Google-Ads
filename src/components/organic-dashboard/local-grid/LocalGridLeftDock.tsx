@@ -44,11 +44,15 @@ export function LocalGridLeftDock({
           {panels.map((panel, index) => {
             const isActive = panel.id === activePanelId;
             const summary = dockSummaries[panel.id];
-            const siteValid = sites.some((s) => s.id === panel.siteId);
-            const keywordDisplay =
-              siteValid && summary?.keyword && summary.keyword !== "—"
-                ? summary.keyword
-                : `Grid ${index + 1}`;
+            const site = sites.find((s) => s.id === panel.siteId);
+            const snapKw = panel.layoutSnapshot?.keyword?.trim() ?? "";
+            const siteKw = site?.primaryLocalKeyword?.trim() ?? "";
+            const summaryKw = summary?.keyword && summary.keyword !== "—" ? summary.keyword.trim() : "";
+            const keywordDisplay = summaryKw || snapKw || siteKw || "blinds near me";
+            const locationDisplay =
+              summary?.locationLabel ||
+              panel.layoutSnapshot?.activeBusiness?.address?.trim() ||
+              "";
             const scanDateDisplay = summary?.lastScanDateLabel || "No scans yet";
 
             return (
@@ -75,6 +79,11 @@ export function LocalGridLeftDock({
                       >
                         {keywordDisplay}
                       </span>
+                      {locationDisplay ? (
+                        <span className="block truncate text-xs text-zinc-300">
+                          {locationDisplay}
+                        </span>
+                      ) : null}
                       <span className="block truncate text-xs text-zinc-400">
                         {scanDateDisplay}
                       </span>

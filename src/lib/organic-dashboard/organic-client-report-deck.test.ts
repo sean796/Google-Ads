@@ -134,19 +134,20 @@ describe("parseDeckCountDisplay", () => {
 });
 
 describe("buildHeadlineSummaryRows", () => {
-  it("includes only headline GA4 rows plus GSC totals", () => {
+  it("includes User acquisition GA4 rows plus GSC totals", () => {
     const rows = buildHeadlineSummaryRows(minimalViewModel(), true);
     const labels = rows.map((r) => r.label);
     expect(labels).toEqual([
-      "Sessions",
+      "Total users",
+      "New users",
       "Total clicks",
       "Total impressions",
       "Average CTR",
       "Average position",
     ]);
-    expect(rows[0]?.label).toBe("Sessions");
-    expect(rows[0]?.earlier).toBe("800");
-    expect(rows[0]?.later).toBe("900");
+    expect(rows[0]?.label).toBe("Total users");
+    expect(rows[0]?.earlier).toBe("1.0K");
+    expect(rows[0]?.later).toBe("1.2K");
   });
 });
 
