@@ -32,14 +32,19 @@ class Neo_Pulse_App_Organic_Dashboard_Client_Report_Share {
 	 */
 	public static function save( array $body ): array {
 		$user = class_exists( 'Neo_Pulse_App_Auth_Session' ) ? Neo_Pulse_App_Auth_Session::require_user() : null;
+		$hub_automation = false;
 		if ( ! is_array( $user ) || empty( $user['id'] ) ) {
-			return array(
-				'statusCode' => 401,
-				'body'       => array(
-					'ok'    => false,
-					'error' => 'Sign in to publish a client report link.',
-				),
-			);
+			$hub_automation = class_exists( 'Neo_Pulse_App_Hub_Data_Sync' )
+				&& Neo_Pulse_App_Hub_Data_Sync::request_has_valid_sync_token();
+			if ( ! $hub_automation ) {
+				return array(
+					'statusCode' => 401,
+					'body'       => array(
+						'ok'    => false,
+						'error' => 'Sign in to publish a client report link.',
+					),
+				);
+			}
 		}
 
 		$deck_id = isset( $body['deckId'] ) ? self::normalize_deck_id( (string) $body['deckId'] ) : null;
@@ -80,7 +85,7 @@ class Neo_Pulse_App_Organic_Dashboard_Client_Report_Share {
 			'siteId'    => $site_id,
 			'payload'   => $payload,
 			'savedAt'   => gmdate( 'c' ),
-			'savedBy'   => (int) $user['id'],
+			'savedBy'   => $hub_automation ? 0 : (int) $user['id'],
 		);
 
 		Neo_Pulse_App_Json_File_Store::write( self::file_path( $deck_id ), $record );

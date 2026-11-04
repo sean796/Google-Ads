@@ -224,6 +224,21 @@ async function syncClientLogosToHub(localBase, hubBase, sites) {
   console.log(`[hub] client-logos copied: ${copied}`);
 }
 
+async function syncLocalGridWorkspace(localBase, hubBase, siteId) {
+  const wsRes = await fetch(
+    `${localBase}/api/organic-dashboard/local-grid/workspace?siteId=${encodeURIComponent(siteId)}`,
+    { headers: { Accept: "application/json" } },
+  );
+  const wsPayload = await wsRes.json();
+  const workspace = wsPayload?.workspace;
+  if (!workspace || !Array.isArray(workspace.panels) || workspace.panels.length === 0) return;
+  await apiJson(hubBase, "organic-dashboard/local-grid/workspace", {
+    method: "POST",
+    body: JSON.stringify({ siteId, workspace }),
+  });
+  console.log(`[hub] local-grid workspace for ${siteId} (${workspace.panels.length} panels)`);
+}
+
 async function syncLocalGridScans(localBase, hubBase, siteId) {
   const historyRes = await fetch(
     `${localBase}/api/organic-dashboard/local-grid/history?siteId=${encodeURIComponent(siteId)}`,
@@ -232,7 +247,7 @@ async function syncLocalGridScans(localBase, hubBase, siteId) {
   const history = await historyRes.json();
   const scans = Array.isArray(history?.scans) ? history.scans : [];
   if (!scans.length) return;
-  for (const row of scans.slice(0, 5)) {
+  for (const row of scans) {
     const scanId = row?.scanId;
     if (!scanId) continue;
     const scanRes = await fetch(
@@ -333,6 +348,7 @@ async function main() {
   for (const site of sites) {
     const id = site?.id;
     if (typeof id === "string" && id.trim() !== "") {
+      await syncLocalGridWorkspace(LOCAL_API, HUB_API, id.trim());
       await syncLocalGridScans(LOCAL_API, HUB_API, id.trim());
     }
   }

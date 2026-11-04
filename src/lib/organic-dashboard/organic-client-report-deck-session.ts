@@ -122,9 +122,10 @@ export function writeOrganicClientReportDeckSession(
 export async function publishOrganicClientReportDeckSession(
   deckId: string,
   payload: OrganicClientReportDeckPayload,
+  options?: { hubApiToken?: string },
 ): Promise<void> {
   writeOrganicClientReportDeckSession(deckId, payload);
-  await saveOrganicClientReportDeckShare(deckId, payload);
+  await saveOrganicClientReportDeckShare(deckId, payload, options);
 }
 
 export function deckHighlightsNeedsAgentNarratives(

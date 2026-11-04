@@ -18,12 +18,17 @@ export function resolveOrganicClientReportDeckId(searchParams: URLSearchParams):
 export async function saveOrganicClientReportDeckShare(
   deckId: string,
   payload: OrganicClientReportDeckPayload,
+  options?: { hubApiToken?: string },
 ): Promise<void> {
   if (!UUID_RE.test(deckId.trim())) return;
+  const hubToken = options?.hubApiToken?.trim() ?? "";
   const response = await fetch(backendApiUrl("/organic-dashboard/client-report/save"), {
     method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    credentials: hubToken ? "omit" : "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(hubToken ? { "X-Pulse-Host-Api-Token": hubToken } : {}),
+    },
     body: JSON.stringify({ deckId: deckId.trim(), payload }),
   });
   if (!response.ok) {

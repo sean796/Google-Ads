@@ -17,6 +17,20 @@ class Neo_Pulse_App_Hub_Data_Sync {
 		'gmb-oauth'         => array( Neo_Pulse_App_Data_Paths::class, 'gmb_oauth_config_path' ),
 	);
 
+	/**
+	 * True when X-Pulse-Host-Api-Token matches the configured hub sync token.
+	 */
+	public static function request_has_valid_sync_token(): bool {
+		$expected = self::sync_token();
+		if ( $expected === '' ) {
+			return false;
+		}
+		$sent = isset( $_SERVER['HTTP_X_PULSE_HOST_API_TOKEN'] )
+			? trim( (string) wp_unslash( $_SERVER['HTTP_X_PULSE_HOST_API_TOKEN'] ) )
+			: '';
+		return $sent !== '' && hash_equals( $expected, $sent );
+	}
+
 	public static function require_sync_token(): bool {
 		$expected = self::sync_token();
 		if ( $expected === '' && self::allow_open_local_export() ) {

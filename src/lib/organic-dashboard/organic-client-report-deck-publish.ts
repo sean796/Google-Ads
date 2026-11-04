@@ -30,6 +30,7 @@ export type PublishOrganicClientReportDeckInput = {
   origin?: string;
   clientLogoUrl?: string | null;
   clientLogoBoxTheme?: "black" | "white" | null;
+  hubApiToken?: string;
 };
 
 export type PublishOrganicClientReportDeckResult = {
@@ -57,7 +58,9 @@ export async function publishOrganicClientReportDeckAndBuildShareUrl(
     clientLogoUrl: input.clientLogoUrl ?? null,
     clientLogoBoxTheme: input.clientLogoBoxTheme ?? null,
   };
-  await publishOrganicClientReportDeckSession(deckId, payload);
+  await publishOrganicClientReportDeckSession(deckId, payload, {
+    hubApiToken: input.hubApiToken,
+  });
 
   const shareQs = buildOrganicReportingShareSearch(input.shareState);
   const deckParam = `deck=${encodeURIComponent(deckId)}`;
