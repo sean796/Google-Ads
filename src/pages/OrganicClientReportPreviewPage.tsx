@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import "@/components/organic-dashboard/organic-reporting-client-deck.css";
 import {
   readOrganicClientReportDeckSession,
+  writeOrganicClientReportDeckSession,
   type OrganicClientReportDeckPayload,
 } from "@/lib/organic-dashboard/organic-client-report-deck-session";
 import { buildOrganicClientReportContent } from "@/lib/organic-dashboard/organic-client-report-content";
@@ -41,6 +42,19 @@ import { cn } from "@/lib/utils";
 function readDeckPayload(deckId: string, siteId: string): OrganicClientReportDeckPayload | null {
   if (!deckId || !siteId) return null;
   return readOrganicClientReportDeckSession(deckId, siteId);
+}
+
+function publishedDeckHasEmbeddedLocalGrids(payload: OrganicClientReportDeckPayload | null): boolean {
+  if (!payload) return false;
+  const scans =
+    payload.localGridScans && payload.localGridScans.length > 0
+      ? payload.localGridScans
+      : payload.localGridScan
+        ? [payload.localGridScan]
+        : [];
+  return scans.some((scan) =>
+    scan.points.some((point) => Array.isArray(point.items) && point.items.length > 0),
+  );
 }
 
 export default function OrganicClientReportPreviewPage() {
@@ -144,6 +158,7 @@ export default function OrganicClientReportPreviewPage() {
             showCompare: searchParams.get("compare") === "1",
             preparedOn: payload.preparedOn,
             localGridScan: payload.localGridScan ?? null,
+            localGridScans: payload.localGridScans ?? null,
             clientLogoUrl: effectiveClientLogoUrl,
             clientLogoBoxTheme: logoBoxTheme,
           })
@@ -176,10 +191,10 @@ export default function OrganicClientReportPreviewPage() {
     }
 
     const local = readDeckPayload(deckId, resolvedSiteId);
-    if (local) {
+    if (local && publishedDeckHasEmbeddedLocalGrids(local)) {
+      setPayload(local);
       setDeckLoading(false);
       setDeckLoadFailed(false);
-      return;
     }
 
     let cancelled = false;
@@ -190,10 +205,11 @@ export default function OrganicClientReportPreviewPage() {
       .then((remote) => {
         if (cancelled) return;
         if (remote) {
+          writeOrganicClientReportDeckSession(deckId, remote);
           setPayload(remote);
           document.title = `${remote.siteName} Organic Performance`;
           setDeckLoadFailed(false);
-        } else {
+        } else if (!local || !publishedDeckHasEmbeddedLocalGrids(local)) {
           setPayload(null);
           setDeckLoadFailed(true);
         }
@@ -201,8 +217,10 @@ export default function OrganicClientReportPreviewPage() {
       })
       .catch(() => {
         if (cancelled) return;
-        setPayload(null);
-        setDeckLoadFailed(true);
+        if (!local || !publishedDeckHasEmbeddedLocalGrids(local)) {
+          setPayload(null);
+          setDeckLoadFailed(true);
+        }
         setDeckLoading(false);
       });
 
