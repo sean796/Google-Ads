@@ -189,28 +189,8 @@ export function OrganicClientReportCover({
               fill={boxFill}
             />
 
-            {/* HTML img in foreignObject: external logos fail in SVG <image> (CORS) and render as a black box */}
-            {clientLogo ? (
-              <foreignObject
-                x={365 + 14}
-                y={79.5 + 10}
-                width={240 - 28}
-                height={105 - 20}
-                clipPath={`url(#${clipId})`}
-              >
-                <div
-                  {...({ xmlns: "http://www.w3.org/1999/xhtml" } as React.HTMLAttributes<HTMLDivElement>)}
-                  className="flex h-full w-full items-center justify-center"
-                >
-                  <img
-                    src={clientLogo}
-                    alt=""
-                    className="block max-h-full max-w-full object-contain"
-                    data-report-cover-logo="client"
-                  />
-                </div>
-              </foreignObject>
-            ) : (
+            {/* Client logo is an HTML img overlay after the SVG (SVG <image> and foreignObject fail in PDF capture) */}
+            {clientLogo ? null : (
               <g clipPath={`url(#${clipId})`}>
                 <text
                   x={485}
@@ -240,6 +220,14 @@ export function OrganicClientReportCover({
             />
           </g>
         </svg>
+        {clientLogo ? (
+          <img
+            src={clientLogo}
+            alt=""
+            className="organic-client-report-export__cover-client-logo"
+            data-report-cover-logo="client"
+          />
+        ) : null}
       </div>
 
       {/* Cover Title & Byline (One unbroken line) */}

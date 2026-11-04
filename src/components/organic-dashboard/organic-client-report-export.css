@@ -70,6 +70,17 @@ img[src^="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP"] {
   height: auto;
 }
 
+/* Padded inner area of the SVG logo box (x 379, y 89.5, w 212, h 85 in a 720 x 270 viewBox). */
+.organic-client-report-export__cover-client-logo {
+  position: absolute;
+  left: 52.64%;
+  top: 33.15%;
+  width: 29.44%;
+  height: 31.48%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
 .organic-client-report-export__cover-content {
   display: flex;
   flex: 1;

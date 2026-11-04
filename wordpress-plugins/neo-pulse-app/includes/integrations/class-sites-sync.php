@@ -18,6 +18,10 @@ class Neo_Pulse_App_Sites_Sync {
 		'semrushPositionTrackingCampaignId',
 		'wpEngineInstall',
 		'wpEngineAccountId',
+		'benchmarkCustomTag',
+		'industryVertical',
+		'clientLogoUrl',
+		'clientLogoBoxTheme',
 	);
 
 	/**

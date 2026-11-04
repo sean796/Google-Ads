@@ -108,8 +108,7 @@ class Neo_Pulse_App_Property_Client_Logo {
 			return array( 'status' => 404, 'body' => array( 'error' => 'Logo not found' ) );
 		}
 		$raw  = file_get_contents( $path );
-		$mime = wp_check_filetype( $path );
-		$type = is_array( $mime ) && ! empty( $mime['type'] ) ? (string) $mime['type'] : 'application/octet-stream';
+		$type = self::ext_to_mime( strtolower( pathinfo( $path, PATHINFO_EXTENSION ) ) );
 		if ( $raw === false ) {
 			return array( 'status' => 500, 'body' => array( 'error' => 'Could not read logo file' ) );
 		}
@@ -121,6 +120,25 @@ class Neo_Pulse_App_Property_Client_Logo {
 			),
 			'raw'     => $raw,
 		);
+	}
+
+	/** Stored extensions come only from mime_to_ext(); wp_check_filetype() returns no type for SVG on sites without SVG uploads. */
+	private static function ext_to_mime( string $ext ): string {
+		switch ( $ext ) {
+			case 'png':
+				return 'image/png';
+			case 'jpg':
+			case 'jpeg':
+				return 'image/jpeg';
+			case 'webp':
+				return 'image/webp';
+			case 'gif':
+				return 'image/gif';
+			case 'svg':
+				return 'image/svg+xml';
+			default:
+				return 'application/octet-stream';
+		}
 	}
 
 	private static function mime_to_ext( string $mime ): ?string {
