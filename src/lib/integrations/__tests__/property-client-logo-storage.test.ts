@@ -3,6 +3,7 @@ import {
   clientLogoUrlForLocalStorage,
   stripInlineClientLogoFromSite,
 } from "@/components/integrations/storage";
+import { resolveOrganicClientReportClientLogoUrl } from "@/lib/integrations/client-site-logo";
 import type { WordPressSite } from "@/components/integrations/types";
 
 const baseSite: WordPressSite = {
@@ -19,6 +20,19 @@ describe("clientLogoUrlForLocalStorage", () => {
     expect(clientLogoUrlForLocalStorage("data:image/png;base64,abc")).toBeUndefined();
     expect(clientLogoUrlForLocalStorage("https://example.com/logo.png")).toBe(
       "https://example.com/logo.png",
+    );
+  });
+});
+
+describe("resolveOrganicClientReportClientLogoUrl", () => {
+  it("maps external client URLs to hub logo API", () => {
+    const url = resolveOrganicClientReportClientLogoUrl(
+      "blind-magic",
+      "https://blindmagic.com/wp-content/uploads/logo.png",
+      "https://neo-pulse-static.onrender.com",
+    );
+    expect(url).toBe(
+      "https://neo-pulse-static.onrender.com/api/manager-wordpress-properties/client-logo/blind-magic",
     );
   });
 });

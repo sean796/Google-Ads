@@ -24,6 +24,7 @@ import { fetchAllLocalGridScansForSite } from "../src/lib/organic-dashboard/loca
 import type { LocalGridScanDocument } from "../src/lib/local-grid-studio/local-grid-types";
 import type { Ga4ReportingDateHarness } from "../src/components/research/reporting/Ga4ReportingDateRangePopover";
 import type { WordPressSite } from "../src/components/integrations/types";
+import { resolveOrganicClientReportClientLogoUrl } from "../src/lib/integrations/client-site-logo";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SEED_PATH = path.join(REPO_ROOT, "src/components/integrations/default-properties-seed.json");
@@ -127,7 +128,8 @@ async function publishOne(site: WordPressSite, gridScans: LocalGridScanDocument[
     readyHighlights: highlights,
     showCompare: false,
     localGridScans: gridScans,
-    clientLogoUrl: site.clientLogoUrl ?? null,
+    clientLogoUrl: resolveOrganicClientReportClientLogoUrl(site.id, site.clientLogoUrl ?? null, STATIC),
+    clientLogoBoxTheme: site.clientLogoBoxTheme === "white" ? "white" : "black",
     origin: STATIC,
     hubApiToken: HUB_API_TOKEN,
   });

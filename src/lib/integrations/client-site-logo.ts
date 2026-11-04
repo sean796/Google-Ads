@@ -124,17 +124,19 @@ export function resolveClientSiteOrigin(site: Pick<WordPressSite, "siteUrl" | "p
 export function extractLogoUrlFromHtml(html: string, pageUrl: string): ClientSiteLogoResult | null {
   if (!html.trim() || !pageUrl.trim()) return null;
 
+  const jsonLd = pickJsonLdLogo(html, pageUrl);
+  if (jsonLd && !/thumbnail/i.test(jsonLd)) {
+    return { logoUrl: jsonLd, source: "json-ld" };
+  }
+
+  const icon = pickLinkIcon(html, pageUrl);
+  if (icon) return { logoUrl: icon.url, source: icon.source };
+
   const og = pickMetaImage(html, pageUrl, "og:image");
   if (og) return { logoUrl: og, source: "og:image" };
 
   const twitter = pickMetaImage(html, pageUrl, "twitter:image");
   if (twitter) return { logoUrl: twitter, source: "twitter:image" };
-
-  const icon = pickLinkIcon(html, pageUrl);
-  if (icon) return { logoUrl: icon.url, source: icon.source };
-
-  const jsonLd = pickJsonLdLogo(html, pageUrl);
-  if (jsonLd) return { logoUrl: jsonLd, source: "json-ld" };
 
   return null;
 }
@@ -156,6 +158,38 @@ export function resolvePropertyClientLogoUrl(
     return `/api/manager-wordpress-properties/client-logo/${encodeURIComponent(id)}`;
   }
   return raw;
+}
+
+/** Hub-served logo URL for client reports (SVG cover + static share links). */
+export function resolveOrganicClientReportClientLogoUrl(
+  siteId: string,
+  clientLogoUrl: string | null | undefined,
+  appOrigin?: string,
+): string {
+  const id = siteId.trim();
+  if (!id) return clientLogoUrl?.trim() ?? "";
+  const origin = (
+    appOrigin ??
+    (typeof window !== "undefined" ? window.location.origin : "https://neo-pulse-static.onrender.com")
+  )
+    .trim()
+    .replace(/\/+$/, "");
+  const hubLogo = `${origin}/api/manager-wordpress-properties/client-logo/${encodeURIComponent(id)}`;
+  const raw = clientLogoUrl?.trim() ?? "";
+  if (!raw) return hubLogo;
+  if (raw.startsWith("/api/manager-wordpress-properties/client-logo/")) {
+    return `${origin}${raw}`;
+  }
+  if (raw.startsWith("/client-logos/")) {
+    return `${origin}${raw}`;
+  }
+  if (/^https?:\/\//i.test(raw)) {
+    return hubLogo;
+  }
+  if (raw.startsWith("/")) {
+    return `${origin}${raw}`;
+  }
+  return hubLogo;
 }
 
 export async function fetchClientSiteLogoUrl(

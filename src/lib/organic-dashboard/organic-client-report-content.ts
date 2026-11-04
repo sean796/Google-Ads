@@ -4,6 +4,7 @@ import {
   type OrganicReportingHighlights,
 } from "@/lib/organic-dashboard/organic-reporting-highlights";
 import type { LocalGridScanDocument } from "@/lib/local-grid-studio/local-grid-types";
+import { resolveOrganicClientReportClientLogoUrl } from "@/lib/integrations/client-site-logo";
 import {
   buildLocalGridClientReportSection,
   buildLocalGridClientReportSections,
@@ -56,6 +57,7 @@ export type OrganicClientReportDeckInput = {
   viewModel: OrganicDashboardViewModel;
   /** When omitted, PDF still includes GA4, GSC, Semrush, and Google Ads from the view model. */
   highlights?: OrganicReportingHighlights;
+  siteId?: string;
   siteName: string;
   siteUrl: string;
   showCompare: boolean;
@@ -264,8 +266,11 @@ export function buildOrganicClientReportContent(input: OrganicClientReportDeckIn
     localGridScans,
     clientLogoUrl: clientLogoInput,
     agencyLogoUrl: agencyLogoInput,
+    siteId,
   } = input;
-  const clientLogoUrl = clientLogoInput?.trim() ?? "";
+  const clientLogoUrl = siteId?.trim()
+    ? resolveOrganicClientReportClientLogoUrl(siteId, clientLogoInput)
+    : clientLogoInput?.trim() ?? "";
   const agencyLogoUrl = agencyLogoInput?.trim() || resolveAgencyReportLogoUrl();
 
   const normalized = normalizeOrganicReportingHighlights(highlights) ?? EMPTY_CLIENT_REPORT_HIGHLIGHTS;

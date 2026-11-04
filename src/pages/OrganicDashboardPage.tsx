@@ -54,14 +54,14 @@ import { resolveSemrushProjectDashboardUrlForSite } from "@/lib/semrush-project-
 import { buildOrganicClientReportContent } from "@/lib/organic-dashboard/organic-client-report-content";
 import {
   buildLocalGridReportingSnapshot,
-  fetchLatestLocalGridScanForSite,
+  fetchAllLocalGridScansForSite,
 } from "@/lib/organic-dashboard/local-grid-client-report";
 import { publishOrganicClientReportDeckAndBuildShareUrl } from "@/lib/organic-dashboard/organic-client-report-deck-publish";
 import { downloadOrganicClientReportMarkdown } from "@/lib/organic-dashboard/organic-client-report-markdown";
 import { downloadOrganicClientReportPdf } from "@/lib/organic-dashboard/organic-client-report-print";
 import { writeOrganicDashboardDateSession } from "@/lib/organic-dashboard/organic-dashboard-date-session";
 import { formatLocalYmd } from "@/lib/reporting/reporting-date-presets";
-import { resolvePropertyClientLogoUrl } from "@/lib/integrations/client-site-logo";
+import { resolveOrganicClientReportClientLogoUrl } from "@/lib/integrations/client-site-logo";
 
 /** Deep links only: hand off to the main app Reporting tab (same shell as Generator). */
 export default function OrganicDashboardPage() {
@@ -224,17 +224,20 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     enabled: fetchParams != null && reportingIdsReady,
   });
 
-  const localGridScanQuery = useQuery({
-    queryKey: ["organic-reporting-local-grid-scan", site.id] as const,
-    queryFn: () => fetchLatestLocalGridScanForSite(site.id),
-    staleTime: ORGANIC_DASHBOARD_QUERY_STALE_MS,
+  const localGridScansQuery = useQuery({
+    queryKey: ["organic-reporting-local-grid-scans", site.id] as const,
+    queryFn: () => fetchAllLocalGridScansForSite(site.id),
+    staleTime: 0,
+    refetchOnMount: "always",
     refetchOnWindowFocus: false,
   });
 
+  const primaryLocalGridScan = localGridScansQuery.data?.[0] ?? null;
+
   const localGridSnapshot = useMemo(
     () =>
-      localGridScanQuery.data ? buildLocalGridReportingSnapshot(localGridScanQuery.data) : null,
-    [localGridScanQuery.data],
+      primaryLocalGridScan ? buildLocalGridReportingSnapshot(primaryLocalGridScan) : null,
+    [primaryLocalGridScan],
   );
 
   const viewModel = useMemo(
@@ -287,7 +290,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
   );
 
   const localGridNarrativeLoading =
-    Boolean(localGridScanQuery.data?.points?.length) &&
+    Boolean(primaryLocalGridScan?.points?.length) &&
     Boolean(mergedHighlights) &&
     (mergedHighlights?.localGridNarrative.length ?? 0) === 0 &&
     (localGridNarrativeQuery.isPending || localGridNarrativeQuery.isFetching);
@@ -305,7 +308,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
   const preparedOn = formatLocalYmd(new Date());
 
   const clientLogoUrl = useMemo(
-    () => resolvePropertyClientLogoUrl(site.id, site.clientLogoUrl),
+    () => resolveOrganicClientReportClientLogoUrl(site.id, site.clientLogoUrl),
     [site.id, site.clientLogoUrl],
   );
 
@@ -319,7 +322,8 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
             siteUrl: sitePublicUrl,
             showCompare,
             preparedOn,
-            localGridScan: localGridScanQuery.data ?? null,
+            localGridScan: primaryLocalGridScan,
+            localGridScans: localGridScansQuery.data ?? null,
             clientLogoUrl,
             clientLogoBoxTheme: logoBoxTheme,
           })
@@ -331,7 +335,8 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
       sitePublicUrl,
       showCompare,
       preparedOn,
-      localGridScanQuery.data,
+      primaryLocalGridScan,
+      localGridScansQuery.data,
       clientLogoUrl,
       logoBoxTheme,
     ],
@@ -368,9 +373,9 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
   const handleRefresh = useCallback(() => {
     if (!fetchParams) return;
     void bundleQuery.refetch();
-    void localGridScanQuery.refetch();
+    void localGridScansQuery.refetch();
     if (bundleQuery.data) void highlightsQuery.refetch();
-  }, [bundleQuery, fetchParams, highlightsQuery, localGridScanQuery]);
+  }, [bundleQuery, fetchParams, highlightsQuery, localGridScansQuery]);
 
   const handleToggleLogoBoxTheme = useCallback(() => {
     setLogoBoxTheme((prev) => {
@@ -454,7 +459,12 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     clientReportOpenLock.current = true;
     setClientReportBusy(true);
     try {
-      const readyHighlights = await resolveReadyHighlights();
+      const [readyHighlights, freshScans] = await Promise.all([
+        resolveReadyHighlights(),
+        fetchAllLocalGridScansForSite(site.id),
+      ]);
+      const scansForReport =
+        freshScans.length > 0 ? freshScans : (localGridScansQuery.data ?? null);
       const { shareUrl: publishedUrl } = await publishOrganicClientReportDeckAndBuildShareUrl({
         siteId: site.id,
         siteDisplayName,
@@ -463,7 +473,8 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
         viewModel,
         readyHighlights,
         showCompare,
-        localGridScan: localGridScanQuery.data ?? null,
+        localGridScan: scansForReport?.[0] ?? primaryLocalGridScan,
+        localGridScans: scansForReport,
         clientLogoUrl,
         clientLogoBoxTheme: logoBoxTheme,
       });
@@ -491,7 +502,8 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     siteDisplayName,
     sitePublicUrl,
     viewModel,
-    localGridScanQuery.data,
+    primaryLocalGridScan,
+    localGridScansQuery.data,
   ]);
 
   const handleDownloadPdf = useCallback(async () => {
@@ -502,7 +514,12 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     }
     setDownloadPdfBusy(true);
     try {
-      const readyHighlights = await resolveReadyHighlights();
+      const [readyHighlights, freshScans] = await Promise.all([
+        resolveReadyHighlights(),
+        fetchAllLocalGridScansForSite(site.id),
+      ]);
+      const scansForReport =
+        freshScans.length > 0 ? freshScans : (localGridScansQuery.data ?? null);
       const content = buildOrganicClientReportContent({
         viewModel,
         highlights: readyHighlights,
@@ -510,7 +527,8 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
         siteUrl: sitePublicUrl,
         showCompare,
         preparedOn,
-        localGridScan: localGridScanQuery.data ?? null,
+        localGridScan: scansForReport?.[0] ?? primaryLocalGridScan,
+        localGridScans: scansForReport,
         clientLogoUrl,
         clientLogoBoxTheme: logoBoxTheme,
       });
@@ -530,7 +548,8 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     siteDisplayName,
     sitePublicUrl,
     viewModel,
-    localGridScanQuery.data,
+    primaryLocalGridScan,
+    localGridScansQuery.data,
     clientLogoUrl,
     logoBoxTheme,
     preparedOn,

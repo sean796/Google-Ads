@@ -189,19 +189,27 @@ export function OrganicClientReportCover({
               fill={boxFill}
             />
 
-            {/* Inner Client Logo Viewport - uniform fit with preserveAspectRatio meet */}
+            {/* HTML img in foreignObject: external logos fail in SVG <image> (CORS) and render as a black box */}
             {clientLogo ? (
-              <image
-                href={clientLogo}
-                xlinkHref={clientLogo}
+              <foreignObject
                 x={365 + 14}
                 y={79.5 + 10}
                 width={240 - 28}
                 height={105 - 20}
-                preserveAspectRatio="xMidYMid meet"
                 clipPath={`url(#${clipId})`}
-                data-report-cover-logo="client"
-              />
+              >
+                <div
+                  {...({ xmlns: "http://www.w3.org/1999/xhtml" } as React.HTMLAttributes<HTMLDivElement>)}
+                  className="flex h-full w-full items-center justify-center"
+                >
+                  <img
+                    src={clientLogo}
+                    alt=""
+                    className="block max-h-full max-w-full object-contain"
+                    data-report-cover-logo="client"
+                  />
+                </div>
+              </foreignObject>
             ) : (
               <g clipPath={`url(#${clipId})`}>
                 <text

@@ -38,6 +38,7 @@ import { resolveClientReportSiteIdFromRoute } from "@/lib/organic-dashboard/orga
 import { useOrganicClientReportDocumentMeta } from "@/hooks/use-organic-client-report-document-meta";
 import { REPORTING_TOOLBAR_ACTION_BTN } from "@/components/organic-dashboard/organic-reporting-toolbar-buttons";
 import { cn } from "@/lib/utils";
+import { resolveOrganicClientReportClientLogoUrl } from "@/lib/integrations/client-site-logo";
 
 function readDeckPayload(deckId: string, siteId: string): OrganicClientReportDeckPayload | null {
   if (!deckId || !siteId) return null;
@@ -118,15 +119,18 @@ export default function OrganicClientReportPreviewPage() {
   }, [handlePatchSite, reportSite?.id]);
 
   const effectiveClientLogoUrl = useMemo(() => {
+    const candidateSiteId =
+      payload?.siteId?.trim() || querySiteId || resolvedSiteId?.trim() || reportSite?.id?.trim() || "";
     const fromPayload = payload?.clientLogoUrl?.trim();
-    if (fromPayload) return fromPayload;
-
     const fromSite = reportSite?.clientLogoUrl?.trim();
-    if (fromSite) return fromSite;
+    const rawLogo = fromPayload || fromSite;
+    if (candidateSiteId && rawLogo) {
+      return resolveOrganicClientReportClientLogoUrl(candidateSiteId, rawLogo);
+    }
+    if (rawLogo) return rawLogo;
 
-    const candidateSiteId = querySiteId || resolvedSiteId?.trim() || "";
     if (candidateSiteId) {
-      return `/client-logos/${candidateSiteId}.png`;
+      return resolveOrganicClientReportClientLogoUrl(candidateSiteId, null);
     }
     const candidateSlug = routeSiteSegment?.trim() || "";
     if (candidateSlug) {
@@ -151,6 +155,7 @@ export default function OrganicClientReportPreviewPage() {
     () =>
       payload?.highlights
         ? buildOrganicClientReportContent({
+            siteId: payload.siteId,
             viewModel: payload.viewModel,
             highlights: payload.highlights,
             siteName: payload.siteName,
