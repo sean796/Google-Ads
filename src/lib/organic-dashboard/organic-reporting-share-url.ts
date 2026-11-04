@@ -189,7 +189,11 @@ export function buildOrganicReportingShareUrl(
   origin?: string,
 ): string {
   const base = origin ?? (typeof window !== "undefined" ? window.location.origin : "");
-  const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const rawBase =
+    typeof import.meta.env !== "undefined" && typeof import.meta.env.BASE_URL === "string"
+      ? import.meta.env.BASE_URL
+      : "";
+  const basePath = rawBase.replace(/\/$/, "");
   const path = `${basePath}/sites/${encodeURIComponent(siteId)}/organic`;
   const qs = buildOrganicReportingShareSearch(state);
   return `${base}${path}?${qs}`;

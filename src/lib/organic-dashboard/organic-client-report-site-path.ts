@@ -56,7 +56,11 @@ export function buildOrganicClientReportAppPath(args: {
   siteDisplayName: string;
   search: string;
 }): string {
-  const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const rawBase =
+    typeof import.meta.env !== "undefined" && typeof import.meta.env.BASE_URL === "string"
+      ? import.meta.env.BASE_URL
+      : "";
+  const basePath = rawBase.replace(/\/$/, "");
   const { pathSegment, search } = buildOrganicClientReportPathAndSearch(args);
   return `${basePath}/sites/${encodeURIComponent(pathSegment)}/organic/client-report?${search}`;
 }
