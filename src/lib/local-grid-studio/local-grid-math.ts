@@ -74,7 +74,10 @@ export function generateLocalGridCoordinates(options: {
   const unitsPerDegLng = unitsPerDegLat * cosLat;
 
   const nodes: LocalGridCoordinateNode[] = [];
-  const maxRadialCells = half + 0.5;
+  const maxRadialCells =
+    shape === "circle" && dim === 7
+      ? Math.hypot(half, half) + 1e-6
+      : half + 0.5;
 
   for (let r = -half; r <= half; r++) {
     for (let c = -half; c <= half; c++) {

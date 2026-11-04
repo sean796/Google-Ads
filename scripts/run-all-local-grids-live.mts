@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * Run live Local Grid scans (7x7 circle, 3 mi, 37 pins) for every location panel
+ * Run live Local Grid scans (7x7 circle, 1 mi, 49 pins) for every location panel
  * of every client property, save the completed scan documents to the server,
  * and update each workspace panel's activeScanId and resolved targetBusiness.
  */
@@ -141,7 +141,7 @@ async function runFullScanForPanel(
         existingRes.scan &&
         String(existingRes.scan.scanDateIso ?? "").slice(0, 10) === new Date().toISOString().slice(0, 10) &&
         Array.isArray(existingRes.scan.points) &&
-        existingRes.scan.points.length >= 20 &&
+        existingRes.scan.points.length >= 49 &&
         existingRes.scan.points.some((p: LocalGridPointResult) => Array.isArray(p.items) && p.items.length > 0)
       ) {
         const doc = existingRes.scan as LocalGridScanDocument;
@@ -171,11 +171,11 @@ async function runFullScanForPanel(
     centerLng: snap.centerLng,
     scanSize: snap.scanSize || "7x7",
     shape: snap.shape || "circle",
-    distance: snap.distance || 3,
+    distance: snap.distance || 1,
     distanceMeasure: snap.distanceMeasure || "mile",
   });
 
-  // Resolve target business + run all 37 pin batches in parallel (5 batches of up to 8 points)
+  // Resolve target business + run all pin batches in parallel (chunks of up to 8 points)
   const batchChunks: LocalGridCoordinateNode[][] = [];
   for (let i = 0; i < nodes.length; i += 8) {
     batchChunks.push(nodes.slice(i, i + 8));

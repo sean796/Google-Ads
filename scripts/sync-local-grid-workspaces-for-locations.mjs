@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Create and persist a Local Grid workspace panel for every location of every client site
- * using each site's primaryLocalKeyword and the standard 7x7 circle / 3 mi setup.
+ * using each site's primaryLocalKeyword and the standard 7x7 circle / 1 mi setup (49 pins).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -153,7 +153,7 @@ async function main() {
           centerLng: coords.lng,
           scanSize: "7x7",
           shape: "circle",
-          distance: 3,
+          distance: 1,
           distanceMeasure: "mile",
           activeBusiness,
           activeScanId: null,
