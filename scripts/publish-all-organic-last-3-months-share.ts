@@ -25,6 +25,7 @@ import type { LocalGridScanDocument } from "../src/lib/local-grid-studio/local-g
 import type { Ga4ReportingDateHarness } from "../src/components/research/reporting/Ga4ReportingDateRangePopover";
 import type { WordPressSite } from "../src/components/integrations/types";
 import { resolveOrganicClientReportClientLogoUrl } from "../src/lib/integrations/client-site-logo";
+import { normalizeClientLogoBoxTheme } from "../src/lib/organic-dashboard/organic-client-report-property-branding";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SEED_PATH = path.join(REPO_ROOT, "src/components/integrations/default-properties-seed.json");
@@ -76,7 +77,7 @@ const dateHarness: Ga4ReportingDateHarness = {
 
 async function loadSites(): Promise<WordPressSite[]> {
   const seed = (JSON.parse(fs.readFileSync(SEED_PATH, "utf8")).sites ?? []) as WordPressSite[];
-  const res = (await fetch(`${LOCAL}/api/manager-wordpress-properties/load?_=${Date.now()}`).then((r) =>
+  const res = (await fetch(`${HUB}/api/manager-wordpress-properties/load?_=${Date.now()}`).then((r) =>
     r.json(),
   )) as { sites?: WordPressSite[] };
   const sites = res.sites ?? [];
@@ -129,7 +130,7 @@ async function publishOne(site: WordPressSite, gridScans: LocalGridScanDocument[
     showCompare: false,
     localGridScans: gridScans,
     clientLogoUrl: resolveOrganicClientReportClientLogoUrl(site.id, site.clientLogoUrl ?? null, STATIC),
-    clientLogoBoxTheme: site.clientLogoBoxTheme === "white" ? "white" : "black",
+    clientLogoBoxTheme: normalizeClientLogoBoxTheme(site.clientLogoBoxTheme),
     origin: STATIC,
     hubApiToken: HUB_API_TOKEN,
   });

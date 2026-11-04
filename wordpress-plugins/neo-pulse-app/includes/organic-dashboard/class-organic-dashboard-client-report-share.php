@@ -150,6 +150,8 @@ class Neo_Pulse_App_Organic_Dashboard_Client_Report_Share {
 			);
 		}
 
+		$payload = self::merge_payload_property_branding( $payload );
+
 		return array(
 			'statusCode' => 200,
 			'body'       => array(
@@ -157,6 +159,47 @@ class Neo_Pulse_App_Organic_Dashboard_Client_Report_Share {
 				'payload' => $payload,
 			),
 		);
+	}
+
+	/**
+	 * Apply current Integrations property branding (logo box theme, hub logo URL) over stale deck snapshots.
+	 *
+	 * @param array<string,mixed> $payload Deck payload.
+	 * @return array<string,mixed>
+	 */
+	private static function merge_payload_property_branding( array $payload ): array {
+		$site_id = trim( (string) ( $payload['siteId'] ?? '' ) );
+		if ( $site_id === '' ) {
+			return $payload;
+		}
+
+		$mirror = Neo_Pulse_App_Sites_Sync::load_mirror();
+		if ( ! is_array( $mirror ) || empty( $mirror['sites'] ) || ! is_array( $mirror['sites'] ) ) {
+			return $payload;
+		}
+
+		foreach ( $mirror['sites'] as $site ) {
+			if ( ! is_array( $site ) || empty( $site['id'] ) ) {
+				continue;
+			}
+			if ( (string) $site['id'] !== $site_id ) {
+				continue;
+			}
+
+			$theme = isset( $site['clientLogoBoxTheme'] ) ? strtolower( trim( (string) $site['clientLogoBoxTheme'] ) ) : '';
+			if ( $theme === 'white' || $theme === 'black' ) {
+				$payload['clientLogoBoxTheme'] = $theme;
+			}
+
+			if ( class_exists( 'Neo_Pulse_App_Property_Client_Logo' ) ) {
+				$payload['clientLogoUrl'] = Neo_Pulse_App_Property_Client_Logo::public_api_path( $site_id );
+			} elseif ( ! empty( $site['clientLogoUrl'] ) ) {
+				$payload['clientLogoUrl'] = trim( (string) $site['clientLogoUrl'] );
+			}
+			break;
+		}
+
+		return $payload;
 	}
 
 	/**

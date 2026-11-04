@@ -52,6 +52,10 @@ import {
   invalidateEntitySiteWarmCacheIfCredentialsChanged,
   warmEntitySiteCache,
 } from "@/lib/local-analysis/entity-site-warm-cache";
+import {
+  normalizeClientLogoBoxTheme,
+  resetOrganicClientReportPropertyBrandingCache,
+} from "@/lib/organic-dashboard/organic-client-report-property-branding";
 
 /** Default list order: site name A-Z (case-insensitive), then URL, then id. */
 function compareWordPressSitesByDisplayName(a: WordPressSite, b: WordPressSite): number {
@@ -91,9 +95,6 @@ function useWordPressSitesState() {
     });
     void restoreSitesFromServerMirrorIfEmpty().then((restored) => {
       if (restored.length > 0) setSites(restored);
-    });
-    void mergeServerGbpLocationIdsIntoLocalSites().then((merged) => {
-      if (merged) setSites(getStoredSites());
     });
   }, []);
 
@@ -643,7 +644,9 @@ function useWordPressSitesState() {
         if (url === editingSite?.clientLogoUrl?.trim()) return editingSite?.clientLogoFetchedAt;
         return Date.now();
       })(),
-      clientLogoBoxTheme: formClientLogoBoxTheme ?? editingSite?.clientLogoBoxTheme,
+      clientLogoBoxTheme: normalizeClientLogoBoxTheme(
+        formClientLogoBoxTheme ?? editingSite?.clientLogoBoxTheme,
+      ),
       profileTags: normalizeProfileTags(formProfileTags ?? editingSite?.profileTags),
       postBankEnabled: true,
     };
@@ -1196,6 +1199,9 @@ function useWordPressSitesState() {
   );
 
   const handlePatchSite = useCallback((siteId: string, patch: Partial<WordPressSite>) => {
+    if (patch.clientLogoBoxTheme !== undefined || patch.clientLogoUrl !== undefined) {
+      resetOrganicClientReportPropertyBrandingCache();
+    }
     setSites((prev) => {
       const updated = prev.map((s) => (s.id === siteId ? { ...s, ...patch } : s));
       saveSites(updated);

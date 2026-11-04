@@ -17,6 +17,7 @@ import {
 import { fetchOrganicDashboardPerformancePackForSite } from "@/lib/organic-dashboard/organic-dashboard-performance-pack";
 import { fetchAllLocalGridScansForSite } from "@/lib/organic-dashboard/local-grid-client-report";
 import { resolveOrganicClientReportClientLogoUrl } from "@/lib/integrations/client-site-logo";
+import { normalizeClientLogoBoxTheme } from "@/lib/organic-dashboard/organic-client-report-property-branding";
 import type { OrganicClientReportDeckPayload } from "@/lib/organic-dashboard/organic-client-report-deck-session";
 import { resolveOrganicReportingDateHarnessFromSearch } from "@/lib/organic-dashboard/organic-dashboard-fetch-params";
 
@@ -64,7 +65,7 @@ export async function hydrateOrganicClientReportForHarness(
     localGridScan: localGridScans[0] ?? null,
     localGridScans,
     clientLogoUrl: resolveOrganicClientReportClientLogoUrl(site.id, site.clientLogoUrl ?? null),
-    clientLogoBoxTheme: site.clientLogoBoxTheme === "white" ? "white" : "black",
+    clientLogoBoxTheme: normalizeClientLogoBoxTheme(site.clientLogoBoxTheme),
   };
 }
 

@@ -3,6 +3,7 @@ import {
   parseOrganicClientReportDeckPayload,
   type OrganicClientReportDeckPayload,
 } from "@/lib/organic-dashboard/organic-client-report-deck-session";
+import { mergeHubPropertyBrandingIntoClientReportDeck } from "@/lib/organic-dashboard/organic-client-report-property-branding";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -73,5 +74,8 @@ export async function fetchOrganicClientReportDeckShare(
       ? (data.payload as { siteId: string }).siteId.trim()
       : "";
   const parseHint = payloadSiteId || hinted;
-  return parseOrganicClientReportDeckPayload(parseHint, data.payload);
+  const parsed = parseOrganicClientReportDeckPayload(parseHint, data.payload);
+  if (!parsed) return null;
+  const origin = typeof window !== "undefined" ? window.location.origin : undefined;
+  return mergeHubPropertyBrandingIntoClientReportDeck(parsed, origin);
 }

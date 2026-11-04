@@ -42,6 +42,7 @@ import { parseDeckCountDisplay } from "@/lib/organic-dashboard/organic-client-re
 import { partitionClientReportOpportunities } from "@/lib/organic-dashboard/organic-client-report-opportunities";
 import type { OrganicPeriodProgressTables } from "@/lib/organic-dashboard/organic-dashboard-period-progress";
 import { resolveAgencyReportLogoUrl } from "@/lib/organic-dashboard/organic-client-report-branding";
+import { normalizeClientLogoBoxTheme } from "@/lib/organic-dashboard/organic-client-report-property-branding";
 
 export const EMPTY_CLIENT_REPORT_HIGHLIGHTS: OrganicReportingHighlights = {
   executiveSummary: "",
@@ -357,7 +358,7 @@ export function buildOrganicClientReportContent(input: OrganicClientReportDeckIn
     showCompare,
     preparedOn,
     clientLogoUrl,
-    clientLogoBoxTheme: input.clientLogoBoxTheme ?? "black",
+    clientLogoBoxTheme: normalizeClientLogoBoxTheme(input.clientLogoBoxTheme),
     agencyLogoUrl,
     periodLine,
     comparePeriodLabel,

@@ -39,6 +39,7 @@ import { useOrganicClientReportDocumentMeta } from "@/hooks/use-organic-client-r
 import { REPORTING_TOOLBAR_ACTION_BTN } from "@/components/organic-dashboard/organic-reporting-toolbar-buttons";
 import { cn } from "@/lib/utils";
 import { resolveOrganicClientReportClientLogoUrl } from "@/lib/integrations/client-site-logo";
+import { normalizeClientLogoBoxTheme } from "@/lib/organic-dashboard/organic-client-report-property-branding";
 
 function readDeckPayload(deckId: string, siteId: string): OrganicClientReportDeckPayload | null {
   if (!deckId || !siteId) return null;
@@ -96,16 +97,14 @@ export default function OrganicClientReportPreviewPage() {
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
 
-  const [logoBoxTheme, setLogoBoxTheme] = useState<"black" | "white">(
-    () => payload?.clientLogoBoxTheme ?? reportSite?.clientLogoBoxTheme ?? "black",
+  const [logoBoxTheme, setLogoBoxTheme] = useState<"black" | "white">(() =>
+    normalizeClientLogoBoxTheme(payload?.clientLogoBoxTheme ?? reportSite?.clientLogoBoxTheme),
   );
 
   useEffect(() => {
-    if (payload?.clientLogoBoxTheme) {
-      setLogoBoxTheme(payload.clientLogoBoxTheme);
-    } else if (reportSite?.clientLogoBoxTheme) {
-      setLogoBoxTheme(reportSite.clientLogoBoxTheme);
-    }
+    setLogoBoxTheme(
+      normalizeClientLogoBoxTheme(payload?.clientLogoBoxTheme ?? reportSite?.clientLogoBoxTheme),
+    );
   }, [payload?.clientLogoBoxTheme, reportSite?.id, reportSite?.clientLogoBoxTheme]);
 
   const handleToggleLogoBoxTheme = useCallback(() => {
