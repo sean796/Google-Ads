@@ -267,8 +267,10 @@ export function computeLocalGridReportViewportBounds(options: {
 
   const latSpan = maxLat - minLat;
   const lngSpan = maxLng - minLng;
-  const padLat = Math.max(latSpan * 0.005, 0.0002);
-  const padLng = Math.max(lngSpan * 0.005, 0.0002);
+  /** Report maps need neighborhood context around the full pin field (not tight on pins). */
+  const padRatio = 0.26;
+  const padLat = Math.max(latSpan * padRatio, 0.004);
+  const padLng = Math.max(lngSpan * padRatio, 0.004);
 
   const centerLat = options.centerLat;
   const centerLng = options.centerLng;
@@ -278,14 +280,14 @@ export function computeLocalGridReportViewportBounds(options: {
   const fitMaxLng = maxLng + padLng;
   const span = Math.max(fitMaxLat - fitMinLat, fitMaxLng - fitMinLng);
 
-  let recommendedZoom = 14;
-  if (span > 0.45) recommendedZoom = 10;
-  else if (span > 0.28) recommendedZoom = 11;
-  else if (span > 0.18) recommendedZoom = 12;
-  else if (span > 0.11) recommendedZoom = 13;
-  else if (span > 0.065) recommendedZoom = 14;
-  else if (span > 0.035) recommendedZoom = 15;
-  else recommendedZoom = 16;
+  let recommendedZoom = 12;
+  if (span > 0.55) recommendedZoom = 9;
+  else if (span > 0.38) recommendedZoom = 10;
+  else if (span > 0.24) recommendedZoom = 11;
+  else if (span > 0.14) recommendedZoom = 12;
+  else if (span > 0.085) recommendedZoom = 12;
+  else if (span > 0.05) recommendedZoom = 13;
+  else recommendedZoom = 14;
 
   return {
     centerLat,

@@ -158,9 +158,9 @@ function MapViewportSync({
       );
       const isReport = viewportProfile === "report";
       map.fitBounds(latLngBounds, {
-        padding: isReport ? [22, 22] : [40, 40],
+        padding: isReport ? [48, 48] : [40, 40],
         animate: false,
-        maxZoom: isReport ? 18 : 16,
+        maxZoom: isReport ? 12 : 16,
       });
     };
 
