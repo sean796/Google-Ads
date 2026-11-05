@@ -1,20 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { DASHBOARD_SETTINGS_FIELD_CLASS } from "@/components/manager/dashboard/dashboard-panel-styles";
-import { cn } from "@/lib/utils";
+import { ActionButton, Button, DialogShell, Field, FilterRow, Pill } from "@/ui";
 import type { TaskSection } from "@/lib/tasks-types";
 
-const INPUT_CLASS = `${DASHBOARD_SETTINGS_FIELD_CLASS} min-w-0 w-full h-12`;
-
 const SECTION_PRESETS = ["To do", "In progress", "Review", "Done"] as const;
+
+const SAVE_STATES = ["Create", "Creating", "Save", "Saving"] as const;
 
 export type AddSectionDialogProps = {
   open: boolean;
@@ -78,62 +68,50 @@ export function AddSectionDialog({
   }, [editSection, isEdit, onCreate, onOpenChange, onUpdate, reset, title]);
 
   return (
-    <Dialog
+    <DialogShell
       open={open}
       onOpenChange={(next) => {
         if (!next) reset();
         onOpenChange(next);
       }}
-    >
-      <DialogContent className="max-w-md rounded-none border-0 bg-zinc-950 p-6 text-white">
-        <DialogHeader>
-          <DialogTitle className="text-base font-semibold text-white">
-            {isEdit ? "Edit section" : "Add section"}
-          </DialogTitle>
-        </DialogHeader>
-        <div className="flex flex-wrap gap-2">
-          {SECTION_PRESETS.map((preset) => (
-            <button
-              key={preset}
-              type="button"
-              disabled={saving}
-              onClick={() => setTitle(preset)}
-              className={cn(
-                "px-3 py-1.5 text-base",
-                title === preset ? "bg-primary text-black" : "bg-zinc-800 text-white hover:bg-zinc-700",
-              )}
-            >
-              {preset}
-            </button>
-          ))}
-        </div>
-        <Input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Section name"
-          aria-label="Section name"
-          className={INPUT_CLASS}
-          disabled={saving}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") void handleSubmit();
-          }}
-        />
-        {error ? <p className="text-base text-red-400">{error}</p> : null}
-        <DialogFooter className="gap-2 sm:justify-end">
-          <Button
-            type="button"
-            variant="outline"
-            className="h-12 text-base"
-            disabled={saving}
-            onClick={() => onOpenChange(false)}
-          >
+      size="md"
+      title={isEdit ? "Edit section" : "Add section"}
+      actions={
+        <>
+          <Button variant="tool" disabled={saving} onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="button" className="h-12 text-base" disabled={saving} onClick={() => void handleSubmit()}>
-            {saving ? (isEdit ? "Saving…" : "Creating…") : isEdit ? "Save" : "Create"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <ActionButton
+            states={SAVE_STATES}
+            state={saving ? (isEdit ? "Saving" : "Creating") : isEdit ? "Save" : "Create"}
+            disabled={saving}
+            onClick={() => void handleSubmit()}
+          />
+        </>
+      }
+    >
+      <FilterRow aria-label="Section presets">
+        {SECTION_PRESETS.map((preset) => (
+          <Pill
+            key={preset}
+            label={preset}
+            square
+            active={title === preset}
+            disabled={saving}
+            onClick={() => setTitle(preset)}
+          />
+        ))}
+      </FilterRow>
+      <Field
+        placeholder="Section name"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        disabled={saving}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") void handleSubmit();
+        }}
+      />
+      <p className="h-6 text-ui-danger">{error}</p>
+    </DialogShell>
   );
 }

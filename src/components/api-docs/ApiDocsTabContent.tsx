@@ -9,6 +9,7 @@ import { getArticleToc, loadApiDocArticle } from "@/lib/api-docs";
 import { setApiDocsHash, useApiDocsSlug } from "@/lib/api-docs/api-docs-hash";
 import type { ApiDocArticle } from "@/lib/api-docs/types";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 const API_DOCS_LINK_CLASS =
   "font-medium text-primary underline-offset-4 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45";
@@ -31,13 +32,11 @@ function ApiDocsArticle({ article }: { article: ApiDocArticle }) {
             <ul className="space-y-2">
               {article.related.map((rel) => (
                 <li key={rel}>
-                  <button
-                    type="button"
+                  <Button
                     onClick={() => setApiDocsHash(rel)}
-                    className={cn("border-0 bg-transparent p-0 text-base", API_DOCS_LINK_CLASS)}
                   >
                     {rel}
-                  </button>
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -55,13 +54,11 @@ function ApiDocsNotFound({ slug }: { slug: string }) {
       <div className="text-center">
         <h1 className="mb-2 font-sans text-2xl font-normal text-white">Article not found</h1>
         <p className="mb-6 text-base text-white">No documentation for `{slug}`.</p>
-        <button
-          type="button"
+        <Button
           onClick={() => setApiDocsHash("getting-started")}
-          className={cn("border-0 bg-transparent p-0 text-base", API_DOCS_LINK_CLASS)}
         >
           Go to Introduction
-        </button>
+        </Button>
       </div>
     </div>
   );

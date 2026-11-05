@@ -12,6 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/ui";
 
 export type TaskProjectNavRowProps = {
   project: TaskProject;
@@ -36,45 +37,38 @@ export function TaskProjectNavRow({
     <div
       className={cn(
         "group flex items-center gap-0.5",
-        selected ? "bg-zinc-800" : "hover:bg-zinc-900",
+        selected ? "bg-ui-field-hover" : "hover:bg-ui-field",
       )}
     >
-      <button
-        type="button"
+      <Button
+        pressed={Boolean(selected)}
+        variant="quiet"
         onClick={onSelect}
-        className={cn(
-          "min-w-0 flex-1 px-2 py-2 text-left text-base",
-          selected ? "text-white" : "text-muted-foreground group-hover:text-white",
-        )}
       >
         {project.title}
-      </button>
+      </Button>
       <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
-        <button
-          type="button"
+        <Button
+          size="icon" icon={Pencil}
+          variant="quiet"
           aria-label={`Edit ${project.title}`}
           onClick={(e) => {
             e.stopPropagation();
             onEdit(project);
           }}
-          className="flex h-8 w-7 items-center justify-center text-muted-foreground hover:text-white"
-        >
-          <Pencil className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
+        ></Button>
+        <Button
+          size="icon" icon={Trash2}
+          variant="quiet"
           aria-label={`Delete ${project.title}`}
           onClick={(e) => {
             e.stopPropagation();
             setDeleteOpen(true);
           }}
-          className="flex h-8 w-7 items-center justify-center text-muted-foreground hover:text-red-400"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
+        ></Button>
       </div>
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent className="rounded-none border-0 bg-zinc-950 text-white">
+        <AlertDialogContent className="rounded-none border-0 bg-black text-white">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base">{deleteLabel}</AlertDialogTitle>
             <AlertDialogDescription className="text-base text-muted-foreground">
@@ -84,7 +78,7 @@ export function TaskProjectNavRow({
           <AlertDialogFooter>
             <AlertDialogCancel className="h-10 text-base">Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="h-10 bg-red-600 text-base hover:bg-red-700"
+              className="h-10 bg-ui-danger/20 text-base hover:bg-ui-danger/20"
               onClick={() => onDelete(project.id)}
             >
               Delete

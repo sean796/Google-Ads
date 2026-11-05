@@ -24,10 +24,10 @@ export function OverviewStudioTabShell({
       className={cn(
         OVERVIEW_TAB_TYPO_CLASS,
         CONTENT_OPTIMIZER_SQUARE_CONTROLS_CLASS,
-        "flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-background px-5 py-3 md:px-8 md:py-4",
+        "flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-background",
       )}
     >
-      <div className="relative flex h-full min-h-0 w-full flex-1 flex-row overflow-hidden border border-white/10 bg-black">
+      <div className="relative flex h-full min-h-0 w-full flex-1 flex-row overflow-hidden bg-black">
         <ContentOptimizerSplashOverlay visible={splashVisible} />
         <div
           className={cn(

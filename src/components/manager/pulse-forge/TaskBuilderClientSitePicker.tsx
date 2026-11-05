@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { WordPressSiteOption } from "@/components/manager/tasks/NewProjectDialog";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 export type TaskBuilderClientSitePickerProps = {
   sites: WordPressSiteOption[];
@@ -54,14 +55,12 @@ export function TaskBuilderClientSitePicker({
           />
           <span>Select all</span>
         </div>
-        <button
-          type="button"
+        <Button
           disabled={disabled || selectedIds.size === 0}
           onClick={() => onChange(new Set())}
-          className="shrink-0 border-0 bg-transparent p-0 text-base text-white hover:opacity-80 disabled:opacity-50"
         >
           Clear
-        </button>
+        </Button>
         <span className="shrink-0 text-base text-white">{summary}</span>
       </div>
       <div className="grid min-h-0 flex-1 auto-rows-min grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
@@ -71,7 +70,7 @@ export function TaskBuilderClientSitePicker({
             <label
               key={site.id}
               className={cn(
-                "flex cursor-pointer items-center gap-2 rounded-none border-0 bg-zinc-950 p-3 text-base",
+                "flex cursor-pointer items-center gap-2 rounded-none border-0 bg-black p-3 text-base",
                 checked ? "text-white" : "text-muted-foreground",
                 disabled && "cursor-not-allowed opacity-50",
               )}
@@ -88,7 +87,7 @@ export function TaskBuilderClientSitePicker({
                 className="border-white/50 data-[state=checked]:border-white data-[state=checked]:bg-white data-[state=checked]:text-black"
                 aria-label={`Select ${site.name}`}
               />
-              <span className="min-w-0 flex-1 truncate">{site.name}</span>
+              <span className="min-w-0 flex-1 break-words">{site.name}</span>
             </label>
           );
         })}

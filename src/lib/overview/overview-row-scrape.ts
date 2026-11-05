@@ -232,7 +232,7 @@ export function buildOverviewRowPatchFromInventory(
   row: OverviewRow,
   invMatch: OverviewInventoryUrlMatch | undefined,
   binding?: OverviewBinding,
-  siteUrl?: string,
+  _siteUrl?: string,
 ): Partial<OverviewRow> | null {
   if (!invMatch?.row) return null;
   const inv = invMatch.row;
@@ -253,16 +253,7 @@ export function buildOverviewRowPatchFromInventory(
   const base = mergeOverviewRowScrapeFields(row, result, downloaded);
   const postContent =
     postBodyHtmlFromInventoryRow(inv, inv.id) || row.postContent?.trim() || undefined;
-  const blogH2List = postContent ? extractH2TextsFromHtml(postContent) : undefined;
-  const linkBase = (siteUrl ?? "").trim() || row.url;
-  const blogLinkList =
-    postContent && linkBase
-      ? extractInternalLinksFromHtml(postContent, linkBase, row.url).map((l) => ({
-          href: l.href,
-          anchor: l.anchor,
-        }))
-      : undefined;
-  const faq = resolveScrapedFaq(base.faq, postContent, base.seoResearch);
+  const faq = normalizeFaqStorage(base.faq) ?? faqFromSeoResearch(base.seoResearch);
 
   return {
     ...base,
@@ -271,8 +262,6 @@ export function buildOverviewRowPatchFromInventory(
     postType: invMatch.subtype,
     wpDateGmt: inv.date_gmt?.trim() || row.wpDateGmt,
     ...(postContent ? { postContent } : {}),
-    ...(blogH2List?.length ? { blogH2List } : {}),
-    ...(blogLinkList?.length ? { blogLinkList } : {}),
   };
 }
 

@@ -4,7 +4,7 @@ import type { WordPressSite } from "../types";
 export type PropertyConnectionTone = { label: string; dot: string; text: string };
 
 export function propertyConnectionTone(site: WordPressSite): PropertyConnectionTone {
-  if (site.enabled === false) return { label: "Disabled", dot: "bg-zinc-500", text: "text-muted-foreground" };
+  if (site.enabled === false) return { label: "Disabled", dot: "bg-ui-field-hover", text: "text-muted-foreground" };
   if (isWpEngineHosted(site)) return { label: "Hosted on WP Engine", dot: "bg-primary", text: "text-primary" };
   return propertyConnectionStatusTone(site.connectionStatus);
 }
@@ -28,11 +28,11 @@ export function propertyConnectionStatusTone(status: WordPressSite["connectionSt
     case "success":
       return { label: "Connected", dot: "bg-primary", text: "text-primary" };
     case "failed":
-      return { label: "Connection failed", dot: "bg-red-400", text: "text-red-300" };
+      return { label: "Connection failed", dot: "bg-ui-danger/20", text: "text-ui-danger-hover" };
     case "testing":
-      return { label: "Testing", dot: "bg-sky-300", text: "text-sky-300" };
+      return { label: "Testing", dot: "bg-semantic-analysis/80", text: "text-semantic-analysis-foreground" };
     default:
-      return { label: "Not tested", dot: "bg-zinc-500", text: "text-muted-foreground" };
+      return { label: "Not tested", dot: "bg-ui-field-hover", text: "text-muted-foreground" };
   }
 }
 

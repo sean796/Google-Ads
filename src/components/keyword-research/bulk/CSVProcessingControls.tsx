@@ -1,9 +1,10 @@
-import { Button } from '@/components/ui/button';
-import { Play, Square, Loader2 } from 'lucide-react';
+
+import { Play, Square } from 'lucide-react';
 import {
   REPORTING_TOOLBAR_BTN,
 } from '@/components/research/reporting/reporting-toolbar-styles';
 import { cn } from '@/lib/utils';
+import { Button } from "@/ui";
 
 interface CSVProcessingControlsProps {
   inputMode: 'csv' | 'prompt';
@@ -33,16 +34,13 @@ export function CSVProcessingControls({
   return (
     <div className="flex flex-wrap gap-2">
       <Button
+        variant="run"
         onClick={handleStartProcessing}
         disabled={isProcessing || displayRows.length === 0 || !apiKey || !openRouterApiKey}
-        className={cn(
-          'neo-pulse-btn-semantic-analysis min-w-[10rem] flex-1',
-          REPORTING_TOOLBAR_BTN,
-        )}
       >
         {isProcessing ? (
           <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            
             Processing...
           </>
         ) : (
@@ -54,9 +52,8 @@ export function CSVProcessingControls({
       </Button>
       {isProcessing && (
         <Button
+          variant="danger"
           onClick={cancelProcessing}
-          variant="destructive"
-          className={cn('shrink-0', REPORTING_TOOLBAR_BTN)}
         >
           <Square className="h-4 w-4 mr-2" />
           Cancel

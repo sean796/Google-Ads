@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronDown, Download, Mail, RefreshCw, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { deleteTaskFile, fetchTaskDetail, fetchTaskFileText, taskFileDownloadUrl } from "@/lib/tasks-api";
 import { groupTaskArchiveFilesByRun } from "@/lib/task-archive-run-groups";
 import { sendArchiveRunEmail } from "@/lib/task-archive-email";
 import type { TaskExecutionKind, TaskExecutionPayload, TaskFile } from "@/lib/tasks-types";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 export type TaskBuilderArchivePanelProps = {
   teamId: number | null;
@@ -85,14 +85,14 @@ function ArchiveRunRow({
           className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", expanded && "rotate-180")}
           aria-hidden
         />
-        <span className="min-w-0 truncate font-medium">{label}</span>
+        <span className="min-w-0 break-words font-medium">{label}</span>
         <span className="shrink-0 text-muted-foreground">
           {files.length} file{files.length === 1 ? "" : "s"}
         </span>
         <span className="ml-auto shrink-0 text-muted-foreground">{formatRunDate(createdAt)}</span>
-        <button
-          type="button"
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground hover:bg-zinc-900 hover:text-white disabled:opacity-50"
+        <Button
+          size="icon" icon={Mail}
+          variant="quiet"
           aria-label={`Email ${label}`}
           disabled={disabled || emailDisabled || sendingEmail || deletingRun}
           title={emailDisabled ? "Set a recipient on the Then tab first." : undefined}
@@ -100,21 +100,17 @@ function ArchiveRunRow({
             event.stopPropagation();
             onSendEmail();
           }}
-        >
-          <Mail className="h-4 w-4" aria-hidden />
-        </button>
-        <button
-          type="button"
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground hover:bg-zinc-900 hover:text-white disabled:opacity-50"
+        ></Button>
+        <Button
+          size="icon" icon={Trash2}
+          variant="quiet"
           aria-label={`Delete ${label}`}
           disabled={disabled || deletingRun}
           onClick={(event) => {
             event.stopPropagation();
             onDeleteRun();
           }}
-        >
-          <Trash2 className="h-4 w-4" aria-hidden />
-        </button>
+        ></Button>
       </div>
 
       {expanded ? (
@@ -123,8 +119,8 @@ function ArchiveRunRow({
             <li className="px-3 text-base text-muted-foreground">{emailStatus}</li>
           ) : null}
           {files.map((file) => (
-            <li key={file.id} className="flex h-8 items-center gap-2 bg-zinc-950 px-3 text-base text-white">
-              <span className="min-w-0 flex-1 truncate text-muted-foreground">
+            <li key={file.id} className="flex h-8 items-center gap-2 bg-black px-3 text-base text-white">
+              <span className="min-w-0 flex-1 break-words text-muted-foreground">
                 {file.fileName || file.keyword}
               </span>
               <a
@@ -135,18 +131,16 @@ function ArchiveRunRow({
               >
                 <Download className="h-4 w-4" aria-hidden />
               </a>
-              <button
-                type="button"
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground hover:bg-zinc-900 hover:text-white disabled:opacity-50"
+              <Button
+                size="icon" icon={Trash2}
+                variant="quiet"
                 aria-label={`Delete ${file.fileName || file.keyword}`}
                 disabled={disabled || deletingFileId === file.id || deletingRun}
                 onClick={(event) => {
                   event.stopPropagation();
                   onDeleteFile(file.id);
                 }}
-              >
-                <Trash2 className="h-4 w-4" aria-hidden />
-              </button>
+              ></Button>
             </li>
           ))}
         </ul>
@@ -287,7 +281,7 @@ export function TaskBuilderArchivePanel({
   );
 
   return (
-    <div className="flex flex-col gap-3 rounded-none bg-zinc-900/50 p-4">
+    <div className="flex flex-col gap-3 rounded-none bg-ui-field/50 p-4">
       <div className="flex items-center gap-2">
         <p className="text-base font-medium text-white">Archive</p>
         <p className="text-base text-muted-foreground">
@@ -298,8 +292,6 @@ export function TaskBuilderArchivePanel({
         {taskId ? (
           <Button
             type="button"
-            variant="secondary"
-            className="ml-auto h-9 border-0 bg-black px-3 text-base text-white shadow-none hover:bg-zinc-900"
             disabled={disabled || loading || deletingRunKey != null || deletingFileId != null}
             onClick={() => void loadFiles()}
           >
@@ -313,7 +305,7 @@ export function TaskBuilderArchivePanel({
         <p className="text-base text-muted-foreground">Save this automation to view archived run files.</p>
       ) : null}
 
-      {error ? <p className="text-base text-red-400">{error}</p> : null}
+      {error ? <p className="text-base text-ui-danger-hover">{error}</p> : null}
 
       {taskId && !loading && files.length === 0 ? (
         <p className="text-base text-muted-foreground">No archived files yet.</p>

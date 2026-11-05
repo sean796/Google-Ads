@@ -5,6 +5,7 @@ import { AgentRunsPanel } from "@/components/agent-runs/AgentRunsPanel";
 import { PulseAssistChatPanel } from "./PulseAssistChatPanel";
 import { MastraInspectorPanel } from "./MastraInspectorPanel";
 import { PulseAssistSidebarShell } from "./PulseAssistSidebarShell";
+import { useDetailsDock } from "./details-dock";
 import { writeSidebarOpen, writeSidebarPanel } from "@/lib/pulse-assist/storage";
 import "@/components/agent-runs/agent-runs-theme.css";
 
@@ -18,6 +19,8 @@ export function PulseAssistRoot({ layout = "overlay" }: PulseAssistRootProps) {
   const { sidebarOpen, setSidebarOpen, sidebarPanel, setSidebarPanel } = useAgentRunsContext();
   const { managerTab } = usePulseAssistContext();
   const showSeo = managerTab !== "local-dominator";
+  const detailsDock = useDetailsDock();
+  const showDetails = (detailsDock?.count ?? 0) > 0;
 
   const setOpen = (next: boolean) => {
     setSidebarOpen(next);
@@ -36,6 +39,10 @@ export function PulseAssistRoot({ layout = "overlay" }: PulseAssistRootProps) {
     }
   }, [showSeo, sidebarPanel, setSidebarPanel]);
 
+  useEffect(() => {
+    if (!showDetails && sidebarPanel === "details") setSidebarPanel("assist");
+  }, [showDetails, sidebarPanel, setSidebarPanel]);
+
   return (
     <PulseAssistSidebarShell
       layout={layout}
@@ -44,8 +51,11 @@ export function PulseAssistRoot({ layout = "overlay" }: PulseAssistRootProps) {
       panel={sidebarPanel}
       onPanelChange={setPanel}
       showSeo={showSeo}
+      showDetails={showDetails}
     >
-      {sidebarPanel === "agents" ? (
+      {sidebarPanel === "details" && showDetails ? (
+        <div ref={detailsDock?.setTarget} className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-black" />
+      ) : sidebarPanel === "agents" ? (
         <AgentRunsPanel />
       ) : sidebarPanel === "seo" && showSeo ? (
         <MastraInspectorPanel />

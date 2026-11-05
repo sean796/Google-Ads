@@ -7,6 +7,7 @@ import {
 } from "@/lib/mobile-push/push-api";
 import type { MobilePushPrefs } from "@/lib/mobile-push/types";
 import { cn } from "@/lib/utils";
+import { Button, CheckField } from "@/ui";
 
 type MobilePushPrefsSheetProps = {
   open: boolean;
@@ -59,17 +60,16 @@ export function MobilePushPrefsSheet({ open, onClose }: MobilePushPrefsSheetProp
           <Bell className="h-5 w-5 text-white" aria-hidden />
           <h2 className="text-base font-bold text-white">Phone notifications</h2>
         </div>
-        <button
-          type="button"
-          className="mobile-push-sheet__close h-10 min-w-10 rounded-xl px-3 text-base font-semibold text-white"
+        <Button
+          variant="quiet"
           onClick={onClose}
         >
           Done
-        </button>
+        </Button>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-6">
-        {error ? <p className="mb-3 text-sm text-red-300">{error}</p> : null}
+        {error ? <p className="mb-3 text-sm text-ui-danger-hover">{error}</p> : null}
         {!prefs ? (
           <p className="text-base text-muted-foreground">Loading settings…</p>
         ) : (
@@ -83,14 +83,7 @@ export function MobilePushPrefsSheet({ open, onClose }: MobilePushPrefsSheetProp
                   <span className="block text-base font-semibold text-white">{action.label}</span>
                   <span className="block text-sm text-muted-foreground">{action.description}</span>
                 </span>
-                <input
-                  type="checkbox"
-                  checked={prefs[action.prefKey]}
-                  disabled={savingKey === action.prefKey}
-                  onChange={() => togglePref(action.prefKey)}
-                  className={cn("h-5 w-5 shrink-0 accent-[hsl(var(--primary))]")}
-                  aria-label={action.label}
-                />
+                <CheckField checked={prefs[action.prefKey]} disabled={savingKey === action.prefKey} onCheckedChange={() => togglePref(action.prefKey)} aria-label={action.label} />
               </label>
             ))}
           </div>

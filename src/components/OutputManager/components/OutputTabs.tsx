@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+
 import { TabsContent } from "@/components/ui/tabs";
 import { formatMarkdownContent, formatElapsedTime } from "../utils";
 import { FeaturedImageGenerator } from "../FeaturedImageGenerator";
@@ -60,7 +60,7 @@ export function OutputTabs({
           <div className="flex flex-col gap-4">
             {/* Progress indicator at top */}
             <div className="flex items-center justify-center gap-4 p-4 bg-card rounded-lg shadow-sm">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              
               <div className="flex flex-col">
                 <h3 className="text-lg font-semibold text-foreground">Processing Plan Update</h3>
                 <div className="flex items-center gap-2 text-2xl font-mono font-bold text-primary">
@@ -72,7 +72,7 @@ export function OutputTabs({
             {/* Show updated content in real-time */}
             <div className="prose dark:prose-invert max-w-none w-full flex flex-col items-center" style={{ color: '#FFFFFF', backgroundColor: 'transparent' }}>
               {plan ? formatMarkdownContent(plan) : <p className="text-center text-muted-foreground p-10 flex items-center justify-center">
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                
                 Generating updated plan...
               </p>}
             </div>
@@ -80,7 +80,7 @@ export function OutputTabs({
         ) : (
           <div className="prose dark:prose-invert max-w-none w-full flex flex-col items-center" style={{ color: '#FFFFFF', backgroundColor: 'transparent' }}>
             {plan ? formatMarkdownContent(plan) : <p className="text-center text-muted-foreground p-10 flex items-center justify-center">
-              {(isGenerating && currentStage === 'planning') && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
+              {(isGenerating && currentStage === 'planning') && null}
               Waiting for planning stage...
             </p>}
           </div>
@@ -91,7 +91,7 @@ export function OutputTabs({
           <div className="flex flex-col gap-4">
             {/* Progress indicator at top */}
             <div className="flex items-center justify-center gap-4 p-4 bg-card rounded-lg shadow-sm">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              
               <div className="flex flex-col">
                 <h3 className="text-lg font-semibold text-foreground">Processing Draft Report Update</h3>
                 <div className="flex items-center gap-2 text-2xl font-mono font-bold text-primary">
@@ -103,7 +103,7 @@ export function OutputTabs({
             {/* Show updated content in real-time */}
             <div className="prose dark:prose-invert max-w-none w-full flex flex-col items-center" style={{ color: '#FFFFFF', backgroundColor: 'transparent' }}>
               {draft ? formatMarkdownContent(draft) : <p className="text-center text-muted-foreground p-10 flex items-center justify-center">
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                
                 Generating updated draft...
               </p>}
             </div>
@@ -111,7 +111,7 @@ export function OutputTabs({
         ) : (
           <div className="prose dark:prose-invert max-w-none w-full flex flex-col items-center" style={{ color: '#FFFFFF', backgroundColor: 'transparent' }}>
             {draft ? formatMarkdownContent(draft) : <p className="text-center text-muted-foreground p-10 flex items-center justify-center">
-              {(isGenerating && currentStage === 'drafting') && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
+              {(isGenerating && currentStage === 'drafting') && null}
               Waiting for drafting stage...
             </p>}
           </div>
@@ -122,7 +122,7 @@ export function OutputTabs({
           <div className="flex flex-col gap-4">
             {/* Progress indicator at top */}
             <div className="flex items-center justify-center gap-4 p-4 bg-card rounded-lg shadow-sm">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              
               <div className="flex flex-col">
                 <h3 className="text-lg font-semibold text-foreground">Processing Final Report Update</h3>
                 <div className="flex items-center gap-2 text-2xl font-mono font-bold text-primary">
@@ -134,7 +134,7 @@ export function OutputTabs({
             {/* Show updated content in real-time */}
             <div className="prose dark:prose-invert max-w-none w-full flex flex-col items-center" style={{ color: '#FFFFFF', backgroundColor: 'transparent' }}>
               {finalOutput ? formatMarkdownContent(finalOutput) : <p className="text-center text-muted-foreground p-10 flex items-center justify-center">
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                
                 Generating updated final report...
               </p>}
             </div>
@@ -142,7 +142,7 @@ export function OutputTabs({
         ) : (
           <div className="prose dark:prose-invert max-w-none w-full flex flex-col items-center" style={{ color: '#FFFFFF', backgroundColor: 'transparent' }}>
             {finalOutput ? formatMarkdownContent(finalOutput) : <p className="text-center text-muted-foreground p-10 flex items-center justify-center">
-              {(isGenerating && currentStage === 'reviewing') && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
+              {(isGenerating && currentStage === 'reviewing') && null}
               Waiting for final review...
             </p>}
           </div>

@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { DASHBOARD_SETTINGS_GROUP_CLASS } from "@/components/manager/dashboard/dashboard-panel-styles";
 import { useTeam } from "@/contexts/TeamContext";
 import { TeamMemberProfilePanel } from "@/components/manager/teams/TeamMemberProfilePanel";
 import type { TeamMember } from "@/lib/teams-types";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 const MEMBER_GRID_CLASS =
   "grid w-full min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto_auto] items-center gap-x-4 gap-y-2 sm:gap-x-6";
@@ -83,25 +83,23 @@ function MemberRow({
 
   return (
     <div
-      className={cn(MEMBER_GRID_CLASS, "min-h-12 py-1", stripeIndex % 2 === 0 ? "bg-black" : "bg-zinc-950")}
+      className={cn(MEMBER_GRID_CLASS, "min-h-12 py-1", stripeIndex % 2 === 0 ? "bg-black" : "bg-black")}
       role="row"
     >
-      <p className="min-w-0 truncate text-base text-white" role="cell">
+      <p className="min-w-0 break-words text-base text-white" role="cell">
         {name}
       </p>
-      <p className="min-w-0 truncate text-base text-white" role="cell">
+      <p className="min-w-0 break-words text-base text-white" role="cell">
         {jobTitle}
       </p>
-      <p className="min-w-0 truncate text-base text-white" role="cell">
+      <p className="min-w-0 break-words text-base text-white" role="cell">
         {member.email}
       </p>
-      <p className="min-w-0 truncate text-base capitalize text-white" role="cell">
+      <p className="min-w-0 break-words text-base capitalize text-white" role="cell">
         {member.accessRole}
       </p>
       <Button
         type="button"
-        variant="outline"
-        className="col-start-5 h-12 shrink-0 gap-1.5 text-base"
         onClick={onToggle}
         role="cell"
       >

@@ -19,7 +19,9 @@ export const NEO_PULSE_AGENT_REPORT_MODEL_KEY = "neo-pulse-agent-report-model";
 /** Global Ads agent (PPC reporting). */
 export const NEO_PULSE_AGENT_ADS_MODEL_KEY = "neo-pulse-agent-ads-model";
 /** Global Video agent (OpenRouter video generation). */
-export const NEO_PULSE_AGENT_VIDEO_MODEL_KEY = "neo-pulse-agent-video-model-v2";
+export const NEO_PULSE_AGENT_VIDEO_MODEL_KEY = "neo-pulse-agent-video-model-v3";
+/** Global Decision agent (Liquid d1.1 checker, routing, and scoring). */
+export const NEO_PULSE_AGENT_DECISION_MODEL_KEY = "neo-pulse-agent-decision-model";
 
 const GLOBAL_RESEARCH_MODEL_KEY = "global_research_model";
 
@@ -30,6 +32,14 @@ export const TEXT_AGENT_MODEL_PRESETS: { value: string; label: string }[] = [
   { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro" },
   { value: "openai/gpt-5-mini", label: "GPT-5 Mini" },
   { value: "openai/gpt-5", label: "GPT-5" },
+];
+
+export const DECISION_AGENT_MODEL_PRESETS: { value: string; label: string }[] = [
+  { value: "liquid/d1.1", label: "Liquid d1.1 (Checker & Router)" },
+  { value: "liquid/lfm-2.5-24b-a2b", label: "LiquidAI LFM2.5 24B MoE" },
+  { value: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
+  { value: "deepseek/deepseek-v4.1-flash", label: "DeepSeek V4.1 Flash" },
+  { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash" },
 ];
 
 export { IMAGE_MODEL_PRESETS, VIDEO_MODEL_PRESETS };
@@ -220,4 +230,20 @@ export function writeGlobalAdsAgentModel(model: string): void {
     /* ignore */
   }
   syncStoredSiteSettingsField("adsModel", id);
+}
+
+export function readGlobalDecisionAgentModel(): string {
+  return readOpenRouterAgentModel(NEO_PULSE_AGENT_DECISION_MODEL_KEY, DEFAULT_SETTINGS.decisionModel);
+}
+
+export function writeGlobalDecisionAgentModel(model: string): void {
+  if (typeof window === "undefined") return;
+  const id = model.trim();
+  if (!id) return;
+  try {
+    localStorage.setItem(NEO_PULSE_AGENT_DECISION_MODEL_KEY, id);
+  } catch {
+    /* ignore */
+  }
+  syncStoredSiteSettingsField("decisionModel", id);
 }

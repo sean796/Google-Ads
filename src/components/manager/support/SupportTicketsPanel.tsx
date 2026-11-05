@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
 import { CONTENT_OPTIMIZER_MULTI_SITE_ROW_STACK_CLASS } from "@/components/overview/overview-tab/overview-tab-content-constants";
 import { useTeam } from "@/contexts/TeamContext";
 import {
@@ -190,7 +189,7 @@ export function SupportTicketsPanel() {
       <div className="min-h-0 flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center gap-2 p-4 text-base text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            
             Loading tickets…
           </div>
         ) : tickets.length === 0 ? (

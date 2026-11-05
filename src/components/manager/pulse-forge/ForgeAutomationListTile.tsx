@@ -12,6 +12,7 @@ import {
 } from "@/components/integrations/wordpress/cyberpunk-theme";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/ui";
 
 const FORGE_AUTOMATION_SELECT_CHECKBOX_CLASS =
   "border-white/50 data-[state=checked]:border-white data-[state=checked]:bg-white data-[state=checked]:text-black";
@@ -120,7 +121,7 @@ export function ForgeAutomationListTile({
               aria-label={`Select ${displayTitle}`}
             />
           ) : null}
-          <span className={cn("min-w-0 flex-1 truncate text-base font-medium", clientColor.textClass)}>
+          <span className={cn("min-w-0 flex-1 break-words text-base font-medium", clientColor.textClass)}>
             {siteName}
           </span>
           <div className="flex shrink-0 items-center gap-1">
@@ -140,20 +141,15 @@ export function ForgeAutomationListTile({
             ) : null}
             <Popover>
               <PopoverTrigger asChild>
-                <button
-                  type="button"
+                <Button
+                  size="icon" icon={Calendar}
+                  variant="quiet"
                   aria-label={`View schedule for ${displayTitle}`}
-                  className={cn(
-                    FORGE_AUTOMATION_TILE_ICON_CLASS,
-                    getPropertyListRowIconButtonHoverGlowClass("powerOn"),
-                  )}
-                >
-                  <Calendar className="h-4 w-4" />
-                </button>
+                ></Button>
               </PopoverTrigger>
               <PopoverContent
                 align="end"
-                className="w-56 rounded-none border-0 bg-zinc-950 p-3 text-white shadow-tile"
+                className="w-56 rounded-none border-0 bg-black p-3 text-white shadow-tile"
               >
                 {planRows.length > 0 ? (
                   <dl className="flex flex-col gap-2">
@@ -169,47 +165,33 @@ export function ForgeAutomationListTile({
                 )}
               </PopoverContent>
             </Popover>
-            <button
-              type="button"
+            <Button
+              size="icon" icon={Settings}
+              variant="quiet"
               aria-label={`Open plan for ${displayTitle}`}
               disabled={demoMode}
               onClick={onOpenSettings}
-              className={cn(
-                FORGE_AUTOMATION_TILE_ICON_CLASS,
-                getPropertyListRowIconButtonHoverGlowClass("powerOn"),
-              )}
-            >
-              <Settings className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
+            ></Button>
+            <Button
+              size="icon" icon={Trash2}
+              variant="quiet"
               aria-label={`Delete ${displayTitle}`}
               disabled={demoMode}
               onClick={() => {
                 if (demoMode || !onDelete) return;
                 onDelete();
               }}
-              className={cn(
-                FORGE_AUTOMATION_TILE_ICON_CLASS,
-                getPropertyListRowIconButtonHoverGlowClass("destructive"),
-              )}
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
+            ></Button>
           </div>
         </div>
 
-        <button
-          type="button"
+        <Button
+          variant="quiet"
           disabled={!interactive}
           onClick={onOpenSettings}
-          className={cn(
-            "min-w-0 truncate text-left",
-            interactive && "hover:opacity-90",
-          )}
         >
-          <h3 className="truncate text-base font-semibold text-white">{displayTitle}</h3>
-        </button>
+          <h3 className="break-words text-base font-semibold text-white">{displayTitle}</h3>
+        </Button>
       </article>
     </>
   );

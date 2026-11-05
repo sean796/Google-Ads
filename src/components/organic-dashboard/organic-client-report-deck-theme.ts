@@ -55,7 +55,7 @@ export const DECK_LEAD_CLASS = "text-base font-medium leading-relaxed text-white
 export const DECK_BULLET_LIST_CLASS =
   "list-disc space-y-2 pl-6 text-base leading-relaxed text-white/90 marker:text-primary";
 
-export const DECK_NARRATIVE_WELL_CLASS = "flex flex-col gap-4 rounded-none bg-zinc-900 p-5 md:p-6";
+export const DECK_NARRATIVE_WELL_CLASS = "flex flex-col gap-4 rounded-none bg-ui-field p-5 md:p-6";
 
 export const DECK_BODY_MUTED_CLASS = "text-base leading-relaxed text-muted-foreground";
 
@@ -69,6 +69,6 @@ export const DECK_FOOTER_CLASS =
 export const DECK_KPI_TILE_BASE_CLASS =
   "flex min-h-[8.5rem] flex-col justify-between gap-2 rounded-none p-5 shadow-tile";
 
-export const DECK_OPPORTUNITY_CARD_CLASS = "rounded-none bg-zinc-900 p-5 md:p-6";
+export const DECK_OPPORTUNITY_CARD_CLASS = "rounded-none bg-ui-field p-5 md:p-6";
 
-export const DECK_KEYWORD_WELL_CLASS = "rounded-none bg-zinc-900";
+export const DECK_KEYWORD_WELL_CLASS = "rounded-none bg-ui-field";

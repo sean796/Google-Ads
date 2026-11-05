@@ -7,7 +7,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -50,7 +49,7 @@ export const GenerationPreview = ({ result }: GenerationPreviewProps) => {
       <Card className="p-6 bg-node-bg border-node-border">
         {result.isGenerating && (
           <div className="flex items-center gap-2 mb-4 text-primary">
-            <Loader2 className="w-4 h-4 animate-spin" />
+            
             <span className="text-sm">Generating...</span>
           </div>
         )}
@@ -64,7 +63,7 @@ export const GenerationPreview = ({ result }: GenerationPreviewProps) => {
             {result.content}
           </ReactMarkdown>
           {result.isGenerating && result.content && (
-            <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />
+            <span className="inline-block w-2 h-4 bg-primary ml-1" />
           )}
         </div>
       </Card>

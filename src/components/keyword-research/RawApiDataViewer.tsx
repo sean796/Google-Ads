@@ -1,6 +1,5 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
@@ -16,6 +15,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { parseRawApiData } from "@/lib/keyword-api-parser";
+import { Button } from "@/ui";
 
 interface RawApiDataViewerProps {
   rawApiData: any;
@@ -32,10 +32,10 @@ export function RawApiDataViewer({ rawApiData }: RawApiDataViewerProps) {
   // If no results extracted, show raw data for debugging
   if (results.length === 0) {
     return (
-      <Card className="p-6 border-yellow-500/50 bg-yellow-500/10">
+      <Card className="p-6 border-semantic-warning/50 bg-semantic-warning/10">
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-yellow-500" />
+            <AlertCircle className="w-5 h-5 text-semantic-warning" />
             <h3 className="text-lg font-semibold text-foreground">Data Received But Could Not Parse</h3>
           </div>
           <p className="text-sm text-muted-foreground">
@@ -43,7 +43,7 @@ export function RawApiDataViewer({ rawApiData }: RawApiDataViewerProps) {
           </p>
           <Collapsible>
             <CollapsibleTrigger asChild>
-              <Button variant="outline" size="sm">
+              <Button>
                 <ChevronDown className="w-4 h-4 mr-2" />
                 Show Raw Data Structure
               </Button>
@@ -181,7 +181,7 @@ export function RawApiDataViewer({ rawApiData }: RawApiDataViewerProps) {
       {/* Collapsible Raw Data for Debugging */}
       <Collapsible>
         <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="sm" className="w-full">
+          <Button variant="quiet">
             <ChevronDown className="w-4 h-4 mr-2" />
             Show Raw API Response (Debug)
           </Button>

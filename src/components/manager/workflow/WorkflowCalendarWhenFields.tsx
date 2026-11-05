@@ -1,21 +1,8 @@
 import React from "react";
 import { Calendar } from "@/components/ui/calendar";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Field, SelectField } from "@/ui";
 import { TaskFormTimePicker } from "@/components/manager/tasks/TaskFormLayout";
 import { WorkflowInspectorGroup } from "@/components/manager/workflow/WorkflowInspectorLayout";
-import {
-  WORKFLOW_FORM_FLAT_CONTROL_CLASS,
-  WORKFLOW_FORM_SELECT_CONTENT_CLASS,
-  WORKFLOW_FORM_SELECT_ITEM_CLASS,
-  WORKFLOW_FORM_SELECT_TRIGGER_CLASS,
-} from "@/components/manager/workflow/forge-workflow-styles";
 import {
   calendarDayOfMonthFromConfig,
   calendarStartMonthChoiceFromConfig,
@@ -55,15 +42,17 @@ export function WorkflowCalendarWhenFields({
 
   return (
     <WorkflowInspectorGroup title={title} className="min-h-0 flex-1">
-      {error ? <p className="text-base text-red-400">{error}</p> : null}
+      {error ? <p className="text-base text-ui-danger">{error}</p> : null}
       <div className="grid min-w-0 grid-cols-3 gap-0.5">
         <div className="flex h-8 min-h-8 min-w-0 items-center gap-1.5 rounded-none bg-black px-2">
-          <Input
+          <Field
+            size="short"
             type="number"
             min={1}
             max={31}
             step={1}
             inputMode="numeric"
+            placeholder="Day"
             aria-label="Day of the month"
             value={String(day)}
             onChange={(event) => {
@@ -74,14 +63,20 @@ export function WorkflowCalendarWhenFields({
                 startDate: startDateWithDayOfMonth(String(calendarConfig.startDate ?? ""), nextDay),
               });
             }}
-            className={cn(WORKFLOW_FORM_FLAT_CONTROL_CLASS, "w-10 shrink-0 tabular-nums")}
           />
-          <span className="min-w-0 truncate whitespace-nowrap text-base text-muted-foreground">
+          <span className="min-w-0 whitespace-nowrap text-base text-muted-foreground">
             day of the month
           </span>
         </div>
-        <Select
+        <SelectField
+          placeholder="Start month"
+          width="full"
           value={monthChoice}
+          options={[
+            { value: "this", label: "This month" },
+            { value: "next", label: "Next month" },
+            { value: "custom", label: "Custom" },
+          ]}
           onValueChange={(value) => {
             if (value === "custom") {
               patchMonthly({
@@ -100,28 +95,7 @@ export function WorkflowCalendarWhenFields({
               startDate: startDateWithMonthChoice(String(calendarConfig.startDate ?? ""), day, nextChoice),
             });
           }}
-        >
-          <SelectTrigger
-            aria-label="Start month"
-            className={cn(
-              WORKFLOW_FORM_SELECT_TRIGGER_CLASS,
-              "h-8 min-h-8 w-full min-w-0 rounded-none border-0 bg-black px-2",
-            )}
-          >
-            <SelectValue placeholder="Start month" />
-          </SelectTrigger>
-          <SelectContent className={WORKFLOW_FORM_SELECT_CONTENT_CLASS}>
-            <SelectItem value="this" className={WORKFLOW_FORM_SELECT_ITEM_CLASS}>
-              This month
-            </SelectItem>
-            <SelectItem value="next" className={WORKFLOW_FORM_SELECT_ITEM_CLASS}>
-              Next month
-            </SelectItem>
-            <SelectItem value="custom" className={WORKFLOW_FORM_SELECT_ITEM_CLASS}>
-              Custom
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        />
         <div className="flex h-8 min-h-8 min-w-0 items-center rounded-none bg-black px-2">
           <TaskFormTimePicker
             placeholder="Time"
@@ -158,7 +132,7 @@ export function WorkflowCalendarWhenFields({
               startDate,
             });
           }}
-          className="h-fit w-full min-w-0 rounded-none bg-black p-3 text-base text-white"
+          className="h-fit w-full min-w-0 rounded-none bg-black p-3 text-base text-foreground"
           classNames={{
             months: "flex w-full flex-col",
             month: "w-full space-y-4",

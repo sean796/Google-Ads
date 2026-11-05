@@ -1,10 +1,10 @@
 import React from "react";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
-import { XCircle, Loader2, Power } from "lucide-react";
+import { XCircle, Power } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type WordPressSite } from "../types";
 import { getCyberpunkTextClasses, getPropertyListRowBlackIconButtonClass, getPropertyListRowIconButtonHoverGlowClass } from "./cyberpunk-theme";
+import { Button } from "@/ui";
 
 interface WordPressCardStatusProps {
   site: WordPressSite;
@@ -70,12 +70,11 @@ export const WordPressCardStatus: React.FC<WordPressCardStatusProps> = ({
     return (
       <div className="flex min-w-0 shrink-0 items-center whitespace-nowrap px-0 py-0">
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
           disabled={isTesting}
           title={getStatusText()}
           aria-label={switchAriaLabel}
-          className={cn(powerClass, isTesting && "cursor-not-allowed opacity-70")}
           onClick={(e) => {
             e.stopPropagation();
             if (!isTesting) onToggle();
@@ -83,7 +82,7 @@ export const WordPressCardStatus: React.FC<WordPressCardStatusProps> = ({
           onMouseDown={(e) => e.stopPropagation()}
         >
           {isTesting ? (
-            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-white" aria-hidden />
+            null
           ) : (
             <Power className="h-4 w-4 shrink-0" aria-hidden />
           )}
@@ -104,9 +103,9 @@ export const WordPressCardStatus: React.FC<WordPressCardStatusProps> = ({
         {!menuDense ? (
           <span className={`text-base font-medium ${getCyberpunkTextClasses("muted")}`}>Status:</span>
         ) : null}
-        {isTesting ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-white" aria-hidden /> : null}
+        {isTesting ? null : null}
         {!isTesting && site.connectionStatus === "failed" ? (
-          <XCircle className="h-4 w-4 shrink-0 text-red-400" aria-hidden />
+          <XCircle className="h-4 w-4 shrink-0 text-ui-danger-hover" aria-hidden />
         ) : null}
         <span className={`text-base font-semibold ${getCyberpunkTextClasses("secondary")}`}>
           {getStatusText()}

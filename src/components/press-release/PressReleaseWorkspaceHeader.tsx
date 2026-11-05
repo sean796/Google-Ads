@@ -1,4 +1,4 @@
-import { Input } from "@/components/ui/input";
+
 import { BlogGeneratorWorkspaceChrome } from "@/components/blog-generator/BlogGeneratorWorkspaceChrome";
 import { GeneratorToolbarFrame } from "@/components/blog-generator/GeneratorToolbarFrame";
 import { GENERATOR_FIELD_KEYWORD } from "@/components/blog-generator/generator-toolbar-theme";
@@ -7,6 +7,7 @@ import { BulkGeneratorRunActions } from "@/components/keyword-research/bulk/Bulk
 import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
 import { PressReleaseContentDetailsDrawer } from "@/components/press-release/PressReleaseContentDetailsDrawer";
 import type { PressReleaseDetailsPanelProps } from "@/components/press-release/PressReleaseDetailsPanel";
+import { Field } from "@/ui";
 
 export type PressReleaseWorkspaceHeaderProps = {
   activeSection: BlogGeneratorSectionId;
@@ -23,7 +24,6 @@ export type PressReleaseWorkspaceHeaderProps = {
   onRun: () => void;
   onClear: () => void;
   detailsProps: PressReleaseDetailsPanelProps;
-  onDetailsOpenChange?: (open: boolean) => void;
 };
 
 export function PressReleaseWorkspaceHeader({
@@ -41,7 +41,6 @@ export function PressReleaseWorkspaceHeader({
   onRun,
   onClear,
   detailsProps,
-  onDetailsOpenChange,
 }: PressReleaseWorkspaceHeaderProps) {
   return (
     <BlogGeneratorWorkspaceChrome
@@ -53,27 +52,24 @@ export function PressReleaseWorkspaceHeader({
       canOpenDetails={canOpenDetails}
       isProcessing={isProcessing}
       detailsPanelId="press-release-details-panel"
-      onDetailsOpenChange={onDetailsOpenChange}
       toolbar={
         <GeneratorToolbarFrame
           primary={
             <>
-              <Input
+              <Field
                 type="text"
                 placeholder="Keyword"
                 value={keyword}
                 onChange={(e) => onKeywordChange(e.target.value)}
-                className={GENERATOR_FIELD_KEYWORD}
                 disabled={workspaceBusy}
                 autoComplete="off"
                 aria-label="Keyword"
               />
-              <Input
+              <Field
                 type="text"
                 placeholder="Title (optional)"
                 value={title}
                 onChange={(e) => onTitleChange(e.target.value)}
-                className={GENERATOR_FIELD_KEYWORD}
                 disabled={workspaceBusy}
                 autoComplete="off"
                 aria-label="Title override"

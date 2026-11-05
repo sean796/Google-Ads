@@ -4,7 +4,7 @@ import { OVERVIEW_SITEMAP_SOURCE_LABELS, type OverviewSitemapSource } from "@/li
 import { cn } from "@/lib/utils";
 
 export const CONTENT_PAGINATION_SLOT_CLASS =
-  "min-h-0 shrink-0 justify-start gap-2 rounded-none border-0 bg-zinc-900 p-0 [&_button]:rounded-none";
+  "min-h-0 shrink-0 justify-start gap-2 rounded-none border-0 bg-ui-field p-0 [&_button]:rounded-none";
 
 const CONTENT_CHROME_RESERVE = "invisible pointer-events-none";
 

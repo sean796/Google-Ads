@@ -3,6 +3,7 @@ import { ChevronDown } from "lucide-react";
 import type { AgentRunBucketGroup, AgentRunBucketKey } from "@/lib/agent-runs/agent-run-grouping";
 import { AgentRunsBucketTabs } from "./AgentRunsBucketTabs";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 type AgentRunsGroupFolderProps = {
   label?: string;
@@ -32,9 +33,8 @@ export function AgentRunsGroupFolder({
   return (
     <div className="agent-runs-client-header">
       {collapsible ? (
-        <button
-          type="button"
-          className="agent-runs-client-header__toggle"
+        <Button
+          variant="quiet"
           aria-expanded={expanded}
           onClick={onToggleExpanded}
         >
@@ -45,7 +45,7 @@ export function AgentRunsGroupFolder({
             )}
             aria-hidden
           />
-        </button>
+        </Button>
       ) : null}
       {leading ?? (label ? <span className="agent-runs-client-header__label">{label}</span> : null)}
       {showTabs ? (

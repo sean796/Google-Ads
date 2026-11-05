@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { ArrowLeft, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useChatShellState } from "@/components/chat/layout/useChatShellState";
 import { ChatSidebar } from "@/components/chat/sidebar/ChatSidebar";
@@ -30,6 +29,7 @@ import { channelTitle, threadBarLabel } from "@/components/chat/layout/chat-shel
 import { fetchMentionUnreadCount } from "@/lib/chat-api";
 import type { ChatMessage } from "@/lib/chat-types";
 import type { ChatShellViewModel } from "@/components/chat/layout/useChatShellState";
+import { Button } from "@/ui";
 
 type MobileChatScreenProps = {
   onMentionUnreadCountChange?: (count: number) => void;
@@ -184,9 +184,8 @@ export function MobileChatScreen({
             <h2 className="px-2 text-base font-bold text-white">Messages</h2>
             {vm.activeChannelId != null ? (
               <Button
+                variant="quiet"
                 type="button"
-                variant="ghost"
-                className="mobile-chat-header__btn h-12 w-12 shrink-0 px-0"
                 aria-label="Back to chat"
                 onClick={() => setShowThread(true)}
               >
@@ -206,9 +205,8 @@ export function MobileChatScreen({
         <div className="mobile-chat-thread flex h-full min-h-0 w-full flex-col overflow-hidden">
           <div className="mobile-chat-header relative flex shrink-0 items-center gap-0 px-1 py-2">
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
-              className="mobile-chat-header__btn h-12 w-12 shrink-0 px-0"
               aria-label="Back to channels"
               onClick={() => {
                 if (vm.threadRoot) {
@@ -221,13 +219,12 @@ export function MobileChatScreen({
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <button
-              type="button"
-              className="mobile-chat-header__title shrink-0 text-left"
+            <Button
+              variant="quiet"
               onClick={openChannelDrawer}
             >
               <h2 className={cn(CHAT_CHANNEL_TITLE_CLASS, "text-base")}>{channelLabel}</h2>
-            </button>
+            </Button>
             {!vm.threadRoot && visibleDay ? (
               <span className="mobile-chat-header__date pointer-events-none absolute inset-x-0 text-center text-base font-semibold text-white">
                 {visibleDay}
@@ -316,9 +313,8 @@ export function MobileChatScreen({
           <div className="mobile-chat-drawer-header flex shrink-0 items-center justify-between gap-2 px-2 py-2">
             <h2 className="px-2 text-base font-bold text-white">Channels</h2>
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
-              className="mobile-chat-header__btn h-12 w-12 shrink-0 px-0"
               aria-label="Close channels"
               onClick={() => setChannelDrawerOpen(false)}
             >
@@ -379,7 +375,7 @@ export function MobileChatScreen({
           if (!open) vm.setEditTarget(null);
         }}
       >
-        <DialogContent className="bg-white text-zinc-900 sm:max-w-lg">
+        <DialogContent className="bg-white text-black sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-base">Edit message</DialogTitle>
           </DialogHeader>
@@ -397,14 +393,14 @@ export function MobileChatScreen({
                 showAiToolbar={!vm.editBusy}
                 submitOnEnter={false}
               />
-              <ChatDraftLinkPreviews teamId={vm.teamId} html={vm.editHtml} className="rounded-md border border-zinc-200" />
+              <ChatDraftLinkPreviews teamId={vm.teamId} html={vm.editHtml} className="rounded-md border border-border" />
             </>
           ) : null}
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" className="text-base" onClick={() => vm.setEditTarget(null)}>
+            <Button variant="quiet" type="button" onClick={() => vm.setEditTarget(null)}>
               Cancel
             </Button>
-            <Button type="button" className="text-base" disabled={vm.editBusy} onClick={() => void vm.handleSaveEdit()}>
+            <Button variant="run" type="button" disabled={vm.editBusy} onClick={() => void vm.handleSaveEdit()}>
               Save
             </Button>
           </div>

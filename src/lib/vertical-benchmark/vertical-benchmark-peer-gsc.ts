@@ -7,12 +7,12 @@ import { normalizeInventoryUrl } from "@/lib/vertical-benchmark/vertical-benchma
 import { isBlockedContentTopicPhrase } from "@/lib/content-topic-blocklist";
 import { QUARTER_EDITORIAL_POSTS_GOAL } from "@/lib/quarter-editorial-gap";
 
-export const BENCHMARK_BLOG_COUNT_MIN = 1;
+export const BENCHMARK_BLOG_COUNT_MIN = 0;
 export const BENCHMARK_BLOG_COUNT_MAX = 50;
 export const BENCHMARK_BLOG_COUNT_DEFAULT = QUARTER_EDITORIAL_POSTS_GOAL;
 
 export function clampBenchmarkBlogCount(n: number): number {
-  if (!Number.isFinite(n)) return BENCHMARK_BLOG_COUNT_DEFAULT;
+  if (!Number.isFinite(n)) return BENCHMARK_BLOG_COUNT_MIN;
   return Math.max(BENCHMARK_BLOG_COUNT_MIN, Math.min(BENCHMARK_BLOG_COUNT_MAX, Math.floor(n)));
 }
 

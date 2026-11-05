@@ -1,6 +1,5 @@
-import React, { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import React, { type CSSProperties, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { ChevronDown } from "lucide-react";
 import { BULK_TOOLBAR_GROUP_DIVIDER } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import {
   MetaBulkMicroProgress,
@@ -8,15 +7,15 @@ import {
 } from "@/components/overview/OverviewBulkMicroProgress";
 import type { MetaBulkActionKey, BulkProgressSlice } from "@/components/overview/overview-tab-constants";
 import { cn } from "@/lib/utils";
-import { DETAILS_DRAWER_PANEL, DETAILS_DRAWER_SHELL } from "@/components/integrations/wordpress/bulk-details-drawer-styles";
+import { DetailsDockPortal } from "@/components/pulse-assist/details-dock";
 
 /** Fixed chrome height so workspace tabs do not shift layout. */
 export const UNIFIED_TITLE_BAND_CLASS =
-  "flex h-12 shrink-0 items-center bg-zinc-900 px-3 sm:px-3.5";
+  "flex h-12 shrink-0 items-center bg-ui-field px-3 sm:px-3.5";
 export const UNIFIED_TOOLBAR_CLASS =
   "flex h-11 w-full min-w-0 shrink-0 min-h-11 flex-nowrap items-center justify-start gap-1.5 overflow-x-auto bg-black px-3 sm:px-3.5";
 export const UNIFIED_PROGRESS_BAND_CLASS =
-  "relative z-20 flex h-11 w-full shrink-0 items-center overflow-visible bg-zinc-900 px-3 sm:px-3.5";
+  "relative z-20 flex h-11 w-full shrink-0 items-center overflow-visible bg-ui-field px-3 sm:px-3.5";
 
 type UnifiedWorkspaceChromeBaseProps = {
   icon: LucideIcon;
@@ -42,7 +41,7 @@ type UnifiedWorkspaceChromeBaseProps = {
 };
 
 type UnifiedWorkspaceChromeFullProgressProps = UnifiedWorkspaceChromeBaseProps & {
-  /** Default: full progress bar + Details drawer. */
+  /** Default: full progress bar; Details content goes to the right sidebar. */
   progressBand?: "full";
   /** Optional leading slot in the progress band (e.g. grid pagination). */
   progressLeading?: ReactNode;
@@ -55,12 +54,6 @@ type UnifiedWorkspaceChromeFullProgressProps = UnifiedWorkspaceChromeBaseProps &
   isProcessing: boolean;
   detailsPanelId: string;
   detailsPanel: ReactNode;
-  /** Override drawer panel classes (e.g. higher z-index over map). */
-  detailsDrawerClassName?: string;
-  /** When this value changes and Details can open, open the drawer (e.g. Overview harness start). */
-  detailsOpenSignal?: number | string | null;
-  /** Fires when the Details drawer opens or closes. */
-  onDetailsOpenChange?: (open: boolean) => void;
 };
 
 type UnifiedWorkspaceChromeEmptyProgressProps = UnifiedWorkspaceChromeBaseProps & {
@@ -94,25 +87,6 @@ export function UnifiedWorkspaceChrome(props: UnifiedWorkspaceChromeProps) {
     !isEmptyProgressBand && "isProcessing" in props ? props.isProcessing : false;
   /** Blue neon frame (Content Optimizer parity) while run is active. */
   const chromeBusyGlow = workspaceBusy || isProcessing;
-
-  const [detailsOpen, setDetailsOpen] = useState(false);
-
-  const showDetailsDrawer = !isEmptyProgressBand;
-  const detailsOpenSignal =
-    !isEmptyProgressBand && "detailsOpenSignal" in props ? props.detailsOpenSignal : null;
-
-  useEffect(() => {
-    if (detailsOpenSignal != null && detailsOpenSignal !== "" && showDetailsDrawer) {
-      setDetailsOpen(true);
-    }
-  }, [detailsOpenSignal, showDetailsDrawer]);
-
-  const onDetailsOpenChange =
-    !isEmptyProgressBand && "onDetailsOpenChange" in props ? props.onDetailsOpenChange : undefined;
-
-  useEffect(() => {
-    onDetailsOpenChange?.(detailsOpen);
-  }, [detailsOpen, onDetailsOpenChange]);
 
   return (
     <div className="w-full max-w-full shrink-0 font-sans text-base font-normal">
@@ -166,7 +140,7 @@ export function UnifiedWorkspaceChrome(props: UnifiedWorkspaceChromeProps) {
                   >
                     <Icon className="h-5 w-5 shrink-0" />
                   </span>
-                  <h2 className="min-w-0 flex-1 truncate text-base font-normal text-white">{title}</h2>
+                  <h2 className="min-w-0 flex-1 break-words text-base font-normal text-white">{title}</h2>
                 </div>
               </div>
               {titleRowMenu ? (
@@ -205,38 +179,9 @@ export function UnifiedWorkspaceChrome(props: UnifiedWorkspaceChromeProps) {
                     hideIdleTrack={props.hideIdleProgressTrack === true}
                   />
                 </div>
-                <button
-                  type="button"
-                  className={cn(
-                    "ml-auto inline-flex h-8 shrink-0 items-center gap-1 px-2 text-base font-normal transition-colors",
-                    squareFrame ? "rounded-none" : "rounded-md",
-                    "text-white hover:text-white/90",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  )}
-                  onClick={() => setDetailsOpen((open) => !open)}
-                  aria-expanded={detailsOpen}
-                  aria-controls={props.detailsPanelId}
-                >
-                  Details
-                  <ChevronDown
-                    className={cn("h-4 w-4 transition-transform", detailsOpen && "rotate-180")}
-                    aria-hidden
-                  />
-                </button>
               </div>
 
-              {detailsOpen && showDetailsDrawer ? (
-                <div
-                  id={props.detailsPanelId}
-                  className={cn(
-                    DETAILS_DRAWER_SHELL,
-                    DETAILS_DRAWER_PANEL,
-                    props.detailsDrawerClassName,
-                  )}
-                >
-                  {props.detailsPanel}
-                </div>
-              ) : null}
+              <DetailsDockPortal id={props.detailsPanelId}>{props.detailsPanel}</DetailsDockPortal>
             </>
           )}
         </div>

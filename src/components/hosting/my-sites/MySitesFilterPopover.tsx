@@ -1,7 +1,7 @@
 import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
 import type { HostedEnvironmentKind, HostedSiteStatus, HostedTag } from "@/lib/hosting-api";
 import { EMPTY_FILTERS, ENVIRONMENT_LABEL, type MySitesFilters } from "./my-sites-view-model";
+import { Button } from "@/ui";
 
 export type MySitesFilterPopoverProps = {
   filters: MySitesFilters;
@@ -79,9 +79,8 @@ export function MySitesFilterPopover({ filters, onChange, tags, phpVersions }: M
         onToggle={(v) => onChange({ ...filters, phpVersions: toggle(filters.phpVersions, v) })}
       />
       <Button
+        variant="quiet"
         type="button"
-        variant="ghost"
-        className="h-8 justify-start rounded-none px-2 text-muted-foreground hover:text-foreground"
         onClick={() => onChange({ ...EMPTY_FILTERS, query: filters.query })}
       >
         Clear filters

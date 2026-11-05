@@ -6,6 +6,7 @@ import {
   forgeAutomationsPageCount,
 } from "@/lib/pulse-forge/forge-automations-pagination";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 export type ForgeAutomationsGridPaginationProps = {
   pageIndex: number;
@@ -40,27 +41,23 @@ export function ForgeAutomationsGridPagination({
         className,
       )}
     >
-      <button
-        type="button"
+      <Button
+        size="icon" icon={ChevronLeft}
+        variant="quiet"
         aria-label="Previous page"
         disabled={onFirstPage || hidden}
         onClick={() => onPageChange(Math.max(0, safePageIndex - 1))}
-        className={BULK_HEADER_ICON_TOOL_BTN}
-      >
-        <ChevronLeft className="h-4 w-4" aria-hidden />
-      </button>
+      ></Button>
       <span className="min-w-[2.5rem] text-center text-base tabular-nums text-white">
         {safePageIndex + 1}
       </span>
-      <button
-        type="button"
+      <Button
+        size="icon" icon={ChevronRight}
+        variant="quiet"
         aria-label="Next page"
         disabled={onLastPage || hidden}
         onClick={() => onPageChange(Math.min(pageCount - 1, safePageIndex + 1))}
-        className={BULK_HEADER_ICON_TOOL_BTN}
-      >
-        <ChevronRight className="h-4 w-4" aria-hidden />
-      </button>
+      ></Button>
     </nav>
   );
 }

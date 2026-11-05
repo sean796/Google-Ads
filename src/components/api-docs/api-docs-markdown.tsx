@@ -40,7 +40,7 @@ const components: Components = {
     const isInline = !className;
     if (isInline) {
       return (
-        <code className="bg-zinc-900 px-1.5 py-0.5 font-mono text-base text-white" {...props}>
+        <code className="bg-ui-field px-1.5 py-0.5 font-mono text-base text-white" {...props}>
           {children}
         </code>
       );
@@ -61,10 +61,10 @@ const components: Components = {
       <table className="w-full min-w-[20rem] text-left text-base text-white">{children}</table>
     </div>
   ),
-  thead: ({ children }) => <thead className="bg-zinc-900/50 text-white">{children}</thead>,
+  thead: ({ children }) => <thead className="bg-ui-field/50 text-white">{children}</thead>,
   th: ({ children }) => <th className="px-3 py-2 text-base font-normal">{children}</th>,
   td: ({ children }) => <td className="px-3 py-2 align-top text-base">{children}</td>,
-  tr: ({ children }) => <tr className="even:bg-zinc-950">{children}</tr>,
+  tr: ({ children }) => <tr className="even:bg-black">{children}</tr>,
 };
 
 const METHOD_PATH_LINE = /^(GET|POST|PUT|PATCH|DELETE|ANY)\s+`\/api\/[^`]+`\.\s*$/;

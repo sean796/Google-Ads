@@ -1,5 +1,4 @@
 import React from "react";
-import { Button } from "@/components/ui/button";
 import { Copy, Edit2, Trash2 } from "lucide-react";
 import { type WordPressSite } from "../types";
 import { cn } from "@/lib/utils";
@@ -14,6 +13,7 @@ import {
   wordpressSiteDomainLabel,
 } from "./wordpress-site-domain-label";
 import { getPublicSiteUrl } from "@/lib/wordpress-site-public-url";
+import { Button, RowButton } from "@/ui";
 
 interface WordPressCardHeaderProps {
   site: WordPressSite;
@@ -59,9 +59,9 @@ export const WordPressCardHeader: React.FC<WordPressCardHeaderProps> = ({
       ? cn(
           getPropertyListRowBlackIconButtonClass(true),
           getPropertyListRowIconButtonHoverGlowClass("destructive"),
-          "text-red-300 [&_svg]:!text-red-300",
+          "text-ui-danger-hover [&_svg]:!text-ui-danger-hover",
         )
-      : "text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/30 hover:border-red-500/50 transition-all";
+      : "text-ui-danger-hover hover:text-ui-danger-hover hover:bg-ui-danger/10 border border-ui-danger-edge/30 hover:border-ui-danger-edge/50 transition-all";
 
   const publicUrl = getPublicSiteUrl(site);
   const siteUrlLabel = truncateWordpressSiteUrlLabel(wordpressSiteDomainLabel(publicUrl));
@@ -74,11 +74,11 @@ export const WordPressCardHeader: React.FC<WordPressCardHeaderProps> = ({
       {showSiteInfo && (
         <div className="flex-1 min-w-0">
           <h3
-            className={`text-lg font-bold ${getCyberpunkTextClasses("primary")} tracking-wider mb-1 truncate`}
+            className={`text-lg font-bold ${getCyberpunkTextClasses("primary")} tracking-wider mb-1 break-words`}
           >
             {site.name}
           </h3>
-          <button
+          <RowButton
             type="button"
             aria-label={`Copy site URL: ${publicUrl}`}
             title={`Copy ${publicUrl}`}
@@ -89,13 +89,12 @@ export const WordPressCardHeader: React.FC<WordPressCardHeaderProps> = ({
             onMouseDown={(e) => {
               if (variant === "menuRow") e.stopPropagation();
             }}
-            className={`mt-1 inline-flex min-w-0 max-w-full items-center gap-1 text-base ${getCyberpunkSiteUrlLinkClasses()}`}
           >
-            <span className="min-w-0 truncate">{siteUrlLabel}</span>
+            <span className="min-w-0 break-words">{siteUrlLabel}</span>
             <Copy className="h-3 w-3 shrink-0" aria-hidden />
-          </button>
+          </RowButton>
           {restOnly ? (
-            <p className="mt-1 text-xs text-white/55 truncate" title={restOnly}>
+            <p className="mt-1 text-xs text-white/55 break-words" title={restOnly}>
               WordPress REST: {truncateWordpressSiteUrlLabel(wordpressSiteDomainLabel(restOnly))}
             </p>
           ) : null}
@@ -117,8 +116,7 @@ export const WordPressCardHeader: React.FC<WordPressCardHeaderProps> = ({
         ) : null}
         {showEditButton ? (
           <Button
-            variant="ghost"
-            size="sm"
+            variant="quiet"
             onClick={(e) => {
               if (variant === "menuRow") e.stopPropagation();
               onEdit();
@@ -126,14 +124,12 @@ export const WordPressCardHeader: React.FC<WordPressCardHeaderProps> = ({
             onMouseDown={(e) => {
               if (variant === "menuRow") e.stopPropagation();
             }}
-            className={iconButtonClassName}
           >
             <Edit2 className={variant === "menuRow" ? "h-4 w-4" : "h-4 w-4"} />
           </Button>
         ) : null}
         <Button
-          variant="ghost"
-          size="sm"
+          variant="quiet"
           onClick={(e) => {
             if (variant === "menuRow") e.stopPropagation();
             onDelete();
@@ -141,7 +137,6 @@ export const WordPressCardHeader: React.FC<WordPressCardHeaderProps> = ({
           onMouseDown={(e) => {
             if (variant === "menuRow") e.stopPropagation();
           }}
-          className={deleteButtonClassName}
         >
           <Trash2 className={variant === "menuRow" ? "h-4 w-4" : "h-4 w-4"} />
         </Button>

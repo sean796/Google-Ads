@@ -400,10 +400,8 @@ export async function runBulkRowContentAndMediaPhase(input: {
     options.onProgress?.(
       rowIndex,
       0,
-      useAiImagePath ? 'Blog content + featured image (parallel)...' : 'Generating blog content...',
+      useAiImagePath ? 'Blog content, then featured image...' : 'Generating blog content...',
     );
-
-    const markdownPromise = runMarkdownPipeline();
 
     const bulkFeaturedImageOptions: ImageGeneratorOptions = {
       userPrompt: (enrichedRow.prompt_modifier || enrichedRow.modifier || '').trim(),
@@ -434,10 +432,8 @@ export async function runBulkRowContentAndMediaPhase(input: {
       availableSections: [],
     };
 
-    const imagePipelinePromise = useGoogleMaps
-      ? Promise.resolve()
-      : (async (): Promise<void> => {
-      if (row.featuredImage === 'n') return;
+    const runImagePipeline = async (): Promise<void> => {
+      if (useGoogleMaps || row.featuredImage === 'n') return;
 
       if (options.peerFeaturedReport) {
         recordPeerFeaturedImageOutcome(options.peerFeaturedReport, {
@@ -477,15 +473,11 @@ export async function runBulkRowContentAndMediaPhase(input: {
           console.warn('[Bulk Auto-Generate] Featured image pipeline failed (non-fatal):', imgErr);
         }
       }
-    })();
+    };
 
     try {
-      if (useGoogleMaps) {
-        markdownContent = await markdownPromise;
-      } else {
-        const [md] = await Promise.all([markdownPromise, imagePipelinePromise]);
-        markdownContent = md;
-      }
+      markdownContent = await runMarkdownPipeline();
+      await runImagePipeline();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.warn('[Bulk Content] Primary markdown generation warning; generating resilient article synthesis so WP upload succeeds:', errorMessage);

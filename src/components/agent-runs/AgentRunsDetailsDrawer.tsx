@@ -1,6 +1,5 @@
 import { Download } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { OptimizationArtifactDownloads } from "@/components/integrations/wordpress/OptimizationArtifactDownloads";
 import {
   CONTENT_OPTIMIZER_ACTIVE_ROW_HIGHLIGHT_CLASS,
@@ -32,6 +31,7 @@ import { useAgentRunEnrichedProgressSteps } from "./use-agent-run-enriched-progr
 import { AgentRunProgressLog } from "./AgentRunProgressLog";
 import { AgentRunBrowserPreviewModal } from "./AgentRunBrowserPreviewModal";
 import { ChatGptAuditQueryPanel } from "./ChatGptAuditQueryPanel";
+import { Button } from "@/ui";
 type AgentRunsDetailsDrawerProps = {
   run: AgentRun;
   resumable?: boolean;
@@ -124,7 +124,7 @@ export function AgentRunsDetailsDrawer({
                   "text-base font-semibold underline [overflow-wrap:anywhere]",
                   isRunning
                     ? CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS
-                    : "text-cyan-300 hover:text-cyan-200",
+                    : "text-semantic-analysis-foreground hover:text-semantic-analysis-foreground",
                 )}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -150,7 +150,7 @@ export function AgentRunsDetailsDrawer({
                         href={post.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-base font-semibold text-cyan-300 hover:underline [overflow-wrap:anywhere]"
+                        className="text-base font-semibold text-semantic-analysis-foreground hover:underline [overflow-wrap:anywhere]"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {post.title || post.url}
@@ -172,7 +172,7 @@ export function AgentRunsDetailsDrawer({
                 <p className="text-base text-muted-foreground">Blocked (cannibalization)</p>
                 <ul className="mt-1 space-y-1">
                   {run.result.blockedRows.map((row) => (
-                    <li key={`${row.keyword}-${row.reason}`} className="text-base text-zinc-200 [overflow-wrap:anywhere]">
+                    <li key={`${row.keyword}-${row.reason}`} className="text-base text-foreground [overflow-wrap:anywhere]">
                       {row.keyword}: {row.reason}
                       {row.conflictingUrl ? (
                         <>
@@ -181,7 +181,7 @@ export function AgentRunsDetailsDrawer({
                             href={row.conflictingUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-cyan-300 hover:underline"
+                            className="text-semantic-analysis-foreground hover:underline"
                             onClick={(e) => e.stopPropagation()}
                           >
                             {row.conflictingUrl}
@@ -220,7 +220,7 @@ export function AgentRunsDetailsDrawer({
               href={run.result.googleDriveWebViewLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-1 inline-block text-base font-semibold text-cyan-300 hover:underline [overflow-wrap:anywhere]"
+              className="mt-1 inline-block text-base font-semibold text-semantic-analysis-foreground hover:underline [overflow-wrap:anywhere]"
               onClick={(e) => e.stopPropagation()}
             >
               {googleDriveResultLinkLabel(run, run.result.googleDriveWebViewLink)}
@@ -240,8 +240,6 @@ export function AgentRunsDetailsDrawer({
           {showCancel ? (
             <Button
               type="button"
-              variant="secondary"
-              className="h-8 w-fit shrink-0 text-base"
               onClick={(e) => {
                 e.stopPropagation();
                 onCancel?.();
@@ -252,8 +250,6 @@ export function AgentRunsDetailsDrawer({
           ) : showResume ? (
             <Button
               type="button"
-              variant="secondary"
-              className="h-8 w-fit shrink-0 text-base"
               onClick={(e) => {
                 e.stopPropagation();
                 onResume?.();
@@ -264,9 +260,8 @@ export function AgentRunsDetailsDrawer({
           ) : null}
           {showsBrowserPreview && (isRunning || browserPreviewArtifact) ? (
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
-              className="h-8 shrink-0 px-2 text-base text-cyan-300 hover:bg-white/10 hover:text-cyan-200"
               onClick={(e) => {
                 e.stopPropagation();
                 setBrowserPreviewOpen(true);
@@ -276,10 +271,8 @@ export function AgentRunsDetailsDrawer({
             </Button>
           ) : null}
           <Button
+            variant="quiet"
             type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 shrink-0 px-2 text-base text-white hover:bg-white/10 hover:text-white"
             aria-label="Download log (JSON)"
             onClick={(e) => {
               e.stopPropagation();
@@ -290,9 +283,8 @@ export function AgentRunsDetailsDrawer({
           </Button>
           {workflowRunId && workflowRunLogCount > 1 ? (
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
-              className="h-8 shrink-0 px-2 text-base text-white hover:bg-white/10 hover:text-white"
               onClick={(e) => {
                 e.stopPropagation();
                 void downloadWorkflowRunAgentLogs(activeTeam?.id ?? null, workflowRunId, runs);

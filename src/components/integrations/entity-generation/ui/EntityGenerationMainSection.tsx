@@ -3,25 +3,16 @@
  */
 
 import React from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_FAILED_TO_COPY, NOTIFY_FAILED_TO_COPY_TO_CLIPBOARD, NOTIFY_ORIGINS_COPIED_TO_CLIPBOARD, NOTIFY_ORIGIN_COPIED } from "@/lib/notify-messages";
-import { Copy, ExternalLink, Loader2, X } from "lucide-react";
+import { Copy, ExternalLink, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { WikipediaSource } from "@/lib/entity/decide-wikipedia-source-ai";
 import type { WordPressSite } from "../../types";
 import type { CriteriaData, RadiusDistancePreset } from "../types";
 import type { EntityGenerationProgress } from "../hooks/useEntityGeneration";
 import { RADIUS_PRESET_MILES } from "@/lib/entity/radius-filter";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Button, Field, RowButton, TextButton, SelectField } from "@/ui";
 
 function wikipediaSourceKey(s: WikipediaSource): string {
   return `${s.type}:${s.title}`;
@@ -86,7 +77,7 @@ export const EntityGenerationMainSection: React.FC<EntityGenerationMainSectionPr
       {isGenerating && (
         <div className="mb-4 rounded-md border border-border bg-muted/15 p-4">
           <div className="mb-2 flex items-center gap-2 font-semibold text-foreground">
-            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+            
             Agentic entity generation
           </div>
           {entityGenerationProgress?.currentMessage && (
@@ -104,56 +95,47 @@ export const EntityGenerationMainSection: React.FC<EntityGenerationMainSectionPr
       {pendingEntitySite && pendingEntitySitemap && !hasGeneratedEntities && !isGenerating && (
         <div className="grid w-full grid-cols-2 gap-2 gap-x-3 py-2">
           <div className="min-w-0">
-            <Input
+            <Field
               id="entityCount"
               type="number"
               min="1"
               value={entityCount}
               onChange={(e) => onEntityCountChange(Math.max(1, parseInt(e.target.value, 10) || 1))}
               placeholder="# Origins"
-              className="bg-input border-border text-foreground h-9 w-full"
               aria-label="Number of origins to generate"
             />
           </div>
           <div className="min-w-0">
-            <Select
+            <SelectField
+              placeholder="Radius filter"
               value={entityRadiusPreset}
               onValueChange={(v) => onEntityRadiusPresetChange(v as RadiusDistancePreset)}
-            >
-              <SelectTrigger
-                id="entityRadiusPreset"
-                className="bg-input border-border h-9 w-full min-w-0"
-                aria-label="Radius filter"
-              >
-                <SelectValue placeholder="Radius filter" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="off">Off (no distance filter)</SelectItem>
-                <SelectItem value="close">Close ({RADIUS_PRESET_MILES.close} mi)</SelectItem>
-                <SelectItem value="medium">Medium ({RADIUS_PRESET_MILES.medium} mi)</SelectItem>
-                <SelectItem value="far">Far ({RADIUS_PRESET_MILES.far} mi)</SelectItem>
-              </SelectContent>
-            </Select>
+              options={[
+                { value: "off", label: "Off (no distance filter)" },
+                { value: "close", label: `Close (${RADIUS_PRESET_MILES.close} mi)` },
+                { value: "medium", label: `Medium (${RADIUS_PRESET_MILES.medium} mi)` },
+                { value: "far", label: `Far (${RADIUS_PRESET_MILES.far} mi)` },
+              ]}
+              width="full"
+            />
           </div>
           <div className="min-w-0">
-            <Input
+            <Field
               id="entityPromptModifier"
               type="text"
               value={entityPromptModifier}
               onChange={(e) => onEntityPromptModifierChange(e.target.value)}
               placeholder="Prompt modifier (neighborhoods, codes, etc.)"
-              className="bg-input border-border text-foreground h-9 w-full min-w-0"
               aria-label="Optional prompt modifier"
             />
           </div>
           <div className="min-w-0">
-            <Input
+            <Field
               id="entityKeyword"
               type="text"
               value={entityKeyword}
               onChange={(e) => onEntityKeywordChange(e.target.value)}
               placeholder="Keyword (service / niche)"
-              className="bg-input border-border text-foreground h-9 w-full min-w-0"
               aria-label="Optional keyword"
             />
           </div>
@@ -161,7 +143,7 @@ export const EntityGenerationMainSection: React.FC<EntityGenerationMainSectionPr
             <div className="col-span-2 min-w-0">
               {wikiCategorySuggestionsLoading && (
                 <div className="flex items-center justify-end gap-1.5 py-0.5">
-                  <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" aria-hidden />
+                  
                 </div>
               )}
               {!wikiCategorySuggestionsLoading && wikiCategorySuggestions.length > 0 && (
@@ -172,7 +154,8 @@ export const EntityGenerationMainSection: React.FC<EntityGenerationMainSectionPr
                       (x) => wikipediaSourceKey(x) === wikipediaSourceKey(s)
                     );
                     return (
-                      <button
+                      <RowButton
+                        selected={Boolean(isSelected)}
                         key={`${s.type}:${s.title}`}
                         type="button"
                         onClick={() => {
@@ -184,14 +167,9 @@ export const EntityGenerationMainSection: React.FC<EntityGenerationMainSectionPr
                             onSelectedWikipediaSourcesChange([...selectedWikipediaSources, s]);
                           }
                         }}
-                        className={`w-full rounded px-1.5 py-1 text-left text-xs transition-colors ${
-                          isSelected
-                            ? "border border-border bg-muted/40 text-foreground"
-                            : "border border-transparent hover:bg-accent"
-                        }`}
                       >
                         {label}
-                      </button>
+                      </RowButton>
                     );
                   })}
                 </div>
@@ -204,30 +182,27 @@ export const EntityGenerationMainSection: React.FC<EntityGenerationMainSectionPr
                       variant="secondary"
                       className="max-w-full gap-0.5 pr-0.5 text-xs font-normal"
                     >
-                      <span className="truncate">
+                      <span className="break-words">
                         {src.type === "category" ? `Category:${src.title.replace(/_/g, " ")}` : src.title}
                       </span>
-                      <button
-                        type="button"
-                        className="shrink-0 rounded-sm p-0.5 hover:bg-background/80"
+                      <Button
+                        size="icon" icon={X}
+                        variant="quiet"
                         aria-label="Remove category"
                         onClick={() =>
                           onSelectedWikipediaSourcesChange(
                             selectedWikipediaSources.filter((x) => wikipediaSourceKey(x) !== wikipediaSourceKey(src))
                           )
                         }
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                      ></Button>
                     </Badge>
                   ))}
-                  <button
+                  <TextButton
                     type="button"
-                    className="text-xs text-muted-foreground underline hover:text-foreground"
                     onClick={() => onSelectedWikipediaSourcesChange([])}
                   >
                     Clear
-                  </button>
+                  </TextButton>
                 </div>
               )}
             </div>
@@ -239,10 +214,8 @@ export const EntityGenerationMainSection: React.FC<EntityGenerationMainSectionPr
         <div className="flex-1 grid grid-cols-2 gap-4 py-4 overflow-hidden min-h-[200px]">
           <div className="flex flex-col overflow-hidden">
             <div className="flex items-center justify-between mb-2">
-              <Label className="text-sm font-semibold block">Generated Origins (with Wikipedia pages):</Label>
+              <label className="text-sm font-semibold block">Generated Origins (with Wikipedia pages):</label>
               <Button
-                variant="outline"
-                size="sm"
                 onClick={() => {
                   const entitiesText = generatedEntities.join("\n");
                   navigator.clipboard
@@ -254,7 +227,6 @@ export const EntityGenerationMainSection: React.FC<EntityGenerationMainSectionPr
                       notify.error(NOTIFY_FAILED_TO_COPY_TO_CLIPBOARD);
                     });
                 }}
-                className="h-7 px-2 text-xs"
               >
                 <Copy className="h-3 w-3 mr-1" />
                 Copy All
@@ -289,8 +261,7 @@ export const EntityGenerationMainSection: React.FC<EntityGenerationMainSectionPr
                         )}
                       </div>
                       <Button
-                        variant="ghost"
-                        size="sm"
+                        variant="quiet"
                         onClick={(e) => {
                           e.stopPropagation();
                           navigator.clipboard.writeText(entity).then(() => {
@@ -299,7 +270,6 @@ export const EntityGenerationMainSection: React.FC<EntityGenerationMainSectionPr
                             notify.error(NOTIFY_FAILED_TO_COPY);
                           });
                         }}
-                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Copy className="h-3 w-3" />
                       </Button>
@@ -311,7 +281,7 @@ export const EntityGenerationMainSection: React.FC<EntityGenerationMainSectionPr
           </div>
 
           <div className="flex flex-col overflow-hidden">
-            <Label className="text-sm font-semibold block mb-2">Criteria Information:</Label>
+            <label className="text-sm font-semibold block mb-2">Criteria Information:</label>
             <div className="flex-1 overflow-y-auto rounded-md border-l-[3px] border-l-border/60 bg-black/25 p-3">
               {selectedEntity ? (
                 <div className="space-y-3">
@@ -352,7 +322,7 @@ export const EntityGenerationMainSection: React.FC<EntityGenerationMainSectionPr
                               <div className="text-sm">
                                 <span
                                   className={
-                                    criteriaData.matches ? "text-green-600 font-semibold" : "text-red-600"
+                                    criteriaData.matches ? "text-primary font-semibold" : "text-ui-danger"
                                   }
                                 >
                                   {criteriaData.matches ? "✓ Matches Criteria" : "✗ Does Not Match"}

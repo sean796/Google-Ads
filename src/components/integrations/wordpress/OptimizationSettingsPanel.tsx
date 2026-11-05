@@ -1,18 +1,7 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SelectSeparator,
-} from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RotateCcw, Save } from "lucide-react";
+import { Button, Field, SelectField } from "@/ui";
 import { type WordPressSite } from "../types";
 import { IMAGE_MODEL_PRESETS } from "@/lib/image-model-defaults";
 import {
@@ -73,7 +62,6 @@ const OptimizationModelSelect: React.FC<OptimizationModelSelectProps> = ({
   onSaveCustom,
   disabled = false,
 }) => {
-  const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
 
   const options = useMemo(
@@ -81,85 +69,49 @@ const OptimizationModelSelect: React.FC<OptimizationModelSelectProps> = ({
     [presets, customModels, value],
   );
 
-  const handleOpenChange = useCallback((next: boolean) => {
-    setOpen(next);
-    if (!next) {
-      setDraft("");
-    }
-  }, []);
-
   const commitDraft = useCallback(() => {
     const id = draft.trim();
     if (!id) return;
     onSaveCustom(id);
     setDraft("");
-    setOpen(false);
   }, [draft, onSaveCustom]);
 
-  const inputClasses =
-    "h-8 min-h-8 flex-1 min-w-0 font-mono text-xs";
-
   return (
-    <div className="space-y-2">
-      <Label className="block text-xs font-medium text-muted-foreground">{label}</Label>
-      {description ? (
-        <p className="text-xs text-muted-foreground">{description}</p>
-      ) : null}
-      <Select
-        open={open}
-        onOpenChange={handleOpenChange}
+    <div className="flex flex-col gap-1">
+      <p className="text-base font-medium text-muted-foreground">{label}</p>
+      {description ? <p className="text-base text-muted-foreground">{description}</p> : null}
+      <SelectField
+        placeholder={label}
+        width="full"
         value={value}
-        onValueChange={(v) => {
-          onSelect(v);
-          setOpen(false);
-        }}
         disabled={disabled}
-      >
-        <SelectTrigger className="h-8 text-xs">
-          <SelectValue placeholder="Select model…" />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </SelectItem>
-          ))}
-          <SelectSeparator />
-          <div className="p-1.5" onPointerDown={(e) => e.preventDefault()}>
-            <div className="flex items-center gap-1.5">
-              <Input
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    commitDraft();
-                  }
-                }}
-                placeholder="openai/gpt-4o…"
-                disabled={disabled}
-                className={inputClasses}
-                aria-label="Custom OpenRouter model id"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                disabled={disabled || !draft.trim()}
-                className="h-8 w-8 shrink-0"
-                title="Save custom model"
-                onClick={commitDraft}
-              >
-                <Save className="h-3.5 w-3.5" aria-hidden />
-              </Button>
-            </div>
-          </div>
-        </SelectContent>
-      </Select>
+        options={options}
+        onValueChange={onSelect}
+      />
+      <div className="flex items-center gap-1.5">
+        <Field
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commitDraft();
+            }
+          }}
+          placeholder="Custom OpenRouter model id"
+          disabled={disabled}
+        />
+        <Button
+          size="icon"
+          icon={Save}
+          aria-label="Save custom model"
+          disabled={disabled || !draft.trim()}
+          onClick={commitDraft}
+        />
+      </div>
     </div>
   );
 };
-
 interface OptimizationSettingsPanelProps {
   site: WordPressSite;
   settings: OptimizationSettings;
@@ -220,17 +172,45 @@ export const OptimizationSettingsPanel: React.FC<OptimizationSettingsPanelProps>
     settings.maxTokens === DEFAULT_SETTINGS.maxTokens &&
     settings.topP === DEFAULT_SETTINGS.topP;
 
+  const numberRow = (
+    heading: string,
+    note: string,
+    props: { step: string; min: string; max?: string; value: number; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void },
+    slider?: { min: number; max: number; value: number; onChange: (v: number) => void },
+  ) => (
+    <div className="flex flex-col gap-1">
+      <p className="text-base font-medium text-muted-foreground">{heading}</p>
+      {slider ? (
+        <Slider
+          min={slider.min}
+          max={slider.max}
+          step={0.01}
+          value={[slider.value]}
+          onValueChange={handleSliderChange(slider.onChange)}
+          disabled={disabled}
+          className="w-full"
+        />
+      ) : null}
+      <Field
+        type="number"
+        step={props.step}
+        min={props.min}
+        max={props.max}
+        value={props.value}
+        onChange={props.onChange}
+        disabled={disabled}
+        placeholder={heading}
+      />
+      <p className="text-base text-muted-foreground">{note}</p>
+    </div>
+  );
+
   return (
-    <Card className="mt-2 w-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 py-3">
-        <CardTitle className="text-xs font-semibold uppercase tracking-wider">
-          Optimization Settings
-          {!isDefault && (
-            <span className="ml-2 text-xs font-normal normal-case text-muted-foreground">(Custom)</span>
-          )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4 pt-0">
+    <div className="mt-2 flex w-full flex-col gap-4 bg-ui-field p-3">
+      <p className="text-base font-semibold uppercase tracking-wider">
+        Optimization Settings
+        {!isDefault ? <span className="ml-2 font-normal normal-case text-muted-foreground">(Custom)</span> : null}
+      </p>
         <OptimizationModelSelect
           label="Research agent"
           description="Checklist, blueprint, briefs, and featured-image planning."
@@ -296,96 +276,51 @@ export const OptimizationSettingsPanel: React.FC<OptimizationSettingsPanelProps>
           onSaveCustom={(id) => saveCustomModelForField("adsModel", id)}
           disabled={disabled}
         />
+      {numberRow(
+        `Temperature: ${settings.temperature.toFixed(2)}`,
+        "Controls randomness. Lower = more deterministic, Higher = more creative. (0.0 - 2.0)",
+        {
+          step: "0.01",
+          min: "0.0",
+          max: "2.0",
+          value: settings.temperature,
+          onChange: handleInputChange((value) => onSettingsChange({ ...settings, temperature: value })),
+        },
+        {
+          min: 0,
+          max: 2,
+          value: settings.temperature,
+          onChange: (value) => onSettingsChange({ ...settings, temperature: value }),
+        },
+      )}
 
-        <div className="space-y-2">
-          <Label className="block text-xs font-medium text-muted-foreground">
-            Temperature: {settings.temperature.toFixed(2)}
-          </Label>
-          <Slider
-            min={0.0}
-            max={2.0}
-            step={0.01}
-            value={[settings.temperature]}
-            onValueChange={handleSliderChange((value) =>
-              onSettingsChange({ ...settings, temperature: value })
-            )}
-            disabled={disabled}
-            className="w-full"
-          />
-          <Input
-            type="number"
-            step="0.01"
-            min="0.0"
-            max="2.0"
-            value={settings.temperature}
-            onChange={handleInputChange((value) =>
-              onSettingsChange({ ...settings, temperature: value })
-            )}
-            disabled={disabled}
-            className="h-8 font-mono text-xs"
-          />
-          <p className="text-xs text-muted-foreground">
-            Controls randomness. Lower = more deterministic, Higher = more creative. (0.0 - 2.0)
-          </p>
-        </div>
+      {numberRow(
+        `Top P: ${settings.topP.toFixed(2)}`,
+        "Controls diversity via nucleus sampling. Lower = more focused. (0.0 - 1.0)",
+        {
+          step: "0.01",
+          min: "0.0",
+          max: "1.0",
+          value: settings.topP,
+          onChange: handleInputChange((value) => onSettingsChange({ ...settings, topP: value })),
+        },
+        {
+          min: 0,
+          max: 1,
+          value: settings.topP,
+          onChange: (value) => onSettingsChange({ ...settings, topP: value }),
+        },
+      )}
 
-        <div className="space-y-2">
-          <Label className="block text-xs font-medium text-muted-foreground">
-            Top P: {settings.topP.toFixed(2)}
-          </Label>
-          <Slider
-            min={0.0}
-            max={1.0}
-            step={0.01}
-            value={[settings.topP]}
-            onValueChange={handleSliderChange((value) =>
-              onSettingsChange({ ...settings, topP: value })
-            )}
-            disabled={disabled}
-            className="w-full"
-          />
-          <Input
-            type="number"
-            step="0.01"
-            min="0.0"
-            max="1.0"
-            value={settings.topP}
-            onChange={handleInputChange((value) =>
-              onSettingsChange({ ...settings, topP: value })
-            )}
-            disabled={disabled}
-            className="h-8 font-mono text-xs"
-          />
-          <p className="text-xs text-muted-foreground">
-            Controls diversity via nucleus sampling. Lower = more focused. (0.0 - 1.0)
-          </p>
-        </div>
+      {numberRow(
+        `Max Tokens: ${settings.maxTokens}`,
+        "Maximum number of tokens to generate. Controls response length.",
+        { step: "1", min: "1", value: settings.maxTokens, onChange: handleMaxTokensInputChange },
+      )}
 
-        <div className="space-y-2">
-          <Label className="block text-xs font-medium text-muted-foreground">
-            Max Tokens: {settings.maxTokens}
-          </Label>
-          <Input
-            type="number"
-            step="1"
-            min="1"
-            value={settings.maxTokens}
-            onChange={handleMaxTokensInputChange}
-            disabled={disabled}
-            className="h-8 font-mono text-xs"
-          />
-          <p className="text-xs text-muted-foreground">
-            Maximum number of tokens to generate. Controls response length.
-          </p>
-        </div>
-
-        {!isDefault && (
-          <Button variant="outline" size="sm" onClick={handleReset} disabled={disabled} className="h-7 w-full text-xs">
-            <RotateCcw className="mr-1 h-3 w-3" />
-            Reset to Defaults
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+      <Button icon={RotateCcw} reserved={isDefault} disabled={disabled} onClick={handleReset}>
+        Reset to Defaults
+      </Button>
+    </div>
   );
 };

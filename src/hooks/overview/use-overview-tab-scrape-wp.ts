@@ -54,7 +54,23 @@ type Args = Pick<
     site: WordPressSite | null,
     url: string,
   ) => OverviewInventoryUrlMatch | undefined;
+  getBulkGeneratorPushBindings?: () => Record<string, OverviewBinding>;
 };
+
+function isWordPressPreviewQueryUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url.trim());
+    const pathname = parsed.pathname.replace(/\/+$/, "");
+    if (pathname !== "") return false;
+    return (
+      parsed.searchParams.has("p") ||
+      parsed.searchParams.has("page_id") ||
+      parsed.searchParams.has("preview_id")
+    );
+  } catch {
+    return false;
+  }
+}
 
 export function useOverviewTabScrapeWp({
   site,
@@ -72,6 +88,7 @@ export function useOverviewTabScrapeWp({
   remapBindingUrl,
   mergeInventoryContentForSource,
   bulkScopeUrlKeys,
+  getBulkGeneratorPushBindings,
 }: Args) {
   const handleUpdateWordPressForRow = useCallback(
     async (
@@ -86,12 +103,17 @@ export function useOverviewTabScrapeWp({
           return false;
         }
 
+        const mergedBindings = { ...bindings, ...(getBulkGeneratorPushBindings?.() ?? {}) };
         const invMatch = getInventoryMatchForUrl(site, row.url);
         let binding =
-          options?.binding ?? resolveOverviewBindingForRow(row, bindings, invMatch);
+          options?.binding ?? resolveOverviewBindingForRow(row, mergedBindings, invMatch);
         if (!binding?.postId && row.postId != null && Number.isFinite(row.postId) && row.postId > 0) {
           binding = { postId: row.postId, subtype: row.postType || "post" };
         }
+
+        const slugPlan = overviewRowSlugChangePlan(row);
+        const suggestedPath = row.aiSuggestedPath?.trim() ?? "";
+        let createdInThisRun = false;
 
         if (!binding?.postId) {
           if (!site.username || !site.appPassword) {
@@ -112,7 +134,7 @@ export function useOverviewTabScrapeWp({
           const slugFromUrl = row.url
             ? row.url.replace(/^https?:\/\/[^/]+/i, "").replace(/^\/+|\/+$/g, "").split("/").pop()
             : "";
-          const slug = (slugFromUrl || row.focusKeyword || "")
+          const slug = (slugPlan.slug || slugFromUrl || row.focusKeyword || "")
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "-")
             .replace(/^-+|-+$/g, "");
@@ -136,6 +158,7 @@ export function useOverviewTabScrapeWp({
             );
 
             if (createResult.success && createResult.postId) {
+              createdInThisRun = true;
               binding = {
                 postId: createResult.postId,
                 subtype: "post",
@@ -176,8 +199,6 @@ export function useOverviewTabScrapeWp({
           updateRow(rowIndex, { status: "uploading" });
         }
 
-        const slugPlan = overviewRowSlugChangePlan(row);
-        const suggestedPath = row.aiSuggestedPath?.trim() ?? "";
         let uploadOk = false;
         let uploadLink: string | undefined;
         let slugChangeAttempted = false;
@@ -205,7 +226,7 @@ export function useOverviewTabScrapeWp({
           notify.error(NOTIFY_SUGGESTED_URL_COULD_NOT_BE_PARSED_RUN_AI);
         }
 
-        if (slugPlan.needed && slugPlan.slug) {
+        if (slugPlan.needed && slugPlan.slug && !createdInThisRun) {
           slugChangeAttempted = true;
           try {
             const slugResult = await applyOverviewRowSlugChangeToWordPress(site, row, binding);
@@ -220,6 +241,13 @@ export function useOverviewTabScrapeWp({
               notify.error(e instanceof Error ? e.message : "Slug update failed.");
             }
           }
+        } else if (slugPlan.needed && slugPlan.slug && createdInThisRun) {
+          slugChangeAttempted = true;
+          slugChangeOk = true;
+          newPermalink =
+            uploadLink && !isWordPressPreviewQueryUrl(uploadLink)
+              ? uploadLink
+              : slugPlan.newUrl || undefined;
         }
 
         if (rowIndex !== undefined) {
@@ -250,7 +278,11 @@ export function useOverviewTabScrapeWp({
         } else if (uploadOk && uploadLink) {
           // Keep the sheet on the WordPress canonical permalink after content write.
           const canon = uploadLink.trim();
-          if (canon && normalizePageUrlKey(canon) !== normalizePageUrlKey(oldUrl)) {
+          if (
+            canon &&
+            !isWordPressPreviewQueryUrl(canon) &&
+            normalizePageUrlKey(canon) !== normalizePageUrlKey(oldUrl)
+          ) {
             syncedUrl = canon;
             rowPatch.url = canon;
           }
@@ -283,7 +315,7 @@ export function useOverviewTabScrapeWp({
         return false;
       }
     },
-    [site, bindings, updateRow, getInventoryMatchForUrl, remapBindingUrl],
+    [site, bindings, updateRow, getInventoryMatchForUrl, remapBindingUrl, getBulkGeneratorPushBindings],
   );
 
   const handleScrapeRow = useCallback(

@@ -16,6 +16,20 @@ class Neo_Pulse_App_Openrouter_Video {
 	 * @return array{id:string,pollingUrl:string}|WP_Error
 	 */
 	public static function submit( string $api_key, array $opts ) {
+		// Models like x-ai/grok-imagine-video-1.5-lite and minimax do not support dual-frame (first_frame + last_frame).
+		// When lastFrameDataUrl is provided but the model is known not to support last_frame,
+		// use the target scene frame (lastFrameDataUrl) as first_frame and omit last_frame.
+		$is_single_frame_only = false !== stripos( $opts['model'], 'grok' )
+			|| false !== stripos( $opts['model'], 'kling' )
+			|| false !== stripos( $opts['model'], 'minimax' )
+			|| false !== stripos( $opts['model'], 'hailuo' )
+			|| false !== stripos( $opts['model'], 'x-ai' );
+
+		if ( $is_single_frame_only && ! empty( $opts['lastFrameDataUrl'] ) ) {
+			$opts['firstFrameDataUrl'] = $opts['lastFrameDataUrl'];
+			unset( $opts['lastFrameDataUrl'] );
+		}
+
 		$frame_images = array(
 			array(
 				'type'       => 'image_url',
@@ -50,6 +64,13 @@ class Neo_Pulse_App_Openrouter_Video {
 		);
 		$json = self::decode( $response );
 		if ( is_wp_error( $json ) ) {
+			// Catch provider last_frame rejection and automatically retry with single frame
+			if ( ! empty( $opts['lastFrameDataUrl'] ) && false !== stripos( $json->get_error_message(), 'last_frame' ) ) {
+				$fallback_opts = $opts;
+				$fallback_opts['firstFrameDataUrl'] = $opts['lastFrameDataUrl'];
+				unset( $fallback_opts['lastFrameDataUrl'] );
+				return self::submit( $api_key, $fallback_opts );
+			}
 			return $json;
 		}
 		$id = isset( $json['id'] ) ? trim( (string) $json['id'] ) : '';

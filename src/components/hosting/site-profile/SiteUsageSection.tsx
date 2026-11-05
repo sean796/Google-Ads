@@ -42,7 +42,7 @@ export function SiteUsageSection({ env }: SiteUsageSectionProps) {
                 <th scope="row" className={`${HOST_TH} w-[14rem] border-b-0`}>
                   {label}
                 </th>
-                <td className={`${HOST_TD} truncate`} title={value}>
+                <td className={`${HOST_TD} break-words`} title={value}>
                   {value}
                 </td>
               </tr>

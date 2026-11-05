@@ -1,5 +1,4 @@
 import { CalendarClock } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   WordPressScheduleFields,
@@ -8,6 +7,7 @@ import {
 import { BULK_HEADER_ICON_TOOL_BTN } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import { formatBulkScheduleSummary } from "@/lib/bulk/bulk-schedule-summary";
 import type { WordPressPostDestination } from "@/lib/bulk-auto-generate";
+import { Button } from "@/ui";
 
 export type BulkGeneratorScheduleMenuProps = WordPressScheduleFieldsProps & {
   postDestination: WordPressPostDestination;
@@ -37,10 +37,8 @@ export function BulkGeneratorScheduleMenu({
     <Popover>
       <PopoverTrigger asChild>
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="sm"
-          className={BULK_HEADER_ICON_TOOL_BTN}
           disabled={isDisabled || hidden}
           aria-label={hidden ? "Post schedule (WordPress only)" : `Post schedule: ${summary}`}
           title={hidden ? "Post schedule (WordPress only)" : summary}

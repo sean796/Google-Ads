@@ -16,6 +16,7 @@ import { SiteUsageSection } from "./SiteUsageSection";
 import { SiteUsersSection } from "./SiteUsersSection";
 import { pickEnvironment } from "./site-profile-view-model";
 import { PROFILE_BODY, PROFILE_TITLE_BAND } from "./site-profile-theme";
+import { Button } from "@/ui";
 
 export type SiteRoute = Extract<PulseHostRoute, { view: "site" }>;
 
@@ -122,9 +123,9 @@ export function SiteProfilePage({ route, groups, groupsLoading, canAdmin, teamMe
     return (
       <>
         <div className={PROFILE_TITLE_BAND}>
-          <button type="button" className={`${MY_SITES_LINK} inline-flex h-8 items-center`} onClick={() => setPulseHostHash({ view: "list" })}>
+          <Button variant="quiet" onClick={() => setPulseHostHash({ view: "list" })}>
             Back to Sites
-          </button>
+          </Button>
         </div>
         <div className={cn(MY_SITES_CARD, "flex h-32 items-center justify-center text-muted-foreground")}>
           {groupsLoading && groups.length === 0 ? "Loading…" : "Site not found. It may have been deleted."}
@@ -145,8 +146,8 @@ export function SiteProfilePage({ route, groups, groupsLoading, canAdmin, teamMe
         onManageTags={onManageTags}
         onEnvironmentAction={(action, target) => void runAction(action, target)}
       />
-      <p className={cn(MY_SITES_STATUS_LINE, isError ? "text-red-300" : "")} title={message || undefined}>
-        <span className="truncate">{message}</span>
+      <p className={cn(MY_SITES_STATUS_LINE, isError ? "text-ui-danger-hover" : "")} title={message || undefined}>
+        <span className="break-words">{message}</span>
       </p>
       <div className={cn(SEO_WORKSPACE_BODY_SCROLL_CLASS, PROFILE_BODY, "pb-4")}>
         <SiteProfileNav active={route.section} onChange={(section) => go(section)} />

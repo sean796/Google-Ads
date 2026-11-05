@@ -24,11 +24,7 @@ import {
   isWorkflowTriggerKind,
   workflowTriggerLabel,
 } from "@/lib/workflow/workflow-types";
-
-const ACTION_BTN_CLASS = cn(
-  WORKFLOW_STEP_ACTION_BTN_CLASS,
-  getPropertyListRowIconButtonHoverGlowClass("powerOn"),
-);
+import { Button } from "@/ui";
 
 function ActionSlot({
   children,
@@ -139,13 +135,8 @@ export function WorkflowStepCard({
         </div>
         <div className={WORKFLOW_STEP_TYPE_ICON_SLOT_CLASS}>
           {showForgeLink ? (
-            <button
-              type="button"
-              className={cn(
-                WORKFLOW_STEP_ACTION_BTN_CLASS,
-                getPropertyListRowIconButtonHoverGlowClass("powerOn"),
-                "h-10 w-10 hover:text-white",
-              )}
+            <Button
+              variant="quiet"
               aria-label={workflowStepForgeRouteLabel(node)}
               onClick={(event) => {
                 event.stopPropagation();
@@ -153,7 +144,7 @@ export function WorkflowStepCard({
               }}
             >
               <typeIcon.Icon className={typeIconClassName} aria-hidden />
-            </button>
+            </Button>
           ) : (
             <typeIcon.Icon className={typeIconClassName} aria-hidden />
           )}
@@ -163,36 +154,28 @@ export function WorkflowStepCard({
         <div className={WORKFLOW_STEP_ACTION_BAR_CLASS}>
           <ActionSlot>
             {onDelete ? (
-              <button
-                type="button"
-                className={cn(
-                  ACTION_BTN_CLASS,
-                  getPropertyListRowIconButtonHoverGlowClass("destructive"),
-                  "hover:text-red-400",
-                )}
+              <Button
+                size="icon" icon={Trash2}
+                variant="quiet"
                 aria-label={`Delete ${node.label}`}
                 onClick={(event) => {
                   event.stopPropagation();
                   onDelete();
                 }}
-              >
-                <Trash2 className={WORKFLOW_STEP_UTILITY_ICON_CLASS} />
-              </button>
+              ></Button>
             ) : null}
           </ActionSlot>
           <ActionSlot>
             {onDuplicate ? (
-              <button
-                type="button"
-                className={ACTION_BTN_CLASS}
+              <Button
+                size="icon" icon={Copy}
+                variant="quiet"
                 aria-label="Duplicate step"
                 onClick={(event) => {
                   event.stopPropagation();
                   onDuplicate();
                 }}
-              >
-                <Copy className={WORKFLOW_STEP_UTILITY_ICON_CLASS} />
-              </button>
+              ></Button>
             ) : null}
           </ActionSlot>
         </div>

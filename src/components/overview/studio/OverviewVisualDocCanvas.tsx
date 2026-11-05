@@ -1,15 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import {
-  Download,
-  ExternalLink,
-  FileText,
-  Loader2,
-  Play,
-  RefreshCw,
-  Sparkles,
-  Upload,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Download, ExternalLink, FileText, Play, RefreshCw, Sparkles, Upload } from "lucide-react";
 import { useAgentRunsContext } from "@/contexts/use-agent-runs-context";
 import {
   type MetaBulkMicroSnapshot,
@@ -76,22 +66,26 @@ import type { BulkGeneratorDetailsPanelProps } from "@/components/keyword-resear
 import { BulkSitemapInventoryRunDetail } from "@/components/keyword-research/bulk/BulkSitemapInventoryRunDetail";
 import { WordBlacklistRunDetail } from "@/components/keyword-research/bulk/WordBlacklistRunDetail";
 import {
-  isResearchStudioMode,
   STUDIO_EDITOR_MODE_OPTIONS,
   type StudioEditorModeId,
 } from "@/components/keyword-research/bulk/studio-editor-modes";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useOverviewSiteWarmDetails } from "@/hooks/overview/use-overview-site-warm-details";
 import { ContentOptimizerSplashOverlay } from "@/components/overview/studio/ContentOptimizerSplashOverlay";
 import { OverviewStudioGeneratedFilesBand } from "@/components/overview/studio/OverviewStudioGeneratedFilesBand";
 import { UniversalStudioHeader } from "@/components/overview/studio/UniversalStudioHeader";
 import { cn } from "@/lib/utils";
+import { ActionButton, Button } from "@/ui";
+
+/** Single header action for bulk generator studios: Generate -> Approve -> Publish. */
+const STUDIO_ACTION_STATES = ["Ideas", "Curating", "Generate", "Generating", "Approve", "Publish", "Publishing"] as const;
+
+export interface BulkGeneratorStudioAction {
+  stage: "ideas" | "generate" | "approve" | "publish";
+  running: boolean;
+  canRun: boolean;
+  /** Ignored for `publish`; the canvas publishes the active row itself. */
+  onRun: () => void;
+}
 
 export interface OverviewVisualDocCanvasProps {
   ctrl: OverviewTabController;
@@ -103,15 +97,12 @@ export interface OverviewVisualDocCanvasProps {
   optimizingRowUrl?: string | null;
   onInFlightAutoSeoUrlChange?: (url: string | null) => void;
   onOpenRevisions?: () => void;
-  bulkGeneratorStudioActions?: {
-    onGenerateContent: () => void;
-    canGenerateContent: boolean;
-  };
+  bulkGeneratorStudioActions?: BulkGeneratorStudioAction;
+  /** Newest prompt log for the active bulk row (all model calls), shown as a header download. */
+  promptLogFile?: BulkDetailsDownloadable | null;
   bulkGeneratorDetailsPanel?: BulkGeneratorDetailsPanelProps;
   customDrawerContent?: ReactNode;
   bulkGeneratedFilesPanelId?: string;
-  bulkGeneratedFilesStepTotal?: number;
-  bulkGeneratedFilesStepCompleted?: number;
   bulkGeneratorBand2Toolbar?: ReactNode;
   studioBody?: ReactNode;
   studioEditorMode?: StudioEditorModeId;
@@ -128,6 +119,13 @@ type StudioDrawerStepRow = {
   isDone: boolean;
   downloadFile?: BulkDetailsDownloadable | null;
 };
+
+/** True when the HTML has readable text or media (blank wrappers like <p></p> do not count). */
+function htmlHasVisibleContent(html: string | undefined): boolean {
+  if (!html?.trim()) return false;
+  const body = new DOMParser().parseFromString(html, "text/html").body;
+  return Boolean(body.textContent?.trim()) || body.querySelector("img,video,iframe") !== null;
+}
 
 function sanitizeFileSlug(text: string): string {
   return text.replace(/[^a-z0-9._-]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 50) || "section";
@@ -174,11 +172,10 @@ export function OverviewVisualDocCanvas({
   onInFlightAutoSeoUrlChange,
   onOpenRevisions,
   bulkGeneratorStudioActions,
+  promptLogFile = null,
   bulkGeneratorDetailsPanel,
   customDrawerContent,
   bulkGeneratedFilesPanelId = "bulk-generator-generated-files-panel",
-  bulkGeneratedFilesStepTotal = 0,
-  bulkGeneratedFilesStepCompleted = 0,
   bulkGeneratorBand2Toolbar,
   studioBody,
   studioEditorMode,
@@ -191,7 +188,6 @@ export function OverviewVisualDocCanvas({
   const showStudioEmptyPrompt = !c.site?.id;
   const { setSidebarOpen, setSidebarPanel } = useAgentRunsContext();
   const [fullAutoRunning, setFullAutoRunning] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [passageStatus, setPassageStatus] = useState<{
     label: string;
     current: number;
@@ -579,14 +575,6 @@ export function OverviewVisualDocCanvas({
     return undefined;
   }, [busy, activeDrawerStepIndex, totalStepCount]);
 
-  const allReadyFiles = useMemo(
-    () =>
-      drawerStepRows
-        .map((s) => s.downloadFile)
-        .filter((f): f is BulkDetailsDownloadable => f != null),
-    [drawerStepRows],
-  );
-
   // Build snapshot for the neon progress bar
   const rowStepMeta = row ? ROW_STATUS_LABELS[row.status] : undefined;
   const effectiveSnapshot = useMemo((): MetaBulkMicroSnapshot | null => {
@@ -646,46 +634,6 @@ export function OverviewVisualDocCanvas({
     fullAutoRunning,
   ]);
 
-  const activeHeadlineText = useMemo(() => {
-    if (passageStatus) return passageStatus.label;
-    if (rowStepMeta) return rowStepMeta.label;
-    const activeRow = drawerStepRows.find((s) => s.isActive);
-    if (activeRow) return activeRow.title;
-    if (effectiveSnapshot?.statusMessage) return effectiveSnapshot.statusMessage;
-    if (effectiveSnapshot?.label) return effectiveSnapshot.label;
-    return "";
-  }, [passageStatus, rowStepMeta, drawerStepRows, effectiveSnapshot]);
-
-  const bandDisplayTotal = isBulkGeneratorStudio
-    ? Math.max(
-        bulkGeneratedFilesStepTotal > 0 ? bulkGeneratedFilesStepTotal : 0,
-        bulkMicroSnapshot?.total ?? 0,
-        totalStepCount,
-        1,
-      )
-    : hasRow
-      ? Math.max(totalStepCount, 1)
-      : 0;
-
-  const bandDisplayCurrent = isBulkGeneratorStudio
-    ? Math.min(
-        Math.max(
-          bulkGeneratedFilesStepTotal > 0 ? bulkGeneratedFilesStepCompleted : 0,
-          bulkMicroSnapshot?.completed ?? 0,
-          busy ? displayStepCurrent : doneStepCount,
-          0,
-        ),
-        bandDisplayTotal,
-      )
-    : Math.min(displayStepCurrent, bandDisplayTotal);
-
-  const bandHeadlineText =
-    bulkTitleUrlOptimizing && isBulkGeneratorStudio
-      ? "Optimizing title & URL"
-      : isBulkGeneratorStudio && bulkMicroSnapshot?.label?.trim()
-        ? bulkMicroSnapshot.label.trim()
-        : activeHeadlineText;
-
   const bandBusy =
     isBulkGeneratorStudio ? bulkWorkspaceBusy || busy || bulkTitleUrlOptimizing : busy;
 
@@ -693,15 +641,15 @@ export function OverviewVisualDocCanvas({
     isBulkGeneratorStudio &&
     !studioBody &&
     hasRow &&
-    !bodyHtml.trim() &&
-    row?.status === "ai-headers";
+    !htmlHasVisibleContent(row?.postContentOptimized) &&
+    !htmlHasVisibleContent(row?.postContent) &&
+    row?.status !== "error";
 
   const scrollToSection = (anchorId?: string) => {
     if (!anchorId) return;
     const el = document.getElementById(anchorId);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
-      setDrawerOpen(false);
     }
   };
 
@@ -732,9 +680,6 @@ export function OverviewVisualDocCanvas({
       onSetDateToday: c.handleSetDateToday,
       onCommitDateModifier: c.commitRowDateModifier,
     });
-    return () => {
-      setStudioDocMetaInspectorBridge(null);
-    };
   }, [
     row,
     rowIndex,
@@ -749,6 +694,12 @@ export function OverviewVisualDocCanvas({
     c.handleSetDateToday,
     c.commitRowDateModifier,
   ]);
+
+  useEffect(() => {
+    return () => {
+      setStudioDocMetaInspectorBridge(null);
+    };
+  }, []);
 
   const openMastraSidebar = () => {
     setSidebarPanel("seo");
@@ -813,24 +764,17 @@ export function OverviewVisualDocCanvas({
             </span>
 
             {step.anchorId ? (
-              <button
-                type="button"
+              <Button
+                pressed={Boolean(step.isActive)}
+                variant="quiet"
                 onClick={() => scrollToSection(step.anchorId)}
-                className={cn(
-                  "min-w-0 flex-1 truncate text-left hover:underline",
-                  step.isActive
-                    ? CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS
-                    : step.isDone
-                      ? "text-white"
-                      : "text-muted-foreground",
-                )}
               >
                 {step.title}
-              </button>
+              </Button>
             ) : (
               <span
                 className={cn(
-                  "min-w-0 flex-1 truncate",
+                  "min-w-0 flex-1 break-words",
                   step.isActive
                     ? CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS
                     : step.isDone
@@ -843,19 +787,14 @@ export function OverviewVisualDocCanvas({
             )}
 
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
-              size="sm"
               disabled={!canDownload}
               onClick={() => {
                 if (!step.downloadFile) return;
                 triggerBlobDownload(step.downloadFile);
                 notify.success(NOTIFY_CSV_DOWNLOADED);
               }}
-              className={cn(
-                "h-7 shrink-0 px-2 text-base hover:bg-white/10 hover:text-white",
-                canDownload ? "text-white" : "text-muted-foreground opacity-45",
-              )}
             >
               <Download className="mr-1 h-3 w-3" />
               File
@@ -1050,15 +989,10 @@ export function OverviewVisualDocCanvas({
     <>
       {!isBulkGeneratorStudio && hasRow ? (
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="sm"
           disabled={busy}
           onClick={() => void c.handleScrapeRow(rowIndex)}
-          className={cn(
-            "h-8 w-[4.75rem] min-w-[4.75rem] max-w-[4.75rem] shrink-0 justify-center gap-1.5 rounded-none border border-white/10 bg-zinc-900 px-2 text-xs text-white hover:bg-zinc-800",
-            row!.status === "scraping" && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-          )}
           title="Re-scrape live WordPress HTML & ACF fields"
         >
           <RefreshCw className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
@@ -1068,76 +1002,82 @@ export function OverviewVisualDocCanvas({
 
       {!isBulkGeneratorStudio && hasRow && row ? (
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="sm"
           disabled={busy}
           onClick={handleAutoSeo}
-          className={cn(
-            "h-8 w-[7.5rem] min-w-[7.5rem] max-w-[7.5rem] shrink-0 justify-center gap-1.5 rounded-none border border-white/10 bg-zinc-900 px-2 text-xs font-medium text-primary hover:bg-zinc-800",
-            fullAutoRunning &&
-              isViewedRowOptimizing &&
-              CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-          )}
           title="Execute Auto SEO pipeline (chains all selected posts if multiple are selected)"
         >
           <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
-          <span className="truncate">{c.selectedCount > 1 ? `Auto SEO (${c.selectedCount})` : "Auto SEO"}</span>
+          <span className="break-words">{c.selectedCount > 1 ? `Auto SEO (${c.selectedCount})` : "Auto SEO"}</span>
         </Button>
       ) : null}
 
       {bulkGeneratorStudioActions ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          disabled={busy || !bulkGeneratorStudioActions.canGenerateContent}
-          onClick={bulkGeneratorStudioActions.onGenerateContent}
-          className={cn(
-            "h-8 min-w-[7.5rem] shrink-0 justify-center gap-1.5 rounded-none border border-white/10 bg-zinc-900 px-3 text-xs font-medium text-primary hover:bg-zinc-800",
-            busy && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-          )}
-          title="Generate content for CSV rows"
-        >
-          {busy ? (
-            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
-          ) : (
-            <Play className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
-          )}
-          <span className="truncate">{busy ? "Generating…" : "Generate"}</span>
-        </Button>
+        (() => {
+          const a = bulkGeneratorStudioActions;
+          const publishing = a.stage === "publish" && row?.status === "uploading";
+          const running = a.running || publishing;
+          const label =
+            a.stage === "publish"
+              ? publishing
+                ? "Publishing"
+                : "Publish"
+              : running
+                ? a.stage === "ideas"
+                  ? "Curating"
+                  : "Generating"
+                : a.stage === "approve"
+                  ? "Approve"
+                  : a.stage === "ideas"
+                    ? "Ideas"
+                    : "Generate";
+          return (
+            <ActionButton
+              states={STUDIO_ACTION_STATES}
+              state={label}
+              icon={Play}
+              disabled={
+                running || (a.stage === "publish" ? !hasRow || !row : busy || !a.canRun)
+              }
+              onClick={() => {
+                if (a.stage === "publish") {
+                  if (!row) return;
+                  void c.handleUpdateWordPressForRow(row, { rowIndex });
+                  return;
+                }
+                a.onRun();
+              }}
+            />
+          );
+        })()
       ) : null}
 
-      {!isResearchStudioMode(studioEditorMode) ? (
+      {!bulkGeneratorStudioActions ? (
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="sm"
           disabled={busy || !hasRow || !row || row?.status === "uploading"}
           onClick={() => {
             if (!row) return;
             void c.handleUpdateWordPressForRow(row, { rowIndex });
           }}
-          className={cn(
-            "h-8 w-[7rem] min-w-[7rem] max-w-[7rem] shrink-0 justify-center gap-1.5 rounded-none border-0 bg-primary px-2 text-xs font-semibold text-black hover:bg-primary/90",
-            row?.status === "uploading" && "opacity-90",
-          )}
           title="Publish staged meta, prose, and FAQs to WordPress"
         >
           {row?.status === "uploading" ? (
-            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
+            null
           ) : (
             <Upload className="h-3.5 w-3.5 shrink-0" aria-hidden />
           )}
-          <span className="truncate">{row?.status === "uploading" ? "Publishing..." : "Publish"}</span>
+          <span className="break-words">{row?.status === "uploading" ? "Publishing..." : "Publish"}</span>
         </Button>
       ) : null}
     </>
   );
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden bg-zinc-950 font-sans text-base text-white">
-      {/* Universal Stacked Studio Header: Row 1 (Studio Mode + External URL Link Out + Drawer Toggle), Row 2 (Filters + Actions), Detailed Drawer */}
+    <div className="flex h-full min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden bg-black font-sans text-base text-white">
+      {/* Universal Stacked Studio Header: Row 1 (Studio Mode + External URL Link Out + Drawer Toggle), Row 2 (Filters + Actions), Details Drawer */}
       <UniversalStudioHeader
         studioEditorMode={studioEditorMode}
         onStudioEditorModeChange={onStudioEditorModeChange}
@@ -1153,21 +1093,13 @@ export function OverviewVisualDocCanvas({
               : (c.site?.siteUrl ?? null)
         }
         siteUrl={c.site?.siteUrl ?? null}
+        promptLogFile={promptLogFile}
         filters={bulkGeneratorBand2Toolbar}
         actions={studioActionButtons}
         busy={bandBusy}
-        activeHeadlineText={bandHeadlineText}
-        displayStepCurrent={bandDisplayCurrent}
-        totalStepCount={bandDisplayTotal}
-        allReadyFiles={allReadyFiles}
-        drawerOpen={drawerOpen}
-        onToggleDrawer={() => setDrawerOpen((prev) => !prev)}
         drawerContent={drawerBody}
         detailsPanelId={
           isBulkGeneratorStudio ? bulkGeneratedFilesPanelId : "opt-generated-files-panel"
-        }
-        endRailTitle={
-          isBulkGeneratorStudio ? "Run steps and site inventory" : "Sections & SEO artifacts"
         }
       />
 
@@ -1175,7 +1107,7 @@ export function OverviewVisualDocCanvas({
         <div className="min-h-0 flex-1 overflow-hidden">{studioBody}</div>
       ) : !hasRow || !row ? (
         showStudioEmptyPrompt ? (
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-hidden bg-zinc-950 p-8 text-center text-base text-muted-foreground">
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-hidden bg-black p-8 text-center text-base text-muted-foreground">
             <FileText className="h-8 w-8 shrink-0 text-primary" aria-hidden />
             <p className="max-w-md text-white">
               {isBulkGeneratorStudio
@@ -1184,18 +1116,18 @@ export function OverviewVisualDocCanvas({
             </p>
           </div>
         ) : (
-          <div className="min-h-0 flex-1 bg-zinc-950" aria-hidden />
+          <div className="min-h-0 flex-1 bg-black" aria-hidden />
         )
       ) : (
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-zinc-950">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-black">
         <ContentOptimizerSplashOverlay visible={bulkContentSplashVisible} />
         <div
           className={cn(
-            "min-h-0 flex-1 overflow-y-auto overscroll-y-contain bg-zinc-950 px-4 py-6 sm:px-8",
+            "min-h-0 flex-1 overflow-y-auto overscroll-y-contain bg-black px-4 py-6 sm:px-8",
             bulkContentSplashVisible && "invisible pointer-events-none",
           )}
         >
-          <div className="mx-auto flex w-full max-w-4xl flex-col bg-zinc-950 px-6 py-7 sm:px-10 sm:py-9">
+          <div className="mx-auto flex w-full max-w-4xl flex-col bg-black px-6 py-7 sm:px-10 sm:py-9">
             <OverviewDocSectionBlocks
               row={row}
               rowIndex={rowIndex}

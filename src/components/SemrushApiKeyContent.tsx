@@ -1,6 +1,4 @@
 import { useState, useCallback } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { ApiKeyCopyButton } from "@/components/ApiKeyCopyButton";
 import { notify } from "@/lib/app-notifications";
 import {
@@ -10,6 +8,7 @@ import {
 import { saveSemrushApiKey, loadSemrushApiKey } from "../lib/api";
 import { syncSemrushToWorkspace } from "@/lib/manager-wordpress-properties-api";
 import { DASHBOARD_SETTINGS_FIELD_CLASS } from "@/components/manager/dashboard/dashboard-panel-styles";
+import { Button, Field } from "@/ui";
 
 interface SemrushApiKeyContentProps {
   apiKey: string;
@@ -65,21 +64,21 @@ export const SemrushApiKeyContent: React.FC<SemrushApiKeyContentProps> = ({
         . Saved locally and synced to your server.
       </p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <Input
+        <Field
+          placeholder="Semrush API key"
           id="semrush-apiKey"
           type="password"
           value={localApiKey}
           onChange={(e) => setLocalApiKey(e.target.value)}
           aria-label="Semrush API key"
           autoComplete="off"
-          className={INPUT_CLASS}
         />
         <ApiKeyCopyButton
           value={localApiKey}
           emptyMessage="Enter a Semrush API key to copy."
           aria-label="Copy Semrush API key"
         />
-        <Button type="button" onClick={handleSave} className="h-12 shrink-0 text-base">
+        <Button variant="run" type="button" onClick={handleSave}>
           Save
         </Button>
       </div>

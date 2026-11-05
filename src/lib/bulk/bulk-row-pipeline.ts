@@ -281,6 +281,38 @@ export async function generateBlueprintAndContent(
       draft: draftPhase,
     });
 
+    // Run Decision Model (Liquid d1.1) QA pass on the generated blog post
+    if (markdownContent) {
+      try {
+        const { auditBulkRowContentWithDecisionTree } = await import('@/lib/decision-tree/studio-decision-auditor');
+        const decisionAudit = await auditBulkRowContentWithDecisionTree({
+          title: bulkResolvedPostTitle || row.title,
+          keyword: bulkPrimaryKwResolved || row.keyword,
+          markdownContent,
+          siteId: pipelineSiteId,
+          apiKey: options.openRouterApiKey,
+        });
+
+        const qaFileName = BulkFileManager.generateFileName(row, 'decision_tree_qa', timestamp);
+        const qaFileId = BulkFileManager.createFileId(rowIndex, 'decision-qa', timestamp);
+        fileManager.addFile({
+          id: qaFileId,
+          rowIndex,
+          fileName: qaFileName,
+          content: JSON.stringify(decisionAudit, null, 2),
+          mimeType: 'application/json',
+          status: 'completed',
+          timestamp,
+          rowData: {
+            ...row,
+            decision_audit_json: JSON.stringify(decisionAudit),
+          },
+        });
+      } catch (auditErr) {
+        console.warn('[Decision Agent] Bulk row content QA audit warning:', auditErr);
+      }
+    }
+
     if (options.wordPressPosting?.enabled && markdownContent) {
       const wpPublish = await publishBulkRowToWordPressSites({
         options,

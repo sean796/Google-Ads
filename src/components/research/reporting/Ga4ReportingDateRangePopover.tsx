@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Ga4ScrollableMonthsCalendar } from "@/components/research/reporting/Ga4ScrollableMonthsCalendar";
-import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { BULK_HEADER_SELECT } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import {
   GA4_COMPARE_BASELINE_OPTIONS,
   GA4_PRIMARY_PRESET_OPTIONS,
@@ -20,6 +17,7 @@ import {
 } from "@/lib/reporting/reporting-date-presets";
 import type { ReportingCompareRanges } from "@/lib/reporting/reporting-date-presets";
 import { cn } from "@/lib/utils";
+import { Button, RowButton, Field } from "@/ui";
 
 export type Ga4ReportingDateHarness = {
   primaryPreset: Ga4PrimaryPresetId;
@@ -67,13 +65,13 @@ function Ga4OutlinedDateInput({
 }) {
   return (
     <div className="relative min-w-0 flex-1">
-      <span className="pointer-events-none absolute left-2 top-0 z-[1] -translate-y-1/2 bg-zinc-900 px-1 text-base text-muted-foreground">
+      <span className="pointer-events-none absolute left-2 top-0 z-[1] -translate-y-1/2 bg-ui-field px-1 text-base text-muted-foreground">
         {label}
       </span>
-      <Input
+      <Field
+        placeholder={label}
         type="date"
         aria-label={label}
-        className={cn(BULK_HEADER_SELECT, "h-10 w-full px-2 pt-1 font-sans")}
         max={max}
         disabled={disabled}
         value={value}
@@ -116,18 +114,15 @@ function SidebarRow({
   onSelect: () => void;
 }) {
   return (
-    <button
+    <RowButton
+      selected={Boolean(active)}
       type="button"
       disabled={disabled}
-      className={cn(
-        "flex w-full items-center gap-1 rounded-none px-3 py-2.5 text-left text-base transition-colors",
-        active ? "bg-primary/20 text-foreground" : "text-muted-foreground hover:bg-zinc-800 hover:text-foreground",
-      )}
       onClick={onSelect}
     >
       <span className="min-w-0 flex-1">{label}</span>
       {submenu ? <ChevronRight className="h-4 w-4 shrink-0 opacity-60" aria-hidden /> : null}
-    </button>
+    </RowButton>
   );
 }
 
@@ -141,15 +136,11 @@ function CompareToggle({
   onChange: (next: boolean) => void;
 }) {
   return (
-    <button
-      type="button"
+    <Button
+      pressed={Boolean(checked)}
       role="switch"
       aria-checked={checked}
       disabled={disabled}
-      className={cn(
-        "relative h-5 w-9 shrink-0 rounded-full transition-colors",
-        checked ? "bg-primary" : "bg-zinc-600",
-      )}
       onClick={() => onChange(!checked)}
     >
       <span
@@ -158,7 +149,7 @@ function CompareToggle({
           checked ? "translate-x-[1.125rem]" : "translate-x-0.5",
         )}
       />
-    </button>
+    </Button>
   );
 }
 
@@ -341,23 +332,19 @@ export function Ga4ReportingDateRangePopover({
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
           disabled={busy}
           aria-label="Date range"
-          className={cn(
-            BULK_HEADER_SELECT,
-            "h-8 max-w-[min(52vw,22rem)] shrink-0 justify-between gap-1.5 px-2 font-normal tabular-nums hover:bg-zinc-700",
-          )}
         >
-          <span className="min-w-0 truncate text-left">{triggerLabel}</span>
+          <span className="min-w-0 break-words text-left">{triggerLabel}</span>
           <ChevronDown className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
         </Button>
       </PopoverTrigger>
       <PopoverContent
         align="start"
         sideOffset={4}
-        className="w-[min(calc(100vw-1rem),46rem)] border border-white/10 bg-zinc-900 p-0 shadow-lg"
+        className="w-[min(calc(100vw-1rem),46rem)] border border-white/10 bg-ui-field p-0 shadow-lg"
       >
         <div className="flex h-[min(36rem,calc(100vh-6rem))] min-h-[22rem]">
           <div className="relative flex w-[15.5rem] shrink-0 flex-col border-r border-white/10">
@@ -391,7 +378,7 @@ export function Ga4ReportingDateRangePopover({
               ))}
             </div>
             {weekSubmenu ? (
-              <div className="absolute left-full top-12 z-50 w-[14rem] border border-white/10 bg-zinc-900 shadow-lg">
+              <div className="absolute left-full top-12 z-50 w-[14rem] border border-white/10 bg-ui-field shadow-lg">
                 {weekSubmenu === "this_week" ? (
                   <>
                     <SidebarRow
@@ -552,13 +539,12 @@ export function Ga4ReportingDateRangePopover({
             />
 
             <div className="flex shrink-0 justify-end gap-4 border-t border-white/10 px-4 py-3">
-              <Button type="button" variant="ghost" className="h-8 px-2 text-base text-primary" onClick={handleCancel}>
+              <Button variant="quiet" type="button" onClick={handleCancel}>
                 Cancel
               </Button>
               <Button
+                variant="quiet"
                 type="button"
-                variant="ghost"
-                className="h-8 px-2 text-base text-primary hover:text-primary"
                 disabled={busy || !validation.ok}
                 onClick={handleApply}
               >

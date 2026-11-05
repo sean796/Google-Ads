@@ -5,7 +5,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { SEO_WORKSPACE_TYPO_CLASS } from "@/components/seo/seo-workspace-layout";
 import { cn } from "@/lib/utils";
 import { CHAT_TEXT_MUTED, chatRootDataAttrs, chatThemedRootClass } from "@/components/chat/chat-theme";
@@ -19,6 +18,7 @@ import { useChatShellState } from "@/components/chat/layout/useChatShellState";
 import { ChatDefaultLayout } from "@/components/chat/layout/ChatDefaultLayout";
 import { ChatMinimalLayout } from "@/components/chat/layout/ChatMinimalLayout";
 import { channelTitle } from "@/components/chat/layout/chat-shell-utils";
+import { Button } from "@/ui";
 
 export function ChatShell(): React.ReactElement {
   const state = useChatShellState();
@@ -89,7 +89,7 @@ export function ChatShell(): React.ReactElement {
           if (!open) vm.setEditTarget(null);
         }}
       >
-        <DialogContent className="bg-white text-zinc-900 sm:max-w-lg">
+        <DialogContent className="bg-white text-black sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-base">Edit message</DialogTitle>
           </DialogHeader>
@@ -107,19 +107,18 @@ export function ChatShell(): React.ReactElement {
                 showAiToolbar={!vm.editBusy}
                 submitOnEnter={false}
               />
-              <ChatDraftLinkPreviews teamId={vm.teamId} html={vm.editHtml} className="rounded-md border border-zinc-200" />
+              <ChatDraftLinkPreviews teamId={vm.teamId} html={vm.editHtml} className="rounded-md border border-border" />
             </>
           ) : null}
           <div className="flex justify-end gap-2">
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
-              className="text-base"
               onClick={() => vm.setEditTarget(null)}
             >
               Cancel
             </Button>
-            <Button type="button" className="text-base" disabled={vm.editBusy} onClick={() => void vm.handleSaveEdit()}>
+            <Button variant="run" type="button" disabled={vm.editBusy} onClick={() => void vm.handleSaveEdit()}>
               Save
             </Button>
           </div>

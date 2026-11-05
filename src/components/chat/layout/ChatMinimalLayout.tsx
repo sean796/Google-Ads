@@ -1,7 +1,5 @@
 import React from "react";
 import { ArrowLeft, Hash, Radio, Settings } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { ChatSidebar } from "@/components/chat/sidebar/ChatSidebar";
 import { ChatMessageList } from "@/components/chat/thread/ChatMessageList";
@@ -25,6 +23,7 @@ import {
 import { channelTitle, threadBarLabel, typingLabel } from "@/components/chat/layout/chat-shell-utils";
 import type { ChatShellViewModel } from "@/components/chat/layout/useChatShellState";
 import { ChatChannelHeaderTabs } from "@/components/chat/slack/ChatChannelHeaderTabs";
+import { Button, Field } from "@/ui";
 
 type Props = {
   vm: ChatShellViewModel;
@@ -168,9 +167,8 @@ export function ChatMinimalLayout({ vm }: Props): React.ReactElement {
                 threadRoot ? (
                   <>
                     <Button
+                      variant="quiet"
                       type="button"
-                      variant="ghost"
-                      className={cn("h-8 shrink-0 gap-1 px-2 text-base chat-text-muted hover:chat-text-primary")}
                       onClick={closeThread}
                     >
                       <ArrowLeft className="h-4 w-4" />
@@ -180,11 +178,10 @@ export function ChatMinimalLayout({ vm }: Props): React.ReactElement {
                       {threadBarLabel(threadRoot)}
                     </span>
                     <div className="ml-auto flex min-w-0 max-w-xs flex-1 items-center justify-end">
-                      <Input
+                      <Field
                         value={threadSearchQuery}
                         onChange={(e) => setThreadSearchQuery(e.target.value)}
                         placeholder="Search in thread"
-                        className={cn("h-8 text-base", CHAT_INPUT_THEMED_CLASS)}
                         aria-label="Search in thread"
                       />
                     </div>
@@ -199,7 +196,8 @@ export function ChatMinimalLayout({ vm }: Props): React.ReactElement {
                     </h2>
                     {activeChannel && activeChannel.type !== "dm" ? (
                       editingTopic && canEditTopic ? (
-                        <input
+                        <Field
+                          placeholder="Channel topic"
                           value={topicDraft}
                           onChange={(e) => setTopicDraft(e.target.value)}
                           onBlur={() => void saveTopic()}
@@ -207,13 +205,11 @@ export function ChatMinimalLayout({ vm }: Props): React.ReactElement {
                             if (e.key === "Enter") void saveTopic();
                             if (e.key === "Escape") setEditingTopic(false);
                           }}
-                          className={cn("min-w-0 max-w-xs flex-1 bg-transparent text-base outline-none", CHAT_TEXT_MUTED)}
                           autoFocus
                         />
                       ) : (
-                        <button
-                          type="button"
-                          className={cn("min-w-0 truncate text-base", CHAT_TEXT_MUTED)}
+                        <Button
+                          variant="quiet"
                           onClick={() => {
                             if (!canEditTopic || !activeChannel) return;
                             setTopicDraft(activeChannel.topic ?? "");
@@ -221,28 +217,20 @@ export function ChatMinimalLayout({ vm }: Props): React.ReactElement {
                           }}
                         >
                           {activeChannel.topic?.trim() || (canEditTopic ? "Add topic" : "")}
-                        </button>
+                        </Button>
                       )
                     ) : null}
                     <div className="ml-auto flex shrink-0 items-center gap-2">
                       <Button
+                        size="icon" icon={Settings}
+                        variant="quiet"
                         type="button"
-                        variant="ghost"
-                        size="icon"
-                        className={cn("h-8 w-8 shrink-0", CHAT_ICON_BTN_CLASS)}
                         aria-label="Chat personalization"
                         onClick={() => setPersonalizationOpen(true)}
-                      >
-                        <Settings className="h-4 w-4" />
-                      </Button>
+                      ></Button>
                       {inFloHuddle ? (
                         <Button
                           type="button"
-                          variant="outline"
-                          className={cn(
-                            "h-8 shrink-0 gap-1 px-3 text-base",
-                            huddleSidebarOpen && CHAT_TAB_ACTIVE_CLASS,
-                          )}
                           onClick={() => setHuddleSidebarOpen((open) => !open)}
                         >
                           <Radio className="h-4 w-4" />
@@ -251,23 +239,20 @@ export function ChatMinimalLayout({ vm }: Props): React.ReactElement {
                       ) : showHuddleButton ? (
                         <Button
                           type="button"
-                          variant="outline"
-                          className="h-8 shrink-0 gap-1 px-3 text-base"
                           onClick={() => void handleStartHuddle()}
                         >
                           <Radio className="h-4 w-4" />
                           Huddle
                         </Button>
                       ) : null}
-                      <Input
+                      <Field
                         value={messageSearchQuery}
                         onChange={(e) => setMessageSearchQuery(e.target.value)}
                         placeholder="Search messages"
-                        className={cn("h-8 w-44 shrink-0 text-base", CHAT_INPUT_THEMED_CLASS)}
                         aria-label="Search messages"
                       />
                       {themePrefs.behavior.showTypingIndicators && typingUsers.length > 0 ? (
-                        <span className={cn("hidden truncate text-base italic sm:block", CHAT_TEXT_MUTED)}>
+                        <span className={cn("hidden break-words text-base italic sm:block", CHAT_TEXT_MUTED)}>
                           {typingLabel(typingUsers.map((u) => u.displayName))}
                         </span>
                       ) : null}

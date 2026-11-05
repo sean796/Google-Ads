@@ -1,9 +1,9 @@
 import React, { useCallback, useRef } from "react";
 import { Paperclip } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { BULK_HEADER_TOOL_BTN } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import type { TaskFile } from "@/lib/tasks-types";
 import { taskFileDownloadUrl } from "@/lib/tasks-api";
+import { Button, FileInput } from "@/ui";
 
 const ACCEPT =
   ".pdf,.txt,.csv,.json,.md,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp";
@@ -41,20 +41,18 @@ export function TaskFileUpload({
       <div className="flex items-center gap-2">
         <p className="text-base font-semibold text-white">Files</p>
         <Button
+          variant="run"
           type="button"
-          className={BULK_HEADER_TOOL_BTN}
           disabled={uploading}
           onClick={() => inputRef.current?.click()}
         >
           <Paperclip className="mr-1.5 h-4 w-4" />
           Upload
         </Button>
-        <input
+        <FileInput
           ref={inputRef}
-          type="file"
           accept={ACCEPT}
           multiple
-          className="hidden"
           onChange={(e) => {
             handleFiles(e.target.files);
             e.target.value = "";

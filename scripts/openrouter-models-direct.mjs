@@ -2,6 +2,7 @@ import https from "node:https";
 import { normalizeOpenRouterModelsPayload } from "./openrouter-models-catalog-normalize.mjs";
 
 const MODELS_URL = "https://openrouter.ai/api/v1/models";
+const VIDEO_MODELS_URL = "https://openrouter.ai/api/v1/models?output_modalities=video";
 const CACHE_TTL_MS = 23 * 60 * 60 * 1000;
 
 /** @type {{ models: unknown[]; cachedAt: string; expiresAt: number } | null} */
@@ -19,7 +20,7 @@ function headerOpenRouterKey(req) {
   return key || null;
 }
 
-function fetchOpenRouterModels(apiKey) {
+function fetchOpenRouterUrl(url, apiKey) {
   return new Promise((resolve, reject) => {
     /** @type {Record<string, string>} */
     const headers = {
@@ -30,7 +31,7 @@ function fetchOpenRouterModels(apiKey) {
       headers.Authorization = `Bearer ${apiKey}`;
     }
     https
-      .get(MODELS_URL, { headers }, (res) => {
+      .get(url, { headers }, (res) => {
         let body = "";
         res.on("data", (chunk) => {
           body += chunk;
@@ -64,29 +65,55 @@ export async function handleOpenRouterModelsCatalog(req) {
     };
   }
 
-  const upstream = await fetchOpenRouterModels(apiKey);
-  if (upstream.status < 200 || upstream.status >= 300) {
+  try {
+    const [upstreamText, upstreamVideo] = await Promise.all([
+      fetchOpenRouterUrl(MODELS_URL, apiKey),
+      fetchOpenRouterUrl(VIDEO_MODELS_URL, apiKey).catch(() => ({ status: 200, json: { data: [] } })),
+    ]);
+
+    if (upstreamText.status < 200 || upstreamText.status >= 300) {
+      return {
+        status: 502,
+        json: {
+          ok: false,
+          error: `OpenRouter models HTTP ${upstreamText.status}`,
+        },
+      };
+    }
+
+    const textModels = normalizeOpenRouterModelsPayload(upstreamText.json);
+    const videoModels = upstreamVideo?.json ? normalizeOpenRouterModelsPayload(upstreamVideo.json) : [];
+
+    // Merge models, prioritizing video models so their videoOutput=true is preserved
+    const seenIds = new Set();
+    const models = [];
+    for (const m of [...videoModels, ...textModels]) {
+      if (!seenIds.has(m.id)) {
+        seenIds.add(m.id);
+        models.push(m);
+      }
+    }
+
+    const cachedAt = new Date().toISOString();
+    if (models.length > 0) {
+      memoryCache = { models, cachedAt, expiresAt: Date.now() + CACHE_TTL_MS };
+    }
+
+    return {
+      status: 200,
+      json: {
+        ok: true,
+        models,
+        cachedAt,
+      },
+    };
+  } catch (err) {
     return {
       status: 502,
       json: {
         ok: false,
-        error: `OpenRouter models HTTP ${upstream.status}`,
+        error: String(err?.message || err),
       },
     };
   }
-
-  const models = normalizeOpenRouterModelsPayload(upstream.json);
-  const cachedAt = new Date().toISOString();
-  if (models.length > 0) {
-    memoryCache = { models, cachedAt, expiresAt: Date.now() + CACHE_TTL_MS };
-  }
-
-  return {
-    status: 200,
-    json: {
-      ok: true,
-      models,
-      cachedAt,
-    },
-  };
 }

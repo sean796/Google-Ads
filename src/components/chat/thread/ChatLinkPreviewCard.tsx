@@ -36,11 +36,11 @@ export function ChatLinkPreviewCard({ preview }: ChatLinkPreviewCardProps): Reac
       ) : null}
       <div className="min-w-0 flex-1 p-3">
         <div className={cn("flex items-start gap-1 text-base font-semibold", CHAT_TEXT_PRIMARY)}>
-          <span className="line-clamp-2">{title}</span>
+          <span className="">{title}</span>
           <ExternalLink className="mt-0.5 h-4 w-4 shrink-0 opacity-60" aria-hidden />
         </div>
         {preview.description ? (
-          <p className={cn("mt-1 line-clamp-2 text-base", CHAT_TEXT_MUTED)}>{preview.description}</p>
+          <p className={cn("mt-1 text-base", CHAT_TEXT_MUTED)}>{preview.description}</p>
         ) : null}
         <p className={cn("mt-1 text-base", CHAT_TEXT_MUTED)}>{site}</p>
       </div>

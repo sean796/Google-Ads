@@ -1,7 +1,5 @@
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Copy, Download, Loader2, MapPin, Sparkles, Upload } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Copy, Download, MapPin, Sparkles, Upload } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useWordPressSites } from "@/hooks/use-wordpress-sites";
@@ -83,6 +81,7 @@ import {
   REPORTING_TOOLBAR_BTN_PUBLISH,
 } from "@/components/research/reporting/reporting-toolbar-styles";
 import { cn } from "@/lib/utils";
+import { Button, Field, FileInput, TextButton } from "@/ui";
 
 /** Local strategy uses DataForSEO Labs only - Semrush API is never required. */
 const LOCAL_ORGANIC_SOURCE = false;
@@ -966,7 +965,7 @@ export function LocalStrategyResearchTab() {
       </div>
 
       {workspaceMode === "connected" && (!site || !site.siteUrl?.trim()) ? (
-        <div className="neo-pulse-zone-tile--data px-2 py-3 text-[1rem] leading-normal text-muted-foreground">
+        <div className="neo-pulse-zone-tile--data px-2 py-3 text-base leading-normal text-muted-foreground">
           {!site
             ? "Connect a WordPress site and select it in the header, or switch to Temp seed."
             : "This site has no URL saved."}
@@ -980,10 +979,8 @@ export function LocalStrategyResearchTab() {
                   Seed domain
                 </div>
                 {workspaceMode === "temp" ? (
-                  <Input
+                  <Field
                     type="url"
-                    variant="neoPulseBlack"
-                    className="h-9 font-mono text-sm"
                     placeholder="https://example.com"
                     value={tempSeedUrl}
                     onChange={(e) => setTempSeedUrl(e.target.value)}
@@ -1003,9 +1000,7 @@ export function LocalStrategyResearchTab() {
                   <div className="text-base font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                     GBP search (DataForSEO)
                   </div>
-                  <Input
-                    variant="neoPulseBlack"
-                    className="h-9 text-sm"
+                  <Field
                     placeholder="Business name + city"
                     value={businessNameQuery}
                     onChange={(e) => setBusinessNameQuery(e.target.value)}
@@ -1016,9 +1011,7 @@ export function LocalStrategyResearchTab() {
                   <div className="text-base font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                     Location (optional)
                   </div>
-                  <Input
-                    variant="neoPulseBlack"
-                    className="h-9 text-sm"
+                  <Field
                     placeholder="e.g. Georgia, United States"
                     value={geoLabel}
                     onChange={(e) => setGeoLabel(e.target.value)}
@@ -1030,7 +1023,7 @@ export function LocalStrategyResearchTab() {
           </div>
 
           <div className="neo-pulse-zone-tile--analysis px-2 py-2 sm:px-3">
-            <p className="mb-2 text-[1rem] leading-snug text-muted-foreground">
+            <p className="mb-2 text-base leading-snug text-muted-foreground">
               Organic competitors use <span className="text-foreground/90">DataForSEO Labs</span> only - Semrush API is
               not required. Import a Local Dominator grid CSV (Place ID / cid) for extra competitors; enrichment uses
               Labs, not Semrush.
@@ -1042,31 +1035,25 @@ export function LocalStrategyResearchTab() {
               ) : null}
             </p>
             <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <input
+              <FileInput
                 ref={gridCsvFileRef}
-                type="file"
                 accept=".csv,text/csv"
-                className="sr-only"
                 aria-hidden
                 tabIndex={-1}
                 onChange={onGridCsvFileChange}
               />
               <Button
                 type="button"
-                variant="outline"
-                className={cn(REPORTING_TOOLBAR_BTN, REPORTING_TOOLBAR_BTN_DATA)}
                 disabled={busy}
                 title="Upload Local Dominator grid CSV - Place ID / cid → DataForSEO website → DataForSEO Labs keywords"
                 onClick={() => gridCsvFileRef.current?.click()}
               >
-                {gridCsvBusy ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : <Upload className="h-4 w-4 shrink-0" />}
+                {gridCsvBusy ? null : <Upload className="h-4 w-4 shrink-0" />}
                 Grid CSV
               </Button>
 
               <Button
                 type="button"
-                variant="outline"
-                className={cn(REPORTING_TOOLBAR_BTN, REPORTING_TOOLBAR_BTN_DATA)}
                 disabled={busy || !semrushData?.rows?.length}
                 title="Download competitor rows as a grid-style CSV (add Place ID in Local Dominator if re-importing)"
                 onClick={downloadGridCsv}
@@ -1077,35 +1064,31 @@ export function LocalStrategyResearchTab() {
 
               <Button
                 type="button"
-                variant="outline"
-                className={cn(REPORTING_TOOLBAR_BTN, REPORTING_TOOLBAR_BTN_DATA)}
                 disabled={busy}
                 onClick={() => void analyze()}
               >
-                {phase === "semrush" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {phase === "semrush" ? null : null}
                 Analyze
               </Button>
 
               <Button
+                variant="run"
                 type="button"
-                className={cn("neo-pulse-btn-semantic-analysis", REPORTING_TOOLBAR_BTN)}
                 disabled={busy || !semrushData}
                 onClick={() => void generateReport()}
               >
-                {phase === "report" ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : <Sparkles className="h-4 w-4 shrink-0" />}
+                {phase === "report" ? null : <Sparkles className="h-4 w-4 shrink-0" />}
                 Generate blueprint
               </Button>
 
               <Button
                 type="button"
-                variant="outline"
-                className={cn(REPORTING_TOOLBAR_BTN, REPORTING_TOOLBAR_BTN_PUBLISH)}
                 disabled={busy || !semrushData || selectedCompetitorKeys.size === 0}
                 title="Build the first 3 months of local entity SAP URL rows (15/month × 3 = 45). Downloads bulk CSV (keyword, entity, title, modifier, featuredImage)."
                 onClick={() => void generateEntitiesSap()}
               >
                 {sapEntitiesBusy ? (
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                  null
                 ) : (
                   <MapPin className="h-4 w-4 shrink-0 text-primary" aria-hidden />
                 )}
@@ -1114,8 +1097,6 @@ export function LocalStrategyResearchTab() {
 
               <Button
                 type="button"
-                variant="outline"
-                className={cn(REPORTING_TOOLBAR_BTN, REPORTING_TOOLBAR_BTN_DATA)}
                 disabled={!reportMd?.trim()}
                 title="Copy full local SEO blueprint Markdown"
                 onClick={() => void copyReport()}
@@ -1125,8 +1106,6 @@ export function LocalStrategyResearchTab() {
               </Button>
               <Button
                 type="button"
-                variant="outline"
-                className={cn(REPORTING_TOOLBAR_BTN, REPORTING_TOOLBAR_BTN_DATA)}
                 disabled={!reportMd?.trim()}
                 title="Download stitched .md file"
                 onClick={downloadReport}
@@ -1136,7 +1115,7 @@ export function LocalStrategyResearchTab() {
               </Button>
             </div>
             {gscError && workspaceMode === "connected" ? (
-              <p className="mt-2 text-[1rem] text-muted-foreground">GSC: {gscError}</p>
+              <p className="mt-2 text-base text-muted-foreground">GSC: {gscError}</p>
             ) : null}
             {phase === "report" || sapEntitiesBusy ? (
               <div
@@ -1157,7 +1136,7 @@ export function LocalStrategyResearchTab() {
                     <div className="neo-pulse-competitor-progress-indeterminate" aria-hidden />
                   )}
                 </div>
-                <p className="min-h-[1rem] text-[1rem] leading-normal text-muted-foreground">
+                <p className="min-h-[1rem] text-base leading-normal text-muted-foreground">
                   {phase === "report"
                     ? `${reportMicroLabel ?? "…"} · ${reportPipelineStep}/${LOCAL_STRATEGY_REPORT_MICRO_TOTAL}`
                     : "Generating SAP entity schedule…"}
@@ -1189,9 +1168,6 @@ export function LocalStrategyResearchTab() {
                         <span className="flex flex-wrap items-center gap-2">
                           <Button
                             type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-7 min-h-7 px-2 text-base font-semibold"
                             disabled={!hasMd}
                             title={hasMd ? "Download this section as Markdown" : "Waiting for this section…"}
                             onClick={() => downloadLocalStrategySectionMarkdown(section)}
@@ -1199,17 +1175,14 @@ export function LocalStrategyResearchTab() {
                             <Download className="mr-1 h-3.5 w-3.5 shrink-0" />
                             .md
                           </Button>
-                          <Button
+                          <TextButton
                             type="button"
-                            variant="link"
-                            size="sm"
-                            className="h-auto min-h-0 p-0 text-base font-semibold leading-snug text-[hsl(var(--semantic-data))] underline underline-offset-2"
                             disabled={!hasJson}
                             title={hasJson ? "Download exact OpenRouter POST JSON for this section" : "Payload not ready yet"}
                             onClick={() => downloadLocalStrategySectionPostJson(section)}
                           >
                             POST .json
-                          </Button>
+                          </TextButton>
                         </span>
                       </li>
                     );
@@ -1218,25 +1191,25 @@ export function LocalStrategyResearchTab() {
               </div>
             ) : null}
             {gridCsvBusy && phase === "idle" ? (
-              <p className="mt-2 text-[1rem] text-muted-foreground">
+              <p className="mt-2 text-base text-muted-foreground">
                 {gridCsvProgress ?? "Grid CSV: DataForSEO → Labs enrichment…"}
               </p>
             ) : null}
           </div>
 
           <div className="neo-pulse-zone-tile--data mt-2 px-2 py-2 sm:px-3">
-            <div className="neo-pulse-zone-row neo-pulse-zone-row--data space-y-1 py-2 text-[1rem] leading-normal">
-              <div className="min-h-[1rem] text-[1rem] font-semibold uppercase leading-normal tracking-wide text-muted-foreground">
+            <div className="neo-pulse-zone-row neo-pulse-zone-row--data space-y-1 py-2 text-base leading-normal">
+              <div className="min-h-[1rem] text-base font-semibold uppercase leading-normal tracking-wide text-muted-foreground">
                 Seed domain
               </div>
-              <div className="break-all font-mono text-[1rem] leading-normal text-foreground">
+              <div className="break-all font-mono text-base leading-normal text-foreground">
                 {effectiveSeedUrl || " - "}
               </div>
             </div>
           </div>
 
           {error ? (
-            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-2 py-2 text-[1rem] text-destructive">
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-2 py-2 text-base text-destructive">
               {error}
             </div>
           ) : null}
@@ -1265,7 +1238,7 @@ export function LocalStrategyResearchTab() {
 
           {reportMd?.trim() || lastSapScheduleRows?.length ? (
             <div className="neo-pulse-zone-tile--analysis mt-2 space-y-2 px-2 py-2 sm:px-3">
-              <div className="min-h-[1rem] text-[1rem] font-semibold uppercase leading-normal tracking-wide text-muted-foreground">
+              <div className="min-h-[1rem] text-base font-semibold uppercase leading-normal tracking-wide text-muted-foreground">
                 Report sections (inventory)
               </div>
               <div className="overflow-x-auto rounded-md border border-border/50 bg-muted/25">
@@ -1280,16 +1253,13 @@ export function LocalStrategyResearchTab() {
                   <tbody>
                     {reportMd?.trim() ? (
                       <tr className="border-b border-border/40 last:border-b-0">
-                        <td className="max-w-[140px] truncate px-2 py-1.5 font-mono text-foreground" title="local-blueprint">
+                        <td className="max-w-[140px] break-words px-2 py-1.5 font-mono text-foreground" title="local-blueprint">
                           local-blueprint
                         </td>
                         <td className="max-w-[min(40vw,280px)] px-2 py-1.5 text-foreground">Local SEO blueprint</td>
                         <td className="whitespace-nowrap px-2 py-1.5">
                           <Button
                             type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-9 min-h-9 px-2 text-base font-semibold"
                             title="Download blueprint Markdown"
                             onClick={downloadReport}
                           >
@@ -1301,7 +1271,7 @@ export function LocalStrategyResearchTab() {
                     ) : null}
                     {lastSapScheduleRows?.length ? (
                       <tr className="border-b border-border/40 last:border-b-0">
-                        <td className="max-w-[140px] truncate px-2 py-1.5 font-mono text-foreground" title="sap-schedule">
+                        <td className="max-w-[140px] break-words px-2 py-1.5 font-mono text-foreground" title="sap-schedule">
                           sap-schedule
                         </td>
                         <td className="max-w-[min(40vw,280px)] px-2 py-1.5 text-foreground">
@@ -1310,9 +1280,6 @@ export function LocalStrategyResearchTab() {
                         <td className="whitespace-nowrap px-2 py-1.5">
                           <Button
                             type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-9 min-h-9 px-2 text-base font-semibold"
                             title="Download SAP schedule CSV"
                             onClick={downloadSapScheduleArtifact}
                           >
@@ -1330,7 +1297,7 @@ export function LocalStrategyResearchTab() {
 
           {blueprintArtifacts.length > 0 ? (
             <div className="neo-pulse-zone-tile--analysis mt-2 space-y-3 px-2 py-2 sm:px-3">
-              <div className="min-h-[1rem] text-[1rem] font-semibold uppercase leading-normal tracking-wide text-muted-foreground">
+              <div className="min-h-[1rem] text-base font-semibold uppercase leading-normal tracking-wide text-muted-foreground">
                 Blueprint outputs
               </div>
               <Tabs value={blueprintOutputTab} onValueChange={setBlueprintOutputTab} className="flex min-h-0 flex-col gap-2">
@@ -1341,7 +1308,7 @@ export function LocalStrategyResearchTab() {
                       value={String(i)}
                       className="inline-flex max-w-[min(100%,18rem)] shrink-0 items-center gap-1.5 px-2 py-1.5 text-left text-base font-semibold normal-case leading-snug tracking-normal data-[state=active]:rounded-sm data-[state=active]:bg-[hsl(var(--semantic-analysis)/0.18)] data-[state=active]:text-primary"
                     >
-                      <span className="min-w-0 truncate" title={a.label}>
+                      <span className="min-w-0 break-words" title={a.label}>
                         {a.label}
                       </span>
                       <Tooltip>
@@ -1379,7 +1346,7 @@ export function LocalStrategyResearchTab() {
                 </TabsList>
                 {blueprintArtifacts.map((a, i) => (
                   <TabsContent key={a.id} value={String(i)} className="mt-0 min-h-0 data-[state=inactive]:hidden">
-                    <p className="text-[1rem] leading-normal text-muted-foreground">Preview below.</p>
+                    <p className="text-base leading-normal text-muted-foreground">Preview below.</p>
                   </TabsContent>
                 ))}
               </Tabs>
@@ -1388,11 +1355,11 @@ export function LocalStrategyResearchTab() {
 
           {reportMd?.trim() ? (
             <div className="neo-pulse-zone-tile--analysis mt-2 space-y-2 px-2 py-2 sm:px-3">
-              <div className="min-h-[1rem] text-[1rem] font-semibold uppercase leading-normal tracking-wide text-muted-foreground">
+              <div className="min-h-[1rem] text-base font-semibold uppercase leading-normal tracking-wide text-muted-foreground">
                 Stitched report preview
               </div>
               <div className="h-[min(50vh,28rem)] min-h-0 min-w-0 overflow-y-auto overflow-x-auto rounded-md border border-border/50 bg-black/20">
-                <pre className="whitespace-pre-wrap break-words p-3 font-mono text-[1rem] leading-relaxed text-foreground">
+                <pre className="whitespace-pre-wrap break-words p-3 font-mono text-base leading-relaxed text-foreground">
                   {reportMd}
                 </pre>
               </div>

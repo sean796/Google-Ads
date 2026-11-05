@@ -1,7 +1,7 @@
 import { Copy } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { notify } from "@/lib/app-notifications";
 import { copyTextToClipboard } from "@/lib/backlink-research/backlink-bulk-csv-export";
+import { Button } from "@/ui";
 
 interface ApiKeyCopyButtonProps {
   value: string;
@@ -27,9 +27,7 @@ export function ApiKeyCopyButton({
   return (
     <Button
       type="button"
-      variant="outline"
       onClick={() => void handleCopy()}
-      className="h-12 shrink-0"
       aria-label={ariaLabel}
       title={ariaLabel}
     >

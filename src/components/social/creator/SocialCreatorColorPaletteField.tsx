@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+
 import { ImageColorInputField } from "@/components/generator/image/ImageColorInputField";
 import {
   META_VISUAL_COLORS_ACTION_CLASS,
@@ -11,6 +11,7 @@ import {
 } from "@/components/social/creator/social-creator-visual-settings-layout";
 import type { MetaAdColorPalette } from "@/lib/social/social-creator-types";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 export type SocialCreatorColorPaletteFieldProps = {
   value?: MetaAdColorPalette;
@@ -87,10 +88,8 @@ export function MetaAdsColorColumnCell({
     return (
       <div className="flex min-h-0 items-center justify-end">
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="sm"
-          className={cn("h-8 w-auto shrink-0 px-2 text-base", META_VISUAL_CONTROL_SURFACE_CLASS)}
           disabled={disabled}
           onClick={onResetToWorkspace}
         >
@@ -134,10 +133,8 @@ export function MetaAdsColorLabelRow({
       </div>
       {onResetToWorkspace ? (
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="sm"
-          className={cn("h-8 px-2.5 text-base", META_VISUAL_CONTROL_SURFACE_CLASS, META_VISUAL_COLORS_ACTION_CLASS)}
           disabled={disabled}
           onClick={onResetToWorkspace}
         >

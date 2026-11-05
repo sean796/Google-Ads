@@ -127,6 +127,33 @@ Single full-frame photoreal cinematic environment plate, ${args.aspect} frame, n
   return dataUrl;
 }
 
+export function hasNegativePeopleConstraint(text?: string | null): boolean {
+  if (!text) return false;
+  const t = text.toLowerCase();
+  return (
+    t.includes("no people") ||
+    t.includes("no person") ||
+    t.includes("nobody") ||
+    t.includes("no humans") ||
+    t.includes("zero people") ||
+    t.includes("zero humans") ||
+    t.includes("no staff") ||
+    t.includes("empty showroom") ||
+    t.includes("empty store") ||
+    t.includes("empty office") ||
+    t.includes("empty room") ||
+    t.includes("without people") ||
+    t.includes("without humans") ||
+    t.includes("remove people") ||
+    t.includes("remove person") ||
+    t.includes("no one") ||
+    t.includes("devoid of people") ||
+    t.includes("devoid of humans") ||
+    t.includes("no visible people") ||
+    t.includes("unoccupied")
+  );
+}
+
 function storyboardPromptFor(args: {
   plan: VideoPlan;
   scene: VideoScenePlan;
@@ -137,6 +164,8 @@ function storyboardPromptFor(args: {
   productSpec?: ProductSpec | null;
   hasSceneBeatRef: boolean;
   hasProductAnchor: boolean;
+  referenceStillsFlythrough?: boolean;
+  beatReferenceFileName?: string;
 }): string {
   const { plan, scene, aspect } = args;
   let slot = 0;
@@ -158,17 +187,25 @@ function storyboardPromptFor(args: {
   const thirdSlotRule = args.hasSceneBeatRef
     ? args.hasProductAnchor
       ? `The ${ORDINAL[slot++]} reference image is the uploaded scene beat reference: match its camera framing, activity, and facing; use the first reference for the locked product appearance at 1:1. When the beat reference is a client storefront or showroom photo, replicate sign copy, materials, and layout at 1:1.`
-      : `The ${ORDINAL[slot++]} reference image is the uploaded scene beat reference: match its camera framing, activity, wardrobe, and travel/facing direction. When it is a client storefront, showroom, or interior location photo, replicate architecture, signage, and branding at 1:1; do not invent a generic building.`
+      : args.referenceStillsFlythrough
+        ? `The ${ORDINAL[slot++]} reference image is the uploaded location still: match architecture, signage, materials, fixed furniture, and camera angle only. Do not copy people from the photograph into the generated frame; remove any staff or person visible.`
+        : `The ${ORDINAL[slot++]} reference image is the uploaded scene beat reference: match its camera framing, activity, wardrobe, and travel/facing direction. When it is a client storefront, showroom, or interior location photo, replicate architecture, signage, and branding at 1:1; do not invent a generic building.`
     : args.secondaryProductAnchorLabel
       ? `The ${ORDINAL[slot++]} reference image is the ${args.secondaryProductAnchorLabel}. Use it with the first reference to keep exact left-to-right layout and materials; never mirror-flip the product.`
       : "";
   const specBlock = args.hasProductAnchor ? formatProductSpecPromptBlock(args.productSpec) : "";
-  const revisionBlock = scene.revisionNotes?.length
-    ? `\nClient Revision Notes (MANDATORY override for this scene):\n${scene.revisionNotes.map((note, i) => `- ${i + 1}. ${note}`).join("\n")}\n`
+  const hasRevisions = Boolean(scene.revisionNotes?.length);
+  const revisionBlock = hasRevisions
+    ? `\nClient Revision Notes (MANDATORY override for this scene):\n${scene.revisionNotes!.map((note, i) => `- ${i + 1}. ${note}`).join("\n")}\n`
     : "";
+  const beatFileName = scene.postCutReferenceFileName ?? args.beatReferenceFileName;
   const clientRefBlock = scene.postCutReferenceDataUrl
-    ? clientLocationReferencePromptBlock({ fileName: scene.postCutReferenceFileName })
-    : "";
+    ? clientLocationReferencePromptBlock({ fileName: beatFileName })
+    : args.referenceStillsFlythrough && args.hasSceneBeatRef && !hasRevisions
+      ? clientLocationReferencePromptBlock({ fileName: beatFileName })
+      : args.referenceStillsFlythrough && args.hasSceneBeatRef && hasRevisions
+        ? `\nLocation reference (${beatFileName ?? "upload"}): use for layout, signage, materials, and camera angle; regenerate a new photoreal frame (do not paste the photo). Apply every Client Revision Note.\n`
+        : "";
   const productLaws = args.hasProductAnchor
     ? `
 Product fidelity (this scene shows the locked SKU):
@@ -176,16 +213,35 @@ Product fidelity (this scene shows the locked SKU):
 2. Never mirror-flip the primary face left-for-right versus the bible and references.
 3. Do not substitute a different product category or add features not in the bible.`
     : "";
+  const combinedSceneText = `${plan.title} ${plan.logline} ${scene.storyboardPrompt} ${scene.sceneInstructions} ${(scene.revisionNotes || []).join(" ")}`;
+  const wantsNoPeople =
+    hasNegativePeopleConstraint(combinedSceneText) ||
+    Boolean(args.referenceStillsFlythrough && args.hasSceneBeatRef && !args.hasProductAnchor);
+
+  const stillsLead =
+    args.referenceStillsFlythrough && args.hasSceneBeatRef && !args.hasProductAnchor
+      ? hasRevisions
+        ? `Reference-stills scene with client edits: the reference photograph guides layout and branding only. Generate a new cleaned-up photoreal frame from storyboardPrompt and Client Revision Notes (cleanly remove people, mirror the view, or fix distractions). Do not output the upload as a literal copy.\n`
+        : `Reference-stills fly-through: the reference photograph guides layout, branding, materials, and camera angle. Generate a new photoreal cinematic frame from storyboardPrompt; never paste or embed the upload as the output image.\n`
+      : "";
+  const peopleRule = wantsNoPeople
+    ? "3. ZERO HUMANS MANDATE: Render zero people. The space must be completely devoid of humans. Remove any staff, desk occupants, or customers from the reference photo. If a person was sitting at a desk or chair, paint the empty chair and desk surface cleanly."
+    : hasRevisions
+      ? "3. Client Revision Notes override storyboardPrompt, sceneInstructions, continuityNotes, and the reference photo. If notes forbid people, render zero humans."
+      : "3. Keep people, pets, wardrobe, and props consistent with continuityNotes and beat references.";
+  const refStillsPeopleLead = wantsNoPeople
+    ? "MANDATORY ARCHITECTURAL FUSION: Match the reference image 1:1 for wall positions, window frames, door glass, cabinetry, flooring, ceiling lighting, and physical showroom layout. ZERO HUMANS: The room must be completely empty of people. Cleanly remove any person, staff member, or silhouette visible at desks, chairs, or doorways in the reference photograph. Replace them with the clean background/desk surface. Output a photoreal, pristine empty showroom with zero people.\n"
+    : "";
   return `Storyboard frame ${scene.order} of ${plan.scenes.length} for the video "${plan.title}".
-${subjectRule}
+${stillsLead}${refStillsPeopleLead}${subjectRule}
 ${stageRule}
 ${thirdSlotRule}
-${specBlock ? `${specBlock}\n` : ""}${scene.storyboardPrompt}${clientRefBlock}${revisionBlock}
+${specBlock ? `${specBlock}\n` : ""}${revisionBlock}${scene.storyboardPrompt}${clientRefBlock}
 ${productLaws}
 Scene fidelity (every frame):
 1. Render exactly what the storyboardPrompt and sceneInstructions describe. Do not invent buildings, products, or props the Director did not specify.
 2. Season & ground: match the environment plate or previous frame at this location. No unrequested snow or ice.
-3. Keep people, pets, wardrobe, and props consistent with continuityNotes and beat references.
+${peopleRule}
 
 Video continuity (every frame obeys it): ${continuityBlock(plan)}
 Single full-frame photoreal cinematic shot, ${aspect} frame, no split-screen, no text, no captions, no watermark, no borders.
@@ -214,6 +270,9 @@ export async function generateStoryboardFrame(args: {
   heroFrameDataUrl?: string;
   /** Existing frame being revised; wins over the hero frame as the reference. */
   currentFrameDataUrl?: string;
+  /** Location still folder: beat photo is primary reference (no env plate / hero chain). */
+  referenceStillsFlythrough?: boolean;
+  beatReferenceFileName?: string;
 }): Promise<string> {
   const productAnchor = resolveProductAnchorForScene({
     scene: args.scene,
@@ -221,34 +280,47 @@ export async function generateStoryboardFrame(args: {
     productViews: args.productViews,
   });
   const hasProductAnchor = Boolean(productAnchor.dataUrl);
-  const effectiveHeroFrame = hasProductAnchor ? undefined : args.heroFrameDataUrl;
+  const beatRefUrl = args.sceneReferenceDataUrls[0];
+  const hasSceneBeatRef = Boolean(beatRefUrl);
+  const stillsRedraw =
+    Boolean(args.referenceStillsFlythrough) && hasSceneBeatRef && !hasProductAnchor && Boolean(args.currentFrameDataUrl);
+
+  const effectiveHeroFrame =
+    hasProductAnchor || args.referenceStillsFlythrough ? undefined : args.heroFrameDataUrl;
 
   // Slot 2: Pick ONE stage/context anchor (never both empty environment plate and occupied same-location frame at once)
   const stageAnchorKind: "current" | "same_location" | "environment" | "hero" | "none" = args.currentFrameDataUrl
     ? "current"
-    : args.sameLocationFrameDataUrl
-      ? "same_location"
-      : args.environmentDataUrl
-        ? "environment"
-        : effectiveHeroFrame
-          ? "hero"
-          : "none";
-  const stageAnchorUrl =
-    args.currentFrameDataUrl ??
-    args.sameLocationFrameDataUrl ??
-    args.environmentDataUrl ??
-    effectiveHeroFrame;
+    : args.referenceStillsFlythrough && hasSceneBeatRef && !hasProductAnchor
+      ? "none"
+      : args.sameLocationFrameDataUrl
+        ? "same_location"
+        : args.environmentDataUrl
+          ? "environment"
+          : effectiveHeroFrame
+            ? "hero"
+            : "none";
+  const stageAnchorUrl = args.referenceStillsFlythrough && hasSceneBeatRef && !hasProductAnchor && !args.currentFrameDataUrl
+    ? undefined
+    : args.currentFrameDataUrl ??
+      args.sameLocationFrameDataUrl ??
+      args.environmentDataUrl ??
+      effectiveHeroFrame;
 
-  // Slot 3: Scene beat reference upload (when present) OR secondary master product view
-  const beatRefUrl = args.sceneReferenceDataUrls[0];
-  const hasSceneBeatRef = Boolean(beatRefUrl);
   const thirdSlotUrl = beatRefUrl ?? productAnchor.secondaryDataUrl;
 
-  const references = [
-    ...(productAnchor.dataUrl ? [productAnchor.dataUrl] : []),
-    ...(stageAnchorUrl ? [stageAnchorUrl] : []),
-    ...(thirdSlotUrl && thirdSlotUrl !== productAnchor.dataUrl && thirdSlotUrl !== stageAnchorUrl ? [thirdSlotUrl] : []),
-  ].slice(0, STORYBOARD_MAX_REFERENCES);
+  const references =
+    args.referenceStillsFlythrough && hasSceneBeatRef && !hasProductAnchor && !args.currentFrameDataUrl
+      ? [beatRefUrl]
+      : stillsRedraw && beatRefUrl
+        ? [beatRefUrl, args.currentFrameDataUrl!].slice(0, STORYBOARD_MAX_REFERENCES)
+        : [
+            ...(productAnchor.dataUrl ? [productAnchor.dataUrl] : []),
+            ...(stageAnchorUrl ? [stageAnchorUrl] : []),
+            ...(thirdSlotUrl && thirdSlotUrl !== productAnchor.dataUrl && thirdSlotUrl !== stageAnchorUrl
+              ? [thirdSlotUrl]
+              : []),
+          ].slice(0, STORYBOARD_MAX_REFERENCES);
 
   const elapsed = videoTimer();
   videoLog("storyboard", `scene ${args.scene.order} draw start`, {
@@ -272,6 +344,8 @@ export async function generateStoryboardFrame(args: {
       productSpec: args.productSpec,
       hasSceneBeatRef,
       hasProductAnchor,
+      referenceStillsFlythrough: args.referenceStillsFlythrough,
+      beatReferenceFileName: args.beatReferenceFileName,
     }),
     model: args.imageModel,
     aspectRatio: args.aspect,

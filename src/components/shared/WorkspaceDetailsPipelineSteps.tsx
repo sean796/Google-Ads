@@ -24,14 +24,14 @@ export function WorkspaceDetailsPipelineStepRow({
       )}
     >
       <span
-        className="min-w-0 flex-1 truncate text-base font-medium text-white"
+        className="min-w-0 flex-1 break-words text-base font-medium text-white"
         title={step.label}
       >
         {step.label}
       </span>
       {trailing}
       {step.status === "done" ? (
-        <Check className="h-4 w-4 shrink-0 text-green-500" aria-label="Complete" />
+        <Check className="h-4 w-4 shrink-0 text-primary" aria-label="Complete" />
       ) : null}
       {step.status === "error" ? (
         <span className="shrink-0 text-base text-destructive">Failed</span>

@@ -35,6 +35,7 @@ export function dashboardClusterToArea(cluster: string): TeamPermissionArea | nu
     "api-keys": "api-keys",
     "master-rules": "master-rules",
     "ai-generation": "ai-generation",
+    "decision-tree": "ai-generation",
     google: "google",
   };
   return map[cluster] ?? null;
@@ -52,6 +53,7 @@ export function managerTabToArea(tab: string): TeamPermissionArea | null {
     users: "teams",
     support: "teams",
     "pulse-host": "hosting",
+    "agent-library": "ai-generation",
     "image-generator": "generator",
     "video-generator": "generator",
   };

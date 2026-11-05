@@ -6,14 +6,13 @@ import {
   ORGANIC_DASHBOARD_SECTION_PANEL_CLASS,
   ORGANIC_DASHBOARD_SECTION_TITLE_CLASS,
 } from "@/components/organic-dashboard/organic-dashboard-styles";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import type {
   LocalGridAggregatedView,
   LocalGridBusinessIdentity,
   LocalGridDistanceMeasure,
 } from "@/lib/local-grid-studio/local-grid-types";
 import { cn } from "@/lib/utils";
+import { Button, Field } from "@/ui";
 
 export type LocalGridDataReportTablesProps = {
   view: LocalGridAggregatedView;
@@ -74,37 +73,37 @@ export function LocalGridDataReportTables({
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <div className="bg-zinc-900 p-3">
+          <div className="bg-ui-field p-3">
             <div className="text-base text-muted-foreground">Avg. Rank</div>
             <div className="mt-1 text-base font-bold text-white tabular-nums">
               {summary.rankedPoints > 0 ? summary.avgRank.toFixed(2) : "20+"}
             </div>
           </div>
-          <div className="bg-zinc-900 p-3">
+          <div className="bg-ui-field p-3">
             <div className="text-base text-muted-foreground">TARP (All Pins)</div>
             <div className="mt-1 text-base font-bold text-white tabular-nums">
               {summary.tarp.toFixed(2)}
             </div>
           </div>
-          <div className="bg-zinc-900 p-3">
+          <div className="bg-ui-field p-3">
             <div className="text-base text-muted-foreground">Top 3 (High)</div>
-            <div className="mt-1 text-base font-bold text-emerald-400 tabular-nums">
+            <div className="mt-1 text-base font-bold text-primary tabular-nums">
               {summary.highPct}% ({summary.highCount}/{summary.totalPoints})
             </div>
           </div>
-          <div className="bg-zinc-900 p-3">
+          <div className="bg-ui-field p-3">
             <div className="text-base text-muted-foreground">Ranks 4-10 (Med)</div>
-            <div className="mt-1 text-base font-bold text-amber-400 tabular-nums">
+            <div className="mt-1 text-base font-bold text-semantic-warning-foreground tabular-nums">
               {summary.medPct}% ({summary.medCount}/{summary.totalPoints})
             </div>
           </div>
-          <div className="bg-zinc-900 p-3">
+          <div className="bg-ui-field p-3">
             <div className="text-base text-muted-foreground">Target Reviews vs Top 3</div>
             <div className="mt-1 text-base font-bold text-white tabular-nums">
               {activeBusiness.reviews ?? "-"} vs {top3AvgReviews || "-"} avg
             </div>
           </div>
-          <div className="bg-zinc-900 p-3">
+          <div className="bg-ui-field p-3">
             <div className="text-base text-muted-foreground">Target Rating vs Top 3</div>
             <div className="mt-1 text-base font-bold text-white tabular-nums">
               {activeBusiness.rating ?? "-"} vs {top3AvgRating || "-"} avg
@@ -135,7 +134,7 @@ export function LocalGridDataReportTables({
                     <td className="py-2 pr-4 tabular-nums text-muted-foreground">
                       {cat.businessCount}
                     </td>
-                    <td className="py-2 pr-4 tabular-nums text-emerald-400">
+                    <td className="py-2 pr-4 tabular-nums text-primary">
                       {cat.top3SharePct.toFixed(1)}%
                     </td>
                     <td className="py-2 pr-4 tabular-nums text-white">
@@ -163,13 +162,12 @@ export function LocalGridDataReportTables({
               Competitor Leaderboard ({filteredCompetitors.length} of {competitors.length})
             </h2>
           </div>
-          <Input
+          <Field
             type="text"
             aria-label="Filter competitors or categories"
             placeholder="Filter competitors, category, or domain"
             value={competitorFilter}
             onChange={(e) => setCompetitorFilter(e.target.value)}
-            className={cn(BULK_HEADER_FIELD, "w-72 px-2.5 text-base")}
           />
         </div>
 
@@ -210,7 +208,7 @@ export function LocalGridDataReportTables({
                     <td className="py-2.5 pr-3 tabular-nums text-muted-foreground">{idx + 1}</td>
                     <td className="max-w-[18rem] py-2.5 pr-4">
                       <div className="flex items-center gap-1.5">
-                        <span className="truncate font-medium text-white">{comp.business}</span>
+                        <span className="break-words font-medium text-white">{comp.business}</span>
                         {webHref ? (
                           <a
                             href={webHref}
@@ -223,12 +221,12 @@ export function LocalGridDataReportTables({
                           </a>
                         ) : null}
                       </div>
-                      <div className="truncate text-base text-muted-foreground">{comp.address}</div>
+                      <div className="break-words text-base text-muted-foreground">{comp.address}</div>
                     </td>
                     <td className="max-w-[15rem] py-2.5 pr-4">
-                      <div className="truncate text-white">{comp.primaryCategory || "-"}</div>
+                      <div className="break-words text-white">{comp.primaryCategory || "-"}</div>
                       {comp.secondaryCategories ? (
-                        <div className="truncate text-base text-muted-foreground">
+                        <div className="break-words text-base text-muted-foreground">
                           {comp.secondaryCategories}
                         </div>
                       ) : null}
@@ -236,7 +234,7 @@ export function LocalGridDataReportTables({
                     <td className="py-2.5 pr-3 tabular-nums text-white">
                       {comp.rating != null ? (
                         <span className="inline-flex items-center gap-1">
-                          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" aria-hidden />
+                          <Star className="h-3.5 w-3.5 fill-semantic-warning text-semantic-warning-foreground" aria-hidden />
                           {comp.rating.toFixed(1)}
                         </span>
                       ) : (
@@ -252,13 +250,13 @@ export function LocalGridDataReportTables({
                     <td className="py-2.5 pr-3 tabular-nums text-muted-foreground">
                       {comp.summary.tarp.toFixed(2)}
                     </td>
-                    <td className="py-2.5 pr-3 tabular-nums text-emerald-400">
+                    <td className="py-2.5 pr-3 tabular-nums text-primary">
                       {comp.summary.highPct}%
                     </td>
-                    <td className="py-2.5 pr-3 tabular-nums text-amber-400">
+                    <td className="py-2.5 pr-3 tabular-nums text-semantic-warning-foreground">
                       {comp.summary.medPct}%
                     </td>
-                    <td className="py-2.5 pr-3 tabular-nums text-red-400">
+                    <td className="py-2.5 pr-3 tabular-nums text-ui-danger-hover">
                       {comp.summary.lowPct}%
                     </td>
                     <td className="py-2.5 pr-3 tabular-nums text-muted-foreground">
@@ -266,13 +264,9 @@ export function LocalGridDataReportTables({
                     </td>
                     <td className="py-2.5 text-right">
                       <Button
+                        variant="quiet"
                         type="button"
-                        variant="ghost"
                         onClick={() => onSelectBusiness(comp)}
-                        className={cn(
-                          BULK_HEADER_TOOL_BTN,
-                          isSelected && "bg-primary text-black hover:bg-primary/90",
-                        )}
                       >
                         <Eye className="mr-1.5 h-4 w-4" aria-hidden />
                         {isSelected ? "Active" : "View Map"}
@@ -328,32 +322,31 @@ export function LocalGridDataReportTables({
                         className={cn(
                           "inline-flex min-w-[2.5rem] items-center justify-center px-2 py-0.5 text-base font-bold",
                           pin.bucket === "rank1" || pin.bucket === "high"
-                            ? "bg-emerald-500 text-zinc-950"
+                            ? "bg-primary/80 text-black"
                             : pin.bucket === "med"
-                              ? "bg-amber-500 text-zinc-950"
+                              ? "bg-semantic-warning/80 text-black"
                               : pin.bucket === "low"
-                                ? "bg-red-500 text-white"
-                                : "bg-zinc-700 text-zinc-200",
+                                ? "bg-ui-danger/20 text-white"
+                                : "bg-ui-field-hover text-foreground",
                         )}
                       >
                         {pin.targetRank ?? "20+"}
                       </span>
                     </td>
-                    <td className="max-w-[14rem] truncate py-2 pr-4 text-white">
+                    <td className="max-w-[14rem] break-words py-2 pr-4 text-white">
                       {top1 ? `${top1.business} (${top1.rating ?? "-"}★)` : "-"}
                     </td>
-                    <td className="max-w-[14rem] truncate py-2 pr-4 text-muted-foreground">
+                    <td className="max-w-[14rem] break-words py-2 pr-4 text-muted-foreground">
                       {top2 ? `${top2.business} (${top2.rating ?? "-"}★)` : "-"}
                     </td>
-                    <td className="max-w-[14rem] truncate py-2 pr-4 text-muted-foreground">
+                    <td className="max-w-[14rem] break-words py-2 pr-4 text-muted-foreground">
                       {top3 ? `${top3.business} (${top3.rating ?? "-"}★)` : "-"}
                     </td>
                     <td className="py-2 text-right">
                       <Button
+                        variant="quiet"
                         type="button"
-                        variant="ghost"
                         onClick={() => onFocusPin(pin.pointId)}
-                        className={BULK_HEADER_TOOL_BTN}
                       >
                         Inspect Top 20
                       </Button>

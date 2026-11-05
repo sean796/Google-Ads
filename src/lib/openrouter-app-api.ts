@@ -1,6 +1,7 @@
 import { getSessionToken } from "@/lib/auth-device";
 import { getOpenRouterApiKeyForApp } from "@/lib/openrouter-api-key-resolve";
-import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { promptTraceInputs, recordPromptTraceCall } from "@/lib/openrouter-prompt-trace";
+import { backendApiUrl, resolveBackendApiBase } from "@/lib/wordpress-api/connection";
 
 export type OpenRouterAppMessage = {
   role: "system" | "user" | "assistant";
@@ -24,6 +25,9 @@ export type OpenRouterAppReasoning = { effort: "low" | "medium" | "high" };
 export type OpenRouterAppImageConfig = { aspect_ratio: string };
 
 export function openRouterChatCompletionUrl(): string {
+  if (typeof window === "undefined" && !resolveBackendApiBase()) {
+    return "https://openrouter.ai/api/v1/chat/completions";
+  }
   return backendApiUrl("/openrouter/chat-completion");
 }
 
@@ -127,9 +131,13 @@ export function openRouterAssistantTextFromMessage(message: unknown): string {
 
 export function openRouterAppApiHeaders(apiKey?: string): Headers {
   const headers = new Headers({ "Content-Type": "application/json" });
-  const token = getSessionToken();
-  if (token) headers.set("Authorization", `Bearer ${token}`);
   const key = (apiKey ?? getOpenRouterApiKeyForApp()).trim();
+  const token = getSessionToken();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  } else if (key) {
+    headers.set("Authorization", `Bearer ${key}`);
+  }
   if (key) headers.set("X-OpenRouter-Api-Key", key);
   return headers;
 }
@@ -146,6 +154,17 @@ function filterOpenRouterAppMessages(messages: OpenRouterAppMessage[] | undefine
     const role = openRouterPromptText(msg.role);
     return role.length > 0 && messageContentNonEmpty(msg.content);
   });
+}
+
+export function normalizeOpenRouterChatModel(model: string): string {
+  if (
+    model === "liquid/d1.1" ||
+    model === "liquid/lfm-2.5-2.6b" ||
+    model === "liquid/lfm-2.5-2.6b:free"
+  ) {
+    return "liquid/lfm-2.5-24b-a2b";
+  }
+  return model;
 }
 
 /** Wire JSON for POST /openrouter/chat-completion (messages or system+user, never an empty mix). */
@@ -171,15 +190,16 @@ export function buildOpenRouterAppChatRequestBody(args: {
   const user = openRouterPromptText(args.user);
   const filteredMessages = filterOpenRouterAppMessages(args.messages);
 
+  const effectiveModel = normalizeOpenRouterChatModel(args.model);
   const fallbackModel = "google/gemini-2.5-flash";
-  const isSpecialModality = args.model?.includes("image") || args.model?.includes("video");
-  const models = args.model && args.model !== fallbackModel && !isSpecialModality
-    ? [args.model, fallbackModel]
+  const isSpecialModality = effectiveModel?.includes("image") || effectiveModel?.includes("video");
+  const models = effectiveModel && effectiveModel !== fallbackModel && !isSpecialModality
+    ? [effectiveModel, fallbackModel]
     : undefined;
 
   const base: Record<string, unknown> = {
     apiKey: apiKey || undefined,
-    model: args.model,
+    model: effectiveModel,
     ...(models ? { models } : {}),
     temperature: args.temperature,
     maxTokens: args.maxTokens,
@@ -235,14 +255,35 @@ export async function postOpenRouterAppChat(args: {
   parsed?: Record<string, unknown>;
 }> {
   const apiKey = (args.apiKey ?? getOpenRouterApiKeyForApp()).trim();
-  const requestBody = buildOpenRouterAppChatRequestBody({ ...args, apiKey });
-  const payloadStr = JSON.stringify(requestBody);
+  const effectiveModel = normalizeOpenRouterChatModel(args.model);
+  const requestBody = buildOpenRouterAppChatRequestBody({ ...args, model: effectiveModel, apiKey });
+  const isDirect = openRouterChatCompletionUrl().includes("openrouter.ai/api/v1");
+  const directPayload = isDirect
+    ? {
+        model: effectiveModel,
+        messages: requestBody.messages,
+        temperature: args.temperature ?? 0.7,
+        max_tokens: args.maxTokens ?? 2000,
+      }
+    : requestBody;
+  const payloadStr = JSON.stringify(directPayload);
   const openRouterStart = Date.now();
+  const traceInputs = promptTraceInputs(args);
+  const traceSchema = args.responseFormat?.type === "json_schema" ? args.responseFormat.json_schema.name : null;
+  const recordTrace = (finishReason: string, response: string) =>
+    recordPromptTraceCall({
+      model: effectiveModel,
+      ...traceInputs,
+      schemaName: traceSchema,
+      durationMs: Date.now() - openRouterStart,
+      finishReason,
+      response,
+    });
   console.log(
     `%c[OpenRouter API] 🚀 POST /openrouter/chat-completion`,
     "color: #84bc00; font-weight: bold;",
     {
-      model: args.model,
+      model: effectiveModel,
       maxTokens: args.maxTokens,
       temperature: args.temperature,
       payloadBytes: payloadStr.length,
@@ -258,13 +299,18 @@ export async function postOpenRouterAppChat(args: {
       headers: openRouterAppApiHeaders(apiKey),
       body: payloadStr,
     });
-    if (
-      attempt < 3 &&
-      (response.status === 502 || response.status === 503 || response.status === 504)
-    ) {
-      await new Promise((resolve) => setTimeout(resolve, 1500 * attempt));
-      continue;
-    }
+        // Rate-limit Retry-After or backoff
+        if (response.status === 429 && attempt < 3) {
+          await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
+          continue;
+        }
+        if (
+          attempt < 3 &&
+          (response.status === 502 || response.status === 503 || response.status === 504)
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 1500 * attempt));
+          continue;
+        }
     break;
   }
   if (!response) {
@@ -280,12 +326,13 @@ export async function postOpenRouterAppChat(args: {
 
   let data: {
     ok?: boolean;
-    error?: string;
+    error?: string | { message?: string };
     content?: string;
     finishReason?: string;
     nativeFinishReason?: string;
     raw?: unknown;
     parsed?: Record<string, unknown>;
+    choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
   };
   try {
     data = (await response.json()) as typeof data;
@@ -293,13 +340,26 @@ export async function postOpenRouterAppChat(args: {
     throw new Error(`OpenRouter error (${response.status})`);
   }
 
+  // Handle direct OpenRouter responses (e.g. CLI or direct calls)
+  if (data?.choices && Array.isArray(data.choices)) {
+    data = {
+      ok: true,
+      content: data.choices[0]?.message?.content || "",
+      finishReason: data.choices[0]?.finish_reason,
+      raw: data,
+    };
+  }
+
   if (!response.ok || !data.ok) {
-    const errorMsg = data.error?.trim() || `OpenRouter error (${response.status})`;
+    const errorMsg =
+      (typeof data.error === "string" ? data.error : data.error?.message) ||
+      `OpenRouter error (${response.status})`;
     console.error(
       `%c[OpenRouter API] ❌ Error (${response.status}):`,
       "color: #ff4444; font-weight: bold;",
       errorMsg,
     );
+    recordTrace(`error ${response.status}`, errorMsg);
     throw new Error(errorMsg);
   }
   const hasParsed =
@@ -354,6 +414,7 @@ export async function postOpenRouterAppChat(args: {
     }
   }
 
+  recordTrace(data.finishReason ?? "stop", content);
   return {
     raw: data.raw ?? data,
     content,
@@ -380,6 +441,17 @@ export async function streamOpenRouterAppChat(args: {
   const apiKey = (args.apiKey ?? getOpenRouterApiKeyForApp()).trim();
   const requestBody = { ...buildOpenRouterAppChatRequestBody({ ...args, apiKey }), stream: true };
   const startedAt = Date.now();
+  const acc = { content: "", reasoning: "", finishReason: undefined as string | undefined, lines: 0 };
+  const traceInputs = promptTraceInputs(args);
+  const recordTrace = (finishReason: string, response: string) =>
+    recordPromptTraceCall({
+      model: args.model,
+      ...traceInputs,
+      schemaName: args.responseFormat?.type === "json_schema" ? args.responseFormat.json_schema.name : null,
+      durationMs: Date.now() - startedAt,
+      finishReason,
+      response,
+    });
   const log = (event: string, data?: unknown) => console.log(`[video:openrouter-stream] ${event}`, data ?? "");
   log("request sent", { model: args.model, maxTokens: args.maxTokens, messages: args.messages.length, reasoning: args.reasoning?.effort });
   const response = await fetch(openRouterChatCompletionUrl(), {
@@ -394,9 +466,9 @@ export async function streamOpenRouterAppChat(args: {
   if (!response.ok || !response.body) {
     const text = (await response.text()).trim();
     console.error("[video:openrouter-stream] request failed", { status: response.status, body: text.slice(0, 500) });
+    recordTrace(`error ${response.status}`, text);
     throw new Error(text || `OpenRouter error (${response.status})`);
   }
-  const acc = { content: "", reasoning: "", finishReason: undefined as string | undefined, lines: 0 };
   const handleLine = (line: string) => {
     if (!line.startsWith("data: ")) return;
     const data = line.slice(6).trim();
@@ -436,20 +508,26 @@ export async function streamOpenRouterAppChat(args: {
   const decoder = new TextDecoder("utf-8");
   let buffer = "";
   let firstByte = false;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    if (!firstByte) {
-      firstByte = true;
-      log("first bytes", { bytes: value.byteLength, ms: Date.now() - startedAt });
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!firstByte) {
+        firstByte = true;
+        log("first bytes", { bytes: value.byteLength, ms: Date.now() - startedAt });
+      }
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+      lines.forEach(handleLine);
     }
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
-    lines.forEach(handleLine);
+    buffer += decoder.decode();
+    buffer.split("\n").forEach(handleLine);
+  } catch (error) {
+    recordTrace("aborted", acc.content);
+    throw error;
   }
-  buffer += decoder.decode();
-  buffer.split("\n").forEach(handleLine);
+  recordTrace(acc.finishReason ?? "stop", acc.content);
   log("stream closed", {
     seconds: Math.round((Date.now() - startedAt) / 1000),
     lines: acc.lines,

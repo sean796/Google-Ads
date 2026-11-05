@@ -1,15 +1,8 @@
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { BULK_HEADER_SELECT_TRIGGER } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
+
 import type { PpcCampaign } from "@/lib/ppc/google-ads-types";
 import { ppcAdDailySeriesKey } from "@/lib/ppc/ppc-campaign-insights-scope";
 import type { PpcCampaignInsights, PpcCampaignStructureAd } from "@/lib/ppc/ppc-campaign-insights-types";
-import { cn } from "@/lib/utils";
+import { SelectField } from "@/ui";
 
 const NONE_VALUE = "__none__";
 
@@ -18,7 +11,6 @@ export type GoogleAdsLiveAdsSelectProps = {
   campaign: PpcCampaign | undefined;
   selectedLiveAdKey: string | null;
   onSelectedLiveAdKeyChange: (key: string | null, ad: PpcCampaignStructureAd | null) => void;
-  className?: string;
 };
 
 function fallbackAdsFromCampaign(campaign: PpcCampaign | undefined): PpcCampaignStructureAd[] {
@@ -52,13 +44,13 @@ export function GoogleAdsLiveAdsSelect({
   campaign,
   selectedLiveAdKey,
   onSelectedLiveAdKeyChange,
-  className,
 }: GoogleAdsLiveAdsSelectProps) {
   const options = listPpcLiveAdsOptions(insights, campaign);
   if (options.length === 0) return null;
 
   return (
-    <Select
+    <SelectField
+      placeholder="Google Ads in this campaign"
       value={selectedLiveAdKey ?? NONE_VALUE}
       onValueChange={(value) => {
         if (value === NONE_VALUE) {
@@ -68,21 +60,11 @@ export function GoogleAdsLiveAdsSelect({
         const ad = options.find((row) => ppcAdDailySeriesKey(row.adGroupId, row.adId) === value) ?? null;
         onSelectedLiveAdKeyChange(value, ad);
       }}
-    >
-      <SelectTrigger className={cn(BULK_HEADER_SELECT_TRIGGER, "w-full min-w-0 sm:min-w-[16rem]", className)}>
-        <SelectValue placeholder="Google Ads in this campaign" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={NONE_VALUE}>All ads (level from focus)</SelectItem>
-        {options.map((row) => {
-          const key = ppcAdDailySeriesKey(row.adGroupId, row.adId);
-          return (
-            <SelectItem key={key} value={key}>
-              {row.label}
-            </SelectItem>
-          );
-        })}
-      </SelectContent>
-    </Select>
+      options={[
+        { value: NONE_VALUE, label: "All ads (level from focus)" },
+        ...options.map((row) => ({ value: ppcAdDailySeriesKey(row.adGroupId, row.adId), label: row.label })),
+      ]}
+      width="full"
+    />
   );
 }

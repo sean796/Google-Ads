@@ -1,11 +1,4 @@
 import React, { useCallback, useMemo, useRef } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import type { WordPressSiteOption } from "@/components/manager/tasks/NewProjectDialog";
 import { WordPressScheduleFields } from "@/components/keyword-research/bulk/WordPressScheduleFields";
 import { AutomationGoogleDriveFields, GoogleDriveConnectionInline } from "@/components/manager/tasks/planner/AutomationGoogleDriveFields";
@@ -42,6 +35,7 @@ import type {
   WorkflowThenStepConfig,
 } from "@/lib/workflow/workflow-types";
 import type { TaskExecutionPayload } from "@/lib/tasks-types";
+import { SelectField } from "@/ui";
 
 export type WorkflowThenStepInspectorProps = {
   node: WorkflowNode;
@@ -200,69 +194,19 @@ export function WorkflowThenStepInspector({
       {node.kind !== "then_google_drive" ? (
       <WorkflowInspectorGroup title="Input">
         <WorkflowInspectorField>
-          <Select
-            value={String(config.inputVariableKey ?? "")}
-            onValueChange={(value) => {
+          <SelectField placeholder="Upstream output" value={String(config.inputVariableKey ?? "")} onValueChange={(value) => {
               const match = upstream.find((variable) => variable.key === value);
               patchConfig({
                 inputVariableKey: value,
                 inputNodeId: match?.nodeId,
               });
-            }}
-          >
-            <SelectTrigger className={WORKFLOW_FORM_SELECT_TRIGGER_CLASS}>
-              <SelectValue placeholder="Upstream output" />
-            </SelectTrigger>
-            <SelectContent className={WORKFLOW_FORM_SELECT_CONTENT_CLASS}>
-              {upstream.map((variable) => (
-                <SelectItem key={variable.key} value={variable.key} className={WORKFLOW_FORM_SELECT_ITEM_CLASS}>
-                  {variable.label || variable.key}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            }} options={upstream.map((variable) => ({ value: variable.key, label: variable.label || variable.key }))} />
         </WorkflowInspectorField>
         <WorkflowInspectorField>
-          <Select
-            value={inputMode}
-            onValueChange={(value) => patchConfig({ inputMode: value as ThenInputMode })}
-          >
-            <SelectTrigger className={WORKFLOW_FORM_SELECT_TRIGGER_CLASS}>
-              <SelectValue placeholder="Input mode" />
-            </SelectTrigger>
-            <SelectContent className={WORKFLOW_FORM_SELECT_CONTENT_CLASS}>
-              <SelectItem value="single" className={WORKFLOW_FORM_SELECT_ITEM_CLASS}>
-                Single output
-              </SelectItem>
-              <SelectItem value="all_from_node" className={WORKFLOW_FORM_SELECT_ITEM_CLASS}>
-                All from selected step
-              </SelectItem>
-              <SelectItem value="all_deliverables" className={WORKFLOW_FORM_SELECT_ITEM_CLASS}>
-                All deliverables in run
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          <SelectField placeholder="Input mode" value={inputMode} onValueChange={(value) => patchConfig({ inputMode: value as ThenInputMode })} options={[{ value: "single", label: "Single output" }, { value: "all_from_node", label: "All from selected step" }, { value: "all_deliverables", label: "All deliverables in run" }]} />
         </WorkflowInspectorField>
         <WorkflowInspectorField>
-          <Select
-            value={waitMode}
-            onValueChange={(value) => patchConfig({ waitMode: value as ThenWaitMode })}
-          >
-            <SelectTrigger className={WORKFLOW_FORM_SELECT_TRIGGER_CLASS}>
-              <SelectValue placeholder="Wait before run" />
-            </SelectTrigger>
-            <SelectContent className={WORKFLOW_FORM_SELECT_CONTENT_CLASS}>
-              <SelectItem value="immediate" className={WORKFLOW_FORM_SELECT_ITEM_CLASS}>
-                Run immediately
-              </SelectItem>
-              <SelectItem value="upstream_terminal" className={WORKFLOW_FORM_SELECT_ITEM_CLASS}>
-                Wait for upstream deliverables
-              </SelectItem>
-              <SelectItem value="all_parallel_clients" className={WORKFLOW_FORM_SELECT_ITEM_CLASS}>
-                Wait for all parallel clients
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          <SelectField placeholder="Wait before run" value={waitMode} onValueChange={(value) => patchConfig({ waitMode: value as ThenWaitMode })} options={[{ value: "immediate", label: "Run immediately" }, { value: "upstream_terminal", label: "Wait for upstream deliverables" }, { value: "all_parallel_clients", label: "Wait for all parallel clients" }]} />
         </WorkflowInspectorField>
       </WorkflowInspectorGroup>
       ) : null}
@@ -270,27 +214,9 @@ export function WorkflowThenStepInspector({
       {node.kind === "then_email" ? (
         <WorkflowInspectorGroup title="Email batching">
           <WorkflowInspectorField>
-            <Select
-              value={emailBatchScope}
-              onValueChange={(value) =>
+            <SelectField placeholder="Email batch scope" value={emailBatchScope} onValueChange={(value) =>
                 patchConfig({ emailBatchScope: value as ThenEmailBatchScope })
-              }
-            >
-              <SelectTrigger className={WORKFLOW_FORM_SELECT_TRIGGER_CLASS}>
-                <SelectValue placeholder="Email batch scope" />
-              </SelectTrigger>
-              <SelectContent className={WORKFLOW_FORM_SELECT_CONTENT_CLASS}>
-                <SelectItem value="single" className={WORKFLOW_FORM_SELECT_ITEM_CLASS}>
-                  Single deliverable
-                </SelectItem>
-                <SelectItem value="per_client" className={WORKFLOW_FORM_SELECT_ITEM_CLASS}>
-                  One email per client
-                </SelectItem>
-                <SelectItem value="workflow_run" className={WORKFLOW_FORM_SELECT_ITEM_CLASS}>
-                  One email for whole workflow run
-                </SelectItem>
-              </SelectContent>
-            </Select>
+              } options={[{ value: "single", label: "Single deliverable" }, { value: "per_client", label: "One email per client" }, { value: "workflow_run", label: "One email for whole workflow run" }]} />
           </WorkflowInspectorField>
           <p className="text-base text-muted-foreground">
             Tokens: {"{driveLinks}"}, {"{deliverableCount}"}, {"{deliverableList}"}, {"{summary}"}
@@ -336,7 +262,6 @@ export function WorkflowThenStepInspector({
       {scheduleState ? (
         <WorkflowInspectorGroup title={node.kind === "then_draft" ? "Draft" : "Schedule"}>
           <WordPressScheduleFields
-            variant="forge"
             layout="stack"
             scheduleFrequency={scheduleState.scheduleFrequency}
             setScheduleFrequency={(scheduleFrequency) =>

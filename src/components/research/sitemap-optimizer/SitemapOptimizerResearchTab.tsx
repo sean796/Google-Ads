@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GitMerge } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useManagerSeedWorkspace } from "@/contexts/manager-seed-workspace-context";
 import { useSitemapOptimizerApprovePlan } from "@/hooks/research/use-sitemap-optimizer-approve-plan";
 import { useSitemapOptimizerRankMathImport } from "@/hooks/research/use-sitemap-optimizer-rankmath-import";
@@ -60,8 +59,8 @@ import {
 import { sitemapPlanDetailsCanOpen } from "@/lib/sitemap-optimizer/sitemap-plan-bulk-details-bindings";
 import { collectMergeSourcePosts } from "@/lib/sitemap-optimizer/trash-merge-source-posts";
 import { WorkspaceEmptyRowStripes } from "@/components/shared/WorkspaceEmptyRowStripes";
-import { WORKSPACE_DETAILS_DIM_OVERLAY_CLASS } from "@/components/overview/overview-tab/overview-tab-content-constants";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 function triggerDownload(filename: string, content: string, mime: string) {
   const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
@@ -81,7 +80,6 @@ export function SitemapOptimizerResearchTab() {
   const [gscFileName, setGscFileName] = useState<string | null>(null);
   const [gridResultTab, setGridResultTab] = useState<"redirects" | "content">("redirects");
   const [publishWorkspaceActive, setPublishWorkspaceActive] = useState(false);
-  const [detailsDrawerOpen, setDetailsDrawerOpen] = useState(false);
   const [workspaceSubMode, setWorkspaceSubMode] = useState<SitemapOptimizerWorkspaceMode>(
     () => readStoredSitemapOptimizerSection(),
   );
@@ -552,7 +550,6 @@ export function SitemapOptimizerResearchTab() {
         onWorkspaceSubModeChange={handleWorkspaceSubModeChange}
         modeSwitchDisabled={modeSwitchDisabled}
         workspaceBusy={workspaceBusy}
-        onDetailsOpenChange={setDetailsDrawerOpen}
         planToolbarProps={{
           busy,
           workspaceBusy: busy,
@@ -637,9 +634,6 @@ export function SitemapOptimizerResearchTab() {
           placeholderOnlyBody && "overflow-y-hidden",
         )}
       >
-        {detailsDrawerOpen ? (
-          <div className={WORKSPACE_DETAILS_DIM_OVERLAY_CLASS} aria-hidden />
-        ) : null}
       {workspaceSubMode === "url_optimizer" ? (
         <SitemapUrlOptimizerPanel
           urlOptimizerWorkspace
@@ -658,19 +652,15 @@ export function SitemapOptimizerResearchTab() {
                 <div className="flex min-h-0 flex-1 flex-col gap-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
+                      pressed={gridResultTab === "redirects"}
                       type="button"
-                      variant={gridResultTab === "redirects" ? "secondary" : "outline"}
-                      size="sm"
-                      className="h-8 text-base"
                       onClick={() => setGridResultTab("redirects")}
                     >
                       Redirects ({result.rows.length})
                     </Button>
                     <Button
+                      pressed={gridResultTab === "content"}
                       type="button"
-                      variant={gridResultTab === "content" ? "secondary" : "outline"}
-                      size="sm"
-                      className="h-8 text-base"
                       onClick={() => setGridResultTab("content")}
                     >
                       Content plans ({replacementSheet.length})

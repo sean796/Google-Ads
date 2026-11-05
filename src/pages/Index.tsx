@@ -42,6 +42,7 @@ import {
   readStoredBlogGeneratorSection,
   writeStoredBlogGeneratorSection,
 } from "@/components/blog-generator/blog-generator-sections";
+import { writeStoredStudioEditorMode } from "@/components/keyword-research/bulk/studio-editor-modes";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWordPressSites } from "@/hooks/use-wordpress-sites";
@@ -125,6 +126,7 @@ const VALID_MANAGER_TABS = new Set([
   "organic-reporting",
   "local-dominator",
   "pulse-host",
+  "agent-library",
   "image-generator",
   "video-generator",
 ]);
@@ -154,6 +156,11 @@ const Index = () => {
       }
       if (hashTab === ORGANIC_REPORTING_MANAGER_TAB) {
         return ORGANIC_REPORTING_MANAGER_TAB;
+      }
+      if (hashTab === "vertical-benchmarks" || hashTab === "generator/vertical-benchmarks") {
+        writeStoredStudioEditorMode("vertical-benchmarks");
+        writeStoredBlogGeneratorSection("bulk-prompt");
+        return "generator";
       }
       if (parseAgentRunIdFromLocationHash() !== null || isGeneratorHash(window.location.hash)) {
         return "generator";
@@ -201,6 +208,21 @@ const Index = () => {
 
   const handleManagerTabChange = useCallback(
     (tab: string) => {
+      if (tab === "vertical-benchmarks") {
+        clearAgentRunOptimizerScope();
+        writeStoredStudioEditorMode("vertical-benchmarks");
+        writeStoredBlogGeneratorSection("bulk-prompt");
+        setManagerTab("generator");
+        try {
+          const hash = "generator/bulk-prompt";
+          if (window.location.hash.replace(/^#/, "") !== hash) {
+            window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${hash}`);
+          }
+        } catch {
+          /* ignore */
+        }
+        return;
+      }
       if (tab === "generator") {
         setManagerTab("generator");
       } else {
@@ -276,6 +298,10 @@ const Index = () => {
         if (managerTab !== "dashboard") setManagerTab("dashboard");
       } else if (hashTab === ORGANIC_REPORTING_MANAGER_TAB && managerTab !== ORGANIC_REPORTING_MANAGER_TAB) {
         setManagerTab(ORGANIC_REPORTING_MANAGER_TAB);
+      } else if (hashTab === "vertical-benchmarks" || hashTab === "generator/vertical-benchmarks") {
+        writeStoredStudioEditorMode("vertical-benchmarks");
+        writeStoredBlogGeneratorSection("bulk-prompt");
+        if (managerTab !== "generator") setManagerTab("generator");
       } else if (isGeneratorHash(window.location.hash) && managerTab !== "generator") {
         setManagerTab("generator");
       } else if (hashTab === "local-grid" || hashTab === "local-dominator") {

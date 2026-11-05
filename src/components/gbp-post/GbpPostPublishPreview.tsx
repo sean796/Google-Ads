@@ -1,5 +1,4 @@
 import React from "react";
-import { Loader2 } from "lucide-react";
 import {
   GbpPreviewImage,
   GbpPreviewLearnMore,
@@ -96,12 +95,12 @@ export const GbpPostPublishPreview: React.FC<GbpPostPublishPreviewProps> = ({
     >
       {!embedded ? (
         <div className="flex shrink-0 items-center gap-2">
-          {loading ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden /> : null}
+          {loading ? null : null}
           <p className="font-medium text-foreground">Post preview</p>
         </div>
       ) : loading ? (
         <div className="flex shrink-0 items-center gap-2">
-          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
+          
           <p className="font-medium text-foreground">Generating preview…</p>
         </div>
       ) : null}

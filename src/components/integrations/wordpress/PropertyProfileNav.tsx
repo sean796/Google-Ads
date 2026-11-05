@@ -2,6 +2,7 @@ import { PROFILE_NAV, PROFILE_NAV_BTN } from "@/components/hosting/site-profile/
 import { cn } from "@/lib/utils";
 import { PROPERTY_SETTINGS_SUB_SECTIONS, type PropertySettingsSubSectionId } from "./property-settings-types";
 import type { WordPressSiteAdminSectionId } from "./WordPressSiteAdminLayout";
+import { Button } from "@/ui";
 
 export type PropertyProfileNavProps = {
   sections: { id: WordPressSiteAdminSectionId; label: string }[];
@@ -15,21 +16,20 @@ export function PropertyProfileNav({ sections, activeSectionId, settingsSubSecti
   return (
     <nav className={PROFILE_NAV} aria-label="Property sections">
       {sections.map((section) => (
-        <button key={section.id} type="button" className={PROFILE_NAV_BTN} data-active={section.id === activeSectionId} onClick={() => onSectionChange(section.id)}>
+        <Button variant="quiet" key={section.id} data-active={section.id === activeSectionId} onClick={() => onSectionChange(section.id)}>
           {section.label}
-        </button>
+        </Button>
       ))}
       {activeSectionId === "site-settings"
         ? PROPERTY_SETTINGS_SUB_SECTIONS.map((sub) => (
-            <button
+            <Button
+              variant="quiet"
               key={sub.id}
-              type="button"
-              className={cn(PROFILE_NAV_BTN, "pl-6")}
               data-active={sub.id === settingsSubSectionId}
               onClick={() => onSettingsSubSectionChange(sub.id)}
             >
               {sub.label}
-            </button>
+            </Button>
           ))
         : null}
     </nav>

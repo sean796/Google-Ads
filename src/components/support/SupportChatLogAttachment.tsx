@@ -29,10 +29,10 @@ export function SupportChatLogAttachment({
   const size = sizeLabel ?? (bytes > 0 ? formatBytes(bytes) : "JSON attachment");
 
   return (
-    <div className="flex items-center gap-3 bg-zinc-900/70 px-3 py-3">
+    <div className="flex items-center gap-3 bg-ui-field/70 px-3 py-3">
       <Paperclip className="h-5 w-5 shrink-0 text-primary" aria-hidden />
       <div className="min-w-0">
-        <p className="truncate text-base font-medium text-foreground">{fileName}</p>
+        <p className="break-words text-base font-medium text-foreground">{fileName}</p>
         <p className="text-base text-muted-foreground">{size} · JSON attachment</p>
       </div>
     </div>

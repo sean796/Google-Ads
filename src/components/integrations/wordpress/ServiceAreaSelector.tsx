@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, RefreshCw, Check, ChevronsUpDown, FileText, ExternalLink, Download } from "lucide-react";
+import { RefreshCw, Check, ChevronsUpDown, FileText, ExternalLink, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getPublishedPosts, type PublishedPostsResult, resolveWordPressUrls, getWordPressPostContent, parseSitemap } from "@/lib/wordpress-api";
 import { extractEndpointFromEntitySitemapUrl } from "@/lib/entity-endpoint-extractor";
@@ -12,6 +10,7 @@ import { type WordPressSite } from "../types";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_FETCHING_SERVICE_AREA_DATA, NOTIFY_SITE_CREDENTIALS_NOT_AVAILABLE, notifyDownloadedXServiceAreaSAsJson } from "@/lib/notify-messages";
 import { getCyberpunkTextClasses, getCyberpunkButtonClasses } from "./cyberpunk-theme";
+import { Button, Field } from "@/ui";
 
 interface ServiceAreaSelectorProps {
   site: WordPressSite;
@@ -212,13 +211,11 @@ export const ServiceAreaSelector: React.FC<ServiceAreaSelectorProps> = ({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
-            variant="outline"
             role="combobox"
             aria-expanded={open}
-            className={`w-full justify-between h-9 text-sm font-medium bg-[#050505] border border-green-500/50 text-green-300 hover:bg-black hover:border-white/50 hover:text-white ${getCyberpunkTextClasses('secondary')} transition-all`}
             disabled={disabled || isLoading || !site.username || !site.appPassword}
           >
-            <span className="truncate">
+            <span className="break-words">
               {multiSelect ? (
                 selectedServiceAreas.length > 0 ? (
                   <span className="flex items-center gap-2">
@@ -247,7 +244,7 @@ export const ServiceAreaSelector: React.FC<ServiceAreaSelectorProps> = ({
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)] max-w-[min(100vw-1.5rem,var(--radix-popover-content-available-width))] border border-green-500/30 bg-[#050505] p-0"
+          className="w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)] max-w-[min(100vw-1.5rem,var(--radix-popover-content-available-width))] border border-primary/30 bg-[#050505] p-0"
           align="start"
         >
           <Command className="bg-[#050505]">
@@ -255,23 +252,21 @@ export const ServiceAreaSelector: React.FC<ServiceAreaSelectorProps> = ({
               placeholder="Search service areas..."
               value={searchQuery}
               onValueChange={setSearchQuery}
-              className="bg-[#050505] border-0 border-b-0 text-green-300 placeholder:text-muted-foreground font-medium"
+              className="bg-[#050505] border-0 border-b-0 text-primary placeholder:text-muted-foreground font-medium"
             />
             <div className={`flex items-center justify-between px-3 py-2 text-sm font-medium ${getCyberpunkTextClasses('muted')}`}>
               <span>{filteredServiceAreas.length} service area{filteredServiceAreas.length !== 1 ? 's' : ''} found</span>
               <Button
-                variant="ghost"
-                size="sm"
+                variant="quiet"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   fetchServiceAreas();
                 }}
                 disabled={isLoading}
-                className={`h-6 text-xs ${getCyberpunkButtonClasses()} transition-all`}
               >
                 {isLoading ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
+                  null
                 ) : (
                   <RefreshCw className="h-3 w-3" />
                 )}
@@ -280,8 +275,8 @@ export const ServiceAreaSelector: React.FC<ServiceAreaSelectorProps> = ({
             <CommandList>
               <CommandEmpty>
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-6 text-green-300 font-medium">
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <div className="flex items-center justify-center py-6 text-primary font-medium">
+                    
                     Loading service areas...
                   </div>
                 ) : (
@@ -302,11 +297,11 @@ export const ServiceAreaSelector: React.FC<ServiceAreaSelectorProps> = ({
                       checked={allFilteredSelected}
                       onCheckedChange={handleSelectAll}
                       onClick={(e) => e.stopPropagation()}
-                      className="h-4 w-4 border-green-500/50 data-[state=checked]:bg-green-500/30 data-[state=checked]:border-green-500"
+                      className="h-4 w-4 border-primary/50 data-[state=checked]:bg-primary/30 data-[state=checked]:border-primary"
                     />
                     <span className={cn(
                       "text-sm font-semibold",
-                      allFilteredSelected ? "text-white" : "text-green-300 group-hover:text-white"
+                      allFilteredSelected ? "text-white" : "text-primary group-hover:text-white"
                     )}>Select All ({filteredServiceAreas.length})</span>
                   </div>
                 )}
@@ -351,7 +346,7 @@ export const ServiceAreaSelector: React.FC<ServiceAreaSelectorProps> = ({
                       }}
                       className={cn(
                         "flex items-center py-2.5 px-3 rounded transition-colors group",
-                        isSelected ? "bg-slate-800/60 border border-green-500/50" : "hover:bg-black hover:text-white border border-transparent",
+                        isSelected ? "bg-ui-field-hover/60 border border-primary/50" : "hover:bg-black hover:text-white border border-transparent",
                         "[&[data-selected='true']]:!bg-black [&[data-selected='true']]:!text-white"
                       )}
                     >
@@ -362,19 +357,19 @@ export const ServiceAreaSelector: React.FC<ServiceAreaSelectorProps> = ({
                               checked={isSelected}
                               onCheckedChange={() => handleToggleServiceArea(serviceArea.link)}
                               onClick={(e) => e.stopPropagation()}
-                              className="h-4 w-4 border-green-500/50 data-[state=checked]:bg-green-500/30 data-[state=checked]:border-green-500"
+                              className="h-4 w-4 border-primary/50 data-[state=checked]:bg-primary/30 data-[state=checked]:border-primary"
                             />
                           ) : (
                             <Check
                               className={cn(
                                 "h-4 w-4 shrink-0",
-                                isSelected ? "opacity-100 text-white" : "opacity-0 text-green-300"
+                                isSelected ? "opacity-100 text-white" : "opacity-0 text-primary"
                               )}
                             />
                           )}
                           <span className={cn(
-                            "font-semibold text-sm truncate",
-                            isSelected ? "text-white" : "text-green-300 group-hover:text-white"
+                            "font-semibold text-sm break-words",
+                            isSelected ? "text-white" : "text-primary group-hover:text-white"
                           )}>{serviceArea.title}</span>
                         </div>
                         {!multiSelect && isSelected && (
@@ -393,19 +388,16 @@ export const ServiceAreaSelector: React.FC<ServiceAreaSelectorProps> = ({
       {/* Manual URL input as fallback - only show for single select */}
       {!multiSelect && (
         <div className="relative">
-          <Input
+          <Field
             placeholder="Or enter URL manually"
             value={selectedUrl || ''}
             onChange={(e) => onValueChange(e.target.value)}
             disabled={disabled}
-            className={`h-8 text-xs bg-[#050505] border border-green-500/50 text-green-300 placeholder:text-muted-foreground font-mono ${getCyberpunkTextClasses('secondary')} transition-all`}
           />
           {selectedServiceArea && (
             <Button
-              variant="ghost"
-              size="sm"
+              variant="quiet"
               onClick={() => window.open(selectedServiceArea.link, '_blank')}
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
               title="Open in new tab"
             >
               <ExternalLink className="h-3 w-3" />
@@ -419,8 +411,7 @@ export const ServiceAreaSelector: React.FC<ServiceAreaSelectorProps> = ({
             {selectedServiceAreas.length} service area{selectedServiceAreas.length !== 1 ? 's' : ''} selected
           </span>
           <Button
-            variant="ghost"
-            size="sm"
+            variant="quiet"
             onClick={async (e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -562,7 +553,6 @@ console.error('[ServiceAreaSelector] Error scraping service areas:', error);
               }
             }}
             disabled={disabled || isLoading || !site.username || !site.appPassword}
-            className={`h-6 text-xs ${getCyberpunkButtonClasses()} transition-all`}
             title="Download service area data as JSON"
           >
             <Download className="h-3 w-3 mr-1" />

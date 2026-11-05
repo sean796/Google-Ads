@@ -1,5 +1,4 @@
 import { ChevronDown } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { BulkGeneratorRunActions } from "@/components/keyword-research/bulk/BulkGeneratorRunActions";
 import { BULK_HEADER_FIELD } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import {
@@ -12,6 +11,7 @@ import {
 } from "@/components/press-release/PressReleaseDetailsPanel";
 import { DETAILS_DRAWER_PANEL, DETAILS_DRAWER_SHELL } from "@/components/integrations/wordpress/bulk-details-drawer-styles";
 import { cn } from "@/lib/utils";
+import { Button, Field } from "@/ui";
 
 const PR_ENTRY_ROW_GRID_CLASS =
   "grid w-full min-w-0 min-h-[3rem] grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto] items-center gap-x-2 sm:min-h-[3.25rem] sm:gap-x-3";
@@ -72,33 +72,26 @@ export function PressReleaseRowCompact(props: PressReleaseRowCompactProps) {
   return (
     <div className={cn(CONTENT_OPTIMIZER_MULTI_SITE_ROW_SHELL_CLASS, "relative")}>
       <div className={cn(contentOptimizerRowStripeClass(stripeIndex), PR_ENTRY_ROW_GRID_CLASS)}>
-        <Input
+        <Field
           type="text"
           placeholder="Keyword"
           value={keyword}
           onChange={(e) => onKeywordChange(e.target.value)}
-          className={cn(BULK_HEADER_FIELD, "min-w-0 w-full text-base")}
           disabled={workspaceBusy}
           autoComplete="off"
           aria-label="Keyword"
         />
-        <Input
+        <Field
           type="text"
           placeholder="Title (optional)"
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
-          className={cn(BULK_HEADER_FIELD, "min-w-0 w-full text-base")}
           disabled={workspaceBusy}
           autoComplete="off"
           aria-label="Title override"
         />
-        <button
-          type="button"
-          className={cn(
-            "inline-flex h-8 shrink-0 items-center gap-1 px-2 text-base font-normal text-white transition-colors hover:text-white/90",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            !canOpenDetails && "pointer-events-none opacity-40",
-          )}
+        <Button
+          variant="quiet"
           onClick={onToggleDetails}
           aria-expanded={detailsOpen}
           aria-controls={detailsPanelId}
@@ -109,7 +102,7 @@ export function PressReleaseRowCompact(props: PressReleaseRowCompactProps) {
             className={cn("h-4 w-4 transition-transform", detailsOpen && "rotate-180")}
             aria-hidden
           />
-        </button>
+        </Button>
         <BulkGeneratorRunActions
           isProcessing={isProcessing}
           canRun={canRun}

@@ -1,6 +1,4 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import {
   cancelChatGptAuditJob,
   finishChatGptAuditJob,
@@ -10,6 +8,7 @@ import { auditQuestionsForSave } from "@/lib/chatgpt-audit-questions";
 import type { AgentRun } from "@/lib/agent-runs-types";
 import { isAgentRunTerminal } from "@/lib/agent-runs-types";
 import { cn } from "@/lib/utils";
+import { Button, TextareaField } from "@/ui";
 
 function readResponseCount(run: AgentRun): number {
   const result = (run.result ?? {}) as Record<string, unknown>;
@@ -126,7 +125,7 @@ export function ChatGptAuditQueryPanel({
         </p>
 
         {hasSetupQuestions ? (
-          <div className="min-h-[6rem] space-y-2 rounded-md bg-zinc-900/40 p-3">
+          <div className="min-h-[6rem] space-y-2 rounded-md bg-ui-field/40 p-3">
             <ol className="list-decimal space-y-2 pl-5 text-base text-foreground">
               {setupQuestions.map((item, index) => (
                 <li key={`${index}-${item.slice(0, 24)}`} className="whitespace-pre-wrap">
@@ -146,7 +145,7 @@ export function ChatGptAuditQueryPanel({
             ) : null}
             {canInteract ? (
               <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="ghost" disabled={busy} onClick={() => void handleCancel()}>
+                <Button variant="quiet" type="button" disabled={busy} onClick={() => void handleCancel()}>
                   Cancel
                 </Button>
               </div>
@@ -154,28 +153,26 @@ export function ChatGptAuditQueryPanel({
           </div>
         ) : (
           <>
-            <Textarea
+            <TextareaField
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
               placeholder="Ask an audit question about the selected client website"
               rows={4}
               disabled={!canInteract || busy}
-              className="min-h-[6rem] resize-y text-base"
             />
             <div className="flex flex-wrap gap-2">
-              <Button type="button" disabled={!canSend} onClick={() => void handleSend()}>
+              <Button variant="run" type="button" disabled={!canSend} onClick={() => void handleSend()}>
                 Send question
               </Button>
               <Button
                 type="button"
-                variant="secondary"
                 disabled={!canInteract || busy}
                 onClick={() => void handleFinish()}
               >
                 Finish session
               </Button>
               {canInteract ? (
-                <Button type="button" variant="ghost" disabled={busy} onClick={() => void handleCancel()}>
+                <Button variant="quiet" type="button" disabled={busy} onClick={() => void handleCancel()}>
                   Cancel
                 </Button>
               ) : null}

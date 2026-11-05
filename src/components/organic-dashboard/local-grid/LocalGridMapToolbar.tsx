@@ -1,13 +1,7 @@
-import { useEffect, useRef, useState } from "react";
-import {
-  Box,
-  Building2,
-  Loader2,
-  MapPin,
-  Pencil,
-  Share2,
-  Trash2,
-} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Box, Building2, MapPin, Pencil, Share2, Trash2 } from "lucide-react";
+import { ActionButton, Button, CheckField, DialogShell, Field, FileInput, FilterRow, FilterRowDivider, Pill } from "@/ui";
+import { cityPinPriorities } from "@/lib/local-grid-studio/local-grid-decision-weights";
 import type { LocalGridBulkCsvMode } from "@/lib/local-grid-studio/local-grid-bulk-csv-generator";
 import type {
   LocalGridAggregatedView,
@@ -15,10 +9,11 @@ import type {
   LocalGridScanSize,
   LocalGridShape,
 } from "@/lib/local-grid-studio/local-grid-types";
-import { cn } from "@/lib/utils";
 
 const BULK_ENTITY_ROWS_MAX = 45;
 const BULK_COMPETITOR_ROWS_MAX = 20;
+
+const RUN_STATES = ["Run Now", "Running"] as const;
 
 function parseBulkRowCountDraft(draft: string): number | null {
   const t = draft.trim();
@@ -65,7 +60,7 @@ export type LocalGridMapToolbarProps = {
   onDeleteActiveScan?: () => void;
   onScrollToReport: () => void;
   generatingBulkCsv: boolean;
-  onGenerateBulkCsv: (mode: LocalGridBulkCsvMode, count: number) => void;
+  onGenerateBulkCsv: (mode: LocalGridBulkCsvMode, count: number, cities?: string[]) => void;
   editMode?: boolean;
   onToggleEditMode?: () => void;
 };
@@ -99,7 +94,6 @@ export function LocalGridMapToolbar({
 }: LocalGridMapToolbarProps) {
   const [bulkRowCountDraft, setBulkRowCountDraft] = useState(DEFAULT_ENTITY_ROW_DRAFT);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-
   useEffect(() => {
     if (editorialEntityRowCount === undefined) return;
     if (editorialEntityRowCount === null) {
@@ -113,157 +107,143 @@ export function LocalGridMapToolbar({
   const hasScan = Boolean(view && view.summary.totalPoints > 0);
   const locationsCountValid = isBulkRowCountDraftValid(bulkRowCountDraft, "locations");
   const competitorsCountValid = isBulkRowCountDraftValid(bulkRowCountDraft, "competitors");
+  const bulkBlocked = !hasScan || scanning || generatingBulkCsv;
 
   return (
-    <div className="flex shrink-0 flex-col border-b border-zinc-800 bg-zinc-950 text-zinc-200">
+    <div className="flex shrink-0 flex-col bg-black text-foreground">
       <div className="flex flex-wrap items-center gap-2 px-3 py-2">
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".csv,text/csv"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) onImportCsvFile(file);
-          e.target.value = "";
-        }}
-      />
+        <FileInput
+          ref={fileInputRef}
+                    accept=".csv,text/csv"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) onImportCsvFile(file);
+            e.target.value = "";
+          }}
+        />
 
-      <input
-        type="text"
-        aria-label="Search keyword"
-        placeholder="Keyword"
-        value={keyword}
-        disabled={freezeGrid}
-        onChange={(e) => onKeywordChange(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") onRunScan();
-        }}
-        className="h-8 min-w-[10rem] flex-1 rounded-none border border-zinc-800 bg-zinc-900 px-3 text-base text-zinc-100 placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50 sm:max-w-xs"
-      />
+        <Field
+          size="keyword"
+          placeholder="Keyword"
+          aria-label="Search keyword"
+          value={keyword}
+          disabled={freezeGrid}
+          onChange={(e) => onKeywordChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") onRunScan();
+          }}
+        />
 
-      <div className="ml-auto flex flex-wrap items-center gap-1.5">
-        <button
-          type="button"
-          onClick={onScrollToReport}
-          className="inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-none bg-primary px-3 text-base font-semibold text-black shadow-none hover:bg-[#92cf00]"
-          title="Open Local Grid Data Report"
-        >
-          <Box className="h-4 w-4 shrink-0" aria-hidden />
-          <span>Analyze</span>
-        </button>
+        <FilterRow align="end">
+          <Button
+            variant="run"
+            icon={Box}
+            title="Open Local Grid Data Report"
+            onClick={onScrollToReport}
+          >
+            Analyze
+          </Button>
 
-        <div className="flex shrink-0 flex-nowrap items-center gap-1 border-l border-r border-zinc-800 px-1.5">
-          <input
+          <FilterRowDivider />
+          <Field
+            size="count"
             type="text"
             inputMode="numeric"
             autoComplete="off"
+            placeholder="Rows"
             aria-label="Entity rows"
-            placeholder="Entity rows"
             title={
               editorialEntityRowCount != null && editorialEntityRowCount !== undefined
                 ? "SAP rows still needed this editorial month (same as Properties pin quota gap)"
                 : "Location entity rows (1–45). Competitors use 1–20."
             }
             value={bulkRowCountDraft}
-            disabled={!hasScan || scanning || generatingBulkCsv}
+            disabled={bulkBlocked}
             onChange={(e) => {
               const v = e.target.value;
               if (v === "" || /^\d+$/.test(v)) {
                 setBulkRowCountDraft(v);
               }
             }}
-            className="h-8 w-16 shrink-0 rounded-none border border-zinc-800 bg-zinc-900 px-2 text-base font-medium tabular-nums text-zinc-200 placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
           />
-
-          <button
-            type="button"
-            disabled={!hasScan || scanning || generatingBulkCsv || !locationsCountValid}
+          <Button
+            variant="tool"
+            icon={MapPin}
+            disabled={bulkBlocked || !locationsCountValid}
             onClick={() => {
               const n = parseBulkRowCountDraft(bulkRowCountDraft);
               if (n === null) return;
               onGenerateBulkCsv("locations", n);
             }}
-            className="inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-none border border-zinc-800 bg-zinc-900 px-2.5 text-base font-medium text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
             title={
               hasScan
                 ? "Download bulk template CSV with entity + keyword from this grid"
                 : "Run a grid scan first to download entities"
             }
           >
-            <MapPin className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-            <span>Entities</span>
-          </button>
-
-          <button
-            type="button"
-            disabled={!hasScan || scanning || generatingBulkCsv || !competitorsCountValid}
+            Entities
+          </Button>
+          <Button
+            variant="tool"
+            icon={Building2}
+            disabled={bulkBlocked || !competitorsCountValid}
             onClick={() => {
               const n = parseBulkRowCountDraft(bulkRowCountDraft);
               if (n === null) return;
               onGenerateBulkCsv("competitors", n);
             }}
-            className="inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-none border border-zinc-800 bg-zinc-900 px-2.5 text-base font-medium text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
             title={
               hasScan
                 ? "Generate Competitors bulk template CSV from this grid"
                 : "Run a grid scan first to generate Competitors"
             }
           >
-            <Building2 className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-            <span>Competitors</span>
-          </button>
-        </div>
+            Competitors
+          </Button>
+          <FilterRowDivider />
 
-        <button
-          type="button"
-          disabled={!hasScan}
-          onClick={onExportCsv}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-none border border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white disabled:opacity-40"
-          title="Export Local Grid CSV"
-          aria-label="Export Local Grid CSV"
-        >
-          <Share2 className="h-4 w-4" aria-hidden />
-        </button>
+          <Button
+            variant="tool"
+            size="icon"
+            icon={Share2}
+            disabled={!hasScan}
+            onClick={onExportCsv}
+            title="Export Local Grid CSV"
+            aria-label="Export Local Grid CSV"
+          />
 
-        {hasScan && onDeleteActiveScan ? (
-          <button
-            type="button"
-            disabled={freezeGrid}
-            onClick={onDeleteActiveScan}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-none border border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-red-400 disabled:opacity-40"
-            title="Delete saved scan"
-            aria-label="Delete saved scan"
-          >
-            <Trash2 className="h-4 w-4" aria-hidden />
-          </button>
-        ) : null}
+          {onDeleteActiveScan ? (
+            <Button
+              variant="danger"
+              size="icon"
+              icon={Trash2}
+              reserved={!hasScan}
+              disabled={freezeGrid}
+              onClick={onDeleteActiveScan}
+              title="Delete saved scan"
+              aria-label="Delete saved scan"
+            />
+          ) : null}
 
-        {onToggleEditMode ? (
-          <button
-            type="button"
-            onClick={onToggleEditMode}
-            className={cn(
-              "inline-flex h-8 w-8 items-center justify-center rounded-none bg-primary text-black transition-colors hover:bg-[#92cf00]",
-              editMode && "ring-2 ring-primary ring-offset-2 ring-offset-zinc-950",
-            )}
-            title={editMode ? "Close edit screen" : "Edit grid scan details"}
-            aria-label="Edit grid scan details"
-          >
-            <Pencil className="h-4 w-4 text-black" aria-hidden />
-          </button>
-        ) : null}
+          {onToggleEditMode ? (
+            <Pill
+              iconOnly
+              square
+              icon={Pencil}
+              label="Edit grid scan details"
+              active={editMode}
+              onClick={onToggleEditMode}
+            />
+          ) : null}
 
-        <button
-          type="button"
-          disabled={scanning || !keyword.trim()}
-          onClick={() => onRunScan()}
-          className="inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-none bg-primary px-3.5 text-base font-semibold text-black shadow-none hover:bg-[#92cf00] disabled:opacity-50"
-        >
-          {scanning ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden /> : null}
-          <span>{scanning ? "Running…" : "Run Now"}</span>
-        </button>
-      </div>
+          <ActionButton
+            variant="run"
+            states={RUN_STATES}
+            state={scanning ? "Running" : "Run Now"}
+            disabled={scanning || !keyword.trim()}
+            onClick={() => onRunScan()}
+          />
+        </FilterRow>
       </div>
     </div>
   );

@@ -104,6 +104,7 @@ export type BulkGeneratorWorkspaceBindings = {
   onSwitchToCustom: (defaultRowType: BulkRowSitemapType) => void;
   onCsvRowChange: (rowIndex: number, patch: Partial<CSVRow>) => void;
   onDisplayRowChange: (rowIndex: number, patch: Partial<CSVRow>) => void;
+  onBatchDisplayRowsChange?: (patches: Array<{ index: number; patch: Partial<CSVRow> }>) => void;
   /** Schedule-derived publish labels keyed by display/generated row index. */
   publishDateLabelByIndex: Record<number, string>;
 };

@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button";
 import { X, Copy, Code, Check, XCircle, RotateCcw, Edit } from "lucide-react";
+import { Button } from "@/ui";
 import { handleCopy } from "../utils";
 
 interface OutputToolbarProps {
@@ -30,46 +30,26 @@ export function OutputToolbar({
   onAbort,
 }: OutputToolbarProps) {
   return (
-    <div className="flex items-center justify-center gap-2 px-6 py-4 bg-background/50 flex-shrink-0">
-      <div className="flex gap-2 flex-wrap justify-center">
+    <div className="flex flex-shrink-0 items-center justify-center gap-2 bg-background/50 px-6 py-4">
+      <div className="flex flex-wrap justify-center gap-2">
         {/* Approval/Reject/Retry buttons */}
         {currentStage === 'plan_approval_pending' && planApprovalStatus === 'pending' && onApprovePlan && onRejectPlan && (
           <>
-            <Button
-              variant="default"
-              onClick={onApprovePlan}
-              className="text-xs bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              <Check className="h-4 w-4 mr-2" />
+            <Button variant="run" icon={Check} onClick={onApprovePlan}>
               Approve Plan
             </Button>
-            <Button
-              variant="secondary"
-              onClick={onRejectPlan}
-              className="text-xs border-0 bg-muted hover:bg-muted/80 text-foreground"
-            >
-              <XCircle className="h-4 w-4 mr-2" />
+            <Button variant="tool" icon={XCircle} onClick={onRejectPlan}>
               Reject Plan
             </Button>
           </>
         )}
         {planApprovalStatus === 'rejected' && onRetryPlan && (
           <>
-            <Button
-              variant="default"
-              onClick={onRetryPlan}
-              className="text-xs bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
+            <Button variant="run" icon={RotateCcw} onClick={onRetryPlan}>
               Retry Plan
             </Button>
             {onModifyPlan && (
-              <Button
-                variant="secondary"
-                onClick={onModifyPlan}
-                className="text-xs border-0 bg-muted hover:bg-muted/80 text-foreground"
-              >
-                <Edit className="h-4 w-4 mr-2" />
+              <Button variant="tool" icon={Edit} onClick={onModifyPlan}>
                 Modify Plan
               </Button>
             )}
@@ -79,22 +59,12 @@ export function OutputToolbar({
         {(currentStage === 'complete' || currentStage === 'error') && (
           <>
             {plan && onModifyPlan && (
-              <Button
-                variant="secondary"
-                onClick={onModifyPlan}
-                className="text-xs border-0 bg-muted hover:bg-muted/80 text-foreground"
-              >
-                <Edit className="h-4 w-4 mr-2" />
+              <Button variant="tool" icon={Edit} onClick={onModifyPlan}>
                 Modify Plan
               </Button>
             )}
             {finalOutput && onModifyFinal && (
-              <Button
-                variant="secondary"
-                onClick={onModifyFinal}
-                className="text-xs border-0 bg-muted hover:bg-muted/80 text-foreground"
-              >
-                <Edit className="h-4 w-4 mr-2" />
+              <Button variant="tool" icon={Edit} onClick={onModifyFinal}>
                 Modify Final Report
               </Button>
             )}
@@ -102,33 +72,25 @@ export function OutputToolbar({
         )}
 
         <Button
-          variant="secondary"
+          variant="tool"
+          icon={Copy}
           onClick={() => handleCopy(finalOutput || '', 'markdown')}
           disabled={isGenerating || !finalOutput}
-          className="text-xs border-0 bg-muted hover:bg-muted/80 text-foreground"
         >
-          <Copy className="h-4 w-4 mr-2" />
           Copy Final Markdown
         </Button>
-        
+
         <Button
-          variant="secondary"
+          variant="tool"
+          icon={Code}
           onClick={() => handleCopy(finalOutput || '', 'html')}
           disabled={isGenerating || !finalOutput}
-          className="text-xs border-0 bg-muted hover:bg-muted/80 text-foreground"
         >
-          <Code className="h-4 w-4 mr-2" />
           Copy Final HTML
         </Button>
 
         {isGenerating && (
-          <Button
-            variant="default"
-            onClick={onAbort}
-            className="text-xs bg-primary text-primary-foreground hover:bg-primary/90"
-            disabled={!isGenerating}
-          >
-            <X className="h-4 w-4 mr-2" />
+          <Button variant="run" icon={X} onClick={onAbort}>
             Abort Generation
           </Button>
         )}
@@ -136,4 +98,3 @@ export function OutputToolbar({
     </div>
   );
 }
-

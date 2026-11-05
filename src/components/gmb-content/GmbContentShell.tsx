@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Building2, Loader2, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Building2, RefreshCw } from "lucide-react";
 import { useManagerSeedWorkspace } from "@/contexts/manager-seed-workspace-context";
 import { useWordPressSites } from "@/hooks/use-wordpress-sites";
 import {
@@ -11,6 +10,7 @@ import {
 import type { PublishedPostsResult } from "@/lib/wordpress-api/types";
 import { notify } from "@/lib/app-notifications";
 import { GmbContentTable, type GmbContentRow } from "./GmbContentTable";
+import { Button } from "@/ui";
 
 type PostTypeFilter = "post" | "page" | "service-area";
 
@@ -121,14 +121,12 @@ export const GmbContentShell: React.FC = () => {
           <h2 className="text-lg font-semibold text-foreground">GMB</h2>
         </div>
         <Button
-          variant="ghost"
-          size="sm"
+          variant="quiet"
           onClick={fetchContent}
           disabled={loading}
-          className="gap-1.5 text-muted-foreground"
         >
           {loading ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            null
           ) : (
             <RefreshCw className="h-3.5 w-3.5" />
           )}
@@ -139,24 +137,19 @@ export const GmbContentShell: React.FC = () => {
       {/* post type filter chips */}
       <div className="flex flex-wrap gap-1.5">
         {(Object.keys(POST_TYPE_LABELS) as PostTypeFilter[]).map((pt) => (
-          <button
+          <Button
+            pressed={postTypeFilter === pt}
             key={pt}
-            type="button"
             onClick={() => setPostTypeFilter(pt)}
-            className={`rounded-md border px-3 py-1 text-sm font-medium transition-colors ${
-              postTypeFilter === pt
-                ? "border-primary/50 bg-primary/10 text-foreground"
-                : "border-border/40 bg-transparent text-muted-foreground hover:border-border hover:text-foreground"
-            }`}
           >
             {POST_TYPE_LABELS[pt]}
-          </button>
+          </Button>
         ))}
       </div>
 
       {loading && !hasLoaded ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          
         </div>
       ) : (
         <GmbContentTable

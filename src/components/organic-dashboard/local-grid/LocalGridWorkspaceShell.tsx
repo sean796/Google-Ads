@@ -106,6 +106,8 @@ export function LocalGridWorkspaceShell({
   >({});
   const abortByPanelRef = useRef<Map<string, () => void>>(new Map());
   const snapshotByPanelRef = useRef<Map<string, () => LocalGridLayoutSnapshot>>(new Map());
+  const generateByPanelRef = useRef<Map<string, (count: number) => void>>(new Map());
+  const [checkedIds, setCheckedIds] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -198,6 +200,22 @@ export function LocalGridWorkspaceShell({
     snapshotByPanelRef.current.delete(panelId);
   }, []);
 
+  const registerGenerateEntities = useCallback((panelId: string, run: (count: number) => void) => {
+    generateByPanelRef.current.set(panelId, run);
+  }, []);
+
+  const unregisterGenerateEntities = useCallback((panelId: string) => {
+    generateByPanelRef.current.delete(panelId);
+  }, []);
+
+  const handleToggleChecked = useCallback((panelId: string) => {
+    setCheckedIds((prev) => (prev.includes(panelId) ? prev.filter((id) => id !== panelId) : [...prev, panelId]));
+  }, []);
+
+  const handleToggleAllChecked = useCallback(() => {
+    setCheckedIds((prev) => (prev.length === panels.length ? [] : panels.map((p) => p.id)));
+  }, [panels]);
+
   const handleSelectPanel = useCallback((panelId: string) => {
     setWorkspace((prev) => ({ ...prev, activePanelId: panelId }));
   }, []);
@@ -259,13 +277,15 @@ export function LocalGridWorkspaceShell({
         unregisterAbort={unregisterAbort}
         registerLayoutSnapshot={registerLayoutSnapshot}
         unregisterLayoutSnapshot={unregisterLayoutSnapshot}
+        registerGenerateEntities={registerGenerateEntities}
+        unregisterGenerateEntities={unregisterGenerateEntities}
       />
     );
   };
 
   if (!hydrated) {
     return (
-      <div className="local-grid-studio-viewport local-grid-studio-with-dock flex min-h-0 flex-1 bg-zinc-950" />
+      <div className="local-grid-studio-viewport local-grid-studio-with-dock flex min-h-0 flex-1 bg-black" />
     );
   }
 
@@ -280,6 +300,9 @@ export function LocalGridWorkspaceShell({
         onAddPanel={handleAddPanel}
         onRemovePanel={handleRemovePanel}
         onToggleLayoutLock={handleToggleLayoutLock}
+        checkedIds={checkedIds}
+        onToggleChecked={handleToggleChecked}
+        onToggleAllChecked={handleToggleAllChecked}
       />
       <div className="local-grid-panel-stack flex min-h-0 min-w-0 flex-1 flex-col">
         {panels.map((panel) => renderPanel(panel))}

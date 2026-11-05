@@ -62,14 +62,13 @@ function finalizeOverviewRowsFromInventory(
   bindingMap: Record<string, OverviewBinding | undefined>,
   getInventoryMatchForUrl: Args["getInventoryMatchForUrl"],
 ): OverviewRow[] {
-  const patched = applyInventoryPatchesToOverviewRows(
+  return applyInventoryPatchesToOverviewRows(
     rows,
     site,
     source,
     bindingMap,
     getInventoryMatchForUrl,
   );
-  return applyCachedElementorFieldsToOverviewRows(patched, source);
 }
 
 export function useOverviewTabSitemapLoad({

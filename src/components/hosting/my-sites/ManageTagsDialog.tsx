@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, Pencil, Trash2, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { Button, CheckField, DialogShell, Field } from "@/ui";
 import {
   assignHostedGroupTags,
   createHostedTag,
@@ -12,7 +9,6 @@ import {
   type HostedSiteGroup,
   type HostedTag,
 } from "@/lib/hosting-api";
-import { MY_SITES_FIELD, MY_SITES_PRIMARY_BTN } from "./my-sites-theme";
 
 export type ManageTagsDialogProps = {
   open: boolean;
@@ -22,8 +18,6 @@ export type ManageTagsDialogProps = {
   onOpenChange: (open: boolean) => void;
   onChanged: () => void;
 };
-
-const ICON_BTN = "h-7 w-7 shrink-0 rounded-none p-0 text-muted-foreground hover:bg-white/[0.06] hover:text-foreground";
 
 export function ManageTagsDialog({ open, tags, group, onOpenChange, onChanged }: ManageTagsDialogProps) {
   const [newName, setNewName] = useState("");
@@ -73,106 +67,99 @@ export function ManageTagsDialog({ open, tags, group, onOpenChange, onChanged }:
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-none bg-zinc-950 p-5 text-base">
-        <DialogHeader>
-          <DialogTitle className="text-lg text-white">{group ? `Tags for ${group.name}` : "Manage tags"}</DialogTitle>
-        </DialogHeader>
-        <div className="flex flex-col gap-2">
-          <div className="flex gap-2">
-            <Input
-              className={MY_SITES_FIELD}
-              placeholder="New tag"
-              aria-label="New tag"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void create();
-              }}
-            />
-            <Button type="button" className={MY_SITES_PRIMARY_BTN} disabled={busy || !newName.trim()} onClick={() => void create()}>
-              Add
+    <DialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      size="md"
+      title={group ? `Tags for ${group.name}` : "Manage tags"}
+      actions={
+        <>
+          <Button variant="tool" onClick={() => onOpenChange(false)}>
+            {group ? "Cancel" : "Done"}
+          </Button>
+          {group ? (
+            <Button variant="run" disabled={busy} onClick={() => void saveAssignment()}>
+              Save tags
             </Button>
-          </div>
-          <ul className="flex max-h-64 flex-col overflow-y-auto border border-white/[0.08]">
-            {tags.length === 0 ? <li className="flex h-9 items-center px-2 text-muted-foreground">No tags yet</li> : null}
-            {tags.map((tag) => (
-              <li key={tag.id} className="flex h-9 items-center gap-2 border-t border-white/[0.06] px-2 first:border-t-0">
-                {group ? (
-                  <Checkbox
-                    checked={selected.includes(tag.id)}
-                    onCheckedChange={(v) => setSelected((prev) => (v ? [...prev, tag.id] : prev.filter((id) => id !== tag.id)))}
-                    aria-label={`Assign ${tag.name}`}
-                  />
-                ) : null}
-                {editingId === tag.id ? (
-                  <Input
-                    className={`${MY_SITES_FIELD} h-7 flex-1`}
-                    value={editName}
-                    aria-label="Tag name"
-                    autoFocus
-                    onChange={(e) => setEditName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") void saveRename();
-                      if (e.key === "Escape") setEditingId(null);
-                    }}
-                  />
-                ) : (
-                  <span className="flex-1 truncate">{tag.name}</span>
-                )}
-                {editingId === tag.id ? (
-                  <>
-                    <Button type="button" variant="ghost" className={ICON_BTN} aria-label="Save" onClick={() => void saveRename()}>
-                      <Check className="h-4 w-4" aria-hidden />
-                    </Button>
-                    <Button type="button" variant="ghost" className={ICON_BTN} aria-label="Cancel" onClick={() => setEditingId(null)}>
-                      <X className="h-4 w-4" aria-hidden />
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className={ICON_BTN}
-                      aria-label={`Rename ${tag.name}`}
-                      onClick={() => {
-                        setEditingId(tag.id);
-                        setEditName(tag.name);
-                      }}
-                    >
-                      <Pencil className="h-4 w-4" aria-hidden />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className={ICON_BTN}
-                      aria-label={`Delete ${tag.name}`}
-                      disabled={busy}
-                      onClick={() => void run(() => deleteHostedTag(tag.id))}
-                    >
-                      <Trash2 className="h-4 w-4" aria-hidden />
-                    </Button>
-                  </>
-                )}
-              </li>
-            ))}
-          </ul>
-          <p className="h-6 truncate text-red-300" title={error || undefined}>
-            {error}
-          </p>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" className="h-8 rounded-none" onClick={() => onOpenChange(false)}>
-              {group ? "Cancel" : "Done"}
-            </Button>
+          ) : null}
+        </>
+      }
+    >
+      <div className="flex gap-1.5">
+        <Field
+          placeholder="New tag"
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void create();
+          }}
+        />
+        <Button variant="run" disabled={busy || !newName.trim()} onClick={() => void create()}>
+          Add
+        </Button>
+      </div>
+      <ul className="flex max-h-64 flex-col gap-px overflow-y-auto">
+        {tags.length === 0 ? (
+          <li className="flex h-9 items-center bg-ui-field px-2 text-muted-foreground">No tags yet</li>
+        ) : null}
+        {tags.map((tag) => (
+          <li key={tag.id} className="flex h-9 items-center gap-2 bg-ui-field px-2">
             {group ? (
-              <Button type="button" className={MY_SITES_PRIMARY_BTN} disabled={busy} onClick={() => void saveAssignment()}>
-                Save tags
-              </Button>
+              <CheckField
+                aria-label={`Assign ${tag.name}`}
+                checked={selected.includes(tag.id)}
+                onCheckedChange={(v) =>
+                  setSelected((prev) => (v ? [...prev, tag.id] : prev.filter((id) => id !== tag.id)))
+                }
+              />
             ) : null}
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+            {editingId === tag.id ? (
+              <Field
+                placeholder="Tag name"
+                value={editName}
+                autoFocus
+                onChange={(e) => setEditName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void saveRename();
+                  if (e.key === "Escape") setEditingId(null);
+                }}
+              />
+            ) : (
+              <span className="flex-1 whitespace-nowrap">{tag.name}</span>
+            )}
+            {editingId === tag.id ? (
+              <>
+                <Button variant="tool" size="icon" icon={Check} aria-label="Save" onClick={() => void saveRename()} />
+                <Button variant="tool" size="icon" icon={X} aria-label="Cancel" onClick={() => setEditingId(null)} />
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="tool"
+                  size="icon"
+                  icon={Pencil}
+                  aria-label={`Rename ${tag.name}`}
+                  onClick={() => {
+                    setEditingId(tag.id);
+                    setEditName(tag.name);
+                  }}
+                />
+                <Button
+                  variant="tool"
+                  size="icon"
+                  icon={Trash2}
+                  aria-label={`Delete ${tag.name}`}
+                  disabled={busy}
+                  onClick={() => void run(() => deleteHostedTag(tag.id))}
+                />
+              </>
+            )}
+          </li>
+        ))}
+      </ul>
+      <p className="h-6 text-ui-danger" title={error || undefined}>
+        {error}
+      </p>
+    </DialogShell>
   );
 }

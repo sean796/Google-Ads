@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Input } from "@/components/ui/input";
+import { Field, Pill, SelectField } from "@/ui";
 import {
-  TASK_FORM_FLAT_CONTROL_CLASS,
   TaskFormFlatGrid,
   TaskFormFlatSelectPlaceholder,
   TaskFormInlineRow,
@@ -17,7 +16,6 @@ import { BrowserAutomationExecutionFields } from "@/components/manager/tasks/Bro
 import { ContentGapCheckExecutionFields, ensureContentGapCheckPayload } from "@/components/manager/tasks/ContentGapCheckExecutionFields";
 import { LocalDominatorExportExecutionFields } from "@/components/manager/tasks/LocalDominatorExportExecutionFields";
 import { TaskExecutionTargetFields } from "@/components/manager/tasks/TaskExecutionTargetFields";
-import { WorkspacePill } from "@/components/shared/WorkspacePill";
 import {
   AUTOMATION_RECIPE_BUCKET_LABELS,
   AUTOMATION_RECIPE_CATEGORY_ORDER,
@@ -47,7 +45,6 @@ import {
   csvRowsPayloadFromConfig,
   isCsvRowsActionKeyword,
 } from "@/lib/workflow/csv-rows-types";
-import { BULK_HEADER_SELECT } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 
 const SCHEDULE_PAYLOAD_KEYS: (keyof TaskExecutionPayload)[] = [
   "scheduleFrequency",
@@ -130,28 +127,7 @@ function applyActionBlockDefaults(
   };
 }
 
-function FilterSelect({
-  value,
-  onChange,
-  children,
-  "aria-label": ariaLabel,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  children: React.ReactNode;
-  "aria-label": string;
-}): React.ReactElement {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      aria-label={ariaLabel}
-      className={`${BULK_HEADER_SELECT} h-8 shrink-0 text-base [color-scheme:dark]`}
-    >
-      {children}
-    </select>
-  );
-}
+const ALL_VALUE = "__all__";
 
 export type AutomationWhatPanelProps = {
   action: AutomationActionBlock;
@@ -232,39 +208,37 @@ export function AutomationWhatPanel({
   const showAspectPills = isOptimizer;
 
   return (
-    <div className="flex flex-col gap-3 rounded-none bg-zinc-900/50 p-4">
+    <div className="flex flex-col gap-3 rounded-none bg-ui-field p-4">
       <div className="flex flex-wrap items-center gap-2 bg-black px-3 py-2">
-        <FilterSelect
-          aria-label="Category"
-          value={query.category ?? ""}
-          onChange={(category) => patchQuery({ category: category || undefined })}
-        >
-          <option value="">All categories</option>
-          {AUTOMATION_RECIPE_CATEGORY_ORDER.filter((cat) => filterOptions.categories.includes(cat)).map(
-            (cat) => (
-              <option key={cat} value={cat}>
-                {automationRecipeCategoryLabel(cat)}
-              </option>
+        <SelectField
+          placeholder="Category"
+          width="md"
+          value={query.category ?? ALL_VALUE}
+          options={[
+            { value: ALL_VALUE, label: "All categories" },
+            ...AUTOMATION_RECIPE_CATEGORY_ORDER.filter((cat) => filterOptions.categories.includes(cat)).map(
+              (cat) => ({ value: cat, label: automationRecipeCategoryLabel(cat) }),
             ),
-          )}
-        </FilterSelect>
-        <FilterSelect
-          aria-label="Bucket"
-          value={query.bucket ?? ""}
-          onChange={(bucket) => patchQuery({ bucket: bucket || undefined })}
-        >
-          <option value="">All buckets</option>
-          {filterOptions.buckets.map((bucket) => (
-            <option key={bucket} value={bucket}>
-              {AUTOMATION_RECIPE_BUCKET_LABELS[bucket] ?? bucket}
-            </option>
-          ))}
-        </FilterSelect>
+          ]}
+          onValueChange={(category) => patchQuery({ category: category === ALL_VALUE ? undefined : category })}
+        />
+        <SelectField
+          placeholder="Bucket"
+          width="md"
+          value={query.bucket ?? ALL_VALUE}
+          options={[
+            { value: ALL_VALUE, label: "All buckets" },
+            ...filterOptions.buckets.map((bucket) => ({
+              value: bucket,
+              label: AUTOMATION_RECIPE_BUCKET_LABELS[bucket] ?? bucket,
+            })),
+          ]}
+          onValueChange={(bucket) => patchQuery({ bucket: bucket === ALL_VALUE ? undefined : bucket })}
+        />
       </div>
-
       <div className="flex min-w-0 flex-wrap items-center gap-1">
         {catalogPills.map(({ keyword, label, kind: pillKind }) => (
-          <WorkspacePill
+          <Pill
             key={keyword}
             label={label}
             square
@@ -274,7 +248,7 @@ export function AutomationWhatPanel({
             onClick={() => handleSelectBlock(keyword)}
           />
         ))}
-        <WorkspacePill
+        <Pill
           label="CSV rows"
           square
           tone={pillTone}
@@ -293,12 +267,11 @@ export function AutomationWhatPanel({
       </div>
 
       <TaskFormInlineRow label="Run title">
-        <Input
+        <Field
           value={action.title ?? ""}
           onChange={(e) => onChange({ ...action, title: e.target.value })}
           placeholder="Optional task title"
           disabled={disabled}
-          className={TASK_FORM_FLAT_CONTROL_CLASS}
         />
       </TaskFormInlineRow>
 

@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CONTENT_OPTIMIZER_MULTI_SITE_CLUSTER_RIGHT_CELL } from "@/components/overview/overview-tab/overview-tab-content-constants";
@@ -10,6 +9,7 @@ import {
 } from "@/lib/content-optimizer/multi-site-last-completed-at";
 import type { MultiSiteUrlSource } from "@/lib/content-optimizer/multi-site-source-urls";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 export type MultiSiteRowDatePickerProps = {
   siteId: string;
@@ -37,7 +37,7 @@ export function MultiSiteRowDatePicker({
     return (
       <div className="flex min-w-0 flex-1 items-center self-stretch">
         <div className={CONTENT_OPTIMIZER_MULTI_SITE_CLUSTER_RIGHT_CELL} title={title}>
-          <span className="truncate !text-white">{label}</span>
+          <span className="break-words !text-white">{label}</span>
         </div>
       </div>
     );
@@ -48,16 +48,12 @@ export function MultiSiteRowDatePicker({
       <Popover>
         <PopoverTrigger asChild>
           <Button
+            variant="quiet"
             type="button"
-            variant="ghost"
-            className={cn(
-              CONTENT_OPTIMIZER_MULTI_SITE_CLUSTER_RIGHT_CELL,
-              "h-full w-full cursor-pointer rounded-none px-0 font-normal hover:bg-white/5",
-            )}
             title={title ?? "Pick row date"}
             aria-label={`Set date for this row. Current: ${label}`}
           >
-            <span className="min-w-0 truncate text-left !text-white">{label}</span>
+            <span className="min-w-0 break-words text-left !text-white">{label}</span>
           </Button>
         </PopoverTrigger>
       <PopoverContent className="w-auto border-0 bg-popover p-0" align="end">

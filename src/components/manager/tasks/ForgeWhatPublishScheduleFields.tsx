@@ -1,22 +1,8 @@
 import React, { useState } from "react";
 import { Shuffle } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { BULK_HEADER_ICON_TOOL_BTN } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
-import {
-  TASK_FORM_FLAT_CONTROL_CLASS,
-  TASK_FORM_SELECT_CONTENT_CLASS,
-  TASK_FORM_SELECT_ITEM_CLASS,
-  TASK_FORM_SELECT_TRIGGER_CLASS,
-  TaskFormPanel,
-} from "@/components/manager/tasks/TaskFormLayout";
+import { Button, Field, SelectField } from "@/ui";
+import { TaskFormPanel } from "@/components/manager/tasks/TaskFormLayout";
 import {
   evenSpreadPublishDays,
   lastAllowedPublishDay,
@@ -34,6 +20,17 @@ import {
 
 type WhatCadence = "immediately" | "draft" | "times_per_month";
 type WhatTimeframe = "this" | "next" | "custom";
+
+const CADENCE_OPTIONS = [
+  { value: "immediately", label: "Immediately" },
+  { value: "draft", label: "Draft" },
+  { value: "times_per_month", label: "Times per month" },
+];
+const TIMEFRAME_OPTIONS = [
+  { value: "this", label: "This month" },
+  { value: "next", label: "Next month" },
+  { value: "custom", label: "Custom" },
+];
 
 const FULL_CALENDAR_CLASSNAMES = {
   months: "flex w-full flex-col",
@@ -155,35 +152,18 @@ export function ForgeWhatPublishScheduleFields({
     <TaskFormPanel title="Publish">
       <div className="flex flex-col gap-0.5">
         <div className="flex min-w-0 items-center gap-0.5">
-          <Select
+          <SelectField
+            placeholder="Publish"
+            width="full"
             value={cadence}
-            onValueChange={(v) => handleCadence(v as WhatCadence)}
             disabled={disabled}
-          >
-            <SelectTrigger
-              aria-label="Publish"
-              className={cn(
-                TASK_FORM_SELECT_TRIGGER_CLASS,
-                "h-8 min-h-8 min-w-0 flex-1 rounded-none border-0 bg-black px-2",
-              )}
-            >
-              <SelectValue placeholder="Publish" />
-            </SelectTrigger>
-            <SelectContent className={TASK_FORM_SELECT_CONTENT_CLASS}>
-              <SelectItem value="immediately" className={TASK_FORM_SELECT_ITEM_CLASS}>
-                Immediately
-              </SelectItem>
-              <SelectItem value="draft" className={TASK_FORM_SELECT_ITEM_CLASS}>
-                Draft
-              </SelectItem>
-              <SelectItem value="times_per_month" className={TASK_FORM_SELECT_ITEM_CLASS}>
-                Times per month
-              </SelectItem>
-            </SelectContent>
-          </Select>
+            options={CADENCE_OPTIONS}
+            onValueChange={(v) => handleCadence(v as WhatCadence)}
+          />
           {timesMode ? (
             <>
-              <Input
+              <Field
+                size="count"
                 type="number"
                 min={1}
                 max={lastAllowed}
@@ -191,50 +171,33 @@ export function ForgeWhatPublishScheduleFields({
                 aria-label="Times per month"
                 value={times}
                 disabled={disabled}
-                className={cn(TASK_FORM_FLAT_CONTROL_CLASS, "h-8 w-16 shrink-0 tabular-nums")}
                 onChange={(e) => {
                   const last = lastAllowedPublishDay(startDate.getFullYear(), startDate.getMonth());
                   const n = Math.min(clampTimesPerMonth(Number(e.target.value) || 1), last);
                   patch(timesPatch(n, evenSpreadPublishDays(n, last)));
                 }}
               />
-              <button
-                type="button"
+              <Button
+                size="icon"
+                icon={Shuffle}
                 aria-label="Shuffle days"
                 disabled={disabled}
-                className={BULK_HEADER_ICON_TOOL_BTN}
                 onClick={() => patch(timesPatch(times, shufflePublishDays(times, lastAllowed)))}
-              >
-                <Shuffle className="h-4 w-4" />
-              </button>
+              />
             </>
           ) : null}
         </div>
 
         {timesMode ? (
           <>
-            <Select value={timeframe} onValueChange={(v) => handleTimeframe(v as WhatTimeframe)} disabled={disabled}>
-              <SelectTrigger
-                aria-label="Timeframe"
-                className={cn(
-                  TASK_FORM_SELECT_TRIGGER_CLASS,
-                  "h-8 min-h-8 w-full rounded-none border-0 bg-black px-2",
-                )}
-              >
-                <SelectValue placeholder="Timeframe" />
-              </SelectTrigger>
-              <SelectContent className={TASK_FORM_SELECT_CONTENT_CLASS}>
-                <SelectItem value="this" className={TASK_FORM_SELECT_ITEM_CLASS}>
-                  This month
-                </SelectItem>
-                <SelectItem value="next" className={TASK_FORM_SELECT_ITEM_CLASS}>
-                  Next month
-                </SelectItem>
-                <SelectItem value="custom" className={TASK_FORM_SELECT_ITEM_CLASS}>
-                  Custom
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <SelectField
+              placeholder="Timeframe"
+              width="full"
+              value={timeframe}
+              disabled={disabled}
+              options={TIMEFRAME_OPTIONS}
+              onValueChange={(v) => handleTimeframe(v as WhatTimeframe)}
+            />
             <div
               className={cn(
                 "flex min-h-[22rem] w-full min-w-0",
@@ -248,7 +211,7 @@ export function ForgeWhatPublishScheduleFields({
                   if (!date) return;
                   patch(timesPatch(times, daysForDate(times, date, payload.schedulePublishDays, startDate), date));
                 }}
-                className="h-fit !w-full min-w-0 rounded-none bg-black p-3 text-base text-white"
+                className="h-fit !w-full min-w-0 rounded-none bg-black p-3 text-base text-foreground"
                 classNames={FULL_CALENDAR_CLASSNAMES}
               />
             </div>

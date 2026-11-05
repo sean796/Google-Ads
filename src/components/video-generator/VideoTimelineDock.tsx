@@ -7,6 +7,7 @@ import {
   Film,
   Mic,
   Music,
+  Play,
   Plus,
   RefreshCw,
   SlidersHorizontal,
@@ -27,6 +28,7 @@ import {
 } from "@/lib/video-generator/video-generator-types";
 import { VideoStudioPlaceholderSplash } from "./VideoStudioPlaceholderSplash";
 import { cn } from "@/lib/utils";
+import { Button, FileInput } from "@/ui";
 
 export type VideoTimelineDockProps = {
   plan: VideoPlan | null;
@@ -36,6 +38,7 @@ export type VideoTimelineDockProps = {
   selectedSceneId: string | null;
   disabled: boolean;
   onSelectScene: (sceneId: string) => void;
+  onPreviewClip?: (sceneId: string) => void;
   onRegenerateFrame: (sceneId: string) => void;
   onRerenderSceneClip?: (sceneId: string) => void;
   onUpdateSceneTransition?: (sceneId: string, transition: VideoTransition, applyToAll?: boolean) => void;
@@ -65,6 +68,7 @@ export function VideoTimelineDock({
   selectedSceneId,
   disabled,
   onSelectScene,
+  onPreviewClip,
   onRegenerateFrame,
   onRerenderSceneClip,
   onUpdateSceneTransition,
@@ -116,15 +120,13 @@ export function VideoTimelineDock({
           onAddVideoClips(e.dataTransfer.files);
         }
       }}
-      className="relative flex h-52 w-full shrink-0 flex-col bg-zinc-950 text-base select-none"
+      className="relative flex h-52 w-full shrink-0 flex-col bg-black text-base select-none"
     >
       {onAddVideoClips ? (
-        <input
+        <FileInput
           ref={clipInputRef}
-          type="file"
           accept="video/*"
           multiple
-          className="hidden"
           onChange={(e) => {
             if (e.target.files?.length) {
               onAddVideoClips(e.target.files);
@@ -139,51 +141,39 @@ export function VideoTimelineDock({
         <div
           role="dialog"
           aria-label={`Transition into Scene ${editingScene.order}`}
-          className="absolute inset-x-3 top-1 z-30 flex flex-wrap items-center justify-between gap-2 bg-zinc-900 px-3 py-1.5 shadow-lg ring-1 ring-primary"
+          className="absolute inset-x-3 top-1 z-30 flex flex-wrap items-center justify-between gap-2 bg-ui-field px-3 py-1.5 shadow-lg ring-1 ring-primary"
         >
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="font-semibold text-primary">
               Cut {editingScene.order - 1}→{editingScene.order}:
             </span>
             {VIDEO_TRANSITION_OPTIONS.map((opt) => (
-              <button
+              <Button
+                pressed={activeTransition.type === opt.value}
                 key={opt.value}
-                type="button"
                 disabled={disabled}
                 onClick={() => applyTransitionType(opt.value)}
-                className={cn(
-                  "px-2 py-0.5 text-base transition-colors",
-                  activeTransition.type === opt.value
-                    ? "bg-primary font-semibold text-black"
-                    : "bg-zinc-950 text-muted-foreground hover:text-white",
-                )}
               >
                 {opt.shortLabel}
-              </button>
+              </Button>
             ))}
           </div>
 
           <div className="flex items-center gap-1.5">
             {activeTransitionMeta.hasDuration
               ? VIDEO_TRANSITION_DURATIONS.map((sec) => (
-                  <button
+                  <Button
+                    variant="quiet"
                     key={sec}
-                    type="button"
                     disabled={disabled}
                     onClick={() => applyTransitionDuration(sec)}
-                    className={cn(
-                      "px-2 py-0.5 tabular-nums transition-colors",
-                      (activeTransition.seconds || activeTransitionMeta.defaultSeconds) === sec
-                        ? "bg-white font-semibold text-black"
-                        : "bg-zinc-950 text-muted-foreground hover:text-white",
-                    )}
                   >
                     {sec}s
-                  </button>
+                  </Button>
                 ))
               : null}
-            <button
-              type="button"
+            <Button
+              variant="run"
               disabled={disabled}
               onClick={() => {
                 onUpdateSceneTransition(
@@ -198,24 +188,21 @@ export function VideoTimelineDock({
                 );
                 setEditingTransitionSceneId(null);
               }}
-              className="bg-zinc-950 px-2.5 py-0.5 text-primary hover:bg-primary hover:text-black"
             >
               Apply to all
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              size="icon" icon={X}
+              variant="quiet"
               onClick={() => setEditingTransitionSceneId(null)}
               aria-label="Close transition picker"
-              className="flex h-6 w-6 items-center justify-center bg-zinc-950 text-muted-foreground hover:text-white"
-            >
-              <X className="h-4 w-4" aria-hidden />
-            </button>
+            ></Button>
           </div>
         </div>
       ) : null}
 
       {/* Time Ruler */}
-      <div className="flex h-7 w-full shrink-0 items-center bg-zinc-900 px-3">
+      <div className="flex h-7 w-full shrink-0 items-center bg-ui-field px-3">
         <div className="flex w-28 shrink-0 items-center justify-between pr-2 whitespace-nowrap font-semibold uppercase tracking-wider text-muted-foreground">
           <span>Timeline</span>
         </div>
@@ -229,40 +216,38 @@ export function VideoTimelineDock({
       {/* Multi-Track Body */}
       <div className="flex min-h-0 flex-1 flex-col justify-center gap-2 overflow-x-auto px-3 py-2">
         {!plan ? (
-          <div className="flex flex-1 items-center justify-center gap-3 bg-zinc-900/40 text-muted-foreground">
+          <div className="flex flex-1 items-center justify-center gap-3 bg-ui-field/40 text-muted-foreground">
             <span>Scene filmstrip and audio tracks appear here as soon as the Director writes the scene plan.</span>
             {onAddVideoClips ? (
-              <button
-                type="button"
+              <Button
+                variant="run"
                 disabled={disabled}
                 onClick={() => clipInputRef.current?.click()}
-                className="inline-flex items-center gap-1.5 bg-zinc-900 px-3 py-1 font-medium text-primary hover:bg-primary hover:text-black disabled:opacity-40"
               >
                 <Plus className="h-4 w-4" aria-hidden />
                 <span>Add video clip to timeline</span>
-              </button>
+              </Button>
             ) : null}
           </div>
         ) : (
           <>
             {/* Track 1: VIDEO 1 Filmstrip */}
             <div className="flex h-28 w-full items-stretch gap-1">
-              <div className="flex w-28 shrink-0 flex-col justify-between bg-zinc-900 px-2.5 py-2 text-muted-foreground">
+              <div className="flex w-28 shrink-0 flex-col justify-between bg-ui-field px-2.5 py-2 text-muted-foreground">
                 <div className="flex items-center gap-1.5 whitespace-nowrap">
                   <Film className="h-4 w-4 shrink-0 text-primary" aria-hidden />
                   <span className="font-medium text-white">VIDEO 1</span>
                 </div>
                 {onAddVideoClips ? (
-                  <button
-                    type="button"
+                  <Button
+                    variant="run"
                     disabled={disabled}
                     onClick={() => clipInputRef.current?.click()}
                     title="Upload and insert a video clip into the timeline"
-                    className="inline-flex items-center justify-center gap-1 bg-zinc-950 px-2 py-1 text-primary hover:bg-primary hover:text-black disabled:opacity-40"
                   >
                     <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
                     <span>Add Clip</span>
-                  </button>
+                  </Button>
                 ) : null}
               </div>
 
@@ -277,7 +262,7 @@ export function VideoTimelineDock({
                     frame?.environmentStatus === "generating" ||
                     clip?.status === "generating";
                   const clipGenerating = clip?.status === "generating";
-                  const showTileSplash = spinning && !frame?.imageDataUrl && !scene.customClipUrl;
+                  const showTileSplash = spinning && !scene.customClipUrl;
                   const failed = frame?.status === "failed" || clip?.status === "failed";
                   const joinLabel = scene.transitionIn ? formatTransitionBadge(scene.transitionIn) : null;
                   const isEditingThisJoin = editingTransitionSceneId === scene.id;
@@ -286,8 +271,10 @@ export function VideoTimelineDock({
                     <Fragment key={scene.id}>
                       {/* Instagram-Style Between-Scene Transition Junction Button */}
                       {idx > 0 ? (
-                        <button
-                          type="button"
+                        <Button
+                          size="icon" icon={Sparkles}
+                          pressed={Boolean(isEditingThisJoin)}
+                          variant="quiet"
                           disabled={disabled}
                           onClick={() => {
                             onSelectScene(scene.id);
@@ -295,19 +282,13 @@ export function VideoTimelineDock({
                           }}
                           title={`Change transition into Scene ${scene.order} (${joinLabel ?? "Cut"})`}
                           aria-label={`Edit transition into scene ${scene.order}`}
-                          className={cn(
-                            "flex w-6 shrink-0 flex-col items-center justify-center bg-zinc-900 px-0.5 text-muted-foreground transition-colors hover:bg-primary hover:text-black",
-                            isEditingThisJoin && "bg-primary font-semibold text-black",
-                          )}
-                        >
-                          <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        </button>
+                        ></Button>
                       ) : null}
 
                       <div
                         style={{ flexGrow: scene.durationSeconds, flexBasis: 0 }}
                         className={cn(
-                          "group relative flex min-w-[9rem] flex-col justify-between overflow-hidden bg-zinc-900 transition-all",
+                          "group relative flex min-w-[9rem] flex-col justify-between overflow-hidden bg-ui-field transition-all",
                           selected ? "ring-2 ring-primary" : "hover:ring-1 hover:ring-white/30",
                         )}
                       >
@@ -320,9 +301,12 @@ export function VideoTimelineDock({
                           />
                         ) : null}
 
-                        {frame?.imageDataUrl ? (
+                        {frame?.imageDataUrl && !spinning ? (
                           <div
-                            onClick={() => onSelectScene(scene.id)}
+                            onClick={() => {
+                              onSelectScene(scene.id);
+                              onPreviewClip?.(scene.id);
+                            }}
                             className={cn(
                               "absolute inset-0 grid cursor-pointer grid-cols-3 opacity-65 transition-opacity group-hover:opacity-80",
                               clipGenerating ? "animate-video-product-splash-breathe" : "",
@@ -349,28 +333,49 @@ export function VideoTimelineDock({
                             src={scene.customClipUrl}
                             muted
                             playsInline
-                            onClick={() => onSelectScene(scene.id)}
+                            onClick={() => {
+                              onSelectScene(scene.id);
+                              onPreviewClip?.(scene.id);
+                            }}
                             className="absolute inset-0 h-full w-full cursor-pointer object-cover opacity-65 transition-opacity group-hover:opacity-80"
                           />
                         ) : null}
 
+                        {clip?.status === "done" || scene.customClipUrl ? (
+                          <div
+                            onClick={() => {
+                              onSelectScene(scene.id);
+                              onPreviewClip?.(scene.id);
+                            }}
+                            title={`Preview scene ${scene.order} clip`}
+                            className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100"
+                          >
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-black/80 text-primary shadow-lg ring-1 ring-primary/40 backdrop-blur-sm">
+                              <Play className="h-4 w-4 translate-x-0.5 fill-current" aria-hidden />
+                            </div>
+                          </div>
+                        ) : null}
+
                         {/* Top overlay row: Scene number + title + reorder/remove/regenerate controls */}
                         <div className="relative z-10 flex items-center justify-between gap-1 bg-gradient-to-b from-black/85 to-transparent px-2 py-1">
-                          <button
-                            type="button"
-                            onClick={() => onSelectScene(scene.id)}
-                            className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+                          <Button
+                            variant="quiet"
+                            onClick={() => {
+                              onSelectScene(scene.id);
+                              onPreviewClip?.(scene.id);
+                            }}
                           >
                             <span className="inline-flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center bg-primary px-1 font-semibold tabular-nums text-black">
                               {scene.order}
                             </span>
-                            <span className="truncate font-medium text-white">{scene.title}</span>
-                          </button>
+                            <span className="break-words font-medium text-white">{scene.title}</span>
+                          </Button>
 
                           <div className="flex shrink-0 items-center gap-0.5">
                             {onMoveScene && idx > 0 ? (
-                              <button
-                                type="button"
+                              <Button
+                                size="icon" icon={ChevronLeft}
+                                variant="run"
                                 disabled={disabled}
                                 title="Move clip earlier in timeline"
                                 aria-label={`Move scene ${scene.order} left`}
@@ -378,15 +383,13 @@ export function VideoTimelineDock({
                                   e.stopPropagation();
                                   onMoveScene(scene.id, -1);
                                 }}
-                                className="flex h-6 w-5 items-center justify-center bg-black/80 text-white opacity-0 transition-opacity hover:bg-primary hover:text-black group-hover:opacity-90"
-                              >
-                                <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
-                              </button>
+                              ></Button>
                             ) : null}
 
                             {onMoveScene && idx < plan.scenes.length - 1 ? (
-                              <button
-                                type="button"
+                              <Button
+                                size="icon" icon={ChevronRight}
+                                variant="run"
                                 disabled={disabled}
                                 title="Move clip later in timeline"
                                 aria-label={`Move scene ${scene.order} right`}
@@ -394,15 +397,13 @@ export function VideoTimelineDock({
                                   e.stopPropagation();
                                   onMoveScene(scene.id, 1);
                                 }}
-                                className="flex h-6 w-5 items-center justify-center bg-black/80 text-white opacity-0 transition-opacity hover:bg-primary hover:text-black group-hover:opacity-90"
-                              >
-                                <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-                              </button>
+                              ></Button>
                             ) : null}
 
                             {onOpenPostCutForScene ? (
-                              <button
-                                type="button"
+                              <Button
+                                size="icon" icon={SlidersHorizontal}
+                                variant="run"
                                 title={`Open Post-Cut AI for scene ${scene.order}`}
                                 aria-label={`Open Post-Cut AI for scene ${scene.order}`}
                                 onClick={(e) => {
@@ -410,20 +411,20 @@ export function VideoTimelineDock({
                                   onSelectScene(scene.id);
                                   onOpenPostCutForScene(scene.id);
                                 }}
-                                className="flex h-6 w-6 shrink-0 items-center justify-center bg-black/80 text-primary opacity-85 hover:bg-primary hover:text-black"
-                              >
-                                <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
-                              </button>
+                              ></Button>
                             ) : null}
 
                             {!scene.customClipFile ? (
-                              <button
-                                type="button"
+                              <Button
+                                size="icon" icon={RefreshCw}
+                                variant="run"
                                 disabled={disabled || spinning}
                                 title={
                                   renderScenes && onRerenderSceneClip
                                     ? `Re-render scene ${scene.order} clip`
-                                    : `Redraw scene ${scene.order} keyframe`
+                                    : plan.referenceStillsFlythrough || scene.postCutReferenceDataUrl
+                                      ? `Restore scene ${scene.order} real video still`
+                                      : `Redraw scene ${scene.order} keyframe`
                                 }
                                 aria-label={`Regenerate scene ${scene.order}`}
                                 onClick={(e) => {
@@ -434,15 +435,13 @@ export function VideoTimelineDock({
                                     onRegenerateFrame(scene.id);
                                   }
                                 }}
-                                className="flex h-6 w-6 shrink-0 items-center justify-center bg-black/80 text-white opacity-80 hover:bg-primary hover:text-black disabled:opacity-40"
-                              >
-                                <RefreshCw className="h-3.5 w-3.5" aria-hidden />
-                              </button>
+                              ></Button>
                             ) : null}
 
                             {onRemoveScene && plan.scenes.length > 1 ? (
-                              <button
-                                type="button"
+                              <Button
+                                size="icon" icon={Trash2}
+                                variant="danger"
                                 disabled={disabled}
                                 title={`Remove scene ${scene.order} from timeline`}
                                 aria-label={`Remove scene ${scene.order}`}
@@ -450,10 +449,7 @@ export function VideoTimelineDock({
                                   e.stopPropagation();
                                   onRemoveScene(scene.id);
                                 }}
-                                className="flex h-6 w-6 shrink-0 items-center justify-center bg-black/80 text-white opacity-0 transition-opacity hover:bg-red-600 group-hover:opacity-90"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                              </button>
+                              ></Button>
                             ) : null}
                           </div>
                         </div>
@@ -467,13 +463,13 @@ export function VideoTimelineDock({
                                 aria-hidden
                               />
                             ) : failed ? (
-                              <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-400" />
+                              <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-ui-danger-hover" />
                             ) : clip?.status === "done" || frame?.status === "done" || scene.customClipFile ? (
                               <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
                             ) : null}
                             {joinLabel ? (
-                              <button
-                                type="button"
+                              <Button
+                                variant="run"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   onSelectScene(scene.id);
@@ -481,10 +477,9 @@ export function VideoTimelineDock({
                                     setEditingTransitionSceneId((prev) => (prev === scene.id ? null : scene.id));
                                   }
                                 }}
-                                className="truncate bg-zinc-800/90 px-1.5 py-0.2 text-muted-foreground hover:bg-primary hover:text-black"
                               >
                                 {joinLabel}
-                              </button>
+                              </Button>
                             ) : null}
                             {scene.customClipFile ? (
                               <span className="bg-primary/20 px-1.5 text-primary">
@@ -497,13 +492,12 @@ export function VideoTimelineDock({
                               </span>
                             ) : null}
                           </div>
-                          <button
-                            type="button"
+                          <Button
+                            variant="quiet"
                             onClick={() => onSelectScene(scene.id)}
-                            className="shrink-0 bg-black/80 px-1.5 tabular-nums text-white"
                           >
                             {scene.durationSeconds}s
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     </Fragment>
@@ -514,7 +508,7 @@ export function VideoTimelineDock({
 
             {/* Track 2: VOICE 1 Audio/Narration Track */}
             <div className="flex h-9 w-full items-stretch gap-1.5">
-              <div className="flex w-28 shrink-0 items-center gap-2 whitespace-nowrap bg-zinc-900 px-3 text-muted-foreground">
+              <div className="flex w-28 shrink-0 items-center gap-2 whitespace-nowrap bg-ui-field px-3 text-muted-foreground">
                 <Mic className="h-4 w-4 shrink-0 text-primary" aria-hidden />
                 <span className="font-medium text-white">VOICE 1</span>
               </div>
@@ -523,17 +517,18 @@ export function VideoTimelineDock({
                 {plan.scenes.map((scene) => {
                   const selected = scene.id === selectedSceneId;
                   return (
+                    // eslint-disable-next-line no-restricted-syntax -- Pulse UI exception: timeline segment sized by scene duration
                     <button
                       key={`voice-${scene.id}`}
                       type="button"
                       style={{ flexGrow: scene.durationSeconds, flexBasis: 0 }}
                       onClick={() => onSelectScene(scene.id)}
                       className={cn(
-                        "flex min-w-[9rem] items-center gap-2 overflow-hidden bg-zinc-900/80 px-2.5 text-left transition-colors",
-                        selected ? "bg-zinc-800 text-white" : "text-muted-foreground hover:text-white",
+                        "flex min-w-[9rem] items-center gap-2 overflow-hidden bg-ui-field/80 px-2.5 text-left transition-colors",
+                        selected ? "bg-ui-field-hover text-white" : "text-muted-foreground hover:text-white",
                       )}
                     >
-                      <span className="truncate">
+                      <span className="break-words">
                         {plan.voice === "none"
                           ? "No narration track"
                           : scene.narration || `(${plan.voice})`}
@@ -546,12 +541,12 @@ export function VideoTimelineDock({
 
             {plan.audio && plan.audio.backingTrack !== "none" ? (
               <div className="flex h-9 w-full items-stretch gap-1.5">
-                <div className="flex w-28 shrink-0 items-center gap-2 whitespace-nowrap bg-zinc-900 px-3 text-muted-foreground">
+                <div className="flex w-28 shrink-0 items-center gap-2 whitespace-nowrap bg-ui-field px-3 text-muted-foreground">
                   <Music className="h-4 w-4 shrink-0 text-primary" aria-hidden />
                   <span className="font-medium text-white">MUSIC</span>
                 </div>
-                <div className="flex min-w-0 flex-1 items-center overflow-hidden bg-zinc-900/80 px-3 text-muted-foreground">
-                  <span className="truncate">{formatVideoPlanAudioSummary(plan.audio)}</span>
+                <div className="flex min-w-0 flex-1 items-center overflow-hidden bg-ui-field/80 px-3 text-muted-foreground">
+                  <span className="break-words">{formatVideoPlanAudioSummary(plan.audio)}</span>
                 </div>
               </div>
             ) : null}

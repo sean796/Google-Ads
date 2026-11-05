@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { CloudUpload } from "lucide-react";
 import { notify } from "@/lib/app-notifications";
 import { DASHBOARD_SETTINGS_GROUP_CLASS, DASHBOARD_SETTINGS_FIELD_CLASS } from "@/components/manager/dashboard/dashboard-panel-styles";
@@ -12,6 +10,7 @@ import {
 } from "@/lib/teams-types";
 import { collectManagerCloudSettingsSnapshot } from "@/lib/manager-cloud-settings-snapshot";
 import { useTeamPermission } from "@/hooks/use-team-permission";
+import { Button, Field } from "@/ui";
 
 const INPUT_CLASS = `${DASHBOARD_SETTINGS_FIELD_CLASS} min-w-0 flex-1 h-12`;
 
@@ -83,14 +82,13 @@ export function TeamWorkspacePanel() {
           <p className="text-base text-white">Shared workspace for your agency. Settings sync to neodigital.ca.</p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <Input
+          <Field
             value={nameDraft}
             onChange={(e) => setNameDraft(e.target.value)}
             placeholder={DEFAULT_TEAM_NAME}
             aria-label="Agency name"
-            className={INPUT_CLASS}
           />
-          <Button type="button" className="h-12 shrink-0 text-base" disabled={creating} onClick={() => void handleCreate()}>
+          <Button variant="run" type="button" disabled={creating} onClick={() => void handleCreate()}>
             {creating ? "Creating…" : "Create agency"}
           </Button>
         </div>
@@ -112,8 +110,6 @@ export function TeamWorkspacePanel() {
           <div className="flex shrink-0 flex-wrap gap-2">
             <Button
               type="button"
-              variant="outline"
-              className="h-12 gap-1.5 text-base"
               disabled={importing}
               onClick={() => void handleImport()}
             >
@@ -125,16 +121,16 @@ export function TeamWorkspacePanel() {
       </div>
       {canWrite("teams") ? (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <Input
+          <Field
+            placeholder="Agency name"
             value={nameDraft}
             onChange={(e) => setNameDraft(e.target.value)}
             aria-label="Agency name"
-            className={INPUT_CLASS}
             disabled={!isOwner}
           />
           <Button
+            variant="run"
             type="button"
-            className="h-12 shrink-0 text-base"
             disabled={saving || !activeTeam}
             onClick={() => void handleSaveName()}
           >

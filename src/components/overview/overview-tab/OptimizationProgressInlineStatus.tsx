@@ -1,12 +1,12 @@
 import React from "react";
-import { Download, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 import type { OptimizationProgressState } from "@/hooks/content-optimization/use-optimization-state";
 import {
   downloadOptimizationProgressLog,
   formatRawOptimizationProgressLog,
   pickLatestOptimizationStatus,
 } from "@/lib/content-optimization/optimization-progress-humanize";
+import { Button } from "@/ui";
 
 export function OptimizationProgressInlineStatus({
   progress,
@@ -30,20 +30,18 @@ export function OptimizationProgressInlineStatus({
       aria-live="polite"
     >
       {isOptimizing ? (
-        <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
+        null
       ) : null}
       <span
-        className="min-w-0 flex-1 truncate text-base leading-snug text-muted-foreground"
+        className="min-w-0 flex-1 break-words text-base leading-snug text-muted-foreground"
         title={latestStatus || undefined}
       >
         {latestStatus || "\u00A0"}
       </span>
       {canDownload ? (
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="sm"
-          className="h-8 shrink-0 px-2 text-base text-muted-foreground hover:bg-white/10 hover:text-white"
           onClick={() => downloadOptimizationProgressLog(progress)}
           aria-label="Download log"
         >

@@ -1,4 +1,4 @@
-import { Textarea } from "@/components/ui/textarea";
+
 import { MetaAdsInstagramPreview } from "@/components/ppc/meta/MetaAdsInstagramPreview";
 import { MetaAdsRowVisualSettingsInline } from "@/components/ppc/meta/MetaAdsRowVisualSettingsInline";
 import {
@@ -9,6 +9,7 @@ import {
 } from "@/components/ppc/meta/meta-ads-visual-settings-layout";
 import type { MetaAdRow, MetaGenerateConfig } from "@/lib/ppc/meta-ads-types";
 import { cn } from "@/lib/utils";
+import { TextareaField } from "@/ui";
 
 export type MetaAdsAdRowDetailsProps = {
   row: MetaAdRow;
@@ -58,10 +59,9 @@ export function MetaAdsAdRowDetails({
             <span className={cn(META_VISUAL_CELL_CLASS, "pt-2 text-base font-semibold text-foreground")}>
               FB/Instagram Content
             </span>
-            <Textarea
+            <TextareaField
               value={row.fbInstagramContent ?? ""}
               placeholder="Optional calendar draft copy"
-              className={cn(META_VISUAL_TEXTAREA_CLASS, "col-span-3")}
               aria-label="FB/Instagram Content"
               disabled={fieldsReadOnly}
               onChange={(e) => onUpdateAd({ fbInstagramContent: e.target.value })}

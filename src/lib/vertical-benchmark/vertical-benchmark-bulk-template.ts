@@ -13,6 +13,9 @@ import {
   type CsvDownloadArtifact,
 } from "@/lib/backlink-research/backlink-bulk-csv-export";
 import type { BacklinkBlogPitchOption } from "@/lib/backlink-research/backlink-tile-enriched";
+import type { CSVRow } from "@/lib/bulk/bulk-csv-parser";
+import { fillBlogRowMetaFromOpenRouter } from "@/lib/local-analysis/entity-sap-meta-agent";
+import { fillBlogRowSlugFromOpenRouter } from "@/lib/local-analysis/blog-slug-agent";
 import { exportVerticalBenchmarkGscCsv } from "@/lib/vertical-benchmark/vertical-benchmark-api";
 import type {
   GscTop10CsvRow,
@@ -157,6 +160,10 @@ function emitProgress(
   onProgress: BenchmarkPipelineProgressCallback | undefined,
   partial: Omit<BenchmarkPipelineProgress, "busy"> & { busy?: boolean },
 ) {
+  console.log(
+    `%c[Industry Verticals] [${partial.phase}] ${partial.message} (${partial.percent ?? 0}%)`,
+    "color: #84bc00; font-weight: bold;",
+  );
   onProgress?.({
     busy: partial.busy ?? true,
     phase: partial.phase,
@@ -649,6 +656,11 @@ async function fetchGscTop10InMemory(options: {
   let gscSteps = initGscSteps(options.sites, contentKinds);
   const stepsWithInventory =
     options.pipelineSteps ?? [...gscSteps];
+  console.log(
+    `%c[Industry Verticals] 🚀 Starting GSC top ${kindLabel} fetch for ${options.sites.length} site(s)`,
+    "color: #84bc00; font-weight: bold;",
+    options.sites.map((s) => ({ id: s.id, name: s.name, siteUrl: s.siteUrl })),
+  );
   emitProgress(options.onProgress, {
     phase: "gsc",
     message: `Fetching GSC top ${kindLabel} per client (in memory for RAG)…`,
@@ -667,17 +679,22 @@ async function fetchGscTop10InMemory(options: {
     clientTagLabelBySiteId: options.clientTagLabelBySiteId,
     openRouterApiKey: options.openRouterApiKey,
     onProgress: (done, total, siteId) => {
-      if (siteId) {
-        gscSteps = patchStep(gscSteps, `gsc-${siteId}`, {
-          status: "active",
-          detail: "Search Console + URL labeling",
-        });
-      }
       for (let i = 0; i < done; i++) {
         const s = options.sites[i];
         if (!s) continue;
         gscSteps = patchStep(gscSteps, `gsc-${s.id}`, { status: "done" });
       }
+      if (siteId) {
+        const idx = options.sites.findIndex((s) => s.id === siteId);
+        if (idx >= done) {
+          gscSteps = patchStep(gscSteps, `gsc-${siteId}`, {
+            status: "active",
+            detail: "Search Console + URL labeling",
+          });
+        }
+      }
+      const nextSite = options.sites[done];
+      const activeLabel = nextSite ? ` (${nextSite.name})` : "";
       const mergedSteps = (options.pipelineSteps ?? []).map((s) => {
         if (!s.id.startsWith("gsc-")) return s;
         const patch = gscSteps.find((g) => g.id === s.id);
@@ -685,7 +702,7 @@ async function fetchGscTop10InMemory(options: {
       });
       emitProgress(options.onProgress, {
         phase: "gsc",
-        message: `GSC export ${done} / ${total} clients (${kindLabel})`,
+        message: `GSC export ${done} / ${total} clients${activeLabel} (${kindLabel})`,
         percent:
           progressBase +
           Math.min(progressSpan, Math.round((done / Math.max(total, 1)) * progressSpan)),
@@ -711,20 +728,28 @@ async function fetchGscTop10InMemory(options: {
     });
   }
 
-  const ragRows = rows.filter((r) => contentKinds.includes(r.content_kind));
-  if (!ragRows.length) {
-    const hint = results.find((r) => r.reason)?.reason;
-    notify.error(
-      hint ? `No GSC ${kindLabel} for RAG (${hint})` : `No GSC ${kindLabel} for any client`,
-    );
-    return null;
-  }
-
   const finalGscSteps = (options.pipelineSteps ?? []).map((s) => {
     if (!s.id.startsWith("gsc-")) return s;
     const patch = gscSteps.find((g) => g.id === s.id);
     return patch ?? s;
   });
+
+  const ragRows = rows.filter((r) => contentKinds.includes(r.content_kind));
+  if (!ragRows.length) {
+    const hint = results.find((r) => r.reason)?.reason;
+    const failMsg = hint ? `No GSC ${kindLabel} for RAG (${hint})` : `No GSC ${kindLabel} for any client`;
+    emitProgress(options.onProgress, {
+      phase: "gsc",
+      message: failMsg,
+      percent: progressBase + progressSpan,
+      busy: false,
+      steps: finalGscSteps.length ? finalGscSteps : gscSteps,
+      inventoryLinks: options.inventoryLinks,
+    });
+    notify.error(failMsg);
+    return null;
+  }
+
   emitProgress(options.onProgress, {
     phase: "gsc",
     message: `GSC RAG ready, ${ragRows.length} ${kindLabel} across clients`,
@@ -741,6 +766,8 @@ async function fetchGscTop10InMemory(options: {
  */
 export type BenchmarkBulkTemplateDownloadResult = {
   artifact: CsvDownloadArtifact;
+  /** Curated rows ready for Studio left-dock hydration or CSV export. */
+  rows: CSVRow[];
   /** Published titles/keywords sent to OpenRouter per client name. */
   inventoryTitlesByClient: Record<string, number>;
   /** Hosted blob links for onsite inventory JSON per client. */
@@ -758,6 +785,8 @@ export async function runBenchmarkBulkTemplateDownload(options: {
   connectedSite?: WordPressSite | null;
   /** Total blog rows on the sheet (not per site). */
   blogCount?: number;
+  /** When true, skip triggering a browser CSV download (used when populating Studio left dock). */
+  skipAutoDownload?: boolean;
   onProgress?: BenchmarkPipelineProgressCallback;
 }): Promise<BenchmarkBulkTemplateDownloadResult | null> {
   const {
@@ -1187,18 +1216,62 @@ export async function runBenchmarkBulkTemplateDownload(options: {
   }
 
   const hasPostRows = filtered.some((r) => r.contentKind === "post");
+  const hasEntityRows = filtered.some((r) => r.contentKind === "entity");
+  let rowsForCsv: CSVRow[] = filtered.map((row) => ({
+    ...bulkRowToCsvExport(row),
+    sitemap_type: row.contentKind === "entity" ? "entity" : "post",
+  }));
+
   pipelineSteps = [...baseStepsWithoutGemini(), finalReviewStep()];
   pipelineSteps = patchStep(pipelineSteps, "gemini-final", {
+    status: "active",
+    detail: "Writing URL slugs and meta descriptions…",
+  });
+  emitProgress(onProgress, {
+    phase: "gemini",
+    message: "Writing URL slugs and meta descriptions…",
+    percent: 95,
+    steps: pipelineSteps,
+    inventoryLinks: inventoryHostedLinks,
+  });
+
+  try {
+    const enrichSite = connectedSite ?? sites[0] ?? null;
+    const [metaRows, slugRows] = await Promise.all([
+      fillBlogRowMetaFromOpenRouter(rowsForCsv, {
+        apiKey,
+        model: researchModel,
+        siteId: enrichSite?.id,
+        siteName: enrichSite?.name ?? "",
+        strict: false,
+      }),
+      fillBlogRowSlugFromOpenRouter(rowsForCsv, {
+        apiKey,
+        model: researchModel,
+        siteId: enrichSite?.id,
+      }),
+    ]);
+    rowsForCsv = rowsForCsv.map((row, i) => ({
+      ...row,
+      meta_description: metaRows[i]?.meta_description ?? row.meta_description,
+      target_slug: slugRows[i]?.target_slug ?? row.target_slug,
+    }));
+  } catch (e) {
+    console.warn("[Vertical Benchmark] Slug/meta enrichment warning:", e);
+  }
+
+  pipelineSteps = patchStep(pipelineSteps, "gemini-final", {
     status: "done",
-    detail: `${filtered.length} row(s)`,
+    detail: `${rowsForCsv.length} row(s)`,
   });
 
-  const hasEntityRows = filtered.some((r) => r.contentKind === "entity");
-  const rowsForCsv = filtered.map(bulkRowToCsvExport);
-
-  const artifact = createBulkTemplateDownloadArtifact(rowsForCsv, "benchmark-bulk-template", {
-    blankEntityColumn: !hasEntityRows,
-  });
+  const artifact = createBulkTemplateDownloadArtifact(
+    rowsForCsv as BacklinkBlogPitchOption[],
+    "benchmark-bulk-template",
+    {
+      blankEntityColumn: !hasEntityRows,
+    },
+  );
   if (!artifact) {
     notify.error(NOTIFY_NO_ROWS_TO_DOWNLOAD);
     return null;
@@ -1208,14 +1281,21 @@ export async function runBenchmarkBulkTemplateDownload(options: {
     phase: "done",
     message:
       hasPostRows && !hasEntityRows ?
-        `Bulk CSV ready, ${artifact.rowCount} blog(s)`
-      : `Bulk CSV ready, ${artifact.rowCount} row(s)`,
+        `Ideas ready, ${artifact.rowCount} blog(s)`
+      : `Ideas ready, ${artifact.rowCount} row(s)`,
     percent: 100,
     busy: false,
     steps: pipelineSteps,
     inventoryLinks: inventoryHostedLinks,
   });
 
-  triggerCsvDownloadArtifact(artifact);
-  return { artifact, inventoryTitlesByClient, inventoryLinks: inventoryHostedLinks };
+  if (!options.skipAutoDownload) {
+    triggerCsvDownloadArtifact(artifact);
+  }
+  return {
+    artifact,
+    rows: rowsForCsv,
+    inventoryTitlesByClient,
+    inventoryLinks: inventoryHostedLinks,
+  };
 }

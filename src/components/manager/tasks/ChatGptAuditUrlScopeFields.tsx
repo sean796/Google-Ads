@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
+import { CheckField, Field, TextButton } from "@/ui";
 import { getStoredSites } from "@/components/integrations/storage";
 import { TaskFormPanel } from "@/components/manager/tasks/TaskFormLayout";
 import {
@@ -11,9 +9,6 @@ import {
 } from "@/lib/task-execution-bucket";
 import { resolveTaskExecutionBucketUrls } from "@/lib/task-execution-resolve-bucket-urls";
 import type { TaskExecutionPayload } from "@/lib/tasks-types";
-
-const ROW_CHECKBOX_CLASS =
-  "border-zinc-600 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground";
 
 function normalizeUrl(url: string): string {
   return url.trim().replace(/\/+$/, "");
@@ -150,45 +145,36 @@ export function ChatGptAuditUrlScopeFields({
     <TaskFormPanel title="Pages in bucket">
       <div className="flex flex-col gap-2 bg-black px-3 py-2">
         <div className="flex flex-wrap items-center gap-3">
-          <label className="flex cursor-pointer items-center gap-2 text-base text-white">
-            <Checkbox
-              checked={allFilteredSelected ? true : someFilteredSelected ? "indeterminate" : false}
-              disabled={disabled || loading || filteredUrls.length === 0}
-              aria-label={`Select filtered ${bucketLabel}`}
-              className={ROW_CHECKBOX_CLASS}
-              onCheckedChange={toggleFiltered}
-            />
-            <span>Select filtered</span>
-          </label>
-          <button
-            type="button"
+          <CheckField
+            label="Select filtered"
+            checked={allFilteredSelected ? true : someFilteredSelected ? "indeterminate" : false}
+            disabled={disabled || loading || filteredUrls.length === 0}
+            aria-label={`Select filtered ${bucketLabel}`}
+            onCheckedChange={toggleFiltered}
+          />
+          <TextButton
+            tone="muted"
             disabled={disabled || loading || selectedSet.size === 0}
-            className="text-base text-muted-foreground hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
             onClick={() => patchSelection(new Set())}
           >
             Deselect all
-          </button>
+          </TextButton>
           <span className="ml-auto tabular-nums text-base text-muted-foreground">{summary}</span>
         </div>
 
-        <Input
+        <Field
           value={filter}
           disabled={disabled || loading}
           placeholder="Filter URLs"
-          aria-label="Filter URLs"
-          className="h-8 rounded-none border-0 bg-zinc-900 text-base text-white shadow-none focus-visible:ring-2"
           onChange={(event) => setFilter(event.target.value)}
         />
 
         {loading ? (
-          <div className="flex items-center gap-2 py-3 text-base text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            Loading {bucketLabel.toLowerCase()}…
-          </div>
+          <p className="py-3 text-base text-muted-foreground">Loading {bucketLabel.toLowerCase()}…</p>
         ) : null}
 
         {loadError ? (
-          <p className="py-2 text-base text-red-400">{loadError}</p>
+          <p className="py-2 text-base text-ui-danger">{loadError}</p>
         ) : null}
 
         {!loading && !loadError && bucketUrls.length === 0 ? (
@@ -201,16 +187,7 @@ export function ChatGptAuditUrlScopeFields({
               const checked = selectedSet.has(url);
               return (
                 <li key={url}>
-                  <label className="flex cursor-pointer items-start gap-2 py-1 text-base text-white hover:bg-zinc-900">
-                    <Checkbox
-                      checked={checked}
-                      disabled={disabled}
-                      aria-label={urlLabel(url)}
-                      className={`mt-0.5 ${ROW_CHECKBOX_CLASS}`}
-                      onCheckedChange={() => toggleUrl(url)}
-                    />
-                    <span className="min-w-0 flex-1 break-all">{urlLabel(url)}</span>
-                  </label>
+                  <CheckField label={urlLabel(url)} checked={checked} disabled={disabled} onCheckedChange={() => toggleUrl(url)} />
                 </li>
               );
             })}
@@ -218,7 +195,7 @@ export function ChatGptAuditUrlScopeFields({
         ) : null}
 
         {selectedSet.size === 0 && !loading ? (
-          <p className="text-base text-red-400">Select at least one URL to audit.</p>
+          <p className="text-base text-ui-danger">Select at least one URL to audit.</p>
         ) : null}
       </div>
     </TaskFormPanel>

@@ -15,7 +15,7 @@ export function ContentOptimizerSplashOverlay({
 
   return (
     <div
-      className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black select-none"
+      className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black select-none"
       role="status"
       aria-live="polite"
       aria-label="Loading Content Optimizer"
@@ -49,7 +49,7 @@ export function ContentOptimizerSplashOverlay({
 
       <div className="flex flex-col items-center gap-7">
         <div
-          className="flex h-36 w-36 items-center justify-center rounded-full border border-primary/25 bg-zinc-950 px-6"
+          className="flex h-36 w-36 items-center justify-center rounded-full border border-primary/25 bg-black px-6"
           style={{
             animation: "neoPulseRingBreathe 2.2s ease-in-out infinite",
           }}

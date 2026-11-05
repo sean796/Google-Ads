@@ -5,7 +5,6 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ChevronDown, Download, ExternalLink } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { BulkHarnessSectionsPanel } from "@/components/keyword-research/bulk/BulkHarnessSectionsPanel";
 import { WordPressPostingConfig } from "@/components/keyword-research/bulk/WordPressPostingConfig";
 import type { BulkGeneratorWorkspaceBindings } from "@/components/keyword-research/bulk/bulk-generator-workspace-bindings";
@@ -37,6 +36,7 @@ import { BulkSitemapInventoryRunDetail } from "@/components/keyword-research/bul
 import { WordBlacklistRunDetail } from "@/components/keyword-research/bulk/WordBlacklistRunDetail";
 import { SitemapInventoryLinksList } from "@/components/keyword-research/bulk/SitemapInventoryLinksList";
 import { workspaceDetailsCanOpen } from "@/lib/workspace/workspace-details-can-open";
+import { Button } from "@/ui";
 
 export type BulkGeneratorDetailsVariant = "csv" | "prompt" | "blog-import";
 
@@ -213,10 +213,8 @@ function BlogImportRunDetail({
       {canDownloadBlog && onDownloadBlog ? (
         <div className="border-0 px-2.5 py-1 sm:px-3">
           <Button
+            variant="run"
             type="button"
-            variant="default"
-            size="sm"
-            className="h-8 gap-1.5 bg-lime-500 text-black hover:bg-lime-400"
             onClick={onDownloadBlog}
           >
             <Download className="h-4 w-4 shrink-0" aria-hidden />

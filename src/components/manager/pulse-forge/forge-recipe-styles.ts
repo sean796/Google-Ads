@@ -9,16 +9,16 @@ import type { AutomationRecipeCatalogItem } from "@/lib/automation-recipes-types
 export const FORGE_RECIPE_PAGE_CLASS = "bg-black font-sans";
 
 export const FORGE_RECIPE_STAT_TILE_CLASS =
-  "rounded-none border-0 bg-zinc-950 shadow-tile transition-shadow hover:shadow-tile-pop";
+  "rounded-none border-0 bg-black shadow-tile transition-shadow hover:shadow-tile-pop";
 
 export const FORGE_RECIPE_CARD_TILE_CLASS =
-  "rounded-none border-0 bg-zinc-950 text-white shadow-tile transition-shadow hover:shadow-tile-pop";
+  "rounded-none border-0 bg-black text-white shadow-tile transition-shadow hover:shadow-tile-pop";
 
 export const FORGE_TASK_BUILDER_TILE_ACCENT_CLASS =
   "border-l-[length:var(--tile-accent-width)] border-l-primary";
 
 export const FORGE_TASK_BUILDER_INFIELD_CLASS =
-  "flex min-h-10 min-w-0 items-center gap-2 rounded-none bg-zinc-950 px-3 shadow-tile";
+  "flex min-h-10 min-w-0 items-center gap-2 rounded-none bg-black px-3 shadow-tile";
 
 const RECIPE_CATEGORY_ORDER = [
   "browser",

@@ -2,11 +2,11 @@ import React, { useMemo } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, Clock, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 interface Post {
   id: number;
@@ -186,8 +186,8 @@ export const PostCalendar: React.FC<PostCalendarProps> = ({ posts, sitemapUrl, o
 
   const modifiersClassNames = {
     hasPosts: "bg-primary/10 text-primary font-semibold hover:bg-primary/20",
-    hasFuturePosts: "bg-blue-500/20 text-blue-400 font-semibold hover:bg-blue-500/30",
-    hasPublishedPosts: "bg-green-500/20 text-green-400 font-semibold hover:bg-green-500/30",
+    hasFuturePosts: "bg-semantic-publish/20 text-semantic-publish-foreground font-semibold hover:bg-semantic-publish/30",
+    hasPublishedPosts: "bg-primary/20 text-primary font-semibold hover:bg-primary/30",
   };
 
   // Custom day component to show post count
@@ -224,6 +224,7 @@ export const PostCalendar: React.FC<PostCalendarProps> = ({ posts, sitemapUrl, o
     }) && !hasFuturePost; // Only if no future posts
 
     return (
+      // eslint-disable-next-line no-restricted-syntax -- Pulse UI exception: react-day-picker day cell needs its own button element and props
       <button
         {...dayProps}
         type="button"
@@ -239,14 +240,14 @@ export const PostCalendar: React.FC<PostCalendarProps> = ({ posts, sitemapUrl, o
             "absolute -top-0.5 -right-0.5 h-4 min-w-[16px] px-1 rounded-full flex items-center justify-center text-sm font-bold leading-none",
             isSelected
               ? hasFuturePost
-                ? "bg-blue-500 text-white"
+                ? "bg-semantic-publish/80 text-white"
                 : hasPublishedPost
-                  ? "bg-green-500 text-white"
+                  ? "bg-primary/80 text-white"
                   : "bg-primary-foreground text-primary"
               : hasFuturePost
-                ? "bg-blue-500 text-white"
+                ? "bg-semantic-publish/80 text-white"
                 : hasPublishedPost
-                  ? "bg-green-500 text-white"
+                  ? "bg-primary/80 text-white"
                   : "bg-primary text-primary-foreground"
           )}>
             {postCount}
@@ -266,19 +267,17 @@ export const PostCalendar: React.FC<PostCalendarProps> = ({ posts, sitemapUrl, o
         <div className="flex items-center gap-2">
           {onRefresh && (
             <Button
-              variant="ghost"
-              size="sm"
+              variant="quiet"
               onClick={(e) => {
                 e.stopPropagation();
                 onRefresh();
               }}
               disabled={isRefreshing}
-              className="h-7 px-2 text-xs"
               title="Refresh post dates from WordPress API"
             >
               {isRefreshing ? (
                 <>
-                  <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                  <RefreshCw className="h-3 w-3 mr-1" />
                   Refreshing...
                 </>
               ) : (
@@ -290,7 +289,7 @@ export const PostCalendar: React.FC<PostCalendarProps> = ({ posts, sitemapUrl, o
             </Button>
           )}
           {futureCount > 0 && (
-            <Badge variant="secondary" className="bg-blue-500/20 text-blue-400">
+            <Badge variant="secondary" className="bg-semantic-publish/20 text-semantic-publish-foreground">
               <Clock className="h-3 w-3 mr-1" />
               {futureCount} Future
             </Badge>
@@ -350,20 +349,20 @@ export const PostCalendar: React.FC<PostCalendarProps> = ({ posts, sitemapUrl, o
                           className={cn(
                             "p-3 border rounded-md hover:bg-accent/50 transition-colors",
                             isFuture 
-                              ? "border-blue-500/30 bg-blue-500/5" 
+                              ? "border-semantic-publish/30 bg-semantic-publish/5" 
                               : "border-border"
                           )}
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
-                              <h4 className="text-sm font-medium truncate" title={post.title}>
+                              <h4 className="text-sm font-medium break-words" title={post.title}>
                                 {post.title}
                               </h4>
                               <div className="flex items-center gap-2 mt-1 text-xs">
                                 {isFuture ? (
                                   <>
-                                    <Clock className="h-3 w-3 text-blue-400" />
-                                    <span className="text-blue-400 font-medium">
+                                    <Clock className="h-3 w-3 text-semantic-publish-foreground" />
+                                    <span className="text-semantic-publish-foreground font-medium">
                                       {postDate 
                                         ? `Scheduled: ${format(postDate, 'MMM d, yyyy h:mm a')}`
                                         : 'Scheduled (Future)'
@@ -372,8 +371,8 @@ export const PostCalendar: React.FC<PostCalendarProps> = ({ posts, sitemapUrl, o
                                   </>
                                 ) : (
                                   <>
-                                    <Clock className="h-3 w-3 text-green-400" />
-                                    <span className="text-green-400 font-medium">
+                                    <Clock className="h-3 w-3 text-primary" />
+                                    <span className="text-primary font-medium">
                                       {postDate 
                                         ? `Published: ${format(postDate, 'MMM d, yyyy h:mm a')}`
                                         : 'Published'
@@ -382,17 +381,17 @@ export const PostCalendar: React.FC<PostCalendarProps> = ({ posts, sitemapUrl, o
                                   </>
                                 )}
                                 {isFutureStatus && (
-                                  <Badge variant="outline" className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">
+                                  <Badge variant="outline" className="text-xs bg-semantic-publish/20 text-semantic-publish-foreground border-semantic-publish/30">
                                     Future
                                   </Badge>
                                 )}
                                 {isFuture && !isFutureStatus && (
-                                  <Badge variant="outline" className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">
+                                  <Badge variant="outline" className="text-xs bg-semantic-publish/20 text-semantic-publish-foreground border-semantic-publish/30">
                                     Scheduled
                                   </Badge>
                                 )}
                                 {post.status === 'publish' && !isFuture && (
-                                  <Badge variant="outline" className="text-xs bg-green-500/20 text-green-400 border-green-500/30">
+                                  <Badge variant="outline" className="text-xs bg-primary/20 text-primary border-primary/30">
                                     Published
                                   </Badge>
                                 )}
@@ -433,22 +432,22 @@ export const PostCalendar: React.FC<PostCalendarProps> = ({ posts, sitemapUrl, o
                           className={cn(
                             "p-3 border rounded-md hover:bg-accent/50 transition-colors",
                             isFuture 
-                              ? "border-blue-500/30 bg-blue-500/5" 
+                              ? "border-semantic-publish/30 bg-semantic-publish/5" 
                               : isPublished
-                                ? "border-green-500/30 bg-green-500/5"
+                                ? "border-primary/30 bg-primary/5"
                                 : "border-border"
                           )}
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
-                              <h4 className="text-sm font-medium truncate" title={post.title}>
+                              <h4 className="text-sm font-medium break-words" title={post.title}>
                                 {post.title}
                               </h4>
                               <div className="flex items-center gap-2 mt-1 text-xs">
                                 {isFuture ? (
                                   <>
-                                    <Clock className="h-3 w-3 text-blue-400" />
-                                    <span className="text-blue-400 font-medium">
+                                    <Clock className="h-3 w-3 text-semantic-publish-foreground" />
+                                    <span className="text-semantic-publish-foreground font-medium">
                                       {postDate 
                                         ? `Scheduled: ${format(postDate, 'MMM d, yyyy h:mm a')}`
                                         : 'Scheduled (Future)'
@@ -457,8 +456,8 @@ export const PostCalendar: React.FC<PostCalendarProps> = ({ posts, sitemapUrl, o
                                   </>
                                 ) : isPublished ? (
                                   <>
-                                    <Clock className="h-3 w-3 text-green-400" />
-                                    <span className="text-green-400 font-medium">
+                                    <Clock className="h-3 w-3 text-primary" />
+                                    <span className="text-primary font-medium">
                                       {postDate 
                                         ? `Published: ${format(postDate, 'MMM d, yyyy h:mm a')}`
                                         : 'Published'
@@ -476,17 +475,17 @@ export const PostCalendar: React.FC<PostCalendarProps> = ({ posts, sitemapUrl, o
                                   </>
                                 )}
                                 {isFutureStatus && (
-                                  <Badge variant="outline" className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">
+                                  <Badge variant="outline" className="text-xs bg-semantic-publish/20 text-semantic-publish-foreground border-semantic-publish/30">
                                     Future
                                   </Badge>
                                 )}
                                 {isFuture && !isFutureStatus && (
-                                  <Badge variant="outline" className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">
+                                  <Badge variant="outline" className="text-xs bg-semantic-publish/20 text-semantic-publish-foreground border-semantic-publish/30">
                                     Scheduled
                                   </Badge>
                                 )}
                                 {isPublished && (
-                                  <Badge variant="outline" className="text-xs bg-green-500/20 text-green-400 border-green-500/30">
+                                  <Badge variant="outline" className="text-xs bg-primary/20 text-primary border-primary/30">
                                     Published
                                   </Badge>
                                 )}
@@ -519,7 +518,7 @@ export const PostCalendar: React.FC<PostCalendarProps> = ({ posts, sitemapUrl, o
 
       <div className="text-xs text-muted-foreground">
         <p>Total posts: {posts.length} | Future posts: {futureCount}</p>
-        <p className="truncate" title={sitemapUrl}>Sitemap: {sitemapUrl}</p>
+        <p className="break-words" title={sitemapUrl}>Sitemap: {sitemapUrl}</p>
       </div>
     </div>
   );

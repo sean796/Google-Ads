@@ -8,10 +8,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { contentSheetPrimaryUrl } from "@/lib/sitemap-optimizer/content-sheet-source-url";
 import type { SitemapOptimizerContentSheetRow } from "@/lib/sitemap-optimizer/types";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 type SheetFilter = "all" | "merge" | "standalone" | "high" | "by_cluster";
 
@@ -92,11 +92,9 @@ export function SitemapOptimizerContentSheetGrid({
 
   const filterBtn = (id: SheetFilter, label: string) => (
     <Button
+      pressed={filter === id}
       key={id}
       type="button"
-      variant={filter === id ? "secondary" : "outline"}
-      size="sm"
-      className="h-8 text-base"
       onClick={() => setFilter(id)}
     >
       {label}
@@ -157,9 +155,8 @@ export function SitemapOptimizerContentSheetGrid({
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="px-1 py-1.5">
                       {hasDetail ? (
-                        <button
-                          type="button"
-                          className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-muted/50"
+                        <Button
+                          variant="quiet"
                           aria-expanded={isOpen}
                           onClick={() => toggleExpand(row.postId)}
                         >
@@ -169,7 +166,7 @@ export function SitemapOptimizerContentSheetGrid({
                               isOpen && "rotate-180",
                             )}
                           />
-                        </button>
+                        </Button>
                       ) : null}
                     </TableCell>
                     {isGrid ? (
@@ -190,7 +187,7 @@ export function SitemapOptimizerContentSheetGrid({
                         href={contentSheetPrimaryUrl(row)}
                         target="_blank"
                         rel="noreferrer"
-                        className="block truncate font-medium text-foreground underline-offset-2 hover:underline"
+                        className="block break-words font-medium text-foreground underline-offset-2 hover:underline"
                       >
                         {truncateCell(contentSheetPrimaryUrl(row), 56)}
                       </a>
@@ -200,24 +197,24 @@ export function SitemapOptimizerContentSheetGrid({
                         className="px-2 py-1.5 text-muted-foreground"
                         title={contentSheetLegacySummary(row)}
                       >
-                        <span className="block truncate">
+                        <span className="block break-words">
                           {truncateCell(contentSheetLegacySummary(row), 48)}
                         </span>
                       </TableCell>
                     ) : null}
                     <TableCell className="px-2 py-1.5" title={row.proposedTitle}>
-                      <span className="block truncate font-medium text-foreground">
+                      <span className="block break-words font-medium text-foreground">
                         {truncateCell(row.proposedTitle, 48)}
                       </span>
                     </TableCell>
                     <TableCell className="px-2 py-1.5" title={row.proposedPrimaryKeyword}>
-                      <span className="block truncate">{truncateCell(row.proposedPrimaryKeyword, 28)}</span>
+                      <span className="block break-words">{truncateCell(row.proposedPrimaryKeyword, 28)}</span>
                     </TableCell>
                     <TableCell className="px-2 py-1.5 text-muted-foreground" title={row.proposedMeta}>
-                      <span className="block truncate">{truncateCell(row.proposedMeta, 40)}</span>
+                      <span className="block break-words">{truncateCell(row.proposedMeta, 40)}</span>
                     </TableCell>
                     <TableCell className="px-2 py-1.5 text-muted-foreground" title={row.modifier}>
-                      <span className="block truncate">{truncateCell(row.modifier ?? "", 40)}</span>
+                      <span className="block break-words">{truncateCell(row.modifier ?? "", 40)}</span>
                     </TableCell>
                   </TableRow>
                   {isOpen && hasDetail ? (

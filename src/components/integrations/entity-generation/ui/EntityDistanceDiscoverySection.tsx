@@ -3,16 +3,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from "react";
-import { ExternalLink, Loader2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { ExternalLink } from "lucide-react";
 import type { WordPressSite } from "../../types";
 import { getPrimaryCityStateLabel, getPrimaryLocationLabel } from "@/lib/primary-location-from-site";
 import {
@@ -30,6 +21,7 @@ import {
   resolveRadiusDisplayLine,
   type UniqueSiteLocation,
 } from "@/lib/location-address-dedupe";
+import { Field, SelectField } from "@/ui";
 
 const CUSTOM_RADIUS = "__custom__";
 const INTEGRATIONS_RADIUS = "__integrations__";
@@ -364,62 +356,41 @@ export const EntityDistanceDiscoverySection: React.FC<EntityDistanceDiscoverySec
         </h3>
         {locationLabelLoading && !discovery ? (
           <p className="text-base text-muted-foreground flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+            
             Reading location data from the site…
           </p>
         ) : (
           <>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-              <Label htmlFor="sap-radius-select" className="text-base text-muted-foreground shrink-0 sm:pt-2 sm:w-36">
+              <label htmlFor="sap-radius-select" className="text-base text-muted-foreground shrink-0 sm:pt-2 sm:w-36">
                 Address
-              </Label>
+              </label>
               <div className="min-w-0 flex-1 space-y-2">
-                <Select
+                <SelectField
+                  placeholder="Choose address"
                   value={radiusChoice}
                   onValueChange={(v) => setRadiusChoice(v)}
+                  options={[
+                    ...displayLocations.map((u) => ({ value: u.key, label: u.displayAddress.trim() })),
+                    ...(showIntegrationsOption ? [{ value: INTEGRATIONS_RADIUS, label: `Integrations (NAP): ${napLabel}` }] : []),
+                    { value: CUSTOM_RADIUS, label: "Custom" },
+                  ]}
+                  width="full"
                   disabled={enrichingAddresses || dedupingLocations}
-                >
-                  <SelectTrigger
-                    id="sap-radius-select"
-                    className="w-full border-0 bg-black text-base text-[hsl(var(--semantic-data-foreground)/0.92)] sm:max-w-xl"
-                  >
-                    <SelectValue placeholder="Choose address" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {displayLocations.map((u) => {
-                      const line = u.displayAddress.trim();
-                      const short = line.length > 88 ? `${line.slice(0, 85)}…` : line;
-                      return (
-                        <SelectItem key={u.key} value={u.key} className="text-base">
-                          {short}
-                        </SelectItem>
-                      );
-                    })}
-                    {showIntegrationsOption ? (
-                      <SelectItem value={INTEGRATIONS_RADIUS} className="text-base">
-                        Integrations (NAP): {napLabel}
-                      </SelectItem>
-                    ) : null}
-                    <SelectItem value={CUSTOM_RADIUS} className="text-base">
-                      Custom…
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                />
                 {enrichingAddresses ? (
                   <p className="text-base text-muted-foreground flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                    
                     Matching pages to street addresses…
                   </p>
                 ) : null}
                 {radiusChoice === CUSTOM_RADIUS && (
                   <div className="space-y-1">
-                    <Label className="text-base text-muted-foreground">Custom address</Label>
-                    <Input
+                    <label className="text-base text-muted-foreground">Custom address</label>
+                    <Field
                       value={manualRadiusAddress}
                       onChange={(e) => setManualRadiusAddress(e.target.value)}
                       placeholder="Street, city, region"
-                      variant="neoPulseBlack"
-                      className="text-base text-[hsl(var(--semantic-data-foreground)/0.92)]"
                     />
                   </div>
                 )}

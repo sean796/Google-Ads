@@ -40,8 +40,6 @@ export type SapGeneratorWorkspaceHeaderProps = {
   > & {
     headerProgress: LocalAnalysisDetailsPanelProps["headerProgress"];
   };
-  onDetailsOpenChange?: (open: boolean) => void;
-  detailsOpenSignal?: number | string | null;
   showBlindMagicKeywords?: boolean;
   useBlindMagicKeywords?: boolean;
   onUseBlindMagicKeywordsChange?: (v: boolean) => void;
@@ -76,8 +74,6 @@ export function SapGeneratorWorkspaceHeader({
   hasSapRowsForCsv,
   onDownloadTargetsCsv,
   detailsProps,
-  onDetailsOpenChange,
-  detailsOpenSignal,
   showBlindMagicKeywords = false,
   useBlindMagicKeywords = false,
   onUseBlindMagicKeywordsChange,
@@ -99,8 +95,6 @@ export function SapGeneratorWorkspaceHeader({
       canOpenDetails={canOpenDetails}
       isProcessing={isProcessing}
       detailsPanelId="sap-local-analysis-details-panel"
-      onDetailsOpenChange={onDetailsOpenChange}
-      detailsOpenSignal={detailsOpenSignal}
       toolbar={
         <SapGeneratorToolbar
           workspaceBusy={workspaceBusy}

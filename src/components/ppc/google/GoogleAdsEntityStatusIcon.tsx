@@ -29,7 +29,7 @@ export function GoogleAdsEntityStatusIcon({ status, className }: GoogleAdsEntity
   }
   if (kind === "paused") {
     return (
-      <Pause className={cn("h-3.5 w-3.5 shrink-0 text-zinc-400", className)} aria-label="Paused" />
+      <Pause className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground", className)} aria-label="Paused" />
     );
   }
   if (kind === "removed") {

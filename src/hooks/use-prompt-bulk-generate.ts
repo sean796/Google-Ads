@@ -16,9 +16,6 @@ import { mergePromptBulkIdeaSlots } from '@/lib/bulk/merge-prompt-bulk-idea-slot
 import { seedPromptBlogSlots } from '@/lib/bulk/prompt-blog-slots';
 import { normalizeBulkSitemapScopeTags } from '@/lib/bulk/bulk-sitemap-mode';
 import { generateSimplePromptIdeas } from '@/lib/bulk/prompt-bulk-ideas-simple';
-import { fillBlogRowKeywordFocusFromOpenRouter } from '@/lib/bulk/prompt-bulk-keyword-focus-agent';
-import { fillBlogRowMetaFromOpenRouter } from '@/lib/local-analysis/entity-sap-meta-agent';
-import { fillBlogRowSlugFromOpenRouter } from '@/lib/local-analysis/blog-slug-agent';
 import type { BulkSiteSitemapConfig } from '@/components/keyword-research/bulk/BulkGeneratorSitemapMenu';
 
 export interface UsePromptBulkGenerateProps {
@@ -56,6 +53,8 @@ export interface UsePromptBulkGenerateProps {
   sitemapInventoryLoading?: boolean;
 }
 
+const NO_GSC_EXACT_KEYWORDS: NonNullable<UsePromptBulkGenerateProps['gscExactKeywords']> = [];
+
 export function usePromptBulkGenerate({
   apiKey,
   openRouterApiKey,
@@ -79,7 +78,7 @@ export function usePromptBulkGenerate({
   connectedSite,
   siteConfigs,
   selectedWordPressSites,
-  gscExactKeywords = [],
+  gscExactKeywords = NO_GSC_EXACT_KEYWORDS,
   onProgress,
   keywordAnalysisResults,
   promptIdeasContext = null,
@@ -320,74 +319,6 @@ export function usePromptBulkGenerate({
         });
       }
 
-      const lockedSlotKeywords = cappedParsedRows.map(
-        (_, i) => Boolean(slotKeywordsForGeneration[i]?.trim()),
-      );
-
-      const pushPartialRowsToDock = (rows: CSVRow[]) => {
-        rowsInFlight = rows.map((r) => ({ ...r }));
-        if (keepIndices && keepIndices.length > 0) {
-          const keptRows = keepIndices.map((idx) => generatedRows[idx]).filter(Boolean);
-          setGeneratedRows([...keptRows, ...rows].slice(0, numberOfBlogs));
-        } else {
-          setGeneratedRows(rows);
-        }
-      };
-
-      pushPartialRowsToDock(cappedParsedRows);
-      logPromptBulkProgress("Distilling focus keywords…", 55);
-      cappedParsedRows = await fillBlogRowKeywordFocusFromOpenRouter(cappedParsedRows, {
-        apiKey: effectiveOpenRouterKey,
-        siteId: matchedWpSite?.id,
-        siteName: (connectedSite?.name ?? matchedWpSite?.name ?? "").trim(),
-        topic: flowPurpose?.trim() || topicLine,
-        lockedSlotKeywords,
-        strict: false,
-        singlePass: true,
-        modelCategory: "meta",
-        onProgress: (done, total) => {
-          if (total > 0) {
-            logPromptBulkProgress(`Focus keywords ${done}/${total}…`, 55 + Math.round((done / total) * 15));
-          }
-        },
-      });
-      pushPartialRowsToDock(cappedParsedRows);
-
-      logPromptBulkProgress("Writing meta descriptions and URL slugs…", 72);
-      const rowsForMeta = cappedParsedRows.map((row) => {
-        const { meta_description: _drop, ...rest } = row;
-        return rest;
-      });
-      const [metaRows, slugRows] = await Promise.all([
-        fillBlogRowMetaFromOpenRouter(rowsForMeta, {
-          apiKey: effectiveOpenRouterKey,
-          model: ideaModel,
-          siteId: matchedWpSite?.id,
-          siteName: (connectedSite?.name ?? matchedWpSite?.name ?? "").trim(),
-          strict: false,
-          onProgress: (done, total) => {
-            if (total > 0) {
-              logPromptBulkProgress(`Meta descriptions ${done}/${total}…`, 72 + Math.round((done / total) * 14));
-            }
-          },
-        }),
-        fillBlogRowSlugFromOpenRouter(cappedParsedRows, {
-          apiKey: effectiveOpenRouterKey,
-          model: ideaModel,
-          siteId: matchedWpSite?.id,
-          onProgress: (done, total) => {
-            if (total > 0) {
-              logPromptBulkProgress(`URL slugs ${done}/${total}…`, 72 + Math.round((done / total) * 14));
-            }
-          },
-        }),
-      ]);
-      cappedParsedRows = cappedParsedRows.map((row, i) => ({
-        ...row,
-        meta_description: metaRows[i]?.meta_description ?? row.meta_description,
-        target_slug: slugRows[i]?.target_slug ?? row.target_slug,
-        destination_url: undefined,
-      }));
       rowsInFlight = cappedParsedRows.map((r) => ({ ...r }));
 
       // Determine final rows (merged or new)

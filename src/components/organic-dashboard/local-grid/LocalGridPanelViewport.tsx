@@ -21,6 +21,7 @@ import { LocalGridMapToolbar } from "./LocalGridMapToolbar";
 import { LocalGridOverlayCards } from "./LocalGridOverlayCards";
 import { useLocalGridMapSnapshotPersist } from "./useLocalGridMapSnapshotPersist";
 import type { LocalGridEntityDetailsBandProps } from "./LocalGridEntityDetailsBand";
+import { Button } from "@/ui";
 
 export type LocalGridPanelViewportProps = {
   site: WordPressSite;
@@ -72,7 +73,7 @@ export type LocalGridPanelViewportProps = {
   onToggleReportDrawer: () => void;
   onCloseReportDrawer: () => void;
   generatingBulkCsv: boolean;
-  onGenerateBulkCsv: (mode: LocalGridBulkCsvMode, count: number) => void;
+  onGenerateBulkCsv: (mode: LocalGridBulkCsvMode, count: number, cities?: string[]) => void;
   entityDetailsBand: LocalGridEntityDetailsBandProps;
 };
 
@@ -140,11 +141,11 @@ export function LocalGridPanelViewport(props: LocalGridPanelViewportProps) {
 
   return (
     <div className="local-grid-panel-main flex min-h-0 min-w-0 flex-1 flex-col">
-      <div className="flex h-11 w-full shrink-0 items-center justify-between gap-4 border-b border-zinc-800 bg-zinc-900 px-4 text-base text-zinc-300">
+      <div className="flex h-11 w-full shrink-0 items-center justify-between gap-4 border-b border-border bg-ui-field px-4 text-base text-foreground">
         <div className="flex flex-1 items-center gap-3">
-          <span className="shrink-0 text-base text-zinc-400 tabular-nums">{oldestDateLabel}</span>
+          <span className="shrink-0 text-base text-muted-foreground tabular-nums">{oldestDateLabel}</span>
           <div className="relative flex flex-1 items-center py-2">
-            <div className="h-1 w-full rounded-full bg-zinc-800" />
+            <div className="h-1 w-full rounded-full bg-ui-field-hover" />
             {chronologicalHistory.length > 0 ? (
               chronologicalHistory.map((item, idx) => {
                 const pct =
@@ -153,6 +154,7 @@ export function LocalGridPanelViewport(props: LocalGridPanelViewportProps) {
                     : 100;
                 const isCurrent = item.scanId === activeScan?.scanId;
                 return (
+                  // eslint-disable-next-line no-restricted-syntax -- Pulse UI exception: absolutely positioned timeline marker
                   <button
                     key={item.scanId}
                     type="button"
@@ -160,7 +162,7 @@ export function LocalGridPanelViewport(props: LocalGridPanelViewportProps) {
                     onClick={() => onSelectHistoryScan(item.scanId)}
                     style={{ left: `${pct}%` }}
                     className={cn(
-                      "absolute -translate-x-1/2 rounded-full border-2 border-zinc-950 transition-transform hover:scale-125",
+                      "absolute -translate-x-1/2 rounded-full border-2 border-border transition-transform hover:scale-125",
                       isCurrent
                         ? "h-3.5 w-3.5 bg-primary shadow-sm shadow-[#84bc00]/50"
                         : "h-3 w-3 bg-[#659100] hover:bg-primary",
@@ -170,23 +172,23 @@ export function LocalGridPanelViewport(props: LocalGridPanelViewportProps) {
                 );
               })
             ) : (
-              <span className="absolute left-1/2 -translate-x-1/2 text-xs text-zinc-500">
+              <span className="absolute left-1/2 -translate-x-1/2 text-xs text-muted-foreground">
                 No scans recorded yet
               </span>
             )}
           </div>
-          <span className="shrink-0 text-base font-medium text-zinc-200 tabular-nums">
+          <span className="shrink-0 text-base font-medium text-foreground tabular-nums">
             {newestDateLabel}
           </span>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          <div className="inline-flex h-8 items-center gap-2 rounded-none border border-zinc-800 bg-zinc-950 px-3 text-base text-zinc-300">
+          <div className="inline-flex h-8 items-center gap-2 rounded-none border border-border bg-black px-3 text-base text-foreground">
             <span>Last 3 months</span>
-            <ChevronDown className="h-4 w-4 text-zinc-400" aria-hidden />
+            <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden />
           </div>
-          <button
-            type="button"
+          <Button
+            size="icon" icon={ChevronLeft}
             disabled={
               layoutLocked || activeHistoryIndex < 0 || activeHistoryIndex >= history.length - 1
             }
@@ -194,25 +196,19 @@ export function LocalGridPanelViewport(props: LocalGridPanelViewportProps) {
               const older = history[activeHistoryIndex + 1];
               if (older) onSelectHistoryScan(older.scanId);
             }}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-none border border-zinc-800 bg-zinc-950 text-zinc-300 hover:bg-zinc-800 hover:text-white disabled:opacity-30"
             title="Previous scan"
             aria-label="Previous scan"
-          >
-            <ChevronLeft className="h-4 w-4" aria-hidden />
-          </button>
-          <button
-            type="button"
+          ></Button>
+          <Button
+            size="icon" icon={ChevronRight}
             disabled={layoutLocked || activeHistoryIndex <= 0}
             onClick={() => {
               const newer = history[activeHistoryIndex - 1];
               if (newer) onSelectHistoryScan(newer.scanId);
             }}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-none border border-zinc-800 bg-zinc-950 text-zinc-300 hover:bg-zinc-800 hover:text-white disabled:opacity-30"
             title="Next scan"
             aria-label="Next scan"
-          >
-            <ChevronRight className="h-4 w-4" aria-hidden />
-          </button>
+          ></Button>
         </div>
       </div>
 
@@ -297,14 +293,13 @@ export function LocalGridPanelViewport(props: LocalGridPanelViewportProps) {
               <span className="text-base font-bold text-white">
                 Local Grid Data Report ({activeScan.keyword})
               </span>
-              <button
-                type="button"
+              <Button
+                variant="quiet"
                 onClick={onCloseReportDrawer}
-                className="inline-flex h-8 items-center gap-1.5 bg-zinc-800 px-3 text-base text-white hover:bg-zinc-700"
               >
                 <X className="h-4 w-4" aria-hidden />
                 <span>Back to Map</span>
-              </button>
+              </Button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-4">
               <LocalGridDataReportTables

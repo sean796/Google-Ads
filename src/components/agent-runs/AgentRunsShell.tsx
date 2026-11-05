@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { readSidebarPanel, writeSidebarOpen, type SidebarPanel } from "@/lib/pulse-assist/storage";
 import { AgentRunsContextProvider } from "@/contexts/agent-runs-context";
+import { DetailsDockProvider } from "@/components/pulse-assist/details-dock";
 import { useDefaultAgentRunHarnesses } from "@/lib/agent-runs/use-default-agent-run-harnesses";
 
 const MOBILE_QUERY = "(max-width: 767px)";
@@ -36,7 +37,7 @@ export function AgentRunsShell({ children }: AgentRunsShellProps) {
       setSidebarPanel={setSidebarPanel}
     >
       <AgentRunsHarnessBootstrap />
-      {children}
+      <DetailsDockProvider>{children}</DetailsDockProvider>
     </AgentRunsContextProvider>
   );
 }

@@ -1,11 +1,6 @@
 import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ContentOptimizationControls } from "@/components/integrations/wordpress/ContentOptimizationControls";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { OverviewBinding } from "@/hooks/overview/use-overview-wordpress-binding";
@@ -21,25 +16,7 @@ import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
 import { resolveMcpToolUrl } from "@/lib/mcp-tools";
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
 import { NOTIFY_URL_COPIED_TO_CLIPBOARD } from "@/lib/notify-messages";
-import {
-  Loader2,
-  Wand2,
-  RefreshCw,
-  Upload as UploadIcon,
-  FileDown,
-  Search,
-  Copy,
-  CheckCircle2,
-  ChevronDown,
-  ChevronUp,
-  Sparkles,
-  CircleHelp,
-  Heading2,
-  Link2,
-  ListTree,
-  ImageIcon,
-  MapPin,
-} from "lucide-react";
+import { Wand2, RefreshCw, Upload as UploadIcon, FileDown, Search, Copy, CheckCircle2, ChevronDown, ChevronUp, Sparkles, CircleHelp, Heading2, Link2, ListTree, ImageIcon, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { parseFaqEntries, serializeFaqEntriesPlain } from "@/lib/faq-entries";
 import { extractH2TextsFromHtml } from "@/lib/overview/overview-blog-headers-extract";
@@ -73,44 +50,26 @@ import {
 } from "@/lib/overview/overview-redirect-row";
 
 const META_OPT_OUTLINE =
-  "rounded-none border-0 bg-zinc-900 text-foreground shadow-none hover:bg-zinc-800 [&_svg]:text-muted-foreground hover:[&_svg]:text-foreground disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-0";
+  "rounded-none border-0 bg-ui-field text-foreground shadow-none hover:bg-ui-field-hover [&_svg]:text-muted-foreground hover:[&_svg]:text-foreground disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-0";
 
-const META_FAQ_TOOL_ICON = cn("h-8 w-8 shrink-0 p-0", META_OPT_OUTLINE);
-const META_FAQ_TOOL_ACTION = cn(
-  "h-8 shrink-0 px-2.5 text-base font-medium inline-flex items-center justify-center gap-1.5",
-  META_OPT_OUTLINE,
-);
-const META_FAQ_TOOL_CHIP = cn(
-  "h-8 min-w-[2.75rem] shrink-0 px-2 text-base font-semibold tabular-nums tracking-wide inline-flex items-center justify-center",
-  META_OPT_OUTLINE,
-);
-
-const META_FAQ_PAIR_TILE = "space-y-2 rounded-none bg-zinc-950 py-1.5";
+const META_FAQ_PAIR_TILE = "space-y-2 rounded-none bg-black py-1.5";
 /** Light elevated fields: white value text, neon cyan placeholders, readable on dark UI */
 const META_INPUT_SURFACE =
-  "rounded-none border-0 bg-zinc-900 text-white shadow-inner shadow-black/40 placeholder:text-cyan-400 placeholder:opacity-95 focus-visible:ring-2 focus-visible:ring-cyan-400/30 focus-visible:ring-offset-0 selection:bg-cyan-500/20";
+  "rounded-none border-0 bg-ui-field text-white shadow-inner shadow-black/40 placeholder:text-semantic-analysis-foreground placeholder:opacity-95 focus-visible:ring-2 focus-visible:ring-semantic-analysis/30 focus-visible:ring-offset-0 selection:bg-semantic-analysis/20";
 
 export const META_TRIGGER_FLAT =
   "flex w-full items-center gap-2 rounded-none border-0 bg-transparent px-0 py-1.5 text-left text-base font-medium text-white";
 
 /** Character counts in end rails — blue */
-export const META_FIELD_COUNT = "text-base font-medium tabular-nums text-sky-400";
+export const META_FIELD_COUNT = "text-base font-medium tabular-nums text-semantic-analysis-foreground";
 /** WordPress-style post bar: horizontal cells, dividers, right stack */
 export const META_FIELD_END_RAIL =
-  "flex h-7 shrink-0 items-stretch divide-x divide-white/25 rounded-none border-0 bg-zinc-950/90 sm:h-8";
+  "flex h-7 shrink-0 items-stretch divide-x divide-white/25 rounded-none border-0 bg-black/90 sm:h-8";
 export const META_FIELD_END_RAIL_CELL = "flex min-w-[2rem] items-center justify-center px-2";
 export const META_FIELD_END_RAIL_BTN =
-  "inline-flex h-full min-h-0 min-w-[2rem] shrink-0 items-center justify-center rounded-none border-0 bg-transparent px-0 shadow-none hover:bg-white/10 focus-visible:ring-1 focus-visible:ring-cyan-400/35 focus-visible:ring-offset-0 disabled:opacity-45 [&_svg]:text-emerald-400";
+  "inline-flex h-full min-h-0 min-w-[2rem] shrink-0 items-center justify-center rounded-none border-0 bg-transparent px-0 shadow-none hover:bg-white/10 focus-visible:ring-1 focus-visible:ring-semantic-analysis/35 focus-visible:ring-offset-0 disabled:opacity-45 [&_svg]:text-primary";
 
 const META_EDITABLE_LIST_ITEM = "flex min-w-0 items-start gap-2";
-const META_EDITABLE_LIST_TEXTAREA = cn(
-  "min-h-9 min-w-0 flex-1 resize-y py-2 px-3 text-left text-base leading-snug",
-  META_INPUT_SURFACE,
-);
-const META_EDITABLE_LIST_INPUT = cn(
-  "min-h-9 min-w-0 w-full py-2 px-3 text-left text-base",
-  META_INPUT_SURFACE,
-);
 
 function isVisualElementorSection(section: {
   hasHeadingWidget?: boolean;
@@ -144,13 +103,13 @@ function MetaEditableListTextarea({
   return (
     <div className={META_EDITABLE_LIST_ITEM}>
       <span className="w-6 shrink-0 pt-2 tabular-nums text-muted-foreground">{index + 1}</span>
-      <Textarea
+      <TextareaField
+        placeholder={ariaLabel}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         readOnly={readOnly}
         disabled={readOnly}
         rows={2}
-        className={META_EDITABLE_LIST_TEXTAREA}
         aria-label={ariaLabel}
       />
     </div>
@@ -183,40 +142,36 @@ function MetaEditableLinkRow({
   const label = linkLabel ?? "Link";
   return (
     <div className="flex min-w-0 items-center gap-2">
-      <Input
+      <Field
         value={anchor}
         onChange={(e) => onAnchorChange(e.target.value)}
         readOnly={readOnly}
         disabled={readOnly}
-        className={cn(META_EDITABLE_LIST_INPUT, "min-w-0 max-w-[40%] flex-[2]")}
         placeholder="Anchor"
         aria-label={`${label} anchor`}
       />
       <div className="relative min-w-0 flex-1">
-        <Input
+        <Field
           value={href}
           onChange={(e) => onHrefChange(e.target.value)}
           readOnly={readOnly}
           disabled={readOnly}
-          className={cn(META_EDITABLE_LIST_INPUT, "min-w-0 w-full", onAiLink && "pr-[2.75rem]")}
           placeholder="URL"
           aria-label={`${label} URL`}
         />
         {onAiLink ? (
           <MetaFieldEndRail align="top">
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
-              size="icon"
-              className={META_FIELD_END_RAIL_BTN}
               disabled={readOnly || aiLinkLoading}
               title="Find an appropriate internal link for this section"
               onClick={() => void onAiLink()}
             >
               {aiLinkLoading ? (
-                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-400" />
+                null
               ) : (
-                <Wand2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                <Wand2 className="h-4 w-4 shrink-0 text-primary" />
               )}
             </Button>
           </MetaFieldEndRail>
@@ -225,9 +180,6 @@ function MetaEditableLinkRow({
       {showAddButton ? (
         <Button
           type="button"
-          variant="outline"
-          size="icon"
-          className={META_FAQ_TOOL_ICON}
           disabled={readOnly}
           title="Add link to this section"
           onClick={onAdd}
@@ -359,6 +311,7 @@ function MetaFieldEndRail({
 }
 
 import { CONTENT_OPTIMIZER_ROW_SHELL_CLASS, contentOptimizerRowStripeClass } from "@/components/overview/overview-tab/overview-tab-content-constants";
+import { Button, Field, SelectField, TextareaField } from "@/ui";
 const ZONE_BASE = "space-y-2.5 rounded-none";
 const zoneTop = ZONE_BASE;
 const zoneSerp = cn(ZONE_BASE, "min-h-[12.5rem]");
@@ -376,9 +329,6 @@ export function MetaAccordionStripeRow({
     <div className={cn(contentOptimizerRowStripeClass(stripeIndex), "w-full min-w-0")}>{children}</div>
   );
 }
-
-const META_ACCORDION_TRIGGER_BTN =
-  "flex min-w-0 flex-1 items-center gap-2 border-0 bg-transparent p-0 text-left text-base font-semibold text-white";
 
 function MetaAccordionHeaderRow({
   open,
@@ -398,14 +348,14 @@ function MetaAccordionHeaderRow({
   return (
     <div className={cn(META_TRIGGER_FLAT, "w-full font-semibold")}>
       <CollapsibleTrigger asChild>
-        <button type="button" className={META_ACCORDION_TRIGGER_BTN}>
+        <Button variant="quiet">
           {icon}
-          <span className="min-w-0 flex-1 truncate text-left">{label}</span>
+          <span className="min-w-0 flex-1 break-words text-left">{label}</span>
           <ChevronDown
             className={cn("h-4 w-4 shrink-0 transition-transform", open && "rotate-180")}
             aria-hidden
           />
-        </button>
+        </Button>
       </CollapsibleTrigger>
       <div className={cn(META_FIELD_END_RAIL, "shrink-0")}>
         <span
@@ -717,18 +667,14 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
               ) : null}
               {keywordUrlAlreadyOptimized && !shellOnly ? (
                 <span className="shrink-0" title="URL matches keyword" aria-label="URL matches keyword">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400/90" aria-hidden />
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary/90" aria-hidden />
                 </span>
               ) : null}
               {shellOnly ? (
-                <Input
+                <Field
                   readOnly
                   value=""
                   tabIndex={-1}
-                  className={cn(
-                    "h-8 min-w-0 flex-1 border-0 bg-transparent py-1 pl-0 text-base shadow-none",
-                    META_INPUT_SURFACE,
-                  )}
                   placeholder="Page URL"
                   aria-label="Page URL"
                 />
@@ -738,7 +684,7 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                     href={row.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-block max-w-full truncate text-base leading-tight text-zinc-100 hover:text-cyan-300 hover:underline"
+                    className="inline-block max-w-full break-words text-base leading-tight text-foreground hover:text-semantic-analysis-foreground hover:underline"
                     title={row.url}
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -748,9 +694,6 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
               )}
               <Button
                 type="button"
-                variant="outline"
-                size="icon"
-                className={cn("h-7 w-7 shrink-0 sm:h-8 sm:w-8", META_OPT_OUTLINE)}
                 disabled={shellOnly}
                 onClick={() => void handleAiUrlRow(index)}
                 title={
@@ -760,27 +703,25 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                 }
               >
                 {row.status === "ai-url" ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  null
                 ) : (
                   <Wand2 className="h-3.5 w-3.5" />
                 )}
               </Button>
             </div>
             {row.aiSuggestedPath ? (
-              <div className="space-y-0.5 text-base text-zinc-400">
+              <div className="space-y-0.5 text-base text-muted-foreground">
                 <p>
-                  <span className="text-cyan-400/90">{row.aiSuggestedPath}</span>
+                  <span className="text-semantic-analysis-foreground/90">{row.aiSuggestedPath}</span>
                 </p>
-                {suggestedFullUrl ? <p className="break-all text-base text-zinc-500">{suggestedFullUrl}</p> : null}
+                {suggestedFullUrl ? <p className="break-all text-base text-muted-foreground">{suggestedFullUrl}</p> : null}
               </div>
             ) : null}
           </div>
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
             <Button
+              size="icon" icon={Copy} aria-label="Copy URL"
               type="button"
-              variant="outline"
-              size="icon"
-              className={cn("h-7 w-7 sm:h-8 sm:w-8", META_OPT_OUTLINE)}
               disabled={shellOnly}
               onClick={() => {
                 if (shellOnly) return;
@@ -788,19 +729,14 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                 notify.success(NOTIFY_URL_COPIED_TO_CLIPBOARD);
               }}
               title="Copy URL"
-            >
-              <Copy className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-            </Button>
+            ></Button>
             <Button
               type="button"
-              variant="outline"
-              size="sm"
-              className={cn("h-7 min-w-[4.5rem] px-2 text-base sm:h-8 sm:min-w-[5rem] sm:px-2.5", META_OPT_OUTLINE)}
               disabled={shellOnly || row.status === "uploading"}
               onClick={() => void handleScrapeRow(index)}
             >
               {row.status === "scraping" ? (
-                <Loader2 className="mr-1 h-3 w-3 shrink-0 animate-spin sm:mr-1.5 sm:h-3.5 sm:w-3.5" />
+                null
               ) : (
                 <RefreshCw className="mr-1 h-3 w-3 shrink-0 sm:mr-1.5 sm:h-3.5 sm:w-3.5" />
               )}
@@ -808,9 +744,6 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
             </Button>
             <Button
               type="button"
-              variant="outline"
-              size="sm"
-              className={cn("h-7 min-w-[4.5rem] px-2 text-base sm:h-8 sm:min-w-[5rem] sm:px-2.5", META_OPT_OUTLINE)}
               disabled={shellOnly || !redirectRow}
               title="Download Rank Math redirect CSV for this URL change"
               onClick={() => {
@@ -823,14 +756,11 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
             </Button>
             <Button
               type="button"
-              variant="outline"
-              size="sm"
-              className={cn("h-7 min-w-[4.5rem] px-2 text-base sm:h-8 sm:min-w-[5rem] sm:px-2.5", META_OPT_OUTLINE)}
               disabled={shellOnly || !site || row.status === "uploading"}
               onClick={() => void handleUpdateWordPressForRow(row, { rowIndex: index })}
             >
               {row.status === "uploading" ? (
-                <Loader2 className="mr-1 h-3 w-3 shrink-0 animate-spin sm:mr-1.5 sm:h-3.5 sm:w-3.5" />
+                null
               ) : (
                 <UploadIcon className="mr-1 h-3 w-3 shrink-0 sm:mr-1.5 sm:h-3.5 sm:w-3.5" />
               )}
@@ -838,16 +768,12 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
             </Button>
             {accordionBody && onCollapse ? (
               <Button
+                size="icon" icon={ChevronUp}
                 type="button"
-                variant="outline"
-                size="icon"
-                className={cn("h-7 w-7 sm:h-8 sm:w-8", META_OPT_OUTLINE)}
                 onClick={() => onCollapse()}
                 title="Collapse row"
                 aria-label="Collapse row"
-              >
-                <ChevronUp className="h-4 w-4 text-zinc-300" />
-              </Button>
+              ></Button>
             ) : null}
           </div>
         </div>
@@ -857,7 +783,7 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
             Focus keyword
           </label>
           <div className="relative min-w-0 flex-1">
-            <Input
+            <Field
               id={`meta-focus-kw-${index}`}
               value={row.focusKeyword || ""}
               onChange={(e) => updateRow(index, { focusKeyword: e.target.value })}
@@ -879,27 +805,21 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                 if (patched.aiMeta !== row.aiMeta) patch.aiMeta = patched.aiMeta;
                 if (Object.keys(patch).length > 0) updateRow(index, patch);
               }}
-              className={cn(
-                "h-8 min-w-0 w-full py-2 pl-3 pr-10 text-left text-base",
-                META_INPUT_SURFACE,
-              )}
               placeholder="Focus keyword (auto-filled by Research)"
               readOnly={shellOnly}
             />
             {!shellOnly ? (
               <MetaFieldEndRail align="center">
                 <Button
+                  variant="quiet"
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={META_FIELD_END_RAIL_BTN}
                   title="AI focus keyword"
                   onClick={() => void handleAiKeywordRow(index)}
                 >
                   {row.status === "ai-focus-kw" ? (
-                    <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-400" />
+                    null
                   ) : (
-                    <Wand2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                    <Wand2 className="h-4 w-4 shrink-0 text-primary" />
                   )}
                 </Button>
               </MetaFieldEndRail>
@@ -910,7 +830,7 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
         <div className={zoneSerp} role="region" aria-label="SERP">
           <div className="flex w-full min-w-0">
             <div className="relative min-w-0 flex-1">
-              <Input
+              <Field
                 id={`meta-opt-title-${index}`}
                 value={overviewTitlePrimarySegment(row.title)}
                 readOnly={shellOnly || titleReadOnly}
@@ -918,11 +838,6 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                   if (titleReadOnly) return;
                   updateRow(index, { title: overviewTitlePrimarySegment(e.target.value) });
                 }}
-                className={cn(
-                  "h-9 min-w-0 w-full py-2 pl-3 text-left text-base sm:pr-24",
-                  titleReadOnly ? "pr-3 text-muted-foreground" : "pr-[5.75rem] text-base",
-                  META_INPUT_SURFACE,
-                )}
                 placeholder="Page title"
                 aria-label={titleReadOnly ? "Page title (read-only)" : "Page title"}
               />
@@ -941,17 +856,15 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                 </span>
                 {!titleReadOnly && !shellOnly ? (
                   <Button
+                    variant="quiet"
                     type="button"
-                    variant="ghost"
-                    size="icon"
-                    className={META_FIELD_END_RAIL_BTN}
                     title="AI title"
                     onClick={() => void handleAiTitleRow(index)}
                   >
                     {row.status === "ai-title" ? (
-                      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-400" />
+                      null
                     ) : (
-                      <Wand2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                      <Wand2 className="h-4 w-4 shrink-0 text-primary" />
                     )}
                   </Button>
                 ) : null}
@@ -961,15 +874,11 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
 
           <div className="flex w-full min-w-0">
             <div className="relative min-w-0 flex-1">
-              <Textarea
+              <TextareaField
                 id={`meta-opt-meta-${index}`}
                 value={row.metaDescription ?? ""}
                 onChange={(e) => updateRow(index, { metaDescription: e.target.value })}
                 rows={3}
-                className={cn(
-                  "min-h-[4.25rem] min-w-0 w-full resize-none py-2 pl-3 pr-[5.75rem] text-left text-base leading-snug sm:pr-24",
-                  META_INPUT_SURFACE,
-                )}
                 placeholder="Meta description"
                 aria-label="Meta description"
                 readOnly={shellOnly}
@@ -983,18 +892,16 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                   {(row.metaDescription ?? "").length}
                 </span>
                 <Button
+                  variant="quiet"
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={META_FIELD_END_RAIL_BTN}
                   title="AI meta description"
                   disabled={shellOnly}
                   onClick={() => void handleAiMetaRow(index)}
                 >
                   {row.status === "ai-meta" ? (
-                    <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-400" />
+                    null
                   ) : (
-                    <Wand2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                    <Wand2 className="h-4 w-4 shrink-0 text-primary" />
                   )}
                 </Button>
               </MetaFieldEndRail>
@@ -1003,30 +910,23 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
 
           <div className="flex w-full min-w-0">
             <div className="relative min-w-0 flex-1">
-              <Input
+              <Field
                 value={row.dateModifier || ""}
                 onChange={(e) => updateRow(index, { dateModifier: e.target.value })}
                 onBlur={() => commitRowDateModifier(index)}
-                className={cn(
-                  "h-8 min-w-0 w-full py-2 pl-3 pr-10 text-left text-base",
-                  META_INPUT_SURFACE,
-                )}
                 placeholder="YYYY-MM-DD"
                 aria-label="Date modifier"
                 readOnly={shellOnly}
               />
               <MetaFieldEndRail align="center" className="right-1">
                 <Button
+                  size="icon" icon={RefreshCw} aria-label="Today"
+                  variant="quiet"
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={cn(META_FIELD_END_RAIL_BTN, "[&_svg]:text-sky-400/90")}
                   disabled={shellOnly}
                   onClick={() => handleSetDateToday(index)}
                   title="Today"
-                >
-                  <RefreshCw className="h-3.5 w-3.5 shrink-0" />
-                </Button>
+                ></Button>
               </MetaFieldEndRail>
             </div>
           </div>
@@ -1035,24 +935,20 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <Button
             type="button"
-            variant="outline"
-            className={META_FAQ_TOOL_ACTION}
             disabled={shellOnly || metaOptimizerPipelineBusy}
             onClick={() => void handleDataForSeoResearch(index)}
             title="Research SERP + GSC"
           >
             {row.status === "research-faq" ? (
-              <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+              null
             ) : (
               <Search className="h-4 w-4 shrink-0" />
             )}
             <span>Research</span>
           </Button>
           <Button
+            variant="run"
             type="button"
-            variant="default"
-            size="sm"
-            className="h-8 shrink-0 px-3 text-base font-semibold"
             disabled={shellOnly || metaOptimizerPipelineBusy}
             title={
               titleReadOnly
@@ -1062,7 +958,7 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
             onClick={() => void handleOptimizeAllSerpRow(index)}
           >
             {metaOptimizerPipelineBusy ? (
-              <Loader2 className="mr-1.5 h-3.5 w-3.5 shrink-0 animate-spin" />
+              null
             ) : (
               <Sparkles className="mr-1.5 h-3.5 w-3.5 shrink-0" />
             )}
@@ -1070,9 +966,6 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
           </Button>
           <Button
             type="button"
-            variant="outline"
-            size="sm"
-            className={cn("h-8 shrink-0 px-3 text-base font-semibold", META_OPT_OUTLINE)}
             disabled={shellOnly || metaOptimizerPipelineBusy}
             title={
               titleReadOnly
@@ -1082,7 +975,7 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
             onClick={() => void handleAiAllMetaRow(index)}
           >
             {metaOptimizerPipelineBusy ? (
-              <Loader2 className="mr-1.5 h-3.5 w-3.5 shrink-0 animate-spin" />
+              null
             ) : (
               <Wand2 className="mr-1.5 h-3.5 w-3.5 shrink-0" />
             )}
@@ -1096,14 +989,14 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
           onOpenChange={(open) => setExpandedResearchBriefUrl(open ? row.url : null)}
         >
           <CollapsibleTrigger asChild>
-            <button type="button" className={META_TRIGGER_FLAT}>
+            <Button variant="quiet">
               <ChevronDown
                 className={cn(
                   "h-4 w-4 shrink-0 transition-transform",
                   expandedResearchBriefUrl === row.url && "rotate-180",
                 )}
               />
-              <span className="min-w-0 flex-1 truncate text-left text-white">Brief JSON</span>
+              <span className="min-w-0 flex-1 break-words text-left text-white">Brief JSON</span>
               <div className={cn(META_FIELD_END_RAIL, "pointer-events-none shrink-0")} aria-hidden>
                 <span
                   className={cn(META_FIELD_COUNT, META_FIELD_END_RAIL_CELL, "min-w-[2.25rem] tabular-nums font-semibold")}
@@ -1112,17 +1005,13 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                   {briefJsonCharCount.toLocaleString()}
                 </span>
               </div>
-            </button>
+            </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-1.5">
             <div className="relative min-w-0">
-              <Textarea
+              <TextareaField
                 value={row.seoResearch || ""}
                 onChange={(e) => updateRow(index, { seoResearch: e.target.value })}
-                className={cn(
-                  "min-h-[160px] w-full resize-y py-2 pl-3 pr-[5.25rem] text-base leading-snug sm:pr-28",
-                  META_INPUT_SURFACE,
-                )}
                 placeholder='{"version": 1, …}'
                 aria-label="SEO research brief JSON"
               />
@@ -1143,8 +1032,6 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
           {row.briefFileName && BACKEND_API_BASE ? (
             <Button
               type="button"
-              variant="outline"
-              className={META_FAQ_TOOL_CHIP}
               title={`Download ${row.briefFileName}`}
               onClick={async () => {
                 try {
@@ -1177,8 +1064,6 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
           {row.researchFileName ? (
             <Button
               type="button"
-              variant="outline"
-              className={META_FAQ_TOOL_CHIP}
               title={`Download SERP JSON: ${row.researchFileName}`}
               onClick={async () => {
                 try {
@@ -1213,8 +1098,6 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
           {row.gscQuickWinsCsvFilename && BACKEND_API_BASE ? (
             <Button
               type="button"
-              variant="outline"
-              className={META_FAQ_TOOL_CHIP}
               title={`Download GSC CSV: ${row.gscQuickWinsCsvFilename}`}
               onClick={async () => {
                 try {
@@ -1247,8 +1130,6 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
           {row.semrushJsonFilename && BACKEND_API_BASE ? (
             <Button
               type="button"
-              variant="outline"
-              className={META_FAQ_TOOL_CHIP}
               title={`Download Semrush JSON: ${row.semrushJsonFilename}`}
               onClick={async () => {
                 try {
@@ -1303,10 +1184,8 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
               isElementorRow ? (
                 <div className="flex shrink-0 items-center">
                   <Button
+                    variant="quiet"
                     type="button"
-                    variant="ghost"
-                    size="icon"
-                    className={META_FIELD_END_RAIL_BTN}
                     disabled={shellOnly}
                     title="AI Links (internal href optimization)"
                     onClick={(e) => {
@@ -1316,16 +1195,14 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                     }}
                   >
                     {row.status === "ai-links" ? (
-                      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-400" />
+                      null
                     ) : (
-                      <Link2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                      <Link2 className="h-4 w-4 shrink-0 text-primary" />
                     )}
                   </Button>
                   <Button
+                    variant="quiet"
                     type="button"
-                    variant="ghost"
-                    size="icon"
-                    className={META_FIELD_END_RAIL_BTN}
                     disabled={shellOnly}
                     title="AI Headers (all section titles)"
                     onClick={(e) => {
@@ -1335,18 +1212,16 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                     }}
                   >
                     {row.status === "ai-headers" ? (
-                      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-400" />
+                      null
                     ) : (
-                      <Wand2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                      <Wand2 className="h-4 w-4 shrink-0 text-primary" />
                     )}
                   </Button>
                 </div>
               ) : (
                 <Button
+                  variant="quiet"
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={META_FIELD_END_RAIL_BTN}
                   disabled={shellOnly}
                   title="AI Headers (all H2s on this post)"
                   onClick={(e) => {
@@ -1356,9 +1231,9 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                   }}
                 >
                   {row.status === "ai-headers" ? (
-                    <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-400" />
+                    null
                   ) : (
-                    <Wand2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                    <Wand2 className="h-4 w-4 shrink-0 text-primary" />
                   )}
                 </Button>
               )
@@ -1389,14 +1264,10 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                                   {section.title || "Layout or image band"}
                                 </div>
                               ) : (
-                                <Input
+                                <Field
                                   value={section.title}
                                   readOnly={shellOnly}
                                   placeholder="Section heading"
-                                  className={cn(
-                                    "h-8 min-w-0 w-full pr-[2.75rem] text-base font-medium",
-                                    META_INPUT_SURFACE,
-                                  )}
                                   aria-label={`Section ${i + 1} title`}
                                   onChange={(event) => {
                                     if (!section.id) return;
@@ -1409,15 +1280,11 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                               )}
                             </div>
                             {!visualOnly && section.id ? (
-                              <Input
+                              <Field
                                 value={row.elementorSectionKeywords?.[section.id] ?? ""}
                                 readOnly={shellOnly}
                                 disabled={shellOnly}
                                 placeholder="Section keyword"
-                                className={cn(
-                                  META_EDITABLE_LIST_INPUT,
-                                  "h-8 min-w-0 w-[14rem] shrink-0",
-                                )}
                                 aria-label={`Section ${i + 1} keyword`}
                                 onChange={(event) => {
                                   const patch = patchElementorSectionKeyword(
@@ -1495,7 +1362,7 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
             {isElementorRow && row.elementorDesignBreakdown?.trim() ? (
               <Collapsible open={headersPlanOpen} onOpenChange={setHeadersPlanOpen}>
                 <CollapsibleTrigger asChild>
-                  <button type="button" className={cn(META_TRIGGER_FLAT, "text-base")}>
+                  <Button variant="quiet">
                     <span className="flex-1 text-left">Design breakdown</span>
                     <ChevronDown
                       className={cn(
@@ -1503,10 +1370,10 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                         headersPlanOpen && "rotate-180",
                       )}
                     />
-                  </button>
+                  </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pt-2">
-                  <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-none bg-zinc-900/60 p-2 text-base text-zinc-300">
+                  <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-none bg-ui-field/60 p-2 text-base text-foreground">
                     {row.elementorDesignBreakdown}
                   </pre>
                 </CollapsibleContent>
@@ -1515,7 +1382,7 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
             {row.blogH2PlanJson?.trim() ? (
               <Collapsible open={headersPlanOpen} onOpenChange={setHeadersPlanOpen}>
                 <CollapsibleTrigger asChild>
-                  <button type="button" className={cn(META_TRIGGER_FLAT, "text-base")}>
+                  <Button variant="quiet">
                     <span className="flex-1 text-left">Plan JSON</span>
                     <ChevronDown
                       className={cn(
@@ -1523,10 +1390,10 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                         headersPlanOpen && "rotate-180",
                       )}
                     />
-                  </button>
+                  </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pt-2">
-                  <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-none bg-zinc-900/60 p-2 text-base text-zinc-300">
+                  <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-none bg-ui-field/60 p-2 text-base text-foreground">
                     {row.blogH2PlanJson}
                   </pre>
                 </CollapsibleContent>
@@ -1547,10 +1414,8 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
             countTitle="Internal link count"
             action={
               <Button
+                variant="quiet"
                 type="button"
-                variant="ghost"
-                size="icon"
-                className={META_FIELD_END_RAIL_BTN}
                 disabled={shellOnly}
                 title="AI Links (internal href optimization)"
                 onClick={(e) => {
@@ -1560,9 +1425,9 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                 }}
               >
                 {row.status === "ai-links" ? (
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-400" />
+                  null
                 ) : (
-                  <Wand2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                  <Wand2 className="h-4 w-4 shrink-0 text-primary" />
                 )}
               </Button>
             }
@@ -1571,9 +1436,6 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
             <div className="flex w-full min-w-0 shrink-0 flex-wrap items-center justify-end gap-1.5">
               <Button
                 type="button"
-                variant="outline"
-                size="icon"
-                className={META_FAQ_TOOL_ICON}
                 disabled={shellOnly}
                 onClick={() => {
                   updateRow(index, {
@@ -1613,7 +1475,7 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
             {row.blogLinksPlanJson?.trim() ? (
               <Collapsible open={linksPlanOpen} onOpenChange={setLinksPlanOpen}>
                 <CollapsibleTrigger asChild>
-                  <button type="button" className={cn(META_TRIGGER_FLAT, "text-base")}>
+                  <Button variant="quiet">
                     <span className="flex-1 text-left">Plan JSON</span>
                     <ChevronDown
                       className={cn(
@@ -1621,10 +1483,10 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                         linksPlanOpen && "rotate-180",
                       )}
                     />
-                  </button>
+                  </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pt-2">
-                  <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-none bg-zinc-900/60 p-2 text-base text-zinc-300">
+                  <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-none bg-ui-field/60 p-2 text-base text-foreground">
                     {row.blogLinksPlanJson}
                   </pre>
                 </CollapsibleContent>
@@ -1645,10 +1507,8 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
             countTitle="Wikipedia link in body"
             action={
               <Button
+                variant="quiet"
                 type="button"
-                variant="ghost"
-                size="icon"
-                className={META_FIELD_END_RAIL_BTN}
                 disabled={shellOnly}
                 title="Find entity and insert Wikipedia link"
                 onClick={(e) => {
@@ -1658,9 +1518,9 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                 }}
               >
                 {row.status === "ai-wikipedia-link" ? (
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-400" />
+                  null
                 ) : (
-                  <MapPin className="h-4 w-4 shrink-0 text-emerald-400" />
+                  <MapPin className="h-4 w-4 shrink-0 text-primary" />
                 )}
               </Button>
             }
@@ -1670,8 +1530,8 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
               <div className="space-y-3 text-base">
                 {wikiLinksInBody.length > 0
                   ? wikiLinksInBody.map((link, i) => (
-                      <div key={`wiki-body-${i}`} className="space-y-1.5 rounded-none bg-zinc-900/60 p-3">
-                        <p className="leading-relaxed text-zinc-200">
+                      <div key={`wiki-body-${i}`} className="space-y-1.5 rounded-none bg-ui-field/60 p-3">
+                        <p className="leading-relaxed text-foreground">
                           {link.contextBefore ? (
                             <span className="text-muted-foreground">…{link.contextBefore} </span>
                           ) : null}
@@ -1679,7 +1539,7 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                             href={link.href.replace(/&amp;/g, "&")}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="font-medium text-emerald-400 underline underline-offset-2"
+                            className="font-medium text-primary underline underline-offset-2"
                           >
                             {link.anchor}
                           </a>
@@ -1691,15 +1551,15 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                           href={link.href.replace(/&amp;/g, "&")}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="block break-all text-emerald-400 underline underline-offset-2"
+                          className="block break-all text-primary underline underline-offset-2"
                         >
                           {wikipediaTitleFromHref(link.href)}
                         </a>
                       </div>
                     ))
                   : wikiLinkList.map((link, i) => (
-                      <div key={`wiki-staged-${i}`} className="space-y-1.5 rounded-none bg-zinc-900/60 p-3">
-                        <p className="text-zinc-200">
+                      <div key={`wiki-staged-${i}`} className="space-y-1.5 rounded-none bg-ui-field/60 p-3">
+                        <p className="text-foreground">
                           Staged anchor:{" "}
                           <span className="font-medium text-foreground">{link.anchor || "Wikipedia"}</span>
                         </p>
@@ -1707,7 +1567,7 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                           href={link.href.replace(/&amp;/g, "&")}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="block break-all text-emerald-400 underline underline-offset-2"
+                          className="block break-all text-primary underline underline-offset-2"
                         >
                           {wikipediaTitleFromHref(link.href)}
                         </a>
@@ -1733,10 +1593,8 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
             countTitle="Answer staged"
             action={
               <Button
+                variant="quiet"
                 type="button"
-                variant="ghost"
-                size="icon"
-                className={META_FIELD_END_RAIL_BTN}
                 disabled={shellOnly}
                 title="AI Answer (prepend to post body)"
                 onClick={(e) => {
@@ -1746,16 +1604,16 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                 }}
               >
                 {row.status === "ai-answer" ? (
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-400" />
+                  null
                 ) : (
-                  <Wand2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                  <Wand2 className="h-4 w-4 shrink-0 text-primary" />
                 )}
               </Button>
             }
           />
           <CollapsibleContent className="space-y-3 pt-3">
             {answerSectionHtml ? (
-              <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-none bg-zinc-900/60 p-3 text-base text-zinc-200">
+              <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-none bg-ui-field/60 p-3 text-base text-foreground">
                 {answerSectionHtml}
               </pre>
             ) : (
@@ -1777,10 +1635,8 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
             countTitle="Overview staged"
             action={
               <Button
+                variant="quiet"
                 type="button"
-                variant="ghost"
-                size="icon"
-                className={META_FIELD_END_RAIL_BTN}
                 disabled={shellOnly}
                 title="AI Overview (prepend to post body)"
                 onClick={(e) => {
@@ -1790,16 +1646,16 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                 }}
               >
                 {row.status === "ai-overview" ? (
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-400" />
+                  null
                 ) : (
-                  <Wand2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                  <Wand2 className="h-4 w-4 shrink-0 text-primary" />
                 )}
               </Button>
             }
           />
           <CollapsibleContent className="space-y-3 pt-3">
             {overviewSectionHtml ? (
-              <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-none bg-zinc-900/60 p-3 text-base text-zinc-200">
+              <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-none bg-ui-field/60 p-3 text-base text-foreground">
                 {overviewSectionHtml}
               </pre>
             ) : (
@@ -1821,10 +1677,8 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
             countTitle="Illustrative scenario staged"
             action={
               <Button
+                variant="quiet"
                 type="button"
-                variant="ghost"
-                size="icon"
-                className={META_FIELD_END_RAIL_BTN}
                 disabled={shellOnly}
                 title="AI Scenario (regenerate illustrative H2)"
                 onClick={(e) => {
@@ -1834,16 +1688,16 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                 }}
               >
                 {row.status === "ai-scenario" ? (
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-400" />
+                  null
                 ) : (
-                  <Wand2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                  <Wand2 className="h-4 w-4 shrink-0 text-primary" />
                 )}
               </Button>
             }
           />
           <CollapsibleContent className="space-y-3 pt-3">
             {scenarioSectionHtml ? (
-              <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-none bg-zinc-900/60 p-3 text-base text-zinc-200">
+              <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-none bg-ui-field/60 p-3 text-base text-foreground">
                 {scenarioSectionHtml}
               </pre>
             ) : (
@@ -1865,10 +1719,8 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
             countTitle="In-content image staged"
             action={
               <Button
+                variant="quiet"
                 type="button"
-                variant="ghost"
-                size="icon"
-                className={META_FIELD_END_RAIL_BTN}
                 disabled={shellOnly}
                 title="AI In Content Image"
                 onClick={(e) => {
@@ -1878,9 +1730,9 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                 }}
               >
                 {row.status === "ai-in-content-image" ? (
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-400" />
+                  null
                 ) : (
-                  <Wand2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                  <Wand2 className="h-4 w-4 shrink-0 text-primary" />
                 )}
               </Button>
             }
@@ -1888,63 +1740,29 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
           <CollapsibleContent className="space-y-3 pt-3">
             {sitemapSource === "sap" ? (
               <div className="space-y-2">
-                <Label
+                <label
                   htmlFor={`in-content-image-kind-${index}`}
                   className="text-base font-medium"
                 >
                   Image type
-                </Label>
-                <Select
-                  value={row.blogInContentImageKind === "local" ? "local" : "photo"}
-                  onValueChange={(value) => {
+                </label>
+                <SelectField placeholder="Photo" value={row.blogInContentImageKind === "local" ? "local" : "photo"} onValueChange={(value) => {
                     updateRow(index, {
                       blogInContentImageKind: value === "local" ? "local" : "photo",
                     });
-                  }}
-                  disabled={shellOnly}
-                >
-                  <SelectTrigger
-                    id={`in-content-image-kind-${index}`}
-                    className="h-9 w-full text-base font-medium"
-                  >
-                    <SelectValue placeholder="Photo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="photo">Photo</SelectItem>
-                    <SelectItem value="local">Local Image (generate)</SelectItem>
-                  </SelectContent>
-                </Select>
+                  }} disabled={shellOnly} options={[{ value: "photo", label: "Photo" }, { value: "local", label: "Local Image (generate)" }]} width="full" />
               </div>
             ) : null}
             <div className="space-y-2">
-              <Label htmlFor={`in-content-image-heading-${index}`} className="text-base font-medium">
+              <label htmlFor={`in-content-image-heading-${index}`} className="text-base font-medium">
                 Heading
-              </Label>
-              <Select
-                value={row.blogInContentImageTargetHeading?.trim() || "__auto__"}
-                onValueChange={(value) => {
+              </label>
+              <SelectField placeholder="Auto (best heading)" value={row.blogInContentImageTargetHeading?.trim() || "__auto__"} onValueChange={(value) => {
                   updateRow(index, {
                     blogInContentImageTargetHeading:
                       value === "__auto__" ? undefined : value,
                   });
-                }}
-                disabled={shellOnly || headerList.length === 0}
-              >
-                <SelectTrigger
-                  id={`in-content-image-heading-${index}`}
-                  className="h-9 w-full text-base font-medium"
-                >
-                  <SelectValue placeholder="Auto (best heading)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__auto__">Auto (best heading)</SelectItem>
-                  {headerList.map((heading, headingIndex) => (
-                    <SelectItem key={`${headingIndex}:${heading}`} value={heading}>
-                      {heading}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                }} disabled={shellOnly || headerList.length === 0} options={[{ value: "__auto__", label: "Auto (best heading)" }, ...headerList.map((heading, headingIndex) => ({ value: heading, label: heading }))]} width="full" />
               {headerList.length === 0 ? (
                 <p className="text-base text-muted-foreground">
                   No H2 headings yet. Scrape or reload the sitemap to import body HTML.
@@ -1956,10 +1774,10 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                 <img
                   src={row.blogInContentImageUrl}
                   alt={row.blogInContentImageAlt || "In content image"}
-                  className="max-h-64 w-full object-contain bg-zinc-900/60"
+                  className="max-h-64 w-full object-contain bg-ui-field/60"
                 />
                 {row.blogInContentImageSection?.trim() ? (
-                  <p className="text-base text-zinc-200">
+                  <p className="text-base text-foreground">
                     Section: {row.blogInContentImageSection}
                   </p>
                 ) : null}
@@ -1974,7 +1792,7 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                       href={row.blogInContentImageReferenceSourceUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-emerald-400 underline underline-offset-2"
+                      className="text-primary underline underline-offset-2"
                     >
                       Original source
                     </a>
@@ -1986,7 +1804,7 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                       href={row.blogInContentImageSharedFromPageUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-emerald-400 underline underline-offset-2"
+                      className="text-primary underline underline-offset-2"
                     >
                       Shared from{" "}
                       {row.blogInContentImageSharedFromSiteName?.trim() || "peer site"}
@@ -2008,9 +1826,9 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
         <MetaAccordionStripeRow stripeIndex={8}>
         <Collapsible open={faqEditorOpen} onOpenChange={setFaqEditorOpen}>
           <CollapsibleTrigger asChild>
-            <button type="button" className={cn(META_TRIGGER_FLAT, "w-full font-semibold")}>
+            <Button variant="quiet">
               <CircleHelp className="h-4 w-4 shrink-0" aria-hidden />
-              <span className="min-w-0 flex-1 truncate text-left">FAQs</span>
+              <span className="min-w-0 flex-1 break-words text-left">FAQs</span>
               <div className={cn(META_FIELD_END_RAIL, "pointer-events-none shrink-0")} aria-hidden>
                 <span
                   className={cn(META_FIELD_COUNT, META_FIELD_END_RAIL_CELL, "min-w-[1.75rem] tabular-nums font-semibold")}
@@ -2025,15 +1843,12 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                   faqEditorOpen && "rotate-180",
                 )}
               />
-            </button>
+            </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-3 pt-3">
             <div className="flex w-full min-w-0 shrink-0 flex-wrap items-center justify-end gap-1.5">
               <Button
                 type="button"
-                variant="outline"
-                size="icon"
-                className={META_FAQ_TOOL_ICON}
                 onClick={() => {
                   const current = parseFaqEntries(row.faq);
                   const next = [...current, { question: "", answer: "" }];
@@ -2045,9 +1860,6 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
               </Button>
               <Button
                 type="button"
-                variant="outline"
-                size="icon"
-                className={META_FAQ_TOOL_ICON}
                 onClick={() => {
                   const current = parseFaqEntries(row.faq);
                   if (!current.length) return;
@@ -2060,14 +1872,11 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
               </Button>
               <Button
                 type="button"
-                variant="outline"
-                size="icon"
-                className={META_FAQ_TOOL_ICON}
                 onClick={() => void handleAiFaqRowAll(index)}
                 title="AI FAQs (4 pairs if empty)"
               >
                 {row.status === "ai-faq" ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  null
                 ) : (
                   <Wand2 className="h-4 w-4" />
                 )}
@@ -2078,7 +1887,7 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                 <div key={i} className={cn("space-y-2 text-base", META_FAQ_PAIR_TILE)}>
                   <div className="flex w-full min-w-0">
                     <div className="relative min-w-0 flex-1">
-                      <Input
+                      <Field
                         value={entry.question}
                         onChange={(e) => {
                           const current = parseFaqEntries(row.faq);
@@ -2087,10 +1896,6 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                           next[i] = { ...next[i], question: e.target.value };
                           updateRow(index, { faq: serializeFaqEntriesPlain(next) });
                         }}
-                        className={cn(
-                          "min-h-9 min-w-0 w-full py-2 pl-3 pr-[5.75rem] text-left text-base sm:pr-24",
-                          META_INPUT_SURFACE,
-                        )}
                         placeholder="Question"
                         aria-label={`FAQ question ${i + 1}`}
                       />
@@ -2103,17 +1908,15 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                           {entry.question.length}
                         </span>
                         <Button
+                          variant="quiet"
                           type="button"
-                          variant="ghost"
-                          size="icon"
-                          className={META_FIELD_END_RAIL_BTN}
                           title="AI question"
                           onClick={() => void handleAiFaqQuestion(index, i)}
                         >
                           {row.status === "ai-faq" ? (
-                            <Loader2 className="h-3 w-3 shrink-0 animate-spin text-emerald-400" />
+                            null
                           ) : (
-                            <Wand2 className="h-3 w-3 shrink-0 text-emerald-400" />
+                            <Wand2 className="h-3 w-3 shrink-0 text-primary" />
                           )}
                         </Button>
                       </MetaFieldEndRail>
@@ -2121,7 +1924,7 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                   </div>
                   <div className="flex w-full min-w-0">
                     <div className="relative min-w-0 flex-1">
-                      <Textarea
+                      <TextareaField
                         value={entry.answer}
                         onChange={(e) => {
                           const current = parseFaqEntries(row.faq);
@@ -2131,10 +1934,6 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                           updateRow(index, { faq: serializeFaqEntriesPlain(next) });
                         }}
                         rows={3}
-                        className={cn(
-                          "min-h-[4.875rem] min-w-0 w-full resize-none py-2 pl-3 pr-[5.75rem] text-left text-base leading-snug sm:pr-24",
-                          META_INPUT_SURFACE,
-                        )}
                         placeholder="Answer"
                         aria-label={`FAQ answer ${i + 1}`}
                       />
@@ -2147,17 +1946,15 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                           {entry.answer.length}
                         </span>
                         <Button
+                          variant="quiet"
                           type="button"
-                          variant="ghost"
-                          size="icon"
-                          className={META_FIELD_END_RAIL_BTN}
                           title="AI answer"
                           onClick={() => void handleAiFaqAnswer(index, i)}
                         >
                           {row.status === "ai-faq" ? (
-                            <Loader2 className="h-3 w-3 shrink-0 animate-spin text-emerald-400" />
+                            null
                           ) : (
-                            <Wand2 className="h-3 w-3 shrink-0 text-emerald-400" />
+                            <Wand2 className="h-3 w-3 shrink-0 text-primary" />
                           )}
                         </Button>
                       </MetaFieldEndRail>
@@ -2176,7 +1973,7 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
           onOpenChange={(next) => setExpandedContentUrl(next ? row.url : null)}
         >
           <CollapsibleTrigger asChild>
-            <button type="button" className={cn(META_TRIGGER_FLAT, "w-full font-semibold")}>
+            <Button variant="quiet">
               <Sparkles className="h-4 w-4 shrink-0" />
               <span className="min-w-0 flex-1 text-left">Optimize content</span>
               <ChevronDown
@@ -2185,7 +1982,7 @@ export const MetaOptimizerPageRowDetails: React.FC<MetaOptimizerPageRowDetailsPr
                   expandedContentUrl === row.url && "rotate-180",
                 )}
               />
-            </button>
+            </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-3">
             {opt.isOptimizingContent[site.id] ? (

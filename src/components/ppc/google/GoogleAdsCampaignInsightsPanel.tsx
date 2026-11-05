@@ -29,7 +29,7 @@ import { ppcCampaignInsightsHasActivity, type PpcCampaignInsights } from "@/lib/
 import { cn } from "@/lib/utils";
 
 const METRIC_WELL =
-  "flex min-h-[3.25rem] min-w-0 flex-col justify-center gap-0.5 rounded-none bg-zinc-900 px-3 py-2.5";
+  "flex min-h-[3.25rem] min-w-0 flex-col justify-center gap-0.5 rounded-none bg-ui-field px-3 py-2.5";
 
 const METRIC_WELL_GROW = cn(METRIC_WELL, "flex-1");
 
@@ -40,16 +40,16 @@ const PERFORMANCE_METRICS_ROW =
 
 const PERFORMANCE_METRIC_CELL = "min-w-[calc(50%-0.25rem)] sm:min-w-0 sm:flex-1";
 
-const PANEL_SECTION = "w-full min-w-0 bg-zinc-900/40 px-3 py-3";
+const PANEL_SECTION = "w-full min-w-0 bg-ui-field/40 px-3 py-3";
 
 const TRAFFIC_TABLE_ROW =
   "grid w-full min-w-0 grid-cols-[1.25rem_minmax(0,1fr)_4.25rem_5rem_5.25rem_4.75rem] items-center gap-x-3";
 
-const TRAFFIC_TABLE_HEAD = cn(TRAFFIC_TABLE_ROW, "border-b border-zinc-800/80 pb-2 text-muted-foreground");
+const TRAFFIC_TABLE_HEAD = cn(TRAFFIC_TABLE_ROW, "border-b border-border/80 pb-2 text-muted-foreground");
 
 const TRAFFIC_TABLE_BODY_ROW = cn(
   TRAFFIC_TABLE_ROW,
-  "border-b border-zinc-800/50 py-2.5 text-base last:border-b-0",
+  "border-b border-border/50 py-2.5 text-base last:border-b-0",
 );
 
 const INSIGHTS_CHART_CONFIG = {
@@ -61,9 +61,9 @@ function TrafficMetricCells({ row }: { row: AdsMetrics }) {
   const cpcMicros = ppcCampaignInsightsAverageCpcMicros(row);
   return (
     <>
-      <span className="text-right tabular-nums text-zinc-100">{row.clicks}</span>
-      <span className="text-right tabular-nums text-zinc-100">{row.impressions}</span>
-      <span className="text-right tabular-nums text-zinc-100">{formatSpend(row.costMicros)}</span>
+      <span className="text-right tabular-nums text-foreground">{row.clicks}</span>
+      <span className="text-right tabular-nums text-foreground">{row.impressions}</span>
+      <span className="text-right tabular-nums text-foreground">{formatSpend(row.costMicros)}</span>
       <span className="text-right tabular-nums text-muted-foreground">
         {cpcMicros > 0 ? `${ppcCampaignInsightsCpcLabel(cpcMicros)}` : "—"}
       </span>
@@ -190,8 +190,8 @@ export function GoogleAdsCampaignInsightsPanel({
               className={cn(
                 "rounded-none px-2 py-0.5 text-base tabular-nums",
                 statusTone === "ok" && "bg-primary/20 text-primary",
-                statusTone === "warn" && "bg-amber-500/15 text-amber-200",
-                statusTone === "muted" && "bg-zinc-800 text-muted-foreground",
+                statusTone === "warn" && "bg-semantic-warning/15 text-semantic-warning-foreground",
+                statusTone === "muted" && "bg-ui-field-hover text-muted-foreground",
               )}
             >
               {ppcCampaignStatusLabel(insights.campaignStatus)}
@@ -200,7 +200,7 @@ export function GoogleAdsCampaignInsightsPanel({
           <span className="text-base text-muted-foreground">
             {periodHint ?? ppcCampaignInsightsDateRangeLabel(insights)}
           </span>
-          <span className="rounded-none bg-zinc-800 px-2 py-0.5 text-base text-zinc-200">
+          <span className="rounded-none bg-ui-field-hover px-2 py-0.5 text-base text-foreground">
             {scopeView.scopeLabel}
           </span>
         </div>
@@ -215,12 +215,12 @@ export function GoogleAdsCampaignInsightsPanel({
           <span className="text-base text-muted-foreground">Campaign ID</span>
           <span className="flex min-w-0 items-center gap-1.5 tabular-nums text-base text-white">
             <GoogleAdsEntityStatusIcon status={insights.campaignStatus} />
-            <span className="truncate">{insights.campaignId}</span>
+            <span className="break-words">{insights.campaignId}</span>
           </span>
         </div>
         <div className={METRIC_WELL}>
           <span className="text-base text-muted-foreground">Customer ID</span>
-          <span className="truncate tabular-nums text-base text-white">
+          <span className="break-words tabular-nums text-base text-white">
             {formatGoogleAdsCustomerId(insights.customerId)}
           </span>
         </div>
@@ -237,7 +237,7 @@ export function GoogleAdsCampaignInsightsPanel({
             rel="noopener noreferrer"
             className={cn(
               METRIC_WELL,
-              "flex-row items-center justify-between gap-2 text-sky-400 no-underline hover:text-sky-300",
+              "flex-row items-center justify-between gap-2 text-semantic-analysis-foreground no-underline hover:text-semantic-analysis-foreground",
             )}
           >
             <span className="text-base">Open in Google Ads</span>
@@ -253,9 +253,9 @@ export function GoogleAdsCampaignInsightsPanel({
             {insights.structureAdGroups.map((row) => (
               <li
                 key={row.id || row.name}
-                className="flex min-w-0 items-center justify-between gap-2 bg-zinc-900/80 px-3 py-2 text-base"
+                className="flex min-w-0 items-center justify-between gap-2 bg-ui-field/80 px-3 py-2 text-base"
               >
-                <span className="min-w-0 truncate text-zinc-200">{row.name}</span>
+                <span className="min-w-0 break-words text-foreground">{row.name}</span>
                 <span className="shrink-0 text-muted-foreground">{ppcCampaignStatusLabel(row.status)}</span>
               </li>
             ))}
@@ -310,11 +310,11 @@ export function GoogleAdsCampaignInsightsPanel({
         ) : null}
       </div>
 
-      <div className="min-h-48 w-full bg-zinc-900/50 px-2 py-3">
+      <div className="min-h-48 w-full bg-ui-field/50 px-2 py-3">
         {chartData.length > 0 && scopeView.hasActivity ? (
           <ChartContainer config={INSIGHTS_CHART_CONFIG} className="aspect-[3/1] h-48 w-full">
             <LineChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-              <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-zinc-800" />
+              <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted-foreground" />
               <XAxis dataKey="date" tickLine={false} axisLine={false} minTickGap={24} />
               <YAxis yAxisId="spend" tickLine={false} axisLine={false} width={40} />
               <YAxis yAxisId="clicks" orientation="right" tickLine={false} axisLine={false} width={32} />
@@ -354,9 +354,9 @@ export function GoogleAdsCampaignInsightsPanel({
               {insights.recommendations.map((rec) => (
                 <li
                   key={rec.resourceName || `${rec.type}-${rec.detail}`}
-                  className="min-w-0 bg-zinc-900/80 px-3 py-2 text-base"
+                  className="min-w-0 bg-ui-field/80 px-3 py-2 text-base"
                 >
-                  <p className="font-medium text-zinc-100">{rec.title}</p>
+                  <p className="font-medium text-foreground">{rec.title}</p>
                   <p className="text-muted-foreground">{rec.detail}</p>
                   {rec.impact && rec.impact.potentialClicks > rec.impact.baseClicks ? (
                     <p className="tabular-nums text-muted-foreground">
@@ -385,7 +385,7 @@ export function GoogleAdsCampaignInsightsPanel({
                   {topAdGroups.map((row) => (
                     <li key={row.id || row.name} className={TRAFFIC_TABLE_BODY_ROW} role="row">
                       <GoogleAdsEntityStatusIcon status={adGroupStatusById.get(row.id)} />
-                      <span className="min-w-0 truncate text-zinc-200">{row.name}</span>
+                      <span className="min-w-0 break-words text-foreground">{row.name}</span>
                       <TrafficMetricCells row={row} />
                     </li>
                   ))}
@@ -409,10 +409,10 @@ export function GoogleAdsCampaignInsightsPanel({
                       role="row"
                     >
                       <span aria-hidden />
-                      <span className="min-w-0 text-zinc-200">
-                        <span className="block truncate">{row.text}</span>
+                      <span className="min-w-0 text-foreground">
+                        <span className="block break-words">{row.text}</span>
                         {row.adGroupName ? (
-                          <span className="block truncate text-muted-foreground">{row.adGroupName}</span>
+                          <span className="block break-words text-muted-foreground">{row.adGroupName}</span>
                         ) : null}
                       </span>
                       <TrafficMetricCells row={row} />
@@ -434,7 +434,7 @@ export function GoogleAdsCampaignInsightsPanel({
                   {topTerms.map((row) => (
                     <li key={row.searchTerm} className={TRAFFIC_TABLE_BODY_ROW} role="row">
                       <span aria-hidden />
-                      <span className="min-w-0 truncate text-zinc-200">{row.searchTerm}</span>
+                      <span className="min-w-0 break-words text-foreground">{row.searchTerm}</span>
                       <TrafficMetricCells row={row} />
                     </li>
                   ))}

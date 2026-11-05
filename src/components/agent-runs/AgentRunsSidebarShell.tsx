@@ -6,6 +6,7 @@ import { RUNNING_AGENTS_LABEL } from "./AgentRunsBrandTitle";
 import { AgentRunsLauncherBrand } from "./AgentRunsLauncherBrand";
 import { AgentRunsSidebarResizeHandle } from "./AgentRunsSidebarResizeHandle";
 import "./agent-runs-theme.css";
+import { Button } from "@/ui";
 
 type AgentRunsSidebarShellProps = {
   open: boolean;
@@ -44,20 +45,19 @@ export function AgentRunsSidebarShell({ open, onOpenChange, children }: AgentRun
       style={{ "--fai-sidebar-width": `${width}px` } as CSSProperties}
       aria-hidden={!open}
     >
-      <button
-        type="button"
-        className="agent-runs-launcher"
+      <Button
+        variant="quiet"
         onClick={() => onOpenChange(true)}
         aria-label={`Open ${RUNNING_AGENTS_LABEL}`}
         aria-expanded={open}
         aria-controls="agent-runs-panel"
       >
         <AgentRunsLauncherBrand />
-      </button>
+      </Button>
 
-      <button
-        type="button"
-        className={cn("fai-sidebar-backdrop", open && "fai-sidebar-backdrop--visible")}
+      <Button
+        pressed={Boolean(open)}
+        variant="quiet"
         onClick={() => onOpenChange(false)}
         aria-label={`Close ${RUNNING_AGENTS_LABEL}`}
         tabIndex={open ? 0 : -1}
@@ -72,14 +72,12 @@ export function AgentRunsSidebarShell({ open, onOpenChange, children }: AgentRun
         aria-label={RUNNING_AGENTS_LABEL}
       >
         {open ? (
-          <button
-            type="button"
-            className="agent-runs-panel-close-tab"
+          <Button
+            size="icon" icon={ChevronRight}
+            variant="quiet"
             onClick={() => onOpenChange(false)}
             aria-label="Close sidebar"
-          >
-            <ChevronRight className="h-5 w-5" aria-hidden />
-          </button>
+          ></Button>
         ) : null}
         {open && !isMobile ? <AgentRunsSidebarResizeHandle {...handleProps} /> : null}
         {children}

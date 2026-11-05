@@ -1,17 +1,12 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import { Minus, Plus } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import {
-  TaskFormFlatSelectPlaceholder,
-  TaskFormPanel,
-  TASK_FORM_FLAT_CONTROL_CLASS,
-} from "@/components/manager/tasks/TaskFormLayout";
+import { TaskFormFlatSelectPlaceholder, TaskFormPanel } from "@/components/manager/tasks/TaskFormLayout";
 import {
   WorkflowInspectorField,
   WorkflowInspectorFieldGrid,
   WorkflowInspectorGroup,
 } from "@/components/manager/workflow/WorkflowInspectorLayout";
-import { WORKFLOW_FORM_FLAT_CONTROL_CLASS } from "@/components/manager/workflow/forge-workflow-styles";
+
 import {
   TASK_EXECUTION_TARGET_BUCKETS,
   TASK_EXECUTION_TARGET_BUCKET_LABELS,
@@ -26,6 +21,7 @@ import {
   type WorkflowCsvRowsConfig,
 } from "@/lib/workflow/csv-rows-types";
 import { autoCsvColumnMap, parseWorkflowCsvRows } from "@/lib/workflow/parse-workflow-csv-rows";
+import { Button, Field, FileInput, RowButton } from "@/ui";
 
 export type CsvRowsExecutionFieldsProps = {
   config: WorkflowCsvRowsConfig;
@@ -54,7 +50,8 @@ export function CsvRowsExecutionFields({
         ? "site"
         : "upload";
   const headers = headersForEditor(merged, source);
-  const fieldClass = surface === "what" ? TASK_FORM_FLAT_CONTROL_CLASS : WORKFLOW_FORM_FLAT_CONTROL_CLASS;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   const rowCount = useMemo(() => {
     if (source === "workflow" || source === "site") return null;
@@ -96,14 +93,22 @@ export function CsvRowsExecutionFields({
   };
 
   const fileWell = (
-    <Input
-      type="file"
-      accept=".csv,text/csv"
-      disabled={disabled || source !== "upload"}
-      aria-label="CSV file"
-      className={fieldClass}
-      onChange={(event) => void handleFile(event.target.files?.[0] ?? null)}
-    />
+    <>
+      <FileInput
+        ref={fileInputRef}
+        accept=".csv,text/csv"
+        aria-label="CSV file"
+        onChange={(event) => void handleFile(event.target.files?.[0] ?? null)}
+      />
+      <Button
+        type="button"
+        variant="tool"
+        disabled={disabled || source !== "upload"}
+        onClick={() => fileInputRef.current?.click()}
+      >
+        {merged.csvFileName || "Choose CSV file"}
+      </Button>
+    </>
   );
 
   const sourceSelect = (
@@ -158,38 +163,34 @@ export function CsvRowsExecutionFields({
     <div className="flex flex-col gap-1">
       {headers.map((value, index) => (
         <div key={index} className="flex min-w-0 items-center gap-2 bg-black px-3">
-          <Input
+          <Field
             value={value}
             disabled={disabled}
             placeholder={index === 0 ? "url" : "H2"}
             aria-label={`Header ${index + 1}`}
-            className={fieldClass}
             onChange={(event) => {
               const next = [...headers];
               next[index] = event.target.value;
               setHeaders(next);
             }}
           />
-          <button
-            type="button"
+          <Button
+            size="icon" icon={Minus}
+            variant="quiet"
             disabled={disabled || headers.length <= 1}
             aria-label={`Remove ${value || `header ${index + 1}`}`}
-            className="flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
             onClick={() => setHeaders(headers.filter((_, row) => row !== index))}
-          >
-            <Minus className="h-4 w-4" aria-hidden />
-          </button>
+          ></Button>
         </div>
       ))}
-      <button
+      <RowButton
         type="button"
         disabled={disabled}
         aria-label="Add header"
-        className="flex h-9 w-full items-center gap-2 rounded-none bg-black px-3 text-muted-foreground hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
         onClick={() => setHeaders([...headers, ""])}
       >
         <Plus className="h-4 w-4 shrink-0" aria-hidden />
-      </button>
+      </RowButton>
     </div>
   );
 

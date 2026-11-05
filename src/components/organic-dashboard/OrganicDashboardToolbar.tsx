@@ -1,25 +1,10 @@
 import { Download, ExternalLink, Link2, RefreshCw } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-
-import { BULK_TOOLBAR_GROUP_DIVIDER } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
-
+import { ActionButton, Button, FilterRowDivider } from "@/ui";
 import { GeneratorToolbarFrame } from "@/components/blog-generator/GeneratorToolbarFrame";
-
 import {
   Ga4ReportingDateRangePopover,
   type Ga4ReportingDateHarness,
 } from "@/components/research/reporting/Ga4ReportingDateRangePopover";
-
-import {
-  REPORTING_TOOLBAR_CLIENT_REPORT_BTN_CLASS,
-  REPORTING_TOOLBAR_DOWNLOAD_PDF_BTN_CLASS,
-  REPORTING_TOOLBAR_LABEL_RESERVE_CLASS,
-  REPORTING_TOOLBAR_LABEL_SLOT_CLASS,
-  REPORTING_TOOLBAR_LABEL_VISIBLE_CLASS,
-  REPORTING_TOOLBAR_REFRESH_BTN_CLASS,
-  REPORTING_TOOLBAR_SHARE_BTN_CLASS,
-} from "@/components/organic-dashboard/organic-reporting-toolbar-buttons";
 
 export type OrganicDashboardToolbarProps = {
   onRefresh: () => void;
@@ -39,16 +24,9 @@ export type OrganicDashboardToolbarProps = {
   onDateRangePopoverOpenChange?: (open: boolean) => void;
 };
 
-function ToolbarLabelSlot({ visible, reserve }: { visible: string; reserve: string }) {
-  return (
-    <span className={REPORTING_TOOLBAR_LABEL_SLOT_CLASS}>
-      <span className={REPORTING_TOOLBAR_LABEL_RESERVE_CLASS} aria-hidden>
-        {reserve}
-      </span>
-      <span className={REPORTING_TOOLBAR_LABEL_VISIBLE_CLASS}>{visible}</span>
-    </span>
-  );
-}
+const SHARE_STATES = ["Share link", "Copied"] as const;
+const DOWNLOAD_PDF_STATES = ["Download PDF", "Preparing"] as const;
+const CLIENT_REPORT_STATES = ["Client report", "Preparing"] as const;
 
 export function OrganicDashboardToolbar({
   onRefresh,
@@ -83,57 +61,37 @@ export function OrganicDashboardToolbar({
       }
       actions={
         <>
-          <div className={BULK_TOOLBAR_GROUP_DIVIDER} />
-          <Button
-            type="button"
-            variant="ghost"
-            className={REPORTING_TOOLBAR_SHARE_BTN_CLASS}
+          <FilterRowDivider />
+          <ActionButton
+            variant="tool"
+            icon={Link2}
+            states={SHARE_STATES}
+            state={shareCopied ? "Copied" : "Share link"}
             onClick={onShareLink}
-          >
-            <Link2 className="h-4 w-4 shrink-0" aria-hidden />
-            <ToolbarLabelSlot visible={shareCopied ? "Copied" : "Share link"} reserve="Share link" />
-          </Button>
+          />
           {showExportPdf ? (
             <>
               {onDownloadPdf ? (
-                <Button
-                  type="button"
-                  variant="ghost"
+                <ActionButton
+                  variant="tool"
+                  icon={Download}
+                  states={DOWNLOAD_PDF_STATES}
+                  state={downloadPdfBusy ? "Preparing" : "Download PDF"}
                   disabled={exportPdfDisabled || downloadPdfBusy}
-                  aria-busy={downloadPdfBusy}
-                  className={REPORTING_TOOLBAR_DOWNLOAD_PDF_BTN_CLASS}
                   onClick={onDownloadPdf}
-                >
-                  <Download className="h-4 w-4 shrink-0" aria-hidden />
-                  <ToolbarLabelSlot
-                    visible={downloadPdfBusy ? "Preparing…" : "Download PDF"}
-                    reserve="Download PDF"
-                  />
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={exportPdfDisabled || clientReportBusy}
-                aria-busy={clientReportBusy}
-                className={REPORTING_TOOLBAR_CLIENT_REPORT_BTN_CLASS}
-                onClick={onExportPdf}
-              >
-                <ExternalLink className="h-4 w-4 shrink-0" aria-hidden />
-                <ToolbarLabelSlot
-                  visible={clientReportBusy ? "Preparing…" : "Client report"}
-                  reserve="Client report"
                 />
-              </Button>
+              ) : null}
+              <ActionButton
+                variant="tool"
+                icon={ExternalLink}
+                states={CLIENT_REPORT_STATES}
+                state={clientReportBusy ? "Preparing" : "Client report"}
+                disabled={exportPdfDisabled || clientReportBusy}
+                onClick={onExportPdf}
+              />
             </>
           ) : null}
-          <Button
-            type="button"
-            variant="ghost"
-            className={REPORTING_TOOLBAR_REFRESH_BTN_CLASS}
-            onClick={onRefresh}
-          >
-            <RefreshCw className="h-4 w-4 shrink-0" aria-hidden />
+          <Button variant="tool" icon={RefreshCw} onClick={onRefresh}>
             Refresh
           </Button>
         </>

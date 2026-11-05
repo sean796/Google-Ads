@@ -10,6 +10,7 @@ import {
   STATUS_DOT_CLASS,
   STATUS_TEXT_CLASS,
 } from "./my-sites-theme";
+import { TextButton } from "@/ui";
 
 export type EnvironmentRowProps = {
   env: HostedEnvironment;
@@ -39,14 +40,14 @@ export function EnvironmentRow({ env, canAdmin, onAction, onOpen }: EnvironmentR
       <div className="flex items-center gap-3">
         <span className={ENV_PILL_CLASS[env.environment]}>{ENVIRONMENT_LABEL[env.environment]}</span>
         <div className="flex min-w-0 flex-col leading-tight">
-          <button type="button" className="truncate text-left font-medium text-white hover:text-primary" onClick={() => onOpen(env)}>
+          <TextButton type="button" onClick={() => onOpen(env)}>
             {env.slug}
-          </button>
-          <span className="truncate text-muted-foreground">{domain || "Provisioning URL…"}</span>
+          </TextButton>
+          <span className="break-words text-muted-foreground">{domain || "Provisioning URL…"}</span>
         </div>
         <span className="ml-2 inline-flex min-w-[7rem] items-center gap-2" title={env.statusMessage ?? undefined}>
           <span className={`h-2 w-2 shrink-0 ${STATUS_DOT_CLASS[env.status]}`} aria-hidden />
-          <span className={`truncate ${STATUS_TEXT_CLASS[env.status]}`}>{statusLine}</span>
+          <span className={`break-words ${STATUS_TEXT_CLASS[env.status]}`}>{statusLine}</span>
         </span>
         <div className="ml-auto flex items-center gap-2">
           {env.wpAdminUrl ? (
@@ -71,7 +72,7 @@ export function EnvironmentRow({ env, canAdmin, onAction, onOpen }: EnvironmentR
         <Stat label="Visits" value={formatCount(s?.visits30d ?? null)} title="HTTP requests, last 30 days" />
         {updates > 0 ? <Stat label="Updates" value={String(updates)} /> : null}
         {s?.errorMessage ? (
-          <span className="truncate text-amber-200" title={s.errorMessage}>
+          <span className="break-words text-semantic-warning-foreground" title={s.errorMessage}>
             Stats incomplete
           </span>
         ) : null}

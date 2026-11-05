@@ -22,7 +22,7 @@ function rowStatusHint(row: PostCreatorProofRow): string {
 
 function ProofSlotRow({ slot }: { slot: PostCreatorProofSlot }) {
   const labelClass =
-    slot.status === "waiting" ? "text-muted-foreground" : "text-cyan-300";
+    slot.status === "waiting" ? "text-muted-foreground" : "text-semantic-analysis-foreground";
 
   return (
     <div className="flex min-w-0 items-center gap-2 text-base">
@@ -32,7 +32,7 @@ function ProofSlotRow({ slot }: { slot: PostCreatorProofSlot }) {
           href={slot.externalUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex shrink-0 items-center gap-1 font-semibold text-cyan-300 hover:underline"
+          className="inline-flex shrink-0 items-center gap-1 font-semibold text-semantic-analysis-foreground hover:underline"
           onClick={(e) => e.stopPropagation()}
         >
           Open
@@ -45,7 +45,7 @@ function ProofSlotRow({ slot }: { slot: PostCreatorProofSlot }) {
           download={slot.fileName}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex shrink-0 items-center gap-1 font-semibold text-cyan-300 hover:underline"
+          className="inline-flex shrink-0 items-center gap-1 font-semibold text-semantic-analysis-foreground hover:underline"
           onClick={(e) => e.stopPropagation()}
         >
           Download
@@ -53,7 +53,7 @@ function ProofSlotRow({ slot }: { slot: PostCreatorProofSlot }) {
         </a>
       ) : null}
       {slot.status === "generating" ? (
-        <span className="shrink-0 text-cyan-300" aria-hidden>
+        <span className="shrink-0 text-semantic-analysis-foreground" aria-hidden>
           …
         </span>
       ) : null}
@@ -80,7 +80,7 @@ function ContentBucketSection({ files }: { files: PostCreatorContentBucketProofF
             download={file.name}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center gap-1 font-semibold text-emerald-400 hover:underline"
+            className="inline-flex shrink-0 items-center gap-1 font-semibold text-primary hover:underline"
             onClick={(e) => e.stopPropagation()}
           >
             Download
@@ -113,7 +113,7 @@ function ProofPostAccordion({
         />
         <span className="min-w-0 flex-1 text-base font-semibold text-white">{row.label}</span>
         {row.keyword ? (
-          <span className="hidden min-w-0 truncate text-base text-muted-foreground sm:inline">
+          <span className="hidden min-w-0 break-words text-base text-muted-foreground sm:inline">
             {row.keyword}
           </span>
         ) : null}

@@ -1,11 +1,11 @@
 import React from "react";
 import { Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   OptimizationFileManager,
   type OptimizationFile,
 } from "@/lib/optimization-file-manager";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 const ARTIFACT_ORDER = ["checklist", "blueprint", "content"] as const;
 
@@ -54,10 +54,8 @@ export function OptimizationArtifactDownloads({
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
       {checklist ? (
         <Button
+          pressed={variant === "details"}
           type="button"
-          variant={variant === "details" ? "ghost" : "outline"}
-          size="sm"
-          className={btnClass}
           onClick={() => downloadOptimizationFile(checklist)}
         >
           <Download className="mr-1.5 h-3.5 w-3.5" />
@@ -66,10 +64,8 @@ export function OptimizationArtifactDownloads({
       ) : null}
       {blueprint ? (
         <Button
+          pressed={variant === "details"}
           type="button"
-          variant={variant === "details" ? "ghost" : "outline"}
-          size="sm"
-          className={btnClass}
           onClick={() => downloadOptimizationFile(blueprint)}
         >
           <Download className="mr-1.5 h-3.5 w-3.5" />
@@ -78,10 +74,8 @@ export function OptimizationArtifactDownloads({
       ) : null}
       {contentMd ? (
         <Button
+          pressed={variant === "details"}
           type="button"
-          variant={variant === "details" ? "ghost" : "outline"}
-          size="sm"
-          className={btnClass}
           onClick={() => downloadOptimizationFile(contentMd)}
         >
           <Download className="mr-1.5 h-3.5 w-3.5" />
@@ -90,10 +84,8 @@ export function OptimizationArtifactDownloads({
       ) : null}
       {contentHtml && !contentMd ? (
         <Button
+          pressed={variant === "details"}
           type="button"
-          variant={variant === "details" ? "ghost" : "outline"}
-          size="sm"
-          className={btnClass}
           onClick={() => downloadOptimizationFile(contentHtml)}
         >
           <Download className="mr-1.5 h-3.5 w-3.5" />

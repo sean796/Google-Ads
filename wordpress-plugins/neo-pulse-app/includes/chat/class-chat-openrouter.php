@@ -513,11 +513,21 @@ class Neo_Pulse_App_Chat_Openrouter {
 			if ( is_array( $parsed ) ) {
 				return $parsed;
 			}
+			$repaired = self::repair_truncated_json( $json_text );
+			$parsed   = json_decode( $repaired, true );
+			if ( is_array( $parsed ) ) {
+				return $parsed;
+			}
 		}
 		$reasoning = self::extract_message_reasoning( $message );
 		if ( $reasoning !== '' ) {
 			$json_text = self::extract_json_object_text( $reasoning );
 			$parsed    = json_decode( $json_text, true );
+			if ( is_array( $parsed ) ) {
+				return $parsed;
+			}
+			$repaired = self::repair_truncated_json( $json_text );
+			$parsed   = json_decode( $repaired, true );
 			if ( is_array( $parsed ) ) {
 				return $parsed;
 			}
@@ -537,6 +547,76 @@ class Neo_Pulse_App_Chat_Openrouter {
 			'OpenRouter response was not valid JSON'
 			. ( $finish !== '' ? ' (finish_reason=' . $finish . ')' : '' )
 		);
+	}
+
+	/**
+	 * Attempt to balance unclosed strings and brackets if OpenRouter cuts off JSON at max_tokens.
+	 */
+	private static function repair_truncated_json( string $raw ): string {
+		$raw = trim( $raw );
+		if ( preg_match( '/```(?:json)?\s*(\{[\s\S]*)\s*/i', $raw, $matches ) ) {
+			$raw = trim( $matches[1] );
+		}
+		$start = strpos( $raw, '{' );
+		if ( $start === false ) {
+			$start = strpos( $raw, '[' );
+		}
+		if ( $start === false ) {
+			return $raw;
+		}
+		$json = substr( $raw, $start );
+
+		$in_string = false;
+		$escaped   = false;
+		$stack     = array();
+		$len       = strlen( $json );
+
+		for ( $i = 0; $i < $len; $i++ ) {
+			$char = $json[ $i ];
+			if ( $escaped ) {
+				$escaped = false;
+				continue;
+			}
+			if ( $char === '\\' ) {
+				$escaped = true;
+				continue;
+			}
+			if ( $char === '"' ) {
+				$in_string = ! $in_string;
+				continue;
+			}
+			if ( ! $in_string ) {
+				if ( $char === '{' || $char === '[' ) {
+					$stack[] = $char;
+				} elseif ( $char === '}' ) {
+					if ( ! empty( $stack ) && end( $stack ) === '{' ) {
+						array_pop( $stack );
+					}
+				} elseif ( $char === ']' ) {
+					if ( ! empty( $stack ) && end( $stack ) === '[' ) {
+						array_pop( $stack );
+					}
+				}
+			}
+		}
+
+		if ( $in_string ) {
+			$json .= '"';
+		}
+
+		// Remove trailing unquoted comma before closing
+		$json = preg_replace( '/,\s*$/', '', $json );
+
+		while ( ! empty( $stack ) ) {
+			$open = array_pop( $stack );
+			if ( $open === '{' ) {
+				$json .= '}';
+			} elseif ( $open === '[' ) {
+				$json .= ']';
+			}
+		}
+
+		return $json;
 	}
 
 	/**
@@ -597,6 +677,9 @@ class Neo_Pulse_App_Chat_Openrouter {
 		$end   = strrpos( $content, '}' );
 		if ( $start !== false && $end !== false && $end > $start ) {
 			return substr( $content, $start, $end - $start + 1 );
+		}
+		if ( $start !== false ) {
+			return substr( $content, $start );
 		}
 		return $content;
 	}

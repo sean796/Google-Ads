@@ -1,12 +1,10 @@
 import type { BlogGeneratorSectionId } from "@/components/blog-generator/blog-generator-sections";
-import type { ResearchSectionId } from "@/components/research/research-workspace-sections";
 
 export type StudioEditorModeId =
   | "prompt"
-  | "blog-import"
+  | "vertical-benchmarks"
   | "csv"
-  | "press-release"
-  | "research-proposal";
+  | "press-release";
 
 export type StudioEditorModeOption = {
   id: StudioEditorModeId;
@@ -15,10 +13,9 @@ export type StudioEditorModeOption = {
 
 export const STUDIO_EDITOR_MODE_OPTIONS: readonly StudioEditorModeOption[] = [
   { id: "prompt", label: "Blog Ideas Studio" },
-  { id: "blog-import", label: "Import Drafts Studio" },
+  { id: "vertical-benchmarks", label: "Industry Verticals Studio" },
   { id: "csv", label: "Bulk CSV Studio" },
   { id: "press-release", label: "Press Release Studio" },
-  { id: "research-proposal", label: "Proposal Research Studio" },
 ] as const;
 
 export const STUDIO_EDITOR_MODE_STORAGE_KEY = "neo-pulse:studio-editor-mode:v1";
@@ -27,19 +24,21 @@ export function isStudioEditorModeId(value: string): value is StudioEditorModeId
   return STUDIO_EDITOR_MODE_OPTIONS.some((opt) => opt.id === value);
 }
 
-export function isResearchStudioMode(mode: StudioEditorModeId): mode is ResearchSectionId {
-  return mode === "research-proposal";
-}
-
 export function readStoredStudioEditorMode(
   activeSection?: BlogGeneratorSectionId,
 ): StudioEditorModeId {
   if (activeSection === "bulk-press-release") return "press-release";
-  if (activeSection === "research") return "research-proposal";
-  if (activeSection === "bulk-csv") return "csv";
-  if (activeSection === "bulk-blog-import") return "blog-import";
+  if (activeSection === "bulk-csv" || activeSection === "bulk-blog-import") return "csv";
   try {
+    if (typeof window !== "undefined" && window.location?.hash) {
+      const hash = window.location.hash.replace(/^#/, "").trim();
+      if (hash === "vertical-benchmarks" || hash === "generator/vertical-benchmarks") {
+        sessionStorage.setItem(STUDIO_EDITOR_MODE_STORAGE_KEY, "vertical-benchmarks");
+        return "vertical-benchmarks";
+      }
+    }
     const raw = sessionStorage.getItem(STUDIO_EDITOR_MODE_STORAGE_KEY);
+    if (raw === "blog-import") return "csv";
     if (raw && isStudioEditorModeId(raw)) {
       return raw;
     }
@@ -61,6 +60,5 @@ export function blogGeneratorSectionForStudioMode(
   mode: StudioEditorModeId,
 ): BlogGeneratorSectionId {
   if (mode === "press-release") return "bulk-press-release";
-  if (isResearchStudioMode(mode)) return "research";
   return "bulk-prompt";
 }

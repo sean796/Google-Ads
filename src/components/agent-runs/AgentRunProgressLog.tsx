@@ -8,10 +8,10 @@ import {
 import { cn } from "@/lib/utils";
 
 function statusClass(status: AgentRunLogTimelineRow["status"]): string {
-  if (status === "done") return "bg-emerald-400";
-  if (status === "error") return "bg-red-400";
-  if (status === "pending") return "bg-zinc-500";
-  return "bg-cyan-400";
+  if (status === "done") return "bg-primary/80";
+  if (status === "error") return "bg-ui-danger/20";
+  if (status === "pending") return "bg-ui-field-hover";
+  return "bg-semantic-analysis/80";
 }
 
 function isExternalUrl(url: string): boolean {
@@ -32,7 +32,7 @@ function ProgressLogLabel({ label }: { label: string }): ReactElement {
         href={parts.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-cyan-300 underline hover:text-cyan-200"
+        className="text-semantic-analysis-foreground underline hover:text-semantic-analysis-foreground"
         onClick={(event) => event.stopPropagation()}
       >
         {parts.url}
@@ -79,7 +79,7 @@ export function AgentRunProgressLog({ rows }: AgentRunProgressLogProps) {
             </span>
             <span className={cn("mt-2 h-2 w-2 shrink-0 rounded-full", statusClass(row.status))} aria-hidden />
             <div className="min-w-0 flex-1">
-              <span className="text-base text-zinc-100 [overflow-wrap:anywhere]">
+              <span className="text-base text-foreground [overflow-wrap:anywhere]">
                 <ProgressLogLabel label={row.label} />
               </span>
               {row.artifacts && row.artifacts.length > 0 ? (
@@ -91,7 +91,7 @@ export function AgentRunProgressLog({ rows }: AgentRunProgressLogProps) {
                         href={artifact.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-base text-cyan-300 hover:underline"
+                        className="inline-flex items-center gap-1 text-base text-semantic-analysis-foreground hover:underline"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {artifact.name}
@@ -107,8 +107,8 @@ export function AgentRunProgressLog({ rows }: AgentRunProgressLogProps) {
                         className={cn(
                           "inline-flex items-center gap-1 text-base hover:underline",
                           isContentBucketArtifact(artifact.name)
-                            ? "font-semibold text-emerald-400"
-                            : "text-cyan-300",
+                            ? "font-semibold text-primary"
+                            : "text-semantic-analysis-foreground",
                         )}
                         onClick={(e) => e.stopPropagation()}
                       >

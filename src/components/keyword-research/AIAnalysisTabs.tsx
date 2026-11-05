@@ -1,15 +1,13 @@
 import { useState, useCallback } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_NO_SERP_DATA_AVAILABLE_TO_EXTRACT_FROM, NOTIFY_OPENROUTER_API_KEY_IS_REQUIRED_TO_EXTRAC, notifyExtractedXPaaQuestions, notifyFailedToExtractPaaQuestionsX } from "@/lib/notify-messages";
 import type { KeywordAIAnalysis, KeywordResearchResult, PeopleAlsoAsk } from "@/lib/keyword-types";
 import { extractPeopleAlsoAskWithAI } from "@/lib/keyword-ai-analyzer";
-import { PAADataViewer } from "./PAADataViewer";
+import { Button, CheckField } from "@/ui";
 
 interface AIAnalysisTabsProps {
   aiAnalysis: KeywordAIAnalysis;
@@ -196,10 +194,10 @@ export function AIAnalysisTabs({
               <div className="space-y-2">
                 {safeAiAnalysis.h2Suggestions?.map((h2, idx) => (
                   <div key={idx} className="flex items-center gap-2 p-2 border rounded">
-                    <input
-                      type="checkbox"
+                    <CheckField
+                      aria-label={h2.heading}
                       checked={selectedH2Sections.has(h2.heading)}
-                      onChange={() => onH2Toggle(h2.heading)}
+                      onCheckedChange={() => onH2Toggle(h2.heading)}
                     />
                     <div className="flex-1">
                       <div className="font-medium">{h2.heading}</div>
@@ -221,10 +219,10 @@ export function AIAnalysisTabs({
               <div className="space-y-2">
                 {safeAiAnalysis.contentGaps?.map((gap, idx) => (
                   <div key={idx} className="flex items-center gap-2 p-2 border rounded">
-                    <input
-                      type="checkbox"
+                    <CheckField
+                      aria-label={gap.topic}
                       checked={selectedContentGaps.has(gap.topic)}
-                      onChange={() => onGapToggle(gap.topic)}
+                      onCheckedChange={() => onGapToggle(gap.topic)}
                     />
                     <div className="flex-1">
                       <div className="font-medium">{gap.topic}</div>
@@ -246,14 +244,13 @@ export function AIAnalysisTabs({
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium">Raw SERP JSON response</label>
                 <Button
+                  variant="run"
                   onClick={handleExtractPaaQuestions}
                   disabled={isExtractingPaa || !paaRawResponse || !openRouterApiKey}
-                  size="sm"
-                  className="bg-primary hover:bg-primary/90"
                 >
                   {isExtractingPaa ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      
                       Extracting...
                     </>
                   ) : (
@@ -279,10 +276,10 @@ export function AIAnalysisTabs({
                   <ScrollArea className="h-[300px]">
                     {displayPaaQuestions.map((paa, idx) => (
                       <div key={idx} className="flex items-start gap-2 p-2 border rounded mb-2">
-                        <input
-                          type="checkbox"
+                        <CheckField
+                          aria-label={paa.question}
                           checked={selectedPeopleAlsoAsk.has(paa.question)}
-                          onChange={() => onPaaToggle(paa.question)}
+                          onCheckedChange={() => onPaaToggle(paa.question)}
                         />
                         <div className="flex-1">
                           <div className="font-medium">{paa.question}</div>
@@ -306,10 +303,10 @@ export function AIAnalysisTabs({
               <div className="space-y-2">
                 {safeAiAnalysis.researchLinks?.map((link, idx) => (
                   <div key={idx} className="flex items-center gap-2 p-2 border rounded">
-                    <input
-                      type="checkbox"
+                    <CheckField
+                      aria-label={link.title || link.url}
                       checked={selectedResearchLinks.has(link.url)}
-                      onChange={() => onResearchLinkToggle(link.url)}
+                      onCheckedChange={() => onResearchLinkToggle(link.url)}
                     />
                     <div className="flex-1">
                       <div className="font-medium">{link.title || link.url}</div>

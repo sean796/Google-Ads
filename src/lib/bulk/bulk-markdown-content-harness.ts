@@ -1,5 +1,3 @@
-import pLimit from "p-limit";
-import { OVERVIEW_AI_COPY_STREAM_CONCURRENCY } from "@/lib/overview/overview-ai-copy-concurrency";
 import type { AgentConfig } from '@/types/agent-config';
 import type { KeywordData } from '../keyword-types';
 import type { CSVRow } from './bulk-csv-parser';
@@ -792,35 +790,32 @@ export async function generateMarkdownContentHarnessed(
 
   await ensureIllustrativePersonaCached(answerMd);
 
-  const sectionLimit = pLimit(OVERVIEW_AI_COPY_STREAM_CONCURRENCY);
-  const [overviewMd, ...bodyPieces] = await Promise.all([
-    runBlogHarnessSection(overviewAgent, 1, 'Overview', {
-      maxTokens: overviewMaxTokens,
-      isOverviewSection: true,
-      inPageAnchorBlock: overviewInPageAnchorBlock,
-      publishedPlanIndex: 1,
-      otherSectionTitles: bodyOutline.map((x) => x.displayTitle),
-      answerSectionHtml: answerMd,
-    }),
-    ...bodyAgents.map((agent, bi) =>
-      sectionLimit(async () => {
-        const o = bodyOutline[bi];
-        const titleForCb = o.displayTitle;
-        const otherSectionTitles = bodyOutline.filter((_, j) => j !== bi).map((x) => x.displayTitle);
-        const maxTokens = harnessTokenBySectionKey.get(titleForCb);
-        if (maxTokens == null) {
-          throw new Error(`Harness: missing token budget for section "${titleForCb}"`);
-        }
-        return runBlogHarnessSection(agent, bi + 2, titleForCb, {
-          maxTokens,
-          isOverviewSection: false,
-          publishedPlanIndex: bi + 2,
-          otherSectionTitles,
-          answerSectionHtml: answerMd,
-        });
+  const overviewMd = await runBlogHarnessSection(overviewAgent, 1, 'Overview', {
+    maxTokens: overviewMaxTokens,
+    isOverviewSection: true,
+    inPageAnchorBlock: overviewInPageAnchorBlock,
+    publishedPlanIndex: 1,
+    otherSectionTitles: bodyOutline.map((x) => x.displayTitle),
+    answerSectionHtml: answerMd,
+  });
+  const bodyPieces: Awaited<ReturnType<typeof runBlogHarnessSection>>[] = [];
+  for (const [bi, agent] of bodyAgents.entries()) {
+    const titleForCb = bodyOutline[bi].displayTitle;
+    const otherSectionTitles = bodyOutline.filter((_, j) => j !== bi).map((x) => x.displayTitle);
+    const maxTokens = harnessTokenBySectionKey.get(titleForCb);
+    if (maxTokens == null) {
+      throw new Error(`Harness: missing token budget for section "${titleForCb}"`);
+    }
+    bodyPieces.push(
+      await runBlogHarnessSection(agent, bi + 2, titleForCb, {
+        maxTokens,
+        isOverviewSection: false,
+        publishedPlanIndex: bi + 2,
+        otherSectionTitles,
+        answerSectionHtml: answerMd,
       }),
-    ),
-  ]);
+    );
+  }
 
   const stitched = stitchHarnessSections([answerMd, overviewMd, ...bodyPieces]);
   if (!stitched?.trim()) {

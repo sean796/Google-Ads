@@ -280,7 +280,10 @@ export function localWpApiProxyPlugin() {
           try {
             const body =
               req.method && !["GET", "HEAD"].includes(req.method) ? await readRequestBody(req) : undefined;
-            const result = await handleOpenRouterChatCompletion(req, body);
+            const result = await handleOpenRouterChatCompletion(req, body, res);
+            if (result.piped) {
+              return;
+            }
             res.statusCode = result.status;
             res.setHeader("content-type", "application/json; charset=utf-8");
             res.setHeader("cache-control", "no-store");
@@ -445,6 +448,19 @@ export function localWpApiProxyPlugin() {
                 ok: false,
                 content: "",
                 error: upstream.status === 413 ? "Payload truncated" : "Upstream fetch error",
+              }),
+            );
+            return;
+          }
+
+          if (path.includes("/video/") && upstream.status === 413) {
+            res.statusCode = 413;
+            res.setHeader("content-type", "application/json; charset=utf-8");
+            res.setHeader("cache-control", "no-store");
+            res.end(
+              JSON.stringify({
+                ok: false,
+                error: "Uploaded video file exceeds the server maximum body limit (413 Payload Too Large).",
               }),
             );
             return;
@@ -642,26 +658,6 @@ export function localWpApiProxyPlugin() {
             res.end(JSON.stringify({ ok: true, email: "pulse-gsc@neopulse.iam.gserviceaccount.com" }));
             return;
           }
-          if (path.includes("/wordpress/get-quarter-editorial-counts")) {
-            res.statusCode = 200;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.setHeader("cache-control", "no-store");
-            res.end(
-              JSON.stringify({
-                ok: true,
-                postsPublished: 0,
-                postsScheduled: 0,
-                entityPublished: 0,
-                entityScheduled: 0,
-                entityConfigured: true,
-                entityCountsAvailable: true,
-                published: 0,
-                scheduled: 0,
-              }),
-            );
-            return;
-          }
-
           res.statusCode = 502;
           res.setHeader("content-type", "application/json; charset=utf-8");
           res.end(

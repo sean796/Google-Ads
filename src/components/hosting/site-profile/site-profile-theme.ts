@@ -17,8 +17,8 @@ export const PROFILE_CARD_TITLE = "text-lg font-semibold tracking-tight text-whi
 export const PROFILE_STAT_GRID = `grid divide-x ${HOST_DIVIDER}`;
 export const PROFILE_STAT_CELL = "flex min-h-[6.5rem] min-w-0 flex-col justify-center gap-1 px-5 py-4";
 export const PROFILE_STAT_LABEL = "text-muted-foreground";
-export const PROFILE_STAT_VALUE = "truncate text-2xl font-semibold tracking-tight tabular-nums text-white";
-export const PROFILE_STAT_NOTE = "flex h-6 items-center gap-1.5 truncate text-muted-foreground";
+export const PROFILE_STAT_VALUE = "break-words text-2xl font-semibold tracking-tight tabular-nums text-white";
+export const PROFILE_STAT_NOTE = "flex h-6 items-center gap-1.5 break-words text-muted-foreground";
 
 export const PROFILE_ENV_SWITCH = "inline-flex h-8 shrink-0 items-center border border-white/10 p-0.5";
 export const PROFILE_ENV_SWITCH_BTN =

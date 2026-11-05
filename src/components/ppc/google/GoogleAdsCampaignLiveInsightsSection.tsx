@@ -1,5 +1,4 @@
 import { RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { GoogleAdsCampaignInsightsPanel } from "@/components/ppc/google/GoogleAdsCampaignInsightsPanel";
 import { GoogleAdsLiveAdsSelect } from "@/components/ppc/google/GoogleAdsLiveAdsSelect";
 import {
@@ -17,8 +16,9 @@ import type {
 } from "@/lib/ppc/ppc-campaign-insights-types";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
+import { Button } from "@/ui";
 
-const SHELL_CLASS = "min-h-[14rem] w-full min-w-0 rounded-none bg-zinc-950 px-3 py-3";
+const SHELL_CLASS = "min-h-[14rem] w-full min-w-0 rounded-none bg-black px-3 py-3";
 
 type GoogleAdsCampaignLiveInsightsSectionProps = {
   customerId: string;
@@ -62,23 +62,22 @@ export function GoogleAdsCampaignLiveInsightsSection({
 
   const headerAction = (
     <Button
+      variant="quiet"
       type="button"
-      variant="ghost"
-      className="h-8 rounded-none px-2 text-base text-muted-foreground hover:text-white"
       disabled={status === "loading"}
       onClick={(e) => {
         e.stopPropagation();
         void refresh();
       }}
     >
-      <RefreshCw className={cn("mr-1 h-4 w-4", status === "loading" && "animate-spin")} aria-hidden />
+      <RefreshCw className={cn("mr-1 h-4 w-4", status === "loading" && "")} aria-hidden />
       Refresh
     </Button>
   );
 
   return (
     <GoogleAdsDetailsSection
-      icon={<span className="text-base font-semibold text-sky-400 tabular-nums">Live</span>}
+      icon={<span className="text-base font-semibold text-semantic-analysis-foreground tabular-nums">Live</span>}
       title="Google Ads performance"
       badge={campaignName}
       defaultOpen={false}
@@ -96,7 +95,7 @@ export function GoogleAdsCampaignLiveInsightsSection({
         ) : null}
 
         {status === "error" && errorMessage ? (
-          <p className="text-base text-red-400">{errorMessage}</p>
+          <p className="text-base text-ui-danger-hover">{errorMessage}</p>
         ) : null}
 
         {status === "ready" && insights ? (
@@ -107,7 +106,6 @@ export function GoogleAdsCampaignLiveInsightsSection({
                 campaign={campaign}
                 selectedLiveAdKey={selectedLiveAdKey}
                 onSelectedLiveAdKeyChange={(key, ad) => onSelectedLiveAdKeyChange?.(key, ad)}
-                className="w-full"
               />
             </div>
             <GoogleAdsCampaignInsightsPanel insights={insights} scope={scope} periodHint="Last 30 days" />

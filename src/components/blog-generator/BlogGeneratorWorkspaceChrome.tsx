@@ -22,8 +22,6 @@ export type BlogGeneratorWorkspaceChromeProps = {
   isProcessing?: boolean;
   detailsPanelId?: string;
   detailsPanel?: ReactNode;
-  detailsOpenSignal?: number | string | null;
-  onDetailsOpenChange?: (open: boolean) => void;
   toolbar: ReactNode | null;
   /** Hide the black toolbar band (entry controls live in the body grid). */
   hideToolbar?: boolean;
@@ -44,8 +42,6 @@ export function BlogGeneratorWorkspaceChrome({
   isProcessing = false,
   detailsPanelId = "blog-generator-details",
   detailsPanel = null,
-  detailsOpenSignal,
-  onDetailsOpenChange,
   toolbar,
   hideToolbar = false,
 }: BlogGeneratorWorkspaceChromeProps) {
@@ -86,8 +82,6 @@ export function BlogGeneratorWorkspaceChrome({
       isProcessing={isProcessing}
       detailsPanelId={detailsPanelId}
       detailsPanel={detailsPanel}
-      detailsOpenSignal={detailsOpenSignal}
-      onDetailsOpenChange={onDetailsOpenChange}
     />
   );
 }

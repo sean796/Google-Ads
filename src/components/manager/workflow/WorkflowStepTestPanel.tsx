@@ -1,6 +1,5 @@
 import React, { useMemo } from "react";
 import { Play } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   WORKFLOW_INSPECTOR_RUN_BTN,
   WORKFLOW_STEP_TEST_CELL_CLASS,
@@ -20,6 +19,7 @@ import {
   type WorkflowStepTestRow,
 } from "@/lib/workflow/workflow-step-test";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 export type WorkflowStepTestPanelProps = {
   node: WorkflowNode;
@@ -47,7 +47,7 @@ function CompactTestCell({
 }): React.ReactElement {
   return (
     <div className={cn(WORKFLOW_STEP_TEST_CELL_CLASS, className)} title={value ? `${label} ${value}` : label}>
-      <span className="min-w-0 truncate text-base">
+      <span className="min-w-0 break-words text-base">
         <span className="text-muted-foreground">{label}</span>
         {value ? (
           <>
@@ -106,10 +106,8 @@ export function WorkflowStepTestPanel({
     return (
       <div className="grid w-full min-w-0 grid-cols-[auto_minmax(0,1fr)] grid-rows-1 gap-0.5 overflow-hidden">
         <Button
+          variant="run"
           type="button"
-          variant="default"
-          size="sm"
-          className={WORKFLOW_INSPECTOR_RUN_BTN}
           onClick={() => onTestStep(node.id)}
         >
           <Play className="h-4 w-4" />
@@ -119,7 +117,7 @@ export function WorkflowStepTestPanel({
           className={cn(WORKFLOW_STEP_TEST_CELL_CLASS, "min-w-0")}
           title={resultMessage || "Result"}
         >
-          <span className="min-w-0 truncate text-base">
+          <span className="min-w-0 break-words text-base">
             <span className="text-muted-foreground">Result</span>
             {driveTestLink ? (
               <>
@@ -155,10 +153,8 @@ export function WorkflowStepTestPanel({
     return (
       <div className="grid w-full min-w-0 grid-cols-[auto_minmax(0,1fr)] grid-rows-1 gap-0.5 overflow-hidden">
         <Button
+          variant="run"
           type="button"
-          variant="default"
-          size="sm"
-          className={WORKFLOW_INSPECTOR_RUN_BTN}
           onClick={() => onTestStep(node.id)}
         >
           <Play className="h-4 w-4" />
@@ -176,10 +172,8 @@ export function WorkflowStepTestPanel({
   return (
     <div className={WORKFLOW_STEP_TEST_GRID_CLASS}>
       <Button
+        variant="run"
         type="button"
-        variant="default"
-        size="sm"
-        className={cn(WORKFLOW_INSPECTOR_RUN_BTN, "h-8 shrink-0 px-2")}
         onClick={() => onTestStep(node.id)}
       >
         <Play className="h-4 w-4 shrink-0" />

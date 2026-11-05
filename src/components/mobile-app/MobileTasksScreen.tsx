@@ -15,6 +15,7 @@ import {
 } from "@/lib/tasks-api";
 import { filterTasks, filterTasksByQuery, sortTasks } from "@/lib/tasks-filter";
 import type { TaskFile, TaskNote, TaskProject, TaskStatus, TeamTask } from "@/lib/tasks-types";
+import { Field } from "@/ui";
 
 export function MobileTasksScreen({
   pushTaskId = null,
@@ -140,12 +141,11 @@ export function MobileTasksScreen({
     <div className="mobile-screen mobile-screen--tasks flex h-full min-h-0 flex-col overflow-hidden">
       <div className="mobile-screen__toolbar">
         <h2 className="mobile-screen__title">My Tasks</h2>
-        <input
+        <Field
           type="search"
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
           placeholder="Search tasks"
-          className="mobile-screen__search"
           aria-label="Search tasks"
         />
       </div>

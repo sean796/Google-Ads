@@ -116,7 +116,6 @@ export function useSocialCreatorWorkspace({ site, apiKey, selectedModel }: UseSo
   const [wpPages, setWpPages] = useState<PpcWpPageContext[]>([]);
   const [wpPagesLoading, setWpPagesLoading] = useState(false);
   const [pageBucketHostedLink, setPageBucketHostedLink] = useState<PpcPageBucketHostedLink | null>(null);
-  const [detailsDrawerOpen, setDetailsDrawerOpen] = useState(false);
   const [lastImagePromptDescription, setLastImagePromptDescription] = useState<string | null>(null);
   const [lastImageReferences, setLastImageReferences] = useState<MetaAdImageReferenceSummary[]>([]);
   const abortRef = useRef<AbortController | null>(null);
@@ -699,8 +698,6 @@ export function useSocialCreatorWorkspace({ site, apiKey, selectedModel }: UseSo
     workspaceBusy,
     gridPaginationTotal,
     paginationLayoutTotal,
-    detailsDrawerOpen,
-    setDetailsDrawerOpen,
     lastImagePromptDescription,
     lastImageReferences,
   };

@@ -17,7 +17,7 @@ export function AutomationThenPanel({
   onChange,
 }: AutomationThenPanelProps): React.ReactElement {
   return (
-    <div className="rounded-none bg-zinc-900/50 p-4">
+    <div className="rounded-none bg-ui-field/50 p-4">
       <PulseForgePostSchedulePanel
         heading="Schedule"
         executionKind={action.executionKind}

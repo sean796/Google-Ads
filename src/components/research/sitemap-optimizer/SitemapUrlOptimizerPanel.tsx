@@ -10,6 +10,7 @@ import { buildUrlOptimizerMicroSnapshot } from "@/lib/url-optimizer/url-optimize
 import type { SitemapUrlOptimizerWorkspaceBindings } from "@/components/research/sitemap-optimizer/sitemap-url-optimizer-workspace-bindings";
 import { WorkspaceEmptyRowStripes } from "@/components/shared/WorkspaceEmptyRowStripes";
 import { cn } from "@/lib/utils";
+import { FileInput } from "@/ui";
 
 function triggerDownload(filename: string, content: string, mime: string) {
   const blob = new Blob([content], { type: mime });
@@ -141,11 +142,9 @@ export function SitemapUrlOptimizerPanel({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <input
+      <FileInput
         ref={fileInputRef}
-        type="file"
         accept=".csv,text/csv"
-        className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) void handleGscFile(file);
@@ -180,13 +179,13 @@ export function SitemapUrlOptimizerPanel({
                         row.status === "unresolved" && "bg-destructive/5",
                       )}
                     >
-                      <td className="max-w-xs truncate px-3 py-2" title={row.page}>
+                      <td className="max-w-xs break-words px-3 py-2" title={row.page}>
                         {row.page}
                       </td>
-                      <td className="max-w-xs truncate px-3 py-2" title={row.proposedUrl ?? ""}>
+                      <td className="max-w-xs break-words px-3 py-2" title={row.proposedUrl ?? ""}>
                         {row.proposedUrl ?? "—"}
                       </td>
-                      <td className="max-w-[10rem] truncate px-3 py-2" title={row.proposedKeyword ?? ""}>
+                      <td className="max-w-[10rem] break-words px-3 py-2" title={row.proposedKeyword ?? ""}>
                         {row.proposedKeyword ?? "—"}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums">{row.impressions}</td>

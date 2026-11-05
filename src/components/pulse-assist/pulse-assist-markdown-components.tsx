@@ -1,6 +1,7 @@
 import type { Components } from "react-markdown";
 import type { AssistNavigateTarget } from "@/lib/pulse-assist/types";
 import { isInAppAssistHref, isPulseAssistHref, parseAppHref, parsePulseAssistHref } from "@/lib/pulse-assist/navigation";
+import { Button } from "@/ui";
 
 function resolveNavigateTarget(href: string): AssistNavigateTarget | null {
   if (isPulseAssistHref(href)) {
@@ -21,9 +22,9 @@ function createAnchorComponent(onNavigate?: (target: AssistNavigateTarget) => vo
       const target = resolveNavigateTarget(href);
       if (target) {
         return (
-          <button type="button" className="fcw-md-link" onClick={() => onNavigate(target)}>
+          <Button variant="quiet" onClick={() => onNavigate(target)}>
             {children}
-          </button>
+          </Button>
         );
       }
     }
@@ -39,9 +40,9 @@ function createAnchorComponent(onNavigate?: (target: AssistNavigateTarget) => vo
       const target = parseAppHref(href);
       if (target) {
         return (
-          <button type="button" className="fcw-md-link" onClick={() => onNavigate(target)}>
+          <Button variant="quiet" onClick={() => onNavigate(target)}>
             {children}
-          </button>
+          </Button>
         );
       }
     }

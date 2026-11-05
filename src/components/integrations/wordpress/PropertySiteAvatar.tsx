@@ -31,7 +31,7 @@ export function PropertySiteAvatar({ site, size = "lg", className }: PropertySit
   return (
     <div
       className={cn(
-        "relative shrink-0 overflow-hidden rounded-full bg-zinc-800 tabular-nums",
+        "relative shrink-0 overflow-hidden rounded-full bg-ui-field-hover tabular-nums",
         sizeClass[size],
         className,
       )}

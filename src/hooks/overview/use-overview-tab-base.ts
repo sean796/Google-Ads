@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useOverviewSitemap } from "@/hooks/overview/use-overview-sitemap";
 import { useOverviewScrape } from "@/hooks/overview/use-overview-scrape";
 import { useOverviewAiOptimize } from "@/hooks/overview/use-overview-ai-optimize";
@@ -21,6 +21,7 @@ import type { OptimizationOptions } from "@/hooks/use-optimization-options";
 import type { OverviewTabContentProps } from "@/components/overview/overview-tab/overview-tab-content-types";
 import { OVERVIEW_SEO_EXTRA_BULK } from "@/components/overview/overview-tab/overview-tab-content-constants";
 import {
+  isOverviewSapSourceAvailable,
   type OverviewSitemapSource,
 } from "@/lib/overview/overview-sitemap-source";
 import {
@@ -107,26 +108,35 @@ export function useOverviewTabBase({
   );
 
   const opt = useWordPressOptimization();
+  const optRef = useRef(opt);
+  optRef.current = opt;
+
+  const setBulkOptimizationState = useCallback<typeof opt.setBulkOptimizationState>((action) => {
+    deferHarnessUiUpdate(() => {
+      optRef.current.setBulkOptimizationState(action);
+    });
+  }, []);
+
+  const setOptimizationProgress = useCallback<typeof opt.setOptimizationProgress>((action) => {
+    deferHarnessUiUpdate(() => {
+      optRef.current.setOptimizationProgress(action);
+    });
+  }, []);
+
+  const setIsOptimizingContent = useCallback<typeof opt.setIsOptimizingContent>((action) => {
+    deferHarnessUiUpdate(() => {
+      optRef.current.setIsOptimizingContent(action);
+    });
+  }, []);
+
   const overviewOpt = useMemo(
     () => ({
       ...opt,
-      setBulkOptimizationState: ((action) => {
-        deferHarnessUiUpdate(() => {
-          opt.setBulkOptimizationState(action);
-        });
-      }) as typeof opt.setBulkOptimizationState,
-      setOptimizationProgress: ((action) => {
-        deferHarnessUiUpdate(() => {
-          opt.setOptimizationProgress(action);
-        });
-      }) as typeof opt.setOptimizationProgress,
-      setIsOptimizingContent: ((action) => {
-        deferHarnessUiUpdate(() => {
-          opt.setIsOptimizingContent(action);
-        });
-      }) as typeof opt.setIsOptimizingContent,
+      setBulkOptimizationState,
+      setOptimizationProgress,
+      setIsOptimizingContent,
     }),
-    [opt],
+    [opt, setBulkOptimizationState, setOptimizationProgress, setIsOptimizingContent],
   );
   const contentOptDateSyncedRef = useRef(new Set<string>());
   const bulkBatchKey = site ? `${site.id}-batch` : "";
@@ -325,6 +335,9 @@ export function useOverviewTabBase({
 
   useEffect(() => {
     if (studioRowSource === "bulk-generator") {
+      if (site && !isOverviewSapSourceAvailable(site)) {
+        setSitemapSource((prev) => (prev === "sap" ? "posts" : prev));
+      }
       return;
     }
     if (!site?.id) {
@@ -332,7 +345,7 @@ export function useOverviewTabBase({
       return;
     }
     setSitemapSource("pages");
-  }, [site?.id, site?.sitemaps?.mainSitemapUrl, studioRowSource]);
+  }, [site?.id, site?.sitemaps?.mainSitemapUrl, studioRowSource, site]);
 
   useLayoutEffect(() => {
     if (!site?.id || studioRowSource === "bulk-generator") return;
@@ -555,6 +568,12 @@ export function useOverviewTabBase({
       "aiMeta",
       "title",
       "metaDescription",
+      "url",
+      "aiSuggestedPath",
+      "slugRedirectSourceUrl",
+      "dateModifier",
+      "postId",
+      "postType",
     ];
     const flushStudioLive =
       patch.status !== undefined ||

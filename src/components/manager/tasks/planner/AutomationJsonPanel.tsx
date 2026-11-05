@@ -1,7 +1,7 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from "react";
-import { Textarea } from "@/components/ui/textarea";
 import { validateAutomationPlan } from "@/lib/automation-planner-compile";
 import type { AutomationPlan } from "@/lib/automation-planner-types";
+import { TextareaField } from "@/ui";
 
 export type AutomationJsonPanelHandle = {
   /** Applies pending JSON edits when the editor is dirty. Returns undefined when not dirty. */
@@ -79,19 +79,19 @@ export const AutomationJsonPanel = forwardRef<AutomationJsonPanelHandle, Automat
 
     return (
       <div className="flex h-full min-h-0 flex-col gap-1 pt-1">
-        <Textarea
+        <TextareaField
+          placeholder="Automation JSON"
           value={text}
           onChange={(e) => {
             setDirty(true);
             setText(e.target.value);
           }}
           disabled={disabled}
-          className="min-h-0 flex-1 resize-none rounded-none border-0 bg-zinc-950 font-mono text-base text-white"
           spellCheck={false}
         />
-        {parseError ? <p className="shrink-0 text-base text-red-400">{parseError}</p> : null}
+        {parseError ? <p className="shrink-0 text-base text-ui-danger-hover">{parseError}</p> : null}
         {validationErrors.length > 0 && !parseError ? (
-          <ul className="shrink-0 text-base text-red-400">
+          <ul className="shrink-0 text-base text-ui-danger-hover">
             {validationErrors.map((err) => (
               <li key={err}>{err}</li>
             ))}

@@ -20,6 +20,8 @@ export type AiModelsSettingsContentProps = {
   setAdsModel: (model: string) => void;
   videoModel: string;
   setVideoModel: (model: string) => void;
+  decisionModel: string;
+  setDecisionModel: (model: string) => void;
   temperature: number;
   setTemperature: (value: number) => void;
   maxTokens: number;
@@ -52,6 +54,8 @@ export function AiModelsSettingsContent(props: AiModelsSettingsContentProps) {
           onAdsModelChange={props.setAdsModel}
           videoModel={props.videoModel}
           onVideoModelChange={props.setVideoModel}
+          decisionModel={props.decisionModel}
+          onDecisionModelChange={props.setDecisionModel}
           temperature={props.temperature}
           onTemperatureChange={props.setTemperature}
           maxTokens={props.maxTokens}

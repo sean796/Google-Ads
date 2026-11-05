@@ -1,5 +1,4 @@
 import React from "react";
-import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { GscPerformancePreviewSnapshot } from "@/hooks/content-optimization/gsc-preview-types";
 
@@ -15,7 +14,7 @@ export function GscPerformancePreviewRow({ snapshot, loading, className }: GscPe
   if (loading) {
     return (
       <div className={cn("flex items-center gap-1.5 text-xs font-mono text-muted-foreground", className)}>
-        <Loader2 className="h-3 w-3 shrink-0 animate-spin text-primary" />
+        
         <span className="font-semibold text-primary/90">GSC</span>
         <span>Fetching page queries…</span>
       </div>
@@ -44,7 +43,7 @@ export function GscPerformancePreviewRow({ snapshot, loading, className }: GscPe
       <span className="text-foreground"> · </span>
       <span>{snapshot.queries.length} queries (top by impr.)</span>
       <span className="text-foreground"> · </span>
-      <span className="text-foreground/90 line-clamp-2">
+      <span className="text-foreground/90">
         Top: {topLabel}
         {rest > 0 ? ` · +${rest} more` : ""}
       </span>

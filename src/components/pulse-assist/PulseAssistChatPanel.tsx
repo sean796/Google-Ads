@@ -57,6 +57,7 @@ import {
 import { PulseAssistThinkingCard } from "./PulseAssistThinkingCard";
 import { PulseAssistAgentsAccordion } from "./PulseAssistAgentsAccordion";
 import { CreateSupportTicketDialog } from "./CreateSupportTicketDialog";
+import { Button } from "@/ui";
 
 type Turn =
   | { kind: "user"; text: string }
@@ -619,15 +620,14 @@ export function PulseAssistChatPanel({
             <div className="fcw-empty__sub">{SUBMODE_GREETING[submode]}</div>
             <div className="fcw-starters">
               {BACKEND_STARTERS.map((starter) => (
-                <button
+                <Button
+                  variant="quiet"
                   key={starter}
-                  type="button"
-                  className="fcw-starter"
                   onClick={() => void sendMessage(starter)}
                   disabled={loading}
                 >
                   {starter}
-                </button>
+                </Button>
               ))}
             </div>
           </div>

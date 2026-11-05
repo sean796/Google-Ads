@@ -7,7 +7,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { MetaAdsVisualSettingsPanel } from "@/components/ppc/meta/MetaAdsVisualSettingsPanel";
 import { BULK_HEADER_ICON_TOOL_BTN } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import { hasMetaColorPalette } from "@/lib/ppc/meta-ad-color-palette";
@@ -18,6 +17,7 @@ import {
 import { rowHasManualVisualToolPalette } from "@/lib/ppc/meta-ad-visual-tool-themes";
 import type { MetaAdColorPalette, MetaAdRow, MetaAdVisualToolPalette, MetaGenerateConfig } from "@/lib/ppc/meta-ads-types";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 export type MetaAdsRowVisualDialogProps = {
   row: MetaAdRow;
@@ -85,10 +85,8 @@ export function MetaAdsRowVisualDialog({
   return (
     <>
       <Button
+        variant="quiet"
         type="button"
-        variant="ghost"
-        size="sm"
-        className={cn(BULK_HEADER_ICON_TOOL_BTN, hasOverrides && "text-primary hover:text-primary")}
         disabled={disabled}
         aria-label="Row visual controls"
         title="Colors and tool weights for this ad"
@@ -102,7 +100,7 @@ export function MetaAdsRowVisualDialog({
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
-          className="max-w-2xl rounded-none border-0 bg-zinc-950 p-6 text-white"
+          className="max-w-2xl rounded-none border-0 bg-black p-6 text-white"
           onClick={(e) => e.stopPropagation()}
         >
           <DialogHeader>
@@ -118,15 +116,14 @@ export function MetaAdsRowVisualDialog({
           />
           <DialogFooter className="gap-2 sm:gap-2">
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
-              className="text-base text-muted-foreground hover:text-foreground"
               disabled={disabled}
               onClick={() => setOpen(false)}
             >
               Cancel
             </Button>
-            <Button type="button" className="text-base" disabled={disabled} onClick={handleSave}>
+            <Button variant="run" type="button" disabled={disabled} onClick={handleSave}>
               Save
             </Button>
           </DialogFooter>

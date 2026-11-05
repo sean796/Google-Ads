@@ -17,6 +17,7 @@ import { MobileAutomationsScreen } from "./MobileAutomationsScreen";
 import { MobileClientSitePicker } from "./MobileClientSitePicker";
 import { MobilePushPrefsSheet } from "./MobilePushPrefsSheet";
 import type { MobileAppTab } from "./mobile-app-types";
+import { Button } from "@/ui";
 
 type MobileChatPushNav = {
   channelId?: number;
@@ -92,14 +93,12 @@ export function MobileAppShell() {
         <img src={NEO_PULSE_BRAND_LIGHT_SRC} alt="NEOPulse" className="mobile-app-header__logo" />
         <div className="mobile-app-header__end flex min-w-0 items-center gap-2">
           {activeTab === "assist" ? <MobileClientSitePicker /> : null}
-          <button
-            type="button"
-            className="mobile-app-header__icon-btn"
+          <Button
+            size="icon" icon={Bell}
+            variant="quiet"
             aria-label="Notification settings"
             onClick={() => setPrefsOpen(true)}
-          >
-            <Bell className="h-4 w-4" aria-hidden />
-          </button>
+          ></Button>
           {runningAgentsCount > 0 ? (
             <span className="mobile-app-header__pill">{runningAgentsCount} running</span>
           ) : null}

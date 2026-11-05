@@ -5,6 +5,7 @@ export const DASHBOARD_SECTION_ORDER: readonly ManagerSettingsClusterId[] = [
   "api-keys",
   "master-rules",
   "ai-generation",
+  "decision-tree",
   "google",
 ] as const;
 
@@ -13,5 +14,6 @@ export const DASHBOARD_SECTION_LABELS: Record<ManagerSettingsClusterId, string> 
   "api-keys": "API Keys",
   "master-rules": "Master Rules",
   "ai-generation": "AI & Models",
+  "decision-tree": "Decision Tree",
   google: "Google",
 };

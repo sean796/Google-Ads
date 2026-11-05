@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, Copy, Image as ImageIcon, ExternalLink, FileImage } from "lucide-react";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_FAILED_TO_PREPARE_IMAGE_FOR_INSERTION, NOTIFY_INSERT_IMAGE_FUNCTIONALITY_NOT_AVAILABLE, NOTIFY_NO_IMAGE_AVAILABLE_TO_INSERT, NOTIFY_PLEASE_SELECT_A_SECTION_TO_INSERT_THE_IM, NOTIFY_PREPARING_IMAGE_FOR_INSERTION, NOTIFY_URL_COPIED_TO_CLIPBOARD } from "@/lib/notify-messages";
 import { downloadImage, copyImageToClipboard } from "./image-utils";
 import { MarkdownSection } from "@/lib/section-parser";
+import { Button, SelectField } from "@/ui";
 
 interface ImagePreviewPanelProps {
   generatedImageUrl: string | null;
@@ -160,7 +158,7 @@ export const ImagePreviewPanel = ({
       {/* Image URL/Base64 Display */}
       {(generatedImageUrl || generatedImageBase64) && (
         <div className="space-y-2">
-          <Label className="text-foreground">Image URL:</Label>
+          <label className="text-foreground">Image URL:</label>
           <div className="flex items-center gap-2 p-3 bg-background border border-border rounded-md">
             <div className="flex-1 text-sm text-muted-foreground break-all">
               {generatedImageUrl ? (
@@ -174,8 +172,7 @@ export const ImagePreviewPanel = ({
               ) : 'No URL available'}
             </div>
             <Button
-              variant="ghost"
-              size="sm"
+              variant="quiet"
               onClick={() => {
                 const urlToCopy = generatedImageUrl || generatedImageBase64;
                 if (urlToCopy) {
@@ -183,7 +180,6 @@ export const ImagePreviewPanel = ({
                   notify.success(NOTIFY_URL_COPIED_TO_CLIPBOARD);
                 }
               }}
-              className="flex-shrink-0"
             >
               <Copy className="h-4 w-4" />
             </Button>
@@ -191,14 +187,12 @@ export const ImagePreviewPanel = ({
           
           {/* View Image Button */}
           <Button
-            variant="secondary"
             onClick={() => {
               const imageUrl = generatedImageUrl || generatedImageBase64;
               if (imageUrl) {
                 window.open(imageUrl, '_blank', 'noopener,noreferrer');
               }
             }}
-            className="w-full bg-background border-border hover:bg-background/80 text-foreground"
           >
             <ExternalLink className="mr-2 h-4 w-4" />
             View Image in New Tab
@@ -227,27 +221,12 @@ export const ImagePreviewPanel = ({
       {/* Insert Image into Section */}
       {onInsertImage && availableSections.length > 0 && (
         <div className="space-y-2 flex-shrink-0">
-          <Label className="text-foreground">Insert Image into Section:</Label>
-          <Select
-            value={selectedInsertSection || ""}
-            onValueChange={(value) => setSelectedInsertSection(value)}
-          >
-            <SelectTrigger className="bg-background text-foreground">
-              <SelectValue placeholder="Choose a section..." />
-            </SelectTrigger>
-            <SelectContent>
-              {availableSections.map((section, index) => (
-                <SelectItem key={index} value={section.header}>
-                  {section.header}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <label className="text-foreground">Insert Image into Section:</label>
+          <SelectField placeholder="Choose a section..." value={selectedInsertSection || ""} onValueChange={(value) => setSelectedInsertSection(value)} options={availableSections.map((section, index) => ({ value: section.header, label: section.header }))} />
           <Button
+            variant="run"
             onClick={handleInsertImage}
             disabled={!selectedInsertSection || (!generatedImageUrl && !generatedImageBase64)}
-            variant="default"
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
           >
             <FileImage className="mr-2 h-4 w-4" />
             Insert Image into Section
@@ -259,16 +238,12 @@ export const ImagePreviewPanel = ({
       <div className="flex gap-2 flex-shrink-0">
         <Button
           onClick={onDownload}
-          variant="secondary"
-          className="flex-1 bg-background border-border hover:bg-background/80 text-foreground"
         >
           <Download className="mr-2 h-4 w-4" />
           Download Image
         </Button>
         <Button
           onClick={onCopy}
-          variant="secondary"
-          className="flex-1 bg-background border-border hover:bg-background/80 text-foreground"
         >
           <Copy className="mr-2 h-4 w-4" />
           Copy Image

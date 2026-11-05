@@ -1,16 +1,5 @@
 import React, { useState, useRef } from "react";
-import { 
-  TestTube, 
-  Map, 
-  Network,
-  Loader2,
-  Database,
-  CheckCircle2,
-  XCircle,
-  BarChart3,
-  Building2,
-  Download,
-} from "lucide-react";
+import { TestTube, Map, Network, Database, CheckCircle2, XCircle, BarChart3, Building2, Download } from "lucide-react";
 import { type WordPressSite, KB_FILES_STORAGE_KEY, type StoredFile } from "../types";
 import { getCyberpunkTextClasses } from "./cyberpunk-theme";
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
@@ -24,6 +13,7 @@ import { normalizeGa4PropertyIdForApi, resolveGa4PropertyIdForReporting } from "
 import { cn } from "@/lib/utils";
 import { HOST_DIVIDER } from "@/components/hosting/my-sites/my-sites-theme";
 import { PROFILE_CARD, PROFILE_CARD_HEAD, PROFILE_CARD_TITLE } from "@/components/hosting/site-profile/site-profile-theme";
+import { Button } from "@/ui";
 
 interface NeoFieldsTestResult {
   success: boolean;
@@ -388,7 +378,7 @@ ${footnote}`;
     : "min-w-0 rounded-lg border border-border/50 bg-muted/40 p-2 shadow-none ring-0";
 
   const sectionTitle = isPropertyBlack
-    ? "mb-3 shrink-0 text-[11px] font-semibold tracking-tight text-white [word-spacing:0.2em] sm:mb-4 sm:text-xs"
+    ? "mb-3 shrink-0 text-base font-semibold tracking-tight text-white [word-spacing:0.2em] sm:mb-4 sm:text-xs"
     : "mb-1.5 text-xs font-semibold tracking-tight text-foreground sm:text-sm";
 
   const actionGrid =
@@ -411,7 +401,7 @@ ${footnote}`;
     {
       key: "test",
       label: isTesting ? "Testing Connection…" : "Test Connection",
-      icon: isTesting ? <Loader2 className="animate-spin" /> : <TestTube />,
+      icon: isTesting ? null : <TestTube />,
       onClick: onTest,
       disabled: isTesting || isDisabled,
     },
@@ -425,26 +415,26 @@ ${footnote}`;
             ? "NEO Fields Failed"
             : "Test NEO Fields",
       icon: isTestingNeoFields ? (
-        <Loader2 className="animate-spin" />
+        null
       ) : neoFieldsTestResult?.success ? (
-        <CheckCircle2 className="text-green-500" />
+        <CheckCircle2 className="text-primary" />
       ) : neoFieldsTestResult?.success === false ? (
-        <XCircle className="text-red-500" />
+        <XCircle className="text-ui-danger" />
       ) : (
         <Database />
       ),
       onClick: handleTestNeoFields,
       disabled: isTestingNeoFields || isDisabled,
       className: cn(
-        neoFieldsTestResult?.success && "bg-green-500/12 hover:bg-green-500/18",
-        neoFieldsTestResult?.success === false && "bg-red-500/10 hover:bg-red-500/16",
+        neoFieldsTestResult?.success && "bg-primary/12 hover:bg-primary/18",
+        neoFieldsTestResult?.success === false && "bg-ui-danger/10 hover:bg-ui-danger/16",
       ),
       title: "Test NEO Fields API and set date_modifier to today on entity post",
     },
     {
       key: "gmb",
       label: isTestingGMB ? "Testing GMB Connection…" : "Test GMB Connection",
-      icon: isTestingGMB ? <Loader2 className="animate-spin" /> : <Building2 />,
+      icon: isTestingGMB ? null : <Building2 />,
       onClick: handleTestGMB,
       disabled: isTestingGMB || isDisabled,
       title: "Test Google Business Profile connection (connect in Settings first)",
@@ -452,7 +442,7 @@ ${footnote}`;
     {
       key: "ga",
       label: isTestingGA ? "Testing GA…" : "Test GA",
-      icon: isTestingGA ? <Loader2 className="animate-spin" /> : <BarChart3 />,
+      icon: isTestingGA ? null : <BarChart3 />,
       onClick: handleTestGA,
       disabled: isTestingGA || isDisabled,
       title: "Test Google Analytics 4 connection (uses GA4 Property ID from Settings)",
@@ -463,7 +453,7 @@ ${footnote}`;
             key: "nap",
             label: isExtractingNAPAndGraph ? "Extracting NAP & Graph…" : "Extract NAP & Graph",
             icon: isExtractingNAPAndGraph ? (
-              <Loader2 className="animate-spin" />
+              null
             ) : (
               <Network />
             ),
@@ -475,14 +465,14 @@ ${footnote}`;
     {
       key: "sitemaps",
       label: isDetecting ? "Detecting Sitemaps…" : "Detect Sitemaps",
-      icon: isDetecting ? <Loader2 className="animate-spin" /> : <Map />,
+      icon: isDetecting ? null : <Map />,
       onClick: onDetect,
       disabled: isDetecting || isDisabled,
     },
     {
       key: "gmb-stats",
       label: isPullingGMBStats ? "Pulling GMB Stats…" : "Pull GMB Stats To KB",
-      icon: isPullingGMBStats ? <Loader2 className="animate-spin" /> : <Download />,
+      icon: isPullingGMBStats ? null : <Download />,
       onClick: handlePullGMBStats,
       disabled: isPullingGMBStats || isDisabled,
       title: "Pull GMB stats (this month vs last month) into Knowledge Base",
@@ -497,24 +487,17 @@ ${footnote}`;
         </div>
         <div className="grid grid-cols-2">
           {connectionActions.map((action) => (
-            <button
+            <Button
               key={action.key}
-              type="button"
               onClick={action.onClick}
               disabled={action.disabled}
               title={action.title}
-              className={cn(
-                "flex h-12 min-w-0 items-center gap-2 border-b px-5 text-left text-base text-white hover:bg-white/[0.04] odd:border-r",
-                HOST_DIVIDER,
-                action.className,
-                action.disabled && "cursor-not-allowed opacity-70",
-              )}
             >
               <span className="flex h-4 w-4 shrink-0 items-center justify-center text-muted-foreground [&>svg]:h-4 [&>svg]:w-4">
                 {action.icon}
               </span>
-              <span className="min-w-0 truncate">{action.label}</span>
-            </button>
+              <span className="min-w-0 break-words">{action.label}</span>
+            </Button>
           ))}
         </div>
 
@@ -522,7 +505,7 @@ ${footnote}`;
           <div
             className={cn(
               "px-5 py-3 text-base",
-              neoFieldsTestResult.success ? "bg-green-500/12" : "bg-red-500/12",
+              neoFieldsTestResult.success ? "bg-primary/12" : "bg-ui-danger/12",
             )}
           >
             {neoFieldsTestResult.success ? (
@@ -532,19 +515,19 @@ ${footnote}`;
                   ACF REST API Configured Correctly
                 </div>
                 {neoFieldsTestResult.dateModifierSet && neoFieldsTestResult.postId ? (
-                  <div className="text-base text-green-400">
+                  <div className="text-base text-primary">
                     Set date_modifier on post {neoFieldsTestResult.postId}
                   </div>
                 ) : null}
               </div>
             ) : (
               <div className="space-y-2">
-                <div className="font-medium text-red-400">
+                <div className="font-medium text-ui-danger-hover">
                   <XCircle className="mr-1 inline h-4 w-4" aria-hidden />
                   ACF REST API Not Configured
                 </div>
                 {neoFieldsTestResult.error ? (
-                  <div className="text-base text-red-300/80">{neoFieldsTestResult.error}</div>
+                  <div className="text-base text-ui-danger-hover/80">{neoFieldsTestResult.error}</div>
                 ) : null}
               </div>
             )}
@@ -562,34 +545,30 @@ ${footnote}`;
         </h3>
         <ul className={actionGridScroll}>
           <li className="min-w-0">
-            <button type="button" onClick={onTest} disabled={isTesting || isDisabled} className={rowBase}>
+            <Button variant="quiet" onClick={onTest} disabled={isTesting || isDisabled}>
               <span className={iconSlot} aria-hidden>
-                {isTesting ? <Loader2 className="animate-spin" /> : <TestTube />}
+                {isTesting ? null : <TestTube />}
               </span>
               <span className={rowLabel}>
                 {isTesting ? "Testing Connection…" : "Test Connection"}
               </span>
-            </button>
+            </Button>
           </li>
           <li className="min-w-0">
-            <button
-              type="button"
+            <Button
+              pressed={Boolean(neoFieldsTestResult?.success)}
+              variant="quiet"
               onClick={handleTestNeoFields}
               disabled={isTestingNeoFields || isDisabled}
-              className={cn(
-                rowBase,
-                neoFieldsTestResult?.success && "bg-green-500/12 hover:bg-green-500/18",
-                neoFieldsTestResult?.success === false && "bg-red-500/10 hover:bg-red-500/16",
-              )}
               title="Test NEO Fields API and set date_modifier to today on entity post"
             >
               <span className={iconSlot} aria-hidden>
                 {isTestingNeoFields ? (
-                  <Loader2 className="animate-spin" />
+                  null
                 ) : neoFieldsTestResult?.success ? (
-                  <CheckCircle2 className="text-green-500" />
+                  <CheckCircle2 className="text-primary" />
                 ) : neoFieldsTestResult?.success === false ? (
-                  <XCircle className="text-red-500" />
+                  <XCircle className="text-ui-danger" />
                 ) : (
                   <Database />
                 )}
@@ -603,78 +582,74 @@ ${footnote}`;
                       ? "NEO Fields Failed"
                       : "Test NEO Fields"}
               </span>
-            </button>
+            </Button>
           </li>
           <li className="min-w-0">
-            <button
-              type="button"
+            <Button
+              variant="quiet"
               onClick={handleTestGMB}
               disabled={isTestingGMB || isDisabled}
-              className={rowBase}
               title="Test Google Business Profile connection (connect in Settings first)"
             >
               <span className={iconSlot} aria-hidden>
-                {isTestingGMB ? <Loader2 className="animate-spin" /> : <Building2 />}
+                {isTestingGMB ? null : <Building2 />}
               </span>
               <span className={rowLabel}>
                 {isTestingGMB ? "Testing GMB Connection…" : "Test GMB Connection"}
               </span>
-            </button>
+            </Button>
           </li>
           <li className="min-w-0">
-            <button
-              type="button"
+            <Button
+              variant="quiet"
               onClick={handleTestGA}
               disabled={isTestingGA || isDisabled}
-              className={rowBase}
               title="Test Google Analytics 4 connection (uses GA4 Property ID from Settings)"
             >
               <span className={iconSlot} aria-hidden>
-                {isTestingGA ? <Loader2 className="animate-spin" /> : <BarChart3 />}
+                {isTestingGA ? null : <BarChart3 />}
               </span>
               <span className={rowLabel}>{isTestingGA ? "Testing GA…" : "Test GA"}</span>
-            </button>
+            </Button>
           </li>
           {onExtractNAPAndGraph ? (
             <li className="min-w-0">
-              <button
-                type="button"
+              <Button
+                variant="quiet"
                 onClick={onExtractNAPAndGraph}
                 disabled={isExtractingNAPAndGraph || isDisabled}
-                className={rowBase}
               >
                 <span className={iconSlot} aria-hidden>
-                  {isExtractingNAPAndGraph ? <Loader2 className="animate-spin" /> : <Network />}
+                  {isExtractingNAPAndGraph ? null : <Network />}
                 </span>
                 <span className={rowLabel}>
                   {isExtractingNAPAndGraph ? "Extracting NAP & Graph…" : "Extract NAP & Graph"}
                 </span>
-              </button>
+              </Button>
             </li>
           ) : null}
           <li className="min-w-0">
-            <button type="button" onClick={onDetect} disabled={isDetecting || isDisabled} className={rowBase}>
+            <Button variant="quiet" onClick={onDetect} disabled={isDetecting || isDisabled}>
               <span className={iconSlot} aria-hidden>
-                {isDetecting ? <Loader2 className="animate-spin" /> : <Map />}
+                {isDetecting ? null : <Map />}
               </span>
               <span className={rowLabel}>{isDetecting ? "Detecting Sitemaps…" : "Detect Sitemaps"}</span>
-            </button>
+            </Button>
           </li>
           <li className="min-w-0">
-            <button
-              type="button"
+            <Button
+              variant="quiet"
               onClick={handlePullGMBStats}
               disabled={isPullingGMBStats || isDisabled}
-              className={rowBase}
               title="Pull GMB stats (this month vs last month) into Knowledge Base"
             >
               <span className={iconSlot} aria-hidden>
-                {isPullingGMBStats ? <Loader2 className="animate-spin" /> : <Download />}
+                {isPullingGMBStats ? null : <Download />}
               </span>
               <span className={rowLabel}>
                 {isPullingGMBStats ? "Pulling GMB Stats…" : "Pull GMB Stats To KB"}
               </span>
-            </button>
+            </Button>
           </li>
         </ul>
       </section>
@@ -683,7 +658,7 @@ ${footnote}`;
         <div
           className={cn(
             "rounded-lg p-3 text-sm shadow-none ring-0",
-            neoFieldsTestResult.success ? "bg-green-500/12" : "bg-red-500/12",
+            neoFieldsTestResult.success ? "bg-primary/12" : "bg-ui-danger/12",
           )}
         >
           {neoFieldsTestResult.success ? (
@@ -693,7 +668,7 @@ ${footnote}`;
                 ACF REST API Configured Correctly
               </div>
               {neoFieldsTestResult.dateModifierSet && neoFieldsTestResult.postId && (
-                <div className="text-sm text-green-400">
+                <div className="text-sm text-primary">
                   <CheckCircle2 className="mr-1 inline h-3.5 w-3.5" aria-hidden />
                   Set date_modifier to {new Date().toISOString().split("T")[0]} on post {neoFieldsTestResult.postId}
                 </div>
@@ -720,11 +695,11 @@ ${footnote}`;
             </div>
           ) : (
             <div className="space-y-2">
-              <div className="font-medium text-red-400">
+              <div className="font-medium text-ui-danger-hover">
                 <XCircle className="mr-1 inline h-3.5 w-3.5" aria-hidden />
                 ACF REST API Not Configured
               </div>
-              {neoFieldsTestResult.error && <div className="text-red-300/80">{neoFieldsTestResult.error}</div>}
+              {neoFieldsTestResult.error && <div className="text-ui-danger-hover/80">{neoFieldsTestResult.error}</div>}
               {neoFieldsTestResult.requiredConfig?.php && (
                 <div className="mt-2">
                   <div className={`mb-1 font-medium ${getCyberpunkTextClasses("secondary")}`}>

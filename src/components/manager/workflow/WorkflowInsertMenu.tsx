@@ -9,6 +9,7 @@ import type { AutomationRecipeCatalogItem } from "@/lib/automation-recipes-types
 import type { WorkflowNodeKind } from "@/lib/workflow/workflow-types";
 import { WORKFLOW_THEN_KINDS } from "@/lib/workflow/workflow-types";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 const TRIGGER_AGENT_KINDS: WorkflowNodeKind[] = [
   "trigger_manual",
@@ -43,17 +44,12 @@ function PresetStepCard({
   onPick: () => void;
 }): React.ReactElement {
   return (
-    <button
-      type="button"
-      className={cn(
-        FORGE_RECIPE_CARD_TILE_CLASS,
-        "border-l-[length:var(--tile-accent-width)] border-l-primary p-4 text-left hover:shadow-tile-pop",
-      )}
+    <Button
       onClick={onPick}
     >
       <p className="text-base font-semibold text-white">{label}</p>
       <p className="mt-1 text-base text-muted-foreground">{description}</p>
-    </button>
+    </Button>
   );
 }
 
@@ -65,17 +61,12 @@ function StepCard({
   onPick: () => void;
 }): React.ReactElement {
   return (
-    <button
-      type="button"
-      className={cn(
-        FORGE_RECIPE_CARD_TILE_CLASS,
-        "border-l-[length:var(--tile-accent-width)] border-l-primary p-4 text-left hover:shadow-tile-pop",
-      )}
+    <Button
       onClick={onPick}
     >
       <p className="text-base font-semibold text-white">{defaultNodeLabel(kind)}</p>
       <p className="mt-1 text-base text-muted-foreground">{kind.replace(/_/g, " ")}</p>
-    </button>
+    </Button>
   );
 }
 
@@ -117,7 +108,7 @@ export function WorkflowInsertMenu({
           <DialogTitle className="text-base font-semibold text-white">Add to workflow</DialogTitle>
         </DialogHeader>
         <Tabs defaultValue="recipes" className="flex min-h-0 flex-1 flex-col">
-          <TabsList className="grid h-auto w-full shrink-0 grid-cols-2 rounded-none bg-zinc-950 p-0">
+          <TabsList className="grid h-auto w-full shrink-0 grid-cols-2 rounded-none bg-black p-0">
             <TabsTrigger
               value="recipes"
               className="rounded-none py-3 text-base data-[state=active]:bg-black data-[state=active]:text-primary"

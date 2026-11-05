@@ -910,7 +910,7 @@ export function WorkflowEditorView({
   if (!workflow) {
     return (
       <div className="flex h-full items-center justify-center bg-black px-6">
-        <p className="text-base text-red-400">Workflow not found.</p>
+        <p className="text-base text-ui-danger-hover">Workflow not found.</p>
       </div>
     );
   }

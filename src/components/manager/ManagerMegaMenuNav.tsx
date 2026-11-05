@@ -315,11 +315,10 @@ export function ManagerMegaMenuNav({
     >
       {navSections.map((section) => {
         const active =
-          section.id === "reporting"
-            ? isOrganicDashboardRoute
-            : section.items.some((i) =>
-                isManagerNavItemActive(managerTab, i, dashboardCluster, activeGeneratorSection),
-              );
+          (section.id === "tools" && isOrganicDashboardRoute) ||
+          section.items.some((i) =>
+            isManagerNavItemActive(managerTab, i, dashboardCluster, activeGeneratorSection),
+          );
         const SectionIcon = section.icon;
 
         return (

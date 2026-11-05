@@ -3,5 +3,4 @@ import type { BlogGeneratorSectionId } from "@/components/blog-generator/blog-ge
 export type GeneratorWorkspaceChromeBindings = {
   activeSection: BlogGeneratorSectionId;
   onSectionChange: (id: BlogGeneratorSectionId) => void;
-  onDetailsOpenChange?: (open: boolean) => void;
 };

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ChevronDown, Circle, Loader2 } from "lucide-react";
+import { CheckCircle2, ChevronDown, Circle } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -10,6 +10,7 @@ import {
   type EntityTitleHarnessClusterGroup,
 } from "@/lib/local-analysis/entity-title-harness-state";
 import { cn } from "@/lib/utils";
+import { RowButton } from "@/ui";
 
 export type EntityTitleClusterHarnessPanelProps = {
   phase: string;
@@ -115,9 +116,8 @@ export function EntityTitleClusterHarnessPanel({
                 )}
               >
                 <CollapsibleTrigger asChild>
-                  <button
+                  <RowButton
                     type="button"
-                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-base"
                   >
                     <ChevronDown
                       className={cn(
@@ -127,19 +127,19 @@ export function EntityTitleClusterHarnessPanel({
                       aria-hidden
                     />
                     {group.status === "generating" ? (
-                      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
+                      null
                     ) : group.status === "done" ? (
                       <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" aria-hidden />
                     ) : (
                       <Circle className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                     )}
-                    <span className="min-w-0 flex-1 truncate font-medium text-foreground" title={group.seedKeyword}>
+                    <span className="min-w-0 flex-1 break-words font-medium text-foreground" title={group.seedKeyword}>
                       {group.seedKeyword}
                     </span>
                     <span className="shrink-0 tabular-nums text-muted-foreground">
                       {clusterDone}/{clusterTotal}
                     </span>
-                  </button>
+                  </RowButton>
                 </CollapsibleTrigger>
 
                 <CollapsibleContent className="space-y-1 px-3 pb-3 data-[state=closed]:animate-none">
@@ -150,7 +150,7 @@ export function EntityTitleClusterHarnessPanel({
                         className="flex items-start gap-2 rounded-md bg-black/20 px-2 py-1.5"
                       >
                         {step.status === "generating" ? (
-                          <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
+                          null
                         ) : step.status === "done" ? (
                           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
                         ) : (

@@ -78,12 +78,15 @@ export function ManagerSeedWorkspaceProvider({ children }: { children: ReactNode
   }, [enabledSites.length]);
 
   useEffect(() => {
-    if (enabledSites.length === 0) return;
-    const valid = Boolean(activeWordPressSiteId && enabledSites.some((s) => s.id === activeWordPressSiteId));
+    if (sites.length === 0) return;
+    const valid = Boolean(activeWordPressSiteId && sites.some((s) => s.id === activeWordPressSiteId));
     if (!valid) {
-      setActiveWordPressSiteId(enabledSites[0].id);
+      const fallback = enabledSites[0]?.id ?? sites[0]?.id;
+      if (fallback && fallback !== activeWordPressSiteId) {
+        setActiveWordPressSiteId(fallback);
+      }
     }
-  }, [enabledSites, activeWordPressSiteId, setActiveWordPressSiteId]);
+  }, [sites, enabledSites, activeWordPressSiteId, setActiveWordPressSiteId]);
 
   const connectedSite = enabledSites.find((s) => s.id === activeWordPressSiteId) ?? null;
   const canUseConnected = enabledSites.length > 0;

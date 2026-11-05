@@ -32,6 +32,23 @@ export interface ImageGenerationResponse {
   error?: string;
 }
 
+function openRouterImageHttpError(status: number, body: string): string {
+  let message = body;
+  try {
+    const parsed = JSON.parse(body) as { error?: { message?: string }; message?: string };
+    message = parsed.error?.message ?? parsed.message ?? body;
+  } catch {
+    // use raw body
+  }
+  if (/in-flight/i.test(message)) {
+    return "OpenRouter is holding credits for other requests that are still running. This app now draws storyboard frames one at a time; wait for the batch to finish or redraw this scene in a moment.";
+  }
+  if (/credit/i.test(message)) {
+    return message;
+  }
+  return `Image generation failed (${status}). ${message}`.slice(0, 400);
+}
+
 /**
  * Generates an image using OpenRouter's image generation API
  * Uses Gemini 3.1 Flash Image (Nano Banana 2) via OpenRouter by default.
@@ -84,7 +101,7 @@ export const generateImage = async ({
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Image generation error:', errorText);
-      throw new Error(`Image generation failed: ${response.status} ${response.statusText}. ${errorText.substring(0, 200)}`);
+      throw new Error(openRouterImageHttpError(response.status, errorText));
     }
 
     const data = (await readOpenRouterResponseJson(response)) as Record<string, unknown>;

@@ -5,6 +5,7 @@ import { DEFAULT_VIDEO_MODEL } from "@/lib/video-generator/video-model-defaults"
 import {
   readGlobalAdsAgentModel,
   readGlobalBlogAgentModel,
+  readGlobalDecisionAgentModel,
   readGlobalImageAgentModel,
   readGlobalMetaAgentModel,
   readGlobalReportAgentModel,
@@ -27,6 +28,7 @@ function globalDefaultSettings(): OptimizationSettings {
     adsModel: readGlobalAdsAgentModel(),
     imageModel: readGlobalImageAgentModel(),
     videoModel: readGlobalVideoAgentModel(),
+    decisionModel: readGlobalDecisionAgentModel(),
   };
 }
 
@@ -95,6 +97,7 @@ const SITE_MODEL_FIELDS = [
   "adsModel",
   "imageModel",
   "videoModel",
+  "decisionModel",
 ] as const;
 
 type SiteModelField = (typeof SITE_MODEL_FIELDS)[number];
@@ -112,6 +115,7 @@ function sanitizeOptimizationSettings(
     adsModel: coerceOpenRouterModelId(settings.adsModel, defaults.adsModel),
     imageModel: coerceOpenRouterModelId(settings.imageModel, defaults.imageModel),
     videoModel: coerceOpenRouterModelId(settings.videoModel, defaults.videoModel),
+    decisionModel: coerceOpenRouterModelId(settings.decisionModel, defaults.decisionModel),
   };
 }
 
@@ -182,6 +186,10 @@ export function getReportModel(siteId?: string | null): string {
 
 export function getAdsModel(siteId?: string | null): string {
   return modelFromSiteSettings(siteId, "adsModel", readGlobalAdsAgentModel, DEFAULT_SETTINGS.adsModel);
+}
+
+export function getDecisionModel(siteId?: string | null): string {
+  return modelFromSiteSettings(siteId, "decisionModel", readGlobalDecisionAgentModel, DEFAULT_SETTINGS.decisionModel);
 }
 
 export function setGlobalResearchModel(model: string): void {

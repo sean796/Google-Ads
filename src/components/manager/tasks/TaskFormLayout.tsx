@@ -2,60 +2,46 @@ import React, { useMemo } from "react";
 import { Calendar as CalendarIcon, ChevronDown, Clock } from "lucide-react";
 import { format, parse } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { CheckField, SelectField, RowButton, Button } from "@/ui";
 import { cn } from "@/lib/utils";
 
-export const TASK_WIDE_DIALOG_CLASS =
-  "max-h-[85vh] max-w-[1280px] w-[min(1280px,98vw)] gap-3 overflow-y-auto rounded-none sm:rounded-none border-0 bg-zinc-950 p-5 text-white [&>button]:rounded-none";
-
 export const TASK_PROJECT_DIALOG_CLASS =
-  "flex max-h-[85vh] max-w-[1280px] w-[min(1280px,98vw)] flex-col gap-1 overflow-hidden rounded-none sm:rounded-none border-0 bg-[#09090B] p-3 text-white [&>button]:rounded-none";
+  "flex max-h-[85vh] max-w-[1280px] w-[min(1280px,98vw)] flex-col gap-1 overflow-hidden rounded-none sm:rounded-none border-0 bg-black p-3 text-foreground [&>button]:rounded-none";
 
-export const TASK_FORM_BAND_CLASS = "flex flex-col gap-0.5 rounded-none bg-[#09090B] p-1";
+export const TASK_FORM_BAND_CLASS = "flex flex-col gap-0.5 rounded-none p-1";
 
-export const TASK_FORM_BAND_FIELDS_CLASS =
-  "flex w-full min-w-0 flex-col gap-0.5 rounded-none bg-[#09090B] p-1";
+export const TASK_FORM_BAND_FIELDS_CLASS = "flex w-full min-w-0 flex-col gap-0.5 rounded-none p-1";
 
 export const TASK_FORM_COMPACT_CELL_CLASS =
-  "flex min-h-10 min-w-0 flex-col justify-center rounded-none bg-[#000] px-2 py-1";
+  "flex min-h-10 min-w-0 flex-col justify-center rounded-none bg-ui-field px-2 py-1";
 
 export const TASK_FORM_COMPACT_INFIELD_LABEL_CLASS = "text-base leading-tight text-muted-foreground";
 
 export const TASK_FORM_CELL_CLASS =
-  "flex min-h-12 min-w-0 flex-col justify-center rounded-none bg-[#000] px-2 py-1.5";
+  "flex min-h-12 min-w-0 flex-col justify-center rounded-none bg-ui-field px-2 py-1.5";
+
+const TASK_FORM_PLACEHOLDER_CELL_CLASS = "flex min-h-9 min-w-0 items-center rounded-none bg-ui-field";
 
 export const TASK_FORM_DIALOG_BUTTON_CLASS = "rounded-none";
 
 export const TASK_FORM_FLAT_CONTROL_CLASS =
-  "h-9 min-h-9 w-full min-w-0 rounded-none border-0 bg-transparent p-0 text-base text-white shadow-none outline-none ring-0 focus-visible:ring-0";
+  "h-9 min-h-9 w-full min-w-0 rounded-none border-0 bg-transparent px-2 py-0 text-base text-foreground shadow-none outline-none ring-0 focus-visible:ring-0";
 
-export const TASK_FORM_PANEL_CLASS = "flex flex-col gap-3 rounded-none bg-zinc-900/50 p-4";
-export const TASK_FORM_PANEL_INNER_CLASS = "flex flex-col gap-3 rounded-none bg-black p-3";
+export const TASK_FORM_PANEL_CLASS = "flex flex-col gap-1.5 rounded-none";
+export const TASK_FORM_PANEL_INNER_CLASS = "flex flex-col gap-1.5 rounded-none";
 
-export const TASK_FORM_INFIELD_SHELL_CLASS = "flex min-w-0 flex-col gap-0.5 rounded-none bg-black px-3 py-2";
+export const TASK_FORM_INFIELD_SHELL_CLASS = "flex min-w-0 flex-col gap-0.5 rounded-none bg-ui-field px-3 py-2";
 
 export const TASK_FORM_INFIELD_CONTROL_CLASS =
-  "min-w-0 [&_input]:h-9 [&_input]:w-full [&_input]:border-0 [&_input]:bg-transparent [&_input]:p-0 [&_input]:text-base [&_input]:text-white [&_input]:shadow-none [&_input]:outline-none [&_input]:ring-0 [&_input]:focus-visible:ring-0 [&_textarea]:min-h-[2.5rem] [&_textarea]:w-full [&_textarea]:resize-none [&_textarea]:border-0 [&_textarea]:bg-transparent [&_textarea]:p-0 [&_textarea]:text-base [&_textarea]:text-white [&_textarea]:shadow-none [&_textarea]:outline-none [&_textarea]:ring-0 [&_textarea]:focus-visible:ring-0";
+  "min-w-0 [&_input]:h-9 [&_input]:w-full [&_input]:border-0 [&_input]:bg-transparent [&_input]:p-0 [&_input]:text-base [&_input]:text-foreground [&_input]:shadow-none [&_input]:outline-none [&_input]:ring-0 [&_input]:focus-visible:ring-0 [&_textarea]:min-h-[2.5rem] [&_textarea]:w-full [&_textarea]:resize-none [&_textarea]:border-0 [&_textarea]:bg-transparent [&_textarea]:p-0 [&_textarea]:text-base [&_textarea]:text-foreground [&_textarea]:shadow-none [&_textarea]:outline-none [&_textarea]:ring-0 [&_textarea]:focus-visible:ring-0";
 
-export const TASK_FORM_SELECT_CONTENT_CLASS =
-  "border-0 bg-[#000] text-white shadow-lg";
+export const TASK_FORM_SELECT_CONTENT_CLASS = "border-0 bg-black text-foreground shadow-lg";
 
-export const TASK_FORM_SELECT_ITEM_CLASS =
-  "text-base text-white focus:bg-[#09090B] focus:text-white";
+export const TASK_FORM_SELECT_ITEM_CLASS = "text-base text-foreground focus:bg-ui-field focus:text-foreground";
 
 export const TASK_FORM_SELECT_TRIGGER_CLASS =
-  "h-9 min-h-9 rounded-none border-0 bg-transparent p-0 text-base text-white shadow-none focus:ring-0 focus:ring-offset-0";
-
-export const TASK_FORM_SELECT_TRIGGER_NOWRAP_CLASS =
-  "whitespace-nowrap [&>span]:line-clamp-none";
+  "h-9 min-h-9 rounded-none border-0 bg-transparent p-0 text-base text-foreground shadow-none focus:ring-0 focus:ring-offset-0";
 
 const EMPTY_SELECT_VALUE = "__empty__";
 
@@ -78,7 +64,7 @@ export function TaskFormPanel({
 }): React.ReactElement {
   return (
     <section className={cn(TASK_FORM_PANEL_CLASS, className)}>
-      <h3 className="text-base font-semibold text-white">{title}</h3>
+      <h3 className="text-base font-semibold text-foreground">{title}</h3>
       {children}
     </section>
   );
@@ -152,7 +138,6 @@ export function TaskFormInfieldSelect({
   onChange,
   options,
   disabled = false,
-  className,
 }: {
   label: string;
   id?: string;
@@ -163,28 +148,14 @@ export function TaskFormInfieldSelect({
   className?: string;
 }): React.ReactElement {
   return (
-    <TaskFormInfield label={label} className={className}>
-      <Select
-        value={toSelectValue(value)}
-        onValueChange={(next) => onChange(fromSelectValue(next))}
-        disabled={disabled}
-      >
-        <SelectTrigger className={TASK_FORM_SELECT_TRIGGER_CLASS}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent className={TASK_FORM_SELECT_CONTENT_CLASS}>
-          {options.map((opt) => (
-            <SelectItem
-              key={opt.value || EMPTY_SELECT_VALUE}
-              value={toSelectValue(opt.value)}
-              className={TASK_FORM_SELECT_ITEM_CLASS}
-            >
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </TaskFormInfield>
+    <SelectField
+      placeholder={label}
+      width="full"
+      value={toSelectValue(value)}
+      onValueChange={(next) => onChange(fromSelectValue(next))}
+      disabled={disabled}
+      options={options.map((opt) => ({ value: toSelectValue(opt.value), label: opt.label }))}
+    />
   );
 }
 
@@ -199,7 +170,7 @@ export function TaskFormSection({
 }): React.ReactElement {
   return (
     <section className={cn("flex flex-col gap-2", className)}>
-      <h3 className="text-base font-semibold text-white">{title}</h3>
+      <h3 className="text-base font-semibold text-foreground">{title}</h3>
       <div className="flex flex-col gap-2">{children}</div>
     </section>
   );
@@ -233,7 +204,7 @@ export function TaskFormFlatSection({
 }): React.ReactElement {
   return (
     <section className={cn(TASK_FORM_BAND_CLASS, className)}>
-      <h3 className="text-base font-semibold text-white">{title}</h3>
+      <h3 className="text-base font-semibold text-foreground">{title}</h3>
       {children}
     </section>
   );
@@ -291,28 +262,14 @@ export function TaskFormFlatSelect({
   className?: string;
 }): React.ReactElement {
   return (
-    <TaskFormFlatField label={label} className={className}>
-      <Select
-        value={toSelectValue(value)}
-        onValueChange={(next) => onChange(fromSelectValue(next))}
-        disabled={disabled}
-      >
-        <SelectTrigger className={TASK_FORM_SELECT_TRIGGER_CLASS}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent className={TASK_FORM_SELECT_CONTENT_CLASS}>
-          {options.map((opt) => (
-            <SelectItem
-              key={opt.value || EMPTY_SELECT_VALUE}
-              value={toSelectValue(opt.value)}
-              className={TASK_FORM_SELECT_ITEM_CLASS}
-            >
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </TaskFormFlatField>
+    <SelectField
+      placeholder={label}
+      width="full"
+      value={toSelectValue(value)}
+      onValueChange={(next) => onChange(fromSelectValue(next))}
+      disabled={disabled}
+      options={options.map((opt) => ({ value: toSelectValue(opt.value), label: opt.label }))}
+    />
   );
 }
 
@@ -335,7 +292,7 @@ export function TaskFormSideSection({
       )}
     >
       <div className="flex min-w-0 flex-wrap items-center gap-x-2 pt-1.5">
-        <span className="text-base font-semibold text-white">{title}</span>
+        <span className="text-base font-semibold text-foreground">{title}</span>
         {titleExtra}
       </div>
       <div className={TASK_FORM_BAND_FIELDS_CLASS}>{children}</div>
@@ -375,7 +332,7 @@ export function TaskFormPlaceholderCell({
   children: React.ReactNode;
   className?: string;
 }): React.ReactElement {
-  return <div className={cn(TASK_FORM_CELL_CLASS, className)}>{children}</div>;
+  return <div className={cn(TASK_FORM_PLACEHOLDER_CELL_CLASS, className)}>{children}</div>;
 }
 
 export function TaskFormFlatSelectPlaceholder({
@@ -395,26 +352,14 @@ export function TaskFormFlatSelectPlaceholder({
 }): React.ReactElement {
   return (
     <TaskFormPlaceholderCell className={className}>
-      <Select
+      <SelectField
+        placeholder={placeholder}
+        width="full"
         value={toSelectValue(value)}
         onValueChange={(next) => onChange(fromSelectValue(next))}
         disabled={disabled}
-      >
-        <SelectTrigger className={TASK_FORM_SELECT_TRIGGER_CLASS} aria-label={placeholder}>
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent className={TASK_FORM_SELECT_CONTENT_CLASS}>
-          {options.map((opt) => (
-            <SelectItem
-              key={opt.value || EMPTY_SELECT_VALUE}
-              value={toSelectValue(opt.value)}
-              className={TASK_FORM_SELECT_ITEM_CLASS}
-            >
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        options={options.map((opt) => ({ value: toSelectValue(opt.value), label: opt.label }))}
+      />
     </TaskFormPlaceholderCell>
   );
 }
@@ -456,37 +401,23 @@ export function TaskFormMultiSelect({
     <TaskFormPlaceholderCell className={className}>
       <Popover>
         <PopoverTrigger asChild disabled={disabled}>
-          <button
+          <RowButton
             type="button"
-            className={cn(
-              "flex h-9 w-full min-w-0 items-center justify-between gap-2 bg-transparent text-left text-base outline-none",
-              selectedValues.length === 0 ? "text-muted-foreground" : "text-white",
-            )}
             aria-label={placeholder}
           >
-            <span className="min-w-0 flex-1 truncate">{triggerLabel}</span>
+            <span className="min-w-0 flex-1 whitespace-nowrap">{triggerLabel}</span>
             <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-          </button>
+          </RowButton>
         </PopoverTrigger>
         <PopoverContent
           align="start"
-          className="w-[var(--radix-popover-trigger-width)] rounded-none border-0 bg-[#000] p-1 text-white shadow-lg"
+          className="w-[var(--radix-popover-trigger-width)] rounded-none border-0 bg-black p-1 text-foreground shadow-lg"
         >
           <div className="flex max-h-48 flex-col gap-0.5 overflow-y-auto">
             {options.map((opt) => {
               const checked = selectedValues.includes(opt.value);
               return (
-                <label
-                  key={opt.value}
-                  className="flex cursor-pointer items-center gap-2 rounded-none px-2 py-1.5 hover:bg-[#09090B]"
-                >
-                  <Checkbox
-                    checked={checked}
-                    onCheckedChange={() => toggle(opt.value)}
-                    className="rounded-none border-zinc-600 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                  />
-                  <span className="min-w-0 flex-1 truncate text-base text-white">{opt.label}</span>
-                </label>
+                <CheckField key={opt.value} label={opt.label} checked={checked} onCheckedChange={() => toggle(opt.value)} />
               );
             })}
           </div>
@@ -548,21 +479,18 @@ export function TaskFormDatePicker({
     <TaskFormPlaceholderCell className={className}>
       <Popover>
         <PopoverTrigger asChild disabled={disabled}>
-          <button
+          <RowButton
+            selected={Boolean(selected)}
             type="button"
-            className={cn(
-              "flex h-9 w-full min-w-0 items-center gap-2 bg-transparent text-left text-base outline-none",
-              selected ? "text-white" : "text-muted-foreground",
-            )}
             aria-label={placeholder}
           >
             <CalendarIcon className="h-4 w-4 shrink-0" />
-            <span className="min-w-0 flex-1 truncate">{label}</span>
-          </button>
+            <span className="min-w-0 flex-1 whitespace-nowrap">{label}</span>
+          </RowButton>
         </PopoverTrigger>
         <PopoverContent
           align="start"
-          className="w-auto rounded-none border-0 bg-[#000] p-0 text-white shadow-lg"
+          className="w-auto rounded-none border-0 bg-black p-0 text-foreground shadow-lg"
         >
           <Calendar
             mode="single"
@@ -572,7 +500,7 @@ export function TaskFormDatePicker({
               onChange(toTaskIsoDate(date));
             }}
             initialFocus
-            className="rounded-none bg-[#000] text-base text-white"
+            className="rounded-none bg-black text-base text-foreground"
           />
         </PopoverContent>
       </Popover>
@@ -600,37 +528,31 @@ export function TaskFormTimePicker({
     <TaskFormPlaceholderCell className={className}>
       <Popover>
         <PopoverTrigger asChild disabled={disabled}>
-          <button
+          <RowButton
+            selected={Boolean(normalized)}
             type="button"
-            className={cn(
-              "flex h-9 w-full min-w-0 items-center gap-2 bg-transparent text-left text-base outline-none",
-              normalized ? "text-white" : "text-muted-foreground",
-            )}
             aria-label={placeholder}
           >
             <Clock className="h-4 w-4 shrink-0" />
-            <span className="min-w-0 flex-1 truncate">{label}</span>
-          </button>
+            <span className="min-w-0 flex-1 whitespace-nowrap">{label}</span>
+          </RowButton>
         </PopoverTrigger>
         <PopoverContent
           align="start"
-          className="w-36 rounded-none border-0 bg-[#000] p-1 text-white shadow-lg"
+          className="w-36 rounded-none border-0 bg-black p-1 text-foreground shadow-lg"
         >
           <div className="flex max-h-48 flex-col gap-0.5 overflow-y-auto">
             {TASK_TIME_SLOTS.map((slot) => {
               const active = normalized === slot;
               return (
-                <button
+                <Button
+                  pressed={Boolean(active)}
+                  variant="quiet"
                   key={slot}
-                  type="button"
-                  className={cn(
-                    "rounded-none px-2 py-1.5 text-left text-base text-white hover:bg-[#09090B]",
-                    active && "bg-[#09090B]",
-                  )}
                   onClick={() => onChange(slot)}
                 >
                   {formatTaskTimeLabel(slot)}
-                </button>
+                </Button>
               );
             })}
           </div>

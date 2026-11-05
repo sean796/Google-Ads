@@ -6,6 +6,7 @@ export type ManagerSettingsClusterId =
   | "api-keys"
   | "master-rules"
   | "ai-generation"
+  | "decision-tree"
   | "google";
 
 const CLUSTER_IDS: readonly ManagerSettingsClusterId[] = [
@@ -13,6 +14,7 @@ const CLUSTER_IDS: readonly ManagerSettingsClusterId[] = [
   "api-keys",
   "master-rules",
   "ai-generation",
+  "decision-tree",
   "google",
 ];
 

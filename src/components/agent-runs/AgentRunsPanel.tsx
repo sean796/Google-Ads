@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useAgentRunsContext } from "@/contexts/use-agent-runs-context";
 import { fetchAgentRun } from "@/lib/agent-runs-api";
 import {
@@ -26,6 +25,7 @@ import { useTeam } from "@/contexts/TeamContext";
 import { AgentRunCard } from "./AgentRunCard";
 import { AgentRunsBucketSelect } from "./AgentRunsBucketSelect";
 import { AgentRunsHeaderSiteFilter } from "./AgentRunsHeaderSiteFilter";
+import { Button } from "@/ui";
 
 function preferredRunIdInBucket(bucket: AgentRunBucketGroup | undefined): number | null {
   if (!bucket || bucket.runs.length === 0) return null;
@@ -274,9 +274,8 @@ export function AgentRunsPanel() {
                   ) : null}
                   {showAllLogsDownload ? (
                     <Button
+                      variant="quiet"
                       type="button"
-                      variant="ghost"
-                      className="agent-runs-site-picker-row__logs h-8 shrink-0 gap-1.5 px-2 text-base text-white hover:bg-white/10 hover:text-white"
                       title={`Download all client logs (${allLogsCount})`}
                       onClick={() => {
                         if (isAllClientsFilter) {

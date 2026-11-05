@@ -10,6 +10,7 @@ import {
 } from "@/lib/competitor-analysis/competitor-comparison-harness-state";
 import { BULK_ACTIVE_SEMANTIC_BORDER_CLASS } from "@/lib/bulk/bulk-active-semantic-border";
 import { cn } from "@/lib/utils";
+import { RowButton } from "@/ui";
 
 export type CompetitorComparisonHarnessPanelProps = {
   phase: string;
@@ -79,9 +80,8 @@ export function CompetitorComparisonHarnessPanel({
                 )}
               >
                 <CollapsibleTrigger asChild>
-                  <button
+                  <RowButton
                     type="button"
-                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-base"
                   >
                     <ChevronDown
                       className={cn(
@@ -105,7 +105,7 @@ export function CompetitorComparisonHarnessPanel({
                     )}
                     <span
                       className={cn(
-                        "min-w-0 flex-1 truncate font-medium",
+                        "min-w-0 flex-1 break-words font-medium",
                         isGenerating ? "text-primary" : "text-foreground",
                       )}
                       title={group.competitorName}
@@ -115,7 +115,7 @@ export function CompetitorComparisonHarnessPanel({
                     <span className="shrink-0 tabular-nums text-muted-foreground">
                       {groupDone}/{groupTotal}
                     </span>
-                  </button>
+                  </RowButton>
                 </CollapsibleTrigger>
 
                 <CollapsibleContent className="space-y-1 px-3 pb-3 data-[state=closed]:animate-none">

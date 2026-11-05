@@ -241,7 +241,7 @@ export function OrganicClientReportCover({
               {name}
             </p>
             <p className="organic-client-report-export__cover-byline">
-              {url ? <span className="text-slate-600">{url}</span> : null}
+              {url ? <span className="text-muted-foreground">{url}</span> : null}
               {url && periodLine ? <span> • </span> : null}
               {periodLine ? (
                 <span className="font-semibold text-[#84bd00]">{periodLine}</span>
@@ -309,11 +309,11 @@ export function OrganicClientReportCover({
                   <OrganicClientReportInlineText text={summaryText} />
                 </p>
               ) : insightsLoading ? (
-                <p className="organic-client-report-export__cover-insights-summary text-slate-500 italic">
+                <p className="organic-client-report-export__cover-insights-summary text-muted-foreground italic">
                   Generating executive summary…
                 </p>
               ) : insightsError ? (
-                <p className="organic-client-report-export__cover-insights-summary text-rose-600">
+                <p className="organic-client-report-export__cover-insights-summary text-ui-danger">
                   {insightsError}
                 </p>
               ) : null}
@@ -352,7 +352,7 @@ export function OrganicClientReportCover({
             </OrganicClientReportAccordion>
           )}
         </div>
-        <footer className="organic-client-report-export__sheet-footer mt-auto pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+        <footer className="organic-client-report-export__sheet-footer mt-auto pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
           <span>Neo Digital Inc</span>
           <span className="tabular-nums">
             Prepared {preparedOn}

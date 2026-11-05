@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { CloudUpload, CloudDownload } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { notify } from "@/lib/app-notifications";
 import {
   NOTIFY_SIGN_IN_TO_LOAD_SETTINGS_FROM_THE_CLOUD,
@@ -19,6 +18,7 @@ import {
   saveManagerSettingsToCloud,
 } from "@/lib/manager-cloud-settings-api";
 import { loadAgentMailApiKey, loadAgentMailInbox } from "@/lib/api";
+import { Button } from "@/ui";
 
 export type ManagerCloudSettingsCardProps = {
   apiKey: string;
@@ -130,13 +130,11 @@ export function ManagerCloudSettingsCard({
             ) : null}
             .
           </p>
-          {!user ? <p className="text-base text-amber-200">Sign in to use workspace backup.</p> : null}
+          {!user ? <p className="text-base text-semantic-warning-foreground">Sign in to use workspace backup.</p> : null}
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           <Button
             type="button"
-            variant="outline"
-            className="h-12 gap-1.5 text-base"
             disabled={disabled || saving}
             onClick={() => void handleSaveToCloud()}
           >
@@ -145,8 +143,6 @@ export function ManagerCloudSettingsCard({
           </Button>
           <Button
             type="button"
-            variant="outline"
-            className="h-12 gap-1.5 text-base"
             disabled={disabled || loading}
             onClick={() => void handleLoadFromCloud()}
           >

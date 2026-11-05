@@ -1,13 +1,6 @@
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import { usStates, canadianProvinces } from "@/lib/keyword-location-utils";
+import { Field, SelectField } from "@/ui";
 
 interface LocationSelectorProps {
   country: "United States" | "Canada";
@@ -29,52 +22,36 @@ export function LocationSelector({
   return (
     <div className="grid grid-cols-3 gap-4">
       <div className="space-y-2">
-        <Label>Country</Label>
-        <Select 
-          value={country} 
-          onValueChange={(value) => {
+        
+        <SelectField placeholder="Country" value={country} onValueChange={(value) => {
             onCountryChange(value as "United States" | "Canada");
             onStateProvinceChange(""); // Reset state/province when country changes
             onCityChange(""); // Reset city when country changes
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="United States">United States</SelectItem>
-            <SelectItem value="Canada">Canada</SelectItem>
-          </SelectContent>
-        </Select>
+          }} options={[{ value: "United States", label: "United States" }, { value: "Canada", label: "Canada" }]} />
       </div>
       <div className="space-y-2">
-        <Label>{country === "United States" ? "State" : "Province"}</Label>
-        <Select 
-          value={stateProvince || "__all__"} 
+        <label>{country === "United States" ? "State" : "Province"}</label>
+        <SelectField
+          placeholder={`Select ${country === "United States" ? "state" : "province"}`}
+          value={stateProvince || "__all__"}
           onValueChange={(value) => {
             onStateProvinceChange(value === "__all__" ? "" : value);
             // Don't reset city when state changes
           }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder={`Select ${country === "United States" ? "state" : "province"}`} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">All {country === "United States" ? "States" : "Provinces"}</SelectItem>
-            {(country === "United States" ? usStates : canadianProvinces).map((item) => (
-              <SelectItem key={item} value={item}>{item}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          options={[
+            { value: "__all__", label: `All ${country === "United States" ? "States" : "Provinces"}` },
+            ...(country === "United States" ? usStates : canadianProvinces).map((item) => ({ value: item, label: item })),
+          ]}
+          width="full"
+        />
       </div>
       <div className="space-y-2">
-        <Label>City (Optional)</Label>
-        <Input
+        <label>City (Optional)</label>
+        <Field
           type="text"
           value={city}
           onChange={(e) => onCityChange(e.target.value)}
           placeholder="e.g., Los Angeles, Toronto"
-          className="w-full"
         />
       </div>
     </div>

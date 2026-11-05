@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { MultiSiteContentOptimizerWorkspaceHeader } from "@/components/content-optimizer/MultiSiteContentOptimizerWorkspaceHeader";
 import { MultiSiteRowDatePicker } from "@/components/content-optimizer/MultiSiteRowDatePicker";
 import {
@@ -12,7 +12,6 @@ import { useOptimizationActivityCounts } from "@/hooks/use-optimization-activity
 import { useWordPressOptimization } from "@/contexts/wordpress-optimization-context";
 import { useAgentRunOptimizerScope } from "@/contexts/agent-run-optimizer-scope-context";
 import type { WordPressSite } from "@/components/integrations/types";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_BATCH_CLEARED_FROM_VIEW, NOTIFY_BOTH_NEEDS_POST_AND_ENTITY_IN_INTEGRATIO, NOTIFY_DETECT_POSTS_FOR_THIS_PROPERTY_IN_INTEGR, NOTIFY_ENTITY_BATCH_DID_NOT_FINISH, NOTIFY_NO_POST_OR_ENTITY_URLS_FOR_THIS_SITE, NOTIFY_NO_SELECTED_SITES_ARE_READY_TO_OPTIMIZE, NOTIFY_NO_URLS_FOR_THIS_SOURCE_ON_THIS_SITE, NOTIFY_POST_BATCH_DID_NOT_FINISH_ENTITY_WAS_NOT, NOTIFY_SAVE_AN_ENTITY_URL_FOR_THIS_SITE_IN_INTE, NOTIFY_STILL_INITIALIZING_THIS_ROW_TRY_AGAIN, notifyBothEntityXUrlSOnX, notifyBothPostFirstXUrlSOnX, notifyOptimizingXUrlSOnX, notifySkippedXSiteSNotConfiguredForCurr } from "@/lib/notify-messages";
@@ -54,6 +53,7 @@ import {
   contentOptimizerRowStripeClass,
   CONTENT_OPTIMIZER_WORKSPACE_SHELL_CLASS,
 } from "@/components/overview/overview-tab/overview-tab-content-constants";
+import { Button } from "@/ui";
 
 type SiteRowConfig = {
   source: MultiSiteUrlSource;
@@ -64,14 +64,14 @@ const BOTH_MODE_PREP_OVERRIDE = { prepEntitySitemap: true as const };
 
 /** Match Dashboard → Properties list checkboxes (`WordPressSiteList`), including indeterminate. */
 const MULTI_SITE_CHECKBOX_CLASS =
-  "border-zinc-500/60 data-[state=checked]:border-zinc-500 data-[state=checked]:bg-zinc-800 data-[state=checked]:text-zinc-400 data-[state=indeterminate]:border-zinc-500 data-[state=indeterminate]:bg-zinc-800 data-[state=indeterminate]:text-zinc-400";
+  "border-border/60 data-[state=checked]:border-border data-[state=checked]:bg-ui-field-hover data-[state=checked]:text-muted-foreground data-[state=indeterminate]:border-border data-[state=indeterminate]:bg-ui-field-hover data-[state=indeterminate]:text-muted-foreground";
 
 /** Flush stack; only the first row gets top inset below the progress band. */
 const MULTI_SITE_LIST_STACK = CONTENT_OPTIMIZER_MULTI_SITE_ROW_STACK_CLASS;
 
 function MultiSiteOptimizeLogoButtonContent({ busy }: { busy: boolean }) {
   if (busy) {
-    return <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary-foreground sm:h-4 sm:w-4" aria-hidden />;
+    return null;
   }
   return <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary-foreground sm:h-4 sm:w-4" aria-hidden />;
 }
@@ -564,7 +564,7 @@ export const MultiSiteContentOptimizerPanel: React.FC<MultiSiteContentOptimizerP
               <div
                 className={cn(
                   contentOptimizerRowStripeClass(stripeIndex),
-                  "hover:bg-zinc-900",
+                  "hover:bg-ui-field",
                   CONTENT_OPTIMIZER_COMPACT_ROW_INNER_CLASS,
                   "items-center",
                 )}
@@ -617,21 +617,20 @@ export const MultiSiteContentOptimizerPanel: React.FC<MultiSiteContentOptimizerP
                     <div className={CONTENT_OPTIMIZER_MULTI_SITE_CLUSTER_OUTER}>
                       <div className={CONTENT_OPTIMIZER_MULTI_SITE_CLUSTER_LEFT_CELL}>
                         <div
-                          className="h-full w-full shrink-0 animate-pulse rounded-none bg-zinc-900/90"
+                          className="h-full w-full shrink-0 rounded-none bg-ui-field/90"
                           aria-hidden
                         />
                       </div>
                       <div className="flex min-w-0 flex-1 items-center self-stretch">
                         <div className={CONTENT_OPTIMIZER_MULTI_SITE_CLUSTER_RIGHT_CELL}>
-                          <span className="truncate !text-white">Initializing…</span>
+                          <span className="break-words !text-white">Initializing…</span>
                         </div>
                       </div>
                     </div>
                     <Button
+                      variant="run"
                       type="button"
-                      size="icon"
                       disabled
-                      className={CONTENT_OPTIMIZER_MULTI_SITE_OPTIMIZE_ROW_BTN}
                       aria-label="Optimize with AI"
                     >
                       <MultiSiteOptimizeLogoButtonContent busy={false} />
@@ -649,14 +648,8 @@ export const MultiSiteContentOptimizerPanel: React.FC<MultiSiteContentOptimizerP
                             entity: !entityMissing,
                           }}
                           disabled={actionsBlocked}
-                          id={`ms-sitemap-${site.id}`}
                           ariaLabel={`Source for ${site.name}`}
                           showMixedSentinel={false}
-                          inDarkCluster
-                          triggerClassName={cn(
-                            "h-7 min-h-7 w-full min-w-0 border-0 bg-transparent px-2 text-sm font-normal shadow-none ring-offset-0",
-                            "focus:!ring-0 focus-visible:!ring-0 sm:h-8 sm:min-h-8 sm:text-base",
-                          )}
                         />
                       </div>
                       <MultiSiteRowDatePicker
@@ -671,11 +664,10 @@ export const MultiSiteContentOptimizerPanel: React.FC<MultiSiteContentOptimizerP
                     </div>
 
                     <Button
+                      variant="run"
                       type="button"
-                      size="icon"
                       disabled={!canRun || rowBusy || actionsBlocked}
                       onClick={() => void optimizeSite(site)}
-                      className={CONTENT_OPTIMIZER_MULTI_SITE_OPTIMIZE_ROW_BTN}
                       aria-label={rowBusy ? `Optimizing ${site.name}` : `Optimize ${site.name} with AI`}
                     >
                       <MultiSiteOptimizeLogoButtonContent busy={rowBusy} />

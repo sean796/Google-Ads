@@ -47,6 +47,7 @@ function bindingsRowsSignature(
   variant: BulkGeneratorStudioVariant,
   siteBaseUrl: string | null,
   sitemapSource: OverviewSitemapSource,
+  siteId?: string | null,
 ): string {
   const fileCounts = Array.from(bindings.filesByRow.entries())
     .map(([i, files]) => {
@@ -63,6 +64,7 @@ function bindingsRowsSignature(
     .join(";");
   return [
     variant,
+    siteId ?? "",
     siteBaseUrl ?? "",
     sitemapSource,
     bindings.displayRows.length,
@@ -85,8 +87,8 @@ export function useBulkGeneratorOverviewRowSync({
   followRunRow,
   onFollowRunRowChange,
 }: UseBulkGeneratorOverviewRowSyncArgs) {
-  const siteBaseUrl = bindings.connectedSite?.siteUrl ?? null;
-  const pathSite = ctrl.site ?? bindings.connectedSite ?? null;
+  const siteBaseUrl = bindings.connectedSite?.siteUrl ?? ctrl.site?.siteUrl ?? null;
+  const pathSite = ctrl.site ?? bindings.wordPressSite ?? null;
   const sapInventoryRows = useMemo(() => {
     if (!pathSite?.id) return [];
     return getSitePrefetchOverviewRowsForSourceSync(pathSite, "sap");
@@ -97,7 +99,7 @@ export function useBulkGeneratorOverviewRowSync({
   const activeDocRowIndexRef = useRef(0);
 
   useLayoutEffect(() => {
-    const sig = bindingsRowsSignature(bindings, variant, siteBaseUrl, ctrl.sitemapSource);
+    const sig = bindingsRowsSignature(bindings, variant, siteBaseUrl, ctrl.sitemapSource, pathSite?.id);
     if (sig === lastSigRef.current) return;
     lastSigRef.current = sig;
 
@@ -110,20 +112,27 @@ export function useBulkGeneratorOverviewRowSync({
       : -1;
     prevSitemapSourceRef.current = ctrl.sitemapSource;
 
-    const preserveByUrl = new Map<string, Pick<OverviewRow, "postContent" | "postContentOptimized">>();
+    const preserveByUrl = new Map<
+      string,
+      Pick<OverviewRow, "postContent" | "postContentOptimized" | "postId" | "postType">
+    >();
     const preserveByRowIndex = new Map<
       number,
-      Pick<OverviewRow, "postContent" | "postContentOptimized">
+      Pick<OverviewRow, "postContent" | "postContentOptimized" | "postId" | "postType">
     >();
     priorRows.forEach((row, index) => {
-      if (!row.postContent?.trim()) return;
-      const body = {
+      const hasBody = Boolean(row.postContent?.trim());
+      const hasPostId = row.postId != null && Number.isFinite(row.postId) && row.postId > 0;
+      if (!hasBody && !hasPostId) return;
+      const entry = {
         postContent: row.postContent,
         postContentOptimized: row.postContentOptimized ?? row.postContent,
+        postId: row.postId,
+        postType: row.postType,
       };
-      preserveByRowIndex.set(index, body);
+      preserveByRowIndex.set(index, entry);
       const key = normalizePageUrlKey(row.url);
-      if (key) preserveByUrl.set(key, body);
+      if (key) preserveByUrl.set(key, entry);
     });
 
     const next = buildBulkGeneratorOverviewRows({
@@ -160,10 +169,26 @@ export function useBulkGeneratorOverviewRowSync({
         ctrl.setExpandedPageUrl(remappedUrl);
       } else if (next.length === 0) {
         ctrl.setExpandedPageUrl(null);
+      } else if (
+        !ctrl.expandedPageUrl ||
+        !next.some((r) => normalizePageUrlKey(r.url) === normalizePageUrlKey(ctrl.expandedPageUrl))
+      ) {
+        ctrl.setExpandedPageUrl(next[0]?.url ?? null);
       }
     }
     syncingFromBindingsRef.current = false;
-  }, [bindings, variant, siteBaseUrl, ctrl, ctrl.sitemapSource, pathSite, sapInventoryRows]);
+  }, [
+    bindings,
+    variant,
+    siteBaseUrl,
+    ctrl.sitemapSource,
+    ctrl.rowsRef,
+    ctrl.setRows,
+    ctrl.expandedPageUrl,
+    ctrl.setExpandedPageUrl,
+    pathSite,
+    sapInventoryRows,
+  ]);
 
   const builtRows = ctrl.displayRows;
 
@@ -209,15 +234,42 @@ export function useBulkGeneratorOverviewRowSync({
 
     ctrl.opt.setBulkOptimizationState((prev) => {
       const existing = prev[batchKey];
+      if (!existing && !bindings.isProcessing && Object.keys(urlGeneratedFiles).length === 0) {
+        return prev;
+      }
+      const nextUrls = builtRows.map((r) => r.url);
+      const nextStep = bindings.processingStepLog.at(-1) ?? existing?.currentStep ?? "";
+      const prevUrls = existing?.urls ?? [];
+      const urlsSame =
+        prevUrls.length === nextUrls.length &&
+        prevUrls.every((u, i) => u === nextUrls[i]);
+      const existingFiles = existing?.urlGeneratedFiles ?? {};
+      const nextFileUrls = Object.keys(urlGeneratedFiles);
+      const prevFileUrls = Object.keys(existingFiles);
+      const filesCountSame =
+        nextFileUrls.length === prevFileUrls.length &&
+        nextFileUrls.every(
+          (u) => (urlGeneratedFiles[u]?.length ?? 0) === (existingFiles[u]?.length ?? 0),
+        );
+
+      if (
+        urlsSame &&
+        existing?.currentIndex === bindings.currentRow &&
+        existing?.currentStep === nextStep &&
+        filesCountSame
+      ) {
+        return prev;
+      }
+
       return {
         ...prev,
         [batchKey]: {
-          urls: builtRows.map((r) => r.url),
+          urls: nextUrls,
           currentIndex: bindings.currentRow,
           urlStatuses: existing?.urlStatuses ?? {},
-          currentStep: bindings.processingStepLog.at(-1) ?? existing?.currentStep ?? "",
+          currentStep: nextStep,
           urlGeneratedFiles: {
-            ...(existing?.urlGeneratedFiles ?? {}),
+            ...existingFiles,
             ...urlGeneratedFiles,
           },
           runKind: existing?.runKind ?? "content",
@@ -233,10 +285,16 @@ export function useBulkGeneratorOverviewRowSync({
     for (const f of activeFiles) {
       manager.addFile(f.name, f.content, f.mimeType);
     }
-    ctrl.opt.setOptimizationFileManagers((prev) => ({
-      ...prev,
-      [siteId]: manager,
-    }));
+    ctrl.opt.setOptimizationFileManagers((prev) => {
+      const cur = prev[siteId];
+      if (cur && typeof cur.getFileCount === "function" && cur.getFileCount() === activeFiles.length) {
+        return prev;
+      }
+      return {
+        ...prev,
+        [siteId]: manager,
+      };
+    });
   }, [
     bindings.filesByRow,
     bindings.currentRow,

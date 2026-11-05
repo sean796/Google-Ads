@@ -1,13 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { FALLBACK_JOB_TITLE_PRESETS, type JobTitlePreset } from "@/lib/teams-types";
+import { Field, SelectField } from "@/ui";
 
 const CUSTOM_JOB_TITLE = "__custom__";
 
@@ -16,10 +9,9 @@ export type TeamJobTitleFieldProps = {
   onChange: (value: string) => void;
   presets: JobTitlePreset[];
   disabled?: boolean;
-  inputClass: string;
 };
 
-export function TeamJobTitleField({ value, onChange, presets, disabled, inputClass }: TeamJobTitleFieldProps) {
+export function TeamJobTitleField({ value, onChange, presets, disabled }: TeamJobTitleFieldProps) {
   const presetTitles = useMemo(() => {
     const titles = presets.map((p) => p.title);
     return titles.length > 0 ? titles : [...FALLBACK_JOB_TITLE_PRESETS];
@@ -35,7 +27,8 @@ export function TeamJobTitleField({ value, onChange, presets, disabled, inputCla
 
   return (
     <div className="space-y-2">
-      <Select
+      <SelectField
+        placeholder="Job title"
         value={selectValue}
         onValueChange={(next) => {
           if (next === CUSTOM_JOB_TITLE) {
@@ -46,28 +39,17 @@ export function TeamJobTitleField({ value, onChange, presets, disabled, inputCla
           setCustomMode(false);
           onChange(next);
         }}
+        options={[...presetTitles.map((title) => ({ value: title, label: title })), { value: CUSTOM_JOB_TITLE, label: "Custom" }]}
+        width="full"
         disabled={disabled}
-      >
-        <SelectTrigger className={inputClass}>
-          <SelectValue aria-label="Job title" />
-        </SelectTrigger>
-        <SelectContent>
-          {presetTitles.map((title) => (
-            <SelectItem key={title} value={title}>
-              {title}
-            </SelectItem>
-          ))}
-          <SelectItem value={CUSTOM_JOB_TITLE}>Custom</SelectItem>
-        </SelectContent>
-      </Select>
+      />
       {customMode ? (
-        <Input
+        <Field
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           aria-label="Custom job title"
           placeholder="Custom job title"
-          className={inputClass}
           disabled={disabled}
         />
       ) : null}

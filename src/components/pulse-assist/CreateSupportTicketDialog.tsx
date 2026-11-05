@@ -1,10 +1,8 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { Loader2, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useCallback, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { ActionButton, Button, Field, TextareaField } from "@/ui";
 import { Dialog, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   SupportChatLogAttachment,
   supportChatLogFileName,
@@ -15,6 +13,9 @@ import { usePulseAssistContext } from "@/contexts/pulse-assist-context";
 import { createSupportTicket, previewSupportTicketAi } from "@/lib/support-api";
 import type { PulseAssistDebugLog } from "@/lib/pulse-assist/debug-log";
 import { cn } from "@/lib/utils";
+
+const CONTINUE_STATES = ["Continue", "Generating"] as const;
+const CREATE_STATES = ["Create ticket", "Creating"] as const;
 
 type CreateSupportTicketDialogProps = {
   open: boolean;
@@ -156,125 +157,87 @@ export function CreateSupportTicketDialog({
         </DialogHeader>
 
         {createdId ? (
-          <div className="space-y-4">
+          <div className="flex flex-col gap-3">
             <p className="text-base text-foreground">
               Ticket #{createdId} was created with the chat log attached.
             </p>
-            <DialogFooter className="gap-2 sm:justify-start">
-              <Button type="button" onClick={handleOpenSupport}>
+            <DialogFooter className="gap-1.5 sm:justify-start">
+              <Button variant="run" onClick={handleOpenSupport}>
                 Open Support
               </Button>
-              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+              <Button variant="tool" onClick={() => handleOpenChange(false)}>
                 Close
               </Button>
             </DialogFooter>
           </div>
         ) : step === "describe" ? (
           <>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-base font-medium" htmlFor="support-ticket-description">
-                  What is the issue?
-                </label>
-                <Textarea
-                  id="support-ticket-description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  disabled={loadingAi}
-                  rows={5}
-                  placeholder="Describe what went wrong or what you need help with"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-base font-medium text-foreground">Attachment</p>
-                <SupportChatLogAttachment chatLog={chatLog} fileName={supportChatLogFileName()} />
-              </div>
-
+            <div className="flex flex-col gap-1.5">
+              <TextareaField
+                rows={5}
+                placeholder="What is the issue? Describe what went wrong or what you need help with"
+                aria-label="What is the issue?"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                disabled={loadingAi}
+              />
+              <p className="text-base font-medium text-foreground">Attachment</p>
+              <SupportChatLogAttachment chatLog={chatLog} fileName={supportChatLogFileName()} />
               {!activeTeam?.id ? (
                 <p className="text-base text-destructive">No active team. Switch to a team before creating a ticket.</p>
               ) : null}
-
               {error ? <p className="text-base text-destructive">{error}</p> : null}
             </div>
 
-            <DialogFooter className="gap-2 sm:justify-start">
-              <Button type="button" onClick={() => void handleGenerate()} disabled={!canGenerate}>
-                {loadingAi ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
-                    Generating…
-                  </>
-                ) : (
-                  "Continue"
-                )}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={loadingAi}>
+            <DialogFooter className="gap-1.5 sm:justify-start">
+              <ActionButton
+                states={CONTINUE_STATES}
+                state={loadingAi ? "Generating" : "Continue"}
+                disabled={!canGenerate}
+                onClick={() => void handleGenerate()}
+              />
+              <Button variant="tool" onClick={() => handleOpenChange(false)} disabled={loadingAi}>
                 Cancel
               </Button>
             </DialogFooter>
           </>
         ) : (
           <>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <p className="text-base font-medium text-foreground">Your description</p>
-                <p className="text-base text-foreground">{description.trim()}</p>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-base font-medium" htmlFor="support-ticket-title">
-                  Title
-                </label>
-                <Input
-                  id="support-ticket-title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  disabled={submitting}
-                  placeholder="Short issue title"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-base font-medium" htmlFor="support-ticket-summary">
-                  Summary
-                </label>
-                <Textarea
-                  id="support-ticket-summary"
-                  value={summary}
-                  onChange={(e) => setSummary(e.target.value)}
-                  disabled={submitting}
-                  rows={4}
-                  placeholder="What went wrong?"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-base font-medium text-foreground">Attachment</p>
-                <SupportChatLogAttachment chatLog={chatLog} fileName={supportChatLogFileName()} />
-              </div>
-
+            <div className="flex flex-col gap-1.5">
+              <p className="text-base font-medium text-foreground">Your description</p>
+              <p className="text-base text-foreground">{description.trim()}</p>
+              <Field
+                placeholder="Title, a short issue title"
+                aria-label="Title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                disabled={submitting}
+              />
+              <TextareaField
+                rows={4}
+                placeholder="Summary, what went wrong?"
+                aria-label="Summary"
+                value={summary}
+                onChange={(e) => setSummary(e.target.value)}
+                disabled={submitting}
+              />
+              <p className="text-base font-medium text-foreground">Attachment</p>
+              <SupportChatLogAttachment chatLog={chatLog} fileName={supportChatLogFileName()} />
               {!activeTeam?.id ? (
                 <p className="text-base text-destructive">No active team. Switch to a team before creating a ticket.</p>
               ) : null}
-
               {error ? <p className="text-base text-destructive">{error}</p> : null}
             </div>
 
-            <DialogFooter className="gap-2 sm:justify-start">
-              <Button type="button" onClick={() => void handleSubmit()} disabled={!canSubmit}>
-                {submitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
-                    Creating…
-                  </>
-                ) : (
-                  "Create ticket"
-                )}
-              </Button>
+            <DialogFooter className="gap-1.5 sm:justify-start">
+              <ActionButton
+                states={CREATE_STATES}
+                state={submitting ? "Creating" : "Create ticket"}
+                disabled={!canSubmit}
+                onClick={() => void handleSubmit()}
+              />
               <Button
-                type="button"
-                variant="outline"
+                variant="tool"
                 onClick={() => {
                   setError("");
                   setStep("describe");

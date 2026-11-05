@@ -4,24 +4,12 @@
  */
 
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Bot, Download } from "lucide-react";
+import { ActionButton, Button, DialogShell, Field, Pill, SelectField } from "@/ui";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_FAILED_TO_COPY_TO_CLIPBOARD, NOTIFY_NO_ENTITIES_TO_GENERATE_CSV_FROM, notifyCopiedXToClipboard } from "@/lib/notify-messages";
-import { Loader2, Download, Bot } from "lucide-react";
 import { generateAITitleSuggestion } from "../csv/titleSuggestion";
 import { generateCSVTemplate, replaceTemplateVariables } from "../csv/csvGenerator";
-import { CYBERPUNK_CLASSES } from "../../wordpress/cyberpunk-theme";
 import type { WordPressSite } from "../../types";
 import type { EntityWithCriteria } from "../../types";
 
@@ -35,12 +23,16 @@ interface CSVTemplateDialogProps {
   initialTitleFormat?: string;
 }
 
-function featuredImageLabel(value: string): string {
-  if (value === "y") return "Yes (Y)";
-  if (value === "n") return "No (N)";
-  if (value === "google-maps") return "Google Image";
-  return value;
-}
+const FEATURED_IMAGE_OPTIONS = [
+  { value: "y", label: "Featured image: Yes (Y)" },
+  { value: "n", label: "Featured image: No (N)" },
+  { value: "google-maps", label: "Featured image: Google Image" },
+];
+
+const FEATURED_IMAGE_SHORT: Record<string, string> = { y: "Yes", "google-maps": "Google", n: "No" };
+const TITLE_VARIABLES = ["{entity}", "{keyword}"];
+const SUGGEST_STATES = ["AI Suggest", "Generating"] as const;
+const PREVIEW_ROW = "grid grid-cols-[1fr_2fr_6rem] gap-2 px-2 py-1.5 text-base";
 
 export const CSVTemplateDialog: React.FC<CSVTemplateDialogProps> = ({
   open,
@@ -49,7 +41,7 @@ export const CSVTemplateDialog: React.FC<CSVTemplateDialogProps> = ({
   pendingEntitySitemap,
   entities,
   entityRecords = [],
-  initialTitleFormat = ""
+  initialTitleFormat = "",
 }) => {
   const [csvTitleFormat, setCsvTitleFormat] = useState<string>(initialTitleFormat);
 
@@ -64,10 +56,10 @@ export const CSVTemplateDialog: React.FC<CSVTemplateDialogProps> = ({
   const [isGeneratingTitleSuggestion, setIsGeneratingTitleSuggestion] = useState<boolean>(false);
 
   const totalEntities = entities?.length ?? 0;
-  const featuredImageDisplay = featuredImageLabel(csvFeaturedImage);
+  const previewCount = Math.min(10, totalEntities);
   const summaryLine =
     totalEntities > 0
-      ? `Total: ${totalEntities} entities · Featured image: ${featuredImageDisplay} · Keyword: ${csvKeyword.trim() ? "Set" : "Not set"}`
+      ? `Total: ${totalEntities} entities · Keyword: ${csvKeyword.trim() ? "Set" : "Not set"} · Modifier: ${csvOptionalModifier.trim() ? "Set" : "Not set"}`
       : "Configure the CSV template with title format and optional fields for bulk generation.";
 
   const handleGenerateAITitleSuggestion = async () => {
@@ -108,249 +100,105 @@ export const CSVTemplateDialog: React.FC<CSVTemplateDialogProps> = ({
     onOpenChange(false);
   };
 
-  const previewCount = Math.min(10, totalEntities);
-  const previewRowsLabel =
-    totalEntities <= 10
-      ? `Showing rows 1–${totalEntities} of ${totalEntities}`
-      : `Showing rows 1–${previewCount} of ${totalEntities}`;
-  const previewSectionLabel =
-    totalEntities <= 10
-      ? `Preview: first ${totalEntities} of ${totalEntities} entities`
-      : `Preview: first ${previewCount} of ${totalEntities} entities`;
+  const copyVariable = (value: string) => {
+    navigator.clipboard
+      .writeText(value)
+      .then(() => notify.success(notifyCopiedXToClipboard(value)))
+      .catch(() => notify.error(NOTIFY_FAILED_TO_COPY_TO_CLIPBOARD));
+  };
+
+  const ready = Boolean(pendingEntitySite && pendingEntitySitemap && entities && entities.length > 0);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className={`max-w-2xl max-h-[80vh] overflow-hidden flex flex-col ${CYBERPUNK_CLASSES.card} border-green-500/50`}
-      >
-        <DialogHeader className="border-b border-green-500/20 pb-3 shrink-0">
-          <DialogTitle className="text-xl font-bold text-green-400 font-mono tracking-wider">
-            Generate CSV Template
-          </DialogTitle>
-          <DialogDescription className="text-green-500/80 font-mono text-sm">
-            {summaryLine}
-          </DialogDescription>
-        </DialogHeader>
-
-        {pendingEntitySite && pendingEntitySitemap && entities && entities.length > 0 && (
-          <div className="flex-1 overflow-y-auto min-h-0 space-y-4 py-4">
-            {/* SUMMARY */}
-            <div className={`rounded-md border ${CYBERPUNK_CLASSES.borderDivider} ${CYBERPUNK_CLASSES.bgNeon} p-3`}>
-              <div className="text-xs font-mono uppercase tracking-wider text-green-400/80 mb-2">
-                Summary
-              </div>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm font-mono text-foreground">
-                <span className="text-green-400/90">Total entities:</span>
-                <span>{totalEntities}</span>
-                <span className="text-green-400/90">CSV rows:</span>
-                <span>{totalEntities}</span>
-                <span className="text-green-400/90">Featured image:</span>
-                <span>{featuredImageDisplay}</span>
-                <span className="text-green-400/90">Keyword:</span>
-                <span>{csvKeyword.trim() ? "Set" : "Not set"}</span>
-                <span className="text-green-400/90">Modifier:</span>
-                <span>{csvOptionalModifier.trim() ? "Set" : "Not set"}</span>
-              </div>
-            </div>
-
-            {/* CONFIGURATION */}
-            <div className="border-t border-green-500/20 pt-4">
-              <div className="text-xs font-mono uppercase tracking-wider text-green-400/80 mb-3">
-                Configuration
-              </div>
-              <div className="space-y-4">
-                <div className="grid gap-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="csvTitleFormat" className="font-mono text-foreground">
-                      Title Format
-                    </Label>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleGenerateAITitleSuggestion}
-                      disabled={isGeneratingTitleSuggestion}
-                      className="h-7 px-2 text-xs border border-green-500/30 text-green-400 hover:bg-green-500/20"
-                      title="AI Suggest Title Template"
-                    >
-                      {isGeneratingTitleSuggestion ? (
-                        <>
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Bot className="h-3 w-3 mr-1" />
-                          AI Suggest
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                  <Input
-                    id="csvTitleFormat"
-                    value={csvTitleFormat}
-                    onChange={(e) => setCsvTitleFormat(e.target.value)}
-                    placeholder="e.g., {keyword} Near {entity}"
-                    className="bg-[#050505] border-green-500/30 text-foreground font-mono flex-1"
-                  />
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-muted-foreground font-mono">Use variables:</span>
-                    {[
-                      { entity: "{entity}" },
-                      { keyword: "{keyword}" }
-                    ].map((vars, idx) => {
-                      const [key, value] = Object.entries(vars)[0];
-                      return (
-                        <React.Fragment key={key}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              navigator.clipboard
-                                .writeText(value)
-                                .then(() => notify.success(notifyCopiedXToClipboard(value)))
-                                .catch(() => notify.error(NOTIFY_FAILED_TO_COPY_TO_CLIPBOARD));
-                            }}
-                            className="text-xs bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 px-1.5 py-0.5 rounded font-mono text-green-300 cursor-pointer transition-colors"
-                            title={`Click to copy ${value}`}
-                          >
-                            {value}
-                          </button>
-                          {idx < 1 && <span className="text-xs text-muted-foreground">,</span>}
-                        </React.Fragment>
-                      );
-                    })}
-                  </div>
-                  {csvTitleFormat && (
-                    <div className="mt-2 p-2 bg-green-500/10 rounded border border-green-500/20">
-                      <p className="text-xs text-muted-foreground font-mono mb-1">Preview (first entity):</p>
-                      <p className="text-sm font-mono text-green-300">
-                        {replaceTemplateVariables(
-                          csvTitleFormat,
-                          entities[0],
-                          csvKeyword || "keyword"
-                        )}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="csvKeyword" className="font-mono text-foreground">
-                    Keyword (Optional)
-                  </Label>
-                  <Input
-                    id="csvKeyword"
-                    value={csvKeyword}
-                    onChange={(e) => setCsvKeyword(e.target.value)}
-                    placeholder="Leave empty to fill manually later"
-                    className="bg-[#050505] border-green-500/30 text-foreground font-mono"
-                  />
-                  <p className="text-xs text-muted-foreground font-mono">
-                    Optional: Leave empty to fill manually later. If provided, will be used for all
-                    entities.
-                  </p>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="csvFeaturedImage" className="font-mono text-foreground">
-                    Featured Image
-                  </Label>
-                  <Select value={csvFeaturedImage} onValueChange={setCsvFeaturedImage}>
-                    <SelectTrigger className="bg-[#050505] border-green-500/30 text-foreground font-mono">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="y">Yes (Y)</SelectItem>
-                      <SelectItem value="n">No (N)</SelectItem>
-                      <SelectItem value="google-maps">Google Image</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground font-mono">
-                    Whether to generate a featured image for each post. Google Image requires an
-                    entity.
-                  </p>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="csvOptionalModifier" className="font-mono text-foreground">
-                    Optional Modifier (Optional)
-                  </Label>
-                  <Input
-                    id="csvOptionalModifier"
-                    value={csvOptionalModifier}
-                    onChange={(e) => setCsvOptionalModifier(e.target.value)}
-                    placeholder="e.g., Focus on high-income neighborhoods"
-                    className="bg-[#050505] border-green-500/30 text-foreground font-mono"
-                  />
-                  <p className="text-xs text-muted-foreground font-mono">
-                    Optional prompt modifier to guide content generation
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* PREVIEW */}
-            <div className="border-t border-green-500/20 pt-4">
-              <div className="text-xs font-mono uppercase tracking-wider text-green-400/80 mb-2">
-                {previewSectionLabel}
-              </div>
-              <div className="text-xs text-muted-foreground font-mono mb-2">{previewRowsLabel}</div>
-              <div className="max-h-64 overflow-y-auto border border-green-500/30 rounded-md bg-[#050505]">
-                <div className="grid grid-cols-[1fr_2fr_100px] gap-2 px-3 py-2 bg-green-500/10 border-b border-green-500/30 text-sm font-mono uppercase tracking-wider text-green-400/80 sticky top-0 z-10">
-                  <div>Entity</div>
-                  <div>Title</div>
-                  <div>Featured</div>
-                </div>
-                <div className="divide-y divide-green-500/10">
-                  {entities.slice(0, 10).map((entity, index) => {
-                    const previewTitle = csvTitleFormat
-                      ? replaceTemplateVariables(csvTitleFormat, entity, csvKeyword || "")
-                      : entity;
-                    return (
-                      <div
-                        key={index}
-                        className="grid grid-cols-[1fr_2fr_100px] gap-2 px-3 py-2 text-xs font-mono text-foreground"
-                      >
-                        <div className="truncate text-green-300/90">{entity}</div>
-                        <div className="truncate">{previewTitle}</div>
-                        <div className="text-muted-foreground">
-                          {csvFeaturedImage === "y"
-                            ? "Yes"
-                            : csvFeaturedImage === "google-maps"
-                              ? "Google"
-                              : "No"}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                {entities.length > 10 && (
-                  <div className="text-xs text-muted-foreground font-mono mt-2 pt-2 px-3 pb-2 border-t border-green-500/20">
-                    … and {entities.length - 10} more entities (Total: {totalEntities} entities)
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        <DialogFooter className="border-t border-green-500/20 pt-3 shrink-0">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="border-green-500/50 text-green-300 hover:bg-green-500/20"
-          >
+    <DialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      size="lg"
+      title="Generate CSV Template"
+      description={summaryLine}
+      actions={
+        <>
+          <Button variant="tool" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button
-            onClick={handleGenerateCSV}
-            className="bg-green-600 hover:bg-green-500 text-black font-mono"
-          >
-            <Download className="h-4 w-4 mr-2" />
+          <Button variant="run" icon={Download} onClick={handleGenerateCSV}>
             Download CSV
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      {ready ? (
+        <>
+          <div className="flex items-center gap-1.5">
+            <Field
+              placeholder="Title format, e.g. {keyword} Near {entity}"
+              value={csvTitleFormat}
+              onChange={(e) => setCsvTitleFormat(e.target.value)}
+            />
+            <ActionButton
+              states={SUGGEST_STATES}
+              state={isGeneratingTitleSuggestion ? "Generating" : "AI Suggest"}
+              icon={Bot}
+              disabled={isGeneratingTitleSuggestion}
+              onClick={handleGenerateAITitleSuggestion}
+            />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-base text-muted-foreground">Use variables</span>
+            {TITLE_VARIABLES.map((value) => (
+              <Pill key={value} label={value} active={false} onClick={() => copyVariable(value)} />
+            ))}
+          </div>
+          {csvTitleFormat ? (
+            <p className="bg-ui-field px-2 py-1.5 text-base text-primary">
+              {replaceTemplateVariables(csvTitleFormat, entities[0], csvKeyword || "keyword")}
+            </p>
+          ) : null}
+          <Field
+            placeholder="Keyword (optional, leave empty to fill manually later)"
+            aria-label="Keyword"
+            value={csvKeyword}
+            onChange={(e) => setCsvKeyword(e.target.value)}
+          />
+          <SelectField
+            placeholder="Featured image"
+            width="full"
+            value={csvFeaturedImage}
+            options={FEATURED_IMAGE_OPTIONS}
+            onValueChange={setCsvFeaturedImage}
+          />
+          <Field
+            placeholder="Optional modifier, e.g. Focus on high-income neighborhoods"
+            aria-label="Optional modifier"
+            value={csvOptionalModifier}
+            onChange={(e) => setCsvOptionalModifier(e.target.value)}
+          />
+          <p className="pt-1.5 text-base font-semibold">
+            Preview: first {previewCount} of {totalEntities} entities
+          </p>
+          <div className="flex max-h-64 flex-col gap-px overflow-y-auto bg-ui-field-hover">
+            <div className={`${PREVIEW_ROW} bg-ui-field font-semibold`}>
+              <span>Entity</span>
+              <span>Title</span>
+              <span>Featured</span>
+            </div>
+            {entities.slice(0, 10).map((entity, index) => (
+              <div key={index} className={`${PREVIEW_ROW} bg-ui-field`}>
+                <span className="break-words text-primary">{entity}</span>
+                <span className="break-words">
+                  {csvTitleFormat ? replaceTemplateVariables(csvTitleFormat, entity, csvKeyword || "") : entity}
+                </span>
+                <span className="text-muted-foreground">{FEATURED_IMAGE_SHORT[csvFeaturedImage] ?? csvFeaturedImage}</span>
+              </div>
+            ))}
+            {entities.length > 10 ? (
+              <p className="bg-ui-field px-2 py-1.5 text-base text-muted-foreground">
+                and {entities.length - 10} more entities
+              </p>
+            ) : null}
+          </div>
+        </>
+      ) : null}
+    </DialogShell>
   );
 };

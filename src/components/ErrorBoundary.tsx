@@ -1,6 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
+import { Button } from "@/ui";
 
 interface Props {
   children: ReactNode;
@@ -77,7 +77,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 </details>
               )}
             </div>
-            <Button onClick={this.handleReset} className="w-full">
+            <Button variant="run" onClick={this.handleReset}>
               Try Again
             </Button>
           </div>

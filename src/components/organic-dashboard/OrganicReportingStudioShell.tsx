@@ -6,7 +6,6 @@ import {
   RefreshCw,
   Square,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { ContentOptimizerSplashOverlay } from "@/components/overview/studio/ContentOptimizerSplashOverlay";
 import { OverviewStudioGeneratedFilesBand } from "@/components/overview/studio/OverviewStudioGeneratedFilesBand";
 import {
@@ -26,6 +25,7 @@ import { formatOwnerReportHeading } from "@/lib/organic-dashboard/organic-client
 import { NOTIFY_CSV_DOWNLOADED } from "@/lib/notify-messages";
 import { notify } from "@/lib/app-notifications";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 const LEFT_DOCK_WIDTH_KEY = "neo-pulse:organic-reporting-left-dock-width:v1";
 const LEFT_DOCK_DEFAULT_WIDTH = 320;
@@ -128,7 +128,6 @@ export function OrganicReportingStudioShell({
 }: OrganicReportingStudioShellProps) {
   const [dockWidth, setDockWidth] = useState<number>(() => readLeftDockWidth());
   const [isResizing, setIsResizing] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeAnchorId, setActiveAnchorId] = useState<string>("report-cover");
   const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -375,7 +374,6 @@ export function OrganicReportingStudioShell({
 
   const scrollToSection = useCallback((anchorId: string) => {
     setActiveAnchorId(anchorId);
-    setDrawerOpen(false);
     const container = scrollContainerRef.current;
     if (!container) return;
     if (anchorId === "report-cover" || anchorId === "report-hero") {
@@ -420,30 +418,22 @@ export function OrganicReportingStudioShell({
               )}
             >
               <span className="w-6 shrink-0 tabular-nums text-muted-foreground">{idx + 1}</span>
-              <button
-                type="button"
+              <Button
+                pressed={Boolean(step.isReady)}
+                variant="quiet"
                 onClick={() => scrollToSection(step.anchorId)}
-                className={cn(
-                  "min-w-0 flex-1 truncate text-left hover:underline",
-                  step.isReady ? "text-white" : "text-muted-foreground",
-                )}
               >
                 {step.title}
-              </button>
+              </Button>
               <Button
+                variant="quiet"
                 type="button"
-                variant="ghost"
-                size="sm"
                 disabled={!canDownload}
                 onClick={() => {
                   if (!step.downloadFile) return;
                   triggerBlobDownload(step.downloadFile);
                   notify.success(NOTIFY_CSV_DOWNLOADED);
                 }}
-                className={cn(
-                  "h-7 shrink-0 px-2 text-base hover:bg-white/10 hover:text-white",
-                  canDownload ? "text-white" : "text-muted-foreground opacity-45",
-                )}
               >
                 <Download className="mr-1 h-3 w-3" />
                 File
@@ -460,10 +450,10 @@ export function OrganicReportingStudioShell({
       className={cn(
         OVERVIEW_TAB_TYPO_CLASS,
         CONTENT_OPTIMIZER_SQUARE_CONTROLS_CLASS,
-        "flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-background px-5 py-3 md:px-8 md:py-4",
+        "flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-background",
       )}
     >
-      <div className="relative flex h-full min-h-0 w-full flex-1 flex-row overflow-hidden border border-white/10 bg-black">
+      <div className="relative flex h-full min-h-0 w-full flex-1 flex-row overflow-hidden bg-black">
         <ContentOptimizerSplashOverlay visible={splashVisible} />
         <div
           className={cn(
@@ -478,26 +468,20 @@ export function OrganicReportingStudioShell({
           className="relative flex h-full shrink-0 flex-col border-r border-white/10 bg-black font-sans text-base text-white"
         >
           {/* Top Mode Row */}
-          <div className="flex h-11 shrink-0 items-center justify-between gap-2 bg-zinc-900 px-3">
+          <div className="flex h-11 shrink-0 items-center justify-between gap-2 bg-ui-field px-3">
             <span className="inline-flex h-8 items-center bg-primary px-3 text-base font-semibold text-black">
               Performance
             </span>
 
             <Button
+              size="icon" icon={RefreshCw}
+              variant="quiet"
               type="button"
-              variant="ghost"
-              size="icon"
               disabled={busy}
               title="Refresh report metrics and AI overview"
               aria-label="Refresh report"
               onClick={onRefresh}
-              className={cn(
-                "h-8 w-8 shrink-0 rounded-none border-0 bg-black text-muted-foreground hover:bg-zinc-800 hover:text-white",
-                busy && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-              )}
-            >
-              <RefreshCw className="h-4 w-4" aria-hidden />
-            </Button>
+            ></Button>
           </div>
 
           {/* Date Range Filter Row */}
@@ -532,27 +516,26 @@ export function OrganicReportingStudioShell({
                       className={cn(
                         "group flex items-start gap-2.5 px-3.5 py-3 transition-colors",
                         isActive
-                          ? "border-l-2 border-primary bg-zinc-900"
-                          : "bg-black hover:bg-zinc-950",
+                          ? "border-l-2 border-primary bg-ui-field"
+                          : "bg-black hover:bg-black",
                       )}
                     >
-                      <button
-                        type="button"
+                      <Button
+                        variant="quiet"
                         onClick={() => scrollToSection(item.anchorId)}
-                        className="flex min-w-0 flex-1 flex-col items-start gap-1 text-left outline-none"
                       >
                         <span
                           className={cn(
-                            "line-clamp-1 text-base font-medium leading-snug",
+                            "text-base font-medium leading-snug",
                             isActive ? "text-primary" : "text-white group-hover:text-primary/90",
                           )}
                         >
                           {item.title}
                         </span>
-                        <span className="w-full truncate text-base text-muted-foreground">
+                        <span className="w-full break-words text-base text-muted-foreground">
                           {item.subtitle}
                         </span>
-                      </button>
+                      </Button>
                     </li>
                   );
                 })}
@@ -579,7 +562,7 @@ export function OrganicReportingStudioShell({
 
         {/* Right Studio Document Canvas */}
         <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-black">
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-zinc-950 font-sans text-base text-white">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-black font-sans text-base text-white">
             {/* Studio Top Header */}
             <header
               className={cn(
@@ -590,7 +573,7 @@ export function OrganicReportingStudioShell({
               <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5">
                 <h1
                   className={cn(
-                    "min-w-0 truncate text-base font-semibold",
+                    "min-w-0 break-words text-base font-semibold",
                     busy ? CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS : "text-white",
                   )}
                 >
@@ -600,11 +583,9 @@ export function OrganicReportingStudioShell({
                 <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1.5">
                   {onToggleLogoBoxTheme ? (
                     <Button
+                      variant="quiet"
                       type="button"
-                      variant="ghost"
-                      size="sm"
                       onClick={onToggleLogoBoxTheme}
-                      className="h-8 rounded-none border-0 bg-zinc-900 px-2.5 text-base text-white hover:bg-zinc-800"
                       title="Toggle cover logo box between black and white"
                     >
                       <Square className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" aria-hidden />
@@ -613,23 +594,19 @@ export function OrganicReportingStudioShell({
                   ) : null}
 
                   <Button
+                    variant="quiet"
                     type="button"
-                    variant="ghost"
-                    size="sm"
                     onClick={onShareLink}
-                    className="h-8 rounded-none border-0 bg-zinc-900 px-2.5 text-base text-white hover:bg-zinc-800"
                   >
                     <Link2 className="mr-1.5 h-4 w-4 text-muted-foreground" aria-hidden />
                     {shareCopied ? "Copied" : "Share link"}
                   </Button>
 
                   <Button
+                    variant="quiet"
                     type="button"
-                    variant="ghost"
-                    size="sm"
                     disabled={exportDisabled}
                     onClick={onDownloadMarkdown}
-                    className="h-8 rounded-none border-0 bg-zinc-900 px-2.5 text-base text-white hover:bg-zinc-800"
                     title="Markdown report"
                   >
                     <FileText className="mr-1.5 h-4 w-4 text-muted-foreground" aria-hidden />
@@ -637,12 +614,10 @@ export function OrganicReportingStudioShell({
                   </Button>
 
                   <Button
+                    variant="quiet"
                     type="button"
-                    variant="ghost"
-                    size="sm"
                     disabled={exportDisabled || downloadPdfBusy}
                     onClick={onDownloadPdf}
-                    className="h-8 rounded-none border-0 bg-primary px-3 text-base font-semibold text-black hover:bg-primary/90"
                     title="Client report PDF"
                   >
                     <Download className="mr-1.5 h-4 w-4" aria-hidden />
@@ -658,8 +633,6 @@ export function OrganicReportingStudioShell({
                 totalStepCount={outlineItems.length}
                 allReadyFiles={readyFiles}
                 detailsPanelId="organic-reporting-generated-files-panel"
-                drawerOpen={drawerOpen}
-                onToggleDrawer={() => setDrawerOpen((prev) => !prev)}
                 drawerContent={drawerContent}
                 endRailTitle="Report sections & artifacts"
               />
@@ -668,7 +641,7 @@ export function OrganicReportingStudioShell({
             {/* Studio Document Canvas Body */}
             <div
               ref={scrollContainerRef}
-              className="min-h-0 flex-1 overflow-y-auto bg-zinc-900/40 px-4 py-6 sm:px-8"
+              className="min-h-0 flex-1 overflow-y-auto bg-ui-field/40 px-4 py-6 sm:px-8"
             >
               {reportContent ? (
                 <div className="mx-auto w-full max-w-[52rem]">

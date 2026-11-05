@@ -1,10 +1,10 @@
 import React from "react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   CONTENT_OPTIMIZER_BULK_PAGE_SIZE,
   contentOptimizerBulkPageCount,
 } from "@/lib/content-optimizer/content-optimizer-bulk-page-size";
+import { Button } from "@/ui";
 
 type Props = {
   pageIndex: number;
@@ -42,7 +42,7 @@ export function OverviewGridPagination({
     <nav
       aria-label={`Overview grid pagination, ${end} of ${totalCount} rows`}
       className={cn(
-        "flex min-h-11 flex-wrap items-center justify-start gap-2 rounded-none border border-zinc-800 bg-zinc-900 px-3 py-2",
+        "flex min-h-11 flex-wrap items-center justify-start gap-2 rounded-none border border-border bg-ui-field px-3 py-2",
         className,
       )}
     >
@@ -61,9 +61,6 @@ export function OverviewGridPagination({
               <Button
                 key={`page-slot-${i}`}
                 type="button"
-                variant="outline"
-                size="sm"
-                className={cn(pageButtonClass, "invisible pointer-events-none")}
                 aria-hidden
                 tabIndex={-1}
               >
@@ -73,11 +70,9 @@ export function OverviewGridPagination({
           }
           return (
             <Button
+              pressed={i === safePageIndex}
               key={i}
               type="button"
-              variant={i === safePageIndex ? "default" : "outline"}
-              size="sm"
-              className={cn(pageButtonClass, i === safePageIndex && "pointer-events-none")}
               aria-current={i === safePageIndex ? "page" : undefined}
               onClick={() => onPageChange(i)}
             >

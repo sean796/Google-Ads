@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ActionButton, Button, DialogShell, Field, SelectField } from "@/ui";
 import { createHostedEnvironment, type HostedEnvironmentKind, type HostedSiteGroup } from "@/lib/hosting-api";
-import { MY_SITES_FIELD, MY_SITES_POPOVER, MY_SITES_PRIMARY_BTN } from "./my-sites-theme";
 
 export type AddSiteDialogProps = {
   open: boolean;
@@ -19,6 +15,8 @@ const KINDS: Array<{ value: HostedEnvironmentKind; label: string }> = [
   { value: "staging", label: "Staging" },
   { value: "development", label: "Development" },
 ];
+
+const SUBMIT_STATES = ["Create site", "Add environment", "Creating"] as const;
 
 export function AddSiteDialog({ open, group, onOpenChange, onCreated }: AddSiteDialogProps) {
   const [name, setName] = useState("");
@@ -59,54 +57,43 @@ export function AddSiteDialog({ open, group, onOpenChange, onCreated }: AddSiteD
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-none bg-zinc-950 p-5 text-base">
-        <DialogHeader>
-          <DialogTitle className="text-lg text-white">{group ? `Add environment to ${group.name}` : "Add site"}</DialogTitle>
-        </DialogHeader>
-        <div className="flex flex-col gap-2">
-          {group ? null : (
-            <Input
-              className={MY_SITES_FIELD}
-              placeholder="Site name"
-              aria-label="Site name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
-            />
-          )}
-          <Select value={environment} onValueChange={(v) => setEnvironment(v as HostedEnvironmentKind)}>
-            <SelectTrigger className={`${MY_SITES_FIELD} [&_svg]:text-muted-foreground`} aria-label="Environment">
-              <SelectValue placeholder="Environment" />
-            </SelectTrigger>
-            <SelectContent className={MY_SITES_POPOVER}>
-              {KINDS.map((k) => (
-                <SelectItem key={k.value} value={k.value} disabled={taken.has(k.value)}>
-                  {k.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Input
-            className={MY_SITES_FIELD}
-            placeholder="Custom domain (optional)"
-            aria-label="Custom domain"
-            value={domain}
-            onChange={(e) => setDomain(e.target.value)}
+    <DialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      size="md"
+      title={group ? `Add environment to ${group.name}` : "Add site"}
+      actions={
+        <>
+          <Button variant="tool" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <ActionButton
+            states={SUBMIT_STATES}
+            state={busy ? "Creating" : group ? "Add environment" : "Create site"}
+            disabled={!canSubmit}
+            onClick={() => void submit()}
           />
-          <p className="h-6 truncate text-red-300" title={error || undefined}>
-            {error}
-          </p>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" className="h-8 rounded-none" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="button" className={MY_SITES_PRIMARY_BTN} disabled={!canSubmit} onClick={() => void submit()}>
-              {busy ? "Creating…" : group ? "Add environment" : "Create site"}
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      {group ? null : (
+        <Field placeholder="Site name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+      )}
+      <SelectField
+        placeholder="Environment"
+        value={environment}
+        options={KINDS.map((k) => ({ ...k, disabled: taken.has(k.value) }))}
+        onValueChange={(v) => setEnvironment(v as HostedEnvironmentKind)}
+      />
+      <Field
+        placeholder="Custom domain (optional)"
+        aria-label="Custom domain"
+        value={domain}
+        onChange={(e) => setDomain(e.target.value)}
+      />
+      <p className="h-6 text-ui-danger" title={error || undefined}>
+        {error}
+      </p>
+    </DialogShell>
   );
 }

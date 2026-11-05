@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from "react";
 import { Mic, MicOff, PhoneOff, Video, VideoOff } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +10,7 @@ import { NeoPulseAvatar } from "@/components/chat/NeoPulseAvatar";
 import { ChatVideoTile } from "@/components/chat/calls/ChatVideoTile";
 import type { ChatCallPhase, ChatCallTranscriptLine } from "@/lib/chat-call-types";
 import { NEO_PULSE_BOT_DISPLAY_NAME } from "@/lib/chat-neo-pulse";
+import { Button } from "@/ui";
 
 export type ChatCallModalProps = {
   open: boolean;
@@ -37,7 +37,7 @@ function FloTranscriptPanel({ lines }: { lines: ChatCallTranscriptLine[] }): Rea
   }, [lines.length]);
 
   return (
-    <div className="flex min-h-[280px] flex-1 flex-col gap-3 overflow-hidden rounded-md bg-zinc-900 p-4">
+    <div className="flex min-h-[280px] flex-1 flex-col gap-3 overflow-hidden rounded-md bg-ui-field p-4">
       <div className="flex items-center gap-3">
         <NeoPulseAvatar className="h-12 w-12" />
         <div>
@@ -50,8 +50,8 @@ function FloTranscriptPanel({ lines }: { lines: ChatCallTranscriptLine[] }): Rea
           <p className="text-base text-white/50">Speak to start the conversation.</p>
         ) : (
           lines.map((line, index) => (
-            <div key={`${line.spokenAtMs}-${index}`} className="rounded-md bg-zinc-950/80 px-3 py-2">
-              <span className="text-base font-semibold text-lime-400">{line.displayName}</span>
+            <div key={`${line.spokenAtMs}-${index}`} className="rounded-md bg-black/80 px-3 py-2">
+              <span className="text-base font-semibold text-primary">{line.displayName}</span>
               <p className="text-base text-white/90">{line.text}</p>
             </div>
           ))
@@ -94,27 +94,25 @@ export function ChatCallModal({
         if (!next && phase === "ended") onDismissEnded();
       }}
     >
-      <DialogContent className="flex max-h-[90vh] flex-col gap-4 bg-zinc-950 text-white sm:max-w-2xl">
+      <DialogContent className="flex max-h-[90vh] flex-col gap-4 bg-black text-white sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-base text-white">{title}</DialogTitle>
         </DialogHeader>
-        {error ? <p className="text-base text-red-400">{error}</p> : null}
+        {error ? <p className="text-base text-ui-danger-hover">{error}</p> : null}
         {phase === "active" || phase === "outgoing" ? (
           <>
             {floMode ? (
               <FloTranscriptPanel lines={floTranscript} />
             ) : (
               <div className="flex min-h-[240px] flex-1 flex-col gap-2 sm:min-h-[320px] sm:flex-row">
-                <ChatVideoTile stream={remoteStream} label={remoteDisplayName} className="flex-1 bg-zinc-900" />
-                <ChatVideoTile stream={localStream} label="You" mirrored className="flex-1 bg-zinc-900" />
+                <ChatVideoTile stream={remoteStream} label={remoteDisplayName} className="flex-1 bg-ui-field" />
+                <ChatVideoTile stream={localStream} label="You" mirrored className="flex-1 bg-ui-field" />
               </div>
             )}
             <div className="flex items-center justify-center gap-3">
               <Button
+                variant="quiet"
                 type="button"
-                variant="ghost"
-                size="icon"
-                className="h-12 w-12 rounded-full bg-zinc-800 text-white hover:bg-zinc-700"
                 aria-label={muted ? "Unmute" : "Mute"}
                 onClick={onToggleMute}
               >
@@ -122,10 +120,8 @@ export function ChatCallModal({
               </Button>
               {!floMode ? (
                 <Button
+                  variant="quiet"
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-12 w-12 rounded-full bg-zinc-800 text-white hover:bg-zinc-700"
                   aria-label={cameraOff ? "Turn camera on" : "Turn camera off"}
                   onClick={onToggleCamera}
                 >
@@ -133,20 +129,18 @@ export function ChatCallModal({
                 </Button>
               ) : null}
               <Button
+                size="icon" icon={PhoneOff}
+                variant="danger"
                 type="button"
-                size="icon"
-                className="h-12 w-12 rounded-full bg-red-600 text-white hover:bg-red-700"
                 aria-label="Hang up"
                 onClick={onHangUp}
-              >
-                <PhoneOff className="h-5 w-5" />
-              </Button>
+              ></Button>
             </div>
           </>
         ) : phase === "ended" ? (
           <div className="flex flex-col items-center gap-4 py-6">
             <p className="text-base text-white/70">Generating call notes in the chat thread…</p>
-            <Button type="button" variant="ghost" className="text-base text-white" onClick={onDismissEnded}>
+            <Button variant="quiet" type="button" onClick={onDismissEnded}>
               Close
             </Button>
           </div>

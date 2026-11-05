@@ -7,10 +7,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { buildGridRankMathRedirectRows } from "@/lib/sitemap-optimizer/build-grid-rank-math-redirects";
 import { gridMemberSourceUrl } from "@/lib/sitemap-optimizer/grid-member-url";
 import type { SitemapOptimizerRunResult } from "@/lib/sitemap-optimizer/types";
+import { Button } from "@/ui";
 
 type Props = {
   result: SitemapOptimizerRunResult;
@@ -55,10 +55,8 @@ export function SitemapOptimizerGridRankMathGrid({ result }: Props) {
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         <Button
+          pressed={groupFilter === "all"}
           type="button"
-          variant={groupFilter === "all" ? "secondary" : "outline"}
-          size="sm"
-          className="h-8 text-base"
           onClick={() => setGroupFilter("all")}
         >
           All ({rows.length})
@@ -66,11 +64,9 @@ export function SitemapOptimizerGridRankMathGrid({ result }: Props) {
         {groupIds.length <= 12
           ? groupIds.map((id) => (
               <Button
+                pressed={groupFilter === id}
                 key={id}
                 type="button"
-                variant={groupFilter === id ? "secondary" : "outline"}
-                size="sm"
-                className="h-8 text-base tabular-nums"
                 onClick={() => setGroupFilter(id)}
               >
                 Family {id}
@@ -104,14 +100,14 @@ export function SitemapOptimizerGridRankMathGrid({ result }: Props) {
                     {uploadRow || "—"}
                   </TableCell>
                   <TableCell className="px-2 py-1.5" title={row.tagLabel || row.topicTag}>
-                    <span className="block truncate">{row.tagLabel || row.topicTag || "—"}</span>
+                    <span className="block break-words">{row.tagLabel || row.topicTag || "—"}</span>
                   </TableCell>
                   <TableCell className="px-2 py-1.5" title={row.sourceUrl}>
                     <a
                       href={row.sourceUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="block truncate text-foreground underline-offset-2 hover:underline"
+                      className="block break-words text-foreground underline-offset-2 hover:underline"
                     >
                       {truncateCell(row.sourceUrl)}
                     </a>
@@ -121,16 +117,16 @@ export function SitemapOptimizerGridRankMathGrid({ result }: Props) {
                       href={row.destinationUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="block truncate font-medium text-foreground underline-offset-2 hover:underline"
+                      className="block break-words font-medium text-foreground underline-offset-2 hover:underline"
                     >
                       {truncateCell(row.destinationUrl)}
                     </a>
                   </TableCell>
                   <TableCell className="px-2 py-1.5 text-muted-foreground" title={row.source}>
-                    <span className="block truncate">{truncateCell(row.source, 28)}</span>
+                    <span className="block break-words">{truncateCell(row.source, 28)}</span>
                   </TableCell>
                   <TableCell className="px-2 py-1.5 text-muted-foreground" title={row.destination}>
-                    <span className="block truncate">{truncateCell(row.destination, 28)}</span>
+                    <span className="block break-words">{truncateCell(row.destination, 28)}</span>
                   </TableCell>
                 </TableRow>
               );

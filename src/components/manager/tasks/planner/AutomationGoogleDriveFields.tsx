@@ -1,20 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { TaskFormInfieldSelect } from "@/components/manager/tasks/TaskFormLayout";
-import { WorkspacePill } from "@/components/shared/WorkspacePill";
 import {
   openGoogleDriveAuthorize,
   useGoogleDriveConnectionStatus,
 } from "@/hooks/use-google-drive-connection-status";
-import { Button } from "@/components/ui/button";
+import { Button, Field, Pill, SelectField } from "@/ui";
 import { CheckCircle } from "lucide-react";
 import {
   CUSTOM_DRIVE_PURPOSE_SELECT_VALUE,
@@ -45,16 +35,8 @@ import {
 import type { GoogleDriveFolderSource, TaskExecutionPayload } from "@/lib/tasks-types";
 import { cn } from "@/lib/utils";
 
-const FORGE_FIELD_TRIGGER =
-  "h-9 w-full min-w-0 border-0 bg-black text-white text-base font-medium shadow-none ring-0 outline-none focus:ring-2 focus:ring-primary/45 focus:ring-offset-0 [&>span]:text-white";
-const FORGE_FIELD_INPUT =
-  "h-9 w-full min-w-0 border-0 bg-black text-white text-base font-medium shadow-none ring-0 outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-0";
-const FORGE_SELECT_CONTENT = "z-[200] border-0 bg-zinc-900 text-white shadow-xl";
-const FORGE_SELECT_ITEM =
-  "text-base focus:bg-zinc-800 focus:text-white data-[highlighted]:bg-zinc-800 data-[highlighted]:text-white";
-
 const CUSTOM_FOLDER = "custom";
-const FOLDER_PATH_PLACEHOLDER = "https://drive.google.com/drive/folders/…";
+
 
 const FOLDER_SOURCE_OPTIONS: { value: GoogleDriveFolderSource; label: string }[] = [
   { value: "manual", label: "Manual" },
@@ -196,19 +178,19 @@ function WorkflowDriveFolderPreview({
   if (!connected) return null;
 
   if (preview.loading && !link) {
-    return <p className="min-w-0 truncate text-base text-muted-foreground">Resolving folder…</p>;
+    return <p className="min-w-0 break-words text-base text-muted-foreground">Resolving folder</p>;
   }
 
   if (preview.error && !link) {
     return (
-      <p className="min-w-0 truncate text-base text-[hsl(var(--semantic-warning-foreground))]" title={preview.error}>
+      <p className="min-w-0 break-words text-base text-semantic-warning" title={preview.error}>
         {preview.error}
       </p>
     );
   }
 
   if (!siteName.trim()) {
-    return <p className="min-w-0 truncate text-base text-muted-foreground">Select a client to preview the folder.</p>;
+    return <p className="min-w-0 break-words text-base text-muted-foreground">Select a client to preview the folder.</p>;
   }
 
   if (!link) return null;
@@ -218,7 +200,7 @@ function WorkflowDriveFolderPreview({
       href={link}
       target="_blank"
       rel="noopener noreferrer"
-      className="min-w-0 truncate text-base text-primary underline-offset-2 hover:underline"
+      className="min-w-0 break-words text-base text-primary underline-offset-2 hover:underline"
       title={label || link}
     >
       {label || "Open folder"}
@@ -230,13 +212,11 @@ function DrivePurposeSelect({
   value,
   inferred,
   disabled,
-  triggerId,
   onSelect,
 }: {
   value: string;
   inferred: string;
   disabled?: boolean;
-  triggerId: string;
   onSelect: (value: string) => void;
 }): React.ReactElement {
   const [enteringCustom, setEnteringCustom] = useState(false);
@@ -260,14 +240,11 @@ function DrivePurposeSelect({
 
   if (enteringCustom) {
     return (
-      <Input
-        id={triggerId}
-        className={FORGE_FIELD_INPUT}
+      <Field
         placeholder="Custom folder"
         value={customDraft}
         disabled={disabled}
         autoFocus
-        aria-label="Custom folder"
         onChange={(event) => setCustomDraft(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Enter") {
@@ -285,8 +262,12 @@ function DrivePurposeSelect({
   }
 
   return (
-    <Select
+    <SelectField
+      placeholder="Purpose"
+      width="full"
       value={value || inferred}
+      disabled={disabled}
+      options={[...options, { value: CUSTOM_DRIVE_PURPOSE_SELECT_VALUE, label: "Custom" }]}
       onValueChange={(next) => {
         if (next === CUSTOM_DRIVE_PURPOSE_SELECT_VALUE) {
           setEnteringCustom(true);
@@ -295,48 +276,22 @@ function DrivePurposeSelect({
         }
         onSelect(next);
       }}
-      disabled={disabled}
-    >
-      <SelectTrigger id={triggerId} className={FORGE_FIELD_TRIGGER} aria-label="Purpose">
-        <SelectValue placeholder="Purpose" />
-      </SelectTrigger>
-      <SelectContent className={FORGE_SELECT_CONTENT}>
-        {options.map((preset) => (
-          <SelectItem key={preset.value} value={preset.value} className={FORGE_SELECT_ITEM}>
-            {preset.label}
-          </SelectItem>
-        ))}
-        <SelectItem value={CUSTOM_DRIVE_PURPOSE_SELECT_VALUE} className={FORGE_SELECT_ITEM}>
-          Custom
-        </SelectItem>
-      </SelectContent>
-    </Select>
+    />
   );
 }
-
 export function GoogleDriveConnectionInline(): React.ReactElement | null {
   const { connected, loading, email } = useGoogleDriveConnectionStatus();
   if (loading) return null;
   if (connected) {
     return (
-      <span className="inline-flex min-w-0 items-center gap-1.5 text-base font-medium text-green-400">
+      <span className="inline-flex min-w-0 items-center gap-1.5 text-base font-medium text-primary">
         <CheckCircle className="h-4 w-4 shrink-0" aria-hidden />
-        <span className="truncate">Google Drive connected{email ? ` (${email})` : ""}</span>
+        <span className="break-words">Google Drive connected{email ? ` (${email})` : ""}</span>
       </span>
     );
   }
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      className="h-8 shrink-0 rounded-none border-0 bg-black px-2 text-base font-medium text-white hover:bg-zinc-950"
-      onClick={openGoogleDriveAuthorize}
-    >
-      Connect Google Drive
-    </Button>
-  );
+  return <Button onClick={openGoogleDriveAuthorize}>Connect Google Drive</Button>;
 }
-
 export function AutomationGoogleDriveFields({
   payload,
   disabled = false,
@@ -536,78 +491,52 @@ export function AutomationGoogleDriveFields({
     return (
       <div className="flex flex-col gap-2">
         <div className="grid grid-cols-3 gap-2">
-        <DrivePurposeSelect
-          value={selected}
-          inferred={inferred}
-          disabled={disabled}
-          triggerId="automation-drive-folder-purpose"
-          onSelect={(value) =>
-            patch({
-              googleDriveFolderSource: "path",
-              googleDriveFolderPath: value,
-              googleDriveFolderPathManual: value !== inferred,
-              googleDriveFolderYear: selectedYear,
-              googleDriveFolderMonth: selectedMonth,
-              saveToGoogleDrive: true,
-            })
-          }
-        />
-        <Select
-          value={selectedYear}
-          onValueChange={(value) =>
-            patch({
-              googleDriveFolderSource: "path",
-              googleDriveFolderYear: value,
-              googleDriveFolderMonth: selectedMonth,
-              saveToGoogleDrive: true,
-            })
-          }
-          disabled={disabled}
-        >
-          <SelectTrigger
-            id="automation-drive-folder-year"
-            className={FORGE_FIELD_TRIGGER}
-            aria-label="Year"
-          >
-            <SelectValue placeholder="Year" />
-          </SelectTrigger>
-          <SelectContent className={FORGE_SELECT_CONTENT}>
-            {yearOptions.map((year) => (
-              <SelectItem key={year} value={year} className={FORGE_SELECT_ITEM}>
-                {year}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={selectedMonth}
-          onValueChange={(value) =>
-            patch({
-              googleDriveFolderSource: "path",
-              googleDriveFolderYear: selectedYear,
-              googleDriveFolderMonth: value,
-              saveToGoogleDrive: true,
-            })
-          }
-          disabled={disabled}
-        >
-          <SelectTrigger
-            id="automation-drive-folder-month"
-            className={FORGE_FIELD_TRIGGER}
-            aria-label="Month"
-          >
-            <SelectValue placeholder="Month" />
-          </SelectTrigger>
-          <SelectContent className={FORGE_SELECT_CONTENT}>
-            {DRIVE_MONTH_SEGMENTS.map((month) => (
-              <SelectItem key={month} value={month} className={FORGE_SELECT_ITEM}>
-                {month}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        </div>
-        <WorkflowDriveFolderPreview
+          <DrivePurposeSelect
+            value={selected}
+            inferred={inferred}
+            disabled={disabled}
+            onSelect={(value) =>
+              patch({
+                googleDriveFolderSource: "path",
+                googleDriveFolderPath: value,
+                googleDriveFolderPathManual: value !== inferred,
+                googleDriveFolderYear: selectedYear,
+                googleDriveFolderMonth: selectedMonth,
+                saveToGoogleDrive: true,
+              })
+            }
+          />
+          <SelectField
+            placeholder="Year"
+            width="full"
+            value={selectedYear}
+            disabled={disabled}
+            options={yearOptions.map((year) => ({ value: year, label: year }))}
+            onValueChange={(value) =>
+              patch({
+                googleDriveFolderSource: "path",
+                googleDriveFolderYear: value,
+                googleDriveFolderMonth: selectedMonth,
+                saveToGoogleDrive: true,
+              })
+            }
+          />
+          <SelectField
+            placeholder="Month"
+            width="full"
+            value={selectedMonth}
+            disabled={disabled}
+            options={DRIVE_MONTH_SEGMENTS.map((month) => ({ value: month, label: month }))}
+            onValueChange={(value) =>
+              patch({
+                googleDriveFolderSource: "path",
+                googleDriveFolderYear: selectedYear,
+                googleDriveFolderMonth: value,
+                saveToGoogleDrive: true,
+              })
+            }
+          />
+        </div>        <WorkflowDriveFolderPreview
           payload={payload}
           siteName={siteName}
           siteUrl={siteUrl}
@@ -622,80 +551,46 @@ export function AutomationGoogleDriveFields({
   return (
     <div className={cn("flex flex-col gap-2", !workflow && "pt-1")}>
       {!workflow && !loading && connected ? (
-        <span className="inline-flex h-9 w-fit items-center gap-1.5 text-base font-medium text-green-400">
+        <span className="inline-flex h-9 w-fit items-center gap-1.5 text-base font-medium text-primary">
           <CheckCircle className="h-4 w-4 shrink-0" aria-hidden />
           Google Drive connected{email ? ` (${email})` : ""}
         </span>
       ) : !workflow && !loading ? (
-        <Button
-          type="button"
-          variant="outline"
-          className="h-9 w-fit rounded-none border-0 bg-black px-3 text-base font-medium text-white hover:bg-zinc-950"
-          onClick={openGoogleDriveAuthorize}
-        >
-          Connect Google Drive
-        </Button>
+        <Button onClick={openGoogleDriveAuthorize}>Connect Google Drive</Button>
       ) : null}
 
-      <div className="min-w-0">
-        <Label className="mb-1 block text-base text-muted-foreground">Folder source</Label>
-        <div className="flex min-w-0 flex-wrap items-center gap-1" role="group" aria-label="Folder source">
-          {FOLDER_SOURCE_OPTIONS.map((option) => (
-            <WorkspacePill
-              key={option.value}
-              label={option.label}
-              square
-              tone={workflow ? "forge" : "default"}
-              active={folderSource === option.value}
-              disabled={disabled}
-              onClick={() => patchFolderSource(option.value)}
-            />
-          ))}
-        </div>
+      <div className="flex min-w-0 flex-wrap items-center gap-1" role="group" aria-label="Folder source">
+        {FOLDER_SOURCE_OPTIONS.map((option) => (
+          <Pill
+            key={option.value}
+            label={option.label}
+            square
+            tone={workflow ? "forge" : "default"}
+            active={folderSource === option.value}
+            disabled={disabled}
+            onClick={() => patchFolderSource(option.value)}
+          />
+        ))}
       </div>
 
       {folderSource === "manual" ? (
         <>
-          <div className="min-w-0">
-            <Label htmlFor="automation-drive-folder-path" className="mb-1 block text-base text-muted-foreground">
-              Folder path
-            </Label>
-            <Input
-              id="automation-drive-folder-path"
-              className={FORGE_FIELD_INPUT}
-              placeholder={FOLDER_PATH_PLACEHOLDER}
-              value={folderPathInput}
-              disabled={disabled}
-              onChange={(event) => applyFolderPath(event.target.value)}
-            />
-          </div>
-          <div className="min-w-0">
-            <Label htmlFor="automation-drive-folder-preset" className="mb-1 block text-base text-muted-foreground">
-              Saved folder
-            </Label>
-            <Select value={selectValue} onValueChange={applyPreset} disabled={disabled}>
-              <SelectTrigger
-                id="automation-drive-folder-preset"
-                className={FORGE_FIELD_TRIGGER}
-                aria-label="Google Drive saved folder"
-              >
-                <SelectValue placeholder="Pick a saved folder (optional)" />
-              </SelectTrigger>
-              <SelectContent className={FORGE_SELECT_CONTENT}>
-                {presets.map((preset) => (
-                  <SelectItem key={preset.id} value={preset.id} className={FORGE_SELECT_ITEM}>
-                    {preset.label}
-                  </SelectItem>
-                ))}
-                <SelectItem value={CUSTOM_FOLDER} className={FORGE_SELECT_ITEM}>
-                  Custom folder
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Field
+            placeholder="Folder path URL"
+            value={folderPathInput}
+            disabled={disabled}
+            onChange={(event) => applyFolderPath(event.target.value)}
+          />
+          <SelectField
+            placeholder="Saved folder (optional)"
+            width="full"
+            value={selectValue}
+            disabled={disabled}
+            options={[...presets.map((preset) => ({ value: preset.id, label: preset.label })), { value: CUSTOM_FOLDER, label: "Custom folder" }]}
+            onValueChange={applyPreset}
+          />
         </>
       ) : null}
-
       {folderSource === "client_root" ? (
         <p className="text-base text-muted-foreground">
           Auto-find the client folder under NEO Pulse.
@@ -709,7 +604,7 @@ export function AutomationGoogleDriveFields({
             value={payload.googleDriveFolderPath ?? GOOGLE_DRIVE_PATH_PRESETS[0]?.value ?? "reporting"}
             inferred={inferredFolderPath || "reporting"}
             disabled={disabled}
-            triggerId="automation-drive-folder-purpose"
+
             onSelect={(value) =>
               patch({
                 googleDriveFolderPath: value,
@@ -748,7 +643,7 @@ export function AutomationGoogleDriveFields({
                 : "Saves to the folder from the selected upstream variable."}
         </p>
       ) : (
-        <p className="text-base text-amber-500">
+        <p className="text-base text-semantic-warning">
           {folderSource === "manual"
             ? "Folder path is required. Pick a saved folder or paste a URL."
             : folderSource === "variable" && folderVariableOptions.length === 0

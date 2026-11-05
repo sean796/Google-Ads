@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { fetchResidentialProxyStatus } from "@/lib/browser-automation-api";
 import { DASHBOARD_SETTINGS_GROUP_CLASS } from "@/components/manager/dashboard/dashboard-panel-styles";
+import { Button } from "@/ui";
 
 export function ResidentialProxySettingsContent() {
   const [status, setStatus] = useState<{
@@ -59,7 +59,6 @@ export function ResidentialProxySettingsContent() {
       <div className="mt-3">
         <Button
           type="button"
-          variant="secondary"
           disabled={loading || probing}
           onClick={() => void loadStatus(true)}
         >

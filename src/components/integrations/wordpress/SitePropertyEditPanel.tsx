@@ -65,13 +65,13 @@ export const SitePropertyEditPanel: React.FC<SitePropertyEditPanelProps> = ({
       const ga4 = row.ga4PropertyId?.trim() ?? "";
       const ads = row.googleAdsCustomerId?.trim() ?? "";
 
-      if (gbp) {
+      if (gbp && site.gbpLocationId?.trim() !== gbp) {
         onPatchSite?.(site.id, { gbpLocationId: gbp });
         if (formGbpLocationId.trim() !== gbp) {
           onFormGbpLocationIdChange(gbp);
         }
       }
-      if (ga4) {
+      if (ga4 && site.ga4PropertyId?.trim() !== ga4) {
         onPatchSite?.(site.id, { ga4PropertyId: ga4 });
         if (formGa4PropertyId.trim() !== ga4) {
           onFormGa4PropertyIdChange(ga4);
@@ -79,7 +79,10 @@ export const SitePropertyEditPanel: React.FC<SitePropertyEditPanelProps> = ({
       }
       if (ads) {
         const adsId = ads.replace(/\D/g, "");
-        onPatchSite?.(site.id, { googleAdsCustomerId: adsId || ads });
+        const siteAdsId = (site.googleAdsCustomerId ?? "").replace(/\D/g, "");
+        if (siteAdsId !== adsId) {
+          onPatchSite?.(site.id, { googleAdsCustomerId: adsId || ads });
+        }
         if (formGoogleAdsCustomerId.replace(/\D/g, "") !== adsId) {
           onFormGoogleAdsCustomerIdChange(adsId || ads);
         }

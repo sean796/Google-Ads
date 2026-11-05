@@ -49,12 +49,36 @@ export type ProductLockState = {
   locked: boolean;
 };
 
+export type VideoBriefReferenceLlmSegment = {
+  part: number;
+  startSec: number;
+  endSec: number;
+  /** Set only for tiny legacy inline clips; large uploads use serverId hydration. */
+  dataUrl?: string;
+};
+
+/** Client reference clip uploaded once; Director and Producer watch it via OpenRouter video_url. */
+export type VideoBriefReferenceClip = {
+  fileName: string;
+  durationSeconds: number;
+  /** Server folder id for ffmpeg beat cuts (video/brainstorm/{id}/beats). */
+  serverId: string;
+  /** Full clip inline when small; omit when llmSegments is set. */
+  dataUrl?: string;
+  /** Consecutive parts when the source exceeds inline payload limits. */
+  llmSegments?: VideoBriefReferenceLlmSegment[];
+  /** Blob preview for this session only (not saved in projects). */
+  previewUrl?: string;
+};
+
 export type VideoBrief = {
   prompt: string;
   lengthSeconds: VideoLengthSeconds;
   aspect: VideoAspect;
   resolution: VideoResolution;
   references: ManualImageReference[];
+  /** Optional walkthrough or client clip for scene planning (not a numbered storyboard image). */
+  referenceVideo?: VideoBriefReferenceClip | null;
   /** Subject harness: the product photos tiled into one sheet, attached first to every agent and storyboard frame. */
   subject: ManualImageReference | null;
   /** Canonical product specification locked in the Product step. */
@@ -160,6 +184,11 @@ export type VideoScenePlan = {
   customClipFile?: string;
   /** Public URL for immediate playback of an uploaded or library video clip on the timeline. */
   customClipUrl?: string;
+  /** Sliced video clip cut from the client reference video for this scene (0-hallucination ground truth). */
+  referenceClipFile?: string;
+  referenceClipUrl?: string;
+  referenceClipStartSeconds?: number;
+  referenceClipDurationSeconds?: number;
 };
 
 export type PostCutSceneReference = {
@@ -180,6 +209,14 @@ export type VideoPlan = {
   /** Music under picture (generation or upload); narration stays on voice + scene narration. */
   audio?: VideoPlanAudio;
   scenes: VideoScenePlan[];
+  /** Location fly-through from numbered brief uploads: storyboard uses each still at 1:1 (no env plate / hero chain). */
+  referenceStillsFlythrough?: boolean;
+  /** When referenceStillsFlythrough: scene durations sum (after per-still minimum), may exceed the brief length preset. */
+  referenceStillsTotalSeconds?: number;
+  /** Decision Model (Liquid d1.1) Audit Summary object */
+  decisionAudit?: unknown;
+  /** Raw JSON string of the Decision Agent audit for storage and badge inspection */
+  decisionAuditJson?: string;
 };
 
 export type StoryboardFrameStatus = "waiting" | "generating" | "done" | "failed";
@@ -229,6 +266,7 @@ export type VideoProjectSnapshot = {
   aspect: VideoAspect;
   resolution: VideoResolution;
   references: ManualImageReference[];
+  referenceVideo?: VideoBriefReferenceClip | null;
   subjectPhotos: ManualImageReference[];
   subject: ManualImageReference | null;
   environmentHarnessDataUrl?: string;

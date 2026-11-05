@@ -22,7 +22,6 @@ export type SitemapOptimizerUnifiedHeaderProps = {
   onWorkspaceSubModeChange: (mode: SitemapOptimizerWorkspaceMode) => void;
   modeSwitchDisabled: boolean;
   workspaceBusy: boolean;
-  onDetailsOpenChange?: (open: boolean) => void;
   planToolbarProps: SitemapPlanToolbarProps;
   planProgressSnapshot: MetaBulkMicroSnapshot | null;
   planCanOpenDetails: boolean;
@@ -42,7 +41,6 @@ export function SitemapOptimizerUnifiedHeader({
   onWorkspaceSubModeChange,
   modeSwitchDisabled,
   workspaceBusy,
-  onDetailsOpenChange,
   planToolbarProps,
   planProgressSnapshot,
   planCanOpenDetails,
@@ -134,7 +132,6 @@ export function SitemapOptimizerUnifiedHeader({
       canOpenDetails={canOpenDetails}
       isProcessing={isProcessing}
       detailsPanelId={detailsPanelId}
-      onDetailsOpenChange={onDetailsOpenChange}
       toolbar={
         isPlan ? (
           <SitemapPlanToolbar {...planToolbarProps} />

@@ -80,7 +80,7 @@ export function PressReleaseDetailsPanel({
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-2.5 py-2 sm:px-3">
               <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
               <a
-                className="min-w-0 truncate text-primary underline-offset-2 hover:underline"
+                className="min-w-0 break-words text-primary underline-offset-2 hover:underline"
                 href={inventoryJsonLink.href}
                 target="_blank"
                 rel="noopener noreferrer"

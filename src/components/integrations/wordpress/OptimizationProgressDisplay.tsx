@@ -1,12 +1,12 @@
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, CheckCircle2, Circle, Copy } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { CheckCircle2, Circle, Copy } from 'lucide-react';
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_COPIED_TO_CLIPBOARD } from "@/lib/notify-messages";
 import { cn } from '@/lib/utils';
 import { getCyberpunkTextClasses } from './cyberpunk-theme';
 import { OPTIMIZATION_STEPS, getCurrentStep, type ProgressData } from './optimization-constants';
+import { Button } from "@/ui";
 
 interface OptimizationProgressDisplayProps {
   progress?: ProgressData;
@@ -34,7 +34,7 @@ export const OptimizationProgressDisplay: React.FC<OptimizationProgressDisplayPr
           </span>
           <span className={getCyberpunkTextClasses('muted')}>{Math.round(progressValue)}%</span>
         </div>
-        <Progress value={progressValue} className="h-2 bg-green-500/10" />
+        <Progress value={progressValue} className="h-2 bg-primary/10" />
       </div>
 
       {/* Step-by-step breakdown (always expanded) */}
@@ -55,9 +55,9 @@ export const OptimizationProgressDisplay: React.FC<OptimizationProgressDisplayPr
               )}
             >
               {isCompleted ? (
-                <CheckCircle2 className="h-3 w-3 text-green-300 shrink-0" />
+                <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
               ) : isCurrent ? (
-                <Loader2 className="h-3 w-3 animate-spin text-green-300 shrink-0" />
+                null
               ) : (
                 <Circle className={`h-3 w-3 shrink-0 ${getCyberpunkTextClasses('muted')}`} />
               )}
@@ -68,9 +68,7 @@ export const OptimizationProgressDisplay: React.FC<OptimizationProgressDisplayPr
                     {progress.message}
                   </span>
                   <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-5 w-5 p-0 shrink-0 text-green-500/70 hover:text-green-400 hover:bg-green-500/20"
+                    variant="quiet"
                     onClick={() => {
                       navigator.clipboard.writeText(progress.message || '');
                       notify.success(NOTIFY_COPIED_TO_CLIPBOARD);

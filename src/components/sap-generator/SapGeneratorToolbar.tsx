@@ -1,36 +1,15 @@
 import { useRef } from "react";
-import { Loader2, Trash2, Upload, Wand2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Trash2, Upload, Wand2 } from "lucide-react";
+import { Button, Field, Pill, SelectField, FileInput } from "@/ui";
 import { GeneratorToolbarFrame } from "@/components/blog-generator/GeneratorToolbarFrame";
-import {
-  GENERATOR_EXPORT_BTN,
-  GENERATOR_FIELD_COUNT,
-  GENERATOR_FIELD_KEYWORD,
-  GENERATOR_FIELD_URL,
-  GENERATOR_SELECT,
-} from "@/components/blog-generator/generator-toolbar-theme";
-import {
-  BULK_HEADER_DANGER_ICON_BTN,
-  BULK_HEADER_ICON_TOOL_BTN,
-  BULK_HEADER_RUN_BTN,
-  BULK_HEADER_TOOL_BTN,
-  BULK_HEADER_UPLOAD_READY_BTN,
-} from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import {
   entityTypeShortLabel,
   entityTypesForLevel,
   type EntityGeographicLevel,
 } from "@/lib/entity-geographic-level";
 import { normalizeEntityCountInputChange } from "@/lib/local-analysis/entity-ad-group-budget";
-import { cn } from "@/lib/utils";
+
+const ENTITY_TYPE_NONE = "__none__";
 
 export type SapGeneratorToolbarProps = {
   workspaceBusy: boolean;
@@ -91,166 +70,125 @@ export function SapGeneratorToolbar({
   const fieldsDisabled = workspaceBusy || runLoading;
   const focusSelectValue =
     entityTypeFocus.find((t) => entityTypesForLevel(entityGeographicLevel).includes(t)) ?? "";
+  const gridUploaded = uploadLabel.trim().length > 0;
 
   return (
     <GeneratorToolbarFrame
       primary={
         <>
-          <input
+          <FileInput
             ref={fileRef}
-            type="file"
             accept=".csv,text/csv"
-            className="hidden"
             onChange={(e) => {
               onPickFile(e.target.files?.[0] ?? null);
               e.target.value = "";
             }}
           />
           {showTempUrl && onTempSeedUrlChange ? (
-            <Input
+            <Field
               type="url"
-              className={GENERATOR_FIELD_URL}
+              size="url"
               placeholder="https://example.com"
+              aria-label="Website URL"
               value={tempSeedUrl}
               onChange={(e) => onTempSeedUrlChange(e.target.value)}
               disabled={workspaceBusy}
-              aria-label="Website URL"
             />
           ) : null}
           <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={cn(
-              uploadLabel.trim() ? BULK_HEADER_UPLOAD_READY_BTN : BULK_HEADER_TOOL_BTN,
-            )}
+            variant={gridUploaded ? "ready" : "tool"}
+            icon={Upload}
             disabled={workspaceBusy || csvParsing}
             onClick={() => fileRef.current?.click()}
-            aria-label={uploadLabel.trim() ? `Grid CSV: ${uploadLabel}` : "Upload grid CSV"}
+            aria-label={gridUploaded ? `Grid CSV: ${uploadLabel}` : "Upload grid CSV"}
             title={uploadLabel.trim() || "Upload grid CSV"}
           >
-            {csvParsing ? (
-              <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
-            ) : (
-              <Upload className="h-4 w-4 shrink-0" aria-hidden />
-            )}
             Grid
           </Button>
-          <Input
-            type="text"
+          <Field
+            size="keyword"
             placeholder="Keyword"
             value={suggestFocusKeyword}
             onChange={(e) => onSuggestFocusKeywordChange(e.target.value)}
-            className={GENERATOR_FIELD_KEYWORD}
             disabled={fieldsDisabled}
             autoComplete="off"
-            aria-label="Keyword"
           />
-          <Input
-            type="text"
+          <Field
+            size="keyword"
             placeholder="Location"
             value={suggestFocusLocation}
             onChange={(e) => onSuggestFocusLocationChange(e.target.value)}
-            className={GENERATOR_FIELD_KEYWORD}
             disabled={fieldsDisabled}
             autoComplete="off"
-            aria-label="Location"
           />
           <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={BULK_HEADER_ICON_TOOL_BTN}
+            variant="tool"
+            size="icon"
+            icon={Wand2}
             disabled={fieldsDisabled}
             aria-label="Apply remaining entity count for this period"
             title="Sets entity count to period target minus published this period (manual, no AI)."
             onClick={onApplyRemainingEntityCount}
-          >
-            <Wand2 className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
-          </Button>
-          <Input
+          />
+          <Field
+            size="short"
             type="text"
             inputMode="numeric"
             placeholder=""
+            aria-label="Entity count"
+            title="Entity count"
             value={entityTotalCountInput}
             onChange={(e) =>
               onEntityTotalCountInputChange(normalizeEntityCountInputChange(e.target.value))
             }
-            className={GENERATOR_FIELD_COUNT}
             disabled={fieldsDisabled}
             autoComplete="off"
-            aria-label="Entity count"
-            title="Entity count"
             maxLength={3}
           />
         </>
       }
       options={
         <>
-        {showBlindMagicKeywords && onUseBlindMagicKeywordsChange ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={cn(
-              useBlindMagicKeywords ? BULK_HEADER_UPLOAD_READY_BTN : BULK_HEADER_TOOL_BTN,
-            )}
-            disabled={workspaceBusy}
-            aria-pressed={useBlindMagicKeywords}
-            aria-label="Use Blind Magic keywords"
-            title="Use Blind Magic GSC keywords"
-            onClick={() => onUseBlindMagicKeywordsChange(!useBlindMagicKeywords)}
-          >
-            Blind Magic
-          </Button>
-        ) : null}
-        <Select
-          value={focusSelectValue}
-          onValueChange={(v) => {
-            if (v === "__none__") {
-              onEntityTypeFocusChange([]);
-              return;
-            }
-            onEntityTypeFocusChange([v]);
-          }}
-          disabled={fieldsDisabled}
-        >
-          <SelectTrigger className={GENERATOR_SELECT} aria-label="Entity type">
-            <SelectValue placeholder="Entity type" />
-          </SelectTrigger>
-          <SelectContent position="popper" className="max-h-[min(24rem,70vh)]">
-            <SelectItem className="text-base" value="__none__">
-              None
-            </SelectItem>
-            {entityTypesForLevel(entityGeographicLevel).map((label) => (
-              <SelectItem key={label} className="text-base" value={label}>
-                {entityTypeShortLabel(entityGeographicLevel, label)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          {showBlindMagicKeywords && onUseBlindMagicKeywordsChange ? (
+            <Pill
+              label="Blind Magic"
+              square
+              active={useBlindMagicKeywords}
+              disabled={workspaceBusy}
+              onClick={() => onUseBlindMagicKeywordsChange(!useBlindMagicKeywords)}
+            />
+          ) : null}
+          <SelectField
+            placeholder="Entity type"
+            width="sm"
+            value={focusSelectValue}
+            onValueChange={(v) => onEntityTypeFocusChange(v === ENTITY_TYPE_NONE ? [] : [v])}
+            disabled={fieldsDisabled}
+            options={[
+              { value: ENTITY_TYPE_NONE, label: "None" },
+              ...entityTypesForLevel(entityGeographicLevel).map((label) => ({
+                value: label,
+                label: entityTypeShortLabel(entityGeographicLevel, label),
+              })),
+            ]}
+          />
         </>
       }
       actions={
         <>
           <Button
-            type="button"
-            size="sm"
-            className={BULK_HEADER_RUN_BTN}
+            variant="run"
+            icon={Wand2}
             disabled={fieldsDisabled}
             aria-busy={runLoading}
             aria-label="Run clusters"
             title="Run clusters"
             onClick={() => void onRunClusters()}
           >
-            <Wand2 className="h-4 w-4 shrink-0 text-black" strokeWidth={2} aria-hidden />
             Clusters
           </Button>
           <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={GENERATOR_EXPORT_BTN}
+            variant="tool"
             disabled={!hasSapRowsForCsv || workspaceBusy}
             aria-label="Download bulk CSV"
             title="Download bulk CSV (bulk-auto-generate-template columns)"
@@ -259,17 +197,14 @@ export function SapGeneratorToolbar({
             Bulk CSV
           </Button>
           <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className={BULK_HEADER_DANGER_ICON_BTN}
+            variant="danger"
+            size="icon"
+            icon={Trash2}
             disabled={workspaceBusy}
             aria-label="Clear"
             title="Clear"
             onClick={onClear}
-          >
-            <Trash2 className="h-4 w-4" aria-hidden />
-          </Button>
+          />
         </>
       }
     />

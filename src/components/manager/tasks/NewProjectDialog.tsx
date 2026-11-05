@@ -1,19 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
+import { ActionButton, Button, DialogShell, Field } from "@/ui";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
-import {
-  TASK_PROJECT_DIALOG_CLASS,
-  TASK_FORM_DIALOG_BUTTON_CLASS,
-  TASK_FORM_FLAT_CONTROL_CLASS,
   TaskFormFlatGrid,
   TaskFormFlatSelectPlaceholder,
   TaskFormDatePicker,
@@ -42,6 +30,7 @@ import {
 import { filterRegularProjectTemplates } from "@/lib/task-automation-templates";
 import type { TeamMember } from "@/lib/teams-types";
 
+const SAVE_STATES = ["Save", "Saving", "Create", "Creating"] as const;
 export type WordPressSiteOption = { id: string; name: string };
 
 type ProjectTaskDraft = {
@@ -89,7 +78,6 @@ type ProjectTaskFlatRowProps = {
   members: TeamMember[];
   tags: TaskTag[];
   saving: boolean;
-  isLast: boolean;
   onChange: (patch: Partial<ProjectTaskDraft>) => void;
   onRemove: () => void;
 };
@@ -100,37 +88,23 @@ function ProjectTaskFlatRow({
   members,
   tags,
   saving,
-  isLast,
   onChange,
   onRemove,
 }: ProjectTaskFlatRowProps): React.ReactElement {
   return (
-    <div
-      className={cn(
-        "relative flex flex-col gap-0.5 pr-8",
-        !isLast && "border-b border-zinc-800",
-      )}
-    >
-      <button
-        type="button"
-        className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-none text-muted-foreground hover:bg-zinc-800 hover:text-white"
-        aria-label={`Remove task ${index + 1}`}
-        disabled={saving}
-        onClick={onRemove}
-      >
-        <X className="h-4 w-4" />
-      </button>
-
+    <div className="relative flex flex-col gap-0.5 pr-9">
+      <span className="absolute right-0 top-0">
+        <Button
+          size="icon"
+          icon={X}
+          aria-label={`Remove task ${index + 1}`}
+          disabled={saving}
+          onClick={onRemove}
+        />
+      </span>
       <TaskFormFlatGrid>
         <TaskFormPlaceholderCell className="col-span-2 md:col-span-2 xl:col-span-2">
-          <Input
-            value={draft.title}
-            onChange={(e) => onChange({ title: e.target.value })}
-            placeholder="Task title"
-            aria-label={`Task ${index + 1} title`}
-            disabled={saving}
-            className={TASK_FORM_FLAT_CONTROL_CLASS}
-          />
+          <Field value={draft.title} onChange={(e) => onChange({ title: e.target.value })} placeholder="Task title" aria-label={`Task ${index + 1} title`} disabled={saving} />
         </TaskFormPlaceholderCell>
         <TaskFormFlatSelectPlaceholder
           placeholder="Status"
@@ -370,217 +344,146 @@ export function NewProjectDialog({
   const topLevelTasks = editProjectTasks;
 
   return (
-    <Dialog
+    <DialogShell
       open={open}
       onOpenChange={(next) => {
         if (!next) reset();
         onOpenChange(next);
       }}
-    >
-      <DialogContent className={TASK_PROJECT_DIALOG_CLASS}>
-        <DialogHeader className="shrink-0">
-          <DialogTitle className="text-base font-semibold text-white">
-            {isEdit ? "Edit project" : "New project"}
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
-          <TaskFormSideSection title="Project">
-            <TaskFormFlatGrid
-              className={
-                !isEdit
-                  ? sites.length > 0
-                    ? "grid-cols-5"
-                    : "grid-cols-4"
-                  : sites.length > 0
-                    ? "grid-cols-4"
-                    : "grid-cols-3"
-              }
-            >
-              {!isEdit ? (
-                <TaskFormFlatSelectPlaceholder
-                  placeholder="Template"
-                  value={templateKeyword}
-                  onChange={handleTemplatePick}
-                  disabled={saving}
-                  options={[
-                    { value: "", label: "Blank project" },
-                    ...projectTemplates.map((tpl) => ({ value: tpl.keyword, label: tpl.name })),
-                  ]}
-                />
-              ) : null}
-              {sites.length > 0 ? (
-                <TaskFormFlatSelectPlaceholder
-                  placeholder="Client"
-                  value={clientId}
-                  onChange={setClientId}
-                  disabled={saving}
-                  options={[
-                    { value: "", label: "No client" },
-                    ...sites.map((site) => ({ value: site.id, label: site.name })),
-                  ]}
-                />
-              ) : null}
-              <TaskFormPlaceholderCell>
-                <Input
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                  placeholder="Keyword"
-                  aria-label="Project keyword"
-                  disabled={saving}
-                  className={TASK_FORM_FLAT_CONTROL_CLASS}
-                />
-              </TaskFormPlaceholderCell>
-              <TaskFormPlaceholderCell>
-                <Input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Title"
-                  aria-label="Project title"
-                  disabled={saving}
-                  className={TASK_FORM_FLAT_CONTROL_CLASS}
-                />
-              </TaskFormPlaceholderCell>
-              <TaskFormPlaceholderCell>
-                <Input
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Description"
-                  aria-label="Project description"
-                  disabled={saving}
-                  className={TASK_FORM_FLAT_CONTROL_CLASS}
-                />
-              </TaskFormPlaceholderCell>
-            </TaskFormFlatGrid>
-          </TaskFormSideSection>
-
-          <TaskFormSideSection title="Tasks">
-            <div className="max-h-[40vh] min-h-0 overflow-y-auto">
-              {isEdit ? (
-                topLevelTasks.length === 0 ? (
-                  <p className="py-1 text-base text-muted-foreground">No tasks in this project yet.</p>
-                ) : (
-                  <ul className="flex flex-col gap-1">
-                    {topLevelTasks.map((task) => (
-                      <li
-                        key={task.id}
-                        className="flex items-center justify-between gap-3 border-b border-zinc-800 py-2 last:border-b-0"
-                      >
-                        <span className="min-w-0 flex-1 truncate text-base text-white">{task.title}</span>
-                        <span className="shrink-0 text-base text-muted-foreground">
-                          {TASK_STATUS_LABELS[task.status]}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )
-              ) : projectTasks.length === 0 ? (
-                <p className="py-1 text-base text-muted-foreground">Add tasks to create with this project.</p>
-              ) : (
-                <div>
-                  {projectTasks.map((draft, i) => (
-                    <ProjectTaskFlatRow
-                      key={`task-${i}`}
-                      index={i}
-                      draft={draft}
-                      members={members}
-                      tags={tags}
-                      saving={saving}
-                      isLast={i === projectTasks.length - 1}
-                      onChange={(patch) => updateTaskDraft(i, patch)}
-                      onRemove={() => setProjectTasks((prev) => prev.filter((_, j) => j !== i))}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </TaskFormSideSection>
-
-          {isEdit ? (
-            <TaskFormSideSection title="Template">
-              <TaskFormFlatGrid className="grid-cols-3">
-                <TaskFormPlaceholderCell>
-                  <Input
-                    value={saveFromName}
-                    onChange={(e) => setSaveFromName(e.target.value)}
-                    placeholder="Name"
-                    aria-label="Template name"
-                    disabled={saving}
-                    className={TASK_FORM_FLAT_CONTROL_CLASS}
-                  />
-                </TaskFormPlaceholderCell>
-                <TaskFormPlaceholderCell>
-                  <Input
-                    value={saveFromKeyword}
-                    onChange={(e) => setSaveFromKeyword(e.target.value)}
-                    placeholder="Keyword"
-                    aria-label="Template keyword"
-                    disabled={saving}
-                    className={TASK_FORM_FLAT_CONTROL_CLASS}
-                  />
-                </TaskFormPlaceholderCell>
-                <TaskFormPlaceholderCell className="flex items-center">
-                  <Button
-                    type="button"
-                    className={cn("h-9 w-full text-base", TASK_FORM_DIALOG_BUTTON_CLASS)}
-                    disabled={saving}
-                    onClick={() => void handleSaveFromProject()}
-                  >
-                    Save as template
-                  </Button>
-                </TaskFormPlaceholderCell>
-              </TaskFormFlatGrid>
-            </TaskFormSideSection>
-          ) : null}
-        </div>
-
-        {error ? (
-          <div className="shrink-0 text-base text-red-400">{error}</div>
-        ) : null}
-        <DialogFooter className="flex shrink-0 flex-row items-center justify-between gap-2 sm:justify-between">
+      size="xl"
+      title={isEdit ? "Edit project" : "New project"}
+      actions={
+        <>
           {!isEdit ? (
-            <Button
-              type="button"
-              variant="outline"
-              className={cn(
-                "h-10 border-0 bg-[#000] text-base text-white hover:bg-[#000] hover:text-white",
-                TASK_FORM_DIALOG_BUTTON_CLASS,
-              )}
+            <span className="mr-auto">
+              <Button
+                variant="tool"
+                disabled={saving}
+                onClick={() => setProjectTasks((prev) => [...prev, emptyProjectTaskDraft()])}
+              >
+                Add task
+              </Button>
+            </span>
+          ) : null}
+          <Button variant="tool" disabled={saving} onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <ActionButton
+            states={SAVE_STATES}
+            state={saving ? (isEdit ? "Saving" : "Creating") : isEdit ? "Save" : "Create"}
+            disabled={saving}
+            onClick={() => void handleSubmit()}
+          />
+        </>
+      }
+    >
+      <TaskFormSideSection title="Project">
+        <TaskFormFlatGrid
+          className={
+            !isEdit
+              ? sites.length > 0
+                ? "grid-cols-5"
+                : "grid-cols-4"
+              : sites.length > 0
+                ? "grid-cols-4"
+                : "grid-cols-3"
+          }
+        >
+          {!isEdit ? (
+            <TaskFormFlatSelectPlaceholder
+              placeholder="Template"
+              value={templateKeyword}
+              onChange={handleTemplatePick}
               disabled={saving}
-              onClick={() => setProjectTasks((prev) => [...prev, emptyProjectTaskDraft()])}
-            >
-              Add task
-            </Button>
+              options={[
+                { value: "", label: "Blank project" },
+                ...projectTemplates.map((tpl) => ({ value: tpl.keyword, label: tpl.name })),
+              ]}
+            />
+          ) : null}
+          {sites.length > 0 ? (
+            <TaskFormFlatSelectPlaceholder
+              placeholder="Client"
+              value={clientId}
+              onChange={setClientId}
+              disabled={saving}
+              options={[
+                { value: "", label: "No client" },
+                ...sites.map((site) => ({ value: site.id, label: site.name })),
+              ]}
+            />
+          ) : null}
+          <TaskFormPlaceholderCell>
+            <Field value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="Keyword" aria-label="Project keyword" disabled={saving} />
+          </TaskFormPlaceholderCell>
+          <TaskFormPlaceholderCell>
+            <Field value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" aria-label="Project title" disabled={saving} />
+          </TaskFormPlaceholderCell>
+          <TaskFormPlaceholderCell>
+            <Field value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" aria-label="Project description" disabled={saving} />
+          </TaskFormPlaceholderCell>
+        </TaskFormFlatGrid>
+      </TaskFormSideSection>
+
+      <TaskFormSideSection title="Tasks">
+        <div className="max-h-[40vh] min-h-0 overflow-y-auto">
+          {isEdit ? (
+            topLevelTasks.length === 0 ? (
+              <p className="py-1 text-base text-muted-foreground">No tasks in this project yet.</p>
+            ) : (
+              <ul className="flex flex-col gap-1">
+                {topLevelTasks.map((task) => (
+                  <li
+                    key={task.id}
+                    className="flex items-center justify-between gap-3 bg-ui-field px-2 py-1.5"
+                  >
+                    <span className="min-w-0 flex-1 text-base text-foreground">{task.title}</span>
+                    <span className="shrink-0 text-base text-muted-foreground">
+                      {TASK_STATUS_LABELS[task.status]}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )
+          ) : projectTasks.length === 0 ? (
+            <p className="py-1 text-base text-muted-foreground">Add tasks to create with this project.</p>
           ) : (
-            <span className="shrink-0" aria-hidden="true" />
+            <div>
+              {projectTasks.map((draft, i) => (
+                <ProjectTaskFlatRow
+                  key={`task-${i}`}
+                  index={i}
+                  draft={draft}
+                  members={members}
+                  tags={tags}
+                  saving={saving}
+                  onChange={(patch) => updateTaskDraft(i, patch)}
+                  onRemove={() => setProjectTasks((prev) => prev.filter((_, j) => j !== i))}
+                />
+              ))}
+            </div>
           )}
-          <div className="flex flex-row gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className={cn(
-                "h-10 border-0 bg-[#000] text-base text-white hover:bg-[#000] hover:text-white",
-                TASK_FORM_DIALOG_BUTTON_CLASS,
-              )}
-              disabled={saving}
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              className={cn(
-                "h-10 bg-[#77AA00] text-base text-black hover:bg-[#77AA00]/90",
-                TASK_FORM_DIALOG_BUTTON_CLASS,
-              )}
-              disabled={saving}
-              onClick={() => void handleSubmit()}
-            >
-              {saving ? (isEdit ? "Saving…" : "Creating…") : isEdit ? "Save" : "Create"}
-            </Button>
-          </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </TaskFormSideSection>
+
+      {isEdit ? (
+        <TaskFormSideSection title="Template">
+          <TaskFormFlatGrid className="grid-cols-3">
+            <TaskFormPlaceholderCell>
+              <Field value={saveFromName} onChange={(e) => setSaveFromName(e.target.value)} placeholder="Name" aria-label="Template name" disabled={saving} />
+            </TaskFormPlaceholderCell>
+            <TaskFormPlaceholderCell>
+              <Field value={saveFromKeyword} onChange={(e) => setSaveFromKeyword(e.target.value)} placeholder="Keyword" aria-label="Template keyword" disabled={saving} />
+            </TaskFormPlaceholderCell>
+            <TaskFormPlaceholderCell className="flex items-center">
+              <Button variant="tool" disabled={saving} onClick={() => void handleSaveFromProject()}>
+                Save as template
+              </Button>
+            </TaskFormPlaceholderCell>
+          </TaskFormFlatGrid>
+        </TaskFormSideSection>
+      ) : null}
+      <p className="h-6 text-base text-ui-danger">{error}</p>
+    </DialogShell>
   );
 }

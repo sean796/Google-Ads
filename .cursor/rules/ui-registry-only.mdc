@@ -1,0 +1,3 @@
+
+- **Run buttons that change label share one width.** A green run control whose label changes with state (Ideas, Curating, Generate, Generating, Approve, Publish, Publishing) must be an `ActionButton` with every label in `states`. The box is the longest label, so no neighbor shifts. Never swap a run button label with a plain `Button`.
+- **No focus accent.** No focus ring, outline or green highlight on any control after click or keyboard focus. A global rule in `src/index.css` enforces it; do not add `focus:ring-*` classes.

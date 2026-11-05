@@ -83,7 +83,7 @@ export function AutomationWhenPanel({
   };
 
   return (
-    <div className="flex flex-col gap-3 rounded-none bg-zinc-900/50 p-4">
+    <div className="flex flex-col gap-3 rounded-none bg-ui-field/50 p-4">
       <AutomationBlockPicker
         blocks={[...scheduleBlocks, ...gscBlocks, ...pollBlocks]}
         selectedKeyword={trigger.keyword}

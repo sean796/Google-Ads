@@ -21,6 +21,17 @@ const listeners = new Set<() => void>();
 export function setStudioDocMetaInspectorBridge(
   next: StudioDocMetaInspectorBridge | null,
 ): void {
+  if (currentBridge === next) return;
+  if (
+    currentBridge &&
+    next &&
+    currentBridge.row === next.row &&
+    currentBridge.rowIndex === next.rowIndex &&
+    currentBridge.busy === next.busy
+  ) {
+    currentBridge = next;
+    return;
+  }
   currentBridge = next;
   for (const listener of listeners) {
     listener();

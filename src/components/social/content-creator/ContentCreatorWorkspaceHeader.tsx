@@ -72,7 +72,6 @@ export function ContentCreatorWorkspaceHeader({
       canOpenDetails={canOpenDetails}
       isProcessing={ctrl.isGenerating}
       detailsPanelId="content-creator-generate-details"
-      onDetailsOpenChange={ctrl.setDetailsDrawerOpen}
       detailsPanel={<BulkGeneratorDetailsDrawer {...detailsProps} />}
     />
   );

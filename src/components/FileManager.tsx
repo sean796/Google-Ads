@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Upload, X, FileText } from "lucide-react";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_SOME_FILES_WERE_REJECTED_ONLY_TEXT_PDF_J } from "@/lib/notify-messages";
+import { Button, FileInput } from "@/ui";
 
 interface FileManagerProps {
   files: File[];
@@ -62,19 +62,14 @@ export const FileManager = ({ files, onFilesChange }: FileManagerProps) => {
         <p className="text-sm text-muted-foreground mb-2">
           Drag and drop RAG files here, or click to browse
         </p>
-        <input
-          type="file"
+        <FileInput
           multiple
           accept=".txt,.pdf,.json,.md,.csv"
           onChange={handleFileInput}
-          className="hidden"
           id="file-upload"
         />
         <Button
-          variant="outline"
-          size="sm"
           onClick={() => document.getElementById('file-upload')?.click()}
-          className="border-primary/50 hover:bg-primary/10"
         >
           Browse Files
         </Button>
@@ -94,10 +89,8 @@ export const FileManager = ({ files, onFilesChange }: FileManagerProps) => {
                 </div>
               </div>
               <Button
-                variant="ghost"
-                size="sm"
+                variant="quiet"
                 onClick={() => removeFile(index)}
-                className="h-8 w-8 p-0"
               >
                 <X className="w-4 h-4" />
               </Button>

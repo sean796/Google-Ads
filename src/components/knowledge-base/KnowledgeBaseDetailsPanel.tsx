@@ -89,7 +89,7 @@ export function KnowledgeBaseDetailsPanel({
               <Progress value={scraperProgress} className="h-1.5 bg-primary/10" />
             </div>
             <SiteScraperTargetingSequence currentStepKey={scraperStep} />
-            <div className="max-h-48 space-y-1 overflow-y-auto border-0 bg-zinc-950 p-2">
+            <div className="max-h-48 space-y-1 overflow-y-auto border-0 bg-black p-2">
               {scraperLog.length === 0 ? (
                 <p className="font-mono text-muted-foreground">
                   Awaiting telemetry. Pages appear here as they are scraped.
@@ -104,8 +104,8 @@ export function KnowledgeBaseDetailsPanel({
                       [{entry.index}/{entry.total}]
                     </span>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate">{entry.title}</div>
-                      <div className="truncate text-muted-foreground">{entry.url}</div>
+                      <div className="break-words">{entry.title}</div>
+                      <div className="break-words text-muted-foreground">{entry.url}</div>
                     </div>
                   </div>
                 ))

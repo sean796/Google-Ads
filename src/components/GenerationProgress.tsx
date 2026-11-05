@@ -1,7 +1,7 @@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ProgressMetrics, formatTime } from "@/hooks/use-generation-progress";
-import { CheckCircle2, Loader2, AlertCircle } from "lucide-react";
+import { CheckCircle2, AlertCircle } from "lucide-react";
 
 interface GenerationProgressProps {
   progress: ProgressMetrics;
@@ -18,15 +18,15 @@ export const GenerationProgress: React.FC<GenerationProgressProps> = ({
 
   const getStageIcon = () => {
     if (progress.stage === 'complete') {
-      return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+      return <CheckCircle2 className="w-4 h-4 text-primary" />;
     }
     if (progress.stage === 'error') {
-      return <AlertCircle className="w-4 h-4 text-red-500" />;
+      return <AlertCircle className="w-4 h-4 text-ui-danger" />;
     }
     if (progress.stage === 'idle') {
       return null;
     }
-    return <Loader2 className="w-4 h-4 animate-spin text-primary" />;
+    return null;
   };
 
   if (compact) {

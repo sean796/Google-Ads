@@ -11,8 +11,8 @@ describe("prompt-blog-slots", () => {
     expect(emptyPromptBlogSlot()).toEqual({ keyword: "", title: "" });
   });
 
-  it("normalizePromptBlogSlotCount enforces minimum 1 only", () => {
-    expect(normalizePromptBlogSlotCount(0)).toBe(1);
+  it("normalizePromptBlogSlotCount enforces minimum 0 only", () => {
+    expect(normalizePromptBlogSlotCount(0)).toBe(0);
     expect(normalizePromptBlogSlotCount(25)).toBe(25);
     expect(normalizePromptBlogSlotCount(120)).toBe(120);
   });

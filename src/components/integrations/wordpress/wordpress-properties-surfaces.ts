@@ -29,9 +29,9 @@ export function propertiesRowStripeClass(
   canHover = true,
 ): string {
   return cn(
-    !rowSelected && (index % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/55"),
-    !rowSelected && canHover && "hover:bg-zinc-800/90",
-    rowSelected && "bg-zinc-800/90 hover:bg-zinc-800/90",
+    !rowSelected && (index % 2 === 0 ? "bg-black" : "bg-ui-field/55"),
+    !rowSelected && canHover && "hover:bg-ui-field-hover/90",
+    rowSelected && "bg-ui-field-hover/90 hover:bg-ui-field-hover/90",
   );
 }
 
@@ -52,5 +52,5 @@ export function propertiesRowOuterClass(
 
 /** Empty / no-results states (flat, readable on dark). */
 export const PROPERTIES_EMPTY = cn(
-  "rounded-none border-0 bg-zinc-900/50 py-10 text-center text-foreground/85 shadow-none sm:py-12",
+  "rounded-none border-0 bg-ui-field/50 py-10 text-center text-foreground/85 shadow-none sm:py-12",
 );

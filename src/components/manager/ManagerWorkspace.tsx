@@ -1,6 +1,5 @@
 import React, { lazy, Suspense, useState } from "react";
 import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { StoredFile, KnowledgeBaseTab } from "@/components/KnowledgeBaseTab";
 import { ManagerSettingsContent } from "@/components/manager/ManagerSettingsContent";
@@ -19,6 +18,7 @@ import { SocialCreatorCampaignWorkspace } from "@/components/social/creator/Soci
 import { SitemapOptimizerResearchTab } from "@/components/research/sitemap-optimizer/SitemapOptimizerResearchTab";
 import { VerticalBenchmarkShell } from "@/components/vertical-benchmark/VerticalBenchmarkShell";
 import { PulseHostTabContent } from "@/components/hosting/PulseHostTabContent";
+import { AgentLibraryTabContent } from "@/components/manager/agents/AgentLibraryTabContent";
 import { ImageStudioTabContent } from "@/components/video-generator/ImageStudioTabContent";
 import { VideoGeneratorTabContent } from "@/components/video-generator/VideoGeneratorTabContent";
 
@@ -47,6 +47,7 @@ import { PulseAssistRoot } from "@/components/pulse-assist/PulseAssistRoot";
 import { AgentRunsShell } from "@/components/agent-runs/AgentRunsShell";
 import { OrganicReportingEmbeddedPanel } from "@/components/organic-dashboard/OrganicReportingEmbeddedPanel";
 import { OrganicReportingLocalGridSection } from "@/components/organic-dashboard/local-grid/OrganicReportingLocalGridSection";
+import { Button } from "@/ui";
 
 export interface ManagerWorkspaceProps {
   variant: "embedded" | "overlay";
@@ -168,6 +169,7 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
       managerTab === "video-generator" ||
       managerTab === "generator" ||
       managerTab === "local-dominator" ||
+      managerTab === "organic-reporting" ||
       managerTab === "api");
   /** Radix tabpanel must participate in flex-1 chain when embedded; parent-only selectors are unreliable. */
   const embeddedTabPanelStretch = embedded ? "flex h-full min-h-0 flex-1 flex-col overflow-hidden" : undefined;
@@ -210,7 +212,7 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
           <div className={MANAGER_SITE_CONSOLE_DOCK_CLASS}>{displayConsole}</div>
         </div>
         {embeddedTopBarProgress ? (
-          <div className="relative z-[1] shrink-0 bg-zinc-900 px-3 py-1.5 md:px-5 md:py-2">
+          <div className="relative z-[1] shrink-0 bg-ui-field px-3 py-1.5 md:px-5 md:py-2">
             {embeddedTopBarProgress}
           </div>
         ) : null}
@@ -232,7 +234,7 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
         >
           <h1 className="text-lg font-semibold">Manager</h1>
           {variant === "overlay" && onClose ? (
-            <Button onClick={onClose} variant="ghost" className="text-white hover:text-primary">
+            <Button variant="quiet" onClick={onClose}>
               <X className="h-6 w-6" />
             </Button>
           ) : null}
@@ -316,7 +318,7 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
             embedded && "overflow-hidden",
           )}
         >
-          <OrganicReportingLocalGridSection />
+          {managerTab === "local-dominator" ? <OrganicReportingLocalGridSection /> : null}
         </TabsContent>
 
         <TabsContent
@@ -328,25 +330,29 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
             embedded && "overflow-hidden",
           )}
         >
-          <KnowledgeBaseTab
-            onFilesUpdate={onFilesUpdate}
-            onManualContentUpdate={onManualContentUpdate}
-            currentFiles={currentKBFiles}
-          />
+          {managerTab === "knowledge" ? (
+            <KnowledgeBaseTab
+              onFilesUpdate={onFilesUpdate}
+              onManualContentUpdate={onManualContentUpdate}
+              currentFiles={currentKBFiles}
+            />
+          ) : null}
         </TabsContent>
 
         <TabsContent value="generator" className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}>
-          <BlogGeneratorShell
-            flowPurpose={flowPurpose}
-            dataForSEOApiKey={dataForSEOApiKey}
-            openRouterApiKey={apiKey}
-            selectedModel={selectedModel}
-            temperature={temperature}
-            maxTokens={maxTokens}
-            topP={topP}
-            freeFlowBindings={freeFlowBindings}
-            onResetBlueprint={onResetBlueprint}
-          />
+          {managerTab === "generator" ? (
+            <BlogGeneratorShell
+              flowPurpose={flowPurpose}
+              dataForSEOApiKey={dataForSEOApiKey}
+              openRouterApiKey={apiKey}
+              selectedModel={selectedModel}
+              temperature={temperature}
+              maxTokens={maxTokens}
+              topP={topP}
+              freeFlowBindings={freeFlowBindings}
+              onResetBlueprint={onResetBlueprint}
+            />
+          ) : null}
         </TabsContent>
 
         <TabsContent
@@ -357,27 +363,29 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
             embeddedTabPanelStretch,
           )}
         >
-          <IntegrationsTab onNavigateToSapGenerator={onNavigateToSapGenerator} />
+          {managerTab === "integrations" ? (
+            <IntegrationsTab onNavigateToSapGenerator={onNavigateToSapGenerator} />
+          ) : null}
         </TabsContent>
 
         <TabsContent value="chat" className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}>
-          <ChatTabContent />
+          {managerTab === "chat" ? <ChatTabContent /> : null}
         </TabsContent>
 
-        <TabsContent value="tasks" forceMount className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}>
-          <TasksTabContent onOpenPulseForge={() => onManagerTabChange("pulse-forge")} />
+        <TabsContent value="tasks" className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}>
+          {managerTab === "tasks" ? <TasksTabContent onOpenPulseForge={() => onManagerTabChange("pulse-forge")} /> : null}
         </TabsContent>
 
-        <TabsContent value="pulse-forge" forceMount className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}>
-          <PulseForgeTabContent />
+        <TabsContent value="pulse-forge" className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}>
+          {managerTab === "pulse-forge" ? <PulseForgeTabContent /> : null}
         </TabsContent>
 
         <TabsContent value="support" className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}>
-          <SupportTabContent />
+          {managerTab === "support" ? <SupportTabContent /> : null}
         </TabsContent>
 
         <TabsContent value="users" className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}>
-          <UsersTabContent />
+          {managerTab === "users" ? <UsersTabContent /> : null}
         </TabsContent>
 
         <TabsContent
@@ -388,37 +396,39 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
             embeddedTabPanelStretch,
           )}
         >
-          <ManagerSettingsContent
-            apiKey={apiKey}
-            setApiKey={setApiKey}
-            saveApiKey={saveApiKey}
-            dataForSEOApiKey={dataForSEOApiKey}
-            setDataForSEOApiKey={setDataForSEOApiKey}
-            saveDataForSEOApiKeyToStorage={saveDataForSEOApiKey}
-            semrushApiKey={semrushApiKey}
-            setSemrushApiKey={setSemrushApiKey}
-            saveSemrushApiKeyToStorage={saveSemrushApiKey}
-            selectedModel={selectedModel}
-            setSelectedModel={setSelectedModel}
-            agentResearchModel={agentResearchModel}
-            setAgentResearchModel={setAgentResearchModel}
-            agentImageModel={agentImageModel}
-            setAgentImageModel={setAgentImageModel}
-            agentMetaModel={agentMetaModel}
-            setAgentMetaModel={setAgentMetaModel}
-            agentReportModel={agentReportModel}
-            setAgentReportModel={setAgentReportModel}
-            agentAdsModel={agentAdsModel}
-            setAgentAdsModel={setAgentAdsModel}
-            temperature={temperature}
-            setTemperature={setTemperature}
-            maxTokens={maxTokens}
-            setMaxTokens={setMaxTokens}
-            topP={topP}
-            setTopP={setTopP}
-            settingsCluster={managerDashboardCluster}
-            onSettingsClusterChange={onManagerDashboardClusterChange}
-          />
+          {managerTab === "dashboard" ? (
+            <ManagerSettingsContent
+              apiKey={apiKey}
+              setApiKey={setApiKey}
+              saveApiKey={saveApiKey}
+              dataForSEOApiKey={dataForSEOApiKey}
+              setDataForSEOApiKey={setDataForSEOApiKey}
+              saveDataForSEOApiKeyToStorage={saveDataForSEOApiKey}
+              semrushApiKey={semrushApiKey}
+              setSemrushApiKey={setSemrushApiKey}
+              saveSemrushApiKeyToStorage={saveSemrushApiKey}
+              selectedModel={selectedModel}
+              setSelectedModel={setSelectedModel}
+              agentResearchModel={agentResearchModel}
+              setAgentResearchModel={setAgentResearchModel}
+              agentImageModel={agentImageModel}
+              setAgentImageModel={setAgentImageModel}
+              agentMetaModel={agentMetaModel}
+              setAgentMetaModel={setAgentMetaModel}
+              agentReportModel={agentReportModel}
+              setAgentReportModel={setAgentReportModel}
+              agentAdsModel={agentAdsModel}
+              setAgentAdsModel={setAgentAdsModel}
+              temperature={temperature}
+              setTemperature={setTemperature}
+              maxTokens={maxTokens}
+              setMaxTokens={setMaxTokens}
+              topP={topP}
+              setTopP={setTopP}
+              settingsCluster={managerDashboardCluster}
+              onSettingsClusterChange={onManagerDashboardClusterChange}
+            />
+          ) : null}
         </TabsContent>
 
         <TabsContent
@@ -430,14 +440,16 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
             embedded && "overflow-hidden",
           )}
         >
-          <PpcTabContent
-            apiKey={apiKey}
-            selectedModel={selectedModel}
-            temperature={temperature}
-            maxTokens={maxTokens}
-            topP={topP}
-            onPlatformChange={onManagerTabChange}
-          />
+          {managerTab === "ppc-google" ? (
+            <PpcTabContent
+              apiKey={apiKey}
+              selectedModel={selectedModel}
+              temperature={temperature}
+              maxTokens={maxTokens}
+              topP={topP}
+              onPlatformChange={onManagerTabChange}
+            />
+          ) : null}
         </TabsContent>
 
         <TabsContent
@@ -449,18 +461,20 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
             embedded && "overflow-hidden",
           )}
         >
-          <MetaAdsCampaignWorkspace
-            apiKey={apiKey}
-            selectedModel={selectedModel}
-            onPlatformChange={onManagerTabChange}
-          />
+          {managerTab === "ppc-meta" ? (
+            <MetaAdsCampaignWorkspace
+              apiKey={apiKey}
+              selectedModel={selectedModel}
+              onPlatformChange={onManagerTabChange}
+            />
+          ) : null}
         </TabsContent>
 
         <TabsContent
           value="gbp-post"
           className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}
         >
-          <GbpPostShell onPlatformChange={onManagerTabChange} />
+          {managerTab === "gbp-post" ? <GbpPostShell onPlatformChange={onManagerTabChange} /> : null}
         </TabsContent>
 
         <TabsContent
@@ -472,11 +486,13 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
             embedded && "overflow-hidden",
           )}
         >
-          <ContentCreatorCampaignWorkspace
-            apiKey={apiKey}
-            selectedModel={selectedModel}
-            onPlatformChange={onManagerTabChange}
-          />
+          {managerTab === "content-calendar" ? (
+            <ContentCreatorCampaignWorkspace
+              apiKey={apiKey}
+              selectedModel={selectedModel}
+              onPlatformChange={onManagerTabChange}
+            />
+          ) : null}
         </TabsContent>
 
         <TabsContent
@@ -488,25 +504,39 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
             embedded && "overflow-hidden",
           )}
         >
-          <SocialCreatorCampaignWorkspace
-            apiKey={apiKey}
-            selectedModel={selectedModel}
-            onPlatformChange={onManagerTabChange}
-          />
+          {managerTab === "social-creator" ? (
+            <SocialCreatorCampaignWorkspace
+              apiKey={apiKey}
+              selectedModel={selectedModel}
+              onPlatformChange={onManagerTabChange}
+            />
+          ) : null}
         </TabsContent>
 
         <TabsContent
           value="sitemap-optimizer"
           className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}
         >
-          <SitemapOptimizerResearchTab />
+          {managerTab === "sitemap-optimizer" ? <SitemapOptimizerResearchTab /> : null}
         </TabsContent>
 
         <TabsContent
           value="vertical-benchmarks"
           className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}
         >
-          <VerticalBenchmarkShell openRouterApiKey={apiKey} />
+          {managerTab === "vertical-benchmarks" ? (
+            <BlogGeneratorShell
+              flowPurpose={flowPurpose}
+              dataForSEOApiKey={dataForSEOApiKey}
+              openRouterApiKey={apiKey}
+              selectedModel={selectedModel}
+              temperature={temperature}
+              maxTokens={maxTokens}
+              topP={topP}
+              freeFlowBindings={freeFlowBindings}
+              onResetBlueprint={onResetBlueprint}
+            />
+          ) : null}
         </TabsContent>
 
 
@@ -514,27 +544,36 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
           value="pulse-host"
           className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}
         >
-          <PulseHostTabContent />
+          {managerTab === "pulse-host" ? <PulseHostTabContent /> : null}
+        </TabsContent>
+
+        <TabsContent
+          value="agent-library"
+          className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}
+        >
+          {managerTab === "agent-library" ? <AgentLibraryTabContent /> : null}
         </TabsContent>
 
         <TabsContent
           value="image-generator"
           className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}
         >
-          <ImageStudioTabContent apiKey={apiKey} bindings={freeFlowBindings} />
+          {managerTab === "image-generator" ? <ImageStudioTabContent apiKey={apiKey} bindings={freeFlowBindings} /> : null}
         </TabsContent>
 
         <TabsContent
           value="video-generator"
           className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}
         >
-          <VideoGeneratorTabContent apiKey={apiKey} />
+          {managerTab === "video-generator" ? <VideoGeneratorTabContent apiKey={apiKey} /> : null}
         </TabsContent>
 
         <TabsContent value="api" className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}>
-          <Suspense fallback={null}>
-            <ApiDocsTabContent />
-          </Suspense>
+          {managerTab === "api" ? (
+            <Suspense fallback={null}>
+              <ApiDocsTabContent />
+            </Suspense>
+          ) : null}
         </TabsContent>
         </div>
         </div>

@@ -1,5 +1,4 @@
 import { Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { BULK_HEADER_TOOL_BTN } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import {
   getProposalProgressStatusLine,
@@ -13,6 +12,7 @@ import {
   WorkspaceDetailsStack,
 } from "@/components/shared/WorkspaceDetailsStack";
 import { workspaceDetailsCanOpen } from "@/lib/workspace/workspace-details-can-open";
+import { Button } from "@/ui";
 
 export type ProposalDetailsPanelProps = {
   workspaceMode: string;
@@ -99,10 +99,8 @@ export function ProposalDetailsPanel({
         {phase === "report" && hasSapScheduleRows ? (
           <div className="flex flex-wrap items-center gap-2 px-2.5 py-2 sm:px-3">
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
-              size="sm"
-              className={cn(BULK_HEADER_TOOL_BTN, "h-8")}
               onClick={onDownloadEntitySapCsv}
               title="Download SAP CSV"
             >

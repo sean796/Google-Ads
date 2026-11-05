@@ -47,7 +47,6 @@ export type MultiSiteContentOptimizerWorkspaceHeaderProps = {
   optimizationFileManagers: Record<string, OptimizationFileManager>;
   onBatchClose: (abortingRun: boolean) => void;
   paginationLayoutTotal: number;
-  onDetailsOpenChange?: (open: boolean) => void;
   generatorChrome?: ContentOptimizerGeneratorChrome;
 };
 
@@ -69,7 +68,6 @@ export function MultiSiteContentOptimizerWorkspaceHeader({
   isOptimizingContent,
   optimizationFileManagers,
   paginationLayoutTotal,
-  onDetailsOpenChange,
   generatorChrome,
 }: MultiSiteContentOptimizerWorkspaceHeaderProps) {
   const warmDetails = useOverviewSiteWarmDetails(batchSite ?? null);
@@ -80,7 +78,6 @@ export function MultiSiteContentOptimizerWorkspaceHeader({
     sitemapInventoryLoading: warmDetails.sitemapInventoryLoading,
   });
 
-  const detailsOpenSignal = null;
 
   const sourceModePills = (
     <MultiSiteSourceModePills
@@ -151,8 +148,6 @@ export function MultiSiteContentOptimizerWorkspaceHeader({
     detailsPanelId: DETAILS_PANEL_ID,
     toolbar: toolbarContent,
     detailsPanel,
-    detailsOpenSignal,
-    onDetailsOpenChange,
   };
 
   if (generatorChrome) {

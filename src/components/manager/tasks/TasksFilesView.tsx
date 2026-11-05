@@ -1,6 +1,7 @@
 import React from "react";
 import type { TaskFile } from "@/lib/tasks-types";
 import { taskFileDownloadUrl } from "@/lib/tasks-api";
+import { TextButton } from "@/ui";
 
 export type TasksFilesViewProps = {
   teamId: number;
@@ -35,9 +36,9 @@ export function TasksFilesView({ teamId, files, onSelectTask }: TasksFilesViewPr
                   </a>
                 </td>
                 <td className="py-2 pr-4">
-                  <button type="button" onClick={() => onSelectTask(file.taskId)} className="hover:underline">
+                  <TextButton type="button" onClick={() => onSelectTask(file.taskId)}>
                     {file.taskTitle ?? `Task ${file.taskId}`}
-                  </button>
+                  </TextButton>
                 </td>
                 <td className="py-2 text-muted-foreground">{file.createdAt.slice(0, 10)}</td>
               </tr>

@@ -2,6 +2,7 @@ import React from "react";
 import type { LucideIcon } from "lucide-react";
 import { PanelLeft, PanelLeftClose } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 const PROPERTY_NAV_COLLAPSED_KEY = "neo-pulse-property-admin-nav-collapsed";
 
@@ -213,10 +214,9 @@ export function WordPressSiteAdminLayout<T extends string = WordPressSiteAdminSe
         >
           {collapsibleSideNav ? (
             <div className="flex shrink-0 justify-end border-0 px-1 pb-1 pt-0.5">
-              <button
-                type="button"
+              <Button
+                variant="quiet"
                 onClick={() => persistNavCollapsed(!sideNavCollapsed)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-white transition-colors hover:bg-tile-hover hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 aria-expanded={!sideNavCollapsed}
                 aria-controls="wp-site-admin-section-nav"
                 title={sideNavCollapsed ? "Expand section nav" : "Collapse section nav"}
@@ -226,7 +226,7 @@ export function WordPressSiteAdminLayout<T extends string = WordPressSiteAdminSe
                 ) : (
                   <PanelLeftClose className="h-4 w-4 shrink-0 text-white" aria-hidden />
                 )}
-              </button>
+              </Button>
             </div>
           ) : null}
           <div id="wp-site-admin-section-nav" className="flex min-h-0 flex-1 flex-col gap-0">
@@ -239,14 +239,14 @@ export function WordPressSiteAdminLayout<T extends string = WordPressSiteAdminSe
                   : navItemBaseExpanded
                 : "group flex w-full items-center gap-2 rounded-md border-0 px-2 py-2 text-left text-base font-normal normal-case tracking-tight transition-colors md:rounded-none md:rounded-l-md";
               return (
-                <button
+                <Button
+                  pressed={Boolean(isActive)}
+                  variant="quiet"
                   key={String(s.id)}
-                  type="button"
                   onClick={() => setActiveSectionId(s.id)}
                   aria-current={isActive ? "page" : undefined}
                   aria-label={collapsibleSideNav && sideNavCollapsed ? s.label : undefined}
                   title={collapsibleSideNav && sideNavCollapsed ? s.label : undefined}
-                  className={`${rowBase} ${isActive ? navItemActive : navItemInactive}`}
                 >
                   {NavIcon ? (
                     <NavIcon
@@ -257,7 +257,7 @@ export function WordPressSiteAdminLayout<T extends string = WordPressSiteAdminSe
                   {!(collapsibleSideNav && sideNavCollapsed) ? (
                     <span className="min-w-0 text-white">{s.label}</span>
                   ) : null}
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -279,12 +279,12 @@ export function WordPressSiteAdminLayout<T extends string = WordPressSiteAdminSe
               const isActive = s.id === activeSectionId;
               const NavIcon = s.icon;
               return (
-                <button
+                <Button
+                  pressed={Boolean(isActive)}
+                  variant="quiet"
                   key={String(s.id)}
-                  type="button"
                   onClick={() => setActiveSectionId(s.id)}
                   aria-current={isActive ? "page" : undefined}
-                  className={`${navItemBaseExpanded} text-base font-normal ${isActive ? navItemActive : navItemInactive} min-w-[160px]`}
                 >
                   {NavIcon ? (
                     <NavIcon
@@ -293,7 +293,7 @@ export function WordPressSiteAdminLayout<T extends string = WordPressSiteAdminSe
                     />
                   ) : null}
                   <span className="min-w-0 text-white">{s.label}</span>
-                </button>
+                </Button>
               );
             })}
           </nav>

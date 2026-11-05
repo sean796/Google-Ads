@@ -31,7 +31,7 @@ export function SocialCreatorImageReferencesSection({
         {references.map((ref) => {
           const preview = ref.previewDataUrl ?? ref.imageUrl;
           return (
-            <li key={ref.id} className="space-y-2 bg-zinc-900/50 p-2.5">
+            <li key={ref.id} className="space-y-2 bg-ui-field/50 p-2.5">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="text-base font-medium text-foreground">{ref.id}</span>
                 <span className="text-base text-foreground">{metaReferenceRoleLabel(ref.role)}</span>
@@ -68,7 +68,7 @@ export function SocialCreatorImageReferencesSection({
                 <img
                   src={preview}
                   alt=""
-                  className="max-h-48 w-auto max-w-full object-contain bg-zinc-900"
+                  className="max-h-48 w-auto max-w-full object-contain bg-ui-field"
                 />
               ) : null}
             </li>

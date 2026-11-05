@@ -131,10 +131,10 @@ export function isServiceCountry(value: string): value is ServiceCountry {
   return value === "Canada" || value === "United States";
 }
 
-export function inferServiceCountry(region: string, storedCountry?: string): ServiceCountry | "" {
-  const stored = storedCountry?.trim() ?? "";
+export function inferServiceCountry(region?: string, storedCountry?: string): ServiceCountry | "" {
+  const stored = typeof storedCountry === "string" ? storedCountry.trim() : "";
   if (isServiceCountry(stored)) return stored;
-  const raw = region.trim();
+  const raw = typeof region === "string" ? region.trim() : "";
   if (!raw) return "";
   const upper = raw.toUpperCase();
   if (upper.length === 2) {
@@ -147,8 +147,8 @@ export function inferServiceCountry(region: string, storedCountry?: string): Ser
   return "";
 }
 
-export function normalizeServiceRegion(region: string, country: ServiceCountry | "" = ""): string {
-  const raw = region.trim();
+export function normalizeServiceRegion(region?: string, country: ServiceCountry | "" = ""): string {
+  const raw = typeof region === "string" ? region.trim() : "";
   if (!raw) return "";
   const upper = raw.toUpperCase();
   if (country === "Canada" || country === "") {

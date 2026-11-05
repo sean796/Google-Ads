@@ -1,20 +1,13 @@
-import { Loader2, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Trash2 } from "lucide-react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  BULK_HEADER_FIELD,
-  BULK_HEADER_RUN_BTN,
-  BULK_TOOLBAR_GROUP_DIVIDER,
-} from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
+  ActionButton,
+  Button,
+  Field,
+  FilterRow,
+  FilterRowDivider,
+  SelectField,
+} from "@/ui";
 import type { KnowledgeBaseSectionId, KnowledgeProfile } from "@/lib/knowledge-base/types";
-import { cn } from "@/lib/utils";
 
 export type KnowledgeBaseToolbarProps = {
   activeSection: KnowledgeBaseSectionId;
@@ -40,6 +33,8 @@ export type KnowledgeBaseToolbarProps = {
   onStartScrape: () => void;
   onCancelScrape: () => void;
 };
+
+const SCRAPE_STATES = ["Start", "Scraping"] as const;
 
 export function KnowledgeBaseToolbar({
   activeSection,
@@ -68,53 +63,27 @@ export function KnowledgeBaseToolbar({
   if (activeSection === "text") {
     return (
       <>
-        <Select value={selectedProfile} onValueChange={onSelectedProfileChange} disabled={disabled}>
-          <SelectTrigger className={cn(BULK_HEADER_FIELD, "h-8 w-[min(100%,10rem)] shrink-0")}>
-            <SelectValue placeholder="Select profile" />
-          </SelectTrigger>
-          <SelectContent>
-            {profiles.map((profile) => (
-              <SelectItem key={profile.id} value={profile.id}>
-                {profile.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Input
+        <SelectField
+          placeholder="Profile"
+          value={selectedProfile}
+          onValueChange={onSelectedProfileChange}
+          options={profiles.map((profile) => ({ value: profile.id, label: profile.name }))}
+          disabled={disabled}
+        />
+        <Field
+          placeholder="New profile name"
           value={newProfileName}
           onChange={(e) => onNewProfileNameChange(e.target.value)}
-          placeholder="New profile name"
           disabled={disabled}
-          className={cn(BULK_HEADER_FIELD, "h-8 min-w-0 flex-1 px-2")}
         />
-        <Button
-          type="button"
-          size="sm"
-          className={BULK_HEADER_RUN_BTN}
-          disabled={disabled}
-          onClick={onSaveNewProfile}
-        >
+        <Button variant="run" disabled={disabled} onClick={onSaveNewProfile}>
           Save New
         </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className="h-8 shrink-0"
-          disabled={disabled || !selectedProfile}
-          onClick={onUpdateProfile}
-        >
+        <Button disabled={disabled || !selectedProfile} onClick={onUpdateProfile}>
           Update
         </Button>
-        <div className={BULK_TOOLBAR_GROUP_DIVIDER} aria-hidden />
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          className="h-8 shrink-0 text-destructive hover:text-destructive"
-          disabled={disabled}
-          onClick={onClearContent}
-        >
+        <FilterRowDivider />
+        <Button variant="danger" disabled={disabled} onClick={onClearContent}>
           Clear Content
         </Button>
       </>
@@ -135,31 +104,20 @@ export function KnowledgeBaseToolbar({
         <span className="text-base text-muted-foreground">
           {fileCount} files · {totalSizeLabel}
         </span>
-        <div className="ml-auto flex shrink-0 items-center gap-1.5">
-          {unstarredCount > 0 ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-8 shrink-0 text-destructive"
-              disabled={disabled}
-              onClick={onClearUnstarred}
-            >
-              <Trash2 className="mr-1 h-4 w-4" aria-hidden />
-              Clear temp ({unstarredCount})
-            </Button>
-          ) : null}
+        <FilterRow align="end">
           <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-8 shrink-0 text-destructive"
-            disabled={disabled || fileCount === 0}
-            onClick={onClearAll}
+            variant="danger"
+            icon={Trash2}
+            reserved={unstarredCount === 0}
+            disabled={disabled}
+            onClick={onClearUnstarred}
           >
+            Clear temp ({unstarredCount})
+          </Button>
+          <Button variant="danger" disabled={disabled || fileCount === 0} onClick={onClearAll}>
             Clear all
           </Button>
-        </div>
+        </FilterRow>
       </>
     );
   }
@@ -167,56 +125,36 @@ export function KnowledgeBaseToolbar({
   if (activeSection === "scraper") {
     return (
       <>
-        <Input
+        <Field
+          placeholder="Site URL to scrape"
           value={scraperUrl}
           onChange={(e) => onScraperUrlChange(e.target.value)}
-          placeholder="https://example.com"
           disabled={disabled || scraperRunning}
-          aria-label="Site URL to scrape"
-          className={cn(BULK_HEADER_FIELD, "h-8 min-w-0 flex-1 px-2")}
         />
-        <Input
+        <Field
           type="number"
+          size="count"
           min={1}
           max={200}
+          placeholder="Max pages"
           value={scraperMaxPages}
           disabled={disabled || scraperRunning}
-          aria-label="Max pages"
           onChange={(e) => {
             const parsed = parseInt(e.target.value, 10);
             onScraperMaxPagesChange(
               Math.max(1, Math.min(200, Number.isNaN(parsed) ? 1 : parsed)),
             );
           }}
-          className={cn(BULK_HEADER_FIELD, "h-8 w-[4.5rem] shrink-0 px-2 tabular-nums")}
         />
-        <Button
-          type="button"
-          size="sm"
-          className={BULK_HEADER_RUN_BTN}
+        <ActionButton
+          states={SCRAPE_STATES}
+          state={scraperRunning ? "Scraping" : "Start"}
           disabled={disabled || scraperRunning}
           onClick={onStartScrape}
-        >
-          {scraperRunning ? (
-            <>
-              <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden />
-              Scraping
-            </>
-          ) : (
-            "Start"
-          )}
+        />
+        <Button variant="danger" reserved={!scraperRunning} onClick={onCancelScrape}>
+          Cancel
         </Button>
-        {scraperRunning ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="h-8 shrink-0 text-destructive"
-            onClick={onCancelScrape}
-          >
-            Cancel
-          </Button>
-        ) : null}
       </>
     );
   }

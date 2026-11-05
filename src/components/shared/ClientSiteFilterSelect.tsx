@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { RowButton } from "@/ui";
 
 export type ClientSiteFilterOption = {
   id: string;
@@ -86,6 +87,7 @@ export function ClientSiteFilterSelect({
       ) : null}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
+          {/* eslint-disable-next-line no-restricted-syntax -- Pulse UI exception: popover trigger with measured width and custom layout */}
           <button
             ref={triggerRef}
             type="button"
@@ -100,7 +102,7 @@ export function ClientSiteFilterSelect({
           >
             <span
               className={cn(
-                fixTriggerWidthToLongestLabel ? "whitespace-nowrap" : "min-w-0 truncate",
+                fixTriggerWidthToLongestLabel ? "whitespace-nowrap" : "min-w-0 break-words",
               )}
             >
               {selected?.label ?? "Site"}
@@ -118,7 +120,7 @@ export function ClientSiteFilterSelect({
             "client-site-filter-panel z-[70] border-0 text-base shadow-lg",
             drawerRow
               ? "agent-runs-site-filter-panel rounded-none p-0"
-              : "w-[min(100vw-2rem,18rem)] rounded-md bg-zinc-900 p-1",
+              : "w-[min(100vw-2rem,18rem)] rounded-md bg-ui-field p-1",
             contentClassName,
           )}
         >
@@ -126,30 +128,20 @@ export function ClientSiteFilterSelect({
             {options.map((option, index) => {
               const active = option.id === value;
               return (
-                <button
+                <RowButton
+                  selected={Boolean(drawerRow)}
                   key={option.id}
                   type="button"
-                  className={cn(
-                    "client-site-filter-panel__item flex h-9 w-full items-center gap-2 px-3 text-left text-base",
-                    drawerRow
-                      ? cn(
-                          index % 2 === 0
-                            ? "agent-runs-site-filter-panel__item--even"
-                            : "agent-runs-site-filter-panel__item--odd",
-                          active && "agent-runs-site-filter-panel__item--active",
-                        )
-                      : cn("hover:bg-zinc-800", active && "bg-zinc-800 text-primary"),
-                  )}
                   onClick={() => {
                     onChange(option.id);
                     setOpen(false);
                   }}
                 >
-                  <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                  <span className="min-w-0 flex-1 break-words">{option.label}</span>
                   {option.activeCount != null && option.activeCount > 0 ? (
                     <span className="agent-runs-site-filter__active-dot shrink-0" aria-hidden />
                   ) : null}
-                </button>
+                </RowButton>
               );
             })}
           </div>

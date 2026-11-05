@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Bot,
   Building2,
   Clapperboard,
   Cpu,
@@ -131,27 +132,11 @@ export const MANAGER_NAV_SECTIONS: ManagerNavSection[] = [
         description: "Managed WordPress sites",
         icon: Server,
       },
-    ],
-  },
-  {
-    id: "reporting",
-    label: "Reporting",
-    icon: LineChart,
-    items: [
       {
-        id: "reporting-performance",
-        value: "reporting-performance",
-        label: "Performance",
-        description: "GA4 organic traffic and Search Console for the active property",
-        icon: LineChart,
-        organicDashboard: true,
-      },
-      {
-        id: "reporting-local-dominator",
-        value: "local-dominator",
-        label: "Local Grid",
-        description: "Google Maps geo-grid rank studio powered by DataForSEO",
-        icon: Crosshair,
+        value: "agent-library",
+        label: "Agent Library",
+        description: "NEO Pulse agent registry, Slack hub agents, and category model routing",
+        icon: Bot,
       },
     ],
   },
@@ -187,23 +172,49 @@ export const MANAGER_NAV_SECTIONS: ManagerNavSection[] = [
     ],
   },
   {
-    id: "forge",
-    label: "Forge",
-    icon: Zap,
-    items: [
-      {
-        value: "pulse-forge",
-        label: "Task Builder",
-        description: "Workflow automations, recipes, and schedules",
-        icon: Zap,
-      },
-    ],
-  },
-  {
     id: "tools",
     label: "Tools",
     icon: Wrench,
     items: [
+      {
+        id: "tools-reporting",
+        value: "reporting",
+        label: "Reporting",
+        description: "Organic performance and local grid reporting",
+        icon: LineChart,
+        children: [
+          {
+            id: "reporting-performance",
+            value: "reporting-performance",
+            label: "Performance",
+            description: "GA4 organic traffic and Search Console for the active property",
+            icon: LineChart,
+            organicDashboard: true,
+          },
+          {
+            id: "reporting-local-dominator",
+            value: "local-dominator",
+            label: "Local Grid",
+            description: "Google Maps geo-grid rank studio powered by DataForSEO",
+            icon: Crosshair,
+          },
+        ],
+      },
+      {
+        id: "tools-forge",
+        value: "forge",
+        label: "Forge",
+        description: "Workflow automations, recipes, and schedules",
+        icon: Zap,
+        children: [
+          {
+            value: "pulse-forge",
+            label: "Task Builder",
+            description: "Workflow automations, recipes, and schedules",
+            icon: Zap,
+          },
+        ],
+      },
       {
         id: "tools-seo",
         value: "seo",

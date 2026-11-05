@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
-import { CheckCircle, ExternalLink, FolderOpen, Loader2, Save, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { CheckCircle, ExternalLink, FolderOpen, Save, Trash2 } from "lucide-react";
+import { ActionButton, Button, Field } from "@/ui";
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
 import { NOTIFY_CLIENT_ID_SHOULD_BE_THE_FULL_VALUE_FROM_, NOTIFY_REDIRECT_URI_COPIED } from "@/lib/notify-messages";
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
@@ -29,6 +27,11 @@ import {
   openGoogleDriveAuthorize,
   useGoogleDriveConnectionStatus,
 } from "@/hooks/use-google-drive-connection-status";
+
+const SAVE_STATES = ["Test and save", "Saving"] as const;
+const VALIDATE_STATES = ["Test and save", "Validating"] as const;
+const TEST_STATES = ["Test connection", "Uploading test file"] as const;
+const TEAM_SAVE_STATES = ["Save team hierarchy", "Saving"] as const;
 
 type DriveTestResult = {
   webViewLink?: string;
@@ -94,8 +97,8 @@ export function GoogleDriveSettingsContent() {
   const clientIdLooksValid =
     clientIdTrimmed.length >= 20 && clientIdTrimmed.includes(".apps.googleusercontent.com");
 
-  const handleTestAndSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleTestAndSave = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (clientIdTrimmed && !clientIdLooksValid) {
       notify.error(NOTIFY_CLIENT_ID_SHOULD_BE_THE_FULL_VALUE_FROM_);
       return;
@@ -213,164 +216,110 @@ export function GoogleDriveSettingsContent() {
     }
   };
 
+  const canSave =
+    clientIdLooksValid && clientSecret.trim().length > 0;
+
+  const clientForm = (states: readonly string[], busyLabel: string) => (
+    <>
+      <Field
+        type="text"
+        value={clientId}
+        onChange={(e) => setClientId(e.target.value)}
+        placeholder="Client ID (xxxxx.apps.googleusercontent.com)"
+        required
+      />
+      <p className="min-h-6 text-base text-semantic-warning">
+        {clientIdTrimmed && !clientIdLooksValid
+          ? "Use the full Client ID from Google Cloud (ends in .apps.googleusercontent.com)."
+          : ""}
+      </p>
+      <Field
+        type="password"
+        autoComplete="off"
+        value={clientSecret}
+        onChange={(e) => setClientSecret(e.target.value)}
+        placeholder="Client secret (GOCSPX-...)"
+        required
+      />
+      <div>
+        <ActionButton
+          icon={Save}
+          states={states}
+          state={saving ? busyLabel : "Test and save"}
+          disabled={saving || !canSave}
+          onClick={() => void handleTestAndSave()}
+        />
+      </div>
+    </>
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <FolderOpen className="h-5 w-5 text-primary" aria-hidden />
-        <h3 id="drive-heading" className="text-base font-semibold text-white">
+        <h3 id="drive-heading" className="text-base font-semibold text-foreground">
           Google Drive
         </h3>
       </div>
-      <p className="text-base text-white">
+      <p className="text-base text-foreground">
         Connect your Google account to save workflow reports as Google Docs and share links with your team.
       </p>
 
       {!loading && !configured ? (
-        <form onSubmit={handleTestAndSave} className="space-y-3 rounded-md bg-muted/50 p-4">
-          <p className="text-base font-medium text-white">OAuth client (Google Cloud)</p>
-          <div className="space-y-2">
-            <Label htmlFor="drive-client-id" className="text-base text-muted-foreground">
-              Client ID
-            </Label>
-            <Input
-              id="drive-client-id"
-              type="text"
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-              placeholder="xxxxx.apps.googleusercontent.com"
-              className="border-border bg-background text-base"
-              required
-            />
-            {clientIdTrimmed && !clientIdLooksValid ? (
-              <p className="text-base text-amber-500">
-                Use the full Client ID from Google Cloud (ends in .apps.googleusercontent.com).
-              </p>
-            ) : null}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="drive-client-secret" className="text-base text-muted-foreground">
-              Client Secret
-            </Label>
-            <Input
-              id="drive-client-secret"
-              type="password"
-              autoComplete="off"
-              value={clientSecret}
-              onChange={(e) => setClientSecret(e.target.value)}
-              placeholder="GOCSPX-..."
-              className="border-border bg-background text-base"
-              required
-            />
-          </div>
-          <Button
-            type="submit"
-            disabled={saving || (!!clientIdTrimmed && !clientIdLooksValid)}
-            className="gap-2"
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Save className="h-4 w-4" aria-hidden />}
-            {saving ? "Saving…" : "Test and save"}
-          </Button>
+        <form onSubmit={handleTestAndSave} className="space-y-3 bg-ui-field p-4">
+          <p className="text-base font-medium text-foreground">OAuth client (Google Cloud)</p>
+          {clientForm(SAVE_STATES, "Saving")}
         </form>
       ) : null}
 
       {!loading && configured && !connected ? (
-        <form onSubmit={handleTestAndSave} className="space-y-3 rounded-md bg-muted/50 p-4">
-          <p className="text-base font-medium text-white">Update OAuth client secret</p>
-          <p className="text-base text-amber-500">
+        <form onSubmit={handleTestAndSave} className="space-y-3 bg-ui-field p-4">
+          <p className="text-base font-medium text-foreground">Update OAuth client secret</p>
+          <p className="text-base text-semantic-warning">
             Connect is failing because the saved Google client secret is invalid or expired. Copy a fresh secret
             from Google Cloud Console, then Test and save before Connect.
           </p>
-          <div className="space-y-2">
-            <Label htmlFor="drive-client-id-update" className="text-base text-muted-foreground">
-              Client ID
-            </Label>
-            <Input
-              id="drive-client-id-update"
-              type="text"
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-              placeholder="xxxxx.apps.googleusercontent.com"
-              className="border-border bg-background text-base"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="drive-client-secret-update" className="text-base text-muted-foreground">
-              Client Secret
-            </Label>
-            <Input
-              id="drive-client-secret-update"
-              type="password"
-              autoComplete="off"
-              value={clientSecret}
-              onChange={(e) => setClientSecret(e.target.value)}
-              placeholder="GOCSPX-..."
-              className="border-border bg-background text-base"
-              required
-            />
-          </div>
-          <Button
-            type="submit"
-            disabled={saving || (!!clientIdTrimmed && !clientIdLooksValid)}
-            className="gap-2"
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Save className="h-4 w-4" aria-hidden />}
-            {saving ? "Validating…" : "Test and save"}
-          </Button>
+          {clientForm(VALIDATE_STATES, "Validating")}
         </form>
       ) : null}
 
       {loading ? (
-        <div className="flex items-center gap-2 text-base text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-          Checking…
-        </div>
+        <p className="flex h-8 items-center text-base text-muted-foreground">Checking</p>
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             {connected ? (
-              <span className="inline-flex h-9 items-center gap-1.5 rounded-none bg-zinc-900 px-3 text-base font-medium text-green-400">
+              <span className="inline-flex h-8 items-center gap-1.5 bg-ui-field px-3 text-base font-medium text-primary">
                 <CheckCircle className="h-4 w-4 shrink-0" aria-hidden />
                 Connected{email ? ` (${email})` : ""}
               </span>
             ) : (
-              <Button
-                type="button"
-                className="h-9 rounded-none bg-black px-3 text-base font-medium text-white hover:bg-zinc-950"
-                onClick={openGoogleDriveAuthorize}
-              >
+              <Button variant="run" onClick={openGoogleDriveAuthorize}>
                 Connect Google Drive
               </Button>
             )}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-9 rounded-none"
+            <ActionButton
+              variant="tool"
+              states={TEST_STATES}
+              state={testing ? "Uploading test file" : "Test connection"}
               disabled={testing || !configured}
               onClick={handleTest}
-            >
-              {testing ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-              {testing ? "Uploading test file…" : "Test connection"}
-            </Button>
+            />
           </div>
 
           {!connected && configured ? (
-            <p className="text-base text-amber-500">
+            <p className="text-base text-semantic-warning">
               OAuth client is saved but Google Drive is not connected yet. Fix the client secret above if needed,
               then click Connect Google Drive and finish the Google sign-in popup.
             </p>
           ) : null}
 
-          {connectionError ? (
-            <p className="text-base text-red-400">{connectionError}</p>
-          ) : null}
-
-          {testError ? <p className="text-base text-red-400">{testError}</p> : null}
+          <p className="min-h-6 text-base text-ui-danger">{connectionError}</p>
+          <p className="min-h-6 text-base text-ui-danger">{testError}</p>
 
           {testResult?.webViewLink ? (
-            <div className="space-y-2 rounded-md bg-muted/50 p-3">
-              <p className="text-base font-medium text-white">Test upload succeeded</p>
+            <div className="space-y-2 bg-ui-field p-3">
+              <p className="text-base font-medium text-foreground">Test upload succeeded</p>
               {testResult.fileName ? (
                 <p className="text-base text-muted-foreground">File: {testResult.fileName}</p>
               ) : null}
@@ -399,106 +348,85 @@ export function GoogleDriveSettingsContent() {
       )}
 
       {redirectUri ? (
-        <div className="rounded-md bg-muted/50 p-3">
-          <p className="text-base font-medium text-white">Redirect URI (add this in Google Cloud)</p>
+        <div className="bg-ui-field p-3">
+          <p className="text-base font-medium text-foreground">Redirect URI (add this in Google Cloud)</p>
           <div className="mt-2 flex items-center gap-2">
-            <code className="min-w-0 flex-1 truncate rounded bg-background px-2 py-1 text-base text-foreground">
+            <code className="min-w-0 flex-1 break-all bg-black px-2 py-1 text-base text-foreground">
               {redirectUri}
             </code>
-            <Button type="button" variant="ghost" size="sm" className="shrink-0" onClick={copyRedirectUri}>
-              Copy
-            </Button>
+            <Button onClick={copyRedirectUri}>Copy</Button>
           </div>
         </div>
       ) : null}
 
-      <div className="space-y-3 rounded-md bg-muted/50 p-4">
-        <p className="text-base font-medium text-white">Team folder hierarchy</p>
+      <div className="space-y-3 bg-ui-field p-4">
+        <p className="text-base font-medium text-foreground">Team folder hierarchy</p>
         <p className="text-base text-muted-foreground">
           Shared drive root for client auto-find. Flowbie creates a NEO Pulse workspace folder there, then client and
           purpose folders underneath it.
         </p>
-        <div className="space-y-2">
-          <Label htmlFor="drive-team-root-folder" className="text-base text-muted-foreground">
-            Team root folder
-          </Label>
-          <Input
-            id="drive-team-root-folder"
-            value={teamRootInput}
-            disabled={teamSettingsLoading || teamSettingsSaving}
-            onChange={(event) => setTeamRootInput(event.target.value)}
-            placeholder={`https://drive.google.com/drive/folders/${DEFAULT_TEAM_SHARED_DRIVE_FOLDER_ID}`}
-            className="border-border bg-background text-base"
-          />
-        </div>
+        <Field
+          value={teamRootInput}
+          disabled={teamSettingsLoading || teamSettingsSaving}
+          onChange={(event) => setTeamRootInput(event.target.value)}
+          placeholder={`Team root folder (https://drive.google.com/drive/folders/${DEFAULT_TEAM_SHARED_DRIVE_FOLDER_ID})`}
+        />
         <div className="grid gap-2">
           {teamSettings.folderAliases.map((alias) => (
             <div key={alias.key} className="grid gap-1 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-center">
-              <span className="text-base capitalize text-white">{alias.key}</span>
-              <Input
+              <span className="text-base capitalize text-foreground">{alias.key}</span>
+              <Field
                 value={alias.folderName}
                 disabled={teamSettingsLoading || teamSettingsSaving}
                 onChange={(event) => updateTeamAlias(alias.key, event.target.value)}
-                className="border-border bg-background text-base"
+                placeholder={`${alias.key} folder name`}
               />
             </div>
           ))}
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-9"
+        <ActionButton
+          variant="tool"
+          states={TEAM_SAVE_STATES}
+          state={teamSettingsSaving ? "Saving" : "Save team hierarchy"}
           disabled={teamSettingsLoading || teamSettingsSaving}
           onClick={handleSaveTeamSettings}
-        >
-          {teamSettingsSaving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-          {teamSettingsSaving ? "Saving…" : "Save team hierarchy"}
-        </Button>
+        />
       </div>
 
-      <div className="space-y-3 rounded-md bg-muted/50 p-4">
-        <p className="text-base font-medium text-white">Folder presets</p>
+      <div className="space-y-3 bg-ui-field p-4">
+        <p className="text-base font-medium text-foreground">Folder presets</p>
         <ul className="space-y-2">
           {folderPresets.map((preset) => (
-            <li key={preset.id} className="flex items-center justify-between gap-2 text-base text-white">
+            <li key={preset.id} className="flex items-center justify-between gap-2 text-base text-foreground">
               <span>
                 {preset.label}
                 {preset.builtin ? " (built-in)" : ""}
               </span>
-              <span className="truncate text-muted-foreground">{preset.folderId}</span>
+              <span className="min-w-0 break-all text-muted-foreground">{preset.folderId}</span>
               {!preset.builtin ? (
                 <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="shrink-0 text-white"
-                  onClick={() => removeFolderPreset(preset.id)}
+                  size="icon"
+                  icon={Trash2}
                   aria-label={`Remove ${preset.label}`}
-                >
-                  <Trash2 className="h-4 w-4" aria-hidden />
-                </Button>
+                  onClick={() => removeFolderPreset(preset.id)}
+                />
               ) : null}
             </li>
           ))}
         </ul>
         <div className="grid gap-2 sm:grid-cols-2">
-          <Input
+          <Field
             value={presetLabel}
             onChange={(event) => setPresetLabel(event.target.value)}
             placeholder="Client name"
-            className="border-border bg-background text-base"
           />
-          <Input
+          <Field
             value={presetFolder}
             onChange={(event) => setPresetFolder(event.target.value)}
             placeholder="Folder URL or ID"
-            className="border-border bg-background text-base"
           />
         </div>
-        <Button type="button" variant="outline" size="sm" className="h-9" onClick={addFolderPreset}>
-          Add folder preset
-        </Button>
+        <Button onClick={addFolderPreset}>Add folder preset</Button>
       </div>
     </div>
   );

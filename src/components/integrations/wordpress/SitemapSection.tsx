@@ -1,6 +1,4 @@
 import React, { useState, useCallback } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
@@ -12,19 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Loader2,
-  Download,
-  ChevronDown,
-  Tag,
-  CheckCircle2,
-  Sparkles,
-  Search,
-  Calendar as CalendarIcon,
-  RefreshCw,
-  Ban,
-  Map,
-} from "lucide-react";
+import { Download, ChevronDown, Tag, CheckCircle2, Sparkles, Search, Calendar as CalendarIcon, RefreshCw, Ban, Map } from "lucide-react";
 import { type WordPressSite } from "../types";
 import {
   getChildTagEntry,
@@ -39,6 +25,7 @@ import {
   WP_PANEL_MUTED,
   WP_PANEL_TOOLBAR_BTN,
 } from "./wordpress-panel-chrome";
+import { Button, Field } from "@/ui";
 
 /** Scroll area: capped height; uses app-wide primary scrollbar from `index.css`. */
 const smFlatScroll = "max-h-[min(50vh,420px)] overflow-y-auto";
@@ -184,10 +171,9 @@ export const SitemapSection: React.FC<SitemapSectionProps> = ({
         <p className={chrome.muted}>No sitemaps detected for this property yet.</p>
         {onRefreshSitemaps ? (
           <Button
+            variant="quiet"
             type="button"
-            variant="ghost"
             disabled={site.enabled === false || isRefreshingSitemaps}
-            className={chrome.toolbarBtn}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -195,7 +181,7 @@ export const SitemapSection: React.FC<SitemapSectionProps> = ({
             }}
           >
             {isRefreshingSitemaps ? (
-              <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+              null
             ) : (
               <Map className="h-4 w-4 shrink-0" aria-hidden />
             )}
@@ -219,7 +205,7 @@ export const SitemapSection: React.FC<SitemapSectionProps> = ({
             <div className="flex flex-wrap items-center gap-1">
               {onAddCustomSitemapTagLabel && (
                 <>
-                  <Input
+                  <Field
                     value={newCustomTagLabel}
                     onChange={(e) => setNewCustomTagLabel(e.target.value)}
                     onKeyDown={(e) => {
@@ -234,14 +220,11 @@ export const SitemapSection: React.FC<SitemapSectionProps> = ({
                     }}
                     placeholder="Custom tag label"
                     disabled={site.enabled === false}
-                    className={cn(chrome.fieldWell, "max-w-[14rem]")}
                   />
                   <Button
+                    variant="quiet"
                     type="button"
-                    variant="ghost"
-                    size="sm"
                     disabled={site.enabled === false || !newCustomTagLabel.trim()}
-                    className={cn(chrome.btnRow, "h-10 min-h-10 px-3")}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -257,7 +240,7 @@ export const SitemapSection: React.FC<SitemapSectionProps> = ({
               )}
               {onAppendManualChildSitemap && (
                 <>
-                  <Input
+                  <Field
                     value={manualSitemapUrl}
                     onChange={(e) => setManualSitemapUrl(e.target.value)}
                     onKeyDown={(e) => {
@@ -268,14 +251,11 @@ export const SitemapSection: React.FC<SitemapSectionProps> = ({
                     }}
                     placeholder="https://example.com/custom-sitemap.xml"
                     disabled={site.enabled === false}
-                    className={chrome.fieldWell}
                   />
                   <Button
+                    variant="quiet"
                     type="button"
-                    variant="ghost"
-                    size="sm"
                     disabled={site.enabled === false}
-                    className={cn(chrome.btnRow, "h-10 min-h-10 px-3")}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -288,13 +268,11 @@ export const SitemapSection: React.FC<SitemapSectionProps> = ({
               )}
               {onRefreshSitemaps && (
                 <Button
+                  variant="quiet"
                   type="button"
-                  variant="ghost"
-                  size="sm"
                   disabled={site.enabled === false || isRefreshingSitemaps}
                   title={mainSitemapUrl}
                   aria-label="Redetect sitemaps"
-                  className={cn(chrome.btnRow, "h-10 min-h-10 w-10 shrink-0 p-0")}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -302,7 +280,7 @@ export const SitemapSection: React.FC<SitemapSectionProps> = ({
                   }}
                 >
                   {isRefreshingSitemaps ? (
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    null
                   ) : (
                     <RefreshCw className="h-4 w-4" aria-hidden />
                   )}
@@ -351,7 +329,7 @@ export const SitemapSection: React.FC<SitemapSectionProps> = ({
                 >
                     <span
                       className={cn(
-                        "min-w-0 flex-1 truncate text-base",
+                        "min-w-0 flex-1 break-words text-base",
                         chrome.urlText,
                         site.entitySitemapUrl !== url && !isCompetitorRow && "font-normal",
                       )}
@@ -407,10 +385,8 @@ export const SitemapSection: React.FC<SitemapSectionProps> = ({
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
-                          variant="ghost"
-                          size="sm"
+                          variant="quiet"
                           disabled={isScraping || site.enabled === false}
-                          className={cn(chrome.btnRow, "h-10 min-h-10 shrink-0 gap-1.5 px-3")}
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -418,7 +394,7 @@ export const SitemapSection: React.FC<SitemapSectionProps> = ({
                         >
                           {isScraping ? (
                             <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                              
                               <span>Working…</span>
                             </>
                           ) : (
@@ -472,7 +448,7 @@ export const SitemapSection: React.FC<SitemapSectionProps> = ({
                         >
                           {isScraping ? (
                             <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              
                               Scraping...
                             </>
                           ) : (
@@ -496,7 +472,7 @@ export const SitemapSection: React.FC<SitemapSectionProps> = ({
                           >
                             {isIndexing ? (
                               <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                
                                 Indexing...
                               </>
                             ) : (
@@ -588,7 +564,7 @@ export const SitemapSection: React.FC<SitemapSectionProps> = ({
                               >
                                 {isGenerating ? (
                                   <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    
                                     Generating Entities...
                                   </>
                                 ) : (
@@ -651,7 +627,7 @@ export const SitemapSection: React.FC<SitemapSectionProps> = ({
                             >
                               {isLoading ? (
                                 <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  
                                   Loading Calendar...
                                 </>
                               ) : (
@@ -678,7 +654,7 @@ export const SitemapSection: React.FC<SitemapSectionProps> = ({
                       >
                         {isLoading ? (
                           <div className={cn("flex items-center gap-3 p-4 text-base text-foreground")}>
-                            <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                            
                             Loading posts from WordPress API...
                           </div>
                         ) : posts.length > 0 ? (
@@ -710,7 +686,7 @@ export const SitemapSection: React.FC<SitemapSectionProps> = ({
             <div className="flex flex-wrap items-center gap-1">
               {onAppendManualChildSitemap && (
                 <>
-                  <Input
+                  <Field
                     value={manualSitemapUrl}
                     onChange={(e) => setManualSitemapUrl(e.target.value)}
                     onKeyDown={(e) => {
@@ -721,14 +697,11 @@ export const SitemapSection: React.FC<SitemapSectionProps> = ({
                     }}
                     placeholder="https://example.com/page/"
                     disabled={site.enabled === false}
-                    className={chrome.fieldWell}
                   />
                   <Button
+                    variant="quiet"
                     type="button"
-                    variant="ghost"
-                    size="sm"
                     disabled={site.enabled === false}
-                    className={cn(chrome.btnRow, "h-10 min-h-10 px-3")}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -741,13 +714,11 @@ export const SitemapSection: React.FC<SitemapSectionProps> = ({
               )}
               {onRefreshSitemaps && (
                 <Button
+                  variant="quiet"
                   type="button"
-                  variant="ghost"
-                  size="sm"
                   disabled={site.enabled === false || isRefreshingSitemaps}
                   title={mainSitemapUrl}
                   aria-label="Redetect sitemaps"
-                  className={cn(chrome.btnRow, "h-10 min-h-10 w-10 shrink-0 p-0")}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -755,7 +726,7 @@ export const SitemapSection: React.FC<SitemapSectionProps> = ({
                   }}
                 >
                   {isRefreshingSitemaps ? (
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    null
                   ) : (
                     <RefreshCw className="h-4 w-4" aria-hidden />
                   )}
@@ -765,7 +736,7 @@ export const SitemapSection: React.FC<SitemapSectionProps> = ({
           )}
           <div className={WP_PANEL_LIST_GAP}>
             {site.sitemaps.urls.slice(0, 10).map((url, idx) => (
-              <div key={idx} className={cn(chrome.rowTile, "truncate px-3 py-2")}>
+              <div key={idx} className={cn(chrome.rowTile, "break-words px-3 py-2")}>
                 {url}
               </div>
             ))}

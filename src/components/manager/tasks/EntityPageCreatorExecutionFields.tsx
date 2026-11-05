@@ -1,5 +1,4 @@
 import React, { useEffect } from "react";
-import { Input } from "@/components/ui/input";
 import { EntitySapPageCountFields } from "@/components/manager/tasks/EntitySapPageCountFields";
 import { ForgeWhatPublishScheduleFields } from "@/components/manager/tasks/ForgeWhatPublishScheduleFields";
 import {
@@ -9,6 +8,7 @@ import {
 import { ensureEntityPageCreatorPayload } from "@/lib/entity-page-creator/entity-page-creator-defaults";
 import { entityInspectorPayloadForClientSite } from "@/lib/editorial/sync-editorial-sap-payload-from-site";
 import type { EntityPageCreatorExecutionPayload, TaskExecutionPayload } from "@/lib/tasks-types";
+import { Field } from "@/ui";
 
 export type EntityPageCreatorExecutionFieldsProps = {
   executionPayload?: TaskExecutionPayload | null;
@@ -51,11 +51,10 @@ export function EntityPageCreatorExecutionFields({
       />
 
       <TaskFormPlaceholderCell>
-        <Input
+        <Field
           value={payload.focusKeyword ?? ""}
           disabled={disabled}
           placeholder="Keyword"
-          className={TASK_FORM_FLAT_CONTROL_CLASS}
           onChange={(e) => patch({ focusKeyword: e.target.value })}
         />
       </TaskFormPlaceholderCell>

@@ -74,79 +74,26 @@ function readLocalActiveRowBody(siteId: string, source: OverviewSitemapSource): 
 }
 
 export function writeLocalActiveRowBody(
-  siteId: string,
-  source: OverviewSitemapSource,
-  row: OverviewRow | null | undefined,
+  _siteId: string,
+  _source: OverviewSitemapSource,
+  _row: OverviewRow | null | undefined,
 ): void {
-  if (!row?.url?.trim()) return;
-  const payload = JSON.stringify(normalizeStoredRow(row));
-  try {
-    localStorage.setItem(localActiveRowBodyKey(siteId, source), payload);
-  } catch {
-    reclaimBloatedLocalStorageQuota();
-    try {
-      localStorage.setItem(localActiveRowBodyKey(siteId, source), payload);
-    } catch {
-      // quota
-    }
-  }
+  reclaimBloatedLocalStorageQuota();
 }
 
 function readLocalOverviewRows(
-  siteId: string,
-  source: OverviewSitemapSource,
+  _siteId: string,
+  _source: OverviewSitemapSource,
 ): OverviewRow[] | null {
-  try {
-    const raw = localStorage.getItem(localOverviewRowsKey(siteId, source));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as OverviewRow[];
-    if (!Array.isArray(parsed) || !parsed.length) return null;
-    if (!parsed.some((r) => Boolean(r?.title?.trim() || r?.pageHeading?.trim()))) {
-      localStorage.removeItem(localOverviewRowsKey(siteId, source));
-      return null;
-    }
-    const activeBody = readLocalActiveRowBody(siteId, source);
-    const activeKey = activeBody ? normalizePageUrlKey(activeBody.url) : "";
-    const rows = parsed
-      .filter((r) => r?.url?.trim())
-      .map((r) => {
-        const norm = normalizeStoredRow(r);
-        if (activeBody && activeKey && normalizePageUrlKey(norm.url) === activeKey) {
-          return { ...norm, ...activeBody };
-        }
-        return norm;
-      });
-    return rows.length ? rows : null;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 function writeLocalOverviewRows(
-  siteId: string,
-  source: OverviewSitemapSource,
-  rows: OverviewRow[],
+  _siteId: string,
+  _source: OverviewSitemapSource,
+  _rows: OverviewRow[],
 ): void {
-  const payload = JSON.stringify(rows.map(slimRowForLocalStorageList));
-  try {
-    localStorage.setItem(localOverviewRowsKey(siteId, source), payload);
-  } catch {
-    reclaimBloatedLocalStorageQuota();
-    try {
-      localStorage.setItem(localOverviewRowsKey(siteId, source), payload);
-    } catch {
-      // quota
-    }
-  }
-  const activeUrl = readStoredActiveUrl(siteId) ?? rows[0]?.url ?? null;
-  if (activeUrl) {
-    const activeKey = normalizePageUrlKey(activeUrl);
-    const activeRow =
-      rows.find((r) => normalizePageUrlKey(r.url) === activeKey) ?? rows[0];
-    if (activeRow) {
-      writeLocalActiveRowBody(siteId, source, activeRow);
-    }
-  }
+  reclaimBloatedLocalStorageQuota();
 }
 
 function cacheHasRealTitles(rows: OverviewRow[] | null | undefined): boolean {
@@ -160,30 +107,7 @@ export function getOverviewRowsSessionCache(
 ): OverviewRow[] | null {
   const key = cacheKey(siteId, source);
   const mem = memoryByKey.get(key);
-  if (cacheHasRealTitles(mem)) return mem!.map(normalizeStoredRow);
-
-  try {
-    const raw = sessionStorage.getItem(key);
-    if (raw) {
-      const parsed = JSON.parse(raw) as OverviewRow[];
-      if (Array.isArray(parsed) && parsed.length) {
-        const rows = parsed.filter((r) => r?.url?.trim()).map(normalizeStoredRow);
-        if (cacheHasRealTitles(rows)) {
-          memoryByKey.set(key, rows);
-          return rows;
-        }
-        sessionStorage.removeItem(key);
-      }
-    }
-  } catch {
-    /* try local */
-  }
-
-  const local = readLocalOverviewRows(siteId, source);
-  if (cacheHasRealTitles(local)) {
-    memoryByKey.set(key, local!);
-    return local;
-  }
+  if (cacheHasRealTitles(mem)) return mem!;
   return null;
 }
 
@@ -195,7 +119,7 @@ export function setOverviewRowsSessionCache(
 ): void {
   if (!rows.length || !cacheHasRealTitles(rows)) return;
   const key = cacheKey(siteId, source);
-  const existing = memoryByKey.get(key) ?? readLocalOverviewRows(siteId, source) ?? [];
+  const existing = memoryByKey.get(key) ?? [];
   const existingByKey = new Map(
     existing.map((r) => [normalizePageUrlKey(r.url), r] as const),
   );
@@ -226,12 +150,6 @@ export function setOverviewRowsSessionCache(
     };
   });
   memoryByKey.set(key, snapshot);
-  try {
-    sessionStorage.setItem(key, JSON.stringify(snapshot));
-  } catch {
-    // quota or private mode
-  }
-  writeLocalOverviewRows(siteId, source, snapshot);
   if (!options?.skipServerSync) {
     saveOverviewStudioSnapshotToServer(
       siteId,

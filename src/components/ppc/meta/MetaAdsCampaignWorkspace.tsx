@@ -11,7 +11,6 @@ import { MetaAdsWorkspaceHeader } from "@/components/ppc/meta/MetaAdsWorkspaceHe
 import {
   CONTENT_OPTIMIZER_BODY_INSET_CLASS,
   CONTENT_OPTIMIZER_WORKSPACE_SHELL_CLASS,
-  WORKSPACE_DETAILS_DIM_OVERLAY_CLASS,
 } from "@/components/overview/overview-tab/overview-tab-content-constants";
 import { usePpcMetaWorkspace } from "@/hooks/ppc/use-ppc-meta-workspace";
 import type { WordPressSite } from "@/components/integrations/types";
@@ -42,9 +41,6 @@ function MetaAdsCampaignWorkspaceInner({
         <MetaAdsWorkspaceHeader ctrl={ctrl} onPlatformChange={onPlatformChange} />
       </div>
       <div className={cn(SEO_WORKSPACE_BODY_SCROLL_CLASS, CONTENT_OPTIMIZER_BODY_INSET_CLASS, "relative flex flex-col")}>
-        {ctrl.detailsDrawerOpen ? (
-          <div className={WORKSPACE_DETAILS_DIM_OVERLAY_CLASS} aria-hidden />
-        ) : null}
         <MetaAdsCampaignsSection ctrl={ctrl} />
       </div>
     </div>
@@ -63,11 +59,12 @@ export function MetaAdsCampaignWorkspace({
 
   useEffect(() => {
     if (sites.length === 0) return;
+    if (activeWordPressSiteId && sites.some((site) => site.id === activeWordPressSiteId)) {
+      return;
+    }
     const pool = enabledSites.length > 0 ? enabledSites : sites;
     if (pool.length === 0) return;
-    if (!activeWordPressSiteId || !pool.some((site) => site.id === activeWordPressSiteId)) {
-      setActiveWordPressSiteId(pool[0].id);
-    }
+    setActiveWordPressSiteId(pool[0].id);
   }, [sites, enabledSites, activeWordPressSiteId, setActiveWordPressSiteId]);
 
   const site = sites.find((entry) => entry.id === activeWordPressSiteId) ?? null;

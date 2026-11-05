@@ -6,7 +6,7 @@ export const MANAGER_HEADER_BADGE_SIZE = "h-9 min-h-9";
 
 /** @deprecated Use MANAGER_DISPLAY_CONSOLE_ROW */
 export const MANAGER_SITE_STRIP_CLASS =
-  "inline-flex h-9 shrink-0 items-stretch rounded-none bg-zinc-900";
+  "inline-flex h-9 shrink-0 items-stretch rounded-none bg-ui-field";
 
 /** @deprecated No dividers in display console */
 export const MANAGER_SITE_STRIP_DIVIDER = "w-px shrink-0 self-stretch bg-white/10";
@@ -21,13 +21,13 @@ export const MANAGER_SITE_NAME_SEGMENT =
 
 /** @deprecated Use MANAGER_DISPLAY_SQUARE_* */
 export const MANAGER_SITE_STRIP_ICON_BTN =
-  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-none border-0 bg-transparent shadow-none hover:bg-zinc-800";
+  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-none border-0 bg-transparent shadow-none hover:bg-ui-field-hover";
 
 export const MANAGER_DISPLAY_CONSOLE_ROW =
   "inline-flex h-9 shrink-0 items-stretch rounded-none";
 
 export const MANAGER_DISPLAY_NAME_BAND =
-  "flex h-9 min-w-0 flex-1 items-center bg-zinc-900 text-base font-sans font-normal text-foreground";
+  "flex h-9 min-w-0 flex-1 items-center bg-ui-field text-base font-sans font-normal text-foreground";
 
 export const MANAGER_DISPLAY_NAME_LABEL =
   "min-w-0 flex-1 px-2.5 text-left whitespace-nowrap";
@@ -52,18 +52,18 @@ export const MANAGER_DISPLAY_NAME_BAND_WARMING =
   "bg-[hsl(var(--semantic-data)/0.08)] text-[hsl(var(--semantic-data-foreground))]";
 
 export const MANAGER_DISPLAY_SQUARE_NOTIFY_IDLE =
-  "bg-zinc-800 text-muted-foreground hover:bg-zinc-700";
+  "bg-ui-field-hover text-muted-foreground hover:bg-ui-field-hover";
 
 export const MANAGER_DISPLAY_SQUARE_KB =
-  "bg-zinc-900 [&_svg]:size-6 [&_svg]:text-sky-400 hover:bg-zinc-800";
+  "bg-ui-field [&_svg]:size-6 [&_svg]:text-semantic-analysis-foreground hover:bg-ui-field-hover";
 
-export const MANAGER_DISPLAY_SQUARE_KB_ACTIVE = "bg-zinc-800 text-foreground";
+export const MANAGER_DISPLAY_SQUARE_KB_ACTIVE = "bg-ui-field-hover text-foreground";
 
 export const MANAGER_DISPLAY_SQUARE_RESET =
-  "bg-zinc-900 text-red-500 hover:bg-zinc-800 hover:text-red-400";
+  "bg-ui-field text-ui-danger hover:bg-ui-field-hover hover:text-ui-danger-hover";
 
 export const MANAGER_DISPLAY_DROPDOWN_PANEL =
-  "z-50 rounded-none border-0 bg-zinc-950 p-0 shadow-none overflow-y-auto overflow-x-hidden max-h-[min(70vh,36rem)]";
+  "z-50 rounded-none border-0 bg-black p-0 shadow-none overflow-y-auto overflow-x-hidden max-h-[min(70vh,36rem)]";
 
 export function managerDisplayNotifySquareClass(variant: NotifyVariant | null): string {
   if (!variant) {
@@ -71,17 +71,17 @@ export function managerDisplayNotifySquareClass(variant: NotifyVariant | null): 
   }
   switch (variant) {
     case "success":
-      return "bg-green-500/15 text-green-400 hover:bg-green-500/25";
+      return "bg-primary/15 text-primary hover:bg-primary/25";
     case "error":
-      return "bg-red-500/15 text-red-400 hover:bg-red-500/25";
+      return "bg-ui-danger/15 text-ui-danger-hover hover:bg-ui-danger/25";
     case "warning":
-      return "bg-amber-500/15 text-amber-400 hover:bg-amber-500/25";
+      return "bg-semantic-warning/15 text-semantic-warning-foreground hover:bg-semantic-warning/25";
     case "loading":
       return MANAGER_DISPLAY_SQUARE_NOTIFY_IDLE;
     case "info":
     case "default":
     default:
-      return "bg-zinc-800 text-foreground hover:bg-zinc-700";
+      return "bg-ui-field-hover text-foreground hover:bg-ui-field-hover";
   }
 }
 
@@ -97,8 +97,8 @@ export function managerDisplayErrorLogSquareClass(hasErrors: boolean): string {
   return cn(
     MANAGER_DISPLAY_SQUARE_BASE,
     hasErrors
-      ? "bg-red-500/15 text-red-400 hover:bg-red-500/25 [&_svg]:size-5"
-      : "bg-zinc-900 text-muted-foreground hover:bg-zinc-800 [&_svg]:size-5",
+      ? "bg-ui-danger/15 text-ui-danger-hover hover:bg-ui-danger/25 [&_svg]:size-5"
+      : "bg-ui-field text-muted-foreground hover:bg-ui-field-hover [&_svg]:size-5",
   );
 }
 
@@ -110,16 +110,16 @@ export function managerDisplayNotifySquareButtonClass(variant: NotifyVariant | n
 export function managerDisplayNameBandAlertClass(kind: NotifyVariant | "error" | null): string | false {
   if (!kind) return false;
   if (kind === "error") {
-    return "bg-red-500/15 text-red-400";
+    return "bg-ui-danger/15 text-ui-danger-hover";
   }
   switch (kind) {
     case "success":
-      return "bg-green-500/15 text-green-400";
+      return "bg-primary/15 text-primary";
     case "warning":
-      return "bg-amber-500/15 text-amber-400";
+      return "bg-semantic-warning/15 text-semantic-warning-foreground";
     case "info":
     case "default":
-      return "bg-zinc-800 text-foreground";
+      return "bg-ui-field-hover text-foreground";
     case "loading":
       return false;
     default:

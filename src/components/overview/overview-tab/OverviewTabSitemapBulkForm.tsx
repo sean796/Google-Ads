@@ -27,7 +27,6 @@ export interface OverviewTabSitemapBulkFormProps {
   optimizerSection: ContentOptimizerSectionId;
   onOptimizerSectionChange: (id: ContentOptimizerSectionId) => void;
   paginationLayoutTotal: number;
-  onDetailsOpenChange?: (open: boolean) => void;
   generatorChrome?: ContentOptimizerGeneratorChrome;
 }
 
@@ -47,7 +46,6 @@ export function OverviewTabSitemapBulkForm({
   optimizerSection,
   onOptimizerSectionChange,
   paginationLayoutTotal,
-  onDetailsOpenChange,
   generatorChrome,
 }: OverviewTabSitemapBulkFormProps) {
   return (
@@ -67,7 +65,6 @@ export function OverviewTabSitemapBulkForm({
       optimizerSection={optimizerSection}
       onOptimizerSectionChange={onOptimizerSectionChange}
       paginationLayoutTotal={paginationLayoutTotal}
-      onDetailsOpenChange={onDetailsOpenChange}
       generatorChrome={generatorChrome}
     />
   );

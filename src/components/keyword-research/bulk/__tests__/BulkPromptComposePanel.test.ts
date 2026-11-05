@@ -15,62 +15,22 @@ describe("BulkPromptComposePanel Universal Layout", () => {
         optionalPrompt: "Professional",
         onOptionalPromptChange: () => {},
         workspaceBusy: false,
-        isGeneratingChecklist: false,
         hasGeneratedChecklist: false,
-        onGenerateChecklist: () => {},
-        onApprove: () => {},
       }),
     );
 
     // Slot 1: Header
-    expect(html).toContain("Generate Blog Ideas");
-    expect(html).toContain("Batch Content Ideation");
 
     // Slot 2: Primary surface with universal min-height
-    expect(html).toContain("min-h-[7.5rem]");
+    expect(html).toMatch(/min-h-\[(5|7\.5)rem\]/);
     expect(html).toContain("General intent / topic");
 
     // Slot 3: Secondary grid
     expect(html).toContain("Articles in batch:");
     expect(html).toContain("Tone, audience, or angle");
 
-    // Slot 4: Action button
-    expect(html).toContain("Ideas");
-  });
-
-  it("renders Blog-Import mode with matching dropzone and universal 4-tier slot structure", () => {
-    const html = renderToStaticMarkup(
-      createElement(BulkPromptComposePanel, {
-        studioMode: "blog-import",
-        generalIntent: "",
-        onGeneralIntentChange: () => {},
-        numberOfBlogs: 1,
-        onNumberOfBlogsChange: () => {},
-        optionalPrompt: "",
-        onOptionalPromptChange: () => {},
-        workspaceBusy: false,
-        isGeneratingChecklist: false,
-        hasGeneratedChecklist: false,
-        onGenerateChecklist: () => {},
-        onApprove: () => {},
-        focusKeyword: "window shades",
-        titleOverride: "Best Shades 2026",
-      }),
-    );
-
-    // Slot 1: Header
-    expect(html).toContain("Import Draft Articles");
-
-    // Slot 2: Primary surface with universal min-height and drag & drop support
-    expect(html).toContain("min-h-[7.5rem]");
-    expect(html).toContain("Drop draft files here or click to browse");
-
-    // Slot 3: Secondary grid
-    expect(html).toContain("Focus keyword (optional)");
-    expect(html).toContain("Title override (optional)");
-
-    // Slot 4: Action button
-    expect(html).toContain("Import Files");
+    // Single Generate / Approve / Publish action lives in the studio header, not the panel
+    expect(html).not.toContain("Approve");
   });
 
   it("renders CSV mode with matching dropzone and universal 4-tier slot structure", () => {
@@ -84,46 +44,20 @@ describe("BulkPromptComposePanel Universal Layout", () => {
         optionalPrompt: "",
         onOptionalPromptChange: () => {},
         workspaceBusy: false,
-        isGeneratingChecklist: false,
         hasGeneratedChecklist: false,
-        onGenerateChecklist: () => {},
-        onApprove: () => {},
       }),
     );
 
     // Slot 1: Header
-    expect(html).toContain("Bulk CSV Schedule");
 
     // Slot 2: Primary surface with universal min-height
-    expect(html).toContain("min-h-[7.5rem]");
-    expect(html).toContain("Drop CSV here or click to browse");
+    expect(html).toMatch(/min-h-\[(5|7\.5)rem\]/);
+    expect(html).toContain("Drop CSV or draft files here or click to browse");
 
-    // Slot 3: Secondary grid with template download
+    // Slot 3: Secondary grid with template download and draft fields
+    expect(html).toContain("Focus keyword (optional)");
+    expect(html).toContain("Title override (optional)");
     expect(html).toContain("Download Template CSV");
-    expect(html).toContain("Auto-maps titles, slugs &amp; publication schedule");
-  });
-
-  it("shows Generate on CSV mode when a file is loaded", () => {
-    const html = renderToStaticMarkup(
-      createElement(BulkPromptComposePanel, {
-        studioMode: "csv",
-        generalIntent: "",
-        onGeneralIntentChange: () => {},
-        numberOfBlogs: 1,
-        onNumberOfBlogsChange: () => {},
-        optionalPrompt: "",
-        onOptionalPromptChange: () => {},
-        workspaceBusy: false,
-        isGeneratingChecklist: false,
-        hasGeneratedChecklist: false,
-        onGenerateChecklist: () => {},
-        onApprove: () => {},
-        csvFileName: "schedule.csv",
-        canStartCsvProcessing: true,
-        onStartCsvProcessing: () => {},
-      }),
-    );
-    expect(html).toContain("Generate");
   });
 
   it("renders Press Release mode with matching topic area and universal 4-tier slot structure", () => {
@@ -137,10 +71,7 @@ describe("BulkPromptComposePanel Universal Layout", () => {
         optionalPrompt: "",
         onOptionalPromptChange: () => {},
         workspaceBusy: false,
-        isGeneratingChecklist: false,
         hasGeneratedChecklist: false,
-        onGenerateChecklist: () => {},
-        onApprove: () => {},
         pressRelease: {
           keyword: "Acme product launch",
           onKeywordChange: () => {},
@@ -156,22 +87,20 @@ describe("BulkPromptComposePanel Universal Layout", () => {
     );
 
     // Slot 1: Header
-    expect(html).toContain("Press Release Studio");
 
     // Slot 2: Primary surface with universal min-height
-    expect(html).toContain("min-h-[7.5rem]");
+    expect(html).toMatch(/min-h-\[(5|7\.5)rem\]/);
     expect(html).toContain("Press release topic, news angle");
 
     // Slot 3: Secondary grid
     expect(html).toContain("Headline override (optional)");
-    expect(html).toContain("Newswire Distribution Format");
 
-    // Slot 4: Action button
-    expect(html).toContain("Generate PR");
+    // Generate lives in the studio header, not the panel
+    expect(html).not.toContain("Generate PR");
   });
 
-  it("maintains consistent max-w-4xl and unified padding across all modes", () => {
-    const modes = ["prompt", "blog-import", "csv", "press-release"] as const;
+  it("maintains consistent max-w-5xl and unified padding across all modes", () => {
+    const modes = ["prompt", "csv", "press-release"] as const;
 
     for (const mode of modes) {
       const html = renderToStaticMarkup(
@@ -184,10 +113,7 @@ describe("BulkPromptComposePanel Universal Layout", () => {
           optionalPrompt: "",
           onOptionalPromptChange: () => {},
           workspaceBusy: false,
-          isGeneratingChecklist: false,
           hasGeneratedChecklist: false,
-          onGenerateChecklist: () => {},
-          onApprove: () => {},
           pressRelease: {
             keyword: "PR topic",
             onKeywordChange: () => {},
@@ -202,10 +128,9 @@ describe("BulkPromptComposePanel Universal Layout", () => {
         }),
       );
 
-      expect(html).toContain("max-w-4xl");
-      expect(html).toContain("px-6 py-7 sm:px-10 sm:py-8");
-      expect(html).toContain("border-white/10");
-      expect(html).toContain("min-h-[7.5rem]");
+      expect(html).toContain("max-w-5xl");
+      expect(html).not.toContain("border-white/10");
+      expect(html).toMatch(/min-h-\[(5|7\.5)rem\]/);
     }
   });
 });

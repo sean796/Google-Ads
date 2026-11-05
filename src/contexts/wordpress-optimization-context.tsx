@@ -10,7 +10,6 @@ import React, {
   type ReactNode,
 } from "react";
 import type { PrefilledOverviewTarget } from "@/hooks/content-optimization/bulk-optimization-params";
-import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { KeywordSelectionDialog } from "@/components/integrations/wordpress/KeywordSelectionDialog";
 import type { WordPressSite } from "@/components/integrations/types";
@@ -29,6 +28,7 @@ import {
   unregisterAgentRunOptimizationBridge,
 } from "@/lib/agent-runs/agent-run-optimization-bridge";
 import type { OptimizationOptions } from "@/hooks/use-optimization-options";
+import { Button } from "@/ui";
 
 export type WordPressOptimizationContextValue = ReturnType<typeof useContentOptimization> &
   ReturnType<typeof useKeywordSelection> & {
@@ -166,7 +166,7 @@ function KeywordSelectionPortals({
                     <p className="text-sm text-muted-foreground">
                       Error displaying keyword selection dialog. Please try again.
                     </p>
-                    <Button onClick={() => onCancelKeywordSelection(site.id)} className="mt-4" variant="outline">
+                    <Button onClick={() => onCancelKeywordSelection(site.id)}>
                       Close
                     </Button>
                   </div>

@@ -52,8 +52,8 @@ describe("generateSimplePromptIdeas", () => {
       content: "",
       parsed: {
         ideas: [
-          { keyword: "solar panel cost", title: "Solar Panel Cost In Alberta" },
-          { keyword: "home battery backup", title: "Home Battery Backup Options" },
+          { keyword: "solar panel cost", title: "Solar Panel Cost In Alberta", meta_description: "See what solar panel cost looks like for Alberta homes, including rebates and payback.", slug: "solar-panel-cost-alberta" },
+          { keyword: "home battery backup", title: "Home Battery Backup Options", meta_description: "Compare home battery backup options for outages, sizing, and installation costs.", slug: "home-battery-backup-options" },
         ],
       },
       raw: {},
@@ -70,6 +70,9 @@ describe("generateSimplePromptIdeas", () => {
     expect(rows).toHaveLength(2);
     expect(rows[0]!.keyword).toBe("solar panel cost");
     expect(rows[0]!.title).toBe("Solar Panel Cost In Alberta");
+    expect(rows[0]!.keyword_focus).toBe("solar panel cost");
+    expect(rows[0]!.meta_description).toContain("solar panel cost");
+    expect(rows[0]!.target_slug).toBe("solar-panel-cost-alberta");
     expect(postOpenRouterAppChat).toHaveBeenCalledTimes(1);
   });
 
@@ -79,9 +82,9 @@ describe("generateSimplePromptIdeas", () => {
       content: "",
       parsed: {
         ideas: [
-          { keyword: "technical seo audit", title: "Technical SEO Audit Checklist For Small Sites" },
-          { keyword: "schema markup basics", title: "Schema Markup Basics For Local Businesses" },
-          { keyword: "core web vitals tips", title: "Core Web Vitals Tips That Actually Move Rankings" },
+          { keyword: "technical seo audit", title: "Technical SEO Audit Checklist For Small Sites", meta_description: "A technical seo audit checklist small sites can run in an afternoon.", slug: "technical-seo-audit-checklist" },
+          { keyword: "schema markup basics", title: "Schema Markup Basics For Local Businesses", meta_description: "Schema markup basics for local businesses that want rich results.", slug: "schema-markup-basics-local" },
+          { keyword: "core web vitals tips", title: "Core Web Vitals Tips That Actually Move Rankings", meta_description: "Core web vitals tips that move rankings without a full rebuild.", slug: "core-web-vitals-tips" },
         ],
       },
       raw: {},
@@ -120,8 +123,8 @@ describe("generateSimplePromptIdeas", () => {
       content: "",
       parsed: {
         ideas: [
-          { keyword: "modern kitchen cabinets", title: "Modern Kitchen Cabinet Layout Ideas" },
-          { keyword: "custom drapery styles", title: "Custom Drapery Styles For Bright Rooms" },
+          { keyword: "modern kitchen cabinets", title: "Modern Kitchen Cabinet Layout Ideas", meta_description: "Modern kitchen cabinets layout ideas for storage, flow, and light.", slug: "modern-kitchen-cabinet-layouts" },
+          { keyword: "custom drapery styles", title: "Custom Drapery Styles For Bright Rooms", meta_description: "Custom drapery styles that soften bright rooms without blocking light.", slug: "custom-drapery-styles-bright-rooms" },
         ],
       },
       raw: {},

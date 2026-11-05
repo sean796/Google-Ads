@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, X, Check, XCircle } from "lucide-react";
 import type { AgentConfig } from "@/types/agent-config";
+import { Button } from "@/ui";
 
 interface AgentSuggestionReviewProps {
   suggestedAgents: AgentConfig[];
@@ -75,16 +75,14 @@ export const AgentSuggestionReview: React.FC<AgentSuggestionReviewProps> = ({
         <div className="flex gap-2">
           {pendingAgents.length > 0 && (
             <Button
-              variant="default"
-              size="sm"
+              variant="run"
               onClick={handleAcceptAll}
-              className="bg-primary hover:bg-primary/90"
             >
               <CheckCircle2 className="h-4 w-4 mr-2" />
               Accept All Pending
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={onCancel}>
+          <Button onClick={onCancel}>
             <X className="h-4 w-4 mr-2" />
             Cancel
           </Button>
@@ -101,9 +99,9 @@ export const AgentSuggestionReview: React.FC<AgentSuggestionReviewProps> = ({
               key={agent.id}
               className={`p-4 border-2 transition-all ${
                 isAccepted
-                  ? "border-green-500 bg-green-50 dark:bg-green-950/20"
+                  ? "border-primary bg-primary/80 dark:bg-primary/20"
                   : isRejected
-                  ? "border-red-500 bg-red-50 dark:bg-red-950/20 opacity-60"
+                  ? "border-ui-danger-edge bg-ui-danger/20 dark:bg-ui-danger-surface/20 opacity-60"
                   : "border-border hover:border-primary/50"
               }`}
             >
@@ -115,7 +113,7 @@ export const AgentSuggestionReview: React.FC<AgentSuggestionReviewProps> = ({
                       Step {agent.step}
                     </Badge>
                     {isAccepted && (
-                      <Badge className="bg-green-500 text-white text-xs">
+                      <Badge className="bg-primary/80 text-white text-xs">
                         <CheckCircle2 className="h-3 w-3 mr-1" />
                         Accepted
                       </Badge>
@@ -159,18 +157,12 @@ export const AgentSuggestionReview: React.FC<AgentSuggestionReviewProps> = ({
                 {!isAccepted && !isRejected && (
                   <div className="flex gap-2">
                     <Button
-                      variant="outline"
-                      size="sm"
                       onClick={() => handleAccept(agent)}
-                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
                     >
                       <Check className="h-4 w-4" />
                     </Button>
                     <Button
-                      variant="outline"
-                      size="sm"
                       onClick={() => handleReject(agent.id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -178,20 +170,16 @@ export const AgentSuggestionReview: React.FC<AgentSuggestionReviewProps> = ({
                 )}
                 {isAccepted && (
                   <Button
-                    variant="ghost"
-                    size="sm"
+                    variant="quiet"
                     onClick={() => handleReject(agent.id)}
-                    className="text-red-600 hover:text-red-700"
                   >
                     Undo
                   </Button>
                 )}
                 {isRejected && (
                   <Button
-                    variant="ghost"
-                    size="sm"
+                    variant="quiet"
                     onClick={() => handleAccept(agent)}
-                    className="text-green-600 hover:text-green-700"
                   >
                     Undo
                   </Button>
@@ -215,9 +203,8 @@ export const AgentSuggestionReview: React.FC<AgentSuggestionReviewProps> = ({
               </p>
             </div>
             <Button
-              variant="default"
+              variant="run"
               onClick={() => onAcceptAll(acceptedAgents)}
-              className="bg-primary hover:bg-primary/90"
             >
               Add to Blueprint
             </Button>

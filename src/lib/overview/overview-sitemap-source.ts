@@ -7,10 +7,7 @@ import {
   activeChildSitemapUrls,
   isChildSitemapExcludedFromProperty,
 } from "@/lib/wordpress-property-sitemaps";
-import {
-  resolveChildUrlForRole,
-  siteHasEntityScope,
-} from "@/lib/sitemap-child-tags";
+import { resolveChildUrlForRole } from "@/lib/sitemap-child-tags";
 
 export type OverviewSitemapSource = "pages" | "posts" | "sap";
 
@@ -94,11 +91,18 @@ export function pageSitemapXmlUrlForPlay(site: WordPressSite): string | null {
   return `${base}/page-sitemap.xml`;
 }
 
+/** Every property has a service-area CPT; WordPress serves its sitemap even when it is not in the index yet. */
+const DEFAULT_ENTITY_REST_COLLECTION = "service-area";
+
 function entitySitemapUrlForSite(site: WordPressSite): string | null {
   const tagged = resolveChildUrlForRole(site, "entity");
   if (tagged) return tagged;
   const url = site.entitySitemapUrl?.trim();
-  return url || null;
+  if (url) return url;
+  const origin = (site.siteUrl || "").trim().replace(/\/+$/, "");
+  if (!origin) return null;
+  const base = origin.startsWith("http") ? origin : `https://${origin}`;
+  return `${base}/${DEFAULT_ENTITY_REST_COLLECTION}-sitemap.xml`;
 }
 
 function isEntitySitemapUrl(site: WordPressSite, url: string): boolean {
@@ -125,7 +129,7 @@ export function overviewEntityRestCollectionForSite(
     return manual;
   }
   const entityUrl = site.entitySitemapUrl?.trim();
-  if (!entityUrl) return null;
+  if (!entityUrl) return DEFAULT_ENTITY_REST_COLLECTION;
   const fromMap = site.sitemaps?.endpoints?.[entityUrl]?.trim();
   if (fromMap && !GENERIC_WP_COLLECTIONS.has(fromMap.toLowerCase())) {
     return fromMap;
@@ -272,9 +276,7 @@ export function canLoadOverviewSitemapSource(
 }
 
 export function isOverviewSapSourceAvailable(site: WordPressSite | null | undefined): boolean {
-  if (!site?.username?.trim() || !site?.appPassword?.trim()) return false;
-  if (!siteHasEntityScope(site)) return false;
-  return Boolean(overviewEntityRestCollectionForSite(site));
+  return Boolean(site?.username?.trim() && site?.appPassword?.trim());
 }
 
 /** Overview buckets to warm/cache for a site (SAP omitted when unavailable). */

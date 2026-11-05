@@ -11,6 +11,23 @@ class Neo_Pulse_App_Wp_Editorial_Counts {
 
 	const MAX_SCAN_PAGES = 500;
 
+	/** SAP pages live in the `service-area` post type on every Neo Digital site (REST base `service-area`). */
+	const SAP_REST_COLLECTION = 'service-area';
+
+	/**
+	 * Manual endpoint or entity sitemap override wins; otherwise the SAP post type.
+	 *
+	 * @param array<string,mixed> $body Request body.
+	 * @return string
+	 */
+	private static function resolve_sap_collection( $body ) {
+		$resolved = Neo_Pulse_App_Wp_Url_Normalize::resolve_secondary_rest_collection(
+			isset( $body['manualEndpoint'] ) ? $body['manualEndpoint'] : null,
+			isset( $body['entitySitemapUrl'] ) ? $body['entitySitemapUrl'] : null
+		);
+		return $resolved ? $resolved : self::SAP_REST_COLLECTION;
+	}
+
 	/**
 	 * @param array<string,mixed> $body Request body.
 	 * @return array{0:int,1:array<string,mixed>}
@@ -34,11 +51,8 @@ class Neo_Pulse_App_Wp_Editorial_Counts {
 			return array( 400, self::quarter_error( 'Invalid site URL format.' ) );
 		}
 
-		$secondary        = Neo_Pulse_App_Wp_Url_Normalize::resolve_secondary_rest_collection(
-			isset( $body['manualEndpoint'] ) ? $body['manualEndpoint'] : null,
-			isset( $body['entitySitemapUrl'] ) ? $body['entitySitemapUrl'] : null
-		);
-		$entity_configured = (bool) $secondary;
+		$secondary        = self::resolve_sap_collection( $body );
+		$entity_configured = true;
 		$warm              = Neo_Pulse_App_Wp_Rest_Client::warm_origin_session( $normalized );
 		$ctx               = array(
 			'normalized'   => $normalized,
@@ -126,11 +140,8 @@ class Neo_Pulse_App_Wp_Editorial_Counts {
 			return array( 400, self::optimization_error( 'Invalid site URL format.' ) );
 		}
 
-		$secondary        = Neo_Pulse_App_Wp_Url_Normalize::resolve_secondary_rest_collection(
-			isset( $body['manualEndpoint'] ) ? $body['manualEndpoint'] : null,
-			isset( $body['entitySitemapUrl'] ) ? $body['entitySitemapUrl'] : null
-		);
-		$entity_configured = (bool) $secondary;
+		$secondary        = self::resolve_sap_collection( $body );
+		$entity_configured = true;
 		$warm              = Neo_Pulse_App_Wp_Rest_Client::warm_origin_session( $normalized );
 		$ctx               = array(
 			'normalized'   => $normalized,

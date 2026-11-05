@@ -5,14 +5,6 @@ import {
   ChevronUp,
   Download,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   CONTENT_OPTIMIZER_PAGE_ROW_ACTIONS_CELL,
   CONTENT_OPTIMIZER_PAGE_ROW_DATE_CELL,
@@ -25,6 +17,7 @@ import { bulkSitemapDefaultLabel } from "@/lib/bulk/bulk-sitemap-default-label";
 import type { BulkRowSitemapType, BulkSitemapMode } from "@/lib/bulk/bulk-sitemap-mode";
 import { BULK_GENERATOR_ROW_GRID_MIN_CLASS } from "@/components/keyword-research/blog-generator-tab-classes";
 import { cn } from "@/lib/utils";
+import { Button, SelectField } from "@/ui";
 
 /** Same rhythm as Content Optimizer rows; flexible columns so nothing ellipsizes. */
 const BULK_CSV_PAGE_ROW_GRID_CLASS = cn(
@@ -35,7 +28,7 @@ const BULK_CSV_PAGE_ROW_GRID_CLASS = cn(
 const BULK_CSV_CELL_TEXT = "whitespace-normal break-words text-sm leading-snug sm:text-base";
 
 /** Active CSV row: blue border only (black fill unchanged). */
-export const BULK_CSV_ROW_ACTIVE_CLASS = "!border-sky-500";
+export const BULK_CSV_ROW_ACTIVE_CLASS = "!border-semantic-analysis";
 
 export type BulkCsvRunRowCompactProps = {
   keywordLabel: string;
@@ -102,7 +95,7 @@ export function BulkCsvRunRowCompact({
         <span
           className={cn(
             BULK_CSV_CELL_TEXT,
-            "break-all font-bold text-zinc-100",
+            "break-all font-bold text-foreground",
           )}
         >
           {keywordLabel}
@@ -119,22 +112,7 @@ export function BulkCsvRunRowCompact({
 
       <div className={CONTENT_OPTIMIZER_PAGE_ROW_DATE_CELL}>
         {sitemapMode === "custom" ? (
-          <Select
-            value={rowSitemapType}
-            onValueChange={(value: BulkRowSitemapType) => onRowSitemapChange?.(value)}
-            disabled={sitemapControlDisabled}
-          >
-            <SelectTrigger
-              className="h-8 min-h-0 w-full border-0 bg-transparent px-0 text-base shadow-none focus:ring-0"
-              aria-label="Row sitemap"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="post">Posts</SelectItem>
-              <SelectItem value="entity">Entity</SelectItem>
-            </SelectContent>
-          </Select>
+          <SelectField placeholder="Row sitemap" value={rowSitemapType} onValueChange={(value: BulkRowSitemapType) => onRowSitemapChange?.(value)} disabled={sitemapControlDisabled} options={[{ value: "post", label: "Posts" }, { value: "entity", label: "Entity" }]} width="full" />
         ) : (
           <span className={cn(BULK_CSV_CELL_TEXT, "text-muted-foreground")}>
             {bulkSitemapDefaultLabel(rowSitemapType)}
@@ -145,28 +123,24 @@ export function BulkCsvRunRowCompact({
       <div className={CONTENT_OPTIMIZER_PAGE_ROW_ACTIONS_CELL}>
         {rowError ? (
           <AlertCircle
-            className="h-4 w-4 shrink-0 text-red-400"
+            className="h-4 w-4 shrink-0 text-ui-danger-hover"
             aria-label={rowErrorMessage?.trim() ? `Row failed: ${rowErrorMessage}` : "Row failed"}
             title={rowErrorMessage?.trim() || "Row failed"}
           />
         ) : null}
         {canDownloadRow ? (
           <Button
+            size="icon" icon={Download}
+            variant="quiet"
             type="button"
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground sm:h-8 sm:w-8"
             aria-label="Download row files"
             title="Download row files"
             onClick={() => onDownloadRow?.()}
-          >
-            <Download className="h-4 w-4" aria-hidden />
-          </Button>
+          ></Button>
         ) : null}
 
-        <button
-          type="button"
-          className="flex h-7 w-7 shrink-0 items-center justify-center text-zinc-300 hover:text-white sm:h-8 sm:w-8"
+        <Button
+          variant="quiet"
           aria-expanded={isExpanded}
           aria-controls={panelId}
           aria-label={isExpanded ? "Collapse row files" : "Expand row files"}
@@ -177,7 +151,7 @@ export function BulkCsvRunRowCompact({
           ) : (
             <ChevronDown className="h-4 w-4" aria-hidden />
           )}
-        </button>
+        </Button>
       </div>
     </div>
   );

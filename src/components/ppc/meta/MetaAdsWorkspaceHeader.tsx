@@ -90,7 +90,6 @@ export function MetaAdsWorkspaceHeader({ ctrl, onPlatformChange }: MetaAdsWorksp
       canOpenDetails={canOpenDetails}
       isProcessing={ctrl.isGenerating}
       detailsPanelId="ppc-meta-generate-details"
-      onDetailsOpenChange={ctrl.setDetailsDrawerOpen}
       detailsPanel={<BulkGeneratorDetailsDrawer {...detailsProps} />}
     />
   );

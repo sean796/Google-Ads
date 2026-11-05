@@ -59,11 +59,6 @@ export const WORKFLOW_STEP_TYPE_ICON_SLOT_CLASS =
 
 export const WORKFLOW_STEP_TYPE_ICON_CLASS = "h-6 w-6";
 
-export const WORKFLOW_HEADER_SELECT_CLASS = cn(
-  BULK_HEADER_SELECT,
-  "h-8 min-w-[12rem] shrink-0 [color-scheme:dark]",
-);
-
 export const WORKFLOW_SIDEBAR_BG_CLASS = "bg-[#09090B]";
 
 export const WORKFLOW_SIDEBAR_FIELD_CLASS = "bg-[#18181B]";
@@ -155,10 +150,6 @@ export const WORKFLOW_INSPECTOR_GROUP_TITLE_CLASS = "text-base font-normal text-
 export const WORKFLOW_INSPECTOR_FIELD_GRID_CLASS = "grid grid-cols-1 gap-4";
 export const WORKFLOW_INSPECTOR_FIELD_CELL_CLASS =
   "flex min-h-12 min-w-0 flex-col justify-center rounded-none bg-transparent px-0 py-0";
-export const WORKFLOW_INSPECTOR_TITLE_INPUT_CLASS = cn(
-  BULK_HEADER_FIELD,
-  "h-8 min-h-8 w-full px-2 font-normal",
-);
 export const WORKFLOW_INSPECTOR_INFIELD_CLASS = cn(
   WORKFLOW_SIDEBAR_FIELD_CLASS,
   "flex min-h-12 w-full items-center rounded-none px-4 py-3 text-base font-normal",
@@ -191,7 +182,7 @@ export function workflowStatusLabel(status: WorkflowStatus): string {
 
 /** Fixed workflow list tile: title + wrapping blurb beside stacked trash/count. */
 export const WORKFLOW_CARD_FIXED_CLASS =
-  "flex h-[8.5rem] w-full min-w-0 flex-col gap-0 overflow-hidden rounded-none border-0 bg-zinc-900 p-3 text-white shadow-tile transition-[box-shadow]";
+  "flex h-[8.5rem] w-full min-w-0 flex-col gap-0 overflow-hidden rounded-none border-0 bg-ui-field p-3 text-white shadow-tile transition-[box-shadow]";
 
 function workflowAccentHoverGlowClass(status: WorkflowStatus): string {
   // Match left accent: draft = research blue, published = editorial primary green.

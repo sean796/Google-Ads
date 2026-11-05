@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 const SECTION_HEADER_GRID =
   "grid w-full grid-cols-[2rem_minmax(12rem,1fr)_minmax(6rem,auto)_minmax(5rem,auto)_minmax(11rem,auto)_minmax(5rem,auto)_4rem_5rem] items-center gap-x-3";
@@ -45,25 +46,21 @@ export function TaskSectionHeader({
       <span />
       <span />
       <div className="col-span-2 flex shrink-0 items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-        <button
-          type="button"
+        <Button
+          size="icon" icon={Pencil}
+          variant="quiet"
           aria-label={`Edit ${title}`}
           onClick={() => onEdit(sectionId)}
-          className="flex h-8 w-8 items-center justify-center text-muted-foreground hover:bg-zinc-900 hover:text-white"
-        >
-          <Pencil className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
+        ></Button>
+        <Button
+          size="icon" icon={Trash2}
+          variant="danger"
           aria-label={`Delete ${title}`}
           onClick={() => setDeleteOpen(true)}
-          className="flex h-8 w-8 items-center justify-center text-muted-foreground hover:bg-zinc-900 hover:text-red-400"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
+        ></Button>
       </div>
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent className="rounded-none border-0 bg-zinc-950 text-white">
+        <AlertDialogContent className="rounded-none border-0 bg-black text-white">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base">Delete section</AlertDialogTitle>
             <AlertDialogDescription className="text-base text-muted-foreground">
@@ -73,7 +70,7 @@ export function TaskSectionHeader({
           <AlertDialogFooter>
             <AlertDialogCancel className="h-10 text-base">Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className={cn("h-10 text-base bg-red-600 hover:bg-red-700")}
+              className={cn("h-10 text-base bg-ui-danger/20 hover:bg-ui-danger/20")}
               onClick={() => onDelete(sectionId)}
             >
               Delete

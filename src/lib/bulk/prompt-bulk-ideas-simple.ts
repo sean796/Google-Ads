@@ -21,12 +21,14 @@ const INVENTORY_EXCLUSION = `SITE_INVENTORY_JSON (mandatory read before any idea
 - Output the full requested count in one response. Every row must be distinct from inventory and from every other row in your batch.`;
 
 function buildPromptBulkIdeasSystemPrompt(): string {
-  const base = `You draft blog post ideas for human approval. No SERP fetch. Output keyword and title per idea (meta descriptions are written separately).
+  const base = `You draft blog post ideas for human approval. No SERP fetch. Output keyword, title, meta_description, and slug per idea in one pass.
 
 Rules:
 - Return exactly the requested count.
 - keyword: short SEO focus phrase (2–5 words), intent-only. Not the full headline. Never include guide, listicle, buying guide, or how-to wrapper words in keyword (those belong in title only).
 - title: complete headline, Title Case, readable and specific.
+- meta_description: one sentence, 120–155 characters, contains the keyword, no brand name, no quotes.
+- slug: lowercase URL slug for the title, words joined by hyphens, 3–6 words, ascii letters/digits/hyphens only, contains the keyword words, no stop words like "the", "a", "and", no dates, no brand name.
 - When a topic is given, every idea must fit that topic without re-covering inventory topics.
 - When a slot already has a keyword, keep that keyword and write a title for it.
 - When CONNECTED_SITE is present, SITE_INVENTORY_JSON in the user message is mandatory input. Read the entire object before writing ideas.
@@ -43,7 +45,7 @@ ${POSTS_SCOPE_IDEAS_HINT}
 ${GLOBAL_BLOCKED_TOPIC_PROMPT_BLOCK}
 
 JSON contract (mandatory, last): output one object only. Double-quoted keys. No markdown fences. No extra keys. Exact shape:
-{"ideas":[{"keyword":"...","title":"..."}]}`;
+{"ideas":[{"keyword":"...","title":"...","meta_description":"...","slug":"..."}]}`;
 
   return appendUniversalContentRulesToSystemPrompt(base);
 }
@@ -74,10 +76,12 @@ export function buildPromptBulkIdeasResponseFormat(count: number): {
             items: {
               type: "object",
               additionalProperties: false,
-              required: ["keyword", "title"],
+              required: ["keyword", "title", "meta_description", "slug"],
               properties: {
                 keyword: { type: "string", minLength: 1 },
                 title: { type: "string", minLength: 1 },
+                meta_description: { type: "string", minLength: 1 },
+                slug: { type: "string", minLength: 1 },
               },
             },
           },
@@ -91,6 +95,8 @@ type IdeasPayload = {
   ideas?: Array<{
     keyword?: unknown;
     title?: unknown;
+    meta_description?: unknown;
+    slug?: unknown;
   }>;
 };
 
@@ -244,10 +250,12 @@ export async function generateSimplePromptIdeas(args: {
       title = stripBrandFromBlogTitle(title, args.connectedSite.name);
       keyword = stripBrandFromBlogTitle(keyword, args.connectedSite.name);
     }
-    if (!keyword || !title) {
-      throw new Error(`Ideas row ${i + 1} is missing keyword or title.`);
+    const meta_description = cleanField(item.meta_description);
+    const target_slug = cleanField(item.slug);
+    if (!keyword || !title || !meta_description || !target_slug) {
+      throw new Error(`Ideas row ${i + 1} is missing keyword, title, meta_description, or slug.`);
     }
-    const row: CSVRow = { keyword, title };
+    const row: CSVRow = { keyword, title, keyword_focus: keyword, meta_description, target_slug };
     const mod = slots[i]?.modifier;
     if (mod) row.modifier = mod;
     rows.push(row);

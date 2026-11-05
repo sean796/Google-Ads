@@ -16,6 +16,7 @@ import {
   automationRecipeCategoryLabel,
 } from "@/lib/automation-recipes-filters";
 import type { AutomationRecipeCatalogItem } from "@/lib/automation-recipes-types";
+import { Button, RowButton } from "@/ui";
 
 export type AutomationRecipeCardProps = {
   recipe: AutomationRecipeCatalogItem;
@@ -78,16 +79,12 @@ export function AutomationRecipeCard({
 
   if (install) {
     return (
-      <button
+      <RowButton
         type="button"
-        className={cn(
-          recipeCardClassName(recipe.category, selected),
-          "flex w-full flex-col gap-3 p-4 text-left",
-        )}
         onClick={install}
       >
         {body}
-      </button>
+      </RowButton>
     );
   }
 
@@ -97,13 +94,13 @@ export function AutomationRecipeCard({
         <span className={cn("text-lg font-semibold", recipeCategoryLabelClass(recipe.category))}>
           {categoryLabel}
         </span>
-        <button type="button" className="min-w-0 text-left" onClick={onSelect}>
+        <Button variant="quiet" onClick={onSelect}>
           <h3 className="text-lg font-semibold text-white">{recipe.name}</h3>
-        </button>
+        </Button>
       </div>
-      <button type="button" className="text-left" onClick={onSelect}>
+      <Button variant="quiet" onClick={onSelect}>
         <p className="text-lg text-muted-foreground">{recipe.description}</p>
-      </button>
+      </Button>
       <div className="flex flex-wrap gap-2">
         <span className="bg-black px-2 py-1 text-lg text-white">
           {AUTOMATION_RECIPE_CATEGORY_LABELS[normalizedCategory] ?? recipe.category}

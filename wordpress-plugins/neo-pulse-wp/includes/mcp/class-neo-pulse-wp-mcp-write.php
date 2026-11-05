@@ -6,6 +6,7 @@
  * - update-business-details (shared with Neo Tools)
  * - update-location
  * - set-page-faqs
+ * - clear-page-video-schemas
  * - set-page-schema
  * - set-type-rules
  * - update-settings
@@ -92,6 +93,15 @@ final class Neo_Pulse_Wp_Mcp_Write {
 						'dry_run'          => 'boolean (optional)',
 					),
 				),
+				'clear-page-video-schemas' => array(
+					'description' => 'Remove all rank_math_schema_VideoObject meta rows on a post (legacy Rank Math / autodetect VideoObject). Page schema type off prevents Neo Pulse from re-adding. Supports dry_run and expected_version.',
+					'arguments'   => array(
+						'post_id'          => 'integer (required unless url is given)',
+						'url'              => 'string (optional URL)',
+						'expected_version' => 'string (optional version from get-page-schema)',
+						'dry_run'          => 'boolean (optional)',
+					),
+				),
 				'set-page-schema'         => array(
 					'description' => 'Set per-page schema type (off, default, WebPage, Article, BlogPosting, NewsArticle) on a post. Supports dry_run and expected_version.',
 					'arguments'   => array(
@@ -157,6 +167,8 @@ final class Neo_Pulse_Wp_Mcp_Write {
 				return self::update_location( $args );
 			case 'set-page-faqs':
 				return self::set_page_faqs( $args );
+			case 'clear-page-video-schemas':
+				return self::clear_page_video_schemas( $args );
 			case 'set-page-schema':
 				return self::set_page_schema( $args );
 			case 'set-type-rules':
@@ -562,6 +574,75 @@ final class Neo_Pulse_Wp_Mcp_Write {
 	}
 
 	/**
+	 * `clear-page-video-schemas`: delete all `rank_math_schema_VideoObject` post meta on a post.
+	 *
+	 * @param array<string,mixed> $args Arguments.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	private static function clear_page_video_schemas( array $args ) {
+		$post = Neo_Pulse_Wp_Mcp_Read::resolve_post( $args );
+		if ( is_wp_error( $post ) ) {
+			return $post;
+		}
+		if ( ! current_user_can( 'edit_post', $post->ID ) ) {
+			return new WP_Error( 'forbidden', 'You do not have permission to edit this post.', array( 'status' => 403 ) );
+		}
+
+		$cur_ver = Neo_Pulse_Wp_Mcp_Read::page_version_hash( (int) $post->ID );
+		if ( ! empty( $args['expected_version'] ) && (string) $args['expected_version'] !== $cur_ver ) {
+			return new WP_Error(
+				'conflict',
+				sprintf( 'Page schema meta changed since version %s (current version is %s).', (string) $args['expected_version'], $cur_ver ),
+				array( 'status' => 409, 'current_version' => $cur_ver )
+			);
+		}
+
+		$meta_key = class_exists( 'Neo_Pulse_Wp_Seo_Video', false )
+			? Neo_Pulse_Wp_Seo_Video::META
+			: 'rank_math_schema_VideoObject';
+		$before   = get_post_meta( $post->ID, $meta_key, false );
+		if ( ! is_array( $before ) ) {
+			$before = array();
+		}
+
+		if ( ! empty( $args['dry_run'] ) ) {
+			return array(
+				'dry_run'      => true,
+				'post_id'      => (int) $post->ID,
+				'would_change' => count( $before ) > 0,
+				'before_count' => count( $before ),
+				'version'      => $cur_ver,
+			);
+		}
+
+		$history_id = Neo_Pulse_Wp_Mcp_History::record(
+			'clear-page-video-schemas',
+			sprintf( 'Cleared VideoObject schema on post #%d (%s)', (int) $post->ID, get_the_title( $post ) ),
+			array(
+				'kind'    => 'post_meta',
+				'post_id' => (int) $post->ID,
+				'meta'    => array( $meta_key => $before ),
+			)
+		);
+
+		delete_post_meta( $post->ID, $meta_key );
+
+		if ( Neo_Pulse_Wp_Seo_Settings::output_active() && class_exists( 'Neo_Pulse_Wp_Cache_Flush' ) ) {
+			Neo_Pulse_Wp_Cache_Flush::purge_html_caches();
+		}
+
+		$read_back = Neo_Pulse_Wp_Mcp_Read::get_page_schema( array( 'post_id' => (int) $post->ID ) );
+
+		return array(
+			'ok'           => true,
+			'history_id'   => $history_id,
+			'removed_count'=> count( $before ),
+			'version'      => is_array( $read_back ) ? ( $read_back['version'] ?? '' ) : '',
+			'data'         => $read_back,
+		);
+	}
+
+	/**
 	 * `set-page-schema`: set per-page schema type (`off`, `default`, `WebPage`, `Article`, `BlogPosting`, `NewsArticle`).
 	 *
 	 * @param array<string,mixed> $args Arguments.
@@ -801,6 +882,26 @@ final class Neo_Pulse_Wp_Mcp_Write {
 		}
 		if ( array_key_exists( 'capitalize_titles', $titles_in ) ) {
 			$title_changes['capitalize_titles'] = ! empty( $titles_in['capitalize_titles'] ) && 'off' !== $titles_in['capitalize_titles'] ? 'on' : 'off';
+		}
+		foreach ( $titles_in as $k => $val ) {
+			$key = (string) $k;
+			if ( preg_match( '/^tax_[a-z0-9_-]+_(title|description)$/', $key ) ) {
+				$title_changes[ $key ] = Neo_Pulse_Wp_Seo_Settings::clean_input( $val );
+			}
+		}
+		if ( isset( $args['tax'] ) && is_array( $args['tax'] ) ) {
+			foreach ( $args['tax'] as $tax => $row ) {
+				$tax = sanitize_key( (string) $tax );
+				if ( '' === $tax || ! taxonomy_exists( $tax ) || ! is_array( $row ) ) {
+					continue;
+				}
+				if ( array_key_exists( 'title', $row ) ) {
+					$title_changes[ 'tax_' . $tax . '_title' ] = Neo_Pulse_Wp_Seo_Settings::clean_input( $row['title'] );
+				}
+				if ( array_key_exists( 'description', $row ) ) {
+					$title_changes[ 'tax_' . $tax . '_description' ] = Neo_Pulse_Wp_Seo_Settings::clean_input( $row['description'] );
+				}
+			}
 		}
 
 		$indexing_in = isset( $args['indexing'] ) && is_array( $args['indexing'] ) ? $args['indexing'] : $args;

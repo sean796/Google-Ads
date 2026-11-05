@@ -21,7 +21,7 @@ export function AgentRunHostedFilesList({ files }: AgentRunHostedFilesListProps)
               download={file.name}
               target="_blank"
               rel="noopener noreferrer"
-              className="min-w-0 flex-1 truncate text-cyan-300 underline-offset-2 hover:underline"
+              className="min-w-0 flex-1 break-words text-semantic-analysis-foreground underline-offset-2 hover:underline"
               onClick={(e) => e.stopPropagation()}
               title={file.name}
             >

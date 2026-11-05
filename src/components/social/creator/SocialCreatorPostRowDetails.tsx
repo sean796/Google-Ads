@@ -1,4 +1,4 @@
-import { Textarea } from "@/components/ui/textarea";
+
 import { SocialCreatorInstagramPreview } from "@/components/social/creator/SocialCreatorInstagramPreview";
 import { SocialCreatorRowVisualSettingsInline } from "@/components/social/creator/SocialCreatorRowVisualSettingsInline";
 import {
@@ -10,6 +10,7 @@ import {
 import type { SocialCreatorRow, SocialGenerateConfig } from "@/lib/social/social-creator-types";
 import { resolveMetaRowFocusKeyword } from "@/lib/social/social-creator-types";
 import { cn } from "@/lib/utils";
+import { TextareaField } from "@/ui";
 
 export type SocialCreatorPostRowDetailsProps = {
   row: SocialCreatorRow;
@@ -55,10 +56,9 @@ export function SocialCreatorPostRowDetails({
             <span className={cn(META_VISUAL_CELL_CLASS, "pt-2 text-base font-semibold text-foreground")}>
               FB/Instagram Content
             </span>
-            <Textarea
+            <TextareaField
               value={caption}
               placeholder="Optional draft caption"
-              className={cn(META_VISUAL_TEXTAREA_CLASS, "col-span-3")}
               aria-label="FB/Instagram Content"
               disabled={fieldsReadOnly}
               onChange={(e) => onUpdateAd({ fbInstagramContent: e.target.value })}

@@ -5,6 +5,7 @@ import { assigneeBadgeLabel, assigneeBadgeIsPulse } from "@/lib/tasks-filter";
 import type { TeamTask, TaskStatus } from "@/lib/tasks-types";
 import { TASK_STATUS_LABELS, TASK_STATUSES } from "@/lib/tasks-types";
 import type { TeamMember } from "@/lib/teams-types";
+import { Button } from "@/ui";
 
 export type TasksBoardViewProps = {
   tasks: TeamTask[];
@@ -40,7 +41,7 @@ export function TasksBoardView({
         return (
           <div
             key={status}
-            className="flex min-h-0 flex-col bg-zinc-950"
+            className="flex min-h-0 flex-col bg-black"
             onDragOver={(e) => e.preventDefault()}
             onDrop={() => handleDrop(status)}
           >
@@ -59,28 +60,23 @@ export function TasksBoardView({
                       onDragEnd={() => setDragTaskId(null)}
                       className={cn(
                         "cursor-grab px-2 py-2 active:cursor-grabbing",
-                        task.id === selectedTaskId ? "bg-zinc-800" : "bg-zinc-900 hover:bg-zinc-800",
+                        task.id === selectedTaskId ? "bg-ui-field-hover" : "bg-ui-field hover:bg-ui-field-hover",
                       )}
                     >
                       <div className="flex items-start gap-2">
-                        <button
-                          type="button"
+                        <Button
+                          pressed={Boolean(done)}
                           aria-label={`Toggle ${task.title}`}
                           onClick={(e) => {
                             e.stopPropagation();
                             onStatusChange(task.id, done ? "todo" : "done");
                           }}
-                          className={cn(
-                            "flex h-8 w-8 shrink-0 items-center justify-center",
-                            done ? "bg-primary text-black" : "bg-zinc-800 text-muted-foreground hover:text-white",
-                          )}
                         >
                           {done ? <Check className="h-4 w-4" /> : null}
-                        </button>
-                        <button
-                          type="button"
+                        </Button>
+                        <Button
+                          variant="quiet"
                           onClick={() => onSelectTask(task.id)}
-                          className="flex min-w-0 flex-1 flex-col items-start gap-1 text-left"
                         >
                           <span className="flex flex-wrap items-center gap-2">
                             <span
@@ -92,7 +88,7 @@ export function TasksBoardView({
                               {task.title}
                             </span>
                             {done ? (
-                              <span className="bg-zinc-800 px-2 py-0.5 text-base text-muted-foreground">Done</span>
+                              <span className="bg-ui-field-hover px-2 py-0.5 text-base text-muted-foreground">Done</span>
                             ) : null}
                           </span>
                           {task.projectTitle ? (
@@ -106,7 +102,7 @@ export function TasksBoardView({
                                   return (
                                     <span
                                       key={uid}
-                                      className="flex h-8 w-8 items-center justify-center bg-zinc-950 text-primary"
+                                      className="flex h-8 w-8 items-center justify-center bg-black text-primary"
                                       aria-label="Pulse"
                                     >
                                       <Sparkles className="h-4 w-4" />
@@ -118,7 +114,7 @@ export function TasksBoardView({
                                 return (
                                   <span
                                     key={uid}
-                                    className="flex h-8 w-8 items-center justify-center bg-zinc-950 text-base text-white"
+                                    className="flex h-8 w-8 items-center justify-center bg-black text-base text-white"
                                   >
                                     {label}
                                   </span>
@@ -126,7 +122,7 @@ export function TasksBoardView({
                               })}
                             </div>
                           ) : null}
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </li>

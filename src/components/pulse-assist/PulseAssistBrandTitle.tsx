@@ -31,7 +31,7 @@ export function PulseAssistBrandTitle({
     >
       <NeoPulseBrandMark size={markSize} />
       {!markOnly ? (
-        <span className={cn("font-semibold text-[1rem] leading-none", stacked ? "whitespace-nowrap" : "truncate")}>
+        <span className={cn("font-semibold text-base leading-none", stacked ? "whitespace-nowrap" : "break-words")}>
           Assist
         </span>
       ) : null}

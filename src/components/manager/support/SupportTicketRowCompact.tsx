@@ -5,6 +5,7 @@ import {
 } from "@/components/overview/overview-tab/overview-tab-content-constants";
 import type { SupportTicket } from "@/lib/support-types";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 type SupportTicketRowCompactProps = {
   ticket: SupportTicket;
@@ -45,23 +46,21 @@ export function SupportTicketRowCompact({
         }
       }}
     >
-      <span className="min-w-0 truncate text-base font-medium text-foreground">
+      <span className="min-w-0 break-words text-base font-medium text-foreground">
         {ticket.title || `Ticket #${ticket.id}`}
       </span>
       <span className="text-base capitalize text-muted-foreground">{ticket.status}</span>
-      <span className="min-w-0 truncate text-base text-muted-foreground">{createdLabel}</span>
+      <span className="min-w-0 break-words text-base text-muted-foreground">{createdLabel}</span>
       <div className={cn(CONTENT_OPTIMIZER_PAGE_ROW_ACTIONS_CELL, "justify-end gap-1")}>
-        <button
-          type="button"
-          className="flex h-8 w-8 items-center justify-center bg-transparent text-foreground hover:bg-zinc-900/70"
+        <Button
+          size="icon" icon={Trash2}
+          variant="quiet"
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
           }}
           aria-label={`Delete ticket ${ticket.id}`}
-        >
-          <Trash2 className="h-4 w-4" aria-hidden />
-        </button>
+        ></Button>
         {isExpanded ? (
           <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
         ) : (

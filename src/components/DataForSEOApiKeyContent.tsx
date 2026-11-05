@@ -1,6 +1,4 @@
 import { useState, useCallback } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { ApiKeyCopyButton } from "@/components/ApiKeyCopyButton";
 import { notify } from "@/lib/app-notifications";
 import {
@@ -9,6 +7,7 @@ import {
 } from "@/lib/notify-messages";
 import { saveDataForSEOApiKey, loadDataForSEOApiKey } from "../lib/api";
 import { DASHBOARD_SETTINGS_FIELD_CLASS } from "@/components/manager/dashboard/dashboard-panel-styles";
+import { Button, Field } from "@/ui";
 
 interface DataForSEOApiKeyContentProps {
   apiKey: string;
@@ -56,21 +55,21 @@ export const DataForSEOApiKeyContent: React.FC<DataForSEOApiKeyContentProps> = (
         .
       </p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <Input
+        <Field
+          placeholder="DataForSEO API key"
           id="dataforseo-apiKey"
           type="password"
           value={localApiKey}
           onChange={(e) => setLocalApiKey(e.target.value)}
           aria-label="DataForSEO API key"
           autoComplete="off"
-          className={INPUT_CLASS}
         />
         <ApiKeyCopyButton
           value={localApiKey}
           emptyMessage="Enter a DataForSEO API key to copy."
           aria-label="Copy DataForSEO API key"
         />
-        <Button type="button" onClick={handleSave} className="h-12 shrink-0 text-base">
+        <Button variant="run" type="button" onClick={handleSave}>
           Save
         </Button>
       </div>

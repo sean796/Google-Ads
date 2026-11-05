@@ -1,6 +1,5 @@
 import React from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import {
   contentOptimizerRowStripeClass,
   contentOptimizerRowStripeHoverClass,
@@ -25,6 +24,7 @@ import { useGoogleAdsConnectionStatus } from "@/hooks/use-google-ads-connection-
 import { googleAdsCampaignUrl } from "@/lib/ads-reporting/ads-reporting-metrics";
 import { GoogleAdsEntityStatusIcon } from "@/components/ppc/google/GoogleAdsEntityStatusIcon";
 import { cn } from "@/lib/utils";
+import { Button, Field } from "@/ui";
 
 export type GoogleAdsCampaignRowCompactProps = {
   row: PpcCampaignRow;
@@ -77,7 +77,7 @@ function GoogleAdsCampaignIdCell({
       <a
         className={cn(
           PPC_DETAIL_INPUT_CLASS,
-          "flex h-9 w-full min-w-0 items-center truncate tabular-nums text-zinc-100 underline-offset-2 hover:underline",
+          "flex h-9 w-full min-w-0 items-center break-words tabular-nums text-foreground underline-offset-2 hover:underline",
         )}
         href={href}
         target="_blank"
@@ -86,7 +86,7 @@ function GoogleAdsCampaignIdCell({
         onClick={(e) => e.stopPropagation()}
       >
         {statusSlot}
-        <span className="min-w-0 truncate">{id}</span>
+        <span className="min-w-0 break-words">{id}</span>
       </a>
     );
   }
@@ -94,11 +94,10 @@ function GoogleAdsCampaignIdCell({
   return (
     <div className={cn(PPC_DETAIL_INPUT_CLASS, "flex h-9 w-full min-w-0 items-center")}>
       {statusSlot}
-      <Input
+      <Field
         readOnly
         value=""
         placeholder="Campaign ID"
-        className="h-9 min-w-0 flex-1 border-0 bg-transparent p-0 tabular-nums text-zinc-100 shadow-none focus-visible:ring-0"
         aria-label="Campaign ID"
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
@@ -140,9 +139,8 @@ function GoogleAdsCampaignRowActions({
       deleteDisabled={deleteDisabled}
       deleteLabel="Delete campaign"
       chevron={
-        <button
-          type="button"
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center text-foreground"
+        <Button
+          variant="quiet"
           aria-label={isExpanded ? "Collapse campaign" : "Expand campaign"}
           onClick={(e) => {
             e.stopPropagation();
@@ -154,7 +152,7 @@ function GoogleAdsCampaignRowActions({
           ) : (
             <ChevronDown className="h-4 w-4" aria-hidden />
           )}
-        </button>
+        </Button>
       }
     />
   );
@@ -203,13 +201,12 @@ export function GoogleAdsCampaignRowCompact({
   );
 
   const budgetField = (
-    <Input
+    <Field
       type="number"
       min={1}
       step={1}
       value={row.dailyBudget ?? ""}
       placeholder="Daily budget"
-      className={cn(PPC_DETAIL_INPUT_CLASS, "h-9 w-full min-w-0 tabular-nums text-zinc-100")}
       aria-label="Daily budget"
       disabled={budgetReadOnly}
       onClick={(e) => e.stopPropagation()}
@@ -242,7 +239,7 @@ export function GoogleAdsCampaignRowCompact({
       onChange={(url) => onLandingPageChange?.(url)}
     />
   ) : (
-    <span className="block min-w-0 truncate text-base text-zinc-100">
+    <span className="block min-w-0 break-words text-base text-foreground">
       {landingPageValue || "Landing page"}
     </span>
   );
@@ -264,10 +261,9 @@ export function GoogleAdsCampaignRowCompact({
 
           <div className={PPC_CAMPAIGN_ROW_FIELD_CELL}>
             {canEditName ? (
-              <Input
+              <Field
                 value={nameValue}
                 placeholder="Campaign name"
-                className={cn(PPC_DETAIL_INPUT_CLASS, "h-9 w-full min-w-0 font-bold text-zinc-100")}
                 aria-label="Campaign name"
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
@@ -275,7 +271,7 @@ export function GoogleAdsCampaignRowCompact({
                 onChange={(e) => onNameChange?.(e.target.value)}
               />
             ) : (
-              <span className="whitespace-normal break-words text-base font-bold leading-snug text-zinc-100">
+              <span className="whitespace-normal break-words text-base font-bold leading-snug text-foreground">
                 {displayName}
               </span>
             )}
@@ -285,10 +281,9 @@ export function GoogleAdsCampaignRowCompact({
 
           <div className={PPC_CAMPAIGN_ROW_FIELD_CELL}>
             {canEditKeyword ? (
-              <Input
+              <Field
                 value={keywordValue}
                 placeholder="Keyword"
-                className={cn(PPC_DETAIL_INPUT_CLASS, "h-9 w-full min-w-0 text-zinc-100")}
                 aria-label="Keyword"
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
@@ -296,7 +291,7 @@ export function GoogleAdsCampaignRowCompact({
                 onChange={(e) => onKeywordChange?.(e.target.value)}
               />
             ) : (
-              <span className="whitespace-normal break-words text-base leading-snug text-zinc-100">
+              <span className="whitespace-normal break-words text-base leading-snug text-foreground">
                 {keywordValue}
               </span>
             )}
@@ -320,10 +315,9 @@ export function GoogleAdsCampaignRowCompact({
 
           <div className={PPC_CAMPAIGN_ROW_FIELD_CELL}>
             {canEditName ? (
-              <Input
+              <Field
                 value={nameValue}
                 placeholder="Campaign name"
-                className={cn(PPC_DETAIL_INPUT_CLASS, "h-9 w-full min-w-0 font-bold text-zinc-100")}
                 aria-label="Campaign name"
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
@@ -331,7 +325,7 @@ export function GoogleAdsCampaignRowCompact({
                 onChange={(e) => onNameChange?.(e.target.value)}
               />
             ) : (
-              <span className="block min-w-0 truncate text-base font-bold text-zinc-100">
+              <span className="block min-w-0 break-words text-base font-bold text-foreground">
                 {displayName}
               </span>
             )}
@@ -339,10 +333,9 @@ export function GoogleAdsCampaignRowCompact({
           <div className={PPC_CAMPAIGN_ROW_FIELD_CELL}>{landingPageField}</div>
           <div className={PPC_CAMPAIGN_ROW_FIELD_CELL}>
             {canEditKeyword ? (
-              <Input
+              <Field
                 value={keywordValue}
                 placeholder="Keyword"
-                className={cn(PPC_DETAIL_INPUT_CLASS, "h-9 min-w-0 w-full text-zinc-100")}
                 aria-label="Keyword"
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
@@ -350,7 +343,7 @@ export function GoogleAdsCampaignRowCompact({
                 onChange={(e) => onKeywordChange?.(e.target.value)}
               />
             ) : (
-              <span className="block min-w-0 truncate text-base text-zinc-100">{keywordValue}</span>
+              <span className="block min-w-0 break-words text-base text-foreground">{keywordValue}</span>
             )}
           </div>
           <div className={PPC_CAMPAIGN_ROW_FIELD_CELL}>{budgetField}</div>

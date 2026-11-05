@@ -5,6 +5,7 @@ import { ADMIN_SUBMODE_LABELS, PAGE_CONTENT_MODE_LABELS } from "@/lib/pulse-assi
 import { cycleSubmode, togglePageContentMode } from "@/lib/pulse-assist/storage";
 import { NEO_PULSE_ASSIST_LABEL } from "@/components/pulse-assist/PulseAssistBrandTitle";
 import { cn } from "@/lib/utils";
+import { Button, TextareaField } from "@/ui";
 
 type PulseAssistComposerProps = {
   value: string;
@@ -58,44 +59,38 @@ export function PulseAssistComposer({
   return (
     <div className="fcw-composer">
       <div className="fcw-composer-pills">
-        <button
-          type="button"
-          className="fcw-submode-pill"
+        <Button
+          variant="quiet"
           onClick={() => onSubmodeChange(cycleSubmode(submode))}
           aria-label={`Submode ${ADMIN_SUBMODE_LABELS[submode]}. Shift+Tab to cycle.`}
         >
           {ADMIN_SUBMODE_LABELS[submode]}
-        </button>
-        <button
-          type="button"
-          className={cn(
-            "fcw-submode-pill fcw-page-content-pill",
-            pageContentMode === "elementor_widgets" && "fcw-page-content-pill--elementor",
-          )}
+        </Button>
+        <Button
+          pressed={pageContentMode === "elementor_widgets"}
+          variant="quiet"
           onClick={() => onPageContentModeChange(togglePageContentMode(pageContentMode))}
           aria-label={`Page content ${PAGE_CONTENT_MODE_LABELS[pageContentMode]}. Click to toggle.`}
         >
           {PAGE_CONTENT_MODE_LABELS[pageContentMode]}
-        </button>
+        </Button>
       </div>
-      <textarea
+      <TextareaField
         ref={textareaRef}
-        className="fcw-textarea"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         rows={2}
         disabled={disabled}
       />
-      <button
-        type="button"
-        className={cn("fcw-send-btn", disabled && "fcw-send-btn--disabled")}
+      <Button
+        size="icon" icon={Send}
+        pressed={Boolean(disabled)}
+        variant="quiet"
         onClick={onSend}
         disabled={disabled || !value.trim()}
         aria-label="Send"
-      >
-        <Send className="h-5 w-5" aria-hidden />
-      </button>
+      ></Button>
     </div>
   );
 }

@@ -53,16 +53,16 @@ export const CYBERPUNK_CLASSES = {
   bgNeonIntense: "bg-primary/18",
 
   buttonNeon:
-    "border border-zinc-800/90 bg-black text-zinc-100 shadow-none hover:border-zinc-600/90 hover:bg-zinc-950 hover:text-white",
+    "border border-border/90 bg-black text-foreground shadow-none hover:border-border/90 hover:bg-black hover:text-white",
   buttonNeonActive:
-    "border border-zinc-500/80 bg-zinc-950 text-white ring-1 ring-primary/30 hover:bg-zinc-900",
+    "border border-border/80 bg-black text-white ring-1 ring-primary/30 hover:bg-ui-field",
 
   glow: "shadow-tile",
   glowIntense: "shadow-[0_0_20px_hsl(var(--primary)/0.35)]",
 
   statusSuccess: "text-foreground",
-  statusError: "text-red-300",
-  statusWarning: "text-yellow-300",
+  statusError: "text-ui-danger-hover",
+  statusWarning: "text-semantic-warning-foreground",
   statusPending: "text-foreground",
 } as const;
 
@@ -131,7 +131,7 @@ export function getPropertyListRowBlackMetricFrameClass(compact: boolean): strin
 export function getPropertyListRowBlackLabelButtonClass(): string {
   return cn(
     "h-10 min-h-10 w-auto shrink-0 gap-1.5 border-0 px-3 text-base font-semibold text-white shadow-none",
-    "!bg-black hover:!bg-zinc-950 hover:!text-white [&_svg]:!text-white",
+    "!bg-black hover:!bg-black hover:!text-white [&_svg]:!text-white",
     "focus-visible:outline-none focus:!ring-0 focus-visible:!ring-0 focus-visible:ring-offset-0",
     "disabled:pointer-events-none disabled:opacity-40 disabled:hover:!bg-black",
   );
@@ -141,7 +141,7 @@ export function getPropertyListRowBlackLabelButtonClass(): string {
 export function getPropertyListRowBlackSelectTriggerClass(compact: boolean): string {
   return cn(
     "w-fit min-w-0 shrink-0 justify-start gap-2 border-0 text-white shadow-none",
-    "!bg-black hover:!bg-zinc-950 data-[placeholder]:text-white/70 [&>svg]:ml-0 [&>svg]:shrink-0 [&>svg]:!text-white/80",
+    "!bg-black hover:!bg-black data-[placeholder]:text-white/70 [&>svg]:ml-0 [&>svg]:shrink-0 [&>svg]:!text-white/80",
     "focus:!ring-0 focus-visible:!ring-0 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-40",
     compact ? "h-7 gap-1.5 px-2 py-0 text-sm [&>svg]:size-3.5" : "h-8 gap-2 px-2.5 py-0 text-base [&>svg]:size-4",
   );
@@ -160,7 +160,7 @@ export function getPropertyActionTileClasses(): string {
 
 export function getCyberpunkSiteUrlLinkClasses(): string {
   return [
-    "self-start inline-flex max-w-full min-w-0 items-center gap-1 rounded-md border border-zinc-600/70 bg-zinc-900 px-2 py-0.5 text-zinc-100 shadow-sm",
-    "no-underline transition-colors hover:border-zinc-500 hover:bg-zinc-800 hover:text-white",
+    "self-start inline-flex max-w-full min-w-0 items-center gap-1 rounded-md border border-border/70 bg-ui-field px-2 py-0.5 text-foreground shadow-sm",
+    "no-underline transition-colors hover:border-border hover:bg-ui-field-hover hover:text-white",
   ].join(" ");
 }

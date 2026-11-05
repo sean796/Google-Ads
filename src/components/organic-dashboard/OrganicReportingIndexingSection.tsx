@@ -20,6 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 import { getPublicSiteUrl } from "@/lib/wordpress-site-public-url";
 import type { WordPressSite } from "@/components/integrations/types";
+import { Button } from "@/ui";
 
 type ChartFocus = "indexed" | "notIndexed";
 
@@ -88,14 +89,13 @@ export function OrganicReportingIndexingSection({
             <p className="text-base text-muted-foreground">{sampleCaption}</p>
           </div>
           {onRefreshSitemaps ? (
-            <button
-              type="button"
-              className="inline-flex h-8 items-center gap-2 px-3 text-base text-white hover:bg-zinc-900 disabled:opacity-50"
+            <Button
+              variant="quiet"
               disabled={loading || isRefreshingSitemaps}
               onClick={onRefreshSitemaps}
             >
               Detect sitemaps
-            </button>
+            </Button>
           ) : null}
         </div>
 
@@ -116,14 +116,8 @@ export function OrganicReportingIndexingSection({
         {report ? (
           <>
             <div className="grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                className={cn(
-                  "flex flex-col gap-1 rounded-none p-4 text-left transition-colors",
-                  chartFocus === "notIndexed"
-                    ? "bg-zinc-800 ring-1 ring-white/20"
-                    : "bg-zinc-900 hover:bg-zinc-800/80",
-                )}
+              <Button
+                pressed={chartFocus === "notIndexed"}
                 onClick={() => setChartFocus("notIndexed")}
               >
                 <span className="flex items-center justify-between text-base text-muted-foreground">
@@ -138,28 +132,22 @@ export function OrganicReportingIndexingSection({
                 <span className="text-base text-muted-foreground">
                   {formatCanadianNumber(reasonCount, 0)} reason{reasonCount === 1 ? "" : "s"}
                 </span>
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  "flex flex-col gap-1 rounded-none p-4 text-left transition-colors",
-                  chartFocus === "indexed"
-                    ? "bg-emerald-950/40 ring-1 ring-emerald-500/40"
-                    : "bg-zinc-900 hover:bg-zinc-800/80",
-                )}
+              </Button>
+              <Button
+                pressed={chartFocus === "indexed"}
                 onClick={() => setChartFocus("indexed")}
               >
-                <span className="flex items-center justify-between text-base text-emerald-400/90">
+                <span className="flex items-center justify-between text-base text-primary/90">
                   Indexed
                   {chartFocus === "indexed" ? (
-                    <Check className="h-4 w-4 text-emerald-400" aria-hidden />
+                    <Check className="h-4 w-4 text-primary" aria-hidden />
                   ) : null}
                 </span>
                 <span className="text-3xl font-normal tabular-nums text-white">
                   {formatCanadianNumber(indexedCount, 0)}
                 </span>
                 <span className="text-base text-muted-foreground">In sample</span>
-              </button>
+              </Button>
             </div>
 
             <div ref={chartRef} className={cn(ORGANIC_GSC_CHART_CLASS, !chartReady && "invisible")}>

@@ -1,5 +1,4 @@
 import React, { useRef } from 'react';
-import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-react';
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_PLEASE_SELECT_A_CSV_FILE, notifyFailedToLoadCsvX, notifyLoadedXRowsFromCsv } from "@/lib/notify-messages";
@@ -13,6 +12,7 @@ import {
   BULK_AUTO_GENERATE_TEMPLATE_FILENAME,
   BULK_AUTO_GENERATE_TEMPLATE_HREF,
 } from '@/lib/bulk/bulk-auto-generate-template-columns';
+import { Button, FileInput } from "@/ui";
 
 interface SiteConfig {
   sitemapType: BulkSitemapMode;
@@ -141,33 +141,28 @@ export function CSVUploadSection({
           </a>
         </div>
         <div className="flex items-center gap-2">
-          <input
+          <FileInput
             ref={fileInputRef}
-            type="file"
             accept=".csv"
             onChange={handleFileSelect}
             disabled={isProcessing}
-            className="hidden"
           />
           <Button
             onClick={() => fileInputRef.current?.click()}
             disabled={isProcessing}
-            variant="outline"
-            className="flex-1"
           >
             <Upload className="h-4 w-4 mr-2" />
             {csvFile ? csvFile.name : 'Select CSV'}
           </Button>
           {csvFile && (
             <Button
+              variant="quiet"
               onClick={() => {
                 setCsvFile(null);
                 if (fileInputRef.current) {
                   fileInputRef.current.value = '';
                 }
               }}
-              variant="ghost"
-              size="sm"
               disabled={isProcessing}
             >
               Clear

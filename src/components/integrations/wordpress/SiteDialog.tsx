@@ -1,13 +1,5 @@
 import React from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Button, DialogShell } from "@/ui";
 import { type WordPressSite } from "../types";
 import { SitePropertyFormFields } from "./SitePropertyFormFields";
 
@@ -119,16 +111,23 @@ export const SiteDialog: React.FC<SiteDialogProps> = ({
   onPatchSite,
 }) => {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-5xl overflow-y-auto bg-card font-sans text-base text-foreground">
-        <DialogHeader>
-          <DialogTitle className="text-base font-semibold text-foreground">
-            {editingSite ? "Edit WordPress Site" : "Add WordPress Site"}
-          </DialogTitle>
-          <DialogDescription className="text-base text-muted-foreground whitespace-normal break-words">
-            Enter your WordPress site details. Use an Application Password for authentication.
-          </DialogDescription>
-        </DialogHeader>
+    <DialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      size="xl"
+      title={editingSite ? "Edit WordPress Site" : "Add WordPress Site"}
+      description="Enter your WordPress site details. Use an Application Password for authentication."
+      actions={
+        <>
+          <Button variant="danger" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button variant="run" onClick={onSave}>
+            {editingSite ? "Update Site" : "Add Site"}
+          </Button>
+        </>
+      }
+    >
         <SitePropertyFormFields
           chrome="light"
           formName={formName}
@@ -183,20 +182,6 @@ export const SiteDialog: React.FC<SiteDialogProps> = ({
           semrushActionsDisabled={editingSite?.enabled === false}
           className="py-2"
         />
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="border-red-400 text-red-400 hover:bg-red-400/10"
-          >
-            Cancel
-          </Button>
-          <Button type="button" onClick={onSave} className="bg-primary font-bold text-primary-foreground hover:bg-primary/90">
-            {editingSite ? "Update" : "Add"} Site
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </DialogShell>
   );
 };

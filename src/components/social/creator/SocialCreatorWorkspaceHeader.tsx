@@ -69,7 +69,6 @@ export function SocialCreatorWorkspaceHeader({ ctrl, onPlatformChange }: SocialC
       canOpenDetails={canOpenDetails}
       isProcessing={ctrl.isGenerating}
       detailsPanelId="social-creator-generate-details"
-      onDetailsOpenChange={ctrl.setDetailsDrawerOpen}
       detailsPanel={<BulkGeneratorDetailsDrawer {...detailsProps} />}
     />
   );

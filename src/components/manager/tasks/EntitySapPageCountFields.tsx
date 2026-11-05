@@ -1,10 +1,9 @@
 import React, { useMemo, useRef, useEffect, useState, useCallback } from "react";
 import { ChevronDown } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Field, RowButton, Button } from "@/ui";
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { getStoredSites } from "@/components/integrations/storage";
 import {
-  TASK_FORM_FLAT_CONTROL_CLASS,
   TASK_FORM_SELECT_CONTENT_CLASS,
   TASK_FORM_SELECT_ITEM_CLASS,
   TaskFormPlaceholderCell,
@@ -52,17 +51,13 @@ function SapPackageMenu({
       <ul className="flex flex-col gap-0.5">
         {ENTITY_SAP_PACKAGE_SELECT_OPTIONS.map((opt) => (
           <li key={opt.value}>
-            <button
+            <RowButton
+              selected={mode === opt.value}
               type="button"
-              className={cn(
-                TASK_FORM_SELECT_ITEM_CLASS,
-                "flex min-h-10 w-full items-center rounded-none px-3 py-2 text-left hover:bg-zinc-900",
-                mode === opt.value && "bg-zinc-900/80 text-primary",
-              )}
               onClick={() => onPick(opt.value)}
             >
               {opt.label}
-            </button>
+            </RowButton>
           </li>
         ))}
       </ul>
@@ -133,15 +128,14 @@ export function EntitySapPageCountFields({
       <TaskFormPlaceholderCell>
         <Popover open={menuOpen} onOpenChange={handleMenuOpenChange}>
           <PopoverTrigger asChild disabled={disabled}>
-            <button
+            <RowButton
               type="button"
-              className="flex h-9 min-h-9 w-full min-w-0 items-center justify-between gap-2 bg-transparent px-2 text-left text-base text-white outline-none disabled:opacity-50"
               aria-label="SAP pages this month"
               aria-expanded={menuOpen}
             >
-              <span className="min-w-0 flex-1 truncate">{presetLabel}</span>
+              <span className="min-w-0 flex-1 whitespace-nowrap">{presetLabel}</span>
               <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-            </button>
+            </RowButton>
           </PopoverTrigger>
           <SapPackageMenu mode={mode} onPick={pickMode} />
         </Popover>
@@ -156,7 +150,7 @@ export function EntitySapPageCountFields({
           <PopoverAnchor asChild>
             <div className="pointer-events-none absolute inset-0" aria-hidden />
           </PopoverAnchor>
-          <Input
+          <Field
             ref={customCountRef}
             type="text"
             inputMode="numeric"
@@ -164,7 +158,6 @@ export function EntitySapPageCountFields({
             disabled={disabled}
             aria-label="SAP pages this month"
             value={customDraft}
-            className={cn(TASK_FORM_FLAT_CONTROL_CLASS, "relative z-[1] min-w-0 flex-1 px-2 tabular-nums")}
             onChange={(event) => {
               setCustomDraft(event.target.value.replace(/\D/g, ""));
             }}
@@ -176,13 +169,11 @@ export function EntitySapPageCountFields({
             }}
           />
           <PopoverTrigger asChild disabled={disabled}>
-            <button
-              type="button"
-              className="relative z-[1] flex h-9 w-10 shrink-0 items-center justify-center bg-transparent text-muted-foreground outline-none disabled:opacity-50"
+            <Button
+              size="icon" icon={ChevronDown}
+              variant="quiet"
               aria-label="SAP package options"
-            >
-              <ChevronDown className="h-4 w-4" aria-hidden />
-            </button>
+            ></Button>
           </PopoverTrigger>
         </div>
         <SapPackageMenu mode={mode} menuWidth={menuWidth} onPick={pickMode} />

@@ -4,12 +4,12 @@ import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import StarterKit from "@tiptap/starter-kit";
 import { Bold, Italic, Link2, List, ListOrdered } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { plainTextToEditorHtml } from "@/lib/master-instructions-plain-text";
+import { Button } from "@/ui";
 
 const EDITOR_CONTENT_CLASS =
-  "master-rules-rich-editor min-h-[9rem] w-full px-3 py-2 text-base leading-relaxed text-white outline-none [&_.ProseMirror]:min-h-[9rem] [&_.ProseMirror]:outline-none [&_a]:text-cyan-400 [&_a]:underline [&_li]:my-1 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5";
+  "master-rules-rich-editor min-h-[9rem] w-full px-3 py-2 text-base leading-relaxed text-white outline-none [&_.ProseMirror]:min-h-[9rem] [&_.ProseMirror]:outline-none [&_a]:text-semantic-analysis-foreground [&_a]:underline [&_li]:my-1 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5";
 
 function ToolbarButton({
   active,
@@ -24,14 +24,9 @@ function ToolbarButton({
 }) {
   return (
     <Button
+      variant="quiet"
       type="button"
-      variant="ghost"
-      size="icon"
       aria-label={label}
-      className={cn(
-        "h-8 w-8 shrink-0 rounded-none border-0 text-muted-foreground hover:bg-white/10 hover:text-white",
-        active && "bg-white/10 text-white",
-      )}
       onClick={onClick}
     >
       {children}
@@ -114,11 +109,11 @@ export function MasterRulesRichEditor({
   };
 
   if (!editor) {
-    return <div className={cn("min-h-[9rem] bg-zinc-900", className)} aria-hidden />;
+    return <div className={cn("min-h-[9rem] bg-ui-field", className)} aria-hidden />;
   }
 
   return (
-    <div className={cn("rounded-lg bg-zinc-900/50", className)}>
+    <div className={cn("rounded-lg bg-ui-field/50", className)}>
       {!readOnly ? (
         <div className="flex items-center gap-1 px-2 py-1">
           <ToolbarButton

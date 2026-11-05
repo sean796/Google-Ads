@@ -15,9 +15,9 @@ import {
 import { metaDisplayTitle, overviewRowDateLabel } from "@/lib/overview/overview-tab-display";
 import { overviewGridFocusKeywordLabel } from "@/lib/overview/focus-keyword-from-wp-sources";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { DASHBOARD_LIST_CHECKBOX_CLASS } from "@/components/shared/workspace-checkbox-styles";
 import { cn } from "@/lib/utils";
+import { Field } from "@/ui";
 
 export interface MetaOptimizerPageRowCompactProps {
   row: OverviewRow;
@@ -96,7 +96,7 @@ export function MetaOptimizerPageRowCompact({
     <div
       className={cn(
         !embedded && contentOptimizerRowStripeClass(stripeIndex, { isActiveOptimize }),
-        !embedded && !isActiveOptimize && "hover:bg-zinc-900",
+        !embedded && !isActiveOptimize && "hover:bg-ui-field",
         showTitleGrid
           ? CONTENT_OPTIMIZER_PAGE_ROW_GRID_CLASS
           : CONTENT_OPTIMIZER_PAGE_ROW_EXPANDED_GRID_CLASS,
@@ -143,7 +143,7 @@ export function MetaOptimizerPageRowCompact({
                 title={row.url}
                 className={cn(
                   "whitespace-normal break-words text-base font-bold leading-snug hover:underline",
-                  activeTextClass ?? "text-zinc-100 hover:text-cyan-300",
+                  activeTextClass ?? "text-foreground hover:text-semantic-analysis-foreground",
                 )}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -153,7 +153,7 @@ export function MetaOptimizerPageRowCompact({
               <span
                 className={cn(
                   "whitespace-normal break-words text-base font-bold leading-snug",
-                  activeTextClass ?? "text-zinc-100",
+                  activeTextClass ?? "text-foreground",
                 )}
               >
                 {titleLabel}
@@ -165,7 +165,7 @@ export function MetaOptimizerPageRowCompact({
             className={cn(
               CONTENT_OPTIMIZER_PAGE_ROW_TITLE_CELL,
               isActiveOptimize &&
-                "[&_span]:!text-sky-400 [&_span]:drop-shadow-[0_0_10px_rgba(56,189,248,0.55)]",
+                "[&_span]:!text-semantic-analysis-foreground [&_span]:drop-shadow-[0_0_10px_rgba(56,189,248,0.55)]",
             )}
           >
             <span className={cn("whitespace-normal break-words text-sm leading-snug sm:text-base", activeTextClass)}>
@@ -177,21 +177,18 @@ export function MetaOptimizerPageRowCompact({
             className={cn(
               CONTENT_OPTIMIZER_PAGE_ROW_DATE_CELL,
               isActiveOptimize &&
-                "!text-sky-400 drop-shadow-[0_0_10px_rgba(56,189,248,0.55)] [&_span]:!text-sky-400",
+                "!text-semantic-analysis-foreground drop-shadow-[0_0_10px_rgba(56,189,248,0.55)] [&_span]:!text-semantic-analysis-foreground",
             )}
           >
             {editableDate && onDateModifierChange ? (
-              <Input
+              <Field
+                placeholder="Date modifier"
                 type="date"
                 value={row.dateModifier || ""}
                 onChange={(e) => onDateModifierChange(e.target.value)}
                 onBlur={() => onDateModifierCommit?.()}
                 onClick={(e) => e.stopPropagation()}
                 onKeyDown={(e) => e.stopPropagation()}
-                className={cn(
-                  "h-8 min-w-0 w-full border-0 bg-transparent px-0 py-0 text-base shadow-none focus-visible:ring-0",
-                  activeTextClass,
-                )}
                 aria-label="Date modifier"
               />
             ) : (
@@ -205,9 +202,9 @@ export function MetaOptimizerPageRowCompact({
         {!isEmptyShell ? (
           <span className="flex h-7 w-7 shrink-0 items-center justify-center sm:h-8 sm:w-8" aria-hidden>
             {isExpanded ? (
-              <ChevronUp className="h-4 w-4 text-zinc-300" />
+              <ChevronUp className="h-4 w-4 text-foreground" />
             ) : (
-              <ChevronDown className="h-4 w-4 text-zinc-300" />
+              <ChevronDown className="h-4 w-4 text-foreground" />
             )}
           </span>
         ) : null}

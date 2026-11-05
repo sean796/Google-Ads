@@ -2,15 +2,14 @@ import React, { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import type { ChatThemeId } from "@/lib/chat-preferences-types";
 import { Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { deleteChatFile, searchChatShared, chatFileDownloadUrl } from "@/lib/chat-api";
 import type { ChatActivityLogEntry } from "@/lib/chat-activity-log";
 import { activityLabel, isFileActivity, isLinkActivity } from "@/lib/chat-activity-log";
 import type { ChatChannel } from "@/lib/chat-types";
 import type { TeamMember } from "@/lib/teams-types";
-import { CHAT_TEXT_MUTED, CHAT_TEXT_PRIMARY, CHAT_HEADING_TEXT, CHAT_RIGHT_RAIL_CLASS, CHAT_BORDER_CLASS, CHAT_CHIP_CLASS, CHAT_TAB_ACTIVE_CLASS, CHAT_INPUT_THEMED_CLASS } from "@/components/chat/chat-theme";
+import { CHAT_TEXT_MUTED, CHAT_TEXT_PRIMARY, CHAT_HEADING_TEXT, CHAT_RIGHT_RAIL_CLASS, CHAT_BORDER_CLASS } from "@/components/chat/chat-theme";
 import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
+import { Button, Field, SelectField } from "@/ui";
 
 type Tab = "all" | "links" | "files" | "myLinks" | "myFiles";
 
@@ -125,57 +124,43 @@ export function ChatSharedBrowser({
         <h3 className={cn("text-base font-bold", CHAT_HEADING_TEXT)}>Files &amp; links</h3>
       </div>
       <div className={cn("space-y-2 border-b px-4 py-3", CHAT_BORDER_CLASS)}>
-        <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" className={CHAT_INPUT_THEMED_CLASS} />
+        <Field value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" />
         <div className="flex flex-wrap gap-1">
           {tabs.map((t) => (
-            <button
+            <Button
+              pressed={tab === t.id}
+              variant="quiet"
               key={t.id}
-              type="button"
               onClick={() => setTab(t.id)}
-              className={cn(
-                "rounded-full px-3 py-1 text-base",
-                tab === t.id ? cn("chat-tab-active font-semibold", CHAT_TAB_ACTIVE_CLASS) : "chat-tab-idle",
-              )}
             >
               {t.label}
-            </button>
+            </Button>
           ))}
         </div>
         <div className="flex flex-wrap gap-2">
-          <select
-            value={filterChannel}
-            onChange={(e) => setFilterChannel(Number(e.target.value))}
-            className="rounded-md chat-chip px-2 py-1 text-base"
-          >
-            <option value={0}>All channels</option>
-            {channels.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.slug ?? c.name}
-              </option>
-            ))}
-          </select>
-          <select
+          <SelectField
+            placeholder="Channel"
+            value={String(filterChannel)}
+            onValueChange={(v) => setFilterChannel(Number(v))}
+            options={[{ value: "0", label: "All channels" }, ...channels.map((c) => ({ value: String(c.id), label: c.slug ?? c.name }))]}
+          />
+          <SelectField
+            placeholder="Scope"
             value={scope}
-            onChange={(e) => setScope(e.target.value as "all" | "channel" | "thread")}
-            className="rounded-md chat-chip px-2 py-1 text-base"
-          >
-            <option value="all">All</option>
-            <option value="channel">Channel</option>
-            <option value="thread">In threads</option>
-          </select>
+            onValueChange={(v) => setScope(v as "all" | "channel" | "thread")}
+            options={[
+              { value: "all", label: "All" },
+              { value: "channel", label: "Channel" },
+              { value: "thread", label: "In threads" },
+            ]}
+          />
           {tab !== "myLinks" && tab !== "myFiles" ? (
-            <select
-              value={filterUser}
-              onChange={(e) => setFilterUser(Number(e.target.value))}
-              className="rounded-md chat-chip px-2 py-1 text-base"
-            >
-              <option value={0}>All members</option>
-              {members.map((m) => (
-                <option key={m.userId} value={m.userId}>
-                  {m.displayName}
-                </option>
-              ))}
-            </select>
+            <SelectField
+              placeholder="Member"
+              value={String(filterUser)}
+              onValueChange={(v) => setFilterUser(Number(v))}
+              options={[{ value: "0", label: "All members" }, ...members.map((m) => ({ value: String(m.userId), label: m.displayName }))]}
+            />
           ) : null}
         </div>
       </div>
@@ -192,10 +177,9 @@ export function ChatSharedBrowser({
             const showDelete = canWrite && canDeleteFile(entry, currentUserId, isTeamAdmin);
             return (
               <div key={entry.id} className="group chat-row-hover flex w-full items-center gap-3 px-4 py-3">
-                <button
-                  type="button"
+                <Button
+                  variant="quiet"
                   onClick={() => handleClick(entry)}
-                  className="flex min-w-0 flex-1 gap-3 text-left"
                 >
                   {thumbUrl ? (
                     <img src={thumbUrl} alt="" className="h-12 w-12 shrink-0 rounded object-cover" />
@@ -205,29 +189,26 @@ export function ChatSharedBrowser({
                     </div>
                   )}
                   <span className="min-w-0 flex-1">
-                    <span className={cn("block truncate text-base font-medium", CHAT_TEXT_PRIMARY)}>
+                    <span className={cn("block break-words text-base font-medium", CHAT_TEXT_PRIMARY)}>
                       {activityLabel(entry)}
                     </span>
-                    <span className={cn("block truncate text-base", CHAT_TEXT_MUTED)}>
+                    <span className={cn("block break-words text-base", CHAT_TEXT_MUTED)}>
                       {entry.sharerDisplayName ?? "Unknown"} · #{entry.channelName ?? "channel"}
                       {entry.threadRootMessageId ? " · In thread" : ""}
                     </span>
                   </span>
-                </button>
+                </Button>
                 {showDelete ? (
                   <Button
+                    size="icon" icon={Trash2}
+                    variant="quiet"
                     type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 shrink-0 text-zinc-500 opacity-0 hover:text-red-600 group-hover:opacity-100"
                     aria-label="Delete file"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteFile(entry);
                     }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  ></Button>
                 ) : null}
               </div>
             );

@@ -1,6 +1,5 @@
 import React from "react";
 import { ChevronDown, ChevronUp, ImageIcon } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import {
   contentOptimizerRowStripeClass,
   contentOptimizerRowStripeHoverClass,
@@ -23,6 +22,7 @@ import {
   type SocialGenerateConfig,
 } from "@/lib/social/social-creator-types";
 import { cn } from "@/lib/utils";
+import { Button, Field } from "@/ui";
 
 export type SocialCreatorPostRowCompactProps = {
   row: SocialCreatorRow;
@@ -50,7 +50,7 @@ function MetaAdThumbnail({ row }: { row: SocialCreatorRow }) {
   const src = row.creative?.imagePreviewUrl ?? row.creative?.imageBase64 ?? null;
   if (!src) {
     return (
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center bg-zinc-900 text-muted-foreground">
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center bg-ui-field text-muted-foreground">
         <ImageIcon className="h-4 w-4" aria-hidden />
       </div>
     );
@@ -59,7 +59,7 @@ function MetaAdThumbnail({ row }: { row: SocialCreatorRow }) {
     <img
       src={src}
       alt=""
-      className="h-12 w-12 shrink-0 object-cover bg-zinc-900"
+      className="h-12 w-12 shrink-0 object-cover bg-ui-field"
     />
   );
 }
@@ -112,12 +112,11 @@ export function SocialCreatorPostRowCompact({
       </div>
 
       <div className={PPC_META_ROW_FIELD_CELL}>
-        <Input
+        <Field
           value={landingPageUrl}
           readOnly={fieldsReadOnly}
           disabled={fieldsReadOnly}
           placeholder="Landing page URL"
-          className={PPC_DETAIL_INPUT_CLASS}
           aria-label="Landing page URL"
           onClick={(e) => e.stopPropagation()}
           onChange={(e) => onLandingPageChange?.(e.target.value)}
@@ -125,12 +124,11 @@ export function SocialCreatorPostRowCompact({
       </div>
 
       <div className={PPC_META_ROW_FIELD_CELL}>
-        <Input
+        <Field
           value={focusKeyword}
           readOnly={keywordReadOnly}
           disabled={keywordReadOnly}
           placeholder="Keyword (defines image)"
-          className={PPC_DETAIL_INPUT_CLASS}
           aria-label="Focus keyword"
           onClick={(e) => e.stopPropagation()}
           onChange={(e) => onKeywordChange?.(e.target.value)}
@@ -160,9 +158,8 @@ export function SocialCreatorPostRowCompact({
           deleteDisabled={deleteDisabled}
           deleteLabel="Delete post"
           chevron={
-            <button
-              type="button"
-              className="inline-flex h-8 w-8 items-center justify-center text-foreground hover:text-primary"
+            <Button
+              variant="quiet"
               aria-expanded={isExpanded}
               aria-controls={panelId}
               aria-label={isExpanded ? "Collapse post details" : "Expand post details"}
@@ -176,7 +173,7 @@ export function SocialCreatorPostRowCompact({
               ) : (
                 <ChevronDown className="h-4 w-4" aria-hidden />
               )}
-            </button>
+            </Button>
           }
         />
       </div>

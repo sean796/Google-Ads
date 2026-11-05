@@ -52,22 +52,22 @@ export function ForgeDashboardRow({
       <span
         className={cn(
           "h-2 w-2 shrink-0 rounded-full",
-          placeholder ? "bg-zinc-800" : active ? "bg-primary" : "bg-zinc-700",
+          placeholder ? "bg-ui-field-hover" : active ? "bg-primary" : "bg-ui-field-hover",
         )}
         aria-hidden
       />
       <span
         className={cn(
-          "min-w-0 truncate text-base font-medium",
+          "min-w-0 break-words text-base font-medium",
           placeholder ? "text-muted-foreground" : "text-white",
         )}
       >
         {placeholder ? "—" : title}
       </span>
-      <span className="min-w-0 truncate text-right text-base text-muted-foreground">
+      <span className="min-w-0 break-words text-right text-base text-muted-foreground">
         {placeholder ? "—" : meta}
       </span>
-      <span className="min-w-0 truncate text-right text-base text-white">
+      <span className="min-w-0 break-words text-right text-base text-white">
         {placeholder ? "—" : value}
       </span>
       <div className="flex justify-end">{placeholder ? null : action}</div>

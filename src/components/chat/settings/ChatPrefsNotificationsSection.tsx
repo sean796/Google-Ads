@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
 import type { ChatUserPreferences } from "@/lib/chat-preferences-types";
 import { playChatTestSound, queueChatTestNotification, chatNotificationPermissionLabel } from "@/lib/chat-test-notification";
+import { Button, Field, CheckField, SelectField } from "@/ui";
 
 type Props = {
   draft: ChatUserPreferences;
@@ -19,15 +19,7 @@ function ToggleRow({
   onChecked: (v: boolean) => void;
 }): React.ReactElement {
   return (
-    <label className="flex items-center justify-between gap-3 py-1 text-base">
-      <span>{label}</span>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChecked(e.target.checked)}
-        className="h-4 w-4 accent-primary"
-      />
-    </label>
+    <CheckField label={label} checked={checked} onCheckedChange={onChecked} />
   );
 }
 
@@ -61,17 +53,16 @@ function TagInput({
       <p className="text-base text-muted-foreground">{label}</p>
       <div className="flex flex-wrap gap-2">
         {values.map((tag) => (
-          <button
+          <Button
+            variant="quiet"
             key={tag}
-            type="button"
-            className="rounded-full bg-zinc-900/50 px-3 py-1 text-base"
             onClick={() => onChange(values.filter((v) => v !== tag))}
           >
             {tag} ×
-          </button>
+          </Button>
         ))}
       </div>
-      <input
+      <Field
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={(e) => {
@@ -84,7 +75,6 @@ function TagInput({
           if (input.trim()) addTags(input);
         }}
         placeholder="Add and press Enter"
-        className="h-10 w-full rounded-md bg-zinc-900/50 px-3 text-base outline-none placeholder:text-muted-foreground"
       />
     </div>
   );
@@ -144,9 +134,6 @@ export function ChatPrefsNotificationsSection({
         <div className="flex flex-wrap items-center gap-3 pt-1">
           <Button
             type="button"
-            variant="outline"
-            size="sm"
-            className="text-base"
             disabled={testing}
             onClick={() => void runNotificationTest()}
           >
@@ -160,17 +147,17 @@ export function ChatPrefsNotificationsSection({
           ) : null}
         </div>
         {notifications.soundEnabled ? (
-          <select
+          <SelectField
+            placeholder="Sound preset"
             value={notifications.soundPreset}
-            onChange={(e) =>
-              onChangeNotifications({ soundPreset: e.target.value as typeof notifications.soundPreset })
-            }
-            className="h-10 w-full rounded-md bg-zinc-900/50 px-3 text-base outline-none"
-          >
-            <option value="subtle">Subtle</option>
-            <option value="classic">Classic</option>
-            <option value="none">None</option>
-          </select>
+            onValueChange={(v) => onChangeNotifications({ soundPreset: v as typeof notifications.soundPreset })}
+            options={[
+              { value: "subtle", label: "Subtle" },
+              { value: "classic", label: "Classic" },
+              { value: "none", label: "None" },
+            ]}
+            width="full"
+          />
         ) : null}
         <TagInput
           label="Keyword watch"

@@ -46,9 +46,15 @@ export function filterInventorySitemapUrls(urls: string[]): string[] {
 }
 
 export function filterInventorySitemapRows<T extends { url?: string }>(rows: T[]): T[] {
-  return rows.filter((row) => {
+  const seenUrls = new Set<string>();
+  const out: T[] = [];
+  for (const row of rows) {
     const url = row.url?.trim();
-    if (!url) return false;
-    return !isInventoryExcludedSitemapUrl(url);
-  });
+    if (!url || isInventoryExcludedSitemapUrl(url)) continue;
+    const key = url.toLowerCase();
+    if (seenUrls.has(key)) continue;
+    seenUrls.add(key);
+    out.push(row);
+  }
+  return out;
 }

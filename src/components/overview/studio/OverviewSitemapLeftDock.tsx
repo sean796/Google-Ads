@@ -1,14 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  FileText,
-  RefreshCw,
+  ChevronDown,
   Search,
   Sparkles,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { ContentOptimizerSectionId } from "@/components/content-optimizer/content-optimizer-sections";
 import { isOverviewRowOptimizationActive } from "@/components/overview/overview-tab/overview-bulk-run-helpers";
 import { OverviewBulkClusterFlyout } from "@/components/overview/overview-tab/OverviewBulkClusterFlyout";
@@ -43,10 +39,10 @@ import {
 } from "@/lib/bulk/bulk-generator-studio-rows";
 import { rowIndexForOverviewUrl } from "@/lib/bulk/bulk-generator-overview-row-bridge";
 import { BulkStudioTitleUrlOptimizingBlock } from "@/components/keyword-research/bulk/BulkStudioTitleUrlOptimizingBlock";
+import { Field, RowButton, SelectField } from "@/ui";
 
 export type OverviewSitemapLeftDockBulkGeneratorDock = {
   variant: BulkGeneratorStudioVariant;
-  emptyListCopy: string;
   csvLoading?: boolean;
   /** Title + URL slug agents running (CSV enrich). */
   csvEnrichingTitlesUrls?: boolean;
@@ -290,42 +286,13 @@ export function OverviewSitemapLeftDock({
       className="relative flex h-full min-h-0 shrink-0 flex-col border-r border-white/10 bg-black font-sans text-base text-white"
     >
       {/* Top Sitemap Scope & Mode Row (OPT parity for bulk + optimizer) */}
-      <div className="flex h-11 shrink-0 items-center justify-between gap-2 bg-zinc-900 px-3">
+      <div className="flex h-11 shrink-0 items-center justify-between gap-2 bg-black px-3">
         <div className="flex min-w-0 flex-1 items-center gap-1.5">
-          <Select
-            value={sitemapSelectValue}
-            onValueChange={(val) => c.setSitemapSource(val as OverviewSitemapSource)}
-          >
-            <SelectTrigger
-              aria-label="Sitemap source"
-              className="h-8 min-w-[7.5rem] rounded-none border-0 bg-black px-2.5 text-base font-medium text-white focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              <SelectValue placeholder="Sitemap source" />
-            </SelectTrigger>
-            <SelectContent className="rounded-none border-0 bg-zinc-900 text-base text-white">
-              {sourceOptions.map((opt) => (
-                <SelectItem key={opt.id} value={opt.id} className="text-base">
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="relative flex min-w-0 flex-1 items-center">
+            <SelectField placeholder="Sitemap source" tone="data" value={sitemapSelectValue} onValueChange={(v) => c.setSitemapSource(v as OverviewSitemapSource)} options={sourceOptions.map((opt) => ({ value: opt.id, label: opt.label }))} width="full" />
+            <ChevronDown className="pointer-events-none absolute right-2 h-4 w-4 text-white/70" aria-hidden />
+          </div>
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            disabled={c.overviewSitemapLoadBusy || bulkWorkspaceBusy}
-            title="Refresh sitemap inventory"
-            aria-label="Refresh sitemap inventory"
-            onClick={() => void c.handleRefreshSitemap()}
-            className={cn(
-              "h-8 w-8 shrink-0 rounded-none border-0 bg-black text-muted-foreground hover:bg-zinc-800 hover:text-white",
-              c.overviewSitemapLoadBusy && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-            )}
-          >
-            <RefreshCw className="h-4 w-4" aria-hidden />
-          </Button>
         </div>
       </div>
 
@@ -378,7 +345,7 @@ export function OverviewSitemapLeftDock({
             className="pointer-events-none absolute left-2 h-3.5 w-3.5 text-muted-foreground"
             aria-hidden
           />
-          <Input
+          <Field
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={
@@ -387,7 +354,6 @@ export function OverviewSitemapLeftDock({
                 : `Search ${c.displayRows.length} articles...`
             }
             aria-label={isBulkGeneratorDock ? "Search generator rows" : "Search sitemap articles"}
-            className="h-7 w-full rounded-none border-0 bg-zinc-900 pl-7 pr-2 text-xs text-white placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-primary"
           />
         </div>
 
@@ -412,12 +378,7 @@ export function OverviewSitemapLeftDock({
       {/* Scrollable Sitemap Article List */}
       <div className="min-h-0 flex-1 overflow-y-auto">
         {filteredRows.length === 0 ? (
-          isBulkGeneratorDock ? (
-            <div className="flex h-48 flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground">
-              <FileText className="h-5 w-5 text-muted-foreground" aria-hidden />
-              <p className="text-base">{bulkGeneratorDock!.emptyListCopy}</p>
-            </div>
-          ) : (
+          (
             <div className="min-h-48" aria-hidden />
           )
         ) : (
@@ -425,7 +386,7 @@ export function OverviewSitemapLeftDock({
             className="divide-y divide-white/5"
             aria-label={isBulkGeneratorDock ? "Generator rows" : "Sitemap articles"}
           >
-            {filteredRows.map((row) => {
+            {filteredRows.map((row, rowIdx) => {
               const displayIndex = rowIndexForOverviewUrl(c.displayRows, row.url);
               const rowKey = normalizePageUrlKey(row.url);
               const isSelected = Boolean(rowKey && c.selectedUrlKeys?.has(rowKey));
@@ -475,7 +436,7 @@ export function OverviewSitemapLeftDock({
 
               return (
                 <li
-                  key={rowKey || row.url}
+                  key={`${rowKey || row.url}::${rowIdx}`}
                   ref={(el) => {
                     if (!rowKey) return;
                     if (el) rowRefs.current.set(rowKey, el);
@@ -485,12 +446,12 @@ export function OverviewSitemapLeftDock({
                     "group flex items-start gap-2.5 px-3.5 py-3 transition-colors",
                     isBusy
                       ? cn(
-                          "border-l-2 border-sky-400 bg-sky-950/25",
+                          "border-l-2 border-semantic-analysis bg-semantic-analysis/25",
                           CONTENT_OPTIMIZER_ACTIVE_ROW_HIGHLIGHT_CLASS,
                         )
                       : isActive
-                        ? "border-l-2 border-primary bg-zinc-900"
-                        : "bg-black hover:bg-zinc-950",
+                        ? "border-l-2 border-primary bg-ui-field"
+                        : "bg-black hover:bg-black",
                   )}
                 >
                   {isBulkGeneratorDock && bulkGeneratorDock!.promptSelection && !isPlaceholderRow && displayIndex >= 0 ? (
@@ -521,8 +482,7 @@ export function OverviewSitemapLeftDock({
                     </div>
                   ) : null}
 
-                  <button
-                    type="button"
+                  <RowButton
                     onClick={(e) => {
                       if (e.shiftKey) {
                         e.preventDefault();
@@ -531,18 +491,17 @@ export function OverviewSitemapLeftDock({
                       }
                       onSelectUrl(row.url);
                     }}
-                    className="flex min-w-0 flex-1 flex-col items-start gap-1 text-left outline-none focus:outline-none focus-visible:outline-none"
                   >
                     {isTitleUrlOptimizing ? (
                       <BulkStudioTitleUrlOptimizingBlock />
                     ) : isPlaceholderRow ? (
-                      <div className="flex w-full items-center gap-3 rounded-lg border border-dashed border-zinc-700/60 bg-zinc-900/40 p-2.5 transition-all group-hover:border-primary/50 group-hover:bg-zinc-900/80">
+                      <div className="flex w-full items-center gap-3 rounded-lg border border-dashed border-border/60 bg-ui-field/40 p-2.5 transition-all group-hover:border-primary/50 group-hover:bg-ui-field/80">
                         {/* Blueprint Article Graphic */}
-                        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-zinc-700/60 bg-gradient-to-b from-zinc-800 to-zinc-900 shadow-inner group-hover:border-primary/40 transition-colors">
+                        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border/60 bg-gradient-to-b from-muted-foreground to-muted-foreground shadow-inner group-hover:border-primary/40 transition-colors">
                           <svg
                             viewBox="0 0 28 28"
                             fill="none"
-                            className="h-6 w-6 text-zinc-400 transition-colors group-hover:text-primary"
+                            className="h-6 w-6 text-muted-foreground transition-colors group-hover:text-primary"
                             stroke="currentColor"
                             strokeWidth="1.5"
                           >
@@ -553,7 +512,7 @@ export function OverviewSitemapLeftDock({
                               height="24"
                               rx="3"
                               strokeDasharray="2.5 2.5"
-                              className="stroke-zinc-600 group-hover:stroke-primary/50"
+                              className="stroke-muted-foreground group-hover:stroke-primary/50"
                             />
                             <rect
                               x="6"
@@ -561,7 +520,7 @@ export function OverviewSitemapLeftDock({
                               width="6"
                               height="6"
                               rx="1.5"
-                              className="fill-zinc-700/50 stroke-zinc-500 group-hover:fill-primary/20 group-hover:stroke-primary/60"
+                              className="fill-muted-foreground/50 stroke-muted-foreground group-hover:fill-primary/20 group-hover:stroke-primary/60"
                             />
                             <line
                               x1="15"
@@ -569,7 +528,7 @@ export function OverviewSitemapLeftDock({
                               x2="22"
                               y2="7"
                               strokeLinecap="round"
-                              className="stroke-zinc-500 group-hover:stroke-primary/70"
+                              className="stroke-muted-foreground group-hover:stroke-primary/70"
                             />
                             <line
                               x1="15"
@@ -577,7 +536,7 @@ export function OverviewSitemapLeftDock({
                               x2="20"
                               y2="10.5"
                               strokeLinecap="round"
-                              className="stroke-zinc-600"
+                              className="stroke-muted-foreground"
                             />
                             <line
                               x1="6"
@@ -585,7 +544,7 @@ export function OverviewSitemapLeftDock({
                               x2="22"
                               y2="16"
                               strokeLinecap="round"
-                              className="stroke-zinc-600"
+                              className="stroke-muted-foreground"
                             />
                             <line
                               x1="6"
@@ -593,35 +552,35 @@ export function OverviewSitemapLeftDock({
                               x2="17"
                               y2="19.5"
                               strokeLinecap="round"
-                              className="stroke-zinc-700"
+                              className="stroke-muted-foreground"
                             />
                           </svg>
                           <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-40" />
-                            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/80 opacity-40" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-primary/80" />
                           </span>
                         </div>
 
                         {/* Graphic details and wireframe bars */}
                         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                           <div className="flex items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1 rounded bg-zinc-800/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-300 group-hover:bg-primary/20 group-hover:text-primary transition-colors">
-                              <Sparkles className="h-2.5 w-2.5 text-emerald-400" />
+                            <span className="inline-flex items-center gap-1 rounded bg-ui-field-hover/90 px-1.5 py-0.5 text-base font-semibold uppercase tracking-wider text-foreground group-hover:bg-primary/20 group-hover:text-primary transition-colors">
+                              <Sparkles className="h-2.5 w-2.5 text-primary" />
                               Slot {slotNum}
                             </span>
                           </div>
                           <div className="flex flex-col gap-1 w-full pt-0.5">
-                            <div className="h-2 w-4/5 rounded-full bg-zinc-800 group-hover:bg-zinc-700/60 transition-colors" />
-                            <div className="h-1.5 w-1/2 rounded-full bg-zinc-800/60 group-hover:bg-zinc-700/40 transition-colors" />
+                            <div className="h-2 w-4/5 rounded-full bg-ui-field-hover group-hover:bg-ui-field-hover/60 transition-colors" />
+                            <div className="h-1.5 w-1/2 rounded-full bg-ui-field-hover/60 group-hover:bg-ui-field-hover/40 transition-colors" />
                           </div>
                         </div>
                       </div>
                     ) : (
-                      <>
+                      <div className="flex min-w-0 flex-1 flex-col items-start gap-1 text-left">
                         <div className="flex w-full items-center justify-between gap-2">
                           <span
                             className={cn(
-                              "line-clamp-1 text-base font-medium leading-snug",
+                              "text-base font-medium leading-snug",
                               isBusy
                                 ? CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS
                                 : isPreIdeasPlaceholder
@@ -637,15 +596,15 @@ export function OverviewSitemapLeftDock({
 
                         <span
                           className={cn(
-                            "w-full truncate text-base",
+                            "w-full break-words text-base",
                             isBusy ? CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS : "text-muted-foreground",
                           )}
                         >
                           {pathLabel}
                         </span>
-                      </>
+                      </div>
                     )}
-                  </button>
+                  </RowButton>
                 </li>
               );
             })}

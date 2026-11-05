@@ -7,15 +7,16 @@ import {
   PPC_ROW_CONTENT_SPAN_CLASS,
 } from "@/components/ppc/google/google-ads-row-constants";
 import { cn } from "@/lib/utils";
+import { Button, Field } from "@/ui";
 
 export const PPC_DETAILS_ACCORDION_STACK = "flex flex-col gap-2.5 rounded-none pt-1";
 
 export const PPC_DETAILS_TRIGGER = cn(
-  "grid w-full min-w-0 min-h-[3rem] items-center gap-x-2 rounded-none border-0 bg-zinc-950 py-1.5 text-left text-base font-medium text-white sm:min-h-[3.25rem] sm:gap-x-3",
+  "grid w-full min-w-0 min-h-[3rem] items-center gap-x-2 rounded-none border-0 bg-black py-1.5 text-left text-base font-medium text-white sm:min-h-[3.25rem] sm:gap-x-3",
   PPC_CAMPAIGN_ROW_GRID_COLS,
 );
 
-export const PPC_DETAILS_SUBTRIGGER = cn(PPC_DETAILS_TRIGGER, "bg-zinc-900/80");
+export const PPC_DETAILS_SUBTRIGGER = cn(PPC_DETAILS_TRIGGER, "bg-ui-field/80");
 
 export type GoogleAdsDetailsSectionProps = {
   title: string;
@@ -60,10 +61,10 @@ function SectionTitle({
   badge?: string | number;
 }) {
   return (
-    <span className="min-w-0 flex-1 truncate text-left">
+    <span className="min-w-0 flex-1 break-words text-left">
       {title}
       {badge !== undefined ? (
-        <span className="ml-2 tabular-nums text-sky-400">{badge}</span>
+        <span className="ml-2 tabular-nums text-semantic-analysis-foreground">{badge}</span>
       ) : null}
     </span>
   );
@@ -102,16 +103,11 @@ export function GoogleAdsDetailsSection({
       chevron={
         chevronAsCollapsibleTrigger ? (
           <CollapsibleTrigger asChild>
-            <button
-              type="button"
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center text-white"
+            <Button
+              size="icon" icon={ChevronDown}
+              variant="quiet"
               aria-label={open ? "Collapse section" : "Expand section"}
-            >
-              <ChevronDown
-                className={cn("h-4 w-4 transition-transform", open && "rotate-180")}
-                aria-hidden
-              />
-            </button>
+            ></Button>
           </CollapsibleTrigger>
         ) : (
           <ChevronDown
@@ -130,13 +126,12 @@ export function GoogleAdsDetailsSection({
         {titlePrefix ? (
           <span className="shrink-0 text-base font-medium text-white">{titlePrefix}</span>
         ) : null}
-        <input
+        <Field
           type="text"
           value={titleField.value}
           readOnly={titleField.readOnly}
           placeholder={titleField.placeholder}
           aria-label={titleField.ariaLabel ?? title}
-          className="h-8 min-w-0 flex-1 border-0 bg-zinc-900 px-2 text-base font-medium text-white shadow-none outline-none placeholder:text-muted-foreground read-only:cursor-default"
           onClick={stopFieldActivation}
           onKeyDown={stopFieldActivation}
           onChange={titleField.onChange ? (e) => titleField.onChange?.(e.target.value) : undefined}
@@ -146,13 +141,13 @@ export function GoogleAdsDetailsSection({
     </div>
   ) : (
     <CollapsibleTrigger asChild>
-      <button type="button" className={triggerClass}>
+      <Button variant="quiet">
         <div className={PPC_ROW_CONTENT_SPAN_CLASS}>
           {icon ? <span className="inline-flex shrink-0 [&_svg]:h-4 [&_svg]:w-4">{icon}</span> : null}
           <SectionTitle title={title} badge={badge} />
         </div>
         {endRail(false)}
-      </button>
+      </Button>
     </CollapsibleTrigger>
   );
 

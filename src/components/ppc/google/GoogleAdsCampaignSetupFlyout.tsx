@@ -1,13 +1,8 @@
 import { ChevronDown, Minus, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { GoogleAdsCampaignStatusFilterSelect } from "@/components/ppc/google/GoogleAdsCampaignStatusFilterSelect";
-import {
-  BULK_HEADER_FIELD,
-  BULK_HEADER_TOOL_BTN,
-  BULK_TOOLBAR_GROUP_DIVIDER,
-} from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
+import { BULK_HEADER_FIELD, BULK_TOOLBAR_GROUP_DIVIDER } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import {
   clampPpcAdGroupCount,
   clampPpcAdsPerAdGroup,
@@ -23,6 +18,7 @@ import {
 import type { PpcGoogleAdsCampaignStatusFilter } from "@/lib/ppc/ppc-google-ads-status-filter";
 import type { PpcGoogleWorkspaceController } from "@/hooks/ppc/use-ppc-google-workspace";
 import { cn } from "@/lib/utils";
+import { Button, Field } from "@/ui";
 
 const STATUS_LABEL: Record<PpcGoogleAdsCampaignStatusFilter, string> = {
   active: "Active",
@@ -30,14 +26,6 @@ const STATUS_LABEL: Record<PpcGoogleAdsCampaignStatusFilter, string> = {
   disabled: "Disabled",
   all: "All",
 };
-
-const FLYOUT_NUM_INPUT = cn(
-  BULK_HEADER_FIELD,
-  "h-8 w-12 min-w-12 border-0 bg-zinc-900 px-1 text-center text-base tabular-nums shadow-none focus-visible:ring-2",
-);
-
-const FLYOUT_STEP_BTN =
-  "h-8 w-8 shrink-0 rounded-none border-0 bg-zinc-900 p-0 text-foreground hover:bg-zinc-800 disabled:opacity-50";
 
 type GoogleAdsCampaignSetupFlyoutProps = {
   ctrl: PpcGoogleWorkspaceController;
@@ -68,28 +56,26 @@ function SetupCountRow({
 
   return (
     <div className="flex min-h-8 items-center gap-2">
-      <span className="min-w-0 flex-1 text-base text-zinc-200">{label}</span>
+      <span className="min-w-0 flex-1 text-base text-foreground">{label}</span>
       <div className="flex shrink-0 items-center gap-1">
         <Button
+          size="icon" icon={Minus}
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="icon"
-          className={FLYOUT_STEP_BTN}
           disabled={disabled || value <= min}
           aria-label={`Remove ${label.toLowerCase()}`}
           onClick={dec}
-        >
-          <Minus className="h-4 w-4" aria-hidden />
-        </Button>
-        <input
+        ></Button>
+        <Field
           id={inputId}
+          size="count"
+          placeholder={label}
           type="number"
           min={min}
           max={max}
           value={value}
           disabled={disabled}
           aria-label={label}
-          className={FLYOUT_NUM_INPUT}
           onChange={(e) => {
             const raw = Number(e.target.value);
             if (!Number.isFinite(raw)) return;
@@ -97,16 +83,13 @@ function SetupCountRow({
           }}
         />
         <Button
+          size="icon" icon={Plus}
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="icon"
-          className={FLYOUT_STEP_BTN}
           disabled={disabled || value >= max}
           aria-label={`Add ${label.toLowerCase()}`}
           onClick={inc}
-        >
-          <Plus className="h-4 w-4" aria-hidden />
-        </Button>
+        ></Button>
       </div>
     </div>
   );
@@ -142,35 +125,30 @@ export function GoogleAdsCampaignSetupFlyout({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
           disabled={disabled}
-          className={cn(
-            BULK_HEADER_TOOL_BTN,
-            "h-8 min-w-[12rem] max-w-[min(100%,28rem)] shrink-0 justify-between gap-2 px-2.5 tabular-nums",
-            className,
-          )}
           aria-label="Campaign setup and filters"
         >
-          <span className="min-w-0 truncate text-left">{triggerSummary}</span>
+          <span className="min-w-0 break-words text-left">{triggerSummary}</span>
           <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
         </Button>
       </PopoverTrigger>
       <PopoverContent
         align={align}
         sideOffset={6}
-        className="w-[min(100vw-2rem,22rem)] rounded-none border-0 bg-zinc-950 p-0 text-base shadow-lg"
+        className="w-[min(100vw-2rem,22rem)] rounded-none border-0 bg-black p-0 text-base shadow-lg"
       >
         <div className="flex flex-col gap-3 px-3 py-3">
           <p className="text-base font-medium text-white">Campaign setup</p>
 
           <div className="flex min-h-8 items-center gap-2">
-            <span className="flex-1 text-base text-zinc-200">Status filter</span>
+            <span className="flex-1 text-base text-foreground">Status filter</span>
             <GoogleAdsCampaignStatusFilterSelect
               id="ppc-setup-status-filter"
               value={adsCampaignStatusFilter}
               disabled={disabled}
-              className="min-w-[7rem] bg-zinc-900"
+              className="min-w-[7rem] bg-ui-field"
               onChange={setAdsCampaignStatusFilter}
             />
           </div>
@@ -210,10 +188,9 @@ export function GoogleAdsCampaignSetupFlyout({
           </p>
 
           <Button
+            variant="quiet"
             type="button"
-            variant="ghost"
             disabled={disabled || generateConfig.campaignCount >= PPC_CAMPAIGN_COUNT_MAX}
-            className="h-8 w-full justify-start rounded-none bg-zinc-900 px-2 text-base text-foreground hover:bg-zinc-800"
             onClick={() =>
               patchConfig({
                 campaignCount: clampPpcCampaignCount(generateConfig.campaignCount + 1),

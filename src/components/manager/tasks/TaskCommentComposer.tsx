@@ -1,10 +1,7 @@
 import React, { useMemo, useState } from "react";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { DASHBOARD_SETTINGS_FIELD_CLASS } from "@/components/manager/dashboard/dashboard-panel-styles";
 import type { TeamMember } from "@/lib/teams-types";
-
-const FIELD_CLASS = `${DASHBOARD_SETTINGS_FIELD_CLASS} w-full text-base`;
+import { Button, RowButton, TextareaField } from "@/ui";
 
 export type TaskCommentComposerProps = {
   members: TeamMember[];
@@ -65,29 +62,27 @@ export function TaskCommentComposer({
 
   return (
     <div className="relative flex flex-col gap-2">
-      <Textarea
+      <TextareaField
         value={body}
         onChange={(e) => handleChange(e.target.value)}
         placeholder="Add a comment. Type @ to mention"
-        className={`${FIELD_CLASS} min-h-20`}
         disabled={disabled}
       />
       {mentionOpen && mentionCandidates.length > 0 ? (
-        <ul className="absolute bottom-full left-0 z-10 mb-1 max-h-40 w-full overflow-y-auto bg-zinc-900">
+        <ul className="absolute bottom-full left-0 z-10 mb-1 max-h-40 w-full overflow-y-auto bg-ui-field">
           {mentionCandidates.map((member) => (
             <li key={member.userId}>
-              <button
+              <RowButton
                 type="button"
                 onClick={() => insertMention(member)}
-                className="w-full px-2 py-2 text-left text-base text-white hover:bg-zinc-800"
               >
                 {member.displayName || member.email}
-              </button>
+              </RowButton>
             </li>
           ))}
         </ul>
       ) : null}
-      <Button type="button" className="h-12 text-base" disabled={disabled || !body.trim()} onClick={handleSubmit}>
+      <Button variant="run" type="button" disabled={disabled || !body.trim()} onClick={handleSubmit}>
         Comment
       </Button>
     </div>

@@ -4,23 +4,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  CheckCircle2,
-  Loader2,
-  AlertCircle,
-  Circle,
-  CircleDot,
-  Copy,
-  Download,
-  FileText,
-  FileDown,
-  Map as MapIcon,
-  MinusCircle,
-  Upload,
-  X,
-  ChevronDown,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CheckCircle2, AlertCircle, Circle, CircleDot, Copy, Download, FileText, FileDown, Map as MapIcon, MinusCircle, Upload, X, ChevronDown } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
   Collapsible,
@@ -163,6 +147,7 @@ import {
   isAiseoFileSlotRunKind,
 } from "@/lib/overview/overview-aiseo-row-artifacts";
 import { resolveOverviewBulkPipelineTitles } from "@/lib/overview/overview-bulk-details-bindings";
+import { Button, RowButton } from "@/ui";
 
 export type BulkPanelVariant = "modal" | "page";
 export type BulkPanelDisplayMode = "full" | "details-only";
@@ -230,7 +215,7 @@ const TargetingSequence: React.FC<{ currentStepIndex: number; flat?: boolean }> 
                 : cn(
                     "rounded px-1.5 py-0.5",
                     isCompleted && "bg-primary/15 text-primary",
-                    isCurrent && "animate-pulse bg-primary/25 font-semibold text-foreground",
+                    isCurrent && "bg-primary/25 font-semibold text-foreground",
                     currentStepIndex < index && "bg-muted text-muted-foreground",
                   ),
             )}
@@ -966,10 +951,8 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
             </h2>
             {isHarnessParallelRun && variant === "page" ? (
               <Button
+                variant="quiet"
                 type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 shrink-0 px-2 text-base text-muted-foreground hover:text-foreground"
                 onClick={() => setHarnessDetailsOpen((open) => !open)}
                 aria-expanded={harnessDetailsOpen}
               >
@@ -1002,7 +985,7 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
             <div className="flex items-center justify-between gap-2">
               <span className="flex min-w-0 items-center gap-2 text-base font-medium leading-tight text-foreground">
                 {!allComplete ? (
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
+                  null
                 ) : null}
                 <span>Pages</span>
               </span>
@@ -1021,9 +1004,6 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
             {variant === "page" && !harnessDetailsOpen ? (
               <div className="flex items-center justify-end gap-2 pt-1">
                 <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-base bg-transparent border-border text-primary hover:bg-muted hover:text-foreground"
                   onClick={() => onRequestClose({ abortingRun: false })}
                 >
                   <X className="mr-1.5 h-3.5 w-3.5" />
@@ -1031,9 +1011,8 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                 </Button>
                 {isBulkAiAllMetaRun && allComplete && completedCount > 0 && onUploadToWordPress ? (
                   <Button
+                    variant="run"
                     type="button"
-                    size="sm"
-                    className="h-8 text-base font-semibold"
                     onClick={() => onUploadToWordPress()}
                   >
                     <Upload className="mr-1.5 h-3.5 w-3.5" />
@@ -1065,10 +1044,8 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
               <div className="flex min-h-9 w-full items-center justify-between gap-2 border-0 px-2.5 py-1.5 text-white sm:px-3">
                 {planFile ? (
                   <Button
+                    variant="quiet"
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-0 text-base text-white hover:bg-white/10 hover:text-white"
                     onClick={() => downloadFile(planFile)}
                   >
                     <Download className="mr-1.5 h-3.5 w-3.5" />
@@ -1077,13 +1054,8 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                 ) : null}
                 {combinedCsvFile ? (
                   <Button
+                    variant="quiet"
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "h-8 px-0 text-base text-white hover:bg-white/10 hover:text-white",
-                      planFile && "ml-4",
-                    )}
                     onClick={() => downloadFile(combinedCsvFile)}
                   >
                     <Download className="mr-1.5 h-3.5 w-3.5" />
@@ -1092,13 +1064,8 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                 ) : null}
                 {summaryFile ? (
                   <Button
+                    variant="quiet"
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "h-8 px-0 text-base text-white hover:bg-white/10 hover:text-white",
-                      (planFile || combinedCsvFile) && "ml-4",
-                    )}
                     onClick={() => downloadFile(summaryFile)}
                   >
                     <Download className="mr-1.5 h-3.5 w-3.5" />
@@ -1127,11 +1094,11 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
             <div className="flex items-center justify-between text-base font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               <span>Loading sitemap &amp; site data</span>
               {!isDetailsOnly ? (
-                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
+                null
               ) : null}
             </div>
             <BulkProgressBar indeterminate />
-            <div className="truncate text-xs text-muted-foreground" title={initialLoadingMessage}>
+            <div className="break-words text-xs text-muted-foreground" title={initialLoadingMessage}>
               {initialLoadingMessage}
             </div>
           </div>
@@ -1146,7 +1113,7 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
             </div>
             <BulkProgressBar value={overallProgress} />
             <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-              <span className="min-w-0 truncate" title={isInitialLoading || isBulkExtraTextRun || isBulkAiAllMetaRun || isBulkResearchRun ? initialLoadingMessage : undefined}>
+              <span className="min-w-0 break-words" title={isInitialLoading || isBulkExtraTextRun || isBulkAiAllMetaRun || isBulkResearchRun ? initialLoadingMessage : undefined}>
                 {isInitialLoading || ((isBulkExtraTextRun || isBulkAiAllMetaRun || isBulkResearchRun) && !allComplete)
                   ? initialLoadingMessage
                   : `${processedCount} of ${totalCount} targets processed`}
@@ -1192,7 +1159,7 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                     totalCount={totalCount}
                     pageSize={bulkPageSize}
                     onPageChange={setUiPageIndex}
-                    className="rounded-none bg-zinc-900"
+                    className="rounded-none bg-ui-field"
                   />
                   {bulkState?.currentBulkPage && !allComplete ? (
                     <p className="px-1 text-base text-muted-foreground">
@@ -1386,19 +1353,13 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                             ),
                         showActiveRowBorder && !isDetailsOnly && BULK_ACTIVE_SEMANTIC_BORDER_CLASS,
                         isCompleted && "opacity-95",
-                        isSkipped && "bg-yellow-500/[0.06]",
-                        isError && "bg-red-500/[0.06]",
+                        isSkipped && "bg-semantic-warning/[0.06]",
+                        isError && "bg-ui-danger/[0.06]",
                       )}
                     >
                       <CollapsibleTrigger asChild>
-                        <button
+                        <RowButton
                           type="button"
-                          className={cn(
-                            "w-full text-left text-base transition-all",
-                            isDetailsOnly
-                              ? cn(DETAILS_CO_ROW_TRIGGER, "cursor-pointer")
-                              : cn("px-3 py-2.5", rowGridClass),
-                          )}
                         >
                           <ChevronDown
                             className={cn(
@@ -1410,12 +1371,12 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                           />
                           {!isDetailsOnly ? (
                             <div className="flex justify-center">
-                              {isActive && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
-                              {isWarmingUp && <Loader2 className="h-4 w-4 animate-spin text-blue-400" />}
-                              {isReady && <CircleDot className="h-4 w-4 text-cyan-400" />}
+                              {isActive && null}
+                              {isWarmingUp && null}
+                              {isReady && <CircleDot className="h-4 w-4 text-semantic-analysis-foreground" />}
                               {isCompleted && <CheckCircle2 className="h-4 w-4 text-primary" />}
-                              {isSkipped && <MinusCircle className="h-4 w-4 text-yellow-400" />}
-                              {isError && <AlertCircle className="h-4 w-4 text-red-400" />}
+                              {isSkipped && <MinusCircle className="h-4 w-4 text-semantic-warning-foreground" />}
+                              {isError && <AlertCircle className="h-4 w-4 text-ui-danger-hover" />}
                               {isPending && !isWarmingUp && !isReady && (
                                 <Circle className="h-4 w-4 text-muted-foreground" />
                               )}
@@ -1443,9 +1404,9 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                                               isCompleted &&
                                                 (urlKeywords[url]
                                                   ? "text-primary/90"
-                                                  : "text-yellow-400/80"),
-                                              isSkipped && "text-yellow-400",
-                                              isError && "text-red-400",
+                                                  : "text-semantic-warning-foreground/80"),
+                                              isSkipped && "text-semantic-warning-foreground",
+                                              isError && "text-ui-danger-hover",
                                             ),
                                       )}
                                       title={liveHref}
@@ -1467,8 +1428,8 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                                       "ml-2 font-semibold uppercase tracking-wide",
                                       closedOutcomeLabel === "Found" && "text-primary",
                                       closedOutcomeLabel === "Generated" && "text-primary",
-                                      closedOutcomeLabel === "Skipped" && "text-yellow-400",
-                                      closedOutcomeLabel === "Failed" && "text-red-400",
+                                      closedOutcomeLabel === "Skipped" && "text-semantic-warning-foreground",
+                                      closedOutcomeLabel === "Failed" && "text-ui-danger-hover",
                                       closedOutcomeLabel === "Done" && "text-primary",
                                     )}
                                   >
@@ -1483,10 +1444,8 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                               ) : null}
                               {generatedFilesForUrl(urlGeneratedFiles, url).length > 0 ? (
                                 <Button
+                                  variant="quiet"
                                   type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 shrink-0 px-2 text-base text-white hover:bg-white/10 hover:text-white"
                                   title={`Download ${generatedFilesForUrl(urlGeneratedFiles, url).length} file(s)`}
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -1513,9 +1472,9 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                               className={cn(
                                 "font-normal text-foreground underline-offset-2 hover:underline",
                                 isCompleted &&
-                                  (urlKeywords[url] ? "text-primary/90" : "text-yellow-400/80"),
-                                isSkipped && "text-yellow-400",
-                                isError && "text-red-400",
+                                  (urlKeywords[url] ? "text-primary/90" : "text-semantic-warning-foreground/80"),
+                                isSkipped && "text-semantic-warning-foreground",
+                                isError && "text-ui-danger-hover",
                               )}
                               title={liveHref}
                               onClick={(e) => e.stopPropagation()}
@@ -1531,18 +1490,18 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                               className={cn(
                                 "shrink-0 text-right text-base font-semibold uppercase tracking-wide",
                                 isActive && "text-foreground",
-                                isWarmingUp && "text-blue-300",
-                                isReady && "text-cyan-400",
+                                isWarmingUp && "text-semantic-publish-foreground",
+                                isReady && "text-semantic-analysis-foreground",
                                 isCompleted && "text-primary",
-                                isSkipped && "text-yellow-400",
-                                isError && "text-red-400",
+                                isSkipped && "text-semantic-warning-foreground",
+                                isError && "text-ui-danger-hover",
                                 isPending && !isWarmingUp && !isReady && "text-muted-foreground",
                               )}
                             >
                               {getStatusLabel()}
                             </div>
                           ) : null}
-                        </button>
+                        </RowButton>
                       </CollapsibleTrigger>
 
                       {!isDetailsOnly ? (
@@ -1643,9 +1602,7 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                                   : currentStepProgress.message}
                               </span>
                               <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-5 w-5 shrink-0 p-0 text-muted-foreground hover:bg-muted hover:text-primary"
+                                variant="quiet"
                                 onClick={() => {
                                   navigator.clipboard.writeText(currentStepProgress.message || "");
                                   notify.success(NOTIFY_COPIED_TO_CLIPBOARD);
@@ -1672,9 +1629,6 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                                 <CollapsibleContent className="space-y-2 data-[state=closed]:animate-none">
                                   <Button
                                     type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 w-full border-0 bg-black/20 text-base text-primary hover:bg-black/30 hover:text-foreground"
                                     onClick={() => downloadAllForUrl(sorted)}
                                   >
                                     <Download className="mr-1.5 h-3.5 w-3.5" />
@@ -1694,9 +1648,7 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                                             {file.name}
                                           </span>
                                           <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-7 shrink-0 px-2 text-xs text-primary hover:bg-black/25 hover:text-foreground"
+                                            variant="quiet"
                                             onClick={() => downloadFile(file)}
                                           >
                                             <Download className="mr-1 h-3 w-3" />
@@ -1738,9 +1690,6 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                               <CollapsibleContent className="space-y-2 data-[state=closed]:animate-none">
                                 <Button
                                   type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 w-full border-0 bg-black/25 text-base text-primary hover:bg-black/35 hover:text-foreground"
                                   onClick={() => downloadAllForUrl(sorted)}
                                 >
                                   <Download className="mr-1.5 h-3.5 w-3.5" />
@@ -1760,9 +1709,7 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                                           {file.name}
                                         </span>
                                         <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-7 shrink-0 px-2 text-xs text-primary hover:bg-black/30 hover:text-foreground"
+                                          variant="quiet"
                                           onClick={() => downloadFile(file)}
                                         >
                                           <Download className="mr-1 h-3 w-3" />
@@ -1778,11 +1725,11 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                         })()}
 
                       {isSkipped && (
-                        <div className="rounded-md bg-yellow-500/[0.07] px-3 py-2">
-                          <div className="mb-1 text-base font-semibold uppercase tracking-wide text-yellow-400">
+                        <div className="rounded-md bg-semantic-warning/[0.07] px-3 py-2">
+                          <div className="mb-1 text-base font-semibold uppercase tracking-wide text-semantic-warning-foreground">
                             Skipped
                           </div>
-                          <div className="text-base text-yellow-400/80">
+                          <div className="text-base text-semantic-warning-foreground/80">
                             {urlSkipReasons[url]?.trim() ||
                               "Could not derive a keyword from sitemap or page context. Check the URL, title, and entity sitemap settings, then retry."}
                           </div>
@@ -1790,8 +1737,8 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                       )}
 
                       {isError && (
-                        <div className="rounded-md bg-red-500/[0.07] px-3 py-2">
-                          <div className="text-sm text-red-400/85">
+                        <div className="rounded-md bg-ui-danger/[0.07] px-3 py-2">
+                          <div className="text-sm text-ui-danger-hover/85">
                             {urlSkipReasons[url]?.trim() || "Processing failed for this target."}
                           </div>
                         </div>
@@ -1827,9 +1774,6 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                     const label = isRunningNow ? "Abort Operation" : "Close";
                     return (
                       <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 text-base bg-transparent border-border text-primary hover:bg-muted hover:text-foreground"
                         onClick={() => {
                           onRequestClose({ abortingRun: isRunningNow });
                         }}
@@ -1845,9 +1789,8 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
               <div className="flex items-center gap-2">
                 {isBulkAiAllMetaRun && allComplete && onUploadToWordPress ? (
                   <Button
+                    variant="run"
                     type="button"
-                    size="sm"
-                    className="h-8 text-base font-semibold"
                     onClick={() => onUploadToWordPress()}
                   >
                     <Upload className="mr-1.5 h-3.5 w-3.5" />
@@ -1857,18 +1800,12 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                 {completedCount > 0 ? (
                   <>
                 <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs font-mono bg-transparent border-border text-primary hover:bg-muted hover:text-foreground"
                   onClick={handleCopyReport}
                 >
                   <FileText className="h-3.5 w-3.5 mr-1.5" />
                   Copy Report
                 </Button>
                 <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs font-mono bg-transparent border-border text-primary hover:bg-muted hover:text-foreground"
                   onClick={handleDownloadCSV}
                 >
                   <Download className="h-3.5 w-3.5 mr-1.5" />

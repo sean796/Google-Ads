@@ -1,7 +1,5 @@
 import React from "react";
 import { Play, Save, Upload } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { PulseForgeBreadcrumbs } from "@/components/manager/pulse-forge/PulseForgeBreadcrumbs";
 import {
   WORKFLOW_HEADER_BAND_CLASS,
@@ -11,6 +9,7 @@ import {
 } from "@/components/manager/workflow/forge-workflow-styles";
 import type { PulseForgeRoute } from "@/lib/pulse-forge/pulse-forge-hash";
 import { cn } from "@/lib/utils";
+import { Button, Field } from "@/ui";
 
 export type WorkflowWorkspaceHeaderProps = {
   route: PulseForgeRoute;
@@ -45,19 +44,16 @@ export function WorkflowWorkspaceHeader({
         hideLeaf
         className="shrink-0"
       />
-      <Input
+      <Field
         value={name}
         onChange={(event) => onNameChange(event.target.value)}
         placeholder="Untitled workflow"
         aria-label="Workflow name"
-        className={WORKFLOW_HEADER_NAME_CLASS}
       />
       <div className="flex shrink-0 items-center gap-1.5">
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="sm"
-          className={cn(WORKFLOW_HEADER_TOOL_BTN, "gap-1.5")}
           disabled={saving || testingRun}
           onClick={onSave}
         >
@@ -65,10 +61,8 @@ export function WorkflowWorkspaceHeader({
           Save
         </Button>
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="sm"
-          className={cn(WORKFLOW_HEADER_TOOL_BTN, "gap-1.5")}
           disabled={saving || testingRun || publishDisabled}
           onClick={onPublish}
         >
@@ -76,10 +70,8 @@ export function WorkflowWorkspaceHeader({
           Publish
         </Button>
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="sm"
-          className={cn(WORKFLOW_HEADER_RUN_BTN, "min-w-[5.5rem] justify-center gap-1.5 tabular-nums")}
           disabled={testingRun || saving}
           onClick={onTestRun}
         >

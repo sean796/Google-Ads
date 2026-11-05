@@ -59,9 +59,11 @@ export function bulkHarnessSectionsToBodyHtml(sections: BulkHarnessSectionUi[]):
 
 export function bulkGeneratorMarkdownBodyHtml(
   files: BulkGeneratedFile[] | undefined,
-  _harnessSections: BulkHarnessSectionUi[],
+  harnessSections: BulkHarnessSectionUi[] = [],
 ): string {
-  return pickLatestRowContentHtml(files);
+  const fromFiles = pickLatestRowContentHtml(files);
+  if (fromFiles.trim()) return fromFiles;
+  return bulkHarnessSectionsToBodyHtml(harnessSections);
 }
 
 export function bulkCsvRowToOverviewRow(input: {
@@ -121,8 +123,14 @@ export function buildBulkGeneratorOverviewRows(input: {
   sitemapSource?: OverviewSitemapSource;
   site?: Pick<WordPressSite, "entitySitemapUrl" | "manualEndpoint" | "sitemaps" | "siteUrl"> | null;
   sapInventoryRows?: ReadonlyArray<Pick<OverviewInventoryRow, "url" | "slug">>;
-  preserveByUrl?: Map<string, Pick<OverviewRow, "postContent" | "postContentOptimized">>;
-  preserveByRowIndex?: Map<number, Pick<OverviewRow, "postContent" | "postContentOptimized">>;
+  preserveByUrl?: Map<
+    string,
+    Pick<OverviewRow, "postContent" | "postContentOptimized" | "postId" | "postType">
+  >;
+  preserveByRowIndex?: Map<
+    number,
+    Pick<OverviewRow, "postContent" | "postContentOptimized" | "postId" | "postType">
+  >;
   /** Row index receiving live generation; do not preserve stale body on this row. */
   streamingRowIndex?: number;
 }): OverviewRow[] {
@@ -144,11 +152,12 @@ export function buildBulkGeneratorOverviewRows(input: {
   });
 
   return listItems.map((item) => {
+    const rowFiles = input.filesByRow.get(item.rowIndex);
     const harness = input.harnessByRow.get(item.rowIndex) ?? [];
     const isRowCurrentlyRunning = input.isProcessing && item.rowIndex === input.currentRow;
     let bodyHtml = isRowCurrentlyRunning
       ? ""
-      : bulkGeneratorMarkdownBodyHtml(input.filesByRow.get(item.rowIndex), harness);
+      : bulkGeneratorMarkdownBodyHtml(rowFiles, harness);
     const urlKey = normalizePageUrlKey(
       bulkGeneratorRowUrl(item.row, item.fullUrlPreview, item.pathLabel),
     );
@@ -187,6 +196,14 @@ export function buildBulkGeneratorOverviewRows(input: {
       bodyHtml,
       status: rowStatusFromGeneratorPhase(phase),
     });
+    const proofBinding = overviewBindingFromBulkWordpressProofFiles(rowFiles, input.sitemapSource);
+    if (proofBinding?.postId) {
+      overview.postId = proofBinding.postId;
+      overview.postType = proofBinding.subtype;
+    } else if (!skipPreserve && preserved?.postId) {
+      overview.postId = preserved.postId;
+      overview.postType = preserved.postType;
+    }
     if (item.placeholder) {
       overview.title = item.title;
       overview.aiTitle = item.title;

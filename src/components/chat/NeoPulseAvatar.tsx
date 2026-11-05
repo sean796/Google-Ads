@@ -28,7 +28,7 @@ export function NeoPulseAvatar({
       {avatarUrl ? (
         <AvatarImage src={avatarUrl} alt={displayName ?? NEO_PULSE_BOT_DISPLAY_NAME} />
       ) : null}
-      <AvatarFallback className="bg-zinc-800 text-lime-400">
+      <AvatarFallback className="bg-ui-field-hover text-primary">
         <Sparkles className="h-4 w-4" aria-hidden />
       </AvatarFallback>
     </Avatar>

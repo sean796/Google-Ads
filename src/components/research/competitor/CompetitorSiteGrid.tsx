@@ -22,6 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Button } from "@/ui";
 
 function fmtNum(n: number | null | undefined): string {
   return formatCompetitorMetricCell(n);
@@ -53,8 +54,8 @@ function tierMetaKey(meta: { tier: string; label: string } | undefined): string 
 
 function tierBadgeClass(tier: string | undefined): string {
   const t = (tier || "").toLowerCase();
-  if (t.includes("high")) return "border-amber-500/40 bg-amber-950/30 text-amber-100";
-  if (t.includes("low")) return "border-slate-500/40 bg-slate-950/40 text-slate-200";
+  if (t.includes("high")) return "border-semantic-warning/40 bg-semantic-warning/30 text-semantic-warning-foreground";
+  if (t.includes("low")) return "border-border/40 bg-black/40 text-foreground";
   return "border-primary/35 bg-primary/10 text-primary";
 }
 
@@ -71,12 +72,12 @@ function KeywordsMiniTable({ title, rows }: { title?: string; rows: CompetitorKe
   return (
     <div className="space-y-1.5">
       {title ? (
-        <div className="min-h-[1rem] text-[1rem] font-medium uppercase leading-normal tracking-wide text-muted-foreground">
+        <div className="min-h-[1rem] text-base font-medium uppercase leading-normal tracking-wide text-muted-foreground">
           {title}
         </div>
       ) : null}
       <div className="overflow-x-auto rounded border border-border/40 bg-black/20">
-        <table className="w-full min-w-[320px] border-collapse text-left text-[1rem] leading-normal">
+        <table className="w-full min-w-[320px] border-collapse text-left text-base leading-normal">
           <thead>
             <tr className="border-b border-border/40 text-muted-foreground">
               <th className="px-2 py-1 font-medium">Keyword</th>
@@ -336,18 +337,18 @@ export function CompetitorSiteGrid({
   return (
     <div className="space-y-4">
       {noDirectButTiered ? (
-        <p className="min-h-[1rem] text-[1rem] leading-normal text-amber-200/90">
+        <p className="min-h-[1rem] text-base leading-normal text-semantic-warning-foreground/90">
           No competitors in the direct tier. The table below includes partial or indirect overlap so you can review and uncheck rows.
         </p>
       ) : null}
       {!hasCompetitors ? (
-        <p className="min-h-[1rem] text-[1rem] leading-normal text-muted-foreground">
+        <p className="min-h-[1rem] text-base leading-normal text-muted-foreground">
           No competitor domains returned.
         </p>
       ) : (
         <div className="neo-pulse-zone-tile--analysis px-0 py-2 sm:px-1">
           <div className="overflow-x-auto rounded-md border border-border/50">
-            <table className="w-full min-w-[1120px] border-collapse text-left text-[1rem] leading-normal">
+            <table className="w-full min-w-[1120px] border-collapse text-left text-base leading-normal">
               <thead>
                 <tr className="border-b border-border/50 bg-black/30 text-muted-foreground">
                   <th className="w-10 px-1 py-2 text-center font-medium" aria-label="Include in exports">
@@ -368,31 +369,27 @@ export function CompetitorSiteGrid({
                         <span>Tier</span>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button
-                              type="button"
-                              className={cn(
-                                "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded border border-border/50 bg-black/30 text-muted-foreground transition-colors hover:border-primary/45 hover:text-foreground",
-                                tierFilterActive && "border-primary/55 text-primary",
-                              )}
+                            <Button
+                              size="icon" icon={ListFilter}
+                              pressed={Boolean(tierFilterActive)}
+                              variant="quiet"
                               title="Filter rows by tier"
                               aria-label="Filter rows by tier"
-                            >
-                              <ListFilter className="h-3.5 w-3.5" aria-hidden />
-                            </button>
+                            ></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="start" className="max-w-[min(22rem,calc(100vw-2rem))]">
-                            <DropdownMenuLabel className="text-[1rem] font-semibold leading-normal">Show tiers</DropdownMenuLabel>
+                            <DropdownMenuLabel className="text-base font-semibold leading-normal">Show tiers</DropdownMenuLabel>
                             {tierFilterOptions.map((o) => (
                               <DropdownMenuCheckboxItem
                                 key={o.key}
                                 checked={selectedTierKeys.has(o.key)}
                                 onCheckedChange={(v) => toggleTierFilterKey(o.key, v === true)}
                                 onSelect={(e) => e.preventDefault()}
-                                className="text-[1rem] leading-normal"
+                                className="text-base leading-normal"
                               >
                                 <span
                                   className={cn(
-                                    "mr-2 inline-block min-h-[1rem] rounded border px-1.5 py-0.5 text-[1rem] font-medium leading-normal",
+                                    "mr-2 inline-block min-h-[1rem] rounded border px-1.5 py-0.5 text-base font-medium leading-normal",
                                     tierBadgeClass(o.tier),
                                   )}
                                 >
@@ -405,13 +402,13 @@ export function CompetitorSiteGrid({
                                 checked={selectedTierKeys.has(UNTIERED_FILTER_KEY)}
                                 onCheckedChange={(v) => toggleTierFilterKey(UNTIERED_FILTER_KEY, v === true)}
                                 onSelect={(e) => e.preventDefault()}
-                                className="text-[1rem] leading-normal"
+                                className="text-base leading-normal"
                               >
                                 No tier (-)
                               </DropdownMenuCheckboxItem>
                             ) : null}
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-[1rem] leading-normal" onSelect={() => selectAllTierFilters()}>
+                            <DropdownMenuItem className="text-base leading-normal" onSelect={() => selectAllTierFilters()}>
                               Show all tiers
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -486,7 +483,7 @@ export function CompetitorSiteGrid({
                             {tierMeta ? (
                               <span
                                 className={cn(
-                                  "inline-block min-h-[1rem] rounded border px-1.5 py-0.5 text-[1rem] font-medium leading-normal",
+                                  "inline-block min-h-[1rem] rounded border px-1.5 py-0.5 text-base font-medium leading-normal",
                                   tierBadgeClass(tierMeta.tier),
                                 )}
                               >
@@ -519,15 +516,14 @@ export function CompetitorSiteGrid({
                         <td className="whitespace-nowrap px-2 py-2 font-mono align-middle">{fmtNum(row.referringDomains)}</td>
                         <td className="whitespace-nowrap px-2 py-2 font-mono align-middle">{fmtNum(row.backlinksTotal)}</td>
                         <td className="px-1 py-2 align-middle">
-                          <button
-                            type="button"
-                            className="rounded p-1 text-muted-foreground hover:bg-black/30 hover:text-foreground"
+                          <Button
+                            variant="quiet"
                             aria-expanded={open}
                             onClick={() => toggleDomain(dk)}
                             title={open ? "Hide keyword details" : "Show keyword details"}
                           >
                             {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                       {open ? (
@@ -535,17 +531,17 @@ export function CompetitorSiteGrid({
                           <td colSpan={detailColSpan} className="px-3 py-3">
                             <div className="space-y-3">
                               {rationale ? (
-                                <p className="min-h-[1rem] text-[1rem] leading-normal text-muted-foreground">{rationale}</p>
+                                <p className="min-h-[1rem] text-base leading-normal text-muted-foreground">{rationale}</p>
                               ) : null}
                               {enr?.topKeywords?.length ? (
                                 <KeywordsMiniTable title="Keywords" rows={enr.topKeywords} />
                               ) : (
-                                <p className="min-h-[1rem] text-[1rem] leading-normal text-muted-foreground">
+                                <p className="min-h-[1rem] text-base leading-normal text-muted-foreground">
                                   No enriched keyword list for this domain (cap or timeout).
                                 </p>
                               )}
                               {enr?.topPageUrl ? (
-                                <p className="min-h-[1rem] text-[1rem] leading-normal text-muted-foreground">
+                                <p className="min-h-[1rem] text-base leading-normal text-muted-foreground">
                                   Top landing page:{" "}
                                   <a
                                     href={enr.topPageUrl}

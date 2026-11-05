@@ -278,19 +278,18 @@ export function overviewContentDetailsCanOpen(
   bulkActionProgress: Partial<Record<MetaBulkActionKey, BulkProgressSlice>>,
   batchBulkState: BulkOptimizationState | undefined,
   singlePageCtx?: OverviewSinglePageDetailsContext,
+  warmInventory?: {
+    sitemapInventoryLinks: string[];
+    gscHostedLink?: string | null;
+    sitemapInventoryLoading?: boolean;
+  },
+): boolean {
   if (!site) return false;
-  return (
-    hasOverviewContentDetailsActivity(
-      bulkActionProgress,
-      batchBulkState,
-      singlePageCtx,
-      warmInventory,
-    ) || Boolean(warmInventory)
-      hasOverviewContentDetailsActivity(
-        bulkActionProgress,
-        batchBulkState,
-        singlePageCtx,
-        warmInventory,
-      ),
+  return hasOverviewContentDetailsActivity(
+    bulkActionProgress,
+    batchBulkState,
+    singlePageCtx,
+    warmInventory,
   );
 }
+

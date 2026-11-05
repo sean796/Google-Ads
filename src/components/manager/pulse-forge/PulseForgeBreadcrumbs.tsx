@@ -3,14 +3,12 @@ import { ChevronRight } from "lucide-react";
 import type { PulseForgeRoute } from "@/lib/pulse-forge/pulse-forge-hash";
 import { setPulseForgeHash } from "@/lib/pulse-forge/pulse-forge-hash";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 type Crumb = {
   label: string;
   route: PulseForgeRoute | null;
 };
-
-const LINK_CLASS =
-  "text-base font-normal text-muted-foreground underline-offset-4 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-600";
 
 const SECTION_LABELS = {
   forge: "My Forge",
@@ -107,13 +105,11 @@ export function PulseForgeBreadcrumbs({
               {isLast || !crumb.route ? (
                 <span className="font-normal text-white">{crumb.label}</span>
               ) : (
-                <button
-                  type="button"
+                <Button
                   onClick={() => setPulseForgeHash(crumb.route!)}
-                  className={cn(LINK_CLASS, "border-0 bg-transparent p-0")}
                 >
                   {crumb.label}
-                </button>
+                </Button>
               )}
             </span>
           );

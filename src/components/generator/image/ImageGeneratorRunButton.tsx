@@ -1,7 +1,7 @@
-import { CheckCircle2, Image as ImageIcon, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CheckCircle2, Image as ImageIcon } from "lucide-react";
 import { BULK_HEADER_RUN_BTN } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 type ImageGeneratorRunButtonProps = {
   hasApiKey: boolean;
@@ -34,16 +34,15 @@ export function ImageGeneratorRunButton({
   if (!skipChecklist && !hasGeneratedChecklist) {
     return (
       <Button
+        variant="run"
         type="button"
-        size="sm"
-        className={btnClass}
         disabled={disabled}
         aria-label="Checklist"
         title="Generate image checklist"
         onClick={onGenerateChecklist}
       >
         {isGeneratingChecklist ? (
-          <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+          null
         ) : (
           <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
         )}
@@ -54,16 +53,15 @@ export function ImageGeneratorRunButton({
 
   return (
     <Button
+      variant="run"
       type="button"
-      size="sm"
-      className={btnClass}
       disabled={disabled}
       aria-label="Image"
       title="Generate image"
       onClick={onGenerateImage}
     >
       {isGenerating ? (
-        <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+        null
       ) : (
         <ImageIcon className="h-4 w-4 shrink-0" aria-hidden />
       )}

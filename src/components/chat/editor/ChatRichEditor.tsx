@@ -10,7 +10,6 @@ import {
   Strikethrough,
   Code,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   CHAT_EDITOR_CONTENT_CLASS,
   CHAT_EDITOR_ROOT_CLASS,
@@ -24,6 +23,7 @@ import {
   type MentionMember,
 } from "@/components/chat/editor/chat-editor-extensions";
 import { ChatAiToolbar } from "@/components/chat/editor/ChatAiToolbar";
+import { Button } from "@/ui";
 
 export type ChatRichEditorHandle = {
   getHtml: () => string;
@@ -59,15 +59,9 @@ function ToolbarButton({
 }) {
   return (
     <Button
+      variant="quiet"
       type="button"
-      variant="ghost"
-      size="icon"
       aria-label={label}
-      className={cn(
-        "h-8 w-8 shrink-0",
-        CHAT_ICON_BTN_CLASS,
-        active && "bg-[hsl(var(--chat-row-hover))] chat-text-primary",
-      )}
       onClick={onClick}
     >
       {children}

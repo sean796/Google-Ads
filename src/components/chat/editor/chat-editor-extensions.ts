@@ -88,8 +88,8 @@ export function buildChatEditorExtensions(
               btn.type = "button";
               btn.className =
                 index === selected
-                  ? "block w-full px-3 py-2 text-left text-base text-zinc-900 bg-primary/15"
-                  : "block w-full px-3 py-2 text-left text-base text-zinc-800 hover:bg-zinc-100";
+                  ? "block w-full px-3 py-2 text-left text-base text-black bg-primary/15"
+                  : "block w-full px-3 py-2 text-left text-base text-black hover:bg-muted";
               const name = document.createElement("span");
               name.className = "block font-medium";
               name.textContent = `@${item.label}`;
@@ -97,7 +97,7 @@ export function buildChatEditorExtensions(
               const email = (item as MentionPick & { email?: string }).email;
               if (email) {
                 const emailEl = document.createElement("span");
-                emailEl.className = "block text-base text-zinc-500";
+                emailEl.className = "block text-base text-muted-foreground";
                 emailEl.textContent = email;
                 btn.appendChild(emailEl);
               }
@@ -127,7 +127,7 @@ export function buildChatEditorExtensions(
               selected = 0;
               list = document.createElement("div");
               list.className =
-                "absolute z-50 max-h-48 min-w-[12rem] overflow-y-auto rounded-md border border-zinc-200 bg-white py-1 shadow-lg";
+                "absolute z-50 max-h-48 min-w-[12rem] overflow-y-auto rounded-md border border-border bg-white py-1 shadow-lg";
               updateList();
               document.body.appendChild(list);
               const rect = props.clientRect?.();

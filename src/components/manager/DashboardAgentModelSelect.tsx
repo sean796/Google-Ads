@@ -1,6 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { DASHBOARD_SETTINGS_FIELD_CLASS } from "@/components/manager/dashboard/dashboard-panel-styles";
 import type { OpenRouterModelCatalogEntry } from "@/lib/openrouter-app-api";
 import {
@@ -14,6 +12,7 @@ import { formatEstimateUsd } from "@/lib/agent-pipeline-cost-estimates";
 import { estimateImageOutputCostUsd } from "@/lib/image-model-defaults";
 import { estimateVideoCostUsd } from "@/lib/video-generator/video-model-defaults";
 import { cn } from "@/lib/utils";
+import { Field, RowButton } from "@/ui";
 
 type Preset = { value: string; label: string; priceHint?: string };
 
@@ -185,20 +184,19 @@ export function DashboardAgentModelSelect({
     <div
       className={cn(
         "flex min-w-0 flex-col",
-        tile ? "items-start gap-1.5 bg-zinc-900 p-2 text-left" : "gap-2",
+        tile ? "items-start gap-1.5 bg-ui-field p-2 text-left" : "gap-2",
       )}
       ref={rootRef}
     >
-      <Label htmlFor={id} className="self-start text-base font-semibold text-white">
+      <label htmlFor={id} className="self-start text-base font-semibold text-white">
         {label}
-      </Label>
+      </label>
       {description?.trim() ? (
         <p className="text-base text-white/80">{description.trim()}</p>
       ) : null}
       <div className="relative w-full min-w-0 self-stretch">
-        <Input
+        <Field
           id={id}
-          variant={tile ? "neoPulseBlack" : "default"}
           role="combobox"
           aria-expanded={open}
           aria-controls={listId}
@@ -207,12 +205,6 @@ export function DashboardAgentModelSelect({
           value={inputValue}
           placeholder={inputPlaceholder}
           disabled={catalogLoading}
-          className={cn(
-            "w-full min-w-0 rounded-none border-0 shadow-none text-white",
-            tile
-              ? "h-9 bg-black px-2 text-left text-base placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-white/35 focus-visible:ring-offset-0"
-              : cn(DASHBOARD_SETTINGS_FIELD_CLASS, "h-12 tabular-nums"),
-          )}
           onFocus={() => setOpen(true)}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -252,21 +244,17 @@ export function DashboardAgentModelSelect({
                   {showHeading ? (
                     <p className="px-3 py-1.5 text-base text-white/70">{row.group}</p>
                   ) : null}
-                  <button
+                  <RowButton
+                    selected={index === activeIndex}
                     type="button"
                     role="option"
                     aria-selected={row.value === value}
-                    className={cn(
-                      "block w-full px-3 py-2 text-left text-base tabular-nums hover:bg-white/10",
-                      index === activeIndex && "bg-white/10",
-                      row.value === value && "text-[#9eff00]",
-                    )}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => pick(row.value)}
                     onMouseEnter={() => setActiveIndex(index)}
                   >
                     {row.label}
-                  </button>
+                  </RowButton>
                 </React.Fragment>
               );
             })}

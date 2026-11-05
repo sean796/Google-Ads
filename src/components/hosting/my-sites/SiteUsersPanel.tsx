@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { KeyRound, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   addUserToAllSites,
   createHostedSiteUser,
@@ -16,7 +13,8 @@ import {
   type HostedUserInput,
 } from "@/lib/hosting-api";
 import type { TeamMember } from "@/lib/teams-types";
-import { HOST_DIVIDER, MY_SITES_FIELD, MY_SITES_POPOVER, MY_SITES_PRIMARY_BTN } from "./my-sites-theme";
+import { HOST_DIVIDER, MY_SITES_FIELD, MY_SITES_POPOVER } from "./my-sites-theme";
+import { Button, Field, SelectField } from "@/ui";
 
 export type SiteUsersPanelProps = {
   /** Null = add one user to every provisioned site. */
@@ -29,9 +27,6 @@ export type SiteUsersPanelProps = {
 
 const ROLES: HostedSiteRole[] = ["administrator", "editor", "author", "contributor", "subscriber"];
 const MANUAL = "manual";
-const ICON_BTN = "h-7 w-7 shrink-0 rounded-none p-0 text-muted-foreground hover:bg-white/[0.06] hover:text-foreground";
-const SELECT_TRIGGER = `${MY_SITES_FIELD} whitespace-nowrap [&>span]:line-clamp-none [&_svg]:text-muted-foreground`;
-const SELECT_CONTENT = MY_SITES_POPOVER;
 const ROW = `grid h-11 grid-cols-[1fr_1fr_9rem_4rem] items-center gap-2 border-t ${HOST_DIVIDER} px-2`;
 
 const PASSWORD_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -44,18 +39,7 @@ function generatePassword(): string {
 
 function RoleSelect({ value, disabled, onChange }: { value: string; disabled?: boolean; onChange: (role: HostedSiteRole) => void }) {
   return (
-    <Select value={value} disabled={disabled} onValueChange={(v) => onChange(v as HostedSiteRole)}>
-      <SelectTrigger className={SELECT_TRIGGER} aria-label="Role">
-        <SelectValue placeholder="Role" />
-      </SelectTrigger>
-      <SelectContent className={SELECT_CONTENT}>
-        {ROLES.map((role) => (
-          <SelectItem key={role} value={role}>
-            {role}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <SelectField placeholder="Role" value={value} disabled={disabled} onValueChange={(v) => onChange(v as HostedSiteRole)} options={ROLES.map((role) => ({ value: role, label: role }))} />
   );
 }
 
@@ -162,30 +146,21 @@ export function SiteUsersPanel({ env, teamMembers, canAdmin, listClassName = "mi
   return (
     <div className="flex flex-col gap-2">
       <div className="grid grid-cols-[1fr_1fr_9rem_4rem] items-center gap-2">
-        <Select
+        <SelectField
+          placeholder="Pulse team member"
           value={source}
           disabled={!canAdmin}
           onValueChange={(v) => {
             setSource(v);
             setEmail(teamMembers.find((m) => String(m.userId) === v)?.email ?? "");
           }}
-        >
-          <SelectTrigger className={SELECT_TRIGGER} aria-label="Pulse team member">
-            <SelectValue placeholder="Pulse team member" />
-          </SelectTrigger>
-          <SelectContent className={SELECT_CONTENT}>
-            {teamMembers
-              .filter((m) => !m.isBot)
-              .map((m) => (
-                <SelectItem key={m.userId} value={String(m.userId)}>
-                  {m.displayName || m.email}
-                </SelectItem>
-              ))}
-            <SelectItem value={MANUAL}>Someone else (email)</SelectItem>
-          </SelectContent>
-        </Select>
-        <Input
-          className={MY_SITES_FIELD}
+          options={[
+            ...teamMembers.filter((m) => !m.isBot).map((m) => ({ value: String(m.userId), label: m.displayName || m.email })),
+            { value: MANUAL, label: "Someone else (email)" },
+          ]}
+          width="full"
+        />
+        <Field
           placeholder="Email"
           aria-label="Email"
           type="email"
@@ -194,7 +169,7 @@ export function SiteUsersPanel({ env, teamMembers, canAdmin, listClassName = "mi
           onChange={(e) => setEmail(e.target.value)}
         />
         <RoleSelect value={role} disabled={!canAdmin} onChange={setRole} />
-        <Button type="button" className={MY_SITES_PRIMARY_BTN} disabled={!canAdd} onClick={() => void add()}>
+        <Button variant="run" type="button" disabled={!canAdd} onClick={() => void add()}>
           Add
         </Button>
       </div>
@@ -208,22 +183,22 @@ export function SiteUsersPanel({ env, teamMembers, canAdmin, listClassName = "mi
               <span>Role</span>
               <span />
             </div>
-            {loading ? Array.from({ length: 3 }, (_, i) => <div key={i} className={`${ROW} animate-pulse`} />) : null}
+            {loading ? Array.from({ length: 3 }, (_, i) => <div key={i} className={`${ROW} `} />) : null}
             {!loading && users.length === 0 ? <div className={`flex h-11 items-center border-t ${HOST_DIVIDER} px-2 text-muted-foreground`}>No users returned</div> : null}
             {users.map((user) => (
               <div key={user.id} className={ROW}>
-                <span className="truncate" title={user.login}>
+                <span className="break-words" title={user.login}>
                   {user.displayName || user.login}
                 </span>
-                <span className="truncate text-muted-foreground" title={user.email}>
+                <span className="break-words text-muted-foreground" title={user.email}>
                   {user.email}
                 </span>
                 <RoleSelect value={user.roles[0] ?? ""} disabled={!canAdmin || busy} onChange={(next) => void changeRole(user, next)} />
                 <span className="flex justify-end gap-1">
-                  <Button type="button" variant="ghost" className={ICON_BTN} aria-label={`Reset password for ${user.email}`} disabled={!canAdmin || busy} onClick={() => void resetPassword(user)}>
+                  <Button variant="quiet" type="button" aria-label={`Reset password for ${user.email}`} disabled={!canAdmin || busy} onClick={() => void resetPassword(user)}>
                     <KeyRound className="h-4 w-4" aria-hidden />
                   </Button>
-                  <Button type="button" variant="ghost" className={ICON_BTN} aria-label={`Remove ${user.email}`} disabled={!canAdmin || busy} onClick={() => void remove(user)}>
+                  <Button variant="quiet" type="button" aria-label={`Remove ${user.email}`} disabled={!canAdmin || busy} onClick={() => void remove(user)}>
                     <Trash2 className="h-4 w-4" aria-hidden />
                   </Button>
                 </span>
@@ -235,9 +210,9 @@ export function SiteUsersPanel({ env, teamMembers, canAdmin, listClassName = "mi
             {bulkResults.length === 0 ? <div className="flex h-11 items-center px-2 text-muted-foreground">Pick a user and role, then Add. Results per site appear here.</div> : null}
             {bulkResults.map((r) => (
               <div key={r.siteId} className={`grid h-11 grid-cols-[1fr_6rem_1fr] items-center gap-2 border-t ${HOST_DIVIDER} px-2`}>
-                <span className="truncate">{r.slug}</span>
+                <span className="break-words">{r.slug}</span>
                 <span className="text-muted-foreground">{r.environment}</span>
-                <span className={`truncate ${r.ok ? "text-primary" : "text-red-300"}`} title={r.error ?? undefined}>
+                <span className={`break-words ${r.ok ? "text-primary" : "text-ui-danger-hover"}`} title={r.error ?? undefined}>
                   {r.ok ? "Added" : r.error}
                 </span>
               </div>
@@ -247,7 +222,7 @@ export function SiteUsersPanel({ env, teamMembers, canAdmin, listClassName = "mi
       </div>
 
       <p className="min-h-6 break-all text-primary">{notice}</p>
-      <p className="h-6 truncate text-red-300" title={error || undefined}>
+      <p className="h-6 break-words text-ui-danger-hover" title={error || undefined}>
         {error}
       </p>
     </div>

@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { UI_SLOT_RESERVE } from "@/ui/tokens";
 import {
   BULK_HEADER_FIELD,
   BULK_HEADER_SELECT_TRIGGER,
@@ -35,14 +36,7 @@ export const GENERATOR_FIELD_COUNT = cn(
 
 export const GENERATOR_FIELD_FLEX = cn(BULK_HEADER_FIELD, "min-w-0 flex-1 text-base");
 
-export const GENERATOR_FIELD_URL = cn(BULK_HEADER_FIELD, "min-w-0 max-w-md flex-1 font-mono text-base");
-
 export const GENERATOR_SELECT = cn(BULK_HEADER_SELECT_TRIGGER, "w-[9rem] shrink-0");
 
-export const GENERATOR_EXPORT_BTN = cn(
-  BULK_HEADER_TOOL_BTN,
-  "min-h-8 border-0 bg-[hsl(var(--muted)/0.45)] shadow-none transition-colors hover:bg-[hsl(var(--muted)/0.6)] disabled:bg-transparent disabled:text-muted-foreground disabled:opacity-50",
-);
-
 /** Reserve fixed slot when a conditional control is hidden (prevents horizontal CLS). */
-export const GENERATOR_TOOLBAR_SLOT_RESERVE = "invisible pointer-events-none shrink-0";
+export const GENERATOR_TOOLBAR_SLOT_RESERVE = UI_SLOT_RESERVE;

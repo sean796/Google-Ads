@@ -10,6 +10,7 @@ import {
 import {
   getAdsModel,
   getBlogModel,
+  getDecisionModel,
   getImageModel,
   getMetaModel,
   getReportModel,
@@ -34,7 +35,20 @@ export type AgentOpenRouterCategory =
   | "meta"
   | "report"
   | "ads"
-  | "video";
+  | "video"
+  | "decision";
+
+function isNonChatVideoGenerationModel(model: string): boolean {
+  const m = model.toLowerCase();
+  return (
+    m.startsWith("x-ai/grok-imagine-video") ||
+    m.startsWith("heygen/heygen-video") ||
+    m.includes("imagine-video") ||
+    m.includes("kling") ||
+    m.includes("luma-dream-machine") ||
+    m.includes("runway-gen")
+  );
+}
 
 export function resolveModelForAgentCategory(
   category: AgentOpenRouterCategory,
@@ -53,8 +67,16 @@ export function resolveModelForAgentCategory(
       return getReportModel(siteId);
     case "ads":
       return getAdsModel(siteId);
-    case "video":
-      return getVideoModel(siteId);
+    case "video": {
+      const vidModel = getVideoModel(siteId);
+      // Video generation models cannot be used with /chat/completions; fallback to Gemini multimodal.
+      if (isNonChatVideoGenerationModel(vidModel)) {
+        return "google/gemini-2.5-flash";
+      }
+      return vidModel;
+    }
+    case "decision":
+      return getDecisionModel(siteId);
     default: {
       const _exhaustive: never = category;
       return _exhaustive;
@@ -123,6 +145,7 @@ async function prepareAgentMessages(args: {
 /** Streaming variant: the category model's reasoning and content deltas arrive through `onDelta` as they are written. */
 export async function streamAgentCategoryOpenRouterChat(args: {
   category: AgentOpenRouterCategory;
+  model?: string;
   siteId?: string | null;
   apiKey?: string;
   messages: OpenRouterAppMessage[];
@@ -143,9 +166,11 @@ export async function streamAgentCategoryOpenRouterChat(args: {
     useWordBlacklist: args.useWordBlacklist,
   });
 
+  const model = args.model?.trim() || resolveModelForAgentCategory(args.category, args.siteId);
+
   return streamOpenRouterAppChat({
     apiKey,
-    model: resolveModelForAgentCategory(args.category, args.siteId),
+    model,
     messages: prepared.messages ?? args.messages,
     temperature: args.temperature,
     maxTokens: args.maxTokens,
@@ -158,6 +183,7 @@ export async function streamAgentCategoryOpenRouterChat(args: {
 
 export async function callAgentCategoryOpenRouterChat(args: {
   category: AgentOpenRouterCategory;
+  model?: string;
   siteId?: string | null;
   apiKey?: string;
   system?: string;
@@ -176,7 +202,7 @@ export async function callAgentCategoryOpenRouterChat(args: {
   finishReason?: string;
   nativeFinishReason?: string;
 }> {
-  const model = resolveModelForAgentCategory(args.category, args.siteId);
+  const model = args.model?.trim() || resolveModelForAgentCategory(args.category, args.siteId);
   const apiKey = (args.apiKey ?? (await resolveOpenRouterApiKeyForHarness())).trim();
   const prepared = await prepareAgentMessages({
     messages: args.messages,

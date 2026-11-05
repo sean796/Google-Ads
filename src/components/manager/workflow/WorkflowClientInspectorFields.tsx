@@ -1,6 +1,6 @@
 import React, { useMemo, useRef } from "react";
 import { ChevronDown } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { CheckField, RowButton } from "@/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { WordPressSiteOption } from "@/components/manager/tasks/NewProjectDialog";
 import { WorkflowInspectorGroup } from "@/components/manager/workflow/WorkflowInspectorLayout";
@@ -90,18 +90,15 @@ export function WorkflowClientInspectorFields({
         }}
       >
         <PopoverTrigger asChild>
-          <button
+          <RowButton
+            selected={!(triggerLabel === "Clients")}
             type="button"
-            className={cn(
-              "flex min-h-12 w-full items-center justify-between gap-2 rounded-none bg-black px-4 py-3 text-left text-base outline-none",
-              triggerLabel === "Clients" ? "text-muted-foreground" : "text-white",
-            )}
             aria-label="Clients"
             aria-expanded={open}
           >
-            <span className="min-w-0 flex-1 truncate">{triggerLabel}</span>
+            <span className="min-w-0 flex-1 whitespace-nowrap">{triggerLabel}</span>
             <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-          </button>
+          </RowButton>
         </PopoverTrigger>
         <PopoverContent
           align="start"
@@ -116,7 +113,7 @@ export function WorkflowClientInspectorFields({
           onInteractOutside={(event) => {
             if (ignoreCloseRef.current) event.preventDefault();
           }}
-          className="w-[var(--radix-popover-trigger-width)] rounded-none border-0 bg-black p-1 text-white shadow-lg"
+          className="w-[var(--radix-popover-trigger-width)] rounded-none border-0 bg-black p-1 text-foreground shadow-lg"
         >
           <div
             className="flex max-h-56 flex-col gap-0.5 overflow-y-auto"
@@ -129,32 +126,15 @@ export function WorkflowClientInspectorFields({
               }, 0);
             }}
           >
-            <label
-              className="flex cursor-pointer items-center gap-2 rounded-none px-2 py-1.5 hover:bg-zinc-900"
-              onPointerDown={(event) => event.preventDefault()}
-            >
-              <Checkbox
-                checked={masterChecked}
-                onCheckedChange={(checked) => setAll(checked === true)}
-                className="rounded-none border-zinc-600 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground"
-              />
-              <span className="min-w-0 flex-1 truncate text-base text-white">All clients</span>
-            </label>
+            <div className="px-2 py-1.5" onPointerDown={(event) => event.preventDefault()}>
+              <CheckField label="All clients" checked={masterChecked} onCheckedChange={setAll} />
+            </div>
             {sites.map((site) => {
               const checked = selectedSet.has(site.id);
               return (
-                <label
-                  key={site.id}
-                  className="flex cursor-pointer items-center gap-2 rounded-none px-2 py-1.5 hover:bg-zinc-900"
-                  onPointerDown={(event) => event.preventDefault()}
-                >
-                  <Checkbox
-                    checked={checked}
-                    onCheckedChange={() => toggleSite(site.id)}
-                    className="rounded-none border-zinc-600 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                  />
-                  <span className="min-w-0 flex-1 truncate text-base text-white">{site.name}</span>
-                </label>
+                <div key={site.id} className="px-2 py-1.5" onPointerDown={(event) => event.preventDefault()}>
+                  <CheckField label={site.name} checked={checked} onCheckedChange={() => toggleSite(site.id)} />
+                </div>
               );
             })}
           </div>

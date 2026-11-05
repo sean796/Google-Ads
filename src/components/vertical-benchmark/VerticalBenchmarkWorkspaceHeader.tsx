@@ -1,14 +1,5 @@
 import { useMemo, useRef } from "react";
-import { BarChart3, Download, Loader2, Upload } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { BarChart3, Download, Upload } from "lucide-react";
 import { UnifiedWorkspaceChrome } from "@/components/shared/UnifiedWorkspaceChrome";
 import { VerticalBenchmarkContentPills } from "@/components/vertical-benchmark/VerticalBenchmarkContentPills";
 import { ContentOptimizerDetailsDrawer } from "@/components/overview/overview-tab/ContentOptimizerDetailsDrawer";
@@ -31,6 +22,7 @@ import type {
   BenchmarkPipelineProgress,
 } from "@/lib/vertical-benchmark/vertical-benchmark-pipeline-types";
 import type { ContentTypeFilter } from "@/hooks/vertical-benchmark/use-vertical-benchmark-controller";
+import { Button, Field, FileInput, SelectField, TextButton } from "@/ui";
 
 const DETAILS_PANEL_ID = "vertical-benchmark-details-panel";
 
@@ -58,7 +50,6 @@ export type VerticalBenchmarkWorkspaceHeaderProps = {
   selectedCount: number;
   blogCount: number;
   onBlogCountChange: (value: number) => void;
-  onDetailsOpenChange?: (open: boolean) => void;
 };
 
 export function VerticalBenchmarkWorkspaceHeader({
@@ -85,7 +76,6 @@ export function VerticalBenchmarkWorkspaceHeader({
   selectedCount,
   blogCount,
   onBlogCountChange,
-  onDetailsOpenChange,
 }: VerticalBenchmarkWorkspaceHeaderProps) {
   const gridFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -106,8 +96,11 @@ export function VerticalBenchmarkWorkspaceHeader({
   });
   const canOpenDetails =
     busy ||
+    Boolean(bulkTemplateProgress) ||
+    Boolean(exportProgress) ||
     bulkInventoryLinks.length > 0 ||
     Boolean(gridCsvContext) ||
+    rosterCount > 0 ||
     selectedCount > 0;
 
   const drawerProps = useMemo(
@@ -160,35 +153,15 @@ export function VerticalBenchmarkWorkspaceHeader({
       canOpenDetails={canOpenDetails}
       isProcessing={isProcessing}
       detailsPanelId={DETAILS_PANEL_ID}
-      onDetailsOpenChange={onDetailsOpenChange}
       detailsPanel={
         <ContentOptimizerDetailsDrawer postDestination="local" {...drawerProps} />
       }
       toolbar={
         <>
-          <Select
-            value={tagFilterOptions.includes(tagFilter) ? tagFilter : (tagFilterOptions[0] ?? undefined)}
-            onValueChange={onTagFilterChange}
-          >
-            <SelectTrigger
-              className={`${BULK_HEADER_SELECT} w-[11rem]`}
-              aria-label="Filter by category tag"
-            >
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              {tagFilterOptions.map((label) => (
-                <SelectItem key={label} value={label} className="text-base">
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <input
+          <SelectField placeholder="Category" value={tagFilterOptions.includes(tagFilter) ? tagFilter : (tagFilterOptions[0] ?? undefined)} onValueChange={onTagFilterChange} options={tagFilterOptions.map((label) => ({ value: label, label: label }))} />
+          <FileInput
             ref={gridFileInputRef}
-            type="file"
             accept=".csv,text/csv"
-            className="hidden"
             aria-hidden
             onChange={(e) => {
               const file = e.target.files?.[0] ?? null;
@@ -197,17 +170,15 @@ export function VerticalBenchmarkWorkspaceHeader({
             }}
           />
           <Button
+            variant="quiet"
             type="button"
-            variant="ghost"
-            size="sm"
-            className={BULK_HEADER_TOOL_BTN}
             disabled={gridCsvParsing}
             aria-label="Upload grid CSV"
             title="Upload Local Dominator grid CSV"
             onClick={() => gridFileInputRef.current?.click()}
           >
             {gridCsvParsing ? (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              null
             ) : (
               <Upload className="h-4 w-4" aria-hidden />
             )}
@@ -215,19 +186,18 @@ export function VerticalBenchmarkWorkspaceHeader({
           </Button>
           {gridCsvContext ? (
             <span className="flex max-w-[12rem] items-center gap-1.5 text-base text-muted-foreground">
-              <span className="truncate" title={gridCsvFileName ?? undefined}>
+              <span className="break-words" title={gridCsvFileName ?? undefined}>
                 {gridCsvFileName ?? "Grid"} ({gridCsvContext.matchedRowCount} rows)
               </span>
-              <button
+              <TextButton
                 type="button"
-                className="shrink-0 text-primary underline-offset-2 hover:underline"
                 onClick={onClearGridCsv}
               >
                 Clear
-              </button>
+              </TextButton>
             </span>
           ) : null}
-          <Input
+          <Field
             type="number"
             min={1}
             max={50}
@@ -236,29 +206,26 @@ export function VerticalBenchmarkWorkspaceHeader({
             disabled={busy}
             placeholder="Blogs"
             aria-label="Blogs"
-            className={`${BULK_HEADER_FIELD} w-[5.5rem] px-2`}
             onChange={(e) => {
               const n = parseInt(e.target.value, 10);
               if (!Number.isNaN(n)) onBlogCountChange(n);
             }}
           />
           <Button
+            variant="run"
             type="button"
-            size="sm"
-            className={BULK_HEADER_RUN_BTN}
             disabled={busy}
             title="Curate bulk CSV from GSC for selected clients"
             onClick={() => void onCreateBulkTemplate()}
           >
             {generatingBulkTemplate ? (
-              <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+              null
             ) : null}
             Curate
           </Button>
           <Button
+            variant="run"
             type="button"
-            size="sm"
-            className={canDownloadBulkTemplate ? BULK_HEADER_ICON_RUN_BTN : BULK_HEADER_ICON_TOOL_BTN}
             disabled={!canDownloadBulkTemplate || busy}
             title="Download curated bulk CSV"
             aria-label="Download curated bulk CSV"

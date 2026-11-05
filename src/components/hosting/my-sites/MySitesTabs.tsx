@@ -6,6 +6,7 @@ import {
   MY_SITES_TABS_BAND,
   MY_SITES_UPDATES_BADGE,
 } from "./my-sites-theme";
+import { Button } from "@/ui";
 
 export type MySitesTabsProps = {
   active: MySitesTab;
@@ -36,18 +37,17 @@ export function MySitesTabs({ active, counts, onChange }: MySitesTabsProps) {
   return (
     <div role="tablist" className={MY_SITES_TABS_BAND}>
       {TABS.map((tab) => (
-        <button
+        <Button
+          variant="quiet"
           key={tab.id}
-          type="button"
           role="tab"
           aria-selected={active === tab.id}
           data-active={active === tab.id}
-          className={MY_SITES_TAB_BTN}
           onClick={() => onChange(tab.id)}
         >
           {tab.label}
           {badgeFor(tab.id, counts)}
-        </button>
+        </Button>
       ))}
     </div>
   );

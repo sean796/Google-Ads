@@ -1,5 +1,4 @@
 import React, { useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,11 +7,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_FAILED_TO_COPY_EMAIL_TO_CLIPBOARD, NOTIFY_FAILED_TO_COPY_LIST, NOTIFY_GSC_EMAIL_COPIED_TO_CLIPBOARD, NOTIFY_GSC_NO_PROPERTIES_RETURNED, NOTIFY_GSC_QUERIES_FETCHED_BUT_KEYWORD_ANALYSIS, NOTIFY_NO_ANALYSIS_RESULTS_GENERATED_PLEASE_CHE, NOTIFY_PROPERTY_LIST_COPIED_TO_CLIPBOARD, NOTIFY_TESTING_GSC_CONNECTION, notifyFetchedXGscQueriesAnalyzingXUnique, notifyFetchingGscQueriesForX, notifyGscConnectedXProperties, notifyGscQueriesAddedX, notifyKeywordAnalysisCompleteFoundMetrics, notifyNoGscQueriesFoundForXInTheSpecif, notifyRunningXAnalysisMethodS, notifySuccessfullyAnalyzedGscQueriesFromX } from "@/lib/notify-messages";
-import { TestTube, Loader2, Copy, Check, Search } from "lucide-react";
+import { TestTube, Copy, Check, Search } from "lucide-react";
 import { loadApiKey } from "@/lib/api";
 import { getKeywordOverview } from "@/lib/keyword-api";
 import {
@@ -24,6 +22,7 @@ import {
 import { type WordPressSite, KB_FILES_STORAGE_KEY, type StoredFile } from "./types";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
+import { Button } from "@/ui";
 
 export interface GSCFeatureRef {
   openDialog: (site: WordPressSite) => void;
@@ -214,32 +213,28 @@ export const GSCConnectionCard: React.FC<{ identity: GscServiceAccountIdentity }
         Add this email in Search Console → Settings → Users for each property (Full access).
       </p>
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <div className="flex min-w-0 max-w-full flex-1 items-center gap-2 rounded-lg border border-white/[0.08] bg-zinc-900/50 px-3 py-2 sm:flex-initial sm:max-w-[min(100%,42rem)]">
+        <div className="flex min-w-0 max-w-full flex-1 items-center gap-2 rounded-lg border border-white/[0.08] bg-ui-field/50 px-3 py-2 sm:flex-initial sm:max-w-[min(100%,42rem)]">
           <span className="shrink-0 text-base text-white">API identity</span>
-          <code className="min-w-0 flex-1 select-all truncate font-mono text-base text-white" title={gscEmail}>
+          <code className="min-w-0 flex-1 select-all break-words font-mono text-base text-white" title={gscEmail}>
             {gscEmail}
           </code>
           <Button
-            variant="ghost"
-            size="sm"
+            variant="quiet"
             onClick={handleCopyGSCEmail}
-            className="h-6 w-6 shrink-0 p-0 hover:bg-muted-foreground/20"
             title="Copy email"
             type="button"
           >
-            {gscEmailCopied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+            {gscEmailCopied ? <Check className="h-3 w-3 text-primary" /> : <Copy className="h-3 w-3" />}
           </Button>
         </div>
         <Button
           type="button"
           onClick={handleTestGSCConnection}
-          variant="outline"
           disabled={isTestingGSC}
-          className="shrink-0 border-primary text-primary hover:bg-primary/10"
         >
           {isTestingGSC ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              
               Testing...
             </>
           ) : (
@@ -251,16 +246,13 @@ export const GSCConnectionCard: React.FC<{ identity: GscServiceAccountIdentity }
         </Button>
       </div>
       {sitesListSnapshot ? (
-        <div className="space-y-2 rounded-lg border border-white/[0.08] bg-zinc-900/50 p-3">
+        <div className="space-y-2 rounded-lg border border-white/[0.08] bg-ui-field/50 p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-base font-semibold text-white">
               Properties from Google ({sitesListSnapshot.siteCount})
             </span>
             <Button
               type="button"
-              variant="secondary"
-              size="sm"
-              className="h-8 shrink-0"
               onClick={handleCopySitesList}
             >
               <Copy className="mr-1.5 h-3.5 w-3.5" />
@@ -270,7 +262,7 @@ export const GSCConnectionCard: React.FC<{ identity: GscServiceAccountIdentity }
           {sitesListSnapshot.credentialsInUse ? (
             <p className="text-xs text-muted-foreground">
               JWT used for this call:{" "}
-              <code className="break-all rounded bg-black/25 px-1 py-0.5 text-[11px]">
+              <code className="break-all rounded bg-black/25 px-1 py-0.5 text-base">
                 {sitesListSnapshot.credentialsInUse}
               </code>
             </p>
@@ -295,8 +287,8 @@ export const GSCConnectionCard: React.FC<{ identity: GscServiceAccountIdentity }
               ))
             )}
           </ul>
-          <p className="text-[11px] text-muted-foreground">
-            Values above are Google&apos;s raw <code className="text-[10px]">siteUrl</code> strings; the app normalizes
+          <p className="text-base text-muted-foreground">
+            Values above are Google&apos;s raw <code className="text-base">siteUrl</code> strings; the app normalizes
             them when matching your WordPress site URL.
           </p>
         </div>
@@ -749,12 +741,12 @@ export const GSCFeature: React.FC<GSCFeatureProps> = ({ onRef, showConnectionCar
                     className="mt-1"
                   />
                   <div className="flex-1">
-                    <Label
+                    <label
                       htmlFor={method}
                       className="text-sm font-medium leading-none cursor-pointer"
                     >
                       {methodInfo.label}
-                    </Label>
+                    </label>
                   </div>
                 </div>
               );
@@ -763,7 +755,6 @@ export const GSCFeature: React.FC<GSCFeatureProps> = ({ onRef, showConnectionCar
 
           <DialogFooter>
             <Button
-              variant="outline"
               onClick={() => {
                 setGscAnalysisDialogOpen(false);
                 setSelectedAnalysisMethods([]);
@@ -773,6 +764,7 @@ export const GSCFeature: React.FC<GSCFeatureProps> = ({ onRef, showConnectionCar
               Cancel
             </Button>
             <Button
+              variant="run"
               onClick={() => {
                 if (!pendingGSCSite) return;
                 if (selectedAnalysisMethods.length === 0) {

@@ -1,21 +1,5 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
-import {
-  Bookmark,
-  BookmarkPlus,
-  CheckSquare,
-  ChevronLeft,
-  Copy,
-  Download,
-  FolderOpen,
-  Image as ImageIcon,
-  Loader2,
-  Send,
-  Sparkles,
-  Trash2,
-  Upload,
-  X,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Bookmark, BookmarkPlus, CheckSquare, ChevronLeft, Copy, Download, FolderOpen, Image as ImageIcon, Send, Sparkles, Trash2, Upload, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -30,15 +14,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { WorkspacePill } from "@/components/shared/WorkspacePill";
 import { MY_SITES_FIELD, MY_SITES_ICON_BTN } from "@/components/hosting/my-sites/my-sites-theme";
 import {
@@ -62,6 +37,7 @@ import type {
 } from "@/lib/image-generator/image-generator-options";
 import { VideoStudioPlaceholderSplash } from "./VideoStudioPlaceholderSplash";
 import { cn } from "@/lib/utils";
+import { Button, Field, FileInput, RowButton, SelectField, TextareaField } from "@/ui";
 
 type ImageStudioLeftTabId = "assets" | "brief" | "checklist";
 
@@ -179,18 +155,13 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
             const Icon = item.icon;
             const isCurrent = leftOpen && leftTab === item.id;
             return (
-              <button
+              <RowButton
+                selected={Boolean(isCurrent)}
                 key={item.id}
                 type="button"
                 onClick={() => openPanelTab(item.id)}
                 aria-label={`Open ${item.label}`}
                 aria-expanded={isCurrent}
-                className={cn(
-                  "group flex min-h-[4.25rem] w-full flex-col items-center justify-center gap-2 px-1.5 py-2.5 text-base transition-colors",
-                  isCurrent
-                    ? "bg-zinc-900 font-semibold text-primary"
-                    : "bg-transparent text-white hover:bg-zinc-900/70 hover:text-primary",
-                )}
               >
                 <Icon
                   className={cn(
@@ -200,20 +171,16 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
                   aria-hidden
                 />
                 <span className="leading-none tracking-wide">{item.label}</span>
-              </button>
+              </RowButton>
             );
           })}
         </aside>
 
-        <button
-          type="button"
+        <Button
+          variant="quiet"
           aria-label="Close image studio sidebar"
           tabIndex={leftOpen ? 0 : -1}
           onClick={() => setLeftOpen(false)}
-          className={cn(
-            "fixed inset-0 z-30 bg-black/40 transition-opacity duration-200",
-            leftOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
-          )}
         />
 
         <div
@@ -229,14 +196,11 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
           )}
         >
           {leftOpen ? (
-            <button
-              type="button"
+            <Button
+              size="icon" icon={ChevronLeft}
               onClick={() => setLeftOpen(false)}
               aria-label="Collapse studio sidebar"
-              className="absolute right-0 top-1/2 z-20 flex min-h-[72px] w-9 translate-x-full -translate-y-1/2 items-center justify-center border-l-[3px] border-transparent bg-black px-2 py-3 text-white shadow-[0_4px_24px_rgba(0,0,0,0.45)] transition-all hover:border-primary hover:text-primary"
-            >
-              <ChevronLeft className="h-5 w-5" aria-hidden />
-            </button>
+            ></Button>
           ) : null}
 
           <div
@@ -254,14 +218,12 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
                 className="h-8 shrink-0 px-2"
               />
             ))}
-            <button
-              type="button"
+            <Button
+              size="icon" icon={X}
+              variant="quiet"
               onClick={() => setLeftOpen(false)}
               aria-label="Close sidebar"
-              className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-zinc-900 hover:text-white"
-            >
-              <X className="h-5 w-5" aria-hidden />
-            </button>
+            ></Button>
           </div>
 
           <div
@@ -271,12 +233,10 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
           >
             {leftTab === "assets" ? (
               <>
-                <input
+                <FileInput
                   ref={fileInputRef}
-                  type="file"
                   accept={IMAGE_REFERENCE_ACCEPT}
                   multiple
-                  className="hidden"
                   onChange={(e) => {
                     if (e.target.files?.length) {
                       void g.addManualReferences(e.target.files);
@@ -285,30 +245,28 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
                   }}
                 />
                 <Button
+                  variant="quiet"
                   type="button"
-                  variant="ghost"
                   disabled={working}
                   onClick={() => fileInputRef.current?.click()}
-                  className="h-10 w-full rounded-none border-0 bg-zinc-900 px-4 text-base text-primary hover:bg-zinc-800"
                 >
                   <Upload className="mr-2 h-4 w-4" aria-hidden />
                   Upload Reference Images
                 </Button>
 
                 {g.manualReferences.length === 0 ? (
-                  <button
+                  <RowButton
                     type="button"
                     disabled={working}
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex min-h-[10rem] w-full flex-col items-center justify-center gap-2.5 bg-zinc-900 px-5 py-6 text-center text-muted-foreground transition-colors hover:bg-zinc-800/80 disabled:opacity-50"
                   >
                     <ImageIcon className="h-6 w-6 text-primary/80" aria-hidden />
                     <p>Drop reference photos here or click to browse.</p>
-                  </button>
+                  </RowButton>
                 ) : (
                   <div className="grid grid-cols-2 gap-3">
                     {g.manualReferences.map((ref, idx) => (
-                      <div key={ref.id} className="group flex flex-col bg-zinc-900">
+                      <div key={ref.id} className="group flex flex-col bg-ui-field">
                         <div className="relative aspect-square w-full overflow-hidden bg-black">
                           <img
                             src={ref.dataUrl}
@@ -318,17 +276,15 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
                           <span className="absolute bottom-1.5 left-1.5 bg-black/85 px-2 py-0.5 text-base text-white">
                             Ref {idx + 1}
                           </span>
-                          <button
-                            type="button"
+                          <Button
+                            size="icon" icon={Trash2}
+                            variant="danger"
                             disabled={working}
                             onClick={() => g.removeManualReference(ref.id)}
                             aria-label={`Remove ${ref.fileName}`}
-                            className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center bg-black/85 text-white opacity-0 transition-opacity hover:bg-red-600 group-hover:opacity-100"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                          </button>
+                          ></Button>
                         </div>
-                        <p className="truncate px-2.5 py-1.5 text-base text-foreground" title={ref.fileName}>
+                        <p className="break-words px-2.5 py-1.5 text-base text-foreground" title={ref.fileName}>
                           {ref.fileName}
                         </p>
                       </div>
@@ -337,7 +293,7 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
                 )}
 
                 {g.referenceResearch?.references.length ? (
-                  <div className="flex flex-col gap-2 bg-zinc-900 p-3.5">
+                  <div className="flex flex-col gap-2 bg-ui-field p-3.5">
                     <span className="font-semibold text-white">
                       Grounded References ({g.referenceResearch.references.length})
                     </span>
@@ -351,7 +307,7 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
                               className="h-24 w-full object-contain"
                             />
                           ) : null}
-                          <span className="truncate text-base text-foreground">{ref.query}</span>
+                          <span className="break-words text-base text-foreground">{ref.query}</span>
                         </div>
                       ))}
                     </div>
@@ -367,10 +323,8 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
+                          variant="quiet"
                           type="button"
-                          variant="ghost"
-                          size="sm"
-                          className={BULK_HEADER_TOOL_BTN}
                           disabled={working || g.savedPrompts.length === 0}
                         >
                           <Bookmark className="h-4 w-4 shrink-0" aria-hidden />
@@ -390,10 +344,8 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
                       </DropdownMenuContent>
                     </DropdownMenu>
                     <Button
+                      variant="quiet"
                       type="button"
-                      variant="ghost"
-                      size="sm"
-                      className={BULK_HEADER_TOOL_BTN}
                       disabled={working}
                       onClick={g.handleSaveCurrent}
                     >
@@ -403,7 +355,7 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
                   </div>
                 ) : null}
 
-                <Textarea
+                <TextareaField
                   value={g.userPrompt}
                   onChange={(e) => g.setUserPrompt(e.target.value)}
                   disabled={working}
@@ -414,44 +366,12 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
                       ? "Solo keyword or subject (e.g. motorized roller shades in modern living room)…"
                       : "Image brief: describe subject, lighting, mood, and composition…"
                   }
-                  className={cn(MY_SITES_FIELD, "h-auto min-h-[8rem] resize-y bg-zinc-900 p-3.5 text-base")}
                 />
 
                 <div className="grid grid-cols-2 gap-2.5">
-                  <Select
-                    value={g.style}
-                    onValueChange={(v) => g.setStyle(v as ImageStyle)}
-                    disabled={working}
-                  >
-                    <SelectTrigger aria-label="Style" className={cn(MY_SITES_FIELD, "h-9 bg-zinc-900 text-base")}>
-                      <SelectValue placeholder="Style" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem className="text-base" value="professional">Style: Professional</SelectItem>
-                      <SelectItem className="text-base" value="minimalist">Style: Minimalist</SelectItem>
-                      <SelectItem className="text-base" value="modern">Style: Modern</SelectItem>
-                      <SelectItem className="text-base" value="classic">Style: Classic</SelectItem>
-                      <SelectItem className="text-base" value="abstract">Style: Abstract</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <SelectField placeholder="Style" value={g.style} onValueChange={(v) => g.setStyle(v as ImageStyle)} disabled={working} options={[{ value: "professional", label: "Style: Professional" }, { value: "minimalist", label: "Style: Minimalist" }, { value: "modern", label: "Style: Modern" }, { value: "classic", label: "Style: Classic" }, { value: "abstract", label: "Style: Abstract" }]} />
 
-                  <Select
-                    value={g.colorScheme}
-                    onValueChange={(v) => g.setColorScheme(v as ImageColorScheme)}
-                    disabled={working}
-                  >
-                    <SelectTrigger aria-label="Color scheme" className={cn(MY_SITES_FIELD, "h-9 bg-zinc-900 text-base")}>
-                      <SelectValue placeholder="Colors" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem className="text-base" value="vibrant">Color: Vibrant</SelectItem>
-                      <SelectItem className="text-base" value="natural">Color: Natural</SelectItem>
-                      <SelectItem className="text-base" value="warm">Color: Warm</SelectItem>
-                      <SelectItem className="text-base" value="cool">Color: Cool</SelectItem>
-                      <SelectItem className="text-base" value="muted">Color: Muted</SelectItem>
-                      <SelectItem className="text-base" value="monochrome">Color: Monochrome</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <SelectField placeholder="Colors" value={g.colorScheme} onValueChange={(v) => g.setColorScheme(v as ImageColorScheme)} disabled={working} options={[{ value: "vibrant", label: "Color: Vibrant" }, { value: "natural", label: "Color: Natural" }, { value: "warm", label: "Color: Warm" }, { value: "cool", label: "Color: Cool" }, { value: "muted", label: "Color: Muted" }, { value: "monochrome", label: "Color: Monochrome" }]} />
                 </div>
 
                 <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
@@ -470,7 +390,7 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
                 </div>
 
                 {!isSolo ? (
-                  <div className="grid grid-cols-2 gap-2.5 bg-zinc-900 p-3">
+                  <div className="grid grid-cols-2 gap-2.5 bg-ui-field p-3">
                     {[
                       { id: "inc-text", label: "Text elements", checked: g.includeText, onChange: g.setIncludeText },
                       { id: "inc-people", label: "People", checked: g.includePeople, onChange: g.setIncludePeople },
@@ -496,13 +416,12 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
                 ) : null}
 
                 {g.isCustomModel ? (
-                  <Input
+                  <Field
                     value={g.imageModel}
                     onChange={(e) => g.setImageModel(e.target.value)}
                     placeholder="Custom OpenRouter image model ID…"
                     disabled={working}
                     aria-label="Custom image model ID"
-                    className={cn(MY_SITES_FIELD, "h-9 bg-zinc-900 text-base")}
                   />
                 ) : null}
               </div>
@@ -519,7 +438,7 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
                     onRegenerateChecklist={() => void g.handleGenerateChecklist()}
                   />
                 ) : (
-                  <div className="flex flex-col gap-3 bg-zinc-900 p-4 text-muted-foreground">
+                  <div className="flex flex-col gap-3 bg-ui-field p-4 text-muted-foreground">
                     <p>
                       {isSolo
                         ? "Solo mode generates directly from your keyword and grounded references without a blueprint checklist."
@@ -527,10 +446,10 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
                     </p>
                     {!isSolo ? (
                       <Button
+                        variant="run"
                         type="button"
                         onClick={() => void g.handleGenerateChecklist()}
                         disabled={working || !g.hasApiKey}
-                        className={cn(BULK_HEADER_RUN_BTN, "h-9 w-fit px-4")}
                       >
                         Generate checklist
                       </Button>
@@ -545,7 +464,7 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
 
       {/* Zone 2 & 3: Main Studio Column (Sleek Top Bar + Center Stage Monitor + Bottom Prompt Bar) */}
       <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex h-12 w-full shrink-0 items-center gap-2 bg-zinc-950 px-3 text-base">
+        <header className="flex h-12 w-full shrink-0 items-center gap-2 bg-black px-3 text-base">
           <div className="flex shrink-0 items-center gap-2 pr-1">
             <ImageIcon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
             <span className="font-semibold tracking-tight text-white">Image Studio</span>
@@ -553,43 +472,13 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
 
           <div className={BULK_TOOLBAR_GROUP_DIVIDER} aria-hidden />
 
-          <Select
-            value={g.imageSourceMode}
-            onValueChange={(v) => g.setImageSourceMode(v as ImageSourceMode)}
-            disabled={working}
-          >
-            <SelectTrigger className={cn(BULK_HEADER_SELECT_TRIGGER, "h-8 w-auto min-w-[7.5rem]")} aria-label="Image source mode">
-              <SelectValue placeholder="Source" />
-            </SelectTrigger>
-            <SelectContent position="popper">
-              <SelectItem className="text-base" value="featured">Featured</SelectItem>
-              <SelectItem className="text-base" value="section">Section</SelectItem>
-              <SelectItem className="text-base" value="solo">Solo</SelectItem>
-            </SelectContent>
-          </Select>
+          <SelectField placeholder="Source" value={g.imageSourceMode} onValueChange={(v) => g.setImageSourceMode(v as ImageSourceMode)} disabled={working} options={[{ value: "featured", label: "Featured" }, { value: "section", label: "Section" }, { value: "solo", label: "Solo" }]} />
 
           {g.imageSourceMode === "section" ? (
-            <Select
-              value={g.selectedSection ?? ""}
-              onValueChange={(v) => g.setSelectedSection(v || null)}
-              disabled={working || g.availableSections.length === 0}
-            >
-              <SelectTrigger className={cn(BULK_HEADER_SELECT_TRIGGER, "h-8 w-auto min-w-[9rem]")} aria-label="Blueprint section">
-                <SelectValue placeholder={g.availableSections.length === 0 ? "No sections" : "Section"} />
-              </SelectTrigger>
-              <SelectContent position="popper">
-                {g.availableSections.map((sec, idx) => (
-                  <SelectItem key={idx} className="text-base" value={sec.header}>
-                    {sec.header}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SelectField placeholder="Blueprint section" value={g.selectedSection ?? ""} onValueChange={(v) => g.setSelectedSection(v || null)} disabled={working || g.availableSections.length === 0} options={g.availableSections.map((sec, idx) => ({ value: sec.header, label: sec.header }))} />
           ) : null}
 
-          <Select
-            value={g.isCustomModel ? "custom" : g.imageModel}
-            onValueChange={(val) => {
+          <SelectField placeholder="Model" value={g.isCustomModel ? "custom" : g.imageModel} onValueChange={(val) => {
               if (val === "custom") {
                 g.setIsCustomModel(true);
                 setLeftTab("brief");
@@ -598,47 +487,14 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
                 g.setIsCustomModel(false);
                 g.setImageModel(val);
               }
-            }}
-            disabled={working}
-          >
-            <SelectTrigger className={cn(BULK_HEADER_SELECT_TRIGGER, "h-8 w-auto min-w-[9.5rem]")} aria-label="Image model">
-              <SelectValue placeholder="Model" />
-            </SelectTrigger>
-            <SelectContent position="popper">
-              {IMAGE_MODEL_PRESETS.map((preset) => (
-                <SelectItem key={preset.value} className="text-base" value={preset.value}>
-                  {preset.label}
-                </SelectItem>
-              ))}
-              <SelectItem className="text-base" value="custom">Custom model</SelectItem>
-            </SelectContent>
-          </Select>
+            }} disabled={working} options={[{ value: "custom", label: "Custom model" }, ...IMAGE_MODEL_PRESETS.map((preset) => ({ value: preset.value, label: preset.label }))]} />
 
-          <Select
-            value={g.aspectRatio}
-            onValueChange={(v) => g.setAspectRatio(v as ImageAspectRatio)}
-            disabled={working}
-          >
-            <SelectTrigger className={cn(BULK_HEADER_SELECT_TRIGGER, "h-8 w-auto min-w-[6.5rem]")} aria-label="Aspect ratio">
-              <SelectValue placeholder="Aspect" />
-            </SelectTrigger>
-            <SelectContent position="popper">
-              <SelectItem className="text-base" value="1:1">1:1</SelectItem>
-              <SelectItem className="text-base" value="16:9">16:9</SelectItem>
-              <SelectItem className="text-base" value="9:16">9:16</SelectItem>
-              <SelectItem className="text-base" value="4:3">4:3</SelectItem>
-              <SelectItem className="text-base" value="3:4">3:4</SelectItem>
-              <SelectItem className="text-base" value="21:9">21:9</SelectItem>
-              <SelectItem className="text-base" value="9:19">9:19</SelectItem>
-            </SelectContent>
-          </Select>
+          <SelectField placeholder="Aspect" value={g.aspectRatio} onValueChange={(v) => g.setAspectRatio(v as ImageAspectRatio)} disabled={working} options={[{ value: "1:1", label: "1:1" }, { value: "16:9", label: "16:9" }, { value: "9:16", label: "9:16" }, { value: "4:3", label: "4:3" }, { value: "3:4", label: "3:4" }, { value: "21:9", label: "21:9" }, { value: "9:19", label: "9:19" }]} />
 
           <div className="ml-auto flex min-w-0 items-center gap-1.5">
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
-              size="sm"
-              className={BULK_HEADER_ICON_TOOL_BTN}
               disabled={!resolvedImageSrc || working}
               onClick={() => void g.handleCopy()}
               aria-label="Copy image"
@@ -647,10 +503,8 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
               <Copy className="h-4 w-4 shrink-0" aria-hidden />
             </Button>
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
-              size="sm"
-              className={BULK_HEADER_ICON_TOOL_BTN}
               disabled={!resolvedImageSrc || working}
               onClick={() => void g.handleDownload()}
               aria-label="Download image"
@@ -660,22 +514,22 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
             </Button>
 
             <Button
+              variant="run"
               type="button"
-              className={cn(BULK_HEADER_RUN_BTN, "ml-1 shrink-0 font-semibold")}
               disabled={primaryAction.disabled}
               onClick={primaryAction.onClick}
             >
-              {working ? <Loader2 className="mr-1.5 h-4 w-4 shrink-0 animate-spin" aria-hidden /> : null}
-              <span className="truncate">{primaryAction.label}</span>
+              {working ? null : null}
+              <span className="break-words">{primaryAction.label}</span>
             </Button>
           </div>
         </header>
 
         {/* Center Stage Monitor + Bottom Prompt Bar */}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-zinc-950 p-2">
-          <div className="flex min-h-0 flex-1 flex-col bg-zinc-950">
-            <div className="flex h-10 shrink-0 items-center justify-between bg-zinc-900 px-4">
-              <span className="truncate font-semibold text-white">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-black p-2">
+          <div className="flex min-h-0 flex-1 flex-col bg-black">
+            <div className="flex h-10 shrink-0 items-center justify-between bg-ui-field px-4">
+              <span className="break-words font-semibold text-white">
                 {g.isGenerating
                   ? "Image Studio · Rendering Frame"
                   : g.isGeneratingChecklist
@@ -689,7 +543,7 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
 
             <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black p-4">
               {g.error ? (
-                <div className="max-w-lg bg-red-950/60 px-4 py-3 text-base text-red-300">
+                <div className="max-w-lg bg-ui-danger-surface/60 px-4 py-3 text-base text-ui-danger-hover">
                   {g.error}
                 </div>
               ) : resolvedImageSrc ? (
@@ -711,7 +565,7 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
                   />
                 </div>
               ) : (
-                <div className={cn("relative flex flex-col items-center justify-center gap-3 bg-zinc-900/40 p-6 text-center", IMAGE_ASPECT_STAGE_CLASS[g.aspectRatio])}>
+                <div className={cn("relative flex flex-col items-center justify-center gap-3 bg-ui-field/40 p-6 text-center", IMAGE_ASPECT_STAGE_CLASS[g.aspectRatio])}>
                   <ImageIcon className="h-10 w-10 text-primary/80" aria-hidden />
                   <p className="font-semibold text-white">Ready to Render</p>
                   <p className="max-w-md text-muted-foreground">
@@ -730,9 +584,9 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
                 primaryAction.onClick();
               }
             }}
-            className="mt-2 flex h-11 shrink-0 items-center gap-2 bg-zinc-900 px-3"
+            className="mt-2 flex h-11 shrink-0 items-center gap-2 bg-ui-field px-3"
           >
-            <Input
+            <Field
               value={g.userPrompt}
               onChange={(e) => g.setUserPrompt(e.target.value)}
               disabled={working}
@@ -742,12 +596,10 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
                   ? "Enter solo keyword or subject and press Enter to generate…"
                   : "Describe the image scene, style, or lighting and press Enter…"
               }
-              className={cn(MY_SITES_FIELD, "h-8 flex-1 bg-zinc-950 px-3 text-base")}
             />
             <Button
+              variant="quiet"
               type="submit"
-              variant="ghost"
-              className={MY_SITES_ICON_BTN}
               disabled={primaryAction.disabled}
               aria-label={primaryAction.label}
               title={primaryAction.label}
@@ -764,20 +616,19 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
             <DialogTitle>Save prompt as shortcut</DialogTitle>
           </DialogHeader>
           <div className="space-y-2 py-2">
-            <Input
+            <Field
               id="shortcut-name"
               placeholder="Shortcut name (e.g. Neo Digital Style)"
               value={g.saveDialogName}
               onChange={(e) => g.setSaveDialogName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && g.handleConfirmSave()}
-              className="text-base"
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => g.setSaveDialogOpen(false)}>
+            <Button onClick={() => g.setSaveDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={g.handleConfirmSave}>Save</Button>
+            <Button variant="run" onClick={g.handleConfirmSave}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

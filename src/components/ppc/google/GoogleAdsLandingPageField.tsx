@@ -5,6 +5,7 @@ import { Popover, PopoverContent } from "@/components/ui/popover";
 import { PPC_DETAIL_INPUT_CLASS } from "@/components/ppc/google/google-ads-row-details-styles";
 import type { PpcWpPageContext } from "@/lib/ppc/google-ads-types";
 import { cn } from "@/lib/utils";
+import { Button, Field, RowButton } from "@/ui";
 
 export type GoogleAdsLandingPageFieldProps = {
   value: string;
@@ -92,13 +93,12 @@ export function GoogleAdsLandingPageField({
             openPicker();
           }}
         >
-          <input
+          <Field
             ref={inputRef}
             value={displayValue}
             readOnly={!open}
             disabled={disabled}
             placeholder="Landing page"
-            className="h-full min-w-0 flex-1 border-0 bg-transparent px-2 text-base text-zinc-100 shadow-none placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0"
             aria-label="Landing page"
             aria-expanded={open}
             aria-haspopup="listbox"
@@ -118,10 +118,10 @@ export function GoogleAdsLandingPageField({
               openPicker();
             }}
           />
-          <button
-            type="button"
+          <Button
+            size="icon" icon={ChevronDown}
+            variant="quiet"
             disabled={disabled}
-            className="inline-flex h-9 w-8 shrink-0 items-center justify-center text-zinc-100 hover:bg-white/10 disabled:opacity-50"
             aria-label={open ? "Close landing pages" : "Open landing pages"}
             onMouseDown={(e) => e.preventDefault()}
             onClick={(e) => {
@@ -136,19 +136,14 @@ export function GoogleAdsLandingPageField({
               setOpen(true);
               inputRef.current?.focus();
             }}
-          >
-            <ChevronDown
-              className={cn("h-4 w-4 shrink-0 transition-transform", open && "rotate-180")}
-              aria-hidden
-            />
-          </button>
+          ></Button>
         </div>
       </PopoverPrimitive.Anchor>
       <PopoverContent
         ref={contentRef}
         align="start"
         sideOffset={4}
-        className="w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] rounded-none border-0 bg-zinc-900 p-2 shadow-lg"
+        className="w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] rounded-none border-0 bg-ui-field p-2 shadow-lg"
         onOpenAutoFocus={(e) => e.preventDefault()}
         onCloseAutoFocus={(e) => e.preventDefault()}
         onInteractOutside={(e) => {
@@ -168,13 +163,10 @@ export function GoogleAdsLandingPageField({
             filteredPages.map((page) => {
               const selected = value === page.url;
               return (
-                <button
+                <RowButton
+                  selected={Boolean(selected)}
                   key={page.url}
                   type="button"
-                  className={cn(
-                    "flex w-full min-w-0 items-center rounded-none px-2 py-1.5 text-left text-base hover:bg-black",
-                    selected ? "text-white" : "text-foreground",
-                  )}
                   title={page.url}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -183,8 +175,8 @@ export function GoogleAdsLandingPageField({
                     setSearch("");
                   }}
                 >
-                  <span className="min-w-0 truncate">{page.title}</span>
-                </button>
+                  <span className="min-w-0 break-words">{page.title}</span>
+                </RowButton>
               );
             })
           )}

@@ -2,6 +2,7 @@ import { CircleHelp, Download, Trash2 } from "lucide-react";
 import { WorkspacePill } from "@/components/shared/WorkspacePill";
 import type { AssistTargetScope } from "@/lib/pulse-assist/types";
 import { PulseAssistBrandTitle } from "./PulseAssistBrandTitle";
+import { Button } from "@/ui";
 
 type PulseAssistPanelHeaderProps = {
   targetScope: AssistTargetScope;
@@ -42,30 +43,24 @@ export function PulseAssistPanelHeader({
           ))}
         </div>
         <div className="pulse-assist-panel-header__actions">
-          <button
-            type="button"
-            className="pulse-assist-panel-header__icon-btn"
+          <Button
+            size="icon" icon={CircleHelp}
+            variant="quiet"
             onClick={onCreateTicket}
             aria-label="Create a ticket"
-          >
-            <CircleHelp className="h-4 w-4" aria-hidden />
-          </button>
-          <button
-            type="button"
-            className="pulse-assist-panel-header__icon-btn"
+          ></Button>
+          <Button
+            size="icon" icon={Download}
+            variant="quiet"
             onClick={onDownloadDebug}
             aria-label="Download debug log"
-          >
-            <Download className="h-4 w-4" aria-hidden />
-          </button>
-          <button
-            type="button"
-            className="pulse-assist-panel-header__icon-btn"
+          ></Button>
+          <Button
+            size="icon" icon={Trash2}
+            variant="quiet"
             onClick={onClearHistory}
             aria-label="Clear chat history"
-          >
-            <Trash2 className="h-4 w-4" aria-hidden />
-          </button>
+          ></Button>
         </div>
       </div>
     </div>

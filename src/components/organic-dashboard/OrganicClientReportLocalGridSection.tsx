@@ -48,11 +48,11 @@ export function OrganicClientReportLocalGridSection({
               <div
                 className={
                   isSingleGrid
-                    ? "mx-auto flex w-full max-w-[26rem] flex-wrap items-baseline justify-between gap-2"
-                    : "mx-auto flex w-full max-w-[21.25rem] flex-wrap items-baseline justify-between gap-1.5"
+                    ? "mx-auto flex w-full max-w-[26rem] flex-col gap-2"
+                    : "mx-auto flex w-full max-w-[21.25rem] flex-col gap-1.5"
                 }
               >
-                <h3 className="m-0 text-base font-semibold leading-snug text-[#18181b]">
+                <h3 className="m-0 min-h-[2.75rem] text-base font-semibold leading-snug text-[#18181b]">
                   {headingLabel}
                 </h3>
                 {meta.keyword ? (

@@ -29,7 +29,6 @@ export type CompetitorGeneratorWorkspaceHeaderProps = {
   hasSapRowsForCsv: boolean;
   onDownloadTargetsCsv: () => void;
   detailsProps: CompetitorContentDetailsPanelProps;
-  onDetailsOpenChange?: (open: boolean) => void;
   titleRowMenu?: ReactNode;
 };
 
@@ -55,7 +54,6 @@ export function CompetitorGeneratorWorkspaceHeader({
   hasSapRowsForCsv,
   onDownloadTargetsCsv,
   detailsProps,
-  onDetailsOpenChange,
   titleRowMenu,
 }: CompetitorGeneratorWorkspaceHeaderProps) {
   const showTempUrl =
@@ -73,7 +71,6 @@ export function CompetitorGeneratorWorkspaceHeader({
       canOpenDetails={canOpenDetails}
       isProcessing={isProcessing}
       detailsPanelId="competitor-generator-details-panel"
-      onDetailsOpenChange={onDetailsOpenChange}
       toolbar={
         <CompetitorGeneratorToolbar
           workspaceBusy={workspaceBusy}

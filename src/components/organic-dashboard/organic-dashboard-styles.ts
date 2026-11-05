@@ -46,4 +46,4 @@ export const ORGANIC_SEMRUSH_KEYWORDS_COLOR = "hsl(217 91% 60%)";
 export const ORGANIC_SEMRUSH_COST_COLOR = "hsl(142 70% 45%)";
 
 export const ORGANIC_GSC_METRIC_INACTIVE_CLASS =
-  "border border-white/10 bg-zinc-900 text-foreground hover:bg-zinc-800/80";
+  "border border-white/10 bg-ui-field text-foreground hover:bg-ui-field-hover/80";

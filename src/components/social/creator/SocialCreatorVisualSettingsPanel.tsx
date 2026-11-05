@@ -1,4 +1,4 @@
-import { Textarea } from "@/components/ui/textarea";
+
 import { Switch } from "@/components/ui/switch";
 import { SocialCreatorColorPaletteField } from "@/components/social/creator/SocialCreatorColorPaletteField";
 import { SocialCreatorDarkSelect } from "@/components/social/creator/SocialCreatorDarkSelect";
@@ -20,6 +20,7 @@ import type {
   SocialVisualToolMode,
 } from "@/lib/social/social-creator-types";
 import { cn } from "@/lib/utils";
+import { TextareaField } from "@/ui";
 
 export type SocialCreatorVisualSettingsPanelProps = {
   colorPalette: MetaAdColorPalette;
@@ -71,10 +72,9 @@ export function SocialCreatorVisualSettingsPanel({
           <span className={cn(META_VISUAL_CELL_CLASS, "pt-2 text-base font-semibold text-foreground")}>
             Prompt Modifier
           </span>
-          <Textarea
+          <TextareaField
             value={visualNote ?? ""}
             placeholder="Optional: what should the image show?"
-            className={cn(META_VISUAL_TEXTAREA_CLASS, "col-span-3")}
             aria-label="Prompt Modifier"
             disabled={disabled}
             onChange={(e) => onVisualNoteChange(e.target.value)}
@@ -128,7 +128,6 @@ export function SocialCreatorVisualSettingsPanel({
             <SocialCreatorDarkSelect
               value={resolveMetaTypographyStyle(typographyStyle)}
               disabled={disabled}
-              triggerClassName="col-span-3 h-8 w-full min-w-0 px-2.5"
               ariaLabel="Typography style"
               options={META_TYPOGRAPHY_STYLES.map((style) => ({ value: style.id, label: style.label }))}
               onChange={(next) => onTypographyStyleChange?.(resolveMetaTypographyStyle(next))}

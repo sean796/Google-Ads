@@ -6,9 +6,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
   TASK_PROJECT_DIALOG_CLASS,
@@ -34,11 +31,7 @@ import { ContentGapCheckExecutionFields, ensureContentGapCheckPayload } from "@/
 import { BrowserAutomationExecutionFields } from "@/components/manager/tasks/BrowserAutomationExecutionFields";
 import { ensurePostCreatorPayload } from "@/lib/post-creator/post-creator-defaults";
 import { ensureEntityPageCreatorPayload } from "@/lib/entity-page-creator/entity-page-creator-defaults";
-import {
-  automationUsesTriggerUi,
-  resolveEditorialPostCreatorTask,
-  resolveEffectiveExecutionKind,
-} from "@/lib/task-automation-ui";
+import { automationUsesTriggerUi, resolveEditorialPostCreatorTask } from "@/lib/task-automation-ui";
 import { TASK_EXECUTION_KIND_OPTIONS } from "@/lib/task-execution-kind-options";
 import { AutomationTaskExecuteButton } from "@/components/manager/tasks/AutomationTaskExecuteButton";
 import { WorkspacePill } from "@/components/shared/WorkspacePill";
@@ -63,6 +56,7 @@ import {
 import type { TeamMember } from "@/lib/teams-types";
 import { taskHasPulseAssignee } from "@/lib/tasks-filter";
 import type { WordPressSiteOption } from "@/components/manager/tasks/NewTaskDialog";
+import { Button, Field, TextareaField } from "@/ui";
 
 export type TaskDetailPaneProps = {
   open: boolean;
@@ -159,7 +153,7 @@ function TaskDetailTabBar({
   onChange: (tab: DetailTab) => void;
 }): React.ReactElement {
   return (
-    <div className="flex shrink-0 flex-wrap gap-1 border-b border-zinc-800 pb-3" role="tablist">
+    <div className="flex shrink-0 flex-wrap gap-1 border-b border-border pb-3" role="tablist">
       {tabs.map((tab) => (
         <WorkspacePill
           key={tab.id}
@@ -249,35 +243,35 @@ export function TaskDetailPane({
     <TaskFormPanel title="Task details">
       <TaskFormFieldGrid>
         <TaskFormInfield label="Keyword">
-          <Input
+          <Field
+            placeholder="Task keyword"
             value={localKeyword}
             onChange={(e) => setLocalKeyword(e.target.value)}
             onBlur={flushFields}
             aria-label="Task keyword"
             disabled={saving}
-            className="bg-zinc-900 text-base"
           />
         </TaskFormInfield>
         <TaskFormInfield label="Title">
-          <Input
+          <Field
+            placeholder="Task title"
             value={localTitle}
             onChange={(e) => setLocalTitle(e.target.value)}
             onBlur={flushFields}
             aria-label="Task title"
             disabled={saving}
-            className="bg-zinc-900 text-base"
           />
         </TaskFormInfield>
       </TaskFormFieldGrid>
       <TaskFormInfield label="Description">
-        <Textarea
+        <TextareaField
+          placeholder="Task description"
           value={localDescription}
           onChange={(e) => setLocalDescription(e.target.value)}
           onBlur={flushFields}
           aria-label="Task description"
           rows={4}
           disabled={saving}
-          className="bg-zinc-900 text-base"
         />
       </TaskFormInfield>
       <TaskFormInfieldSelect
@@ -375,22 +369,22 @@ export function TaskDetailPane({
       />
       <TaskFormFieldGrid>
         <TaskFormInfield label="Due date">
-          <Input
+          <Field
+            placeholder="Due date"
             type="date"
             value={task.dueDate ? task.dueDate.slice(0, 10) : ""}
             onChange={(e) => onUpdate({ dueDate: e.target.value })}
             disabled={saving}
-            className="bg-zinc-900 text-base"
           />
         </TaskFormInfield>
         <TaskFormInfield label="Due time">
-          <Input
+          <Field
+            placeholder="Due time"
             type="time"
             value={task.dueTime ?? ""}
             onChange={(e) => onUpdate({ dueTime: e.target.value })}
             disabled={saving}
             aria-label="Due time"
-            className="bg-zinc-900 text-base"
           />
         </TaskFormInfield>
       </TaskFormFieldGrid>
@@ -515,22 +509,22 @@ export function TaskDetailPane({
       />
       <TaskFormFieldGrid>
         <TaskFormInfield label="Due date">
-          <Input
+          <Field
+            placeholder="Due date"
             type="date"
             value={task.dueDate ? task.dueDate.slice(0, 10) : ""}
             onChange={(e) => onUpdate({ dueDate: e.target.value })}
             disabled={saving}
-            className="bg-zinc-900 text-base"
           />
         </TaskFormInfield>
         <TaskFormInfield label="Due time">
-          <Input
+          <Field
+            placeholder="Due time"
             type="time"
             value={task.dueTime ?? ""}
             onChange={(e) => onUpdate({ dueTime: e.target.value })}
             disabled={saving}
             aria-label="Due time"
-            className="bg-zinc-900 text-base"
           />
         </TaskFormInfield>
       </TaskFormFieldGrid>
@@ -640,14 +634,14 @@ export function TaskDetailPane({
 
             <div className="min-h-0 flex-1 overflow-y-auto py-1">{tabPanel}</div>
 
-            <DialogFooter className="shrink-0 flex-row flex-wrap justify-between gap-2 border-t border-zinc-800 pt-3 sm:justify-between">
-              <Button type="button" variant="destructive" className="h-10 text-base" disabled={saving} onClick={onDelete}>
+            <DialogFooter className="shrink-0 flex-row flex-wrap justify-between gap-2 border-t border-border pt-3 sm:justify-between">
+              <Button variant="danger" type="button" disabled={saving} onClick={onDelete}>
                 Delete
               </Button>
               <div className="flex flex-wrap items-center gap-2">
                 <Button
+                  variant="run"
                   type="button"
-                  className="h-10 text-base"
                   disabled={saving || task.status === "done"}
                   onClick={onMarkDone}
                 >
@@ -666,8 +660,6 @@ export function TaskDetailPane({
                 {pulseAssigned && !isAutomationContext && scheduleMode === "calendar" ? (
                   <Button
                     type="button"
-                    variant="secondary"
-                    className="h-10 text-base"
                     disabled={saving || Boolean(executeWithAgentDisabledReason)}
                     onClick={() => onExecuteWithAgent?.()}
                   >

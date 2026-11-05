@@ -1,4 +1,4 @@
-import { CheckCircle2, Circle, ExternalLink, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, Circle, ExternalLink, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type {
   BenchmarkInventoryHostedLink,
@@ -92,15 +92,15 @@ export function VerticalBenchmarkPipelineBody({
           aria-label="Current step"
         >
           {micro.status === "active" ? (
-            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
+            null
           ) : micro.status === "error" ? (
             <XCircle className="h-4 w-4 shrink-0 text-destructive" aria-hidden />
           ) : micro.status === "done" ? (
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" aria-hidden />
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" aria-hidden />
           ) : (
             <Circle className="h-4 w-4 shrink-0 text-muted-foreground/50" aria-hidden />
           )}
-          <span className="min-w-0 flex-1 truncate font-medium text-foreground">
+          <span className="min-w-0 flex-1 break-words font-medium text-foreground">
             {micro.label}
             {micro.detail && (micro.status === "active" || micro.status === "error") ?
               <span className="font-normal text-muted-foreground"> {micro.detail}</span>

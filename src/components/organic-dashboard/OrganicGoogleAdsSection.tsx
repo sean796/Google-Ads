@@ -46,7 +46,7 @@ export function OrganicGoogleAdsSection({
       </p>
 
       {loadError ? (
-        <p className="text-base text-red-400">{loadError}</p>
+        <p className="text-base text-ui-danger-hover">{loadError}</p>
       ) : null}
 
       {tableRows.length > 0 ? (

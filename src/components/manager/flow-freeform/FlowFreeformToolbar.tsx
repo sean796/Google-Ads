@@ -5,21 +5,14 @@ import {
   Copy,
   Download,
   FileText,
-  Loader2,
   MessageCircleQuestion,
   RotateCcw,
   Sparkles,
   Square,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/ui";
 import { KB_FILES_STORAGE_KEY, type StoredFile } from "@/components/integrations/types";
 import { GeneratorToolbarFrame } from "@/components/blog-generator/GeneratorToolbarFrame";
-import {
-  BULK_HEADER_DANGER_ICON_BTN,
-  BULK_HEADER_ICON_TOOL_BTN,
-  BULK_HEADER_RUN_BTN,
-  BULK_HEADER_TOOL_BTN,
-} from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import { notify } from "@/lib/app-notifications";
 import {
   NOTIFY_COULD_NOT_COPY,
@@ -107,51 +100,30 @@ export function FlowFreeformToolbar({
       primary={
         <>
           <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={BULK_HEADER_TOOL_BTN}
+            variant="tool"
+            icon={MessageCircleQuestion}
             disabled={pipelineBusy}
             title="Ask the model for optional multiple-choice clarifications"
             onClick={() => void onRunClarify()}
           >
-            {pipelineBusy ? (
-              <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
-            ) : (
-              <MessageCircleQuestion className="h-4 w-4 shrink-0" aria-hidden />
-            )}
             Clarify
           </Button>
           <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={BULK_HEADER_TOOL_BTN}
+            variant="tool"
+            icon={FileText}
             disabled={pipelineBusy || !hasGoalPrompt}
             title="Build section outline from your goal"
             onClick={() => void onRunOutline()}
           >
-            {pipelineBusy ? (
-              <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
-            ) : (
-              <FileText className="h-4 w-4 shrink-0" aria-hidden />
-            )}
             Outline
           </Button>
           <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={BULK_HEADER_TOOL_BTN}
+            variant="tool"
+            icon={Sparkles}
             disabled={pipelineBusy || sectionsCount === 0}
             title="Write or rewrite all sections from the current outline"
             onClick={() => void onRunAllSections()}
           >
-            {pipelineBusy ? (
-              <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
-            ) : (
-              <Sparkles className="h-4 w-4 shrink-0" aria-hidden />
-            )}
             Sections
           </Button>
         </>
@@ -159,80 +131,59 @@ export function FlowFreeformToolbar({
       actions={
         <>
           <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={BULK_HEADER_ICON_TOOL_BTN}
+            variant="tool"
+            size="icon"
+            icon={Copy}
             disabled={!hasReport}
             aria-label="Copy Markdown"
             title="Copy Markdown"
             onClick={() => void copyMarkdown()}
-          >
-            <Copy className="h-4 w-4 shrink-0" aria-hidden />
-          </Button>
+          />
           <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={BULK_HEADER_ICON_TOOL_BTN}
+            variant="tool"
+            size="icon"
+            icon={Download}
             disabled={!hasReport}
             aria-label="Download Markdown"
             title="Download Markdown"
             onClick={downloadMarkdown}
-          >
-            <Download className="h-4 w-4 shrink-0" aria-hidden />
-          </Button>
+          />
           <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={BULK_HEADER_ICON_TOOL_BTN}
+            variant="tool"
+            size="icon"
+            icon={BookMarked}
             disabled={!hasReport}
             aria-label="Add to knowledge base"
             title="Add to knowledge base"
             onClick={addReportToKb}
-          >
-            <BookMarked className="h-4 w-4 shrink-0" aria-hidden />
-          </Button>
+          />
           <Button
-            type="button"
-            size="sm"
-            className={BULK_HEADER_RUN_BTN}
+            variant="run"
+            icon={ClipboardList}
             disabled={pipelineBusy || !hasGoalPrompt}
             title="Clarify, outline, then write all sections"
             onClick={() => void onRunFullReport()}
           >
-            {pipelineBusy ? (
-              <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
-            ) : (
-              <ClipboardList className="h-4 w-4 shrink-0" aria-hidden />
-            )}
             Report
           </Button>
           <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className={BULK_HEADER_DANGER_ICON_BTN}
+            variant="danger"
+            size="icon"
+            icon={Square}
             disabled={!pipelineBusy}
             aria-label="Cancel"
             title="Cancel"
             onClick={onAbort}
-          >
-            <Square className="h-4 w-4" aria-hidden />
-          </Button>
+          />
           {onResetBlueprint ? (
             <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className={BULK_HEADER_ICON_TOOL_BTN}
+              variant="tool"
+              size="icon"
+              icon={RotateCcw}
               aria-label="Reset blueprint"
               title="Reset blueprint"
               onClick={onResetBlueprint}
-            >
-              <RotateCcw className="h-4 w-4 shrink-0" aria-hidden />
-            </Button>
+            />
           ) : null}
         </>
       }

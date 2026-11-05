@@ -9,7 +9,7 @@ defined( 'ABSPATH' ) || exit;
 
 class Neo_Pulse_App_Video_Route_Handlers {
 
-	const SCENE_MIN_SECONDS = 5;
+	const SCENE_MIN_SECONDS = 4;
 	const SCENE_MAX_SECONDS = 15;
 	const DISSOLVE_MIN      = 0.4;
 	const DISSOLVE_MAX      = 1.5;
@@ -23,6 +23,11 @@ class Neo_Pulse_App_Video_Route_Handlers {
 		$subpath = trim( $subpath, '/' );
 		$method  = strtoupper( $method );
 
+		if ( $subpath === 'brainstorm/upload' && $method === 'POST' ) {
+			@set_time_limit( 600 );
+			Neo_Pulse_App_Video_Brainstorm::dispatch_upload_http();
+			return;
+		}
 		if ( 0 === strpos( $subpath, 'brainstorm/' ) ) {
 			Neo_Pulse_App_Video_Brainstorm::dispatch_http( substr( $subpath, 11 ), $method, $body );
 			return;
@@ -416,9 +421,14 @@ class Neo_Pulse_App_Video_Route_Handlers {
 	private static function submit_scene( string $api_key, array $render, array &$scene, string $frame_path, string $last_frame_path = '' ): void {
 		$ext  = pathinfo( $frame_path, PATHINFO_EXTENSION );
 		$mime = $ext === 'jpg' ? 'image/jpeg' : 'image/' . $ext;
+		$prompt = trim( (string) $scene['videoPrompt'] );
+		$has_lock = false !== stripos( $prompt, 'zero morphing' ) || false !== stripos( $prompt, 'rigid architecture lock' );
+		if ( ! $has_lock ) {
+			$prompt .= ' Rigid architecture lock: zero morphing, zero geometric drift, no shifting cabinets or walls, no dissolving objects, no floating text or phantom letters. Maintain strict 1:1 visual fidelity with the reference frame throughout the shot.';
+		}
 		$opts = array(
 			'model'             => (string) $render['model'],
-			'prompt'            => (string) $scene['videoPrompt'],
+			'prompt'            => $prompt,
 			'duration'          => (int) $scene['durationSeconds'],
 			'resolution'        => (string) $render['resolution'],
 			'aspectRatio'       => (string) $render['aspect'],
@@ -570,6 +580,21 @@ class Neo_Pulse_App_Video_Route_Handlers {
 			return;
 		}
 		$id    = (string) $render['id'];
+		$target_storyboard = $next['frameFile'] !== '' ? ( Neo_Pulse_App_Video_Render_Store::dir( $id ) . '/' . $next['frameFile'] ) : '';
+
+		// For single-frame video models (e.g. Grok Imagine), render directly from the scene's approved storyboard frame
+		$model = (string) ( $render['model'] ?? '' );
+		$is_single_frame = false !== stripos( $model, 'grok' )
+			|| false !== stripos( $model, 'x-ai' )
+			|| false !== stripos( $model, 'kling' )
+			|| false !== stripos( $model, 'minimax' )
+			|| false !== stripos( $model, 'hailuo' );
+		if ( $is_single_frame && $target_storyboard !== '' && is_file( $target_storyboard ) ) {
+			self::submit_scene( $api_key, $render, $next, $target_storyboard );
+			unset( $next );
+			return;
+		}
+
 		$frame = Neo_Pulse_App_Video_Render_Store::chain_frame_path( $id, (int) $next['order'] );
 		$grab  = Neo_Pulse_App_Video_Stitch::last_frame( $clip, $frame );
 		if ( is_wp_error( $grab ) ) {
@@ -578,7 +603,6 @@ class Neo_Pulse_App_Video_Route_Handlers {
 			unset( $next );
 			return;
 		}
-		$target_storyboard = $next['frameFile'] !== '' ? ( Neo_Pulse_App_Video_Render_Store::dir( $id ) . '/' . $next['frameFile'] ) : '';
 		self::submit_scene( $api_key, $render, $next, $frame, $target_storyboard );
 		unset( $next );
 	}

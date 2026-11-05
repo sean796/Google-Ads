@@ -276,6 +276,104 @@ class Neo_Pulse_App_Video_Stitch {
 	 *
 	 * @return string[]|WP_Error Written file paths in time order.
 	 */
+	/**
+	 * Re-encode a time range for OpenRouter inline video (size-capped).
+	 *
+	 * @return true|WP_Error
+	 */
+	public static function encode_llm_segment( string $src, float $start, float $duration, string $out_mp4, int $max_bytes ) {
+		$scales = array( 1280, 960, 720, 640 );
+		$crfs   = array( 26, 28, 30, 32 );
+		foreach ( $scales as $scale ) {
+			foreach ( $crfs as $crf ) {
+				if ( is_file( $out_mp4 ) ) {
+					@unlink( $out_mp4 );
+				}
+				$vf     = sprintf( 'scale=%d:-2', $scale );
+				$result = self::run(
+					array(
+						self::ffmpeg_bin(),
+						'-y',
+						'-ss',
+						self::num( $start ),
+						'-t',
+						self::num( $duration ),
+						'-i',
+						$src,
+						'-vf',
+						$vf,
+						'-an',
+						'-c:v',
+						'libx264',
+						'-crf',
+						(string) $crf,
+						'-preset',
+						'fast',
+						'-movflags',
+						'+faststart',
+						$out_mp4,
+					)
+				);
+				if ( is_wp_error( $result ) ) {
+					continue;
+				}
+				if ( is_file( $out_mp4 ) && filesize( $out_mp4 ) > 512 && filesize( $out_mp4 ) <= $max_bytes ) {
+					return true;
+				}
+			}
+		}
+		if ( is_file( $out_mp4 ) && filesize( $out_mp4 ) > $max_bytes ) {
+			@unlink( $out_mp4 );
+		}
+		return new WP_Error(
+			'neo-pulse_video_stitch',
+			'Could not encode an LLM segment under ' . (int) ( $max_bytes / 1048576 ) . ' MB. Trim or compress the source video.'
+		);
+	}
+
+	/**
+	 * Split `$src` into consecutive MP4 parts each at most `$max_bytes` for multimodal LLM requests.
+	 *
+	 * @return array<int,array{part:int,startSec:float,endSec:float,path:string}>|WP_Error
+	 */
+	public static function llm_segments( string $src, string $dir, float $duration, int $max_bytes ) {
+		if ( ! is_file( $src ) ) {
+			return new WP_Error( 'neo-pulse_video_stitch', 'Missing source video ' . basename( $src ) );
+		}
+		$size = (int) filesize( $src );
+		if ( $size <= $max_bytes ) {
+			return array(
+				array(
+					'part'     => 1,
+					'startSec' => 0.0,
+					'endSec'   => round( $duration, 2 ),
+					'path'     => $src,
+				),
+			);
+		}
+		$part_count = (int) ceil( $size / $max_bytes );
+		$part_count = max( 2, min( 12, $part_count ) );
+		$seg_dur    = $duration / $part_count;
+		$segments   = array();
+		for ( $i = 0; $i < $part_count; $i++ ) {
+			$start   = $i * $seg_dur;
+			$end     = min( $duration, $start + $seg_dur );
+			$seg_len = max( 0.05, $end - $start );
+			$out     = $dir . '/llm-seg-' . str_pad( (string) ( $i + 1 ), 2, '0', STR_PAD_LEFT ) . '.mp4';
+			$enc     = self::encode_llm_segment( $src, $start, $seg_len, $out, $max_bytes );
+			if ( is_wp_error( $enc ) ) {
+				return $enc;
+			}
+			$segments[] = array(
+				'part'     => $i + 1,
+				'startSec' => round( $start, 2 ),
+				'endSec'   => round( $end, 2 ),
+				'path'     => $out,
+			);
+		}
+		return $segments;
+	}
+
 	public static function sample_frames( string $src, string $dir, int $interval, int $width ) {
 		$pattern = $dir . '/sample-%03d.jpg';
 		$result  = self::run(
@@ -306,6 +404,46 @@ class Neo_Pulse_App_Video_Stitch {
 		if ( ! is_file( $out_png ) || filesize( $out_png ) < 1024 ) {
 			@unlink( $out_png );
 			return new WP_Error( 'neo-pulse_video_stitch', 'ffmpeg wrote no frame at ' . self::num( $seconds ) . ' s' );
+		}
+		return true;
+	}
+
+	/**
+	 * Slice an exact clip from `$src` starting at `$start_seconds` for `$duration_seconds`.
+	 * Produces a web-compatible H.264 MP4 with faststart.
+	 *
+	 * @return true|WP_Error
+	 */
+	public static function slice_clip( string $src, float $start_seconds, float $duration_seconds, string $out_mp4 ) {
+		$argv = array(
+			self::ffmpeg_bin(),
+			'-y',
+			'-ss',
+			self::num( $start_seconds ),
+			'-t',
+			self::num( $duration_seconds ),
+			'-i',
+			$src,
+			'-c:v',
+			'libx264',
+			'-preset',
+			'fast',
+			'-crf',
+			'22',
+			'-c:a',
+			'aac',
+			'-movflags',
+			'+faststart',
+			$out_mp4,
+		);
+		$result = self::run( $argv );
+		if ( is_wp_error( $result ) ) {
+			@unlink( $out_mp4 );
+			return $result;
+		}
+		if ( ! is_file( $out_mp4 ) || filesize( $out_mp4 ) < 1024 ) {
+			@unlink( $out_mp4 );
+			return new WP_Error( 'neo-pulse_video_stitch', 'ffmpeg produced no clip at ' . self::num( $start_seconds ) . ' s' );
 		}
 		return true;
 	}

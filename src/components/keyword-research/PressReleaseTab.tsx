@@ -1,9 +1,5 @@
 import { useCallback, useState, useEffect, useRef, useMemo } from "react";
 import { Copy, Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { BlogGeneratorTabHeader } from "@/components/keyword-research/BlogGeneratorTabHeader";
 import { BLOG_GENERATOR_TAB_ROOT_CLASS } from "@/components/keyword-research/blog-generator-tab-classes";
 import { BulkHarnessSectionsPanel } from "@/components/keyword-research/bulk/BulkHarnessSectionsPanel";
@@ -34,7 +30,8 @@ import {
   revokePressReleaseInventoryHostedLink,
   type PressReleaseInventoryHostedLink,
 } from "@/lib/press-release/press-release-site-inventory";
-import { ExternalLink, Loader2, Newspaper, Play } from "lucide-react";
+import { ExternalLink, Newspaper, Play } from "lucide-react";
+import { Button, Field, TextareaField } from "@/ui";
 
 function normalizeDomain(url: string): string {
   return url.trim().toLowerCase().replace(/\/$/, "").replace(/^https?:\/\/(www\.)?/, "").split("/")[0];
@@ -254,17 +251,34 @@ export function PressReleaseTab({
         wordPressPosts,
         apiKey: openRouterApiKey.trim(),
       });
-      setResultMarkdown(
-        appendPressReleaseAnchorLinksSection(markdown, {
-          primaryKeyword: keywordTopic,
-          siteName: wordPressSite.name,
-          siteUrl: publicUrl,
+      const finalPrMarkdown = appendPressReleaseAnchorLinksSection(markdown, {
+        primaryKeyword: keywordTopic,
+        siteName: wordPressSite.name,
+        siteUrl: publicUrl,
+        headline: blueprint.title,
+        releaseMarkdown: markdown,
+        siteId: wordPressSite.id,
+        inventoryRows: inventoryResult.rows,
+      });
+      setResultMarkdown(finalPrMarkdown);
+
+      try {
+        const { auditPressReleaseWithDecisionTree } = await import("@/lib/decision-tree/studio-decision-auditor");
+        const decisionState = await auditPressReleaseWithDecisionTree({
           headline: blueprint.title,
-          releaseMarkdown: markdown,
+          body: finalPrMarkdown,
           siteId: wordPressSite.id,
-          inventoryRows: inventoryResult.rows,
-        }),
-      );
+          apiKey: openRouterApiKey.trim(),
+        });
+        console.log(
+          `%c[Decision Agent] 📰 Press Release QA complete: ${decisionState.terminalState} (Score: ${(Number(decisionState.qaScore ?? 0.85) * 100).toFixed(0)}%)`,
+          "color: #84bc00; font-weight: bold;",
+          decisionState,
+        );
+      } catch (auditErr) {
+        console.warn("[Decision Agent] Press release audit warning:", auditErr);
+      }
+
       notify.success(NOTIFY_PRESS_RELEASE_GENERATED);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Generation failed.";
@@ -328,8 +342,6 @@ export function PressReleaseTab({
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
-            variant="secondary"
-            size="sm"
             onClick={async () => {
               try {
                 await navigator.clipboard.writeText(resultMarkdown);
@@ -344,8 +356,6 @@ export function PressReleaseTab({
           </Button>
           <Button
             type="button"
-            variant="secondary"
-            size="sm"
             onClick={() =>
               triggerDownloadMarkdown(
                 `press-release_${sanitizeFilenamePart(keyword.trim() || "release")}.md`,
@@ -357,7 +367,7 @@ export function PressReleaseTab({
             Download .md
           </Button>
         </div>
-        <Textarea readOnly value={resultMarkdown} rows={14} className="font-mono text-base" />
+        <TextareaField placeholder="Press release markdown" readOnly value={resultMarkdown} rows={14} />
       </div>
     ) : null;
 
@@ -372,8 +382,8 @@ export function PressReleaseTab({
       <div className="space-y-4 rounded-lg border border-border bg-card/30 p-4 sm:p-6">
         <div className="max-w-xl space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="pr-keyword">Keyword</Label>
-            <Input
+            <label htmlFor="pr-keyword">Keyword</label>
+            <Field
               id="pr-keyword"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
@@ -382,8 +392,8 @@ export function PressReleaseTab({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="pr-title">Title (optional)</Label>
-            <Input
+            <label htmlFor="pr-title">Title (optional)</label>
+            <Field
               id="pr-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -394,10 +404,10 @@ export function PressReleaseTab({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button type="button" onClick={() => void runGenerate()} disabled={isProcessing}>
+          <Button variant="run" type="button" onClick={() => void runGenerate()} disabled={isProcessing}>
             {isProcessing ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                
                 Generating…
               </>
             ) : (
@@ -422,7 +432,7 @@ export function PressReleaseTab({
             <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
             <span className="text-muted-foreground">Post inventory</span>
             <a
-              className="min-w-0 truncate font-medium text-primary underline underline-offset-4 hover:text-primary/90"
+              className="min-w-0 break-words font-medium text-primary underline underline-offset-4 hover:text-primary/90"
               href={inventoryJsonLink.href}
               target="_blank"
               rel="noopener noreferrer"

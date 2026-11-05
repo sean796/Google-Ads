@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { TASK_FORM_DIALOG_BUTTON_CLASS } from "@/components/manager/tasks/TaskFormLayout";
+import { Button } from "@/ui";
 
 const CLICKED_MS = 500;
 
@@ -25,13 +25,6 @@ export function SavePropertyButton({
     <Button
       type="button"
       aria-pressed={clicked}
-      className={cn(
-        "h-10 bg-[#77AA00] text-base font-semibold text-black shadow-none hover:bg-[#77AA00]/90",
-        "active:bg-black active:text-[#77AA00]",
-        clicked && "bg-black text-[#77AA00] hover:bg-black hover:text-[#77AA00]",
-        TASK_FORM_DIALOG_BUTTON_CLASS,
-        className,
-      )}
       onClick={() => {
         setClicked(true);
         onClick();

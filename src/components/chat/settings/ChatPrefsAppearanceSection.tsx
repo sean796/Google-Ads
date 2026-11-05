@@ -1,7 +1,7 @@
 import React from "react";
-import { cn } from "@/lib/utils";
 import { CHAT_ACCENT_OPTIONS } from "@/lib/chat-preferences-presets";
 import type { ChatLayoutMode, ChatUserPreferences } from "@/lib/chat-preferences-types";
+import { Button, CheckField } from "@/ui";
 
 type Props = {
   draft: ChatUserPreferences;
@@ -18,15 +18,7 @@ function ToggleRow({
   onChecked: (v: boolean) => void;
 }): React.ReactElement {
   return (
-    <label className="flex items-center justify-between gap-3 py-1 text-base">
-      <span>{label}</span>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChecked(e.target.checked)}
-        className="h-4 w-4 accent-primary"
-      />
-    </label>
+    <CheckField label={label} checked={checked} onCheckedChange={onChecked} />
   );
 }
 
@@ -58,17 +50,13 @@ export function ChatPrefsAppearanceSection({ draft, onChange }: Props): React.Re
         <p className="text-base text-muted-foreground">Layout mode</p>
         <div className="flex gap-2">
           {(["default", "minimal"] as const).map((mode) => (
-            <button
+            <Button
+              pressed={appearance.layoutMode === mode}
               key={mode}
-              type="button"
               onClick={() => setLayoutMode(mode)}
-              className={cn(
-                "flex-1 rounded-md px-3 py-2 text-base capitalize",
-                appearance.layoutMode === mode ? "bg-primary/20" : "bg-zinc-900/50 text-muted-foreground",
-              )}
             >
               {mode === "default" ? "Default" : "Minimal"}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -76,48 +64,36 @@ export function ChatPrefsAppearanceSection({ draft, onChange }: Props): React.Re
         <p className="text-base text-muted-foreground">Accent</p>
         <div className="flex flex-wrap gap-2">
           {CHAT_ACCENT_OPTIONS.map((accent) => (
-            <button
+            <Button
+              pressed={appearance.accentPreset === accent.id}
+              variant="quiet"
               key={accent.id}
-              type="button"
               aria-label={accent.id}
               onClick={() => onChange({ accentPreset: accent.id })}
-              className={cn(
-                "h-8 w-8 rounded-full",
-                accent.swatch,
-                appearance.accentPreset === accent.id && "ring-2 ring-white ring-offset-2 ring-offset-background",
-              )}
             />
           ))}
         </div>
       </div>
       <div className="flex gap-2">
         {(["comfortable", "compact"] as const).map((density) => (
-          <button
+          <Button
+            pressed={appearance.density === density}
             key={density}
-            type="button"
             onClick={() => onChange({ density })}
-            className={cn(
-              "flex-1 rounded-md px-3 py-2 text-base capitalize",
-              appearance.density === density ? "bg-primary/20" : "bg-zinc-900/50 text-muted-foreground",
-            )}
           >
             {density}
-          </button>
+          </Button>
         ))}
       </div>
       <div className="flex gap-2">
         {(["default", "large"] as const).map((scale) => (
-          <button
+          <Button
+            pressed={appearance.fontScale === scale}
             key={scale}
-            type="button"
             onClick={() => onChange({ fontScale: scale })}
-            className={cn(
-              "flex-1 rounded-md px-3 py-2 text-base capitalize",
-              appearance.fontScale === scale ? "bg-primary/20" : "bg-zinc-900/50 text-muted-foreground",
-            )}
           >
             {scale === "default" ? "Default" : "Large"}
-          </button>
+          </Button>
         ))}
       </div>
       <div className="space-y-1">

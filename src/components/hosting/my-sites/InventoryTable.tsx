@@ -33,15 +33,15 @@ export function InventoryTable({ kind, rows, loading }: InventoryTableProps) {
           ) : null}
           {rows.map((row) => (
             <tr key={`${row.envId}-${row.slug}`} className={HOST_TR}>
-              <td className={`${HOST_TD} truncate`} title={row.name}>
+              <td className={`${HOST_TD} break-words`} title={row.name}>
                 {row.name}
               </td>
-              <td className={`${HOST_TD} truncate`}>{row.siteName}</td>
+              <td className={`${HOST_TD} break-words`}>{row.siteName}</td>
               <td className={HOST_TD}>
                 <span className={ENV_PILL_CLASS[row.environment]}>{ENVIRONMENT_LABEL[row.environment]}</span>
               </td>
               <td className={`${HOST_TD} tabular-nums`}>{row.version || "–"}</td>
-              <td className={`${HOST_TD} tabular-nums ${row.updateVersion ? "text-amber-200" : "text-muted-foreground"}`}>
+              <td className={`${HOST_TD} tabular-nums ${row.updateVersion ? "text-semantic-warning-foreground" : "text-muted-foreground"}`}>
                 {row.updateVersion ?? "Up to date"}
               </td>
               <td className={`${HOST_TD} ${row.active ? MY_SITES_STAT_VALUE : "text-muted-foreground"}`}>{row.active ? "Active" : "Inactive"}</td>

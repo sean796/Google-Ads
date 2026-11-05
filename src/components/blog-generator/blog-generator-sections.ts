@@ -39,7 +39,8 @@ export function coerceBlogGeneratorSectionId(value: string): BlogGeneratorSectio
     value === "entity" ||
     value === "competitor" ||
     value === "bulk-csv" ||
-    value === "bulk-blog-import"
+    value === "bulk-blog-import" ||
+    value === "vertical-benchmarks"
   ) {
     return "bulk-prompt";
   }

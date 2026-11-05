@@ -1,10 +1,10 @@
 import { useCallback, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Check, Copy, Mail, X } from "lucide-react";
 import { DASHBOARD_SETTINGS_GROUP_CLASS } from "@/components/manager/dashboard/dashboard-panel-styles";
 import { useTeam } from "@/contexts/TeamContext";
 import { copyTeamInviteLink, resendTeamInvite, revokeTeamInvite } from "@/lib/teams-api";
 import { useTeamPermission } from "@/hooks/use-team-permission";
+import { Button } from "@/ui";
 
 type InviteActionState = { ok: boolean; message: string } | "loading";
 
@@ -124,8 +124,6 @@ export function TeamPendingInvitesPanel() {
                 <p className="min-w-0 flex-1 text-base text-white">{inviteLine}</p>
                 <Button
                   type="button"
-                  variant="outline"
-                  className="h-12 shrink-0 gap-1.5 text-base"
                   disabled={resending || copying}
                   onClick={() => void handleCopyInvite(invite.id)}
                   title="Copy invite email"
@@ -137,8 +135,6 @@ export function TeamPendingInvitesPanel() {
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
-                  variant="outline"
-                  className="h-12 gap-1.5 text-base"
                   disabled={resending || copying}
                   onClick={() => void handleResend(invite.id)}
                 >
@@ -147,8 +143,6 @@ export function TeamPendingInvitesPanel() {
                 </Button>
                 <Button
                   type="button"
-                  variant="outline"
-                  className="h-12 gap-1.5 text-base"
                   disabled={resending || copying}
                   onClick={() => void handleRevoke(invite.id)}
                 >
@@ -157,7 +151,7 @@ export function TeamPendingInvitesPanel() {
                 </Button>
               </div>
               {state && state !== "loading" ? (
-                <p className={`text-base ${state.ok ? "text-white" : "text-red-400"}`}>{state.message}</p>
+                <p className={`text-base ${state.ok ? "text-white" : "text-ui-danger-hover"}`}>{state.message}</p>
               ) : null}
             </div>
           );

@@ -48,6 +48,9 @@ class Neo_Pulse_App_Vertical_Benchmark_Gsc_Export {
 
 		foreach ( $sites as $site ) {
 			$site_id = (string) ( $site['id'] ?? '' );
+			if ( is_callable( $opts['onProgress'] ?? null ) ) {
+				call_user_func( $opts['onProgress'], array( 'done' => $done, 'total' => $total, 'siteId' => $site_id ) );
+			}
 			try {
 				$r = self::collect_site_rows(
 					$site,

@@ -249,7 +249,6 @@ export function useLocalGridPanel(
   >([]);
   const [gscHostedLink, setGscHostedLink] = useState<BulkGscKeywordsHostedLink | null>(null);
   const [siteWarmBundle, setSiteWarmBundle] = useState<EntitySiteWarmBundle | null>(null);
-  const [entityDetailsOpenSignal, setEntityDetailsOpenSignal] = useState(0);
   const [entityBulkRowCount, setEntityBulkRowCount] = useState(0);
   const [entityHarnessSections, setEntityHarnessSections] = useState<BulkHarnessSectionUi[]>(() =>
     buildLocalGridEntityPipelineHarness(""),
@@ -816,9 +815,8 @@ export function useLocalGridPanel(
   }, [site.id, activeScan, layoutLocked, handleSelectHistoryScan]);
 
   const handleGenerateBulkCsv = useCallback(
-    async (mode: LocalGridBulkCsvMode, count: number) => {
+    async (mode: LocalGridBulkCsvMode, count: number, cities?: string[]) => {
       if (!activeScan || generatingBulkCsv) return;
-      setEntityDetailsOpenSignal((n) => n + 1);
       setGeneratingBulkCsv(true);
       setEntityBulkRowCount(count);
       setEntityHarnessSections(buildLocalGridEntityPipelineHarness("Starting"));
@@ -837,6 +835,7 @@ export function useLocalGridPanel(
           scan: activeScan,
           mode,
           count,
+          cities,
           onProgress: (status) => {
             setBulkCsvStatus(status);
             setEntityHarnessSections(buildLocalGridEntityPipelineHarness(status));
@@ -1029,7 +1028,7 @@ export function useLocalGridPanel(
     onToggleReportDrawer: () => setReportDrawerOpen((prev) => !prev),
     onCloseReportDrawer: () => setReportDrawerOpen(false),
     generatingBulkCsv,
-    onGenerateBulkCsv: (mode, count) => void handleGenerateBulkCsv(mode, count),
+    onGenerateBulkCsv: (mode, count, cities) => void handleGenerateBulkCsv(mode, count, cities),
     site,
     editorialEntityRowCount,
     editMode,
@@ -1067,7 +1066,6 @@ export function useLocalGridPanel(
       gscHostedLink,
       sitePrepLoading,
       siteWarmBundle,
-      detailsOpenSignal: entityDetailsOpenSignal,
     },
   };
 

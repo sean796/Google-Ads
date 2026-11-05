@@ -1,31 +1,22 @@
 import React, { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { ActionButton, CheckField, DialogShell, Field, SelectField } from "@/ui";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
 import { addChatChannelMembers, createChatChannel } from "@/lib/chat-api";
 import type { ChatChannel } from "@/lib/chat-types";
-import { cn } from "@/lib/utils";
 
 export type ChannelCreateDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated: (channel: ChatChannel) => void;
 };
+
+const VISIBILITY_OPTIONS = [
+  { value: "public", label: "Public" },
+  { value: "private", label: "Private" },
+] as const;
+
+const CREATE_STATES = ["Create", "Creating"] as const;
 
 export function ChannelCreateDialog({
   open,
@@ -76,68 +67,40 @@ export function ChannelCreateDialog({
   const inviteMembers = members.filter((m) => m.userId !== user?.id);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-950 text-white">
-        <DialogHeader>
-          <DialogTitle className="text-base">New channel</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="channel-name" className="text-base">
-              Name
-            </Label>
-            <Input
-              id="channel-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="project-updates"
-              className="text-base"
+    <DialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      size="md"
+      title="New channel"
+      actions={
+        <ActionButton
+          states={CREATE_STATES}
+          state={busy ? "Creating" : "Create"}
+          disabled={busy || !name.trim()}
+          onClick={() => void handleCreate()}
+        />
+      }
+    >
+      <Field placeholder="Channel name, for example project-updates" aria-label="Name" value={name} onChange={(e) => setName(e.target.value)} />
+      <SelectField
+        placeholder="Visibility"
+        value={type}
+        options={VISIBILITY_OPTIONS}
+        onValueChange={(v) => setType(v as "public" | "private")}
+      />
+      {type === "private" ? (
+        <div className="flex max-h-40 flex-col gap-1.5 overflow-y-auto">
+          {inviteMembers.map((member) => (
+            <CheckField
+              key={member.userId}
+              label={`${member.displayName} (${member.email})`}
+              checked={selectedMemberIds.includes(member.userId)}
+              onCheckedChange={() => toggleMember(member.userId)}
             />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base">Visibility</Label>
-            <Select value={type} onValueChange={(v) => setType(v as "public" | "private")}>
-              <SelectTrigger className="text-base">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="public" className="text-base">
-                  Public
-                </SelectItem>
-                <SelectItem value="private" className="text-base">
-                  Private
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {type === "private" ? (
-            <div className="max-h-40 space-y-1 overflow-y-auto">
-              <Label className="text-base">Members</Label>
-              {inviteMembers.map((member) => {
-                const selected = selectedMemberIds.includes(member.userId);
-                return (
-                  <button
-                    key={member.userId}
-                    type="button"
-                    onClick={() => toggleMember(member.userId)}
-                    className={cn(
-                      "flex w-full flex-col rounded px-3 py-2 text-left transition-colors",
-                      selected ? "bg-zinc-800" : "hover:bg-zinc-900",
-                    )}
-                  >
-                    <span className="text-base text-white">{member.displayName}</span>
-                    <span className="text-base text-white/50">{member.email}</span>
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
-          {error ? <p className="text-base text-red-400">{error}</p> : null}
-          <Button type="button" className="w-full text-base" disabled={busy || !name.trim()} onClick={() => void handleCreate()}>
-            Create
-          </Button>
+          ))}
         </div>
-      </DialogContent>
-    </Dialog>
+      ) : null}
+      <p className="h-6 text-ui-danger">{error}</p>
+    </DialogShell>
   );
 }

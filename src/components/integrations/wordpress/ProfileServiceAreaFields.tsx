@@ -1,24 +1,21 @@
-import { type ReactElement } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import { useEffect, useState, type ReactElement } from "react";
+import { Plus, Trash2 } from "lucide-react";
+import { Button, Field, SelectField } from "@/ui";
 import {
   getLocationOptions,
+  inferServiceCountry,
   isServiceCountry,
+  normalizeServiceRegion,
   regionBelongsToCountry,
   SERVICE_COUNTRIES,
   type ServiceCountry,
 } from "@/lib/keyword-location-utils";
+import { TaskFormFlatGrid, TaskFormPlaceholderCell } from "@/components/manager/tasks/TaskFormLayout";
+import type { Location, WordPressSite } from "@/components/integrations/types";
 import {
-  TASK_FORM_SELECT_CONTENT_CLASS,
-  TASK_FORM_SELECT_ITEM_CLASS,
-  TASK_FORM_SELECT_TRIGGER_CLASS,
-} from "@/components/manager/tasks/TaskFormLayout";
+  buildSiteAdditionalLocationsPatch,
+  readSiteAdditionalLocations,
+} from "@/lib/wordpress-api/site-service-area";
 
 function regionPlaceholder(country: string): string {
   if (country === "United States") return "State";
@@ -26,50 +23,33 @@ function regionPlaceholder(country: string): string {
   return "State or province";
 }
 
+const UNSET_SELECT_VALUE = "__unset__";
+
 export function ProfileLocationSelect({
   placeholder,
   value,
   options,
   onChange,
   disabled = false,
-  chrome,
 }: {
   placeholder: string;
   value: string;
   options: string[];
   onChange: (value: string) => void;
   disabled?: boolean;
-  chrome: "dark" | "light";
 }): ReactElement {
   const listed = options.includes(value) || !value ? options : [value, ...options];
-  const dark = chrome === "dark";
   return (
-    <Select value={value || undefined} onValueChange={onChange} disabled={disabled}>
-      <SelectTrigger
-        aria-label={placeholder}
-        className={cn(
-          dark
-            ? TASK_FORM_SELECT_TRIGGER_CLASS
-            : "h-10 min-h-10 rounded-none border-0 bg-black p-0 text-base text-foreground shadow-none focus:ring-2 focus:ring-primary/55",
-        )}
-      >
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent className={dark ? TASK_FORM_SELECT_CONTENT_CLASS : "rounded-none border-0 bg-black text-white"}>
-        {listed.map((opt) => (
-          <SelectItem
-            key={opt}
-            value={opt}
-            className={dark ? TASK_FORM_SELECT_ITEM_CLASS : "text-base text-white focus:bg-[#09090B] focus:text-white"}
-          >
-            {opt}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <SelectField
+      placeholder={placeholder}
+      width="full"
+      value={value || UNSET_SELECT_VALUE}
+      disabled={disabled}
+      options={[{ value: UNSET_SELECT_VALUE, label: placeholder }, ...listed.map((opt) => ({ value: opt, label: opt }))]}
+      onValueChange={(next) => onChange(next === UNSET_SELECT_VALUE ? "" : next)}
+    />
   );
 }
-
 export function nextStateForCountry(state: string, country: string): string {
   if (!isServiceCountry(country)) return "";
   return regionBelongsToCountry(state, country) ? state : "";
@@ -82,3 +62,159 @@ export function serviceRegionOptions(country: string): string[] {
 
 export const SERVICE_COUNTRY_OPTIONS = [...SERVICE_COUNTRIES];
 export { regionPlaceholder };
+
+type DraftAdditionalLocation = {
+  id: string;
+  name?: string;
+  address?: string;
+  city: string;
+  state: string;
+  country: string;
+  zip?: string;
+  phone?: string;
+  email?: string;
+};
+
+function toDraftAdditionalLocations(
+  site?: WordPressSite | null,
+  defaultCountry: string = "",
+): DraftAdditionalLocation[] {
+  return readSiteAdditionalLocations(site).map((loc: Location, idx: number) => {
+    const country =
+      (loc.country && isServiceCountry(loc.country) ? loc.country : "") ||
+      inferServiceCountry(loc.state, defaultCountry);
+    const state = normalizeServiceRegion(loc.state, country);
+    return {
+      id: loc.id || `loc-${site?.id ?? "site"}-extra-${idx + 1}`,
+      name: loc.name,
+      address: loc.address,
+      city: loc.city ?? "",
+      state,
+      country,
+      zip: loc.zip,
+      phone: loc.phone,
+      email: loc.email,
+    };
+  });
+}
+
+export function ProfileAdditionalLocationsEditor({
+  site,
+  defaultCountry,
+  defaultState,
+  onPatchSite,
+  patchSiteId,
+}: {
+  site?: WordPressSite | null;
+  defaultCountry: string;
+  defaultState: string;
+  onPatchSite?: (siteId: string, patch: Partial<WordPressSite>) => void;
+  patchSiteId?: string | null;
+}): ReactElement | null {
+  const [rows, setRows] = useState<DraftAdditionalLocation[]>(() =>
+    toDraftAdditionalLocations(site, defaultCountry),
+  );
+
+  const siteLocationsKey = JSON.stringify(
+    readSiteAdditionalLocations(site).map((l) => [l.id, l.city, l.state, l.country]),
+  );
+
+  useEffect(() => {
+    setRows(toDraftAdditionalLocations(site, defaultCountry));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [site?.id, siteLocationsKey]);
+
+  const commitRows = (nextRows: DraftAdditionalLocation[]) => {
+    if (!onPatchSite || !patchSiteId || !site) return;
+    onPatchSite(patchSiteId, buildSiteAdditionalLocationsPatch(site, nextRows));
+  };
+
+  const handleAddLocation = () => {
+    const country = isServiceCountry(defaultCountry) ? defaultCountry : "Canada";
+    const state = nextStateForCountry(defaultState, country);
+    const next: DraftAdditionalLocation[] = [
+      ...rows,
+      {
+        id: `loc-${site?.id ?? "site"}-extra-${Date.now()}-${rows.length + 1}`,
+        city: "",
+        state,
+        country,
+      },
+    ];
+    setRows(next);
+    commitRows(next);
+  };
+
+  const handleRemoveLocation = (index: number) => {
+    const next = rows.filter((_, i) => i !== index);
+    setRows(next);
+    commitRows(next);
+  };
+
+  const handleCityChange = (index: number, city: string) => {
+    setRows((prev) => prev.map((r, i) => (i === index ? { ...r, city } : r)));
+  };
+
+  const handleCityBlur = () => {
+    commitRows(rows);
+  };
+
+  const handleCountryChange = (index: number, country: string) => {
+    const next = rows.map((r, i) => {
+      if (i !== index) return r;
+      const nextState = nextStateForCountry(r.state, country);
+      return { ...r, country, state: nextState };
+    });
+    setRows(next);
+    commitRows(next);
+  };
+
+  const handleStateChange = (index: number, state: string) => {
+    const next = rows.map((r, i) => (i === index ? { ...r, state } : r));
+    setRows(next);
+    commitRows(next);
+  };
+
+  return (
+    <div className="mt-2 flex flex-col gap-2">
+      {rows.map((row, idx) => (
+        <TaskFormFlatGrid key={row.id} className="grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto]">
+          <TaskFormPlaceholderCell>
+            <Field
+              value={row.city}
+              onChange={(e) => handleCityChange(idx, e.target.value)}
+              onBlur={handleCityBlur}
+              placeholder={`Additional city ${idx + 1}`}
+              aria-label={`Additional city ${idx + 1}`}
+              autoComplete="off"
+            />
+          </TaskFormPlaceholderCell>
+          <TaskFormPlaceholderCell>
+            <ProfileLocationSelect
+              placeholder="Country"
+              value={row.country}
+              options={SERVICE_COUNTRY_OPTIONS}
+              onChange={(val) => handleCountryChange(idx, val)}
+            />
+          </TaskFormPlaceholderCell>
+          <TaskFormPlaceholderCell>
+            <ProfileLocationSelect
+              placeholder={regionPlaceholder(row.country)}
+              value={row.state}
+              options={serviceRegionOptions(row.country)}
+              onChange={(val) => handleStateChange(idx, val)}
+              disabled={!row.country}
+            />
+          </TaskFormPlaceholderCell>
+          <Button icon={Trash2} onClick={() => handleRemoveLocation(idx)}>
+            Remove
+          </Button>        </TaskFormFlatGrid>
+      ))}
+      <div className="flex items-center">
+        <Button icon={Plus} onClick={handleAddLocation} disabled={!site || !patchSiteId}>
+          Add location
+        </Button>
+      </div>
+    </div>
+  );
+}

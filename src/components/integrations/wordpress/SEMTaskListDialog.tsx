@@ -1,21 +1,11 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import { ActionButton, Button, CheckField, DialogShell, TextareaField, FileInput } from "@/ui";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_NO_PENDING_TASKS_TO_FIX, NOTIFY_PASTE_OR_UPLOAD_A_TASK_LIST_FIRST, NOTIFY_SHEET_EXPORTED, notifyFixRunCompleteXTaskSProcessed, notifyInterpretedXTaskS } from "@/lib/notify-messages";
-import { Wrench, Loader2, Upload, FileText, Download, Printer, Check, Circle, ChevronDown, ChevronUp } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Wrench, Upload, FileText, Download, Printer, Check, Circle, ChevronDown, ChevronUp } from "lucide-react";
 import type { WordPressSite } from "@/components/integrations/types";
 import { interpretSemTaskList, type InterpretedSemTask } from "@/lib/sem-task-interpreter";
 import { SEM_FOCUS_CATEGORIES, deriveSuggestedFocusFromFileName, deriveFocusFromTask } from "@/lib/sem-categories";
-import { CYBERPUNK_CLASSES } from "./cyberpunk-theme";
 import { useWordPressOptimization } from "@/contexts/wordpress-optimization-context";
 
 export type SemTaskRow = InterpretedSemTask & {
@@ -54,6 +44,70 @@ interface SEMTaskListDialogProps {
   setIsKeywordSelectionOpen: (prev: any) => any;
   setGscClusterAnalysis: (prev: any) => any;
   setIsAnalyzingClusters: (prev: any) => any;
+}
+
+const STATUS_CLASS: Record<SemTaskRow["status"], string> = {
+  pending: "text-muted-foreground",
+  fixing: "text-primary",
+  done: "text-primary",
+  error: "text-ui-danger",
+};
+const INTERPRET_STATES = ["Interpret list", "Interpreting"] as const;
+const FIX_STATES = ["Fix it (AI Technical Mechanic)", "Fixing"] as const;
+const CELL = "bg-ui-field p-2 text-left align-top text-base";
+
+function TaskTable({ tasks, expandedPromptKey, onTogglePrompt }: { tasks: SemTaskRow[]; expandedPromptKey?: string | null; onTogglePrompt?: (key: string) => void }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full border-separate border-spacing-px text-base">
+        <thead>
+          <tr>
+            {["#", "URL", "Action", "Checklist", "Status", "Change"].map((h) => (<th key={h} className={`${CELL} font-semibold`}>{h}</th>))}
+          </tr>
+        </thead>
+        <tbody>
+          {tasks.map((t, idx) => {
+            const key = `${t.lineIndex}-${t.url}`;
+            const open = expandedPromptKey === key;
+            return (
+              <tr key={`${key}-${idx}`}>
+                <td className={`${CELL} text-muted-foreground`}>{t.lineIndex}</td>
+                <td className={`${CELL} break-all text-muted-foreground`} title={t.url}>{t.url}</td>
+                <td className={`${CELL} text-muted-foreground`}>{t.suggestedAction}</td>
+                <td className={CELL}>
+                  <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
+                    {(t.checklist ?? []).map((item, i) => (
+                      <li key={i} className="flex items-start gap-1">
+                        {t.checklistDone?.[i] ? <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> : <Circle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />}
+                        <span className={t.checklistDone?.[i] ? "text-muted-foreground line-through" : "text-muted-foreground"}>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </td>
+                <td className={`${CELL} ${STATUS_CLASS[t.status]}`}>{t.status}</td>
+                <td className={`${CELL} text-muted-foreground`}>
+                  <div className="flex flex-col gap-1">
+                    <span>{t.changeSummary ?? (t.error ? t.error : " - ")}</span>
+                    {onTogglePrompt && t.promptSent ? (
+                      <Button variant="tool" icon={open ? ChevronUp : ChevronDown} onClick={() => onTogglePrompt(key)}>
+                        {open ? "Hide prompt" : "View prompt"}
+                      </Button>
+                    ) : null}
+                    {open && t.promptSent ? (
+                      <pre className="max-h-48 overflow-auto whitespace-pre-wrap bg-ui-field-hover p-2 font-mono text-base">
+                        <span className="text-primary">System:</span>{"\n"}{t.promptSent.system}{"\n\n"}
+                        <span className="text-primary">User:</span>{"\n"}{t.promptSent.user}
+                      </pre>
+                    ) : null}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 export const SEMTaskListDialog: React.FC<SEMTaskListDialogProps> = ({
@@ -339,344 +393,107 @@ export const SEMTaskListDialog: React.FC<SEMTaskListDialogProps> = ({
 
   return (
     <>
-      <style>{`
-        @keyframes breatheNeon {
-          0%, 100% { box-shadow: 0 0 7px rgba(34, 197, 94, 0.5), 0 0 14px rgba(34, 197, 94, 0.2), 0 0 20px rgba(34, 197, 94, 0.2), inset 0 0 7px rgba(34, 197, 94, 0.1); }
-          50% { box-shadow: 0 0 14px rgba(34, 197, 94, 0.8), 0 0 26px rgba(34, 197, 94, 0.6), 0 0 38px rgba(34, 197, 94, 0.2), inset 0 0 12px rgba(34, 197, 94, 0.2); }
-        }
-      `}</style>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent
-          className={cn(
-            "max-w-3xl max-h-[90vh] overflow-auto bg-[#050505] border-2 border-green-500/50",
-            "animate-[breatheNeon_3s_ease-in-out_infinite] [&[data-state=open]]:animate-none [&[data-state=closed]]:animate-none"
-          )}
-        >
-          <DialogHeader className="border-b border-green-500/20 pb-3">
-            <DialogTitle className={cn("text-xl font-bold font-mono tracking-wider", CYBERPUNK_CLASSES.textPrimary)}>
-              SEM Task List – {site.name}
-            </DialogTitle>
-            <DialogDescription className={cn("font-mono text-sm", CYBERPUNK_CLASSES.textMuted)}>
-              Upload a list of URLs or issues; AI interprets and fixes content on this WordPress site.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 mt-2">
-            {/* Focus areas: only show before interpreting – after interpret, task checklist is the single list (no double list) */}
-            {!hasTasks && (
-              <div>
-                <Label className={cn("text-sm font-mono", CYBERPUNK_CLASSES.textPrimary)}>
-                  Focus areas (optional – leave unchecked to use each task&apos;s action)
-                </Label>
-                {suggestedFocusFromFile && (
-                  <p className={cn("mt-1 text-xs font-mono", CYBERPUNK_CLASSES.textMuted)}>
-                    From file &quot;{suggestedFocusFileName}&quot; → <span className="text-green-400">{suggestedFocusFromFile}</span>. Add or change focus below.
-                  </p>
-                )}
-                <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-1.5">
-                  {SEM_FOCUS_CATEGORIES.map((cat) => (
-                    <label
-                      key={cat}
-                      className={cn(
-                        "flex items-center gap-1.5 cursor-pointer font-mono text-sm",
-                        focusCategories.includes(cat) ? "text-green-300" : CYBERPUNK_CLASSES.textMuted
-                      )}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={focusCategories.includes(cat)}
-                        onChange={() => toggleFocusCategory(cat)}
-                        className="rounded border-green-500/50 bg-[#050505] text-green-500 focus:ring-green-500/50"
-                      />
-                      <span>{cat}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-            {hasTasks && (
-              <p className={cn("text-xs font-mono", CYBERPUNK_CLASSES.textMuted)}>
-                Using each task&apos;s action and checklist – fix runs only what the checklist says. Change column shows exactly what was updated.
+      <DialogShell
+        open={open}
+        onOpenChange={onOpenChange}
+        size="xl"
+        title={`SEM Task List - ${site.name}`}
+        description="Upload a list of URLs or issues; AI interprets and fixes content on this WordPress site."
+      >
+        {!hasTasks ? (
+          <>
+            <p className="text-base font-semibold">Focus areas (optional, leave unchecked to use each task&apos;s action)</p>
+            {suggestedFocusFromFile ? (
+              <p className="text-base text-muted-foreground">
+                From file &quot;{suggestedFocusFileName}&quot;: <span className="text-primary">{suggestedFocusFromFile}</span>. Add or change focus below.
               </p>
-            )}
-
-            {/* Optional prompt modifier – e.g. set title to 'agentic agent' */}
-            <div>
-              <Label className={cn("text-sm font-mono", CYBERPUNK_CLASSES.textMuted)}>
-                Optional prompt modifier
-              </Label>
-              <textarea
-                className={cn(
-                  "mt-1 w-full min-h-[60px] rounded-md border border-green-500/30 bg-[#050505] px-3 py-2 text-sm font-mono text-green-300",
-                  "placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50"
-                )}
-                placeholder="e.g. Set title to 'agentic agent'; prefer canonical URLs"
-                value={promptModifier}
-                onChange={(e) => setPromptModifier(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <Label className={cn("text-sm font-mono", CYBERPUNK_CLASSES.textMuted)}>
-                Task list (paste or upload CSV/text, one item per line)
-              </Label>
-              <div className="flex gap-2 mt-1">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".csv,.txt"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  aria-hidden
+            ) : null}
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+              {SEM_FOCUS_CATEGORIES.map((cat) => (
+                <CheckField
+                  key={cat}
+                  label={cat}
+                  checked={focusCategories.includes(cat)}
+                  onCheckedChange={() => toggleFocusCategory(cat)}
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className={CYBERPUNK_CLASSES.buttonNeon}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Upload className="h-4 w-4 mr-1" />
-                  Upload
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className={CYBERPUNK_CLASSES.buttonNeon}
-                  onClick={handleInterpretList}
-                  disabled={!rawList.trim() || isInterpreting}
-                >
-                  {isInterpreting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      <FileText className="h-4 w-4 mr-1 inline" />
-                      Interpret list
-                    </>
-                  )}
-                </Button>
-                <Button
-                  onClick={handleFixIt}
-                  variant="outline"
-                  size="sm"
-                  disabled={pendingCount === 0 || isFixing || !hasTasks}
-                  className={cn(CYBERPUNK_CLASSES.buttonNeon, "border-green-500 text-green-300 hover:bg-green-500/20")}
-                >
-                  {isFixing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Fixing...
-                    </>
-                  ) : (
-                    <>
-                      <Wrench className="h-4 w-4 mr-2" />
-                      Fix it (AI Technical Mechanic)
-                    </>
-                  )}
-                </Button>
-              </div>
-              <textarea
-                className={cn(
-                  "mt-2 w-full min-h-[100px] rounded-md border border-green-500/30 bg-[#050505] px-3 py-2 text-sm font-mono text-green-300",
-                  "placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50"
-                )}
-                placeholder="Paste URLs or lines like: https://example.com/page, Fix title and meta"
-                value={rawList}
-                onChange={(e) => setRawList(e.target.value)}
-              />
+              ))}
             </div>
+          </>
+        ) : (
+          <p className="text-base text-muted-foreground">
+            Using each task&apos;s action and checklist. Fix runs only what the checklist says. Change column shows exactly what was updated.
+          </p>
+        )}
 
-            {hasTasks && (
-              <>
-                <div className={cn("rounded-md overflow-x-auto border-2", CYBERPUNK_CLASSES.borderNeon)}>
-                  <table className="w-full text-sm font-mono">
-                    <thead>
-                      <tr className={cn("border-b", CYBERPUNK_CLASSES.borderDivider, CYBERPUNK_CLASSES.bgNeon)}>
-                        <th className={cn("text-left p-2", CYBERPUNK_CLASSES.textPrimary)}>#</th>
-                        <th className={cn("text-left p-2", CYBERPUNK_CLASSES.textPrimary)}>URL</th>
-                        <th className={cn("text-left p-2", CYBERPUNK_CLASSES.textPrimary)}>Action</th>
-                        <th className={cn("text-left p-2 min-w-[200px]", CYBERPUNK_CLASSES.textPrimary)}>Checklist</th>
-                        <th className={cn("text-left p-2", CYBERPUNK_CLASSES.textPrimary)}>Status</th>
-                        <th className={cn("text-left p-2", CYBERPUNK_CLASSES.textPrimary)}>Change</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tasks.map((t, idx) => (
-                        <tr
-                          key={`${t.lineIndex}-${t.url}-${idx}`}
-                          className={cn("border-b", CYBERPUNK_CLASSES.borderDivider)}
-                        >
-                          <td className={cn("p-2", CYBERPUNK_CLASSES.textMuted)}>{t.lineIndex}</td>
-                          <td className={cn("p-2 max-w-[180px] truncate", CYBERPUNK_CLASSES.textMuted)} title={t.url}>
-                            {t.url}
-                          </td>
-                          <td className={cn("p-2", CYBERPUNK_CLASSES.textMuted)}>{t.suggestedAction}</td>
-                          <td className="p-2">
-                            <ul className="list-none space-y-0.5 m-0 p-0 text-xs">
-                              {(t.checklist ?? []).map((item, i) => (
-                                <li key={i} className="flex items-start gap-1">
-                                  {t.checklistDone?.[i] ? (
-                                    <Check className="h-3.5 w-3.5 text-green-400 shrink-0 mt-0.5" />
-                                  ) : (
-                                    <Circle className={cn("h-3.5 w-3.5 shrink-0 mt-0.5", CYBERPUNK_CLASSES.textMuted)} />
-                                  )}
-                                  <span
-                                    className={
-                                      t.checklistDone?.[i]
-                                        ? "text-muted-foreground line-through"
-                                        : CYBERPUNK_CLASSES.textMuted
-                                    }
-                                  >
-                                    {item}
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
-                          </td>
-                          <td className="p-2">
-                            {t.status === "fixing" && (
-                              <Loader2 className="h-4 w-4 animate-spin inline text-green-400" />
-                            )}
-                            {t.status !== "fixing" && (
-                              <span
-                                className={cn(
-                                  t.status === "done" && CYBERPUNK_CLASSES.statusSuccess,
-                                  t.status === "error" && CYBERPUNK_CLASSES.statusError,
-                                  t.status === "pending" && CYBERPUNK_CLASSES.statusPending
-                                )}
-                              >
-                                {t.status}
-                              </span>
-                            )}
-                          </td>
-                          <td className={cn("p-2", CYBERPUNK_CLASSES.textMuted)}>
-                            <div className="flex flex-col gap-1">
-                              <span>{t.changeSummary ?? (t.error ? t.error : " - ")}</span>
-                              {t.promptSent && (
-                                <button
-                                  type="button"
-                                  onClick={() => setExpandedPromptKey((k) => (k === `${t.lineIndex}-${t.url}` ? null : `${t.lineIndex}-${t.url}`))}
-                                  className={cn("text-xs flex items-center gap-0.5 text-green-400 hover:underline", CYBERPUNK_CLASSES.textMuted)}
-                                >
-                                  {expandedPromptKey === `${t.lineIndex}-${t.url}` ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                                  {expandedPromptKey === `${t.lineIndex}-${t.url}` ? "Hide prompt" : "View prompt"}
-                                </button>
-                              )}
-                              {expandedPromptKey === `${t.lineIndex}-${t.url}` && t.promptSent && (
-                                <pre className="mt-1 p-2 text-sm bg-black/40 border border-green-500/30 rounded overflow-auto max-h-48 whitespace-pre-wrap font-mono">
-                                  <span className="text-green-400">System:</span>
-                                  {"\n"}
-                                  {t.promptSent.system}
-                                  {"\n\n"}
-                                  <span className="text-green-400">User:</span>
-                                  {"\n"}
-                                  {t.promptSent.user}
-                                </pre>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className={CYBERPUNK_CLASSES.buttonNeon}
-                    onClick={handleExportSheet}
-                  >
-                    <Download className="h-4 w-4 mr-1" />
-                    Export sheet
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className={CYBERPUNK_CLASSES.buttonNeon}
-                    onClick={handlePrintSheet}
-                  >
-                    <Printer className="h-4 w-4 mr-1" />
-                    Print sheet
-                  </Button>
-                </div>
-              </>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+        <TextareaField
+          rows={2}
+          placeholder="Optional prompt modifier, e.g. Set title to 'agentic agent'; prefer canonical URLs"
+          value={promptModifier}
+          onChange={(e) => setPromptModifier(e.target.value)}
+        />
 
-      <Dialog open={printDialogOpen} onOpenChange={setPrintDialogOpen}>
-        <DialogContent
-          className={cn(
-            "max-w-4xl max-h-[80vh] overflow-auto bg-[#050505] border-2 border-green-500/50",
-            CYBERPUNK_CLASSES.textPrimary
-          )}
-        >
-          <DialogHeader className="border-b border-green-500/20 pb-3">
-            <DialogTitle className={cn("font-mono", CYBERPUNK_CLASSES.textPrimary)}>
-              SEM Task List – Print
-            </DialogTitle>
-            <DialogDescription className={cn("font-mono text-sm", CYBERPUNK_CLASSES.textMuted)}>
-              Print or save as PDF from your browser.
-            </DialogDescription>
-          </DialogHeader>
-          <div className={cn("rounded-md overflow-x-auto border print:block", CYBERPUNK_CLASSES.borderNeon)}>
-            <table className="w-full text-sm font-mono">
-              <thead>
-                <tr className={cn("border-b", CYBERPUNK_CLASSES.borderDivider, CYBERPUNK_CLASSES.bgNeon)}>
-                  <th className="text-left p-2">#</th>
-                  <th className="text-left p-2">URL</th>
-                  <th className="text-left p-2">Action</th>
-                  <th className="text-left p-2 min-w-[200px]">Checklist</th>
-                  <th className="text-left p-2">Status</th>
-                  <th className="text-left p-2">Change</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.map((t, idx) => (
-                  <tr key={`print-${t.lineIndex}-${t.url}-${idx}`} className={cn("border-b", CYBERPUNK_CLASSES.borderDivider)}>
-                    <td className="p-2">{t.lineIndex}</td>
-                    <td className="p-2 max-w-[200px] truncate" title={t.url}>
-                      {t.url}
-                    </td>
-                    <td className="p-2">{t.suggestedAction}</td>
-                    <td className="p-2">
-                      <ul className="list-none space-y-0.5 m-0 p-0 text-xs">
-                        {(t.checklist ?? []).map((item, i) => (
-                          <li key={i} className="flex items-start gap-1">
-                            {t.checklistDone?.[i] ? (
-                              <Check className="h-3.5 w-3.5 text-green-400 shrink-0 mt-0.5" />
-                            ) : (
-                              <Circle className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                            )}
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </td>
-                    <td className="p-2">{t.status}</td>
-                    <td className="p-2">
-                      {t.changeSummary ?? (t.error ? t.error : " - ")}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <Button
-            type="button"
-            onClick={() => window.print()}
-            className={cn("mt-4", CYBERPUNK_CLASSES.buttonNeon)}
-          >
-            <Printer className="h-4 w-4 mr-2" />
+        <div className="flex items-center gap-1.5">
+          <FileInput ref={fileInputRef} accept=".csv,.txt" onChange={handleFileUpload} aria-hidden />
+          <Button variant="tool" icon={Upload} onClick={() => fileInputRef.current?.click()}>
+            Upload
+          </Button>
+          <ActionButton
+            variant="tool"
+            states={INTERPRET_STATES}
+            state={isInterpreting ? "Interpreting" : "Interpret list"}
+            icon={FileText}
+            disabled={!rawList.trim() || isInterpreting}
+            onClick={handleInterpretList}
+          />
+          <ActionButton
+            states={FIX_STATES}
+            state={isFixing ? "Fixing" : "Fix it (AI Technical Mechanic)"}
+            icon={Wrench}
+            disabled={pendingCount === 0 || isFixing || !hasTasks}
+            onClick={handleFixIt}
+          />
+        </div>
+        <TextareaField
+          rows={5}
+          placeholder="Task list (paste or upload CSV/text, one item per line), e.g. https://example.com/page, Fix title and meta"
+          aria-label="Task list"
+          value={rawList}
+          onChange={(e) => setRawList(e.target.value)}
+        />
+
+        {hasTasks ? (
+          <>
+            <TaskTable
+              tasks={tasks}
+              expandedPromptKey={expandedPromptKey}
+              onTogglePrompt={(key) => setExpandedPromptKey((k) => (k === key ? null : key))}
+            />
+            <div className="flex items-center gap-1.5">
+              <Button variant="tool" icon={Download} onClick={handleExportSheet}>
+                Export sheet
+              </Button>
+              <Button variant="tool" icon={Printer} onClick={handlePrintSheet}>
+                Print sheet
+              </Button>
+            </div>
+          </>
+        ) : null}
+      </DialogShell>
+
+      <DialogShell
+        open={printDialogOpen}
+        onOpenChange={setPrintDialogOpen}
+        size="xl"
+        title="SEM Task List - Print"
+        description="Print or save as PDF from your browser."
+        actions={
+          <Button variant="run" icon={Printer} onClick={() => window.print()}>
             Print
           </Button>
-        </DialogContent>
-      </Dialog>
+        }
+      >
+        <TaskTable tasks={tasks} />
+      </DialogShell>
     </>
   );
 };

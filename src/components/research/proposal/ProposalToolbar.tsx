@@ -1,12 +1,7 @@
 import { type ChangeEvent, type ReactNode, type RefObject } from "react";
-import { Copy, Download, Loader2, Package, Sparkles, Upload } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Copy, Download, Package, Sparkles, Upload } from "lucide-react";
+import { Button, FileInput } from "@/ui";
 import { GeneratorToolbarFrame } from "@/components/blog-generator/GeneratorToolbarFrame";
-import {
-  BULK_HEADER_ICON_TOOL_BTN,
-  BULK_HEADER_RUN_BTN,
-  BULK_HEADER_TOOL_BTN,
-} from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 
 export type ProposalToolbarProps = {
   busy: boolean;
@@ -28,7 +23,6 @@ export type ProposalToolbarProps = {
 
 export function ProposalToolbar({
   busy,
-  phase,
   gridCsvBusy,
   hasSemrushRows,
   proposalPackageDisabled,
@@ -47,40 +41,22 @@ export function ProposalToolbar({
       primary={
         <>
           {modeMenu}
-          <input
+          <FileInput
             ref={gridCsvFileRef}
-            type="file"
             accept=".csv,text/csv"
-            className="hidden"
             onChange={onGridCsvFileChange}
           />
           <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={BULK_HEADER_TOOL_BTN}
-            disabled={busy}
+            variant="tool"
+            icon={Upload}
+            disabled={busy || gridCsvBusy}
             aria-label="Upload grid CSV"
             title="Upload grid CSV"
             onClick={() => gridCsvFileRef.current?.click()}
           >
-            {gridCsvBusy ? (
-              <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
-            ) : (
-              <Upload className="h-4 w-4 shrink-0" aria-hidden />
-            )}
             Grid
           </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={BULK_HEADER_TOOL_BTN}
-            disabled={busy}
-            title="Analyze with Semrush"
-            onClick={onAnalyze}
-          >
-            {phase === "semrush" ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden /> : null}
+          <Button variant="tool" disabled={busy} title="Analyze with Semrush" onClick={onAnalyze}>
             Analyze
           </Button>
         </>
@@ -88,55 +64,40 @@ export function ProposalToolbar({
       actions={
         <>
           <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={BULK_HEADER_ICON_TOOL_BTN}
+            variant="tool"
+            size="icon"
+            icon={Download}
             disabled={busy || !hasSemrushRows}
             aria-label="Download grid CSV"
             title="Download grid CSV"
             onClick={onDownloadGridCsv}
-          >
-            <Download className="h-4 w-4 shrink-0" aria-hidden />
-          </Button>
+          />
           <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={BULK_HEADER_ICON_TOOL_BTN}
+            variant="tool"
+            size="icon"
+            icon={Copy}
             disabled={proposalPackageDisabled || !hasCombinedMd}
             aria-label="Copy proposal"
             title="Copy proposal"
             onClick={onCopyProposal}
-          >
-            <Copy className="h-4 w-4 shrink-0" aria-hidden />
-          </Button>
+          />
           <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={BULK_HEADER_ICON_TOOL_BTN}
+            variant="tool"
+            size="icon"
+            icon={Package}
             disabled={proposalPackageDisabled}
             aria-label="Download proposal package"
             title="Download proposal package"
             onClick={onDownloadProposalPackage}
-          >
-            <Package className="h-4 w-4 shrink-0" aria-hidden />
-          </Button>
+          />
           <Button
-            type="button"
-            size="sm"
-            className={BULK_HEADER_RUN_BTN}
+            variant="run"
+            icon={Sparkles}
             disabled={busy}
             aria-label="Generate proposal"
             title="Includes DataForSEO speed + FAQ audit on up to 10 GSC top pages when connected"
             onClick={onGenerateProposal}
           >
-            {phase === "semrush" || phase === "report" ? (
-              <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
-            ) : (
-              <Sparkles className="h-4 w-4 shrink-0" aria-hidden />
-            )}
             Proposal
           </Button>
         </>

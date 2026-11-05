@@ -1,5 +1,4 @@
 import { MoreVertical } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,6 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { HostedEnvironment } from "@/lib/hosting-api";
 import { MY_SITES_ICON_BTN, MY_SITES_POPOVER } from "./my-sites-theme";
+import { Button } from "@/ui";
 
 export type EnvironmentAction = "backup" | "cache-clear" | "redeploy" | "retry-provision" | "delete" | "copy" | "users";
 
@@ -24,9 +24,8 @@ export function EnvironmentKebabMenu({ env, canAdmin, onAction }: EnvironmentKeb
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          className={MY_SITES_ICON_BTN}
           aria-label={`Actions for ${env.slug}`}
         >
           <MoreVertical className="h-4 w-4" aria-hidden />
@@ -65,7 +64,7 @@ export function EnvironmentKebabMenu({ env, canAdmin, onAction }: EnvironmentKeb
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuSeparator className="bg-white/10" />
-        <DropdownMenuItem disabled={!canAdmin} className="text-red-300 focus:text-red-200" onSelect={() => onAction("delete", env)}>
+        <DropdownMenuItem disabled={!canAdmin} className="text-ui-danger-hover focus:text-ui-danger-hover" onSelect={() => onAction("delete", env)}>
           Delete environment
         </DropdownMenuItem>
       </DropdownMenuContent>

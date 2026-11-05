@@ -91,7 +91,7 @@ export function ProgressAndStatsDisplay({
             ) : (
               <span className="text-muted-foreground">Harness</span>
             )}
-            <span className="max-w-[min(100%,28rem)] truncate text-right text-muted-foreground">
+            <span className="max-w-[min(100%,28rem)] break-words text-right text-muted-foreground">
               {status}
             </span>
           </div>
@@ -127,7 +127,7 @@ export function ProgressAndStatsDisplay({
           </div>
           <div>
             <span className="text-muted-foreground">Completed: </span>
-            <span className="font-medium text-green-500">{stats.completed}</span>
+            <span className="font-medium text-primary">{stats.completed}</span>
           </div>
           {selectedWordPressSites.size > 0 &&
             (() => {
@@ -142,7 +142,7 @@ export function ProgressAndStatsDisplay({
               return uploadedCount > 0 ? (
                 <div>
                   <span className="text-muted-foreground">WordPress: </span>
-                  <span className="font-medium text-blue-500">
+                  <span className="font-medium text-semantic-publish">
                     ✓ {uploadedCount} POST UPLOADED TO{' '}
                     {selectedSites.length > 1 ? `${selectedSites.length} SITES` : siteNames.toUpperCase()}!
                   </span>
@@ -152,7 +152,7 @@ export function ProgressAndStatsDisplay({
           {stats.error > 0 && (
             <div>
               <span className="text-muted-foreground">Errors: </span>
-              <span className="font-medium text-red-500">{stats.error}</span>
+              <span className="font-medium text-ui-danger">{stats.error}</span>
             </div>
           )}
         </div>

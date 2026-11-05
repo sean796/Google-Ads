@@ -12,7 +12,7 @@ class Neo_Pulse_App_Openrouter_Models_Catalog_Route {
 	const MODELS_URL     = 'https://openrouter.ai/api/v1/models';
 	/** Video generation models are not in the base catalog; OpenRouter lists them only with this filter. */
 	const VIDEO_MODELS_URL = 'https://openrouter.ai/api/v1/models?output_modalities=video';
-	const TRANSIENT_KEY  = 'neo_pulse_openrouter_models_catalog_v2';
+	const TRANSIENT_KEY  = 'neo_pulse_openrouter_models_catalog_v3';
 	const TRANSIENT_TTL  = 82800; // 23 hours
 
 	/**

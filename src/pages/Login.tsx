@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FloatingLabelInput } from "@/components/ui/floating-label-input";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +9,7 @@ import { Lock, User, LogIn } from "lucide-react";
 import {
   NEO_PULSE_BRAND_LOCKUP_SRC,
 } from "@/lib/neo-pulse-branding-assets";
+import { Button } from "@/ui";
 
 export default function Login() {
   const { user, loading, login } = useAuth();
@@ -58,7 +58,7 @@ export default function Login() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">Loading…</div>
+        <div className="text-muted-foreground">Loading…</div>
       </div>
     );
   }
@@ -119,7 +119,7 @@ export default function Login() {
               {error}
             </p>
           )}
-          <Button type="submit" className="w-full" disabled={submitting}>
+          <Button variant="run" type="submit" disabled={submitting}>
             <LogIn className="mr-2 h-4 w-4" />
             {submitting ? "Signing in…" : "Sign in"}
           </Button>

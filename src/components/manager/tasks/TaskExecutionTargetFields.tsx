@@ -8,19 +8,13 @@ import {
   TaskFormInfieldSelect,
   TaskFormPlaceholderCell,
 } from "@/components/manager/tasks/TaskFormLayout";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import type { TaskExecutionPayload } from "@/lib/tasks-types";
 import {
   TASK_EXECUTION_TARGET_BUCKETS,
   TASK_EXECUTION_TARGET_BUCKET_LABELS,
   type TaskExecutionTargetBucket,
 } from "@/lib/task-execution-bucket";
+import { SelectField } from "@/ui";
 
 export type TaskExecutionTargetFieldsProps = {
   executionPayload?: TaskExecutionPayload | null;
@@ -77,26 +71,7 @@ export function TaskExecutionTargetFields({
       <TaskFormPlaceholderCell className="flex w-full min-w-0 flex-row items-center gap-2">
         <span className="shrink-0 text-base text-muted-foreground">{bucketLabel}</span>
         <div className="min-w-0 flex-1">
-          <Select
-            value={toSelectValue(targetBucket)}
-            onValueChange={(value) => handleChange(fromSelectValue(value))}
-            disabled={disabled}
-          >
-            <SelectTrigger className={TASK_FORM_SELECT_TRIGGER_CLASS}>
-              <SelectValue placeholder="Select" />
-            </SelectTrigger>
-            <SelectContent className={TASK_FORM_SELECT_CONTENT_CLASS}>
-              {bucketOptions.map((opt) => (
-                <SelectItem
-                  key={opt.value || emptySelectValue}
-                  value={toSelectValue(opt.value)}
-                  className={TASK_FORM_SELECT_ITEM_CLASS}
-                >
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SelectField placeholder="Select" value={toSelectValue(targetBucket)} onValueChange={(value) => handleChange(fromSelectValue(value))} disabled={disabled} options={bucketOptions.map((opt) => ({ value: toSelectValue(opt.value), label: opt.label }))} />
         </div>
       </TaskFormPlaceholderCell>
     );

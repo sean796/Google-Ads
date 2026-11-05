@@ -60,7 +60,7 @@ export default function NeoPulseLegalPage() {
           ))}
         </main>
 
-        <footer className="mt-10 border-t border-zinc-800 pt-6 text-base text-muted-foreground">
+        <footer className="mt-10 border-t border-border pt-6 text-base text-muted-foreground">
           <p>
             © Neo Digital Inc. ·{" "}
             <Link to={`/${peerPath}`} className="text-[hsl(var(--semantic-data-foreground))] hover:underline">

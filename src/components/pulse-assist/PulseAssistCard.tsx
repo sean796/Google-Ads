@@ -11,6 +11,7 @@ import { filterLinksToBodyScope, stripStructuredFieldLeaks } from "@/lib/pulse-a
 import { normalizeAssistDisplayMarkdown, normalizeAssistTopicLabel } from "@/lib/pulse-assist/display-markdown";
 import { mergeAssistCardLinks } from "@/lib/pulse-assist/history";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 type PulseAssistCardProps = {
   card: AssistCard;
@@ -37,14 +38,13 @@ function CardLinks({
         const postId = link.post_id || (link.action === "undo" ? link.post_id : undefined);
         if (link.action === "undo" && postId && onUndo) {
           return (
-            <button
+            <Button
+              variant="quiet"
               key={`undo-${i}`}
-              type="button"
-              className="fcw-card__link"
               onClick={() => onUndo(postId)}
             >
               {link.label || "Undo"}
-            </button>
+            </Button>
           );
         }
         const navTarget =
@@ -54,25 +54,23 @@ function CardLinks({
         if ((link.action === "navigate" || navTarget) && navTarget) {
           if (navTarget.kind === "agentRuns") {
             return (
-              <button
+              <Button
+                variant="quiet"
                 key={`nav-${i}`}
-                type="button"
-                className="fcw-card__link"
                 onClick={() => onOpenAgentRuns?.(navTarget.runId)}
               >
                 {link.label || "Open Running Agents"}
-              </button>
+              </Button>
             );
           }
           return (
-            <button
+            <Button
+              variant="quiet"
               key={`nav-${i}`}
-              type="button"
-              className="fcw-card__link"
               onClick={() => onNavigate(navTarget)}
             >
               {link.label || link.url}
-            </button>
+            </Button>
           );
         }
         if (link.url) {
@@ -199,9 +197,8 @@ export function PulseAssistCard({
       ) : null}
       <CardLinks links={links} onUndo={onUndo} onNavigate={navigateTo} onOpenAgentRuns={openSidebar} />
       {type === "automation_dispatch" && card.cta?.action === "agent_run_dispatch" && activeTeam?.id ? (
-        <button
-          type="button"
-          className="fcw-topic-chip fcw-topic-chip--submode"
+        <Button
+          variant="quiet"
           onClick={() => {
             void startRun({
               teamId: activeTeam.id,
@@ -219,30 +216,28 @@ export function PulseAssistCard({
           }}
         >
           {card.cta?.label || "Run automation"}
-        </button>
+        </Button>
       ) : null}
       {card.submode_switch && onSubmodeSwitch ? (
-        <button
-          type="button"
-          className="fcw-topic-chip fcw-topic-chip--submode"
+        <Button
+          variant="quiet"
           onClick={() => onSubmodeSwitch(String(card.submode_switch))}
         >
           {card.submode_switch === "build"
             ? "Create tasks (Build mode)"
             : `Switch to ${String(card.submode_switch)} mode`}
-        </button>
+        </Button>
       ) : null}
       {topics.length > 0 && onTopicClick ? (
         <div className="fcw-topic-chips">
           {topics.map((topic) => (
-            <button
+            <Button
+              variant="quiet"
               key={topic}
-              type="button"
-              className="fcw-topic-chip"
               onClick={() => onTopicClick(topic)}
             >
               {topic}
-            </button>
+            </Button>
           ))}
         </div>
       ) : null}

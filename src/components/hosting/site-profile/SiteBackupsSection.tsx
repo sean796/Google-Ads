@@ -1,9 +1,10 @@
-import { Button } from "@/components/ui/button";
+
 import type { HostedBackup, HostedEnvironment } from "@/lib/hosting-api";
 import { HOST_TD, HOST_TH, HOST_TR, MY_SITES_PRIMARY_BTN } from "../my-sites/my-sites-theme";
 import { formatBytes } from "../my-sites/my-sites-view-model";
 import { formatDateTime } from "./site-profile-view-model";
 import { PROFILE_CARD, PROFILE_CARD_HEAD, PROFILE_CARD_TITLE } from "./site-profile-theme";
+import { Button } from "@/ui";
 
 export type SiteBackupsSectionProps = {
   env: HostedEnvironment;
@@ -19,7 +20,7 @@ export function SiteBackupsSection({ env, backups, loading, canAdmin, onBackupNo
     <section className={`${PROFILE_CARD} min-h-[14rem]`} aria-label="Backups">
       <div className={PROFILE_CARD_HEAD}>
         <h2 className={PROFILE_CARD_TITLE}>Backups</h2>
-        <Button type="button" className={MY_SITES_PRIMARY_BTN} disabled={!canAdmin || !provisioned} onClick={onBackupNow}>
+        <Button variant="run" type="button" disabled={!canAdmin || !provisioned} onClick={onBackupNow}>
           Backup now
         </Button>
       </div>
@@ -43,11 +44,11 @@ export function SiteBackupsSection({ env, backups, loading, canAdmin, onBackupNo
           {backups.map((b) => (
             <tr key={b.id} className={HOST_TR}>
               <td className={`${HOST_TD} tabular-nums`}>{formatDateTime(b.createdAt)}</td>
-              <td className={`${HOST_TD} ${b.status === "completed" ? "text-primary" : b.status === "failed" ? "text-red-300" : "text-muted-foreground"}`} title={b.errorMessage ?? undefined}>
+              <td className={`${HOST_TD} ${b.status === "completed" ? "text-primary" : b.status === "failed" ? "text-ui-danger-hover" : "text-muted-foreground"}`} title={b.errorMessage ?? undefined}>
                 {b.status}
               </td>
               <td className={`${HOST_TD} tabular-nums`}>{formatBytes(b.sizeBytes)}</td>
-              <td className={`${HOST_TD} truncate text-muted-foreground`} title={b.storageUri}>
+              <td className={`${HOST_TD} break-words text-muted-foreground`} title={b.storageUri}>
                 {b.storageUri}
               </td>
             </tr>

@@ -4,18 +4,11 @@
  */
 
 import React from 'react';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Star } from 'lucide-react';
 import type { Location } from '@/components/integrations/types';
-import { getCyberpunkButtonClasses, getCyberpunkTextClasses } from './cyberpunk-theme';
+import { getCyberpunkTextClasses } from './cyberpunk-theme';
+import { SelectField } from "@/ui";
 
 interface LocationSelectorProps {
   site: {
@@ -37,7 +30,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <Label className="text-sm font-semibold">Detected Locations</Label>
+        <label className="text-sm font-semibold">Detected Locations</label>
         {locations.length === 0 && (
           <span className={`text-xs ${getCyberpunkTextClasses('muted')}`}>No locations detected yet</span>
         )}
@@ -49,7 +42,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                <Star className="h-3 w-3 text-semantic-warning fill-semantic-warning" />
                 <span className="text-sm font-semibold">Default Location</span>
                 <Badge variant="secondary" className="h-4 px-1.5 text-xs">
                   Primary
@@ -107,57 +100,19 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
       {/* Other Locations - Dropdown if Multiple */}
       {otherLocations.length > 0 && (
         <div className="space-y-2">
-          <Label className={`text-xs ${getCyberpunkTextClasses('muted')}`}>Additional Locations ({otherLocations.length})</Label>
-          <Select>
-            <SelectTrigger className={`h-8 text-xs ${getCyberpunkButtonClasses()}`}>
-              <SelectValue placeholder={`View ${otherLocations.length} additional location${otherLocations.length > 1 ? 's' : ''}`} />
-            </SelectTrigger>
-            <SelectContent className="bg-[#050505] border border-green-500/50 text-green-300">
-              {otherLocations.map((location) => (
-                <SelectItem key={location.id} value={location.id}>
-                  <div className="space-y-1.5 py-1">
-                    {/* Business Name (NAP: Name) */}
-                    {location.name && location.name.trim() && location.name !== 'Not specified' && (
-                      <div>
-                        <span className={`text-xs ${getCyberpunkTextClasses('muted')}`}>Name:</span>{' '}
-                        <span className="font-medium text-sm">{location.name}</span>
-                      </div>
-                    )}
-                    {/* Full Address (NAP: Address) */}
-                    {(() => {
-                      const addressParts = [
-                        location.address,
-                        location.city,
-                        location.state,
-                        location.zip,
-                      ].filter(part => part && part.trim() && part !== 'Not specified');
-                      
-                      return addressParts.length > 0 ? (
-                        <div>
-                          <span className={`text-xs ${getCyberpunkTextClasses('muted')}`}>Address:</span>{' '}
-                          <span className={`text-xs ${getCyberpunkTextClasses('muted')}`}>{addressParts.join(', ')}</span>
-                        </div>
-                      ) : null;
-                    })()}
-                    {/* Phone Number (NAP: Phone) */}
-                    {location.phone && location.phone.trim() && location.phone !== 'Not specified' && (
-                      <div>
-                        <span className={`text-xs ${getCyberpunkTextClasses('muted')}`}>Phone:</span>{' '}
-                        <span className={`text-xs ${getCyberpunkTextClasses('muted')}`}>{location.phone}</span>
-                      </div>
-                    )}
-                    {/* Email Address */}
-                    {location.email && location.email.trim() && location.email !== 'Not specified' && (
-                      <div>
-                        <span className={`text-xs ${getCyberpunkTextClasses('muted')}`}>Email:</span>{' '}
-                        <span className={`text-xs ${getCyberpunkTextClasses('muted')}`}>{location.email}</span>
-                      </div>
-                    )}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <label className={`text-xs ${getCyberpunkTextClasses('muted')}`}>Additional Locations ({otherLocations.length})</label>
+          <SelectField
+            placeholder={`View ${otherLocations.length} additional location${otherLocations.length > 1 ? 's' : ''}`}
+            value=""
+            onValueChange={() => undefined}
+            options={otherLocations.map((location) => ({
+              value: location.id,
+              label: [location.name, location.address, location.city, location.state, location.zip, location.phone, location.email]
+                .filter((part) => part && part.trim() && part !== 'Not specified')
+                .join(', '),
+            }))}
+            width="full"
+          />
         </div>
       )}
     </div>

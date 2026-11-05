@@ -31,12 +31,12 @@ export const KeywordDensityTracker: React.FC<KeywordDensityTrackerProps> = ({
     optimalRange: { min: number; max: number }
   ) => {
     if (density >= optimalRange.min && density <= optimalRange.max) {
-      return "text-green-500";
+      return "text-primary";
     }
     if (density < optimalRange.min) {
-      return "text-yellow-500";
+      return "text-semantic-warning";
     }
-    return "text-red-500";
+    return "text-ui-danger";
   };
 
   const getStatusIcon = (
@@ -44,12 +44,12 @@ export const KeywordDensityTracker: React.FC<KeywordDensityTrackerProps> = ({
     optimalRange: { min: number; max: number }
   ) => {
     if (density >= optimalRange.min && density <= optimalRange.max) {
-      return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+      return <CheckCircle2 className="w-4 h-4 text-primary" />;
     }
     if (density < optimalRange.min) {
-      return <AlertCircle className="w-4 h-4 text-yellow-500" />;
+      return <AlertCircle className="w-4 h-4 text-semantic-warning" />;
     }
-    return <AlertCircle className="w-4 h-4 text-red-500" />;
+    return <AlertCircle className="w-4 h-4 text-ui-danger" />;
   };
 
   const getStatusLabel = (
@@ -80,7 +80,7 @@ export const KeywordDensityTracker: React.FC<KeywordDensityTrackerProps> = ({
     return (
       <Card className="p-6">
         <div className="flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 animate-pulse text-primary" />
+          <BarChart3 className="w-4 h-4 text-primary" />
           <span className="text-sm">Analyzing keyword density...</span>
         </div>
       </Card>

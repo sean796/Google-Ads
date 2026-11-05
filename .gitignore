@@ -106,3 +106,4 @@ refactor-audit-git/
 # Deploy probe tokens (local only)
 wordpress-plugins/.deploy/**/probe-token.txt
 wordpress-plugins/.deploy/**/*-probe-token.txt
+dist-storybook

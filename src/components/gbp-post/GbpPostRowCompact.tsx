@@ -1,7 +1,6 @@
 import type { MouseEvent } from "react";
-import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import type { WordPressSite } from "@/components/integrations/types";
 import {
   contentOptimizerRowStripeClass,
@@ -17,6 +16,7 @@ import {
 } from "@/components/gbp-post/gbp-post-row-constants";
 import { gbpRosterSiteDisplayName } from "@/lib/gbp-post/gbp-roster-site-display-name";
 import { cn } from "@/lib/utils";
+import { Button, Field } from "@/ui";
 
 export type GbpPostRowCompactProps = {
   site: WordPressSite;
@@ -97,11 +97,10 @@ export function GbpPostRowCompact({
       </div>
 
       <div className={GBP_POST_ROW_FIELD_CELL}>
-        <Input
+        <Field
           value={keyword}
           disabled={disabled}
           placeholder="Keyword"
-          className={PPC_DETAIL_INPUT_CLASS}
           aria-label={`Keyword for ${site.name}`}
           onClick={(e) => e.stopPropagation()}
           onChange={(e) => onKeywordChange(e.target.value)}
@@ -109,11 +108,10 @@ export function GbpPostRowCompact({
       </div>
 
       <div className={GBP_POST_ROW_FIELD_CELL}>
-        <Input
+        <Field
           value={landingPageUrl}
           disabled={disabled}
           placeholder="Landing page URL"
-          className={PPC_DETAIL_INPUT_CLASS}
           aria-label={`Landing page URL for ${site.name}`}
           onClick={(e) => e.stopPropagation()}
           onChange={(e) => onLandingPageChange(e.target.value)}
@@ -124,13 +122,12 @@ export function GbpPostRowCompact({
         <GoogleAdsRowEndRail
           leading={
             rowBusy ? (
-              <Loader2 className="h-4 w-4 animate-spin text-primary" aria-label="Posting" />
+              null
             ) : undefined
           }
           chevron={
-            <button
-              type="button"
-              className="inline-flex h-8 w-8 items-center justify-center text-foreground hover:text-primary"
+            <Button
+              variant="quiet"
               aria-expanded={isExpanded}
               aria-controls={panelId}
               aria-label={isExpanded ? "Collapse post details" : "Expand post details"}
@@ -144,7 +141,7 @@ export function GbpPostRowCompact({
               ) : (
                 <ChevronDown className="h-4 w-4" aria-hidden />
               )}
-            </button>
+            </Button>
           }
         />
       </div>

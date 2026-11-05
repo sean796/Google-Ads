@@ -46,13 +46,13 @@ export function forgeChartColor(index: number): string {
 export const FORGE_TABLE_HEADER_BORDER_CLASS = "border-b border-white/10";
 
 export const FORGE_FILTER_MENU_CONTENT_CLASS =
-  "max-h-[min(24rem,calc(100vh-6rem))] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto border-0 bg-zinc-950 p-1 text-white [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-none [&::-webkit-scrollbar-thumb]:bg-zinc-600 [&::-webkit-scrollbar-track]:bg-zinc-950";
+  "max-h-[min(24rem,calc(100vh-6rem))] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto border-0 bg-black p-1 text-white [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-none [&::-webkit-scrollbar-thumb]:bg-ui-field-hover [&::-webkit-scrollbar-track]:bg-black";
 
 export const FORGE_FILTER_MENU_ITEM_CLASS =
-  "text-lg focus:bg-zinc-800 focus:text-white data-[highlighted]:bg-zinc-800 data-[highlighted]:text-white";
+  "text-lg focus:bg-ui-field-hover focus:text-white data-[highlighted]:bg-ui-field-hover data-[highlighted]:text-white";
 
 export function forgeFilterMenuStripeClass(index: number): string {
-  return index % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/55";
+  return index % 2 === 0 ? "bg-black" : "bg-ui-field/55";
 }
 
 export function forgeTableRowStripeClass(
@@ -60,10 +60,10 @@ export function forgeTableRowStripeClass(
   { active = false }: { active?: boolean } = {},
 ): string {
   if (active) {
-    return "bg-zinc-800/90 transition-colors hover:bg-zinc-800/90";
+    return "bg-ui-field-hover/90 transition-colors hover:bg-ui-field-hover/90";
   }
   return cn(
-    "transition-colors hover:bg-zinc-800/90",
-    index % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/55",
+    "transition-colors hover:bg-ui-field-hover/90",
+    index % 2 === 0 ? "bg-black" : "bg-ui-field/55",
   );
 }

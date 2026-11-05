@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_ENABLE_THIS_WORDPRESS_SITE_TO_ADD_MASTER, NOTIFY_OPENROUTER_API_KEY_IS_REQUIRED_SET_IT_IN, notifyAddedXFileSAsNestedTriples, notifyExtractingNestedTriplesFromX, notifyXDocIsNotSupportedSaveAsDocxOrT, notifyXHadNoExtractableText, notifyXSummaryWasEmptyTryAgainOrUseAD, notifyXUseTxtMdDocxOrPdf, notifyXX } from "@/lib/notify-messages";
 import { FileText, Trash2, Upload, ChevronDown, ChevronUp, Download } from "lucide-react";
@@ -22,6 +21,7 @@ import {
 } from "@/lib/master-instructions-openrouter-summarize";
 import { loadApiKey } from "@/lib/api";
 import { Progress } from "@/components/ui/progress";
+import { Button, FileInput, RowButton } from "@/ui";
 
 const COPY = "font-sans text-base text-white";
 
@@ -288,10 +288,8 @@ export const MasterInstructionsSection: React.FC<MasterInstructionsSectionProps>
 
   return (
     <div className={`space-y-4 ${COPY}`}>
-      <input
+      <FileInput
         ref={inputRef}
-        type="file"
-        className="sr-only"
         accept=".txt,.md,.markdown,.docx,.pdf,application/pdf"
         multiple
         onChange={onFileChange}
@@ -317,7 +315,7 @@ export const MasterInstructionsSection: React.FC<MasterInstructionsSectionProps>
         onDragLeave={onDropZoneDragLeave}
         onDragOver={onDropZoneDragOver}
         onDrop={onDropZoneDrop}
-        className={`flex min-h-[9rem] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-white/20 bg-zinc-900/50 px-4 py-8 text-center ${COPY} ${disabled || busy ? "cursor-not-allowed" : ""}`}
+        className={`flex min-h-[9rem] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-white/20 bg-ui-field/50 px-4 py-8 text-center ${COPY} ${disabled || busy ? "cursor-not-allowed" : ""}`}
       >
         <Upload className="h-8 w-8 text-white" aria-hidden />
         <div className="font-semibold text-white">
@@ -350,16 +348,15 @@ export const MasterInstructionsSection: React.FC<MasterInstructionsSectionProps>
               <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
                 <div className="flex min-w-0 items-center gap-2">
                   <FileText className="h-4 w-4 shrink-0 text-white" />
-                  <span className="truncate font-medium text-white">{s.name}</span>
+                  <span className="break-words font-medium text-white">{s.name}</span>
                   <span className="shrink-0 text-white">({s.content.length.toLocaleString()} chars)</span>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-1">
                 {s.content.trim() ? (
                   <Button
+                    variant="quiet"
                     type="button"
-                    variant="ghost"
-                    className={`h-10 px-2 ${COPY} hover:bg-white/10 disabled:opacity-100`}
                     disabled={disabled || busy}
                     onClick={() =>
                       downloadStoredText(
@@ -375,16 +372,13 @@ export const MasterInstructionsSection: React.FC<MasterInstructionsSectionProps>
                   </Button>
                 ) : null}
                 <Button
+                  size="icon" icon={Trash2} aria-label="Remove file"
+                  variant="quiet"
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={`h-10 w-10 shrink-0 ${COPY} hover:bg-white/10 disabled:opacity-100`}
                   disabled={disabled || busy}
                   onClick={() => removeAt(i)}
                   title="Remove file"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                ></Button>
               </div>
             </li>
           ))}
@@ -393,14 +387,13 @@ export const MasterInstructionsSection: React.FC<MasterInstructionsSectionProps>
 
       {sources.length > 0 && (
         <div className="pt-3">
-          <button
+          <RowButton
             type="button"
             onClick={() => setPreviewOpen((o) => !o)}
-            className={`flex w-full items-center justify-between rounded-md bg-zinc-900/50 px-3 py-2 text-left font-semibold ${COPY}`}
           >
             Combined text preview
             {previewOpen ? <ChevronUp className="h-4 w-4 text-white" /> : <ChevronDown className="h-4 w-4 text-white" />}
-          </button>
+          </RowButton>
           {previewOpen && (
             <pre className={`mt-2 max-h-64 overflow-auto rounded-md bg-black p-3 leading-snug whitespace-pre-wrap break-words ${COPY}`}>
               {combinedPreview}

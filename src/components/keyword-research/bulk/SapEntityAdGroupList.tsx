@@ -137,7 +137,7 @@ export function SapEntityAdGroupList({
               <div
                 className={cn(
                   contentOptimizerRowStripeClass(headerStripe),
-                  "grid w-full min-w-0 min-h-[3rem] grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-x-2 bg-zinc-900/60 sm:min-h-[3.25rem] sm:gap-x-3",
+                  "grid w-full min-w-0 min-h-[3rem] grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-x-2 bg-ui-field/60 sm:min-h-[3.25rem] sm:gap-x-3",
                 )}
               >
                 <div className="flex shrink-0 items-center justify-center pl-0.5">
@@ -149,7 +149,7 @@ export function SapEntityAdGroupList({
                   />
                 </div>
                 <div className="flex min-w-0 items-center gap-2 select-text cursor-text">
-                  <MapPin className="h-4 w-4 shrink-0 text-sky-400" aria-hidden />
+                  <MapPin className="h-4 w-4 shrink-0 text-semantic-analysis-foreground" aria-hidden />
                   <span className="whitespace-normal break-words text-base font-semibold text-foreground">
                     {section.entity}
                   </span>

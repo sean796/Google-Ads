@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import type { ChatAttachment } from "@/lib/chat-types";
 import { CHAT_TEXT_MUTED, CHAT_TEXT_PRIMARY } from "@/components/chat/chat-theme";
 import { ChatAuthenticatedImage } from "@/components/chat/thread/ChatAuthenticatedImage";
+import { Button } from "@/ui";
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -39,11 +40,11 @@ export function ChatAttachmentChip({
     <a
       href={downloadUrl}
       download={attachment.fileName}
-      className="chat-attachment-chip mt-2 inline-flex max-w-full items-center gap-2 rounded-lg bg-zinc-100 px-3 py-2 hover:bg-zinc-200/80"
+      className="chat-attachment-chip mt-2 inline-flex max-w-full items-center gap-2 rounded-lg bg-muted px-3 py-2 hover:bg-muted/80"
     >
       <FileText className="h-5 w-5 shrink-0 text-primary" aria-hidden />
       <span className="min-w-0">
-        <span className={cn("block truncate text-base font-medium", CHAT_TEXT_PRIMARY)}>{attachment.fileName}</span>
+        <span className={cn("block break-words text-base font-medium", CHAT_TEXT_PRIMARY)}>{attachment.fileName}</span>
         <span className={cn("text-base", CHAT_TEXT_MUTED)}>{formatBytes(attachment.bytes)}</span>
       </span>
     </a>
@@ -67,27 +68,26 @@ export function PendingAttachmentChip({
     return (
       <div className="relative inline-block max-w-[200px]">
         <img src={previewUrl} alt={fileName} className="max-h-24 rounded-lg object-cover" />
-        <button
-          type="button"
+        <Button
+          variant="quiet"
           onClick={onRemove}
-          className="absolute right-1 top-1 rounded bg-black/60 px-2 py-0.5 text-base text-white hover:bg-black/80"
         >
           Remove
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="inline-flex max-w-full items-center gap-2 rounded-lg bg-zinc-100 px-3 py-2">
+    <div className="inline-flex max-w-full items-center gap-2 rounded-lg bg-muted px-3 py-2">
       <FileText className="h-5 w-5 shrink-0 text-primary" aria-hidden />
       <span className="min-w-0 flex-1">
-        <span className={cn("block truncate text-base font-medium", CHAT_TEXT_PRIMARY)}>{fileName}</span>
+        <span className={cn("block break-words text-base font-medium", CHAT_TEXT_PRIMARY)}>{fileName}</span>
         <span className={cn("text-base", CHAT_TEXT_MUTED)}>{formatBytes(bytes)}</span>
       </span>
-      <button type="button" onClick={onRemove} className="text-base text-zinc-600 hover:text-zinc-900">
+      <Button variant="quiet" onClick={onRemove}>
         Remove
-      </button>
+      </Button>
     </div>
   );
 }

@@ -16,7 +16,6 @@ import {
 import type { BulkGeneratorDetailsPanelProps } from "@/components/keyword-research/bulk/BulkGeneratorDetailsPanel";
 import {
   blogGeneratorSectionForStudioMode,
-  isResearchStudioMode,
   readStoredStudioEditorMode,
   writeStoredStudioEditorMode,
   type StudioEditorModeId,
@@ -56,6 +55,9 @@ import {
 import { notify } from "@/lib/app-notifications";
 import { notifyLoadedCsvX, NOTIFY_OPENROUTER_API_KEY_IS_REQUIRED } from "@/lib/notify-messages";
 import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
+import { useVerticalBenchmarkController } from "@/hooks/vertical-benchmark/use-vertical-benchmark-controller";
+import { buildVerticalBenchmarkMicroSnapshot } from "@/lib/vertical-benchmark/vertical-benchmark-header-progress";
+import { buildVerticalBenchmarkBulkGeneratorDetailsProps } from "@/lib/vertical-benchmark/vertical-benchmark-bulk-details-bindings";
 
 export interface BulkBlogGenerationTabProps {
   variant: "csv" | "prompt" | "blog-import" | "press-release";
@@ -97,16 +99,7 @@ export function BulkBlogGenerationTab({
       writeStoredStudioEditorMode("press-release");
       return;
     }
-    if (activeSection === "research" && !isResearchStudioMode(studioEditorMode)) {
-      const next = readStoredStudioEditorMode("research");
-      setStudioEditorModeState(next);
-      writeStoredStudioEditorMode(next);
-      return;
-    }
-    if (
-      activeSection === "bulk-prompt" &&
-      (studioEditorMode === "press-release" || isResearchStudioMode(studioEditorMode))
-    ) {
+    if (activeSection === "bulk-prompt" && studioEditorMode === "press-release") {
       setStudioEditorModeState("prompt");
       writeStoredStudioEditorMode("prompt");
     }
@@ -134,7 +127,9 @@ export function BulkBlogGenerationTab({
   }, []);
 
   const isPressRelease = studioEditorMode === "press-release";
-  const isResearchMode = isResearchStudioMode(studioEditorMode);
+  const isVerticalBenchmark = studioEditorMode === "vertical-benchmarks";
+
+  const vb = useVerticalBenchmarkController(openRouterApiKey ?? "");
 
   const [importedFileName, setImportedFileName] = useState<string | null>(null);
   const [focusKeyword, setFocusKeyword] = useState("");
@@ -143,6 +138,24 @@ export function BulkBlogGenerationTab({
   const [bulkBindings, setBulkBindings] = useState<BulkGeneratorWorkspaceBindings | null>(null);
   const [pressReleaseBindings, setPressReleaseBindings] =
     useState<PressReleaseWorkspaceBindings | null>(null);
+
+  useEffect(() => {
+    if (!isVerticalBenchmark || !bulkBindings) return;
+    if (!bulkBindings.hasGeneratedChecklist && bulkBindings.numberOfBlogs !== vb.blogCount) {
+      bulkBindings.setNumberOfBlogs(vb.blogCount);
+    }
+  }, [
+    isVerticalBenchmark,
+    vb.blogCount,
+    bulkBindings?.hasGeneratedChecklist,
+    bulkBindings?.numberOfBlogs,
+    bulkBindings?.setNumberOfBlogs,
+  ]);
+
+  useEffect(() => {
+    vb.setBlogCount(0);
+    if (bulkBindings && !bulkBindings.hasGeneratedChecklist) bulkBindings.setNumberOfBlogs(0);
+  }, [studioEditorMode]);
 
   const handlePickImportFiles = useCallback(
     async (files: File[]) => {
@@ -179,9 +192,21 @@ export function BulkBlogGenerationTab({
         const next: CSVRow[] = [];
         for (const file of accepted) {
           try {
-            next.push(
-              await buildImportCsvRowFromFile(file, form, dest, apiKey, selectedModel),
-            );
+            const importedRow = await buildImportCsvRowFromFile(file, form, dest, apiKey, selectedModel);
+            try {
+              const { auditImportDraftWithDecisionTree } = await import("@/lib/decision-tree/studio-decision-auditor");
+              const draftBody = importedRow.imported_markdown || importedRow.imported_html || "";
+              const decisionState = await auditImportDraftWithDecisionTree({
+                title: importedRow.title,
+                keyword: importedRow.keyword,
+                content: draftBody,
+                apiKey,
+              });
+              importedRow.decision_audit_json = JSON.stringify(decisionState);
+            } catch (auditErr) {
+              console.warn("[Decision Agent] Import draft audit error:", auditErr);
+            }
+            next.push(importedRow);
           } catch (error) {
             notify.error(error instanceof Error ? error.message : `Failed to read ${file.name}`);
           }
@@ -212,7 +237,8 @@ export function BulkBlogGenerationTab({
     ? Boolean(pressReleaseBindings?.isProcessing)
     : Boolean(bulkBindings?.isProcessing) ||
       Boolean(bulkBindings?.isGeneratingChecklist) ||
-      Boolean(bulkBindings?.csvEnrichingTitlesUrls);
+      Boolean(bulkBindings?.csvEnrichingTitlesUrls) ||
+      (isVerticalBenchmark && Boolean(vb.busy));
 
   const headerProgress = useMemo(() => {
     if (isPressRelease) {
@@ -222,6 +248,17 @@ export function BulkBlogGenerationTab({
         harnessSections: pressReleaseBindings?.harnessSections ?? [],
         harnessPlannedSectionCount: pressReleaseBindings?.harnessPlannedSectionCount ?? null,
       });
+    }
+    if (isVerticalBenchmark && vb.generatingBulkTemplate && vb.bulkTemplateProgress) {
+      const steps = vb.bulkTemplateProgress.steps ?? [];
+      const done = steps.filter((s) => s.status === "done").length;
+      return {
+        phase: vb.bulkTemplateProgress.message?.trim() || "Curating peer GSC ideas",
+        completed: done,
+        total: Math.max(steps.length, 1),
+        progressPct: vb.bulkTemplateProgress.percent,
+        harnessActive: true,
+      };
     }
     if (bulkBindings?.isGeneratingChecklist) {
       const pct = bulkBindings.checklistProgressPct;
@@ -248,14 +285,42 @@ export function BulkBlogGenerationTab({
             }
           : undefined,
     });
-  }, [isPressRelease, pressReleaseBindings, bulkBindings]);
+  }, [
+    isPressRelease,
+    isVerticalBenchmark,
+    vb.generatingBulkTemplate,
+    vb.bulkTemplateProgress,
+    pressReleaseBindings,
+    bulkBindings,
+  ]);
 
   const progressSnapshot = useMemo(() => {
     if (isPressRelease) {
       return buildPressReleaseMicroSnapshot(headerProgress);
     }
+    if (
+      isVerticalBenchmark &&
+      !bulkBindings?.isProcessing &&
+      (vb.generatingBulkTemplate || vb.bulkTemplateProgress)
+    ) {
+      return buildVerticalBenchmarkMicroSnapshot({
+        exporting: vb.exporting,
+        generatingBulkTemplate: vb.generatingBulkTemplate,
+        exportProgress: vb.exportProgress,
+        bulkTemplateProgress: vb.bulkTemplateProgress,
+      });
+    }
     return buildBlogImportMicroSnapshot(headerProgress, "Studio");
-  }, [headerProgress, isPressRelease]);
+  }, [
+    headerProgress,
+    isPressRelease,
+    isVerticalBenchmark,
+    bulkBindings?.isProcessing,
+    vb.exporting,
+    vb.generatingBulkTemplate,
+    vb.exportProgress,
+    vb.bulkTemplateProgress,
+  ]);
 
   const postDestinationChoices = BULK_POST_DESTINATION_CHOICES;
   const postDestination = bulkBindings?.bulkPostDestination ?? "wordpress";
@@ -394,13 +459,34 @@ export function BulkBlogGenerationTab({
 
   const studioVariant =
     studioEditorMode === "csv"
-      ? ("csv" as const)
-      : studioEditorMode === "blog-import"
+      ? importedFileName
         ? ("blog-import" as const)
-        : ("prompt" as const);
+        : ("csv" as const)
+      : ("prompt" as const);
 
   const bulkGeneratorDetailsProps = useMemo((): BulkGeneratorDetailsPanelProps | null => {
     if (!bulkBindings || isPressRelease) return null;
+    if (
+      isVerticalBenchmark &&
+      !bulkBindings.isProcessing &&
+      (vb.generatingBulkTemplate || vb.bulkTemplateProgress || vb.exportProgress)
+    ) {
+      return buildVerticalBenchmarkBulkGeneratorDetailsProps({
+        busy: vb.busy,
+        exporting: vb.exporting,
+        generatingBulkTemplate: vb.generatingBulkTemplate,
+        exportProgress: vb.exportProgress,
+        bulkTemplateProgress: vb.bulkTemplateProgress,
+        bulkInventoryLinks: vb.bulkInventoryLinks,
+        selectedCount: vb.selectedSiteIdList.length,
+        rosterCount: vb.rosterSites.length,
+        tagFilter: vb.tagFilter,
+        gridCsvContext: vb.gridCsvContext,
+        gridCsvFileName: vb.gridCsvFileName,
+        contentTypeFilter: vb.contentTypeFilter,
+        blogCount: vb.blogCount,
+      });
+    }
     return {
       ...baseDetailsProps,
       variant: "prompt",
@@ -425,7 +511,26 @@ export function BulkBlogGenerationTab({
       draftOnly: bulkBindings.wordpressDraftOnly,
       directionsSiteName: bulkBindings.connectedSite?.name,
     };
-  }, [bulkBindings, isPressRelease, baseDetailsProps, mergedInventoryDetails]);
+  }, [
+    bulkBindings,
+    isPressRelease,
+    isVerticalBenchmark,
+    vb.busy,
+    vb.exporting,
+    vb.generatingBulkTemplate,
+    vb.exportProgress,
+    vb.bulkTemplateProgress,
+    vb.bulkInventoryLinks,
+    vb.selectedSiteIdList.length,
+    vb.rosterSites.length,
+    vb.tagFilter,
+    vb.gridCsvContext,
+    vb.gridCsvFileName,
+    vb.contentTypeFilter,
+    vb.blogCount,
+    baseDetailsProps,
+    mergedInventoryDetails,
+  ]);
 
   const pressReleaseDrawerContent = useMemo(() => {
     if (!isPressRelease || !pressReleaseBindings) return undefined;
@@ -443,33 +548,6 @@ export function BulkBlogGenerationTab({
       />
     );
   }, [isPressRelease, pressReleaseBindings, workspaceBusy]);
-
-  const bulkGeneratedFilesStepMetrics = useMemo(() => {
-    if (isPressRelease) {
-      return {
-        stepTotal: headerProgress?.total ?? 0,
-        stepCompleted: headerProgress?.completed ?? 0,
-      };
-    }
-    if (!bulkBindings) {
-      return { stepTotal: 0, stepCompleted: 0 };
-    }
-    const hasActiveBatch =
-      bulkBindings.isProcessing ||
-      bulkBindings.hasGeneratedChecklist ||
-      (bulkBindings.rows?.length ?? 0) > 0 ||
-      (bulkBindings.displayRows?.length ?? 0) > 0;
-    if (!hasActiveBatch) {
-      return { stepTotal: 0, stepCompleted: 0 };
-    }
-    const harnessTotal = bulkBindings.harnessPlannedSectionCount ?? bulkBindings.harnessSections.length;
-    return {
-      stepTotal: harnessTotal > 0 ? harnessTotal : bulkBindings.totalRows,
-      stepCompleted: bulkBindings.isProcessing
-        ? bulkBindings.currentRow + 1
-        : bulkBindings.stats.completed,
-    };
-  }, [isPressRelease, headerProgress, bulkBindings]);
 
   const canRunPressRelease = Boolean(
     effectiveDataForSeoApiKey?.trim() &&
@@ -491,6 +569,7 @@ export function BulkBlogGenerationTab({
     async (file: File | null) => {
       if (!file || !bulkBindings) return;
       try {
+        setImportedFileName(null);
         await bulkBindings.onPickCsvFile(file);
         notify.success(notifyLoadedCsvX(file.name));
       } catch (error) {
@@ -501,7 +580,7 @@ export function BulkBlogGenerationTab({
   );
 
   const bulkGeneratorBand2Toolbar = useMemo(() => {
-    if (!bulkBindings || isPressRelease || isResearchMode) return null;
+    if (!bulkBindings || isPressRelease) return null;
     return (
       <BulkPromptDockToolbar
         workspaceBusy={workspaceBusy}
@@ -521,7 +600,6 @@ export function BulkBlogGenerationTab({
   }, [
     bulkBindings,
     isPressRelease,
-    isResearchMode,
     workspaceBusy,
     postDestination,
     postDestinationChoices,
@@ -533,7 +611,6 @@ export function BulkBlogGenerationTab({
     if (!bulkBindings) return null;
     return {
       variant: studioVariant,
-      emptyListCopy: "Start a batch from the studio mode selector.",
       csvLoading: Boolean(bulkBindings.csvLoading),
       csvEnrichingTitlesUrls: Boolean(bulkBindings.csvEnrichingTitlesUrls),
       importParsing: isParsingImport,
@@ -554,6 +631,18 @@ export function BulkBlogGenerationTab({
     handlePickImportFiles,
   ]);
 
+  const handleGenerateVerticalBenchmarkIdeas = useCallback(async () => {
+    if (!bulkBindings) return;
+    const result = await vb.handleCreateBulkTemplate({
+      skipAutoDownload: true,
+      blogCountOverride: vb.blogCount,
+    });
+    if (result?.rows?.length) {
+      bulkBindings.onLoadImportRows?.(result.rows);
+      vb.setBlogCount(result.rows.length);
+    }
+  }, [bulkBindings, vb]);
+
   const pressReleaseComposeProps = useMemo(
     () =>
       pressReleaseBindings
@@ -572,6 +661,51 @@ export function BulkBlogGenerationTab({
     [pressReleaseBindings, canRunPressRelease],
   );
 
+  const verticalBenchmarkComposeProps = useMemo(
+    () =>
+      isVerticalBenchmark
+        ? {
+            contentTypeFilter: vb.contentTypeFilter,
+            onContentTypeFilterChange: vb.setContentTypeFilter,
+            tagFilter: vb.tagFilter,
+            onTagFilterChange: vb.setTagFilter,
+            tagFilterOptions: vb.tagFilterOptions,
+            rosterSites: vb.rosterSites,
+            selectedSiteIds: vb.selectedSiteIds,
+            clientTagLabelBySiteId: vb.clientTagLabelBySiteId,
+            onToggleSite: vb.toggleSiteSelected,
+            onSelectAllChange: (selectAll: boolean) => {
+              if (selectAll) vb.loadAllClients();
+              else vb.selectNoClients();
+            },
+            blogCount: vb.blogCount,
+            onBlogCountChange: (n: number) => {
+              vb.setBlogCount(n);
+              bulkBindings?.setNumberOfBlogs(n);
+            },
+            gridCsvContext: vb.gridCsvContext,
+            gridCsvFileName: vb.gridCsvFileName,
+            gridCsvParsing: vb.gridCsvParsing,
+            onGridCsvFile: vb.handleGridCsvFile,
+            onClearGridCsv: vb.clearGridCsv,
+            generating: vb.generatingBulkTemplate,
+            workspaceBusy,
+            hasGeneratedChecklist: Boolean(bulkBindings?.hasGeneratedChecklist),
+            canDownloadCsv: vb.canDownloadBulkTemplate,
+            onGenerateIdeas: () => void handleGenerateVerticalBenchmarkIdeas(),
+            onApprove: () => void bulkBindings?.handleApprove(),
+            onDownloadCsv: vb.handleDownloadBulkTemplate,
+          }
+        : undefined,
+    [
+      isVerticalBenchmark,
+      vb,
+      workspaceBusy,
+      bulkBindings,
+      handleGenerateVerticalBenchmarkIdeas,
+    ],
+  );
+
   return (
     <div className={BLOG_GENERATOR_TAB_ROOT_CLASS}>
       <div
@@ -580,42 +714,33 @@ export function BulkBlogGenerationTab({
           "relative flex min-h-0 flex-1 flex-col overflow-hidden pb-0",
         )}
       >
-        {bulkBindings && bulkGeneratorDock ? (
-          bulkBindings.wordPressSite ? (
-            <BulkGeneratorOverviewTabContent
-              site={bulkBindings.wordPressSite}
-              bindings={bulkBindings}
-              variant={studioVariant}
-              studioEditorMode={studioEditorMode}
-              onStudioEditorModeChange={handleStudioEditorModeChange}
-              activeGeneratorSection={activeSection}
-              onGeneratorSectionChange={onSectionChange}
-              workspaceBusy={workspaceBusy}
-              apiKey={effectiveDataForSeoApiKey ?? ""}
-              selectedModel={selectedModel ?? ""}
-              temperature={temperature ?? 0.7}
-              maxTokens={maxTokens ?? 4096}
-              topP={topP ?? 1}
-              bulkGeneratorDock={bulkGeneratorDock}
-              bulkGeneratorDetailsPanel={bulkGeneratorDetailsProps}
-              customDrawerContent={pressReleaseDrawerContent}
-              progressSnapshot={progressSnapshot}
-              bulkGeneratedFilesStepTotal={bulkGeneratedFilesStepMetrics.stepTotal}
-              bulkGeneratedFilesStepCompleted={bulkGeneratedFilesStepMetrics.stepCompleted}
-              bulkGeneratorBand2Toolbar={bulkGeneratorBand2Toolbar}
-              optimizerSection={optimizerSection}
-              onOptimizerSectionChange={handleOptimizerSectionChange}
-              focusKeyword={focusKeyword}
-              onFocusKeywordChange={setFocusKeyword}
-              titleOverride={titleOverride}
-              onTitleOverrideChange={setTitleOverride}
-              pressReleaseComposeProps={pressReleaseComposeProps}
-            />
-          ) : (
-            <div className="flex min-h-[12rem] flex-1 flex-col items-center justify-center gap-2 border border-white/10 bg-black px-6 text-center text-base text-muted-foreground">
-              <p>Connect a WordPress site under Integrations to use the studio editor.</p>
-            </div>
-          )
+        {bulkBindings && bulkGeneratorDock && bulkBindings.wordPressSite ? (
+          <BulkGeneratorOverviewTabContent
+            site={bulkBindings.wordPressSite}
+            bindings={bulkBindings}
+            variant={studioVariant}
+            studioEditorMode={studioEditorMode}
+            onStudioEditorModeChange={handleStudioEditorModeChange}
+            workspaceBusy={workspaceBusy}
+            apiKey={effectiveDataForSeoApiKey ?? ""}
+            selectedModel={selectedModel ?? ""}
+            temperature={temperature ?? 0.7}
+            maxTokens={maxTokens ?? 4096}
+            topP={topP ?? 1}
+            bulkGeneratorDock={bulkGeneratorDock}
+            bulkGeneratorDetailsPanel={bulkGeneratorDetailsProps}
+            customDrawerContent={pressReleaseDrawerContent}
+            progressSnapshot={progressSnapshot}
+            bulkGeneratorBand2Toolbar={bulkGeneratorBand2Toolbar}
+            optimizerSection={optimizerSection}
+            onOptimizerSectionChange={handleOptimizerSectionChange}
+            focusKeyword={focusKeyword}
+            onFocusKeywordChange={setFocusKeyword}
+            titleOverride={titleOverride}
+            onTitleOverrideChange={setTitleOverride}
+            pressReleaseComposeProps={pressReleaseComposeProps}
+            verticalBenchmarkComposeProps={verticalBenchmarkComposeProps}
+          />
         ) : null}
 
         <div className="pointer-events-none absolute h-0 w-0 overflow-hidden opacity-0" aria-hidden>
@@ -631,16 +756,18 @@ export function BulkBlogGenerationTab({
             bulkGeneratorWorkspace
             onBulkGeneratorWorkspaceBindings={onBulkGeneratorWorkspaceBindings}
           />
-          <PressReleaseTab
-            pressReleaseWorkspace
-            onPressReleaseWorkspaceBindings={onPressReleaseWorkspaceBindings}
-            dataForSEOApiKey={effectiveDataForSeoApiKey ?? ""}
-            openRouterApiKey={openRouterApiKey ?? ""}
-            selectedModel={selectedModel}
-            temperature={temperature}
-            maxTokens={maxTokens}
-            topP={topP}
-          />
+          {isPressRelease ? (
+            <PressReleaseTab
+              pressReleaseWorkspace
+              onPressReleaseWorkspaceBindings={onPressReleaseWorkspaceBindings}
+              dataForSEOApiKey={effectiveDataForSeoApiKey ?? ""}
+              openRouterApiKey={openRouterApiKey ?? ""}
+              selectedModel={selectedModel}
+              temperature={temperature}
+              maxTokens={maxTokens}
+              topP={topP}
+            />
+          ) : null}
         </div>
       </div>
     </div>

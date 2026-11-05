@@ -5,18 +5,39 @@ import {
   prepareVideoStudioReference,
   referenceUploadFiles,
 } from "@/lib/image-generator/manual-reference-upload";
-import { sceneBeatReferenceDataUrls } from "@/lib/video-generator/video-client-location-reference";
+import {
+  assertReferenceStillsSceneCount,
+  isReferenceStillsFlythroughBrief,
+  sceneBeatReferenceDataUrls,
+} from "@/lib/video-generator/video-client-location-reference";
+import {
+  buildSubjectHarness,
+  cutVideoBeats,
+  referenceClipFromUpload,
+  uploadReferenceVideoFile,
+} from "@/lib/video-generator/video-brainstorm-api";
+import { applyReferenceStillsFlythroughPlan } from "@/lib/video-generator/video-director-agent";
 import { getImageModel, getVideoModel } from "@/lib/optimization-settings-storage";
 import { writeGlobalVideoAgentModel } from "@/lib/global-agent-models";
 import type { OpenRouterAppStreamDelta } from "@/lib/openrouter-app-api";
 import { writeSceneVideoPrompt } from "@/lib/video-generator/video-cinematographer-agent";
-import { runVideoDirectorClarify, runVideoDirectorPlan } from "@/lib/video-generator/video-director-agent";
-import { runVideoDirectorRevisePlan, runVideoDirectorReviseScene } from "@/lib/video-generator/video-director-revise";
+import {
+  hasAttachedReferenceVideo,
+  REFERENCE_VIDEO_SKIP_CLARIFY_QUESTIONS,
+  referenceVideoSkipClarifyAnswers,
+  runVideoDirectorClarify,
+  runVideoDirectorPlan,
+} from "@/lib/video-generator/video-director-agent";
+import {
+  applySceneClientInstruction,
+  runVideoDirectorRevisePlan,
+} from "@/lib/video-generator/video-director-revise";
 import type {
   ProductLockState,
   ProductViewId,
   StoryboardFrame,
   VideoBrief,
+  VideoBriefReferenceClip,
   VideoClarifyQuestion,
   VideoPlan,
   VideoProjectSnapshot,
@@ -40,6 +61,7 @@ import {
   defaultResolutionForVideoModel,
   estimateVideoCostUsd,
   resolutionsForVideoModel,
+  videoLengthOptionAtLeast,
   type VideoAspect,
   type VideoLengthSeconds,
   type VideoResolution,
@@ -56,14 +78,60 @@ import {
   restitchVideoRender,
   saveVideoProject,
   serializeVideoProjectJson,
+  sliceReferenceVideoClips,
   startVideoRender,
   uploadTimelineVideoClip,
   uploadVideoRenderFrame,
 } from "@/lib/video-generator/video-render-api";
-import { buildSubjectHarness } from "@/lib/video-generator/video-brainstorm-api";
-import { generateEnvironmentPlate, generateStoryboardFrame } from "@/lib/video-generator/video-storyboard-agent";
+import { generateEnvironmentPlate, generateStoryboardFrame, hasNegativePeopleConstraint } from "@/lib/video-generator/video-storyboard-agent";
 import { videoLog, videoLogError, videoTimer } from "@/lib/video-generator/video-log";
 import { stepIndex, type VideoGeneratorStep } from "./video-generator-steps";
+
+export function extractReferenceVideoBeatsTimes(plan: VideoPlan, videoDurationSeconds?: number): number[] {
+  const totalPlanSeconds = plan.scenes.reduce((sum, s) => sum + s.durationSeconds, 0);
+  const videoDuration = videoDurationSeconds || totalPlanSeconds;
+  const scale = totalPlanSeconds > 0 ? videoDuration / totalPlanSeconds : 1;
+  let runningTime = 0;
+  const times: number[] = [];
+  for (let i = 0; i < plan.scenes.length; i++) {
+    const t = Math.min(Math.max(0, runningTime * scale), Math.max(0, videoDuration - 0.2));
+    times.push(Number(t.toFixed(2)));
+    runningTime += plan.scenes[i].durationSeconds;
+  }
+  return times;
+}
+
+export async function extractAndApplyReferenceVideoBeats(args: {
+  apiKey: string;
+  serverId: string;
+  plan: VideoPlan;
+  durationSeconds?: number;
+}): Promise<{ plan: VideoPlan; newReferences: ManualImageReference[] }> {
+  const times = extractReferenceVideoBeatsTimes(args.plan, args.durationSeconds);
+  videoLog("plan", "extracting reference video beats from server", { serverId: args.serverId, times });
+  const cut = await cutVideoBeats({ apiKey: args.apiKey, id: args.serverId, times });
+  const updatedScenes = args.plan.scenes.map((s, i) => {
+    const beat = cut.beats[i];
+    if (!beat?.dataUrl) return s;
+    return {
+      ...s,
+      referenceIndexes: [i + 1],
+      postCutReferenceDataUrl: beat.dataUrl,
+      postCutReferenceFileName: `ref_frame_${i + 1}_${Math.round(times[i])}s.png`,
+    };
+  });
+  const newReferences = await Promise.all(
+    cut.beats.map((b, i) =>
+      manualReferenceFromDataUrl(`ref_frame_${i + 1}_${Math.round(times[i])}s.png`, b.dataUrl),
+    ),
+  );
+  const enrichedPlan: VideoPlan = {
+    ...args.plan,
+    referenceStillsFlythrough: true,
+    scenes: updatedScenes,
+  };
+  return { plan: enrichedPlan, newReferences };
+}
 
 const RENDER_POLL_MS = 10_000;
 
@@ -75,7 +143,12 @@ export type BrainstormBrief = {
   lengthSeconds: VideoLengthSeconds;
   aspect: VideoAspect;
   references: ManualImageReference[];
+  referenceVideo?: VideoBriefReferenceClip | null;
 };
+
+function sortReferencesByFileName(refs: ManualImageReference[]): ManualImageReference[] {
+  return [...refs].sort((a, b) => a.fileName.localeCompare(b.fileName, undefined, { numeric: true }));
+}
 
 function errorText(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
@@ -113,7 +186,9 @@ export function useVideoGenerator(apiKey: string) {
     });
   }, []);
   const [references, setReferences] = useState<ManualImageReference[]>([]);
+  const [referenceVideo, setReferenceVideo] = useState<VideoBriefReferenceClip | null>(null);
   const [isPreparingReferences, setIsPreparingReferences] = useState(false);
+  const [isPreparingReferenceVideo, setIsPreparingReferenceVideo] = useState(false);
   /** The product photos and the one harness sheet the server tiles from them. */
   const [subjectPhotos, setSubjectPhotos] = useState<ManualImageReference[]>([]);
   const [subject, setSubject] = useState<ManualImageReference | null>(null);
@@ -124,6 +199,8 @@ export function useVideoGenerator(apiKey: string) {
   const [plan, setPlan] = useState<VideoPlan | null>(null);
   /** What the Director has written so far while the plan is in progress (reasoning, then the plan JSON). */
   const [planLive, setPlanLive] = useState<OpenRouterAppStreamDelta>({ reasoning: "", content: "" });
+  /** True from "Draft scene plan" until the parsed plan lands (stage leaves Start compose immediately). */
+  const [planDrafting, setPlanDrafting] = useState(false);
   const [frames, setFrames] = useState<StoryboardFrame[]>([]);
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const [render, setRender] = useState<VideoRenderSnapshot | null>(null);
@@ -146,7 +223,7 @@ export function useVideoGenerator(apiKey: string) {
   const needsProductStep = subjectPhotos.length > 0;
 
   const canStartStudio = Boolean(
-    prompt.trim() || subjectPhotos.length > 0 || references.length > 0,
+    prompt.trim() || subjectPhotos.length > 0 || references.length > 0 || referenceVideo,
   );
 
   const productViewsMap = useMemo(() => {
@@ -164,12 +241,24 @@ export function useVideoGenerator(apiKey: string) {
       aspect,
       resolution,
       references,
+      referenceVideo,
       subject,
       productSpec: productLock.spec,
       productViews: productViewsMap,
       environmentHarnessDataUrl,
     }),
-    [prompt, lengthSeconds, aspect, resolution, references, subject, productLock.spec, productViewsMap, environmentHarnessDataUrl],
+    [
+      prompt,
+      lengthSeconds,
+      aspect,
+      resolution,
+      references,
+      referenceVideo,
+      subject,
+      productLock.spec,
+      productViewsMap,
+      environmentHarnessDataUrl,
+    ],
   );
 
   const estimatedCostUsd = estimateVideoCostUsd(videoModel, resolution, lengthSeconds, plan?.scenes.length ?? 1);
@@ -217,7 +306,7 @@ export function useVideoGenerator(apiKey: string) {
         setError(errorText(failed[0]?.reason ?? "Could not read the selected files as images."));
         return;
       }
-      setReferences((prev) => [...prev, ...prepared]);
+      setReferences((prev) => sortReferencesByFileName([...prev, ...prepared]));
       if (failed.length) {
         setError(`${prepared.length} reference(s) added. ${failed.length} file(s) could not be read as images.`);
       }
@@ -230,6 +319,48 @@ export function useVideoGenerator(apiKey: string) {
 
   const removeReference = useCallback((id: string) => {
     setReferences((prev) => prev.filter((r) => r.id !== id));
+  }, []);
+
+  const uploadReferenceVideo = useCallback(
+    async (file: File): Promise<VideoBriefReferenceClip> => {
+      const key = requireApiKey();
+      if (!key) throw new Error("OpenRouter API key is missing. Add it in Dashboard > API Keys.");
+      setIsPreparingReferenceVideo(true);
+      setError("");
+      try {
+        const uploaded = await uploadReferenceVideoFile({ apiKey: key, file, skipSamples: true });
+        const previewUrl = URL.createObjectURL(file);
+        const clip: VideoBriefReferenceClip = { ...referenceClipFromUpload(file.name, uploaded), previewUrl };
+        setReferenceVideo((prev) => {
+          if (prev?.previewUrl?.startsWith("blob:") && prev.previewUrl !== previewUrl) {
+            URL.revokeObjectURL(prev.previewUrl);
+          }
+          return clip;
+        });
+        videoLog("generator", "reference video ready for Director", {
+          fileName: clip.fileName,
+          durationSeconds: clip.durationSeconds,
+          serverId: clip.serverId,
+          llmParts: clip.llmSegments?.length ?? (clip.dataUrl ? 1 : 0),
+        });
+        return clip;
+      } catch (e) {
+        const message = errorText(e);
+        setError(message);
+        videoLogError("generator", "reference video upload failed", e);
+        throw e;
+      } finally {
+        setIsPreparingReferenceVideo(false);
+      }
+    },
+    [requireApiKey],
+  );
+
+  const removeReferenceVideo = useCallback(() => {
+    setReferenceVideo((prev) => {
+      if (prev?.previewUrl?.startsWith("blob:")) URL.revokeObjectURL(prev.previewUrl);
+      return null;
+    });
   }, []);
 
   /** Removing the harness tile drops every subject photo with it. */
@@ -305,7 +436,8 @@ export function useVideoGenerator(apiKey: string) {
       setPrompt(next.prompt);
       setLengthSeconds(next.lengthSeconds);
       setAspect(next.aspect);
-      setReferences(next.references);
+      setReferences(sortReferencesByFileName(next.references));
+      setReferenceVideo(next.referenceVideo ?? null);
       advance("brief");
     },
     [advance],
@@ -369,7 +501,12 @@ export function useVideoGenerator(apiKey: string) {
         if (runRef.current !== run) return;
         setFrames((prev) => prev.map((f) => (f.sceneId === sceneId ? { ...f, ...next } : f)));
       };
-      patch({ status: "generating", error: undefined, imageDataUrl: refs.currentFrameDataUrl, videoPrompt: undefined });
+      patch({
+        status: "generating",
+        error: undefined,
+        imageDataUrl: currentPlan.referenceStillsFlythrough || Boolean(brief.referenceVideo?.serverId) ? undefined : refs.currentFrameDataUrl,
+        videoPrompt: undefined,
+      });
       try {
         const sceneReferenceDataUrls = sceneBeatReferenceDataUrls(scene, references);
         const imageDataUrl = await generateStoryboardFrame({
@@ -386,6 +523,8 @@ export function useVideoGenerator(apiKey: string) {
           sceneReferenceDataUrls,
           heroFrameDataUrl: refs.heroFrameDataUrl,
           currentFrameDataUrl: refs.currentFrameDataUrl,
+          referenceStillsFlythrough: Boolean(currentPlan.referenceStillsFlythrough || brief.referenceVideo?.serverId),
+          beatReferenceFileName: scene.postCutReferenceFileName ?? references[scene.referenceIndexes[0] - 1]?.fileName,
         });
         if (runRef.current !== run) {
           videoLog("storyboard", `scene ${scene.order} frame dropped: run ${run} is stale (current run ${runRef.current})`);
@@ -399,7 +538,39 @@ export function useVideoGenerator(apiKey: string) {
         return undefined;
       }
     },
-    [aspect, imageModel, productLock.spec, productViewsMap, references, subject],
+    [aspect, brief.referenceVideo?.serverId, imageModel, productLock.spec, productViewsMap, references, subject],
+  );
+
+  /** Strict 1:1: use the brief upload or cut video frame as the storyboard still (motion is added at render). */
+  const runPassthroughFrame = useCallback(
+    async (run: number, currentPlan: VideoPlan, sceneId: string): Promise<string | undefined> => {
+      const scene = currentPlan.scenes.find((s) => s.id === sceneId);
+      if (!scene) return undefined;
+      const patch = (next: Partial<StoryboardFrame>) => {
+        if (runRef.current !== run) return;
+        setFrames((prev) => prev.map((f) => (f.sceneId === sceneId ? { ...f, ...next } : f)));
+      };
+      patch({ status: "generating", environmentStatus: "done", error: undefined, videoPrompt: undefined });
+      try {
+        const imageDataUrl = scene.postCutReferenceDataUrl ?? sceneBeatReferenceDataUrls(scene, references)[0];
+        if (!imageDataUrl?.startsWith("data:image/")) {
+          throw new Error(
+            `Scene ${scene.order} has no reference still. Match one upload per scene or regenerate the plan.`,
+          );
+        }
+        if (runRef.current !== run) return undefined;
+        patch({ status: "done", imageDataUrl, environmentStatus: "done", environmentDataUrl: imageDataUrl });
+        videoLog("storyboard", `scene ${scene.order} passthrough still`, {
+          fileName: scene.postCutReferenceFileName ?? references[scene.referenceIndexes[0] - 1]?.fileName,
+        });
+        return imageDataUrl;
+      } catch (e) {
+        videoLogError("storyboard", `scene ${scene.order} passthrough failed`, e);
+        patch({ status: "failed", error: errorText(e) });
+        return undefined;
+      }
+    },
+    [references],
   );
 
   /** Cinematographer writes scene `index`'s clip prompt from its frame and the previous frame; a failure fails the tile. */
@@ -462,10 +633,17 @@ export function useVideoGenerator(apiKey: string) {
     ): Promise<{ framesById: Map<string, string>; promptsById: Map<string, string> }> => {
       const heroId = currentPlan.scenes[0].id;
       const hasLockedProductViews = currentPlan.scenes.some((s) => s.productView);
+      const refStillsFlythrough =
+        currentPlan.referenceStillsFlythrough === true || Boolean(brief.referenceVideo?.serverId);
+      if (refStillsFlythrough && !brief.referenceVideo?.serverId) {
+        assertReferenceStillsSceneCount(currentPlan, references.length);
+      }
       videoLog("storyboard", `run ${run}: draw ${drawIds.length} frames, write ${promptIds.length} prompts`, {
         draw: drawIds,
         prompts: promptIds,
         hasLockedProductViews,
+        refStillsFlythrough,
+        hasReferenceVideo: Boolean(brief.referenceVideo?.serverId),
         kept: [...existing.keys()],
         editedInPlace: [...current.keys()],
       });
@@ -486,11 +664,29 @@ export function useVideoGenerator(apiKey: string) {
         return hay.includes("factory") || hay.includes("indoor") || hay.includes("warehouse") || hay.includes("interior");
       };
 
-      if (needsEnvIds.length > 0) {
+      if (!refStillsFlythrough && needsEnvIds.length > 0) {
         setBusy("Rendering shared Environment Plates for location & season consistency");
       }
 
+      if (refStillsFlythrough) {
+        for (const s of currentPlan.scenes) {
+          if (drawIds.includes(s.id)) {
+            setFrames((prev) =>
+              prev.map((f) =>
+                f.sceneId === s.id
+                  ? { ...f, environmentStatus: "done" as const, environmentDataUrl: s.postCutReferenceDataUrl }
+                  : f,
+              ),
+            );
+          }
+        }
+      }
+
       for (const s of currentPlan.scenes) {
+        if (refStillsFlythrough) {
+          envPromises.set(s.id, Promise.resolve(s.postCutReferenceDataUrl));
+          continue;
+        }
         const locKey = s.environmentId?.trim() || `scene_${s.order}`;
         const night = isSceneNight(s);
         const indoor = isSceneIndoor(s);
@@ -572,7 +768,69 @@ export function useVideoGenerator(apiKey: string) {
 
       // Pass 2: Keyframes (chaining consecutive scenes that share the same environmentId)
       const framePromises = new Map<string, Promise<string | undefined>>();
-      if (hasLockedProductViews) {
+      if (refStillsFlythrough) {
+        if (drawIds.length) {
+          setBusy(
+            drawIds.length === 1
+              ? "Setting scene keyframe from your reference still"
+              : `Setting ${drawIds.length} keyframes from your reference video`,
+          );
+        }
+        for (const s of currentPlan.scenes) {
+          if (!drawIds.includes(s.id)) {
+            framePromises.set(s.id, Promise.resolve(existing.get(s.id)));
+            continue;
+          }
+          if (runRef.current !== run) break;
+          let directRefUrl = s.postCutReferenceDataUrl ?? (s.referenceIndexes[0] ? references[s.referenceIndexes[0] - 1]?.dataUrl : undefined);
+          if (!directRefUrl?.startsWith("data:image/") && s.order === 1 && references.length > 0) {
+            directRefUrl = references[0]?.dataUrl;
+          }
+          if (!directRefUrl?.startsWith("data:image/") && brief.referenceVideo?.serverId) {
+            setBusy(`Extracting still for scene ${s.order} from reference video`);
+            try {
+              const { plan: enrichedPlan } = await extractAndApplyReferenceVideoBeats({
+                apiKey: key,
+                serverId: brief.referenceVideo.serverId,
+                plan: currentPlan,
+                durationSeconds: brief.referenceVideo.durationSeconds,
+              });
+              const enrichedScene = enrichedPlan.scenes.find((sc) => sc.id === s.id);
+              if (enrichedScene?.postCutReferenceDataUrl) {
+                s.postCutReferenceDataUrl = enrichedScene.postCutReferenceDataUrl;
+                directRefUrl = enrichedScene.postCutReferenceDataUrl;
+              }
+            } catch (err) {
+              videoLogError("storyboard", `failed to extract beat for scene ${s.order}`, err);
+            }
+          }
+
+          // ZERO HALLUCINATION MANDATE:
+          // When reference photos or cut video stills exist, ALWAYS use the real photographic still
+          // directly via runPassthroughFrame! Never invoke AI text-to-image diffusion automatically,
+          // which invents fake details, fake chairs/rooms, and corrupts/misspells brand signs.
+          // Only an explicit manual redraw for a specific scene (current.has(s.id)) uses AI image generation.
+          const isExplicitSceneRedraw = current.has(s.id);
+
+          if (isExplicitSceneRedraw) {
+            setBusy(`AI Storyboard Artist is redrawing scene ${s.order} keyframe`);
+            const url = await runFrame(key, run, currentPlan, s.id, {
+              currentFrameDataUrl: current.get(s.id),
+            });
+            framePromises.set(s.id, Promise.resolve(url));
+          } else if (directRefUrl?.startsWith("data:image/")) {
+            setBusy(`Setting keyframe ${s.order} of ${currentPlan.scenes.length} from real photographic still`);
+            const url = await runPassthroughFrame(run, currentPlan, s.id);
+            framePromises.set(s.id, Promise.resolve(url));
+          } else {
+            setBusy(`Drawing keyframe ${s.order} of ${currentPlan.scenes.length}`);
+            const url = await runFrame(key, run, currentPlan, s.id, {
+              currentFrameDataUrl: current.get(s.id),
+            });
+            framePromises.set(s.id, Promise.resolve(url));
+          }
+        }
+      } else if (hasLockedProductViews) {
         if (drawIds.length) {
           setBusy(
             `Storyboard artist is compositing ${drawIds.length === 1 ? "the scene" : `${drawIds.length} scenes`} onto locked Environment Plates`,
@@ -639,38 +897,117 @@ export function useVideoGenerator(apiKey: string) {
 
       const framesById = new Map<string, string>();
       const promptsById = new Map<string, string>();
-      await Promise.all(
-        currentPlan.scenes.map(async (s, i) => {
-          const frame = await framePromises.get(s.id);
-          if (frame) framesById.set(s.id, frame);
-          if (!promptIds.includes(s.id)) return;
-          if (!frame) return videoLog("cinematographer", `scene ${s.order} prompt skipped: its frame is missing`);
-          const previous = i > 0 ? await framePromises.get(currentPlan.scenes[i - 1].id) : undefined;
-          if (i > 0 && !previous && s.transitionIn?.type === "continue") {
-            return videoLog("cinematographer", `scene ${s.order} prompt skipped: continue join requires previous frame`);
+      const collectPrompt = async (s: VideoScenePlan, i: number) => {
+        const frame = await framePromises.get(s.id);
+        if (frame) framesById.set(s.id, frame);
+        if (!promptIds.includes(s.id)) return;
+        if (!frame) return videoLog("cinematographer", `scene ${s.order} prompt skipped: its frame is missing`);
+        const previous = i > 0 ? await framePromises.get(currentPlan.scenes[i - 1].id) : undefined;
+        if (i > 0 && !previous && s.transitionIn?.type === "continue") {
+          return videoLog("cinematographer", `scene ${s.order} prompt skipped: continue join requires previous frame`);
+        }
+        if (runRef.current !== run) return videoLog("cinematographer", `scene ${s.order} prompt skipped: run ${run} is stale`);
+        const vp = await writePrompt(key, run, currentPlan, i, frame, previous);
+        if (vp) promptsById.set(s.id, vp);
+      };
+      try {
+        if (refStillsFlythrough) {
+          for (let i = 0; i < currentPlan.scenes.length; i += 1) {
+            const s = currentPlan.scenes[i];
+            if (promptIds.includes(s.id)) {
+              setBusy(`Writing motion prompt for scene ${s.order} of ${currentPlan.scenes.length}`);
+            }
+            await collectPrompt(s, i);
           }
-          if (runRef.current !== run) return videoLog("cinematographer", `scene ${s.order} prompt skipped: run ${run} is stale`);
-          const vp = await writePrompt(key, run, currentPlan, i, frame, previous);
-          if (vp) promptsById.set(s.id, vp);
-        }),
-      );
+        } else {
+          await Promise.all(currentPlan.scenes.map((s, i) => collectPrompt(s, i)));
+        }
+      } finally {
+        setBusy(null);
+      }
       return { framesById, promptsById };
     },
-    [productViewsMap, runEnvironment, runFrame, writePrompt],
+    [productViewsMap, references.length, runEnvironment, runFrame, runPassthroughFrame, writePrompt],
   );
 
   const beginStoryboard = useCallback(
     async (key: string, next: VideoPlan) => {
-      const run = bumpRun(`storyboard for "${next.title}", ${next.scenes.length} frames`);
-      setFrames(next.scenes.map((s) => ({ sceneId: s.id, status: "waiting" as const, environmentStatus: "waiting" as const })));
+      let activePlan = next;
+      if (brief.referenceVideo?.serverId) {
+        if (activePlan.scenes.some((s) => !s.postCutReferenceDataUrl)) {
+          setBusy(`Extracting ${activePlan.scenes.length} reference stills from your video`);
+          try {
+            const { plan: enrichedPlan, newReferences } = await extractAndApplyReferenceVideoBeats({
+              apiKey: key,
+              serverId: brief.referenceVideo.serverId,
+              plan: activePlan,
+              durationSeconds: brief.referenceVideo.durationSeconds,
+            });
+            setReferences((prev) => (prev.length === 0 ? newReferences : prev));
+            activePlan = enrichedPlan;
+            setPlan(activePlan);
+          } catch (cutErr) {
+            videoLogError("storyboard", "failed to extract reference video beats in beginStoryboard", cutErr);
+          }
+        }
+
+        // Chop reference video into exact scene clips for zero-hallucination ground truth
+        if (activePlan.scenes.some((s) => !s.referenceClipFile)) {
+          setBusy(`Chopping reference video into ${activePlan.scenes.length} scene clips (zero-hallucination reference)`);
+          try {
+            let runningTime = 0;
+            const sceneSlices = activePlan.scenes.map((s, idx) => {
+              const startSeconds = runningTime;
+              const durationSeconds = Math.max(1, Math.round(s.durationSeconds || 5));
+              runningTime += durationSeconds;
+              return {
+                sceneId: s.id,
+                order: s.order || idx + 1,
+                startSeconds,
+                durationSeconds,
+              };
+            });
+            const slicedClips = await sliceReferenceVideoClips({
+              apiKey: key,
+              brainstormId: brief.referenceVideo.serverId,
+              scenes: sceneSlices,
+            });
+            if (slicedClips.length > 0) {
+              activePlan = {
+                ...activePlan,
+                scenes: activePlan.scenes.map((s) => {
+                  const clip = slicedClips.find((c) => c.sceneId === s.id || c.order === s.order);
+                  if (clip) {
+                    return {
+                      ...s,
+                      referenceClipFile: clip.clipFile,
+                      referenceClipUrl: clip.clipUrl,
+                      referenceClipStartSeconds: clip.startSeconds,
+                      referenceClipDurationSeconds: clip.durationSeconds,
+                      customClipFile: s.customClipFile || clip.clipFile,
+                      customClipUrl: s.customClipUrl || clip.clipUrl,
+                    };
+                  }
+                  return s;
+                }),
+              };
+              setPlan(activePlan);
+            }
+          } catch (sliceErr) {
+            videoLogError("storyboard", "failed to slice reference video clips in beginStoryboard", sliceErr);
+          }
+        }
+      }
+      const run = bumpRun(`storyboard for "${activePlan.title}", ${activePlan.scenes.length} frames`);
+      setFrames(activePlan.scenes.map((s) => ({ sceneId: s.id, status: "waiting" as const, environmentStatus: "waiting" as const })));
       setRender(null);
-      setSelectedSceneId(next.scenes[0].id);
+      setSelectedSceneId(activePlan.scenes[0].id);
       setMaxStep("storyboard");
       advance("storyboard");
-      const ids = next.scenes.map((s) => s.id);
-      await drawScenes(key, run, next, ids, ids, new Map());
+      const ids = activePlan.scenes.map((s) => s.id);
+      await drawScenes(key, run, activePlan, ids, ids, new Map());
     },
-    [advance, bumpRun, drawScenes],
+    [advance, brief.referenceVideo, bumpRun, drawScenes],
   );
 
   /** A new plan lands in the Pre-Scene Brief Review & Approval stage first (no storyboard frames drawn until approved). */
@@ -697,12 +1034,45 @@ export function useVideoGenerator(apiKey: string) {
     });
   }, []);
 
+  const approveAllScenes = useCallback(() => {
+    setPlan((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        scenes: prev.scenes.map((s) => ({ ...s, approved: true })),
+      };
+    });
+  }, []);
+
   const approvePlanAndBeginStoryboard = useCallback(async () => {
     const key = requireApiKey();
     if (!key || !plan) return;
+    let targetPlan = plan;
+    if (brief.referenceVideo?.serverId && targetPlan.scenes.some((s) => !s.postCutReferenceDataUrl)) {
+      setBusy(`Extracting ${targetPlan.scenes.length} reference stills from your video`);
+      try {
+        const { plan: enrichedPlan, newReferences } = await extractAndApplyReferenceVideoBeats({
+          apiKey: key,
+          serverId: brief.referenceVideo.serverId,
+          plan: targetPlan,
+          durationSeconds: brief.referenceVideo.durationSeconds,
+        });
+        setReferences((prev) => (prev.length === 0 ? newReferences : prev));
+        targetPlan = enrichedPlan;
+      } catch (cutErr) {
+        videoLogError("storyboard", "failed to extract reference video beats on approve", cutErr);
+      }
+    }
+    const expandedPlan = !hasAttachedReferenceVideo(brief) && isReferenceStillsFlythroughBrief(brief)
+      ? applyReferenceStillsFlythroughPlan(targetPlan, brief)
+      : targetPlan;
     const approvedPlan: VideoPlan = {
-      ...plan,
-      scenes: plan.scenes.map((s) => ({ ...s, approved: true })),
+      ...expandedPlan,
+      scenes: expandedPlan.scenes.map((s) => ({
+        ...s,
+        durationSeconds: Math.max(4, Math.min(15, Math.round(s.durationSeconds || 5))),
+        approved: true,
+      })),
     };
     setPlan(approvedPlan);
     setError("");
@@ -714,7 +1084,7 @@ export function useVideoGenerator(apiKey: string) {
     } finally {
       setBusy(null);
     }
-  }, [beginStoryboard, plan, requireApiKey]);
+  }, [beginStoryboard, brief, plan, requireApiKey]);
 
   const continueToProduct = useCallback(() => advance("product"), [advance]);
 
@@ -990,11 +1360,16 @@ export function useVideoGenerator(apiKey: string) {
       bumpRun("drafting a new plan");
       setPlan(null);
       setPlanLive({ reasoning: "", content: "" });
+      setPlanDrafting(true);
       setFrames([]);
       setRender(null);
       setSelectedSceneId(null);
       setError("");
-      setBusy("Director is writing the scene plan");
+      setBusy(
+        hasAttachedReferenceVideo(brief)
+          ? "Director is watching your reference video and writing the scene plan"
+          : "Director is writing the scene plan",
+      );
       setStep("plan");
       setMaxStep("plan");
       try {
@@ -1005,22 +1380,82 @@ export function useVideoGenerator(apiKey: string) {
           answers: ans,
           onDelta: (d) => setPlanLive((prev) => ({ reasoning: prev.reasoning + d.reasoning, content: prev.content + d.content })),
         });
+
+        // Audit the Director Plan with Decision Model (Liquid d1.1)
+        try {
+          const { auditVideoPlanWithDecisionAgent } = await import("@/lib/decision-tree/studio-decision-auditor");
+          const scenesSummary = next.scenes
+            .map((s) => `Scene ${s.order} (${s.durationSeconds}s): ${s.title} - ${s.sceneInstructions} [Narration: ${s.narration || "None"}]`)
+            .join("\n");
+          const planAudit = await auditVideoPlanWithDecisionAgent({
+            planTitle: next.title,
+            logline: next.logline,
+            scenesSummary,
+            apiKey: key,
+          });
+          next.decisionAudit = planAudit;
+          next.decisionAuditJson = JSON.stringify(planAudit);
+          videoLog("plan", "Decision Agent (Liquid d1.1) audit completed", {
+            verdict: planAudit.verdict,
+            pacing: planAudit.pacingFitScore,
+            continuity: planAudit.continuityScore,
+            storyArc: planAudit.storyArcScore,
+            productionReady: planAudit.productionReadyProbability,
+          });
+        } catch (auditErr) {
+          videoLogError("plan", "Decision Agent audit warning", auditErr);
+        }
+
+        if (brief.referenceVideo?.serverId && next.scenes.length > 0) {
+          setBusy(`Extracting ${next.scenes.length} reference stills from your video`);
+          try {
+            const { plan: enrichedPlan, newReferences } = await extractAndApplyReferenceVideoBeats({
+              apiKey: key,
+              serverId: brief.referenceVideo.serverId,
+              plan: next,
+              durationSeconds: brief.referenceVideo.durationSeconds,
+            });
+            setReferences((prev) => (prev.length === 0 ? newReferences : prev));
+            Object.assign(next, enrichedPlan);
+          } catch (cutErr) {
+            videoLogError("plan", "failed to extract reference video beats", cutErr);
+          }
+        }
+
+        const stillsTotal = next.referenceStillsTotalSeconds;
+        if (stillsTotal != null && stillsTotal > lengthSeconds) {
+          setLengthSeconds(videoLengthOptionAtLeast(stillsTotal));
+        }
         await startPlan(key, next);
       } catch (e) {
         videoLogError("plan", "draft failed", e);
         setError(errorText(e));
       } finally {
+        setPlanDrafting(false);
         setBusy(null);
       }
     },
-    [brief, bumpRun, startPlan],
+    [brief, bumpRun, lengthSeconds, startPlan],
   );
 
   const askQuestions = useCallback(async () => {
     const key = requireApiKey();
     if (!key || !canStartStudio) return;
+    if (isPreparingReferenceVideo) {
+      setError("Reference video is still uploading. Wait until the center footer shows 1 video.");
+      return;
+    }
+    const wantsLocationFlythrough = /fly[\s-]?through|drone|walk[\s-]?through|showroom tour/i.test(brief.prompt);
+    if (wantsLocationFlythrough && !hasAttachedReferenceVideo(brief) && brief.references.length === 0) {
+      setError("Upload your location clip with + Video first. The Director must watch the real walkthrough before planning.");
+      return;
+    }
+    if (hasAttachedReferenceVideo(brief)) {
+      await draftPlan(key, REFERENCE_VIDEO_SKIP_CLARIFY_QUESTIONS, referenceVideoSkipClarifyAnswers(brief));
+      return;
+    }
     await clarify(key, brief);
-  }, [brief, canStartStudio, clarify, requireApiKey]);
+  }, [brief, canStartStudio, clarify, draftPlan, isPreparingReferenceVideo, requireApiKey]);
 
   const answerQuestion = useCallback((id: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [id]: value }));
@@ -1040,26 +1475,186 @@ export function useVideoGenerator(apiKey: string) {
     await draftPlan(key, questions ?? [], answers);
   }, [answers, draftPlan, questions, requireApiKey]);
 
-  const regenerateFrame = useCallback(
+  /** Restores the exact real still frame cut from the reference video or uploaded photo for this scene */
+  const restoreReferenceFrame = useCallback(
     async (sceneId: string) => {
+      if (!plan) return;
+      const scene = plan.scenes.find((s) => s.id === sceneId);
+      if (!scene) return;
+      let refUrl =
+        scene.order === 1 && references.length > 0 && !scene.postCutReferenceDataUrl
+          ? references[0]?.dataUrl
+          : (scene.postCutReferenceDataUrl ?? (scene.referenceIndexes[0] ? references[scene.referenceIndexes[0] - 1]?.dataUrl : undefined));
+      if (!refUrl && scene.order === 1 && references.length > 0) {
+        refUrl = references[0]?.dataUrl;
+      }
+      if (!refUrl?.startsWith("data:image/") && brief.referenceVideo?.serverId) {
+        const key = requireApiKey();
+        if (!key) return;
+        setBusy("Extracting frames from reference video");
+        try {
+          const { plan: enrichedPlan, newReferences } = await extractAndApplyReferenceVideoBeats({
+            apiKey: key,
+            serverId: brief.referenceVideo.serverId,
+            plan,
+            durationSeconds: brief.referenceVideo.durationSeconds,
+          });
+          setReferences((prev) => (prev.length === 0 ? newReferences : prev));
+          setPlan(enrichedPlan);
+          const matched = enrichedPlan.scenes.find((s) => s.id === sceneId);
+          refUrl = matched?.postCutReferenceDataUrl ?? (scene.order === 1 && references[0]?.dataUrl ? references[0].dataUrl : undefined);
+        } catch (e) {
+          videoLogError("storyboard", "failed to extract reference frame", e);
+          setError(errorText(e));
+          return;
+        } finally {
+          setBusy(null);
+        }
+      }
+      if (refUrl?.startsWith("data:image/")) {
+        setFrames((prev) =>
+          prev.map((f) =>
+            f.sceneId === sceneId
+              ? { ...f, status: "done", imageDataUrl: refUrl, environmentStatus: "done", environmentDataUrl: refUrl }
+              : f,
+          ),
+        );
+      }
+    },
+    [brief.referenceVideo, plan, references, requireApiKey],
+  );
+
+  const regenerateFrame = useCallback(
+    async (sceneId: string, customInstruction?: string) => {
       const key = requireApiKey();
       if (!key || !plan) return;
+      const hasRefOrUpdate = Boolean(scene?.postCutReferenceDataUrl || customInstruction?.trim());
+      const currentFrameUrl = hasRefOrUpdate ? undefined : frames.find((f) => f.sceneId === sceneId)?.imageDataUrl;
+      const currentMap = currentFrameUrl ? new Map([[sceneId, currentFrameUrl]]) : new Map();
       const run = runRef.current;
       const index = plan.scenes.findIndex((s) => s.id === sceneId);
+      const scene = plan.scenes[index];
+      let activePlan = plan;
+      if (customInstruction?.trim()) {
+        const cleanInst = customInstruction.trim();
+        activePlan = {
+          ...activePlan,
+          scenes: activePlan.scenes.map((s) =>
+            s.id === sceneId
+              ? {
+                  ...s,
+                  revisionNotes: [cleanInst],
+                  storyboardPrompt: cleanInst,
+                }
+              : s,
+          ),
+        };
+        setPlan(activePlan);
+      }
       const existing = new Map(frames.filter((f) => f.imageDataUrl && f.sceneId !== sceneId).map((f) => [f.sceneId, f.imageDataUrl as string]));
       const existingEnv = new Map(frames.filter((f) => f.environmentDataUrl).map((f) => [f.sceneId, f.environmentDataUrl as string]));
-      const next = plan.scenes[index + 1];
-      setBusy(`Storyboard artist is redrawing scene ${plan.scenes[index]?.order ?? ""}`);
-      await drawScenes(key, run, plan, [sceneId], next ? [sceneId, next.id] : [sceneId], existing, new Map(), existingEnv);
+      const next = activePlan.scenes[index + 1];
+      setBusy(`Storyboard artist is redrawing scene ${activePlan.scenes[index]?.order ?? ""}`);
+      await drawScenes(key, run, activePlan, [sceneId], next ? [sceneId, next.id] : [sceneId], existing, currentMap, existingEnv);
       setBusy(null);
     },
     [drawScenes, frames, plan, requireApiKey],
   );
 
+  /** Batch resets every scene keyframe back to the exact frame cut from the uploaded reference video */
+  const syncAllFramesFromReferenceVideo = useCallback(async () => {
+    if (!plan || !brief.referenceVideo?.serverId) return;
+    const key = requireApiKey();
+    if (!key) return;
+    setBusy(`Extracting ${plan.scenes.length} frames from reference video`);
+    try {
+      const { plan: enrichedPlan, newReferences } = await extractAndApplyReferenceVideoBeats({
+        apiKey: key,
+        serverId: brief.referenceVideo.serverId,
+        plan,
+        durationSeconds: brief.referenceVideo.durationSeconds,
+      });
+      setReferences((prev) => (prev.length === 0 ? newReferences : prev));
+      let activePlan = enrichedPlan;
+
+      // Also ensure scene clips are chopped and ready
+      try {
+        let runningTime = 0;
+        const sceneSlices = activePlan.scenes.map((s, idx) => {
+          const startSeconds = runningTime;
+          const durationSeconds = Math.max(1, Math.round(s.durationSeconds || 5));
+          runningTime += durationSeconds;
+          return {
+            sceneId: s.id,
+            order: s.order || idx + 1,
+            startSeconds,
+            durationSeconds,
+          };
+        });
+        const slicedClips = await sliceReferenceVideoClips({
+          apiKey: key,
+          brainstormId: brief.referenceVideo.serverId,
+          scenes: sceneSlices,
+        });
+        if (slicedClips.length > 0) {
+          activePlan = {
+            ...activePlan,
+            scenes: activePlan.scenes.map((s) => {
+              const clip = slicedClips.find((c) => c.sceneId === s.id || c.order === s.order);
+              if (clip) {
+                return {
+                  ...s,
+                  referenceClipFile: clip.clipFile,
+                  referenceClipUrl: clip.clipUrl,
+                  referenceClipStartSeconds: clip.startSeconds,
+                  referenceClipDurationSeconds: clip.durationSeconds,
+                  customClipFile: s.customClipFile || clip.clipFile,
+                  customClipUrl: s.customClipUrl || clip.clipUrl,
+                };
+              }
+              return s;
+            }),
+          };
+        }
+      } catch (sliceErr) {
+        videoLogError("storyboard", "failed to slice reference video clips in syncAllFrames", sliceErr);
+      }
+
+      setPlan(activePlan);
+      setFrames((prev) =>
+        prev.map((f) => {
+          const s = activePlan.scenes.find((sc) => sc.id === f.sceneId);
+          const realPhoto = s?.order === 1 && references.length > 0 ? references[0]?.dataUrl : undefined;
+          const targetUrl = realPhoto ?? s?.postCutReferenceDataUrl;
+          if (targetUrl) {
+            return {
+              ...f,
+              status: "done",
+              imageDataUrl: targetUrl,
+              environmentStatus: "done",
+              environmentDataUrl: targetUrl,
+            };
+          }
+          return f;
+        }),
+      );
+    } catch (e) {
+      videoLogError("storyboard", "failed to sync all frames from reference video", e);
+      setError(errorText(e));
+    } finally {
+      setBusy(null);
+    }
+  }, [brief.referenceVideo, plan, requireApiKey]);
+
   const regenerateEnvironmentPlate = useCallback(
     async (sceneId: string) => {
       const key = requireApiKey();
       if (!key || !plan) return;
+      // ZERO HALLUCINATION LOCK: Reference video environment is the real frame; no synthetic plate
+      if (brief.referenceVideo?.serverId || plan.referenceStillsFlythrough) {
+        await restoreReferenceFrame(sceneId);
+        return;
+      }
       const run = runRef.current;
       const index = plan.scenes.findIndex((s) => s.id === sceneId);
       const currentEnvUrl = frames.find((f) => f.sceneId === sceneId)?.environmentDataUrl;
@@ -1071,18 +1666,48 @@ export function useVideoGenerator(apiKey: string) {
       await drawScenes(key, run, plan, [sceneId], next ? [sceneId, next.id] : [sceneId], existing, new Map(), existingEnv, currentEnv);
       setBusy(null);
     },
-    [drawScenes, frames, plan, requireApiKey],
+    [brief.referenceVideo, drawScenes, frames, plan, requireApiKey, restoreReferenceFrame],
   );
 
   const rerenderSceneClip = useCallback(
-    async (sceneId: string) => {
+    async (sceneId: string, customPrompt?: string) => {
       const key = requireApiKey();
       if (!key || !plan || !render) return;
       const scene = plan.scenes.find((s) => s.id === sceneId);
       const frame = frames.find((f) => f.sceneId === sceneId);
-      if (!scene || !frame?.imageDataUrl || !frame.videoPrompt) {
+      let promptToUse = customPrompt?.trim() || frame?.videoPrompt?.trim() || scene?.motionPrompt?.trim() || "";
+      if (!scene || !frame?.imageDataUrl || !promptToUse) {
         setError("Scene needs a finished storyboard frame and clip prompt before re-rendering.");
         return;
+      }
+
+      // Decision Model (Liquid d1.1) Anti-Morphing & Anti-Artifact Audit
+      try {
+        const { auditSceneClipWithDecisionAgent } = await import("@/lib/decision-tree/studio-decision-auditor");
+        const audit = await auditSceneClipWithDecisionAgent({
+          sceneTitle: scene.title,
+          sceneOrder: scene.order,
+          videoPrompt: promptToUse,
+          apiKey: key,
+          hasReferenceStill: Boolean(plan.referenceStillsFlythrough || scene.postCutReferenceDataUrl || frame.imageDataUrl),
+          briefContext: `${plan.title} ${plan.logline} ${prompt} ${(scene.revisionNotes || []).join(" ")}`,
+        });
+        if (audit.enhancedPrompt) {
+          promptToUse = audit.enhancedPrompt;
+        }
+        videoLog("render", `scene ${scene.order} Decision Model audit: ${audit.verdict}`, {
+          antiMorphing: audit.antiMorphingScore,
+          artifactFree: audit.artifactFreeProbability,
+          refFidelity: audit.referenceFidelityScore,
+        });
+      } catch (auditErr) {
+        videoLogError("render", `scene ${scene.order} decision audit warning`, auditErr);
+      }
+
+      if (promptToUse !== frame.videoPrompt) {
+        setFrames((prev) =>
+          prev.map((f) => (f.sceneId === sceneId ? { ...f, videoPrompt: promptToUse } : f)),
+        );
       }
       setError("");
       setBusy(`Re-rendering clip for scene ${scene.order}`);
@@ -1092,7 +1717,7 @@ export function useVideoGenerator(apiKey: string) {
           renderId: render.id,
           sceneId,
           dataUrl: frame.imageDataUrl,
-          videoPrompt: frame.videoPrompt,
+          videoPrompt: promptToUse,
           narration: scene.narration,
           transitionIn: scene.transitionIn,
         });
@@ -1107,6 +1732,16 @@ export function useVideoGenerator(apiKey: string) {
     },
     [advance, frames, plan, render, requireApiKey],
   );
+
+  const clearSceneRevisionNotes = useCallback((sceneId: string) => {
+    setPlan((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        scenes: prev.scenes.map((s) => (s.id === sceneId ? { ...s, revisionNotes: [] } : s)),
+      };
+    });
+  }, []);
 
   const restitchVideo = useCallback(
     async (overridePlan?: VideoPlan) => {
@@ -1364,6 +1999,10 @@ export function useVideoGenerator(apiKey: string) {
         storyboardPrompt?: string;
         motionPrompt?: string;
         videoPrompt?: string;
+        postCutReferenceDataUrl?: string;
+        postCutReferenceFileName?: string;
+        customClipFile?: string | null;
+        customClipUrl?: string | null;
       },
       action?: "save" | "redraw" | "rerender",
     ) => {
@@ -1375,6 +2014,10 @@ export function useVideoGenerator(apiKey: string) {
         ...(patch.environmentPrompt !== undefined ? { environmentPrompt: patch.environmentPrompt } : {}),
         ...(patch.storyboardPrompt !== undefined ? { storyboardPrompt: patch.storyboardPrompt } : {}),
         ...(patch.motionPrompt !== undefined ? { motionPrompt: patch.motionPrompt } : {}),
+        ...(patch.postCutReferenceDataUrl !== undefined ? { postCutReferenceDataUrl: patch.postCutReferenceDataUrl } : {}),
+        ...(patch.postCutReferenceFileName !== undefined ? { postCutReferenceFileName: patch.postCutReferenceFileName } : {}),
+        ...(patch.customClipFile !== undefined ? { customClipFile: patch.customClipFile === null ? undefined : patch.customClipFile } : {}),
+        ...(patch.customClipUrl !== undefined ? { customClipUrl: patch.customClipUrl === null ? undefined : patch.customClipUrl } : {}),
       };
       const nextPlan: VideoPlan = {
         ...plan,
@@ -1393,9 +2036,10 @@ export function useVideoGenerator(apiKey: string) {
         try {
           const run = bumpRun(`manual redraw scene ${updatedScene.order}`);
           const index = nextPlan.scenes.findIndex((s) => s.id === sceneId);
-          const currentFrame = frames.find((f) => f.sceneId === sceneId)?.imageDataUrl;
+          const refChanged = Boolean(patch.postCutReferenceDataUrl && patch.postCutReferenceDataUrl !== before.postCutReferenceDataUrl);
+          const currentFrame = refChanged ? undefined : frames.find((f) => f.sceneId === sceneId)?.imageDataUrl;
           const currentEnvUrl = frames.find((f) => f.sceneId === sceneId)?.environmentDataUrl;
-          const envChanged = patch.environmentPrompt !== undefined && patch.environmentPrompt !== before.environmentPrompt;
+          const envChanged = refChanged || (patch.environmentPrompt !== undefined && patch.environmentPrompt !== before.environmentPrompt);
           const existing = new Map(frames.filter((f) => f.imageDataUrl && f.sceneId !== sceneId).map((f) => [f.sceneId, f.imageDataUrl as string]));
           const existingEnv = new Map(
             frames
@@ -1491,20 +2135,16 @@ export function useVideoGenerator(apiKey: string) {
               }
             : plan;
           if (postCutReference) setPlan(planForRevise);
-          setBusy(`Director is revising scene ${before?.order ?? ""} ("${text}")`);
-          const revised = await runVideoDirectorReviseScene({
-            apiKey: key,
-            brief,
-            plan: planForRevise,
-            sceneId,
-            instruction: text,
-          });
+          const baseScene = planForRevise.scenes.find((s) => s.id === sceneId);
+          if (!baseScene) return;
+          setBusy(`Applying change to scene ${baseScene.order}`);
           const revisedWithApproval: VideoScenePlan = {
-            ...revised,
+            ...applySceneClientInstruction(baseScene, text),
             approved: before?.approved,
             postCutReferenceDataUrl: postCutReference?.dataUrl ?? before?.postCutReferenceDataUrl,
             postCutReferenceFileName: postCutReference?.fileName ?? before?.postCutReferenceFileName,
           };
+          const revised = revisedWithApproval;
           const index = planForRevise.scenes.findIndex((s) => s.id === sceneId);
           const nextPlan: VideoPlan = {
             ...planForRevise,
@@ -1516,9 +2156,10 @@ export function useVideoGenerator(apiKey: string) {
           if (frames.length === 0) {
             return;
           }
-          const current = postCutReference
-            ? undefined
-            : frames.find((f) => f.imageDataUrl && f.sceneId === sceneId)?.imageDataUrl;
+          const current =
+            postCutReference || (revisedWithApproval.revisionNotes?.length ?? 0) > 0
+              ? undefined
+              : frames.find((f) => f.imageDataUrl && f.sceneId === sceneId)?.imageDataUrl;
           const currentEnvUrl = frames.find((f) => f.environmentDataUrl && f.sceneId === sceneId)?.environmentDataUrl;
           const envChanged =
             Boolean(postCutReference) || revised.environmentPrompt !== before?.environmentPrompt;
@@ -1528,7 +2169,18 @@ export function useVideoGenerator(apiKey: string) {
               .filter((f) => f.environmentDataUrl && (!envChanged || f.sceneId !== sceneId))
               .map((f) => [f.sceneId, f.environmentDataUrl as string]),
           );
-          setFrames((prev) => prev.map((f) => (f.sceneId === sceneId ? { ...f, status: "waiting", videoPrompt: undefined } : f)));
+          setFrames((prev) =>
+            prev.map((f) =>
+              f.sceneId === sceneId
+                ? {
+                    ...f,
+                    status: "waiting",
+                    imageDataUrl: nextPlan.referenceStillsFlythrough ? undefined : f.imageDataUrl,
+                    videoPrompt: undefined,
+                  }
+                : f,
+            ),
+          );
           const next = nextPlan.scenes[index + 1];
           setBusy(`Storyboard artist is redrawing scene ${revised.order} keyframe`);
           const { framesById, promptsById } = await drawScenes(
@@ -1623,22 +2275,42 @@ export function useVideoGenerator(apiKey: string) {
     const elapsed = videoTimer();
     try {
       setBusy("Submitting the render");
-      const scenes = plan.scenes.map((s) => {
-        const frame = frames.find((f) => f.sceneId === s.id);
-        if (!s.customClipFile && (!frame?.imageDataUrl || !frame.videoPrompt)) {
-          throw new Error(`Scene ${s.order} has no frame or clip prompt.`);
-        }
-        return {
-          id: s.id,
-          order: s.order,
-          durationSeconds: s.durationSeconds,
-          videoPrompt: frame?.videoPrompt || "Uploaded video clip",
-          narration: s.narration,
-          transitionIn: s.transitionIn,
-          customClipFile: s.customClipFile,
-          frameDataUrl: frame?.imageDataUrl,
-        };
-      });
+      // Decision Model (Liquid d1.1) Anti-Morphing & Anti-Artifact Batch Audit
+      const { auditSceneClipWithDecisionAgent } = await import("@/lib/decision-tree/studio-decision-auditor");
+      const scenes = await Promise.all(
+        plan.scenes.map(async (s) => {
+          const frame = frames.find((f) => f.sceneId === s.id);
+          if (!s.customClipFile && (!frame?.imageDataUrl || !frame.videoPrompt)) {
+            throw new Error(`Scene ${s.order} has no frame or clip prompt.`);
+          }
+          let basePrompt = frame?.videoPrompt || "Uploaded video clip";
+          try {
+            const audit = await auditSceneClipWithDecisionAgent({
+              sceneTitle: s.title,
+              sceneOrder: s.order,
+              videoPrompt: basePrompt,
+              apiKey: key,
+              hasReferenceStill: Boolean(plan.referenceStillsFlythrough || s.postCutReferenceDataUrl || frame?.imageDataUrl),
+              briefContext: `${plan.title} ${plan.logline} ${prompt} ${(s.revisionNotes || []).join(" ")}`,
+            });
+            if (audit.enhancedPrompt) {
+              basePrompt = audit.enhancedPrompt;
+            }
+          } catch {
+            // graceful fallback to basePrompt
+          }
+          return {
+            id: s.id,
+            order: s.order,
+            durationSeconds: Math.max(4, Math.min(15, Math.round(s.durationSeconds || 5))),
+            videoPrompt: basePrompt,
+            narration: s.narration,
+            transitionIn: s.transitionIn,
+            customClipFile: s.customClipFile,
+            frameDataUrl: frame?.imageDataUrl,
+          };
+        }),
+      );
       const renderId = await createVideoRender({
         apiKey: key,
         model: videoModel,
@@ -1709,6 +2381,12 @@ export function useVideoGenerator(apiKey: string) {
       aspect,
       resolution,
       references,
+      referenceVideo: referenceVideo
+        ? {
+            ...referenceVideo,
+            previewUrl: undefined,
+          }
+        : null,
       subjectPhotos,
       subject,
       environmentHarnessDataUrl,
@@ -1734,6 +2412,7 @@ export function useVideoGenerator(apiKey: string) {
       prompt,
       questions,
       references,
+      referenceVideo,
       render,
       resolution,
       selectedSceneId,
@@ -1758,7 +2437,8 @@ export function useVideoGenerator(apiKey: string) {
       setLengthSeconds(snapshot.lengthSeconds);
       setAspect(snapshot.aspect);
       setResolution(snapshot.resolution);
-      setReferences(snapshot.references ?? []);
+      setReferences(sortReferencesByFileName(snapshot.references ?? []));
+      setReferenceVideo(snapshot.referenceVideo ?? null);
       setSubjectPhotos(snapshot.subjectPhotos ?? []);
       setSubject(snapshot.subject ?? null);
       setEnvironmentHarnessDataUrl(snapshot.environmentHarnessDataUrl);
@@ -1936,8 +2616,12 @@ export function useVideoGenerator(apiKey: string) {
     setAspect,
     setResolution,
     isPreparingReferences,
+    isPreparingReferenceVideo,
     addReferenceFiles,
     removeReference,
+    referenceVideo,
+    uploadReferenceVideo,
+    removeReferenceVideo,
     subjectPhotos,
     isPreparingSubject,
     addSubjectFiles,
@@ -1950,6 +2634,7 @@ export function useVideoGenerator(apiKey: string) {
     allAnswered,
     plan,
     planLive,
+    planDrafting,
     frames,
     readyToRender,
     selectedSceneId,
@@ -1965,10 +2650,14 @@ export function useVideoGenerator(apiKey: string) {
     submitAnswers,
     regeneratePlan,
     toggleSceneApproved,
+    approveAllScenes,
     approvePlanAndBeginStoryboard,
     regenerateFrame,
+    restoreReferenceFrame,
+    syncAllFramesFromReferenceVideo,
     regenerateEnvironmentPlate,
     rerenderSceneClip,
+    clearSceneRevisionNotes,
     restitchVideo: () => void restitchVideo(),
     addVideoClipFilesToTimeline,
     addStoredClipToTimeline,

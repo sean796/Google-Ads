@@ -1,14 +1,9 @@
 import type { ReactNode } from 'react';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { Field, SelectField, TextareaField } from "@/ui";
 
 const FIELD =
   'h-9 w-full min-w-0 border-0 bg-muted/55 text-base font-medium text-foreground shadow-none ring-0 outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-0';
-const TRIGGER = cn(FIELD, 'flex items-center gap-2 px-3 focus:ring-2 focus:ring-primary/45');
-const TEXTAREA =
-  'min-h-[72px] w-full border-0 bg-muted/55 text-base text-foreground shadow-none ring-0 outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-0 resize-none px-3 py-2';
 
 function FieldPrefix({ children }: { children: ReactNode }) {
   return <span className="pointer-events-none shrink-0 text-muted-foreground">{children}</span>;
@@ -52,7 +47,7 @@ export function BlogGenerationSettings({
     return (
       <div className="rounded-md bg-muted/15 p-2 border-0">
         <div className="min-w-0">
-          <Input
+          <Field
             id="number-of-posts-count-only"
             type="number"
             min="1"
@@ -63,7 +58,6 @@ export function BlogGenerationSettings({
               setNumberOfBlogs(Math.max(1, Math.min(50, value || 1)));
             }}
             disabled={isGeneratingChecklist || isProcessing}
-            className={FIELD}
             placeholder={countPlaceholder}
             aria-label={countLabel}
           />
@@ -90,7 +84,7 @@ export function BlogGenerationSettings({
       <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
         {!hideNumberOfBlogs ? (
         <div className="min-w-0">
-          <Input
+          <Field
             id="number-of-blogs"
             type="number"
             min={1}
@@ -110,7 +104,6 @@ export function BlogGenerationSettings({
               }
             }}
             disabled={isGeneratingChecklist || isProcessing}
-            className={FIELD}
             placeholder="How many blogs"
             aria-label="How many blogs"
           />
@@ -118,36 +111,17 @@ export function BlogGenerationSettings({
         ) : null}
       </div>
 
-      <Textarea
+      <TextareaField
         id="optional-prompt"
         placeholder="Optional prompt modifier - tone, audience, style (e.g. beginner-friendly, step-by-step)"
         value={optionalPrompt}
         onChange={(e) => setOptionalPrompt(e.target.value)}
         disabled={isGeneratingChecklist || isProcessing}
-        className={cn(TEXTAREA, 'mt-1 min-h-[60px]')}
         aria-label="Optional prompt modifier"
       />
 
       <div className="mt-2 min-w-0">
-        <Select
-          value={featuredImageMode}
-          onValueChange={(v) => handleFeaturedImageMode(v as FeaturedImageMode)}
-          disabled={isGeneratingChecklist || isProcessing}
-        >
-          <SelectTrigger id="featured-image-mode" className={TRIGGER} aria-label="Featured image per blog">
-            <FieldPrefix>Image</FieldPrefix>
-            <span className="min-w-0 flex-1 truncate text-left">
-              <SelectValue />
-            </span>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="off">Off - no featured image</SelectItem>
-            <SelectItem value="ai-generated">AI generated</SelectItem>
-            <SelectItem value="google-maps">
-              Google Maps (needs entity)
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        <SelectField placeholder="Featured image per blog" value={featuredImageMode} onValueChange={(v) => handleFeaturedImageMode(v as FeaturedImageMode)} disabled={isGeneratingChecklist || isProcessing} options={[{ value: "off", label: "Off - no featured image" }, { value: "ai-generated", label: "AI generated" }, { value: "google-maps", label: "Google Maps (needs entity)" }]} />
       </div>
     </div>
   );

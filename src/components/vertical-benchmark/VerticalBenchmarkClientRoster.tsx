@@ -7,11 +7,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { ClientTagSortDir } from "@/hooks/vertical-benchmark/use-vertical-benchmark-controller";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 type Props = {
   sites: WordPressSite[];
@@ -57,7 +57,7 @@ export function VerticalBenchmarkClientRoster({
       <Table>
         <TableHeader className="[&_tr]:border-0">
           <TableRow className="border-0 hover:bg-transparent">
-            <TableHead className="border-0 bg-zinc-900 text-base w-[11rem]">
+            <TableHead className="border-0 bg-ui-field text-base w-[11rem]">
               <div className="flex items-center gap-2">
                 <Checkbox
                   checked={selectAllChecked}
@@ -66,9 +66,8 @@ export function VerticalBenchmarkClientRoster({
                   title="Select all"
                 />
                 <Button
+                  variant="quiet"
                   type="button"
-                  variant="ghost"
-                  className="text-base h-auto px-0 py-0 font-medium hover:bg-transparent"
                   onClick={onToggleTagSort}
                 >
                   Category
@@ -80,8 +79,8 @@ export function VerticalBenchmarkClientRoster({
                 </Button>
               </div>
             </TableHead>
-            <TableHead className="border-0 bg-zinc-900 text-base">Client</TableHead>
-            <TableHead className="border-0 bg-zinc-900 text-base">Site URL</TableHead>
+            <TableHead className="border-0 bg-ui-field text-base">Client</TableHead>
+            <TableHead className="border-0 bg-ui-field text-base">Site URL</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody className="[&_tr]:border-0">
@@ -90,8 +89,8 @@ export function VerticalBenchmarkClientRoster({
               key={site.id}
               className={cn(
                 "border-0",
-                index % 2 === 0 ? "bg-black" : "bg-zinc-950",
-                "hover:bg-zinc-900",
+                index % 2 === 0 ? "bg-black" : "bg-black",
+                "hover:bg-ui-field",
               )}
             >
               <TableCell className="text-base text-muted-foreground">
@@ -105,7 +104,7 @@ export function VerticalBenchmarkClientRoster({
                 </div>
               </TableCell>
               <TableCell className="text-base font-medium">{site.name}</TableCell>
-              <TableCell className="text-base text-muted-foreground max-w-[24rem] truncate" title={site.siteUrl}>
+              <TableCell className="text-base text-muted-foreground max-w-[24rem] break-words" title={site.siteUrl}>
                 {site.siteUrl}
               </TableCell>
             </TableRow>

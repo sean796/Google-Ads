@@ -71,6 +71,10 @@ export function buildVerticalBenchmarkBulkGeneratorDetailsProps(
     ? siteIdsFromSteps(activeProgress.steps)
     : [];
 
+  const allStepTitles = activeProgress?.steps?.length
+    ? activeProgress.steps.map((step) => step.label)
+    : undefined;
+
   const displayRows =
     siteIds.length > 0
       ? siteIds.map((siteId) => {
@@ -84,10 +88,10 @@ export function buildVerticalBenchmarkBulkGeneratorDetailsProps(
           return {
             keyword: siteName,
             title: siteName,
-            destination_url: siteId,
+            destination_url: `#benchmark-${siteId}`,
           };
         })
-      : [{ keyword: "Industry vertical curate", title: "Industry vertical curate", destination_url: "curate" }];
+      : [{ keyword: "Industry vertical curate", title: "Industry vertical curate", destination_url: "#benchmark-curate" }];
 
   const harnessByRow = new Map<number, BulkHarnessSectionUi[]>();
   if (activeProgress?.steps?.length) {
@@ -146,8 +150,9 @@ export function buildVerticalBenchmarkBulkGeneratorDetailsProps(
     sitemapInventoryLinks: benchmarkInventoryLinks(input.bulkInventoryLinks),
     selectedCount: input.selectedCount,
     prepAccordionTitle: "Curate prep",
-    pipelineSectionTitles: activeProgress?.steps.map((step) => step.label),
+    pipelineSectionTitles: siteIds.length > 0 ? undefined : allStepTitles,
     liveMessage: [
+      status || null,
       categoryFilterLabel(input.tagFilter),
       contentTypeLabel(input.contentTypeFilter),
       input.gridCsvFileName ? `${input.gridCsvFileName}` : null,

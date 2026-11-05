@@ -70,7 +70,7 @@ function parseJsonObject(text) {
  * @param {import("node:http").IncomingMessage} req
  * @param {Buffer | undefined} bodyBuffer
  */
-export async function handleOpenRouterChatCompletion(req, bodyBuffer) {
+export async function handleOpenRouterChatCompletion(req, bodyBuffer, serverRes) {
   const rawBody = bodyBuffer?.length ? JSON.parse(bodyBuffer.toString("utf8")) : {};
   const apiKey =
     headerOpenRouterKey(req) ??
@@ -119,28 +119,61 @@ export async function handleOpenRouterChatCompletion(req, bodyBuffer) {
 
   const postData = JSON.stringify(payload);
 
-  return new Promise((resolve, reject) => {
-    const parsedUrl = new URL(CHAT_URL);
-    const options = {
-      hostname: parsedUrl.hostname,
-      port: 443,
-      path: parsedUrl.pathname,
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(postData),
-        Authorization: `Bearer ${apiKey}`,
-        "HTTP-Referer": "https://neodigital.ca/neo-pulse/",
-        "X-Title": "NEO Pulse Web App",
-      },
-    };
+  const parsedUrl = new URL(CHAT_URL);
+  const requestOptions = {
+    hostname: parsedUrl.hostname,
+    port: 443,
+    path: parsedUrl.pathname,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Content-Length": Buffer.byteLength(postData),
+      Authorization: `Bearer ${apiKey}`,
+      "HTTP-Referer": "https://neodigital.ca/neo-pulse/",
+      "X-Title": "NEO Pulse Web App",
+    },
+  };
 
-    const outReq = https.request(options, (outRes) => {
+  if (payload.stream && serverRes) {
+    return new Promise((resolve, reject) => {
+      const outReq = https.request(requestOptions, (outRes) => {
+        const statusCode = outRes.statusCode ?? 502;
+        serverRes.statusCode = statusCode;
+        serverRes.setHeader(
+          "content-type",
+          outRes.headers["content-type"] || "text/event-stream; charset=utf-8",
+        );
+        serverRes.setHeader("cache-control", "no-store");
+        outRes.pipe(serverRes);
+        outRes.on("error", (err) => reject(err));
+        outRes.on("end", () => resolve({ piped: true }));
+      });
+      outReq.on("error", (err) => reject(err));
+      outReq.write(postData);
+      outReq.end();
+    });
+  }
+
+  return new Promise((resolve, reject) => {
+    const outReq = https.request(requestOptions, (outRes) => {
       const chunks = [];
       outRes.on("data", (chunk) => chunks.push(chunk));
       outRes.on("end", () => {
         const statusCode = outRes.statusCode ?? 502;
         const resBody = Buffer.concat(chunks).toString("utf8");
+
+        if (payload.stream && resBody.trimStart().startsWith("data:")) {
+          resolve({
+            status: 502,
+            json: {
+              ok: false,
+              error:
+                "OpenRouter returned SSE but the dev proxy did not stream it. Restart the dev server after updating openrouter-chat-direct.mjs.",
+              raw: resBody.slice(0, 2000),
+            },
+          });
+          return;
+        }
 
         try {
           const raw = JSON.parse(resBody);

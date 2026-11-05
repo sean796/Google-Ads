@@ -8,6 +8,7 @@ import {
   ga4CalendarSpan,
 } from "@/lib/reporting/ga4-calendar-month-span";
 import { cn } from "@/lib/utils";
+// eslint-disable-next-line no-restricted-imports -- Pulse UI exception: react-day-picker day cell reuses the shadcn ghost button classes
 import { buttonVariants } from "@/components/ui/button";
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"] as const;
@@ -77,7 +78,7 @@ export function Ga4ScrollableMonthsCalendar({
         ref={scrollRef}
         className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden [scrollbar-color:hsl(var(--primary))_hsl(0_0%_12%)] [scrollbar-width:thin]"
       >
-        <div className="sticky top-0 z-10 grid grid-cols-7 bg-zinc-900 px-3 pb-2 pt-1">
+        <div className="sticky top-0 z-10 grid grid-cols-7 bg-ui-field px-3 pb-2 pt-1">
           {WEEKDAY_LABELS.map((label, i) => (
             <span
               key={`${label}-${i}`}
@@ -110,7 +111,7 @@ export function Ga4ScrollableMonthsCalendar({
             cell: "relative flex-1 p-0 text-center [&:has([aria-selected])]:bg-primary/15 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md",
             day: cn(
               buttonVariants({ variant: "ghost" }),
-              "mx-auto h-9 w-9 rounded-full p-0 text-base font-normal hover:bg-zinc-800 aria-selected:opacity-100",
+              "mx-auto h-9 w-9 rounded-full p-0 text-base font-normal hover:bg-ui-field-hover aria-selected:opacity-100",
             ),
             day_selected:
               "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary",

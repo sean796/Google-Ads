@@ -24,7 +24,6 @@ import {
 } from "@/components/research/reporting/Ga4ReportingDateRangePopover";
 import { formatLocalYmd } from "@/lib/reporting/reporting-date-presets";
 import { OrganicClientReportExportDocument } from "@/components/organic-dashboard/OrganicClientReportExportDocument";
-import { Button } from "@/components/ui/button";
 import "@/components/organic-dashboard/organic-reporting-client-deck.css";
 import {
   readOrganicClientReportDeckSession,
@@ -40,6 +39,7 @@ import { REPORTING_TOOLBAR_ACTION_BTN } from "@/components/organic-dashboard/org
 import { cn } from "@/lib/utils";
 import { resolveOrganicClientReportClientLogoUrl } from "@/lib/integrations/client-site-logo";
 import { normalizeClientLogoBoxTheme } from "@/lib/organic-dashboard/organic-client-report-property-branding";
+import { Button } from "@/ui";
 
 function readDeckPayload(deckId: string, siteId: string): OrganicClientReportDeckPayload | null {
   if (!deckId || !siteId) return null;
@@ -418,7 +418,7 @@ export default function OrganicClientReportPreviewPage() {
   return (
     <div className="organic-client-report-preview-shell min-h-dvh overflow-auto">
       <div className="organic-client-report-preview-toolbar">
-        <div className="min-w-0 truncate text-base font-medium text-white">
+        <div className="min-w-0 break-words text-base font-medium text-white">
           {`${toolbarClientLabel} · Client report`}
         </div>
         <div className="organic-client-report-preview-toolbar-actions">
@@ -433,10 +433,9 @@ export default function OrganicClientReportPreviewPage() {
             </div>
           ) : null}
           <Button
+            variant="quiet"
             type="button"
-            variant="ghost"
             disabled={pdfBusy}
-            className={cn(REPORTING_TOOLBAR_ACTION_BTN, "min-w-[4.75rem] tabular-nums")}
             aria-busy={pdfBusy}
             aria-label={pdfBusy ? "Preparing PDF" : "PDF"}
             onClick={() => void handleDownloadPdf()}

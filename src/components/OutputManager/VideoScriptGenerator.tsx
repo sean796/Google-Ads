@@ -1,17 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, Copy, CheckCircle2 } from "lucide-react";
+import { Copy, CheckCircle2 } from "lucide-react";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_CHECKLIST_COPIED_TO_CLIPBOARD, NOTIFY_FAILED_TO_COPY_CHECKLIST, NOTIFY_NO_CHECKLIST_TO_COPY, NOTIFY_PLEASE_SET_YOUR_OPENROUTER_API_KEY_IN_SE, NOTIFY_VIDEO_SCRIPT_CHECKLIST_GENERATED, notifyChecklistGenerationFailedX } from "@/lib/notify-messages";
 import { streamChatCompletion } from "@/lib/api";
 import { buildVideoScriptChecklistSystemPrompt, buildVideoScriptChecklistUserPrompt, VideoScriptChecklistItem } from "@/lib/video-script-checklist-builder";
 import { parseMarkdownSections } from "@/lib/section-parser";
 import { VideoScriptGeneratorProps } from "./types";
+import { Button, SelectField, TextareaField } from "@/ui";
 
 export const VideoScriptGenerator = ({
   apiKey = "",
@@ -306,7 +303,7 @@ export const VideoScriptGenerator = ({
 
         {/* Video Source Selection */}
         <div className="space-y-2">
-          <Label className="text-foreground text-sm">Video Source:</Label>
+          <label className="text-foreground text-sm">Video Source:</label>
           <RadioGroup
             value={videoSourceMode}
             onValueChange={(value) => setVideoSourceMode(value as 'full' | 'section')}
@@ -314,15 +311,15 @@ export const VideoScriptGenerator = ({
           >
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="full" id="source-full" />
-              <Label htmlFor="source-full" className="text-foreground font-normal cursor-pointer text-sm">
+              <label htmlFor="source-full" className="text-foreground font-normal cursor-pointer text-sm">
                 Full Content (uses entire report)
-              </Label>
+              </label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="section" id="source-section" />
-              <Label htmlFor="source-section" className="text-foreground font-normal cursor-pointer text-sm">
+              <label htmlFor="source-section" className="text-foreground font-normal cursor-pointer text-sm">
                 Specific Section (select a section from the report)
-              </Label>
+              </label>
             </div>
           </RadioGroup>
         </div>
@@ -330,25 +327,8 @@ export const VideoScriptGenerator = ({
         {/* Section Selection Dropdown */}
         {videoSourceMode === 'section' && (
           <div className="space-y-2">
-            <Label htmlFor="section-select" className="text-foreground text-sm">
-              Select Section:
-            </Label>
-            <Select
-              value={selectedSection || ""}
-              onValueChange={(value) => setSelectedSection(value)}
-              disabled={isGeneratingChecklist || availableSections.length === 0}
-            >
-              <SelectTrigger id="section-select" className="bg-background text-foreground">
-                <SelectValue placeholder={availableSections.length === 0 ? "No sections available" : "Choose a section..."} />
-              </SelectTrigger>
-              <SelectContent>
-                {availableSections.map((section, index) => (
-                  <SelectItem key={index} value={section.header}>
-                    {section.header}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            
+            <SelectField placeholder="Select Section" value={selectedSection || ""} onValueChange={(value) => setSelectedSection(value)} disabled={isGeneratingChecklist || availableSections.length === 0} options={availableSections.map((section, index) => ({ value: section.header, label: section.header }))} />
             {selectedSection && (
               <p className="text-xs text-muted-foreground">
                 Video script will be generated based on the "{selectedSection}" section.
@@ -359,48 +339,32 @@ export const VideoScriptGenerator = ({
 
         {/* Optional Prompt Input */}
         <div className="space-y-2">
-          <Label htmlFor="video-prompt" className="text-foreground text-sm">
+          <label htmlFor="video-prompt" className="text-foreground text-sm">
             Optional Prompt
-          </Label>
-          <Textarea
+          </label>
+          <TextareaField
             id="video-prompt"
             placeholder="Describe how you'd like the video script structured (e.g., 'focus on benefits', 'use only real testimonials you paste above', 'fast-paced editing')..."
             value={userPrompt}
             onChange={(e) => setUserPrompt(e.target.value)}
-            className="min-h-[80px] bg-background text-foreground text-sm"
             disabled={isGeneratingChecklist}
           />
         </div>
 
         {/* Video Settings */}
         <div className="space-y-3">
-          <Label className="text-foreground text-sm font-medium">Video Settings</Label>
+          <label className="text-foreground text-sm font-medium">Video Settings</label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="target-duration" className="text-foreground text-sm">
-                Target Duration
-              </Label>
-              <Select
-                value={targetDuration}
-                onValueChange={(value: typeof targetDuration) => setTargetDuration(value)}
-                disabled={isGeneratingChecklist}
-              >
-                <SelectTrigger id="target-duration" className="bg-background text-foreground h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="30-45s">30-45 seconds</SelectItem>
-                  <SelectItem value="45-60s">45-60 seconds</SelectItem>
-                  <SelectItem value="60-90s">60-90 seconds</SelectItem>
-                </SelectContent>
-              </Select>
+              
+              <SelectField placeholder="Target Duration" value={targetDuration} onValueChange={(value: typeof targetDuration) => setTargetDuration(value)} disabled={isGeneratingChecklist} options={[{ value: "30-45s", label: "30-45 seconds" }, { value: "45-60s", label: "45-60 seconds" }, { value: "60-90s", label: "60-90 seconds" }]} />
             </div>
           </div>
         </div>
 
         {/* Include in Script Options */}
         <div className="space-y-2">
-          <Label className="text-foreground text-sm">Include in Script:</Label>
+          <label className="text-foreground text-sm">Include in Script:</label>
           <div className="grid grid-cols-1 gap-2">
             <div className="flex items-center space-x-2">
               <Checkbox
@@ -409,12 +373,12 @@ export const VideoScriptGenerator = ({
                 onCheckedChange={(checked) => setIncludeOnScreenText(checked === true)}
                 disabled={isGeneratingChecklist}
               />
-              <Label
+              <label
                 htmlFor="include-on-screen-text"
                 className="text-foreground font-normal cursor-pointer text-sm"
               >
                 On-screen text overlays (subtitles, key words, callouts)
-              </Label>
+              </label>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
@@ -423,12 +387,12 @@ export const VideoScriptGenerator = ({
                 onCheckedChange={(checked) => setIncludeBrollNotes(checked === true)}
                 disabled={isGeneratingChecklist}
               />
-              <Label
+              <label
                 htmlFor="include-broll-notes"
                 className="text-foreground font-normal cursor-pointer text-sm"
               >
                 B-roll and visual suggestions
-              </Label>
+              </label>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
@@ -437,12 +401,12 @@ export const VideoScriptGenerator = ({
                 onCheckedChange={(checked) => setIncludeVoiceoverOnlyScenes(checked === true)}
                 disabled={isGeneratingChecklist}
               />
-              <Label
+              <label
                 htmlFor="include-voiceover-only"
                 className="text-foreground font-normal cursor-pointer text-sm"
               >
                 Allow voiceover-only scenes (no complex visuals)
-              </Label>
+              </label>
             </div>
           </div>
         </div>
@@ -450,13 +414,13 @@ export const VideoScriptGenerator = ({
         {/* Generate Checklist Button */}
         {!hasGeneratedChecklist && (
           <Button
+            variant="run"
             onClick={handleGenerateChecklist}
             disabled={isGeneratingChecklist || !apiKey}
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {isGeneratingChecklist ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                
                 Generating Checklist...
               </>
             ) : (
@@ -472,12 +436,9 @@ export const VideoScriptGenerator = ({
         {hasGeneratedChecklist && videoChecklist.length > 0 && (
           <div className="space-y-4 p-4 bg-background border border-border rounded-md">
             <div className="flex items-center justify-between">
-              <Label className="text-foreground font-semibold text-base">Video Script Checklist:</Label>
+              <label className="text-foreground font-semibold text-base">Video Script Checklist:</label>
               <Button
-                variant="outline"
-                size="sm"
                 onClick={handleCopyChecklist}
-                className="text-xs"
               >
                 <Copy className="h-3 w-3 mr-1" />
                 Copy Markdown
@@ -497,15 +458,12 @@ export const VideoScriptGenerator = ({
             </div>
             <div className="flex gap-2 mt-4 pt-3 border-t border-border">
               <Button
-                variant="outline"
-                size="sm"
                 onClick={handleGenerateChecklist}
                 disabled={isGeneratingChecklist || !apiKey}
-                className="flex-1"
               >
                 {isGeneratingChecklist ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    
                     Regenerating...
                   </>
                 ) : (

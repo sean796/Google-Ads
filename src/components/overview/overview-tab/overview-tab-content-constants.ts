@@ -18,10 +18,6 @@ export const CONTENT_OPTIMIZER_WORKSPACE_SHELL_CLASS = cn(
   CONTENT_OPTIMIZER_SQUARE_CONTROLS_CLASS,
 );
 
-/** Shared dim overlay when Details drawer is open (Opt + Generator bulk). */
-export const WORKSPACE_DETAILS_DIM_OVERLAY_CLASS =
-  "pointer-events-none absolute inset-0 z-10 bg-zinc-950/78 backdrop-blur-md backdrop-brightness-[0.45] backdrop-saturate-50 transition-[opacity,backdrop-filter] duration-300";
-
 /** Shared scroll body inset under workspace chrome. */
 export const CONTENT_OPTIMIZER_BODY_INSET_CLASS = "px-1 pb-4 pt-0";
 
@@ -50,7 +46,7 @@ export const CONTENT_OPTIMIZER_MULTI_SITE_ROW_SHELL_CLASS =
 
 /** Active bulk row copy — sky glow visible when drawer rows are collapsed. */
 export const CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS =
-  "text-sky-400 drop-shadow-[0_0_10px_rgba(56,189,248,0.55)]";
+  "text-semantic-analysis-foreground drop-shadow-[0_0_10px_rgba(56,189,248,0.55)]";
 
 /** Active bulk-optimization row — glow only, no border. */
 export const CONTENT_OPTIMIZER_ACTIVE_ROW_HIGHLIGHT_CLASS =
@@ -58,7 +54,7 @@ export const CONTENT_OPTIMIZER_ACTIVE_ROW_HIGHLIGHT_CLASS =
 
 /** Inverted stripe on hover (black ↔ zinc-950), not a flat grey wash. */
 export function contentOptimizerRowStripeHoverClass(index: number): string {
-  return index % 2 === 0 ? "hover:bg-zinc-950" : "hover:bg-black";
+  return index % 2 === 0 ? "hover:bg-black" : "hover:bg-black";
 }
 
 /** Alternating stripe matching Properties list + SEO mega-menu dropdown rows. */
@@ -68,7 +64,7 @@ export function contentOptimizerRowStripeClass(
 ): string {
   return cn(
     CONTENT_OPTIMIZER_MULTI_SITE_ROW_SHELL_CLASS,
-    index % 2 === 0 ? "bg-black" : "bg-zinc-950",
+    index % 2 === 0 ? "bg-black" : "bg-black",
     isActiveOptimize && CONTENT_OPTIMIZER_ACTIVE_ROW_HIGHLIGHT_CLASS,
   );
 }
@@ -81,7 +77,7 @@ export const CONTENT_OPTIMIZER_MULTI_SITE_OPT_COUNT_SLOT = cn(
 
 /** Sitemap dropdown + date: one fixed-height row, vertically centered. */
 export const CONTENT_OPTIMIZER_MULTI_SITE_CLUSTER_OUTER = cn(
-  "flex h-7 w-[18.75rem] shrink-0 items-center gap-0 overflow-hidden rounded-none border-0 bg-zinc-950 py-0 pl-0.5 pr-1.5 sm:h-8 sm:w-[19rem]",
+  "flex h-7 w-[18.75rem] shrink-0 items-center gap-0 overflow-hidden rounded-none border-0 bg-black py-0 pl-0.5 pr-1.5 sm:h-8 sm:w-[19rem]",
   "[&_button]:!text-white [&_span]:!text-white [&_svg]:!text-white [&_svg]:opacity-80",
   "[&_button]:disabled:!opacity-100 [&_button]:disabled:!text-white",
 );

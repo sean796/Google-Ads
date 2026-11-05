@@ -244,6 +244,37 @@ export async function exportVideoProjectZip(args: {
   return { zipUrl: data.zipUrl, fileName: data.fileName };
 }
 
+export type SlicedReferenceVideoClip = {
+  sceneId: string;
+  order: number;
+  clipFile: string;
+  clipUrl: string;
+  startSeconds: number;
+  durationSeconds: number;
+};
+
+export async function sliceReferenceVideoClips(args: {
+  apiKey: string;
+  brainstormId: string;
+  scenes: Array<{
+    sceneId: string;
+    order: number;
+    startSeconds: number;
+    durationSeconds: number;
+  }>;
+}): Promise<SlicedReferenceVideoClip[]> {
+  const { apiKey, brainstormId, scenes } = args;
+  const data = await videoApi<{ ok: boolean; clips: SlicedReferenceVideoClip[] }>(
+    `brainstorm/${encodeURIComponent(brainstormId)}/slice-clips`,
+    {
+      method: "POST",
+      body: { scenes },
+      apiKey,
+    },
+  );
+  return data.clips ?? [];
+}
+
 export function serializeVideoProjectJson(project: VideoProjectSnapshot): string {
   return JSON.stringify(project, null, 2);
 }
@@ -278,6 +309,10 @@ export function parseVideoProjectJson(raw: unknown): VideoProjectSnapshot {
     aspect: (obj.aspect as VideoProjectSnapshot["aspect"]) ?? "16:9",
     resolution: (obj.resolution as VideoProjectSnapshot["resolution"]) ?? "720p",
     references: Array.isArray(obj.references) ? (obj.references as VideoProjectSnapshot["references"]) : [],
+    referenceVideo:
+      obj.referenceVideo && typeof obj.referenceVideo === "object"
+        ? (obj.referenceVideo as VideoProjectSnapshot["referenceVideo"])
+        : null,
     subjectPhotos: Array.isArray(obj.subjectPhotos) ? (obj.subjectPhotos as VideoProjectSnapshot["subjectPhotos"]) : [],
     subject: (obj.subject as VideoProjectSnapshot["subject"]) ?? null,
     environmentHarnessDataUrl:

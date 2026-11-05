@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { FloatingLabelInput } from "@/components/ui/floating-label-input";
 import { useAuth } from "@/contexts/AuthContext";
 import { AUTH_DISABLED } from "@/lib/auth-disabled";
@@ -10,6 +9,7 @@ import { Lock, Mail, User, UserPlus } from "lucide-react";
 import {
   NEO_PULSE_BRAND_LOCKUP_SRC,
 } from "@/lib/neo-pulse-branding-assets";
+import { Button } from "@/ui";
 
 async function bootstrapAccount(payload: {
   email: string;
@@ -91,7 +91,7 @@ export default function Register() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">Loading…</div>
+        <div className="text-muted-foreground">Loading…</div>
       </div>
     );
   }
@@ -163,7 +163,7 @@ export default function Register() {
               {error}
             </p>
           ) : null}
-          <Button type="submit" className="w-full" disabled={submitting}>
+          <Button variant="run" type="submit" disabled={submitting}>
             <UserPlus className="mr-2 h-4 w-4" />
             {submitting ? "Creating account…" : "Create account"}
           </Button>

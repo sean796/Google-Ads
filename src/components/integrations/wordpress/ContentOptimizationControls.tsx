@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { type WordPressSite } from '../types';
 import { UnifiedContentSelector } from './UnifiedContentSelector';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +9,7 @@ import { OptimizationSettingsAccordion } from './OptimizationSettingsPopover';
 import type { OptimizationOptions } from '@/hooks/use-optimization-options';
 import type { OptimizationProgressState } from '@/hooks/content-optimization/use-optimization-state';
 import { OptimizationFileManager } from '@/lib/optimization-file-manager';
+import { Button } from "@/ui";
 
 interface ContentOptimizationControlsProps {
   site: WordPressSite;
@@ -189,20 +189,16 @@ export const ContentOptimizationControls: React.FC<ContentOptimizationControlsPr
           <div className="flex flex-wrap gap-2 pt-1">
             <span className="self-center text-xs font-medium text-muted-foreground">Save as</span>
             <Button
+              pressed={updateMode === 'update'}
               type="button"
-              size="sm"
-              variant={updateMode === 'update' ? 'default' : 'outline'}
-              className="h-8"
               disabled={isOptimizing || site.enabled === false}
               onClick={() => onUpdateModeChange('update')}
             >
               Update live
             </Button>
             <Button
+              pressed={updateMode === 'draft'}
               type="button"
-              size="sm"
-              variant={updateMode === 'draft' ? 'default' : 'outline'}
-              className="h-8"
               disabled={isOptimizing || site.enabled === false}
               onClick={() => onUpdateModeChange('draft')}
             >
@@ -234,19 +230,17 @@ export const ContentOptimizationControls: React.FC<ContentOptimizationControlsPr
 
         {/* Optimize Button */}
         <Button
-          variant="default"
-          size="sm"
+          variant="run"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
             onOptimize(lockedPageUrl ? (presetResolvedPost ?? selectedPostData) : selectedPostData);
           }}
           disabled={isOptimizing || site.enabled === false}
-          className="h-10 w-full text-sm font-semibold uppercase tracking-wider"
         >
             {isOptimizing ? (
             <>
-              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              
               {seoExtraTextBulkMode && multiSelect && urls.length > 0
                 ? `Generating extra text for ${urls.length} ${postType === 'post' ? 'posts' : postType === 'service-area' ? 'entities' : postType === 'page' ? 'pages' : 'items'}...`
                 : multiSelect && urls.length > 0

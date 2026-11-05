@@ -6,7 +6,13 @@ import {
   type ManualImageReference,
 } from "@/lib/image-generator/manual-reference-upload";
 import { runVideoBrainstorm } from "@/lib/video-generator/video-brainstorm-agent";
-import { cutVideoBeats, sampleVideoFrames, type VideoSample } from "@/lib/video-generator/video-brainstorm-api";
+import {
+  cutVideoBeats,
+  referenceClipFromUpload,
+  uploadReferenceVideoFile,
+  type VideoSample,
+} from "@/lib/video-generator/video-brainstorm-api";
+import type { VideoBriefReferenceClip } from "@/lib/video-generator/video-generator-types";
 import { videoLog, videoLogError, videoTimer } from "@/lib/video-generator/video-log";
 import type { BrainstormBrief } from "./useVideoGenerator";
 
@@ -16,26 +22,17 @@ function errorText(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
 
-/** Reads the client video as a data URL for the server-side cut-up (`readFileAsDataUrl` accepts images only). */
-function readVideoAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result;
-      if (typeof result === "string" && result.startsWith("data:video/")) resolve(result);
-      else reject(new Error(`Could not read video: ${file.name}`));
-    };
-    reader.onerror = () => reject(new Error(`Could not read video: ${file.name}`));
-    reader.readAsDataURL(file);
-  });
-}
-
 function beatFileName(index: number, title: string): string {
   return `beat-${String(index + 1).padStart(2, "0")}-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}.png`;
 }
 
 /** Brainstorming step: notes plus one drop field for product images and a client video; the producer agent fills the Brief. `subjectDataUrl` is the subject harness sheet, attached first. */
-export function useVideoBrainstorm(apiKey: string, onBrief: (brief: BrainstormBrief) => void, subjectDataUrl?: string) {
+export function useVideoBrainstorm(
+  apiKey: string,
+  onBrief: (brief: BrainstormBrief) => void,
+  subjectDataUrl?: string,
+  uploadReferenceVideo?: (file: File) => Promise<VideoBriefReferenceClip>,
+) {
   const [notes, setNotes] = useState("");
   const [images, setImages] = useState<ManualImageReference[]>([]);
   const [video, setVideo] = useState<BrainstormVideo | null>(null);
@@ -83,13 +80,16 @@ export function useVideoBrainstorm(apiKey: string, onBrief: (brief: BrainstormBr
     videoLog("brainstorm", "start", { notesChars: notes.length, images: images.length, video: video?.file.name ?? null, subjectHarness: Boolean(subjectDataUrl) });
     try {
       let samples: VideoSample[] = [];
-      let sampled: { id: string; durationSeconds: number } | undefined;
+      let referenceVideo: VideoBriefReferenceClip | null = null;
       if (video) {
-        setBusy("Cutting the video into sample frames");
+        setBusy("Uploading reference video for the Producer");
         videoLog("brainstorm", "reading video file", { name: video.file.name, bytes: video.file.size });
-        const result = await sampleVideoFrames({ apiKey: key, fileName: video.file.name, dataUrl: await readVideoAsDataUrl(video.file) });
-        samples = result.samples;
-        sampled = result;
+        referenceVideo = uploadReferenceVideo
+          ? await uploadReferenceVideo(video.file)
+          : referenceClipFromUpload(
+              video.file.name,
+              await uploadReferenceVideoFile({ apiKey: key, file: video.file, skipSamples: true }),
+            );
       }
       setBusy("Producer is writing the brief");
       const result = await runVideoBrainstorm({
@@ -98,12 +98,17 @@ export function useVideoBrainstorm(apiKey: string, onBrief: (brief: BrainstormBr
         subjectDataUrl,
         images: images.map((r) => ({ fileName: r.fileName, dataUrl: r.dataUrl })),
         samples,
-        durationSeconds: sampled?.durationSeconds,
+        referenceVideo,
+        durationSeconds: referenceVideo?.durationSeconds,
       });
       let references: ManualImageReference[] = images;
-      if (sampled && result.beats.length) {
+      if (referenceVideo && result.beats.length) {
         setBusy(`Cutting ${result.beats.length} beat frames and the contact sheet`);
-        const cut = await cutVideoBeats({ apiKey: key, id: sampled.id, times: result.beats.map((b) => b.sampleTime) });
+        const cut = await cutVideoBeats({
+          apiKey: key,
+          id: referenceVideo.serverId,
+          times: result.beats.map((b) => b.sampleTime),
+        });
         const [sheet, ...beats] = await Promise.all([
           manualReferenceFromDataUrl("contact-sheet.png", cut.sheetDataUrl),
           ...cut.beats.map((b, i) => manualReferenceFromDataUrl(beatFileName(i, result.beats[i].title), b.dataUrl)),
@@ -117,14 +122,20 @@ export function useVideoBrainstorm(apiKey: string, onBrief: (brief: BrainstormBr
         references: references.map((r) => r.fileName),
         brief: result.brief,
       });
-      onBrief({ prompt: result.brief, lengthSeconds: result.lengthSeconds, aspect: result.aspect, references });
+      onBrief({
+        prompt: result.brief,
+        lengthSeconds: result.lengthSeconds,
+        aspect: result.aspect,
+        references,
+        referenceVideo,
+      });
     } catch (e) {
       videoLogError("brainstorm", `failed after ${elapsed()} s`, e);
       setError(errorText(e));
     } finally {
       setBusy(null);
     }
-  }, [apiKey, canBrainstorm, images, notes, onBrief, subjectDataUrl, video]);
+  }, [apiKey, canBrainstorm, images, notes, onBrief, subjectDataUrl, uploadReferenceVideo, video]);
 
   return { notes, setNotes, images, video, isPreparing, busy, error, canBrainstorm, addFiles, removeImage, removeVideo, brainstorm };
 }

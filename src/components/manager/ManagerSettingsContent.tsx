@@ -3,6 +3,7 @@ import { AiModelsSettingsContent } from "@/components/manager/AiModelsSettingsCo
 import { ApiKeysSettingsContent } from "@/components/manager/ApiKeysSettingsContent";
 import { GoogleServicesSettingsContent } from "@/components/manager/GoogleServicesSettingsContent";
 import { ManagerMasterRulesSettingsContent } from "@/components/manager/ManagerMasterRulesSettingsContent";
+import { DecisionTreeManagerContent } from "@/components/manager/decision-tree/DecisionTreeManagerContent";
 import { IntegrationsTab } from "@/components/IntegrationsTab";
 import { PropertiesDashboardChromeProvider } from "@/components/manager/dashboard/PropertiesDashboardChromeContext";
 import { ManagerDashboardShell } from "@/components/manager/dashboard/ManagerDashboardShell";
@@ -14,12 +15,14 @@ import {
 import {
   readGlobalAdsAgentModel,
   readGlobalBlogAgentModel,
+  readGlobalDecisionAgentModel,
   readGlobalImageAgentModel,
   readGlobalMetaAgentModel,
   readGlobalReportAgentModel,
   readGlobalResearchAgentModel,
   readGlobalVideoAgentModel,
   writeGlobalAdsAgentModel,
+  writeGlobalDecisionAgentModel,
   writeGlobalImageAgentModel,
   writeGlobalMetaAgentModel,
   writeGlobalReportAgentModel,
@@ -51,6 +54,8 @@ export interface ManagerSettingsContentProps {
   setAgentReportModel?: (model: string) => void;
   agentAdsModel?: string;
   setAgentAdsModel?: (model: string) => void;
+  agentDecisionModel?: string;
+  setAgentDecisionModel?: (model: string) => void;
   temperature: number;
   setTemperature: (value: number) => void;
   maxTokens: number;
@@ -83,6 +88,8 @@ export function ManagerSettingsContent({
   setAgentReportModel: setAgentReportModelProp,
   agentAdsModel: agentAdsModelProp,
   setAgentAdsModel: setAgentAdsModelProp,
+  agentDecisionModel: agentDecisionModelProp,
+  setAgentDecisionModel: setAgentDecisionModelProp,
   temperature,
   setTemperature,
   maxTokens,
@@ -97,6 +104,7 @@ export function ManagerSettingsContent({
   const [fallbackMeta, setFallbackMeta] = useState(readGlobalMetaAgentModel);
   const [fallbackReport, setFallbackReport] = useState(readGlobalReportAgentModel);
   const [fallbackAds, setFallbackAds] = useState(readGlobalAdsAgentModel);
+  const [fallbackDecision, setFallbackDecision] = useState(readGlobalDecisionAgentModel);
   const [agentVideoModel, setVideoModelState] = useState(readGlobalVideoAgentModel);
   const setAgentVideoModel = (model: string) => {
     setVideoModelState(model);
@@ -107,6 +115,13 @@ export function ManagerSettingsContent({
   const agentMetaModel = agentMetaModelProp ?? fallbackMeta;
   const agentReportModel = agentReportModelProp ?? fallbackReport;
   const agentAdsModel = agentAdsModelProp ?? fallbackAds;
+  const agentDecisionModel = agentDecisionModelProp ?? fallbackDecision;
+  const setAgentDecisionModel =
+    setAgentDecisionModelProp ??
+    ((model: string) => {
+      setFallbackDecision(model);
+      writeGlobalDecisionAgentModel(model);
+    });
   const setAgentResearchModel =
     setAgentResearchModelProp ??
     ((model: string) => {
@@ -241,6 +256,8 @@ export function ManagerSettingsContent({
           setAdsModel={setAgentAdsModel}
           videoModel={agentVideoModel}
           setVideoModel={setAgentVideoModel}
+          decisionModel={agentDecisionModel}
+          setDecisionModel={setAgentDecisionModel}
           temperature={temperature}
           setTemperature={setTemperature}
           maxTokens={maxTokens}
@@ -249,6 +266,10 @@ export function ManagerSettingsContent({
           setTopP={setTopP}
         />
       ),
+    },
+    {
+      id: "decision-tree" as const,
+      content: <DecisionTreeManagerContent />,
     },
     {
       id: "google" as const,

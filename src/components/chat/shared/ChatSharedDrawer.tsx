@@ -1,13 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { FileText, Link2, Loader2, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { FileText, Link2, X } from "lucide-react";
 import { fetchChatActivityLog } from "@/lib/chat-api";
 import {
   activityLabel,
@@ -19,6 +11,7 @@ import {
 import type { TeamMember } from "@/lib/teams-types";
 import { CHAT_TEXT_MUTED, CHAT_TEXT_PRIMARY } from "@/components/chat/chat-theme";
 import { cn } from "@/lib/utils";
+import { Button, RowButton, SelectField } from "@/ui";
 
 type SharedTab = "all" | "links" | "files";
 
@@ -88,47 +81,29 @@ export function ChatSharedDrawer({
   if (!open) return null;
 
   return (
-    <aside className="flex w-80 shrink-0 flex-col border-l border-zinc-200 bg-zinc-50">
+    <aside className="flex w-80 shrink-0 flex-col border-l border-border bg-muted">
       <div className="flex items-center justify-between px-4 py-3">
         <h3 className={cn("text-base font-bold", CHAT_TEXT_PRIMARY)}>Shared</h3>
-        <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={onClose} aria-label="Close shared panel">
-          <X className="h-4 w-4" />
-        </Button>
+        <Button size="icon" icon={X} variant="quiet" type="button" onClick={onClose} aria-label="Close shared panel"></Button>
       </div>
       <div className="flex gap-1 px-4 pb-2">
         {(["all", "links", "files"] as SharedTab[]).map((t) => (
-          <button
+          <Button
+            pressed={tab === t}
             key={t}
-            type="button"
             onClick={() => setTab(t)}
-            className={cn(
-              "rounded-full px-3 py-1 text-base capitalize",
-              tab === t ? "bg-primary/20 font-semibold text-zinc-900" : "text-zinc-600 hover:bg-zinc-200/80",
-            )}
           >
             {t}
-          </button>
+          </Button>
         ))}
       </div>
       <div className="px-4 pb-3">
-        <Select value={userFilter} onValueChange={setUserFilter}>
-          <SelectTrigger className="text-base">
-            <SelectValue placeholder="All members" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all" className="text-base">All members</SelectItem>
-            {members.map((m) => (
-              <SelectItem key={m.userId} value={String(m.userId)} className="text-base">
-                {m.displayName}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SelectField placeholder="All members" value={userFilter} onValueChange={setUserFilter} options={[{ value: "all", label: "All members" }, ...members.map((m) => ({ value: String(m.userId), label: m.displayName }))]} />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
         {loading && items.length === 0 ? (
           <div className={cn("flex items-center justify-center py-8 text-base", CHAT_TEXT_MUTED)}>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            
             Loading
           </div>
         ) : null}
@@ -136,14 +111,13 @@ export function ChatSharedDrawer({
           <p className={cn("px-2 py-8 text-center text-base", CHAT_TEXT_MUTED)}>No shared links or files yet.</p>
         ) : null}
         {filtered.map((entry) => (
-          <button
+          <RowButton
             key={entry.id}
             type="button"
             onClick={() => {
               window.location.hash = chatMessageHash(entry.messageId);
               onJumpToMessage(entry.messageId);
             }}
-            className="mb-1 flex w-full items-start gap-3 rounded-lg px-2 py-2 text-left hover:bg-zinc-200/60"
           >
             {isLinkActivity(entry) ? (
               <Link2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
@@ -151,12 +125,12 @@ export function ChatSharedDrawer({
               <FileText className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
             )}
             <span className="min-w-0 flex-1">
-              <span className={cn("block truncate text-base font-medium", CHAT_TEXT_PRIMARY)}>{activityLabel(entry)}</span>
+              <span className={cn("block break-words text-base font-medium", CHAT_TEXT_PRIMARY)}>{activityLabel(entry)}</span>
               <span className={cn("block text-base", CHAT_TEXT_MUTED)}>
                 {memberNameById.get(entry.userId) ?? "Unknown"} · {formatTime(entry.ts || entry.createdAt)}
               </span>
             </span>
-          </button>
+          </RowButton>
         ))}
       </div>
     </aside>

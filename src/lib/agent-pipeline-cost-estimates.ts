@@ -3,7 +3,7 @@ import { catalogEntryById } from "@/lib/openrouter-models-catalog";
 import { estimateImageOutputCostUsd } from "@/lib/image-model-defaults";
 import { estimateVideoCostUsd } from "@/lib/video-generator/video-model-defaults";
 
-export type PipelineAgentKind = "research" | "blog" | "image" | "meta" | "report" | "ads" | "video";
+export type PipelineAgentKind = "research" | "blog" | "image" | "meta" | "report" | "ads" | "video" | "decision";
 
 /** Reference video workload for the Video agent estimate. */
 export const VIDEO_REFERENCE_SECONDS = 30;
@@ -17,6 +17,10 @@ export const RESEARCH_REFERENCE_OUTPUT_TOKENS = 32_000;
 export const BLOG_REFERENCE_INPUT_TOKENS = 35_000;
 export const BLOG_DEFAULT_OUTPUT_TOKENS = 16_000;
 
+/** Decision tree check batch (Liquid d1.1 question evaluations). */
+export const DECISION_REFERENCE_INPUT_TOKENS = 8_000;
+export const DECISION_REFERENCE_OUTPUT_TOKENS = 500;
+
 const IMAGE_REFERENCE_ASPECT = "16:9" as const;
 
 export function formatResearchTokenWorkloadHint(): string {
@@ -26,6 +30,10 @@ export function formatResearchTokenWorkloadHint(): string {
 /** Typical bulk harness row; output reference is 16k (Max tokens caps each completion separately). */
 export function formatBlogTokenWorkloadHint(): string {
   return `Typical row: ~${Math.round(BLOG_REFERENCE_INPUT_TOKENS / 1000)}k input · ~${Math.round(BLOG_DEFAULT_OUTPUT_TOKENS / 1000)}k output tokens`;
+}
+
+export function formatDecisionTokenWorkloadHint(): string {
+  return `Typical check batch: ~${Math.round(DECISION_REFERENCE_INPUT_TOKENS / 1000)}k input · ~${DECISION_REFERENCE_OUTPUT_TOKENS} output tokens`;
 }
 
 export function estimateTextLlmCostUsd(
@@ -109,6 +117,24 @@ export function estimateAgentRunCostUsd(args: {
     return {
       usd,
       label: `Est. ~${formatEstimateUsd(usd)} per typical meta or FAQ batch (~8k in, ~2k out)`,
+    };
+  }
+
+  if (agent === "decision") {
+    const usd = estimateTextLlmCostUsd(
+      entry,
+      DECISION_REFERENCE_INPUT_TOKENS,
+      DECISION_REFERENCE_OUTPUT_TOKENS,
+    );
+    if (usd == null) {
+      return {
+        usd: null,
+        label: "Pricing unavailable for this model (OpenRouter catalog)",
+      };
+    }
+    return {
+      usd,
+      label: `Est. ~${formatEstimateUsd(usd)} per decision tree QA batch (~8k in, ~500 out)`,
     };
   }
 

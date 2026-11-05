@@ -80,4 +80,19 @@ describe("verifyWordPressSlugMatchesPlan", () => {
     );
     expect(result.ok).toBe(true);
   });
+
+  it("passes for scheduled/draft preview permalinks (?p=ID) when confirmedSlug matches plan", () => {
+    const plan = overviewRowSlugChangePlan(
+      row({
+        url: "https://blindswest.com/blog/custom-blinds-calgary/",
+        aiSuggestedPath: "/blog/custom-blinds-calgary/",
+      }),
+    );
+    const result = verifyWordPressSlugMatchesPlan(
+      "https://blindswest.com/?p=5554",
+      plan,
+      "custom-blinds-calgary",
+    );
+    expect(result.ok).toBe(true);
+  });
 });

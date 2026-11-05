@@ -1,6 +1,5 @@
 import { FileDown, Upload } from "lucide-react";
 import { useRef } from "react";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +12,7 @@ import {
   META_KEYWORD_TEMPLATE_FILENAME,
 } from "@/lib/ppc/meta-ads-keyword-template";
 import { cn } from "@/lib/utils";
+import { Button, FileInput } from "@/ui";
 
 export type MetaAdsToolbarKeywordsMenuProps = {
   disabled?: boolean;
@@ -27,11 +27,9 @@ export function MetaAdsToolbarKeywordsMenu({
 
   return (
     <>
-      <input
+      <FileInput
         ref={fileInputRef}
-        type="file"
         accept=".csv,text/csv"
-        className="hidden"
         aria-hidden
         onChange={(e) => {
           const file = e.target.files?.[0];
@@ -42,10 +40,8 @@ export function MetaAdsToolbarKeywordsMenu({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
+            variant="quiet"
             type="button"
-            variant="ghost"
-            size="sm"
-            className={cn(BULK_HEADER_ICON_TOOL_BTN)}
             disabled={disabled}
             aria-label="Keywords"
             title="Import or download keyword template"

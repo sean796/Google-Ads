@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TeamTask, TaskStatus } from "@/lib/tasks-types";
+import { Button, Field } from "@/ui";
 
 export type TaskSubtaskListProps = {
   subtasks: TeamTask[];
@@ -20,16 +21,12 @@ export function TaskSubtaskList({ subtasks, onToggle, onAdd }: TaskSubtaskListPr
           const done = sub.status === "done";
           return (
             <li key={sub.id} className="flex items-center gap-2">
-              <button
-                type="button"
+              <Button
+                pressed={Boolean(done)}
                 onClick={() => onToggle(sub.id, done ? "todo" : "done")}
-                className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center",
-                  done ? "bg-primary text-black" : "bg-zinc-800 text-muted-foreground",
-                )}
               >
                 {done ? <Check className="h-4 w-4" /> : null}
-              </button>
+              </Button>
               <span className={cn("text-base", done ? "text-muted-foreground line-through" : "text-white")}>
                 {sub.title}
               </span>
@@ -37,7 +34,7 @@ export function TaskSubtaskList({ subtasks, onToggle, onAdd }: TaskSubtaskListPr
           );
         })}
       </ul>
-      <input
+      <Field
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={(e) => {
@@ -47,7 +44,6 @@ export function TaskSubtaskList({ subtasks, onToggle, onAdd }: TaskSubtaskListPr
           }
         }}
         placeholder="Add subtask"
-        className="h-10 bg-zinc-900 px-2 text-base text-white placeholder:text-muted-foreground"
       />
     </div>
   );

@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 import { Headphones, Mic, MicOff, Monitor, MonitorOff, Video, VideoOff, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { NeoPulseAvatar } from "@/components/chat/NeoPulseAvatar";
 import { ChatVideoTile } from "@/components/chat/calls/ChatVideoTile";
 import {
@@ -16,6 +15,7 @@ import { NEO_PULSE_BOT_DISPLAY_NAME } from "@/lib/chat-neo-pulse";
 import { useMicAudioLevel } from "@/hooks/use-mic-audio-level";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 export type HuddleParticipantAvatar = {
   userId: number;
@@ -64,7 +64,7 @@ function ConnectionStatus({
   muted: boolean;
 }): React.ReactElement {
   if (callError) {
-    return <p className="text-base text-red-400">{callError}</p>;
+    return <p className="text-base text-ui-danger-hover">{callError}</p>;
   }
   if (muted) {
     return <p className={cn("text-base", CHAT_TEXT_MUTED)}>Mic muted</p>;
@@ -137,7 +137,7 @@ function ParticipantChip({
           </div>
         )}
       </div>
-      <span className={cn("max-w-[4.5rem] truncate text-base", CHAT_TEXT_MUTED)}>{participant.displayName}</span>
+      <span className={cn("max-w-[4.5rem] break-words text-base", CHAT_TEXT_MUTED)}>{participant.displayName}</span>
     </div>
   );
 }
@@ -182,20 +182,17 @@ export function ChatHuddleSidebar({
 
       <div className="flex items-center gap-2 px-4 py-3">
         <Headphones className="h-5 w-5 shrink-0" aria-hidden />
-        <p className={cn("min-w-0 flex-1 truncate text-base font-semibold", CHAT_HEADING_TEXT)}>
+        <p className={cn("min-w-0 flex-1 break-words text-base font-semibold", CHAT_HEADING_TEXT)}>
           Huddle in {channelLabel}
           {participantCount > 1 ? ` · ${participantCount}` : ""}
         </p>
         <Button
+          size="icon" icon={X}
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0"
           aria-label="Close huddle panel"
           onClick={onClose}
-        >
-          <X className="h-4 w-4" />
-        </Button>
+        ></Button>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-3">
@@ -260,38 +257,32 @@ export function ChatHuddleSidebar({
 
       <div className="flex flex-wrap items-center justify-center gap-2 px-4 py-4">
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="icon"
-          className="h-11 w-11 rounded-full chat-chip"
           aria-label={muted ? "Unmute" : "Mute"}
           onClick={onToggleMute}
         >
           {muted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
         </Button>
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="icon"
-          className="h-11 w-11 rounded-full chat-chip"
           aria-label={cameraOff ? "Turn camera on" : "Turn camera off"}
           onClick={onToggleCamera}
         >
           {cameraOff ? <VideoOff className="h-5 w-5" /> : <Video className="h-5 w-5" />}
         </Button>
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="icon"
-          className={cn("h-11 w-11 rounded-full chat-chip", presenting && "chat-tab-active")}
           aria-label={presenting ? "Stop presenting" : "Present screen"}
           onClick={onTogglePresent}
         >
           {presenting ? <MonitorOff className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
         </Button>
         <Button
+          variant="danger"
           type="button"
-          className="h-10 rounded-full bg-red-600 px-4 text-base text-white hover:bg-red-700"
           aria-label="Leave huddle"
           onClick={onLeave}
         >

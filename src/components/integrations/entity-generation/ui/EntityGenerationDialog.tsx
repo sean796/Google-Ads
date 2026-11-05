@@ -4,22 +4,16 @@
  */
 
 import React from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Download, Sparkles, Loader2 } from "lucide-react";
+import { ActionButton, Button, DialogShell } from "@/ui";
+import { Download, Sparkles } from "lucide-react";
 import type { WordPressSite } from "../../types";
 import type { CriteriaData, RadiusDistancePreset } from "../types";
 import type { EntityGenerationProgress } from "../hooks/useEntityGeneration";
 import type { WikipediaSource } from "@/lib/entity/decide-wikipedia-source-ai";
 import type { ServiceAreaOrigin } from "@/lib/entity/radius-filter";
 import { EntityGenerationPanel } from "./EntityGenerationPanel";
+
+const GENERATE_STATES = ["Generate Origins", "Generating"] as const;
 
 interface EntityGenerationDialogProps {
   open: boolean;
@@ -88,78 +82,71 @@ export const EntityGenerationDialog: React.FC<EntityGenerationDialogProps> = ({
   const hasGeneratedEntities = Boolean(storageKey && generatedEntities.length > 0);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[85vh] flex flex-col p-6">
-        <DialogHeader>
-          <DialogTitle>Generate Origins</DialogTitle>
-          <DialogDescription className="text-base">
-            {pendingEntitySite && pendingEntitySitemap && (
-              <>
-                Generate location origins for {pendingEntitySite.name} based on service-area sitemap analysis.
-                <br />
-                <span className="text-base text-muted-foreground">Service-area sitemap is set.</span>
-                {hasGeneratedEntities && !isGenerating && (
-                  <span className="block mt-2 text-green-600">{generatedEntities.length} origins generated!</span>
-                )}
-              </>
+    <DialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      size="xl"
+      title="Generate Origins"
+      description={
+        pendingEntitySite && pendingEntitySitemap ? (
+          <>
+            Generate location origins for {pendingEntitySite.name} based on service-area sitemap analysis.
+            <br />
+            <span className="text-muted-foreground">Service-area sitemap is set.</span>
+            {hasGeneratedEntities && !isGenerating && (
+              <span className="mt-2 block text-primary">{generatedEntities.length} origins generated!</span>
             )}
-          </DialogDescription>
-        </DialogHeader>
-
-        <EntityGenerationPanel
-          pendingEntitySite={pendingEntitySite}
-          pendingEntitySitemap={pendingEntitySitemap}
-          generatedEntities={generatedEntities}
-          wikipediaLinks={wikipediaLinks}
-          criteriaInfo={criteriaInfo}
-          generalCriteriaInfo={generalCriteriaInfo}
-          selectedEntity={selectedEntity}
-          onSelectEntity={onSelectEntity}
-          entityCount={entityCount}
-          entityPromptModifier={entityPromptModifier}
-          entityKeyword={entityKeyword}
-          onEntityCountChange={onEntityCountChange}
-          onEntityPromptModifierChange={onEntityPromptModifierChange}
-          onEntityKeywordChange={onEntityKeywordChange}
-          selectedWikipediaSources={selectedWikipediaSources}
-          onSelectedWikipediaSourcesChange={onSelectedWikipediaSourcesChange}
-          wikiCategorySuggestions={wikiCategorySuggestions}
-          wikiCategorySuggestionsLoading={wikiCategorySuggestionsLoading}
-          isGenerating={isGenerating}
-          entityGenerationProgress={entityGenerationProgress}
-          entityRadiusPreset={entityRadiusPreset}
-          onEntityRadiusPresetChange={onEntityRadiusPresetChange}
-          serviceAreaOrigin={serviceAreaOrigin}
-          setDistanceOriginLabel={setDistanceOriginLabel}
-        />
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          </>
+        ) : undefined
+      }
+      actions={
+        <>
+          <Button variant="tool" onClick={() => onOpenChange(false)}>
             {hasGeneratedEntities ? "Close" : "Cancel"}
           </Button>
           {hasGeneratedEntities && (
-            <Button variant="default" onClick={onOpenCsvDialog}>
-              <Download className="h-4 w-4 mr-2" />
+            <Button variant="run" icon={Download} onClick={onOpenCsvDialog}>
               Generate CSV Template
             </Button>
           )}
           {!hasGeneratedEntities && (
-            <Button onClick={onGenerate} disabled={!entityCount || entityCount < 1 || isGenerating}>
-              {isGenerating ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Generate Origins
-                </>
-              )}
-            </Button>
+            <ActionButton
+              states={GENERATE_STATES}
+              state={isGenerating ? "Generating" : "Generate Origins"}
+              icon={Sparkles}
+              disabled={!entityCount || entityCount < 1 || isGenerating}
+              onClick={onGenerate}
+            />
           )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <EntityGenerationPanel
+        pendingEntitySite={pendingEntitySite}
+        pendingEntitySitemap={pendingEntitySitemap}
+        generatedEntities={generatedEntities}
+        wikipediaLinks={wikipediaLinks}
+        criteriaInfo={criteriaInfo}
+        generalCriteriaInfo={generalCriteriaInfo}
+        selectedEntity={selectedEntity}
+        onSelectEntity={onSelectEntity}
+        entityCount={entityCount}
+        entityPromptModifier={entityPromptModifier}
+        entityKeyword={entityKeyword}
+        onEntityCountChange={onEntityCountChange}
+        onEntityPromptModifierChange={onEntityPromptModifierChange}
+        onEntityKeywordChange={onEntityKeywordChange}
+        selectedWikipediaSources={selectedWikipediaSources}
+        onSelectedWikipediaSourcesChange={onSelectedWikipediaSourcesChange}
+        wikiCategorySuggestions={wikiCategorySuggestions}
+        wikiCategorySuggestionsLoading={wikiCategorySuggestionsLoading}
+        isGenerating={isGenerating}
+        entityGenerationProgress={entityGenerationProgress}
+        entityRadiusPreset={entityRadiusPreset}
+        onEntityRadiusPresetChange={onEntityRadiusPresetChange}
+        serviceAreaOrigin={serviceAreaOrigin}
+        setDistanceOriginLabel={setDistanceOriginLabel}
+      />
+    </DialogShell>
   );
 };

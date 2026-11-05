@@ -1,12 +1,9 @@
 import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Loader2, Sparkles, Plus, RefreshCw } from "lucide-react";
+import { Sparkles, Plus, RefreshCw } from "lucide-react";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_PLEASE_SELECT_A_TITLE_OPTION_OR_ENTER_A_ } from "@/lib/notify-messages";
+import { Button, Field, TextareaField } from "@/ui";
 
 interface TitleSelectorProps {
   titleOptions: string[];
@@ -58,10 +55,7 @@ export const TitleSelector: React.FC<TitleSelectorProps> = ({
         </div>
         {onRefreshTitles && titleOptions.length > 0 && !isLoading && (
           <Button
-            variant="outline"
-            size="sm"
             onClick={onRefreshTitles}
-            className="flex items-center gap-2"
           >
             <RefreshCw className="w-4 h-4" />
             Refresh Titles
@@ -71,7 +65,7 @@ export const TitleSelector: React.FC<TitleSelectorProps> = ({
 
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          
           <span className="ml-2 text-sm text-muted-foreground">Generating title options...</span>
         </div>
       ) : (
@@ -112,15 +106,14 @@ export const TitleSelector: React.FC<TitleSelectorProps> = ({
 
             {/* Optional Prompt Modifier */}
             <div className="space-y-2 pt-2">
-              <Label htmlFor="template-prompt" className="text-sm">
+              <label htmlFor="template-prompt" className="text-sm">
                 Optional Prompt Modifier
-              </Label>
-              <Textarea
+              </label>
+              <TextareaField
                 id="template-prompt"
                 placeholder="Add custom instructions for the blog template (e.g., 'Focus on practical examples', 'Include comparison tables', 'Emphasize local SEO')..."
                 value={userPrompt}
                 onChange={(e) => setUserPrompt(e.target.value)}
-                className="min-h-[80px] text-sm"
               />
               <p className="text-xs text-muted-foreground">
                 This will influence how the blog template checklist and blueprint are generated.
@@ -131,10 +124,8 @@ export const TitleSelector: React.FC<TitleSelectorProps> = ({
             <div className="space-y-2 pt-2">
               <div className="flex items-center gap-2">
                 <Button
-                  variant={useCustom ? "default" : "outline"}
-                  size="sm"
+                  pressed={Boolean(useCustom)}
                   onClick={handleUseCustom}
-                  className="flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
                   Create Custom Title
@@ -142,11 +133,10 @@ export const TitleSelector: React.FC<TitleSelectorProps> = ({
               </div>
 
               {useCustom && (
-                <Input
+                <Field
                   placeholder="Enter your custom blog title..."
                   value={customTitle}
                   onChange={(e) => setCustomTitle(e.target.value)}
-                  className="mt-2"
                   autoFocus
                 />
               )}
@@ -156,11 +146,12 @@ export const TitleSelector: React.FC<TitleSelectorProps> = ({
           {/* Action Buttons */}
           <div className="flex items-center justify-end gap-2 pt-4 border-t">
             {onCancel && (
-              <Button variant="outline" onClick={onCancel}>
+              <Button onClick={onCancel}>
                 Cancel
               </Button>
             )}
             <Button
+              variant="run"
               onClick={handleConfirm}
               disabled={(selectedIndex === null && !useCustom) || (useCustom && !customTitle.trim())}
             >

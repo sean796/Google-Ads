@@ -3,6 +3,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { buildAgentPanelRows } from "@/lib/platform-data/agent-panel";
 import { downloadAgentArtifact } from "@/lib/platform-data/research-download";
 import type { PlatformDataResearchMeta } from "@/lib/platform-data/types";
+import { Button } from "@/ui";
 
 type PulseAssistAgentsAccordionProps = {
   meta: PlatformDataResearchMeta;
@@ -23,14 +24,12 @@ export function PulseAssistAgentsAccordion({ meta }: PulseAssistAgentsAccordionP
             {rows.map((row) => (
               <li key={row.id} className="pulse-assist-agents__row">
                 <span className="pulse-assist-agents__row-label">{row.label}</span>
-                <button
-                  type="button"
-                  className="pulse-assist-agents__download"
+                <Button
+                  size="icon" icon={Download}
+                  variant="quiet"
                   aria-label={`Download ${row.label} JSON`}
                   onClick={() => downloadAgentArtifact(row.downloadName, row.downloadPayload)}
-                >
-                  <Download className="h-4 w-4" aria-hidden />
-                </button>
+                ></Button>
               </li>
             ))}
           </ul>

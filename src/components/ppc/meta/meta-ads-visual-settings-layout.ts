@@ -57,7 +57,7 @@ export const META_VISUAL_TOOL_COL_HEADER_CLASS =
   "text-base font-semibold text-muted-foreground";
 
 export const META_VISUAL_PARAM_SURFACE_CLASS = cn(
-  "rounded-none bg-zinc-600 text-foreground hover:bg-zinc-500 focus-visible:outline-none focus-visible:ring-0",
+  "rounded-none bg-ui-field-hover text-foreground hover:bg-ui-field-hover focus-visible:outline-none focus-visible:ring-0",
 );
 
 export const META_VISUAL_COMPACT_WEIGHT_INPUT_CLASS = cn(
@@ -93,11 +93,11 @@ export function metaVisualSettingsRowCount(toolCount: number): number {
 }
 
 export function metaVisualSettingsRowClass(index: number): string {
-  return cn(META_VISUAL_ROW_SHELL, index % 2 === 0 ? "bg-black" : "bg-zinc-950");
+  return cn(META_VISUAL_ROW_SHELL, index % 2 === 0 ? "bg-black" : "bg-black");
 }
 
 /** Muted control surface for buttons and select triggers on dark visual settings rows. */
 export const META_VISUAL_CONTROL_SURFACE_CLASS = cn(
-  "rounded-none bg-zinc-600 text-zinc-100 hover:bg-zinc-500 focus:ring-0 focus-visible:ring-0",
-  "[&_svg]:text-zinc-100",
+  "rounded-none bg-ui-field-hover text-foreground hover:bg-ui-field-hover focus:ring-0 focus-visible:ring-0",
+  "[&_svg]:text-foreground",
 );

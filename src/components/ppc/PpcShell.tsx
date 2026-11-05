@@ -33,11 +33,12 @@ export const PpcShell: React.FC<PpcShellProps> = ({ apiKey, selectedModel, onPla
 
   useEffect(() => {
     if (sites.length === 0) return;
+    if (activeWordPressSiteId && sites.some((s) => s.id === activeWordPressSiteId)) {
+      return;
+    }
     const pool = enabledSites.length > 0 ? enabledSites : sites;
     if (pool.length === 0) return;
-    if (!activeWordPressSiteId || !pool.some((s) => s.id === activeWordPressSiteId)) {
-      setActiveWordPressSiteId(pool[0].id);
-    }
+    setActiveWordPressSiteId(pool[0].id);
   }, [sites, enabledSites, activeWordPressSiteId, setActiveWordPressSiteId]);
 
   const site = sites.find((s) => s.id === activeWordPressSiteId) ?? null;

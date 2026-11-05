@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { AlignLeft, ChevronDown, Heading2, LayoutGrid, Link, Megaphone } from "lucide-react";
+// eslint-disable-next-line no-restricted-imports -- Pulse UI exception: counted input needs counter padding Field does not expose
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { GoogleAdsCampaignLiveInsightsSection } from "@/components/ppc/google/GoogleAdsCampaignLiveInsightsSection";
 import { GoogleAdsCampaignRowGenerateButton } from "@/components/ppc/google/GoogleAdsCampaignRowGenerateButton";
 import { GoogleAdsCampaignRowCompact } from "@/components/ppc/google/GoogleAdsCampaignRowCompact";
@@ -12,10 +12,7 @@ import {
 } from "@/components/ppc/google/google-ads-details-accordion";
 import { GoogleAdsCountedInputShell } from "@/components/ppc/google/GoogleAdsFieldCount";
 import { PpcInlineField } from "@/components/ppc/google/PpcInlineField";
-import {
-  PPC_DETAIL_INPUT_CLASS,
-  PPC_DETAIL_TEXTAREA_CLASS,
-} from "@/components/ppc/google/google-ads-row-details-styles";
+import { PPC_DETAIL_INPUT_CLASS } from "@/components/ppc/google/google-ads-row-details-styles";
 import { contentOptimizerRowStripeClass } from "@/components/overview/overview-tab/overview-tab-content-constants";
 import { GoogleAdsRowEndRail } from "@/components/ppc/google/GoogleAdsRowEndRail";
 import { PPC_ROW_CONTENT_SPAN_CLASS } from "@/components/ppc/google/google-ads-row-constants";
@@ -35,6 +32,7 @@ import {
 } from "@/lib/ppc/ppc-campaign-insights-scope";
 import type { PpcCampaignStructureAd, PpcCampaignStructureAdGroup } from "@/lib/ppc/ppc-campaign-insights-types";
 import { cn } from "@/lib/utils";
+import { Field, TextareaField } from "@/ui";
 
 export type GoogleAdsCampaignRowDetailsProps = {
   row: PpcCampaignRow;
@@ -347,11 +345,10 @@ export function GoogleAdsCampaignRowDetails({
                       <LayoutGrid aria-hidden />
                     </span>
                     <span className="shrink-0 text-base font-medium text-white">{`Ad group ${agIndex + 1}:`}</span>
-                    <Input
+                    <Field
                       value={keyword}
                       readOnly={keywordReadOnly}
                       placeholder="Ad group title"
-                      className={cn(PPC_DETAIL_INPUT_CLASS, "h-9 min-w-0 flex-1 text-zinc-100")}
                       aria-label={`Ad group ${agIndex + 1} title`}
                       onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => e.stopPropagation()}
@@ -415,11 +412,11 @@ export function GoogleAdsCampaignRowDetails({
                   />
 
                   <PpcInlineField label="Keywords">
-                    <Textarea
+                    <TextareaField
+                      placeholder="Keywords"
                       value={adGroup.keywords.join("\n")}
                       readOnly={adCopyReadOnly}
                       rows={Math.min(8, Math.max(3, adGroup.keywords.length))}
-                      className={PPC_DETAIL_TEXTAREA_CLASS}
                       onChange={(e) => handleAdGroupKeywordsChange(agIndex, e.target.value)}
                       onFocus={(e) =>
                         handleKeywordFieldFocus(agIndex, e.currentTarget.value, e.currentTarget.selectionStart)

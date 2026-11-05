@@ -60,22 +60,30 @@ class Neo_Pulse_App_Wp_Change_Post_Url {
 			}
 			if ( $st !== 404 ) {
 				$err_data = is_array( $neo_pulse_res['body'] ) ? $neo_pulse_res['body'] : array();
-				$err_msg  = '';
-				if ( ! empty( $err_data['message'] ) && is_string( $err_data['message'] ) ) {
-					$err_msg = $err_data['message'];
-				} elseif ( ! empty( $err_data['error'] ) && is_string( $err_data['error'] ) ) {
-					$err_msg = $err_data['error'];
-				} else {
-					$err_msg = 'NEO Pulse change-url failed (HTTP ' . $st . ')';
-				}
-				return array(
-					$st,
-					array(
-						'ok'    => false,
-						'error' => $err_msg,
-						'code'  => isset( $err_data['code'] ) ? $err_data['code'] : null,
-					),
+				$err_code = isset( $err_data['code'] ) && is_string( $err_data['code'] ) ? $err_data['code'] : '';
+				$can_use_core_rest = in_array(
+					$err_code,
+					array( 'neo-pulse_unchanged_slug', 'neo-pulse_not_published' ),
+					true
 				);
+				if ( ! $can_use_core_rest ) {
+					$err_msg = '';
+					if ( ! empty( $err_data['message'] ) && is_string( $err_data['message'] ) ) {
+						$err_msg = $err_data['message'];
+					} elseif ( ! empty( $err_data['error'] ) && is_string( $err_data['error'] ) ) {
+						$err_msg = $err_data['error'];
+					} else {
+						$err_msg = 'NEO Pulse change-url failed (HTTP ' . $st . ')';
+					}
+					return array(
+						$st,
+						array(
+							'ok'    => false,
+							'error' => $err_msg,
+							'code'  => $err_code !== '' ? $err_code : null,
+						),
+					);
+				}
 			}
 		}
 

@@ -3,7 +3,7 @@
  * Plugin Name:       NEO Pulse WP
  * Plugin URI:        https://neodigital.ca
  * Description:       NEO Pulse AI tools for WordPress — chat, search, SEO, and editor wands.
- * Version:           0.9.266
+ * Version:           0.9.267
  * Requires at least: 6.8
  * Requires PHP:      8.2
  * Author:            Neo Digital
@@ -18,7 +18,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NEO_PULSE_WP_VERSION', '0.9.266' );
+define( 'NEO_PULSE_WP_VERSION', '0.9.267' );
 // Where "Powered by NEO Pulse" links (chat and search).
 define( 'NEO_PULSE_WP_POWERED_URL', 'https://neodigital.ca/neo-pulse-platform/' );
 define( 'NEO_PULSE_WP_PLUGIN_FILE', __FILE__ );

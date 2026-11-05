@@ -1,14 +1,12 @@
 import React, { useEffect, useMemo } from "react";
-import { Input } from "@/components/ui/input";
+import { Field, Pill } from "@/ui";
 import { getStoredSites } from "@/components/integrations/storage";
 import {
   TaskFormFieldGrid,
   TaskFormInfield,
   TaskFormInfieldSelect,
   TaskFormPanel,
-  TASK_FORM_FLAT_CONTROL_CLASS,
 } from "@/components/manager/tasks/TaskFormLayout";
-import { WorkspacePill } from "@/components/shared/WorkspacePill";
 import { contentGapTargetForSiteEditorialPackage } from "@/lib/content-gap/apply-editorial-package-content-gap-target";
 import { ensureContentGapCheckPayload } from "@/lib/content-gap/resolve-content-gap-count";
 import { editorialContentPackageShortLabelForSite } from "@/lib/editorial-content-package";
@@ -66,17 +64,18 @@ function ContentGapDayOfMonthField({
   onChange: (day: number) => void;
 }): React.ReactElement {
   return (
-    <div className="flex h-9 min-w-0 items-center gap-2 rounded-none bg-black px-3">
-      <Input
+    <div className="flex h-9 min-w-0 items-center gap-2 rounded-none bg-ui-field px-3">
+      <Field
+        size="short"
         type="number"
         min={1}
         max={31}
         step={1}
         inputMode="numeric"
+        placeholder="Day"
         value={String(dayOfMonth)}
         disabled={disabled}
         aria-label="Day of the month"
-        className={cn(TASK_FORM_FLAT_CONTROL_CLASS, "w-12 shrink-0 tabular-nums")}
         onChange={(event) => {
           const next = Number.parseInt(event.target.value, 10);
           onChange(clampDayOfMonth(next));
@@ -161,7 +160,7 @@ export function ContentGapCheckExecutionFields({
               (option.value === "posts" && !postsAvailable) ||
               (option.value === "sap" && !sapAvailable);
             return (
-              <WorkspacePill
+              <Pill
                 key={option.value}
                 label={option.label}
                 square
@@ -191,12 +190,7 @@ export function ContentGapCheckExecutionFields({
         </TaskFormInfield>
       ) : null}
       <TaskFormInfield label={sitemapSource === "sap" ? "SAP" : "Posts"}>
-        <Input
-          value={quotaLine}
-          disabled
-          readOnly
-          className={TASK_FORM_FLAT_CONTROL_CLASS}
-        />
+        <span className="text-base tabular-nums text-muted-foreground">{quotaLine}</span>
       </TaskFormInfield>
     </>
   );
@@ -213,7 +207,7 @@ export function ContentGapCheckExecutionFields({
                   (option.value === "posts" && !postsAvailable) ||
                   (option.value === "sap" && !sapAvailable);
                 return (
-                  <WorkspacePill
+                  <Pill
                     key={option.value}
                     label={option.label}
                     square
@@ -227,12 +221,7 @@ export function ContentGapCheckExecutionFields({
             </div>
           </TaskFormInfield>
           <TaskFormInfield label={sitemapSource === "sap" ? "SAP" : "Posts"}>
-            <Input
-              value={quotaLine}
-              disabled
-              readOnly
-              className={cn(TASK_FORM_FLAT_CONTROL_CLASS, "w-full tabular-nums")}
-            />
+            <span className="text-base tabular-nums text-muted-foreground">{quotaLine}</span>
           </TaskFormInfield>
         </div>
         <div className="grid min-w-0 grid-cols-2 gap-0.5">

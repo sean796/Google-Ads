@@ -92,7 +92,6 @@ export interface OverviewContentHeaderProps {
   optimizerSection: ContentOptimizerSectionId;
   onOptimizerSectionChange: (id: ContentOptimizerSectionId) => void;
   paginationLayoutTotal: number;
-  onDetailsOpenChange?: (open: boolean) => void;
   generatorChrome?: ContentOptimizerGeneratorChrome;
 }
 
@@ -109,7 +108,6 @@ export function OverviewContentHeader({
   opt,
   optimizerSection,
   onOptimizerSectionChange,
-  onDetailsOpenChange,
   generatorChrome,
 }: OverviewContentHeaderProps) {
   const hasDetectedSitemaps = Boolean(c.site?.sitemaps?.mainSitemapUrl);
@@ -142,17 +140,6 @@ export function OverviewContentHeader({
       sitemapInventoryLoading: warmDetails.sitemapInventoryLoading,
     },
   );
-
-  const detailsOpenSignal =
-    batchBulkState?.runKind === "research" && batchBulkState.harnessStartedAt
-      ? `research-${bulkBatchKey}-${batchBulkState.harnessStartedAt}`
-      : batchBulkState?.runKind === "aiAnswer" && batchBulkState.harnessStartedAt
-        ? `answer-${bulkBatchKey}-${batchBulkState.harnessStartedAt}`
-      : batchBulkState?.runKind === "aiOverview" && batchBulkState.harnessStartedAt
-        ? `${bulkBatchKey}-${batchBulkState.harnessStartedAt}`
-        : batchBulkState?.runKind === "aiFaq" && batchBulkState.harnessStartedAt
-          ? `ai-faq-${bulkBatchKey}-${batchBulkState.harnessStartedAt}`
-          : null;
 
   const researchWorkerActive = site
     ? isOverviewResearchWorkerActive(
@@ -255,8 +242,6 @@ export function OverviewContentHeader({
     progressSnapshot: bulkMicroSnapshot,
     bulkActionProgress: c.bulkActionProgress,
     canOpenDetails: canOpenBatchDetails,
-    detailsOpenSignal,
-    onDetailsOpenChange,
     isProcessing: isBatchContentRunning || isSinglePageOptimizing || researchWorkerActive,
     detailsPanelId: "overview-batch-details-panel" as const,
     detailsPanel,

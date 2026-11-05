@@ -10,7 +10,6 @@ export type SocialCreatorVisualToolThemeFieldProps = {
   value?: MetaAdVisualToolThemeId;
   includeHeaderDefault?: boolean;
   disabled?: boolean;
-  id?: string;
   className?: string;
   onChange: (themeId: MetaAdVisualToolThemeId | undefined) => void;
 };
@@ -21,7 +20,6 @@ export function SocialCreatorVisualToolThemeField({
   value,
   includeHeaderDefault = false,
   disabled,
-  id,
   className,
   onChange,
 }: SocialCreatorVisualToolThemeFieldProps) {
@@ -37,11 +35,9 @@ export function SocialCreatorVisualToolThemeField({
 
   return (
     <SocialCreatorDarkSelect
-      id={id}
       value={selectValue}
       disabled={disabled}
       options={options}
-      triggerClassName={cn("h-8 w-full min-w-0 px-2.5", className)}
       ariaLabel={
         includeHeaderDefault ? "Visual tool palette for this row" : "Default visual tool palette"
       }

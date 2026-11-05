@@ -40,12 +40,13 @@ export function TeamSwitcherPill({
     <>
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
+          {/* eslint-disable-next-line no-restricted-syntax -- Pulse UI exception: bespoke composite menu trigger with two-part segmented layout */}
           <button
             type="button"
             style={menuWidthStyle}
             className={cn(
               "inline-flex h-9 shrink-0 cursor-pointer items-stretch overflow-visible border-0 bg-transparent p-0 text-left shadow-none outline-none transition-colors",
-              "focus-visible:ring-2 focus-visible:ring-zinc-600 focus-visible:ring-offset-0",
+              "focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-0",
               triggerHoverClass,
             )}
             aria-label={`Agency: ${label}`}

@@ -13,8 +13,8 @@ const KIND_LABEL: Record<ActivityKind, string> = { job: "Job", deploy: "Deploy",
 
 function statusClass(status: string): string {
   if (status === "completed" || status === "live") return "text-primary";
-  if (status === "failed") return "text-red-300";
-  if (status === "running" || status === "queued" || status === "triggered") return "text-sky-300";
+  if (status === "failed") return "text-ui-danger-hover";
+  if (status === "running" || status === "queued" || status === "triggered") return "text-semantic-analysis-foreground";
   return "text-muted-foreground";
 }
 
@@ -48,11 +48,11 @@ export function SiteActivitySection({ activity, loading }: SiteActivitySectionPr
             <tr key={r.key} className={HOST_TR}>
               <td className={`${HOST_TD} tabular-nums`}>{formatDateTime(r.at)}</td>
               <td className={`${HOST_TD} text-muted-foreground`}>{KIND_LABEL[r.kind]}</td>
-              <td className={`${HOST_TD} truncate`} title={r.label}>
+              <td className={`${HOST_TD} break-words`} title={r.label}>
                 {r.label}
               </td>
               <td className={`${HOST_TD} ${statusClass(r.status)}`}>{r.status}</td>
-              <td className={`${HOST_TD} truncate text-muted-foreground`} title={r.detail || undefined}>
+              <td className={`${HOST_TD} break-words text-muted-foreground`} title={r.detail || undefined}>
                 {r.detail}
               </td>
             </tr>

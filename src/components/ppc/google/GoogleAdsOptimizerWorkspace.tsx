@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   BULK_HEADER_RUN_BTN,
   BULK_HEADER_SELECT_TRIGGER,
@@ -24,6 +16,7 @@ import {
 } from "@/lib/ppc/ppc-campaign-insights-scope";
 import type { PpcGoogleWorkspaceController } from "@/hooks/ppc/use-ppc-google-workspace";
 import { cn } from "@/lib/utils";
+import { Button, SelectField } from "@/ui";
 
 export type GoogleAdsOptimizerWorkspaceProps = {
   ctrl: PpcGoogleWorkspaceController;
@@ -121,38 +114,27 @@ export function GoogleAdsOptimizerWorkspace({ ctrl }: GoogleAdsOptimizerWorkspac
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <Select value={selectedRowId} onValueChange={setSelectedRowId}>
-          <SelectTrigger className={cn(BULK_HEADER_SELECT_TRIGGER, "min-w-[14rem]")}>
-            <SelectValue placeholder="Linked campaign" />
-          </SelectTrigger>
-          <SelectContent>
-            {linkedRows.map((row) => (
-              <SelectItem key={row.id} value={row.id}>
-                {row.campaignName || row.adsCampaignId}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SelectField placeholder="Linked campaign" value={selectedRowId} onValueChange={setSelectedRowId} options={linkedRows.map((row) => ({ value: row.id, label: row.campaignName || row.adsCampaignId }))} />
 
         <span className="text-base text-muted-foreground">{periodHint}</span>
 
         <Button
+          variant="run"
           type="button"
-          className={BULK_HEADER_RUN_BTN}
           disabled={status === "loading"}
           onClick={() => void refresh()}
         >
-          <RefreshCw className={cn("h-4 w-4", status === "loading" && "animate-spin")} aria-hidden />
+          <RefreshCw className={cn("h-4 w-4", status === "loading" && "")} aria-hidden />
           Refresh
         </Button>
       </div>
 
-      <div className="min-h-[14rem] flex-1 rounded-none bg-zinc-950 px-3 py-3">
+      <div className="min-h-[14rem] flex-1 rounded-none bg-black px-3 py-3">
         {status === "loading" ? (
           <p className="text-base text-muted-foreground">Loading campaign insights…</p>
         ) : null}
         {status === "error" && errorMessage ? (
-          <p className="text-base text-red-400">{errorMessage}</p>
+          <p className="text-base text-ui-danger-hover">{errorMessage}</p>
         ) : null}
 
         {status === "ready" && insights ? (

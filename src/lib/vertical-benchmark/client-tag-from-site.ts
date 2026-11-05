@@ -1,7 +1,10 @@
 import type { WordPressSite } from "@/components/integrations/types";
+import { applyBenchmarkCategoryTagDefaults } from "@/lib/benchmark-category-tag-defaults";
 
 export function readSiteBenchmarkCustomTag(site: WordPressSite): string {
-  return (site.benchmarkCustomTag ?? "").trim();
+  const explicit = (site.benchmarkCustomTag ?? "").trim();
+  if (explicit) return explicit;
+  return (applyBenchmarkCategoryTagDefaults(site).benchmarkCustomTag ?? "").trim();
 }
 
 export function applyCustomTagsFromSites(sites: WordPressSite[]): {

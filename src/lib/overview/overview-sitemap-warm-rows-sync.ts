@@ -53,10 +53,7 @@ export function syncOverviewRowsFromWarmCache(
 
   const prefetchRows = getSitePrefetchOverviewRowsForSourceSync(site, source);
   if (prefetchRows.length) {
-    const rows = applyCachedElementorFieldsToOverviewRows(
-      buildOverviewSessionRowsFromWarmBulk(site, source, prefetchRows),
-      source,
-    );
+    const rows = buildOverviewSessionRowsFromWarmBulk(site, source, prefetchRows);
     if (rows.length) {
       setOverviewRowsSessionCache(site.id, source, rows);
     }

@@ -1,13 +1,5 @@
 import React from "react";
-import { Button } from "@/components/ui/button";
-import {
-  FileCode,
-  LayoutDashboard,
-  Loader2,
-  Map,
-  ScrollText,
-  Settings,
-} from "lucide-react";
+import { FileCode, LayoutDashboard, Map, ScrollText, Settings } from "lucide-react";
 import type { WordPressSite } from "../types";
 import { WordPressCardActions } from "./WordPressCardActions";
 import { SitemapSection } from "./SitemapSection";
@@ -17,6 +9,7 @@ import { openDashboardMasterRulesSettings } from "@/lib/open-master-rules-settin
 import { MasterInstructionsSection } from "./MasterInstructionsSection";
 import { FunctionsUpdaterPanel } from "./FunctionsUpdaterPanel";
 import { PropertyOverviewSection } from "./PropertyOverviewSection";
+import { Button } from "@/ui";
 export type BuildWordPressPropertySectionsParams = {
   site: WordPressSite;
   isTesting: boolean;
@@ -130,7 +123,7 @@ export function buildWordPressPropertySections(
                 <>
                   <dt className="font-medium text-muted-foreground">Scheduled</dt>
                   <dd className="m-0 inline-flex min-w-0 items-center gap-1.5 text-muted-foreground">
-                    <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin align-text-bottom" aria-hidden />
+                    
                     Fetching…
                   </dd>
                 </>
@@ -189,7 +182,7 @@ export function buildWordPressPropertySections(
               under <span className="font-medium text-foreground">Dashboard → Master Rules</span> and select this
               property.
             </p>
-            <Button type="button" onClick={() => openDashboardMasterRulesSettings(site.id)}>
+            <Button variant="run" type="button" onClick={() => openDashboardMasterRulesSettings(site.id)}>
               Open Master Rules
             </Button>
           </div>

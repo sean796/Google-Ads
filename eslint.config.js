@@ -3,9 +3,17 @@ import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
+import {
+  PULSE_UI_EXEMPT,
+  PULSE_UI_PAGE_FILES,
+  PULSE_UI_PAGE_RULES,
+  PULSE_UI_SPINNER_IMPORT,
+  PULSE_UI_SYNTAX_RULES,
+} from "./eslint.pulse-ui-rules.js";
+
 
 export default tseslint.config(
-  { ignores: ["dist"] },
+  { ignores: ["dist", "dist-storybook"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
@@ -22,5 +30,19 @@ export default tseslint.config(
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
     },
+  },
+  {
+    // Pulse UI kit: guardrails for the shared vocabulary.
+    files: ["src/ui/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": ["error", ...PULSE_UI_SYNTAX_RULES],
+      "no-restricted-imports": ["error", { paths: [PULSE_UI_SPINNER_IMPORT] }],
+    },
+  },
+  {
+    // Every other file in src builds from @/ui only. Bespoke controls need a documented per-line exception.
+    files: PULSE_UI_PAGE_FILES,
+    ignores: PULSE_UI_EXEMPT,
+    rules: PULSE_UI_PAGE_RULES,
   },
 );

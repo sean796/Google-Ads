@@ -31,6 +31,11 @@ const emptySnapshot: OverviewSiteWarmDetailsSnapshot = {
   sitemapInventoryLoading: false,
 };
 
+const loadingEmptySnapshot: OverviewSiteWarmDetailsSnapshot = {
+  ...emptySnapshot,
+  sitemapInventoryLoading: true,
+};
+
 type HostedSnapshotCache = {
   siteId: string;
   warmKey: string;
@@ -38,14 +43,15 @@ type HostedSnapshotCache = {
   gscHostedLink: BulkGscKeywordsHostedLink | null;
 };
 
-let hostedSnapshotCache: HostedSnapshotCache | null = null;
+const hostedSnapshotCacheBySiteId = new Map<string, HostedSnapshotCache>();
 
-let detailsSnapshotCache: {
-  siteId: string;
-  storeEpoch: number;
-  warmKey: string;
-  snapshot: OverviewSiteWarmDetailsSnapshot;
-} | null = null;
+const detailsSnapshotCacheBySiteId = new Map<
+  string,
+  {
+    warmKey: string;
+    snapshot: OverviewSiteWarmDetailsSnapshot;
+  }
+>();
 
 function warmBundleForSite(site: WordPressSite) {
   return resolveEntitySiteWarmBundleSync(site);
@@ -58,6 +64,7 @@ function warmSnapshotKey(site: WordPressSite, warm: NonNullable<ReturnType<typeo
     warm.counts.inventoryTotal,
     warm.counts.gscQueries,
     warm.credentialsKey,
+    warm.error ?? "",
   ].join(":");
 }
 
@@ -66,15 +73,16 @@ function buildHostedSnapshot(
   warm: NonNullable<ReturnType<typeof warmBundleForSite>>,
 ): Pick<OverviewSiteWarmDetailsSnapshot, "sitemapInventoryLinks" | "gscHostedLink"> {
   const warmKey = warmSnapshotKey(site, warm);
-  if (hostedSnapshotCache?.siteId === site.id && hostedSnapshotCache.warmKey === warmKey) {
+  const existing = hostedSnapshotCacheBySiteId.get(site.id);
+  if (existing && existing.warmKey === warmKey) {
     return {
-      sitemapInventoryLinks: hostedSnapshotCache.links,
-      gscHostedLink: hostedSnapshotCache.gscHostedLink,
+      sitemapInventoryLinks: existing.links,
+      gscHostedLink: existing.gscHostedLink,
     };
   }
 
-  revokeBulkSitemapInventoryLinks(hostedSnapshotCache?.links ?? []);
-  revokeBulkGscKeywordsHostedLink(hostedSnapshotCache?.gscHostedLink ?? null);
+  revokeBulkSitemapInventoryLinks(existing?.links ?? []);
+  revokeBulkGscKeywordsHostedLink(existing?.gscHostedLink ?? null);
 
   const links = warmInventoryHostedLinksForSite(site, warm);
   const siteUrl = site.siteUrl?.trim() ?? "";
@@ -84,7 +92,7 @@ function buildHostedSnapshot(
       ? createBulkGscKeywordsHostedLink(siteUrl, gscQueries)
       : null;
 
-  hostedSnapshotCache = { siteId: site.id, warmKey, links, gscHostedLink };
+  hostedSnapshotCacheBySiteId.set(site.id, { siteId: site.id, warmKey, links, gscHostedLink });
   return { sitemapInventoryLinks: links, gscHostedLink };
 }
 
@@ -94,24 +102,17 @@ export function getOverviewSiteWarmDetailsSnapshot(
 ): OverviewSiteWarmDetailsSnapshot {
   if (!site?.id || !site.siteUrl?.trim()) return emptySnapshot;
 
-  const storeEpoch = getEntitySiteWarmInflightSnapshot();
+  // Read epoch so we stay subscribed to store notifications, but cache by site.id + warmKey
+  getEntitySiteWarmInflightSnapshot();
   const warm = warmBundleForSite(site);
   if (!warm) {
-    if (detailsSnapshotCache?.siteId === site.id && detailsSnapshotCache.storeEpoch === storeEpoch) {
-      return detailsSnapshotCache.snapshot;
-    }
-    const snapshot = { ...emptySnapshot, sitemapInventoryLoading: true };
-    detailsSnapshotCache = { siteId: site.id, storeEpoch, warmKey: "", snapshot };
-    return snapshot;
+    return loadingEmptySnapshot;
   }
 
   const warmKey = warmSnapshotKey(site, warm);
-  if (
-    detailsSnapshotCache?.siteId === site.id &&
-    detailsSnapshotCache.storeEpoch === storeEpoch &&
-    detailsSnapshotCache.warmKey === warmKey
-  ) {
-    return detailsSnapshotCache.snapshot;
+  const cached = detailsSnapshotCacheBySiteId.get(site.id);
+  if (cached && cached.warmKey === warmKey) {
+    return cached.snapshot;
   }
 
   const hosted = buildHostedSnapshot(site, warm);
@@ -126,6 +127,6 @@ export function getOverviewSiteWarmDetailsSnapshot(
     inventoryRows,
     sitemapInventoryLoading: !hasRows,
   };
-  detailsSnapshotCache = { siteId: site.id, storeEpoch, warmKey, snapshot };
+  detailsSnapshotCacheBySiteId.set(site.id, { warmKey, snapshot });
   return snapshot;
 }

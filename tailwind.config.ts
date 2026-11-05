@@ -60,7 +60,7 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "hsl(var(--primary))",
+          DEFAULT: "hsl(var(--primary) / <alpha-value>)",
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
@@ -105,20 +105,32 @@ export default {
         },
         semantic: {
           analysis: {
-            DEFAULT: "hsl(var(--semantic-analysis))",
-            foreground: "hsl(var(--semantic-analysis-foreground))",
+            DEFAULT: "hsl(var(--semantic-analysis) / <alpha-value>)",
+            foreground: "hsl(var(--semantic-analysis-foreground) / <alpha-value>)",
           },
           data: {
-            DEFAULT: "hsl(var(--semantic-data))",
-            foreground: "hsl(var(--semantic-data-foreground))",
+            DEFAULT: "hsl(var(--semantic-data) / <alpha-value>)",
+            foreground: "hsl(var(--semantic-data-foreground) / <alpha-value>)",
           },
           publish: {
-            DEFAULT: "hsl(var(--semantic-publish))",
-            foreground: "hsl(var(--semantic-publish-foreground))",
+            DEFAULT: "hsl(var(--semantic-publish) / <alpha-value>)",
+            foreground: "hsl(var(--semantic-publish-foreground) / <alpha-value>)",
           },
           warning: {
-            DEFAULT: "hsl(var(--semantic-warning))",
-            foreground: "hsl(var(--semantic-warning-foreground))",
+            DEFAULT: "hsl(var(--semantic-warning) / <alpha-value>)",
+            foreground: "hsl(var(--semantic-warning-foreground) / <alpha-value>)",
+          },
+        },
+        ui: {
+          field: {
+            DEFAULT: "hsl(var(--ui-field) / <alpha-value>)",
+            hover: "hsl(var(--ui-field-hover) / <alpha-value>)",
+          },
+          danger: {
+            DEFAULT: "hsl(var(--ui-danger) / <alpha-value>)",
+            hover: "hsl(var(--ui-danger-hover) / <alpha-value>)",
+            edge: "hsl(var(--ui-danger-edge) / <alpha-value>)",
+            surface: "hsl(var(--ui-danger-surface) / <alpha-value>)",
           },
         },
         canvas: "hsl(var(--canvas-bg))",

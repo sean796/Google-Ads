@@ -1,6 +1,5 @@
 import React from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import {
   contentOptimizerRowStripeClass,
   contentOptimizerRowStripeHoverClass,
@@ -14,6 +13,7 @@ import {
 import { PPC_DETAIL_INPUT_CLASS } from "@/components/ppc/google/google-ads-row-details-styles";
 import type { ContentCalendarRow } from "@/lib/social/content-creator-types";
 import { cn } from "@/lib/utils";
+import { Button, Field } from "@/ui";
 
 export type ContentCreatorRowCompactProps = {
   row: ContentCalendarRow;
@@ -57,12 +57,11 @@ export function ContentCreatorRowCompact({
       )}
     >
       <div className={CONTENT_CREATOR_ROW_FIELD_CELL}>
-        <Input
+        <Field
           value={row.keyword ?? ""}
           readOnly={fieldsReadOnly}
           disabled={fieldsReadOnly}
           placeholder="Keyword"
-          className={PPC_DETAIL_INPUT_CLASS}
           aria-label="Keyword"
           onClick={(e) => e.stopPropagation()}
           onChange={(e) => onKeywordChange?.(e.target.value)}
@@ -70,12 +69,11 @@ export function ContentCreatorRowCompact({
       </div>
 
       <div className={CONTENT_CREATOR_ROW_FIELD_CELL}>
-        <Input
+        <Field
           value={row.landingPageUrl ?? ""}
           readOnly={fieldsReadOnly}
           disabled={fieldsReadOnly}
           placeholder="Landing page URL"
-          className={PPC_DETAIL_INPUT_CLASS}
           aria-label="Landing page URL"
           onClick={(e) => e.stopPropagation()}
           onChange={(e) => onLandingPageChange?.(e.target.value)}
@@ -97,9 +95,8 @@ export function ContentCreatorRowCompact({
           deleteDisabled={deleteDisabled}
           deleteLabel="Delete post"
           chevron={
-            <button
-              type="button"
-              className="inline-flex h-8 w-8 items-center justify-center text-foreground hover:text-primary"
+            <Button
+              variant="quiet"
               aria-expanded={isExpanded}
               aria-controls={panelId}
               aria-label={isExpanded ? "Collapse post details" : "Expand post details"}
@@ -113,7 +110,7 @@ export function ContentCreatorRowCompact({
               ) : (
                 <ChevronDown className="h-4 w-4" aria-hidden />
               )}
-            </button>
+            </Button>
           }
         />
       </div>

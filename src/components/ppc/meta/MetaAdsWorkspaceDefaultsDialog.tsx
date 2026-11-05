@@ -1,12 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Button, DialogShell } from "@/ui";
 import { MetaAdsVisualSettingsPanel } from "@/components/ppc/meta/MetaAdsVisualSettingsPanel";
 import { cloneVisualToolPalette } from "@/lib/ppc/meta-ad-visual-tool-palette";
 import { resolveMetaTypographyStyle } from "@/lib/ppc/meta-ad-typography-styles";
@@ -68,35 +61,31 @@ export function MetaAdsWorkspaceDefaultsDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl rounded-none border-0 bg-zinc-950 p-6 text-white">
-        <DialogHeader>
-          <DialogTitle className="text-base font-semibold text-white">Workspace defaults</DialogTitle>
-        </DialogHeader>
-        <MetaAdsVisualSettingsPanel
-          colorPalette={draftColors}
-          visualToolPalette={draftTools}
-          typographyStyle={draftTypographyStyle}
-          disabled={disabled}
-          onColorPaletteChange={setDraftColors}
-          onVisualToolPaletteChange={setDraftTools}
-          onTypographyStyleChange={setDraftTypographyStyle}
-        />
-        <DialogFooter className="gap-2 sm:gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            className="text-base text-muted-foreground hover:text-foreground"
-            disabled={disabled}
-            onClick={() => onOpenChange(false)}
-          >
+    <DialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      size="lg"
+      title="Workspace defaults"
+      actions={
+        <>
+          <Button variant="tool" disabled={disabled} onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="button" className="text-base" disabled={disabled} onClick={handleSave}>
+          <Button variant="run" disabled={disabled} onClick={handleSave}>
             Save
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <MetaAdsVisualSettingsPanel
+        colorPalette={draftColors}
+        visualToolPalette={draftTools}
+        typographyStyle={draftTypographyStyle}
+        disabled={disabled}
+        onColorPaletteChange={setDraftColors}
+        onVisualToolPaletteChange={setDraftTools}
+        onTypographyStyleChange={setDraftTypographyStyle}
+      />
+    </DialogShell>
   );
 }

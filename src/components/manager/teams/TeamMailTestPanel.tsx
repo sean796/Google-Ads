@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { DASHBOARD_SETTINGS_GROUP_CLASS, DASHBOARD_SETTINGS_FIELD_CLASS } from "@/components/manager/dashboard/dashboard-panel-styles";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
 import { sendTeamMailTest } from "@/lib/teams-api";
 import { useTeamPermission } from "@/hooks/use-team-permission";
+import { Button, Field } from "@/ui";
 
 const INPUT_CLASS = `${DASHBOARD_SETTINGS_FIELD_CLASS} min-w-0 flex-1 h-12`;
 
@@ -49,17 +48,16 @@ export function TeamMailTestPanel() {
         <p className="text-base text-white">Owner only. Sends a test message through WordPress mail.</p>
       </div>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
-        <Input
+        <Field
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           aria-label="Test email"
           placeholder="you@agency.com"
-          className={INPUT_CLASS}
         />
         <Button
+          variant="run"
           type="button"
-          className="h-12 shrink-0 text-base"
           disabled={sending || !email.trim()}
           onClick={() => void handleSend()}
         >
@@ -67,7 +65,7 @@ export function TeamMailTestPanel() {
         </Button>
       </div>
       {status ? (
-        <p className={`text-base ${status.ok ? "text-white" : "text-red-400"}`}>{status.message}</p>
+        <p className={`text-base ${status.ok ? "text-white" : "text-ui-danger-hover"}`}>{status.message}</p>
       ) : null}
     </div>
   );

@@ -1,25 +1,13 @@
-import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from 'react';
+﻿import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from 'react';
 import type { CSVRow, WordPressPostDestination } from '@/lib/bulk-auto-generate';
 import { parseCsvStatic } from '@/lib/bulk-auto-generate';
 import {
   BLOG_IMPORT_POST_DESTINATION_CHOICES,
   BULK_POST_DESTINATION_CHOICES,
 } from '@/lib/bulk-auto-generate';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { 
-  Upload, 
-  Play, 
-  Square, 
-  Download, 
-  FileText,
-  Loader2,
-  MessageSquare,
-  Globe,
-} from 'lucide-react';
+import { Upload, Play, Square, Download, FileText, MessageSquare, Globe } from 'lucide-react';
 import { computePublishDateLabelsByGeneratedIndex } from '@/lib/bulk/bulk-slot-publish-dates';
 import { getFirstOfThisMonthDate, type ScheduleFrequency } from '@/lib/wordpress-scheduler';
 import { loadSapBulkSchedulePrefs, saveSapBulkSchedulePrefs } from '@/lib/bulk-schedule-prefs';
@@ -57,6 +45,7 @@ import {
 import { cn } from '@/lib/utils';
 import { seedPromptBlogSlots, syncPromptBlogRowsToCount } from '@/lib/bulk/prompt-blog-slots';
 import { buildBulkBaseRows, identityRowOrder, allRowIndicesSet } from '@/lib/bulk-processing-order';
+import { Field } from "@/ui";
 interface BulkAutoGeneratePanelProps {
   openRouterApiKey?: string;
   /** Non-generator integrations (SAP, legacy bulk) may still pass DataForSEO. */
@@ -124,7 +113,7 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
   );
   
   // Blog generation settings
-  const [numberOfBlogs, setNumberOfBlogs] = useState<number>(1);
+  const [numberOfBlogs, setNumberOfBlogs] = useState<number>(0);
   const [optionalPrompt, setOptionalPrompt] = useState<string>('');
   const [featuredImagePerBlog, setFeaturedImagePerBlog] = useState<boolean>(true);
   const [featuredImageType, setFeaturedImageType] = useState<'ai-generated' | 'google-maps'>('ai-generated');
@@ -135,19 +124,33 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
   // Selection state for blog ideas
   const [selectedBlogIndices, setSelectedBlogIndices] = useState<Set<number>>(new Set());
   
-  // Connected WordPress site (for target topic)
-  const [connectedSite, setConnectedSite] = useState<ConnectedSiteSummary | null>(null);
-  
+  // Connected WordPress site (for target topic) - initialize synchronously for zero-CLS first paint
+  const [wordPressSite, setWordPressSite] = useState<WordPressSite | null>(() =>
+    resolveActiveIntegrationSite(getStoredSites(), activeWordPressSiteId),
+  );
+  const [connectedSite, setConnectedSite] = useState<ConnectedSiteSummary | null>(() => {
+    const resolved = resolveActiveIntegrationSite(getStoredSites(), activeWordPressSiteId);
+    return resolved
+      ? {
+          name: resolved.name,
+          siteUrl: resolved.siteUrl,
+          productionSiteUrl: resolved.productionSiteUrl,
+        }
+      : null;
+  });
+
   // WordPress posting options - Multiple sites support
-  const [selectedWordPressSites, setSelectedWordPressSites] = useState<Set<string>>(new Set());
+  const [selectedWordPressSites, setSelectedWordPressSites] = useState<Set<string>>(() =>
+    wordPressSite ? new Set([wordPressSite.id]) : new Set(),
+  );
   const [siteConfigs, setSiteConfigs] = useState<
     Record<string, import("@/components/keyword-research/bulk/BulkGeneratorSitemapMenu").BulkSiteSitemapConfig>
   >({});
   const [scheduleFrequency, setScheduleFrequency] = useState<ScheduleFrequency>('daily');
-  const [customInterval, setCustomInterval] = useState<number>(1);
+  const [customInterval, setCustomInterval] = useState<number>(0);
   /** Permutation: processing slot i uses base row at index rowOrder[i]. */
   const [rowOrder, setRowOrder] = useState<number[]>([]);
-  const [dayOfWeek, setDayOfWeek] = useState<number>(1);
+  const [dayOfWeek, setDayOfWeek] = useState<number>(0);
   const [startDateOption, setStartDateOption] = useState<'immediate' | 'custom'>('immediate');
   const [customStartDate, setCustomStartDate] = useState<Date>(() => getFirstOfThisMonthDate('09:00'));
   const [startTime, setStartTime] = useState<string>('09:00');
@@ -158,8 +161,6 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
     return 'wordpress';
   });
 
-  // Legacy single site state for backward compatibility
-  const [wordPressSite, setWordPressSite] = useState<WordPressSite | null>(null);
   const [resolvedAuthor, setResolvedAuthor] = useState<ResolvedAuthorForDisplay | null>(null);
   const [isResolvingAuthor, setIsResolvingAuthor] = useState<boolean>(false);
   const lastResolvedSiteRef = useRef<string | null>(null);
@@ -193,7 +194,18 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
           }
           return prev;
         });
-        setWordPressSite(resolved);
+        setWordPressSite(prev => {
+          if (
+            prev &&
+            prev.id === resolved.id &&
+            prev.siteUrl === resolved.siteUrl &&
+            prev.name === resolved.name &&
+            prev.entitySitemapUrl === resolved.entitySitemapUrl
+          ) {
+            return prev;
+          }
+          return resolved;
+        });
       } else {
         setConnectedSite(null);
         setWordPressSite(null);
@@ -203,7 +215,7 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
     updateToActiveSite();
 
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'wordpress_sites' || e.key?.includes('wordpress') || e.key?.includes('site')) {
+      if (e.key === 'wordpress_sites') {
         updateToActiveSite();
       }
     };
@@ -243,17 +255,18 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
   useEffect(() => {
     if (!sapMode || !wordPressSite) return;
     const stored = loadSapBulkSchedulePrefs();
-    if (stored) {
-      setSelectedWordPressSites(new Set([wordPressSite.id]));
-      setSiteConfigs({
-        [wordPressSite.id]: { sitemapType: stored.sitemapType },
-      });
-    } else {
-      setSelectedWordPressSites(new Set([wordPressSite.id]));
-      setSiteConfigs({
-        [wordPressSite.id]: { sitemapType: wordPressSite.entitySitemapUrl ? 'entity' : 'post' },
-      });
-    }
+    const desiredType = stored ? stored.sitemapType : wordPressSite.entitySitemapUrl ? "entity" : "post";
+    setSelectedWordPressSites((prev) =>
+      prev.size === 1 && prev.has(wordPressSite.id) ? prev : new Set([wordPressSite.id]),
+    );
+    setSiteConfigs((prev) => {
+      const cur = prev[wordPressSite.id];
+      if (cur?.sitemapType === desiredType) return prev;
+      return {
+        ...prev,
+        [wordPressSite.id]: { ...cur, sitemapType: desiredType },
+      };
+    });
   }, [sapMode, wordPressSite]);
 
   /** Blog generator workspace: auto-select connected site for posting.
@@ -261,7 +274,7 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
   useEffect(() => {
     if (sapMode || !wordPressSite) return;
     setSelectedWordPressSites((prev) => {
-      if (prev.has(wordPressSite.id)) return prev;
+      if (prev.size === 1 && prev.has(wordPressSite.id)) return prev;
       return new Set([wordPressSite.id]);
     });
     setSiteConfigs((prev) => {
@@ -314,6 +327,11 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
 
   const promptSiteContext = usePromptBulkSiteContext(wordPressSite);
 
+  const handleChecklistProgress = useCallback((step: string, progress: number) => {
+    setChecklistPhase(step);
+    setChecklistProgressPct(progress);
+  }, []);
+
   const {
     userInput,
     setUserInput,
@@ -343,10 +361,7 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
     promptIdeasContext: promptSiteContext.ideasContext,
     promptSiteContextReady: promptSiteContext.promptSiteContextReady,
     sitemapInventoryLoading: promptSiteContext.sitemapInventoryLoading,
-    onProgress: (step, progress) => {
-      setChecklistPhase(step);
-      setChecklistProgressPct(progress);
-    },
+    onProgress: handleChecklistProgress,
   });
 
   useEffect(() => {
@@ -364,29 +379,28 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
       return;
     }
     if (forcedInputMode === undefined) return;
-
-    const enteredPrompt =
-      forcedInputMode === "prompt" && prevForcedInputModeRef.current !== "prompt";
+    if (prevForcedInputModeRef.current === forcedInputMode) return;
+    const prevMode = prevForcedInputModeRef.current;
     prevForcedInputModeRef.current = forcedInputMode;
 
     if (forcedInputMode === "prompt") {
       setInputMode("prompt");
       setCsvFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
-      if (enteredPrompt) {
-        setSiteConfigs((prev) => {
-          const siteId = wordPressSite?.id ?? Array.from(selectedWordPressSites)[0];
-          if (!siteId || prev[siteId]?.sitemapType === "post") return prev;
-          return {
-            ...prev,
-            [siteId]: { ...prev[siteId], sitemapType: "post" },
-          };
-        });
-      }
+      setSiteConfigs((prev) => {
+        const siteId = wordPressSite?.id ?? Array.from(selectedWordPressSites)[0];
+        if (!siteId || prev[siteId]?.sitemapType === "post") return prev;
+        return {
+          ...prev,
+          [siteId]: { ...prev[siteId], sitemapType: "post" },
+        };
+      });
     } else {
       setInputMode("csv");
-      resetPromptGeneration();
-      setSelectedBlogIndices(new Set());
+      if (prevMode !== "csv") {
+        resetPromptGeneration();
+        setSelectedBlogIndices(new Set());
+      }
     }
   }, [sapMode, forcedInputMode, resetPromptGeneration, wordPressSite, selectedWordPressSites]);
 
@@ -450,7 +464,10 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
     () => buildBulkBaseRows(inputMode, rows, generatedRows, selectedBlogIndices),
     [inputMode, rows, generatedRows, selectedBlogIndices]
   );
-  const previewRowsForWp = bulkPreviewBuilt.ok ? bulkPreviewBuilt.baseRows : [];
+  const previewRowsForWp = useMemo(
+    () => (bulkPreviewBuilt.ok ? bulkPreviewBuilt.baseRows : []),
+    [bulkPreviewBuilt],
+  );
 
   const gapScheduleSite = useMemo(() => {
     const all = getStoredSites();
@@ -622,7 +639,6 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
           if (inputMode === "prompt") {
             setGeneratedRows(normalized);
             setHasGeneratedChecklist(true);
-            setNumberOfBlogs(normalized.length);
             setSelectedBlogIndices(allRowIndicesSet(normalized.length));
             setTotalRows(normalized.length);
           } else {
@@ -696,7 +712,19 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
 
   const handleCsvRowChange = useCallback(
     (rowIndex: number, patch: Partial<CSVRow>) => {
-      setRows((prev) => prev.map((row, i) => (i === rowIndex ? { ...row, ...patch } : row)));
+      setRows((prev) => {
+        const current = prev[rowIndex];
+        if (!current) return prev;
+        let hasChange = false;
+        for (const [k, v] of Object.entries(patch)) {
+          if (current[k as keyof CSVRow] !== v) {
+            hasChange = true;
+            break;
+          }
+        }
+        if (!hasChange) return prev;
+        return prev.map((row, i) => (i === rowIndex ? { ...row, ...patch } : row));
+      });
     },
     [setRows],
   );
@@ -736,14 +764,72 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
   const handleGeneratedRowChange = useCallback(
     (index: number, patch: Partial<CSVRow>) => {
       setGeneratedRows((prev) => {
-        const next = [...prev];
-        const current = next[index];
+        const current = prev[index];
         if (!current) return prev;
+        let hasChange = false;
+        for (const [k, v] of Object.entries(patch)) {
+          if (current[k as keyof CSVRow] !== v) {
+            hasChange = true;
+            break;
+          }
+        }
+        if (!hasChange) return prev;
+        const next = [...prev];
         next[index] = { ...current, ...patch };
         return next;
       });
     },
     [setGeneratedRows],
+  );
+
+  const handleBatchDisplayRowsChange = useCallback(
+    (patches: Array<{ index: number; patch: Partial<CSVRow> }>) => {
+      if (patches.length === 0) return;
+      if (inputMode === "csv") {
+        setRows((prev) => {
+          let changed = false;
+          const next = [...prev];
+          for (const { index, patch } of patches) {
+            const current = next[index];
+            if (!current) continue;
+            let rowChanged = false;
+            for (const [k, v] of Object.entries(patch)) {
+              if (current[k as keyof CSVRow] !== v) {
+                rowChanged = true;
+                break;
+              }
+            }
+            if (rowChanged) {
+              next[index] = { ...current, ...patch };
+              changed = true;
+            }
+          }
+          return changed ? next : prev;
+        });
+      } else {
+        setGeneratedRows((prev) => {
+          let changed = false;
+          const next = [...prev];
+          for (const { index, patch } of patches) {
+            const current = next[index];
+            if (!current) continue;
+            let rowChanged = false;
+            for (const [k, v] of Object.entries(patch)) {
+              if (current[k as keyof CSVRow] !== v) {
+                rowChanged = true;
+                break;
+              }
+            }
+            if (rowChanged) {
+              next[index] = { ...current, ...patch };
+              changed = true;
+            }
+          }
+          return changed ? next : prev;
+        });
+      }
+    },
+    [inputMode, setGeneratedRows],
   );
 
   // Resolve author for display when we have generated ideas and a connected WordPress site.
@@ -864,16 +950,11 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
           const staticRows = await parseCsvStatic(file);
           if (staticRows.length > 0) {
             const quick = applyCsvSitemapInference(staticRows);
-            if (inputMode === "prompt") {
-              setGeneratedRows(quick);
-              setHasGeneratedChecklist(true);
-              setNumberOfBlogs(Math.max(quick.length, 1));
-              setSelectedBlogIndices(allRowIndicesSet(quick.length));
-              setTotalRows(quick.length);
-            } else {
-              setRows(quick);
-              setTotalRows(quick.length);
-            }
+            setRows(quick);
+            setGeneratedRows(quick);
+            setHasGeneratedChecklist(true);
+            setSelectedBlogIndices(allRowIndicesSet(quick.length));
+            setTotalRows(quick.length);
           }
         } finally {
           setCsvParsing(false);
@@ -881,24 +962,19 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
         void loadCSV(file).then((parsed) => {
           if (parsed.length === 0) return;
           const normalized = applyCsvSitemapInference(parsed);
-          if (inputMode === "prompt") {
-            setGeneratedRows(normalized);
-            setHasGeneratedChecklist(normalized.length > 0);
-            setNumberOfBlogs(Math.max(normalized.length, 1));
-            setSelectedBlogIndices(allRowIndicesSet(normalized.length));
-            setTotalRows(normalized.length);
-            return;
-          }
           setRows(normalized);
+          setGeneratedRows(normalized);
+          setHasGeneratedChecklist(true);
+          setSelectedBlogIndices(allRowIndicesSet(normalized.length));
           setTotalRows(normalized.length);
         });
       },
       onLoadImportRows: (imported: CSVRow[]) => {
         if (imported.length === 0) return;
         const normalized = applyCsvSitemapInference(imported);
+        setRows(normalized);
         setGeneratedRows(normalized);
         setHasGeneratedChecklist(true);
-        setNumberOfBlogs(normalized.length);
         setSelectedBlogIndices(allRowIndicesSet(normalized.length));
         setTotalRows(normalized.length);
       },
@@ -922,7 +998,7 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
         setSelectedBlogIndices(new Set());
         setRowOrder([]);
         setGeneralIntent("");
-        setNumberOfBlogs(3);
+        setNumberOfBlogs(0);
         setGeneratedRows([]);
         setTotalRows(0);
         setCurrentRow(0);
@@ -971,6 +1047,7 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
           handleGeneratedRowChange(rowIndex, patch);
         }
       },
+      onBatchDisplayRowsChange: handleBatchDisplayRowsChange,
       publishDateLabelByIndex: publishDateLabelByGeneratedIndex,
     });
   }, [
@@ -1045,6 +1122,7 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
     handleSwitchToCustom,
     handleCsvRowChange,
     handleGeneratedRowChange,
+    handleBatchDisplayRowsChange,
     publishDateLabelByGeneratedIndex,
   ]);
 
@@ -1065,7 +1143,7 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
           {/* Input method toggle - only when the panel is not locked by shell tabs or SAP */}
           {!sapMode && forcedInputMode === undefined && (
           <div className="space-y-1.5">
-            <Label className="text-base font-medium">Input method</Label>
+            <label className="text-base font-medium">Input method</label>
             <RadioGroup value={inputMode} onValueChange={(value) => {
               setInputMode(value as 'csv' | 'prompt');
               if (value === 'csv') {
@@ -1080,17 +1158,17 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
             }}>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="csv" id="mode-csv" />
-                <Label htmlFor="mode-csv" className="cursor-pointer flex items-center gap-2 text-base">
+                <label htmlFor="mode-csv" className="cursor-pointer flex items-center gap-2 text-base">
                   <Upload className="h-4 w-4" />
                   CSV Upload
-                </Label>
+                </label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="prompt" id="mode-prompt" />
-                <Label htmlFor="mode-prompt" className="cursor-pointer flex items-center gap-2 text-base">
+                <label htmlFor="mode-prompt" className="cursor-pointer flex items-center gap-2 text-base">
                   <MessageSquare className="h-4 w-4" />
                   Prompt Input
-                </Label>
+                </label>
               </div>
             </RadioGroup>
           </div>
@@ -1145,12 +1223,11 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
             <>
               {!bulkGeneratorWorkspace ? (
               <div>
-                <Input
+                <Field
                   id="general-intent"
                   placeholder="General intent / topic (optional) - e.g. interior design; steers ideas & keywords"
                   value={generalIntent}
                   onChange={(e) => setGeneralIntent(e.target.value)}
-                  className="h-9 w-full min-w-0 border-0 bg-muted/55 text-base font-medium text-foreground shadow-none ring-0 outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-0"
                   aria-label="General intent or content topic"
                 />
               </div>
@@ -1193,7 +1270,7 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
                 isProcessing={isProcessing}
                 apiKey={apiKey}
                 openRouterApiKey={openRouterApiKey}
-                handleGenerateChecklist={handleGenerateChecklistAndSelectAll}
+                handleGenerateChecklist={() => void handleGenerateChecklistAndSelectAll()}
                 setSelectedBlogIndices={setSelectedBlogIndices}
                 postDestination={bulkPostDestination}
                 setPostDestination={setBulkPostDestination}

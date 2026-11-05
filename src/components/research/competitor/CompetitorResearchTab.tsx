@@ -1,14 +1,11 @@
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BarChart3, Copy, Download, Loader2, Sparkles, Table2, Upload, X } from "lucide-react";
+import { BarChart3, Copy, Download, Sparkles, Table2, Upload, X } from "lucide-react";
 import type {
   CompetitorSeedMetrics,
   CompetitorSeedOverview,
   GscCompetitorDateRange,
   GscSiteQueryRow,
 } from "@/lib/competitor-research/types";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useWordPressSites } from "@/hooks/use-wordpress-sites";
 import { buildPortfolioBlockedHosts } from "@/lib/portfolio-link-blocklist";
 import { useManagerSeedWorkspace } from "@/contexts/manager-seed-workspace-context";
@@ -58,6 +55,7 @@ import {
 import { formatCompetitorMetricCell } from "@/lib/competitor-research/competitor-report-number-format";
 import type { CompetitorReportSectionIndex } from "@/lib/competitor-research/competitor-report-system-prompt";
 import { cn } from "@/lib/utils";
+import { Button, Field, FileInput, TextButton, TextareaField } from "@/ui";
 
 function formatOpenRouterPayloadBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -87,20 +85,6 @@ function triggerDownloadCsv(filename: string, csv: string): void {
   a.click();
   URL.revokeObjectURL(url);
 }
-
-/** Single toolbar row - width fits label; IDE-style semantic accents (analysis / data / publish). */
-const COMPETITOR_TOOLBAR_BTN =
-  "mt-0 !mt-0 h-9 min-h-9 w-auto shrink-0 justify-center gap-1.5 whitespace-nowrap px-3 text-base font-semibold leading-none";
-
-const COMPETITOR_TOOLBAR_BTN_DATA =
-  "border border-[hsl(var(--semantic-data)/0.48)] bg-black/30 text-foreground shadow-none transition-colors hover:border-[hsl(var(--semantic-data)/0.72)] hover:bg-[hsl(var(--semantic-data)/0.1)] disabled:border-border disabled:bg-transparent disabled:text-muted-foreground disabled:opacity-50";
-
-/** Neutral outline (avoid blue publish lane on outer workspace chrome). */
-const COMPETITOR_TOOLBAR_BTN_PUBLISH =
-  "border border-border bg-black/30 text-foreground shadow-none transition-colors hover:border-muted-foreground/45 hover:bg-muted/25 disabled:border-border disabled:bg-transparent disabled:text-muted-foreground disabled:opacity-50";
-
-const EXPORT_BTN_CLASS =
-  "h-9 min-h-9 shrink-0 border border-primary/55 bg-black/25 px-3 text-foreground shadow-none transition-colors hover:border-primary/75 hover:bg-primary/10 hover:text-foreground disabled:border-border disabled:bg-transparent disabled:text-muted-foreground disabled:opacity-50";
 
 /** Rotating hints while step 2 runs - summarize research JSON. */
 const REPORT_SUMMARIZE_WAIT_HINTS = [
@@ -187,7 +171,7 @@ function GscStatusLabel({
   return (
     <div className="mt-2 px-2 sm:px-0">
       <span
-        className="inline-flex min-h-[1rem] max-w-full items-center rounded-sm px-2.5 py-1 text-[1rem] font-semibold uppercase leading-normal tracking-wide neo-pulse-frame-primary bg-black/40 text-primary"
+        className="inline-flex min-h-[1rem] max-w-full items-center rounded-sm px-2.5 py-1 text-base font-semibold uppercase leading-normal tracking-wide neo-pulse-frame-primary bg-black/40 text-primary"
         title={titleAttr}
       >
         {label}
@@ -210,22 +194,22 @@ function SeedMetricsStrip({ metrics }: { metrics: CompetitorSeedMetrics }) {
     <div className="neo-pulse-zone-tile--data mt-2 px-2 py-2 sm:px-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-md border border-border/50 bg-black/25 px-2 py-1.5">
-          <div className="min-h-[1rem] text-[1rem] font-medium uppercase leading-normal tracking-wide text-muted-foreground">
+          <div className="min-h-[1rem] text-base font-medium uppercase leading-normal tracking-wide text-muted-foreground">
             Organic keywords
           </div>
-          <div className="font-mono text-[1rem] leading-normal text-foreground">{fmtSeedNum(metrics.organicKeywords)}</div>
+          <div className="font-mono text-base leading-normal text-foreground">{fmtSeedNum(metrics.organicKeywords)}</div>
         </div>
         <div className="rounded-md border border-border/50 bg-black/25 px-2 py-1.5">
-          <div className="min-h-[1rem] text-[1rem] font-medium uppercase leading-normal tracking-wide text-muted-foreground">
+          <div className="min-h-[1rem] text-base font-medium uppercase leading-normal tracking-wide text-muted-foreground">
             Organic traffic
           </div>
-          <div className="font-mono text-[1rem] leading-normal text-foreground">{fmtSeedNum(metrics.organicTraffic)}</div>
+          <div className="font-mono text-base leading-normal text-foreground">{fmtSeedNum(metrics.organicTraffic)}</div>
         </div>
         <div className="rounded-md border border-border/50 bg-black/25 px-2 py-1.5">
-          <div className="min-h-[1rem] text-[1rem] font-medium uppercase leading-normal tracking-wide text-muted-foreground">
+          <div className="min-h-[1rem] text-base font-medium uppercase leading-normal tracking-wide text-muted-foreground">
             Traffic value
           </div>
-          <div className="font-mono text-[1rem] leading-normal text-foreground">{fmtSeedMoney(metrics.trafficCost)}</div>
+          <div className="font-mono text-base leading-normal text-foreground">{fmtSeedMoney(metrics.trafficCost)}</div>
         </div>
       </div>
     </div>
@@ -237,16 +221,16 @@ function SeedOverviewStrip({ overview }: { overview: CompetitorSeedOverview }) {
     <div className="neo-pulse-zone-tile--data mt-2 px-2 py-2 sm:px-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="rounded-md border border-border/50 bg-black/25 px-2 py-1.5">
-          <div className="min-h-[1rem] text-[1rem] font-medium uppercase leading-normal tracking-wide text-muted-foreground">
+          <div className="min-h-[1rem] text-base font-medium uppercase leading-normal tracking-wide text-muted-foreground">
             Authority Score
           </div>
-          <div className="font-mono text-[1rem] leading-normal text-foreground">{fmtSeedNum(overview.authorityScore)}</div>
+          <div className="font-mono text-base leading-normal text-foreground">{fmtSeedNum(overview.authorityScore)}</div>
         </div>
         <div className="rounded-md border border-border/50 bg-black/25 px-2 py-1.5">
-          <div className="min-h-[1rem] text-[1rem] font-medium uppercase leading-normal tracking-wide text-muted-foreground">
+          <div className="min-h-[1rem] text-base font-medium uppercase leading-normal tracking-wide text-muted-foreground">
             Backlinks
           </div>
-          <div className="font-mono text-[1rem] leading-normal text-foreground">{fmtSeedNum(overview.backlinksTotal)}</div>
+          <div className="font-mono text-base leading-normal text-foreground">{fmtSeedNum(overview.backlinksTotal)}</div>
         </div>
       </div>
     </div>
@@ -1633,7 +1617,7 @@ export function CompetitorResearchTab() {
       </div>
 
       {competitorWorkspaceMode === "connected" && (!site || !site.siteUrl?.trim()) ? (
-        <div className="neo-pulse-zone-tile--data px-2 py-3 text-[1rem] leading-normal text-muted-foreground">
+        <div className="neo-pulse-zone-tile--data px-2 py-3 text-base leading-normal text-muted-foreground">
           {!site
             ? "Connect a WordPress site and select it in the header, or switch to Temp seed for unconnected research."
             : "This site has no URL saved."}
@@ -1647,10 +1631,8 @@ export function CompetitorResearchTab() {
                   Seed domain
                 </div>
                 {competitorWorkspaceMode === "temp" ? (
-                  <Input
+                  <Field
                     type="url"
-                    variant="neoPulseBlack"
-                    className="h-9 font-mono text-sm"
                     placeholder="https://example.com"
                     aria-label="Seed site URL for competitor research"
                     value={tempSeedUrl}
@@ -1670,8 +1652,7 @@ export function CompetitorResearchTab() {
                 <div className="text-base font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Strategic brief · Sec. 1 (optional)
                 </div>
-                <Textarea
-                  className="min-h-[3.25rem] resize-y rounded-md border border-border/60 bg-black/30 px-2 py-1.5 text-sm leading-snug"
+                <TextareaField
                   placeholder="Angles, niche, constraints, or tone for the title and opening…"
                   aria-label="Optional strategic brief for section 1"
                   value={strategicBrief}
@@ -1690,14 +1671,9 @@ export function CompetitorResearchTab() {
                 role="group"
                 aria-label="Analyze: Auto uses Semrush organic competitors; Manual uses seed data only until you add domains"
               >
-                <button
-                  type="button"
-                  className={cn(
-                    "min-h-[1rem] min-w-[4.25rem] px-2.5 text-[1rem] font-semibold uppercase leading-normal tracking-wide transition-colors",
-                    analyzeMode === "auto"
-                      ? "rounded-sm bg-[hsl(var(--semantic-analysis)/0.18)] text-primary"
-                      : "text-muted-foreground hover:text-foreground/90",
-                  )}
+                <Button
+                  pressed={analyzeMode === "auto"}
+                  variant="quiet"
                   aria-pressed={analyzeMode === "auto"}
                   disabled={busy}
                   onClick={() => {
@@ -1706,68 +1682,49 @@ export function CompetitorResearchTab() {
                   }}
                 >
                   Auto
-                </button>
-                <button
-                  type="button"
-                  className={cn(
-                    "min-h-[1rem] min-w-[4.25rem] px-2.5 text-[1rem] font-semibold uppercase leading-normal tracking-wide transition-colors",
-                    analyzeMode === "manual"
-                      ? "rounded-sm bg-[hsl(var(--semantic-analysis)/0.18)] text-primary"
-                      : "text-muted-foreground hover:text-foreground/90",
-                  )}
+                </Button>
+                <Button
+                  pressed={analyzeMode === "manual"}
+                  variant="quiet"
                   aria-pressed={analyzeMode === "manual"}
                   disabled={busy}
                   onClick={() => setAnalyzeMode("manual")}
                 >
                   Manual
-                </button>
+                </Button>
               </div>
               <div
                 className="inline-flex h-9 shrink-0 overflow-hidden rounded-md border border-[hsl(var(--semantic-analysis)/0.48)] bg-black/30 p-0.5 shadow-none"
                 role="group"
                 aria-label="Semrush enhanced: DFS uses DataForSEO Labs; Semrush uses Semrush API"
               >
-                <button
-                  type="button"
-                  className={cn(
-                    "min-h-[1rem] min-w-[4.25rem] px-2.5 text-[1rem] font-semibold uppercase leading-normal tracking-wide transition-colors",
-                    !semrushEnhanced
-                      ? "rounded-sm bg-[hsl(var(--semantic-analysis)/0.18)] text-primary"
-                      : "text-muted-foreground hover:text-foreground/90",
-                  )}
+                <Button
+                  pressed={!semrushEnhanced}
+                  variant="quiet"
                   aria-pressed={!semrushEnhanced}
                   disabled={busy}
                   onClick={() => setSemrushEnhanced(false)}
                 >
                   DFS
-                </button>
-                <button
-                  type="button"
-                  className={cn(
-                    "min-h-[1rem] min-w-[4.25rem] px-2.5 text-[1rem] font-semibold uppercase leading-normal tracking-wide transition-colors",
-                    semrushEnhanced
-                      ? "rounded-sm bg-[hsl(var(--semantic-analysis)/0.18)] text-primary"
-                      : "text-muted-foreground hover:text-foreground/90",
-                  )}
+                </Button>
+                <Button
+                  pressed={Boolean(semrushEnhanced)}
+                  variant="quiet"
                   aria-pressed={semrushEnhanced}
                   disabled={busy}
                   onClick={() => setSemrushEnhanced(true)}
                 >
                   Semrush
-                </button>
+                </Button>
               </div>
-              <input
+              <FileInput
                 ref={gridCsvFileRef}
-                type="file"
                 accept=".csv,text/csv"
-                className="sr-only"
                 aria-hidden
                 onChange={onGridCsvFileChange}
               />
               <Button
                 type="button"
-                variant="outline"
-                className={cn(COMPETITOR_TOOLBAR_BTN, COMPETITOR_TOOLBAR_BTN_DATA)}
                 disabled={gridCsvBusy}
                 title={
                   semrushEnhanced
@@ -1776,17 +1733,17 @@ export function CompetitorResearchTab() {
                 }
                 onClick={() => gridCsvFileRef.current?.click()}
               >
-                {gridCsvBusy ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : <Upload className="h-4 w-4 shrink-0" />}
+                {gridCsvBusy ? null : <Upload className="h-4 w-4 shrink-0" />}
                 Grid CSV
               </Button>
               <Button
+                variant="run"
                 type="button"
-                className={cn("neo-pulse-btn-semantic-analysis", COMPETITOR_TOOLBAR_BTN)}
                 disabled={busy}
                 onClick={() => void analyze()}
               >
                 {phase === "semrush" || phase === "tiers" || phase === "manual" ? (
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                  null
                 ) : (
                   <Sparkles className="h-4 w-4 shrink-0" />
                 )}
@@ -1794,19 +1751,15 @@ export function CompetitorResearchTab() {
               </Button>
               <Button
                 type="button"
-                variant="outline"
-                className={cn(COMPETITOR_TOOLBAR_BTN, COMPETITOR_TOOLBAR_BTN_DATA)}
                 disabled={busy || !tiers}
                 title="Summarize research JSON, then write strategist report (Markdown)"
                 onClick={() => void generateReport()}
               >
-                {phase === "report" ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : null}
+                {phase === "report" ? null : null}
                 Summarize → Write report
               </Button>
               <Button
                 type="button"
-                variant="outline"
-                className={cn(COMPETITOR_TOOLBAR_BTN, COMPETITOR_TOOLBAR_BTN_DATA)}
                 disabled={!keywordsMd?.trim() && !reportMd?.trim()}
                 title="Copy Keywords They Own and strategist report to clipboard (sections separated by ---)"
                 onClick={() => void copyMarkdownBundle()}
@@ -1816,8 +1769,6 @@ export function CompetitorResearchTab() {
               </Button>
               <Button
                 type="button"
-                variant="outline"
-                className={cn(COMPETITOR_TOOLBAR_BTN, COMPETITOR_TOOLBAR_BTN_DATA)}
                 disabled={!keywordsMd?.trim() && !reportMd?.trim()}
                 title="Download two separate .md files when both exist: Keywords They Own and strategist report"
                 onClick={downloadMarkdownBundle}
@@ -1827,8 +1778,6 @@ export function CompetitorResearchTab() {
               </Button>
               <Button
                 type="button"
-                variant="outline"
-                className={cn(COMPETITOR_TOOLBAR_BTN, COMPETITOR_TOOLBAR_BTN_PUBLISH)}
                 disabled={busy || !semrushData || !reportMd?.trim()}
                 title="Bulk CSV from the report’s Content Opportunity Matrix (Anchor Demand column); non-branded phrases; falls back to the Semrush non-brand keyword section if the matrix is empty"
                 onClick={downloadBulkContentCsv}
@@ -1865,14 +1814,12 @@ export function CompetitorResearchTab() {
                   {reportOpenRouterStats.breakdown.seedTopKeywordCount} seed keywords ·{" "}
                   {reportOpenRouterStats.breakdown.tierGroupCount} tier groups
                 </div>
-                <Button
+                <TextButton
                   type="button"
-                  variant="link"
-                  className="mt-1 h-auto min-h-0 justify-start p-0 text-base font-semibold leading-snug text-[hsl(var(--semantic-data))] underline underline-offset-2"
                   onClick={downloadOpenRouterRequestJson}
                 >
                   Download exact POST body (.json)
-                </Button>
+                </TextButton>
               </div>
             ) : null}
             {phase === "report" && reportPipelineStep >= 6 ? (
@@ -1901,9 +1848,6 @@ export function CompetitorResearchTab() {
                         <span className="flex flex-wrap items-center gap-2">
                           <Button
                             type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-7 min-h-7 px-2 text-base font-semibold"
                             disabled={!hasMd}
                             title={hasMd ? "Download this section as Markdown" : "Waiting for this section…"}
                             onClick={() => downloadStrategistSectionMarkdown(section)}
@@ -1911,17 +1855,14 @@ export function CompetitorResearchTab() {
                             <Download className="mr-1 h-3.5 w-3.5 shrink-0" />
                             .md
                           </Button>
-                          <Button
+                          <TextButton
                             type="button"
-                            variant="link"
-                            size="sm"
-                            className="h-auto min-h-0 p-0 text-base font-semibold leading-snug text-[hsl(var(--semantic-data))] underline underline-offset-2"
                             disabled={!hasJson}
                             title={hasJson ? "Download exact OpenRouter POST JSON for this section" : "Payload not ready yet"}
                             onClick={() => downloadStrategistSectionPostJson(section)}
                           >
                             POST .json
-                          </Button>
+                          </TextButton>
                         </span>
                       </li>
                     );
@@ -1951,9 +1892,8 @@ export function CompetitorResearchTab() {
                 <ul className="mt-1 list-inside list-disc space-y-0.5">
                   {semrushCsvDownloads.seed ? (
                     <li>
-                      <button
+                      <TextButton
                         type="button"
-                        className="inline font-semibold text-[hsl(var(--semantic-data))] underline underline-offset-2"
                         onClick={() =>
                           triggerDownloadCsv(
                             `semrush-seed-${safeDomainForFilename(semrushData?.seedDomain ?? "seed")}-domain-organic-top-${DOMAIN_ORGANIC_CSV_TOP_ROWS}.csv`,
@@ -1962,14 +1902,13 @@ export function CompetitorResearchTab() {
                         }
                       >
                         Seed site ({semrushData?.seedDomain ?? "seed"})
-                      </button>
+                      </TextButton>
                     </li>
                   ) : null}
                   {semrushCsvDownloads.competitors.map(({ domain, csv }) => (
                     <li key={domain}>
-                      <button
+                      <TextButton
                         type="button"
-                        className="inline font-semibold text-[hsl(var(--semantic-data))] underline underline-offset-2"
                         onClick={() =>
                           triggerDownloadCsv(
                             `semrush-competitor-${safeDomainForFilename(domain)}-domain-organic-top-${DOMAIN_ORGANIC_CSV_TOP_ROWS}.csv`,
@@ -1978,7 +1917,7 @@ export function CompetitorResearchTab() {
                         }
                       >
                         {domain}
-                      </button>
+                      </TextButton>
                     </li>
                   ))}
                 </ul>
@@ -2037,7 +1976,7 @@ export function CompetitorResearchTab() {
                     )
                   ) : null}
                 </div>
-                <div className="min-h-[1rem] text-[1rem] leading-normal text-muted-foreground">
+                <div className="min-h-[1rem] text-base leading-normal text-muted-foreground">
                   {gridCsvBusy && phase === "idle"
                     ? (gridCsvProgress ?? "Grid CSV: resolving websites (DataForSEO) then competitor metrics (Semrush)…")
                     : phase === "semrush"
@@ -2046,7 +1985,7 @@ export function CompetitorResearchTab() {
                         ? "Step 2/3: Grouping competitors into tiers (AI)…"
                         : phase === "report" ? (
                           <div className="space-y-1.5">
-                            <p className="min-h-[1rem] text-[1rem] leading-normal text-muted-foreground">
+                            <p className="min-h-[1rem] text-base leading-normal text-muted-foreground">
                               {reportMicroLabel
                                 ? formatCompetitorReportTabProgressLine(
                                     reportPipelineStep,
@@ -2088,7 +2027,7 @@ export function CompetitorResearchTab() {
               </div>
             ) : null}
             {error ? (
-              <p className="mt-2 min-h-[1rem] text-[1rem] leading-normal text-destructive">{error}</p>
+              <p className="mt-2 min-h-[1rem] text-base leading-normal text-destructive">{error}</p>
             ) : null}
           </div>
 
@@ -2120,18 +2059,15 @@ export function CompetitorResearchTab() {
                     >
                       <span className="min-w-0 break-all">{d}</span>
                       <Button
+                        size="icon" icon={X}
+                        variant="quiet"
                         type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
                         disabled={busy}
                         aria-label={`Remove ${d} from queue`}
                         onClick={() => {
                           setPendingManualDomains((prev) => prev.filter((_, i) => i !== index));
                         }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                      ></Button>
                     </li>
                   ))}
                 </ul>
@@ -2139,7 +2075,7 @@ export function CompetitorResearchTab() {
             ) : null}
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
               <div className="min-w-[200px] flex-1">
-                <Textarea
+                <TextareaField
                   id="competitor-manual-domain"
                   placeholder={"example.com\nhttps://competitor.com\n(one domain or URL per line)"}
                   aria-label="Competitor domains, one per line"
@@ -2153,13 +2089,10 @@ export function CompetitorResearchTab() {
                     }
                   }}
                   rows={4}
-                  className="min-h-[5.5rem] resize-y font-mono text-base"
                 />
               </div>
               <Button
                 type="button"
-                variant="outline"
-                className={cn(EXPORT_BTN_CLASS, "shrink-0 text-base leading-none")}
                 title="Add every non-empty line (Ctrl+Enter)"
                 disabled={
                   busy ||

@@ -108,7 +108,7 @@ export function AutomationRecipeLibrary({
   if (error) {
     return (
       <div className={`flex h-full items-center justify-center px-4 ${FORGE_RECIPE_PAGE_CLASS}`}>
-        <p className="text-base text-red-400">{error}</p>
+        <p className="text-base text-ui-danger-hover">{error}</p>
       </div>
     );
   }

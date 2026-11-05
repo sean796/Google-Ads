@@ -1,6 +1,4 @@
 import { useEffect } from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import type { ScheduleOccupancy } from '@/lib/bulk-schedule-gap';
 import type { ScheduleFrequency } from '@/lib/wordpress-scheduler';
 import { getStoredSites, type WordPressSite } from '@/components/IntegrationsTab';
@@ -15,10 +13,7 @@ import {
 import { WordPressScheduleFields } from './WordPressScheduleFields';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { defaultBulkSitemapMode, type BulkSitemapMode } from '@/lib/bulk/bulk-sitemap-mode';
-
-/** Flat cells: stronger fill, no stroke - reads clearly on dark UI */
-const BULK_FIELD_TRIGGER =
-  'h-9 w-full min-w-0 border-0 bg-muted/55 text-foreground text-base font-medium shadow-none ring-0 outline-none focus:ring-2 focus:ring-primary/45 focus:ring-offset-0 [&>span]:text-foreground';
+import { SelectField } from "@/ui";
 
 interface SiteConfig {
   sitemapType: BulkSitemapMode;
@@ -71,7 +66,6 @@ interface WordPressPostingConfigProps {
   /** CSV workspace: sitemap lives in title-row menu, not details drawer. */
   hideSitemapField?: boolean;
 }
-
 
 export function WordPressPostingConfig({
   selectedWordPressSites,
@@ -178,12 +172,12 @@ export function WordPressPostingConfig({
                     {postDestinationChoices.map((choice) => (
                       <div key={choice} className="flex items-center gap-2">
                         <RadioGroupItem value={choice} id={`bulk-pd-${choice}`} />
-                        <Label
+                        <label
                           htmlFor={`bulk-pd-${choice}`}
                           className="cursor-pointer text-base font-normal"
                         >
                           {WORDPRESS_POST_DESTINATION_LONG[choice]}
-                        </Label>
+                        </label>
                       </div>
                     ))}
                   </RadioGroup>
@@ -199,30 +193,29 @@ export function WordPressPostingConfig({
                 {showRemotePostingFields && !hideSitemapField ? (
                 <>
                 <div className="min-w-0">
-                  <Select
+                  <SelectField
+                    placeholder="Sitemap type"
                     value={config.sitemapType}
-                    onValueChange={(value: 'post' | 'entity') => {
+                    onValueChange={(value) => {
                       setSiteConfigs((prev) => ({
                         ...prev,
                         [site.id]: {
                           ...prev[site.id],
-                          sitemapType: value,
+                          sitemapType: value as 'post' | 'entity',
                         },
                       }));
                     }}
+                    options={[
+                      { value: "post", label: "Post (post-sitemap.xml)" },
+                      {
+                        value: "entity",
+                        label: `Entity (${site.entitySitemapUrl ? site.entitySitemapUrl.split('/').pop() : 'Not configured'})`,
+                        disabled: !site.entitySitemapUrl,
+                      },
+                    ]}
+                    width="full"
                     disabled={isDisabled}
-                  >
-                    <SelectTrigger className={BULK_FIELD_TRIGGER} aria-label="Sitemap type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="post">Post (post-sitemap.xml)</SelectItem>
-                      <SelectItem value="entity" disabled={!site.entitySitemapUrl}>
-                        Entity (
-                        {site.entitySitemapUrl ? site.entitySitemapUrl.split('/').pop() : 'Not configured'})
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  />
                 </div>
 
                 {!hideScheduleFields ? (

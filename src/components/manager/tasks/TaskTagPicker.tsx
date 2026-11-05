@@ -1,6 +1,6 @@
 import React from "react";
-import { cn } from "@/lib/utils";
 import type { TaskTag } from "@/lib/tasks-types";
+import { SwatchButton } from "@/ui";
 
 export type TaskTagPickerProps = {
   tags: TaskTag[];
@@ -28,15 +28,14 @@ export function TaskTagPicker({
       {tags.map((tag) => {
         const active = selectedTagIds.includes(tag.keyword);
         return (
-          <button
+          <SwatchButton
             key={tag.keyword}
-            type="button"
             onClick={() => toggle(tag.keyword)}
-            className={cn("rounded-none px-2 py-1 text-base text-white", active ? "opacity-100" : "opacity-40")}
-            style={{ backgroundColor: tag.color }}
+            selected={active}
+            swatch={{ backgroundColor: tag.color, color: "#fff" }}
           >
             {tag.name}
-          </button>
+          </SwatchButton>
         );
       })}
     </div>

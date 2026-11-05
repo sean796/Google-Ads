@@ -1,9 +1,9 @@
 import { Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { buildWordBlacklistDownloadText } from "@/lib/content-word-blocklist";
 import { META_FIELD_END_RAIL_BTN } from "@/components/overview/MetaOptimizerPageRowDetails";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_CSV_DOWNLOADED } from "@/lib/notify-messages";
+import { Button } from "@/ui";
 
 function downloadWordBlacklistTxt() {
   const content = buildWordBlacklistDownloadText();
@@ -26,16 +26,13 @@ export function WordBlacklistRunDetail() {
       <p className="min-w-0 flex-1 text-base font-medium text-white">Word Blacklist</p>
       <div className="flex h-8 w-8 shrink-0 items-center justify-center">
         <Button
+          size="icon" icon={Download}
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="icon"
-          className={META_FIELD_END_RAIL_BTN}
           title="Download word-blacklist.txt"
           aria-label="Download word blacklist"
           onClick={downloadWordBlacklistTxt}
-        >
-          <Download className="h-4 w-4 shrink-0" />
-        </Button>
+        ></Button>
       </div>
     </div>
   );

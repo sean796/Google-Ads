@@ -1,5 +1,4 @@
 import React from "react";
-import { Loader2 } from "lucide-react";
 import type { CompetitorGenerationProgress, GeneratedCompetitorRow } from "../types";
 
 export type CompetitorGenerationMainSectionProps = {
@@ -18,7 +17,7 @@ export function CompetitorGenerationMainSection({
       {isGenerating && (
         <div className="rounded-md bg-muted/15 p-4">
           <div className="mb-2 flex items-center gap-2 font-semibold text-foreground">
-            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+            
             Agentic competitor generation
           </div>
           {progress?.currentMessage ? (

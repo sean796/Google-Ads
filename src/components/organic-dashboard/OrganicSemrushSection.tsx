@@ -30,6 +30,7 @@ import {
   ORGANIC_SEMRUSH_TRAFFIC_COLOR,
 } from "@/components/organic-dashboard/organic-dashboard-styles";
 import { cn } from "@/lib/utils";
+import { Button, SwatchButton } from "@/ui";
 
 type SemrushChartSeries = "traffic" | "keywords" | "trafficCost";
 
@@ -195,21 +196,15 @@ export function OrganicSemrushSection({
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <div className="flex shrink-0 gap-1">
               {(["1M", "6M", "1Y", "2Y", "all"] as const).map((mode) => (
-                <button
+                <Button
+                  pressed={trendRange === mode}
+                  variant="quiet"
                   key={mode}
-                  type="button"
-                  aria-pressed={trendRange === mode}
                   disabled={trend.length === 0}
                   onClick={() => setTrendRange(mode)}
-                  className={cn(
-                    "h-8 min-w-[2.75rem] px-2 text-base",
-                    trendRange === mode
-                      ? "bg-zinc-800 text-white"
-                      : cn(ORGANIC_GSC_METRIC_INACTIVE_CLASS, "text-muted-foreground"),
-                  )}
                 >
                   {mode === "all" ? "All" : mode}
-                </button>
+                </Button>
               ))}
             </div>
             {periodLabels.primary !== "Current period" ? (
@@ -217,7 +212,7 @@ export function OrganicSemrushSection({
                 {showCompare ? (
                   <>
                     {periodLabels.compare}
-                    <span className="px-1.5">→</span>
+                    <span className="px-1.5">â†’</span>
                     {periodLabels.primary}
                   </>
                 ) : (
@@ -238,20 +233,15 @@ export function OrganicSemrushSection({
         >
           {CHART_METRIC_DEFS.map((metric) => {
             const on = activeSeries.has(metric.id);
-            const value = summary?.[metric.summaryKey] ?? "—";
-            const compareValue = summary?.[metric.compareKey] ?? "—";
+            const value = summary?.[metric.summaryKey] ?? "â€”";
+            const compareValue = summary?.[metric.compareKey] ?? "â€”";
             const delta = summary?.[metric.deltaKey] ?? { deltaPercent: null, deltaPositive: null };
             return (
-              <button
+              <SwatchButton
                 key={metric.label}
-                type="button"
-                aria-pressed={on}
+                selected={on}
                 onClick={() => toggleSeries(metric.id)}
-                className={cn(
-                  "flex min-w-0 flex-col gap-0.5 rounded-none px-3 py-2 text-left transition-colors",
-                  on ? "text-white" : ORGANIC_GSC_METRIC_INACTIVE_CLASS,
-                )}
-                style={on ? { backgroundColor: metric.color } : undefined}
+                swatch={on ? { backgroundColor: metric.color, color: "#fff" } : undefined}
               >
                 <span className="text-base leading-tight">{metric.label}</span>
                 {showCompare ? (
@@ -265,13 +255,13 @@ export function OrganicSemrushSection({
                 ) : (
                   <span className="text-xl font-semibold tabular-nums leading-tight">{value}</span>
                 )}
-              </button>
+              </SwatchButton>
             );
           })}
           {showBrandedTiles
             ? BRANDED_TILE_DEFS.map((metric) => {
-                const value = summary?.[metric.summaryKey] ?? "—";
-                const compareValue = summary?.[metric.compareKey] ?? "—";
+                const value = summary?.[metric.summaryKey] ?? "â€”";
+                const compareValue = summary?.[metric.compareKey] ?? "â€”";
                 const delta = summary?.[metric.deltaKey] ?? { deltaPercent: null, deltaPositive: null };
                 return (
                   <div
@@ -359,7 +349,7 @@ export function OrganicSemrushSection({
         </div>
       ) : (
         <div ref={boxRef} className="px-4 pb-2 text-base text-muted-foreground tabular-nums">
-          {summary ? "—" : "No Semrush data for this property"}
+          {summary ? "â€”" : "No Semrush data for this property"}
         </div>
       )}
 
@@ -387,7 +377,7 @@ export function OrganicSemrushSection({
               <tbody>
                 {keywords.map((row, idx) => (
                   <tr key={`${row.phrase}-${idx}`} className="border-t border-white/5">
-                    <td className="max-w-[20rem] truncate py-2.5 pr-4 text-white">{row.phrase}</td>
+                    <td className="max-w-[20rem] break-words py-2.5 pr-4 text-white">{row.phrase}</td>
                     <td className="py-2.5 pr-4 tabular-nums text-muted-foreground">{row.volume}</td>
                     <td
                       className="py-2.5 pr-4 tabular-nums font-medium"
@@ -403,7 +393,7 @@ export function OrganicSemrushSection({
           </div>
         ) : (
           <p className="px-4 pb-4 pt-2 text-base text-muted-foreground">
-            {summary ? "No keywords returned for this domain." : "—"}
+            {summary ? "No keywords returned for this domain." : "â€”"}
           </p>
         )}
       </div>

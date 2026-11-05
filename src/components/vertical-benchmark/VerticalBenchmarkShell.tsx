@@ -7,7 +7,6 @@ import {
   SEO_WORKSPACE_HEADER_CLASS,
   SEO_WORKSPACE_SHELL_CLASS,
 } from "@/components/seo/seo-workspace-layout";
-import { WORKSPACE_DETAILS_DIM_OVERLAY_CLASS } from "@/components/overview/overview-tab/overview-tab-content-constants";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -16,7 +15,6 @@ type Props = {
 
 export function VerticalBenchmarkShell({ openRouterApiKey }: Props) {
   const c = useVerticalBenchmarkController(openRouterApiKey);
-  const [detailsDrawerOpen, setDetailsDrawerOpen] = useState(false);
 
   return (
     <div className={SEO_WORKSPACE_SHELL_CLASS}>
@@ -45,14 +43,10 @@ export function VerticalBenchmarkShell({ openRouterApiKey }: Props) {
           selectedCount={c.selectedSiteIdList.length}
           blogCount={c.blogCount}
           onBlogCountChange={c.setBlogCount}
-          onDetailsOpenChange={setDetailsDrawerOpen}
         />
       </div>
 
       <div className={cn(SEO_WORKSPACE_BODY_SCROLL_CLASS, "relative min-h-0 flex-1")}>
-        {detailsDrawerOpen ? (
-          <div className={WORKSPACE_DETAILS_DIM_OVERLAY_CLASS} aria-hidden />
-        ) : null}
         <VerticalBenchmarkClientRoster
           sites={c.rosterSites}
           selectedSiteIds={c.selectedSiteIds}

@@ -1,6 +1,4 @@
 import { useState, useCallback } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { ApiKeyCopyButton } from "@/components/ApiKeyCopyButton";
 import { notify } from "@/lib/app-notifications";
 import {
@@ -9,6 +7,7 @@ import {
 } from "@/lib/notify-messages";
 import { DASHBOARD_SETTINGS_FIELD_CLASS } from "@/components/manager/dashboard/dashboard-panel-styles";
 import { syncOpenRouterToWorkspace } from "@/lib/manager-wordpress-properties-api";
+import { Button, Field } from "@/ui";
 
 interface ApiKeyContentProps {
   apiKey: string;
@@ -44,21 +43,21 @@ export const ApiKeyContent: React.FC<ApiKeyContentProps> = ({
       <p className="font-semibold text-white">OpenRouter</p>
       <p className="text-base text-white">Powers AI generation. Saved locally and synced to your server.</p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <Input
+        <Field
+          placeholder="OpenRouter API key"
           id="apiKey"
           type="password"
           value={localApiKey}
           onChange={(e) => setLocalApiKey(e.target.value)}
           aria-label="OpenRouter API key"
           autoComplete="off"
-          className={INPUT_CLASS}
         />
         <ApiKeyCopyButton
           value={localApiKey}
           emptyMessage="Enter an OpenRouter API key to copy."
           aria-label="Copy OpenRouter API key"
         />
-        <Button type="button" onClick={handleSave} className="h-12 shrink-0 text-base">
+        <Button variant="run" type="button" onClick={handleSave}>
           Save
         </Button>
       </div>

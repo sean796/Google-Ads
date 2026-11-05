@@ -1,7 +1,7 @@
-import { Download, FileText, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Download, FileText } from "lucide-react";
 import type { ContentAuditIssueRow } from "@/lib/overview/overview-content-analyze-fix";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 export type OverviewContentAuditSectionUiRow = {
   sectionIndex: number;
@@ -118,14 +118,14 @@ export function OverviewContentAuditSectionsPanel({
           >
             <div className="flex min-w-0 items-start gap-2">
               {s.status === "auditing" ? (
-                <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
+                null
               ) : s.status === "done" ? (
-                <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-green-500" aria-hidden />
+                <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary/80" aria-hidden />
               ) : (
                 <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-muted-foreground/50" aria-hidden />
               )}
               <div className="min-w-0">
-                <div className="truncate text-base font-medium text-foreground">
+                <div className="break-words text-base font-medium text-foreground">
                   <span className="text-muted-foreground">{s.sectionIndex + 1}. </span>
                   {s.title || `Section ${s.sectionIndex + 1}`}
                 </div>
@@ -142,9 +142,6 @@ export function OverviewContentAuditSectionsPanel({
               {s.status === "done" && (s.html?.length ?? 0) > 0 ? (
                 <Button
                   type="button"
-                  size="sm"
-                  variant="outline"
-                  className="text-base"
                   onClick={() =>
                     triggerDownloadTextFile(
                       `audit-section-${s.sectionIndex + 1}-${sanitizeFilenamePart(s.title)}.html`,
@@ -159,10 +156,8 @@ export function OverviewContentAuditSectionsPanel({
               ) : null}
               {s.status === "done" ? (
                 <Button
+                  variant="quiet"
                   type="button"
-                  size="sm"
-                  variant="ghost"
-                  className="text-base"
                   onClick={() =>
                     triggerDownloadTextFile(
                       `audit-section-${s.sectionIndex + 1}-${sanitizeFilenamePart(s.title)}-issues.json`,

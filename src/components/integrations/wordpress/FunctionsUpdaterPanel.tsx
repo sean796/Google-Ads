@@ -1,14 +1,11 @@
 import React, { useCallback, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Copy, Loader2, Sparkles } from 'lucide-react';
+import { Copy, Sparkles } from 'lucide-react';
 import { notify } from '@/lib/app-notifications';
 import { NOTIFY_CLIPBOARD_UNAVAILABLE, NOTIFY_COPIED, NOTIFY_PASTE_YOUR_FUNCTIONS_PHP_CONTENT_FIRST } from "@/lib/notify-messages";
 import type { WordPressSite } from '../types';
 import { updateFunctionsPhp } from '@/lib/wordpress-api/update-functions-php';
 import { getCyberpunkTextClasses } from './cyberpunk-theme';
-import { WP_PANEL_TOOLBAR_BTN } from './wordpress-panel-chrome';
+import { Button, TextareaField } from "@/ui";
 
 export interface FunctionsUpdaterPanelProps {
   site: WordPressSite;
@@ -66,15 +63,14 @@ export const FunctionsUpdaterPanel: React.FC<FunctionsUpdaterPanelProps> = ({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 pt-2">
       <div className="space-y-2">
-        <Label htmlFor={`functions-source-${siteId}`} className="text-base font-medium text-foreground">
+        <label htmlFor={`functions-source-${siteId}`} className="text-base font-medium text-foreground">
           Current functions.php
-        </Label>
-        <Textarea
+        </label>
+        <TextareaField
           id={`functions-source-${siteId}`}
           value={sourcePhp}
           onChange={(e) => setSourcePhp(e.target.value)}
           placeholder="Paste your live functions.php from WP Theme File Editor. Update merges it with the latest FAQ/REST fixes and keeps your site-specific code (maps, shortcodes, custom hooks)…"
-          className="min-h-[240px] font-mono text-base"
           disabled={disabled || isUpdating}
           spellCheck={false}
         />
@@ -82,15 +78,13 @@ export const FunctionsUpdaterPanel: React.FC<FunctionsUpdaterPanelProps> = ({
 
       <div className="flex flex-wrap items-center gap-2">
         <Button
+          variant="run"
           type="button"
-          variant="default"
-          size="default"
-          className={WP_PANEL_TOOLBAR_BTN}
           onClick={() => void handleUpdate()}
           disabled={disabled || isUpdating || !sourcePhp.trim()}
         >
           {isUpdating ? (
-            <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+            null
           ) : (
             <Sparkles className="h-4 w-4 shrink-0" aria-hidden />
           )}
@@ -101,14 +95,12 @@ export const FunctionsUpdaterPanel: React.FC<FunctionsUpdaterPanelProps> = ({
       {outputPhp ? (
         <div className="flex min-h-0 flex-1 flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <Label htmlFor={`functions-output-${siteId}`} className="text-base font-medium text-foreground">
+            <label htmlFor={`functions-output-${siteId}`} className="text-base font-medium text-foreground">
               Updated functions.php
-            </Label>
+            </label>
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
-              size="default"
-              className={WP_PANEL_TOOLBAR_BTN}
               onClick={() => void handleCopy()}
             >
               <Copy className="h-4 w-4 shrink-0" aria-hidden />
@@ -123,11 +115,11 @@ export const FunctionsUpdaterPanel: React.FC<FunctionsUpdaterPanelProps> = ({
             </p>
           )}
 
-          <Textarea
+          <TextareaField
+            placeholder="Functions output"
             id={`functions-output-${siteId}`}
             value={outputPhp}
             readOnly
-            className="min-h-[320px] flex-1 font-mono text-base"
             spellCheck={false}
           />
         </div>

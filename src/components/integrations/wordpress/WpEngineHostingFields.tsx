@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Input } from "@/components/ui/input";
 import { TASK_FORM_FLAT_CONTROL_CLASS, TaskFormFlatField } from "@/components/manager/tasks/TaskFormLayout";
 import type { WordPressSite } from "../types";
 import { propertyWpEngineInstall } from "./property-profile-view-model";
+import { Field } from "@/ui";
 
 export type WpEngineHostingFieldsProps = {
   site: WordPressSite | null | undefined;
@@ -30,7 +30,7 @@ export function WpEngineHostingFields({ site, onPatchSite }: WpEngineHostingFiel
   return (
     <>
       <TaskFormFlatField label="WP Engine install">
-        <Input
+        <Field
           value={install}
           onChange={(e) => setInstall(e.target.value)}
           onBlur={persist}
@@ -38,11 +38,10 @@ export function WpEngineHostingFields({ site, onPatchSite }: WpEngineHostingFiel
           aria-label="WP Engine install"
           autoComplete="off"
           disabled={!site}
-          className={TASK_FORM_FLAT_CONTROL_CLASS}
         />
       </TaskFormFlatField>
       <TaskFormFlatField label="WP Engine account ID">
-        <Input
+        <Field
           value={accountId}
           onChange={(e) => setAccountId(e.target.value)}
           onBlur={persist}
@@ -50,7 +49,6 @@ export function WpEngineHostingFields({ site, onPatchSite }: WpEngineHostingFiel
           aria-label="WP Engine account ID"
           autoComplete="off"
           disabled={!site}
-          className={TASK_FORM_FLAT_CONTROL_CLASS}
         />
       </TaskFormFlatField>
     </>

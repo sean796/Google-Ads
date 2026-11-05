@@ -1,7 +1,4 @@
 import React, { useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -10,10 +7,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
 import { NOTIFY_CHECKING_SCHEDULED_POSTS_FOR_CONFLICTS, NOTIFY_COULD_NOT_DETERMINE_GEOGRAPHIC_AREA_FROM, NOTIFY_COULD_NOT_SELECT_A_WIKIPEDIA_LIST_PAGE_P, NOTIFY_DATAFORSEO_SEARCH_FAILED_FALLING_BACK_TO, NOTIFY_FAILED_TO_COPY, NOTIFY_FAILED_TO_COPY_TO_CLIPBOARD, NOTIFY_FAILED_TO_GENERATE_TITLE_SUGGESTION, NOTIFY_GETTING_PAGES_FROM_WIKIPEDIA_CATEGORIES, NOTIFY_NO_ENTITIES_AVAILABLE_FOR_TITLE_SUGGESTI, NOTIFY_NO_ENTITIES_TO_GENERATE_CSV_FROM, NOTIFY_NO_URLS_FOUND_IN_SITEMAP, NOTIFY_OPENROUTER_API_KEY_IS_REQUIRED_PLEASE_SE, NOTIFY_ORIGINS_COPIED_TO_CLIPBOARD, NOTIFY_ORIGIN_COPIED, NOTIFY_SEARCHING_FOR_MORE_ENTITIES_WITH_ALTERNA, NOTIFY_SERVER_ERROR_WHILE_PARSING_SITEMAP_FOR_B, NOTIFY_TITLE_TEMPLATE_SUGGESTED, NOTIFY_USING_AI_TO_SELECT_BEST_WIKIPEDIA_LIST_P, NOTIFY_XML_PARSING_ERROR_FOR_BLINDSWEST_CA_SITE, notifyAllEntitiesWereFilteredOutXConflic, notifyAllXValidatedEntitiesWereFilteredO, notifyCopiedXToClipboard, notifyCsvTemplateWithXEntitiesDownloaded, notifyEntityGenerationFailedForBlindswest, notifyEntityGenerationFailedForBlindswest2, notifyFailedToGenerateTitleSuggestionX, notifyFindingWikipediaCategoryPagesForXP, notifyFoundXUrlsAnalyzingWithAi, notifyFoundXXEntitiesMatchingCriteriaTri, notifyGeneratedXEntities, notifyNoWikipediaPagesFoundForXTryAddin, notifyParsingSitemapX, notifySearchingGoogleForX, notifyUsingAiToExtractEntitiesFromWikipe, notifyUsingAiToFindSimilarWikipediaList, notifyUsingDataforseoToSearchGoogleForEn, notifyValidatingEntitiesWithWikipediaPromp, notifyValidatingXAgainstCriteria, notifyWikipediaPageXNotFoundPleaseTryA } from "@/lib/notify-messages";
-import { Loader2, ExternalLink, Copy, Download, Sparkles, Bot } from "lucide-react";
+import { ExternalLink, Copy, Download, Sparkles, Bot } from "lucide-react";
 import { loadApiKey, streamChatCompletion } from "@/lib/api";
 import { parseSitemap, getScheduledPosts } from "@/lib/wordpress-api";
 import { checkConflicts } from "@/components/integrations/entity-generation/filtering/conflictChecker";
@@ -28,6 +24,7 @@ import {
 } from "@/lib/wikipedia-api";
 import { type WordPressSite } from "./types";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
+import { Button, Field, SelectField } from "@/ui";
 
 export interface EntityGenerationFeatureRef {
   openDialog: (site: WordPressSite, sitemapUrl: string) => void;
@@ -2392,7 +2389,7 @@ Generate the best title template (must include "Near" and must NOT include "${si
                   <br />
                   <span className="text-xs text-muted-foreground">Sitemap: {pendingEntitySitemap}</span>
                   {pendingEntitySite && pendingEntitySitemap && generatedEntities[`${pendingEntitySite.id}-${pendingEntitySitemap}`] && generatedEntities[`${pendingEntitySite.id}-${pendingEntitySitemap}`].length > 0 && (
-                    <span className="block mt-2 text-green-600">
+                    <span className="block mt-2 text-primary">
                       {generatedEntities[`${pendingEntitySite.id}-${pendingEntitySitemap}`].length} origins generated!
                     </span>
                   )}
@@ -2405,28 +2402,27 @@ Generate the best title template (must include "Near" and must NOT include "${si
           {pendingEntitySite && pendingEntitySitemap && !generatedEntities[`${pendingEntitySite.id}-${pendingEntitySitemap}`] && (
             <div className="space-y-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="entityCount">Number of origins to generate</Label>
-                <Input
+                
+                <Field
+                  placeholder="Number of origins to generate"
                   id="entityCount"
                   type="number"
                   min="1"
                   value={entityCount}
                   onChange={(e) => setEntityCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                  className="bg-input border-border text-foreground"
                 />
                 <p className="text-xs text-muted-foreground">
                   Enter how many location origins to generate (minimum 1).
                 </p>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="entityPromptModifier">Optional Prompt Modifier</Label>
-                <Input
+                <label htmlFor="entityPromptModifier">Optional Prompt Modifier</label>
+                <Field
                   id="entityPromptModifier"
                   type="text"
                   value={entityPromptModifier}
                   onChange={(e) => setEntityPromptModifier(e.target.value)}
                   placeholder="e.g., high income neighborhoods in edmonton, streets in calgary"
-                  className="bg-input border-border text-foreground"
                 />
                 <p className="text-xs text-muted-foreground">
                   Optional: Add specific criteria to guide origin generation (e.g., "high income neighborhoods in edmonton", "streets in calgary")
@@ -2440,10 +2436,8 @@ Generate the best title template (must include "Near" and must NOT include "${si
               {/* Left Column: Entity List */}
               <div className="flex flex-col overflow-hidden">
                 <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm font-semibold block">Generated Origins (with Wikipedia pages):</Label>
+                  <label className="text-sm font-semibold block">Generated Origins (with Wikipedia pages):</label>
                   <Button
-                    variant="outline"
-                    size="sm"
                     onClick={() => {
                       const entitiesText = generatedEntities[`${pendingEntitySite.id}-${pendingEntitySitemap}`].join('\n');
                       navigator.clipboard.writeText(entitiesText).then(() => {
@@ -2452,7 +2446,6 @@ Generate the best title template (must include "Near" and must NOT include "${si
                         notify.error(NOTIFY_FAILED_TO_COPY_TO_CLIPBOARD);
                       });
                     }}
-                    className="h-7 px-2 text-xs"
                   >
                     <Copy className="h-3 w-3 mr-1" />
                     Copy All
@@ -2488,8 +2481,7 @@ Generate the best title template (must include "Near" and must NOT include "${si
                             )}
                           </div>
                           <Button
-                            variant="ghost"
-                            size="sm"
+                            variant="quiet"
                             onClick={(e) => {
                               e.stopPropagation();
                               navigator.clipboard.writeText(entity).then(() => {
@@ -2498,7 +2490,6 @@ Generate the best title template (must include "Near" and must NOT include "${si
                                 notify.error(NOTIFY_FAILED_TO_COPY);
                               });
                             }}
-                            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
                             <Copy className="h-3 w-3" />
                           </Button>
@@ -2511,7 +2502,7 @@ Generate the best title template (must include "Near" and must NOT include "${si
 
               {/* Right Column: Criteria Information */}
               <div className="flex flex-col overflow-hidden">
-                <Label className="text-sm font-semibold block mb-2">Criteria Information:</Label>
+                <label className="text-sm font-semibold block mb-2">Criteria Information:</label>
                 <div className="flex-1 overflow-y-auto border border-border rounded-md p-3 bg-background">
                   {selectedEntity ? (
                     <div className="space-y-3">
@@ -2552,7 +2543,7 @@ Generate the best title template (must include "Near" and must NOT include "${si
                                 <div>
                                   <div className="text-xs text-muted-foreground mb-1">Validation Status</div>
                                   <div className="text-sm">
-                                    <span className={criteriaData.matches ? 'text-green-600 font-semibold' : 'text-red-600'}>
+                                    <span className={criteriaData.matches ? 'text-primary font-semibold' : 'text-ui-danger'}>
                                       {criteriaData.matches ? '✓ Matches Criteria' : '✗ Does Not Match'}
                                     </span>
                                   </div>
@@ -2606,7 +2597,6 @@ Generate the best title template (must include "Near" and must NOT include "${si
 
           <DialogFooter>
             <Button
-              variant="outline"
               onClick={() => {
                 setEntityGenerationDialogOpen(false);
                 setPendingEntitySite(null);
@@ -2618,7 +2608,7 @@ Generate the best title template (must include "Near" and must NOT include "${si
             </Button>
             {pendingEntitySite && pendingEntitySitemap && generatedEntities[`${pendingEntitySite.id}-${pendingEntitySitemap}`] && (
               <Button
-                variant="default"
+                variant="run"
                 onClick={() => {
                   // Initialize with default values only if not already set
                   if (csvFeaturedImage !== 'y' && csvFeaturedImage !== 'n' && csvFeaturedImage !== 'google-maps') {
@@ -2633,6 +2623,7 @@ Generate the best title template (must include "Near" and must NOT include "${si
             )}
             {pendingEntitySite && pendingEntitySitemap && !generatedEntities[`${pendingEntitySite.id}-${pendingEntitySitemap}`] && (
               <Button
+                variant="run"
                 onClick={() => {
                   if (pendingEntitySite && pendingEntitySitemap) {
                     handleGenerateEntities(pendingEntitySite, pendingEntitySitemap, entityCount, entityPromptModifier.trim() || undefined);
@@ -2662,19 +2653,17 @@ Generate the best title template (must include "Near" and must NOT include "${si
             <div className="space-y-4 py-4">
               <div className="grid gap-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="csvTitleFormat">Title Format</Label>
+                  <label htmlFor="csvTitleFormat">Title Format</label>
                   <Button
+                    variant="quiet"
                     type="button"
-                    variant="ghost"
-                    size="sm"
                     onClick={generateAITitleSuggestion}
                     disabled={isGeneratingTitleSuggestion}
-                    className="h-7 px-2 text-xs"
                     title="AI Suggest Title Template"
                   >
                     {isGeneratingTitleSuggestion ? (
                       <>
-                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        
                         Generating...
                       </>
                     ) : (
@@ -2686,12 +2675,11 @@ Generate the best title template (must include "Near" and must NOT include "${si
                   </Button>
                 </div>
                 <div className="flex gap-2">
-                  <Input
+                  <Field
                     id="csvTitleFormat"
                     value={csvTitleFormat}
                     onChange={(e) => setCsvTitleFormat(e.target.value)}
                     placeholder="e.g., {keyword} Near {entity}"
-                    className="bg-input border-border text-foreground flex-1"
                   />
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -2703,8 +2691,7 @@ Generate the best title template (must include "Near" and must NOT include "${si
                     const [key, value] = Object.entries(vars)[0];
                     return (
                       <React.Fragment key={key}>
-                        <button
-                          type="button"
+                        <Button
                           onClick={() => {
                             navigator.clipboard.writeText(value).then(() => {
                               notify.success(notifyCopiedXToClipboard(value));
@@ -2712,11 +2699,10 @@ Generate the best title template (must include "Near" and must NOT include "${si
                               notify.error(NOTIFY_FAILED_TO_COPY_TO_CLIPBOARD);
                             });
                           }}
-                          className="text-xs bg-muted hover:bg-muted/80 active:bg-muted/60 px-1.5 py-0.5 rounded border border-border hover:border-primary/50 cursor-pointer transition-colors font-mono"
                           title={`Click to copy ${value}`}
                         >
                           {value}
-                        </button>
+                        </Button>
                         {idx < 1 && <span className="text-xs text-muted-foreground">,</span>}
                       </React.Fragment>
                     );
@@ -2737,13 +2723,12 @@ Generate the best title template (must include "Near" and must NOT include "${si
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="csvKeyword">Keyword (Optional)</Label>
-                <Input
+                <label htmlFor="csvKeyword">Keyword (Optional)</label>
+                <Field
                   id="csvKeyword"
                   value={csvKeyword}
                   onChange={(e) => setCsvKeyword(e.target.value)}
                   placeholder="Leave empty to fill manually later"
-                  className="bg-input border-border text-foreground"
                 />
                 <p className="text-xs text-muted-foreground">
                   Optional: Leave empty to fill manually later. If provided, will be used for all entities.
@@ -2751,30 +2736,20 @@ Generate the best title template (must include "Near" and must NOT include "${si
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="csvFeaturedImage">Featured Image</Label>
-                <Select value={csvFeaturedImage} onValueChange={setCsvFeaturedImage}>
-                  <SelectTrigger className="bg-input border-border text-foreground">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="y">Yes (Y)</SelectItem>
-                    <SelectItem value="n">No (N)</SelectItem>
-                    <SelectItem value="google-maps">Google Image</SelectItem>
-                  </SelectContent>
-                </Select>
+                
+                <SelectField placeholder="Featured Image" value={csvFeaturedImage} onValueChange={setCsvFeaturedImage} options={[{ value: "y", label: "Yes (Y)" }, { value: "n", label: "No (N)" }, { value: "google-maps", label: "Google Image" }]} />
                 <p className="text-xs text-muted-foreground">
                   Whether to generate a featured image for each post. Google Image requires an entity.
                 </p>
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="csvOptionalModifier">Optional Modifier (Optional)</Label>
-                <Input
+                <label htmlFor="csvOptionalModifier">Optional Modifier (Optional)</label>
+                <Field
                   id="csvOptionalModifier"
                   value={csvOptionalModifier}
                   onChange={(e) => setCsvOptionalModifier(e.target.value)}
                   placeholder="e.g., Focus on high-income neighborhoods"
-                  className="bg-input border-border text-foreground"
                 />
                 <p className="text-xs text-muted-foreground">
                   Optional prompt modifier to guide content generation
@@ -2782,7 +2757,7 @@ Generate the best title template (must include "Near" and must NOT include "${si
               </div>
 
               <div className="grid gap-2">
-                <Label className="text-sm font-semibold">Preview ({generatedEntities[`${pendingEntitySite.id}-${pendingEntitySitemap}`].length} entities):</Label>
+                <label className="text-sm font-semibold">Preview ({generatedEntities[`${pendingEntitySite.id}-${pendingEntitySitemap}`].length} entities):</label>
                 <div className="max-h-64 overflow-y-auto border border-border rounded-md p-3 bg-background">
                   <div className="text-xs text-muted-foreground mb-2 font-semibold">First 10 rows:</div>
                   <ul className="space-y-1">
@@ -2815,7 +2790,6 @@ Generate the best title template (must include "Near" and must NOT include "${si
 
           <DialogFooter>
             <Button
-              variant="outline"
               onClick={() => {
                 setCsvTemplateDialogOpen(false);
               }}
@@ -2823,8 +2797,8 @@ Generate the best title template (must include "Near" and must NOT include "${si
               Cancel
             </Button>
             <Button
+              variant="run"
               onClick={generateCSVTemplate}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               <Download className="h-4 w-4 mr-2" />
               Download CSV

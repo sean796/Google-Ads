@@ -103,8 +103,19 @@ class Neo_Pulse_App_Vertical_Benchmark_Route_Handlers {
 			return;
 		}
 
+		if ( function_exists( 'set_time_limit' ) ) {
+			@set_time_limit( 300 );
+		}
+		if ( function_exists( 'ignore_user_abort' ) ) {
+			@ignore_user_abort( true );
+		}
 		status_header( 200 );
 		header( 'Content-Type: application/x-ndjson' );
+		header( 'X-Accel-Buffering: no' );
+		header( 'Cache-Control: no-cache' );
+		while ( ob_get_level() > 0 ) {
+			@ob_end_flush();
+		}
 
 		$write_line = static function ( $obj ) {
 			echo wp_json_encode( $obj ) . "\n";

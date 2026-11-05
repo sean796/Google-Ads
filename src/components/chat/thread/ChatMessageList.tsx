@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ArrowDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import type { ChatMessage } from "@/lib/chat-types";
 import { parseChatMessageHash } from "@/lib/chat-activity-log";
 import { groupMessages } from "@/lib/chat-message-grouping";
 import { ChatMessageBubble } from "@/components/chat/thread/ChatMessageBubble";
 import { CHAT_TEXT_MUTED, CHAT_SCROLL_CLASS, CHAT_DAY_PILL_CLASS } from "@/components/chat/chat-theme";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 function dayLabel(iso: string): string {
   try {
@@ -207,9 +207,8 @@ export function ChatMessageList({
       <div ref={bottomRef} />
       {!searchActive && !atBottom && messages.length > 0 ? (
         <Button
+          variant="run"
           type="button"
-          size="sm"
-          className="absolute bottom-4 right-4 z-20 gap-1 rounded-full text-base shadow-md"
           onClick={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
         >
           <ArrowDown className="h-4 w-4" />

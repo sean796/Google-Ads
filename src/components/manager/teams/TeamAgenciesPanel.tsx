@@ -1,10 +1,10 @@
 import { useCallback, useState } from "react";
 import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { DASHBOARD_SETTINGS_GROUP_CLASS } from "@/components/manager/dashboard/dashboard-panel-styles";
 import { NewAgencyDialog } from "@/components/manager/teams/NewAgencyDialog";
 import { useTeam } from "@/contexts/TeamContext";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 export function TeamAgenciesPanel() {
   const { teams, activeTeam, switchTeam, refresh } = useTeam();
@@ -39,8 +39,6 @@ export function TeamAgenciesPanel() {
         <p className="font-semibold text-white">Agencies</p>
         <Button
           type="button"
-          variant="outline"
-          className="h-12 gap-1.5 text-base"
           onClick={() => setDialogOpen(true)}
         >
           <Plus className="h-4 w-4" aria-hidden />
@@ -55,7 +53,7 @@ export function TeamAgenciesPanel() {
               key={team.id}
               className={cn(
                 "flex flex-wrap items-center justify-between gap-3 px-3 py-2.5",
-                active ? "bg-primary text-black" : "bg-zinc-900/55 text-white",
+                active ? "bg-primary text-black" : "bg-ui-field/55 text-white",
               )}
             >
               <div className="min-w-0 space-y-1">
@@ -69,8 +67,6 @@ export function TeamAgenciesPanel() {
               ) : (
                 <Button
                   type="button"
-                  variant="outline"
-                  className="h-12 text-base"
                   disabled={switchingId === team.id}
                   onClick={() => void handleSwitch(team.id)}
                 >
@@ -81,7 +77,7 @@ export function TeamAgenciesPanel() {
           );
         })}
       </div>
-      {switchError ? <p className="text-base text-red-400">{switchError}</p> : null}
+      {switchError ? <p className="text-base text-ui-danger-hover">{switchError}</p> : null}
       <NewAgencyDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>
   );

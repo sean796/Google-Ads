@@ -81,7 +81,6 @@ export function useContentCreatorWorkspace({
   const [wpPages, setWpPages] = useState<PpcWpPageContext[]>([]);
   const [wpPagesLoading, setWpPagesLoading] = useState(false);
   const [pageBucketHostedLink, setPageBucketHostedLink] = useState<PpcPageBucketHostedLink | null>(null);
-  const [detailsDrawerOpen, setDetailsDrawerOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const pageBucketLinkRef = useRef<string | null>(null);
 
@@ -510,8 +509,6 @@ export function useContentCreatorWorkspace({
     workspaceBusy,
     gridPaginationTotal,
     paginationLayoutTotal,
-    detailsDrawerOpen,
-    setDetailsDrawerOpen,
   };
 }
 

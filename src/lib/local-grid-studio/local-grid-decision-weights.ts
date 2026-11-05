@@ -14,6 +14,8 @@ export type PlanWeightedGridPlacesArgs = {
   businessName: string;
   clientAudienceContextMarkdown?: string;
   totalRows: number;
+  /** When set, only these grid cities can receive rows. */
+  onlyCities?: readonly string[];
   apiKey: string;
   siteId?: string;
   onProgress?: (status: string) => void;
@@ -47,13 +49,30 @@ function cityOfPin(pin: LocalGridEvaluatedPin): string | null {
 }
 
 /** Summed pin priority per grid city: more and weaker pins in a city means more opportunity there. */
-function cityPinPriorities(pins: readonly LocalGridEvaluatedPin[]): Map<string, number> {
+export function cityPinPriorities(pins: readonly LocalGridEvaluatedPin[]): Map<string, number> {
   const out = new Map<string, number>();
   for (const { pin, priority } of rankGridPinsByPriority(pins)) {
     const city = cityOfPin(pin);
     if (city) out.set(city, (out.get(city) ?? 0) + priority);
   }
-  if (out.size === 0) throw new Error("Grid pins have no City, ST in their addresses.");
+  return out;
+}
+
+/** Listed addresses of a city's weakest pins first, so neighbourhood picks are grounded in the lowest-position pins. */
+export function weakestPinAddressesForCity(
+  pins: readonly LocalGridEvaluatedPin[],
+  city: string,
+  limit = 8,
+): string[] {
+  const out: string[] = [];
+  for (const { pin } of rankGridPinsByPriority(pins)) {
+    if (cityOfPin(pin) !== city) continue;
+    for (const item of pin.items) {
+      const addr = item.address?.trim();
+      if (addr && !out.includes(addr)) out.push(addr);
+      if (out.length >= limit) return out;
+    }
+  }
   return out;
 }
 
@@ -108,7 +127,9 @@ export async function planWeightedGridPlaces(args: PlanWeightedGridPlacesArgs): 
   if (args.totalRows < 1) throw new Error("Row count must be at least 1.");
 
   const priorityByCity = cityPinPriorities(args.pins);
-  const cities = [...priorityByCity.keys()];
+  const cities = [...priorityByCity.keys()].filter((c) => !args.onlyCities || args.onlyCities.includes(c));
+  if (priorityByCity.size === 0) throw new Error("Grid pins have no City, ST in their addresses.");
+  if (cities.length === 0) throw new Error("Select at least one grid city for entities.");
 
   args.onProgress?.(`Scoring ${cities.length} grid cities against customer questions`);
   const relevance = await relevanceByCity(args, cities);

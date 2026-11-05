@@ -9,13 +9,14 @@ import {
   parseProductSpec,
 } from "@/lib/video-generator/video-product-agent";
 import {
+  applyReferenceStillsFlythroughPlan,
   briefBlock,
   integerSceneSplits,
   parseScene,
   parseTransition,
   parseVideoPlan,
 } from "@/lib/video-generator/video-director-agent";
-import { runVideoDirectorReviseScene } from "@/lib/video-generator/video-director-revise";
+import { applySceneClientInstruction } from "@/lib/video-generator/video-director-revise";
 import * as imageApi from "@/lib/image-api";
 import {
   generateEnvironmentPlate,
@@ -106,8 +107,8 @@ describe("product views contract", () => {
     vi.clearAllMocks();
   });
 
-  it("defaults video model to x-ai/grok-imagine-video-1.5 at 720p instead of HeyGen 480p", () => {
-    expect(DEFAULT_VIDEO_MODEL).toBe("x-ai/grok-imagine-video-1.5");
+  it("defaults video model to kwaivgi/kling-v3.0-pro at 720p instead of HeyGen 480p", () => {
+    expect(DEFAULT_VIDEO_MODEL).toBe("kwaivgi/kling-v3.0-pro");
     expect(defaultResolutionForVideoModel(DEFAULT_VIDEO_MODEL)).toBe("720p");
   });
 
@@ -169,6 +170,65 @@ describe("Director briefBlock, productView, and Instagram-style transitions", ()
     expect(splits).toContain("4 scenes [8, 8, 7, 7]");
     expect(splits).toContain("3 scenes [10, 10, 10]");
     expect(splits).not.toContain("7.5");
+  });
+
+  it("applyReferenceStillsFlythroughPlan maps scene order to matching upload index", () => {
+    const brief: VideoBrief = {
+      prompt: "Walkthrough",
+      lengthSeconds: 10,
+      aspect: "16:9",
+      resolution: "720p",
+      references: [
+        { fileName: "01.jpg", dataUrl: "data:image/jpeg;base64,one" } as VideoBrief["references"][number],
+        { fileName: "02.jpg", dataUrl: "data:image/jpeg;base64,two" } as VideoBrief["references"][number],
+      ],
+      subject: null,
+    };
+    const raw = JSON.stringify({
+      title: "Walk",
+      logline: "",
+      voice: "none",
+      continuity: {
+        heroSubject: "Office",
+        screenDirection: "left_to_right",
+        cameraSide: "center",
+        palette: "neutral",
+        lightArc: "even",
+      },
+      scenes: [
+        {
+          id: "s1",
+          order: 1,
+          title: "One",
+          durationSeconds: 5,
+          sceneInstructions: "Wide",
+          storyboardPrompt: "Generic room",
+          motionPrompt: "Glide",
+          continuityNotes: "",
+          narration: "",
+          referenceIndexes: [],
+          transitionIn: null,
+        },
+        {
+          id: "s2",
+          order: 2,
+          title: "Two",
+          durationSeconds: 5,
+          sceneInstructions: "Wide",
+          storyboardPrompt: "Generic room",
+          motionPrompt: "Glide",
+          continuityNotes: "",
+          narration: "",
+          referenceIndexes: [],
+          transitionIn: { type: "dissolve", seconds: 0.7 },
+        },
+      ],
+    });
+    const plan = applyReferenceStillsFlythroughPlan(parseVideoPlan(raw, 10, 2), brief);
+    expect(plan.referenceStillsFlythrough).toBe(true);
+    expect(plan.scenes[0].referenceIndexes).toEqual([1]);
+    expect(plan.scenes[1].referenceIndexes).toEqual([2]);
+    expect(plan.scenes[0].storyboardPrompt).toContain("01.jpg");
   });
 
   it("includes Locked Product Bible in briefBlock when productSpec is present", () => {
@@ -522,39 +582,7 @@ describe("Cinematographer camera-motion adaptation and persistent scene revision
     expect(prompt).toContain("Smooth left to right camera tracking shot");
     expect(prompt).toContain("two floor-to-ceiling glazing bays");
 
-    callAgentCategoryOpenRouterChatMock.mockResolvedValueOnce({
-      content: JSON.stringify({
-        id: "s1",
-        order: 1,
-        title: "Forest Clearing on Piers",
-        durationSeconds: 6,
-        sceneInstructions: "Cabin on concrete piers.",
-        environmentId: "forest_clearing_piers",
-        environmentPrompt: "Gravel pad with concrete piers.",
-        storyboardPrompt: "Three-quarter cabin on concrete piers.",
-        motionPrompt: "Slow dolly right.",
-        continuityNotes: "",
-        narration: "",
-        referenceIndexes: [],
-        productView: "three_quarter",
-        transitionIn: null,
-      }),
-    });
-
-    const revised = await runVideoDirectorReviseScene({
-      apiKey: "sk-or-test",
-      brief: {
-        prompt: "Showcase Spa Mod.",
-        lengthSeconds: 15,
-        aspect: "16:9",
-        resolution: "720p",
-        references: [],
-        subject: null,
-      },
-      plan,
-      sceneId: "s1",
-      instruction: "Add warm interior sconce glow",
-    });
+    const revised = applySceneClientInstruction(plan.scenes[0], "Add warm interior sconce glow");
     expect(revised.revisionNotes).toEqual([
       "No trailer in frame; rest directly on concrete piers",
       "Add warm interior sconce glow",
@@ -742,8 +770,8 @@ describe("Non-destructive single-scene rerender and restitch API", () => {
         onReviseProductView: () => {},
       }),
     );
-    expect(generatingTurntableHtml).toContain("/video-studio/elementor-placeholder.png");
-    expect(generatingTurntableHtml).toContain("animate-video-product-splash-breathe");
+    expect(generatingTurntableHtml).toContain("neoPulseRingBreathe");
+    expect(generatingTurntableHtml).toContain("rounded-full");
     expect(generatingTurntableHtml).not.toContain("animate-spin");
 
     const generatingStageHtml = renderToStaticMarkup(
@@ -755,7 +783,8 @@ describe("Non-destructive single-scene rerender and restitch API", () => {
         render: null,
       }),
     );
-    expect(generatingStageHtml).toContain("/video-studio/elementor-placeholder.png");
+    expect(generatingStageHtml).toContain("neoPulseRingBreathe");
+    expect(generatingStageHtml).toContain("rounded-full");
     expect(generatingStageHtml).not.toContain("animate-spin");
 
     const clipGeneratingTimelineHtml = renderToStaticMarkup(
@@ -780,7 +809,8 @@ describe("Non-destructive single-scene rerender and restitch API", () => {
         onUpdateSceneTransition: () => {},
       }),
     );
-    expect(clipGeneratingTimelineHtml).toContain("animate-video-product-splash-breathe");
+    expect(clipGeneratingTimelineHtml).toContain("neoPulseRingBreathe");
+    expect(clipGeneratingTimelineHtml).toContain("rounded-full");
     expect(clipGeneratingTimelineHtml).not.toContain("animate-spin");
 
     const preApproveHtml = renderToStaticMarkup(

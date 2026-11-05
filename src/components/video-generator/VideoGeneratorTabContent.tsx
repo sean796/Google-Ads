@@ -5,7 +5,7 @@ import { VIDEO_MODEL_PRESETS } from "@/lib/video-generator/video-model-defaults"
 import { useVideoBrainstorm } from "./useVideoBrainstorm";
 import { useVideoGenerator } from "./useVideoGenerator";
 import { VideoInstructionBar } from "./VideoInstructionBar";
-import { VideoStagePanel } from "./VideoStagePanel";
+import { VideoStagePanel, type StagePreviewMode } from "./VideoStagePanel";
 import { VideoStudioLeftDock, type StudioLeftTabId } from "./VideoStudioLeftDock";
 import { VideoTimelineDock } from "./VideoTimelineDock";
 import { VideoWorkspaceHeader } from "./VideoWorkspaceHeader";
@@ -20,11 +20,17 @@ import type { VideoGeneratorStep } from "./video-generator-steps";
  */
 export function VideoGeneratorTabContent({ apiKey }: { apiKey: string }) {
   const g = useVideoGenerator(apiKey);
-  const b = useVideoBrainstorm(apiKey, g.setBriefFromBrainstorm, g.brief.subject?.dataUrl);
+  const b = useVideoBrainstorm(
+    apiKey,
+    g.setBriefFromBrainstorm,
+    g.brief.subject?.dataUrl,
+    g.uploadReferenceVideo,
+  );
   const [leftTab, setLeftTab] = useState<StudioLeftTabId>("assets");
   const [leftOpen, setLeftOpen] = useState<boolean>(false);
+  const [stagePreviewMode, setStagePreviewMode] = useState<StagePreviewMode>("final");
 
-  const working = g.busy !== null || b.busy !== null;
+  const working = g.busy !== null || b.busy !== null || g.isPreparingReferenceVideo;
   const modelLabel = VIDEO_MODEL_PRESETS.find((p) => p.value === g.videoModel)?.label ?? g.videoModel;
   const costLabel =
     g.estimatedCostUsd == null
@@ -43,21 +49,24 @@ export function VideoGeneratorTabContent({ apiKey }: { apiKey: string }) {
     if (b.error) notifyHeaderError("Video Studio", b.error, { duration: 12000 });
   }, [b.error]);
 
-  // Automatically sync the Left Dock tab (and slide out when Q&A questions need answers)
+  // Automatically sync the Left Dock tab (and slide out ONLY when Q&A questions need answers)
   useEffect(() => {
     if (g.step === "product") {
       setLeftTab("product");
     } else if (g.step === "questions") {
       setLeftTab("director");
-      setLeftOpen(true);
+      if ((g.questions?.length ?? 0) > 0) {
+        setLeftOpen(true);
+      }
     } else if (g.step === "plan") {
       setLeftTab("director");
+      setLeftOpen(false);
     } else if (g.step === "render") {
       setLeftTab("postcut");
     } else if (g.step === "brief" && !g.canStartStudio) {
       setLeftTab("assets");
     }
-  }, [g.step, g.canStartStudio]);
+  }, [g.step, g.canStartStudio, g.questions]);
 
   const handleHeaderStepClick = (nextStep: VideoGeneratorStep) => {
     g.setStep(nextStep);
@@ -98,39 +107,39 @@ export function VideoGeneratorTabContent({ apiKey }: { apiKey: string }) {
             disabled: working,
           };
     }
+    if (g.plan !== null) {
+      if (g.frames.length === 0) {
+        const allApproved = g.plan.scenes.every((s) => s.approved);
+        return {
+          label: allApproved ? "Generate storyboard" : "Approve all & generate storyboard",
+          onClick: () => void g.approvePlanAndBeginStoryboard(),
+          disabled: working,
+        };
+      }
+      return {
+        label: "Render video",
+        onClick: () => void g.renderVideo(),
+        disabled: working || !g.readyToRender || g.renderActive,
+      };
+    }
     if (g.questions === null) {
       return {
         label: "Ask the Director",
         onClick: () => {
           setLeftTab("director");
-          setLeftOpen(true);
           void g.askQuestions();
         },
         disabled: working || !g.canStartStudio,
       };
     }
-    if (g.plan === null) {
-      return {
-        label: "Draft scene plan",
-        onClick: () => {
-          setLeftTab("director");
-          setLeftOpen(false);
-          void g.submitAnswers();
-        },
-        disabled: working || !g.allAnswered,
-      };
-    }
-    if (g.frames.length === 0) {
-      return {
-        label: "Approve & generate storyboard",
-        onClick: () => void g.approvePlanAndBeginStoryboard(),
-        disabled: working,
-      };
-    }
     return {
-      label: "Render video",
-      onClick: () => void g.renderVideo(),
-      disabled: working || !g.readyToRender || g.renderActive,
+      label: "Draft scene plan",
+      onClick: () => {
+        setLeftTab("director");
+        setLeftOpen(false);
+        void g.submitAnswers();
+      },
+      disabled: working || !g.allAnswered,
     };
   })();
 
@@ -144,11 +153,14 @@ export function VideoGeneratorTabContent({ apiKey }: { apiKey: string }) {
     <div className="relative flex h-full min-h-0 w-full flex-1 flex-row overflow-hidden bg-black font-sans text-base">
       {/* Zone 1: Full-Height Left Vertical Docker Rail + Slide-Out Drawer (mirrors right-side Agents docker) */}
       <VideoStudioLeftDock
+        apiKey={apiKey}
         open={leftOpen}
         onOpenChange={setLeftOpen}
         activeTab={leftTab}
         onTabChange={setLeftTab}
         working={working}
+        planDrafting={g.planDrafting}
+        renderActive={g.renderActive}
         brief={g.brief}
         onPromptChange={g.setPrompt}
         brainstormNotes={b.notes}
@@ -163,6 +175,9 @@ export function VideoGeneratorTabContent({ apiKey }: { apiKey: string }) {
         isPreparingReferences={g.isPreparingReferences}
         onAddReferenceFiles={(files) => void g.addReferenceFiles(files)}
         onRemoveReference={g.removeReference}
+        isPreparingReferenceVideo={g.isPreparingReferenceVideo}
+        onUploadReferenceVideo={(file) => void g.uploadReferenceVideo(file)}
+        onRemoveReferenceVideo={g.removeReferenceVideo}
         brainstormVideo={b.video}
         brainstormImages={b.images}
         isPreparingBrainstorm={b.isPreparing}
@@ -185,8 +200,10 @@ export function VideoGeneratorTabContent({ apiKey }: { apiKey: string }) {
           void g.sendInstruction("scene", instruction, sceneId, postCutReference)
         }
         onRegenerateEnvironmentPlate={(sceneId) => void g.regenerateEnvironmentPlate(sceneId)}
-        onRegenerateFrame={(sceneId) => void g.regenerateFrame(sceneId)}
-        onRerenderSceneClip={(sceneId) => void g.rerenderSceneClip(sceneId)}
+        onRegenerateFrame={(sceneId, customInstruction) => void g.regenerateFrame(sceneId, customInstruction)}
+        onRestoreReferenceFrame={(sceneId) => void g.restoreReferenceFrame(sceneId)}
+        onRerenderSceneClip={(sceneId, customPrompt) => void g.rerenderSceneClip(sceneId, customPrompt)}
+        onClearSceneRevisionNotes={g.clearSceneRevisionNotes}
         onUpdateSceneTransition={g.updateSceneTransition}
         onUpdatePlanFades={g.updatePlanFades}
         onUpdateScenePrompts={(sceneId, patch, action) => void g.updateScenePrompts(sceneId, patch, action)}
@@ -237,6 +254,8 @@ export function VideoGeneratorTabContent({ apiKey }: { apiKey: string }) {
               : undefined
           }
           onRegeneratePlan={() => void g.regeneratePlan()}
+          hasReferenceVideo={Boolean(g.referenceVideo)}
+          onSyncAllFramesFromReferenceVideo={() => void g.syncAllFramesFromReferenceVideo()}
           onRestitch={g.restitchVideo}
           onExportJson={g.exportProjectJson}
           onImportJson={(file) => void g.importProjectJson(file)}
@@ -244,11 +263,12 @@ export function VideoGeneratorTabContent({ apiKey }: { apiKey: string }) {
           onReset={g.reset}
         />
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-zinc-950 p-2">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-black p-2">
           <VideoStagePanel
             activeTab={leftTab}
             plan={g.plan}
             planLive={g.planLive}
+            planDrafting={g.planDrafting}
             brief={g.brief}
             productLock={g.productLock}
             hasSubjectPhotos={g.subjectPhotos.length > 0}
@@ -257,45 +277,59 @@ export function VideoGeneratorTabContent({ apiKey }: { apiKey: string }) {
             selectedSceneId={g.selectedSceneId}
             onSelectScene={g.selectScene}
             render={g.render}
-            disabled={working}
+            disabled={Boolean(g.planDrafting || g.renderActive)}
             onPromptChange={g.setPrompt}
             productPhotoCount={g.subjectPhotos.length}
             referenceCount={g.brief.references.length}
             isPreparingSubject={g.isPreparingSubject}
             isPreparingReferences={g.isPreparingReferences}
+            hasReferenceVideo={Boolean(g.referenceVideo)}
+            isPreparingReferenceVideo={g.isPreparingReferenceVideo}
             onAddProductFiles={(files) => void g.addSubjectFiles(files)}
             onAddReferenceFiles={(files) => void g.addReferenceFiles(files)}
+            onAddVideoFile={(file) => {
+              void g.uploadReferenceVideo(file).catch(() => {
+                /* error surfaced in generator state */
+              });
+            }}
             onRegenerateProductView={(viewId) => g.regenerateProductView(viewId)}
             onReviseProductView={(viewId, instruction) => void g.reviseProductView(viewId, instruction)}
             onToggleSceneApproved={g.toggleSceneApproved}
+            onApproveAllScenes={g.approveAllScenes}
             onApprovePlanAndBeginStoryboard={() => void g.approvePlanAndBeginStoryboard()}
             onSendSceneInstruction={(sceneId, instruction, postCutReference) =>
           void g.sendInstruction("scene", instruction, sceneId, postCutReference)
         }
             onRegenerateEnvironmentPlate={(sceneId) => void g.regenerateEnvironmentPlate(sceneId)}
-            onRegenerateFrame={(sceneId) => void g.regenerateFrame(sceneId)}
+            onRegenerateFrame={(sceneId, customInstruction) => void g.regenerateFrame(sceneId, customInstruction)}
+            onRestoreReferenceFrame={(sceneId) => void g.restoreReferenceFrame(sceneId)}
+            onSyncAllFramesFromReferenceVideo={() => void g.syncAllFramesFromReferenceVideo()}
             onRerenderSceneClip={(sceneId) => void g.rerenderSceneClip(sceneId)}
             productViewsBatchBusy={productViewsBatchBusy}
+            previewMode={stagePreviewMode}
+            onPreviewModeChange={setStagePreviewMode}
           />
-          <div className="mt-2 shrink-0">
-            <VideoInstructionBar
-              disabled={
-                working ||
-                g.renderActive ||
-                (g.plan === null && (!g.needsProductStep || g.subjectPhotos.length === 0))
-              }
-              productMode={
-                g.subjectPhotos.length > 0 &&
-                (leftTab === "product" || g.plan === null)
-              }
-              hasSelectedScene={g.selectedSceneId !== null || Boolean(selectedScene)}
-              selectedSceneOrder={selectedScene?.order}
-              selectedSceneTitle={selectedScene?.title}
-              onSend={(scope, text) => void g.sendInstruction(scope, text)}
-              onSendProductInstruction={(target, text) => void g.reviseProductView(target, text)}
-              onOpenPostCut={g.plan ? () => openPostCutForScene(selectedScene?.id) : undefined}
-            />
-          </div>
+          {leftTab !== "postcut" ? (
+            <div className="mt-2 shrink-0">
+              <VideoInstructionBar
+                disabled={
+                  working ||
+                  g.renderActive ||
+                  (g.plan === null && (!g.needsProductStep || g.subjectPhotos.length === 0))
+                }
+                productMode={
+                  g.subjectPhotos.length > 0 &&
+                  (leftTab === "product" || g.plan === null)
+                }
+                hasSelectedScene={g.selectedSceneId !== null || Boolean(selectedScene)}
+                selectedSceneOrder={selectedScene?.order}
+                selectedSceneTitle={selectedScene?.title}
+                onSend={(scope, text) => void g.sendInstruction(scope, text)}
+                onSendProductInstruction={(target, text) => void g.reviseProductView(target, text)}
+                onOpenPostCut={g.plan ? () => openPostCutForScene(selectedScene?.id) : undefined}
+              />
+            </div>
+          ) : null}
         </div>
 
         <VideoTimelineDock
@@ -305,7 +339,14 @@ export function VideoGeneratorTabContent({ apiKey }: { apiKey: string }) {
           renderScenes={g.render?.scenes ?? null}
           selectedSceneId={g.selectedSceneId}
           disabled={working}
-          onSelectScene={g.selectScene}
+          onSelectScene={(sceneId) => {
+            g.selectScene(sceneId);
+            setStagePreviewMode("clip");
+          }}
+          onPreviewClip={(sceneId) => {
+            g.selectScene(sceneId);
+            setStagePreviewMode("clip");
+          }}
           onRegenerateFrame={(sceneId) => void g.regenerateFrame(sceneId)}
           onRerenderSceneClip={g.render ? (sceneId) => void g.rerenderSceneClip(sceneId) : undefined}
           onUpdateSceneTransition={g.updateSceneTransition}

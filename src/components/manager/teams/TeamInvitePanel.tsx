@@ -1,19 +1,11 @@
 import { useCallback, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { DASHBOARD_SETTINGS_GROUP_CLASS, DASHBOARD_SETTINGS_FIELD_CLASS } from "@/components/manager/dashboard/dashboard-panel-styles";
 import { useTeam } from "@/contexts/TeamContext";
 import { addJobTitlePreset, addTeamMember } from "@/lib/teams-api";
 import { useTeamPermission } from "@/hooks/use-team-permission";
 import { ACCESS_ROLE_OPTIONS, DEFAULT_OWNER_JOB_TITLE } from "@/lib/teams-types";
 import { TeamJobTitleField } from "@/components/manager/teams/TeamJobTitleField";
+import { Button, Field, SelectField } from "@/ui";
 
 const INPUT_CLASS = `${DASHBOARD_SETTINGS_FIELD_CLASS} min-w-0 flex-1 h-12`;
 
@@ -73,52 +65,44 @@ export function TeamInvitePanel() {
       <div className="grid gap-3 lg:grid-cols-2">
         <div className="space-y-2">
           <p className="font-semibold text-white">Email</p>
-          <Input
+          <Field
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             aria-label="Email"
             placeholder="you@agency.com"
-            className={INPUT_CLASS}
           />
         </div>
         <div className="space-y-2">
           <p className="font-semibold text-white">Display name</p>
-          <Input
+          <Field
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             aria-label="Display name"
             placeholder="Display name"
-            className={INPUT_CLASS}
           />
         </div>
         <div className="space-y-2">
           <p className="font-semibold text-white">Password</p>
-          <Input
+          <Field
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             aria-label="Password"
             placeholder="Password"
-            className={INPUT_CLASS}
             autoComplete="new-password"
           />
         </div>
         <div className="space-y-2">
           <p className="font-semibold text-white">Access role</p>
-          <Select value={accessRole} onValueChange={(v) => setAccessRole(v as typeof accessRole)}>
-            <SelectTrigger className={INPUT_CLASS}>
-              <SelectValue aria-label="Access role" />
-            </SelectTrigger>
-            <SelectContent>
-              {ACCESS_ROLE_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SelectField
+            placeholder="Access role"
+            value={accessRole}
+            onValueChange={(v) => setAccessRole(v as typeof accessRole)}
+            options={ACCESS_ROLE_OPTIONS}
+            width="full"
+          />
         </div>
         <div className="space-y-2">
           <p className="font-semibold text-white">Job title</p>
@@ -126,12 +110,11 @@ export function TeamInvitePanel() {
             value={jobTitle}
             onChange={setJobTitle}
             presets={jobTitlePresets}
-            inputClass={INPUT_CLASS}
           />
         </div>
         <Button
+          variant="run"
           type="button"
-          className="h-12 shrink-0 text-base lg:col-span-2 lg:w-fit"
           disabled={saving || !email.trim() || !password.trim() || !jobTitle.trim()}
           onClick={() => void handleAdd()}
         >
@@ -139,7 +122,7 @@ export function TeamInvitePanel() {
         </Button>
       </div>
       {status ? (
-        <p className={`text-base ${status.ok ? "text-white" : "text-red-400"}`}>{status.message}</p>
+        <p className={`text-base ${status.ok ? "text-white" : "text-ui-danger-hover"}`}>{status.message}</p>
       ) : null}
     </div>
   );

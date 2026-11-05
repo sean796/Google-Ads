@@ -62,6 +62,20 @@ class Neo_Pulse_App_Openrouter_Chat_Completion_Route {
 		}
 
 		$messages = self::normalize_messages( $body );
+		if ( class_exists( 'Neo_Pulse_App_Video_Brainstorm' ) ) {
+			$expanded = Neo_Pulse_App_Video_Brainstorm::expand_openrouter_messages( $messages );
+			if ( is_wp_error( $expanded ) ) {
+				Neo_Pulse_App_Api_Dispatcher::send_json(
+					array(
+						'ok'    => false,
+						'error' => $expanded->get_error_message(),
+					),
+					400
+				);
+				return;
+			}
+			$messages = $expanded;
+		}
 		if ( count( $messages ) === 0 ) {
 			Neo_Pulse_App_Api_Dispatcher::send_json(
 				array(
@@ -262,7 +276,7 @@ class Neo_Pulse_App_Openrouter_Chat_Completion_Route {
 			array(
 				'timeout' => 300,
 				'headers' => Neo_Pulse_App_Openrouter_Attribution::request_headers( $api_key ),
-				'body'    => wp_json_encode( $payload ),
+				'body'    => wp_json_encode( $payload, JSON_UNESCAPED_SLASHES ),
 			)
 		);
 
@@ -501,7 +515,7 @@ class Neo_Pulse_App_Openrouter_Chat_Completion_Route {
 
 		curl_setopt( $ch, CURLOPT_POST, true );
 		curl_setopt( $ch, CURLOPT_HTTPHEADER, $curl_headers );
-		curl_setopt( $ch, CURLOPT_POSTFIELDS, wp_json_encode( $payload ) );
+		curl_setopt( $ch, CURLOPT_POSTFIELDS, wp_json_encode( $payload, JSON_UNESCAPED_SLASHES ) );
 		// A long completion is expected while streaming; only give up when no bytes arrive for two minutes.
 		curl_setopt( $ch, CURLOPT_CONNECTTIMEOUT, 30 );
 		curl_setopt( $ch, CURLOPT_LOW_SPEED_LIMIT, 1 );

@@ -1,5 +1,4 @@
 import { ChevronDown, Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   CONTENT_OPTIMIZER_MULTI_SITE_ROW_STACK_CLASS,
@@ -11,9 +10,10 @@ import {
 } from "@/lib/ppc/meta-ad-research-sections";
 import type { MetaAdResearchSection } from "@/lib/social/social-creator-types";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 const DETAILS_FLAT_COLLAPSE_TRIGGER =
-  "flex min-h-9 w-full items-center justify-between gap-2 rounded-none border-0 bg-zinc-950 px-3 py-1.5 text-left text-base text-white [&[data-state=open]>svg]:rotate-180";
+  "flex min-h-9 w-full items-center justify-between gap-2 rounded-none border-0 bg-black px-3 py-1.5 text-left text-base text-white [&[data-state=open]>svg]:rotate-180";
 
 type SocialCreatorResearchSectionsPanelProps = {
   sections: MetaAdResearchSection[];
@@ -38,9 +38,8 @@ export function SocialCreatorResearchSectionsPanel({
       <div className="flex items-center justify-between gap-2">
         <p className="text-base text-muted-foreground">Research</p>
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          className="h-8 rounded-none px-2 text-base text-primary hover:bg-zinc-900"
           onClick={(e) => {
             e.stopPropagation();
             downloadAll();
@@ -61,7 +60,7 @@ export function SocialCreatorResearchSectionsPanel({
                 )}
                 onClick={(e) => e.stopPropagation()}
               >
-                <span className="min-w-0 truncate">{section.title}</span>
+                <span className="min-w-0 break-words">{section.title}</span>
                 <ChevronDown className="h-4 w-4 shrink-0" aria-hidden />
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-2 border-0 bg-transparent px-3 pb-3 pt-1">
@@ -69,9 +68,8 @@ export function SocialCreatorResearchSectionsPanel({
                   {section.markdown}
                 </pre>
                 <Button
+                  variant="quiet"
                   type="button"
-                  variant="ghost"
-                  className="h-8 rounded-none px-2 text-base text-primary hover:bg-zinc-900"
                   onClick={(e) => {
                     e.stopPropagation();
                     const file = metaAdResearchDownloadFiles([section], downloadSlug)[0];

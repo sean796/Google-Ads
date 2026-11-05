@@ -1,5 +1,4 @@
-import { FileText, Loader2, Download, ChevronDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { FileText, Download, ChevronDown } from 'lucide-react';
 import {
   Collapsible,
   CollapsibleContent,
@@ -20,9 +19,10 @@ const DETAILS_FLAT_SECTION_LINE =
 const DETAILS_FLAT_SECTION_BODY =
   "space-y-0 border-0 bg-transparent px-2.5 pb-2 pt-0 sm:px-3";
 const DETAILS_FLAT_COLLAPSE_TRIGGER =
-  "flex min-h-9 w-full items-center justify-between gap-2 rounded-none border-0 bg-zinc-950 px-3 py-1.5 text-left text-base text-white [&[data-state=open]>svg]:rotate-180";
+  "flex min-h-9 w-full items-center justify-between gap-2 rounded-none border-0 bg-black px-3 py-1.5 text-left text-base text-white [&[data-state=open]>svg]:rotate-180";
 import { cn } from '@/lib/utils';
 import type { BulkHarnessSectionUi } from '@/hooks/use-bulk-auto-generate';
+import { Button } from "@/ui";
 
 function triggerDownloadMarkdown(filename: string, content: string) {
   const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
@@ -162,7 +162,7 @@ export function BulkHarnessSectionsPanel({
             )}
           >
             {s.status === 'generating' && activeIndicator === 'spinner' && !isDetailsFlat ? (
-              <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
+              null
             ) : !isDetailsFlat && s.status === 'waiting' ? (
               <span className="h-2 w-2 shrink-0 rounded-full bg-muted-foreground/50" aria-hidden />
             ) : null}
@@ -182,13 +182,6 @@ export function BulkHarnessSectionsPanel({
             {s.status === 'done' && s.markdown?.trim() && !hideSectionDownloads ? (
               <Button
                 type="button"
-                size="sm"
-                variant="outline"
-                className={cn(
-                  reportingToolbarButtonData('h-7 shrink-0 px-2'),
-                  '!border-0',
-                  isDetailsFlat && 'text-white hover:bg-white/10 hover:text-white',
-                )}
                 onClick={() =>
                   harnessSectionDownload(
                     `bulk-harness-row${currentRow + 1}-section${s.sectionIndex + 1}-${sanitizeFilenamePart(s.title || 'section')}`,

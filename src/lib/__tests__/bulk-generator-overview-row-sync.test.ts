@@ -183,4 +183,41 @@ describe("buildBulkGeneratorOverviewRows", () => {
       "https://blindmagic.com/service-area/custom-blinds-beltline-calgary/",
     );
   });
+
+  it("attaches postId and postType from wordpress.json proof files onto built OverviewRow", () => {
+    const rows = buildBulkGeneratorOverviewRows({
+      variant: "prompt",
+      displayRows: [{ keyword: "custom blinds", title: "Custom Blinds Guide" }],
+      numberOfBlogs: 1,
+      hasGeneratedChecklist: true,
+      filesByRow: new Map([
+        [
+          0,
+          [
+            {
+              id: "wp-proof",
+              rowIndex: 0,
+              fileName: "wordpress.json",
+              content: JSON.stringify({
+                success: true,
+                postId: 5554,
+                pageUrl: "https://blindswest.com/blog/custom-blinds/",
+              }),
+              mimeType: "application/json",
+              status: "completed",
+              timestamp: 1,
+            },
+          ],
+        ],
+      ]),
+      harnessByRow: new Map(),
+      currentRow: 0,
+      isProcessing: false,
+      failedRowIndices: new Set(),
+      siteBaseUrl: "https://blindswest.com",
+      sitemapSource: "posts",
+    });
+    expect(rows[0]?.postId).toBe(5554);
+    expect(rows[0]?.postType).toBe("post");
+  });
 });

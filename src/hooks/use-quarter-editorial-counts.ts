@@ -11,7 +11,7 @@ import { isEntitySitemapDisabled } from "@/lib/entity-endpoint-extractor";
 import { fetchQuarterEditorialCounts } from "@/lib/wordpress-api/post-quarter-counts";
 import type { QuarterEditorialCountsResult, QuarterEditorialTileStats } from "@/lib/wordpress-api/types";
 
-const CACHE_PREFIX = "neo-pulse-quarter-editorial:v2";
+const CACHE_PREFIX = "neo-pulse-quarter-editorial:v3";
 
 type CachedQuarterPayload = Pick<
   QuarterEditorialCountsResult,
@@ -122,8 +122,8 @@ function siteHasCredentials(s: WordPressSite): boolean {
   return Boolean(s.siteUrl?.trim() && s.username?.trim() && s.appPassword?.trim());
 }
 
-function loadingPlaceholderForSite(site: WordPressSite, range: EditorialCountsRange): QuarterEditorialTileStats {
-  const entityUrl = isEntitySitemapDisabled(site) ? "" : site.entitySitemapUrl?.trim() ?? "";
+/** SAP (`service-area`) is always counted server-side, so the entity slot is always configured. */
+function loadingPlaceholderForSite(_site: WordPressSite, range: EditorialCountsRange): QuarterEditorialTileStats {
   return {
     quarterLabel: range.quarterLabel,
     loading: true,
@@ -131,7 +131,7 @@ function loadingPlaceholderForSite(site: WordPressSite, range: EditorialCountsRa
     postsScheduled: null,
     entityLive: null,
     entityScheduled: null,
-    entityConfigured: Boolean(site.manualEndpoint?.trim() || entityUrl),
+    entityConfigured: true,
     entityCountsAvailable: false,
     countsPeriodAfterIso: range.after,
     countsPeriodEndExclusiveIso: range.before,
@@ -167,6 +167,28 @@ function shouldPreserveQuarterTileDuringRefresh(
     if (typeof es === "number" && Number.isFinite(es) && es > 0) return true;
   }
   return false;
+}
+
+/** Tiles for a manual refresh: keep prior non-zero totals visible (loading), else a loading placeholder; drop sites no longer listed. */
+export function buildQuarterTilesForRefresh(
+  list: WordPressSite[],
+  prev: Record<string, QuarterEditorialTileStats>,
+  resolveRange: (site: WordPressSite, now: Date) => EditorialCountsRange,
+  now: Date,
+): Record<string, QuarterEditorialTileStats> {
+  const next: Record<string, QuarterEditorialTileStats> = { ...prev };
+  for (const s of list) {
+    const range = resolveRange(s, now);
+    const old = prev[s.id];
+    next[s.id] = shouldPreserveQuarterTileDuringRefresh(old, range)
+      ? { ...old!, loading: true, errorTitle: undefined }
+      : loadingPlaceholderForSite(s, range);
+  }
+  const keep = new Set(list.map((s) => s.id));
+  for (const id of Object.keys(next)) {
+    if (!keep.has(id)) delete next[id];
+  }
+  return next;
 }
 
 export function useQuarterEditorialCounts(sites: WordPressSite[]): {
@@ -252,6 +274,8 @@ export function useQuarterEditorialCounts(sites: WordPressSite[]): {
     const list = sites.filter(siteHasCredentials);
     return bootstrapBySiteFromCache(list, initialMonth);
   });
+  const selectedMonthRef = useRef(selectedMonthKey);
+  selectedMonthRef.current = selectedMonthKey;
   const sitesRef = useRef(sites);
   sitesRef.current = sites;
 
@@ -271,6 +295,9 @@ export function useQuarterEditorialCounts(sites: WordPressSite[]): {
 
   const fetchQuarterFromNetwork = useCallback(async (site: WordPressSite) => {
     const range = resolveRange(site, new Date());
+    const applyIfCurrent: typeof setBySiteId = (u) => {
+      if (selectedMonthRef.current === selectedMonthKey) setBySiteId(u);
+    };
     const entitySitemapUrlForFetch = isEntitySitemapDisabled(site) ? undefined : site.entitySitemapUrl;
 
     try {
@@ -298,7 +325,7 @@ export function useQuarterEditorialCounts(sites: WordPressSite[]): {
 
         writeCache(site.id, range.after, range.before, cachePayload);
 
-        setBySiteId((prev) => ({
+        applyIfCurrent((prev) => ({
           ...prev,
           [site.id]: {
             loading: false,
@@ -307,7 +334,7 @@ export function useQuarterEditorialCounts(sites: WordPressSite[]): {
         }));
       } else {
         const err = result.error || "Could not load quarter counts.";
-        setBySiteId((prev) => {
+        applyIfCurrent((prev) => {
           const old = prev[site.id];
           if (canPreserveCountsOnError(old)) {
             return {
@@ -328,9 +355,7 @@ export function useQuarterEditorialCounts(sites: WordPressSite[]): {
               postsScheduled: null,
               entityLive: null,
               entityScheduled: null,
-              entityConfigured: Boolean(
-                site.manualEndpoint?.trim() || (entitySitemapUrlForFetch?.trim() ?? ""),
-              ),
+              entityConfigured: true,
               entityCountsAvailable: false,
               countsPeriodAfterIso: range.after,
               countsPeriodEndExclusiveIso: range.before,
@@ -342,7 +367,7 @@ export function useQuarterEditorialCounts(sites: WordPressSite[]): {
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Could not load quarter counts.";
-      setBySiteId((prev) => {
+      applyIfCurrent((prev) => {
         const old = prev[site.id];
         if (canPreserveCountsOnError(old)) {
           return {
@@ -363,9 +388,7 @@ export function useQuarterEditorialCounts(sites: WordPressSite[]): {
             postsScheduled: null,
             entityLive: null,
             entityScheduled: null,
-            entityConfigured: Boolean(
-              site.manualEndpoint?.trim() || (entitySitemapUrlForFetch?.trim() ?? ""),
-            ),
+            entityConfigured: true,
             entityCountsAvailable: false,
             countsPeriodAfterIso: range.after,
             countsPeriodEndExclusiveIso: range.before,
@@ -375,7 +398,7 @@ export function useQuarterEditorialCounts(sites: WordPressSite[]): {
         };
       });
     }
-  }, [resolveRange]);
+  }, [resolveRange, selectedMonthKey]);
 
   const runFetch = useCallback(async () => {
     void tick;
@@ -383,6 +406,7 @@ export function useQuarterEditorialCounts(sites: WordPressSite[]): {
     void selectedMonthKey;
     const list = sitesRef.current.filter(siteHasCredentials);
 
+    const missing: WordPressSite[] = [];
     setBySiteId((prev) => {
       const next: Record<string, QuarterEditorialTileStats> = { ...prev };
       for (const s of list) {
@@ -393,14 +417,17 @@ export function useQuarterEditorialCounts(sites: WordPressSite[]): {
             loading: false,
             ...resultToTilePartial(cached, range),
           };
-        } else if (shouldPreserveQuarterTileDuringRefresh(prev[s.id], range)) {
-          next[s.id] = {
-            ...prev[s.id]!,
-            loading: true,
-            errorTitle: undefined,
-          };
         } else {
-          next[s.id] = loadingPlaceholderForSite(s, range);
+          missing.push(s);
+          if (shouldPreserveQuarterTileDuringRefresh(prev[s.id], range)) {
+            next[s.id] = {
+              ...prev[s.id]!,
+              loading: true,
+              errorTitle: undefined,
+            };
+          } else {
+            next[s.id] = loadingPlaceholderForSite(s, range);
+          }
         }
       }
       const keep = new Set(list.map((s) => s.id));
@@ -412,7 +439,8 @@ export function useQuarterEditorialCounts(sites: WordPressSite[]): {
       return next;
     });
 
-    await Promise.all(list.map((site) => fetchQuarterFromNetwork(site)));
+    if (missing.length === 0) return;
+    await Promise.all(missing.map((site) => fetchQuarterFromNetwork(site)));
   }, [tick, sitesKey, selectedMonthKey, resolveRange, fetchQuarterFromNetwork]);
 
   useEffect(() => {
@@ -428,29 +456,7 @@ export function useQuarterEditorialCounts(sites: WordPressSite[]): {
       const range = resolveRange(site, new Date());
       clearSiteCacheForRange(site.id, range.after, range.before);
     }
-    setBySiteId((prev) => {
-      const next: Record<string, QuarterEditorialTileStats> = { ...prev };
-      for (const s of list) {
-        const range = resolveRange(s, new Date());
-        const old = prev[s.id];
-        if (shouldPreserveQuarterTileDuringRefresh(old, range)) {
-          next[s.id] = {
-            ...old!,
-            loading: true,
-            errorTitle: undefined,
-          };
-        } else {
-          next[s.id] = loadingPlaceholderForSite(s, range);
-        }
-      }
-      const keep = new Set(list.map((s) => s.id));
-      for (const id of Object.keys(next)) {
-        if (!keep.has(id)) {
-          delete next[id];
-        }
-      }
-      return next;
-    });
+    setBySiteId((prev) => buildQuarterTilesForRefresh(list, prev, resolveRange, new Date()));
     setIsRefreshingAllQuarterCounts(true);
     try {
       await Promise.all(list.map((site) => fetchQuarterFromNetwork(site)));

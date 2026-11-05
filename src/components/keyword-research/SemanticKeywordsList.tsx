@@ -1,19 +1,19 @@
 import { useState, useCallback, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { TrendingUp, CheckCircle2, Check, ChevronDown, ChevronRight, Maximize2, Minimize2, Loader2, Sparkles } from "lucide-react";
+import { TrendingUp, CheckCircle2, Check, ChevronDown, ChevronRight, Maximize2, Minimize2, Sparkles } from "lucide-react";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_CLUSTERING_REMOVED, notifyDeselectedAllXKeywordsInX, notifyDeselectedAllXSemanticKeywords, notifySelectedAllXKeywordsInX, notifySelectedAllXSemanticKeywords } from "@/lib/notify-messages";
 import type { KeywordData } from "@/lib/keyword-types";
 import { clusterKeywordsWithAI, type KeywordCluster } from "@/lib/keyword-clustering";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
+import { Button } from "@/ui";
 
 interface SemanticKeywordsListProps {
   keywords: KeywordData[];
@@ -201,9 +201,7 @@ export function SemanticKeywordsList({
           {displayClusters && (
             <>
               <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 text-xs"
+                variant="quiet"
                 onClick={allClustersExpanded ? collapseAll : expandAll}
                 title={allClustersExpanded ? "Collapse All" : "Expand All"}
               >
@@ -215,9 +213,7 @@ export function SemanticKeywordsList({
                 {allClustersExpanded ? "Collapse All" : "Expand All"}
               </Button>
               <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 text-xs"
+                variant="quiet"
                 onClick={() => {
                   setClusters(null);
                   setExpandedClusters(new Set());
@@ -231,9 +227,7 @@ export function SemanticKeywordsList({
             </>
           )}
           <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 text-xs"
+            variant="quiet"
             onClick={() => {
               if (allSelected) {
                 onDeselectAll();
@@ -255,11 +249,9 @@ export function SemanticKeywordsList({
         <Collapsible open={isLoadingPanelOpen} onOpenChange={setIsLoadingPanelOpen} className="mb-4">
           <CollapsibleTrigger asChild>
             <Button
-              variant="outline"
-              className="w-full justify-between border border-primary/40 bg-black/30 shadow-none hover:bg-black/40 hover:shadow-none"
             >
               <div className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                
                 <Sparkles className="w-4 h-4 text-primary" />
                 <span className="font-medium">AI Clustering in Progress</span>
               </div>
@@ -271,7 +263,7 @@ export function SemanticKeywordsList({
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                    <Sparkles className="w-4 h-4 text-primary" />
                     <span className="text-sm font-medium">Analyzing keywords with AI...</span>
                   </div>
                   <Badge variant="secondary" className="text-xs">
@@ -327,9 +319,9 @@ export function SemanticKeywordsList({
                 className="border rounded-lg bg-muted/30"
               >
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
+                    variant="quiet"
                     onClick={() => toggleCluster(cluster.id)}
-                    className="flex-1 flex items-center justify-between p-3 hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-center gap-2 flex-1">
                       {isExpanded ? (
@@ -356,11 +348,9 @@ export function SemanticKeywordsList({
                         )}
                       </div>
                     </div>
-                  </button>
+                  </Button>
                   <Button
-                    variant={allClusterKeywordsSelected ? "default" : "outline"}
-                    size="sm"
-                    className="h-8 text-xs mr-2"
+                    pressed={Boolean(allClusterKeywordsSelected)}
                     onClick={handleSelectCluster}
                     title={allClusterKeywordsSelected ? "Deselect all keywords in this cluster" : "Select all keywords in this cluster"}
                   >

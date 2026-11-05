@@ -18,9 +18,16 @@ import {
   type WordPressPostDestination,
 } from '@/lib/bulk-auto-generate';
 import { reduceHarnessSectionList } from '@/lib/bulk/harness-sections-reducer';
+import { BULK_PROCESSING_CANCELLED_MESSAGE, runBulkRowsInParallel } from '@/lib/bulk/bulk-row-concurrency';
 import { getResearchModel } from '@/lib/optimization-settings-storage';
 import { enrichCsvRowsFromSheet } from '@/lib/bulk/bulk-csv-enrich';
 import { BulkFileManager, type BulkGeneratedFile } from '@/lib/bulk-file-manager';
+import {
+  PROMPT_LOG_FILE_TYPE,
+  beginPromptTrace,
+  buildPromptTraceMarkdown,
+  endPromptTrace,
+} from '@/lib/openrouter-prompt-trace';
 import { useKeywordResearch } from './use-keyword-research';
 import type { KeywordData, KeywordAIAnalysis } from '@/lib/keyword-types';
 import type { StoredFile } from '@/components/KnowledgeBaseTab';
@@ -211,7 +218,6 @@ export function useBulkAutoGenerate({
   const [harnessByRow, setHarnessByRow] = useState<Map<number, BulkHarnessSectionUi[]>>(
     () => new Map(),
   );
-  const harnessSectionsRef = useRef<BulkHarnessSectionUi[]>([]);
   /** Fixed blueprint section count for the current row's harness (not `harnessSections.length`, which grows one-at-a-time). */
   const [harnessPlannedSectionCount, setHarnessPlannedSectionCount] = useState<number | null>(null);
   const [fileManager] = useState(() => new BulkFileManager());
@@ -234,19 +240,17 @@ export function useBulkAutoGenerate({
     setStatus(message);
   }, []);
 
-  useEffect(() => {
-    harnessSectionsRef.current = harnessSections;
-  }, [harnessSections]);
-
-  const snapshotHarnessForRow = useCallback((rowIndex: number) => {
-    const sections = harnessSectionsRef.current;
-    if (sections.length === 0) return;
-    setHarnessByRow((prev) => {
-      const next = new Map(prev);
-      next.set(rowIndex, [...sections]);
-      return next;
-    });
-  }, []);
+  /** Rows run in parallel: each row keeps its own harness sections; the drawer shows the row that updated last. */
+  const harnessRowSectionsRef = useRef(new Map<number, BulkHarnessSectionUi[]>());
+  const updateRowHarness = useCallback(
+    (rowIndex: number, update: (prev: BulkHarnessSectionUi[]) => BulkHarnessSectionUi[]) => {
+      const next = update(harnessRowSectionsRef.current.get(rowIndex) ?? []);
+      harnessRowSectionsRef.current.set(rowIndex, next);
+      setHarnessSections(next);
+      setHarnessByRow((prev) => new Map(prev).set(rowIndex, next));
+    },
+    [],
+  );
 
   const wordPressPosting = useMemo((): WordPressPostingOptions | undefined => {
     const b = buildBulkBaseRows(inputMode, rows, generatedRows, selectedBlogIndices);
@@ -443,7 +447,7 @@ isAnalyzingRef.current = isAnalyzing;
 
       const pushHarness = (payload: BulkHarnessSectionPayload) => {
         setHarnessPlannedSectionCount(payload.totalSections);
-        setHarnessSections((prev) => reduceHarnessSectionList(prev, payload));
+        updateRowHarness(rowIndex, (prev) => reduceHarnessSectionList(prev, payload));
       };
 
       let googleMapsImagePromise: Promise<void> | undefined;
@@ -606,7 +610,7 @@ isAnalyzingRef.current = isAnalyzing;
       const wordPressPosts = options.wordPressPostsByKeyword?.get(keywordLower);
 
       // Step 5: Generate blueprint and content with knowledge base (including Wikipedia and WordPress posts)
-      setHarnessSections((prev) =>
+      updateRowHarness(rowIndex, (prev) =>
         prev.filter(
           (section) =>
             section.title === "Google Image" &&
@@ -623,10 +627,7 @@ isAnalyzingRef.current = isAnalyzing;
         onHarnessSection: (payload: BulkHarnessSectionPayload) => {
           options.onHarnessSection?.(payload);
           setHarnessPlannedSectionCount(payload.totalSections);
-          setHarnessSections((prev) => {
-            const next = reduceHarnessSectionList(prev, payload);
-            return next;
-          });
+          updateRowHarness(rowIndex, (prev) => reduceHarnessSectionList(prev, payload));
           if (payload.phase === 'start') {
             options.onProgress?.(
               rowIndex,
@@ -671,10 +672,11 @@ isAnalyzingRef.current = isAnalyzing;
     selectedModel,
     appendProcessingStep,
     setRows,
+    updateRowHarness,
   ]);
 
   /**
-   * Process all rows sequentially
+   * Process all rows, a bounded number in parallel
    */
   const processAllRows = useCallback(async (
     csvRows: CSVRow[],
@@ -714,6 +716,7 @@ isAnalyzingRef.current = isAnalyzing;
     setHarnessSections([]);
     setHarnessPlannedSectionCount(null);
     setHarnessByRow(new Map());
+    harnessRowSectionsRef.current.clear();
     setProcessingStepLog([]);
     setFailedRowIndices(new Set());
     setFailedRowMessages({});
@@ -749,7 +752,6 @@ isAnalyzingRef.current = isAnalyzing;
     const rowSitemapFallback: BulkRowSitemapType = defaultBulkSitemapMode();
 
     const wordPressPostsByKeyword = new Map<string, Array<{ id: number; slug: string; title: string; excerpt: string; link: string; date_gmt: string; collection?: string; postType?: string }>>();
-    let wordPressInventoryLoaded = false;
 
     let wordPressSiteForRun: ReturnType<typeof getStoredSites>[number] | undefined;
     if (connectedSite) {
@@ -809,47 +811,36 @@ isAnalyzingRef.current = isAnalyzing;
     try {
       let runHadFailure = false;
 
-      for (let i = 0; i < csvRows.length; i++) {
-        if (controller.signal.aborted) {
-          throw new Error('Processing cancelled');
-        }
-
-        setCurrentRow(i);
-        setHarnessSections([]);
-        setHarnessPlannedSectionCount(null);
-
-        if (
-          !wordPressInventoryLoaded &&
-          wordPressSiteForRun?.username &&
-          wordPressSiteForRun.appPassword
-        ) {
-          wordPressInventoryLoaded = true;
-          try {
-            notify.info(NOTIFY_LOADING_WORDPRESS_SITE_INVENTORY_ONE_REQ);
-            const inv = await ensureBulkGenerationWpInventory(wordPressSiteForRun, (msg) =>
-              notify.info(msg),
-            );
-            if (inv.error?.trim()) {
-              notify.warning(inv.error.trim());
-            }
-            const allLinkables = await loadBlogPlayLinkablesForSite(
-              wordPressSiteForRun,
-              inv.rows ?? [],
-            );
-            const uniqueKeywords = new Set(csvRows.map((r) => r.keyword.toLowerCase().trim()));
-            for (const keyword of uniqueKeywords) {
-              wordPressPostsByKeyword.set(keyword, allLinkables);
-            }
-            notify.success(
-              notifyLoadedXLinkableUrlsFromSiteInvento(allLinkables.length, uniqueKeywords.size),
-            );
-          } catch (error) {
-            console.error('[WordPress] Inventory fetch error:', error);
-            notify.warning(
-              notifyWordpressFetchFailedX(error instanceof Error ? error.message : 'Unknown error'),
-            );
+      if (wordPressSiteForRun?.username && wordPressSiteForRun.appPassword) {
+        try {
+          notify.info(NOTIFY_LOADING_WORDPRESS_SITE_INVENTORY_ONE_REQ);
+          const inv = await ensureBulkGenerationWpInventory(wordPressSiteForRun, (msg) =>
+            notify.info(msg),
+          );
+          if (inv.error?.trim()) {
+            notify.warning(inv.error.trim());
           }
+          const allLinkables = await loadBlogPlayLinkablesForSite(
+            wordPressSiteForRun,
+            inv.rows ?? [],
+          );
+          const uniqueKeywords = new Set(csvRows.map((r) => r.keyword.toLowerCase().trim()));
+          for (const keyword of uniqueKeywords) {
+            wordPressPostsByKeyword.set(keyword, allLinkables);
+          }
+          notify.success(
+            notifyLoadedXLinkableUrlsFromSiteInvento(allLinkables.length, uniqueKeywords.size),
+          );
+        } catch (error) {
+          console.error('[WordPress] Inventory fetch error:', error);
+          notify.warning(
+            notifyWordpressFetchFailedX(error instanceof Error ? error.message : 'Unknown error'),
+          );
         }
+      }
+
+      const runRow = async (i: number): Promise<void> => {
+        setCurrentRow(i);
 
         const rowSitemapType = resolveRowSitemapType(
           siteSitemapMode,
@@ -894,13 +885,11 @@ isAnalyzingRef.current = isAnalyzing;
 
         try {
           const files = await processRow(i, csvRows[i], options);
-          snapshotHarnessForRow(i);
           // Only mark as complete if we got files back (all generation succeeded)
           if (files && files.length > 0) {
             options.onRowComplete?.(i, files);
           }
         } catch (error) {
-          snapshotHarnessForRow(i);
           setFailedRowIndices((prev) => new Set(prev).add(i));
           runHadFailure = true;
           const msg = error instanceof Error ? error.message : String(error);
@@ -909,7 +898,32 @@ isAnalyzingRef.current = isAnalyzing;
           notify.error(notifyRowXFailedX(i + 1, msg));
           console.error(`Error processing row ${i + 1}:`, error);
         }
+      };
 
+      beginPromptTrace(`Bulk run, ${csvRows.length} row${csvRows.length === 1 ? '' : 's'} in parallel`);
+      try {
+        await runBulkRowsInParallel({ rowCount: csvRows.length, signal: controller.signal, runRow });
+      } finally {
+        const trace = endPromptTrace();
+        if (trace && trace.calls.length > 0) {
+          const timestamp = Date.now();
+          const content = buildPromptTraceMarkdown(trace, {
+            title: connectedSite?.siteUrl ?? 'Bulk run',
+            path: 'all rows',
+          });
+          csvRows.forEach((row, rowIndex) => {
+            fileManager.addFile({
+              id: BulkFileManager.createFileId(rowIndex, PROMPT_LOG_FILE_TYPE, timestamp),
+              rowIndex,
+              fileName: `${PROMPT_LOG_FILE_TYPE}-${timestamp}.md`,
+              content,
+              mimeType: 'text/markdown',
+              status: 'completed',
+              timestamp,
+              rowData: row,
+            });
+          });
+        }
       }
 
       if (!runHadFailure) {
@@ -919,7 +933,7 @@ isAnalyzingRef.current = isAnalyzing;
         recordRunStatus("Bulk run finished with row errors");
       }
     } catch (error) {
-      if (error instanceof Error && error.message === 'Processing cancelled') {
+      if (error instanceof Error && error.message === BULK_PROCESSING_CANCELLED_MESSAGE) {
         notify.warning(NOTIFY_PROCESSING_CANCELLED_BY_USER);
       } else {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -964,7 +978,7 @@ isAnalyzingRef.current = isAnalyzing;
       abortControllerRef.current = null;
       processingInFlightRef.current = false;
     }
-  }, [apiKey, openRouterApiKey, selectedModel, temperature, maxTokens, topP, flowPurpose, fileManager, processRow, connectedSite, wordPressPosting, siteConfigs, selectedWordPressSites, blogImportSourceFile, blogImportForm, bulkPostDestination, recordRunStatus, snapshotHarnessForRow]);
+  }, [apiKey, openRouterApiKey, selectedModel, temperature, maxTokens, topP, flowPurpose, fileManager, processRow, connectedSite, wordPressPosting, siteConfigs, selectedWordPressSites, blogImportSourceFile, blogImportForm, bulkPostDestination, recordRunStatus]);
 
   /**
    * Cancel processing

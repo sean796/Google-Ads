@@ -6,7 +6,6 @@ import {
   CONTENT_OPTIMIZER_ACTIVE_ROW_HIGHLIGHT_CLASS,
 } from "@/components/overview/overview-tab/overview-tab-content-constants";
 import { ChevronDown, Download, FileDown, Map as MapIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
@@ -45,6 +44,7 @@ import {
   isResearchHarnessPipelineTitles,
   researchBriefGeneratedFile,
 } from "@/lib/overview/overview-research-harness-sections";
+import { Button } from "@/ui";
 
 export type BulkDetailsDownloadable = { name: string; content: string; mimeType: string };
 
@@ -658,15 +658,13 @@ export function BulkDetailsTileSections({
         <Collapsible open={filesOpen} onOpenChange={setFilesOpen}>
           <div className={cn(META_TRIGGER_FLAT, "w-full font-semibold")}>
             <CollapsibleTrigger asChild>
-              <button
-                type="button"
-                className="flex min-w-0 flex-1 items-center gap-2 border-0 bg-transparent p-0 text-left text-base font-semibold text-white"
+              <Button
               >
                 <FileDown className="h-4 w-4 shrink-0" aria-hidden />
                 <span className="shrink-0 text-left">Generated files</span>
                 {trimmedStatus ? (
                   <span
-                    className="min-w-0 flex-1 truncate text-left font-normal text-white"
+                    className="min-w-0 flex-1 break-words text-left font-normal text-white"
                     role="status"
                     aria-live="polite"
                   >
@@ -683,7 +681,7 @@ export function BulkDetailsTileSections({
                     {trimmedProgress}
                   </span>
                 ) : null}
-              </button>
+              </Button>
             </CollapsibleTrigger>
             <div className={cn(META_FIELD_END_RAIL, "shrink-0")}>
               <span
@@ -696,30 +694,20 @@ export function BulkDetailsTileSections({
                 {headerItemCount.toLocaleString()}
               </span>
               {allDownloadables.length > 0 ? (
-                <button
-                  type="button"
-                  className={META_FIELD_END_RAIL_BTN}
+                <Button
+                  size="icon" icon={Download}
+                  variant="quiet"
                   title="Download all"
                   aria-label="Download all generated files"
                   onClick={() => onDownloadAll(allDownloadables)}
-                >
-                  <Download className="h-4 w-4 shrink-0" />
-                </button>
+                ></Button>
               ) : null}
             </div>
             <CollapsibleTrigger asChild>
-              <button
-                type="button"
-                className="flex shrink-0 items-center border-0 bg-transparent p-0 text-white"
+              <Button
+                size="icon" icon={ChevronDown}
                 aria-label={filesOpen ? "Collapse generated files" : "Expand generated files"}
-              >
-                <ChevronDown
-                  className={cn(
-                    "h-4 w-4 shrink-0 transition-transform",
-                    filesOpen && "rotate-180",
-                  )}
-                />
-              </button>
+              ></Button>
             </CollapsibleTrigger>
           </div>
           <CollapsibleContent className="space-y-3 pt-3">
@@ -754,12 +742,7 @@ export function BulkDetailsTileSections({
                           {s.title}
                         </span>
                         <Button
-                          variant="ghost"
-                          size="sm"
-                          className={cn(
-                            "h-7 shrink-0 px-2 text-base hover:bg-white/10 hover:text-white",
-                            stepReady ? "text-white" : "text-muted-foreground",
-                          )}
+                          variant="quiet"
                           disabled={!stepReady}
                           onClick={() => downloadable && onDownloadFile(downloadable)}
                         >
@@ -800,12 +783,7 @@ export function BulkDetailsTileSections({
                       {s.title || `Section ${s.sectionIndex + 1}`}
                     </span>
                     <Button
-                      variant="ghost"
-                      size="sm"
-                      className={cn(
-                        "h-7 shrink-0 px-2 text-base hover:bg-white/10 hover:text-white",
-                        stepReady ? "text-white" : "text-muted-foreground",
-                      )}
+                      variant="quiet"
                       disabled={!stepReady}
                       onClick={() => downloadable && onDownloadFile(downloadable)}
                     >
@@ -829,12 +807,7 @@ export function BulkDetailsTileSections({
                     {file.name}
                   </span>
                   <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "h-7 shrink-0 px-2 text-base hover:bg-white/10 hover:text-white",
-                      downloadsLocked ? "text-muted-foreground" : "text-white",
-                    )}
+                    variant="quiet"
                     disabled={downloadsLocked}
                     onClick={() => onDownloadFile(file)}
                   >
@@ -921,9 +894,9 @@ export function BulkDetailsPrepAccordion({
     <MetaAccordionStripeRow stripeIndex={stripeIndex}>
       <Collapsible open={open} onOpenChange={onOpenChange}>
         <CollapsibleTrigger asChild>
-          <button type="button" className={cn(META_TRIGGER_FLAT, "w-full font-semibold")}>
+          <Button variant="quiet">
             <MapIcon className="h-4 w-4 shrink-0" aria-hidden />
-            <span className="min-w-0 flex-1 truncate text-left">{title}</span>
+            <span className="min-w-0 flex-1 break-words text-left">{title}</span>
             <div className={cn(META_FIELD_END_RAIL, "pointer-events-auto shrink-0")}>
               <span
                 className={cn(
@@ -938,7 +911,7 @@ export function BulkDetailsPrepAccordion({
             <ChevronDown
               className={cn("h-4 w-4 shrink-0 transition-transform", open && "rotate-180")}
             />
-          </button>
+          </Button>
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-3 pt-3">
           <div className="space-y-2 text-base">

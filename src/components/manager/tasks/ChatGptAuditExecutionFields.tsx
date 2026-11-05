@@ -1,10 +1,10 @@
 import React from "react";
 import { Plus } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { TaskFormPanel } from "@/components/manager/tasks/TaskFormLayout";
 import { TaskExecutionTargetFields } from "@/components/manager/tasks/TaskExecutionTargetFields";
 import { ChatGptAuditUrlScopeFields } from "@/components/manager/tasks/ChatGptAuditUrlScopeFields";
 import type { TaskExecutionPayload } from "@/lib/tasks-types";
+import { RowButton, Field } from "@/ui";
 
 const QUESTION_FIELD_CLASS =
   "h-9 min-w-0 flex-1 rounded-none border-0 bg-black px-3 text-base text-white shadow-none outline-none ring-0 focus-visible:ring-0";
@@ -77,24 +77,23 @@ export function ChatGptAuditExecutionFields({
         {rows.map((value, index) => (
           <div key={index} className="flex min-w-0 items-center gap-2 bg-black px-3 py-1">
             <span className="w-5 shrink-0 text-base text-muted-foreground">{index + 1}</span>
-            <Input
+            <Field
+              placeholder={`Question ${index + 1}`}
               value={value}
               disabled={disabled}
               aria-label={`Question ${index + 1}`}
-              className={QUESTION_FIELD_CLASS}
               onChange={(event) => patchQuestion(index, event.target.value)}
             />
           </div>
         ))}
-        <button
+        <RowButton
           type="button"
           disabled={disabled}
           aria-label="Add question"
-          className="flex h-9 w-full items-center gap-2 rounded-none bg-black px-3 text-muted-foreground hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
           onClick={addQuestion}
         >
           <Plus className="h-4 w-4 shrink-0" aria-hidden />
-        </button>
+        </RowButton>
       </div>
       </TaskFormPanel>
     </>

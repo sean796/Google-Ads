@@ -1,7 +1,6 @@
 import { Plus, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Button, Field } from "@/ui";
 
 type BlogIdeaModifierLinksEditorProps = {
   links: string[];
@@ -42,36 +41,30 @@ export function BlogIdeaModifierLinksEditor({
       <div className="flex flex-col gap-1.5">
         {rows.map((link, index) => (
           <div key={`${idPrefix}-link-${index}`} className="flex min-w-0 items-center gap-2">
-            <Input
+            <Field
               id={`${idPrefix}-link-${index}`}
               type="url"
               value={link}
               disabled={disabled}
               placeholder="https://"
-              className={cn("min-h-9 min-w-0 flex-1 text-base")}
               aria-label={`External link ${index + 1}`}
               onChange={(e) => updateAt(index, e.target.value)}
             />
             {rows.length > 1 ? (
               <Button
+                size="icon" icon={X}
+                variant="quiet"
                 type="button"
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 shrink-0 text-zinc-400 hover:text-zinc-100"
                 disabled={disabled}
                 aria-label={`Remove link ${index + 1}`}
                 onClick={() => removeAt(index)}
-              >
-                <X className="h-4 w-4" aria-hidden />
-              </Button>
+              ></Button>
             ) : null}
           </div>
         ))}
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="sm"
-          className="h-9 w-fit gap-1.5 px-2 text-base text-zinc-300 hover:text-white"
           disabled={disabled}
           aria-label="Add link"
           onClick={addRow}

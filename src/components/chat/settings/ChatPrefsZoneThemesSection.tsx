@@ -1,9 +1,8 @@
 import React from "react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { CHAT_THEME_OPTIONS } from "@/lib/chat-preferences-presets";
 import type { ChatThemeId, ChatUserPreferences } from "@/lib/chat-preferences-types";
 import { themePreviewMutedStyle, themePreviewStyle } from "@/lib/chat-theme-palettes";
+import { Button, SwatchButton } from "@/ui";
 
 type Props = {
   draft: ChatUserPreferences;
@@ -26,21 +25,17 @@ function ThemePickerGrid({
       <p className="text-base font-semibold">{label}</p>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {CHAT_THEME_OPTIONS.map((theme) => (
-          <button
+          <SwatchButton
             key={theme.id}
-            type="button"
             onClick={() => onSelect(theme.id)}
-            className={cn(
-              "rounded-md px-3 py-2 text-left text-base transition-colors",
-              value === theme.id ? "ring-2 ring-primary" : "opacity-90",
-            )}
-            style={themePreviewStyle(theme.id)}
+            selected={value === theme.id}
+            swatch={themePreviewStyle(theme.id)}
           >
             <span className="block font-semibold">{theme.label}</span>
             <span className="block text-base" style={themePreviewMutedStyle(theme.id)}>
               Aa
             </span>
-          </button>
+          </SwatchButton>
         ))}
       </div>
     </div>
@@ -66,7 +61,7 @@ export function ChatPrefsZoneThemesSection({ draft, onChange }: Props): React.Re
     <section className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-base font-semibold">Zone themes</h3>
-        <Button type="button" variant="outline" className="h-9 text-base" onClick={applyToAllZones}>
+        <Button type="button" onClick={applyToAllZones}>
           Apply to all zones
         </Button>
       </div>

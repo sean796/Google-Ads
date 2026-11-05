@@ -1,15 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Building2, CheckCircle, ChevronRight, Copy, Download, Loader2, Save } from "lucide-react";
+import { ActionButton, Button, Field, RowButton } from "@/ui";
+import { Building2, CheckCircle, ChevronRight, Copy, Download, Save } from "lucide-react";
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
 import { NOTIFY_CLIENT_ID_SHOULD_BE_THE_FULL_VALUE_FROM_, NOTIFY_GMB_STATS_ADDED_TO_KNOWLEDGE_BASE, NOTIFY_NO_GMB_PERFORMANCE_DATA_RETURNED, NOTIFY_REDIRECT_URI_COPIED } from "@/lib/notify-messages";
 import { KB_FILES_STORAGE_KEY, type StoredFile } from "./integrations/types";
 import { getGMBPullDateRanges } from "@/lib/gmb-date-helpers";
 import { BACKEND_API_BASE as MCP_DERIVED_BACKEND } from "@/lib/wordpress-api/connection";
 import { NEO_PULSE_CA_DEPLOY } from "@/lib/neo-pulse-deploy";
+
+const SAVE_STATES = ["Test and save", "Testing and saving"] as const;
+const TEST_STATES = ["Test connection", "Testing"] as const;
+const PULL_STATES = ["Pull stats to KB", "Pulling"] as const;
 
 const GMB_CALLBACK_EXAMPLE = NEO_PULSE_CA_DEPLOY
   ? "https://neodigital.ca/api/gmb/callback"
@@ -71,8 +73,8 @@ export function GMBSettingsContent() {
     fetchStatus();
   }, []);
 
-  const handleTestAndSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleTestAndSave = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (clientIdTrimmed && !clientIdLooksValid) {
       notify.error(
         "Client ID should be the full value from Google Cloud (long, ending in .apps.googleusercontent.com)."
@@ -197,32 +199,31 @@ ${footnote}`;
   };
 
   const needsConfig = !configConfigured || showForm;
+  const canSave = clientIdLooksValid && clientSecret.trim().length > 0;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Building2 className="w-5 h-5 text-primary" />
-        <h3 id="gbp-heading" className="text-base font-semibold text-white">
+        <h3 id="gbp-heading" className="text-base font-semibold text-foreground">
           Google Business Profile
         </h3>
       </div>
-      <p className="text-base text-white">
+      <p className="text-base text-foreground">
         OAuth sign-in for Business Profile. Add Client ID and secret from Google Cloud, then Connect and test.
       </p>
 
       {loadingStatus ? (
-        <div className="text-sm text-muted-foreground flex items-center gap-2">
-          <Loader2 className="h-4 w-4 animate-spin" /> Checking…
-        </div>
+        <p className="flex h-8 items-center text-base text-muted-foreground">Checking</p>
       ) : needsConfig ? (
         <form onSubmit={handleTestAndSave} className="space-y-4">
-          <div className="rounded-md bg-muted/50 p-4 space-y-3 border border-border">
-            <div className="font-semibold text-white">How to get Client ID and Client secret (Google Cloud)</div>
-            <ol className="list-decimal list-inside space-y-2 text-sm text-foreground">
+          <div className="bg-ui-field p-4 space-y-3">
+            <div className="font-semibold text-foreground">How to get Client ID and Client secret (Google Cloud)</div>
+            <ol className="list-decimal list-inside space-y-2 text-base text-foreground">
               <li>
                 Enable the API:{" "}
                 <a href="https://console.cloud.google.com/apis/library" target="_blank" rel="noopener noreferrer" className="text-primary font-medium underline hover:opacity-90">API Library</a>
-                {" "}→ search <strong className="text-white">Business Profile Account Management</strong> → <strong className="text-white">Enable</strong>.
+                {" "}→ search <strong className="text-foreground">Business Profile Account Management</strong> → <strong className="text-foreground">Enable</strong>.
               </li>
               <li>
                 OAuth consent:{" "}
@@ -232,48 +233,38 @@ ${footnote}`;
               <li>
                 Create OAuth client:{" "}
                 <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-primary font-medium underline hover:opacity-90">Credentials</a>
-                {" "}→ <strong className="text-white">Create credentials</strong> → <strong className="text-white">OAuth client ID</strong> → Application type: <strong className="text-white">Web application</strong>. Under <strong className="text-white">Authorized redirect URIs</strong> click <strong className="text-white">Add URI</strong> and enter exactly <code className="bg-muted px-1 rounded text-foreground">{GMB_CALLBACK_EXAMPLE}</code>. Create.
+                {" "}→ <strong className="text-foreground">Create credentials</strong> → <strong className="text-foreground">OAuth client ID</strong> → Application type: <strong className="text-foreground">Web application</strong>. Under <strong className="text-foreground">Authorized redirect URIs</strong> click <strong className="text-foreground">Add URI</strong> and enter exactly <code className="bg-muted px-1 rounded text-foreground">{GMB_CALLBACK_EXAMPLE}</code>. Create.
               </li>
               <li>
-                Copy <strong className="text-white">Client ID</strong> and <strong className="text-white">Client secret</strong> from the OAuth client card (or open the client again from{" "}
+                Copy <strong className="text-foreground">Client ID</strong> and <strong className="text-foreground">Client secret</strong> from the OAuth client card (or open the client again from{" "}
                 <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-primary font-medium underline hover:opacity-90">Credentials</a>
                 {" "}→ OAuth 2.0 Client IDs). Paste them into the fields below.
               </li>
             </ol>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="gmb-client-id" className="text-foreground">Client ID</Label>
-            <Input
-              id="gmb-client-id"
-              type="text"
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-              placeholder="xxxxx.apps.googleusercontent.com"
-              className="bg-background border-border"
-              required
-            />
-            <p className="text-xs text-muted-foreground">
-              Use the full value from Google Cloud (long string ending in <code className="bg-muted px-0.5 rounded">.apps.googleusercontent.com</code>). Short values like &quot;admin&quot; are not valid.
-            </p>
-            {clientIdTrimmed && !clientIdLooksValid && (
-              <p className="text-xs text-amber-500">
-                This doesn’t look like a valid Client ID. Copy the full value from Credentials → your OAuth client.
-              </p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="gmb-client-secret" className="text-foreground">Client Secret</Label>
-            <Input
-              id="gmb-client-secret"
-              type="password"
-              autoComplete="off"
-              value={clientSecret}
-              onChange={(e) => setClientSecret(e.target.value)}
-              placeholder="GOCSPX-..."
-              className="bg-background border-border"
-              required
-            />
-          </div>
+          <Field
+            type="text"
+            value={clientId}
+            onChange={(e) => setClientId(e.target.value)}
+            placeholder="Client ID (xxxxx.apps.googleusercontent.com)"
+            required
+          />
+          <p className="text-base text-muted-foreground">
+            Use the full value from Google Cloud (long string ending in <code className="bg-muted px-0.5 rounded">.apps.googleusercontent.com</code>). Short values like &quot;admin&quot; are not valid.
+          </p>
+          <p className="min-h-6 text-base text-semantic-warning">
+            {clientIdTrimmed && !clientIdLooksValid
+              ? "This doesn't look like a valid Client ID. Copy the full value from Credentials, your OAuth client."
+              : ""}
+          </p>
+          <Field
+            type="password"
+            autoComplete="off"
+            value={clientSecret}
+            onChange={(e) => setClientSecret(e.target.value)}
+            placeholder="Client secret (GOCSPX-...)"
+            required
+          />
           <p className="text-xs text-muted-foreground">
             {NEO_PULSE_CA_DEPLOY ? (
               <>
@@ -293,84 +284,66 @@ ${footnote}`;
               </>
             )}
           </p>
-          <Button type="submit" disabled={saving || (!!clientIdTrimmed && !clientIdLooksValid)} className="gap-2">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            {saving ? "Testing & saving…" : "Test and save"}
-          </Button>
-        </form>
+          <ActionButton
+            icon={Save}
+            states={SAVE_STATES}
+            state={saving ? "Testing and saving" : "Test and save"}
+            disabled={saving || !canSave}
+            onClick={() => void handleTestAndSave()}
+          />        </form>
       ) : (
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 text-sm text-foreground">
-              <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
+            <span className="inline-flex items-center gap-1.5 text-base text-foreground">
+              <CheckCircle className="h-4 w-4 text-primary shrink-0" />
               <span>Credentials saved</span>
             </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setShowForm(true)}
-            >
-              Replace
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
+            <Button onClick={() => setShowForm(true)}>Replace</Button>
+            <ActionButton
+              variant="tool"
+              states={TEST_STATES}
+              state={testing ? "Testing" : "Test connection"}
               disabled={testing || !connected}
-              className="gap-2"
               onClick={handleTest}
-            >
-              {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {testing ? "Testing…" : "Test connection"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
+            />
+            <ActionButton
+              variant="tool"
+              icon={Download}
+              states={PULL_STATES}
+              state={pullingStats ? "Pulling" : "Pull stats to KB"}
               disabled={pullingStats || !connected}
-              className="gap-2"
               onClick={handlePullStats}
-              title="Pull GMB stats (this month vs last month) into Knowledge Base"
-            >
-              {pullingStats ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              {pullingStats ? "Pulling…" : "Pull stats to KB"}
-            </Button>
-          </div>
-          {!connected && (
-            <p className="text-sm text-muted-foreground">
-              Use <strong className="text-white">Connect Google Business</strong> on SEO → GBP Post to sign in with Google, then <strong className="text-white">Test connection</strong> here to verify a 200 response.
+            />
+          </div>          {!connected && (
+            <p className="text-base text-muted-foreground">
+              Use <strong className="text-foreground">Connect Google Business</strong> on SEO → GBP Post to sign in with Google, then <strong className="text-foreground">Test connection</strong> here to verify a 200 response.
             </p>
           )}
           {redirectUri && (
-            <div className="rounded-md bg-muted/50 border border-border p-2 space-y-1">
+            <div className="bg-ui-field p-2 space-y-1">
               <p className="text-xs font-medium text-foreground">Redirect URI (add this in Google Cloud)</p>
               <div className="flex items-center gap-2">
-                <code className="text-xs bg-background px-2 py-1 rounded flex-1 truncate" title={redirectUri}>
+                <code className="text-xs bg-background px-2 py-1 rounded flex-1 break-all" title={redirectUri}>
                   {redirectUri}
                 </code>
                 <Button
-                  type="button"
-                  variant="ghost"
                   size="icon"
-                  className="shrink-0 h-8 w-8"
+                  icon={Copy}
+                  aria-label="Copy redirect URI"
                   onClick={() => {
                     navigator.clipboard.writeText(redirectUri);
                     notify.success(NOTIFY_REDIRECT_URI_COPIED);
                   }}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
+                />                            </div>
               {frontendUrl && (
                 <>
                   <p className="text-xs font-medium text-foreground pt-1">Frontend URL (post-OAuth return)</p>
-                  <code className="text-xs bg-background px-2 py-1 rounded block truncate" title={frontendUrl}>
+                  <code className="text-xs bg-background px-2 py-1 rounded block break-all" title={frontendUrl}>
                     {frontendUrl}
                   </code>
                 </>
               )}
-              <p className="text-xs text-amber-500/90">
+              <p className="text-xs text-semantic-warning">
                 If you see &quot;The OAuth client was not found&quot; (401): use the <strong>same</strong> Client ID from Credentials, set Application type to <strong>Web application</strong>, and add the redirect URI above under Authorized redirect URIs.
               </p>
             </div>
@@ -393,26 +366,25 @@ ${footnote}`;
         </div>
       )}
 
-      <Collapsible open={instructionsOpen} onOpenChange={setInstructionsOpen} className="border border-border rounded-md bg-muted/30">
+      <Collapsible open={instructionsOpen} onOpenChange={setInstructionsOpen} className="bg-ui-field">
         <CollapsibleTrigger asChild>
-          <button
+          <RowButton
             type="button"
-            className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-muted/50 rounded-t-md transition-colors"
           >
             <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${instructionsOpen ? "rotate-90" : ""}`} />
             More setup details (redirect URI in Google, env vars)
-          </button>
+          </RowButton>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="px-3 pb-3 pt-0 text-sm space-y-3 border-t border-border mt-0 pt-3 text-foreground">
+          <div className="px-3 pb-3 pt-3 text-base space-y-3 text-foreground">
             <p className="text-foreground">
-              In the OAuth client, under <strong className="text-white">Authorized redirect URIs</strong>, add exactly <code className="bg-muted px-1 rounded">{GMB_CALLBACK_EXAMPLE}</code>.
+              In the OAuth client, under <strong className="text-foreground">Authorized redirect URIs</strong>, add exactly <code className="bg-muted px-1 rounded">{GMB_CALLBACK_EXAMPLE}</code>.
             </p>
             <p className="text-foreground">
               After sign-in, NEO Pulse returns to <code className="bg-muted px-1 rounded">{GMB_FRONTEND_URL_EXAMPLE}</code> (Settings).
             </p>
             <p className="text-foreground">
-              Then use <strong className="text-white">Connect Google Business</strong> on SEO → GBP Post and <strong className="text-white">Test connection</strong> here.
+              Then use <strong className="text-foreground">Connect Google Business</strong> on SEO → GBP Post and <strong className="text-foreground">Test connection</strong> here.
             </p>
           </div>
         </CollapsibleContent>

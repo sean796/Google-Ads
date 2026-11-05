@@ -16,7 +16,7 @@ export function ApiDocsCallout({ auth, method, path }: { auth?: string; method?:
         <span
           className={cn(
             "px-3 py-1 text-base font-medium",
-            needsSession ? "bg-primary text-black" : "bg-zinc-800 text-white",
+            needsSession ? "bg-primary text-black" : "bg-ui-field-hover text-white",
           )}
         >
           {authLabel(auth)}

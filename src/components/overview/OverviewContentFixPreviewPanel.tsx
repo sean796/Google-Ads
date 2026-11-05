@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 const FIX_PREVIEW_CODE = cn(
   "w-full min-w-0 rounded-md border border-white/20 bg-black/60 p-3 text-base leading-relaxed",
-  "whitespace-pre-wrap break-words text-cyan-100/95 [overflow-wrap:anywhere]",
+  "whitespace-pre-wrap break-words text-semantic-analysis-foreground/95 [overflow-wrap:anywhere]",
 );
 
 export interface OverviewContentFixPreviewPanelProps {
@@ -18,11 +18,11 @@ export function OverviewContentFixPreviewPanel({ slices }: OverviewContentFixPre
 
   return (
     <div
-      className="mt-3 space-y-0 rounded-lg border border-white/10 bg-zinc-950/55 p-3 sm:p-4"
+      className="mt-3 space-y-0 rounded-lg border border-white/10 bg-black/55 p-3 sm:p-4"
       aria-label="Agree and fix sectional preview"
     >
       <div className="flex items-start gap-2 pb-3">
-        <Wrench className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400/90" aria-hidden />
+        <Wrench className="mt-0.5 h-4 w-4 shrink-0 text-primary/90" aria-hidden />
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-semibold uppercase tracking-[0.14em] text-white/85">
             Fix preview by section
@@ -43,7 +43,7 @@ export function OverviewContentFixPreviewPanel({ slices }: OverviewContentFixPre
               {s.sectionLabel || `Section ${s.sectionIndex + 1}`}
             </p>
 
-            <details className="rounded-md bg-zinc-900/55 open:pb-2" open={s.beforeHtml !== s.afterHtml}>
+            <details className="rounded-md bg-ui-field/55 open:pb-2" open={s.beforeHtml !== s.afterHtml}>
               <summary className="cursor-pointer select-none text-base font-medium text-white/90">
                 Before (original slice)
               </summary>
@@ -52,8 +52,8 @@ export function OverviewContentFixPreviewPanel({ slices }: OverviewContentFixPre
               </pre>
             </details>
 
-            <details className="rounded-md bg-zinc-900/55 open:pb-2" open={s.beforeHtml !== s.afterHtml}>
-              <summary className="cursor-pointer select-none text-base font-medium text-emerald-300/95">
+            <details className="rounded-md bg-ui-field/55 open:pb-2" open={s.beforeHtml !== s.afterHtml}>
+              <summary className="cursor-pointer select-none text-base font-medium text-primary/95">
                 After (revised slice)
               </summary>
               <pre className={cn(FIX_PREVIEW_CODE, "mt-2 max-h-80 overflow-auto")} tabIndex={0}>

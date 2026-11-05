@@ -16,7 +16,7 @@ export const DEFAULT_SIDEBAR_WIDTH = 480;
 export const DEFAULT_SEO_SIDEBAR_WIDTH = 720;
 export const MIN_SIDEBAR_WIDTH = 360;
 export const MAX_SIDEBAR_WIDTH = 1280;
-export type SidebarPanel = "assist" | "agents" | "seo";
+export type SidebarPanel = "assist" | "agents" | "seo" | "details";
 const ASSIST_HISTORY_MAX = 40;
 const ASSIST_HISTORY_BODY_MAX = 12000;
 
@@ -114,6 +114,7 @@ export function readSidebarPanel(): SidebarPanel {
 }
 
 export function writeSidebarPanel(panel: SidebarPanel): void {
+  if (panel === "details") return;
   try {
     sessionStorage.setItem(PANEL_KEY, panel);
   } catch {

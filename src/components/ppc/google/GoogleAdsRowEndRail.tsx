@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 export const PPC_ROW_END_RAIL_ICON_SLOT = "inline-flex h-8 w-8 shrink-0 items-center justify-center";
 
@@ -35,18 +36,16 @@ export function GoogleAdsRowEndRail({
       <IconSlot>{generate}</IconSlot>
       <IconSlot>
         {onDelete ? (
-          <button
-            type="button"
-            className="inline-flex h-8 w-8 items-center justify-center text-foreground hover:text-destructive disabled:opacity-50"
+          <Button
+            size="icon" icon={Trash2}
+            variant="quiet"
             aria-label={deleteLabel ?? "Delete"}
             disabled={deleteDisabled}
             onClick={(e) => {
               e.stopPropagation();
               onDelete();
             }}
-          >
-            <Trash2 className="h-4 w-4" aria-hidden />
-          </button>
+          ></Button>
         ) : null}
       </IconSlot>
       <IconSlot>{chevron}</IconSlot>

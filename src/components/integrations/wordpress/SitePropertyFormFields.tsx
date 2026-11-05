@@ -1,11 +1,8 @@
 import React, { useCallback, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import { ActionButton, Button, Field, SelectField, SwitchField } from "@/ui";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Switch } from "@/components/ui/switch";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Loader2, Copy } from "lucide-react";
+import { Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/app-notifications";
 import {
@@ -24,22 +21,10 @@ import {
   isEditorialContentPackageTier,
 } from "@/lib/editorial-content-package";
 import { isOptimizationPackageTier } from "@/lib/wordpress-optimization-package";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { persistGbpLocationIdInput } from "@/lib/gbp-post/normalize-gbp-location-id";
 import { PropertyProfileTagPills } from "./PropertyProfileTagPills";
 import { normalizeProfileTags } from "@/lib/wordpress-property-profile-tags";
-import {
-  WP_PANEL_INSET_BAND,
-  WP_PANEL_LIST_GAP,
-  WP_PANEL_ROW_TILE,
-  WP_PANEL_TOOLBAR_BTN,
-} from "./wordpress-panel-chrome";
+import { WP_PANEL_INSET_BAND, WP_PANEL_LIST_GAP, WP_PANEL_ROW_TILE } from "./wordpress-panel-chrome";
 import {
   TASK_FORM_FLAT_CONTROL_CLASS,
   TaskFormFlatField,
@@ -54,6 +39,7 @@ import { PropertyClientLogoFields } from "./PropertyClientLogoFields";
 import { WpEngineHostingFields } from "./WpEngineHostingFields";
 import {
   nextStateForCountry,
+  ProfileAdditionalLocationsEditor,
   ProfileLocationSelect,
   regionPlaceholder,
   SERVICE_COUNTRY_OPTIONS,
@@ -73,26 +59,6 @@ const IGNORE_CREDENTIAL_MANAGER = {
   "data-bwignore": "true" as const,
   "data-form-type": "other" as const,
 };
-
-function fieldClassName(chrome: SitePropertyFormChrome): string {
-  return cn(
-    SITE_PROPERTY_COPY,
-    "min-h-10 rounded-none border-0 bg-black shadow-none focus-visible:ring-2 focus-visible:ring-offset-0",
-    chrome === "dark"
-      ? "h-9 min-h-9 text-white placeholder:text-white/55 focus-visible:ring-white/35 focus-visible:ring-offset-black"
-      : "h-10 text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/55 focus-visible:ring-offset-background",
-  );
-}
-
-function SitePropertyInput({
-  chrome,
-  className,
-  ...props
-}: React.ComponentProps<typeof Input> & { chrome: SitePropertyFormChrome }) {
-  return (
-    <Input variant="neoPulseBlack" className={cn(fieldClassName(chrome), className)} {...props} />
-  );
-}
 
 function stackedLabelClass(chrome: SitePropertyFormChrome): string {
   return cn(SITE_PROPERTY_COPY, "font-medium", chrome === "dark" ? "text-white" : "text-foreground");
@@ -157,17 +123,13 @@ function radioOptionLabelClass(chrome: SitePropertyFormChrome): string {
   return cn("cursor-pointer font-normal", SITE_PROPERTY_COPY, chrome === "dark" ? "text-white" : "text-foreground");
 }
 
-/** Stacked label + field; optional help spans full tile width below. */
+/** Field (label is its placeholder); optional help spans full tile width below. */
 function FieldBlock({
-  label,
-  htmlFor,
   field,
   help,
   chrome,
   span = "default",
 }: {
-  label: string;
-  htmlFor: string;
   field: React.ReactNode;
   help?: React.ReactNode;
   chrome: SitePropertyFormChrome;
@@ -181,15 +143,11 @@ function FieldBlock({
         span === "full" && chrome === "light" && "sm:col-span-2",
       )}
     >
-      <Label htmlFor={htmlFor} className={stackedLabelClass(chrome)}>
-        {label}
-      </Label>
       {field}
       {help ? <div className="w-full">{help}</div> : null}
     </div>
   );
 }
-
 export interface SitePropertyFormFieldsProps {
   /** Dark sheet (embedded site settings) vs light card (modal). */
   chrome?: SitePropertyFormChrome;
@@ -257,6 +215,13 @@ export interface SitePropertyFormFieldsProps {
   settingsSubSectionId?: PropertySettingsSubSectionId;
 }
 
+const SEMRUSH_MATCH_STATES = ["Match project from Semrush", "Matching"] as const;
+const EDITORIAL_PACKAGE_OPTIONS = [
+  { value: "__unset__", label: "No editorial package" },
+  { value: "standard", label: EDITORIAL_CONTENT_PACKAGE_LABELS.standard },
+  { value: "lite", label: EDITORIAL_CONTENT_PACKAGE_LABELS.lite },
+];
+
 export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
   chrome = "dark",
   formName,
@@ -316,18 +281,6 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
   const hc = helpClass(chrome);
   const sh = strongHelpClass(chrome);
   const [semrushMatching, setSemrushMatching] = useState(false);
-
-  const semrushBtnClass =
-    chrome === "dark"
-      ? cn(
-          "h-10 min-h-10 gap-2 text-base font-medium",
-          "border border-white/20 bg-transparent text-white shadow-none",
-          "[&_svg]:text-white",
-          "hover:bg-white/10 hover:text-white",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35 focus-visible:ring-offset-2 focus-visible:ring-offset-black",
-          "disabled:cursor-not-allowed disabled:opacity-50",
-        )
-      : cn(WP_PANEL_TOOLBAR_BTN);
 
   const handleMatchSemrushProject = useCallback(async () => {
     const url = formSiteUrl.trim();
@@ -422,13 +375,12 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
       <TaskFormSideSection title="Profile">
         <TaskFormFlatGrid className="grid-cols-2">
           <TaskFormPlaceholderCell>
-            <Input
+            <Field
               value={formName}
               onChange={(e) => onFormNameChange(e.target.value)}
               placeholder="Site name"
               aria-label="Site name"
               autoComplete="off"
-              className={flatInputClass}
             />
           </TaskFormPlaceholderCell>
           <TaskFormPlaceholderCell>
@@ -447,7 +399,6 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
         </TaskFormFlatGrid>
         <div className="mt-2">
           <PropertyClientLogoFields
-            flat
             formClientLogoUrl={formClientLogoUrl}
             onFormClientLogoUrlChange={onFormClientLogoUrlChange}
             formClientLogoBoxTheme={formClientLogoBoxTheme}
@@ -477,7 +428,7 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
         </div>
         <TaskFormFlatGrid className="grid-cols-2">
           <TaskFormPlaceholderCell>
-            <Input
+            <Field
               value={formPrimaryLocalKeyword}
               onChange={(e) => onFormPrimaryLocalKeywordChange(e.target.value)}
               onBlur={() => {
@@ -489,26 +440,23 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
               placeholder="Primary keyword"
               aria-label="Primary keyword"
               autoComplete="off"
-              className={flatInputClass}
             />
           </TaskFormPlaceholderCell>
           <TaskFormPlaceholderCell>
-            <Input
+            <Field
               value={formServiceCity}
               onChange={(e) => onFormServiceCityChange(e.target.value)}
-              onBlur={persistServiceArea}
+              onBlur={() => persistServiceArea()}
               placeholder="Service city"
               aria-label="Service city"
               name="neo-pulse_service_city"
               autoComplete="address-level2"
-              className={flatInputClass}
             />
           </TaskFormPlaceholderCell>
         </TaskFormFlatGrid>
         <TaskFormFlatGrid className="grid-cols-2">
           <TaskFormPlaceholderCell>
             <ProfileLocationSelect
-              chrome="dark"
               placeholder="Country"
               value={formServiceCountry}
               options={SERVICE_COUNTRY_OPTIONS}
@@ -517,7 +465,6 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
           </TaskFormPlaceholderCell>
           <TaskFormPlaceholderCell>
             <ProfileLocationSelect
-              chrome="dark"
               placeholder={regionPlaceholder(formServiceCountry)}
               value={formServiceState}
               options={serviceRegionOptions(formServiceCountry)}
@@ -526,6 +473,13 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
             />
           </TaskFormPlaceholderCell>
         </TaskFormFlatGrid>
+        <ProfileAdditionalLocationsEditor
+          site={serviceAreaSite}
+          defaultCountry={formServiceCountry}
+          defaultState={formServiceState}
+          onPatchSite={onPatchSite}
+          patchSiteId={patchSiteId}
+        />
       </TaskFormSideSection>
     );
 
@@ -533,38 +487,35 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
       <TaskFormSideSection title="Access">
         <TaskFormFlatGrid className="grid-cols-2">
           <TaskFormPlaceholderCell>
-            <Input
+            <Field
               value={formSiteUrl}
               onChange={(e) => onFormSiteUrlChange(e.target.value)}
               placeholder="Site URL (WordPress / REST)"
               aria-label="Site URL"
               autoComplete="off"
-              className={flatInputClass}
             />
           </TaskFormPlaceholderCell>
           <TaskFormPlaceholderCell>
-            <Input
+            <Field
               value={formProductionSiteUrl}
               onChange={(e) => onFormProductionSiteUrlChange(e.target.value)}
               placeholder="Production URL (optional)"
               aria-label="Production URL"
               autoComplete="off"
-              className={flatInputClass}
             />
           </TaskFormPlaceholderCell>
           <TaskFormPlaceholderCell>
-            <Input
+            <Field
               value={formUsername}
               onChange={(e) => onFormUsernameChange(e.target.value)}
               placeholder="Username"
               aria-label="Username"
               name="neo_pulse_wp_api_username"
               autoComplete="off"
-              className={flatInputClass}
             />
           </TaskFormPlaceholderCell>
           <TaskFormPlaceholderCell>
-            <Input
+            <Field
               type="password"
               value={formAppPassword}
               onChange={(e) => onFormAppPasswordChange(e.target.value)}
@@ -572,7 +523,6 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
               aria-label="Application password"
               name="neo_pulse_wp_api_application_token"
               {...IGNORE_CREDENTIAL_MANAGER}
-              className={flatInputClass}
             />
           </TaskFormPlaceholderCell>
         </TaskFormFlatGrid>
@@ -583,25 +533,25 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
       <TaskFormSideSection title="Integrations">
         <TaskFormFlatGrid className="grid-cols-2">
           <TaskFormFlatField label="GA4 Property ID">
-            <Input
+            <Field
               value={formGa4PropertyId}
               onChange={(e) => onFormGa4PropertyIdChange(e.target.value)}
               aria-label="GA4 Property ID"
               autoComplete="off"
-              className={flatInputClass}
+              placeholder="GA4 Property ID"
             />
           </TaskFormFlatField>
           <TaskFormFlatField label="Google Ads customer ID">
-            <Input
+            <Field
               value={formGoogleAdsCustomerId}
               onChange={(e) => onFormGoogleAdsCustomerIdChange(e.target.value)}
               aria-label="Google Ads customer ID"
               autoComplete="off"
-              className={flatInputClass}
+              placeholder="Google Ads customer ID"
             />
           </TaskFormFlatField>
           <TaskFormFlatField label="GBP Location ID" className="sm:col-span-2">
-            <Input
+            <Field
               value={formGbpLocationId}
               onChange={(e) => onFormGbpLocationIdChange(e.target.value)}
               onBlur={() => {
@@ -612,74 +562,51 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
               }}
               aria-label="GBP Location ID"
               autoComplete="off"
-              className={flatInputClass}
+              placeholder="GBP Location ID"
             />
           </TaskFormFlatField>
           <TaskFormFlatField label="Semrush Site Audit Project ID" className="sm:col-span-2">
-            <Input
+            <Field
               value={formSemrushSiteAuditProjectId}
               onChange={(e) => onFormSemrushSiteAuditProjectIdChange(e.target.value)}
               aria-label="Semrush Site Audit Project ID"
               autoComplete="off"
-              className={flatInputClass}
+              placeholder="Semrush Site Audit Project ID"
             />
           </TaskFormFlatField>
           <TaskFormFlatField label="Position Tracking project ID">
-            <Input
+            <Field
               value={formSemrushPositionTrackingProjectId}
               onChange={(e) => onFormSemrushPositionTrackingProjectIdChange(e.target.value)}
               placeholder="Position Tracking project ID"
               aria-label="Position Tracking project ID"
               autoComplete="off"
-              className={flatInputClass}
             />
           </TaskFormFlatField>
           <TaskFormFlatField label="Position Tracking campaign ID">
-            <Input
+            <Field
               value={formSemrushPositionTrackingCampaignId}
               onChange={(e) => onFormSemrushPositionTrackingCampaignIdChange(e.target.value)}
               placeholder="Position Tracking campaign ID"
               aria-label="Position Tracking campaign ID"
               autoComplete="off"
-              className={flatInputClass}
             />
           </TaskFormFlatField>
           <WpEngineHostingFields site={serviceAreaSite} onPatchSite={onPatchSite} />
         </TaskFormFlatGrid>
         <div className="mt-1 flex flex-wrap items-center gap-2 px-1">
-          <Button
-            type="button"
-            variant="outline"
-            size="default"
-            className={cn(
-              "h-9 border-0 bg-[#000] text-base text-white hover:bg-[#000] hover:text-white",
-              TASK_FORM_FLAT_CONTROL_CLASS,
-            )}
+          <ActionButton
+            variant="tool"
+            states={SEMRUSH_MATCH_STATES}
+            state={semrushMatching ? "Matching" : "Match project from Semrush"}
             disabled={semrushBusy || !formSiteUrl.trim()}
             onClick={() => void handleMatchSemrushProject()}
-          >
-            {semrushMatching ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                Matching...
-              </>
-            ) : (
-              "Match project from Semrush"
-            )}
-          </Button>
+          />
           {canPatchSemrush ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="default"
-              className="h-9 border-0 bg-[#000] text-base text-white hover:bg-[#000] hover:text-white"
-              disabled={semrushBusy}
-              onClick={handlePushSemrushId}
-            >
+            <Button disabled={semrushBusy} onClick={handlePushSemrushId}>
               Save project ID now
             </Button>
-          ) : null}
-        </div>
+          ) : null}        </div>
       </TaskFormSideSection>
     );
 
@@ -687,17 +614,20 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
       <TaskFormSideSection title="Editorial">
         <TaskFormFlatGrid className="grid-cols-2">
           <TaskFormPlaceholderCell>
-            <Input
+            <Field
               type="date"
               value={formEditorialCountsPeriodStartYmd}
               onChange={(e) => onFormEditorialCountsPeriodStartYmdChange(e.target.value)}
               aria-label="Editorial counts period start"
-              className={flatInputClass}
+              placeholder="Editorial counts period start"
             />
           </TaskFormPlaceholderCell>
           <TaskFormPlaceholderCell>
-            <Select
+            <SelectField
+              placeholder="Editorial package"
+              width="full"
               value={formEditorialContentPackage || "__unset__"}
+              options={EDITORIAL_PACKAGE_OPTIONS}
               onValueChange={(v) => {
                 const next = v === "__unset__" ? "" : v;
                 onFormEditorialContentPackageChange(next);
@@ -708,39 +638,24 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
                   });
                 }
               }}
-            >
-              <SelectTrigger className={flatInputClass} aria-label="Editorial package">
-                <SelectValue placeholder="Editorial package" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__unset__">No editorial package</SelectItem>
-                <SelectItem value="standard">{EDITORIAL_CONTENT_PACKAGE_LABELS.standard}</SelectItem>
-                <SelectItem value="lite">{EDITORIAL_CONTENT_PACKAGE_LABELS.lite}</SelectItem>
-              </SelectContent>
-            </Select>
-          </TaskFormPlaceholderCell>
+            />          </TaskFormPlaceholderCell>
           <TaskFormPlaceholderCell>
-            <Input
+            <Field
               value={formEditorialPublishTimeLocal}
               onChange={(e) => onFormEditorialPublishTimeLocalChange(e.target.value)}
               placeholder="Publish time (HH:MM)"
               aria-label="Editorial publish time"
-              className={flatInputClass}
             />
           </TaskFormPlaceholderCell>
         </TaskFormFlatGrid>
         <div className="mt-2 flex flex-col gap-3 px-1">
-          <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="opt-period-limit-enabled-modal" className="text-base text-white">
-              Optimization period limit
-            </Label>
-            <Switch
-              id="opt-period-limit-enabled-modal"
-              checked={Boolean(
-                formOptimizationPackage?.trim() &&
-                  isOptimizationPackageTier(formOptimizationPackage.trim()),
-              )}
-              onCheckedChange={(checked) => {
+          <SwitchField
+            label="Optimization period limit"
+            checked={Boolean(
+              formOptimizationPackage?.trim() &&
+                isOptimizationPackageTier(formOptimizationPackage.trim()),
+            )}
+            onCheckedChange={(checked) => {
                 if (!checked) {
                   onFormOptimizationPackageChange("");
                   if (onPatchSite && patchSiteId) {
@@ -760,8 +675,7 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
                   });
                 }
               }}
-            />
-          </div>
+          />
           {formOptimizationPackage?.trim() &&
           isOptimizationPackageTier(formOptimizationPackage.trim()) ? (
             <RadioGroup
@@ -778,21 +692,21 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
             >
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="basic" id="opt-pkg-basic-modal" />
-                <Label htmlFor="opt-pkg-basic-modal" className="text-base text-white">
+                <label htmlFor="opt-pkg-basic-modal" className="text-base text-foreground">
                   Basic (50)
-                </Label>
+                </label>
               </div>
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="pro" id="opt-pkg-pro-modal" />
-                <Label htmlFor="opt-pkg-pro-modal" className="text-base text-white">
+                <label htmlFor="opt-pkg-pro-modal" className="text-base text-foreground">
                   Pro (100)
-                </Label>
+                </label>
               </div>
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="plus" id="opt-pkg-plus-modal" />
-                <Label htmlFor="opt-pkg-plus-modal" className="text-base text-white">
+                <label htmlFor="opt-pkg-plus-modal" className="text-base text-foreground">
                   Plus (200)
-                </Label>
+                </label>
               </div>
             </RadioGroup>
           ) : null}
@@ -805,21 +719,14 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 space-y-1">
-              <p className="text-base font-semibold text-white">WordPress plugin site ID</p>
+              <p className="text-base font-semibold text-foreground">WordPress plugin site ID</p>
               {patchSiteId ? (
-                <p className="break-all font-mono text-base text-white">{patchSiteId}</p>
+                <p className="break-all font-mono text-base text-foreground">{patchSiteId}</p>
               ) : (
                 <p className="text-base text-muted-foreground">Save the property first.</p>
               )}
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-9 shrink-0 border-0 bg-[#000] text-base text-white hover:bg-[#000] hover:text-white"
-              disabled={!patchSiteId}
-              onClick={() => void handleCopySiteId()}
-            >
-              <Copy className="h-4 w-4 shrink-0" aria-hidden />
+            <Button icon={Copy} disabled={!patchSiteId} onClick={() => void handleCopySiteId()}>
               Copy site ID
             </Button>
           </div>
@@ -851,8 +758,6 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
       <form autoComplete="off" onSubmit={(e) => e.preventDefault()}>
       <FieldBlock
         chrome={chrome}
-        label="Benchmark category tag"
-        htmlFor="benchmarkCustomTag"
         span="full"
         field={
           <BenchmarkCategoryTagField
@@ -885,7 +790,6 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
 
       <div className="py-2">
         <PropertyClientLogoFields
-          chrome={chrome}
           formClientLogoUrl={formClientLogoUrl}
           onFormClientLogoUrlChange={onFormClientLogoUrlChange}
           formClientLogoBoxTheme={formClientLogoBoxTheme}
@@ -902,11 +806,8 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
 
       <FieldBlock
         chrome={chrome}
-        label="Primary keyword"
-        htmlFor="primaryLocalKeyword"
         field={
-          <SitePropertyInput
-            chrome={chrome}
+          <Field
             id="primaryLocalKeyword"
             value={formPrimaryLocalKeyword}
             onChange={(e) => onFormPrimaryLocalKeywordChange(e.target.value)}
@@ -916,7 +817,7 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
                 onPatchSite(patchSiteId, { primaryLocalKeyword: kw || undefined });
               }
             }}
-            placeholder="blinds near me"
+            placeholder="Primary keyword"
             autoComplete="off"
           />
         }
@@ -924,17 +825,14 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
 
       <FieldBlock
         chrome={chrome}
-        label="Service city"
-        htmlFor="serviceCity"
         field={
-          <SitePropertyInput
-            chrome={chrome}
+          <Field
             id="serviceCity"
             name="neo-pulse_service_city"
             value={formServiceCity}
             onChange={(e) => onFormServiceCityChange(e.target.value)}
-            onBlur={persistServiceArea}
-            placeholder="Edmonton"
+            onBlur={() => persistServiceArea()}
+            placeholder="Service city"
             autoComplete="address-level2"
           />
         }
@@ -942,11 +840,8 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
 
       <FieldBlock
         chrome={chrome}
-        label="Country"
-        htmlFor="serviceCountry"
         field={
           <ProfileLocationSelect
-            chrome={chrome}
             placeholder="Country"
             value={formServiceCountry}
             options={SERVICE_COUNTRY_OPTIONS}
@@ -957,11 +852,8 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
 
       <FieldBlock
         chrome={chrome}
-        label={regionPlaceholder(formServiceCountry)}
-        htmlFor="serviceState"
         field={
           <ProfileLocationSelect
-            chrome={chrome}
             placeholder={regionPlaceholder(formServiceCountry)}
             value={formServiceState}
             options={serviceRegionOptions(formServiceCountry)}
@@ -970,6 +862,16 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
           />
         }
       />
+
+      <div className={cn("w-full py-1.5", chrome === "light" && "sm:col-span-2")}>
+        <ProfileAdditionalLocationsEditor
+          site={serviceAreaSite}
+          defaultCountry={formServiceCountry}
+          defaultState={formServiceState}
+          onPatchSite={onPatchSite}
+          patchSiteId={patchSiteId}
+        />
+      </div>
       </form>
 
       <form autoComplete="off" onSubmit={(e) => e.preventDefault()}>
@@ -979,17 +881,14 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
           <AccordionContent className={accordionContentClass(chrome)}>
             <div className={fieldsGridClass(chrome)}>
             <FieldBlock
-              chrome={chrome}
-              label="Site Name"
-              htmlFor="name"
-              field={
-                <SitePropertyInput
-                  chrome={chrome}
+        chrome={chrome}
+        field={
+                <Field
                   id="name"
                   name="neo-pulse_property_label"
                   value={formName}
                   onChange={(e) => onFormNameChange(e.target.value)}
-                  placeholder="My WordPress Site"
+                  placeholder="Site Name"
                   autoComplete="off"
                   autoCorrect="off"
                   spellCheck={false}
@@ -998,17 +897,14 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
             />
 
             <FieldBlock
-              chrome={chrome}
-              label="Username"
-              htmlFor="wpApiUsername"
-              field={
-                <SitePropertyInput
-                  chrome={chrome}
+        chrome={chrome}
+        field={
+                <Field
                   id="wpApiUsername"
                   name="neo_pulse_wp_api_username"
                   value={formUsername}
                   onChange={(e) => onFormUsernameChange(e.target.value)}
-                  placeholder="admin"
+                  placeholder="Username"
                   autoComplete="off"
                   autoCorrect="off"
                   spellCheck={false}
@@ -1017,18 +913,15 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
             />
 
             <FieldBlock
-              chrome={chrome}
-              label="Site URL (WordPress / REST)"
-              htmlFor="siteUrl"
-              span="full"
-              field={
-                <SitePropertyInput
-                  chrome={chrome}
+        chrome={chrome}
+        span="full"
+        field={
+                <Field
                   id="siteUrl"
                   name="neo-pulse_property_site_url"
                   value={formSiteUrl}
                   onChange={(e) => onFormSiteUrlChange(e.target.value)}
-                  placeholder="https://staging-or-wp.example.com"
+                  placeholder="Site URL (WordPress / REST)"
                   autoComplete="off"
                 />
               }
@@ -1036,18 +929,15 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
             />
 
             <FieldBlock
-              chrome={chrome}
-              label="Production URL (Optional)"
-              htmlFor="productionSiteUrl"
-              span="full"
-              field={
-                <SitePropertyInput
-                  chrome={chrome}
+        chrome={chrome}
+        span="full"
+        field={
+                <Field
                   id="productionSiteUrl"
                   name="neo-pulse_property_production_url"
                   value={formProductionSiteUrl}
                   onChange={(e) => onFormProductionSiteUrlChange(e.target.value)}
-                  placeholder="https://www.client.com"
+                  placeholder="Production URL (Optional)"
                   autoComplete="off"
                 />
               }
@@ -1059,19 +949,16 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
             />
 
             <FieldBlock
-              chrome={chrome}
-              label="Application Password"
-              htmlFor="appPassword"
-              span="full"
-              field={
-                <SitePropertyInput
-                  chrome={chrome}
+        chrome={chrome}
+        span="full"
+        field={
+                <Field
                   id="appPassword"
                   name="neo_pulse_wp_api_application_token"
                   type="password"
                   value={formAppPassword}
                   onChange={(e) => onFormAppPasswordChange(e.target.value)}
-                  placeholder="xxxx xxxx xxxx xxxx xxxx xxxx"
+                  placeholder="Application Password"
                   {...IGNORE_CREDENTIAL_MANAGER}
                 />
               }
@@ -1090,17 +977,15 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
           <AccordionContent className={accordionContentClass(chrome)}>
             <div className={fieldsGridClass(chrome)}>
             <FieldBlock
-              chrome={chrome}
-              label="GA4 Property ID (Optional)"
-              htmlFor="ga4PropertyId"
-              field={
-                <SitePropertyInput
-                  chrome={chrome}
+        chrome={chrome}
+        field={
+                <Field
                   id="ga4PropertyId"
                   type="text"
                   value={formGa4PropertyId}
                   onChange={(e) => onFormGa4PropertyIdChange(e.target.value)}
                   aria-label="GA4 Property ID"
+                  placeholder="GA4 Property ID (Optional)"
                 />
               }
               help={
@@ -1112,29 +997,24 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
             />
 
             <FieldBlock
-              chrome={chrome}
-              label="Google Ads customer ID"
-              htmlFor="googleAdsCustomerId"
-              field={
-                <SitePropertyInput
-                  chrome={chrome}
+        chrome={chrome}
+        field={
+                <Field
                   id="googleAdsCustomerId"
                   type="text"
                   value={formGoogleAdsCustomerId}
                   onChange={(e) => onFormGoogleAdsCustomerIdChange(e.target.value)}
                   aria-label="Google Ads customer ID"
+                  placeholder="Google Ads customer ID"
                 />
               }
             />
 
             <FieldBlock
-              chrome={chrome}
-              label="Google Business Profile Location ID (Optional)"
-              htmlFor="gbpLocationId"
-              span="full"
-              field={
-                <SitePropertyInput
-                  chrome={chrome}
+        chrome={chrome}
+        span="full"
+        field={
+                <Field
                   id="gbpLocationId"
                   type="text"
                   value={formGbpLocationId}
@@ -1146,6 +1026,7 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
                     }
                   }}
                   aria-label="Google Business Profile Location ID"
+                  placeholder="Google Business Profile Location ID (Optional)"
                 />
               }
               help={
@@ -1168,18 +1049,15 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
           <AccordionContent className={accordionContentClass(chrome)}>
             <div className={fieldsGridClass(chrome)}>
             <FieldBlock
-              chrome={chrome}
-              label="Semrush Site Audit Project ID (Optional)"
-              htmlFor="semrushSiteAuditProjectId"
-              span="full"
-              field={
-                <SitePropertyInput
-                  chrome={chrome}
+        chrome={chrome}
+        span="full"
+        field={
+                <Field
                   id="semrushSiteAuditProjectId"
                   type="text"
                   value={formSemrushSiteAuditProjectId}
                   onChange={(e) => onFormSemrushSiteAuditProjectIdChange(e.target.value)}
-                  placeholder="e.g. 6647718 (from semrush.com/projects/...)"
+                  placeholder="Semrush Site Audit Project ID (Optional)"
                 />
               }
               help={
@@ -1192,33 +1070,27 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
             />
 
             <FieldBlock
-              chrome={chrome}
-              label="Position Tracking project ID (Optional)"
-              htmlFor="semrushPositionTrackingProjectId"
-              field={
-                <SitePropertyInput
-                  chrome={chrome}
+        chrome={chrome}
+        field={
+                <Field
                   id="semrushPositionTrackingProjectId"
                   type="text"
                   value={formSemrushPositionTrackingProjectId}
                   onChange={(e) => onFormSemrushPositionTrackingProjectIdChange(e.target.value)}
-                  placeholder="Position Tracking project ID"
+                  placeholder="Position Tracking project ID (Optional)"
                 />
               }
             />
 
             <FieldBlock
-              chrome={chrome}
-              label="Position Tracking campaign ID (Optional)"
-              htmlFor="semrushPositionTrackingCampaignId"
-              field={
-                <SitePropertyInput
-                  chrome={chrome}
+        chrome={chrome}
+        field={
+                <Field
                   id="semrushPositionTrackingCampaignId"
                   type="text"
                   value={formSemrushPositionTrackingCampaignId}
                   onChange={(e) => onFormSemrushPositionTrackingCampaignIdChange(e.target.value)}
-                  placeholder="Position Tracking campaign ID (URL fid=)"
+                  placeholder="Position Tracking campaign ID (Optional)"
                 />
               }
             />
@@ -1231,32 +1103,15 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
             >
               <span className={stackedLabelClass(chrome)}>Semrush tools</span>
               <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-                <Button
-                  type="button"
-                  variant={chrome === "light" ? "ghost" : "outline"}
-                  size="default"
-                  className={semrushBtnClass}
+                <ActionButton
+                  variant="tool"
+                  states={SEMRUSH_MATCH_STATES}
+                  state={semrushMatching ? "Matching" : "Match project from Semrush"}
                   disabled={semrushBusy || !formSiteUrl.trim()}
                   onClick={() => void handleMatchSemrushProject()}
-                >
-                  {semrushMatching ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                      Matching...
-                    </>
-                  ) : (
-                    "Match project from Semrush"
-                  )}
-                </Button>
+                />
                 {canPatchSemrush ? (
-                  <Button
-                    type="button"
-                    variant={chrome === "light" ? "ghost" : "outline"}
-                    size="default"
-                    className={semrushBtnClass}
-                    disabled={semrushBusy}
-                    onClick={handlePushSemrushId}
-                  >
+                  <Button disabled={semrushBusy} onClick={handlePushSemrushId}>
                     Save project ID now
                   </Button>
                 ) : null}
@@ -1269,22 +1124,20 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
             </div>
 
             <FieldBlock
-              chrome={chrome}
-              label="Editorial Counts Period Start (Optional)"
-              htmlFor="editorialCountsPeriodStartYmd"
-              span="full"
-              field={
-                <SitePropertyInput
-                  chrome={chrome}
+        chrome={chrome}
+        span="full"
+        field={
+                <Field
                   id="editorialCountsPeriodStartYmd"
                   type="date"
                   value={formEditorialCountsPeriodStartYmd}
                   onChange={(e) => onFormEditorialCountsPeriodStartYmdChange(e.target.value)}
+                  placeholder="Editorial Counts Period Start (Optional)"
                 />
               }
               help={
                 <p className={hc}>
-                  When set, post and entity totals use rolling 3-month periods from this date. Leave blank to use calendar
+                  Editorial counts period start. When set, post and entity totals use rolling 3-month periods from this date. Leave blank to use calendar
                   quarters (Q1-Q4).
                 </p>
               }
@@ -1296,26 +1149,13 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
                 chrome === "light" && "sm:col-span-2",
               )}
             >
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <Label
-                    htmlFor="opt-period-limit-enabled"
-                    className={cn(stackedLabelClass(chrome), "cursor-pointer")}
-                  >
-                    Optimization period limit
-                  </Label>
-                  <p className={cn("mt-1 max-w-none", hc)}>
-                    When off, the sparkle count on the property tile is hidden and bulk runs are not capped
-                    (e.g. no 154/50).
-                  </p>
-                </div>
-                <Switch
-                  id="opt-period-limit-enabled"
-                  checked={Boolean(
-                    formOptimizationPackage?.trim() &&
-                      isOptimizationPackageTier(formOptimizationPackage.trim()),
-                  )}
-                  onCheckedChange={(checked) => {
+              <SwitchField
+                label="Optimization period limit"
+                checked={Boolean(
+                  formOptimizationPackage?.trim() &&
+                    isOptimizationPackageTier(formOptimizationPackage.trim()),
+                )}
+                onCheckedChange={(checked) => {
                     if (!checked) {
                       onFormOptimizationPackageChange("");
                       if (onPatchSite && patchSiteId) {
@@ -1335,12 +1175,15 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
                       });
                     }
                   }}
-                />
-              </div>
+              />
+              <p className={cn("max-w-none", hc)}>
+                When off, the sparkle count on the property tile is hidden and bulk runs are not capped
+                (e.g. no 154/50).
+              </p>
               {formOptimizationPackage?.trim() &&
               isOptimizationPackageTier(formOptimizationPackage.trim()) ? (
                 <div className="flex w-full flex-col gap-1.5">
-                  <Label className={stackedLabelClass(chrome)}>Package tier</Label>
+                  <span className={stackedLabelClass(chrome)}>Package tier</span>
                   <RadioGroup
                     value={formOptimizationPackage}
                     onValueChange={(tier) => {
@@ -1355,21 +1198,21 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
                   >
                     <div className="flex items-center gap-2">
                       <RadioGroupItem value="basic" id="opt-pkg-basic" />
-                      <Label htmlFor="opt-pkg-basic" className={radioOptionLabelClass(chrome)}>
+                      <label htmlFor="opt-pkg-basic" className={radioOptionLabelClass(chrome)}>
                         Basic (50)
-                      </Label>
+                      </label>
                     </div>
                     <div className="flex items-center gap-2">
                       <RadioGroupItem value="pro" id="opt-pkg-pro" />
-                      <Label htmlFor="opt-pkg-pro" className={radioOptionLabelClass(chrome)}>
+                      <label htmlFor="opt-pkg-pro" className={radioOptionLabelClass(chrome)}>
                         Pro (100)
-                      </Label>
+                      </label>
                     </div>
                     <div className="flex items-center gap-2">
                       <RadioGroupItem value="plus" id="opt-pkg-plus" />
-                      <Label htmlFor="opt-pkg-plus" className={radioOptionLabelClass(chrome)}>
+                      <label htmlFor="opt-pkg-plus" className={radioOptionLabelClass(chrome)}>
                         Plus (200)
-                      </Label>
+                      </label>
                     </div>
                   </RadioGroup>
                 </div>
@@ -1391,7 +1234,7 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
                 className={cn(
                   WP_PANEL_INSET_BAND,
                   "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
-                  chrome === "dark" && "border border-white/10 bg-muted/25 shadow-none",
+                  chrome === "dark" && "bg-ui-field shadow-none",
                 )}
               >
                 <div className="w-full space-y-1">
@@ -1409,15 +1252,7 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
                     </p>
                   ) : null}
                 </div>
-                <Button
-                  type="button"
-                  variant={chrome === "light" ? "default" : "outline"}
-                  size="default"
-                  className={chrome === "dark" ? semrushBtnClass : "h-10 min-h-10 shrink-0 gap-2 px-4 text-base font-medium"}
-                  disabled={!patchSiteId}
-                  onClick={() => void handleCopySiteId()}
-                >
-                  <Copy className="h-4 w-4 shrink-0" aria-hidden />
+                <Button icon={Copy} disabled={!patchSiteId} onClick={() => void handleCopySiteId()}>
                   Copy site ID
                 </Button>
               </div>

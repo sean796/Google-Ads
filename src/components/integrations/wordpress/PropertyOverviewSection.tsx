@@ -7,6 +7,11 @@ import {
   editorialContentPackageShortLabelForSite,
   editorialQuotasForSite,
 } from "@/lib/editorial-content-package";
+import {
+  readSiteLocationsList,
+  readSiteServiceCity,
+  readSiteServiceState,
+} from "@/lib/wordpress-api/site-service-area";
 
 export type PropertyOverviewSectionProps = {
   site: WordPressSite;
@@ -51,6 +56,20 @@ export function PropertyOverviewSection({ site, isTesting, isDetecting, isExtrac
     ? { value: propertyWpEngineInstall(site) || "Configured", note: wpEngineAccountId }
     : { value: "Not set", note: "" };
   const primaryKeyword = site.primaryLocalKeyword?.trim() ?? "";
+  const allLocations = readSiteLocationsList(site);
+  const primaryCity = readSiteServiceCity(site);
+  const primaryState = readSiteServiceState(site);
+  const primaryLocLabel = [primaryCity, primaryState].filter(Boolean).join(", ");
+  const extraLocations = allLocations
+    .slice(1)
+    .map((l) => [l.city?.trim(), l.state?.trim()].filter(Boolean).join(", "))
+    .filter(Boolean);
+  const locationsNote =
+    extraLocations.length > 0
+      ? `+${extraLocations.length} more: ${extraLocations.join(" | ")}`
+      : primaryLocLabel
+        ? "Primary location"
+        : "Set in Settings -> Profile";
 
   return (
     <div className="flex flex-col gap-5">
@@ -58,7 +77,7 @@ export function PropertyOverviewSection({ site, isTesting, isDetecting, isExtrac
         <div className={PROFILE_CARD_HEAD}>
           <h2 className={PROFILE_CARD_TITLE}>Connection</h2>
         </div>
-        <div className={`${PROFILE_STAT_GRID} grid-cols-2 sm:grid-cols-3 xl:grid-cols-6`}>
+        <div className={`${PROFILE_STAT_GRID} grid-cols-2 sm:grid-cols-3 xl:grid-cols-7`}>
           <StatCell
             label="WordPress"
             value={propertyHostingLabel(site)}
@@ -75,7 +94,12 @@ export function PropertyOverviewSection({ site, isTesting, isDetecting, isExtrac
           <StatCell
             label="Primary keyword"
             value={primaryKeyword || "Not set"}
-            note={primaryKeyword ? "Local Grid default" : "Set in Settings → Profile"}
+            note={primaryKeyword ? "Local Grid default" : "Set in Settings -> Profile"}
+          />
+          <StatCell
+            label="Locations"
+            value={primaryLocLabel || "Not set"}
+            note={locationsNote}
           />
           <StatCell label="Property" value={site.enabled === false ? "Disabled" : "Enabled"} note={site.optimizationPackage ? `${site.optimizationPackage} package` : "No package"} />
         </div>

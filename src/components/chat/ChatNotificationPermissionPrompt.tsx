@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { CHAT_TEXT_MUTED, CHAT_TEXT_PRIMARY } from "@/components/chat/chat-theme";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 const DISMISS_KEY = (teamId: number) => `neo-pulse-chat-notif-prompt-dismissed-${teamId}`;
 
@@ -59,22 +59,20 @@ export function ChatNotificationPermissionPrompt({
   if (!visible) return null;
 
   return (
-    <div className="flex shrink-0 items-center justify-between gap-3 bg-zinc-900/50 px-4 py-3">
+    <div className="flex shrink-0 items-center justify-between gap-3 bg-ui-field/50 px-4 py-3">
       <p className={cn("min-w-0 text-base", CHAT_TEXT_PRIMARY)}>
         Allow desktop notifications for chat messages?
       </p>
       <div className="flex shrink-0 items-center gap-2">
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="sm"
-          className={cn("text-base", CHAT_TEXT_MUTED)}
           disabled={busy}
           onClick={dismiss}
         >
           Not now
         </Button>
-        <Button type="button" size="sm" className="text-base" disabled={busy} onClick={() => void allow()}>
+        <Button variant="run" type="button" disabled={busy} onClick={() => void allow()}>
           Allow
         </Button>
       </div>

@@ -1,16 +1,11 @@
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import { BULK_HEADER_SELECT_TRIGGER } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import { WorkspacePill } from "@/components/shared/WorkspacePill";
 import type { PpcCampaignInsights } from "@/lib/ppc/ppc-campaign-insights-types";
 import type { PpcInsightsScope } from "@/lib/ppc/ppc-campaign-insights-scope";
 import { ppcAdDailySeriesKey, ppcKeywordDailySeriesKey } from "@/lib/ppc/ppc-campaign-insights-scope";
 import { cn } from "@/lib/utils";
+import { SelectField } from "@/ui";
 
 export type GoogleAdsInsightsScopeControlsProps = {
   insights: PpcCampaignInsights;
@@ -104,9 +99,7 @@ export function GoogleAdsInsightsScopeControls({
       </div>
 
       {scope.level !== "campaign" && adGroupOptions.length > 0 ? (
-        <Select
-          value={selectedAdGroupId}
-          onValueChange={(adGroupId) => {
+        <SelectField placeholder="Ad group" value={selectedAdGroupId} onValueChange={(adGroupId) => {
             const ag = adGroupOptions.find((row) => row.id === adGroupId);
             if (!ag) return;
             if (scope.level === "keyword" || scope.level === "ad") {
@@ -122,25 +115,11 @@ export function GoogleAdsInsightsScopeControls({
             } else {
               onScopeChange({ level: "ad_group", adGroupId, label: ag.name });
             }
-          }}
-        >
-          <SelectTrigger className={cn(BULK_HEADER_SELECT_TRIGGER, "min-w-[12rem]")}>
-            <SelectValue placeholder="Ad group" />
-          </SelectTrigger>
-          <SelectContent>
-            {adGroupOptions.map((row) => (
-              <SelectItem key={row.id || row.name} value={row.id || row.name}>
-                {row.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          }} options={adGroupOptions.map((row) => ({ value: row.id || row.name, label: row.name }))} />
       ) : null}
 
       {scope.level === "ad" && adOptions.length > 0 ? (
-        <Select
-          value={scope.level === "ad" ? ppcAdDailySeriesKey(scope.adGroupId, scope.adId) : undefined}
-          onValueChange={(key) => {
+        <SelectField placeholder="Ad" value={scope.level === "ad" ? ppcAdDailySeriesKey(scope.adGroupId, scope.adId) : undefined} onValueChange={(key) => {
             const ad = adOptions.find((row) => ppcAdDailySeriesKey(row.adGroupId, row.adId) === key);
             if (!ad) return;
             onScopeChange({
@@ -149,25 +128,11 @@ export function GoogleAdsInsightsScopeControls({
               adId: ad.adId,
               label: ad.label,
             });
-          }}
-        >
-          <SelectTrigger className={cn(BULK_HEADER_SELECT_TRIGGER, "min-w-[12rem]")}>
-            <SelectValue placeholder="Ad" />
-          </SelectTrigger>
-          <SelectContent>
-            {adOptions.map((row) => (
-              <SelectItem key={ppcAdDailySeriesKey(row.adGroupId, row.adId)} value={ppcAdDailySeriesKey(row.adGroupId, row.adId)}>
-                {row.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          }} options={adOptions.map((row) => ({ value: ppcAdDailySeriesKey(row.adGroupId, row.adId), label: row.label }))} />
       ) : null}
 
       {scope.level === "keyword" && keywordOptions.length > 0 ? (
-        <Select
-          value={scope.level === "keyword" ? scope.keywordText : keywordOptions[0]}
-          onValueChange={(keywordText) => {
+        <SelectField placeholder="Keyword" value={scope.level === "keyword" ? scope.keywordText : keywordOptions[0]} onValueChange={(keywordText) => {
             if (scope.level !== "keyword") return;
             onScopeChange({
               level: "keyword",
@@ -175,19 +140,7 @@ export function GoogleAdsInsightsScopeControls({
               keywordText,
               label: keywordText,
             });
-          }}
-        >
-          <SelectTrigger className={cn(BULK_HEADER_SELECT_TRIGGER, "min-w-[12rem]")}>
-            <SelectValue placeholder="Keyword" />
-          </SelectTrigger>
-          <SelectContent>
-            {keywordOptions.map((text) => (
-              <SelectItem key={ppcKeywordDailySeriesKey(selectedAdGroupId, text)} value={text}>
-                {text}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          }} options={keywordOptions.map((text) => ({ value: text, label: text }))} />
       ) : null}
     </div>
   );

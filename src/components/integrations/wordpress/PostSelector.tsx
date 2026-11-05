@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, RefreshCw, Check, ChevronsUpDown, FileText, ExternalLink, Download } from "lucide-react";
+import { RefreshCw, Check, ChevronsUpDown, FileText, ExternalLink, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getPublishedPosts, type PublishedPostsResult, resolveWordPressUrls, getWordPressPostContent } from "@/lib/wordpress-api";
 import { type WordPressSite } from "../types";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_FETCHING_POST_DATA, NOTIFY_SITE_CREDENTIALS_NOT_AVAILABLE, notifyDownloadedXPostSAsJson } from "@/lib/notify-messages";
+import { Button, Field } from "@/ui";
 
 interface PostSelectorProps {
   site: WordPressSite;
@@ -130,13 +129,11 @@ export const PostSelector: React.FC<PostSelectorProps> = ({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
-            variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="h-9 w-full justify-between border-zinc-600 bg-[#0c0c0c] text-sm font-medium text-foreground transition-all hover:border-zinc-500 hover:bg-zinc-900 hover:text-foreground"
             disabled={disabled || isLoading || !site.username || !site.appPassword}
           >
-            <span className="truncate">
+            <span className="break-words">
               {multiSelect ? (
                 selectedPosts.length > 0 ? (
                   <span className="flex items-center gap-2">
@@ -165,7 +162,7 @@ export const PostSelector: React.FC<PostSelectorProps> = ({
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)] max-w-[min(100vw-1.5rem,var(--radix-popover-content-available-width))] border border-zinc-700 bg-[#0a0a0a] p-0"
+          className="w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)] max-w-[min(100vw-1.5rem,var(--radix-popover-content-available-width))] border border-border bg-[#0a0a0a] p-0"
           align="start"
         >
           <Command className="bg-[#0a0a0a]">
@@ -178,18 +175,16 @@ export const PostSelector: React.FC<PostSelectorProps> = ({
             <div className="flex items-center justify-between px-3 py-2 text-sm font-medium text-foreground">
               <span>{filteredPosts.length} post{filteredPosts.length !== 1 ? 's' : ''} found</span>
               <Button
-                variant="ghost"
-                size="sm"
+                variant="quiet"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   fetchPosts();
                 }}
                 disabled={isLoading}
-                className="h-6 border border-zinc-700 bg-[#0a0a0a] text-xs text-foreground transition-all hover:bg-zinc-900 hover:text-foreground"
               >
                 {isLoading ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
+                  null
                 ) : (
                   <RefreshCw className="h-3 w-3" />
                 )}
@@ -199,7 +194,7 @@ export const PostSelector: React.FC<PostSelectorProps> = ({
               <CommandEmpty>
                 {isLoading ? (
                   <div className="flex items-center justify-center py-6 font-medium text-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    
                     Loading posts...
                   </div>
                 ) : (
@@ -209,7 +204,7 @@ export const PostSelector: React.FC<PostSelectorProps> = ({
               <CommandGroup>
                 {multiSelect && filteredPosts.length > 0 && (
                   <div
-                    className="group flex cursor-pointer items-center gap-2 px-3 py-2.5 transition-colors hover:bg-zinc-900 hover:text-foreground"
+                    className="group flex cursor-pointer items-center gap-2 px-3 py-2.5 transition-colors hover:bg-ui-field hover:text-foreground"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -220,7 +215,7 @@ export const PostSelector: React.FC<PostSelectorProps> = ({
                       checked={allFilteredSelected}
                       onCheckedChange={handleSelectAll}
                       onClick={(e) => e.stopPropagation()}
-                      className="h-4 w-4 border-zinc-600 data-[state=checked]:border-zinc-400 data-[state=checked]:bg-zinc-700"
+                      className="h-4 w-4 border-border data-[state=checked]:border-border data-[state=checked]:bg-ui-field-hover"
                     />
                     <span className={cn(
                       "text-sm font-semibold",
@@ -256,8 +251,8 @@ export const PostSelector: React.FC<PostSelectorProps> = ({
                       className={cn(
                         "flex items-center py-2.5 px-3 rounded transition-colors group",
                         isSelected
-                          ? "border border-zinc-600 bg-zinc-800/80 text-foreground"
-                          : "border border-transparent hover:bg-zinc-900 hover:text-foreground",
+                          ? "border border-border bg-ui-field-hover/80 text-foreground"
+                          : "border border-transparent hover:bg-ui-field hover:text-foreground",
                         "[&[data-selected]]:!bg-[#141414] [&[data-selected]]:!text-foreground"
                       )}
                     >
@@ -268,7 +263,7 @@ export const PostSelector: React.FC<PostSelectorProps> = ({
                               checked={isSelected}
                               onCheckedChange={() => handleTogglePost(post.link)}
                               onClick={(e) => e.stopPropagation()}
-                              className="h-4 w-4 border-zinc-600 data-[state=checked]:border-zinc-400 data-[state=checked]:bg-zinc-700"
+                              className="h-4 w-4 border-border data-[state=checked]:border-border data-[state=checked]:bg-ui-field-hover"
                             />
                           ) : (
                             <Check
@@ -279,7 +274,7 @@ export const PostSelector: React.FC<PostSelectorProps> = ({
                             />
                           )}
                           <span className={cn(
-                            "font-semibold text-sm truncate",
+                            "font-semibold text-sm break-words",
                             isSelected ? "text-foreground" : "text-foreground group-hover:text-foreground"
                           )}>{post.title}</span>
                         </div>
@@ -299,19 +294,16 @@ export const PostSelector: React.FC<PostSelectorProps> = ({
       {/* Manual URL input as fallback - only show for single select */}
       {!multiSelect && (
         <div className="relative">
-          <Input
+          <Field
             placeholder="Or enter URL manually"
             value={selectedUrl || ''}
             onChange={(e) => onValueChange(e.target.value)}
             disabled={disabled}
-            className="h-8 border-zinc-600 bg-[#0c0c0c] font-mono text-xs text-foreground placeholder:text-muted-foreground transition-all"
           />
           {selectedPost && (
             <Button
-              variant="ghost"
-              size="sm"
+              variant="quiet"
               onClick={() => window.open(selectedPost.link, '_blank')}
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
               title="Open in new tab"
             >
               <ExternalLink className="h-3 w-3" />
@@ -325,8 +317,7 @@ export const PostSelector: React.FC<PostSelectorProps> = ({
             {selectedPosts.length} post{selectedPosts.length !== 1 ? 's' : ''} selected
           </span>
           <Button
-            variant="ghost"
-            size="sm"
+            variant="quiet"
             onClick={async (e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -462,7 +453,6 @@ console.error('[PostSelector] Error scraping posts:', error);
               }
             }}
             disabled={disabled || isLoading || !site.username || !site.appPassword}
-            className="h-6 border border-zinc-700 bg-[#0a0a0a] text-xs text-foreground transition-all hover:bg-zinc-900 hover:text-foreground"
             title="Download post data as JSON"
           >
             <Download className="h-3 w-3 mr-1" />

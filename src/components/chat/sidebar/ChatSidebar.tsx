@@ -2,8 +2,6 @@ import React, { useMemo, useState } from "react";
 
 import { Hash, Lock, MessageCircle, Plus, Radio, Star } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-
 import { cn } from "@/lib/utils";
 
 import type { ChatChannel, ChatMentionInboxItem } from "@/lib/chat-types";
@@ -43,6 +41,7 @@ import {
   CHAT_SCROLL_CLASS,
 
 } from "@/components/chat/chat-theme";
+import { Button } from "@/ui";
 
 
 
@@ -232,13 +231,10 @@ export function ChatSidebar({
 
       <div key={channel.id} className="group flex items-center gap-0.5">
 
-        <button
-
-          type="button"
+        <Button
+          variant="quiet"
 
           onClick={() => onSelectChannel(channel.id)}
-
-          className={cn(CHAT_SIDEBAR_ROW, rowActiveClass, "min-w-0 flex-1")}
 
         >
 
@@ -263,7 +259,7 @@ export function ChatSidebar({
 
           </span>
 
-          <span className="min-w-0 flex-1 truncate">{label}</span>
+          <span className="min-w-0 flex-1 break-words">{label}</span>
 
           {huddle ? (
 
@@ -287,37 +283,21 @@ export function ChatSidebar({
 
           ) : null}
 
-        </button>
+        </Button>
 
         {isMinimal && onToggleStarred ? (
 
           <Button
+            size="icon" icon={Star}
+            variant="quiet"
 
             type="button"
-
-            variant="ghost"
-
-            size="icon"
-
-            className={cn(
-
-              "h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100",
-
-              starred && "opacity-100",
-
-              CHAT_ICON_BTN_CLASS,
-
-            )}
 
             aria-label={starred ? "Unstar channel" : "Star channel"}
 
             onClick={() => onToggleStarred(channel.id)}
 
-          >
-
-            <Star className={cn("h-3.5 w-3.5", starred && "fill-current text-amber-400")} />
-
-          </Button>
+          ></Button>
 
         ) : null}
 
@@ -347,15 +327,12 @@ export function ChatSidebar({
         <span className={CHAT_SIDEBAR_SECTION_LABEL}>Channels</span>
         {canWrite ? (
           <Button
+            size="icon" icon={Plus}
+            variant="quiet"
             type="button"
-            variant="ghost"
-            size="icon"
-            className={addBtnClass}
             aria-label="New channel"
             onClick={() => setCreateOpen(true)}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
+          ></Button>
         ) : null}
       </div>
       <div className="px-2 pb-2">{publicChannels.map(renderRow)}</div>
@@ -368,15 +345,12 @@ export function ChatSidebar({
         <span className={CHAT_SIDEBAR_SECTION_LABEL}>DMs</span>
         {canWrite ? (
           <Button
+            size="icon" icon={Plus}
+            variant="quiet"
             type="button"
-            variant="ghost"
-            size="icon"
-            className={addBtnClass}
             aria-label="New direct message"
             onClick={() => setDmOpen(true)}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
+          ></Button>
         ) : null}
       </div>
       {dms.map(renderRow)}

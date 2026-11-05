@@ -15,7 +15,7 @@ Wrap it in a dedicated `*WorkspaceHeader.tsx` beside the page shell. Wire page s
 |------|---------|------|-------|
 | 1 Title | `bg-zinc-900/50` | `icon` + `title` + optional `titleRowMenu` | `titleRowEnd` |
 | 2 Toolbar | `bg-black` | Options, filters, flyouts, selects | Main actions (`ml-auto`) |
-| 3 Progress | `bg-zinc-900/50` | `progressLeading` (e.g. pagination) + micro progress bar | **Details** drawer toggle |
+| 3 Progress | `bg-zinc-900/50` | `progressLeading` (e.g. pagination) + micro progress bar | (none; Details lives in the right sidebar) |
 
 Use exported band classes (`UNIFIED_TITLE_BAND_CLASS`, `UNIFIED_TOOLBAR_CLASS`, `UNIFIED_PROGRESS_BAND_CLASS`) when building toolbar children so heights stay aligned.
 
@@ -24,7 +24,7 @@ Use exported band classes (`UNIFIED_TITLE_BAND_CLASS`, `UNIFIED_TOOLBAR_CLASS`, 
 - **`titleRowMenu`**: In-page modes tied to the title (sitemap source: Pages / Posts / SAP). Omit when not applicable.
 - **`titleRowEnd`**: Categories and extra modules (Multi-site, Dashboard sections, Sitemap sub-modes). Right-aligned pills via `WorkspacePill`.
 - **`toolbar`**: Black bar. **Left** = filters and option clusters. **Right** = primary actions (sort, run, export). Separate groups with `BULK_TOOLBAR_GROUP_DIVIDER`. Style controls with `bulk-workspace-header-styles.ts` (`BULK_HEADER_*`).
-- **Progress band**: Pass `progressSnapshot`, `bulkActionProgress`, `isProcessing`, `canOpenDetails`, `detailsPanelId`, `detailsPanel`. The **Details** drawer holds micro-progress logs and batch status only, not primary page content.
+- **Progress band**: Pass `progressSnapshot`, `bulkActionProgress`, `isProcessing`, `canOpenDetails`, `detailsPanelId`, `detailsPanel`. `detailsPanel` is published into the **Details** tab of the green right sidebar (`DetailsDockPortal`); the band has no Details toggle. It holds micro-progress logs and batch status only, not primary page content.
 - **No bulk work yet**: `progressBand="empty"` (keeps the grey band height without a bar). Example: `DashboardWorkspaceHeader`.
 
 ## Reference implementations

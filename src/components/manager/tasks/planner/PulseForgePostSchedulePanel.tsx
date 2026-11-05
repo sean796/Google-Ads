@@ -287,11 +287,10 @@ export function PulseForgePostSchedulePanel({
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-2 px-0.5">
         <CalendarClock className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-        <p className="text-base font-medium text-white">{heading}</p>
-        <p className="ml-auto truncate text-base text-muted-foreground">{summary}</p>
+        <p className="text-base font-medium text-foreground">{heading}</p>
+        <p className="ml-auto text-base text-muted-foreground">{summary}</p>
       </div>
       <WordPressScheduleFields
-        variant="forge"
         layout="stack"
         scheduleFrequency={state.scheduleFrequency}
         setScheduleFrequency={(scheduleFrequency) => commit((prev) => ({ ...prev, scheduleFrequency }))}

@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { isNeoPulseBotMember, sortMembersWithNeoPulseBotFirst } from "@/lib/chat-neo-pulse";
 import type { TeamMember } from "@/lib/teams-types";
+import { Button, RowButton } from "@/ui";
 
 export type TaskAssigneePickerProps = {
   members: TeamMember[];
@@ -39,21 +40,14 @@ export function TaskAssigneePicker({
           const isBot = isNeoPulseBotMember(member);
           const label = isBot ? "NEO Pulse" : member.displayName || member.email;
           return (
-            <button
+            <Button
+              pressed={Boolean(active)}
+              variant="quiet"
               key={member.userId}
-              type="button"
               onClick={() => toggle(member.userId)}
-              className={cn(
-                "rounded-none px-2 py-1 text-base",
-                active
-                  ? isBot
-                    ? "bg-primary/20 text-primary"
-                    : "bg-zinc-800 text-white"
-                  : "text-muted-foreground hover:bg-zinc-900 hover:text-white",
-              )}
             >
               {label}
-            </button>
+            </Button>
           );
         })}
       </div>
@@ -70,20 +64,13 @@ export function TaskAssigneePicker({
           const label = isBot ? "NEO Pulse" : member.displayName || member.email;
           return (
             <li key={member.userId}>
-              <button
+              <RowButton
+                selected={Boolean(active)}
                 type="button"
                 onClick={() => toggle(member.userId)}
-                className={cn(
-                  "w-full px-2 py-2 text-left text-base",
-                  active
-                    ? isBot
-                      ? "bg-primary/20 text-primary"
-                      : "bg-zinc-800 text-white"
-                    : "text-muted-foreground hover:bg-zinc-900 hover:text-white",
-                )}
               >
                 {label}
-              </button>
+              </RowButton>
             </li>
           );
         })}

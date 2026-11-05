@@ -121,7 +121,7 @@ export function OrganicReportingSpeedSection({
                 <tbody>
                   {audit.performance.worstPages.slice(0, 10).map((row) => (
                     <tr key={`${row.url}-${row.device}`} className="border-t border-white/5">
-                      <td className="max-w-[24rem] truncate py-2 pr-4 text-white">{row.url}</td>
+                      <td className="max-w-[24rem] break-words py-2 pr-4 text-white">{row.url}</td>
                       <td className="py-2 pr-4 capitalize text-muted-foreground">{row.device}</td>
                       <td className="py-2 tabular-nums text-white">{fmtScore(row.performanceScore)}</td>
                     </tr>

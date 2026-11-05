@@ -1,19 +1,9 @@
 import React from "react";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import {
-  WORKFLOW_INSPECTOR_FIELD_CELL_CLASS,
-  WORKFLOW_INSPECTOR_FIELD_GRID_CLASS,
-  WORKFLOW_INSPECTOR_GROUP_CLASS,
-  WORKFLOW_INSPECTOR_GROUP_TITLE_CLASS,
-  WORKFLOW_INSPECTOR_KIND_HEADER_CLASS,
-  WORKFLOW_INSPECTOR_KIND_LABEL_CLASS,
-  WORKFLOW_INSPECTOR_TILE_CLASS,
-  WORKFLOW_INSPECTOR_TITLE_INPUT_CLASS,
-  workflowKindBadgeClass,
-} from "@/components/manager/workflow/forge-workflow-styles";
+import { WORKFLOW_INSPECTOR_FIELD_CELL_CLASS, WORKFLOW_INSPECTOR_FIELD_GRID_CLASS, WORKFLOW_INSPECTOR_GROUP_CLASS, WORKFLOW_INSPECTOR_GROUP_TITLE_CLASS, WORKFLOW_INSPECTOR_KIND_HEADER_CLASS, WORKFLOW_INSPECTOR_KIND_LABEL_CLASS, WORKFLOW_INSPECTOR_TILE_CLASS, workflowKindBadgeClass } from "@/components/manager/workflow/forge-workflow-styles";
 import type { WorkflowNodeKind } from "@/lib/workflow/workflow-types";
 import { workflowTriggerLabel } from "@/lib/workflow/workflow-types";
+import { Field } from "@/ui";
 
 export function WorkflowInspectorTile({
   children,
@@ -43,10 +33,10 @@ export function WorkflowInspectorKindHeader({
       <span className={cn(WORKFLOW_INSPECTOR_KIND_LABEL_CLASS, workflowKindBadgeClass(kind, clientSiteId))}>
         {kindLabel}
       </span>
-      <Input
+      <Field
+        placeholder={`${kindLabel} step name`}
         value={title}
         onChange={(event) => onTitleChange(event.target.value)}
-        className={WORKFLOW_INSPECTOR_TITLE_INPUT_CLASS}
         aria-label={`${kindLabel} step name`}
       />
     </div>

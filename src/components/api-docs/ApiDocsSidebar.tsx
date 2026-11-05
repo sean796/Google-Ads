@@ -4,9 +4,7 @@ import type { ApiDocNavItem, ApiDocNavSection } from "@/lib/api-docs/types";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
-
-const NAV_ROW_BASE =
-  "block w-full rounded-none border-0 px-3 py-2.5 text-left text-base font-normal outline-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-0";
+import { Button, RowButton } from "@/ui";
 
 function isSlugActive(currentSlug: string, itemSlug: string): boolean {
   return currentSlug === itemSlug || currentSlug.startsWith(`${itemSlug}/`);
@@ -16,23 +14,17 @@ function NavButton({ item, currentSlug }: { item: ApiDocNavItem; currentSlug: st
   const active = isSlugActive(currentSlug, item.slug);
 
   return (
-    <button
-      type="button"
+    <Button
+      pressed={Boolean(active)}
       onClick={() => setApiDocsHash(item.slug)}
-      className={cn(
-        NAV_ROW_BASE,
-        active
-          ? "bg-primary font-normal text-black hover:bg-primary hover:text-black"
-          : "bg-zinc-900/55 text-white hover:bg-zinc-800 hover:text-white",
-      )}
     >
-      <span className="block truncate text-base">{item.title}</span>
+      <span className="block break-words text-base">{item.title}</span>
       {item.method ? (
         <span className={cn("mt-0.5 block font-mono text-base", active ? "text-black/70" : "text-white/70")}>
           {item.method}
         </span>
       ) : null}
-    </button>
+    </Button>
   );
 }
 
@@ -50,18 +42,14 @@ function SectionGroup({
 
   return (
     <div className="mb-2">
-      <button
+      <RowButton
+        selected={Boolean(hasActive)}
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={cn(
-          "flex w-full items-center gap-2 rounded-none border-0 px-2 py-2.5 text-left text-base font-normal text-white outline-none transition-colors",
-          "bg-zinc-900 hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-0",
-          hasActive && "bg-zinc-800",
-        )}
       >
         {open ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
         {section.label}
-      </button>
+      </RowButton>
       {open ? (
         <div className="mt-1 space-y-1">
           {section.items.map((item) => (

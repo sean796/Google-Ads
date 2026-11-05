@@ -1,6 +1,5 @@
 import React, { useMemo } from "react";
 import { Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { OptimizationArtifactDownloads } from "@/components/integrations/wordpress/OptimizationArtifactDownloads";
 import { BulkHarnessSectionsPanel } from "@/components/keyword-research/bulk/BulkHarnessSectionsPanel";
 import type { BulkHarnessSectionUi } from "@/hooks/use-bulk-auto-generate";
@@ -8,6 +7,7 @@ import type { useWordPressOptimization } from "@/contexts/wordpress-optimization
 import { WorkspaceDetailsSection } from "@/components/shared/WorkspaceDetailsStack";
 import { OptimizationProgressInlineStatus } from "@/components/overview/overview-tab/OptimizationProgressInlineStatus";
 import { pickLatestOptimizationStatus } from "@/lib/content-optimization/optimization-progress-humanize";
+import { Button } from "@/ui";
 
 type Opt = ReturnType<typeof useWordPressOptimization>;
 
@@ -82,10 +82,8 @@ export function SinglePageOptimizationDetailsPanel({
           ) : null}
           {fileCount > 0 && fileManager ? (
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2 text-base text-white hover:bg-white/10 hover:text-white"
               onClick={() => fileManager.downloadAllFiles()}
             >
               <Download className="mr-1.5 h-3.5 w-3.5" />

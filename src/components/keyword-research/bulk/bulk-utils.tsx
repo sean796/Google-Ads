@@ -1,13 +1,4 @@
-import { 
-  FileText, 
-  FileJson, 
-  FileSpreadsheet,
-  Image as ImageIcon,
-  Loader2,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-} from 'lucide-react';
+import { FileText, FileJson, FileSpreadsheet, Image as ImageIcon, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import type { BulkGeneratedFile } from '@/lib/bulk-file-manager';
 import type { GSCQuery, AnalysisResult } from '@/lib/gsc-keyword-analyzer';
 
@@ -75,11 +66,11 @@ export const isImageWithPreview = (file: BulkGeneratedFile): boolean => {
 export const getStatusIcon = (file: BulkGeneratedFile) => {
   switch (file.status) {
     case 'completed':
-      return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+      return <CheckCircle2 className="h-4 w-4 text-primary" />;
     case 'generating':
-      return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
+      return null;
     case 'error':
-      return <XCircle className="h-4 w-4 text-red-500" />;
+      return <XCircle className="h-4 w-4 text-ui-danger" />;
     default:
       return <AlertCircle className="h-4 w-4 text-muted-foreground" />;
   }

@@ -32,7 +32,6 @@ export type ProposalWorkspaceHeaderProps = GeneratorWorkspaceChromeBindings & {
 export function ProposalWorkspaceHeader({
   activeSection,
   onSectionChange,
-  onDetailsOpenChange,
   busy,
   phase,
   proposalSubphase,
@@ -89,7 +88,6 @@ export function ProposalWorkspaceHeader({
       canOpenDetails={canOpenDetails}
       isProcessing={busy}
       detailsPanelId={DETAILS_PANEL_ID}
-      onDetailsOpenChange={onDetailsOpenChange}
       toolbar={
         <ProposalToolbar
           {...toolbarProps}

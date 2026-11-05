@@ -1,6 +1,6 @@
 import type { CSVRow } from "@/lib/bulk/bulk-csv-parser";
 
-export const PROMPT_BLOG_SLOT_COUNT_MIN = 1;
+export const PROMPT_BLOG_SLOT_COUNT_MIN = 0;
 
 export function normalizePromptBlogSlotCount(n: number): number {
   if (!Number.isFinite(n)) return PROMPT_BLOG_SLOT_COUNT_MIN;

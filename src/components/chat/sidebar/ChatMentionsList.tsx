@@ -10,6 +10,7 @@ import {
   CHAT_TEXT_MUTED,
   CHAT_TEXT_PRIMARY,
 } from "@/components/chat/chat-theme";
+import { Button } from "@/ui";
 
 export type ChatMentionsListProps = {
   mentions: ChatMentionInboxItem[];
@@ -37,28 +38,23 @@ export function ChatMentionsList({
           const unread = item.readAt == null;
           const active = activeMentionMessageId === item.messageId;
           return (
-            <button
+            <Button
+              pressed={Boolean(active)}
+              variant="quiet"
               key={item.id}
-              type="button"
               onClick={() => onOpenMention(item)}
-              className={cn(
-                CHAT_SIDEBAR_ROW,
-                "flex-col items-start gap-0.5 py-2",
-                active && CHAT_SIDEBAR_ROW_ACTIVE,
-                unread && !active && "bg-primary/5",
-              )}
             >
               <span className="flex w-full min-w-0 items-center gap-2">
                 <AtSign className={cn("h-4 w-4 shrink-0", unread ? "text-[hsl(var(--chat-accent))]" : CHAT_TEXT_MUTED)} />
-                <span className={cn("min-w-0 flex-1 truncate font-medium", CHAT_TEXT_PRIMARY)}>
+                <span className={cn("min-w-0 flex-1 break-words font-medium", CHAT_TEXT_PRIMARY)}>
                   {item.authorDisplayName}
                 </span>
               </span>
-              <span className={cn("w-full truncate pl-6 text-base", CHAT_TEXT_MUTED)}>{item.channelLabel}</span>
+              <span className={cn("w-full break-words pl-6 text-base", CHAT_TEXT_MUTED)}>{item.channelLabel}</span>
               {item.preview ? (
-                <span className={cn("line-clamp-2 w-full pl-6 text-base", CHAT_TEXT_MUTED)}>{item.preview}</span>
+                <span className={cn("w-full pl-6 text-base", CHAT_TEXT_MUTED)}>{item.preview}</span>
               ) : null}
-            </button>
+            </Button>
           );
         })
       )}

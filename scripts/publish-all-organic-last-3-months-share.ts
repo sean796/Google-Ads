@@ -165,9 +165,21 @@ async function main() {
           `Local Grid incomplete: ${withPins}/${gridScans.length} locations have full 49-pin scan results.`,
         );
       }
-      const shareUrl = await publishOne(site, gridScans);
-      rows.push(`${csvCell(site.name)},${csvCell(shareUrl)}`);
-      console.log(`[OK] ${site.name} (${gridScans.length} grids) -> ${shareUrl}`);
+      let shareUrl = "";
+      for (let attempt = 1; ; attempt++) {
+        try {
+          shareUrl = await publishOne(site, gridScans);
+          break;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (attempt >= 3 || !/\b50[234]\b/.test(msg)) throw err;
+          console.warn(`[RETRY ${attempt}/2] ${site.name}: ${msg}`);
+          await new Promise((r) => setTimeout(r, 5000 * attempt));
+        }
+      }
+      const box = normalizeClientLogoBoxTheme(site.clientLogoBoxTheme);
+      rows.push(`${csvCell(site.name)},${csvCell(shareUrl)},${csvCell(box)}`);
+      console.log(`[OK] ${site.name} (${gridScans.length} grids, ${box} box) -> ${shareUrl}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       failures.push(`${site.name}: ${msg}`);
@@ -176,7 +188,7 @@ async function main() {
   }
 
   fs.mkdirSync(path.dirname(OUT_PATH), { recursive: true });
-  fs.writeFileSync(OUT_PATH, ["Client Name,Share Link", ...rows].join("\n") + "\n", "utf8");
+  fs.writeFileSync(OUT_PATH, ["Client Name,Share Link,Logo Box", ...rows].join("\n") + "\n", "utf8");
   console.log(`\nWrote ${rows.length}/${sites.length} rows to ${OUT_PATH}`);
   if (failures.length) {
     console.error(`\n${failures.length} failure(s):\n${failures.join("\n")}`);

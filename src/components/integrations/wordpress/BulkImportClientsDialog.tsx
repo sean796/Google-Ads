@@ -4,23 +4,12 @@
  */
 
 import React, { useState, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Upload, Download, Loader2 } from "lucide-react";
+import { ActionButton, Button, CheckField, DialogShell, FileInput } from "@/ui";
+import { Upload, Download } from "lucide-react";
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
 import { NOTIFY_PLEASE_SELECT_A_CSV_FILE, NOTIFY_SELECT_AT_LEAST_ONE_CLIENT_TO_ADD, notifyAddedXClientS, notifyLoadedXClients, notifyLoadedXClientsXRowSSkipped } from "@/lib/notify-messages";
 import Papa from "papaparse";
 import { BulkImportClientRow, type BulkImportClient } from "./BulkImportClientRow";
-import { getCyberpunkTextClasses, getCyberpunkButtonClasses } from "./cyberpunk-theme";
 
 const TEMPLATE_CSV = `name,siteUrl,username,appPassword,googleAdsCustomerId,primaryLocalKeyword
 "My Client","https://example.com","admin","xxxx xxxx xxxx xxxx","1234567890","blinds near me"`;
@@ -238,110 +227,56 @@ export const BulkImportClientsDialog: React.FC<BulkImportClientsDialogProps> = (
   const allApproved = clients.length > 0 && approved.size === clients.length;
   const someApproved = approved.size > 0;
 
+  const addStates = [`Add All (${approvedList.length})`, "Adding"] as const;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px] bg-[#050505] border-2 border-green-500/50 text-foreground">
-        <DialogHeader>
-          <DialogTitle className={getCyberpunkTextClasses("primary")}>
-            Bulk Import Clients
-          </DialogTitle>
-          <DialogDescription className="text-foreground">
-            Upload a CSV with columns: name, siteUrl, username, appPassword. Optional: googleAdsCustomerId, primaryLocalKeyword. Review and approve, then add all.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4 py-2">
-          {/* Upload */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className={`text-sm font-medium ${getCyberpunkTextClasses("secondary")}`}>
-                CSV File
-              </span>
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  downloadTemplate();
-                }}
-                className="text-xs text-green-400 hover:text-green-300 hover:underline flex items-center gap-1"
-              >
-                <Download className="h-3 w-3" />
-                Download Template
-              </a>
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              variant="outline"
-              className={`w-full ${getCyberpunkButtonClasses(false)}`}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Choose CSV File
-            </Button>
-          </div>
-
-          {/* Preview rows */}
-          {clients.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className={`text-sm font-medium ${getCyberpunkTextClasses("secondary")}`}>
-                  Preview ({clients.length} clients)
-                </span>
-                <label className="flex items-center gap-2 cursor-pointer text-xs text-foreground">
-                  <Checkbox
-                    checked={allApproved}
-                    onCheckedChange={(c) => toggleApprovedAll(c === true)}
-                    className="border-green-500/50 data-[state=checked]:bg-green-500/20 data-[state=checked]:border-green-500"
-                  />
-                  Approve all
-                </label>
-              </div>
-              <ScrollArea className="h-[220px] rounded border border-green-500/30 p-2">
-                <div className="space-y-1.5">
-                  {clients.map((client, i) => (
-                    <BulkImportClientRow
-                      key={i}
-                      client={client}
-                      approved={approved.has(i)}
-                      onToggleApproved={(c) => toggleApproved(i, c)}
-                    />
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
-          )}
-        </div>
-
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="text-red-400 border-red-400 hover:bg-red-400/10"
-          >
+    <DialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      size="lg"
+      title="Bulk Import Clients"
+      description="Upload a CSV with columns: name, siteUrl, username, appPassword. Optional: googleAdsCustomerId, primaryLocalKeyword. Review and approve, then add all."
+      actions={
+        <>
+          <Button variant="tool" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button
-            onClick={handleAddAll}
+          <ActionButton
+            states={addStates}
+            state={isAdding ? "Adding" : addStates[0]}
             disabled={!someApproved || isAdding}
-            className={getCyberpunkButtonClasses(true)}
-          >
-            {isAdding ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Adding...
-              </>
-            ) : (
-              `Add All (${approvedList.length})`
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            onClick={handleAddAll}
+          />
+        </>
+      }
+    >
+      <FileInput ref={fileInputRef} accept=".csv" onChange={handleFileSelect} />
+      <div className="flex items-center gap-1.5">
+        <Button variant="run" icon={Upload} onClick={() => fileInputRef.current?.click()}>
+          Choose CSV File
+        </Button>
+        <Button variant="tool" icon={Download} onClick={downloadTemplate}>
+          Download Template
+        </Button>
+      </div>
+      {clients.length > 0 ? (
+        <>
+          <div className="flex items-center justify-between pt-1.5">
+            <span className="text-base font-semibold">Preview ({clients.length} clients)</span>
+            <CheckField label="Approve all" checked={allApproved} onCheckedChange={toggleApprovedAll} />
+          </div>
+          <div className="flex max-h-[14rem] flex-col gap-1.5 overflow-y-auto">
+            {clients.map((client, i) => (
+              <BulkImportClientRow
+                key={i}
+                client={client}
+                approved={approved.has(i)}
+                onToggleApproved={(c) => toggleApproved(i, c)}
+              />
+            ))}
+          </div>
+        </>
+      ) : null}
+    </DialogShell>
   );
 };

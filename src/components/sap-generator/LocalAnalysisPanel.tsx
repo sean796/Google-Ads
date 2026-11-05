@@ -177,7 +177,6 @@ import {
   type EntityClusterRunStage,
 } from "@/lib/local-analysis/entity-cluster-run-progress";
 import { BulkEntityWorkspaceBody } from "@/components/keyword-research/bulk/BulkEntityWorkspaceBody";
-import { WORKSPACE_DETAILS_DIM_OVERLAY_CLASS } from "@/components/overview/overview-tab/overview-tab-content-constants";
 import type { LocalAnalysisDetailsPanelProps } from "@/components/sap-generator/LocalAnalysisDetailsPanel";
 import {
   ENTITY_DETAILS_PIPELINE_SECTION_TITLES,
@@ -516,7 +515,6 @@ export const LocalAnalysisPanel: React.FC<LocalAnalysisPanelProps> = ({
   onEntitySubmodeChange,
 }) => {
   const [uploadLabel, setUploadLabel] = useState<string>("");
-  const [detailsDrawerOpen, setDetailsDrawerOpen] = useState(false);
   const [csvParsing, setCsvParsing] = useState(false);
   const [gridSummaryMarkdown, setGridSummaryMarkdown] = useState<string>("");
   /** Weakness-by-keyword from last grid CSV (drives weighted SAP allocation on suggest). */
@@ -2098,7 +2096,6 @@ export const LocalAnalysisPanel: React.FC<LocalAnalysisPanelProps> = ({
         useBlindMagicKeywords={useBlindMagicKeywords}
         onUseBlindMagicKeywordsChange={setUseBlindMagicKeywords}
         onApplyRemainingEntityCount={handleApplyRemainingEntityCount}
-        onDetailsOpenChange={setDetailsDrawerOpen}
         detailsProps={{
           headerProgress,
           uploadLabel,
@@ -2138,9 +2135,6 @@ export const LocalAnalysisPanel: React.FC<LocalAnalysisPanelProps> = ({
           entityPlaceholderOnlyBody && "overflow-y-hidden",
         )}
       >
-        {detailsDrawerOpen && !suggestLoading ? (
-          <div className={WORKSPACE_DETAILS_DIM_OVERLAY_CLASS} aria-hidden />
-        ) : null}
         <BulkEntityWorkspaceBody
           hasGeneratedSapRows={hasGeneratedSapRows}
           entityPreloadMode={entityPreloadMode}

@@ -1,13 +1,5 @@
 import { X } from "lucide-react";
 import React, { useMemo } from "react";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   TaskFormFlatSelectPlaceholder,
 } from "@/components/manager/tasks/TaskFormLayout";
@@ -71,6 +63,7 @@ import { scheduleHasUpstream } from "@/lib/workflow/workflow-schedule-upstream";
 import { cn } from "@/lib/utils";
 import { wordpressSiteDisplayName } from "@/lib/wordpress-site-display-name";
 import type { TaskExecutionKind } from "@/lib/tasks-types";
+import { Button, Field, SelectField } from "@/ui";
 
 const RAG_ARCHIVE_DELIVERABLE_OPTIONS: Array<{
   value: WorkflowRagArchiveDeliverableScope;
@@ -257,13 +250,12 @@ export function WorkflowNodeInspector({
           <p className="text-lg text-muted-foreground">
             Uses team GSC connection and inventory bucket from action payload.
           </p>
-          <button
-            type="button"
-            className="w-fit bg-black px-4 py-3 text-lg text-white shadow-tile hover:shadow-tile-pop"
+          <Button
+            variant="quiet"
             onClick={() => patchConfig({ triggerConfig: defaultGscTriggerConfig(), targetBucket: "pages" })}
           >
             Reset GSC defaults
-          </button>
+          </Button>
         </WorkflowInspectorGroup>
       ) : null}
 
@@ -282,11 +274,10 @@ export function WorkflowNodeInspector({
               className={WORKFLOW_INSPECTOR_FIELD_CELL_CLASS}
             />
             <WorkflowInspectorField>
-              <Input
+              <Field
                 id="wf-doc-name"
                 value={String((node.config as { nameContains?: string }).nameContains ?? "")}
                 onChange={(event) => patchConfig({ nameContains: event.target.value })}
-                className={WORKFLOW_FORM_FLAT_CONTROL_CLASS}
                 placeholder="Name contains"
               />
             </WorkflowInspectorField>
@@ -298,20 +289,18 @@ export function WorkflowNodeInspector({
         <WorkflowInspectorGroup title="When">
           <WorkflowInspectorFieldGrid>
             <WorkflowInspectorField>
-              <Input
+              <Field
                 id="wf-agentmail-from"
                 value={String((node.config as { fromEmail?: string }).fromEmail ?? "")}
                 onChange={(event) => patchConfig({ fromEmail: event.target.value })}
-                className={WORKFLOW_FORM_FLAT_CONTROL_CLASS}
                 placeholder="Sender email"
               />
             </WorkflowInspectorField>
             <WorkflowInspectorField>
-              <Input
+              <Field
                 id="wf-agentmail-inbox"
                 value={String((node.config as { inbox?: string }).inbox ?? "")}
                 onChange={(event) => patchConfig({ inbox: event.target.value })}
-                className={WORKFLOW_FORM_FLAT_CONTROL_CLASS}
                 placeholder="Inbox override (optional)"
               />
             </WorkflowInspectorField>
@@ -323,10 +312,9 @@ export function WorkflowNodeInspector({
         <WorkflowInspectorGroup title="When">
           <WorkflowInspectorFieldGrid>
             <WorkflowInspectorField>
-              <Input
+              <Field
                 value={String((node.config as { recipeKey?: string }).recipeKey ?? "")}
                 onChange={(event) => patchConfig({ recipeKey: event.target.value })}
-                className={WORKFLOW_FORM_FLAT_CONTROL_CLASS}
                 placeholder="Recipe key"
               />
             </WorkflowInspectorField>
@@ -353,11 +341,10 @@ export function WorkflowNodeInspector({
                 className={WORKFLOW_INSPECTOR_FIELD_CELL_CLASS}
               />
               <WorkflowInspectorField>
-                <Input
+                <Field
                   id="wf-rag-key"
                   value={String((node.config as { ragVariableKey?: string }).ragVariableKey ?? "")}
                   onChange={(event) => patchConfig({ ragVariableKey: event.target.value, ragScope: "run" })}
-                  className={WORKFLOW_FORM_FLAT_CONTROL_CLASS}
                   placeholder="Output variable key"
                 />
               </WorkflowInspectorField>
@@ -548,44 +535,12 @@ function RagArchiveInspector({
   return (
     <WorkflowInspectorGroup title="Archive">
       <WorkflowInspectorField>
-        <Select
-          value={String(config.variableKey ?? "")}
-          onValueChange={(value) => patchConfig({ variableKey: value, scope: "run" })}
-        >
-          <SelectTrigger className={WORKFLOW_FORM_SELECT_TRIGGER_CLASS}>
-            <SelectValue placeholder="Source variable" />
-          </SelectTrigger>
-          <SelectContent className={WORKFLOW_FORM_SELECT_CONTENT_CLASS}>
-            {upstream.map((variable) => (
-              <SelectItem key={variable.key} value={variable.key} className={WORKFLOW_FORM_SELECT_ITEM_CLASS}>
-                {variable.label || variable.key}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SelectField placeholder="Source variable" value={String(config.variableKey ?? "")} onValueChange={(value) => patchConfig({ variableKey: value, scope: "run" })} options={upstream.map((variable) => ({ value: variable.key, label: variable.label || variable.key }))} />
       </WorkflowInspectorField>
       <WorkflowInspectorField>
-        <Select
-          value={config.deliverableScope ?? "final"}
-          onValueChange={(value) =>
+        <SelectField placeholder="Deliverables" value={config.deliverableScope ?? "final"} onValueChange={(value) =>
             patchConfig({ deliverableScope: value as WorkflowRagArchiveDeliverableScope })
-          }
-        >
-          <SelectTrigger className={WORKFLOW_FORM_SELECT_TRIGGER_CLASS}>
-            <SelectValue placeholder="Deliverables" />
-          </SelectTrigger>
-          <SelectContent className={WORKFLOW_FORM_SELECT_CONTENT_CLASS}>
-            {RAG_ARCHIVE_DELIVERABLE_OPTIONS.map((option) => (
-              <SelectItem
-                key={option.value}
-                value={option.value}
-                className={WORKFLOW_FORM_SELECT_ITEM_CLASS}
-              >
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          } options={RAG_ARCHIVE_DELIVERABLE_OPTIONS.map((option) => ({ value: option.value, label: option.label }))} />
       </WorkflowInspectorField>
     </WorkflowInspectorGroup>
   );
@@ -642,16 +597,14 @@ function ActionAgentRagInputs({
               key={key}
               className={cn(WORKFLOW_SIDEBAR_FIELD_CLASS, "flex items-center justify-between gap-3 px-3 py-2")}
             >
-              <span className="truncate text-base text-emerald-400">{`{{${key}}}`}</span>
-              <span className="truncate text-base text-muted-foreground">{labelForKey(key)}</span>
-              <button
-                type="button"
-                className="shrink-0 p-1 text-muted-foreground hover:text-white"
+              <span className="break-words text-base text-primary">{`{{${key}}}`}</span>
+              <span className="break-words text-base text-muted-foreground">{labelForKey(key)}</span>
+              <Button
+                size="icon" icon={X}
+                variant="quiet"
                 aria-label={`Remove ${key}`}
                 onClick={() => removeKey(key)}
-              >
-                <X className="h-4 w-4" />
-              </button>
+              ></Button>
             </li>
           ))}
         </ul>
@@ -693,10 +646,9 @@ function PathRulesInspector({
     <div className="flex flex-col gap-4">
       {branches.map((branch, index) => (
         <WorkflowInspectorField key={branch.branchId}>
-          <Input
+          <Field
             value={branch.label}
             onChange={(event) => updateBranch(index, { label: event.target.value })}
-            className={WORKFLOW_FORM_FLAT_CONTROL_CLASS}
             placeholder="Path label"
           />
         </WorkflowInspectorField>

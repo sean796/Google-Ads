@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from "react";
 import { ChevronDown, ListFilter } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -10,11 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  BULK_HEADER_FIELD,
-  BULK_HEADER_SELECT,
-  BULK_HEADER_SELECT_TRIGGER,
-} from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
+import { BULK_HEADER_SELECT_TRIGGER } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import type {
   ForgeAutomationCategory,
   ForgeAutomationFilterOptions,
@@ -41,6 +36,7 @@ import {
   forgeFilterMenuStripeClass,
 } from "@/components/manager/pulse-forge/forge-dashboard-styles";
 import { cn } from "@/lib/utils";
+import { Button, Field, SelectField } from "@/ui";
 
 export type ForgeAutomationsTableHeaderRowProps = {
   query: ForgeAutomationsListQuery;
@@ -49,18 +45,10 @@ export type ForgeAutomationsTableHeaderRowProps = {
   onChange: (patch: Partial<ForgeAutomationsListQuery>) => void;
 };
 
-const FILTER_BTN_CLASS =
-  "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded border border-border/50 bg-black/30 text-muted-foreground transition-colors hover:border-zinc-500 hover:text-white";
-
 function formatScheduleLabel(schedule: string): string {
   if (!schedule) return schedule;
   return schedule.charAt(0).toUpperCase() + schedule.slice(1);
 }
-
-const FORGE_FILTER_TRIGGER_CLASS = cn(
-  BULK_HEADER_SELECT_TRIGGER,
-  "inline-flex h-8 w-[8.75rem] shrink-0 items-center justify-between gap-1.5 px-2",
-);
 
 function ForgeGreyFilterMenu({
   label,
@@ -74,13 +62,13 @@ function ForgeGreyFilterMenu({
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          className={cn(FORGE_FILTER_TRIGGER_CLASS, active && "text-white")}
+        <Button
+          pressed={Boolean(active)}
+          variant="quiet"
         >
-          <span className="min-w-0 truncate">{label}</span>
+          <span className="min-w-0 break-words">{label}</span>
           <ChevronDown className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
-        </button>
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className={FORGE_FILTER_MENU_CONTENT_CLASS}>
         {children}
@@ -92,24 +80,15 @@ function ForgeGreyFilterMenu({
 function ForgeFilterSelect({
   value,
   onChange,
-  children,
+  options,
   "aria-label": ariaLabel,
 }: {
   value: string;
   onChange: (value: string) => void;
-  children: React.ReactNode;
+  options: readonly { value: string; label: string }[];
   "aria-label": string;
 }): React.ReactElement {
-  return (
-    <select
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      aria-label={ariaLabel}
-      className={`${BULK_HEADER_SELECT} h-8 w-[8.75rem] shrink-0 text-base [color-scheme:dark]`}
-    >
-      {children}
-    </select>
-  );
+  return <SelectField placeholder={ariaLabel} value={value} onValueChange={onChange} options={options} width="sm" />;
 }
 
 function FilterableHeaderCell({
@@ -130,17 +109,16 @@ function FilterableHeaderCell({
   const filterButton = (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          className={cn(FILTER_BTN_CLASS, active && "border-zinc-500 text-white")}
+        <Button
+          size="icon" icon={ListFilter}
+          pressed={Boolean(active)}
+          variant="quiet"
           title={`Filter ${label.toLowerCase()}`}
           aria-label={`Filter ${label.toLowerCase()}`}
-        >
-          <ListFilter className="h-3.5 w-3.5" aria-hidden />
-        </button>
+        ></Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className={FORGE_FILTER_MENU_CONTENT_CLASS}>
-        <DropdownMenuLabel className="bg-zinc-950 px-2 py-1.5 text-base font-semibold text-white">
+        <DropdownMenuLabel className="bg-black px-2 py-1.5 text-base font-semibold text-white">
           {menuLabel}
         </DropdownMenuLabel>
         {children}
@@ -254,20 +232,19 @@ function AutomationColumnFilter({
 
   const menuBody = (
     <>
-      <DropdownMenuLabel className="bg-zinc-950 px-2 py-1.5 text-base font-semibold text-white">
+      <DropdownMenuLabel className="bg-black px-2 py-1.5 text-base font-semibold text-white">
         Filter automation
       </DropdownMenuLabel>
       <div className="px-2 pb-2">
-        <Input
+        <Field
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search names"
           aria-label="Search automation names"
-          className={cn(BULK_HEADER_FIELD, "h-8 w-full text-base")}
           onKeyDown={(event) => event.stopPropagation()}
         />
       </div>
-      <DropdownMenuLabel className="bg-zinc-950 px-2 py-1 text-base text-muted-foreground">Name</DropdownMenuLabel>
+      <DropdownMenuLabel className="bg-black px-2 py-1 text-base text-muted-foreground">Name</DropdownMenuLabel>
       <SheetValueCheckboxList
         options={titleOptions}
         selected={selectedTitles}
@@ -281,7 +258,7 @@ function AutomationColumnFilter({
       {kindOptions.length > 0 ? (
         <>
           <DropdownMenuSeparator className="bg-white/10" />
-          <DropdownMenuLabel className="bg-zinc-950 px-2 py-1 text-base text-muted-foreground">Type</DropdownMenuLabel>
+          <DropdownMenuLabel className="bg-black px-2 py-1 text-base text-muted-foreground">Type</DropdownMenuLabel>
           <SheetValueCheckboxList
             options={kindOptions}
             selected={selectedKinds}
@@ -349,7 +326,7 @@ export function ForgeAutomationsFilterBar({
   return (
     <div className={cn("flex shrink-0 flex-nowrap items-center gap-3 bg-black", className)}>
       <ForgeGreyFilterMenu label="Category" active={Boolean(query.categories?.length)}>
-        <DropdownMenuLabel className="bg-zinc-950 px-2 py-1.5 text-base font-semibold text-white">
+        <DropdownMenuLabel className="bg-black px-2 py-1.5 text-base font-semibold text-white">
           Filter category
         </DropdownMenuLabel>
         <SheetValueCheckboxList
@@ -365,7 +342,7 @@ export function ForgeAutomationsFilterBar({
         />
       </ForgeGreyFilterMenu>
       <ForgeGreyFilterMenu label="Site name" active={Boolean(query.siteIds?.length)}>
-        <DropdownMenuLabel className="bg-zinc-950 px-2 py-1.5 text-base font-semibold text-white">
+        <DropdownMenuLabel className="bg-black px-2 py-1.5 text-base font-semibold text-white">
           Filter site name
         </DropdownMenuLabel>
         <SheetValueCheckboxList
@@ -382,7 +359,7 @@ export function ForgeAutomationsFilterBar({
         />
       </ForgeGreyFilterMenu>
       <ForgeGreyFilterMenu label="Schedule" active={Boolean(query.schedules?.length)}>
-        <DropdownMenuLabel className="bg-zinc-950 px-2 py-1.5 text-base font-semibold text-white">
+        <DropdownMenuLabel className="bg-black px-2 py-1.5 text-base font-semibold text-white">
           Filter schedule
         </DropdownMenuLabel>
         <SheetValueCheckboxList
@@ -396,7 +373,7 @@ export function ForgeAutomationsFilterBar({
         />
       </ForgeGreyFilterMenu>
       <ForgeGreyFilterMenu label="Status" active={Boolean(query.statuses?.length)}>
-        <DropdownMenuLabel className="bg-zinc-950 px-2 py-1.5 text-base font-semibold text-white">
+        <DropdownMenuLabel className="bg-black px-2 py-1.5 text-base font-semibold text-white">
           Filter status
         </DropdownMenuLabel>
         <SheetValueCheckboxList
@@ -417,13 +394,9 @@ export function ForgeAutomationsFilterBar({
         onChange={(value) =>
           onChange({ sort: (value as ForgeAutomationsSort) || undefined })
         }
-      >
-        {FORGE_AUTOMATION_SORT_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </ForgeFilterSelect>
+        options={FORGE_AUTOMATION_SORT_OPTIONS}
+      />
+
     </div>
   );
 }

@@ -18,6 +18,7 @@ import {
   collectBenchmarkCategoryTags,
   normalizeBenchmarkCategoryTag,
 } from "@/lib/benchmark-category-tags";
+import { RowButton } from "@/ui";
 
 const PLACEHOLDER = "Benchmark category tag";
 
@@ -70,20 +71,15 @@ export function BenchmarkCategoryTagField({
       }}
     >
       <PopoverTrigger asChild>
-        <button
+        <RowButton
+          selected={Boolean(isDark)}
           type="button"
           id="benchmarkCustomTag"
           aria-label={PLACEHOLDER}
-          className={cn(
-            "flex w-full min-w-0 items-center justify-between gap-2 bg-transparent text-left text-base outline-none",
-            isDark ? "h-9 min-h-9" : "h-10 min-h-10",
-            selected ? (isDark ? "text-white" : "text-foreground") : "text-muted-foreground",
-            className,
-          )}
         >
-          <span className="min-w-0 flex-1 truncate">{selected || PLACEHOLDER}</span>
+          <span className="min-w-0 flex-1 break-words">{selected || PLACEHOLDER}</span>
           <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-        </button>
+        </RowButton>
       </PopoverTrigger>
       <PopoverContent
         align="start"
@@ -118,7 +114,7 @@ export function BenchmarkCategoryTagField({
                     onSelect={() => commit(tag)}
                   >
                     <Check className={cn("mr-2 h-4 w-4 shrink-0", active ? "opacity-100" : "opacity-0")} />
-                    <span className="min-w-0 flex-1 truncate">{tag}</span>
+                    <span className="min-w-0 flex-1 break-words">{tag}</span>
                   </CommandItem>
                 );
               })}

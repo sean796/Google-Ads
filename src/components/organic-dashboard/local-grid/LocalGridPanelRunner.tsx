@@ -18,6 +18,8 @@ export type LocalGridPanelRunnerProps = {
   unregisterAbort: (panelId: string) => void;
   registerLayoutSnapshot: (panelId: string, getter: () => LocalGridLayoutSnapshot) => void;
   unregisterLayoutSnapshot: (panelId: string) => void;
+  registerGenerateEntities: (panelId: string, run: (count: number) => void) => void;
+  unregisterGenerateEntities: (panelId: string) => void;
 };
 
 export function LocalGridPanelRunner({
@@ -33,6 +35,8 @@ export function LocalGridPanelRunner({
   unregisterAbort,
   registerLayoutSnapshot,
   unregisterLayoutSnapshot,
+  registerGenerateEntities,
+  unregisterGenerateEntities,
 }: LocalGridPanelRunnerProps) {
   const { dockSummary, abortScan, getLayoutSnapshot, viewportProps } = useLocalGridPanel(
     site,
@@ -55,6 +59,12 @@ export function LocalGridPanelRunner({
     registerLayoutSnapshot(panelId, getLayoutSnapshot);
     return () => unregisterLayoutSnapshot(panelId);
   }, [panelId, getLayoutSnapshot, registerLayoutSnapshot, unregisterLayoutSnapshot]);
+
+  const { onGenerateBulkCsv } = viewportProps;
+  useEffect(() => {
+    registerGenerateEntities(panelId, (count) => onGenerateBulkCsv("locations", count));
+    return () => unregisterGenerateEntities(panelId);
+  }, [panelId, onGenerateBulkCsv, registerGenerateEntities, unregisterGenerateEntities]);
 
   if (!isActive) {
     return null;

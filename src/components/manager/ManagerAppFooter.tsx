@@ -6,6 +6,7 @@ import {
   MANAGER_NAV_TRIGGER_INACTIVE,
 } from "@/components/manager/manager-top-bar-nav-styles";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 /** In-app shortcuts; inner wrapper adds horizontal gutter so the footer never sits flush to the column edge. */
 const FOOTER_APP_LINKS: { value: string; label: string }[] = [
@@ -59,18 +60,14 @@ export function ManagerAppFooter({ currentTab, onTabChange, onDashboardBrandClic
           {FOOTER_APP_LINKS.map(({ value, label }) => {
             const active = currentTab === value;
             return (
-              <button
+              <Button
+                pressed={Boolean(active)}
+                variant="quiet"
                 key={value}
-                type="button"
                 onClick={() => onTabChange(value)}
-                className={cn(
-                  footerNavBtnClass,
-                  "whitespace-nowrap",
-                  active && MANAGER_NAV_TRIGGER_ACTIVE,
-                )}
               >
                 {label}
-              </button>
+              </Button>
             );
           })}
         </nav>

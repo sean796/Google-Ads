@@ -1,11 +1,10 @@
 import React, { useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Loader2, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import type { CompetitorGridPlaceRow } from "@/lib/competitor-research/local-dominator-grid-parse";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { CompetitorWorkspaceControls } from "../types";
 import { cn } from "@/lib/utils";
+import { Button, Field, FileInput } from "@/ui";
 
 export type CompetitorDiscoverySectionProps = {
   site: WordPressSite | null;
@@ -53,11 +52,9 @@ export function CompetitorDiscoverySection({
   return (
     <div className="space-y-4 p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <input
+        <FileInput
           ref={fileRef}
-          type="file"
           accept=".csv,text/csv"
-          className="hidden"
           onChange={(e) => {
             onPickGridCsv(e.target.files?.[0] ?? null);
             e.target.value = "";
@@ -65,12 +62,11 @@ export function CompetitorDiscoverySection({
         />
         <Button
           type="button"
-          variant="secondary"
           disabled={workspaceBusy || csvParsing}
           onClick={() => fileRef.current?.click()}
         >
           {csvParsing ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+            null
           ) : (
             <Upload className="mr-2 h-4 w-4" aria-hidden />
           )}
@@ -83,7 +79,7 @@ export function CompetitorDiscoverySection({
           <span className="text-base text-muted-foreground">Site: {site.name}</span>
         ) : null}
         {workspace.showConnectedToggle && workspace.connectedSiteUrl ? (
-          <span className="text-base text-muted-foreground truncate max-w-xs">
+          <span className="text-base text-muted-foreground break-words max-w-xs">
             {workspace.mode === "connected" ? workspace.connectedSiteUrl : workspace.tempSeedUrl}
           </span>
         ) : null}
@@ -94,32 +90,29 @@ export function CompetitorDiscoverySection({
       ) : null}
 
       <div className="grid w-full grid-cols-2 gap-2 gap-x-3">
-        <Input
+        <Field
           type="number"
           min={1}
           max={20}
           value={competitorCount}
           onChange={(e) => onCompetitorCountChange(Math.max(1, parseInt(e.target.value, 10) || 1))}
           placeholder="# Competitors"
-          className="bg-input border-border text-foreground h-9"
           aria-label="Number of competitors to generate"
           disabled={workspaceBusy}
         />
-        <Input
+        <Field
           type="text"
           value={competitorKeyword}
           onChange={(e) => onCompetitorKeywordChange(e.target.value)}
           placeholder="Keyword (e.g. blinds near me)"
-          className="bg-input border-border text-foreground h-9"
           aria-label="Focus keyword"
           disabled={workspaceBusy}
         />
-        <Input
+        <Field
           type="text"
           value={promptModifier}
           onChange={(e) => onPromptModifierChange(e.target.value)}
           placeholder="Prompt modifier (optional)"
-          className="col-span-2 bg-input border-border text-foreground h-9"
           aria-label="Optional prompt modifier"
           disabled={workspaceBusy}
         />
@@ -133,7 +126,7 @@ export function CompetitorDiscoverySection({
           <ul className="space-y-1">
             {gridPlaces.slice(0, competitorCount).map((p) => (
               <li key={p.dfsKeyword} className="flex items-center justify-between gap-2 text-base">
-                <span className="min-w-0 truncate text-foreground">{p.businessName}</span>
+                <span className="min-w-0 break-words text-foreground">{p.businessName}</span>
                 <span className="shrink-0 tabular-nums text-muted-foreground">#{p.rank}</span>
               </li>
             ))}

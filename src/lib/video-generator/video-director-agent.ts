@@ -1,6 +1,10 @@
 import { parseClarifyJson } from "@/lib/flow-freeform/flow-freeform-prompts";
 import type { FlowFreeformClarifyResult } from "@/lib/flow-freeform/flow-freeform-types";
-import { callAgentCategoryOpenRouterChat, streamAgentCategoryOpenRouterChat } from "@/lib/openrouter-agent-category-api";
+import {
+  callAgentCategoryOpenRouterChat,
+  streamAgentCategoryOpenRouterChat,
+  type AgentOpenRouterCategory,
+} from "@/lib/openrouter-agent-category-api";
 import type { OpenRouterAppMessage, OpenRouterAppStreamDelta } from "@/lib/openrouter-app-api";
 import { parseJsonObjectFromModelText } from "@/lib/openrouter-vision-chat";
 import type {
@@ -13,7 +17,14 @@ import type {
 } from "./video-generator-types";
 import { formatProductSpecPromptBlock, PRODUCT_VIEW_IDS } from "./video-product-agent";
 import { parseVideoPlanAudio } from "./video-audio-plan";
-import { CLIENT_LOCATION_COMMERCIAL_BRIEF_BLOCK } from "./video-client-location-reference";
+import {
+  CLIENT_LOCATION_COMMERCIAL_BRIEF_BLOCK,
+  REFERENCE_STILLS_FLYTHROUGH_BRIEF_BLOCK,
+  isReferenceStillsFlythroughBrief,
+  referenceStillsMinTotalSeconds,
+  splitReferenceStillDurations,
+} from "./video-client-location-reference";
+import { referenceVideoBriefExtra, referenceVideoMessageParts } from "@/lib/openrouter-multimodal-parts";
 import { videoLog, videoLogError, videoTimer } from "./video-log";
 import {
   HEYGEN_VOICES,
@@ -23,7 +34,40 @@ import {
   type HeygenVoice,
 } from "./video-model-defaults";
 
-/** Director agent: clarifies the brief, then writes the scene plan. Runs on the research model. */
+/** Director agent: clarifies the brief, then writes the scene plan. Uses Gemini multimodal vision when a reference clip is attached. */
+export const DIRECTOR_VIDEO_VISION_MODEL = "google/gemini-2.5-flash";
+
+export function hasAttachedReferenceVideo(brief: VideoBrief): boolean {
+  const clip = brief.referenceVideo;
+  if (!clip) return false;
+  if (clip.serverId?.trim()) return true;
+  return Boolean(clip.dataUrl?.startsWith("data:video/"));
+}
+
+function directorOpenRouterModel(brief: VideoBrief): string | undefined {
+  return hasAttachedReferenceVideo(brief) ? DIRECTOR_VIDEO_VISION_MODEL : undefined;
+}
+
+/** Plan step after a reference video upload: skip MCQ; the model already watched the clip. */
+export const REFERENCE_VIDEO_SKIP_CLARIFY_QUESTIONS: { id: string; text: string }[] = [
+  { id: "reference_video", text: "Reference video" },
+  { id: "audio_generation", text: "Audio for the final cut" },
+];
+
+export function referenceVideoSkipClarifyAnswers(brief: VideoBrief): Record<string, string> {
+  const prompt = brief.prompt.toLowerCase();
+  let audio = "Silent video only";
+  if (/voiceover|narration|spoken|voice over/.test(prompt) && !/no voice|without voice|silent/.test(prompt)) {
+    audio = "Voiceover only with no music";
+  } else if (/music|soundtrack|backing track/.test(prompt) && !/no music|silent|without music/.test(prompt)) {
+    audio = "AI instrumental backing track only";
+  }
+  return {
+    reference_video:
+      "Watch the attached reference video first. Match its real environment, lighting, materials, signage, room order, camera height, and travel path. Do not substitute a generic warehouse, forest, tunnel, or other invented location. No people unless they appear in the clip. Honor the written brief for exclusions (e.g. no camera operator reflections).",
+    audio_generation: audio,
+  };
+}
 
 export function briefBlock(brief: VideoBrief): string {
   const refs = brief.references.length
@@ -34,11 +78,15 @@ export function briefBlock(brief: VideoBrief): string {
     : "Subject harness: none.";
   const specText = formatProductSpecPromptBlock(brief.productSpec);
   const refCount = brief.references.length;
+  const refVideo = brief.referenceVideo;
+  const refVideoLine = refVideo
+    ? `${referenceVideoBriefExtra(refVideo)} The reference video walkthrough frames and contact sheet are attached in this message. ZERO HALLUCINATION MANDATE: Read the exact business name and brand signage directly from the storefront awning and display walls in the attached visual frames (e.g., "Blind Magic", "Hunter Douglas"). Do NOT infer unrelated trades (e.g. flooring, cabinets, renovation) from neighboring strip-mall signs. All scenes, titles, environment prompts, and storyboard prompts must depict ONLY the real facility shown.`
+    : "";
   const promptText = brief.prompt.trim();
   const briefSection = promptText
     ? promptText
-    : brief.subject || refCount > 0
-      ? "(none — user supplied no written brief. Infer story, mood, pacing, and hero subject from the subject harness and numbered reference images.)"
+    : brief.subject || refCount > 0 || brief.referenceVideo
+      ? "(none — user supplied no written brief. Infer the business identity, products, rooms, and walkthrough order directly from the attached visual reference frames.)"
       : "(none)";
   return `Target length: ${brief.lengthSeconds} seconds
 Aspect ratio: ${brief.aspect}
@@ -47,18 +95,121 @@ ${subject}
 ${specText ? `${specText}\n` : ""}Numbered reference images uploaded: ${refCount}. Subject photos and the subject harness are NOT numbered images. Every scene referenceIndexes entry must use integers 1..${refCount}, or [] when ${refCount} is 0. Do not assign Image numbers that appear only in the brief text if those files were not uploaded.
 Images uploaded by the user (attached ${brief.subject ? "after the harness" : "below"} in this order):
 ${refs}
+${refVideoLine ? `\n${refVideoLine}` : ""}
 
 Brief:
-${briefSection}`;
+${briefSection}${isReferenceStillsFlythroughBrief(brief) ? `\n\n${REFERENCE_STILLS_FLYTHROUGH_BRIEF_BLOCK}` : ""}`;
 }
 
-/** System text plus one user message: the text, the subject harness when present, then every uploaded image in upload order. */
+function referenceStillsDirectorRules(referenceCount: number, lengthSeconds: number): string {
+  const minTotal = referenceCount * 4;
+  const effective = Math.max(lengthSeconds, minTotal);
+  return `- Reference stills fly-through (${referenceCount} numbered uploads, no product lock):
+- Do NOT output ${referenceCount} scenes in JSON. Output 0 to 8 anchor scenes only for standout frames you can describe from the attachments (reception, display wall, exterior sign, etc.).
+- The application expands to exactly ${referenceCount} scenes in upload order (Image 1 through Image ${referenceCount}) after parse. Every still gets a clip even if you omit it from JSON.
+- For each anchor scene you write, set referenceIndexes to [i] for that image only. storyboardPrompt must say opening frame matches Image i at 1:1.
+- motionPrompt: smooth forward glide or dolly only; no whip pans.
+- Durations in your JSON are ignored for stills mode; the app assigns about ${Math.round(effective / referenceCount)} s per still (${effective} s total minimum ${minTotal} s for ${referenceCount} clips).`;
+}
+
+function directorSceneForReferenceImage(directorScenes: VideoScenePlan[], imageN: number): VideoScenePlan | undefined {
+  const byRef = directorScenes.find((s) => s.referenceIndexes[0] === imageN);
+  if (byRef) return byRef;
+  return directorScenes.find((s) => s.order === imageN);
+}
+
+/** One React-safe id per upload index; Director anchor ids may repeat across scenes or match multiple stills. */
+export function referenceStillSceneId(imageN: number, directorId?: string): string {
+  const pad = String(imageN).padStart(2, "0");
+  const prefix = `still_${pad}_`;
+  const refOnly = `reference_still_${pad}`;
+  let slug = directorId?.trim() ?? "";
+  if (!slug || slug === refOnly) return refOnly;
+  while (/^still_\d{2}_/.test(slug)) {
+    slug = slug.replace(/^still_\d{2}_/, "");
+  }
+  slug = slug.replace(/^reference_still_\d{2}_?/, "");
+  if (!slug) return refOnly;
+  return `${prefix}${slug}`;
+}
+
+/** After Director parse: one scene per upload, 1:1 refs and storyboard contract (01.jpg, 02.jpg, …). */
+export function applyReferenceStillsFlythroughPlan(plan: VideoPlan, brief: VideoBrief): VideoPlan {
+  if (!isReferenceStillsFlythroughBrief(brief) || plan.scenes.some((s) => s.productView)) {
+    return plan;
+  }
+  const n = brief.references.length;
+  if (n === 0) return { ...plan, referenceStillsFlythrough: true, scenes: [] };
+  const { durations, totalSeconds } = splitReferenceStillDurations(brief.lengthSeconds, n);
+  const alreadyExpanded =
+    plan.referenceStillsFlythrough &&
+    plan.scenes.length === n &&
+    plan.scenes.every((s, i) => s.order === i + 1 && s.referenceIndexes[0] === i + 1);
+  if (alreadyExpanded) {
+    return {
+      ...plan,
+      referenceStillsFlythrough: true,
+      referenceStillsTotalSeconds: totalSeconds,
+      scenes: plan.scenes.map((s, idx) => ({
+        ...s,
+        durationSeconds: durations[idx] ?? durations[durations.length - 1],
+      })),
+    };
+  }
+  const defaultTransition = { type: "dissolve" as const, seconds: 0.6 };
+  const scenes: VideoScenePlan[] = brief.references.map((ref, idx) => {
+    const imageN = idx + 1;
+    const fileLabel = ref.fileName?.trim() || `Image ${imageN}`;
+    const fromDirector = directorSceneForReferenceImage(plan.scenes, imageN);
+    const durationSeconds = durations[idx] ?? durations[durations.length - 1];
+    const storyboardDefault = `Opening frame matches Image ${imageN} (${fileLabel}) at 1:1. Replicate layout, materials, signage, and camera angle exactly; do not invent furniture or rooms not in the photo.`;
+    const envDefault = `Same location as ${fileLabel} (Image ${imageN}) at 1:1; no invented architecture.`;
+    const sceneId = referenceStillSceneId(imageN, fromDirector?.id);
+    return {
+      id: sceneId,
+      order: imageN,
+      title: fromDirector?.title?.trim() || fileLabel.replace(/\.[^.]+$/, "") || `Still ${imageN}`,
+      durationSeconds,
+      sceneInstructions:
+        fromDirector?.sceneInstructions?.trim() ||
+        `Smooth forward glide on the walkthrough frame from ${fileLabel}. No on-screen text added.`,
+      environmentId: fromDirector?.environmentId?.trim() || sceneId,
+      environmentPrompt: fromDirector?.environmentPrompt?.trim() || envDefault,
+      storyboardPrompt:
+        fromDirector?.storyboardPrompt?.trim() && fromDirector.storyboardPrompt.includes(fileLabel)
+          ? fromDirector.storyboardPrompt.trim()
+          : storyboardDefault,
+      motionPrompt:
+        fromDirector?.motionPrompt?.trim() || "Smooth forward glide at chest height along the walkthrough path.",
+      continuityNotes:
+        fromDirector?.continuityNotes?.trim() ||
+        "Same walkthrough sequence; chest-height camera; empty showroom with no people visible.",
+      narration: plan.voice === "none" ? "" : (fromDirector?.narration ?? ""),
+      referenceIndexes: [imageN],
+      transitionIn: imageN === 1 ? null : (fromDirector?.transitionIn ?? defaultTransition),
+      productView: undefined,
+      revisionNotes: fromDirector?.revisionNotes,
+      postCutReferenceDataUrl: fromDirector?.postCutReferenceDataUrl,
+      postCutReferenceFileName: fromDirector?.postCutReferenceFileName,
+    };
+  });
+  return {
+    ...plan,
+    referenceStillsFlythrough: true,
+    referenceStillsTotalSeconds: totalSeconds,
+    scenes,
+  };
+}
+
+/** System text plus one user message: reference video first, then brief text, subject harness, then beat images. */
 export function directorMessages(system: string, userText: string, brief: VideoBrief): OpenRouterAppMessage[] {
+  const refVideo = brief.referenceVideo;
   return [
     { role: "system", content: system },
     {
       role: "user",
       content: [
+        ...(refVideo ? referenceVideoMessageParts(refVideo) : []),
         { type: "text", text: userText },
         ...(brief.subject ? [{ type: "image_url", image_url: { url: brief.subject.dataUrl } }] : []),
         ...brief.references.map((r) => ({ type: "image_url", image_url: { url: r.dataUrl } })),
@@ -92,15 +243,20 @@ function answersBlock(answers: Record<string, string>, questions: { id: string; 
   return lines.length ? lines.join("\n") : "(none)";
 }
 
-export function buildDirectorClarifySystemPrompt(): string {
-  return `You are the Director for ONE short video (storyboard first, then one continuous clip per scene).
-Output a single JSON object only, no markdown fences.
-Schema: {"questions":[{"id":"string","text":"string","options":["string",...]}]}
-Always ask 2 to 4 questions, never zero. Each question has 2 to 6 distinct, fixed options the user can pick without typing.
+export function buildDirectorClarifySystemPrompt(brief: VideoBrief): string {
+  const refVideo = hasAttachedReferenceVideo(brief);
+  const refVideoBlock = refVideo
+    ? `A reference video is attached in the user message BEFORE the brief text. You MUST watch the entire clip before asking anything. Never ask the user to pick a generic environment (warehouse, forest, tunnel, cathedral, city street, etc.) when the video already shows the real location. Never ask time of day, lighting mood, or drone/camera path when the video already defines them — copy what you see.
+When a reference video is attached, ask at most ONE question and only if the brief leaves audio ambiguous: use id "audio_generation" with fixed options (silent video only; AI instrumental backing track only; AI backing track plus voiceover; voiceover only with no music; I will upload my own music later). If the brief already states silent, music, or voiceover clearly, return {"questions":[]}.`
+    : `Always ask 2 to 4 questions, never zero. Each question has 2 to 6 distinct, fixed options the user can pick without typing.
 Prioritize the creative decisions the brief leaves open or only implies: pacing and energy, camera style, main subject or character, time of day and light, text overlays, closing shot or call to action, how literally to follow the uploaded images.
 Always include exactly one question with id "audio_generation" about audio for the final cut (backing track and/or voiceover), unless the brief already states the full audio plan end to end (e.g. silent only, or exact music style plus narration). That question must offer clear fixed options such as: silent video only; AI instrumental backing track only; AI backing track plus voiceover script; voiceover only with no music; I will upload my own music later. Do not ask a second music question.
 If the brief only mentions narration or only mentions music, still ask audio_generation once so backing track and voiceover choices are explicit.
-Look at every uploaded image before asking; do not ask what they show or whether to use them. When the Brief is empty, derive creative direction from the attachments; do not ask what the images show. When a subject harness is attached, the hero subject is that product: never ask what the subject is or whether to feature it.
+Look at every uploaded image before asking; do not ask what they show or whether to use them. When the Brief is empty, derive creative direction from the attachments; do not ask what the images show. When a subject harness is attached, the hero subject is that product: never ask what the subject is or whether to feature it.`;
+  return `You are the Director for ONE short video (storyboard first, then one continuous clip per scene).
+Output a single JSON object only, no markdown fences.
+Schema: {"questions":[{"id":"string","text":"string","options":["string",...]}]}
+${refVideoBlock}
 Do NOT ask about length, aspect ratio, or resolution; those are already set. Do not restate facts the brief already decides as a question.
 Ids must be snake_case and unique.`;
 }
@@ -112,12 +268,18 @@ export async function runVideoDirectorClarify(args: {
   signal?: AbortSignal;
 }): Promise<FlowFreeformClarifyResult> {
   const elapsed = videoTimer();
-  videoLog("clarify", "request", { promptChars: args.brief.prompt.length, subjectHarness: Boolean(args.brief.subject), references: args.brief.references.map((r) => r.fileName) });
+  videoLog("clarify", "request", {
+    promptChars: args.brief.prompt.length,
+    subjectHarness: Boolean(args.brief.subject),
+    referenceVideo: Boolean(args.brief.referenceVideo?.serverId),
+    references: args.brief.references.map((r) => r.fileName),
+  });
   const res = await callAgentCategoryOpenRouterChat({
     category: "research",
+    model: directorOpenRouterModel(args.brief),
     siteId: args.siteId,
     apiKey: args.apiKey,
-    messages: directorMessages(buildDirectorClarifySystemPrompt(), briefBlock(args.brief), args.brief),
+    messages: directorMessages(buildDirectorClarifySystemPrompt(args.brief), briefBlock(args.brief), args.brief),
     maxTokens: 16000,
     reasoning: { effort: "low" },
     temperature: 0.25,
@@ -126,7 +288,7 @@ export async function runVideoDirectorClarify(args: {
   });
   videoLog("clarify", "reply", { seconds: elapsed(), finishReason: res.finishReason, content: res.content });
   const parsed = parseClarifyJson(res.content);
-  if (parsed.questions.length === 0) {
+  if (parsed.questions.length === 0 && !hasAttachedReferenceVideo(args.brief)) {
     videoLogError("clarify", "no questions in reply", res.content);
     throw new Error("Director returned no questions; the brief step requires 2 to 4 multiple-choice questions.");
   }
@@ -164,7 +326,13 @@ export const SCENE_RULES = `- durationSeconds is an integer from ${VIDEO_SCENE_M
   * {"type":"continue","seconds":0} ONLY when the camera does not cut and continues the exact same camera angle and location from the previous clip's final frame.
   * {"type":"cut","seconds":0} only for an intentional immediate angle change at the exact same moment and location.`;
 
-export function buildDirectorPlanSystemPrompt(lengthSeconds: number, referenceCount: number): string {
+export function buildDirectorPlanSystemPrompt(brief: VideoBrief): string {
+  const lengthSeconds = brief.lengthSeconds;
+  const referenceCount = brief.references.length;
+  const stillsRules =
+    isReferenceStillsFlythroughBrief(brief) && referenceCount > 0
+      ? `\n${referenceStillsDirectorRules(referenceCount, lengthSeconds)}\n`
+      : "";
   return `You are the Director writing the scene plan for ONE short video that must cut together as one seamless piece.
 Each scene becomes a single continuous video clip generated from one storyboard still (image-to-video), so a scene is ONE shot: one location, one camera move, no cuts inside it.
 Output a single JSON object only, no markdown fences.
@@ -178,8 +346,18 @@ Rules:
 - fadeInSeconds (0..1.5, default 0.6) and fadeOutSeconds (0..1.5, default 0.8) control smooth fade-in from black on Scene 1 and fade-out to black at the end of the final scene.
 - continuity: heroSubject names the one subject every scene follows; screenDirection is the single direction all travel and progress moves across the frame for the whole video; cameraSide says which side of the action the camera stays on; palette and lightArc describe colour and how light changes from first to last scene.
 - Numbered reference images available: ${referenceCount}. When ${referenceCount} is 0, every scene referenceIndexes must be []. When ${referenceCount} is greater than 0, use only integers 1..${referenceCount}. Never reference beat numbers from the brief unless that many images were actually uploaded.
-${SCENE_RULES}
+${stillsRules}${SCENE_RULES}
 - Respect the user's answers and uploaded images: carry their subject identity, framing and setting cues through every scene.
+${
+  hasAttachedReferenceVideo(brief)
+    ? `- Reference video mode (ZERO HALLUCINATION MANDATE):
+  * The attached visual frames (beat frames and contact sheet) are the ABSOLUTE GROUND TRUTH for the business identity, storefront signage, interior displays, and walkthrough order.
+  * You MUST inspect the storefront awning, windows, doors, and interior display walls in the attached images: read the exact business name (e.g. "Blind Magic Window Coverings", "Hunter Douglas") and featured product types (blinds, shades, shutters, drapery, window coverings).
+  * FORBIDDEN: NEVER invent an unrelated industry, product category, or fictional company name (such as flooring, cabinetry, kitchen renovation, automotive, or construction). Never latch onto background strip-mall signs down the street.
+  * plan.title, continuity.heroSubject, and every scene's title, environmentPrompt, and storyboardPrompt MUST describe ONLY what is physically visible in the attached reference frames.
+  * The video is a flythrough of THIS EXACT FACILITY. Every scene must match the real sequence of rooms/displays shown in the beat frames.`
+    : ""
+}
 When the brief is a client location or showroom commercial, obey:
 ${CLIENT_LOCATION_COMMERCIAL_BRIEF_BLOCK}`;
 }
@@ -226,28 +404,21 @@ export function parseTransition(raw: unknown, idx: number): VideoTransition {
   if (rawType === "zoom_in" || rawType === "zoomin" || rawType === "zoom") {
     return { type: "zoom_in", seconds: clampTransitionSeconds(seconds, 0.6) };
   }
-  throw new Error(
-    raw === undefined || raw === null
-      ? `Scene ${idx + 1} is missing transitionIn.`
-      : `Scene ${idx + 1} transitionIn.type must be cut, continue, dissolve, fade_black, fade_white, wipe_left, wipe_right, or zoom_in (got ${String(o.type)}).`,
-  );
+  if (raw === undefined || raw === null) {
+    return { type: "dissolve", seconds: 0.7 };
+  }
+  return { type: "dissolve", seconds: clampTransitionSeconds(Number.isNaN(seconds) ? 0.7 : seconds, 0.7) };
 }
 
 function parseReferenceIndexes(raw: unknown, idx: number, referenceCount: number): number[] {
-  if (!Array.isArray(raw)) throw new Error(`Scene ${idx + 1} is missing referenceIndexes (use [] when no upload applies).`);
-  const indexes = raw.map(readInt);
-  const bad = indexes.find((n) => !Number.isInteger(n) || n < 1 || n > referenceCount);
-  if (bad !== undefined) {
-    if (referenceCount === 0 && indexes.length > 0) {
-      throw new Error(
-        `Scene ${idx + 1} references Image ${bad}, but you have 0 reference images uploaded. Subject photos are not numbered images. Upload storyboard beats under Reference images, or regenerate the plan after uploads match the brief.`,
-      );
-    }
-    throw new Error(
-      `Scene ${idx + 1} references Image ${bad}, but only ${referenceCount} reference image${referenceCount === 1 ? " is" : "s are"} uploaded (use 1..${referenceCount} or []).`,
-    );
+  if (referenceCount === 0) return [];
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return [Math.min(idx + 1, referenceCount)];
   }
-  if (new Set(indexes).size !== indexes.length) throw new Error(`Scene ${idx + 1} referenceIndexes repeats an image.`);
+  const indexes = [...new Set(raw.map(readInt).filter((n) => Number.isInteger(n) && n >= 1 && n <= referenceCount))];
+  if (indexes.length === 0) {
+    return [Math.min(idx + 1, referenceCount)];
+  }
   return indexes;
 }
 
@@ -267,50 +438,31 @@ export function parseScene(raw: unknown, idx: number, referenceCount: number): V
   const revisionNotes = Array.isArray(o.revisionNotes)
     ? o.revisionNotes.map((n) => String(n ?? "").trim()).filter(Boolean)
     : undefined;
+  const order = idx + 1;
+  const title = String(o.title ?? "").trim() || `Scene ${order}`;
+  let durationSeconds = readInt(o.durationSeconds);
+  if (!Number.isInteger(durationSeconds) || durationSeconds < VIDEO_SCENE_MIN_SECONDS) {
+    durationSeconds = VIDEO_SCENE_MIN_SECONDS;
+  } else if (durationSeconds > VIDEO_SCENE_MAX_SECONDS) {
+    durationSeconds = VIDEO_SCENE_MAX_SECONDS;
+  }
   const scene: VideoScenePlan = {
-    id: String(o.id ?? "").trim(),
-    order: readInt(o.order),
-    title: String(o.title ?? "").trim(),
-    durationSeconds: readInt(o.durationSeconds),
-    sceneInstructions: String(o.sceneInstructions ?? "").trim(),
+    id: String(o.id ?? "").trim() || `scene-${order}`,
+    order,
+    title,
+    durationSeconds,
+    sceneInstructions: String(o.sceneInstructions ?? "").trim() || title,
     ...(environmentId ? { environmentId } : {}),
     ...(environmentPrompt ? { environmentPrompt } : {}),
-    storyboardPrompt: String(o.storyboardPrompt ?? "").trim(),
-    motionPrompt: String(o.motionPrompt ?? "").trim(),
+    storyboardPrompt: String(o.storyboardPrompt ?? "").trim() || "Match the reference framing.",
+    motionPrompt: String(o.motionPrompt ?? "").trim() || "Smooth forward glide.",
     continuityNotes: String(o.continuityNotes ?? "").trim(),
     narration: String(o.narration ?? "").trim(),
     referenceIndexes: parseReferenceIndexes(o.referenceIndexes, idx, referenceCount),
     ...(productView ? { productView } : {}),
     ...(revisionNotes && revisionNotes.length ? { revisionNotes } : {}),
   };
-  const missing = (["id", "title", "sceneInstructions", "storyboardPrompt", "motionPrompt"] as const).filter(
-    (k) => !scene[k],
-  );
-  if (missing.length) {
-    throw new Error(`Scene ${idx + 1} is missing: ${missing.join(", ")}.`);
-  }
-  if (
-    !Number.isInteger(scene.durationSeconds) ||
-    scene.durationSeconds < VIDEO_SCENE_MIN_SECONDS ||
-    scene.durationSeconds > VIDEO_SCENE_MAX_SECONDS
-  ) {
-    throw new Error(
-      `Scene ${idx + 1} duration must be ${VIDEO_SCENE_MIN_SECONDS}..${VIDEO_SCENE_MAX_SECONDS} s (got ${String(o.durationSeconds)}).`,
-    );
-  }
-  if (scene.order !== idx + 1) {
-    throw new Error(`Scene ${idx + 1} has order ${String(o.order)}; expected ${idx + 1}.`);
-  }
-  const words = scene.narration.split(/\s+/).filter(Boolean).length;
-  const budget = Math.floor(scene.durationSeconds * NARRATION_WORDS_PER_SECOND);
-  if (words > budget) {
-    throw new Error(`Scene ${idx + 1} narration is ${words} words; at most ${budget} fit in ${scene.durationSeconds} s.`);
-  }
-  if (idx === 0) {
-    if (o.transitionIn !== undefined && o.transitionIn !== null) {
-      throw new Error("Scene 1 transitionIn must be null; it opens the video.");
-    }
-  } else {
+  if (idx > 0) {
     scene.transitionIn = parseTransition(o.transitionIn, idx);
   }
   return scene;
@@ -318,22 +470,16 @@ export function parseScene(raw: unknown, idx: number, referenceCount: number): V
 
 function parseContinuity(raw: unknown): VideoPlanContinuity {
   const o = (raw ?? {}) as Record<string, unknown>;
-  const direction = String(o.screenDirection ?? "").trim();
-  if (direction !== "left_to_right" && direction !== "right_to_left") {
-    throw new Error("Director plan continuity.screenDirection must be left_to_right or right_to_left.");
-  }
-  const continuity: VideoPlanContinuity = {
-    heroSubject: String(o.heroSubject ?? "").trim(),
-    screenDirection: direction,
-    cameraSide: String(o.cameraSide ?? "").trim(),
-    palette: String(o.palette ?? "").trim(),
-    lightArc: String(o.lightArc ?? "").trim(),
+  const directionRaw = String(o.screenDirection ?? "").trim().toLowerCase();
+  const screenDirection =
+    directionRaw === "right_to_left" || directionRaw === "rtl" ? "right_to_left" : "left_to_right";
+  return {
+    heroSubject: String(o.heroSubject ?? "").trim() || "Location fly-through",
+    screenDirection,
+    cameraSide: String(o.cameraSide ?? "").trim() || "center path",
+    palette: String(o.palette ?? "").trim() || "natural interior light",
+    lightArc: String(o.lightArc ?? "").trim() || "even",
   };
-  const missing = (["heroSubject", "cameraSide", "palette", "lightArc"] as const).filter((k) => !continuity[k]);
-  if (missing.length) {
-    throw new Error(`Director plan continuity is missing: ${missing.join(", ")}.`);
-  }
-  return continuity;
 }
 
 function clampFadeSeconds(v: unknown, fallback: number): number {
@@ -343,32 +489,146 @@ function clampFadeSeconds(v: unknown, fallback: number): number {
   return Math.round(clamped * 10) / 10;
 }
 
+function tryParseJsonCandidate(candidate: string): Record<string, unknown> | null {
+  const trimmed = candidate.trim();
+  if (!trimmed) return null;
+  try {
+    const obj = JSON.parse(trimmed) as unknown;
+    if (obj && typeof obj === "object" && !Array.isArray(obj)) {
+      return obj as Record<string, unknown>;
+    }
+  } catch {
+    // Try cleaning trailing commas and inline comments
+    try {
+      const sanitized = trimmed
+        .replace(/,\s*([}\]])/g, "$1")
+        .replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, "$1");
+      const obj = JSON.parse(sanitized) as unknown;
+      if (obj && typeof obj === "object" && !Array.isArray(obj)) {
+        return obj as Record<string, unknown>;
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return null;
+}
+
+function planJsonFromDirectorText(raw: string): Record<string, unknown> {
+  const trimmed = raw.trim();
+  if (!trimmed) return {};
+
+  // 1. Direct parse attempt
+  const direct = tryParseJsonCandidate(trimmed);
+  if (direct && Array.isArray(direct.scenes) && direct.scenes.length > 0) {
+    return direct;
+  }
+
+  // 2. Extract code blocks (```json ... ``` or ``` ... ```) in reverse order (most recent final answer first)
+  const codeBlockRegex = /```(?:json)?\s*([\s\S]*?)```/gi;
+  const blocks: string[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = codeBlockRegex.exec(trimmed)) !== null) {
+    if (match[1]?.trim()) {
+      blocks.push(match[1].trim());
+    }
+  }
+
+  // Check code blocks from last to first for valid scenes array
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    const parsed = tryParseJsonCandidate(blocks[i]);
+    if (parsed && Array.isArray(parsed.scenes) && parsed.scenes.length > 0) {
+      return parsed;
+    }
+  }
+
+  // If a block parsed into an object without scenes, save as fallback
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    const parsed = tryParseJsonCandidate(blocks[i]);
+    if (parsed) return parsed;
+  }
+
+  // 3. Fallback: Search for JSON around "scenes" key
+  const scenesIndex = trimmed.lastIndexOf('"scenes"');
+  if (scenesIndex >= 0) {
+    const start = trimmed.lastIndexOf("{", scenesIndex);
+    const end = trimmed.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      const candidate = trimmed.slice(start, end + 1);
+      const parsed = tryParseJsonCandidate(candidate);
+      if (parsed) return parsed;
+    }
+  }
+
+  // 4. Default parseJsonObjectFromModelText fallback
+  try {
+    return parseJsonObjectFromModelText(trimmed);
+  } catch {
+    const start = trimmed.indexOf("{");
+    const end = trimmed.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      const candidate = tryParseJsonCandidate(trimmed.slice(start, end + 1));
+      if (candidate) return candidate;
+    }
+    return direct || {};
+  }
+}
+
 export function parseVideoPlan(raw: string, lengthSeconds: number, referenceCount: number): VideoPlan {
-  const j = parseJsonObjectFromModelText(raw);
-  const title = String(j.title ?? "").trim();
+  const j = planJsonFromDirectorText(raw);
+  const title = String(j.title ?? "").trim() || "Video plan";
   const logline = String(j.logline ?? "").trim();
   const scenesRaw = j.scenes;
-  if (!title || !Array.isArray(scenesRaw) || scenesRaw.length === 0) {
-    throw new Error("Director plan is missing title or scenes.");
+  if (!Array.isArray(scenesRaw) || scenesRaw.length === 0) {
+    throw new Error("Director plan did not include a scenes array. Try generating the plan again.");
   }
-  const voice = String(j.voice ?? "").trim();
-  if (voice !== "none" && !(HEYGEN_VOICES as readonly string[]).includes(voice)) {
-    throw new Error(`Director plan voice must be none or one of ${HEYGEN_VOICES.join(", ")} (got ${voice || "nothing"}).`);
-  }
+  const voiceRaw = String(j.voice ?? "none").trim();
+  const voice: HeygenVoice | "none" =
+    voiceRaw === "none"
+      ? "none"
+      : (HEYGEN_VOICES as readonly string[]).includes(voiceRaw)
+        ? (voiceRaw as HeygenVoice)
+        : "none";
   const continuity = parseContinuity(j.continuity);
   const scenes = scenesRaw.map((s, idx) => parseScene(s, idx, referenceCount));
-  const ids = new Set(scenes.map((s) => s.id));
-  if (ids.size !== scenes.length) throw new Error("Scene ids must be unique.");
-  const total = scenes.reduce((sum, s) => sum + s.durationSeconds, 0);
-  if (total !== lengthSeconds) {
-    throw new Error(`Scene durations sum to ${total} s; the plan must total ${lengthSeconds} s.`);
+  const ids = new Set<string>();
+  scenes.forEach((s, i) => {
+    if (ids.has(s.id)) {
+      s.id = `${s.id}-${i + 1}`;
+    }
+    ids.add(s.id);
+  });
+  let total = scenes.reduce((sum, s) => sum + s.durationSeconds, 0);
+  if (total !== lengthSeconds && scenes.length > 0) {
+    const last = scenes[scenes.length - 1];
+    const delta = lengthSeconds - total;
+    const next = last.durationSeconds + delta;
+    if (next >= VIDEO_SCENE_MIN_SECONDS && next <= VIDEO_SCENE_MAX_SECONDS) {
+      last.durationSeconds = next;
+    } else {
+      const per = Math.max(
+        VIDEO_SCENE_MIN_SECONDS,
+        Math.min(VIDEO_SCENE_MAX_SECONDS, Math.round(lengthSeconds / scenes.length)),
+      );
+      scenes.forEach((s) => {
+        s.durationSeconds = per;
+      });
+      total = scenes.reduce((sum, s) => sum + s.durationSeconds, 0);
+      if (total !== lengthSeconds && scenes.length > 0) {
+        scenes[scenes.length - 1].durationSeconds += lengthSeconds - total;
+      }
+    }
   }
-  const narrated = scenes.filter((s) => s.narration).map((s) => s.order);
-  if (voice === "none" && narrated.length) {
-    throw new Error(`Director wrote narration for scene ${narrated.join(", ")} but voice is none; narration must be "".`);
-  }
-  if (voice !== "none" && narrated.length !== scenes.length) {
-    throw new Error(`Director picked voice ${voice} but left narration empty on some scenes; every scene needs narration or voice must be none.`);
+  if (voice !== "none") {
+    scenes.forEach((s) => {
+      if (!s.narration.trim()) {
+        s.narration = s.title;
+      }
+    });
+  } else {
+    scenes.forEach((s) => {
+      s.narration = "";
+    });
   }
   const fadeInSeconds = clampFadeSeconds(j.fadeInSeconds, 0.6);
   const fadeOutSeconds = clampFadeSeconds(j.fadeOutSeconds, 0.8);
@@ -400,7 +660,11 @@ export async function runVideoDirectorPlan(args: {
 User answers to your questions:
 ${answersBlock(args.answers, args.questions)}
 
-Write the scene plan JSON now. Pre-computed integer duration splits for ${args.brief.lengthSeconds} seconds (${VIDEO_SCENE_MIN_SECONDS}..${VIDEO_SCENE_MAX_SECONDS} s per scene): ${integerSceneSplits(args.brief.lengthSeconds)}. Pick one of these exact integer duration arrays immediately without arithmetic trial-and-error and output the JSON scene plan.`;
+Write the scene plan JSON now.${
+    isReferenceStillsFlythroughBrief(args.brief) && args.brief.references.length > 0
+      ? ` Reference stills mode: output 0 to 8 anchor scenes only (not ${args.brief.references.length}). Use durationSeconds 5 on each scene for schema validity; the app expands to one scene per upload (${args.brief.references.length} total) and splits ~${Math.max(args.brief.lengthSeconds, referenceStillsMinTotalSeconds(args.brief.references.length))} s across them.`
+      : ` Pre-computed integer duration splits for ${args.brief.lengthSeconds} seconds (${VIDEO_SCENE_MIN_SECONDS}..${VIDEO_SCENE_MAX_SECONDS} s per scene): ${integerSceneSplits(args.brief.lengthSeconds)}. Pick one of these exact integer duration arrays immediately without arithmetic trial-and-error and output the JSON scene plan.`
+  }`;
   const elapsed = videoTimer();
   videoLog("plan", "request", {
     lengthSeconds: args.brief.lengthSeconds,
@@ -411,17 +675,17 @@ Write the scene plan JSON now. Pre-computed integer duration splits for ${args.b
   });
   const res = await streamAgentCategoryOpenRouterChat({
     category: "research",
+    model: directorOpenRouterModel(args.brief),
     siteId: args.siteId,
     apiKey: args.apiKey,
     messages: directorMessages(
-      buildDirectorPlanSystemPrompt(args.brief.lengthSeconds, args.brief.references.length),
+      buildDirectorPlanSystemPrompt(args.brief),
       user,
       args.brief,
     ),
     maxTokens: 64000,
     reasoning: { effort: "low" },
     temperature: 0.4,
-    responseFormat: { type: "json_object" },
     signal: args.signal,
     onDelta: (delta) => {
       if (delta.reasoning) videoLog("plan", "thinking", delta.reasoning);
@@ -436,9 +700,29 @@ Write the scene plan JSON now. Pre-computed integer duration splits for ${args.b
     contentChars: res.content.length,
   });
   try {
-    const plan = parseVideoPlan(res.content, args.brief.lengthSeconds, args.brief.references.length);
+    let plan: VideoPlan | null = null;
+    if (res.content?.trim()) {
+      try {
+        plan = applyReferenceStillsFlythroughPlan(
+          parseVideoPlan(res.content, args.brief.lengthSeconds, args.brief.references.length),
+          args.brief,
+        );
+      } catch (contentErr) {
+        videoLog("plan", "res.content alone did not parse directly, checking combined text", contentErr);
+      }
+    }
+    if (!plan) {
+      const planText = [res.content, res.reasoning].filter((s) => s.trim()).join("\n\n");
+      plan = applyReferenceStillsFlythroughPlan(
+        parseVideoPlan(planText, args.brief.lengthSeconds, args.brief.references.length),
+        args.brief,
+      );
+    }
     videoLog("plan", "accepted", {
       title: plan.title,
+      referenceStillsFlythrough: plan.referenceStillsFlythrough,
+      referenceStillsTotalSeconds: plan.referenceStillsTotalSeconds,
+      sceneCount: plan.scenes.length,
       scenes: plan.scenes.map((s) => `${s.order}: ${s.title} (${s.durationSeconds} s, env ${s.environmentId ?? "auto"}, view ${s.productView ?? "auto"}, join ${s.transitionIn?.type ?? "open"}, refs ${s.referenceIndexes.join(",") || "none"})`),
     });
     return plan;

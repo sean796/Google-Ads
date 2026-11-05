@@ -5,7 +5,6 @@ import type { GeneratorFreeFlowBindings } from "@/components/generator/generator
 import { FlowFreeformBody } from "@/components/manager/flow-freeform/FlowFreeformBody";
 import { FlowFreeformToolbar } from "@/components/manager/flow-freeform/FlowFreeformToolbar";
 import { BulkGeneratorDetailsDrawer } from "@/components/keyword-research/bulk/BulkGeneratorDetailsDrawer";
-import { WORKSPACE_DETAILS_DIM_OVERLAY_CLASS } from "@/components/overview/overview-tab/overview-tab-content-constants";
 import {
   SEO_WORKSPACE_BODY_SCROLL_CLASS,
   SEO_WORKSPACE_HEADER_CLASS,
@@ -28,7 +27,6 @@ export function FlowGeneratorSection({
   onResetBlueprint,
 }: FlowGeneratorSectionProps) {
   const pipelineBusy = bindings.isGenerating;
-  const [detailsDrawerOpen, setDetailsDrawerOpen] = useState(false);
 
   const canOpenDetails =
     pipelineBusy ||
@@ -84,7 +82,6 @@ export function FlowGeneratorSection({
           canOpenDetails={canOpenDetails}
           isProcessing={pipelineBusy}
           detailsPanelId="flow-generator-details"
-          onDetailsOpenChange={setDetailsDrawerOpen}
           toolbar={
             <FlowFreeformToolbar
               flowTitle={bindings.flowTitle}
@@ -112,9 +109,6 @@ export function FlowGeneratorSection({
         />
       </div>
       <div className={cn(SEO_WORKSPACE_BODY_SCROLL_CLASS, "relative")}>
-        {detailsDrawerOpen ? (
-          <div className={WORKSPACE_DETAILS_DIM_OVERLAY_CLASS} aria-hidden />
-        ) : null}
         <FlowFreeformBody
           flowTitle={bindings.flowTitle}
           setFlowTitle={bindings.setFlowTitle}

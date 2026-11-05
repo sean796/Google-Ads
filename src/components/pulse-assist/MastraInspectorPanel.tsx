@@ -1,7 +1,5 @@
 import React, { useState, useSyncExternalStore } from "react";
 import { ChevronDown, Download, FileText } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { OverviewDocRevisionsSection } from "@/components/pulse-assist/OverviewDocRevisionsSection";
 import { OverviewDocSerpMetaCard } from "@/components/overview/studio/OverviewDocSerpMetaCard";
 import { usePulseAssistContext } from "@/contexts/pulse-assist-context";
@@ -10,6 +8,7 @@ import {
   subscribeStudioDocMetaInspectorBridge,
 } from "@/lib/overview/studio-doc-meta-bridge";
 import { cn } from "@/lib/utils";
+import { Button, TextareaField } from "@/ui";
 
 function triggerDownloadText(filename: string, content: string, mimeType: string) {
   const blob = new Blob([content], { type: mimeType || "text/plain;charset=utf-8" });
@@ -35,19 +34,19 @@ export function MastraInspectorPanel() {
 
   if (!docMetaBridge) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col justify-center bg-zinc-950 px-5 py-8 text-center text-base text-muted-foreground">
+      <div className="flex min-h-0 flex-1 flex-col justify-center bg-black px-5 py-8 text-center text-base text-muted-foreground">
         Select an article or page in the Content Optimizer to inspect and edit its SEO Title, Meta Description, Focus Keyword, URL Slug, and Research Brief.
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto bg-zinc-950 px-5 py-5 text-base text-white">
+    <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto bg-black px-5 py-5 text-base text-white">
       {/* 1. WordPress-Style Document SEO & Meta Inspector */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-2">
           <span className="font-semibold text-white">Page SEO & Meta</span>
-          <span className="bg-zinc-900 px-2 py-0.5 text-base text-cyan-400">
+          <span className="bg-ui-field px-2 py-0.5 text-base text-semantic-analysis-foreground">
             {overview.sitemapSource?.toUpperCase() || "DOC"}
           </span>
         </div>
@@ -70,27 +69,24 @@ export function MastraInspectorPanel() {
       {/* 2. SEO Research Brief Inspector (Editable + Downloadable) */}
       <div className="flex flex-col gap-2.5 border-t border-white/10 pt-4">
         <div className="flex items-center justify-between gap-2">
-          <button
-            type="button"
+          <Button
+            variant="quiet"
             onClick={() => setBriefOpen((prev) => !prev)}
-            className="flex min-w-0 flex-1 items-center gap-2 text-left font-semibold text-white hover:text-primary"
           >
-            <FileText className="h-4 w-4 shrink-0 text-cyan-400" aria-hidden />
+            <FileText className="h-4 w-4 shrink-0 text-semantic-analysis-foreground" aria-hidden />
             <span>SEO Research Brief</span>
-            <span className="ml-auto tabular-nums text-sky-400">
+            <span className="ml-auto tabular-nums text-semantic-analysis-foreground">
               {seoResearchVal.length.toLocaleString()} chars
             </span>
             <ChevronDown
               className={cn("h-4 w-4 shrink-0 transition-transform", briefOpen && "rotate-180")}
               aria-hidden
             />
-          </button>
+          </Button>
           {seoResearchVal.trim() ? (
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 shrink-0 rounded-none border-0 bg-zinc-900 px-2 text-base text-cyan-400 hover:bg-zinc-800 hover:text-white"
               onClick={() =>
                 triggerDownloadText(
                   `seo-research-brief-${docMetaBridge.row.postId || "row"}.json`,
@@ -106,7 +102,7 @@ export function MastraInspectorPanel() {
         </div>
 
         {briefOpen ? (
-          <Textarea
+          <TextareaField
             value={seoResearchVal}
             onChange={(e) =>
               docMetaBridge.onUpdateRow(docMetaBridge.rowIndex, {
@@ -116,7 +112,6 @@ export function MastraInspectorPanel() {
             rows={10}
             placeholder="No research brief on this row yet. Click Research above to pull DataForSEO + GSC + Semrush data."
             aria-label="SEO Research Brief"
-            className="min-h-[14rem] w-full resize-y rounded-none border-0 bg-zinc-900 px-3 py-2.5 font-mono text-base leading-relaxed text-zinc-200 placeholder:font-sans placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary"
           />
         ) : null}
       </div>

@@ -11,9 +11,6 @@ import {
   Sparkles,
   Wand2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import {
   CONTENT_OPTIMIZER_ACTIVE_ROW_HIGHLIGHT_CLASS,
@@ -54,6 +51,7 @@ import { isWikipediaHref } from "@/lib/overview/overview-blog-wikipedia-link-ins
 import { extractFaqFromPostHtml } from "@/lib/overview/overview-row-scrape";
 import type { OverviewSitemapSource } from "@/lib/overview/overview-sitemap-source";
 import { cn } from "@/lib/utils";
+import { Button, Field, TextareaField } from "@/ui";
 
 export interface OverviewDocSectionBlocksProps {
   row: OverviewRow;
@@ -83,9 +81,6 @@ export interface OverviewDocSectionBlocksProps {
   /** Auto SEO batch/single: highlight the H2 section matching the current harness step title. */
   activeOptimizingSectionTitle?: string | null;
 }
-
-const QUIET_PILL_BTN =
-  "h-8 shrink-0 rounded-md border border-white/10 bg-zinc-900/90 px-2.5 text-xs font-medium text-muted-foreground hover:bg-zinc-800 hover:text-white disabled:opacity-45";
 
 export function OverviewDocSectionBlocks({
   row,
@@ -431,14 +426,10 @@ export function OverviewDocSectionBlocks({
         <div className="flex flex-wrap items-center gap-1.5">
           {!isPagesSource && !answerHtml ? (
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
               disabled={anyBusy}
               onClick={() => void onAiAnswer(rowIndex)}
-              className={cn(
-                QUIET_PILL_BTN,
-                row.status === "ai-answer" && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-              )}
             >
               <Plus className="mr-1 h-3.5 w-3.5 text-primary" aria-hidden />
               Answer
@@ -447,14 +438,10 @@ export function OverviewDocSectionBlocks({
 
           {!isPagesSource && !overviewHtml ? (
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
               disabled={anyBusy}
               onClick={() => void onAiOverview(rowIndex)}
-              className={cn(
-                QUIET_PILL_BTN,
-                row.status === "ai-overview" && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-              )}
             >
               <Plus className="mr-1 h-3.5 w-3.5 text-primary" aria-hidden />
               Overview
@@ -463,14 +450,10 @@ export function OverviewDocSectionBlocks({
 
           {!isPagesSource && !scenarioHtml ? (
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
               disabled={anyBusy}
               onClick={() => void onAiScenario(rowIndex)}
-              className={cn(
-                QUIET_PILL_BTN,
-                row.status === "ai-scenario" && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-              )}
             >
               <Plus className="mr-1 h-3.5 w-3.5 text-primary" aria-hidden />
               Scenario
@@ -479,14 +462,10 @@ export function OverviewDocSectionBlocks({
 
           {faqEntries.length === 0 ? (
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
               disabled={anyBusy}
               onClick={() => void onAiFaqAll(rowIndex)}
-              className={cn(
-                QUIET_PILL_BTN,
-                row.status === "ai-faq" && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-              )}
             >
               <Plus className="mr-1 h-3.5 w-3.5 text-primary" aria-hidden />
               FAQs
@@ -494,14 +473,10 @@ export function OverviewDocSectionBlocks({
           ) : null}
 
           <Button
+            variant="quiet"
             type="button"
-            variant="ghost"
             disabled={anyBusy}
             onClick={() => void onAiHeaders(rowIndex)}
-            className={cn(
-              QUIET_PILL_BTN,
-              row.status === "ai-headers" && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-            )}
             title={
               isPagesSource
                 ? "Optimize Elementor section headings"
@@ -513,30 +488,22 @@ export function OverviewDocSectionBlocks({
           </Button>
 
           <Button
+            variant="quiet"
             type="button"
-            variant="ghost"
             disabled={anyBusy}
             onClick={() => void onAiLinks(rowIndex)}
-            className={cn(
-              QUIET_PILL_BTN,
-              row.status === "ai-links" && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-            )}
             title="Weave contextual internal links"
           >
-            <Link2 className="mr-1.5 h-3.5 w-3.5 text-cyan-400" aria-hidden />
+            <Link2 className="mr-1.5 h-3.5 w-3.5 text-semantic-analysis-foreground" aria-hidden />
             Internal Links
           </Button>
 
           {!isPagesSource ? (
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
               disabled={anyBusy}
               onClick={() => void onAiWikipediaLink(rowIndex)}
-              className={cn(
-                QUIET_PILL_BTN,
-                row.status === "ai-wikipedia-link" && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-              )}
               title="Insert Wikipedia entity citation"
             >
               <Globe className="mr-1.5 h-3.5 w-3.5 text-primary" aria-hidden />
@@ -546,21 +513,17 @@ export function OverviewDocSectionBlocks({
 
           {!isPagesSource ? (
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
               disabled={anyBusy}
               onClick={() => void onAiInContentImage(rowIndex)}
-              className={cn(
-                QUIET_PILL_BTN,
-                row.status === "ai-in-content-image" && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-              )}
               title={
                 isSapSource
                   ? "Generate local or in-content section image"
                   : "Generate in-content section image"
               }
             >
-              <ImageIcon className="mr-1.5 h-3.5 w-3.5 text-cyan-400" aria-hidden />
+              <ImageIcon className="mr-1.5 h-3.5 w-3.5 text-semantic-analysis-foreground" aria-hidden />
               Section Image
             </Button>
           ) : null}
@@ -568,10 +531,9 @@ export function OverviewDocSectionBlocks({
 
         {/* Quiet Collapsible Links Summary Pill */}
         {extractedLinks.length > 0 ? (
-          <button
-            type="button"
+          <Button
+            variant="quiet"
             onClick={() => setLinksExpanded((prev) => !prev)}
-            className="inline-flex h-8 items-center gap-1.5 bg-zinc-900 px-2.5 text-base tabular-nums text-sky-400 hover:bg-zinc-800"
           >
             <Link2 className="h-3.5 w-3.5" aria-hidden />
             <span>
@@ -583,24 +545,24 @@ export function OverviewDocSectionBlocks({
               className={cn("h-3.5 w-3.5 transition-transform", linksExpanded && "rotate-180")}
               aria-hidden
             />
-          </button>
+          </Button>
         ) : null}
       </div>
 
       {/* Expandable Citation Drawer */}
       {linksExpanded && extractedLinks.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5 bg-zinc-900/60 p-3">
+        <div className="flex flex-wrap gap-1.5 bg-ui-field/60 p-3">
           {extractedLinks.map((lnk, idx) => (
             <a
               key={`${lnk.href}-${idx}`}
               href={lnk.href}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex max-w-[18rem] items-center gap-1.5 truncate bg-black px-2.5 py-1 text-base text-cyan-400 hover:text-white"
+              className="inline-flex max-w-[18rem] items-center gap-1.5 break-words bg-black px-2.5 py-1 text-base text-semantic-analysis-foreground hover:text-white"
               title={lnk.href}
             >
               <Link2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span className="truncate">{lnk.anchor || lnk.href}</span>
+              <span className="break-words">{lnk.anchor || lnk.href}</span>
             </a>
           ))}
         </div>
@@ -608,7 +570,7 @@ export function OverviewDocSectionBlocks({
 
       {/* Staged In-Content Image Preview */}
       {row.blogInContentImageUrl?.trim() ? (
-        <div className="flex items-center gap-3 bg-zinc-900/60 p-3">
+        <div className="flex items-center gap-3 bg-ui-field/60 p-3">
           <div className="relative aspect-video w-40 shrink-0 overflow-hidden bg-black">
             <img
               src={row.blogInContentImageUrl}
@@ -621,7 +583,7 @@ export function OverviewDocSectionBlocks({
               Staged Section Image{" "}
               {row.blogInContentImageSection ? `(${row.blogInContentImageSection})` : ""}
             </span>
-            <span className="truncate text-base text-muted-foreground">
+            <span className="break-words text-base text-muted-foreground">
               {row.blogInContentImageAlt || "Auto-generated SEO alt text"}
             </span>
           </div>
@@ -636,7 +598,7 @@ export function OverviewDocSectionBlocks({
             "group relative flex scroll-mt-6 flex-col gap-2 border-b border-white/10 pb-5",
             (row.status === "ai-answer" ||
               (busy && activeStepTitleKey === "answer")) &&
-              "animate-meta-opt-breathe border-semantic-data/40 bg-zinc-900/35 px-3 py-3",
+              "animate-meta-opt-breathe border-semantic-data/40 bg-ui-field/35 px-3 py-3",
           )}
           aria-label="Direct Answer Block"
         >
@@ -653,18 +615,17 @@ export function OverviewDocSectionBlocks({
               Answer
             </span>
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
               disabled={anyBusy}
               onClick={() => void onAiAnswer(rowIndex)}
-              className="h-7 rounded-none border-0 bg-zinc-900 px-2 text-base text-white hover:bg-zinc-800"
             >
               <Wand2 className="mr-1 h-3.5 w-3.5 text-primary" aria-hidden />
               Rewrite Answer
             </Button>
           </div>
           <div
-            className="text-base leading-relaxed text-zinc-100 [&_a]:text-cyan-400 [&_a]:underline [&_h2]:hidden [&_p]:my-1"
+            className="text-base leading-relaxed text-foreground [&_a]:text-semantic-analysis-foreground [&_a]:underline [&_h2]:hidden [&_p]:my-1"
             dangerouslySetInnerHTML={{ __html: answerHtml }}
           />
         </section>
@@ -678,7 +639,7 @@ export function OverviewDocSectionBlocks({
             "group relative flex scroll-mt-6 flex-col gap-2 border-b border-white/10 pb-5",
             (row.status === "ai-overview" ||
               (busy && activeStepTitleKey === "overview")) &&
-              "animate-meta-opt-breathe border-semantic-data/40 bg-zinc-900/35 px-3 py-3",
+              "animate-meta-opt-breathe border-semantic-data/40 bg-ui-field/35 px-3 py-3",
           )}
           aria-label="Overview and Citations Block"
         >
@@ -692,22 +653,21 @@ export function OverviewDocSectionBlocks({
                   : "text-primary",
               )}
             >
-              <ListTree className="h-4 w-4 text-cyan-400" aria-hidden />
+              <ListTree className="h-4 w-4 text-semantic-analysis-foreground" aria-hidden />
               Overview
             </span>
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
               disabled={anyBusy}
               onClick={() => void onAiOverview(rowIndex)}
-              className="h-7 rounded-none border-0 bg-zinc-900 px-2 text-base text-white hover:bg-zinc-800"
             >
               <Wand2 className="mr-1 h-3.5 w-3.5 text-primary" aria-hidden />
               Rewrite Overview
             </Button>
           </div>
           <div
-            className="text-base leading-relaxed text-zinc-100 [&_a]:text-cyan-400 [&_a]:underline [&_h2]:hidden [&_li]:my-1.5 [&_p]:my-1.5 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5"
+            className="text-base leading-relaxed text-foreground [&_a]:text-semantic-analysis-foreground [&_a]:underline [&_h2]:hidden [&_li]:my-1.5 [&_p]:my-1.5 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5"
             dangerouslySetInnerHTML={{ __html: overviewHtml }}
           />
         </section>
@@ -735,58 +695,42 @@ export function OverviewDocSectionBlocks({
                 className={cn(
                   "group flex scroll-mt-6 flex-col gap-2 border-b border-white/10 pb-6 last:border-b-0",
                   isPassageActive &&
-                    "animate-meta-opt-breathe border-semantic-data/40 bg-zinc-900/35 px-3 py-3",
+                    "animate-meta-opt-breathe border-semantic-data/40 bg-ui-field/35 px-3 py-3",
                 )}
               >
                 <div className="flex items-center gap-2">
-                  <Input
+                  <Field
                     value={sec.title}
                     onChange={(e) => commitElementorSection(sec.id, { title: e.target.value })}
                     placeholder={`Section ${secIdx + 1} heading`}
                     aria-label={`Section ${secIdx + 1} heading`}
-                    className={cn(
-                      "h-9 flex-1 rounded-none border-0 bg-transparent px-0 text-lg font-semibold focus-visible:bg-zinc-900 focus-visible:px-2.5 focus-visible:ring-1 focus-visible:ring-primary",
-                      isPassageActive ? CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS : "text-white",
-                    )}
                   />
                   <div className="flex shrink-0 items-center gap-1">
                     <Button
+                      variant="quiet"
                       type="button"
-                      variant="ghost"
                       disabled={anyBusy}
                       onClick={() => void handleRewriteElementorPassage(secIdx, "header")}
-                      className={cn(
-                        "h-7 rounded-none border-0 bg-zinc-900 px-2 text-base text-white hover:bg-zinc-800",
-                        isHeaderRunning && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-                      )}
                       title="Rewrite H2 heading"
                     >
                       <Wand2 className="mr-1 h-3.5 w-3.5 text-primary" aria-hidden />
                       H2
                     </Button>
                     <Button
+                      variant="quiet"
                       type="button"
-                      variant="ghost"
                       disabled={anyBusy}
                       onClick={() => void handleRewriteElementorPassage(secIdx, "copy")}
-                      className={cn(
-                        "h-7 rounded-none border-0 bg-zinc-900 px-2 text-base text-white hover:bg-zinc-800",
-                        isCopyRunning && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-                      )}
                       title="Rewrite passage copy"
                     >
-                      <Wand2 className="mr-1 h-3.5 w-3.5 text-cyan-400" aria-hidden />
+                      <Wand2 className="mr-1 h-3.5 w-3.5 text-semantic-analysis-foreground" aria-hidden />
                       Copy
                     </Button>
                     <Button
+                      variant="quiet"
                       type="button"
-                      variant="ghost"
                       disabled={anyBusy}
                       onClick={() => void handleRewriteElementorPassage(secIdx, "both")}
-                      className={cn(
-                        "h-7 rounded-none border-0 bg-zinc-900 px-2 text-base text-white hover:bg-zinc-800",
-                        isBothRunning && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-                      )}
                       title="Rewrite both H2 and passage copy"
                     >
                       <Sparkles className="mr-1 h-3.5 w-3.5 text-primary" aria-hidden />
@@ -829,58 +773,42 @@ export function OverviewDocSectionBlocks({
                 className={cn(
                   "group flex scroll-mt-6 flex-col gap-2 border-b border-white/10 pb-6 last:border-b-0",
                   isPassageActive &&
-                    "animate-meta-opt-breathe border-semantic-data/40 bg-zinc-900/35 px-3 py-3",
+                    "animate-meta-opt-breathe border-semantic-data/40 bg-ui-field/35 px-3 py-3",
                 )}
               >
                 <div className="flex items-center gap-2">
-                  <Input
+                  <Field
                     value={sec.title}
                     onChange={(e) => commitPassageSectionPatch(secIdx, { title: e.target.value })}
                     placeholder={`H2 Section ${secIdx + 1} heading`}
                     aria-label={`H2 Section ${secIdx + 1} heading`}
-                    className={cn(
-                      "h-9 flex-1 rounded-none border-0 bg-transparent px-0 text-lg font-semibold focus-visible:bg-zinc-900 focus-visible:px-2.5 focus-visible:ring-1 focus-visible:ring-primary",
-                      isPassageActive ? CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS : "text-white",
-                    )}
                   />
                   <div className="flex shrink-0 items-center gap-1">
                     <Button
+                      variant="quiet"
                       type="button"
-                      variant="ghost"
                       disabled={anyBusy}
                       onClick={() => void handleRewriteBlogPassage(secIdx, "header")}
-                      className={cn(
-                        "h-7 rounded-none border-0 bg-zinc-900 px-2 text-base text-white hover:bg-zinc-800",
-                        isHeaderRunning && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-                      )}
                       title="Rewrite this H2 heading"
                     >
                       <Wand2 className="mr-1 h-3.5 w-3.5 text-primary" aria-hidden />
                       H2
                     </Button>
                     <Button
+                      variant="quiet"
                       type="button"
-                      variant="ghost"
                       disabled={anyBusy}
                       onClick={() => void handleRewriteBlogPassage(secIdx, "copy")}
-                      className={cn(
-                        "h-7 rounded-none border-0 bg-zinc-900 px-2 text-base text-white hover:bg-zinc-800",
-                        isCopyRunning && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-                      )}
                       title="Optimize this passage's copy in place"
                     >
-                      <Wand2 className="mr-1 h-3.5 w-3.5 text-cyan-400" aria-hidden />
+                      <Wand2 className="mr-1 h-3.5 w-3.5 text-semantic-analysis-foreground" aria-hidden />
                       Copy
                     </Button>
                     <Button
+                      variant="quiet"
                       type="button"
-                      variant="ghost"
                       disabled={anyBusy}
                       onClick={() => void handleRewriteBlogPassage(secIdx, "both")}
-                      className={cn(
-                        "h-7 rounded-none border-0 bg-zinc-900 px-2 text-base text-white hover:bg-zinc-800",
-                        isBothRunning && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-                      )}
                       title="Optimize both H2 heading and passage copy"
                     >
                       <Sparkles className="mr-1 h-3.5 w-3.5 text-primary" aria-hidden />
@@ -934,18 +862,14 @@ export function OverviewDocSectionBlocks({
                   : "text-white",
               )}
             >
-              <CircleHelp className="h-4 w-4 text-cyan-400" aria-hidden />
+              <CircleHelp className="h-4 w-4 text-semantic-analysis-foreground" aria-hidden />
               <span>Frequently Asked Questions ({faqEntries.length})</span>
             </div>
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
               disabled={anyBusy}
               onClick={() => void onAiFaqAll(rowIndex)}
-              className={cn(
-                QUIET_PILL_BTN,
-                row.status === "ai-faq" && CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
-              )}
             >
               <Wand2 className="mr-1.5 h-3.5 w-3.5 text-primary" aria-hidden />
               Regenerate FAQs
@@ -954,54 +878,46 @@ export function OverviewDocSectionBlocks({
 
           <div className="flex flex-col gap-2.5">
             {faqEntries.map((item, faqIdx) => (
-              <div key={faqIdx} className="group flex flex-col gap-1.5 bg-zinc-900/50 p-3">
+              <div key={faqIdx} className="group flex flex-col gap-1.5 bg-ui-field/50 p-3">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-7 shrink-0 tabular-nums text-sky-400">
+                  <span className="w-7 shrink-0 tabular-nums text-semantic-analysis-foreground">
                     Q{faqIdx + 1}
                   </span>
-                  <Input
+                  <Field
                     value={item.question}
                     onChange={(e) => commitFaqEntry(faqIdx, { question: e.target.value })}
                     placeholder="FAQ question"
                     aria-label={`FAQ ${faqIdx + 1} question`}
-                    className="h-8 flex-1 rounded-none border-0 bg-zinc-900 px-3 text-base font-medium text-white"
                   />
                   <Button
+                    size="icon" icon={Wand2} aria-label="Rewrite FAQ question"
+                    variant="quiet"
                     type="button"
-                    variant="ghost"
-                    size="icon"
                     disabled={anyBusy}
                     onClick={() => void onAiFaqQuestion(rowIndex, faqIdx)}
-                    className="h-8 w-8 shrink-0 rounded-none border-0 bg-zinc-900 text-muted-foreground hover:bg-zinc-800 hover:text-primary"
                     title="Rewrite FAQ question"
-                  >
-                    <Wand2 className="h-3.5 w-3.5" aria-hidden />
-                  </Button>
+                  ></Button>
                 </div>
 
                 <div className="flex items-start gap-1.5">
                   <span className="w-7 shrink-0 pt-1.5 tabular-nums text-muted-foreground">
                     A{faqIdx + 1}
                   </span>
-                  <Textarea
+                  <TextareaField
                     value={item.answer}
                     onChange={(e) => commitFaqEntry(faqIdx, { answer: e.target.value })}
                     rows={2}
                     placeholder="FAQ answer"
                     aria-label={`FAQ ${faqIdx + 1} answer`}
-                    className="min-h-[3.5rem] flex-1 resize-y rounded-none border-0 bg-zinc-900 px-3 py-1.5 text-base text-zinc-200"
                   />
                   <Button
+                    size="icon" icon={Wand2} aria-label="Rewrite FAQ answer"
+                    variant="quiet"
                     type="button"
-                    variant="ghost"
-                    size="icon"
                     disabled={anyBusy}
                     onClick={() => void onAiFaqAnswer(rowIndex, faqIdx)}
-                    className="h-8 w-8 shrink-0 rounded-none border-0 bg-zinc-900 text-muted-foreground hover:bg-zinc-800 hover:text-cyan-400"
                     title="Rewrite FAQ answer"
-                  >
-                    <Wand2 className="h-3.5 w-3.5" aria-hidden />
-                  </Button>
+                  ></Button>
                 </div>
               </div>
             ))}

@@ -1,7 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { CheckCircle, Copy, Loader2, Megaphone, Save } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { CheckCircle, Copy, Megaphone, Save } from "lucide-react";
+import { ActionButton, Button, Field } from "@/ui";
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
 import { NOTIFY_REDIRECT_URI_COPIED } from "@/lib/notify-messages";
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
@@ -10,8 +9,8 @@ import {
   useGoogleAdsConnectionStatus,
 } from "@/hooks/use-google-ads-connection-status";
 
-const FIELD_CLASS =
-  "h-8 rounded-none border-0 bg-zinc-900 text-base text-white placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-white/35";
+const SAVE_STATES = ["Save", "Saving"] as const;
+const TEST_STATES = ["Test connection", "Testing"] as const;
 
 export function GoogleAdsSettingsContent() {
   const {
@@ -37,8 +36,8 @@ export function GoogleAdsSettingsContent() {
     if (mccId && !mccInput.trim()) setMccInput(mccId);
   }, [mccId, mccInput]);
 
-  const handleSave = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleSave = async (e?: FormEvent) => {
+    e?.preventDefault();
     setSaving(true);
     setTestError(null);
     try {
@@ -102,81 +101,72 @@ export function GoogleAdsSettingsContent() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Megaphone className="h-5 w-5 text-white" aria-hidden />
-        <h3 id="ads-heading" className="text-base font-semibold text-white">
+        <Megaphone className="h-5 w-5 text-foreground" aria-hidden />
+        <h3 id="ads-heading" className="text-base font-semibold text-foreground">
           Google Ads
         </h3>
       </div>
 
       <form onSubmit={handleSave} className="grid gap-2 sm:grid-cols-2">
-        <Input
+        <Field
           type="password"
           autoComplete="off"
           value={developerToken}
           onChange={(e) => setDeveloperToken(e.target.value)}
           placeholder={hasDeveloperToken ? "Developer token (optional, saved)" : "Developer token (optional)"}
           aria-label="Developer token"
-          className={FIELD_CLASS}
         />
-        <Input
+        <Field
           value={mccInput}
           onChange={(e) => setMccInput(e.target.value)}
           placeholder="MCC ID (393-713-6350)"
           aria-label="MCC ID"
-          className={FIELD_CLASS}
         />
         <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
-          <Button type="submit" disabled={saving} className="h-8 rounded-none gap-2">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Save className="h-4 w-4" aria-hidden />}
-            {saving ? "Saving…" : "Save"}
+          <ActionButton
+            icon={Save}
+            states={SAVE_STATES}
+            state={saving ? "Saving" : "Save"}
+            disabled={saving}
+            onClick={() => void handleSave()}
+          />
+          <Button icon={Copy} reserved={!redirectUri} onClick={copyRedirectUri}>
+            Copy redirect URI
           </Button>
-          {redirectUri ? (
-            <Button type="button" variant="outline" className="h-8 rounded-none gap-2" onClick={copyRedirectUri}>
-              <Copy className="h-4 w-4" aria-hidden />
-              Copy redirect URI
-            </Button>
-          ) : null}
         </div>
       </form>
 
       {loading ? (
-        <div className="flex h-8 items-center gap-2 text-base text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-          Checking…
-        </div>
+        <p className="flex h-8 items-center text-base text-muted-foreground">Checking</p>
       ) : (
         <div className="flex min-h-8 flex-wrap items-center gap-2">
           {connected ? (
-            <span className="inline-flex h-8 items-center gap-1.5 bg-zinc-900 px-3 text-base font-medium text-green-400">
+            <span className="inline-flex h-8 items-center gap-1.5 bg-ui-field px-3 text-base font-medium text-primary">
               <CheckCircle className="h-4 w-4 shrink-0" aria-hidden />
               Connected{hasMccId ? " (MCC)" : ""}
             </span>
           ) : (
             <Button
-              type="button"
-              className="h-8 rounded-none bg-black px-3 text-base font-medium text-white hover:bg-zinc-950"
+              variant="run"
               onClick={() => openGoogleAdsAuthorize(authUrl)}
               disabled={!configured || !authUrl}
             >
               Connect Google Ads
             </Button>
           )}
-          <Button
-            type="button"
-            variant="outline"
-            className="h-8 rounded-none"
+          <ActionButton
+            variant="tool"
+            states={TEST_STATES}
+            state={testing ? "Testing" : "Test connection"}
             disabled={testing || !configured || !hasMccId}
             onClick={handleTest}
-          >
-            {testing ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-            {testing ? "Testing…" : "Test connection"}
-          </Button>
+          />
         </div>
       )}
 
-      {connectionError ? <p className="text-base text-red-400">{connectionError}</p> : null}
-      {testError ? <p className="text-base text-red-400">{testError}</p> : null}
-      {testMessage ? <p className="text-base text-green-400">{testMessage}</p> : null}
+      <p className="min-h-6 text-base text-ui-danger">{connectionError}</p>
+      <p className="min-h-6 text-base text-ui-danger">{testError}</p>
+      <p className="min-h-6 text-base text-primary">{testMessage}</p>
     </div>
   );
 }

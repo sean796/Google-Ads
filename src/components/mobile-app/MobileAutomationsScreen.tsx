@@ -17,6 +17,7 @@ import { filterTasks, sortTasks } from "@/lib/tasks-filter";
 import { isAutomationProject } from "@/lib/task-automation-templates";
 import { isAgentRunTerminal } from "@/lib/agent-runs-types";
 import type { TaskFile, TaskNote, TaskProject, TaskStatus, TeamTask } from "@/lib/tasks-types";
+import { Button } from "@/ui";
 
 export function MobileAutomationsScreen() {
   const { activeTeam, members, taskProjects, projectBundles, taskTags, refreshProjectBundle } = useTeam();
@@ -126,19 +127,17 @@ export function MobileAutomationsScreen() {
         {automationProjects.length > 0 ? (
           <div className="mobile-chip-row">
             {automationProjects.map((project) => (
-              <button
+              <Button
+                pressed={activeProjectId === project.id}
+                variant="quiet"
                 key={project.id}
-                type="button"
-                className={
-                  activeProjectId === project.id ? "mobile-chip mobile-chip--active" : "mobile-chip"
-                }
                 onClick={() => {
                   setActiveProjectId(project.id);
                   setSelectedTaskId(null);
                 }}
               >
                 {project.title}
-              </button>
+              </Button>
             ))}
           </div>
         ) : (

@@ -83,11 +83,36 @@ async function fetchLivePermalink(
   return null;
 }
 
+function isWordPressPreviewQueryPermalink(url: string | null | undefined): boolean {
+  if (!url?.trim()) return false;
+  try {
+    const parsed = new URL(url.trim());
+    const pathname = parsed.pathname.replace(/\/+$/, "");
+    if (pathname !== "") return false;
+    return (
+      parsed.searchParams.has("p") ||
+      parsed.searchParams.has("page_id") ||
+      parsed.searchParams.has("preview_id")
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function verifyWordPressSlugMatchesPlan(
   livePermalink: string | null | undefined,
   plan: OverviewSlugChangePlan,
+  confirmedSlug?: string | null,
 ): { ok: boolean; error?: string } {
   if (!plan.needed || !plan.slug || !plan.newUrl) {
+    return { ok: true };
+  }
+  const expectedSlug = plan.slug.toLowerCase();
+  if (
+    confirmedSlug?.trim() &&
+    confirmedSlug.trim().toLowerCase() === expectedSlug &&
+    (!livePermalink?.trim() || isWordPressPreviewQueryPermalink(livePermalink))
+  ) {
     return { ok: true };
   }
   if (!livePermalink?.trim()) {
@@ -97,7 +122,6 @@ export function verifyWordPressSlugMatchesPlan(
   const liveNorm = normalizedPageUrlForCompare(livePermalink);
   const destNorm = normalizedPageUrlForCompare(plan.newUrl);
   const liveSegment = lastPathSegmentFromUrl(livePermalink);
-  const expectedSlug = plan.slug.toLowerCase();
 
   if (!liveNorm || !destNorm || liveNorm !== destNorm) {
     const still = liveSegment || "unknown";
@@ -150,19 +174,27 @@ export async function applyOverviewRowSlugChangeToWordPress(
       if (overviewSuggestedUrlLiveOnWordPress(live ?? undefined, plan.newUrl)) {
         return { ok: true, permalink: live ?? undefined, slug: plan.slug };
       }
+      if (isWordPressPreviewQueryPermalink(live)) {
+        return { ok: true, permalink: plan.newUrl ?? undefined, slug: plan.slug };
+      }
     }
     return { ok: false, error: result.error || "WordPress rejected the slug update." };
   }
 
   let permalink = result.permalink?.trim() || (await fetchLivePermalink(site, binding)) || "";
-  const verify = verifyWordPressSlugMatchesPlan(permalink || null, plan);
+  const verify = verifyWordPressSlugMatchesPlan(permalink || null, plan, result.slug);
   if (!verify.ok) {
     return { ok: false, error: verify.error };
   }
 
+  const resolvedPermalink =
+    permalink && !isWordPressPreviewQueryPermalink(permalink)
+      ? permalink
+      : plan.newUrl || permalink || undefined;
+
   return {
     ok: true,
-    permalink: permalink || plan.newUrl || undefined,
+    permalink: resolvedPermalink,
     slug: result.slug || plan.slug,
   };
 }

@@ -1,13 +1,10 @@
 import React, { useMemo } from "react";
-import { Input } from "@/components/ui/input";
 import { TaskFormInfieldSelect, TaskFormPanel } from "@/components/manager/tasks/TaskFormLayout";
 import { WorkspacePill } from "@/components/shared/WorkspacePill";
 import { getStoredSites } from "@/components/integrations/storage";
 import { ChatRichEditor } from "@/components/chat/editor/ChatRichEditor";
 import type { BrowserTargetUrlSource, TaskExecutionPayload } from "@/lib/tasks-types";
-
-const URL_FIELD_CLASS =
-  "h-9 min-w-0 flex-1 rounded-none border-0 bg-black px-3 text-base text-white shadow-none outline-none ring-0 focus-visible:ring-0";
+import { Field } from "@/ui";
 
 const URL_SOURCE_OPTIONS: { value: BrowserTargetUrlSource; label: string }[] = [
   { value: "manual", label: "Manual" },
@@ -91,12 +88,11 @@ export function BrowserAutomationExecutionFields({
           ))}
         </div>
         {urlSource === "manual" ? (
-          <Input
+          <Field
             value={payload.targetUrl ?? ""}
             disabled={disabled}
             aria-label="Target URL"
             placeholder="https://example.com"
-            className={URL_FIELD_CLASS}
             onChange={(event) => patch({ targetUrl: event.target.value, targetUrlSource: "manual" })}
           />
         ) : null}

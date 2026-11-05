@@ -15,7 +15,7 @@ export function BulkStudioTitleUrlOptimizingBlock({
   return (
     <div
       className={cn(
-        "flex w-full items-center gap-3 rounded-none border border-dashed border-primary/35 bg-zinc-900/50 p-2.5 animate-meta-opt-breathe",
+        "flex w-full items-center gap-3 rounded-none border border-dashed border-primary/35 bg-ui-field/50 p-2.5 animate-meta-opt-breathe",
         className,
       )}
       role="status"
@@ -24,7 +24,7 @@ export function BulkStudioTitleUrlOptimizingBlock({
     >
       <div
         className={cn(
-          "relative flex shrink-0 items-center justify-center rounded-none border border-primary/30 bg-gradient-to-b from-zinc-800 to-zinc-900 shadow-inner",
+          "relative flex shrink-0 items-center justify-center rounded-none border border-primary/30 bg-gradient-to-b from-muted-foreground to-muted-foreground shadow-inner",
           compact ? "h-9 w-9" : "h-10 w-10",
         )}
       >
@@ -50,13 +50,13 @@ export function BulkStudioTitleUrlOptimizingBlock({
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <span className="inline-flex w-fit items-center gap-1 rounded-none bg-zinc-800/90 px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wider text-primary">
+        <span className="inline-flex w-fit items-center gap-1 rounded-none bg-ui-field-hover/90 px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wider text-primary">
           <Sparkles className="h-3 w-3 shrink-0" aria-hidden />
           Optimizing title & URL
         </span>
         <div className="flex w-full flex-col gap-1 pt-0.5">
-          <div className="h-2.5 w-4/5 max-w-full rounded-none bg-zinc-800/90" />
-          <div className="h-2 w-3/5 max-w-full rounded-none bg-zinc-800/70" />
+          <div className="h-2.5 w-4/5 max-w-full rounded-none bg-ui-field-hover/90" />
+          <div className="h-2 w-3/5 max-w-full rounded-none bg-ui-field-hover/70" />
         </div>
       </div>
     </div>

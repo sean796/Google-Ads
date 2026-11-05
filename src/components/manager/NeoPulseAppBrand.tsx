@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { NEO_PULSE_BRAND_LOCKUP_SRC } from "@/lib/neo-pulse-branding-assets";
+import { Button } from "@/ui";
 
 export interface NeoPulseAppBrandProps {
   onClick: () => void;
@@ -26,14 +27,10 @@ export function NeoPulseAppBrand({
   const lockupWidth = Math.round(lockupHeight * LOCKUP_ASPECT);
 
   return (
-    <button
-      type="button"
+    <Button
+      pressed={Boolean(compact)}
+      variant="quiet"
       onClick={onClick}
-      className={cn(
-        "flex cursor-pointer items-center rounded-md p-0 text-left transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        compact ? "gap-2" : footer ? "gap-3 md:gap-4" : "gap-2.5",
-        className
-      )}
       title="Dashboard (Properties)"
       aria-label="Go to Dashboard, Properties home"
     >
@@ -53,6 +50,6 @@ export function NeoPulseAppBrand({
           {deployShort}
         </span>
       ) : null}
-    </button>
+    </Button>
   );
 }

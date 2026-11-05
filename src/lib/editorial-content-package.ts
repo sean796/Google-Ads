@@ -43,6 +43,7 @@ export const EDITORIAL_STANDARD_PROPERTY_NAMES = [
   "Interiors by Laura",
   "DM Interiors",
   "Blinds West",
+  "Elite Shutters & Shadings",
   "KWB",
   "Tailored Interiors",
   "Neo Digital",

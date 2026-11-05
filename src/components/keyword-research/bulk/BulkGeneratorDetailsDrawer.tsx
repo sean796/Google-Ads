@@ -322,22 +322,27 @@ export function BulkGeneratorDetailsDrawer(props: BulkGeneratorDetailsPanelProps
                 (section) => section.status === "generating",
               );
               const rowIsResearch = runKind === "research";
-              const rowPipelineTitles = isBlogImportVariant
-                ? [...BLOG_IMPORT_PIPELINE_TITLES]
-                : rowIsResearch
-                ? [...RESEARCH_HARNESS_PIPELINE_TITLES]
-                : resolveBulkRowPipelineTitlesWithGoogleImage(
-                    runKind,
-                    persistedHarness,
-                    rowFiles.map((file) => ({
-                      name: file.fileName,
-                      fileName: file.fileName,
-                      content: file.content,
-                    })),
-                    rowUsesGoogleImage,
-                    effectivePipelineSectionTitles,
-                    researchBatchSignals,
-                  );
+  const persistedRowTitles = persistedHarness
+    ?.map((section) => section.title?.trim())
+    .filter((title): title is string => Boolean(title));
+  const rowPipelineTitles = isBlogImportVariant
+    ? [...BLOG_IMPORT_PIPELINE_TITLES]
+    : rowIsResearch
+    ? [...RESEARCH_HARNESS_PIPELINE_TITLES]
+    : persistedRowTitles?.length && !effectivePipelineSectionTitles?.length
+    ? persistedRowTitles
+    : resolveBulkRowPipelineTitlesWithGoogleImage(
+        runKind,
+        persistedHarness,
+        rowFiles.map((file) => ({
+          name: file.fileName,
+          fileName: file.fileName,
+          content: file.content,
+        })),
+        rowUsesGoogleImage,
+        effectivePipelineSectionTitles,
+        researchBatchSignals,
+      );
               const isFileSlotRun = isAiseoFileSlotRunKind(runKind);
               const tilePipelineTitles = isFileSlotRun ? [] : rowPipelineTitles;
               const displayFiles = rowFilesToDownloadables(

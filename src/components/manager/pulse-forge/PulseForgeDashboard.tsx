@@ -29,6 +29,7 @@ import {
 } from "@/lib/pulse-forge/forge-dashboard-view-mode";
 import { cn } from "@/lib/utils";
 import type { TaskProject } from "@/lib/tasks-types";
+import { Button } from "@/ui";
 
 const DASHBOARD_PANEL_ROW_SLOTS = 5;
 
@@ -218,16 +219,15 @@ export function PulseForgeDashboard({
                     onClick={project ? () => onEditAutomation(project) : undefined}
                     action={
                       project && primaryAutomationTask(project.id, projectBundles) ? (
-                        <button
-                          type="button"
-                          className="text-base text-muted-foreground hover:text-white"
+                        <Button
+                          variant="quiet"
                           onClick={(e) => {
                             e.stopPropagation();
                             onEditAutomation(project, { initialTab: "archive" });
                           }}
                         >
                           Archive
-                        </button>
+                        </Button>
                       ) : null
                     }
                   />

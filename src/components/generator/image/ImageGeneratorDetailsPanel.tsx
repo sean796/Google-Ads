@@ -1,4 +1,4 @@
-import { Label } from "@/components/ui/label";
+
 import type { ImageReferenceProvenance } from "@/components/generator/image/image-generator-types";
 
 type ImageGeneratorDetailsPanelProps = {
@@ -29,16 +29,16 @@ export function ImageGeneratorDetailsPanel({
   return (
     <div className="space-y-4 p-3 text-base text-foreground">
       <div className="space-y-1">
-        <Label className="text-base font-semibold text-foreground">Status</Label>
+        <label className="text-base font-semibold text-foreground">Status</label>
         <p className="text-base text-muted-foreground">{status}</p>
         <p className="text-base text-muted-foreground">Mode: {imageSourceMode}</p>
       </div>
 
       {referenceResearch ? (
         <div className="space-y-3">
-          <Label className="text-base font-semibold text-foreground">
+          <label className="text-base font-semibold text-foreground">
             Google Images references
-          </Label>
+          </label>
           <p className="text-base text-muted-foreground">
             Grounding: {referenceResearch.mode}
             {referenceResearch.queries.length
@@ -102,9 +102,9 @@ export function ImageGeneratorDetailsPanel({
           )}
           {referenceResearch.spatialLayout ? (
             <div className="space-y-1 bg-black p-3">
-              <Label className="text-base font-semibold text-foreground">
+              <label className="text-base font-semibold text-foreground">
                 Spatial layout contract
-              </Label>
+              </label>
               <pre className="whitespace-pre-wrap font-sans text-base text-muted-foreground">
                 {referenceResearch.spatialLayout}
               </pre>

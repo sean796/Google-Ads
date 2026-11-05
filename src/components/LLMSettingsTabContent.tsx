@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { DASHBOARD_SETTINGS_FIELD_CLASS } from "@/components/manager/dashboard/dashboard-panel-styles";
+import { Field } from "@/ui";
 import { DashboardAgentModelSelect } from "@/components/manager/DashboardAgentModelSelect";
 import {
+  DECISION_AGENT_MODEL_PRESETS,
   IMAGE_MODEL_PRESETS,
   TEXT_AGENT_MODEL_PRESETS,
   VIDEO_MODEL_PRESETS,
@@ -14,6 +13,7 @@ import { fetchOpenRouterModelsCatalog } from "@/lib/openrouter-models-catalog";
 import {
   estimateAgentRunCostUsd,
   formatBlogTokenWorkloadHint,
+  formatDecisionTokenWorkloadHint,
   formatResearchTokenWorkloadHint,
 } from "@/lib/agent-pipeline-cost-estimates";
 
@@ -32,6 +32,8 @@ export interface LLMSettingsTabContentProps {
   onAdsModelChange: (model: string) => void;
   videoModel: string;
   onVideoModelChange: (model: string) => void;
+  decisionModel: string;
+  onDecisionModelChange: (model: string) => void;
   temperature: number;
   onTemperatureChange: (value: number) => void;
   maxTokens: number;
@@ -48,10 +50,6 @@ export const LLMParameterControls: React.FC<{
   topP: number;
   onTopPChange: (value: number) => void;
 }> = (props) => {
-  const tempId = React.useId();
-  const topPId = React.useId();
-  const maxTokId = React.useId();
-
   const handleSliderChange = (setter: (v: number) => void) => (values: number[]) => {
     setter(values[0]);
   };
@@ -70,15 +68,12 @@ export const LLMParameterControls: React.FC<{
     }
   };
 
-  const tileClass = "flex min-w-0 flex-col gap-2 bg-zinc-900 p-2";
-  const fieldClass = `${DASHBOARD_SETTINGS_FIELD_CLASS} h-10 w-full tabular-nums shadow-none focus-visible:ring-2 focus-visible:ring-white/35`;
+  const tileClass = "flex min-w-0 flex-col gap-2 bg-ui-field p-2";
 
   return (
     <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
       <div className={tileClass}>
-        <Label htmlFor={tempId} className="text-base font-semibold text-white">
-          Temperature
-        </Label>
+        <p className="text-base font-semibold text-foreground">Temperature</p>
         <Slider
           min={0.0}
           max={2.0}
@@ -87,23 +82,21 @@ export const LLMParameterControls: React.FC<{
           onValueChange={handleSliderChange(props.onTemperatureChange)}
           className="w-full"
         />
-        <Input
-          id={tempId}
-          type="number"
-          step="0.01"
-          min="0.0"
-          max="2.0"
-          value={String(props.temperature)}
-          onChange={handleInputChange(props.onTemperatureChange)}
-          className={fieldClass}
-          aria-label="Temperature"
-        />
+        <div className="flex">
+          <Field
+            type="number"
+            step="0.01"
+            min="0.0"
+            max="2.0"
+            value={String(props.temperature)}
+            onChange={handleInputChange(props.onTemperatureChange)}
+            placeholder="Temperature"
+          />
+        </div>
       </div>
 
       <div className={tileClass}>
-        <Label htmlFor={topPId} className="text-base font-semibold text-white">
-          Top P
-        </Label>
+        <p className="text-base font-semibold text-foreground">Top P</p>
         <Slider
           min={0.0}
           max={1.0}
@@ -112,39 +105,35 @@ export const LLMParameterControls: React.FC<{
           onValueChange={handleSliderChange(props.onTopPChange)}
           className="w-full"
         />
-        <Input
-          id={topPId}
-          type="number"
-          step="0.01"
-          min="0.0"
-          max="1.0"
-          value={String(props.topP)}
-          onChange={handleInputChange(props.onTopPChange)}
-          className={fieldClass}
-          aria-label="Top P"
-        />
+        <div className="flex">
+          <Field
+            type="number"
+            step="0.01"
+            min="0.0"
+            max="1.0"
+            value={String(props.topP)}
+            onChange={handleInputChange(props.onTopPChange)}
+            placeholder="Top P"
+          />
+        </div>
       </div>
 
       <div className={tileClass}>
-        <Label htmlFor={maxTokId} className="text-base font-semibold text-white">
-          Max tokens
-        </Label>
-        <Input
-          id={maxTokId}
-          type="number"
-          step="1"
-          min="1"
-          placeholder="Max tokens"
-          value={String(props.maxTokens)}
-          onChange={handleMaxTokensInputChange}
-          className={fieldClass}
-          aria-label="Max tokens"
-        />
+        <p className="text-base font-semibold text-foreground">Max tokens</p>
+        <div className="flex">
+          <Field
+            type="number"
+            step="1"
+            min="1"
+            placeholder="Max tokens"
+            value={String(props.maxTokens)}
+            onChange={handleMaxTokensInputChange}
+          />
+        </div>
       </div>
     </div>
   );
 };
-
 /** Dashboard → AI & Models: six pipeline agents + sampling. */
 export const LLMSettingsTabContent: React.FC<LLMSettingsTabContentProps> = ({
   researchModel,
@@ -161,6 +150,8 @@ export const LLMSettingsTabContent: React.FC<LLMSettingsTabContentProps> = ({
   onAdsModelChange,
   videoModel,
   onVideoModelChange,
+  decisionModel,
+  onDecisionModelChange,
   temperature,
   onTemperatureChange,
   maxTokens,
@@ -257,16 +248,26 @@ export const LLMSettingsTabContent: React.FC<LLMSettingsTabContentProps> = ({
     [catalog, videoModel],
   );
 
+  const decisionWorkloadHint = useMemo(
+    () =>
+      estimateAgentRunCostUsd({
+        agent: "decision",
+        modelId: decisionModel,
+        catalog,
+      }).label,
+    [catalog, decisionModel],
+  );
+
   return (
     <div className="space-y-8">
       <div className="space-y-4">
         <div>
-          <p className="text-base font-semibold text-white">Pipeline agents</p>
-          <p className="mt-1 text-base text-white/90">
+          <p className="text-base font-semibold text-foreground">Pipeline agents</p>
+          <p className="mt-1 text-base text-foreground">
             Pick a different OpenRouter model for each agent. Per-site Optimization Settings override these when set.
           </p>
           {catalogError ? (
-            <p className="mt-2 text-base text-amber-200/90">
+            <p className="mt-2 text-base text-semantic-warning">
               OpenRouter catalog unavailable ({catalogError}). Presets still work; add an API key or retry.
             </p>
           ) : null}
@@ -356,13 +357,25 @@ export const LLMSettingsTabContent: React.FC<LLMSettingsTabContentProps> = ({
             catalogLoading={catalogLoading}
             workloadHint={videoWorkloadHint}
           />
+          <DashboardAgentModelSelect
+            tile
+            label="Decision agent"
+            description="Liquid d1.1 checker, quality gate batches, score rubrics, and fix routing."
+            value={decisionModel}
+            presets={DECISION_AGENT_MODEL_PRESETS}
+            onChange={onDecisionModelChange}
+            agentKind="decision"
+            catalog={catalog}
+            catalogLoading={catalogLoading}
+            workloadHint={`${formatDecisionTokenWorkloadHint()} · ${decisionWorkloadHint}`}
+          />
         </div>
       </div>
 
-      <div className="space-y-4 border-t border-white/10 pt-6">
+      <div className="space-y-4 pt-6">
         <div>
-          <p className="text-base font-semibold text-white">Sampling defaults</p>
-          <p className="mt-1 text-base text-white/90">Shared temperature, Top P, and max tokens.</p>
+          <p className="text-base font-semibold text-foreground">Sampling defaults</p>
+          <p className="mt-1 text-base text-foreground">Shared temperature, Top P, and max tokens.</p>
         </div>
         <LLMParameterControls
           temperature={temperature}

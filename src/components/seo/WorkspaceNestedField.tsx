@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { Field, TextareaField } from "@/ui";
 
 /** Outer chrome for nested workspace fields (focus ring only; tone split inside). */
 export const WORKSPACE_NESTED_FIELD_SHELL = cn(
@@ -12,7 +13,7 @@ export const WORKSPACE_NESTED_FIELD_SHELL = cn(
 /** Grey well shared by SEO workspace body fields (matches toolbar `BULK_HEADER_FIELD`). */
 export const WORKSPACE_NESTED_FIELD_WELL = cn(
   WORKSPACE_NESTED_FIELD_SHELL,
-  "bg-zinc-800",
+  "bg-ui-field-hover",
 );
 
 /** Form labels on black bands: forced #fff (not muted / foreground). */
@@ -27,21 +28,17 @@ export const WORKSPACE_NESTED_FIELD_LABEL_BAND = cn(
 
 /** Input well: lighter grey nested beside the label band. */
 export const WORKSPACE_NESTED_FIELD_INPUT_WELL =
-  "flex min-w-0 flex-1 items-center self-stretch bg-zinc-800 px-2.5 py-2";
+  "flex min-w-0 flex-1 items-center self-stretch bg-ui-field-hover px-2.5 py-2";
 
 /** Inline stat row label (same tone, truncates beside the value). */
 export const WORKSPACE_NESTED_FIELD_LABEL_INLINE = WORKSPACE_NESTED_FIELD_LABEL;
 
-const WORKSPACE_NESTED_FIELD_CONTROL = cn(
-  "w-full border-0 bg-transparent p-0 font-sans text-base text-foreground shadow-none",
-  "placeholder:text-muted-foreground",
-  "focus-visible:outline-none focus-visible:ring-0",
-);
-
 const WORKSPACE_NESTED_INLINE_ROW = cn(WORKSPACE_NESTED_FIELD_SHELL, "flex min-h-9 flex-row items-stretch");
 
-export type WorkspaceNestedInputProps = React.ComponentProps<"input"> & {
+export type WorkspaceNestedInputProps = Omit<React.ComponentProps<"input">, "size" | "className" | "style" | "placeholder"> & {
   label: string;
+  /** Hint inside the field. The label is shown when omitted. */
+  placeholder?: string;
   wellClassName?: string;
   labelClassName?: string;
   /** Inline label + control on one row (compact stat fields). */
@@ -50,8 +47,8 @@ export type WorkspaceNestedInputProps = React.ComponentProps<"input"> & {
 
 export function WorkspaceNestedInput({
   label,
+  placeholder,
   id,
-  className,
   wellClassName,
   labelClassName,
   disabled,
@@ -76,17 +73,12 @@ export function WorkspaceNestedInput({
           {label}
         </label>
         <div className={cn(WORKSPACE_NESTED_FIELD_INPUT_WELL, isStatInline && "w-auto shrink-0")}>
-          <input
+          <Field
             id={inputId}
             type={type}
+            placeholder={placeholder ?? label}
+            size={isStatInline ? "count" : "grow"}
             disabled={disabled}
-            className={cn(
-              WORKSPACE_NESTED_FIELD_CONTROL,
-              isStatInline
-                ? "h-full w-12 text-right font-medium tabular-nums text-foreground"
-                : "min-w-[5rem] text-left font-normal",
-              className,
-            )}
             {...props}
           />
         </div>
@@ -107,20 +99,16 @@ export function WorkspaceNestedInput({
         {label}
       </label>
       <div className={WORKSPACE_NESTED_FIELD_INPUT_WELL}>
-        <input
-          id={inputId}
-          type={type}
-          disabled={disabled}
-          className={cn(WORKSPACE_NESTED_FIELD_CONTROL, "h-6", className)}
-          {...props}
-        />
+        <Field id={inputId} type={type} placeholder={placeholder ?? label} disabled={disabled} {...props} />
       </div>
     </div>
   );
 }
 
-export type WorkspaceNestedTextareaProps = React.ComponentProps<"textarea"> & {
+export type WorkspaceNestedTextareaProps = Omit<React.ComponentProps<"textarea">, "className" | "style" | "placeholder"> & {
   label: string;
+  /** Hint inside the field. The label is shown when omitted. */
+  placeholder?: string;
   wellClassName?: string;
   /** Label band left, textarea well right on one row. */
   layout?: "stacked" | "inline";
@@ -129,8 +117,8 @@ export type WorkspaceNestedTextareaProps = React.ComponentProps<"textarea"> & {
 
 export function WorkspaceNestedTextarea({
   label,
+  placeholder,
   id,
-  className,
   wellClassName,
   labelClassName,
   disabled,
@@ -162,17 +150,7 @@ export function WorkspaceNestedTextarea({
           {label}
         </label>
         <div className={cn(WORKSPACE_NESTED_FIELD_INPUT_WELL, "items-stretch py-1.5")}>
-          <textarea
-            id={inputId}
-            rows={rows}
-            disabled={disabled}
-            className={cn(
-              WORKSPACE_NESTED_FIELD_CONTROL,
-              "min-h-[2.25rem] resize-y leading-snug",
-              className,
-            )}
-            {...props}
-          />
+          <TextareaField id={inputId} rows={rows} placeholder={placeholder ?? label} disabled={disabled} {...props} />
         </div>
       </div>
     );
@@ -184,17 +162,7 @@ export function WorkspaceNestedTextarea({
         {label}
       </label>
       <div className={cn(WORKSPACE_NESTED_FIELD_INPUT_WELL, "items-stretch py-2.5")}>
-        <textarea
-          id={inputId}
-          rows={rows}
-          disabled={disabled}
-          className={cn(
-            WORKSPACE_NESTED_FIELD_CONTROL,
-            "min-h-[4.5rem] resize-y leading-snug",
-            className,
-          )}
-          {...props}
-        />
+        <TextareaField id={inputId} rows={rows} placeholder={placeholder ?? label} disabled={disabled} {...props} />
       </div>
     </div>
   );

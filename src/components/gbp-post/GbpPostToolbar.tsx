@@ -1,12 +1,5 @@
-import { Loader2, Shuffle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import {
-  BULK_HEADER_FIELD,
-  BULK_HEADER_ICON_TOOL_BTN,
-  BULK_HEADER_RUN_BTN,
-} from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
+import { Shuffle } from "lucide-react";
+import { Button, CheckField, Field } from "@/ui";
 import {
   GBP_ROSTER_LIST_INSET_CLASS,
   GBP_ROSTER_TOOLBAR_BLEED_CLASS,
@@ -49,7 +42,7 @@ export function GbpPostToolbar({
   shuffleDisabled = false,
 }: GbpPostToolbarProps) {
   const controlsDisabled = disabled || isBusy;
-  const postDisabled = controlsDisabled || selectedCount === 0;
+  const postDisabled = controlsDisabled || isPosting || selectedCount === 0;
   const selectAllChecked: boolean | "indeterminate" =
     allClientsSelected ? true : someClientsSelected ? "indeterminate" : false;
 
@@ -58,53 +51,43 @@ export function GbpPostToolbar({
       <div className={cn("w-full min-w-0", GBP_ROSTER_LIST_INSET_CLASS)}>
         <div className={GBP_ROSTER_TOOLBAR_GRID_CLASS} role="group" aria-label="Post settings">
           <div className="flex items-center justify-center">
-            <Checkbox
-              checked={selectAllChecked}
-              disabled={controlsDisabled || rosterSiteCount === 0}
-              onCheckedChange={(v) => onSelectAllChange(v === true)}
+            <CheckField
               aria-label="Select all clients"
               title="Select all"
-              className="data-[state=indeterminate]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground"
+              checked={selectAllChecked}
+              disabled={controlsDisabled || rosterSiteCount === 0}
+              onCheckedChange={onSelectAllChange}
             />
           </div>
 
           <div aria-hidden />
 
           <div className="col-span-2 flex min-w-0 items-center justify-end gap-2 sm:gap-3">
-            <Input
+            <Field
               type="number"
+              size="count"
               min={1}
               max={10}
+              placeholder="Posts"
               aria-label="How many GBP posts"
               value={numberOfPosts}
               disabled={controlsDisabled}
               onChange={(e) => onNumberOfPostsChange(clampNumberOfGbpPosts(Number(e.target.value)))}
-              className={cn(BULK_HEADER_FIELD, "h-8 w-[4.5rem] shrink-0 px-2 tabular-nums")}
             />
 
             {onShuffleLandingPages ? (
               <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className={BULK_HEADER_ICON_TOOL_BTN}
+                variant="tool"
+                size="icon"
+                icon={Shuffle}
                 disabled={shuffleDisabled}
                 aria-label="Shuffle landing pages"
                 title="Shuffle landing pages"
                 onClick={onShuffleLandingPages}
-              >
-                <Shuffle className="h-4 w-4 shrink-0" aria-hidden />
-              </Button>
+              />
             ) : null}
 
-            <Button
-              type="button"
-              size="sm"
-              className={BULK_HEADER_RUN_BTN}
-              disabled={postDisabled}
-              onClick={onPost}
-            >
-              {isPosting ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden /> : null}
+            <Button variant="run" disabled={postDisabled} onClick={onPost}>
               {postLabel}
             </Button>
           </div>

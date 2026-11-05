@@ -1,10 +1,6 @@
 import { Download, ExternalLink, RefreshCw, Sparkles, Upload } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ActionButton, Button, FilterRow } from "@/ui";
 import { GoogleAdsCampaignSetupFlyout } from "@/components/ppc/google/GoogleAdsCampaignSetupFlyout";
-import {
-  BULK_HEADER_RUN_BTN,
-  BULK_HEADER_TOOL_BTN,
-} from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import { useGoogleAdsConnectionStatus } from "@/hooks/use-google-ads-connection-status";
 import {
   formatGoogleAdsCustomerId,
@@ -12,12 +8,13 @@ import {
   normalizeGoogleAdsCustomerId,
 } from "@/lib/ads-reporting/ads-reporting-metrics";
 import type { PpcGoogleWorkspaceController } from "@/hooks/ppc/use-ppc-google-workspace";
-import { cn } from "@/lib/utils";
 
 export type GoogleAdsGenerateToolbarProps = {
   ctrl: PpcGoogleWorkspaceController;
   disabled?: boolean;
 };
+
+const ADS_ACCOUNT_UNSET_LABEL = "Ads account";
 
 export function GoogleAdsGenerateToolbar({ ctrl, disabled = false }: GoogleAdsGenerateToolbarProps) {
   const {
@@ -37,76 +34,60 @@ export function GoogleAdsGenerateToolbar({ ctrl, disabled = false }: GoogleAdsGe
   const adsCustomerId = normalizeGoogleAdsCustomerId(ctrl.site.googleAdsCustomerId ?? "");
   const adsAccountHref = googleAdsAccountUrl(adsCustomerId, mccId);
   const adsAccountLabel =
-    adsCustomerId.length === 10 ? formatGoogleAdsCustomerId(adsCustomerId) : "Ads account";
+    adsCustomerId.length === 10 ? formatGoogleAdsCustomerId(adsCustomerId) : ADS_ACCOUNT_UNSET_LABEL;
 
   return (
     <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1.5 overflow-x-auto">
       <GoogleAdsCampaignSetupFlyout ctrl={ctrl} disabled={toolbarDisabled} />
 
-      <div className="ml-auto flex shrink-0 flex-nowrap items-center gap-1.5">
-        <a
-          className={cn(
-            BULK_HEADER_TOOL_BTN,
-            "inline-flex min-w-[8.5rem] items-center gap-1.5 tabular-nums no-underline",
-            !adsAccountHref && "pointer-events-none opacity-50",
-          )}
-          href={adsAccountHref ?? undefined}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={
-            adsAccountHref
-              ? `Open Google Ads account ${adsAccountLabel}`
-              : "Google Ads customer ID is not set on this property"
-          }
-          aria-disabled={!adsAccountHref}
-        >
-          <ExternalLink className="h-4 w-4 shrink-0" aria-hidden />
-          {adsAccountLabel}
-        </a>
+      <FilterRow align="end">
+        <ActionButton
+          variant="tool"
+          icon={ExternalLink}
+          states={[adsAccountLabel, ADS_ACCOUNT_UNSET_LABEL]}
+          state={adsAccountLabel}
+          disabled={!adsAccountHref}
+          onClick={() => {
+            if (adsAccountHref) window.open(adsAccountHref, "_blank", "noopener,noreferrer");
+          }}
+        />
 
         <Button
-          type="button"
-          variant="ghost"
+          variant="tool"
+          icon={RefreshCw}
           disabled={toolbarDisabled || !canPullFromGoogleAds}
-          className={cn(BULK_HEADER_TOOL_BTN, "shrink-0 gap-1.5")}
           onClick={() => void handlePullFromGoogleAds()}
         >
-          <RefreshCw className={cn("h-4 w-4", isImportingFromAds && "animate-spin")} aria-hidden />
           Pull
         </Button>
 
         <Button
-          type="button"
+          variant="run"
+          icon={Sparkles}
           disabled={toolbarDisabled}
-          className={cn(BULK_HEADER_RUN_BTN, "shrink-0 gap-1.5")}
           onClick={() => void handleGenerateCampaign()}
         >
-          <Sparkles className="h-4 w-4" aria-hidden />
           Generate
         </Button>
 
         <Button
-          type="button"
-          variant="ghost"
+          variant="tool"
+          icon={Upload}
           disabled={toolbarDisabled || !canPublish}
-          className={cn(BULK_HEADER_TOOL_BTN, "shrink-0 gap-1.5")}
           onClick={() => void handlePublishCampaigns()}
         >
-          <Upload className="h-4 w-4" aria-hidden />
           Publish
         </Button>
 
         <Button
-          type="button"
-          variant="ghost"
+          variant="tool"
+          icon={Download}
           disabled={toolbarDisabled || !canExportGoogleAdsCsv}
-          className={cn(BULK_HEADER_TOOL_BTN, "shrink-0 gap-1.5")}
           onClick={handleExportGoogleAdsCsv}
         >
-          <Download className="h-4 w-4" aria-hidden />
           CSV
         </Button>
-      </div>
+      </FilterRow>
     </div>
   );
 }

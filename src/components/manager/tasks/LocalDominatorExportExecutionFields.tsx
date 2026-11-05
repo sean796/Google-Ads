@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Input } from "@/components/ui/input";
+import { Field } from "@/ui";
 import {
   TaskFormFieldGrid,
   TaskFormFlatGrid,
@@ -109,16 +109,14 @@ export function LocalDominatorExportExecutionFields({
           <div className="flex h-8 items-center px-3 text-base text-foreground">{clientName}</div>
         </TaskFormInfield>
       ) : (
-        <TaskFormInfield label="Business">
-          <Input
-            value={String(payload.businessName ?? "")}
-            disabled={disabled}
-            onChange={(event) => patch({ businessName: event.target.value })}
-            className="h-8 border-0 bg-zinc-900/50 text-base"
-          />
-        </TaskFormInfield>
+        <Field
+          placeholder="Business"
+          value={String(payload.businessName ?? "")}
+          disabled={disabled}
+          onChange={(event) => patch({ businessName: event.target.value })}
+        />
       )}
-      <TaskFormInfield label="Keyword">
+      <div className="flex flex-col gap-1.5">
         <TaskFormFlatSelectPlaceholder
           placeholder="Keyword"
           value={keywordMode}
@@ -139,21 +137,18 @@ export function LocalDominatorExportExecutionFields({
             { value: KEYWORD_MODE_AUTO, label: "Auto (first grid)" },
             { value: KEYWORD_MODE_CUSTOM, label: "Custom keyword" },
           ]}
-          className="h-8 border-0 bg-zinc-900/50 text-base"
         />
         {keywordMode === KEYWORD_MODE_CUSTOM ? (
-          <Input
+          <Field
             value={customKeyword}
-            placeholder="e.g. blinds near me"
+            placeholder="Custom keyword, e.g. blinds near me"
             disabled={disabled}
             onChange={(event) => patch({ keyword: event.target.value })}
-            className="mt-2 h-8 border-0 bg-zinc-900/50 text-base"
           />
         ) : null}
-      </TaskFormInfield>
+      </div>
     </>
   );
-
   if (inline) {
     return <TaskFormFlatGrid className="grid-cols-2">{fields}</TaskFormFlatGrid>;
   }

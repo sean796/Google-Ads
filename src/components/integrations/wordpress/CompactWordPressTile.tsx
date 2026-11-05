@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { XCircle, Loader2, Copy, Power, Wand2, Trash2, Pencil, MoreHorizontal } from "lucide-react";
+import { XCircle, Copy, Power, Wand2, Trash2, Pencil, MoreHorizontal, ExternalLink } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,8 +15,10 @@ import { applyGbpPropertyWand } from "@/lib/wordpress-site-display-name-from-dfs
 import { wordpressSiteCanonicalName } from "@/lib/wordpress-site-display-name";
 import { type WordPressSite } from "../types";
 import { editorialContentPackageShortLabelForSite } from "@/lib/editorial-content-package";
+import { propertyWpAdminUrl } from "./property-profile-view-model";
 import type { WordPressPropertyRowDisplay } from "@/lib/wordpress-properties-row-display";
 import { getCyberpunkCardClasses, getCyberpunkTextClasses, getPropertyListRowBlackIconButtonClass, getPropertyListRowIconButtonHoverGlowClass } from "./cyberpunk-theme";
+import { Button, TextButton } from "@/ui";
 
 type CopyControlTone = "default" | "white";
 
@@ -61,35 +63,17 @@ function copySiteUrlButton(
   matchOptimizeRow?: boolean,
 ) {
   return (
-    <button
-      type="button"
+    <Button
+      size="icon" icon={Copy}
+      pressed={Boolean(matchOptimizeRow)}
+      variant="quiet"
       aria-label={`Copy site URL: ${site.siteUrl}`}
       title={site.siteUrl}
       onClick={(e) => {
         e.stopPropagation();
         void navigator.clipboard.writeText(site.siteUrl);
       }}
-      className={
-        matchOptimizeRow
-          ? getPropertyListRowBlackIconButtonClass(Boolean(compact))
-          : cn(
-              "inline-flex shrink-0 items-center justify-center rounded-md shadow-none transition-colors focus-visible:outline-none",
-              "border focus-visible:ring-2 focus-visible:ring-offset-0",
-              tone === "white"
-                ? "border-white/60 bg-transparent text-white hover:border-white/90 hover:bg-white/10 hover:text-white focus-visible:ring-white/50"
-                : "border-slate-500/55 bg-slate-900/85 text-slate-200 hover:border-slate-400/70 hover:bg-slate-800/90 hover:text-slate-50 focus-visible:ring-slate-400/45",
-              compact ? "p-1" : "p-1.5",
-            )
-      }
-    >
-      <Copy
-        className={cn(
-          "shrink-0",
-          matchOptimizeRow ? (compact ? "h-3.5 w-3.5 sm:h-4 sm:w-4" : "h-4 w-4") : compact ? "h-3 w-3" : "h-3.5 w-3.5",
-        )}
-        aria-hidden
-      />
-    </button>
+    ></Button>
   );
 }
 
@@ -122,7 +106,7 @@ function listRowActionsMenu(site: WordPressSite, actions: ListRowActions) {
         )}
       >
         {busy ? (
-          <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+          null
         ) : (
           <MoreHorizontal className="h-4 w-4 shrink-0" aria-hidden />
         )}
@@ -153,7 +137,7 @@ function listRowActionsMenu(site: WordPressSite, actions: ListRowActions) {
         {actions.onDelete ? (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className={cn(ROW_MENU_ITEM, "text-red-300 focus:text-red-300")} onSelect={actions.onDelete}>
+            <DropdownMenuItem className={cn(ROW_MENU_ITEM, "text-ui-danger-hover focus:text-ui-danger-hover")} onSelect={actions.onDelete}>
               <Trash2 className="h-4 w-4" aria-hidden />
               Delete property
             </DropdownMenuItem>
@@ -198,7 +182,33 @@ function menuInnerSummary(
       )}
     >
       {options?.listRowActions ? (
-        listRowActionsMenu(site, options.listRowActions)
+        <>
+          {listRowActionsMenu(site, options.listRowActions)}
+          {editorialContentPackageShortLabelForSite(site) ? (
+            <span
+              className="inline-flex h-8 min-h-8 w-24 shrink-0 items-center justify-center rounded-none bg-ui-field px-2 text-base font-medium tabular-nums text-foreground sm:h-9 sm:min-h-9"
+              title="Editorial content package"
+            >
+              {editorialContentPackageShortLabelForSite(site)}
+            </span>
+          ) : null}
+          {siteHref ? (
+            <a
+              href={propertyWpAdminUrl(site)}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Open WP admin for ${displayName}`}
+              title={`Open WP admin: ${propertyWpAdminUrl(site)}`}
+              onClick={(e) => e.stopPropagation()}
+              className={cn(
+                getPropertyListRowBlackIconButtonClass(true),
+                getPropertyListRowIconButtonHoverGlowClass("powerOff"),
+              )}
+            >
+              <ExternalLink className="h-4 w-4 shrink-0" aria-hidden />
+            </a>
+          ) : null}
+        </>
       ) : (
         <>
           {!options?.hideCopyUrl ? copySiteUrlButton(site, compact, copyControlTone, listRowBlackChrome) : null}
@@ -206,17 +216,17 @@ function menuInnerSummary(
         </>
       )}
       {options?.onOpenProfile ? (
-        <button
+        <TextButton
+          tone="plain"
           type="button"
           title="Open profile"
-          className={cn(titleClass, "hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45")}
           onClick={(e) => {
             e.stopPropagation();
             options.onOpenProfile?.();
           }}
         >
           {displayName}
-        </button>
+        </TextButton>
       ) : options?.linkTitleToSite && siteHref ? (
         <a
           href={siteHref}
@@ -233,14 +243,6 @@ function menuInnerSummary(
           {displayName}
         </h3>
       )}
-      {options?.listRowActions && editorialContentPackageShortLabelForSite(site) ? (
-        <span
-          className="shrink-0 rounded-none bg-zinc-900 px-2 py-0.5 text-base font-medium tabular-nums text-zinc-300"
-          title="Editorial content package"
-        >
-          {editorialContentPackageShortLabelForSite(site)}
-        </span>
-      ) : null}
     </div>
   );
 }
@@ -273,7 +275,7 @@ export const CompactWordPressTile: React.FC<CompactWordPressTileProps> = ({
         const r = await applyGbpPropertyWand(site, {
           openRouterApiKey: loadApiKey()?.trim() || undefined,
         });
-        if (!r.ok) {
+        if (r.ok === false) {
           notify.error(r.error);
           return;
         }
@@ -294,8 +296,9 @@ export const CompactWordPressTile: React.FC<CompactWordPressTileProps> = ({
   const listRowBlackChrome = Boolean(listRowBlackActionChrome && variant === "listRow");
   const gmbDisplayNameWand =
     onApplyDisplayNameFromGmb != null ? (
-      <button
-        type="button"
+      <Button
+        pressed={!listRowBlackChrome}
+        variant="quiet"
         aria-label="Set site name from Google Business Profile (DataForSEO)"
         title="Set site name from Google Business Profile (DataForSEO)"
         disabled={isResolvingGmbDisplayName}
@@ -303,25 +306,9 @@ export const CompactWordPressTile: React.FC<CompactWordPressTileProps> = ({
           e.stopPropagation();
           void resolveGmbDisplayName();
         }}
-        className={cn(
-          listRowBlackChrome
-            ? getPropertyListRowBlackIconButtonClass(rowCompact)
-            : "inline-flex shrink-0 items-center justify-center rounded-md border shadow-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50",
-          !listRowBlackChrome &&
-            (copyControlTone === "white"
-              ? "border-white/60 bg-transparent text-white hover:border-white/90 hover:bg-white/10 hover:text-white focus-visible:ring-white/50"
-              : "border-slate-500/55 bg-slate-900/85 text-slate-200 hover:border-slate-400/70 hover:bg-slate-800/90 hover:text-slate-50 focus-visible:ring-slate-400/45"),
-          !listRowBlackChrome && (rowCompact ? "p-1" : "p-1.5"),
-        )}
       >
         {isResolvingGmbDisplayName ? (
-          <Loader2
-            className={cn(
-              "shrink-0 animate-spin",
-              listRowBlackChrome ? (rowCompact ? "h-3.5 w-3.5 sm:h-4 sm:w-4" : "h-4 w-4") : rowCompact ? "h-3 w-3" : "h-3.5 w-3.5",
-            )}
-            aria-hidden
-          />
+          null
         ) : (
           <Wand2
             className={cn(
@@ -331,7 +318,7 @@ export const CompactWordPressTile: React.FC<CompactWordPressTileProps> = ({
             aria-hidden
           />
         )}
-      </button>
+      </Button>
     ) : null;
 
   const showConnectionButton = !(variant === "header" && isExpanded);
@@ -350,19 +337,11 @@ export const CompactWordPressTile: React.FC<CompactWordPressTileProps> = ({
   };
 
   const powerButton = showConnectionButton ? (
-    <button
-      type="button"
+    <Button
+      pressed={Boolean(rowCompact)}
+      variant="quiet"
       onClick={handleConnectionButtonClick}
       disabled={isTesting}
-      className={`relative z-10 inline-flex items-center justify-center rounded-full border transition-all ${
-        rowCompact ? "h-7 w-7" : "h-8 w-8"
-      } ${
-        isConnected && isEnabled
-          ? "border-green-300/80 bg-green-400/20 text-green-200 shadow-[0_0_8px_rgba(74,222,128,0.4)] hover:bg-green-400/30"
-          : site.connectionStatus === "failed"
-            ? "border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20"
-            : "border-green-500/40 bg-green-500/10 text-green-400 hover:bg-green-500/20"
-      } ${isTesting ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
       title={
         isTesting
           ? "Testing connection..."
@@ -374,13 +353,13 @@ export const CompactWordPressTile: React.FC<CompactWordPressTileProps> = ({
       }
     >
       {isTesting ? (
-        <Loader2 className="h-3.5 w-3.5 animate-spin text-green-300" />
+        null
       ) : site.connectionStatus === "failed" ? (
         <XCircle className="h-3.5 w-3.5" />
       ) : (
-        <Power className="h-3.5 w-3.5 text-green-400" aria-hidden />
+        <Power className="h-3.5 w-3.5 text-primary" aria-hidden />
       )}
-    </button>
+    </Button>
   ) : (
     <div className={cn("shrink-0", rowCompact ? "h-7 w-7" : "h-8 w-8")} aria-hidden />
   );

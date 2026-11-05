@@ -15,19 +15,10 @@ import {
   type MetaAdTypographyStyle,
 } from "@/lib/ppc/meta-ad-typography-styles";
 import type { MetaAdColorPalette, MetaAdVisualToolKey, MetaAdVisualToolPalette } from "@/lib/ppc/meta-ads-types";
-import {
-  chunkMetaVisualToolKeys,
-  META_VISUAL_COMPACT_WEIGHT_INPUT_CLASS,
-  META_VISUAL_TOOL_COL_HEADER_CLASS,
-  META_VISUAL_TOOL_COLOR_STRIPE_CLASS,
-  META_VISUAL_TOOL_HALF_GRID_CLASS,
-  META_VISUAL_TOOL_ROW_LABEL_CLASS,
-  META_VISUAL_TOOL_STYLE_SELECT_CLASS,
-  META_VISUAL_TOOLS_PER_ROW,
-  metaVisualSettingsRowClass,
-} from "@/components/ppc/meta/meta-ads-visual-settings-layout";
+import { chunkMetaVisualToolKeys, META_VISUAL_TOOL_COL_HEADER_CLASS, META_VISUAL_TOOL_COLOR_STRIPE_CLASS, META_VISUAL_TOOL_HALF_GRID_CLASS, META_VISUAL_TOOL_ROW_LABEL_CLASS, META_VISUAL_TOOL_STYLE_SELECT_CLASS, META_VISUAL_TOOLS_PER_ROW, metaVisualSettingsRowClass } from "@/components/ppc/meta/meta-ads-visual-settings-layout";
 import { MetaAdsDarkSelect } from "@/components/ppc/meta/MetaAdsDarkSelect";
 import { cn } from "@/lib/utils";
+import { Field } from "@/ui";
 
 export type MetaAdsVisualToolPaletteFieldProps = {
   value: MetaAdVisualToolPalette;
@@ -90,7 +81,6 @@ function ToolHalfCells({
         <MetaAdsDarkSelect
           value={resolveMetaTypographyStyle(typographyStyle)}
           disabled={disabled}
-          triggerClassName={META_VISUAL_TOOL_STYLE_SELECT_CLASS}
           ariaLabel="Typography style"
           options={META_TYPOGRAPHY_STYLES.map((style) => ({ value: style.id, label: style.label }))}
           onChange={(next) => onTypographyStyleChange?.(resolveMetaTypographyStyle(next))}
@@ -98,14 +88,15 @@ function ToolHalfCells({
       ) : (
         <span aria-hidden className="min-w-0" />
       )}
-      <input
+      <Field
+        size="count"
+        placeholder="Degree"
         type="number"
         min={0}
         max={1}
         step={0.05}
         value={formatWeight(weight.degree)}
         disabled={disabled}
-        className={META_VISUAL_COMPACT_WEIGHT_INPUT_CLASS}
         aria-label={`${label} degree`}
         onChange={(e) =>
           onChange(patchVisualToolWeight(palette, toolKey, "degree", parseWeightInput(e.target.value)))

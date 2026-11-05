@@ -163,13 +163,6 @@ export function restCollectionsForCustomTag(site: WordPressSite, label: string):
   return collections;
 }
 
-export function siteHasEntityScope(site: WordPressSite | null | undefined): boolean {
-  if (!site) return false;
-  if (site.entitySitemapUrl?.trim()) return true;
-  const children = site.sitemaps?.childSitemaps ?? [];
-  return children.some((url) => site.sitemaps?.childTagsByUrl?.[url]?.roles.includes("entity"));
-}
-
 function removeRoleFromAllChildren(
   childTagsByUrl: Record<string, SitemapChildTagEntry>,
   role: SitemapSystemRole,
@@ -355,8 +348,7 @@ export function listSitemapScopeOptions(site: WordPressSite | null | undefined):
     {
       id: "entities",
       label: "Entities",
-      enabled: siteHasEntityScope(site),
-      disabledReason: siteHasEntityScope(site) ? undefined : "No entity sitemap tagged",
+      enabled: true,
     },
   ];
 

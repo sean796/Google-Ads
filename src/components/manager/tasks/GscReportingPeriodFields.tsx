@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { Input } from "@/components/ui/input";
 import { WorkflowInspectorGroup } from "@/components/manager/workflow/WorkflowInspectorLayout";
 import { WORKFLOW_FORM_FLAT_CONTROL_CLASS } from "@/components/manager/workflow/forge-workflow-styles";
 import { TASK_FORM_FLAT_CONTROL_CLASS } from "@/components/manager/tasks/TaskFormLayout";
@@ -16,6 +15,7 @@ import {
 } from "@/lib/gsc-reporting/resolve-gsc-reporting-run-config";
 import type { TaskExecutionPayload } from "@/lib/tasks-types";
 import { cn } from "@/lib/utils";
+import { Field } from "@/ui";
 
 export type GscReportingPeriodFieldsProps = {
   executionPayload?: TaskExecutionPayload | null;
@@ -51,7 +51,7 @@ export function GscReportingPeriodFields({
 
   const picker = (
     <div className="flex h-8 min-h-8 items-center gap-2">
-      <Input
+      <Field
         type="number"
         inputMode="numeric"
         min={TRAILING_MONTH_COUNT_MIN}
@@ -62,12 +62,8 @@ export function GscReportingPeriodFields({
         disabled={disabled}
         value={draft}
         onChange={(event) => setMonthCount(event.target.value)}
-        className={cn(
-          layout === "workflow" ? WORKFLOW_FORM_FLAT_CONTROL_CLASS : TASK_FORM_FLAT_CONTROL_CLASS,
-          "w-16 shrink-0 tabular-nums",
-        )}
       />
-      <span className="min-w-0 truncate text-base text-muted-foreground">months vs prior</span>
+      <span className="min-w-0 break-words text-base text-muted-foreground">months vs prior</span>
     </div>
   );
 

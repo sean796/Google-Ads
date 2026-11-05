@@ -8,7 +8,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
 import { BULK_HEADER_TOOL_BTN } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import {
@@ -18,6 +17,7 @@ import {
   type OverviewRowErrorFilterKey,
 } from "@/lib/overview/overview-row-error-filters";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 export interface OverviewErrorsFilterMenuProps {
   rows: OverviewRow[];
@@ -45,11 +45,9 @@ export function OverviewErrorsFilterMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="sm"
           disabled={disabled}
-          className={cn(BULK_HEADER_TOOL_BTN, filterActive && "text-primary")}
           aria-label="Filter by errors"
         >
           Errors{filterActive ? ` (${filteredCount})` : ""}
@@ -74,7 +72,7 @@ export function OverviewErrorsFilterMenu({
                 className="text-base leading-normal"
               >
                 <span className="min-w-0 flex-1">{option.label}</span>
-                <span className="ml-2 shrink-0 tabular-nums text-sky-400">{counts[option.key]}</span>
+                <span className="ml-2 shrink-0 tabular-nums text-semantic-analysis-foreground">{counts[option.key]}</span>
               </DropdownMenuCheckboxItem>
             ))}
           </Fragment>

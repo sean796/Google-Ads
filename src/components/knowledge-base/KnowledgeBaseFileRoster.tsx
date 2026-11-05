@@ -1,14 +1,4 @@
-import {
-  Download,
-  FileText,
-  FolderOpen,
-  Globe2,
-  Loader2,
-  Star,
-  StarOff,
-  Trash2,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Download, FileText, FolderOpen, Globe2, Star, StarOff, Trash2 } from "lucide-react";
 import {
   KB_ROSTER_LIST_INSET_CLASS,
   KB_ROSTER_ROW_GRID_CLASS,
@@ -21,6 +11,7 @@ import {
 } from "@/components/overview/overview-tab/overview-tab-content-constants";
 import type { StoredFile } from "@/lib/knowledge-base/types";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 export type KnowledgeBaseFileRosterProps = {
   files: StoredFile[];
@@ -65,18 +56,18 @@ function FileRosterRow({
         <div className={cn(KB_ROSTER_ROW_GRID_CLASS, KB_ROSTER_SHELL_INSET_CLASS)}>
           <div className="flex items-center justify-center">
             {processing ? (
-              <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden />
+              null
             ) : (
               <FileText className="h-5 w-5 text-primary" aria-hidden />
             )}
           </div>
 
           <div className="min-w-0">
-            <div className={cn("truncate text-base", processing && "font-medium text-primary")}>
+            <div className={cn("break-words text-base", processing && "font-medium text-primary")}>
               {file.name}
             </div>
             {file.sourceUrl ? (
-              <div className="truncate text-base text-muted-foreground">{file.sourceUrl}</div>
+              <div className="break-words text-base text-muted-foreground">{file.sourceUrl}</div>
             ) : null}
             {processing ? (
               <span className="text-base text-primary/70">Processing for RAG...</span>
@@ -88,11 +79,9 @@ function FileRosterRow({
           </span>
 
           <Button
+            variant="quiet"
             type="button"
-            variant="ghost"
-            size="sm"
             onClick={() => onToggleStar(file.name)}
-            className="h-8 w-8 p-0"
             aria-label={file.starred ? "Unstar file" : "Star file"}
           >
             {file.starred ? (
@@ -103,23 +92,19 @@ function FileRosterRow({
           </Button>
 
           <Button
+            variant="quiet"
             type="button"
-            variant="ghost"
-            size="sm"
             onClick={() => onDownload(file)}
-            className="h-8 w-8 p-0 text-primary hover:text-primary"
             aria-label="Download file"
           >
             <Download className="h-4 w-4" />
           </Button>
 
           <Button
+            variant="quiet"
             type="button"
-            variant="ghost"
-            size="sm"
             onClick={() => onDelete(file.name)}
             disabled={file.starred || processing}
-            className="h-8 w-8 p-0 text-destructive hover:text-destructive disabled:opacity-50"
             aria-label="Delete file"
           >
             <Trash2 className="h-4 w-4" />
@@ -166,7 +151,7 @@ export function KnowledgeBaseFileRoster({
         const domainSize = domainFiles.reduce((s, f) => s + f.size, 0);
         return (
           <div key={domain} className="overflow-hidden">
-            <div className="mb-1 flex items-center gap-2 rounded-md border border-white/[0.08] bg-zinc-800 px-3 py-2">
+            <div className="mb-1 flex items-center gap-2 rounded-md border border-white/[0.08] bg-ui-field-hover px-3 py-2">
               <Globe2 className="h-4 w-4 text-primary" aria-hidden />
               <span className="text-base font-medium text-foreground">{domain}</span>
               <span className="ml-auto text-base text-muted-foreground">

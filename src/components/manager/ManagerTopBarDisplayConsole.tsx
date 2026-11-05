@@ -38,6 +38,7 @@ import {
   refreshSitePrefetch,
 } from "@/lib/local-analysis/entity-site-warm-cache";
 import { htmlToMarkdown } from "@/lib/wordpress-converter";
+import { Button } from "@/ui";
 
 const NAME_CHEVRON_PX = 28;
 
@@ -199,8 +200,9 @@ export function ManagerTopBarDisplayConsole({
   useLayoutEffect(() => {
     const root = measureRef.current;
     if (!root) return;
-    setSiteMenuWidthPx(chipMenuWidthPx(root, "site-label", "site-row"));
-  }, [displayLabels]);
+    const nextWidth = chipMenuWidthPx(root, "site-label", "site-row");
+    setSiteMenuWidthPx((prev) => (prev === nextWidth ? prev : nextWidth));
+  }, [displayLabels.join("|")]);
 
   const siteChipWidthPx = siteMenuWidthPx > 0 ? siteMenuWidthPx : 120;
   const consoleWidthPx = siteChipWidthPx;
@@ -215,12 +217,12 @@ export function ManagerTopBarDisplayConsole({
   const dropdownItemClass = (index: number, selected = false) =>
     variant === "embedded"
       ? cn(MANAGER_NAV_DROPDOWN_ITEM_BASE, managerNavDropdownRowClass(index, selected))
-      : "cursor-pointer rounded-none px-3 py-2.5 text-base font-normal outline-none focus:bg-zinc-800/90 data-[highlighted]:bg-zinc-800/90";
+      : "cursor-pointer rounded-none px-3 py-2.5 text-base font-normal outline-none focus:bg-ui-field-hover/90 data-[highlighted]:bg-ui-field-hover/90";
 
   const triggerHoverClass =
     variant === "embedded"
-      ? "rounded-none hover:bg-zinc-800 data-[state=open]:bg-zinc-800"
-      : "hover:bg-zinc-800 data-[state=open]:bg-zinc-800";
+      ? "rounded-none hover:bg-ui-field-hover data-[state=open]:bg-ui-field-hover"
+      : "hover:bg-ui-field-hover data-[state=open]:bg-ui-field-hover";
 
   return (
     <>
@@ -267,12 +269,13 @@ export function ManagerTopBarDisplayConsole({
         ) : (
           <DropdownMenu open={siteMenuOpen} onOpenChange={setSiteMenuOpen}>
             <DropdownMenuTrigger asChild>
+              {/* eslint-disable-next-line no-restricted-syntax -- Pulse UI exception: bespoke composite menu trigger with two-part segmented layout */}
               <button
                 type="button"
                 style={siteMenuWidthStyle}
                 className={cn(
                   "inline-flex h-9 shrink-0 cursor-pointer items-stretch overflow-visible border-0 bg-transparent p-0 text-left shadow-none outline-none transition-colors",
-                  "focus-visible:ring-2 focus-visible:ring-zinc-600 focus-visible:ring-offset-0",
+                  "focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-0",
                   triggerHoverClass,
                   isSiteWarmLoading && MANAGER_DISPLAY_SITE_WARMING,
                 )}
@@ -303,7 +306,7 @@ export function ManagerTopBarDisplayConsole({
                   <RefreshCw
                     className={cn(
                       "h-4 w-4 shrink-0 text-muted-foreground",
-                      refreshing && "animate-spin",
+                      refreshing && "",
                     )}
                     aria-hidden
                   />
@@ -345,14 +348,10 @@ export function ManagerTopBarDisplayConsole({
                     }}
                   >
                     <div className="flex w-full shrink-0 items-center gap-2.5">
-                      <button
-                        type="button"
+                      <Button
+                        size="icon" icon={Pencil}
+                        variant="quiet"
                         aria-label={`Rename ${label}`}
-                        className={cn(
-                          "flex h-4 w-4 shrink-0 items-center justify-center",
-                          iconClass,
-                          "hover:opacity-80",
-                        )}
                         onPointerDown={(event) => {
                           event.preventDefault();
                           event.stopPropagation();
@@ -364,9 +363,7 @@ export function ManagerTopBarDisplayConsole({
                           setSiteMenuOpen(false);
                           setRenameDialogOpen(true);
                         }}
-                      >
-                        <Pencil className="h-4 w-4 shrink-0" aria-hidden />
-                      </button>
+                      ></Button>
                       <span className="whitespace-nowrap text-base font-normal leading-tight">{label}</span>
                     </div>
                   </DropdownMenuItem>

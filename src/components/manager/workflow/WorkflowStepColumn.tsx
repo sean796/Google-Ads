@@ -18,6 +18,7 @@ import {
   isWorkflowClientKind,
   isWorkflowTriggerKind,
 } from "@/lib/workflow/workflow-types";
+import { Button } from "@/ui";
 
 export type WorkflowStepColumnProps = {
   teamId: number;
@@ -73,14 +74,12 @@ function renderStepBlock(
       />,
       <div key={`${node.id}-insert`} className="flex flex-col items-center">
         <div className={WORKFLOW_CONNECTOR_CLASS} aria-hidden />
-        <button
-          type="button"
-          className={WORKFLOW_INSERT_BTN_CLASS}
+        <Button
+          size="icon" icon={Plus}
+          variant="quiet"
           aria-label={`Add step after ${node.label}`}
           onClick={() => onInsertAfter(node.id)}
-        >
-          <Plus className="h-4 w-4 text-primary" />
-        </button>
+        ></Button>
         <div className={WORKFLOW_CONNECTOR_CLASS} aria-hidden />
       </div>,
     ];
@@ -123,14 +122,13 @@ export function WorkflowStepColumn({
     <div className={WORKFLOW_BUILDER_CANVAS_CLASS}>
       <div className={WORKFLOW_COLUMN_CLASS}>
         {renderStepBlock(ordered, ordered, blockArgs)}
-        <button
-          type="button"
-          className={WORKFLOW_ADD_STEP_ROW_CLASS}
+        <Button
+          variant="quiet"
           onClick={() => openInsertMenu(null)}
         >
           <Plus className="h-4 w-4 text-primary" />
           Add step
-        </button>
+        </Button>
       </div>
 
       <WorkflowInsertMenu

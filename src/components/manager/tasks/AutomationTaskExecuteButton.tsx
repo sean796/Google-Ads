@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from "react";
 import { Play } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useAgentRunsContext } from "@/contexts/use-agent-runs-context";
 import { cn } from "@/lib/utils";
 import { TASK_FORM_DIALOG_BUTTON_CLASS } from "@/components/manager/tasks/TaskFormLayout";
@@ -13,6 +12,7 @@ import { useActiveWordPressSite } from "@/contexts/active-wordpress-site-context
 import { resolveTaskExecuteSiteId, isClientAgnosticExecutionKind } from "@/lib/agent-runs-types";
 import type { TaskTriggerEvaluateResult } from "@/lib/task-trigger-types";
 import type { TaskProject, TeamTask } from "@/lib/tasks-types";
+import { Button } from "@/ui";
 
 export type AutomationTaskExecuteButtonProps = {
   teamId: number | null;
@@ -109,23 +109,18 @@ export function AutomationTaskExecuteButton({
 
   if (variant === "icon") {
     return (
-      <button
-        type="button"
+      <Button
+        size="icon" icon={Play}
+        pressed={Boolean(error)}
+        variant="quiet"
         aria-label={error ? error : "Execute automation now"}
         disabled={disabled || executing || !teamId}
         onClick={(e) => {
           e.stopPropagation();
           void handleExecute();
         }}
-        className={cn(
-          "flex h-8 w-8 items-center justify-center rounded-none text-muted-foreground hover:bg-zinc-800 hover:text-primary disabled:opacity-50",
-          error && "text-red-400 hover:text-red-400",
-          className,
-        )}
         title={executing ? "Running…" : error ?? "Execute automation now"}
-      >
-        <Play className={cn("h-4 w-4", executing && "animate-pulse")} />
-      </button>
+      ></Button>
     );
   }
 
@@ -133,13 +128,12 @@ export function AutomationTaskExecuteButton({
     <div className={cn("flex flex-col gap-1", className)}>
       <Button
         type="button"
-        className={cn("h-10 bg-[#77AA00] text-base text-black hover:bg-[#77AA00]/90", TASK_FORM_DIALOG_BUTTON_CLASS)}
         disabled={disabled || executing || !teamId}
         onClick={() => void handleExecute()}
       >
         {executing ? "Running…" : "Execute"}
       </Button>
-      {error ? <p className="text-base text-red-400">{error}</p> : null}
+      {error ? <p className="text-base text-ui-danger-hover">{error}</p> : null}
     </div>
   );
 }

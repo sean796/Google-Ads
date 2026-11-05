@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Globe, Loader2, UserCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Globe, UserCheck } from "lucide-react";
 import { getStoredSites } from "@/components/integrations/storage";
 import type { WordPressSite } from "@/components/integrations/types";
 import { CHAT_ICON_BTN_CLASS } from "@/components/chat/chat-theme";
 import { executeNeoPulseWpTool } from "@/lib/wordpress-api/neo-pulse-wp-tools";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 const ACTIVE_WP_SITE_STORAGE_KEY = "neo-pulse-active-wp-site-id";
 
@@ -82,14 +82,8 @@ export function ChatFrontendWidgetToggle({ disabled = false }: ChatFrontendWidge
 
   return (
     <Button
+      variant="quiet"
       type="button"
-      variant="ghost"
-      size="icon"
-      className={cn(
-        "h-8 w-8 shrink-0",
-        CHAT_ICON_BTN_CLASS,
-        active && "text-primary",
-      )}
       aria-label={
         active
           ? "Flow Assist visible on site frontend for logged-in users. Click to disable."
@@ -104,7 +98,7 @@ export function ChatFrontendWidgetToggle({ disabled = false }: ChatFrontendWidge
       onClick={() => void handleToggle()}
     >
       {loading || saving ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
+        null
       ) : active ? (
         <UserCheck className="h-4 w-4" />
       ) : (

@@ -6,13 +6,13 @@ import {
 } from "@/components/manager/tasks/TaskFormLayout";
 import { AutomationWhatAspectPills } from "@/components/manager/tasks/planner/AutomationWhatAspectPills";
 import { TaskExecutionTargetFields } from "@/components/manager/tasks/TaskExecutionTargetFields";
-import { Textarea } from "@/components/ui/textarea";
 import {
   ensureOptimizationOptions,
   inferOptimizerKindFromOptions,
   inferOptimizerKeywordFromOptions,
 } from "@/lib/task-optimization-options-defaults";
 import type { TaskExecutionKind, TaskExecutionPayload } from "@/lib/tasks-types";
+import { TextareaField } from "@/ui";
 
 export type ContentOptimizerExecutionFieldsProps = {
   layout?: "workflow" | "inline";
@@ -95,13 +95,12 @@ export function ContentOptimizerExecutionFields({
 
   const instructionsPanel = (
     <TaskFormPanel title="Instructions">
-      <Textarea
+      <TextareaField
         value={payload.optionalPrompt ?? ""}
         disabled={disabled}
         rows={3}
         placeholder="Instructions"
         aria-label="Instructions"
-        className="min-h-[4.5rem] resize-none rounded-none border-0 bg-zinc-900 px-3 py-2 text-base text-white shadow-none outline-none ring-0 placeholder:text-muted-foreground focus-visible:ring-2"
         onChange={(event) => handlePayloadChange({ ...payload, optionalPrompt: event.target.value })}
       />
     </TaskFormPanel>

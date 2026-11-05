@@ -1,5 +1,4 @@
 import { Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import type { PromptBulkSitemapInventoryLink } from "@/lib/bulk/prompt-bulk-sitemap-inventory";
 import type { BulkGscKeywordsHostedLink } from "@/lib/bulk/bulk-gsc-keywords-hosted-link";
 import type { PromptBulkSiteKwHostedLink } from "@/lib/bulk/prompt-bulk-site-kw-scrape";
@@ -10,6 +9,7 @@ import {
   hostedInventoryDownloads,
 } from "@/components/keyword-research/bulk/SitemapInventoryLinksList";
 import { META_FIELD_END_RAIL_BTN } from "@/components/overview/MetaOptimizerPageRowDetails";
+import { Button } from "@/ui";
 
 export type BulkSitemapInventoryRunDetailProps = {
   links: PromptBulkSitemapInventoryLink[];
@@ -43,15 +43,12 @@ export function BulkSitemapInventoryRunDetail({
         <div className="flex h-8 w-8 shrink-0 items-center justify-center">
           {downloadCount > 0 ? (
             <Button
+              size="icon" icon={Download} aria-label="Download all"
+              variant="quiet"
               type="button"
-              variant="ghost"
-              size="icon"
-              className={META_FIELD_END_RAIL_BTN}
               title="Download all"
               onClick={() => downloadAllHostedInventoryFiles(links, gscHostedLink)}
-            >
-              <Download className="h-4 w-4 shrink-0" />
-            </Button>
+            ></Button>
           ) : null}
         </div>
       </div>

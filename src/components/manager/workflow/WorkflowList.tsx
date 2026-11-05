@@ -1,20 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
 import type { WordPressSiteOption } from "@/components/manager/tasks/NewProjectDialog";
 import { PulseForgeBreadcrumbs } from "@/components/manager/pulse-forge/PulseForgeBreadcrumbs";
 import { FORGE_RECIPE_PAGE_CLASS } from "@/components/manager/pulse-forge/forge-recipe-styles";
 import { WorkflowCard } from "@/components/manager/workflow/WorkflowCard";
-import {
-  groupWorkflowsByStatus,
-  workflowMatchesClientFilter,
-  WORKFLOW_HEADER_BAND_CLASS,
-  WORKFLOW_HEADER_RUN_BTN,
-  WORKFLOW_HEADER_SELECT_CLASS,
-} from "@/components/manager/workflow/forge-workflow-styles";
+import { groupWorkflowsByStatus, workflowMatchesClientFilter, WORKFLOW_HEADER_BAND_CLASS } from "@/components/manager/workflow/forge-workflow-styles";
 import { deleteWorkflow, fetchWorkflows } from "@/lib/workflow/workflow-api";
 import type { PulseForgeRoute } from "@/lib/pulse-forge/pulse-forge-hash";
 import type { WorkflowDefinition } from "@/lib/workflow/workflow-types";
-import { cn } from "@/lib/utils";
+import { Button, SelectField } from "@/ui";
 
 export type WorkflowListProps = {
   teamId: number;
@@ -82,24 +75,15 @@ export function WorkflowList({
           hideLeaf
           className="shrink-0"
         />
-        <select
-          value={clientFilterId}
-          onChange={(event) => setClientFilterId(event.target.value)}
-          aria-label="Client"
-          className={WORKFLOW_HEADER_SELECT_CLASS}
-        >
-          <option value="">All clients</option>
-          {sites.map((site) => (
-            <option key={site.id} value={site.id}>
-              {site.name}
-            </option>
-          ))}
-        </select>
+        <SelectField
+          placeholder="Client"
+          value={clientFilterId || "__all__"}
+          onValueChange={(v) => setClientFilterId(v === "__all__" ? "" : v)}
+          options={[{ value: "__all__", label: "All clients" }, ...sites.map((site) => ({ value: site.id, label: site.name }))]}
+        />
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="sm"
-          className={cn(WORKFLOW_HEADER_RUN_BTN, "ml-auto gap-1.5")}
           onClick={onNewWorkflow}
         >
           New workflow

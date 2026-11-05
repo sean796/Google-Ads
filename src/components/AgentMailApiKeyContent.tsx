@@ -1,6 +1,4 @@
 import { useState, useCallback } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { ApiKeyCopyButton } from "@/components/ApiKeyCopyButton";
 import { notify } from "@/lib/app-notifications";
 import {
@@ -15,6 +13,7 @@ import {
 } from "@/lib/api";
 import { syncEmailWorkerKeys } from "@/lib/integrations-email-worker-api";
 import { DASHBOARD_SETTINGS_FIELD_CLASS } from "@/components/manager/dashboard/dashboard-panel-styles";
+import { Button, Field } from "@/ui";
 
 const INPUT_CLASS = `${DASHBOARD_SETTINGS_FIELD_CLASS} min-w-0 flex-1 h-12`;
 
@@ -62,14 +61,14 @@ export function AgentMailApiKeyContent() {
         . Saved locally and synced to your server.
       </p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <Input
+        <Field
+          placeholder="AgentMail API key"
           id="agentmail-apiKey"
           type="password"
           value={localApiKey}
           onChange={(e) => setLocalApiKey(e.target.value)}
           aria-label="AgentMail API key"
           autoComplete="off"
-          className={INPUT_CLASS}
         />
         <ApiKeyCopyButton
           value={localApiKey}
@@ -78,7 +77,7 @@ export function AgentMailApiKeyContent() {
         />
       </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <Input
+        <Field
           id="agentmail-inbox"
           type="email"
           value={localInbox}
@@ -86,14 +85,13 @@ export function AgentMailApiKeyContent() {
           aria-label="AgentMail inbox email"
           autoComplete="off"
           placeholder="neo-pulse@agentmail.to"
-          className={INPUT_CLASS}
         />
         <ApiKeyCopyButton
           value={localInbox}
           emptyMessage="Enter an AgentMail inbox email to copy."
           aria-label="Copy AgentMail inbox email"
         />
-        <Button type="button" onClick={handleSave} className="h-12 shrink-0 text-base">
+        <Button variant="run" type="button" onClick={handleSave}>
           Save
         </Button>
       </div>

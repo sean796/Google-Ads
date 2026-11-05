@@ -1,23 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Loader2, Megaphone, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Megaphone, Sparkles } from "lucide-react";
+import { ActionButton, DialogShell, SelectField, TextareaField } from "@/ui";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_OPENROUTER_API_KEY_REQUIRED, NOTIFY_SET_GOOGLE_BUSINESS_PROFILE_LOCATION_ID_, notifyPublishedToGbpForX } from "@/lib/notify-messages";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
@@ -69,6 +52,9 @@ const PLATFORMS = {
 } as const;
 
 type PlatformKey = keyof typeof PLATFORMS;
+const PLATFORM_OPTIONS = Object.entries(PLATFORMS).map(([value, p]) => ({ value, label: p.label }));
+const GENERATE_STATES = ["Generate", "Generating"] as const;
+const PUBLISH_STATES = ["Publish to GBP", "Publishing"] as const;
 
 interface Props {
   open: boolean;
@@ -222,121 +208,79 @@ export const SocialMediaModal: React.FC<Props> = ({
   if (!row) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
-          <DialogTitle>Social Media Module</DialogTitle>
-          <DialogDescription className="truncate">
-            {row.title}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-4">
-          {/* Platform selector */}
-          <div className="flex flex-col gap-1.5">
-            <Label>Platform</Label>
-            <Select
-              value={platform}
-              onValueChange={(v) => {
-                setPlatform(v as PlatformKey);
-                setCopy("");
-                setPublished(false);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(PLATFORMS).map(([key, p]) => (
-                  <SelectItem key={key} value={key}>
-                    {p.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Max {pc.maxChars} chars / {pc.maxWords} words
-              {pc.hashtags ? " · hashtags" : ""}
-              {pc.cta ? " · CTA" : ""}
-            </p>
-          </div>
-
-          {/* Source post info */}
-          <div className="rounded-md border border-border/40 bg-muted/20 px-3 py-2">
-            <p className="text-sm font-medium text-foreground line-clamp-1">
-              {row.title}
-            </p>
-            <a
-              href={row.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-muted-foreground hover:text-primary"
-            >
-              {row.url.replace(/^https?:\/\//, "")}
-            </a>
-          </div>
-
-          {/* Copy area */}
-          <div className="flex flex-col gap-1.5">
-            <Label>{pc.label} Copy</Label>
-            <Textarea
-              rows={6}
-              value={copy}
-              onChange={(e) => {
-                setCopy(e.target.value);
-                setPublished(false);
-              }}
-              placeholder={
-                generating
-                  ? "Generating..."
-                  : `Click "Generate" to create optimized copy for ${pc.label}`
-              }
-              disabled={generating}
-            />
-            <p
-              className={`text-right text-xs tabular-nums ${isOver ? "font-semibold text-destructive" : "text-muted-foreground"}`}
-            >
-              {charCount} / {pc.maxChars} characters
-            </p>
-          </div>
-
-          {published && (
-            <div className="rounded-md bg-green-50 px-3 py-2 text-sm font-semibold text-green-600 dark:bg-green-950/30 dark:text-green-400">
-              Published to {pc.label}!
-            </div>
-          )}
-        </div>
-
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button
-            onClick={handleGenerate}
+    <DialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      size="md"
+      title="Social Media Module"
+      description={row.title}
+      actions={
+        <>
+          <ActionButton
+            states={GENERATE_STATES}
+            state={generating ? "Generating" : "Generate"}
+            icon={Sparkles}
             disabled={generating || publishing}
-            className="gap-1.5"
-          >
-            {generating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4" />
-            )}
-            {generating ? "Generating..." : "Generate"}
-          </Button>
-          {platform === "gmb" && (
-            <Button
+            onClick={handleGenerate}
+          />
+          <span className={platform === "gmb" ? "" : "invisible"} aria-hidden={platform !== "gmb"}>
+            <ActionButton
+              states={PUBLISH_STATES}
+              state={publishing ? "Publishing" : "Publish to GBP"}
+              icon={Megaphone}
+              disabled={platform !== "gmb" || !copy.trim() || generating || publishing || published}
               onClick={handlePublishGbp}
-              disabled={!copy.trim() || generating || publishing || published}
-              variant="default"
-              className="gap-1.5 bg-green-700 hover:bg-green-800"
-            >
-              {publishing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Megaphone className="h-4 w-4" />
-              )}
-              {publishing ? "Publishing..." : "Publish to GBP"}
-            </Button>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            />
+          </span>
+        </>
+      }
+    >
+      <SelectField
+        placeholder="Platform"
+        width="full"
+        value={platform}
+        options={PLATFORM_OPTIONS}
+        onValueChange={(v) => {
+          setPlatform(v as PlatformKey);
+          setCopy("");
+          setPublished(false);
+        }}
+      />
+      <p className="text-base text-muted-foreground">
+        Max {pc.maxChars} chars / {pc.maxWords} words
+        {pc.hashtags ? " · hashtags" : ""}
+        {pc.cta ? " · CTA" : ""}
+      </p>
+      <div className="flex flex-col gap-0.5 bg-ui-field px-3 py-2">
+        <p className="text-base font-semibold text-foreground">{row.title}</p>
+        <a
+          href={row.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-base text-muted-foreground hover:text-primary"
+        >
+          {row.url.replace(/^https?:\/\//, "")}
+        </a>
+      </div>
+      <TextareaField
+        rows={6}
+        aria-label={`${pc.label} Copy`}
+        value={copy}
+        onChange={(e) => {
+          setCopy(e.target.value);
+          setPublished(false);
+        }}
+        placeholder={generating ? "Generating" : `${pc.label} copy. Click Generate to create optimized copy`}
+        disabled={generating}
+      />
+      <p
+        className={`text-right text-base tabular-nums ${isOver ? "font-semibold text-ui-danger" : "text-muted-foreground"}`}
+      >
+        {charCount} / {pc.maxChars} characters
+      </p>
+      <p className={`h-6 text-base font-semibold text-primary ${published ? "" : "invisible"}`}>
+        Published to {pc.label}
+      </p>
+    </DialogShell>
   );
 };

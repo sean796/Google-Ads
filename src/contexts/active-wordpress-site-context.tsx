@@ -78,7 +78,7 @@ export function ActiveWordPressSiteProvider({ children }: { children: ReactNode 
       void syncActiveWordPressSiteToServer(fallback);
       return fallback;
     });
-  }, [sites, siteIdsKey]);
+  }, [sites, enabledSites]);
 
   const value = useMemo(
     () => ({ activeWordPressSiteId, setActiveWordPressSiteId }),

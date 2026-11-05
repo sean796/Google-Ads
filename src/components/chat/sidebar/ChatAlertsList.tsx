@@ -7,6 +7,7 @@ import {
   CHAT_SIDEBAR_ROW_ACTIVE,
   CHAT_SIDEBAR_SECTION_LABEL,
 } from "@/components/chat/chat-theme";
+import { Button } from "@/ui";
 
 type Props = {
   alerts: ChatAlertItem[];
@@ -35,28 +36,23 @@ export function ChatAlertsList({
       <div className="space-y-0.5">
         {alerts.map((alert) => (
           <div key={alert.id} className="flex items-stretch gap-1">
-            <button
-              type="button"
+            <Button
+              pressed={activeAlertId === alert.id}
+              variant="quiet"
               onClick={() => onOpenAlert(alert)}
-              className={cn(
-                CHAT_SIDEBAR_ROW,
-                "min-w-0 flex-1 py-[var(--chat-row-py,0.375rem)]",
-                activeAlertId === alert.id && CHAT_SIDEBAR_ROW_ACTIVE,
-              )}
             >
-              <span className="min-w-0 flex-1 truncate">
+              <span className="min-w-0 flex-1 break-words">
                 <span className="font-semibold">{alert.channelLabel}</span>
                 <span className="chat-text-muted"> · {alert.bodyPreview}</span>
               </span>
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="quiet"
               aria-label="Dismiss alert"
-              className="shrink-0 px-2 text-base chat-text-muted hover:text-foreground"
               onClick={() => onDismiss(alert.id)}
             >
               ×
-            </button>
+            </Button>
           </div>
         ))}
       </div>

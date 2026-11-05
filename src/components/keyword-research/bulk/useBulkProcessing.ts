@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import type { WordPressPostingOptions, WordPressPostDestination } from '@/lib/bulk-auto-generate';
 import type { CSVRow } from '@/lib/bulk-auto-generate';
 import { applyRowOrder, buildBulkBaseRows } from '@/lib/bulk-processing-order';
@@ -83,7 +84,7 @@ export function useBulkProcessing({
   setIsProcessing,
   setCurrentRow,
 }: UseBulkProcessingProps) {
-  const handleStartProcessing = async (promptRowsOverride?: CSVRow[]) => {
+  const handleStartProcessing = useCallback(async (promptRowsOverride?: CSVRow[]) => {
     const effectiveGeneratedRows = promptRowsOverride ?? generatedRows;
     const built = buildBulkBaseRows(inputMode, rows, effectiveGeneratedRows, selectedBlogIndices);
     if (!built.ok) {
@@ -176,7 +177,7 @@ export function useBulkProcessing({
     }
 
     await processAllRows(orderedRows, postingForRun, orderedDisplayIndices);
-  };
+  }, [inputMode, rows, generatedRows, selectedBlogIndices, rowOrder, selectedWordPressSites, siteConfigs, scheduleFrequency, customInterval, dayOfWeek, startDateOption, customStartDate, startTime, wordpressDraftOnly, apiKey, openRouterApiKey, selectedModel, bulkPostDestination, scheduleOccupancy, useGapScheduling, refreshScheduleOccupancy, processAllRows, setIsProcessing, setCurrentRow]);
 
   return {
     handleStartProcessing,

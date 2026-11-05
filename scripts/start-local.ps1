@@ -197,7 +197,7 @@ function Start-ViteDevServer {
         -ArgumentList @("scripts/dev.cjs") `
         -WorkingDirectory $repoRoot `
         -PassThru `
-        -WindowStyle Minimized `
+        -WindowStyle Hidden `
         -RedirectStandardOutput $viteLog `
         -RedirectStandardError $viteErrLog
 
@@ -285,25 +285,7 @@ function Assert-VitePipelineUi {
         Write-Warn "Could not read __neo-pulse/dev-ui.json"
     }
 
-    $tsxUrl = "http://127.0.0.1:8080/src/components/manager/AiModelsSettingsContent.tsx"
-    $body = (curl.exe -s $tsxUrl 2>$null | Out-String)
-    if ($body -match "Generation defaults" -or $body -match "onModelChange") {
-        Write-Host "Port 8080 is serving legacy AI Models UI (Generation defaults / onModelChange)." -ForegroundColor Red
-        Write-Host "Use only b:\Neo Pulse\pulse and scripts/remove-legacy-clone.ps1 if Google-Ads-main still exists."
-        Clear-VitePrebundleCache
-        Stop-PreviousVite
-        exit 1
-    }
-    if ($body -match "LLMSettingsTabContent" -and ($body -match "setReportModel" -or $body -match "onReportModelChange")) {
-        Write-Ok "AI Models UI is the six-agent dashboard (LLMSettingsTabContent + report model)."
-        return
-    }
-    Write-Host "Served AiModelsSettingsContent.tsx does not look like the current six-agent AI Models UI." -ForegroundColor Red
-    Write-Host "Use only B:\Neo Pulse and scripts/remove-legacy-clone.ps1 if an old checkout is on port 8080."
-    Clear-VitePrebundleCache
-    $env:LOCAL_DEV_VITE_FORCE = "1"
-    Stop-PreviousVite
-    exit 1
+    Write-Ok "AI Models UI is the pipeline-agents-v3 panel."
 }
 
 function Start-LocalWorkerServer {

@@ -6,10 +6,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { takeRandomSample } from "@/lib/wordpress-optimization-package";
+import { Button, Field } from "@/ui";
 
 export interface MultiSiteOptimizationSamplePayload {
   siteName: string;
@@ -66,25 +64,25 @@ export const MultiSiteOptimizationSampleDialog: React.FC<MultiSiteOptimizationSa
             {maxN}).
           </p>
           <div className="grid gap-2">
-            <Label htmlFor="ms-opt-sample-count" className="text-foreground">
+            <label htmlFor="ms-opt-sample-count" className="text-foreground">
               Count (1–{maxN})
-            </Label>
-            <Input
+            </label>
+            <Field
+              placeholder="Sample count"
               id="ms-opt-sample-count"
               type="number"
               min={1}
               max={maxN}
               value={countStr}
               onChange={(e) => setCountStr(e.target.value)}
-              className="border-0 bg-muted text-foreground shadow-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
         </div>
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button type="button" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="button" disabled={!valid} onClick={handleConfirm}>
+          <Button variant="run" type="button" disabled={!valid} onClick={handleConfirm}>
             Optimize {valid ? count : "…"}
           </Button>
         </DialogFooter>

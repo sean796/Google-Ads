@@ -2,7 +2,7 @@ import React from "react";
 import { cn } from "@/lib/utils";
 
 export const FORGE_COMPACT_STAT_TILE_CLASS =
-  "inline-flex h-9 shrink-0 items-center rounded-none border-0 bg-zinc-950 px-3 text-base text-white";
+  "inline-flex h-9 shrink-0 items-center rounded-none border-0 bg-black px-3 text-base text-white";
 
 export type ForgeCompactStatTileProps = {
   children: React.ReactNode;

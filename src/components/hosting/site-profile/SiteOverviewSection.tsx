@@ -1,5 +1,4 @@
 import { AlertCircle, CheckCircle2, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import type { HostedEnvironment } from "@/lib/hosting-api";
 import { MY_SITES_LINK, MY_SITES_TOOL_BTN } from "../my-sites/my-sites-theme";
 import { formatBytes, formatCount } from "../my-sites/my-sites-view-model";
@@ -14,6 +13,7 @@ import {
   PROFILE_STAT_NOTE,
   PROFILE_STAT_VALUE,
 } from "./site-profile-theme";
+import { Button } from "@/ui";
 
 export type SiteOverviewSectionProps = {
   env: HostedEnvironment;
@@ -34,8 +34,8 @@ export function StatCell({ label, value, note, tone }: { label: string; value: s
       </span>
       <span className={PROFILE_STAT_NOTE} title={note}>
         {tone === "ok" ? <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" aria-hidden /> : null}
-        {tone === "warn" ? <AlertCircle className="h-4 w-4 shrink-0 text-amber-300" aria-hidden /> : null}
-        <span className="truncate">{note ?? ""}</span>
+        {tone === "warn" ? <AlertCircle className="h-4 w-4 shrink-0 text-semantic-warning-foreground" aria-hidden /> : null}
+        <span className="break-words">{note ?? ""}</span>
       </span>
     </div>
   );
@@ -58,8 +58,8 @@ export function SiteOverviewSection({ env, canAdmin, refreshing, onRefreshStats,
           <h2 className={PROFILE_CARD_TITLE}>Updates</h2>
           <div className="flex items-center gap-3">
             <span className="text-muted-foreground">Last refreshed {formatDateTime(s?.collectedAt)}</span>
-            <Button type="button" variant="ghost" className={MY_SITES_TOOL_BTN} disabled={!canAdmin || refreshing} onClick={onRefreshStats}>
-              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
+            <Button variant="quiet" type="button" disabled={!canAdmin || refreshing} onClick={onRefreshStats}>
+              <RefreshCw className={`h-4 w-4 ${refreshing ? "" : ""}`} aria-hidden />
               Refresh
             </Button>
           </div>
@@ -75,8 +75,8 @@ export function SiteOverviewSection({ env, canAdmin, refreshing, onRefreshStats,
           <StatCell label="Plugins" value={String(s?.plugins.length ?? 0)} note={hasStats ? plugins.note : undefined} tone={hasStats ? plugins.tone : undefined} />
           <StatCell label="Themes" value={String(s?.themes.length ?? 0)} note={hasStats ? themes.note : undefined} tone={hasStats ? themes.tone : undefined} />
         </div>
-        <p className={`flex h-9 items-center border-t ${s?.errorMessage ? "border-white/[0.06]" : "border-transparent"} px-5 text-amber-200`} title={s?.errorMessage ?? undefined}>
-          <span className="truncate">{s?.errorMessage ? `Stats incomplete: ${s.errorMessage}` : ""}</span>
+        <p className={`flex h-9 items-center border-t ${s?.errorMessage ? "border-white/[0.06]" : "border-transparent"} px-5 text-semantic-warning-foreground`} title={s?.errorMessage ?? undefined}>
+          <span className="break-words">{s?.errorMessage ? `Stats incomplete: ${s.errorMessage}` : ""}</span>
         </p>
       </section>
 
@@ -95,9 +95,9 @@ export function SiteOverviewSection({ env, canAdmin, refreshing, onRefreshStats,
       <section className={PROFILE_CARD} aria-label="Usage for last 30 days">
         <div className={PROFILE_CARD_HEAD}>
           <h2 className={PROFILE_CARD_TITLE}>Usage for last 30 days</h2>
-          <button type="button" className={MY_SITES_LINK} onClick={onOpenUsage}>
+          <Button variant="quiet" onClick={onOpenUsage}>
             View detailed usage
-          </button>
+          </Button>
         </div>
         <div className={`${PROFILE_STAT_GRID} grid-cols-3`}>
           <StatCell label="Storage" value={formatBytes(s?.storageBytes ?? null)} note="WordPress files and uploads" />

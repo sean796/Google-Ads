@@ -108,6 +108,13 @@ class Neo_Pulse_App_Api_Dispatcher {
 			exit;
 		}
 
+		$trimmed_route = trim( $route, '/' );
+		if ( $trimmed_route === 'video/brainstorm/upload' && $method === 'POST' ) {
+			@set_time_limit( 600 );
+			Neo_Pulse_App_Video_Brainstorm::dispatch_upload_http();
+			return;
+		}
+
 		$body = self::read_json_body();
 
 		if ( preg_match( '#^wordpress/(bulk-update-overview-seo|get-site-inventory-bulk|get-site-post-inventory)#', $route ) ) {
@@ -266,6 +273,12 @@ class Neo_Pulse_App_Api_Dispatcher {
 		if ( 0 === strpos( $route, 'emcp/' ) ) {
 			@set_time_limit( 240 );
 			Neo_Pulse_App_Emcp_Route_Handlers::dispatch_http( substr( $route, 5 ), $method, $body );
+			return;
+		}
+
+		if ( 0 === strpos( $route, 'agent-library/' ) || $route === 'agent-library' ) {
+			$agent_lib_route = $route === 'agent-library' ? '' : substr( $route, 14 );
+			Neo_Pulse_App_Agent_Library_Route_Handlers::dispatch_http( $agent_lib_route, $method, $body );
 			return;
 		}
 

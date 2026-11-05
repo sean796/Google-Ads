@@ -1,5 +1,5 @@
-import { Button } from '@/components/ui/button';
-import { Loader2, MessageSquare, FileText } from 'lucide-react';
+
+import { MessageSquare, FileText } from 'lucide-react';
 import { WordPressPostingConfig } from './WordPressPostingConfig';
 import { BlogGenerationSettings } from './BlogGenerationSettings';
 import type { ScheduleOccupancy } from '@/lib/bulk-schedule-gap';
@@ -9,6 +9,7 @@ import type { CSVRow, WordPressPostDestination } from '@/lib/bulk-auto-generate'
 import { REPORTING_TOOLBAR_BTN } from '@/components/research/reporting/reporting-toolbar-styles';
 import { cn } from '@/lib/utils';
 import type { BulkSitemapMode } from '@/lib/bulk/bulk-sitemap-mode';
+import { Button } from "@/ui";
 
 interface SiteConfig {
   sitemapType: BulkSitemapMode;
@@ -162,18 +163,14 @@ export function PromptInputSection({
       />
 
       <Button
+        variant="run"
         onClick={async () => {
           await handleGenerateChecklist();
         }}
-        className={cn(
-          'neo-pulse-btn-semantic-analysis w-full text-lg h-12',
-          REPORTING_TOOLBAR_BTN,
-        )}
-        size="lg"
       >
         {isGeneratingChecklist ? (
           <>
-            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+            
             Generating Blog Ideas...
           </>
         ) : (

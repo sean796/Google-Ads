@@ -10,7 +10,7 @@ import {
 import { Globe } from "lucide-react";
 
 const jumpLink =
-  "block rounded-lg border border-white/[0.08] bg-zinc-900/50 p-3 text-white transition-colors hover:bg-zinc-900/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35";
+  "block rounded-lg border border-white/[0.08] bg-ui-field/50 p-3 text-white transition-colors hover:bg-ui-field/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35";
 
 export function GoogleServicesSettingsContent() {
   return (

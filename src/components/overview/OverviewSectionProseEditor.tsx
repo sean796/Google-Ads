@@ -6,27 +6,27 @@ import Placeholder from "@tiptap/extension-placeholder";
 import { TableKit } from "@tiptap/extension-table";
 import StarterKit from "@tiptap/starter-kit";
 import { Bold, Italic, Link2, List, ListOrdered, Quote, Table as TableIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { resolveHtmlAssetUrls } from "@/lib/elementor-page-content/resolve-html-asset-urls";
 import { normalizeSectionProseHtml } from "@/lib/elementor-page-content/extract-text-editor-prose";
+import { Button } from "@/ui";
 
 const EDITOR_CONTENT_CLASS = cn(
-  "overview-section-prose-editor min-h-24 w-full px-3 py-2 text-base leading-relaxed text-zinc-100 outline-none",
+  "overview-section-prose-editor min-h-24 w-full px-3 py-2 text-base leading-relaxed text-foreground outline-none",
   "[&_.ProseMirror]:min-h-24 [&_.ProseMirror]:outline-none",
-  "[&_a]:text-cyan-400 [&_a]:underline",
+  "[&_a]:text-semantic-analysis-foreground [&_a]:underline",
   "[&_h2]:mt-4 [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:text-white",
   "[&_h3]:mt-3 [&_h3]:mb-1.5 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-white",
   "[&_p]:my-2.5",
   "[&_ul]:my-2.5 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:my-1",
   "[&_ol]:my-2.5 [&_ol]:list-decimal [&_ol]:pl-5",
-  "[&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-primary [&_blockquote]:bg-zinc-900/60 [&_blockquote]:px-4 [&_blockquote]:py-2.5 [&_blockquote]:text-cyan-400",
+  "[&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-primary [&_blockquote]:bg-ui-field/60 [&_blockquote]:px-4 [&_blockquote]:py-2.5 [&_blockquote]:text-semantic-analysis-foreground",
   "[&_img]:my-3 [&_img]:max-h-96 [&_img]:w-auto [&_img]:object-contain",
   "[&_table]:my-4 [&_table]:w-full [&_table]:border-collapse [&_table]:border [&_table]:border-white/15",
-  "[&_thead]:bg-zinc-900/90",
-  "[&_th]:border [&_th]:border-white/15 [&_th]:bg-zinc-900/90 [&_th]:px-3.5 [&_th]:py-2.5 [&_th]:text-left [&_th]:font-semibold [&_th]:text-white",
-  "[&_td]:border [&_td]:border-white/15 [&_td]:px-3.5 [&_td]:py-2.5 [&_td]:align-top [&_td]:text-zinc-200",
-  "[&_tr:nth-child(even)_td]:bg-zinc-900/30",
+  "[&_thead]:bg-ui-field/90",
+  "[&_th]:border [&_th]:border-white/15 [&_th]:bg-ui-field/90 [&_th]:px-3.5 [&_th]:py-2.5 [&_th]:text-left [&_th]:font-semibold [&_th]:text-white",
+  "[&_td]:border [&_td]:border-white/15 [&_td]:px-3.5 [&_td]:py-2.5 [&_td]:align-top [&_td]:text-foreground",
+  "[&_tr:nth-child(even)_td]:bg-ui-field/30",
 );
 
 function ToolbarButton({
@@ -42,15 +42,10 @@ function ToolbarButton({
 }) {
   return (
     <Button
+      variant="quiet"
       type="button"
-      variant="ghost"
-      size="icon"
       aria-label={label}
       title={label}
-      className={cn(
-        "h-8 w-8 shrink-0 rounded-none border-0 text-muted-foreground hover:bg-white/10 hover:text-white",
-        active && "bg-white/10 text-white",
-      )}
       onClick={onClick}
     >
       {children}
@@ -58,7 +53,7 @@ function ToolbarButton({
   );
 }
 
-export function OverviewSectionProseEditor({
+export const OverviewSectionProseEditor = React.memo(function OverviewSectionProseEditor({
   value,
   readOnly = false,
   placeholder = "Section copy",
@@ -85,8 +80,8 @@ export function OverviewSectionProseEditor({
   onChangeRef.current = onChange;
   const focusedRef = React.useRef(false);
 
-  const editor = useEditor({
-    extensions: [
+  const extensions = React.useMemo(
+    () => [
       StarterKit.configure({
         codeBlock: false,
         heading: { levels: [2, 3, 4] },
@@ -106,6 +101,11 @@ export function OverviewSectionProseEditor({
       }),
       Placeholder.configure({ placeholder }),
     ],
+    [placeholder],
+  );
+
+  const editor = useEditor({
+    extensions,
     content: resolvedValue || "",
     editable: !readOnly,
     onUpdate: ({ editor: ed }) => {
@@ -152,13 +152,13 @@ export function OverviewSectionProseEditor({
   };
 
   if (!editor) {
-    return <div className={cn("min-h-24 bg-zinc-900", className)} />;
+    return <div className={cn("min-h-24 bg-ui-field", className)} />;
   }
 
   return (
     <div
       className={cn(
-        "rounded-none border-0 bg-zinc-900 shadow-inner shadow-black/40",
+        "rounded-none border-0 bg-ui-field shadow-inner shadow-black/40",
         className,
       )}
     >
@@ -219,4 +219,4 @@ export function OverviewSectionProseEditor({
       <EditorContent editor={editor} />
     </div>
   );
-}
+});

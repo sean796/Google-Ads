@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 import { AgentRunsDetailsDrawer } from "./AgentRunsDetailsDrawer";
 import { useAgentRunLiveSnapshot } from "./use-agent-run-live-snapshot";
+import { Button } from "@/ui";
 
 function statusClass(status: AgentRunStatus): string {
   return `agent-runs-status-pill agent-runs-status-pill--${status}`;
@@ -92,17 +93,15 @@ export function AgentRunCard({
           ) : null}
           <span className={statusClass(run.status)}>{AGENT_RUN_STATUS_LABELS[run.status]}</span>
         </span>
-        <button
-          type="button"
-          className="agent-runs-card__chevron"
+        <Button
+          size="icon" icon={ChevronDown}
+          variant="quiet"
           aria-label={expanded ? "Collapse details" : "Expand details"}
           onClick={(e) => {
             e.stopPropagation();
             onToggle();
           }}
-        >
-          <ChevronDown className={cn("h-4 w-4 transition-transform", expanded && "rotate-180")} aria-hidden />
-        </button>
+        ></Button>
       </div>
 
       <div

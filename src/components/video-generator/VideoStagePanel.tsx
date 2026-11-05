@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  ArrowRight,
   Check,
   Film,
   Pause,
@@ -8,9 +9,8 @@ import {
   Send,
   SkipBack,
   SkipForward,
+  Undo2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { MY_SITES_FIELD, MY_SITES_ICON_BTN, MY_SITES_TOOL_BTN } from "@/components/hosting/my-sites/my-sites-theme";
 import type { OpenRouterAppStreamDelta } from "@/lib/openrouter-app-api";
 import { PRODUCT_VIEW_DEFINITIONS } from "@/lib/video-generator/video-product-agent";
@@ -29,7 +29,9 @@ import { VideoProductViewSplash } from "./VideoProductViewSplash";
 import { VideoStudioPlaceholderSplash } from "./VideoStudioPlaceholderSplash";
 import { VideoStartComposePanel } from "./VideoStartComposePanel";
 import type { StudioLeftTabId } from "./VideoStudioLeftDock";
+import { DecisionAuditRowBadge } from "@/components/keyword-research/bulk/DecisionAuditRowBadge";
 import { cn } from "@/lib/utils";
+import { Button, Field } from "@/ui";
 
 export type StagePreviewMode = "final" | "clip" | "frame" | "env";
 
@@ -37,6 +39,7 @@ type VideoStagePanelProps = {
   activeTab?: StudioLeftTabId;
   plan: VideoPlan | null;
   planLive?: OpenRouterAppStreamDelta;
+  planDrafting?: boolean;
   brief?: VideoBrief;
   productLock?: ProductLockState;
   hasSubjectPhotos?: boolean;
@@ -49,6 +52,7 @@ type VideoStagePanelProps = {
   onRegenerateProductView?: (viewId: ProductViewId) => void;
   onReviseProductView?: (viewId: ProductViewId | "all", instruction: string) => void;
   onToggleSceneApproved?: (sceneId: string) => void;
+  onApproveAllScenes?: () => void;
   onApprovePlanAndBeginStoryboard?: () => void;
   onSendSceneInstruction?: (
     sceneId: string,
@@ -56,17 +60,24 @@ type VideoStagePanelProps = {
     postCutReference?: { dataUrl: string; fileName: string },
   ) => void;
   onRegenerateEnvironmentPlate?: (sceneId: string) => void;
-  onRegenerateFrame?: (sceneId: string) => void;
+  onRegenerateFrame?: (sceneId: string, customInstruction?: string) => void;
+  onRestoreReferenceFrame?: (sceneId: string) => void;
+  onSyncAllFramesFromReferenceVideo?: () => void;
   onRerenderSceneClip?: (sceneId: string) => void;
   onPromptChange?: (v: string) => void;
   productPhotoCount?: number;
   referenceCount?: number;
   isPreparingSubject?: boolean;
   isPreparingReferences?: boolean;
+  isPreparingReferenceVideo?: boolean;
+  hasReferenceVideo?: boolean;
   onAddProductFiles?: (files: FileList | File[]) => void;
   onAddReferenceFiles?: (files: FileList | File[]) => void;
+  onAddVideoFile?: (file: File) => void;
   /** True while survey/render product views batch is in flight (before lock). */
   productViewsBatchBusy?: boolean;
+  previewMode?: StagePreviewMode;
+  onPreviewModeChange?: (mode: StagePreviewMode) => void;
 };
 
 const RENDER_STATUS_LABEL: Record<VideoRenderSnapshot["status"], string> = {
@@ -96,6 +107,7 @@ export function VideoStagePanel({
   activeTab,
   plan,
   planLive,
+  planDrafting = false,
   brief,
   productLock,
   hasSubjectPhotos = false,
@@ -108,24 +120,34 @@ export function VideoStagePanel({
   onRegenerateProductView,
   onReviseProductView,
   onToggleSceneApproved,
+  onApproveAllScenes,
   onApprovePlanAndBeginStoryboard,
   onSendSceneInstruction,
   onRegenerateEnvironmentPlate,
   onRegenerateFrame,
+  onRestoreReferenceFrame,
+  onSyncAllFramesFromReferenceVideo,
   onRerenderSceneClip,
   onPromptChange,
   productPhotoCount = 0,
   referenceCount = 0,
   isPreparingSubject = false,
   isPreparingReferences = false,
+  isPreparingReferenceVideo = false,
+  hasReferenceVideo = false,
   onAddProductFiles,
   onAddReferenceFiles,
+  onAddVideoFile,
   productViewsBatchBusy = false,
+  previewMode: previewModeProp,
+  onPreviewModeChange,
 }: VideoStagePanelProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [previewMode, setPreviewMode] = useState<StagePreviewMode>("final");
+  const [internalPreviewMode, setInternalPreviewMode] = useState<StagePreviewMode>("final");
+  const previewMode = previewModeProp ?? internalPreviewMode;
+  const setPreviewMode = onPreviewModeChange ?? setInternalPreviewMode;
   const [sceneDrafts, setSceneDrafts] = useState<Record<string, string>>({});
   const [productViewDrafts, setProductViewDrafts] = useState<Record<string, string>>({});
 
@@ -137,15 +159,36 @@ export function VideoStagePanel({
   const clip = scene && render ? render.scenes.find((s) => s.sceneId === scene.id) : undefined;
   const sceneClipUrl = clip?.clipUrl ?? scene?.customClipUrl;
 
+  // When a full video render first completes, switch to "final" cut
+  const prevRenderIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (render?.finalUrl) {
+    if (render?.finalUrl && render.id !== prevRenderIdRef.current) {
+      prevRenderIdRef.current = render.id;
       setPreviewMode("final");
-    } else if (sceneClipUrl) {
-      setPreviewMode("clip");
-    } else {
-      setPreviewMode("frame");
     }
-  }, [render?.finalUrl, sceneClipUrl]);
+  }, [render?.id, render?.finalUrl, setPreviewMode]);
+
+  // When sceneClipUrl changes or freshly completes, switch to previewing that clip
+  const prevClipUrlRef = useRef<string | undefined>(sceneClipUrl);
+  useEffect(() => {
+    if (sceneClipUrl && sceneClipUrl !== prevClipUrlRef.current) {
+      prevClipUrlRef.current = sceneClipUrl;
+      setPreviewMode("clip");
+    }
+  }, [sceneClipUrl, setPreviewMode]);
+
+  // When selectedSceneId changes (user clicks on a scene/clip in timeline or tabs):
+  const prevSceneIdRef = useRef<string | null>(selectedSceneId);
+  useEffect(() => {
+    if (selectedSceneId && prevSceneIdRef.current !== selectedSceneId) {
+      prevSceneIdRef.current = selectedSceneId;
+      if (sceneClipUrl) {
+        setPreviewMode("clip");
+      } else if (frame?.imageDataUrl) {
+        setPreviewMode("frame");
+      }
+    }
+  }, [selectedSceneId, sceneClipUrl, frame?.imageDataUrl, setPreviewMode]);
 
   const effectiveMode: StagePreviewMode =
     previewMode === "final" && render?.finalUrl
@@ -191,7 +234,9 @@ export function VideoStagePanel({
     ? "h-full max-h-full w-auto max-w-full"
     : "w-full max-w-full max-h-full";
 
-  const isStreamingPlan = Boolean(!plan && (planLive?.content || planLive?.reasoning));
+  const isStreamingPlan = Boolean(
+    !plan && (planDrafting || planLive?.content || planLive?.reasoning),
+  );
   const hasProductViews = Boolean(
     productLock?.views.some((v) => v.imageDataUrl || v.status === "generating" || v.status === "failed"),
   );
@@ -202,14 +247,21 @@ export function VideoStagePanel({
   if (isPreSceneApproval && plan) {
     const approvedCount = plan.scenes.filter((s) => s.approved).length;
     return (
-      <div className="flex min-h-0 flex-1 flex-col bg-zinc-950 text-base">
-        <div className="flex h-10 shrink-0 items-center justify-between gap-3 bg-zinc-900 px-4">
-          <span className="truncate font-semibold text-white">
-            Scene Brief Review · {plan.title}
-          </span>
-          <span className="shrink-0 bg-zinc-950 px-2 py-0.5 tabular-nums text-primary">
-            {approvedCount}/{plan.scenes.length} approved
-          </span>
+      <div className="flex min-h-0 flex-1 flex-col bg-black text-base">
+        <div className="flex h-10 shrink-0 items-center justify-between gap-3 bg-ui-field px-4">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="break-words font-semibold text-white">
+              Scene Brief Review · {plan.title}
+            </span>
+            {plan.decisionAuditJson ? (
+              <DecisionAuditRowBadge auditJson={plan.decisionAuditJson} showScores />
+            ) : null}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="bg-black px-2.5 py-1 tabular-nums text-primary font-medium">
+              {approvedCount}/{plan.scenes.length} approved
+            </span>
+          </div>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto bg-black p-3">
@@ -229,8 +281,8 @@ export function VideoStagePanel({
                   key={sc.id}
                   onClick={() => onSelectScene?.(sc.id)}
                   className={cn(
-                    "flex cursor-pointer flex-col justify-between gap-2.5 bg-zinc-900 p-3.5 transition-colors",
-                    isSelected ? "ring-2 ring-primary" : "hover:bg-zinc-900/80",
+                    "flex cursor-pointer flex-col justify-between gap-2.5 bg-ui-field p-3.5 transition-colors",
+                    isSelected ? "ring-2 ring-primary" : "hover:bg-ui-field/80",
                   )}
                 >
                   <div className="flex flex-col gap-2">
@@ -239,36 +291,30 @@ export function VideoStagePanel({
                         <span className="inline-flex h-6 min-w-[1.5rem] shrink-0 items-center justify-center bg-primary px-1.5 font-semibold tabular-nums text-black">
                           {sc.order}
                         </span>
-                        <span className="truncate font-semibold text-white">{sc.title}</span>
-                        <span className="shrink-0 bg-zinc-950 px-2 py-0.5 tabular-nums text-muted-foreground">
+                        <span className="break-words font-semibold text-white">{sc.title}</span>
+                        <span className="shrink-0 bg-black px-2 py-0.5 tabular-nums text-muted-foreground">
                           {sc.durationSeconds}s
                         </span>
                       </div>
 
                       {onToggleSceneApproved ? (
-                        <button
-                          type="button"
+                        <Button
+                          pressed={Boolean(sc.approved)}
                           onClick={(e) => {
                             e.stopPropagation();
                             onToggleSceneApproved(sc.id);
                           }}
-                          className={cn(
-                            "inline-flex shrink-0 items-center gap-1 px-2.5 py-0.5 text-base font-medium transition-colors",
-                            sc.approved
-                              ? "bg-primary text-black"
-                              : "bg-zinc-950 text-muted-foreground hover:text-white",
-                          )}
                         >
                           <Check className="h-3.5 w-3.5" aria-hidden />
                           <span>{sc.approved ? "Approved" : "Approve"}</span>
-                        </button>
+                        </Button>
                       ) : null}
                     </div>
 
                     <p className="text-foreground">{sc.sceneInstructions}</p>
 
                     {sc.revisionNotes && sc.revisionNotes.length > 0 ? (
-                      <div className="flex flex-col gap-0.5 bg-zinc-950 px-2.5 py-1.5 text-primary">
+                      <div className="flex flex-col gap-0.5 bg-black px-2.5 py-1.5 text-primary">
                         {sc.revisionNotes.map((note, idx) => (
                           <p key={`${idx}-${note}`}>
                             {idx + 1}. {note}
@@ -287,7 +333,7 @@ export function VideoStagePanel({
                       }}
                       className="flex items-center gap-1.5 pt-1"
                     >
-                      <Input
+                      <Field
                         value={draftText}
                         onChange={(e) =>
                           setSceneDrafts((prev) => ({ ...prev, [sc.id]: e.target.value }))
@@ -295,12 +341,10 @@ export function VideoStagePanel({
                         disabled={disabled}
                         aria-label={`Natural language prompt for Scene ${sc.order}`}
                         placeholder={`Type what to change in Scene ${sc.order}...`}
-                        className={cn(MY_SITES_FIELD, "h-9 flex-1 bg-zinc-950 text-base")}
                       />
                       <Button
+                        variant="quiet"
                         type="submit"
-                        variant="ghost"
-                        className={MY_SITES_ICON_BTN}
                         disabled={disabled || !draftText.trim()}
                         aria-label={`Apply prompt to Scene ${sc.order}`}
                       >
@@ -320,9 +364,9 @@ export function VideoStagePanel({
   // Product Lock 2x2 Turntable Viewport or Pre-Plan Monitor
   if (showProductGrid || !plan || !scene) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col bg-zinc-950">
-        <div className="flex h-10 shrink-0 items-center justify-between bg-zinc-900 px-4">
-          <span className="truncate font-semibold text-white">
+      <div className="flex min-h-0 flex-1 flex-col bg-black">
+        <div className="flex h-10 shrink-0 items-center justify-between bg-ui-field px-4">
+          <span className="break-words font-semibold text-white">
             {isStreamingPlan
               ? "Director · Writing Scene Plan"
               : showProductGrid
@@ -335,8 +379,19 @@ export function VideoStagePanel({
         </div>
 
         <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black p-3">
-          {isStreamingPlan && planLive ? (
-            <VideoPlanLive live={planLive} />
+          {isStreamingPlan ? (
+            planLive?.content || planLive?.reasoning ? (
+              <VideoPlanLive live={planLive!} />
+            ) : (
+              <div className={cn("relative h-full w-full", VIDEO_ASPECT_BOX_CLASS[aspect], boxSizeClass)}>
+                <VideoStudioPlaceholderSplash
+                  title="Director"
+                  subtitle="Writing scene plan…"
+                  breathing
+                  variant="stage"
+                />
+              </div>
+            )
           ) : showProductGrid && productLock ? (
             <div className="grid h-full w-full grid-cols-2 grid-rows-2 gap-2.5">
               {PRODUCT_VIEW_DEFINITIONS.map((def) => {
@@ -351,11 +406,11 @@ export function VideoStagePanel({
                 };
 
                 return (
-                  <div key={def.id} className="group relative flex flex-col overflow-hidden bg-zinc-900">
-                    <div className="flex h-8 shrink-0 items-center justify-between bg-zinc-950/90 px-3">
+                  <div key={def.id} className="group relative flex flex-col overflow-hidden bg-ui-field">
+                    <div className="flex h-8 shrink-0 items-center justify-between bg-black/90 px-3">
                       <div className="flex min-w-0 items-center gap-2">
                         <span className="font-semibold text-white">{def.shortLabel}</span>
-                        <span className="truncate text-muted-foreground">{def.chainHint}</span>
+                        <span className="break-words text-muted-foreground">{def.chainHint}</span>
                         {v?.revisionNotes && v.revisionNotes.length > 0 ? (
                           <span
                             className="shrink-0 bg-primary/20 px-1.5 text-primary"
@@ -366,16 +421,15 @@ export function VideoStagePanel({
                         ) : null}
                       </div>
                       {onRegenerateProductView ? (
-                        <button
-                          type="button"
+                        <Button
+                          variant="run"
                           disabled={disabled || spinning || !hasSubjectPhotos}
                           onClick={() => onRegenerateProductView(def.id)}
                           aria-label={`Regenerate ${def.label}`}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 text-muted-foreground transition-colors hover:bg-primary hover:text-black disabled:opacity-40"
                         >
                           <RefreshCw className="h-3.5 w-3.5" aria-hidden />
                           <span>Regenerate</span>
-                        </button>
+                        </Button>
                       ) : null}
                     </div>
 
@@ -387,7 +441,7 @@ export function VideoStagePanel({
                           className="absolute inset-0 h-full w-full object-contain"
                         />
                       ) : v?.error ? (
-                        <div className="flex max-h-full flex-col gap-1 overflow-y-auto px-4 py-3 text-red-300">
+                        <div className="flex max-h-full flex-col gap-1 overflow-y-auto px-4 py-3 text-ui-danger-hover">
                           <p className="font-medium">{v.error}</p>
                         </div>
                       ) : (
@@ -407,9 +461,9 @@ export function VideoStagePanel({
                           e.preventDefault();
                           submitViewPrompt();
                         }}
-                        className="flex h-9 shrink-0 items-center gap-1.5 bg-zinc-950 px-2"
+                        className="flex h-9 shrink-0 items-center gap-1.5 bg-black px-2"
                       >
-                        <Input
+                        <Field
                           value={draftText}
                           onChange={(e) =>
                             setProductViewDrafts((prev) => ({ ...prev, [def.id]: e.target.value }))
@@ -417,12 +471,10 @@ export function VideoStagePanel({
                           disabled={disabled || spinning || !hasSubjectPhotos}
                           aria-label={`Prompt AI to change ${def.label}`}
                           placeholder={`Prompt AI to change ${def.shortLabel} (e.g. "match uploaded color", "show full drop")`}
-                          className={cn(MY_SITES_FIELD, "h-7 flex-1 bg-zinc-900 px-2.5 text-base")}
                         />
                         <Button
+                          variant="quiet"
                           type="submit"
-                          variant="ghost"
-                          className={cn(MY_SITES_ICON_BTN, "h-7 w-7")}
                           disabled={disabled || spinning || !hasSubjectPhotos || !draftText.trim()}
                           aria-label={`Send prompt for ${def.label}`}
                         >
@@ -434,10 +486,25 @@ export function VideoStagePanel({
                 );
               })}
             </div>
-          ) : onPromptChange && onAddProductFiles && onAddReferenceFiles ? (
+          ) : isPreparingReferenceVideo ? (
             <div
               className={cn(
-                "relative flex flex-col items-center justify-center bg-zinc-900/40 p-6",
+                "relative flex h-full w-full items-center justify-center overflow-hidden",
+                VIDEO_ASPECT_BOX_CLASS[aspect],
+                boxSizeClass,
+              )}
+            >
+              <VideoStudioPlaceholderSplash
+                title="Neo Pulse"
+                subtitle="Preparing reference video…"
+                breathing
+                variant="stage"
+              />
+            </div>
+          ) : onPromptChange && onAddProductFiles && onAddReferenceFiles && onAddVideoFile ? (
+            <div
+              className={cn(
+                "relative flex flex-col items-center justify-center bg-ui-field/40 p-6",
                 VIDEO_ASPECT_BOX_CLASS[aspect],
                 boxSizeClass,
               )}
@@ -448,17 +515,20 @@ export function VideoStagePanel({
                 onPromptChange={onPromptChange}
                 productCount={productPhotoCount}
                 referenceCount={referenceCount}
+                hasReferenceVideo={hasReferenceVideo}
                 disabled={disabled}
                 isPreparingSubject={isPreparingSubject}
                 isPreparingReferences={isPreparingReferences}
+                isPreparingReferenceVideo={isPreparingReferenceVideo}
                 onAddProductFiles={onAddProductFiles}
                 onAddReferenceFiles={onAddReferenceFiles}
+                onAddVideoFile={onAddVideoFile}
               />
             </div>
           ) : (
             <div
               className={cn(
-                "relative flex flex-col items-center justify-center gap-3 bg-zinc-900/40 p-6 text-center",
+                "relative flex flex-col items-center justify-center gap-3 bg-ui-field/40 p-6 text-center",
                 VIDEO_ASPECT_BOX_CLASS[aspect],
                 boxSizeClass,
               )}
@@ -466,7 +536,7 @@ export function VideoStagePanel({
               <Film className="h-10 w-10 text-primary/80" aria-hidden />
               <p className="font-semibold text-white">Ready to Direct</p>
               <p className="max-w-md text-muted-foreground">
-                Add a brief, product photos, or references, then use the primary action in the top bar.
+                Add a brief, video, product photos, or references, then use Ask the Director in the top bar.
               </p>
             </div>
           )}
@@ -479,15 +549,15 @@ export function VideoStagePanel({
     effectiveMode === "final" && render?.finalUrl
       ? plan.title
       : `Scene ${scene.order}: ${scene.title}`;
-  const spinning =
+  const isSceneGenerating =
     frame?.status === "generating" ||
-    frame?.status === "waiting" ||
     frame?.environmentStatus === "generating";
+  const spinning = isSceneGenerating || (!frame?.imageDataUrl && frame?.status === "waiting");
+  const isRenderActive = render?.status === "rendering" || render?.status === "stitching";
   const canRerenderClip =
     Boolean(render && onRerenderSceneClip && frame?.status === "done" && frame.imageDataUrl && frame.videoPrompt) &&
     !disabled &&
-    render?.status !== "rendering" &&
-    render?.status !== "stitching";
+    !isRenderActive;
 
   const hasMonitorVisual =
     Boolean(activeVideoUrl) ||
@@ -495,75 +565,55 @@ export function VideoStagePanel({
     Boolean(frame?.imageDataUrl);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-zinc-950">
+    <div className="flex min-h-0 flex-1 flex-col bg-black">
       {/* Top Monitor Bar */}
-      <div className="flex h-10 shrink-0 items-center justify-between gap-3 bg-zinc-900 px-4">
-        <p className="truncate font-semibold text-white">{headline}</p>
+      <div className="flex h-10 shrink-0 items-center justify-between gap-3 bg-ui-field px-4">
+        <p className="break-words font-semibold text-white">{headline}</p>
         <div className="flex shrink-0 items-center gap-2">
           {render || sceneClipUrl || frame?.environmentDataUrl ? (
-            <div className="flex items-center gap-1 bg-zinc-950 p-0.5">
+            <div className="flex items-center gap-1 bg-black p-0.5">
               {render?.finalUrl ? (
-                <button
-                  type="button"
+                <Button
+                  pressed={effectiveMode === "final"}
+                  variant="quiet"
                   onClick={() => setPreviewMode("final")}
-                  className={cn(
-                    "px-2.5 py-0.5 text-base transition-colors",
-                    effectiveMode === "final"
-                      ? "bg-primary font-medium text-black"
-                      : "text-muted-foreground hover:text-white",
-                  )}
                 >
                   Final cut
-                </button>
+                </Button>
               ) : null}
               {sceneClipUrl ? (
-                <button
-                  type="button"
+                <Button
+                  pressed={effectiveMode === "clip"}
+                  variant="quiet"
                   onClick={() => setPreviewMode("clip")}
-                  className={cn(
-                    "px-2.5 py-0.5 text-base transition-colors",
-                    effectiveMode === "clip"
-                      ? "bg-primary font-medium text-black"
-                      : "text-muted-foreground hover:text-white",
-                  )}
                 >
                   Scene {scene.order} clip
-                </button>
+                </Button>
               ) : null}
               {frame?.imageDataUrl ? (
-                <button
-                  type="button"
+                <Button
+                  pressed={effectiveMode === "frame"}
+                  variant="quiet"
                   onClick={() => setPreviewMode("frame")}
-                  className={cn(
-                    "px-2.5 py-0.5 text-base transition-colors",
-                    effectiveMode === "frame"
-                      ? "bg-primary font-medium text-black"
-                      : "text-muted-foreground hover:text-white",
-                  )}
                 >
                   Scene {scene.order} frame
-                </button>
+                </Button>
               ) : null}
               {frame?.environmentDataUrl ? (
-                <button
-                  type="button"
+                <Button
+                  pressed={effectiveMode === "env"}
+                  variant="quiet"
                   onClick={() => setPreviewMode("env")}
-                  className={cn(
-                    "px-2.5 py-0.5 text-base transition-colors",
-                    effectiveMode === "env"
-                      ? "bg-primary font-medium text-black"
-                      : "text-muted-foreground hover:text-white",
-                  )}
                 >
                   Scene {scene.order} env
-                </button>
+                </Button>
               ) : null}
             </div>
           ) : null}
           <span
             className={cn(
               "flex shrink-0 items-center gap-1.5 tabular-nums",
-              render?.status === "failed" ? "text-red-300" : "text-muted-foreground",
+              render?.status === "failed" ? "text-ui-danger-hover" : "text-muted-foreground",
             )}
           >
             {render ? RENDER_STATUS_LABEL[render.status] : `${scene.durationSeconds} s`}
@@ -586,6 +636,13 @@ export function VideoStagePanel({
               onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
               className="absolute inset-0 h-full w-full object-contain"
             />
+          ) : spinning ? (
+            <VideoStudioPlaceholderSplash
+              title={`Scene ${scene.order}`}
+              subtitle="Drawing keyframe from reference…"
+              breathing
+              variant="stage"
+            />
           ) : effectiveMode === "env" && frame?.environmentDataUrl ? (
             <img
               src={frame.environmentDataUrl}
@@ -599,24 +656,15 @@ export function VideoStagePanel({
               className="absolute inset-0 h-full w-full object-contain"
             />
           ) : null}
-          {!hasMonitorVisual && spinning ? (
-            <VideoStudioPlaceholderSplash
-              title={`Scene ${scene.order}`}
-              subtitle={scene.title}
-              breathing
-              variant="stage"
-            />
-          ) : null}
         </div>
       </div>
 
       {/* NLE Transport & Scene Action Bar */}
-      <div className="flex h-11 shrink-0 items-center justify-between gap-3 bg-zinc-900 px-4">
+      <div className="flex h-11 shrink-0 items-center justify-between gap-3 bg-ui-field px-4">
         <div className="flex items-center gap-1">
           <Button
+            variant="quiet"
             type="button"
-            variant="ghost"
-            className={MY_SITES_ICON_BTN}
             disabled={activeIndex <= 0}
             aria-label="Previous scene"
             onClick={() => {
@@ -627,9 +675,8 @@ export function VideoStagePanel({
             <SkipBack className="h-4 w-4" aria-hidden />
           </Button>
           <Button
+            variant="quiet"
             type="button"
-            variant="ghost"
-            className={MY_SITES_ICON_BTN}
             disabled={!activeVideoUrl}
             aria-label={isPlaying ? "Pause" : "Play"}
             onClick={togglePlay}
@@ -637,9 +684,8 @@ export function VideoStagePanel({
             {isPlaying ? <Pause className="h-4 w-4" aria-hidden /> : <Play className="h-4 w-4" aria-hidden />}
           </Button>
           <Button
+            variant="quiet"
             type="button"
-            variant="ghost"
-            className={MY_SITES_ICON_BTN}
             disabled={activeIndex >= scenes.length - 1}
             aria-label="Next scene"
             onClick={() => {
@@ -655,28 +701,27 @@ export function VideoStagePanel({
         </div>
 
         <div className="hidden items-center gap-2 text-muted-foreground md:flex">
-          <span className="bg-zinc-950 px-2.5 py-0.5 text-foreground">
+          <span className="bg-black px-2.5 py-0.5 text-foreground">
             {formatJoinDescription(scene)}
           </span>
           {scene.environmentId ? (
-            <span className="bg-zinc-950 px-2.5 py-0.5 text-primary">
+            <span className="bg-black px-2.5 py-0.5 text-primary">
               {scene.environmentId.replace(/_/g, " ")}
             </span>
           ) : null}
           {scene.productView ? (
-            <span className="bg-zinc-950 px-2.5 py-0.5 text-muted-foreground">
+            <span className="bg-black px-2.5 py-0.5 text-muted-foreground">
               {scene.productView.replace(/_/g, " ")}
             </span>
           ) : null}
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
-          {onRegenerateEnvironmentPlate && frame?.environmentDataUrl ? (
+          {onRegenerateEnvironmentPlate && frame?.environmentDataUrl && !brief?.referenceVideo?.serverId && !scene.postCutReferenceDataUrl ? (
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
-              className={MY_SITES_TOOL_BTN}
-              disabled={disabled || spinning}
+              disabled={isRenderActive || isSceneGenerating}
               onClick={() => onRegenerateEnvironmentPlate(scene.id)}
             >
               <RefreshCw className="mr-1.5 h-3.5 w-3.5" aria-hidden />
@@ -685,21 +730,44 @@ export function VideoStagePanel({
           ) : null}
           {onRegenerateFrame ? (
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
-              className={MY_SITES_TOOL_BTN}
-              disabled={disabled || spinning}
+              disabled={isRenderActive || isSceneGenerating}
               onClick={() => onRegenerateFrame(scene.id)}
+              title="Redraw this frame with AI using your prompt and reference image"
             >
               <RefreshCw className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-              Redraw keyframe
+              {brief?.referenceVideo?.serverId || scene.postCutReferenceDataUrl ? "Redraw with AI (Apply Prompt)" : "Redraw keyframe"}
+            </Button>
+          ) : null}
+          {onRestoreReferenceFrame && (scene.postCutReferenceDataUrl || brief?.referenceVideo?.serverId || referenceCount > 0) ? (
+            <Button
+              variant="quiet"
+              type="button"
+              disabled={isRenderActive || isSceneGenerating}
+              onClick={() => onRestoreReferenceFrame(scene.id)}
+              title="Reset this keyframe to the real photo or frame cut from the reference video"
+            >
+              <Undo2 className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+              Reset Scene to Real Still
+            </Button>
+          ) : null}
+          {onSyncAllFramesFromReferenceVideo && (brief?.referenceVideo?.serverId || referenceCount > 0) ? (
+            <Button
+              variant="quiet"
+              type="button"
+              disabled={isRenderActive || isSceneGenerating}
+              onClick={onSyncAllFramesFromReferenceVideo}
+              title="Reset ALL scenes back to 100% real camera stills and uploaded photos (undo all AI hallucinations)"
+            >
+              <Undo2 className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+              Reset All to Real Stills
             </Button>
           ) : null}
           {canRerenderClip ? (
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
-              className={MY_SITES_TOOL_BTN}
               onClick={() => onRerenderSceneClip?.(scene.id)}
             >
               <RefreshCw className="mr-1.5 h-3.5 w-3.5" aria-hidden />
@@ -710,7 +778,7 @@ export function VideoStagePanel({
       </div>
 
       {render?.error || frame?.error ? (
-        <p className="bg-red-950/60 px-4 py-1.5 text-red-300">{render?.error ?? frame?.error}</p>
+        <p className="bg-ui-danger-surface/60 px-4 py-1.5 text-ui-danger-hover">{render?.error ?? frame?.error}</p>
       ) : null}
     </div>
   );

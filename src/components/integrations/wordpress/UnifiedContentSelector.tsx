@@ -1,16 +1,15 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, RefreshCw, Check, ChevronsUpDown, FileText, ExternalLink, Download } from "lucide-react";
+import { RefreshCw, Check, ChevronsUpDown, FileText, ExternalLink, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getPublishedPosts, getPublishedPages, resolveWordPressUrls, getWordPressPostContent, parseSitemap } from "@/lib/wordpress-api";
 import { type WordPressSite } from "../types";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_FETCHING_DATA, NOTIFY_NO_ENTITIES_FOUND_IN_ENTITY_SITEMAP, NOTIFY_NO_ENTITY_SITEMAP_CONFIGURED_PLEASE_SET_, NOTIFY_SITE_CREDENTIALS_NOT_AVAILABLE, NOTIFY_WORDPRESS_CREDENTIALS_MISSING_PLEASE_UPD, notifyDownloadedXItemSAsJson, notifyFailedToFetchEntitiesX, notifyFailedToFetchPagesX, notifyFailedToFetchPostsX } from "@/lib/notify-messages";
 import { getCyberpunkTextClasses, getCyberpunkButtonClasses } from "./cyberpunk-theme";
+import { Button, Field } from "@/ui";
 
 interface UnifiedContentSelectorProps {
   site: WordPressSite;
@@ -306,22 +305,11 @@ return (
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
-            variant="outline"
             role="combobox"
             aria-expanded={open}
-            className={cn(
-              "w-full justify-between font-medium transition-colors",
-              isDefault
-                ? cn(
-                    "min-h-11 rounded-md border border-border px-3 py-2.5 text-base text-foreground shadow-none",
-                    d!.bg,
-                    d!.bgHover
-                  )
-                : "h-9 border-zinc-600 bg-[#0c0c0c] text-sm text-foreground transition-all hover:border-zinc-500 hover:bg-zinc-900 hover:text-foreground"
-            )}
             disabled={disabled || isLoading || !site.username || !site.appPassword}
           >
-            <span className="truncate flex items-center gap-2">
+            <span className="break-words flex items-center gap-2">
               <FileText className={cn("shrink-0", isDefault ? "h-4 w-4" : "h-3 w-3")} />
               {getDisplayText()}
             </span>
@@ -333,7 +321,7 @@ return (
             "w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)] max-w-[min(100vw-1.5rem,var(--radix-popover-content-available-width))] p-0",
             isDefault
               ? cn("rounded-md border border-border text-foreground shadow-md", d!.bg)
-              : "border border-zinc-700 bg-[#0a0a0a]"
+              : "border border-border bg-[#0a0a0a]"
           )}
           align="start"
         >
@@ -341,7 +329,7 @@ return (
             <div
               className={cn(
                 "flex items-center gap-2 px-3",
-                isDefault ? cn("border-b border-border py-3", d!.bgStripe, d!.text) : "border-b border-zinc-800 bg-zinc-900/90 py-2"
+                isDefault ? cn("border-b border-border py-3", d!.bgStripe, d!.text) : "border-b border-border bg-ui-field/90 py-2"
               )}
             >
               <span
@@ -354,8 +342,7 @@ return (
               </span>
               <div className="flex gap-1 flex-1">
                 <Button
-                  variant="ghost"
-                  size="sm"
+                  variant="quiet"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -366,23 +353,11 @@ return (
                       setHasNoPosts(false); // Reset flag when switching types
                     }
                   }}
-                  className={cn(
-                    "rounded-md px-3 font-medium transition-all",
-                    isDefault ? "min-h-9 text-base" : "h-7 text-xs",
-                    postType === "post"
-                      ? isDefault
-                        ? d!.chipOn
-                        : "border border-zinc-500 bg-zinc-800 text-foreground"
-                      : isDefault
-                        ? d!.chipOff
-                        : "border border-zinc-700 bg-[#0a0a0a] text-foreground hover:border-zinc-600 hover:bg-zinc-900 hover:text-foreground"
-                  )}
                 >
                   Posts
                 </Button>
                 <Button
-                  variant="ghost"
-                  size="sm"
+                  variant="quiet"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -393,25 +368,13 @@ return (
                       setHasNoEntities(false); // Reset flag when switching types
                     }
                   }}
-                  className={cn(
-                    "rounded-md px-3 font-medium transition-all",
-                    isDefault ? "min-h-9 text-base" : "h-7 text-xs",
-                    postType === "service-area"
-                      ? isDefault
-                        ? d!.chipOn
-                        : "border border-zinc-500 bg-zinc-800 text-foreground"
-                      : isDefault
-                        ? d!.chipOff
-                        : "border border-zinc-700 bg-[#0a0a0a] text-foreground hover:border-zinc-600 hover:bg-zinc-900 hover:text-foreground"
-                  )}
                   disabled={!site.entitySitemapUrl}
                   title={!site.entitySitemapUrl ? "No entity sitemap configured" : ""}
                 >
                   Entities
                 </Button>
                 <Button
-                  variant="ghost"
-                  size="sm"
+                  variant="quiet"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -421,24 +384,12 @@ return (
                       setSearchQuery('');
                     }
                   }}
-                  className={cn(
-                    "rounded-md px-3 font-medium transition-all",
-                    isDefault ? "min-h-9 text-base" : "h-7 text-xs",
-                    postType === "both"
-                      ? isDefault
-                        ? d!.chipOn
-                        : "border border-zinc-500 bg-zinc-800 text-foreground"
-                      : isDefault
-                        ? d!.chipOff
-                        : "border border-zinc-700 bg-[#0a0a0a] text-foreground hover:border-zinc-600 hover:bg-zinc-900 hover:text-foreground"
-                  )}
                 >
                   Both
                 </Button>
                 <div className="flex-1" /> {/* Spacer */}
                 <Button
-                  variant="ghost"
-                  size="sm"
+                  variant="quiet"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -449,17 +400,6 @@ return (
                       setHasNoPages(false); // Reset flag when switching types
                     }
                   }}
-                  className={cn(
-                    "rounded-md px-3 font-medium transition-all",
-                    isDefault ? "min-h-9 text-base" : "h-7 text-xs",
-                    postType === "page"
-                      ? isDefault
-                        ? d!.chipOn
-                        : "border border-zinc-500 bg-zinc-800 text-foreground"
-                      : isDefault
-                        ? d!.chipOff
-                        : "border border-zinc-700 bg-[#0a0a0a] text-foreground hover:border-zinc-600 hover:bg-zinc-900 hover:text-foreground"
-                  )}
                 >
                   Pages
                 </Button>
@@ -486,8 +426,7 @@ return (
             >
               <span>{filteredItems.length} {postType === 'post' ? 'post' : postType === 'service-area' ? 'entity' : postType === 'page' ? 'page' : 'item'}{filteredItems.length !== 1 ? 's' : ''} found</span>
               <Button
-                variant="ghost"
-                size="sm"
+                variant="quiet"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -504,19 +443,9 @@ return (
                   }
                 }}
                 disabled={isLoading || (postType === 'post' && hasNoPosts) || (postType === 'service-area' && hasNoEntities) || (postType === 'page' && hasNoPages)}
-                className={cn(
-                  "transition-all",
-                  isDefault
-                    ? cn(
-                        "h-9 rounded-md px-2 text-base text-muted-foreground hover:text-foreground",
-                        d!.bg,
-                        d!.bgHover
-                      )
-                    : "h-8 border border-zinc-700 bg-[#0a0a0a] text-xs text-foreground hover:bg-zinc-900 hover:text-foreground"
-                )}
               >
                 {isLoading ? (
-                  <Loader2 className={cn("animate-spin", isDefault ? "h-4 w-4" : "h-3 w-3")} />
+                  null
                 ) : (
                   <RefreshCw className={isDefault ? "h-4 w-4" : "h-3 w-3"} />
                 )}
@@ -531,7 +460,7 @@ return (
                       isDefault ? cn(d!.text, "text-muted-foreground") : "text-foreground"
                     )}
                   >
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    
                     Loading {postType === 'post' ? 'posts' : postType === 'service-area' ? 'entities' : postType === 'page' ? 'pages' : 'posts and entities'}...
                   </div>
                 ) : (
@@ -555,7 +484,7 @@ return (
                             d!.bg,
                             d!.rowHover
                           )
-                        : "px-3 py-2.5 hover:bg-zinc-900 hover:text-foreground"
+                        : "px-3 py-2.5 hover:bg-ui-field hover:text-foreground"
                     )}
                     onClick={(e) => {
                       e.preventDefault();
@@ -567,7 +496,7 @@ return (
                       checked={allFilteredSelected}
                       onCheckedChange={handleSelectAll}
                       onClick={(e) => e.stopPropagation()}
-                      className={cn("h-4 w-4", !isDefault && "border-zinc-600 data-[state=checked]:border-zinc-400 data-[state=checked]:bg-zinc-700")}
+                      className={cn("h-4 w-4", !isDefault && "border-border data-[state=checked]:border-border data-[state=checked]:bg-ui-field-hover")}
                     />
                     <span
                       className={cn(
@@ -650,7 +579,7 @@ return (
                                 "border-b border-border/40 border-x-0 border-t-0 text-foreground last:border-b-0",
                                 d!.itemRowOn
                               )
-                            : "rounded border border-zinc-600 bg-zinc-800/80 text-foreground"
+                            : "rounded border border-border bg-ui-field-hover/80 text-foreground"
                           : isDefault
                             ? cn(
                                 "border-b border-border/30 border-x-0 border-t-0 last:border-b-0",
@@ -669,7 +598,7 @@ return (
                               onClick={(e) => e.stopPropagation()}
                               className={cn(
                                 "h-4 w-4",
-                                !isDefault && "border-zinc-600 data-[state=checked]:border-zinc-400 data-[state=checked]:bg-zinc-700"
+                                !isDefault && "border-border data-[state=checked]:border-border data-[state=checked]:bg-ui-field-hover"
                               )}
                             />
                           ) : (
@@ -688,7 +617,7 @@ return (
                           )}
                           <span
                             className={cn(
-                              "truncate font-semibold",
+                              "break-words font-semibold",
                               isDefault ? "text-base" : "text-sm",
                               isSelected
                                 ? isDefault
@@ -722,27 +651,16 @@ return (
 
       {!multiSelect && (
         <div className="relative">
-          <Input
+          <Field
             placeholder="Or enter URL manually"
             value={selectedUrl || ''}
             onChange={(e) => onValueChange(e.target.value)}
             disabled={disabled}
-            className={cn(
-              "font-mono transition-all",
-              isDefault
-                ? cn("min-h-11 rounded-md border border-border px-3 py-2.5 text-base", d!.bg)
-                : "h-9 border-zinc-600 bg-[#0c0c0c] text-sm text-foreground placeholder:text-muted-foreground"
-            )}
           />
           {selectedItem && (
             <Button
-              variant="ghost"
-              size="sm"
+              variant="quiet"
               onClick={() => window.open(selectedItem.link, '_blank')}
-              className={cn(
-                "absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 p-0",
-                isDefault ? "text-muted-foreground hover:text-foreground" : "text-foreground hover:text-foreground"
-              )}
               title="Open in new tab"
             >
               <ExternalLink className="h-3 w-3" />
@@ -761,8 +679,8 @@ return (
             {selectedItems.length} {postType === 'post' ? 'post' : postType === 'service-area' ? 'entity' : postType === 'page' ? 'page' : 'URL'}{selectedItems.length !== 1 ? 's' : ''} selected
           </span>
           <Button
-            variant={isDefault ? "outline" : "ghost"}
-            size="sm"
+            pressed={Boolean(isDefault)}
+            variant="quiet"
             onClick={async (e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -868,12 +786,6 @@ return (
               }
             }}
             disabled={disabled || isLoading || !site.username || !site.appPassword}
-            className={cn(
-              "font-medium transition-all",
-              isDefault
-                ? cn("h-9 rounded-md border border-border text-base", d!.bg, d!.bgHover)
-                : cn("h-8 text-sm", getCyberpunkButtonClasses())
-            )}
             title={`Download ${postType === 'post' ? 'post' : postType === 'service-area' ? 'entity' : postType === 'page' ? 'page' : 'sitemap'} data as JSON`}
           >
             <Download className="h-3 w-3 mr-1" />

@@ -1,5 +1,4 @@
 import React from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExternalLink, Download, Trash2, Clock, CheckCircle2, XCircle, AlertCircle, Copy } from "lucide-react";
 import { notify } from "@/lib/app-notifications";
@@ -7,6 +6,7 @@ import { NOTIFY_URL_COPIED } from "@/lib/notify-messages";
 import { format } from "date-fns";
 import { type WordPressSite } from "../types";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 export interface OptimizationHistoryEntry {
   id: string;
@@ -39,11 +39,11 @@ export const OptimizationHistoryPanel: React.FC<OptimizationHistoryPanelProps> =
   const getStatusIcon = (status: OptimizationHistoryEntry['status']) => {
     switch (status) {
       case 'success':
-        return <CheckCircle2 className="h-3 w-3 text-green-600 dark:text-green-500" />;
+        return <CheckCircle2 className="h-3 w-3 text-primary dark:text-primary" />;
       case 'failed':
         return <XCircle className="h-3 w-3 text-destructive" />;
       case 'in-progress':
-        return <Clock className="h-3 w-3 animate-pulse text-amber-600 dark:text-amber-500" />;
+        return <Clock className="h-3 w-3 text-semantic-warning dark:text-semantic-warning" />;
       default:
         return <AlertCircle className="h-3 w-3 text-muted-foreground" />;
     }
@@ -78,7 +78,7 @@ export const OptimizationHistoryPanel: React.FC<OptimizationHistoryPanelProps> =
               "space-y-1.5 rounded-md border border-border bg-card p-2 text-xs",
               entry.status === 'success' && "bg-muted/20",
               entry.status === 'failed' && "border-destructive/30 bg-destructive/5",
-              entry.status === 'in-progress' && "bg-amber-500/5"
+              entry.status === 'in-progress' && "bg-semantic-warning/5"
             )}
           >
             <div className="flex items-start justify-between gap-2">
@@ -87,10 +87,10 @@ export const OptimizationHistoryPanel: React.FC<OptimizationHistoryPanelProps> =
                   {getStatusIcon(entry.status)}
                   <span
                     className={cn(
-                      "truncate font-medium",
-                      entry.status === 'success' && "text-green-700 dark:text-green-400",
+                      "break-words font-medium",
+                      entry.status === 'success' && "text-primary dark:text-primary",
                       entry.status === 'failed' && "text-destructive",
-                      entry.status === 'in-progress' && "text-amber-700 dark:text-amber-400"
+                      entry.status === 'in-progress' && "text-semantic-warning dark:text-semantic-warning-foreground"
                     )}
                   >
                     {entry.title || entry.url}
@@ -101,9 +101,7 @@ export const OptimizationHistoryPanel: React.FC<OptimizationHistoryPanelProps> =
                     {entry.url}
                   </span>
                   <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-5 w-5 shrink-0 p-0"
+                    variant="quiet"
                     onClick={() => {
                       navigator.clipboard.writeText(entry.url);
                       notify.success(NOTIFY_URL_COPIED);
@@ -117,9 +115,9 @@ export const OptimizationHistoryPanel: React.FC<OptimizationHistoryPanelProps> =
                   <span>{format(new Date(entry.timestamp), "MMM d, yyyy 'at' h:mm a")}</span>
                   <span
                     className={cn(
-                      entry.status === 'success' && "text-green-700 dark:text-green-400",
+                      entry.status === 'success' && "text-primary dark:text-primary",
                       entry.status === 'failed' && "text-destructive",
-                      entry.status === 'in-progress' && "text-amber-700 dark:text-amber-400"
+                      entry.status === 'in-progress' && "text-semantic-warning dark:text-semantic-warning-foreground"
                     )}
                   >
                     {getStatusLabel(entry.status)}
@@ -131,7 +129,7 @@ export const OptimizationHistoryPanel: React.FC<OptimizationHistoryPanelProps> =
                   )}
                 </div>
                 {entry.error && (
-                  <div className="mt-1 truncate text-sm text-destructive">
+                  <div className="mt-1 break-words text-sm text-destructive">
                     {entry.error}
                   </div>
                 )}
@@ -139,10 +137,7 @@ export const OptimizationHistoryPanel: React.FC<OptimizationHistoryPanelProps> =
             </div>
             <div className="flex items-center gap-1 pt-1">
               <Button
-                variant="outline"
-                size="sm"
                 onClick={() => window.open(entry.url, '_blank')}
-                className="h-6 px-2 text-sm"
                 title="Open URL"
               >
                 <ExternalLink className="mr-1 h-3 w-3" />
@@ -150,10 +145,7 @@ export const OptimizationHistoryPanel: React.FC<OptimizationHistoryPanelProps> =
               </Button>
               {entry.status === 'success' && entry.fileCount && entry.fileCount > 0 && onDownloadFiles && (
                 <Button
-                  variant="outline"
-                  size="sm"
                   onClick={() => onDownloadFiles(entry)}
-                  className="h-6 px-2 text-sm"
                   title="Download files"
                 >
                   <Download className="mr-1 h-3 w-3" />
@@ -162,10 +154,7 @@ export const OptimizationHistoryPanel: React.FC<OptimizationHistoryPanelProps> =
               )}
               {onViewDetails && (
                 <Button
-                  variant="outline"
-                  size="sm"
                   onClick={() => onViewDetails(entry)}
-                  className="h-6 px-2 text-sm"
                   title="View details"
                 >
                   Details
@@ -177,11 +166,8 @@ export const OptimizationHistoryPanel: React.FC<OptimizationHistoryPanelProps> =
 
         {onClearHistory && (
           <Button
-            variant="outline"
-            size="sm"
             onClick={onClearHistory}
             disabled={disabled}
-            className="mt-2 h-7 w-full text-xs"
           >
             <Trash2 className="mr-1 h-3 w-3" />
             Clear History

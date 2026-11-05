@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 import { AlertTriangle, Check, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { HOST_SURFACE, MY_SITES_ICON_BTN } from "@/components/hosting/my-sites/my-sites-theme";
 import type { StoryboardFrame, VideoPlan, VideoRenderScene } from "@/lib/video-generator/video-generator-types";
 import { VIDEO_ASPECT_BOX_CLASS, type VideoAspect } from "@/lib/video-generator/video-model-defaults";
 import { VideoStudioPlaceholderSplash } from "./VideoStudioPlaceholderSplash";
 import { cn } from "@/lib/utils";
+import { Button, RowButton } from "@/ui";
 
 type VideoSceneSidebarProps = {
   plan: VideoPlan | null;
@@ -58,9 +58,8 @@ export function VideoSceneSidebar({
               className={cn(HOST_SURFACE, "flex flex-col", selected && "ring-1 ring-primary/70")}
               aria-current={selected ? "true" : undefined}
             >
-              <button
+              <RowButton
                 type="button"
-                className={cn("relative w-full overflow-hidden bg-black text-left", VIDEO_ASPECT_BOX_CLASS[aspect])}
                 aria-label={`Select scene ${scene.order}: ${scene.title}`}
                 onClick={() => onSelect(scene.id)}
               >
@@ -83,7 +82,7 @@ export function VideoSceneSidebar({
                 ) : null}
                 {frame?.status === "failed" && !frame?.imageDataUrl ? (
                   <span className="absolute inset-0 flex items-center justify-center">
-                    <AlertTriangle className="h-6 w-6 text-red-300" aria-label="Frame failed" />
+                    <AlertTriangle className="h-6 w-6 text-ui-danger-hover" aria-label="Frame failed" />
                   </span>
                 ) : null}
                 <span className="absolute left-2 top-2 inline-flex h-6 min-w-[1.5rem] items-center justify-center bg-black/80 px-1.5 tabular-nums text-white">
@@ -93,7 +92,7 @@ export function VideoSceneSidebar({
                   <span
                     className={cn(
                       "absolute inset-x-0 bottom-0 flex h-8 items-center gap-2 bg-black/80 px-3",
-                      clip.status === "failed" ? "text-red-300" : clip.status === "done" ? "text-primary" : "text-foreground",
+                      clip.status === "failed" ? "text-ui-danger-hover" : clip.status === "done" ? "text-primary" : "text-foreground",
                     )}
                   >
                     {clipBusy && !frame?.imageDataUrl ? (
@@ -101,14 +100,14 @@ export function VideoSceneSidebar({
                     ) : null}
                     {clip.status === "done" ? <Check className="h-4 w-4" aria-hidden /> : null}
                     {clip.status === "failed" ? <AlertTriangle className="h-4 w-4" aria-hidden /> : null}
-                    <span className="truncate">{CLIP_STATUS_LABEL[clip.status]}</span>
+                    <span className="break-words">{CLIP_STATUS_LABEL[clip.status]}</span>
                   </span>
                 ) : null}
-              </button>
+              </RowButton>
               <div className="flex h-12 shrink-0 items-center justify-between gap-2 px-3">
-                <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onSelect(scene.id)}>
-                  <p className="truncate font-medium text-white">{scene.title}</p>
-                  <p className="truncate tabular-nums text-muted-foreground" title={frame?.error ?? clip?.error ?? undefined}>
+                <Button variant="quiet" onClick={() => onSelect(scene.id)}>
+                  <p className="break-words font-medium text-white">{scene.title}</p>
+                  <p className="break-words tabular-nums text-muted-foreground" title={frame?.error ?? clip?.error ?? undefined}>
                     {scene.durationSeconds} s
                     {scene.transitionIn
                       ? ` · ${
@@ -123,12 +122,11 @@ export function VideoSceneSidebar({
                     {frame?.status === "failed" && frame.error ? ` · ${frame.error}` : ""}
                     {clip?.status === "failed" && clip.error ? ` · ${clip.error}` : ""}
                   </p>
-                </button>
+                </Button>
                 {frames.length > 0 ? (
                   <Button
+                    variant="quiet"
                     type="button"
-                    variant="ghost"
-                    className={MY_SITES_ICON_BTN}
                     disabled={disabled || spinning || prompting || clip?.status === "generating"}
                     aria-label={`Regenerate scene ${scene.order}`}
                     onClick={() => onRegenerate(scene.id)}

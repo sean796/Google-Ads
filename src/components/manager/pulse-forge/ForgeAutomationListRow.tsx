@@ -9,6 +9,7 @@ import {
   getPropertyListRowBlackIconButtonClass,
   getPropertyListRowIconButtonHoverGlowClass,
 } from "@/components/integrations/wordpress/cyberpunk-theme";
+import { Button } from "@/ui";
 
 export type ForgeAutomationListRowProps = {
   rank: number;
@@ -86,19 +87,19 @@ export function ForgeAutomationListRow({
           <span
             className={cn(
               "inline-block h-2 w-2 rounded-full",
-              active ? "bg-primary" : "bg-zinc-700",
+              active ? "bg-primary" : "bg-ui-field-hover",
             )}
             aria-hidden
           />
         </td>
         <td className={cn(FORGE_AUTOMATION_TD_CLASS, "min-w-[14rem] max-w-[20rem] font-medium text-white")}>
-          <span className="block truncate">{title}</span>
+          <span className="block break-words">{title}</span>
           {visibilityLabel ? (
-            <span className="block truncate text-base text-muted-foreground">{visibilityLabel}</span>
+            <span className="block break-words text-base text-muted-foreground">{visibilityLabel}</span>
           ) : null}
         </td>
         <td className={cn(FORGE_AUTOMATION_TD_CLASS, "min-w-[9rem] max-w-[12rem] text-muted-foreground")}>
-          <span className="block truncate">{siteName}</span>
+          <span className="block break-words">{siteName}</span>
         </td>
         <td className={cn(FORGE_AUTOMATION_TD_CLASS, "min-w-[6.5rem] text-muted-foreground")}>
           {scheduleLabel ?? "—"}
@@ -137,23 +138,19 @@ export function ForgeAutomationListRow({
                 onExecuted={onExecuted}
               />
             ) : null}
-            <button
-              type="button"
+            <Button
+              size="icon" icon={Settings}
+              variant="quiet"
               aria-label={`Settings for ${title}`}
               disabled={demoMode}
               onClick={(e) => {
                 e.stopPropagation();
                 onOpenSettings?.();
               }}
-              className={cn(
-                getPropertyListRowBlackIconButtonClass(true),
-                getPropertyListRowIconButtonHoverGlowClass("powerOn"),
-              )}
-            >
-              <Settings className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
+            ></Button>
+            <Button
+              size="icon" icon={Trash2}
+              variant="quiet"
               aria-label={`Delete ${title}`}
               disabled={demoMode}
               onClick={(e) => {
@@ -161,13 +158,7 @@ export function ForgeAutomationListRow({
                 if (demoMode || !onDelete) return;
                 onDelete();
               }}
-              className={cn(
-                getPropertyListRowBlackIconButtonClass(true),
-                getPropertyListRowIconButtonHoverGlowClass("destructive"),
-              )}
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
+            ></Button>
           </div>
         </td>
       </tr>

@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Copy, Download, RefreshCw, Share2, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { BULK_HEADER_TOOL_BTN } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import { WORKFLOW_SIDEBAR_BG_CLASS, WORKFLOW_SIDEBAR_FIELD_CLASS, WORKFLOW_SIDEBAR_ROW_CLASS } from "@/components/manager/workflow/forge-workflow-styles";
 import { useActiveWordPressSite } from "@/contexts/active-wordpress-site-context";
@@ -36,6 +35,7 @@ import {
 import type { WorkflowNode, WorkflowRun, WorkflowStepOutput } from "@/lib/workflow/workflow-types";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { Button } from "@/ui";
 
 type RagClientSection = {
   siteId: string;
@@ -229,14 +229,14 @@ function renderFileRow(
         WORKFLOW_SIDEBAR_ROW_CLASS,
       )}
     >
-      <span className="min-w-0 flex-1 truncate font-normal text-white">{file.name}</span>
+      <span className="min-w-0 flex-1 break-words font-normal text-white">{file.name}</span>
       <span className="shrink-0 tabular-nums text-muted-foreground">{formatFileSize(file.sizeBytes)}</span>
       <a
         href={file.href}
         download={file.name}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground hover:bg-zinc-800 hover:text-white"
+        className="inline-flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground hover:bg-ui-field-hover hover:text-white"
         aria-label={`Download ${file.name}`}
         onClick={(event) => event.stopPropagation()}
       >
@@ -244,29 +244,25 @@ function renderFileRow(
       </a>
       {output ? (
         <>
-          <button
-            type="button"
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground hover:bg-zinc-800 hover:text-white"
+          <Button
+            size="icon" icon={Copy}
+            variant="quiet"
             aria-label={`Copy ${file.outputKey}`}
             onClick={(event) => {
               event.stopPropagation();
               void navigator.clipboard.writeText(`{{${file.outputKey}}}`);
             }}
-          >
-            <Copy className="h-4 w-4" aria-hidden />
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground hover:bg-zinc-800 hover:text-white disabled:opacity-50"
+          ></Button>
+          <Button
+            size="icon" icon={Share2}
+            variant="quiet"
             aria-label={`Promote ${file.name}`}
             disabled={promotingKey === output.variableKey}
             onClick={(event) => {
               event.stopPropagation();
               onPromote(output);
             }}
-          >
-            <Share2 className="h-4 w-4" aria-hidden />
-          </button>
+          ></Button>
         </>
       ) : null}
     </div>
@@ -319,24 +315,22 @@ function WorkflowRagRunRow({
           }
         }}
       >
-        <span className="min-w-0 truncate font-normal">Run #{run.id}</span>
+        <span className="min-w-0 break-words font-normal">Run #{run.id}</span>
         <span className="shrink-0 capitalize text-muted-foreground">{runStatusLabel(run.status)}</span>
         <span className="shrink-0 text-muted-foreground">
           {fileCount > 0 ? `${fileCount} file${fileCount === 1 ? "" : "s"}` : "No files"}
         </span>
         <span className="ml-auto shrink-0 text-muted-foreground">{formatRunWhen(run.createdAt)}</span>
-        <button
-          type="button"
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground hover:bg-zinc-800 hover:text-white disabled:opacity-50"
+        <Button
+          size="icon" icon={Trash2}
+          variant="quiet"
           aria-label={`Delete run ${run.id}`}
           disabled={deletingRun}
           onClick={(event) => {
             event.stopPropagation();
             onDeleteRun();
           }}
-        >
-          <Trash2 className="h-4 w-4" aria-hidden />
-        </button>
+        ></Button>
         <ChevronDown
           className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", expanded && "rotate-180")}
           aria-hidden
@@ -644,10 +638,8 @@ export function WorkflowRagSidebar({
         <div className="flex items-center gap-2">
           <p className="text-base font-normal text-white">Run archive</p>
           <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="sm"
-          className={cn(BULK_HEADER_TOOL_BTN, "ml-auto h-8 gap-1.5 px-2.5 font-normal")}
           disabled={refreshing || clearing || deletingRunId != null}
           onClick={() => void refresh()}
         >
@@ -655,10 +647,8 @@ export function WorkflowRagSidebar({
           Refresh
         </Button>
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="sm"
-          className={cn(BULK_HEADER_TOOL_BTN, "h-8 px-2.5 font-normal")}
           disabled={sortedRuns.length === 0 || refreshing || clearing || deletingRunId != null}
           aria-label="Clear run archive"
           title="Clear run archive"
@@ -676,7 +666,7 @@ export function WorkflowRagSidebar({
         />
       </div>
 
-      {error ? <p className={cn("px-3 py-2 text-base text-red-400", WORKFLOW_SIDEBAR_FIELD_CLASS)}>{error}</p> : null}
+      {error ? <p className={cn("px-3 py-2 text-base text-ui-danger-hover", WORKFLOW_SIDEBAR_FIELD_CLASS)}>{error}</p> : null}
 
       <div ref={archiveScrollRef} className="min-h-0 flex-1 overflow-y-auto">
         {sortedRuns.length === 0 ? (

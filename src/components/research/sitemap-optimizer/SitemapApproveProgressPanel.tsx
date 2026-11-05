@@ -1,4 +1,4 @@
-import { Check, Loader2 } from "lucide-react";
+import { Check } from "lucide-react";
 import {
   SITEMAP_APPROVE_STEPS,
   sitemapApproveActiveStepLines,
@@ -101,7 +101,7 @@ function StepRow({
         {status === "done" ? (
           <Check className="h-4 w-4" />
         ) : status === "active" ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          null
         ) : (
           <span className="text-base font-semibold">{stepNumber}</span>
         )}

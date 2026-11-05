@@ -11,24 +11,11 @@ import {
   YAxis,
 } from "recharts";
 import { useBoxReady } from "@/components/ui/chart-box-ready";
-import type {
-  OrganicChartPoint,
-  OrganicDashboardPeriodLabels,
-  OrganicGscMetricDelta,
-  OrganicGscQueryRow,
-  OrganicGscSummary,
-} from "@/lib/organic-dashboard/organic-dashboard-view-model";
+import type { OrganicChartPoint, OrganicDashboardPeriodLabels, OrganicGscQueryRow, OrganicGscSummary } from "@/lib/organic-dashboard/organic-dashboard-view-model";
 import { formatCanadianCompactNumber } from "@/lib/gsc-reporting/gsc-number-format";
-import {
-  ORGANIC_DASHBOARD_ICON_BADGE_CLASS,
-  ORGANIC_DASHBOARD_SECTION_PANEL_CLASS,
-  ORGANIC_DASHBOARD_SECTION_TITLE_CLASS,
-  ORGANIC_GSC_CHART_CLASS,
-  ORGANIC_GSC_CLICKS_COLOR,
-  ORGANIC_GSC_IMPRESSIONS_COLOR,
-  ORGANIC_GSC_METRIC_INACTIVE_CLASS,
-} from "@/components/organic-dashboard/organic-dashboard-styles";
+import { ORGANIC_DASHBOARD_ICON_BADGE_CLASS, ORGANIC_DASHBOARD_SECTION_PANEL_CLASS, ORGANIC_DASHBOARD_SECTION_TITLE_CLASS, ORGANIC_GSC_CHART_CLASS, ORGANIC_GSC_CLICKS_COLOR, ORGANIC_GSC_IMPRESSIONS_COLOR } from "@/components/organic-dashboard/organic-dashboard-styles";
 import { cn } from "@/lib/utils";
+import { Button, SwatchButton } from "@/ui";
 
 type GscChartSeries = "clicks" | "impressions" | "ctr" | "position";
 
@@ -150,21 +137,15 @@ export function OrganicGscSection({
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <div className="flex shrink-0 gap-1">
               {(["daily", "monthly"] as const).map((mode) => (
-                <button
+                <Button
+                  pressed={granularity === mode}
+                  variant="quiet"
                   key={mode}
-                  type="button"
-                  aria-pressed={granularity === mode}
                   disabled={mode === "daily" ? trendDaily.length === 0 : trendMonthly.length === 0}
                   onClick={() => setGranularity(mode)}
-                  className={cn(
-                    "h-8 min-w-[4.5rem] px-2 text-base capitalize",
-                    granularity === mode
-                      ? "bg-zinc-800 text-white"
-                      : cn(ORGANIC_GSC_METRIC_INACTIVE_CLASS, "text-muted-foreground"),
-                  )}
                 >
                   {mode === "daily" ? "Daily" : "Monthly"}
-                </button>
+                </Button>
               ))}
             </div>
             {periodLabels.primary !== "Current period" ? (
@@ -190,16 +171,11 @@ export function OrganicGscSection({
             const compareValue = summary?.[metric.compareKey] ?? "—";
             const delta = summary?.[metric.deltaKey] ?? { deltaPercent: null, deltaPositive: null };
             return (
-              <button
+              <SwatchButton
                 key={metric.id}
-                type="button"
-                aria-pressed={on}
+                selected={on}
                 onClick={() => toggleSeries(metric.id)}
-                className={cn(
-                  "flex min-w-0 flex-col gap-0.5 rounded-none px-3 py-2 text-left transition-colors",
-                  on ? "text-white" : ORGANIC_GSC_METRIC_INACTIVE_CLASS,
-                )}
-                style={on ? { backgroundColor: metric.color } : undefined}
+                swatch={on ? { backgroundColor: metric.color, color: "#fff" } : undefined}
               >
                 <span className="text-base leading-tight">{metric.label}</span>
                 {showCompare ? (
@@ -213,7 +189,7 @@ export function OrganicGscSection({
                 ) : (
                   <span className="text-xl font-semibold tabular-nums leading-tight">{value}</span>
                 )}
-              </button>
+              </SwatchButton>
             );
           })}
         </div>
@@ -318,7 +294,7 @@ export function OrganicGscSection({
               <tbody>
                 {queries.map((row, idx) => (
                   <tr key={`${row.query}-${idx}`} className="border-t border-white/5">
-                    <td className="max-w-[20rem] truncate py-2.5 pr-4 text-white">{row.query}</td>
+                    <td className="max-w-[20rem] break-words py-2.5 pr-4 text-white">{row.query}</td>
                     {showCompare ? (
                       <>
                         <td className="py-2.5 pr-4 tabular-nums text-muted-foreground">{row.previousClicks}</td>

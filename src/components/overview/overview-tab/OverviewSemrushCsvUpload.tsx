@@ -1,11 +1,11 @@
 import { useRef } from "react";
 import { Upload, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   BULK_HEADER_ICON_TOOL_BTN,
   BULK_HEADER_TOOL_BTN,
 } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import { semrushIssueLabelFromFilename } from "@/lib/overview/parse-semrush-error-csv";
+import { Button, FileInput } from "@/ui";
 
 export type OverviewSemrushCsvUploadProps = {
   fileName: string | null;
@@ -26,11 +26,9 @@ export function OverviewSemrushCsvUpload({
 
   return (
     <>
-      <input
+      <FileInput
         ref={fileRef}
-        type="file"
         accept=".csv,text/csv"
-        className="hidden"
         disabled={disabled}
         onChange={(e) => {
           const file = e.target.files?.[0];
@@ -44,10 +42,8 @@ export function OverviewSemrushCsvUpload({
         aria-label="SEMrush CSV"
       >
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="sm"
-          className={BULK_HEADER_TOOL_BTN}
           disabled={disabled}
           aria-label="Upload SEMrush CSV"
           title="Upload SEMrush CSV"
@@ -57,16 +53,14 @@ export function OverviewSemrushCsvUpload({
           SEMrush
         </Button>
         {fileName ? (
-          <span className="max-w-[14rem] truncate text-base text-muted-foreground" title={fileName}>
+          <span className="max-w-[14rem] break-words text-base text-muted-foreground" title={fileName}>
             {fileName} ({urlCount} · {semrushIssueLabelFromFilename(fileName)})
           </span>
         ) : null}
         {fileName ? (
           <Button
+            variant="quiet"
             type="button"
-            variant="ghost"
-            size="sm"
-            className={BULK_HEADER_ICON_TOOL_BTN}
             disabled={disabled}
             aria-label="Clear SEMrush CSV filter"
             title="Clear SEMrush CSV filter"

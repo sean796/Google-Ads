@@ -1,6 +1,5 @@
 import React, { useCallback, useRef, useState } from "react";
-import { Loader2, Sparkles, SpellCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Sparkles, SpellCheck } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { transformChatHtml, type ChatAiMode } from "@/lib/chat-ai-compose";
 import type { ChatRichEditorHandle } from "@/components/chat/editor/ChatRichEditor";
 import { CHAT_ICON_BTN_CLASS } from "@/components/chat/chat-theme";
+import { Button } from "@/ui";
 
 const AI_MENU: Array<{ mode: ChatAiMode; label: string }> = [
   { mode: "correct", label: "Correct" },
@@ -68,22 +68,20 @@ export function ChatAiToolbar({
   );
 
   const busy = activeMode != null;
-  const btnClass = "h-8 gap-1.5 px-2 text-base text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900";
+  const btnClass = "h-8 gap-1.5 px-2 text-base text-muted-foreground hover:bg-muted hover:text-black";
 
   if (variant === "spark-dropdown") {
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
+            variant="quiet"
             type="button"
-            variant="ghost"
-            size="icon"
             disabled={disabled || busy}
-            className={cn("chat-editor-ai-spark h-8 w-8 shrink-0", CHAT_ICON_BTN_CLASS)}
             aria-label="AI options"
           >
             {busy ? (
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              null
             ) : (
               <Sparkles className="h-4 w-4 text-primary" />
             )}
@@ -103,32 +101,28 @@ export function ChatAiToolbar({
   }
 
   return (
-    <div className={cn("flex shrink-0 items-center gap-0.5", !inline && "border-b border-zinc-200 px-2 py-1")}>
+    <div className={cn("flex shrink-0 items-center gap-0.5", !inline && "border-b border-border px-2 py-1")}>
       <Button
+        variant="quiet"
         type="button"
-        variant="ghost"
-        size="sm"
         disabled={disabled || busy}
-        className={btnClass}
         onClick={() => void runTransform("correct")}
       >
         {activeMode === "correct" ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          null
         ) : (
           <SpellCheck className="h-4 w-4" />
         )}
         Correct
       </Button>
       <Button
+        variant="quiet"
         type="button"
-        variant="ghost"
-        size="sm"
         disabled={disabled || busy}
-        className={btnClass}
         onClick={() => void runTransform("enhance")}
       >
         {activeMode === "enhance" ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          null
         ) : (
           <Sparkles className="h-4 w-4" />
         )}
@@ -136,7 +130,7 @@ export function ChatAiToolbar({
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button type="button" variant="ghost" size="sm" disabled={disabled || busy} className={btnClass}>
+          <Button variant="quiet" type="button" disabled={disabled || busy}>
             More
           </Button>
         </DropdownMenuTrigger>
@@ -152,7 +146,7 @@ export function ChatAiToolbar({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {error ? <span className="max-w-[8rem] truncate text-base text-red-600">{error}</span> : null}
+      {error ? <span className="max-w-[8rem] break-words text-base text-ui-danger">{error}</span> : null}
     </div>
   );
 }

@@ -1,11 +1,10 @@
-import { Download, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Download } from "lucide-react";
 import {
   SupportChatLogAttachment,
   supportChatLogFileName,
 } from "@/components/support/SupportChatLogAttachment";
 import type { SupportTicket } from "@/lib/support-types";
+import { Button, TextareaField } from "@/ui";
 
 type SupportTicketRowDetailsProps = {
   ticket: SupportTicket;
@@ -32,15 +31,15 @@ export function SupportTicketRowDetails({
 }: SupportTicketRowDetailsProps) {
   if (loading) {
     return (
-      <div className="flex items-center gap-2 bg-zinc-950 px-3 py-4 text-base text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+      <div className="flex items-center gap-2 bg-black px-3 py-4 text-base text-muted-foreground">
+        
         Loading ticket…
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4 bg-zinc-950 px-3 py-4">
+    <div className="flex flex-col gap-4 bg-black px-3 py-4">
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-base font-semibold text-foreground">
@@ -54,7 +53,7 @@ export function SupportTicketRowDetails({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="secondary" onClick={onToggleStatus}>
+        <Button type="button" onClick={onToggleStatus}>
           Mark {ticket.status === "open" ? "closed" : "open"}
         </Button>
       </div>
@@ -66,7 +65,7 @@ export function SupportTicketRowDetails({
             fileName={supportChatLogFileName(ticket.id)}
             sizeLabel="Stored on server"
           />
-          <Button type="button" variant="outline" onClick={onDownloadLog}>
+          <Button type="button" onClick={onDownloadLog}>
             <Download className="mr-2 h-4 w-4" aria-hidden />
             Download attachment
           </Button>
@@ -102,13 +101,13 @@ export function SupportTicketRowDetails({
         )}
 
         <div className="space-y-2">
-          <Textarea
+          <TextareaField
             value={comment}
             onChange={(e) => onCommentChange(e.target.value)}
             rows={3}
             placeholder="Add a comment"
           />
-          <Button type="button" onClick={onAddComment} disabled={submittingComment || !comment.trim()}>
+          <Button variant="run" type="button" onClick={onAddComment} disabled={submittingComment || !comment.trim()}>
             {submittingComment ? "Saving…" : "Add comment"}
           </Button>
         </div>

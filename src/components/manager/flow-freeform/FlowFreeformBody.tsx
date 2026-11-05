@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Textarea } from "@/components/ui/textarea";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_GOAL_PROMPT_UPDATED } from "@/lib/notify-messages";
 import { cn } from "@/lib/utils";
@@ -17,6 +14,7 @@ import {
   WorkspaceNestedInput,
   WorkspaceNestedTextarea,
 } from "@/components/seo/WorkspaceNestedField";
+import { Button, TextareaField } from "@/ui";
 
 export type FlowFreeformBodyProps = {
   flowTitle: string;
@@ -179,8 +177,8 @@ export function FlowFreeformBody({
                       </label>
                     ))}
                   </RadioGroup>
-                  <Label className="mt-2 text-base font-normal text-muted-foreground">Custom detail (optional)</Label>
-                  <Textarea
+                  <label className="mt-2 text-base font-normal text-muted-foreground">Custom detail (optional)</label>
+                  <TextareaField
                     value={customVal}
                     onChange={(e) => {
                       const next = mergeClarifiedAnswer(radioVal, e.target.value);
@@ -188,7 +186,6 @@ export function FlowFreeformBody({
                     }}
                     placeholder="Your own words - overrides empty choice above"
                     rows={2}
-                    className="mt-1 min-h-[52px] resize-y border-border/50 bg-black/40 font-mono text-xs"
                   />
                 </div>
               );
@@ -200,12 +197,9 @@ export function FlowFreeformBody({
       {sections.length > 0 ? (
         <div className="neo-pulse-zone-tile--analysis space-y-3 rounded-md border border-border/50 px-3 py-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-[1rem] font-semibold uppercase tracking-wide text-muted-foreground">Report sections</p>
+            <p className="text-base font-semibold uppercase tracking-wide text-muted-foreground">Report sections</p>
             <Button
               type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1 border-border/60"
               disabled={pipelineBusy || sections.length === 0}
               onClick={() => void onRebuildAll()}
             >
@@ -217,17 +211,15 @@ export function FlowFreeformBody({
             {sections.map((sec) => (
               <div key={sec.id} className="rounded-md border border-border/40 bg-black/25 p-3">
                 <div className="mb-2 font-mono text-sm text-primary">{sec.h2Title}</div>
-                <Label className="text-xs text-muted-foreground">Section writer prompt</Label>
-                <Textarea
+                
+                <TextareaField
+                  placeholder="Section writer prompt"
                   value={sec.writerPrompt}
                   onChange={(e) => updateSectionWriterPrompt(sec.id, e.target.value)}
-                  className="mt-1 min-h-[72px] resize-y border-border/50 bg-black/40 font-mono text-sm"
                 />
                 <div className="mt-2 flex flex-wrap gap-2">
                   <Button
                     type="button"
-                    variant="secondary"
-                    size="sm"
                     disabled={pipelineBusy}
                     onClick={() => void onRebuildSection(sec)}
                   >

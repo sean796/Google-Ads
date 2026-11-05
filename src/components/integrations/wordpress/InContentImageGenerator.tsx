@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import type { ImageType } from "@/lib/image-section-analyzer";
+import { SelectField, TextareaField } from "@/ui";
 
 interface InContentImageGeneratorProps {
   imageType?: ImageType | '';
@@ -51,25 +49,7 @@ export const InContentImageGenerator: React.FC<InContentImageGeneratorProps> = (
   return (
     <div className="space-y-2">
       <div className="space-y-2">
-        <Select
-          value={imageType || '__none__'}
-          onValueChange={handleImageTypeChange}
-          disabled={disabled}
-        >
-          <SelectTrigger id="image-type" className="h-9 text-sm font-medium">
-            <SelectValue placeholder="In Content Image" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__">In Content Image</SelectItem>
-            <SelectItem value="infographic">Infographic</SelectItem>
-            <SelectItem value="blog-image">Blog Image</SelectItem>
-            <SelectItem value="diagram">Diagram</SelectItem>
-            <SelectItem value="illustration">Illustration</SelectItem>
-            <SelectItem value="chart">Chart</SelectItem>
-            <SelectItem value="photo">Photo</SelectItem>
-            <SelectItem value="custom">Custom</SelectItem>
-          </SelectContent>
-        </Select>
+        <SelectField placeholder="In Content Image" value={imageType || '__none__'} onValueChange={handleImageTypeChange} disabled={disabled} options={[{ value: "__none__", label: "In Content Image" }, { value: "infographic", label: "Infographic" }, { value: "blog-image", label: "Blog Image" }, { value: "diagram", label: "Diagram" }, { value: "illustration", label: "Illustration" }, { value: "chart", label: "Chart" }, { value: "photo", label: "Photo" }, { value: "custom", label: "Custom" }]} />
         {imageType === 'infographic' && (
           <p className="text-xs text-muted-foreground">
             Infographics are optimized for mobile displays (tall format)
@@ -79,15 +59,14 @@ export const InContentImageGenerator: React.FC<InContentImageGeneratorProps> = (
 
       {imageType && (
         <div className="space-y-2">
-          <Label htmlFor="image-prompt" className="text-sm font-medium text-foreground">
+          <label htmlFor="image-prompt" className="text-sm font-medium text-foreground">
             Optional Prompt Modifier
-          </Label>
-          <Textarea
+          </label>
+          <TextareaField
             id="image-prompt"
             placeholder="Describe any specific requirements for the image (e.g., 'modern and colorful', 'include data visualization')..."
             value={userPrompt}
             onChange={(e) => handleUserPromptChange(e.target.value)}
-            className="min-h-[80px] text-sm"
             disabled={disabled}
           />
         </div>

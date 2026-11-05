@@ -2,6 +2,7 @@ import React from "react";
 import type { OverviewStudioRevision } from "@/lib/overview/studio-doc-revisions-store";
 import { revisionRowTitle } from "@/lib/overview/studio-doc-revisions-grouping";
 import { cn } from "@/lib/utils";
+import { RowButton } from "@/ui";
 
 export { revisionRowTitle };
 
@@ -28,13 +29,13 @@ export function OverviewRevisionComparePanes({
     <div className={cn("grid min-h-0 flex-1 grid-cols-2 gap-3", className)}>
       <div className="flex min-h-0 min-w-0 flex-col gap-1">
         <span className="text-base text-muted-foreground">Before</span>
-        <div className="min-h-[20rem] min-w-0 flex-1 overflow-y-auto bg-zinc-900 px-4 py-3 text-base leading-relaxed text-zinc-200 whitespace-pre-wrap">
+        <div className="min-h-[20rem] min-w-0 flex-1 overflow-y-auto bg-ui-field px-4 py-3 text-base leading-relaxed text-foreground whitespace-pre-wrap">
           {rev.beforePlain.trim() || "(empty)"}
         </div>
       </div>
       <div className="flex min-h-0 min-w-0 flex-col gap-1">
         <span className="text-base text-muted-foreground">After</span>
-        <div className="min-h-[20rem] min-w-0 flex-1 overflow-y-auto bg-zinc-900 px-4 py-3 text-base leading-relaxed text-zinc-200 whitespace-pre-wrap">
+        <div className="min-h-[20rem] min-w-0 flex-1 overflow-y-auto bg-ui-field px-4 py-3 text-base leading-relaxed text-foreground whitespace-pre-wrap">
           {rev.afterPlain.trim() || "(empty)"}
         </div>
       </div>
@@ -55,19 +56,16 @@ export function OverviewRevisionListItem({
 
   return (
     <li>
-      <button
+      <RowButton
+        selected={Boolean(selected)}
         type="button"
         onClick={onSelect}
-        className={cn(
-          "flex w-full items-center gap-2 border-b border-white/10 px-3 py-2.5 text-left text-base transition-colors",
-          selected ? "bg-zinc-900 text-white" : "text-zinc-200 hover:bg-zinc-900/60",
-        )}
       >
-        <span className="min-w-0 flex-1 truncate font-medium">{title}</span>
+        <span className="min-w-0 flex-1 break-words font-medium">{title}</span>
         <span
           className={cn(
             "shrink-0 px-2 py-0.5 text-base tabular-nums",
-            rev.changed ? "text-emerald-400" : "text-muted-foreground",
+            rev.changed ? "text-primary" : "text-muted-foreground",
           )}
         >
           {rev.changed ? "Changed" : "Unchanged"}
@@ -75,7 +73,7 @@ export function OverviewRevisionListItem({
         <span className="shrink-0 tabular-nums text-muted-foreground">
           {formatRevisionTime(rev.at)}
         </span>
-      </button>
+      </RowButton>
     </li>
   );
 }

@@ -1,5 +1,4 @@
 import React from "react";
-import { Input } from "@/components/ui/input";
 import {
   AUTOMATION_RECIPE_BUCKET_LABELS,
   AUTOMATION_RECIPE_CATEGORY_LABELS,
@@ -12,12 +11,9 @@ import type {
   AutomationRecipeFilterOptions,
   AutomationRecipeListQuery,
 } from "@/lib/automation-recipes-types";
-import {
-  BULK_HEADER_FIELD,
-  BULK_HEADER_SELECT,
-  BULK_TOOLBAR_GROUP_DIVIDER,
-} from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
+import { BULK_TOOLBAR_GROUP_DIVIDER } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import { cn } from "@/lib/utils";
+import { Field, SelectField } from "@/ui";
 
 export type AutomationRecipeFiltersProps = {
   query: AutomationRecipeListQuery;
@@ -27,26 +23,28 @@ export type AutomationRecipeFiltersProps = {
   searchPlaceholder?: string;
 };
 
+const ALL = "__all__";
+
 function FilterSelect({
+  label,
+  allLabel,
   value,
   onChange,
-  children,
-  "aria-label": ariaLabel,
+  options,
 }: {
+  label: string;
+  allLabel: string;
   value: string;
   onChange: (value: string) => void;
-  children: React.ReactNode;
-  "aria-label": string;
+  options: readonly { value: string; label: string }[];
 }): React.ReactElement {
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      aria-label={ariaLabel}
-      className={`${BULK_HEADER_SELECT} h-8 shrink-0 text-base [color-scheme:dark]`}
-    >
-      {children}
-    </select>
+    <SelectField
+      placeholder={label}
+      value={value || ALL}
+      onValueChange={(v) => onChange(v === ALL ? "" : v)}
+      options={[{ value: ALL, label: allLabel }, ...options]}
+    />
   );
 }
 
@@ -59,75 +57,53 @@ export function AutomationRecipeFilters({
 }: AutomationRecipeFiltersProps): React.ReactElement {
   return (
     <div className={cn("flex min-w-0 flex-1 flex-wrap items-center gap-2 bg-black", className)}>
-      <Input
+      <Field
         value={query.q ?? ""}
         onChange={(e) => onChange({ q: e.target.value })}
         placeholder={searchPlaceholder}
-        className={`${BULK_HEADER_FIELD} h-8 min-w-[10rem] flex-1 text-base sm:max-w-xs`}
       />
       <span className={BULK_TOOLBAR_GROUP_DIVIDER} aria-hidden />
       <FilterSelect
-        aria-label="Category"
+        label="Category"
+        allLabel="All categories"
         value={query.category ?? ""}
         onChange={(category) => onChange({ category })}
-      >
-        <option value="">All categories</option>
-        {AUTOMATION_RECIPE_CATEGORY_ORDER.filter((cat) => filterOptions.categories.includes(cat)).map(
-          (cat) => (
-            <option key={cat} value={cat}>
-              {AUTOMATION_RECIPE_CATEGORY_LABELS[cat] ?? cat}
-            </option>
-          ),
-        )}
-      </FilterSelect>
+        options={AUTOMATION_RECIPE_CATEGORY_ORDER.filter((cat) => filterOptions.categories.includes(cat)).map((cat) => ({
+          value: cat,
+          label: AUTOMATION_RECIPE_CATEGORY_LABELS[cat] ?? cat,
+        }))}
+      />
       <FilterSelect
-        aria-label="Bucket"
+        label="Bucket"
+        allLabel="All buckets"
         value={query.bucket ?? ""}
         onChange={(bucket) => onChange({ bucket })}
-      >
-        <option value="">All buckets</option>
-        {filterOptions.buckets.map((bucket) => (
-          <option key={bucket} value={bucket}>
-            {AUTOMATION_RECIPE_BUCKET_LABELS[bucket] ?? bucket}
-          </option>
-        ))}
-      </FilterSelect>
+        options={filterOptions.buckets.map((bucket) => ({ value: bucket, label: AUTOMATION_RECIPE_BUCKET_LABELS[bucket] ?? bucket }))}
+      />
       <FilterSelect
-        aria-label="Signal"
+        label="Signal"
+        allLabel="All signals"
         value={query.signal ?? ""}
         onChange={(signal) => onChange({ signal })}
-      >
-        <option value="">All signals</option>
-        {filterOptions.signals.map((signal) => (
-          <option key={signal} value={signal}>
-            {AUTOMATION_RECIPE_SIGNAL_LABELS[signal] ?? signal}
-          </option>
-        ))}
-      </FilterSelect>
+        options={filterOptions.signals.map((signal) => ({ value: signal, label: AUTOMATION_RECIPE_SIGNAL_LABELS[signal] ?? signal }))}
+      />
       <FilterSelect
-        aria-label="Vertical"
+        label="Vertical"
+        allLabel="All verticals"
         value={query.vertical ?? ""}
         onChange={(vertical) => onChange({ vertical })}
-      >
-        <option value="">All verticals</option>
-        {filterOptions.verticals.map((vertical) => (
-          <option key={vertical} value={vertical}>
-            {AUTOMATION_RECIPE_VERTICAL_LABELS[vertical] ?? vertical}
-          </option>
-        ))}
-      </FilterSelect>
+        options={filterOptions.verticals.map((vertical) => ({ value: vertical, label: AUTOMATION_RECIPE_VERTICAL_LABELS[vertical] ?? vertical }))}
+      />
       <FilterSelect
-        aria-label="Execution"
+        label="Execution"
+        allLabel="Any execution"
         value={query.execution ?? ""}
         onChange={(execution) => onChange({ execution: execution as AutomationRecipeListQuery["execution"] })}
-      >
-        <option value="">Any execution</option>
-        <option value="meta-only">{AUTOMATION_RECIPE_EXECUTION_LABELS["meta-only"]}</option>
-        <option value="full-aiseo">{AUTOMATION_RECIPE_EXECUTION_LABELS["full-aiseo"]}</option>
-        <option value="entity-page-creator">
-          {AUTOMATION_RECIPE_EXECUTION_LABELS["entity-page-creator"]}
-        </option>
-      </FilterSelect>
+        options={(["meta-only", "full-aiseo", "entity-page-creator"] as const).map((execution) => ({
+          value: execution,
+          label: AUTOMATION_RECIPE_EXECUTION_LABELS[execution],
+        }))}
+      />
     </div>
   );
 }

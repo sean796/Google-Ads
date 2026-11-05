@@ -1,7 +1,9 @@
 import { callAgentCategoryOpenRouterChat } from "@/lib/openrouter-agent-category-api";
 import type { OpenRouterAppMessage } from "@/lib/openrouter-app-api";
 import { parseJsonObjectFromModelText } from "@/lib/openrouter-vision-chat";
+import { referenceVideoBriefExtra, referenceVideoMessageParts } from "@/lib/openrouter-multimodal-parts";
 import type { VideoSample } from "./video-brainstorm-api";
+import type { VideoBriefReferenceClip } from "./video-generator-types";
 import { videoLog, videoLogError, videoTimer } from "./video-log";
 import {
   VIDEO_ASPECTS,
@@ -35,21 +37,30 @@ Rules:
 - brief: the Director reads only this text and the images, so it must stand alone: what the product is (named from the subject harness when attached, else from the uploaded images and notes), what the film is for, the look and mood, how literally to follow the client video, the camera and screen direction, what must stay identical in every shot, and then the beats as a numbered list in order. 150 to 300 words. Plain English, no markdown.
 - lengthSeconds: one of ${VIDEO_LENGTH_OPTIONS.join(", ")}. Every scene lasts ${VIDEO_SCENE_MIN_SECONDS} to ${VIDEO_SCENE_MAX_SECONDS} s, so choose the length that fits the beat count (beats x 5 s at least, beats x 15 s at most); with a client video, stay close to its duration.
 - aspect: one of ${VIDEO_ASPECTS.join(", ")}; match the client video's frame shape, else what the notes imply.
-- beats: only when video samples are attached, else []. A beat is one distinct moment of the video: the subject, its action or the setting changes. Pick one sample per moment, in time order, using the exact sampleTime labels you were given; never two samples of the same moment. Between ceil(lengthSeconds / ${VIDEO_SCENE_MAX_SECONDS}) and floor(lengthSeconds / ${VIDEO_SCENE_MIN_SECONDS}) beats. title is three to six words naming the moment.`;
+- beats: only when a client reference video is attached (full clip or sample frames), else []. A beat is one distinct moment: the subject, action, or setting changes. sampleTime is seconds into the clip (0 to video duration), in ascending order; pick distinct moments, not two beats at the same second. Between ceil(lengthSeconds / ${VIDEO_SCENE_MAX_SECONDS}) and floor(lengthSeconds / ${VIDEO_SCENE_MIN_SECONDS}) beats. title is three to six words naming the moment.`;
 }
 
-function userText(args: { notes: string; subjectDataUrl?: string; images: { fileName: string }[]; samples: VideoSample[]; durationSeconds?: number }): string {
+function userText(args: {
+  notes: string;
+  subjectDataUrl?: string;
+  images: { fileName: string }[];
+  samples: VideoSample[];
+  referenceVideo?: VideoBriefReferenceClip | null;
+  durationSeconds?: number;
+}): string {
   const subject = args.subjectDataUrl
     ? "Subject harness: attached first (one sheet of the real product from several angles)."
     : "Subject harness: none.";
   const images = args.images.length
     ? `Product images (attached ${args.subjectDataUrl ? "after the subject harness" : "first"}, in this order):\n${args.images.map((r, i) => `Image ${i + 1}: ${r.fileName}`).join("\n")}`
     : "Product images: none.";
-  const samples = args.samples.length
-    ? `Client video: ${args.durationSeconds ?? 0} s. One sample frame every 2 s is attached after the product images, in time order:\n${args.samples
-        .map((s, i) => `Sample ${i + 1} at ${s.time} s`)
-        .join("\n")}`
-    : "Client video: none, so beats must be exactly [].";
+  const samples = args.referenceVideo
+    ? `${referenceVideoBriefExtra(args.referenceVideo)} Attached after the product images. Set each beat sampleTime to the second in the full timeline where that moment occurs.`
+    : args.samples.length
+      ? `Client video: ${args.durationSeconds ?? 0} s. One sample frame every 2 s is attached after the product images, in time order:\n${args.samples
+          .map((s, i) => `Sample ${i + 1} at ${s.time} s`)
+          .join("\n")}`
+      : "Client video: none, so beats must be exactly [].";
   return `${subject}
 
 ${images}
@@ -74,6 +85,7 @@ export async function runVideoBrainstorm(args: {
   subjectDataUrl?: string;
   images: { fileName: string; dataUrl: string }[];
   samples: VideoSample[];
+  referenceVideo?: VideoBriefReferenceClip | null;
   durationSeconds?: number;
   signal?: AbortSignal;
 }): Promise<BrainstormResult> {
@@ -85,7 +97,9 @@ export async function runVideoBrainstorm(args: {
         { type: "text", text: userText(args) },
         ...(args.subjectDataUrl ? [imagePart(args.subjectDataUrl)] : []),
         ...args.images.map((r) => imagePart(r.dataUrl)),
-        ...args.samples.map((s) => imagePart(s.dataUrl)),
+        ...(args.referenceVideo
+          ? referenceVideoMessageParts(args.referenceVideo)
+          : args.samples.map((s) => imagePart(s.dataUrl))),
       ],
     },
   ];
@@ -110,7 +124,11 @@ export async function runVideoBrainstorm(args: {
   });
   videoLog("brainstorm", "agent reply", { seconds: elapsed(), finishReason: res.finishReason, contentChars: res.content.length, content: res.content });
   try {
-    const result = parseBrainstorm(parseJsonObjectFromModelText(res.content), args.samples.map((s) => s.time));
+    const result = parseBrainstorm(
+      parseJsonObjectFromModelText(res.content),
+      args.samples.map((s) => s.time),
+      args.referenceVideo?.durationSeconds,
+    );
     videoLog("brainstorm", "agent result", { lengthSeconds: result.lengthSeconds, aspect: result.aspect, beats: result.beats });
     return result;
   } catch (e) {
@@ -119,7 +137,11 @@ export async function runVideoBrainstorm(args: {
   }
 }
 
-export function parseBrainstorm(raw: Record<string, unknown>, sampleTimes: number[]): BrainstormResult {
+export function parseBrainstorm(
+  raw: Record<string, unknown>,
+  sampleTimes: number[],
+  videoDurationSeconds?: number,
+): BrainstormResult {
   const brief = String(raw.brief ?? "").trim();
   if (!brief) throw new Error("Brainstorm returned an empty brief.");
   const lengthSeconds = Number(raw.lengthSeconds);
@@ -135,7 +157,17 @@ export function parseBrainstorm(raw: Record<string, unknown>, sampleTimes: numbe
     const o = (b ?? {}) as Record<string, unknown>;
     const sampleTime = Number(o.sampleTime);
     const title = String(o.title ?? "").trim();
-    if (!sampleTimes.includes(sampleTime)) throw new Error(`Beat ${i + 1} sampleTime ${String(o.sampleTime)} is not one of the sample frames.`);
+    if (sampleTimes.length) {
+      if (!sampleTimes.includes(sampleTime)) {
+        throw new Error(`Beat ${i + 1} sampleTime ${String(o.sampleTime)} is not one of the sample frames.`);
+      }
+    } else if (typeof videoDurationSeconds === "number" && videoDurationSeconds > 0) {
+      if (sampleTime < 0 || sampleTime > videoDurationSeconds) {
+        throw new Error(
+          `Beat ${i + 1} sampleTime ${String(o.sampleTime)} must be between 0 and ${videoDurationSeconds} s.`,
+        );
+      }
+    }
     if (!title) throw new Error(`Beat ${i + 1} has no title.`);
     return { sampleTime, title };
   });

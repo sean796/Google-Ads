@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button';
+
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Download } from 'lucide-react';
@@ -7,6 +7,7 @@ import type { BulkGeneratedFile } from '@/lib/bulk-file-manager';
 import type { CSVRow } from '@/lib/bulk-auto-generate';
 import { getFileIcon, getStatusIcon, isImageWithPreview } from './bulk-utils';
 import { cn } from '@/lib/utils';
+import { Button } from "@/ui";
 
 interface GeneratedFilesDisplayProps {
   filesByRow: Map<number, BulkGeneratedFile[]>;
@@ -59,9 +60,6 @@ export function GeneratedFilesDisplay({
         {stats.completed > 0 && (
           <Button
             onClick={downloadAllFiles}
-            variant="secondary"
-            size="sm"
-            className="h-9 shrink-0 border-0 shadow-none"
           >
             <Download className="mr-2 h-4 w-4" />
             Download all ({stats.completed})
@@ -109,16 +107,13 @@ export function GeneratedFilesDisplay({
                         </div>
                       </div>
                       <Button
+                        size="icon" icon={Download}
+                        variant="quiet"
                         onClick={() => downloadRowFiles(rowIndex)}
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
                         disabled={rowCompleted === 0}
                         title={`Download all ${rowCompleted} file(s) for this row`}
                         aria-label={`Download all files for row ${rowIndex + 1}`}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
+                      ></Button>
                     </div>
 
                     <div className="bg-background/20">
@@ -143,28 +138,25 @@ export function GeneratedFilesDisplay({
                                 </span>
                               )}
                               <span
-                                className="min-w-0 flex-1 truncate font-mono text-base text-foreground/90 sm:text-xs"
+                                className="min-w-0 flex-1 break-words font-mono text-base text-foreground/90 sm:text-xs"
                                 title={file.fileName}
                               >
                                 {file.fileName}
                               </span>
                               {file.status === 'error' && file.error && (
-                                <span className="shrink-0 truncate text-xs text-destructive" title={file.error}>
+                                <span className="shrink-0 break-words text-xs text-destructive" title={file.error}>
                                   {file.error}
                                 </span>
                               )}
                             </div>
                             {file.status === 'completed' && (
                               <Button
+                                size="icon" icon={Download}
+                                variant="quiet"
                                 onClick={() => downloadFile(file)}
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 shrink-0 text-muted-foreground hover:text-primary"
                                 title={showImagePreview ? 'Download image' : 'Download file'}
                                 aria-label={`Download ${file.fileName}`}
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
+                              ></Button>
                             )}
                           </div>
                         );
@@ -189,11 +181,9 @@ export function GeneratedFilesDisplay({
               </p>
             </div>
             <Button
+              variant="run"
               type="button"
               onClick={downloadRunContentCsv}
-              variant="default"
-              size="sm"
-              className="h-9 shrink-0"
             >
               <Download className="mr-2 h-4 w-4" />
               Download combined CSV

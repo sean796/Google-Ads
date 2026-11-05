@@ -1,5 +1,4 @@
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
+
 import {
   META_VISUAL_CELL_CLASS,
   META_VISUAL_GRID_CLASS,
@@ -9,6 +8,7 @@ import {
 import type { ContentCalendarRow } from "@/lib/social/content-creator-types";
 import { cellString } from "@/lib/social/content-creator-types";
 import { cn } from "@/lib/utils";
+import { Field, TextareaField } from "@/ui";
 
 export type ContentCreatorRowDetailsProps = {
   row: ContentCalendarRow;
@@ -53,10 +53,9 @@ export function ContentCreatorRowDetails({
         <span className={cn(META_VISUAL_CELL_CLASS, "pt-2 text-base font-semibold text-foreground")}>
           Events
         </span>
-        <Input
+        <Field
           value={row.events ?? ""}
           placeholder="Event or holiday"
-          className={cn(META_VISUAL_TEXTAREA_CLASS, "col-span-3 h-auto min-h-[2.5rem]")}
           aria-label="Events"
           disabled={fieldsReadOnly}
           onChange={(e) => onUpdateRow({ events: e.target.value })}
@@ -67,10 +66,9 @@ export function ContentCreatorRowDetails({
         <span className={cn(META_VISUAL_CELL_CLASS, "pt-2 text-base font-semibold text-foreground")}>
           FB/Instagram Content
         </span>
-        <Textarea
+        <TextareaField
           value={row.fbInstagramContent ?? ""}
           placeholder="Facebook and Instagram post copy"
-          className={cn(META_VISUAL_TEXTAREA_CLASS, "col-span-3")}
           aria-label="FB/Instagram Content"
           disabled={fieldsReadOnly}
           onChange={(e) => onUpdateRow({ fbInstagramContent: e.target.value })}
@@ -81,10 +79,9 @@ export function ContentCreatorRowDetails({
         <span className={cn(META_VISUAL_CELL_CLASS, "pt-2 text-base font-semibold text-foreground")}>
           LinkedIn Content
         </span>
-        <Textarea
+        <TextareaField
           value={row.linkedinContent ?? ""}
           placeholder="LinkedIn post copy"
-          className={cn(META_VISUAL_TEXTAREA_CLASS, "col-span-3")}
           aria-label="LinkedIn Content"
           disabled={fieldsReadOnly}
           onChange={(e) => onUpdateRow({ linkedinContent: e.target.value })}
@@ -95,10 +92,9 @@ export function ContentCreatorRowDetails({
         <span className={cn(META_VISUAL_CELL_CLASS, "pt-2 text-base font-semibold text-foreground")}>
           Prompt Modifier
         </span>
-        <Textarea
+        <TextareaField
           value={row.promptModifier ?? ""}
           placeholder="Image prompt modifier"
-          className={cn(META_VISUAL_TEXTAREA_CLASS, "col-span-3")}
           aria-label="Prompt Modifier"
           disabled={fieldsReadOnly}
           onChange={(e) => onUpdateRow({ promptModifier: e.target.value })}

@@ -1,5 +1,5 @@
-# Render Blueprint: NEO Pulse (Google-Ads repo) + legacy Flowbie services.
-# Apply from Render Dashboard → Blueprints, or run: node scripts/render-provision-neo-pulse.mjs
+# Render Blueprint: NEO Pulse unified environment (NEOPulse Production).
+# Apply from Render Dashboard -> Blueprints, or run: node scripts/render-provision-neo-pulse.mjs
 
 services:
   - type: web
@@ -15,9 +15,9 @@ services:
       - key: VITE_BASE_PATH
         value: /
       - key: VITE_MCP_API_BASE
-        value: /api/mcp
+        value: https://pulse-host-wp-hub.onrender.com/api/mcp
       - key: NEO_PULSE_RENDER_API_BASE
-        value: /api/mcp
+        value: https://pulse-host-wp-hub.onrender.com/api/mcp
       - key: VITE_OPENROUTER_API_KEY
         sync: false
 
@@ -39,99 +39,6 @@ services:
         value: https://app.localdominator.co/login/
       - key: OPENROUTER_API_KEY
         sync: false
-
-  - type: web
-    name: flowbie-demo-static
-    runtime: static
-    repo: https://github.com/neodigitalca/flowbie1
-    branch: cursor/meta-ads-visual-settings-layout
-    buildCommand: npm ci && npm run build:render-static
-    staticPublishPath: dist
-    pullRequestPreviewsEnabled: true
-    envVars:
-      - key: RENDER_PROFILE
-        value: demo
-      - key: VITE_BASE_PATH
-        value: /
-      - key: VITE_MCP_API_BASE
-        value: https://neodigital.ca/api/mcp
-      - key: VITE_OPENROUTER_API_KEY
-        sync: false
-
-  - type: web
-    name: flowbie-demo-worker
-    runtime: docker
-    dockerfilePath: ./Dockerfile.ld-worker
-    repo: https://github.com/neodigitalca/flowbie1
-    branch: cursor/meta-ads-visual-settings-layout
-    plan: standard
-    envVars:
-      - key: LD_WORKER_AUTH_TOKEN
-        sync: false
-      - key: LOCAL_DOMINATOR_EMAIL
-        sync: false
-      - key: LOCAL_DOMINATOR_PASSWORD
-        sync: false
-      - key: LOCAL_DOMINATOR_LOGIN_URL
-        value: https://app.localdominator.co/login/
-      - key: OXYLABS_PROXY_HOST
-        value: pr.oxylabs.io
-      - key: OXYLABS_PROXY_PORT
-        value: "7777"
-      - key: OXYLABS_PROXY_USERNAME
-        sync: false
-      - key: OXYLABS_PROXY_PASSWORD
-        sync: false
-      - key: OPENROUTER_API_KEY
-        sync: false
-
-  - type: web
-    name: flowbie-prod-static
-    runtime: static
-    repo: https://github.com/neodigitalca/flowbie1
-    branch: main
-    buildCommand: npm ci && npm run build:render-static
-    staticPublishPath: dist
-    envVars:
-      - key: RENDER_PROFILE
-        value: prod
-      - key: VITE_BASE_PATH
-        value: /
-      - key: VITE_MCP_API_BASE
-        value: https://neodigital.ca/api/mcp
-      - key: VITE_OPENROUTER_API_KEY
-        sync: false
-    domains:
-      - app.neodigital.ca
-
-  - type: web
-    name: flowbie-prod-worker
-    runtime: docker
-    dockerfilePath: ./Dockerfile.ld-worker
-    repo: https://github.com/neodigitalca/flowbie1
-    branch: main
-    plan: standard
-    envVars:
-      - key: LD_WORKER_AUTH_TOKEN
-        sync: false
-      - key: LOCAL_DOMINATOR_EMAIL
-        sync: false
-      - key: LOCAL_DOMINATOR_PASSWORD
-        sync: false
-      - key: LOCAL_DOMINATOR_LOGIN_URL
-        value: https://app.localdominator.co/login/
-      - key: OXYLABS_PROXY_HOST
-        value: pr.oxylabs.io
-      - key: OXYLABS_PROXY_PORT
-        value: "7777"
-      - key: OXYLABS_PROXY_USERNAME
-        sync: false
-      - key: OXYLABS_PROXY_PASSWORD
-        sync: false
-      - key: OPENROUTER_API_KEY
-        sync: false
-    domains:
-      - ld.neodigital.ca
 
   - type: web
     name: pulse-host-api
@@ -161,12 +68,10 @@ services:
         sync: false
       - key: OPENROUTER_API_KEY
         sync: false
-      # The hub WordPress is not a My Sites row; no staging bootstrap.
       - key: NEO_HOST_BOOTSTRAP_STAGING
         value: "0"
       - key: NEO_HOST_DEFAULT_REGION
         value: ohio
-      # Provisioning (Add site) creates Docker services from this repo under this owner.
       - key: PULSE_HOST_RENDER_REPO
         value: https://github.com/neodigitalca/Google-Ads
       - key: PULSE_HOST_RENDER_BRANCH
@@ -175,13 +80,12 @@ services:
         sync: false
       - key: PULSE_HOST_ADMIN_EMAIL
         value: sean@neodigital.ca
-      # Copied to every provisioned WordPress so WP Admin accepts the Pulse account (bcrypt hash from the hub users table).
       - key: PULSE_ADMIN_EMAIL
         value: pulse@neodigital.ca
       - key: PULSE_ADMIN_PASSWORD_HASH
         sync: false
 
-  # Neo Pulse hub: runs neo-pulse-app (/api/*) for neo-pulse-static. Not a My Sites row, so the hosting UI cannot delete it.
+  # Neo Pulse hub: runs neo-pulse-app (/api/*, including /api/agent-library) for neo-pulse-static.
   - type: web
     name: pulse-host-wp-hub
     runtime: docker
@@ -255,33 +159,3 @@ services:
         value: wordpress
       - key: MARIADB_DATABASE
         value: wordpress
-
-  - type: cron
-    name: pulse-host-backup-cron
-    runtime: node
-    repo: https://github.com/neodigitalca/Google-Ads
-    branch: main
-    schedule: "0 6 * * *"
-    region: ohio
-    buildCommand: npm ci
-    startCommand: node scripts/neo-host-cron-trigger.mjs backup
-    envVars:
-      - key: PULSE_HOST_API_BASE
-        sync: false
-      - key: PULSE_HOST_API_TOKEN
-        sync: false
-
-  - type: cron
-    name: pulse-host-health-cron
-    runtime: node
-    repo: https://github.com/neodigitalca/Google-Ads
-    branch: main
-    schedule: "*/15 * * * *"
-    region: ohio
-    buildCommand: npm ci
-    startCommand: node scripts/neo-host-cron-trigger.mjs health
-    envVars:
-      - key: PULSE_HOST_API_BASE
-        sync: false
-      - key: PULSE_HOST_API_TOKEN
-        sync: false

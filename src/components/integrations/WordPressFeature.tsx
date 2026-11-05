@@ -1,11 +1,10 @@
-import {
+﻿import {
   NOTIFY_ALL_VISIBLE_SITE_NAMES_ALREADY_MATCHED_G,
   NOTIFY_NO_SITES_TO_EXPORT,
   NOTIFY_SIGN_IN_TO_SAVE_SETTINGS_TO_THE_CLOUD,
   notifyExportedXSiteSToCsv,
 } from "@/lib/notify-messages";
 import React, { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import { Button } from "@/components/ui/button";
 import { Plus, Upload, Download, RotateCcw } from "lucide-react";
 import { notify } from "@/lib/app-notifications";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,13 +13,6 @@ import {
   BULK_HEADER_SELECT_TRIGGER,
   BULK_HEADER_TOOL_BTN,
 } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   formatDashboardEditorialMonthShort,
   getLocalCalendarMonthAfterBeforeForMonthKey,
@@ -53,6 +45,7 @@ import { applyGbpPropertyWand, bulkApplyGmbSuggestedDisplayNames } from "@/lib/w
 import { cn } from "@/lib/utils";
 import { useWordPressOptimization } from "@/contexts/wordpress-optimization-context";
 import { useRegisterPropertiesDashboardToolbar } from "@/components/manager/dashboard/PropertiesDashboardChromeContext";
+import { Button, SelectField } from "@/ui";
 
 interface WordPressFeatureProps {
   onEntityGeneration?: (site: WordPressSite, sitemapUrl: string) => void;
@@ -702,54 +695,15 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
   const trailingToolbarActions = useMemo(
     () => (
       <>
-        <Select
-          value={editorialPackageFilter}
-          onValueChange={(v) =>
+        <SelectField tone="data" placeholder="Editorial tier" value={editorialPackageFilter} onValueChange={(v) =>
             setEditorialPackageFilter(v as "all" | "standard" | "lite" | "unassigned")
-          }
-        >
-          <SelectTrigger
-            className={cn(BULK_HEADER_SELECT_TRIGGER, "min-w-[5.5rem]")}
-            aria-label="Editorial package filter"
-            title="Filter properties by editorial package tier"
-          >
-            <SelectValue placeholder="Editorial tier" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All tiers</SelectItem>
-            <SelectItem value="standard">Standard</SelectItem>
-            <SelectItem value="lite">Lite</SelectItem>
-            <SelectItem value="unassigned">Unassigned</SelectItem>
-          </SelectContent>
-        </Select>
+          } options={[{ value: "all", label: "All tiers" }, { value: "standard", label: "Standard" }, { value: "lite", label: "Lite" }, { value: "unassigned", label: "Unassigned" }]} />
         {editorialMonthOptions.length > 0 && editorialSelectedMonthKey ? (
-          <Select value={editorialSelectedMonthKey} onValueChange={setEditorialSelectedMonthKey}>
-            <SelectTrigger
-              className={cn(BULK_HEADER_SELECT_TRIGGER, "min-w-[4.25rem] tabular-nums")}
-              aria-label="Editorial counts month for all properties"
-              title="Month for editorial counts on all properties"
-            >
-              <SelectValue placeholder="Month">
-                {formatDashboardEditorialMonthShort(editorialSelectedMonthKey)}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {editorialMonthOptions.map((opt) => (
-                <SelectItem
-                  key={opt.key}
-                  value={opt.key}
-                  title={getLocalCalendarMonthAfterBeforeForMonthKey(opt.key).label}
-                >
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SelectField tone="data" placeholder="Month" value={editorialSelectedMonthKey} onValueChange={setEditorialSelectedMonthKey} options={editorialMonthOptions.map((opt) => ({ value: opt.key, label: opt.label }))} />
         ) : null}
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="sm"
           disabled={
             credentialedSiteCount === 0 ||
             isRefreshingAllQuarterCounts ||
@@ -760,7 +714,6 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
               ? Promise.all([refreshAllQuarterCounts(), refreshAllOptimizationCounts()])
               : refreshAllQuarterCounts())
           }
-          className={cn(BULK_HEADER_TOOL_BTN, "gap-1.5")}
           title={
             OPTIMIZATION_TILE_COUNTS_ENABLED
               ? "Refresh editorial and optimization counts for all properties"
@@ -776,24 +729,19 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
             (OPTIMIZATION_TILE_COUNTS_ENABLED && isRefreshingAllOptimizationCounts)
           }
         >
-          <RotateCcw
-            className={`h-4 w-4 shrink-0 ${
-              isRefreshingAllQuarterCounts ||
-              (OPTIMIZATION_TILE_COUNTS_ENABLED && isRefreshingAllOptimizationCounts)
-                ? "animate-spin"
-                : ""
-            }`}
-            aria-hidden
-          />
-          <span>Counts</span>
+          <RotateCcw className="h-4 w-4 shrink-0" aria-hidden />
+          <span>
+            {isRefreshingAllQuarterCounts ||
+            (OPTIMIZATION_TILE_COUNTS_ENABLED && isRefreshingAllOptimizationCounts)
+              ? "Counting"
+              : "Counts"}
+          </span>
         </Button>
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="sm"
           onClick={handleExportAllSitesCsv}
           disabled={sites.length === 0}
-          className={cn(BULK_HEADER_TOOL_BTN, "gap-1.5")}
           title="Download all properties as a CSV spreadsheet (includes credentials - store securely)"
           aria-label="Export all properties"
         >
@@ -801,10 +749,8 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
           all
         </Button>
         <Button
-          variant="ghost"
-          size="sm"
+          variant="quiet"
           onClick={() => setBulkImportDialogOpen(true)}
-          className={cn(BULK_HEADER_TOOL_BTN, "gap-1.5")}
           title="Bulk import properties from CSV"
           aria-label="Bulk import all properties"
         >
@@ -812,8 +758,8 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
           all
         </Button>
         <Button
+          variant="run"
           onClick={handleAddSite}
-          className="h-8 min-h-8 shrink-0 gap-1 px-2.5 text-base bg-primary text-primary-foreground hover:bg-primary/90"
           title="Add Site"
           aria-label="Add Site"
         >

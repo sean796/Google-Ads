@@ -1,6 +1,5 @@
 import React, { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { Paperclip } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { ChatRichEditor, type ChatRichEditorHandle } from "@/components/chat/editor/ChatRichEditor";
 import type { MentionMember } from "@/components/chat/editor/chat-editor-extensions";
 import { PendingAttachmentChip } from "@/components/chat/thread/ChatAttachmentChip";
@@ -8,6 +7,7 @@ import { ChatDraftLinkPreviews } from "@/components/chat/editor/ChatDraftLinkPre
 import { uploadChatFile } from "@/lib/chat-api";
 import { CHAT_COMPOSER_BOX_CLASS, CHAT_COMPOSER_WRAP_CLASS, CHAT_ICON_BTN_CLASS } from "@/components/chat/chat-theme";
 import { cn } from "@/lib/utils";
+import { Button, FileInput } from "@/ui";
 
 export type ChatComposerHandle = {
   setHtml: (html: string) => void;
@@ -135,10 +135,8 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(fu
         }}
       >
         {!disabled ? (
-          <input
+          <FileInput
             ref={fileInputRef}
-            type="file"
-            className="hidden"
             multiple
             accept=".pdf,.txt,.csv,.json,.md,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp"
             onChange={(e) => {
@@ -149,16 +147,13 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(fu
         ) : null}
         {!disabled && !compactToolbar ? (
           <Button
+            size="icon" icon={Paperclip}
+            variant="quiet"
             type="button"
-            variant="ghost"
-            size="icon"
-            className={cn("absolute bottom-2 left-2 z-10 h-8 w-8", CHAT_ICON_BTN_CLASS)}
             disabled={uploading || sending}
             onClick={() => fileInputRef.current?.click()}
             aria-label="Attach file"
-          >
-            <Paperclip className="h-4 w-4" />
-          </Button>
+          ></Button>
         ) : null}
         <ChatRichEditor
           ref={editorRef}
@@ -174,16 +169,13 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(fu
           toolbarStart={
             !disabled && compactToolbar ? (
               <Button
+                size="icon" icon={Paperclip}
+                variant="quiet"
                 type="button"
-                variant="ghost"
-                size="icon"
-                className={cn("chat-editor-attach-btn h-8 w-8 shrink-0", CHAT_ICON_BTN_CLASS)}
                 disabled={uploading || sending}
                 onClick={() => fileInputRef.current?.click()}
                 aria-label="Attach file"
-              >
-                <Paperclip className="h-4 w-4" />
-              </Button>
+              ></Button>
             ) : undefined
           }
         />

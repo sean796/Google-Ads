@@ -12,6 +12,15 @@ export function normalizeOpenRouterModelsPayload(raw) {
     const outputMods = Array.isArray(arch.output_modalities) ? arch.output_modalities : [];
     const textOutput = outputMods.length === 0 || outputMods.includes("text");
     const imageOutput = outputMods.includes("image");
+    const videoOutput =
+      outputMods.includes("video") ||
+      id.includes("kling") ||
+      id.includes("video") ||
+      id.includes("veo") ||
+      id.includes("seedance") ||
+      id.includes("hailuo") ||
+      id.includes("wan-");
+
     out.push({
       id,
       name,
@@ -24,6 +33,7 @@ export function normalizeOpenRouterModelsPayload(raw) {
           : null,
       textOutput,
       imageOutput,
+      videoOutput,
     });
   }
   return out;

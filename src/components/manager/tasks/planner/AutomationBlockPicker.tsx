@@ -2,6 +2,7 @@ import React from "react";
 import { cn } from "@/lib/utils";
 import { TaskFormInlineRow } from "@/components/manager/tasks/TaskFormLayout";
 import type { AutomationBlockCatalogItem } from "@/lib/automation-blocks-api";
+import { Button } from "@/ui";
 
 export type AutomationBlockPickerProps = {
   label?: string;
@@ -29,20 +30,14 @@ export function AutomationBlockPicker({
       {filtered.map((block) => {
         const selected = block.keyword === selectedKeyword;
         return (
-          <button
+          <Button
+            pressed={Boolean(selected)}
             key={block.keyword}
-            type="button"
             disabled={disabled}
             onClick={() => onSelect(block.keyword)}
-            className={cn(
-              "min-h-9 whitespace-normal px-2 py-1.5 text-left text-base transition-colors",
-              selected
-                ? "bg-primary text-black"
-                : "bg-zinc-900 text-white hover:bg-zinc-800",
-            )}
           >
             {block.name}
-          </button>
+          </Button>
         );
       })}
     </div>

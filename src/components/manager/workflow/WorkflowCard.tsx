@@ -12,6 +12,7 @@ import {
   workflowCardTitleCase,
 } from "@/components/manager/workflow/forge-workflow-styles";
 import type { WorkflowDefinition } from "@/lib/workflow/workflow-types";
+import { Button } from "@/ui";
 
 export type WorkflowCardProps = {
   workflow: WorkflowDefinition;
@@ -23,10 +24,10 @@ export type WorkflowCardProps = {
 
 /** Same footprint as the trash control (h-8 w-8) so 1- and 2-digit counts never resize. */
 const META_BOX_CLASS =
-  "inline-flex h-8 w-8 shrink-0 items-center justify-center bg-black text-base font-medium tabular-nums text-lime-400";
+  "inline-flex h-8 w-8 shrink-0 items-center justify-center bg-black text-base font-medium tabular-nums text-primary";
 
 const TITLE_FRAME_CLASS =
-  "flex min-h-10 min-w-0 flex-1 items-center overflow-hidden bg-black px-3 py-2 text-left text-base font-semibold text-lime-400";
+  "flex min-h-10 min-w-0 flex-1 items-center overflow-hidden bg-black px-3 py-2 text-left text-base font-semibold text-primary";
 
 export function WorkflowCard({
   workflow,
@@ -45,9 +46,8 @@ export function WorkflowCard({
   return (
     <article className={workflowCardClassName(workflow.status, selected)}>
       <div className="flex min-h-0 min-w-0 gap-2">
-        <button
-          type="button"
-          className="flex min-h-0 min-w-0 flex-1 flex-col gap-1 overflow-hidden text-left"
+        <Button
+          variant="quiet"
           onClick={onSelect}
         >
           <span className={TITLE_FRAME_CLASS}>
@@ -56,23 +56,18 @@ export function WorkflowCard({
           <p className="h-16 overflow-hidden break-words text-base leading-8 text-muted-foreground">
             {description || "\u00a0"}
           </p>
-        </button>
+        </Button>
         <div className="flex w-8 shrink-0 flex-col gap-0 pt-1">
           {onDelete ? (
-            <button
-              type="button"
+            <Button
+              size="icon" icon={Trash2}
+              variant="quiet"
               aria-label={`Delete ${title}`}
-              className={cn(
-                getPropertyListRowBlackIconButtonClass(true),
-                "!h-8 !min-h-8 !w-8 !min-w-8 text-muted-foreground hover:text-red-400 sm:!h-8 sm:!min-h-8 sm:!w-8 sm:!min-w-8",
-              )}
               onClick={(event) => {
                 event.stopPropagation();
                 onDelete();
               }}
-            >
-              <Trash2 className="h-4 w-4" aria-hidden />
-            </button>
+            ></Button>
           ) : (
             <span className={META_BOX_CLASS} aria-hidden />
           )}

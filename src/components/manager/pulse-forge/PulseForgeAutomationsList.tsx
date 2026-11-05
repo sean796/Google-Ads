@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
 import type { AgentRun } from "@/lib/agent-runs-types";
 import type { TaskProjectBundle } from "@/contexts/TeamContext";
 import type { TaskBuilderTab } from "@/components/manager/pulse-forge/TaskBuilderView";
@@ -46,6 +45,7 @@ import {
 } from "@/lib/pulse-forge/forge-automations-pagination";
 import type { WordPressSiteOption } from "@/components/manager/tasks/NewProjectDialog";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 const FORGE_AUTOMATIONS_GRID_CLASS =
   "grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-hidden sm:grid-cols-2 lg:grid-cols-3 lg:grid-rows-8 lg:auto-rows-fr";
@@ -280,7 +280,6 @@ export function PulseForgeAutomationsList({
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <Button
             type="button"
-            className="h-9 rounded-none bg-[#77AA00] px-3 text-base text-black hover:bg-[#77AA00]/90"
             disabled={viewMode !== "live"}
             onClick={onCreateBlank}
           >

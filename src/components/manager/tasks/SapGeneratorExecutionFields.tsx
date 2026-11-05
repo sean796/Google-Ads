@@ -1,7 +1,6 @@
-import React, { useEffect } from "react";
-import { Input } from "@/components/ui/input";
+import React, { useEffect, useRef } from "react";
+import { Button, FileInput } from "@/ui";
 import {
-  TASK_FORM_FLAT_CONTROL_CLASS,
   TaskFormFieldGrid,
   TaskFormInfield,
   TaskFormPanel,
@@ -30,6 +29,8 @@ export function SapGeneratorExecutionFields({
   const payload = ensureEntityPageCreatorPayload(
     executionPayload as EntityPageCreatorExecutionPayload,
   );
+
+  const entityCsvInputRef = useRef<HTMLInputElement>(null);
 
   const patch = (partial: Partial<EntityPageCreatorExecutionPayload>) => {
     onChange(ensureEntityPageCreatorPayload({ ...payload, ...partial }));
@@ -72,13 +73,15 @@ export function SapGeneratorExecutionFields({
         ) : (
           <TaskFormFieldGrid>
             <TaskFormInfield label="Entity CSV file">
-              <Input
-                type="file"
+              <FileInput
+                ref={entityCsvInputRef}
                 accept=".csv,text/csv"
-                disabled={disabled}
-                className={TASK_FORM_FLAT_CONTROL_CLASS}
+                aria-label="Entity CSV file"
                 onChange={(e) => void handleEntityCsvFile(e.target.files?.[0] ?? null)}
               />
+              <Button type="button" variant="tool" disabled={disabled} onClick={() => entityCsvInputRef.current?.click()}>
+                Choose CSV file
+              </Button>
             </TaskFormInfield>
           </TaskFormFieldGrid>
         )}

@@ -21,8 +21,8 @@ export function SiteScraperTargetingSequence({ currentStepKey }: SiteScraperTarg
             className={cn(
               "rounded px-1.5 py-0.5 font-mono text-base transition-all",
               isCompleted && "bg-primary/30 text-primary",
-              isCurrent && "animate-pulse bg-primary/50 font-medium text-black",
-              isPending && "bg-zinc-800 text-muted-foreground",
+              isCurrent && "bg-primary/50 font-medium text-black",
+              isPending && "bg-ui-field-hover text-muted-foreground",
             )}
           >
             {isCompleted && "✓ "}

@@ -17,6 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button, Field } from "@/ui";
 
 export type TasksListViewProps = {
   sections: TaskSection[];
@@ -74,7 +75,7 @@ function sortMyTasks(list: TeamTask[]): TeamTask[] {
 
 function TasksListHeader({ scheduleColumnLabel }: { scheduleColumnLabel: string }): React.ReactElement {
   return (
-    <div className={cn(LIST_GRID, "sticky top-0 z-10 bg-zinc-900 px-3 py-2")}>
+    <div className={cn(LIST_GRID, "sticky top-0 z-10 bg-ui-field px-3 py-2")}>
       <span />
       <span className="text-base font-semibold text-muted-foreground">Task</span>
       <span className="text-base font-semibold text-muted-foreground">Client</span>
@@ -140,32 +141,28 @@ function TaskRow({
     <div
       className={cn(
         "group px-3 py-2",
-        selected ? "bg-zinc-800" : rowIndex % 2 === 0 ? "bg-black" : "bg-zinc-950",
-        !selected && "hover:bg-zinc-900",
+        selected ? "bg-ui-field-hover" : rowIndex % 2 === 0 ? "bg-black" : "bg-black",
+        !selected && "hover:bg-ui-field",
       )}
     >
       <div className={LIST_GRID}>
-        <button
-          type="button"
+        <Button
+          pressed={Boolean(done)}
           aria-label={`Toggle ${task.title}`}
           onClick={onStatusChange}
-          className={cn(
-            "flex h-8 w-8 items-center justify-center",
-            done ? "bg-primary text-black" : "bg-zinc-800 text-muted-foreground hover:text-white",
-          )}
         >
           {done ? <Check className="h-4 w-4" /> : null}
-        </button>
-        <button type="button" onClick={onSelect} className="min-w-0 text-left">
+        </Button>
+        <Button variant="quiet" onClick={onSelect}>
           <span
             className={cn(
-              "block truncate text-base",
+              "block break-words text-base",
               done ? "text-muted-foreground line-through" : "text-white",
             )}
           >
             {task.title}
           </span>
-        </button>
+        </Button>
         <span className="whitespace-nowrap text-base text-muted-foreground">{clientName}</span>
         <div className="flex min-w-0 gap-1">
           {task.tagIds.slice(0, 2).map((tagId) => (
@@ -195,7 +192,7 @@ function TaskRow({
               return (
                 <span
                   key={uid}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center bg-zinc-900 text-primary"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center bg-ui-field text-primary"
                   aria-label="Pulse"
                 >
                   <Sparkles className="h-4 w-4" />
@@ -207,7 +204,7 @@ function TaskRow({
             return (
               <span
                 key={uid}
-                className="flex h-8 w-8 shrink-0 items-center justify-center bg-zinc-900 text-base text-white"
+                className="flex h-8 w-8 shrink-0 items-center justify-center bg-ui-field text-base text-white"
               >
                 {label}
               </span>
@@ -230,32 +227,28 @@ function TaskRow({
               onExecuted={onExecute}
             />
           ) : null}
-          <button
-            type="button"
+          <Button
+            size="icon" icon={Pencil}
+            variant="quiet"
             aria-label={`Edit ${task.title}`}
             onClick={(e) => {
               e.stopPropagation();
               onEdit();
             }}
-            className="flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-white"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
+          ></Button>
+          <Button
+            size="icon" icon={Trash2}
+            variant="quiet"
             aria-label={`Delete ${task.title}`}
             onClick={(e) => {
               e.stopPropagation();
               setDeleteOpen(true);
             }}
-            className="flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-red-400"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+          ></Button>
         </div>
       </div>
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent className="rounded-none border-0 bg-zinc-950 text-white">
+        <AlertDialogContent className="rounded-none border-0 bg-black text-white">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base">Delete task</AlertDialogTitle>
             <AlertDialogDescription className="text-base text-muted-foreground">
@@ -265,7 +258,7 @@ function TaskRow({
           <AlertDialogFooter>
             <AlertDialogCancel className="h-10 text-base">Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="h-10 bg-red-600 text-base hover:bg-red-700"
+              className="h-10 bg-ui-danger/20 text-base hover:bg-ui-danger/20"
               onClick={() => onDelete()}
             >
               Delete
@@ -441,7 +434,7 @@ export function TasksListView({
                 {section.id > 0 ? (
                   automationMode ? (
                     <div className="px-3 pb-2">
-                      <input
+                      <Field
                         value={draft}
                         onChange={(e) =>
                           setDraftBySection((prev) => ({ ...prev, [section.id]: e.target.value }))
@@ -453,13 +446,12 @@ export function TasksListView({
                           }
                         }}
                         placeholder="Add action"
-                        className="h-10 w-full bg-zinc-900 px-2 text-base text-white placeholder:text-muted-foreground"
                       />
                     </div>
                   ) : (
                     <div className={cn(LIST_GRID, "mt-1 px-3")}>
                       <span />
-                      <input
+                      <Field
                         value={draft}
                         onChange={(e) =>
                           setDraftBySection((prev) => ({ ...prev, [section.id]: e.target.value }))
@@ -471,7 +463,6 @@ export function TasksListView({
                           }
                         }}
                         placeholder="Add task"
-                        className="col-span-7 h-10 bg-zinc-900 px-2 text-base text-white placeholder:text-muted-foreground"
                       />
                     </div>
                   )
@@ -482,7 +473,7 @@ export function TasksListView({
         : null}
       {showDoneSection && doneTasks.length > 0 ? (
         <section>
-          <h3 className="bg-zinc-900 px-3 py-2 text-base font-semibold text-white">
+          <h3 className="bg-ui-field px-3 py-2 text-base font-semibold text-white">
             Done
             <span className="ml-2 text-muted-foreground">{doneTasks.length}</span>
           </h3>

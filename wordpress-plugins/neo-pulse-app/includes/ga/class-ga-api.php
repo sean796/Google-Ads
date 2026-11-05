@@ -210,7 +210,7 @@ class Neo_Pulse_App_Ga_Api {
 	}
 
 	/**
-	 * GA4 User acquisition style block: first user medium = organic, by calendar month.
+	 * GA4 User acquisition block: firstUserDefaultChannelGroup = Organic Search, by calendar month.
 	 *
 	 * @param array<string,string> $credentials
 	 * @param array<string,string> $date_range startDate/endDate (YYYY-MM-DD)
@@ -223,10 +223,10 @@ class Neo_Pulse_App_Ga_Api {
 	) {
 		$filter = array(
 			'filter' => array(
-				'fieldName'    => 'firstUserMedium',
+				'fieldName'    => 'firstUserDefaultChannelGroup',
 				'stringFilter' => array(
 					'matchType' => 'EXACT',
-					'value'     => 'organic',
+					'value'     => 'Organic Search',
 				),
 			),
 		);
@@ -959,10 +959,10 @@ class Neo_Pulse_App_Ga_Api {
 		);
 		$user_filter     = array(
 			'filter' => array(
-				'fieldName'    => 'firstUserMedium',
+				'fieldName'    => 'firstUserDefaultChannelGroup',
 				'stringFilter' => array(
 					'matchType' => 'EXACT',
-					'value'     => 'organic',
+					'value'     => 'Organic Search',
 				),
 			),
 		);

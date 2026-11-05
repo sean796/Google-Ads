@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { ExternalLink, Megaphone } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { WordPressSite } from "@/components/integrations/types";
 import { SocialMediaModal } from "./SocialMediaModal";
+import { Button } from "@/ui";
 
 export type GmbContentRow = {
   id: number;
@@ -108,7 +108,7 @@ export const GmbContentTable: React.FC<GmbContentTableProps> = ({
                 </td>
                 <td className="px-2 py-2.5">
                   <div className="flex flex-col gap-0.5">
-                    <span className="font-medium text-foreground line-clamp-1">
+                    <span className="font-medium text-foreground">
                       {row.title || "(untitled)"}
                     </span>
                     <a
@@ -118,7 +118,7 @@ export const GmbContentTable: React.FC<GmbContentTableProps> = ({
                       className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
                     >
                       <ExternalLink className="h-3 w-3 shrink-0" />
-                      <span className="truncate max-w-[260px]">
+                      <span className="break-words max-w-[260px]">
                         {row.url.replace(/^https?:\/\//, "")}
                       </span>
                     </a>
@@ -135,10 +135,7 @@ export const GmbContentTable: React.FC<GmbContentTableProps> = ({
                 </td>
                 <td className="px-2 py-2.5 text-right">
                   <Button
-                    size="sm"
-                    variant="secondary"
                     onClick={() => openModal(row)}
-                    className="gap-1.5"
                   >
                     <Megaphone className="h-3.5 w-3.5" />
                     Create Social Post

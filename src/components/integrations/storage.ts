@@ -196,6 +196,8 @@ function restoreOriginalIntegrationsSiteName(
 
 /** Node worker override for server post creator harness (no browser localStorage). */
 let serverHarnessSitesOverride: WordPressSite[] | null = null;
+/** In-memory runtime store for connected WordPress sites (backed by server mirror). */
+let memorySitesStore: WordPressSite[] | null = null;
 
 export function setServerHarnessSitesOverride(sites: WordPressSite[] | null): void {
   serverHarnessSitesOverride = sites;
@@ -354,6 +356,8 @@ export function minimalSiteForLocalStorage(site: WordPressSite): WordPressSite {
     industryVertical: slim.industryVertical,
     benchmarkCustomTag: slim.benchmarkCustomTag,
     primaryLocalKeyword: slim.primaryLocalKeyword,
+    locations: slim.locations,
+    napInfo: slim.napInfo,
     clientLogoUrl: clientLogoUrlForLocalStorage(slim.clientLogoUrl),
     clientLogoSource: slim.clientLogoSource,
     clientLogoFetchedAt: slim.clientLogoFetchedAt,
@@ -452,96 +456,146 @@ function applyEditorialContentPackageDefaults(site: WordPressSite): WordPressSit
   return next;
 }
 
+function isStalePhoenixArizonaLocation(site: WordPressSite): boolean {
+  const first = site.locations?.[0] ?? site.napInfo?.locations?.[0];
+  if (!first) return false;
+  const host = wordPressSiteHostKey(site.siteUrl).toLowerCase();
+  const isPhoenixCa = host.includes("phoenixpainting.ca") || normalizeEditorialPropertyName(site.name) === "phoenix painting";
+  return isPhoenixCa && (first.city?.toLowerCase() === "pheonix" || first.state?.toLowerCase() === "arizona");
+}
+
+function applyPropertyKeywordAndLocationsDefaults(site: WordPressSite): WordPressSite {
+  const seed = findSeedSiteForEditorialMerge(site);
+  if (!seed) return site;
+  let next = site;
+  if (!next.primaryLocalKeyword?.trim() && seed.primaryLocalKeyword?.trim()) {
+    next = { ...next, primaryLocalKeyword: seed.primaryLocalKeyword.trim() };
+  }
+  const currentLocs = next.locations ?? next.napInfo?.locations ?? [];
+  const seedLocs = seed.locations ?? seed.napInfo?.locations ?? [];
+  if (
+    seedLocs.length > 0 &&
+    (currentLocs.length === 0 ||
+      isStalePhoenixArizonaLocation(next) ||
+      (currentLocs.length === 1 && seedLocs.length > 1 && currentLocs[0]?.city === seedLocs[0]?.city))
+  ) {
+    next = {
+      ...next,
+      locations: seedLocs,
+      napInfo: seed.napInfo ?? { ...(next.napInfo ?? { name: next.name }), locations: seedLocs },
+    };
+  }
+  return next;
+}
+
+function normalizeSiteEntry(site: WordPressSite): WordPressSite {
+  const migratedSite = {
+    ...site,
+    enabled: site.enabled !== undefined ? site.enabled : true,
+  };
+
+  if (migratedSite.sitemaps?.mainSitemapUrl?.includes("/wp-sitemap.xml")) {
+    migratedSite.sitemaps.mainSitemapUrl = migratedSite.sitemaps.mainSitemapUrl.replace(
+      "/wp-sitemap.xml",
+      "/sitemap_index.xml",
+    );
+  }
+
+  const rawPkg = migratedSite.optimizationPackage?.trim();
+  if (rawPkg && isOptimizationPackageTier(rawPkg)) {
+    migratedSite.optimizationPackage = rawPkg;
+  } else {
+    delete migratedSite.optimizationPackage;
+  }
+
+  return applyPropertyKeywordAndLocationsDefaults(
+    applyEditorialContentPackageDefaults(
+      applySemrushProjectDefaults(
+        applyGa4PropertyIdDefaults(
+          applyWpEngineHostingDefaults(applyShutterSpotDisplayNameMigration(migratedSite)),
+        ),
+      ),
+    ),
+  );
+}
+
+let legacyLocalStorageCachesPurged = false;
+
+function purgeLegacyLocalStorageCaches(): void {
+  if (legacyLocalStorageCachesPurged || typeof localStorage === "undefined") return;
+  legacyLocalStorageCachesPurged = true;
+  try {
+    const toRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if (
+        k.startsWith("neo-pulse-site-prefetch:") ||
+        k.startsWith("neo-pulse-overview-rows-local:") ||
+        k.startsWith("neo-pulse-overview-active-row-body:") ||
+        k === "kb_files"
+      ) {
+        toRemove.push(k);
+      }
+    }
+    for (const k of toRemove) {
+      localStorage.removeItem(k);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 function tryPersistSitesJson(json: string): boolean {
+  if (typeof localStorage === "undefined") return true;
   try {
     localStorage.setItem(WORDPRESS_SITES_STORAGE_KEY, json);
     return true;
-  } catch (e) {
-    if (e instanceof DOMException && (e.name === "QuotaExceededError" || e.code === 22)) {
+  } catch {
+    purgeLegacyLocalStorageCaches();
+    try {
+      localStorage.setItem(WORDPRESS_SITES_STORAGE_KEY, json);
+      return true;
+    } catch {
       return false;
     }
-    throw e;
   }
 }
 
 export function getStoredSites(): WordPressSite[] {
-  if (serverHarnessSitesOverride?.length) {
-    const tombstones = getDeletedSitesTombstones();
-    return serverHarnessSitesOverride.filter((s) => !isSiteTombstoned(s, tombstones));
-  }
-  if (typeof localStorage === "undefined") {
-    return DEFAULT_PROPERTIES_SEED_SITES.filter((s) => !isSiteTombstoned(s));
-  }
-  try {
-    const stored = localStorage.getItem(WORDPRESS_SITES_STORAGE_KEY);
-    if (stored) {
-      const sites = JSON.parse(stored) as WordPressSite[];
-      const tombstones = getDeletedSitesTombstones();
-      const activeSites = sites.filter((s) => !isSiteTombstoned(s, tombstones));
-
-      // If active sites exist, process migrations and return
-      if (activeSites.length > 0) {
-        // If any deleted sites were found in local storage, purge them immediately
-        if (activeSites.length !== sites.length) {
-          localStorage.setItem(WORDPRESS_SITES_STORAGE_KEY, JSON.stringify(activeSites));
-          void syncWordPressSitesToServer(activeSites);
-          void saveWordPressProperties(activeSites).catch(() => {});
-        }
-
-        // Migrate wp-sitemap.xml URLs to sitemap_index.xml
-        const migrated = activeSites.map((site) => {
-          const migratedSite = {
-            ...site,
-            enabled: site.enabled !== undefined ? site.enabled : true,
-          };
-
-          // Convert wp-sitemap.xml to sitemap_index.xml if it exists
-          if (migratedSite.sitemaps?.mainSitemapUrl?.includes("/wp-sitemap.xml")) {
-            console.log(`[Migration] Converting wp-sitemap.xml to sitemap_index.xml for site: ${site.name}`);
-            migratedSite.sitemaps.mainSitemapUrl = migratedSite.sitemaps.mainSitemapUrl.replace(
-              "/wp-sitemap.xml",
-              "/sitemap_index.xml",
-            );
-          }
-
-          const rawPkg = migratedSite.optimizationPackage?.trim();
-          if (rawPkg && isOptimizationPackageTier(rawPkg)) {
-            migratedSite.optimizationPackage = rawPkg;
-          } else {
-            delete migratedSite.optimizationPackage;
-          }
-
-          return applyEditorialContentPackageDefaults(
-            applySemrushProjectDefaults(
-              applyGa4PropertyIdDefaults(
-                applyWpEngineHostingDefaults(applyShutterSpotDisplayNameMigration(migratedSite)),
-              ),
-            ),
-          );
-        });
-
-        // Save migrated sites back to localStorage if any changes were made
-        if (JSON.stringify(migrated) !== JSON.stringify(sites)) {
-          localStorage.setItem(WORDPRESS_SITES_STORAGE_KEY, JSON.stringify(migrated));
-        }
-
-        return migrated;
-      }
-    }
-  } catch (e) {
-    console.error("Failed to parse stored WordPress sites:", e);
-  }
-
-  // Return default seed and self-heal storage if not populated
   const tombstones = getDeletedSitesTombstones();
-  const seed = DEFAULT_PROPERTIES_SEED_SITES.filter((s) => !isSiteTombstoned(s, tombstones));
-  if (typeof localStorage !== "undefined" && seed.length > 0) {
+  if (serverHarnessSitesOverride?.length) {
+    return serverHarnessSitesOverride
+      .filter((s) => !isSiteTombstoned(s, tombstones))
+      .map(normalizeSiteEntry);
+  }
+  if (memorySitesStore && memorySitesStore.length > 0) {
+    return memorySitesStore
+      .filter((s) => !isSiteTombstoned(s, tombstones))
+      .map(normalizeSiteEntry);
+  }
+  if (typeof localStorage !== "undefined") {
+    purgeLegacyLocalStorageCaches();
     try {
-      localStorage.setItem(WORDPRESS_SITES_STORAGE_KEY, JSON.stringify(seed));
+      const stored = localStorage.getItem(WORDPRESS_SITES_STORAGE_KEY);
+      if (stored) {
+        const sites = JSON.parse(stored) as WordPressSite[];
+        const activeSites = sites.filter((s) => !isSiteTombstoned(s, tombstones));
+        if (activeSites.length > 0) {
+          const migrated = activeSites.map(normalizeSiteEntry);
+          memorySitesStore = migrated;
+          return migrated;
+        }
+      }
     } catch {
-      /* ignore */
+      /* ignore corrupt or legacy storage */
     }
   }
+
+  const seed = DEFAULT_PROPERTIES_SEED_SITES
+    .filter((s) => !isSiteTombstoned(s, tombstones))
+    .map(normalizeSiteEntry);
+  memorySitesStore = seed;
   return seed;
 }
 
@@ -549,40 +603,20 @@ export function saveSites(sites: WordPressSite[]): void {
   const tombstones = getDeletedSitesTombstones();
   const filtered = sites.filter((s) => !isSiteTombstoned(s, tombstones));
 
-  // Safety guard: never wipe all sites via tombstone filtering if incoming list was non-empty
   const target = sites.length > 0 && filtered.length === 0 ? sites : filtered;
-  const persisted = target.map(stripInlineClientLogoFromSite);
+  const persisted = target.map((s) => normalizeSiteEntry(stripInlineClientLogoFromSite(s)));
+  memorySitesStore = persisted;
 
   void syncWordPressSitesToServer(persisted);
   void saveWordPressProperties(persisted).catch(() => {});
 
-  try {
-    const fullJson = JSON.stringify(persisted);
-    if (tryPersistSitesJson(fullJson)) return;
-
-    const slimJson = JSON.stringify(persisted.map(slimSiteForLocalStorage));
-    if (tryPersistSitesJson(slimJson)) {
-      console.warn(
-        "[Integrations] Saved slim WordPress sites (omitted sitemap URLs/post metadata) due to localStorage quota.",
-      );
-      return;
+  const minimalJson = JSON.stringify(persisted.map(minimalSiteForLocalStorage));
+  if (!tryPersistSitesJson(minimalJson)) {
+    try {
+      localStorage.removeItem(WORDPRESS_SITES_STORAGE_KEY);
+    } catch {
+      /* ignore */
     }
-
-    const minimalJson = JSON.stringify(persisted.map(minimalSiteForLocalStorage));
-    if (tryPersistSitesJson(minimalJson)) {
-      console.warn(
-        "[Integrations] Saved minimal WordPress sites (credentials + config only) due to localStorage quota.",
-      );
-      return;
-    }
-
-    console.warn(
-      "Failed to save WordPress sites to localStorage (quota exceeded even after slimming). Session and server sync are unchanged.",
-    );
-    notify.error(NOTIFY_COULD_NOT_SAVE_SITES_TO_LOCAL_STORAGE);
-  } catch (e) {
-    console.error("Failed to save WordPress sites:", e);
-    notify.error(NOTIFY_COULD_NOT_SAVE_SITES_TO_LOCAL_STORAGE);
   }
 }
 
@@ -705,6 +739,7 @@ const MIRROR_INTEGRATION_ID_FIELDS = [
   "semrushPositionTrackingCampaignId",
   "wpEngineInstall",
   "wpEngineAccountId",
+  "primaryLocalKeyword",
 ] as const;
 
 /** Merge server-mirrored integration IDs (GBP, GA4, Google Ads, Semrush, WP Engine) onto local sites when the browser copy is missing them. */
@@ -726,6 +761,21 @@ export async function mergeServerGbpLocationIdsIntoLocalSites(): Promise<boolean
         next = { ...next, [field]: value };
         changed = true;
       }
+    }
+    const rowLocs = row.locations ?? row.napInfo?.locations ?? [];
+    const localLocs = next.locations ?? next.napInfo?.locations ?? [];
+    if (
+      rowLocs.length > 0 &&
+      (localLocs.length === 0 ||
+        isStalePhoenixArizonaLocation(next) ||
+        (localLocs.length < rowLocs.length && localLocs[0]?.city === rowLocs[0]?.city))
+    ) {
+      next = {
+        ...next,
+        locations: rowLocs,
+        napInfo: row.napInfo ?? { ...(next.napInfo ?? { name: next.name }), locations: rowLocs },
+      };
+      changed = true;
     }
     const serverLogo = row.clientLogoUrl?.trim();
     if (serverLogo) {

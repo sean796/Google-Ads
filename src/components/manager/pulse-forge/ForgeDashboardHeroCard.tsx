@@ -87,7 +87,7 @@ export function ForgeDashboardHeroCard({ card }: ForgeDashboardHeroCardProps): R
                 style={{ backgroundColor: config[item.id] ?? forgeChartColor(index) }}
                 aria-hidden
               />
-              <span className="min-w-0 truncate text-muted-foreground">{item.label}</span>
+              <span className="min-w-0 break-words text-muted-foreground">{item.label}</span>
               <span className="tabular-nums text-white">{item.value}</span>
             </li>
           ))}

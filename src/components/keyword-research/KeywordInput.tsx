@@ -1,8 +1,4 @@
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
 import { NOTIFY_AI_ANALYZING_WIKIPEDIA_CONTENT_TO_SAVE_T, NOTIFY_FILE_UPLOAD_FUNCTIONALITY_NOT_AVAILABLE, NOTIFY_NO_CONTENT_FOUND_FOR_THIS_ENTITY, NOTIFY_PLEASE_ENTER_AN_ENTITY_NAME, notifyWikipediaContentSavedToKnowledgeBas, notifyWikipediaContentSavedToKnowledgeBas2 } from "@/lib/notify-messages";
 import { fetchWikipediaContent, generateWikipediaCSV, type WikipediaFetchOptions } from "@/lib/wikipedia-api";
@@ -10,6 +6,7 @@ import { sanitizeFileName } from "@/lib/file-processing";
 import type { StoredFile } from "@/components/KnowledgeBaseTab";
 import { loadApiKey } from "@/lib/api";
 import { createTempKbFile, updateKbFile } from "@/lib/kb-file-utils";
+import { Button, Field, CheckField } from "@/ui";
 
 interface KeywordInputProps {
   primaryKeyword: string;
@@ -174,17 +171,17 @@ export function KeywordInput({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="primary-keyword">Primary Keyword</Label>
+        <label htmlFor="primary-keyword">Primary Keyword</label>
         <div className="flex gap-2">
-          <Input
+          <Field
             id="primary-keyword"
             value={primaryKeyword}
             onChange={(e) => onKeywordChange(e.target.value)}
             placeholder="e.g., best seo tools"
-            className="flex-1"
             disabled={isAnalyzing}
           />
           <Button
+            variant="run"
             onClick={onAnalyze}
             disabled={isAnalyzing || !primaryKeyword.trim()}
           >
@@ -192,12 +189,11 @@ export function KeywordInput({
           </Button>
           {hasResult && (
             <>
-              <Button variant="outline" onClick={onClear}>
+              <Button onClick={onClear}>
                 Clear
               </Button>
-              <Button 
-                variant="ghost" 
-                size="sm"
+              <Button
+                variant="quiet"
                 onClick={onClearCache}
                 title="Clear all cached keyword data"
               >
@@ -210,40 +206,31 @@ export function KeywordInput({
 
       {/* Force Refresh Toggle */}
       <div className="flex items-center gap-2 p-2 bg-card/50 rounded border border-border">
-        <input
-          type="checkbox"
-          id="force-refresh"
+        <CheckField
           checked={forceRefresh}
-          onChange={(e) => onForceRefreshChange(e.target.checked)}
-          className="rounded cursor-pointer"
+          onCheckedChange={onForceRefreshChange}
+          label="Force fresh data (bypass cache) - Always search for new keywords"
         />
-        <Label htmlFor="force-refresh" className="text-sm cursor-pointer">
-          Force fresh data (bypass cache) - Always search for new keywords
-        </Label>
       </div>
 
       {/* Entity */}
       <div className="space-y-2">
-        <Label>Entity (Optional)</Label>
+        <label>Entity (Optional)</label>
         <div className="flex gap-2">
-          <Input
+          <Field
             type="text"
             value={entity}
             onChange={(e) => onEntityChange(e.target.value)}
             placeholder="e.g., Local Business, Product Name"
-            className="flex-1"
             disabled={isLoadingWikipedia}
           />
           <Button
-            variant="outline"
-            size="icon"
             onClick={handleWikipediaFetch}
             disabled={isLoadingWikipedia || !entity.trim() || !onAddFile}
             title="Fetch Wikipedia content and save to Knowledge Base"
-            className="font-bold"
           >
             {isLoadingWikipedia ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              null
             ) : (
               <span className="text-sm font-bold">W</span>
             )}

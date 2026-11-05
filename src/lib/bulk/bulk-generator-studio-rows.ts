@@ -192,6 +192,7 @@ export function bulkCsvRowPathLabel(
   row: CSVRow,
   ctx?: BulkGeneratorPathPreviewContext,
   siteBaseUrl?: string | null,
+  rowIndex?: number,
 ): string {
   const kind = bulkGeneratorPathKind(row, ctx);
   const locked = row.target_slug?.trim();
@@ -199,8 +200,9 @@ export function bulkCsvRowPathLabel(
 
   const slug = buildSapSlugFromKeywordEntity(row.keyword ?? "", row.entity ?? "");
   if (!slug) {
-    if (kind === "post") return "/blog/…/";
-    return "/…/";
+    const fallbackSlug = rowIndex != null ? `row-${rowIndex + 1}` : "…";
+    if (kind === "post") return `/blog/${fallbackSlug}/`;
+    return `/${fallbackSlug}/`;
   }
   if (kind === "post") return `/blog/${slug}/`;
   return applySapPathToContext(slug, ctx, siteBaseUrl ?? null);
@@ -222,9 +224,10 @@ export function bulkGeneratorRowPathPreview(
   row: CSVRow,
   siteBaseUrl: string | null,
   ctx?: BulkGeneratorPathPreviewContext,
+  rowIndex?: number,
 ): { pathLabel: string; fullUrlPreview: string } {
   if (row.target_slug?.trim()) {
-    const pathLabel = bulkCsvRowPathLabel(row, ctx, siteBaseUrl);
+    const pathLabel = bulkCsvRowPathLabel(row, ctx, siteBaseUrl, rowIndex);
     const fullUrlPreview = siteBaseUrl ? `${siteBaseUrl}${pathLabel}` : pathLabel;
     return { pathLabel, fullUrlPreview };
   }
@@ -275,7 +278,7 @@ export function bulkGeneratorRowPathPreview(
     }
   }
 
-  const pathLabel = bulkCsvRowPathLabel(row, ctx, siteBaseUrl);
+  const pathLabel = bulkCsvRowPathLabel(row, ctx, siteBaseUrl, rowIndex);
   const fullUrlPreview = siteBaseUrl ? `${siteBaseUrl}${pathLabel}` : pathLabel;
   return { pathLabel, fullUrlPreview };
 }
@@ -472,6 +475,7 @@ export function buildBulkGeneratorStudioList(input: {
       row,
       input.siteBaseUrl,
       pathCtx,
+      i,
     );
     const hasContent = rowHasContentArtifact(files);
 

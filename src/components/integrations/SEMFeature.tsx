@@ -1,12 +1,4 @@
 import React, { useState, useCallback, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -14,14 +6,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_LIST_LOADED, NOTIFY_NO_PENDING_TASKS_TO_FIX, NOTIFY_PASTE_OR_UPLOAD_A_TASK_LIST_FIRST, NOTIFY_SELECT_A_WORDPRESS_SITE_FIRST, NOTIFY_SHEET_EXPORTED, notifyFixRunCompleteXTaskSProcessed, notifyInterpretedXTaskS } from "@/lib/notify-messages";
-import { Wrench, Loader2, Upload, FileText, Download, Printer } from "lucide-react";
+import { Wrench, Upload, FileText, Download, Printer } from "lucide-react";
 import { getStoredSites } from "@/components/integrations/storage";
 import type { WordPressSite } from "@/components/integrations/types";
 import { interpretSemTaskList, type InterpretedSemTask } from "@/lib/sem-task-interpreter";
 import { useContentOptimization } from "@/hooks/use-content-optimization";
+import { Button, FileInput, SelectField, TextareaField } from "@/ui";
 
 export type SemTaskRow = InterpretedSemTask & {
   status: "pending" | "fixing" | "done" | "error";
@@ -198,18 +190,16 @@ export const SEMFeature: React.FC = () => {
           <div className="flex gap-2 items-center">
             <Button
               onClick={handleFixIt}
-              variant="outline"
               disabled={
                 !selectedSite ||
                 pendingCount === 0 ||
                 isFixing ||
                 !hasTasks
               }
-              className="border-primary text-primary hover:bg-primary/10"
             >
               {isFixing ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  
                   Fixing...
                 </>
               ) : (
@@ -224,46 +214,28 @@ export const SEMFeature: React.FC = () => {
 
         <div className="mt-4 space-y-4">
           <div>
-            <Label className="text-sm text-muted-foreground">
+            <label className="text-sm text-muted-foreground">
               WordPress site
-            </Label>
-            <Select
-              value={selectedSite?.id ?? ""}
-              onValueChange={(id) => {
+            </label>
+            <SelectField placeholder="Select site" value={selectedSite?.id ?? ""} onValueChange={(id) => {
                 const site = sites.find((s) => s.id === id) ?? null;
                 setSelectedSite(site);
-              }}
-            >
-              <SelectTrigger className="mt-1 max-w-xs">
-                <SelectValue placeholder="Select site" />
-              </SelectTrigger>
-              <SelectContent>
-                {sites.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              }} options={sites.map((s) => ({ value: s.id, label: s.name }))} />
           </div>
 
           <div>
-            <Label className="text-sm text-muted-foreground">
+            <label className="text-sm text-muted-foreground">
               Task list (paste or upload CSV/text, one item per line)
-            </Label>
+            </label>
             <div className="flex gap-2 mt-1">
-              <input
+              <FileInput
                 ref={fileInputRef}
-                type="file"
                 accept=".csv,.txt"
                 onChange={handleFileUpload}
-                className="hidden"
                 aria-hidden
               />
               <Button
                 type="button"
-                variant="outline"
-                size="sm"
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Upload className="h-4 w-4 mr-1" />
@@ -271,13 +243,11 @@ export const SEMFeature: React.FC = () => {
               </Button>
               <Button
                 type="button"
-                variant="outline"
-                size="sm"
                 onClick={handleInterpretList}
                 disabled={!rawList.trim() || isInterpreting}
               >
                 {isInterpreting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  null
                 ) : (
                   <>
                     <FileText className="h-4 w-4 mr-1 inline" />
@@ -286,8 +256,7 @@ export const SEMFeature: React.FC = () => {
                 )}
               </Button>
             </div>
-            <textarea
-              className="mt-2 w-full min-h-[120px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            <TextareaField
               placeholder="Paste URLs or lines like: https://example.com/page, Fix title and meta"
               value={rawList}
               onChange={(e) => setRawList(e.target.value)}
@@ -311,13 +280,13 @@ export const SEMFeature: React.FC = () => {
                     {tasks.map((t, idx) => (
                       <tr key={`${t.lineIndex}-${t.url}-${idx}`} className="border-b">
                         <td className="p-2">{t.lineIndex}</td>
-                        <td className="p-2 max-w-[200px] truncate" title={t.url}>
+                        <td className="p-2 max-w-[200px] break-words" title={t.url}>
                           {t.url}
                         </td>
                         <td className="p-2">{t.suggestedAction}</td>
                         <td className="p-2">
                           {t.status === "fixing" && (
-                            <Loader2 className="h-4 w-4 animate-spin inline" />
+                            null
                           )}
                           {t.status !== "fixing" && t.status}
                         </td>
@@ -332,8 +301,6 @@ export const SEMFeature: React.FC = () => {
               <div className="flex gap-2">
                 <Button
                   type="button"
-                  variant="outline"
-                  size="sm"
                   onClick={handleExportSheet}
                 >
                   <Download className="h-4 w-4 mr-1" />
@@ -341,8 +308,6 @@ export const SEMFeature: React.FC = () => {
                 </Button>
                 <Button
                   type="button"
-                  variant="outline"
-                  size="sm"
                   onClick={handlePrintSheet}
                 >
                   <Printer className="h-4 w-4 mr-1" />
@@ -377,7 +342,7 @@ export const SEMFeature: React.FC = () => {
                 {tasks.map((t, idx) => (
                   <tr key={`print-${t.lineIndex}-${t.url}-${idx}`} className="border-b">
                     <td className="p-2">{t.lineIndex}</td>
-                    <td className="p-2 max-w-[200px] truncate" title={t.url}>
+                    <td className="p-2 max-w-[200px] break-words" title={t.url}>
                       {t.url}
                     </td>
                     <td className="p-2">{t.suggestedAction}</td>
@@ -391,9 +356,9 @@ export const SEMFeature: React.FC = () => {
             </table>
           </div>
           <Button
+            variant="run"
             type="button"
             onClick={() => window.print()}
-            className="mt-4"
           >
             <Printer className="h-4 w-4 mr-2" />
             Print

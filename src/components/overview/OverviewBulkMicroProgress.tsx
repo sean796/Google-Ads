@@ -1,5 +1,4 @@
 import React from "react";
-import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import {
@@ -115,7 +114,7 @@ export function BulkPostProgressLeading({
   return (
     <div
       className={cn(
-        "flex min-h-11 flex-wrap items-center justify-start gap-2 rounded-none border border-zinc-800 bg-zinc-900 px-3 py-2",
+        "flex min-h-11 flex-wrap items-center justify-start gap-2 rounded-none border border-border bg-ui-field px-3 py-2",
         className,
       )}
       role="status"
@@ -346,8 +345,8 @@ function BulkInlineStatusRow({ message }: { message: string }) {
       role="status"
       aria-live="polite"
     >
-      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
-      <span className="min-w-0 truncate" title={message}>
+      
+      <span className="min-w-0 break-words" title={message}>
         {message}
       </span>
     </div>
@@ -523,7 +522,7 @@ export function MetaBulkMicroProgress({
       );
     }
     return (
-      <div className="flex min-h-[2.25rem] flex-col justify-center gap-1.5 rounded-lg border border-white/[0.06] bg-zinc-950/45 px-2.5 py-2 shadow-none">
+      <div className="flex min-h-[2.25rem] flex-col justify-center gap-1.5 rounded-lg border border-white/[0.06] bg-black/45 px-2.5 py-2 shadow-none">
         <span className="text-base font-medium uppercase tracking-wide text-muted-foreground">
           {headerLabel}
         </span>
@@ -570,7 +569,7 @@ export function MetaBulkMicroProgress({
     <div
       className={cn(
         "flex min-w-0 flex-col justify-center gap-1.5",
-        "min-h-[2.25rem] gap-1.5 rounded-lg border border-white/[0.06] bg-zinc-950/50 px-2.5 py-2 shadow-none",
+        "min-h-[2.25rem] gap-1.5 rounded-lg border border-white/[0.06] bg-black/50 px-2.5 py-2 shadow-none",
       )}
     >
       <div className="flex min-h-0 items-center justify-between gap-2">
@@ -579,9 +578,9 @@ export function MetaBulkMicroProgress({
           title={inlineStatus ? snapshot.label : embeddedTitleFull}
         >
           {!inlineStatus && pagesTotal > 0 && pagesDone < pagesTotal ? (
-            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
+            null
           ) : null}
-          <span className="min-w-0 truncate">{snapshot.label}</span>
+          <span className="min-w-0 break-words">{snapshot.label}</span>
         </span>
         <span
           className="shrink-0 text-base tabular-nums text-muted-foreground"

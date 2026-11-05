@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 export function MobileClientSitePicker() {
   const { sites, handleConnectSite } = useWordPressSites();
@@ -29,14 +30,13 @@ export function MobileClientSitePicker() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          className="mobile-client-picker"
+        <Button
+          variant="quiet"
           aria-label={`Active client: ${label}`}
         >
-          <span className="mobile-client-picker__label truncate">{label}</span>
+          <span className="mobile-client-picker__label break-words">{label}</span>
           <ChevronDown className="mobile-client-picker__chevron h-4 w-4 shrink-0" aria-hidden />
-        </button>
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="mobile-client-picker__menu">
         {enabledSites.map((site) => {
@@ -52,7 +52,7 @@ export function MobileClientSitePicker() {
                 setActiveWordPressSiteId(site.id);
               }}
             >
-              <span className="truncate">{siteLabel}</span>
+              <span className="break-words">{siteLabel}</span>
             </DropdownMenuItem>
           );
         })}

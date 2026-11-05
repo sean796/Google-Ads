@@ -1,4 +1,4 @@
-import { Textarea } from "@/components/ui/textarea";
+
 import { MetaAdsVisualToolPaletteField } from "@/components/ppc/meta/MetaAdsVisualToolPaletteField";
 import {
   META_VISUAL_CELL_CLASS,
@@ -8,6 +8,7 @@ import {
 } from "@/components/ppc/meta/meta-ads-visual-settings-layout";
 import type { MetaAdColorPalette, MetaAdTypographyStyle, MetaAdVisualToolPalette } from "@/lib/ppc/meta-ads-types";
 import { cn } from "@/lib/utils";
+import { TextareaField } from "@/ui";
 
 export type MetaAdsVisualSettingsPanelProps = {
   colorPalette: MetaAdColorPalette;
@@ -52,10 +53,9 @@ export function MetaAdsVisualSettingsPanel({
           <span className={cn(META_VISUAL_CELL_CLASS, "pt-2 text-base font-semibold text-foreground")}>
             Prompt Modifier
           </span>
-          <Textarea
+          <TextareaField
             value={visualNote ?? ""}
             placeholder="Optional: what should the image show?"
-            className={cn(META_VISUAL_TEXTAREA_CLASS, "col-span-3")}
             aria-label="Prompt Modifier"
             disabled={disabled}
             onChange={(e) => onVisualNoteChange(e.target.value)}

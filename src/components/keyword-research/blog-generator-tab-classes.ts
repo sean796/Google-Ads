@@ -4,7 +4,7 @@ import { SEO_WORKSPACE_BODY_SCROLL_CLASS, SEO_WORKSPACE_SHELL_CLASS } from "@/co
 /** Shared layout classes for Blog Generator unified workspace headers. */
 export const BLOG_GENERATOR_TAB_ROOT_CLASS = cn(
   SEO_WORKSPACE_SHELL_CLASS,
-  "min-h-0 gap-0 !px-1.5 md:!px-2.5",
+  "min-h-0 gap-0 !p-0",
 );
 
 /** Padding so meta-opt-breathe glow is not clipped by tab shell overflow. */

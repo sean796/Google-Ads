@@ -1,7 +1,5 @@
 import { useMemo } from "react";
 import { Copy, Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { BULK_GENERATOR_EMPTY_ROW_COUNT } from "@/components/keyword-research/blog-generator-tab-classes";
 import {
   CONTENT_OPTIMIZER_MULTI_SITE_ROW_STACK_CLASS,
@@ -11,6 +9,7 @@ import { PressReleaseRowCompact } from "@/components/press-release/PressReleaseR
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_COULD_NOT_COPY_TO_CLIPBOARD, NOTIFY_MARKDOWN_COPIED } from "@/lib/notify-messages";
 import { cn } from "@/lib/utils";
+import { Button, TextareaField } from "@/ui";
 
 function sanitizeFilenamePart(s: string): string {
   return s.replace(/[^a-z0-9._-]+/gi, "_").slice(0, 60) || "press-release";
@@ -48,8 +47,6 @@ export function PressReleaseWorkspaceBody({
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
-            variant="secondary"
-            size="sm"
             onClick={async () => {
               try {
                 await navigator.clipboard.writeText(resultMarkdown);
@@ -64,8 +61,6 @@ export function PressReleaseWorkspaceBody({
           </Button>
           <Button
             type="button"
-            variant="secondary"
-            size="sm"
             onClick={() =>
               triggerDownloadMarkdown(
                 `press-release_${sanitizeFilenamePart(keyword.trim() || "release")}.md`,
@@ -77,7 +72,7 @@ export function PressReleaseWorkspaceBody({
             Download .md
           </Button>
         </div>
-        <Textarea readOnly value={resultMarkdown} rows={14} className="font-mono text-base" />
+        <TextareaField placeholder="Press release markdown" readOnly value={resultMarkdown} rows={14} />
       </div>
     );
   }

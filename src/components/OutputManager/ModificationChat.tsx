@@ -1,12 +1,11 @@
 import React, { useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { X, Loader2, Edit, Send, CheckCircle2, User, List } from "lucide-react";
+import { X, Edit, Send, CheckCircle2, User, List } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Message } from "@/lib/api";
 import { formatElapsedTime } from "./utils";
 import { VersusIcon, AEOIcon, LocalIcon } from "@/components/ui/blog-shortcut-icons";
+import { Button, TextareaField } from "@/ui";
 
 interface ModificationChatProps {
   isActive: boolean;
@@ -129,15 +128,13 @@ export const ModificationChat = ({
             {title}
           </h3>
           {onCancel && !hideCancelX && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onCancel}
-              className={isDraftVariant ? "text-xs h-7 hover:bg-destructive/20" : "h-7 w-7 p-0 hover:bg-destructive/20"}
-            >
-              <X className={isDraftVariant ? "h-3 w-3 mr-1" : "h-4 w-4"} />
-              {isDraftVariant && "Cancel"}
-            </Button>
+            isDraftVariant ? (
+              <Button variant="quiet" icon={X} onClick={onCancel}>
+                Cancel
+              </Button>
+            ) : (
+              <Button size="icon" variant="quiet" icon={X} aria-label="Cancel" onClick={onCancel} />
+            )
           )}
         </div>
 
@@ -151,34 +148,13 @@ export const ModificationChat = ({
                 <span className="text-xs text-muted-foreground font-medium">Quick Start:</span>
               </div>
               <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onShortcutClick('versus')}
-                  disabled={isGeneratingChecklist}
-                  className="text-xs h-8 border-0 px-3 flex items-center gap-1.5 hover:bg-primary/15 justify-center"
-                >
-                  <VersusIcon className="w-4 h-4" />
+                <Button icon={VersusIcon} onClick={() => onShortcutClick('versus')} disabled={isGeneratingChecklist}>
                   Versus Posts
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onShortcutClick('aeo')}
-                  disabled={isGeneratingChecklist}
-                  className="text-xs h-8 border-0 px-3 flex items-center gap-1.5 hover:bg-primary/15 justify-center"
-                >
-                  <AEOIcon className="w-4 h-4" />
+                <Button icon={AEOIcon} onClick={() => onShortcutClick('aeo')} disabled={isGeneratingChecklist}>
                   AEO Posts
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onShortcutClick('local')}
-                  disabled={isGeneratingChecklist}
-                  className="text-xs h-8 border-0 px-3 flex items-center gap-1.5 hover:bg-primary/15 justify-center"
-                >
-                  <LocalIcon className="w-4 h-4" />
+                <Button icon={LocalIcon} onClick={() => onShortcutClick('local')} disabled={isGeneratingChecklist}>
                   Local Posts
                 </Button>
               </div>
@@ -192,7 +168,7 @@ export const ModificationChat = ({
             isDraftVariant ? 'bg-background/50' : 'bg-muted/30'
           }`}>
             <div className="flex gap-2">
-              <Textarea
+              <TextareaField
                 value={userInput}
                 onChange={(e) => onUserInputChange(e.target.value)}
                 onKeyDown={(e) => {
@@ -202,26 +178,16 @@ export const ModificationChat = ({
                   }
                 }}
                 placeholder={placeholder}
-                className={`min-h-[60px] resize-none border-0 bg-background text-foreground placeholder:text-muted-foreground ${
-                  isDraftVariant ? '' : 'max-h-[120px] text-sm'
-                }`}
                 disabled={isGeneratingChecklist}
               />
               <Button
+                size="icon"
+                variant="run"
+                icon={Send}
+                aria-label="Send"
                 onClick={onGenerateChecklist}
                 disabled={!userInput.trim() || isGeneratingChecklist}
-                size={isDraftVariant ? "default" : "icon"}
-                className={isDraftVariant 
-                  ? "self-end bg-primary hover:bg-primary/90"
-                  : "h-[60px] w-[60px] bg-primary hover:bg-primary/90 flex-shrink-0"
-                }
-              >
-                {isGeneratingChecklist ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-              </Button>
+              />
             </div>
           </div>
         )}
@@ -234,36 +200,14 @@ export const ModificationChat = ({
             <div className="flex gap-3 items-center">
               {/* Apply/Proceed Actions Group */}
               <div className="flex gap-2 items-center">
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={onUpdate}
-                  disabled={isUpdating}
-                  className="text-xs"
-                >
-                  {isUpdating ? (
-                    <>
-                      <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                      {updateButtonLabel}...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="h-3 w-3 mr-2" />
-                      {updateButtonLabel}
-                    </>
-                  )}
+                <Button variant="run" icon={CheckCircle2} onClick={onUpdate} disabled={isUpdating}>
+                  {updateButtonLabel}
                 </Button>
               </div>
               
               {/* Modification Actions Group */}
               <div className="flex gap-2 items-center pl-1">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={onModifyChecklist}
-                  className="text-xs"
-                >
-                  <Edit className="h-3 w-3 mr-2" />
+                <Button icon={Edit} onClick={onModifyChecklist}>
                   Modify Checklist
                 </Button>
               </div>
@@ -280,13 +224,7 @@ export const ModificationChat = ({
               {/* Apply/Proceed Actions Group */}
               {onProceed && (
                 <div className="flex gap-2 items-center">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={onProceed}
-                    className="text-xs"
-                  >
-                    <CheckCircle2 className="h-3 w-3 mr-2" />
+                  <Button variant="run" icon={CheckCircle2} onClick={onProceed}>
                     {proceedButtonLabel}
                   </Button>
                 </div>
@@ -294,13 +232,7 @@ export const ModificationChat = ({
               
               {/* Modification Actions Group */}
               <div className={`flex gap-2 items-center ${onProceed ? "pl-1" : ""}`}>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={onModifyAgain}
-                  className="text-xs"
-                >
-                  <Edit className="h-3 w-3 mr-2" />
+                <Button icon={Edit} onClick={onModifyAgain}>
                   Modify Again
                 </Button>
               </div>
@@ -364,7 +296,7 @@ export const ModificationChat = ({
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
-                        a: ({ node, ...rest }: any) => <a {...rest} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline" />,
+                        a: ({ node, ...rest }: any) => <a {...rest} target="_blank" rel="noopener noreferrer" className="text-semantic-publish-foreground hover:text-semantic-publish-foreground underline" />,
                         p: ({ children }) => <p className="text-sm leading-relaxed last:mb-0 mb-2">{children}</p>,
                         code: ({ children }) => <code className="bg-background/50 rounded px-1.5 py-0.5 text-xs font-mono">{children}</code>,
                         pre: ({ children }) => <pre className="p-2 rounded-md overflow-x-auto text-xs bg-background/50 font-mono my-2">{children}</pre>,
@@ -413,7 +345,7 @@ export const ModificationChat = ({
             }>
               {isDraftVariant ? (
                 <>
-                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+                  
                   <h4 className="text-lg font-semibold mb-2 text-foreground">{processingTitle}</h4>
                   <div className="flex items-center gap-2 text-2xl font-mono font-bold text-primary">
                     <span>{formatElapsedTime(elapsedTime)}</span>
@@ -423,7 +355,7 @@ export const ModificationChat = ({
               ) : (
                 <>
                   <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-primary/20 text-primary">
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    
                   </div>
                   <div className="flex-1 bg-primary/10 rounded-lg p-4 ring-1 ring-primary/25">
                     <h4 className="text-sm font-semibold mb-2 text-foreground">{processingTitle}</h4>
@@ -444,7 +376,7 @@ export const ModificationChat = ({
               : "flex items-start gap-3"
             }>
               {!isDraftVariant && (
-                <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-green-500/20 text-green-500">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-primary/20 text-primary">
                   <CheckCircle2 className="h-4 w-4" />
                 </div>
               )}
@@ -467,7 +399,7 @@ export const ModificationChat = ({
                 </div>
               )}
               <div className={`flex items-center gap-2 text-sm text-muted-foreground ${isDraftVariant ? '' : 'bg-muted rounded-lg p-3'}`}>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                
                 <span>Generating checklist...</span>
               </div>
             </div>

@@ -1,6 +1,6 @@
 /** Settings cards: same surface + border as UnifiedWorkspaceChrome title band. */
 export const DASHBOARD_SETTINGS_PANEL_CLASS =
-  "rounded-lg border border-white/[0.08] bg-zinc-900/50 p-4 font-sans text-base";
+  "rounded-lg border border-white/[0.08] bg-ui-field/50 p-4 font-sans text-base";
 
 /** Nested group inside a settings panel. */
 export const DASHBOARD_SETTINGS_GROUP_CLASS =
@@ -8,4 +8,4 @@ export const DASHBOARD_SETTINGS_GROUP_CLASS =
 
 /** Input / value row on a black group (matches Google Services API identity row). */
 export const DASHBOARD_SETTINGS_FIELD_CLASS =
-  "min-w-0 rounded-lg border border-white/[0.08] bg-zinc-900/50 text-base text-white";
+  "min-w-0 rounded-lg border border-white/[0.08] bg-ui-field/50 text-base text-white";

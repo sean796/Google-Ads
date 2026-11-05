@@ -48,7 +48,7 @@ export function ForgeDashboardUsageChart({
           {hasData ? (
             <ChartContainer config={config} className="aspect-[3/1] h-48 w-full">
               <BarChart data={chartSeries} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-zinc-800" />
+                <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted-foreground" />
                 <XAxis
                   dataKey="date"
                   tickLine={false}

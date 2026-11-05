@@ -11,6 +11,7 @@ import {
 import type { WorkflowEdge, WorkflowNode, WorkflowRagVariable } from "@/lib/workflow/workflow-types";
 import type { WorkflowStepTestResult } from "@/lib/workflow/workflow-step-test";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 export type WorkflowRightRailProps = {
   teamId: number;
@@ -64,27 +65,25 @@ export function WorkflowRightRail({
   return (
     <aside className={WORKFLOW_RIGHT_RAIL_CLASS}>
       <div className={cn("flex shrink-0", WORKFLOW_SIDEBAR_BG_CLASS)}>
-        <button
-          type="button"
+        <Button
+          variant="quiet"
           data-active={tab === "setup"}
-          className={cn(WORKFLOW_RAIL_TAB_CLASS)}
           onClick={() => setTab("setup")}
         >
           Setup
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="quiet"
           data-active={tab === "rag"}
-          className={cn(WORKFLOW_RAIL_TAB_CLASS)}
           onClick={() => setTab("rag")}
         >
           RAG
-        </button>
+        </Button>
       </div>
       <div className="min-h-0 flex-1 overflow-hidden">
         {saveError ? (
           <div className={cn("shrink-0 px-5 py-3", WORKFLOW_SIDEBAR_FIELD_CLASS)} role="alert">
-            <p className="select-text whitespace-pre-wrap break-words text-base text-red-400">
+            <p className="select-text whitespace-pre-wrap break-words text-base text-ui-danger-hover">
               {saveError}
             </p>
           </div>

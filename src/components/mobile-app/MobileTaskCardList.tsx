@@ -10,6 +10,7 @@ import { AutomationTaskExecuteButton } from "@/components/manager/tasks/Automati
 import type { TeamTask, TaskStatus } from "@/lib/tasks-types";
 import type { TeamMember } from "@/lib/teams-types";
 import { TASK_RECURRENCE_LABELS } from "@/lib/tasks-types";
+import { Button } from "@/ui";
 
 export type MobileTaskCardListProps = {
   tasks: TeamTask[];
@@ -82,21 +83,16 @@ export function MobileTaskCardList({
                 selected && "mobile-task-card--selected",
               )}
             >
-              <button
-                type="button"
+              <Button
+                pressed={Boolean(done)}
                 aria-label={`Toggle ${task.title}`}
                 onClick={() => onStatusChange(task.id, toggleDoneStatus(task.status))}
-                className={cn(
-                  "mobile-task-card__check flex shrink-0 items-center justify-center",
-                  done ? "bg-primary text-black" : "bg-zinc-800 text-muted-foreground",
-                )}
               >
                 {done ? <Check className="h-4 w-4" /> : null}
-              </button>
+              </Button>
 
-              <button
-                type="button"
-                className="mobile-task-card__body min-w-0 flex-1 text-left"
+              <Button
+                variant="quiet"
                 onClick={() => onSelectTask(task.id)}
               >
                 <span
@@ -114,13 +110,13 @@ export function MobileTaskCardList({
                   <span
                     className={cn(
                       "mt-2 inline-block rounded-full px-2 py-1 text-base",
-                      isPulse ? "bg-primary/20 text-primary" : "bg-zinc-800 text-muted-foreground",
+                      isPulse ? "bg-primary/20 text-primary" : "bg-ui-field-hover text-muted-foreground",
                     )}
                   >
                     {assigneeLabel}
                   </span>
                 ) : null}
-              </button>
+              </Button>
 
               {showExecuteAction ? (
                 <AutomationTaskExecuteButton

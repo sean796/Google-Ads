@@ -1,6 +1,5 @@
 import React from "react";
 import { MessageSquare, MoreHorizontal, Pencil, SpellCheck, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +15,7 @@ import type { ChatMessage } from "@/lib/chat-types";
 import { ChatAttachmentChip } from "@/components/chat/thread/ChatAttachmentChip";
 import { ChatLinkPreviewCard } from "@/components/chat/thread/ChatLinkPreviewCard";
 import { CHAT_MESSAGE_PROSE_CLASS, CHAT_ROW_HOVER, CHAT_TEXT_MUTED, CHAT_TEXT_PRIMARY, CHAT_ICON_BTN_CLASS } from "@/components/chat/chat-theme";
+import { Button } from "@/ui";
 
 const messageBodyClass = cn(
   CHAT_MESSAGE_PROSE_CLASS,
@@ -133,22 +133,15 @@ export function ChatMessageBubble({
         />
       ))}
       {threadSummary && !inThread ? (
-        <button
-          type="button"
+        <Button
+          pressed={Boolean(threadSummary.hasReplies)}
+          variant="quiet"
           onClick={() => onReplyInThread?.(message)}
-          className={cn(
-            "mt-1 inline-flex items-center gap-2 rounded-full px-3 py-1 text-base chat-row-hover",
-            threadSummary.hasReplies
-              ? threadSummary.unread
-                ? "font-bold text-[hsl(var(--chat-accent))]"
-                : "text-[hsl(var(--chat-accent))]"
-              : CHAT_TEXT_MUTED,
-          )}
         >
           <MessageSquare className="h-4 w-4 shrink-0" aria-hidden />
           {threadSummary.unread ? <span className="h-2 w-2 rounded-full bg-primary" aria-hidden /> : null}
           {threadSummary.label}
-        </button>
+        </Button>
       ) : null}
     </>
   );
@@ -166,7 +159,7 @@ export function ChatMessageBubble({
         )}
       >
         <div className="chat-message-user-label col-start-1 row-start-1 flex min-w-0 flex-col leading-tight">
-          <span className={cn("truncate text-base font-bold", CHAT_TEXT_PRIMARY)}>
+          <span className={cn("break-words text-base font-bold", CHAT_TEXT_PRIMARY)}>
             {shortDisplayName(message.displayName)}
           </span>
           <span className={cn("text-base", CHAT_TEXT_MUTED)}>{formatTime(message.createdAt)}</span>
@@ -178,17 +171,11 @@ export function ChatMessageBubble({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
+                size="icon" icon={MoreHorizontal}
+                variant="quiet"
                 type="button"
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "col-start-3 row-start-1 h-8 w-8 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100",
-                  CHAT_ICON_BTN_CLASS,
-                )}
                 aria-label="Message options"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
+              ></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="text-base">
               {canWrite && !inThread ? (
@@ -212,7 +199,7 @@ export function ChatMessageBubble({
               ) : null}
               {canManage ? (
                 <DropdownMenuItem
-                  className="text-base gap-2 text-red-600 focus:text-red-600"
+                  className="text-base gap-2 text-ui-danger focus:text-ui-danger"
                   onClick={() => onDelete?.(message)}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -248,14 +235,11 @@ export function ChatMessageBubble({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
+              size="icon" icon={MoreHorizontal}
+              variant="quiet"
               type="button"
-              variant="ghost"
-              size="icon"
-              className={cn("h-8 w-8 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100", CHAT_ICON_BTN_CLASS)}
               aria-label="Message options"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
+            ></Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="text-base">
             {canWrite && !inThread ? (
@@ -279,7 +263,7 @@ export function ChatMessageBubble({
             ) : null}
             {canManage ? (
               <DropdownMenuItem
-                className="text-base gap-2 text-red-600 focus:text-red-600"
+                className="text-base gap-2 text-ui-danger focus:text-ui-danger"
                 onClick={() => onDelete?.(message)}
               >
                 <Trash2 className="h-4 w-4" />

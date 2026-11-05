@@ -1,8 +1,8 @@
 import { ArrowUpDown } from "lucide-react";
 import { BULK_HEADER_TOOL_BTN } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Dispatch, SetStateAction } from "react";
+import { Button } from "@/ui";
 
 export type OverviewContentSortControlsProps = {
   sortColumn: "title" | "date" | null;
@@ -35,14 +35,9 @@ export function OverviewContentSortControls({
         <span className="text-base font-medium uppercase tracking-wide text-muted-foreground">Sort</span>
       ) : null}
       <Button
+        variant="quiet"
         type="button"
-        variant="ghost"
         disabled={disabled}
-        className={cn(
-          BULK_HEADER_TOOL_BTN,
-          "h-8 rounded-none px-2.5",
-          sortColumn === "title" && "bg-primary text-black hover:bg-primary hover:text-black",
-        )}
         onClick={() => {
           if (sortColumn !== "title") {
             setSortColumn("title");
@@ -67,14 +62,9 @@ export function OverviewContentSortControls({
       </Button>
       {showDateSort ? (
       <Button
+        variant="quiet"
         type="button"
-        variant="ghost"
         disabled={disabled}
-        className={cn(
-          BULK_HEADER_TOOL_BTN,
-          "h-8 rounded-none px-2.5",
-          sortColumn === "date" && "bg-primary text-black hover:bg-primary hover:text-black",
-        )}
         onClick={() => {
           if (sortColumn !== "date") {
             setSortColumn("date");

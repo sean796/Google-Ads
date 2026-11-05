@@ -112,7 +112,6 @@ export function usePpcMetaWorkspace({ site, apiKey, selectedModel }: UsePpcMetaW
   const [wpPages, setWpPages] = useState<PpcWpPageContext[]>([]);
   const [wpPagesLoading, setWpPagesLoading] = useState(false);
   const [pageBucketHostedLink, setPageBucketHostedLink] = useState<PpcPageBucketHostedLink | null>(null);
-  const [detailsDrawerOpen, setDetailsDrawerOpen] = useState(false);
   const [lastImagePromptDescription, setLastImagePromptDescription] = useState<string | null>(null);
   const [lastImageReferences, setLastImageReferences] = useState<MetaAdImageReferenceSummary[]>([]);
   const abortRef = useRef<AbortController | null>(null);
@@ -693,8 +692,6 @@ export function usePpcMetaWorkspace({ site, apiKey, selectedModel }: UsePpcMetaW
     workspaceBusy,
     gridPaginationTotal,
     paginationLayoutTotal,
-    detailsDrawerOpen,
-    setDetailsDrawerOpen,
     lastImagePromptDescription,
     lastImageReferences,
   };

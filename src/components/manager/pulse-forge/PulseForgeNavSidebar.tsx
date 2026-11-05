@@ -1,5 +1,6 @@
 import { FORGE_NAV_TEXT_CLASS } from "@/components/manager/pulse-forge/forge-dashboard-styles";
 import { cn } from "@/lib/utils";
+import { RowButton } from "@/ui";
 
 export type PulseForgeNavMode = "forge" | "recipes" | "workflows";
 
@@ -23,47 +24,29 @@ export function PulseForgeNavSidebar({
   const workflowsActive = navMode === "workflows" && !workflowEditorOpen;
 
   return (
-    <aside className="flex h-full min-h-0 w-56 shrink-0 flex-col bg-zinc-950">
+    <aside className="flex h-full min-h-0 w-56 shrink-0 flex-col bg-black">
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        <button
+        <RowButton
+          selected={Boolean(forgeHomeActive)}
           type="button"
           onClick={onSelectMyForge}
-          className={cn(
-            "w-full px-4 py-3 text-left",
-            FORGE_NAV_TEXT_CLASS,
-            forgeHomeActive
-              ? "bg-zinc-900 text-white"
-              : "text-muted-foreground hover:bg-zinc-900 hover:text-white",
-          )}
         >
           My Forge
-        </button>
-        <button
+        </RowButton>
+        <RowButton
+          selected={Boolean(recipesActive)}
           type="button"
           onClick={onSelectRecipes}
-          className={cn(
-            "w-full px-4 py-3 text-left",
-            FORGE_NAV_TEXT_CLASS,
-            recipesActive
-              ? "bg-zinc-900 text-white"
-              : "text-muted-foreground hover:bg-zinc-900 hover:text-white",
-          )}
         >
           Agents
-        </button>
-        <button
+        </RowButton>
+        <RowButton
+          selected={Boolean(workflowsActive)}
           type="button"
           onClick={onSelectWorkflows}
-          className={cn(
-            "w-full px-4 py-3 text-left",
-            FORGE_NAV_TEXT_CLASS,
-            workflowsActive
-              ? "bg-zinc-900 text-white"
-              : "text-muted-foreground hover:bg-zinc-900 hover:text-white",
-          )}
         >
           Workflows
-        </button>
+        </RowButton>
       </div>
     </aside>
   );

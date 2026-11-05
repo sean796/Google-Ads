@@ -1,15 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { ImageThumbnail } from "@/components/OutputManager/ImageThumbnail";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { BlogIdeaRowCompact } from "@/components/keyword-research/bulk/BlogIdeaRowCompact";
 import { BULK_CSV_ROW_ACTIVE_CLASS } from "@/components/keyword-research/bulk/BulkCsvRunRowCompact";
 import {
@@ -28,6 +20,7 @@ import { resolveRowSitemapType } from "@/lib/bulk/bulk-sitemap-mode";
 import { getStatusIcon, isImageWithPreview } from "@/components/keyword-research/bulk/bulk-utils";
 import { publishedLinkFromRowFiles } from "@/lib/sitemap-optimizer/sitemap-merge-bulk-state";
 import { cn } from "@/lib/utils";
+import { Button, SelectField } from "@/ui";
 
 export type BulkCsvRunProgressGridProps = {
   displayRows: CSVRow[];
@@ -60,9 +53,6 @@ export type BulkCsvRunProgressGridProps = {
 function rowCanDownload(files: BulkGeneratedFile[]): boolean {
   return files.some((f) => f.status === "completed");
 }
-
-const BULK_CSV_FILE_TRIGGER_CLASS =
-  "flex w-full min-h-[3rem] items-center gap-2 rounded-none border-0 bg-transparent px-2.5 py-1.5 text-left text-base font-medium text-white sm:min-h-[3.25rem] sm:px-3";
 
 const BULK_CSV_FILE_STACK_CLASS = "flex flex-col gap-0 pt-2.5";
 
@@ -101,25 +91,24 @@ function BulkCsvRowFilesAccordion({
       <div className={cn(contentOptimizerRowStripeClass(rowIndex + 1), "w-full min-w-0")}>
         <Collapsible open={open} onOpenChange={setOpen}>
           <CollapsibleTrigger asChild>
-            <button
-              type="button"
-              className={cn(BULK_CSV_FILE_TRIGGER_CLASS, "font-semibold")}
+            <Button
+              variant="quiet"
             >
-              <span className="min-w-0 flex-1 truncate text-left text-white">Research docs</span>
+              <span className="min-w-0 flex-1 break-words text-left text-white">Research docs</span>
               <span
-                className="shrink-0 tabular-nums text-base font-medium text-sky-400"
+                className="shrink-0 tabular-nums text-base font-medium text-semantic-analysis-foreground"
                 title={`${completedCount} of ${files.length} ready`}
               >
                 {completedCount.toLocaleString()}
               </span>
               <ChevronDown
                 className={cn(
-                  "h-4 w-4 shrink-0 text-zinc-300 transition-transform",
+                  "h-4 w-4 shrink-0 text-foreground transition-transform",
                   open && "rotate-180",
                 )}
                 aria-hidden
               />
-            </button>
+            </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-1.5 px-2.5 pb-2 pt-2 sm:px-3">
             {files.map((file) => {
@@ -130,27 +119,24 @@ function BulkCsvRowFilesAccordion({
                   <div className="flex min-h-[2.75rem] items-center gap-2">
                     <span className="shrink-0">{getStatusIcon(file)}</span>
                     <span
-                      className="min-w-0 flex-1 truncate text-base text-foreground"
+                      className="min-w-0 flex-1 break-words text-base text-foreground"
                       title={file.fileName}
                     >
                       {label}
                     </span>
                     {file.status === "completed" ? (
                       <Button
+                        size="icon" icon={Download}
+                        variant="quiet"
                         type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-primary"
                         title={`Download ${file.fileName}`}
                         aria-label={`Download ${file.fileName}`}
                         onClick={() => onDownloadFile(file)}
-                      >
-                        <Download className="h-4 w-4" aria-hidden />
-                      </Button>
+                      ></Button>
                     ) : null}
                   </div>
                   {file.status === "error" && file.error ? (
-                    <p className="mt-1 text-base text-red-400">{file.error}</p>
+                    <p className="mt-1 text-base text-ui-danger-hover">{file.error}</p>
                   ) : showImagePreview ? (
                     <div className="mt-1">
                       <ImageThumbnail src={file.content} alt={file.fileName} size={120} />
@@ -162,10 +148,8 @@ function BulkCsvRowFilesAccordion({
             {canDownloadRow ? (
               <div className="flex justify-end pt-1">
                 <Button
+                  variant="quiet"
                   type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 text-base text-muted-foreground hover:text-foreground"
                   onClick={onDownloadRow}
                 >
                   <Download className="mr-2 h-4 w-4" aria-hidden />
@@ -195,19 +179,16 @@ function CsvSitemapFooter({
   return (
     <div className="flex items-center gap-2 px-2.5 pb-2 pt-0 sm:px-3">
       <span className="w-[5.75rem] shrink-0 text-base text-muted-foreground sm:w-[6.5rem]">Sitemap</span>
-      <Select
+      <SelectField
+        placeholder="Sitemap type"
         value={rowSitemapType}
         onValueChange={(v) => onRowSitemapChange(v as BulkRowSitemapType)}
+        options={[
+          { value: "post", label: "Post" },
+          { value: "entity", label: "Entity" },
+        ]}
         disabled={disabled}
-      >
-        <SelectTrigger className="h-9 min-w-[7rem] max-w-[10rem] border-0 bg-zinc-900/80 text-base">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="post">Post</SelectItem>
-          <SelectItem value="entity">Entity</SelectItem>
-        </SelectContent>
-      </Select>
+      />
     </div>
   );
 }
@@ -351,11 +332,9 @@ export function BulkCsvRunProgressGrid({
           {runContentCsvAvailable && rowIndex === displayRows.length - 1 ? (
             <div className="mb-2 flex justify-end px-2.5 sm:px-3">
               <Button
+                variant="quiet"
                 type="button"
                 onClick={downloadRunContentCsv}
-                variant="ghost"
-                size="sm"
-                className="h-8 shrink-0 text-base text-muted-foreground hover:text-foreground"
               >
                 <Download className="mr-2 h-4 w-4" aria-hidden />
                 Combined CSV

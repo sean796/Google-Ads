@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { TaskBuilderPanelShell } from "@/components/manager/pulse-forge/TaskBuilderPanelShell";
 import { WorkspacePill } from "@/components/shared/WorkspacePill";
@@ -14,13 +12,6 @@ import {
   TASK_FORM_SELECT_TRIGGER_CLASS,
   TaskFormInlineRow,
 } from "@/components/manager/tasks/TaskFormLayout";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { AutomationWhenPanel } from "@/components/manager/tasks/planner/AutomationWhenPanel";
 import { AutomationWhatPanel } from "@/components/manager/tasks/planner/AutomationWhatPanel";
 import { AutomationThenPanel } from "@/components/manager/tasks/planner/AutomationThenPanel";
@@ -67,6 +58,7 @@ import {
 } from "@/lib/forge-automation-plan-cache";
 import { suggestPresetForSiteName } from "@/lib/google-drive/google-drive-folder-presets";
 import { googleDriveFolderIsConfigured } from "@/lib/google-drive/resolve-google-drive-folder";
+import { Button, Field, SelectField } from "@/ui";
 
 export type TaskBuilderMode = "recipe" | "create" | "edit" | "workflow-agent";
 
@@ -676,15 +668,14 @@ export function TaskBuilderView({
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-black font-sans">
       <nav className="flex shrink-0 flex-wrap items-center gap-1 px-4 py-3">
         {workflowReturn ? (
-          <button
-            type="button"
-            className="mr-1 flex shrink-0 items-center gap-1.5 bg-transparent px-2 py-2 text-base text-muted-foreground hover:text-white"
+          <Button
+            variant="quiet"
             disabled={saving}
             onClick={onCancel}
           >
             <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
             Back to workflow
-          </button>
+          </Button>
         ) : null}
         {tabs.map(({ id, label }) => (
           <WorkspacePill
@@ -700,8 +691,6 @@ export function TaskBuilderView({
           {mode === "edit" && plan.trigger.kind === "gsc" && editTask ? (
             <Button
               type="button"
-              variant="outline"
-              className={getPropertyListRowBlackLabelButtonClass()}
               disabled={saving}
               onClick={() => void handleTestFire()}
             >
@@ -710,8 +699,6 @@ export function TaskBuilderView({
           ) : null}
           <Button
             type="button"
-            variant="outline"
-            className={getPropertyListRowBlackLabelButtonClass()}
             disabled={saving}
             onClick={onCancel}
           >
@@ -720,8 +707,6 @@ export function TaskBuilderView({
           {mode === "recipe" || mode === "create" ? (
             <Button
               type="button"
-              variant="outline"
-              className={cn(getPropertyListRowBlackLabelButtonClass(), "min-w-[5rem] tabular-nums")}
               disabled={saving || !canSaveDraft}
               onClick={() => void handleSaveDraft()}
             >
@@ -730,7 +715,6 @@ export function TaskBuilderView({
           ) : null}
           <Button
             type="button"
-            className="h-10 min-w-[5.5rem] rounded-none bg-[#77AA00] text-base tabular-nums text-black hover:bg-[#77AA00]/90"
             disabled={saving || !canInstallOrCreate}
             onClick={() => void handleSubmit()}
           >
@@ -746,7 +730,7 @@ export function TaskBuilderView({
               {mode === "workflow-agent" ? (
                 <div className={FORGE_TASK_BUILDER_INFIELD_CLASS}>
                   <span className="shrink-0 text-base text-white">Name</span>
-                  <Input
+                  <Field
                     value={plan.action.title ?? plan.name}
                     onChange={(e) => {
                       const value = e.target.value;
@@ -758,7 +742,6 @@ export function TaskBuilderView({
                     }}
                     placeholder="Step name"
                     disabled={saving}
-                    className={TASK_FORM_FLAT_CONTROL_CLASS}
                   />
                 </div>
               ) : (
@@ -786,22 +769,20 @@ export function TaskBuilderView({
                   </div>
                   <div className={FORGE_TASK_BUILDER_INFIELD_CLASS}>
                     <span className="shrink-0 text-base text-white">Keyword</span>
-                    <Input
+                    <Field
                       value={plan.keyword}
                       onChange={(e) => setPlan((p) => ({ ...p, keyword: e.target.value }))}
                       placeholder="automation-keyword"
                       disabled={saving}
-                      className={TASK_FORM_FLAT_CONTROL_CLASS}
                     />
                   </div>
                   <div className={FORGE_TASK_BUILDER_INFIELD_CLASS}>
                     <span className="shrink-0 text-base text-white">Name</span>
-                    <Input
+                    <Field
                       value={plan.name}
                       onChange={(e) => setPlan((p) => ({ ...p, name: e.target.value }))}
                       placeholder="Automation name"
                       disabled={saving}
-                      className={TASK_FORM_FLAT_CONTROL_CLASS}
                     />
                   </div>
                 </div>
@@ -811,22 +792,7 @@ export function TaskBuilderView({
                   <div className="grid shrink-0 grid-cols-1 gap-2 lg:grid-cols-2">
                     <div className={FORGE_TASK_BUILDER_INFIELD_CLASS}>
                       <span className="shrink-0 text-base text-white">Client site</span>
-                      <Select
-                        value={clientId || "__empty__"}
-                        onValueChange={(v) => setClientId(v === "__empty__" ? "" : v)}
-                        disabled={saving}
-                      >
-                        <SelectTrigger className={TASK_FORM_SELECT_TRIGGER_CLASS}>
-                          <SelectValue placeholder="Client site" />
-                        </SelectTrigger>
-                        <SelectContent className={TASK_FORM_SELECT_CONTENT_CLASS}>
-                          {sites.map((s) => (
-                            <SelectItem key={s.id} value={s.id} className={TASK_FORM_SELECT_ITEM_CLASS}>
-                              {s.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <SelectField placeholder="Client site" value={clientId || "__empty__"} onValueChange={(v) => setClientId(v === "__empty__" ? "" : v)} disabled={saving} options={sites.map((s) => ({ value: s.id, label: s.name }))} />
                     </div>
                   </div>
                 ) : (
@@ -998,27 +964,25 @@ export function TaskBuilderView({
               ) : null}
               <div className="flex flex-col gap-2">
                 <TaskFormInlineRow label="Template name">
-                  <Input
+                  <Field
                     value={saveFromName}
                     onChange={(e) => setSaveFromName(e.target.value)}
                     placeholder="Team template name"
                     disabled={saving}
-                    className={TASK_FORM_FLAT_CONTROL_CLASS}
                   />
                 </TaskFormInlineRow>
                 <TaskFormInlineRow label="Template keyword">
-                  <Input
+                  <Field
                     value={saveFromKeyword}
                     onChange={(e) => setSaveFromKeyword(e.target.value)}
                     placeholder="template-keyword"
                     disabled={saving}
-                    className={TASK_FORM_FLAT_CONTROL_CLASS}
                   />
                 </TaskFormInlineRow>
                 <TaskFormInlineRow label="Save">
                   <Button
+                    variant="run"
                     type="button"
-                    className={cn("h-9 w-full max-w-xs text-base", TASK_FORM_DIALOG_BUTTON_CLASS)}
                     disabled={saving}
                     onClick={() => void handleSaveTemplate()}
                   >
@@ -1033,9 +997,9 @@ export function TaskBuilderView({
 
       <div className="min-h-6 shrink-0 px-4 pb-3">
         {error ? (
-          <p className="truncate text-base text-red-400">{error}</p>
+          <p className="break-words text-base text-ui-danger-hover">{error}</p>
         ) : validationErrors.length > 0 ? (
-          <p className="truncate text-base text-red-400">{validationErrors[0]}</p>
+          <p className="break-words text-base text-ui-danger-hover">{validationErrors[0]}</p>
         ) : null}
       </div>
     </div>

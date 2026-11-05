@@ -1,24 +1,11 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { FileText, MapPin, Sparkles } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { CompactWordPressTile } from "./CompactWordPressTile";
 import { SiteDisplayNameDialog } from "@/components/manager/SiteDisplayNameDialog";
 import type { WordPressSite } from "../types";
-import {
-  formatDashboardEditorialMonthShort,
-  getEditorialCountsRange,
-  getLocalCalendarMonthAfterBeforeForMonthKey,
-  parseQuarterLabelToQuarterYear,
-  resolveEditorialCountsRangeForDashboard,
-} from "@/lib/quarter-bounds";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { getEditorialCountsRange, parseQuarterLabelToQuarterYear, resolveEditorialCountsRangeForDashboard } from "@/lib/quarter-bounds";
 import type { OptimizationActivityTileStats, QuarterEditorialTileStats } from "@/lib/wordpress-api/types";
 import { OPTIMIZATION_TILE_COUNTS_ENABLED } from "@/lib/wordpress-optimization-tile-counts";
 import { optimizationPeriodCapForPackage } from "@/lib/wordpress-optimization-package";
@@ -32,7 +19,6 @@ import { isEntitySitemapDisabled } from "@/lib/entity-endpoint-extractor";
 import { editorialQuotasForSite } from "@/lib/editorial-content-package";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getPropertyListRowBlackMetricFrameClass } from "./cyberpunk-theme";
-
 function nextEditorialPeriodTooltipText(isoExclusiveEnd: string): string {
   const boundary = new Date(isoExclusiveEnd);
   const d = boundary.toLocaleDateString(undefined, {
@@ -137,18 +123,18 @@ function quarterPairTotalForStrip(
 }
 
 function formatQuarterCountCell(n: number | null, loading: boolean): string {
-  if (loading && (n === null || !Number.isFinite(n))) return "—";
+  if (loading && (n === null || !Number.isFinite(n))) return "â€”";
   if (typeof n === "number" && Number.isFinite(n)) return String(n);
   return "0";
 }
 
 function formatScheduledVsQuota(
-  scheduled: number | null,
+  total: number | null,
   quota: number,
   loading: boolean,
 ): string {
-  if (loading && scheduled === null) return "—";
-  const n = typeof scheduled === "number" && Number.isFinite(scheduled) ? scheduled : 0;
+  if (loading && total === null) return "â€”";
+  const n = typeof total === "number" && Number.isFinite(total) ? total : 0;
   return `${n}/${quota}`;
 }
 
@@ -172,33 +158,21 @@ function QuarterEditorialCountsStrip({
   site,
   stats,
   rowDisplay = "compact",
-  selectedMonthKey,
-  monthOptions,
-  onMonthChange,
 }: {
   site: WordPressSite;
   stats: QuarterEditorialTileStats | undefined;
   rowDisplay?: WordPressPropertyRowDisplay;
-  selectedMonthKey?: string;
-  monthOptions?: Array<{ key: string; label: string }>;
-  onMonthChange?: (monthKey: string) => void;
 }) {
   if (!siteHasWpCredentials(site) || !stats) return null;
 
   const editorialQuotas = editorialQuotasForSite(site);
 
   const hasManualEndpoint = Boolean(site.manualEndpoint?.trim());
-  const entitySitemapUrlActive = isEntitySitemapDisabled(site)
-    ? ""
-    : site.entitySitemapUrl?.trim() ?? "";
   const sitemapDisabled = isEntitySitemapDisabled(site) && !hasManualEndpoint;
-  const entityTrackingConfigured = Boolean(hasManualEndpoint || entitySitemapUrlActive);
   const entityCountsPending =
     stats.loading && stats.entityConfigured && !stats.entityCountsAvailable;
   const showEntityCount =
-    !sitemapDisabled &&
-    entityTrackingConfigured &&
-    (stats.entityCountsAvailable || entityCountsPending);
+    !sitemapDisabled && stats.entityConfigured && (stats.entityCountsAvailable || entityCountsPending);
 
   const postsDisplayLoading =
     stats.loading && (stats.postsLive === null || stats.postsScheduled === null);
@@ -214,24 +188,19 @@ function QuarterEditorialCountsStrip({
   const entitiesTotal = showEntityCount
     ? quarterPairTotalForStrip(stats.entityLive, stats.entityScheduled, entityDisplayLoading)
     : null;
-  const showMonthSelect = Boolean(monthOptions?.length && selectedMonthKey && onMonthChange);
-  const monthShort = selectedMonthKey
-    ? formatDashboardEditorialMonthShort(selectedMonthKey)
-    : "M??";
-
   const compact = rowDisplay === "compact";
   const mw = propertyMetricCellWidths(rowDisplay);
   const metricCell = propertyMetricCellClass(compact);
-  const iconClass = cn("shrink-0 text-green-400", compact ? "h-4 w-4" : "h-5 w-5");
+  const iconClass = cn("shrink-0 text-primary", compact ? "h-4 w-4" : "h-5 w-5");
   const postsCountClass = cn(
     PROPERTY_METRIC_COUNT_SLOT_CLASS,
     editorialQuotas && "min-w-[2.75rem]",
-    "shrink-0 font-light tracking-tight text-green-100",
+    "shrink-0 font-light tracking-tight text-foreground",
     compact ? "text-lg leading-none" : "text-xl leading-none",
   );
   const postsMetricLabel = editorialQuotas
     ? formatScheduledVsQuota(
-        stats.postsScheduled,
+        postsTotal,
         editorialQuotas.blogsPerMonth,
         postsDisplayLoading,
       )
@@ -239,16 +208,16 @@ function QuarterEditorialCountsStrip({
   const entityMetricLabel =
     editorialQuotas && showEntityCount
       ? formatScheduledVsQuota(
-          stats.entityScheduled,
+          entitiesTotal,
           editorialQuotas.sapsPerMonth,
           entityDisplayLoading,
         )
       : formatQuarterCountCell(entitiesTotal, entityDisplayLoading);
-  const entityIconClass = cn("shrink-0 text-green-400", compact ? "h-4 w-4" : "h-5 w-5");
+  const entityIconClass = cn("shrink-0 text-primary", compact ? "h-4 w-4" : "h-5 w-5");
   const entityCountClass = cn(
     PROPERTY_METRIC_COUNT_SLOT_CLASS,
     editorialQuotas && "min-w-[2.75rem]",
-    "shrink-0 font-light tracking-tight text-green-100",
+    "shrink-0 font-light tracking-tight text-foreground",
     compact ? "text-lg leading-none" : "text-xl leading-none",
   );
 
@@ -266,12 +235,12 @@ function QuarterEditorialCountsStrip({
   const postsMetricInner = (
     <span
       className={cn(
-        "flex min-w-0 items-center justify-center gap-1 text-green-200",
+        "flex min-w-0 items-center justify-center gap-1 text-foreground",
         postsTooltip && "cursor-default",
       )}
       aria-label={
         editorialQuotas
-          ? `Blog posts scheduled this month: ${postsMetricLabel}`
+          ? `Blog posts published and scheduled this month: ${postsMetricLabel}`
           : `Posts in period: ${postsMetricLabel}`
       }
     >
@@ -282,7 +251,7 @@ function QuarterEditorialCountsStrip({
 
   const postsFramed = (
     <div
-      className={cn(metricCell, mw.posts, "text-green-100")}
+      className={cn(metricCell, mw.posts, "text-foreground")}
       title={stripSummaryTitle}
       onClick={stop}
       onPointerDown={stop}
@@ -306,13 +275,13 @@ function QuarterEditorialCountsStrip({
 
   const entityFramed = showEntityCount ? (
     <div
-      className={cn(metricCell, mw.ent, "text-green-100")}
+      className={cn(metricCell, mw.ent, "text-foreground")}
       title={stripSummaryTitle}
       onClick={stop}
       onPointerDown={stop}
       aria-label={
         editorialQuotas
-          ? `SAP posts scheduled this month: ${entityMetricLabel}`
+          ? `SAP posts published and scheduled this month: ${entityMetricLabel}`
           : `Entities in period: ${entityMetricLabel}`
       }
     >
@@ -324,14 +293,14 @@ function QuarterEditorialCountsStrip({
       className={cn(
         metricCell,
         mw.ent,
-        "text-zinc-500/60 pointer-events-none select-none",
+        "text-muted-foreground/60 pointer-events-none select-none",
       )}
       title={entityDisabledTitle}
       aria-label={sitemapDisabled ? "Entity sitemap disabled (N/A)" : "Entity counts not configured (N/A)"}
     >
       <span
         className={cn(
-          "font-medium tabular-nums tracking-tight text-zinc-500/70",
+          "font-medium tabular-nums tracking-tight text-muted-foreground/70",
           compact ? "text-sm leading-none" : "text-base leading-none",
         )}
       >
@@ -342,45 +311,6 @@ function QuarterEditorialCountsStrip({
 
   return (
     <>
-      <div
-        className={cn(metricCell, mw.q, "text-green-400", showMonthSelect && "!p-0")}
-        title={stripSummaryTitle}
-        onClick={stop}
-        onPointerDown={stop}
-      >
-        {showMonthSelect ? (
-          <Select value={selectedMonthKey} onValueChange={onMonthChange}>
-            <SelectTrigger
-              className={cn(
-                "h-8 min-h-8 w-full justify-between gap-0 border-0 bg-transparent px-1.5 py-0 text-green-100 shadow-none",
-                "focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0",
-                compact ? "text-sm sm:h-9 sm:min-h-9" : "h-9 min-h-9 text-base",
-                "[&>span]:line-clamp-none [&>span]:whitespace-nowrap [&>span]:tabular-nums",
-                "[&>svg]:h-3 [&>svg]:w-3 [&>svg]:shrink-0 [&>svg]:text-green-400/80",
-              )}
-              aria-label={`Editorial counts month ${monthShort}`}
-              title={stats.quarterLabel}
-            >
-              <SelectValue>{monthShort}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {monthOptions!.map((opt) => (
-                <SelectItem
-                  key={opt.key}
-                  value={opt.key}
-                  title={getLocalCalendarMonthAfterBeforeForMonthKey(opt.key).label}
-                >
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <span className={cn("font-medium tabular-nums", compact ? "text-sm" : "text-base")}>
-            {monthShort}
-          </span>
-        )}
-      </div>
       {postsFramed}
       {entityFramed}
     </>
@@ -389,7 +319,7 @@ function QuarterEditorialCountsStrip({
 
 /** Inner flex for metrics placed inside each black metric cell frame. */
 const OPT_ACTIVITY_STRIP_CLASS =
-  "flex h-full w-full min-w-0 items-center justify-center gap-1.5 tabular-nums text-cyan-100";
+  "flex h-full w-full min-w-0 items-center justify-center gap-1.5 tabular-nums text-semantic-analysis-foreground";
 
 function OptimizationActivityStrip({
   site,
@@ -420,11 +350,11 @@ function OptimizationActivityStrip({
       onPointerDown={(e) => e.stopPropagation()}
       aria-label={title}
     >
-      <Sparkles className={cn("shrink-0 text-cyan-400", compact ? "h-4 w-4" : "h-5 w-5")} aria-hidden />
+      <Sparkles className={cn("shrink-0 text-semantic-analysis-foreground", compact ? "h-4 w-4" : "h-5 w-5")} aria-hidden />
       <span
         className={cn(
           PROPERTY_METRIC_COUNT_SLOT_CLASS,
-          "shrink-0 font-light tracking-tight text-cyan-100",
+          "shrink-0 font-light tracking-tight text-semantic-analysis-foreground",
           compact ? "text-lg leading-none" : "text-xl leading-none",
         )}
       >
@@ -553,9 +483,6 @@ export const WordPressSiteList: React.FC<WordPressSiteListProps> = ({
             editorialSelectedMonthKey ?? "",
           )}
           rowDisplay={propertyRowDisplay}
-          selectedMonthKey={editorialSelectedMonthKey}
-          monthOptions={editorialMonthOptions}
-          onMonthChange={onEditorialMonthChange}
         />
       </div>
     </div>
@@ -566,8 +493,8 @@ export const WordPressSiteList: React.FC<WordPressSiteListProps> = ({
     return (
       <div className="mt-0 flex min-h-0 flex-1 flex-col">
         <div className={PROPERTIES_EMPTY}>
-          <p className="text-lg text-zinc-100">No WordPress sites connected</p>
-          <p className="mt-2 text-base text-zinc-300">
+          <p className="text-lg text-foreground">No WordPress sites connected</p>
+          <p className="mt-2 text-base text-foreground">
             Click &quot;Add Site&quot; to connect your first WordPress site
           </p>
         </div>
@@ -592,7 +519,7 @@ export const WordPressSiteList: React.FC<WordPressSiteListProps> = ({
       />
       {filteredSites.length === 0 ? (
         <div className={cn(PROPERTIES_EMPTY, "shrink-0 py-8 sm:py-10")}>
-          <p className="text-base text-zinc-200">
+          <p className="text-base text-foreground">
             {siteSearchQuery.trim()
               ? `No sites found matching "${siteSearchQuery.trim()}".`
               : editorialPackageFilter !== "all"
@@ -621,7 +548,7 @@ export const WordPressSiteList: React.FC<WordPressSiteListProps> = ({
                       <Checkbox
                         checked={rowSelected}
                         onCheckedChange={(c) => onSiteSelectedChange(site.id, c === true)}
-                        className="border-zinc-500/60 data-[state=checked]:border-zinc-500 data-[state=checked]:bg-zinc-800 data-[state=checked]:text-zinc-400"
+                        className="border-border/60 data-[state=checked]:border-border data-[state=checked]:bg-ui-field-hover data-[state=checked]:text-muted-foreground"
                         aria-label={`Select ${site.name}`}
                       />
                     </div>

@@ -1,5 +1,4 @@
 import React from "react";
-import { Input } from "@/components/ui/input";
 import {
   TASK_FORM_FLAT_CONTROL_CLASS,
   TaskFormDatePicker,
@@ -25,6 +24,7 @@ import type {
 } from "@/lib/tasks-types";
 import { TASK_RECURRENCE_LABELS, TASK_RECURRENCE_RULES, TASK_STATUS_LABELS, TASK_STATUSES } from "@/lib/tasks-types";
 import type { TaskTriggerConfig } from "@/lib/task-trigger-types";
+import { Field } from "@/ui";
 
 export type AutomationActionDraft = {
   title: string;
@@ -131,13 +131,12 @@ export function AutomationActionFlatRow({
     <div className="flex w-full min-w-0 flex-col gap-1">
       <TaskFormFlatGrid className="grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
         <TaskFormPlaceholderCell>
-          <Input
+          <Field
             value={draft.title}
             onChange={(e) => onChange({ title: e.target.value })}
             placeholder="Action title"
             aria-label="Action title"
             disabled={saving}
-            className={TASK_FORM_FLAT_CONTROL_CLASS}
           />
         </TaskFormPlaceholderCell>
         <TaskFormFlatSelectPlaceholder

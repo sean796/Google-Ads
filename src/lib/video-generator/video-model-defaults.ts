@@ -1,11 +1,20 @@
-/** OpenRouter id for default video generation (Grok Imagine Video 1.5 — physical-world & rigid-body I2V). */
-export const DEFAULT_VIDEO_MODEL = "x-ai/grok-imagine-video-1.5";
+/** OpenRouter id for default video generation (Kling: Video v3.0 Pro). */
+export const DEFAULT_VIDEO_MODEL = "kwaivgi/kling-v3.0-pro";
 export const PRODUCT_VISION_MODEL = "google/gemini-2.5-flash";
 
 export const VIDEO_MODEL_PRESETS: { value: string; label: string }[] = [
-  { value: DEFAULT_VIDEO_MODEL, label: "Grok Imagine Video 1.5" },
+  { value: "kwaivgi/kling-v3.0-pro", label: "Kling: Video v3.0 Pro" },
+  { value: "kwaivgi/kling-v3.0-std", label: "Kling: Video v3.0 Standard" },
+  { value: "kwaivgi/kling-video-o1", label: "Kling: Video O1" },
+  { value: "x-ai/grok-imagine-video-1.5", label: "Grok Imagine Video 1.5" },
   { value: "x-ai/grok-imagine-video-1.5-lite", label: "Grok Imagine Video 1.5 Lite" },
   { value: "x-ai/grok-imagine-video", label: "Grok Imagine Video" },
+  { value: "black-forest-labs/flux-3-video", label: "FLUX 3 Video" },
+  { value: "google/veo-3.1", label: "Google: Veo 3.1" },
+  { value: "google/veo-3.1-fast", label: "Google: Veo 3.1 Fast" },
+  { value: "bytedance/seedance-2.5", label: "ByteDance: Seedance 2.5" },
+  { value: "minimax/hailuo-3-max", label: "MiniMax: H3 Max" },
+  { value: "alibaba/wan-3.0", label: "Alibaba: Wan 3.0" },
   { value: "heygen/heygen-video-1", label: "HeyGen Video 1" },
 ];
 
@@ -25,14 +34,20 @@ export const HEYGEN_VOICES = [
 ] as const;
 export type HeygenVoice = (typeof HEYGEN_VOICES)[number];
 
-/** HeyGen Video clips are 5..15 s (Grok 1..15); the Director splits the target across scenes. */
-export const VIDEO_SCENE_MIN_SECONDS = 5;
+/** HeyGen Video clips are 5..15 s (Grok / Kling 3..15); the Director splits the target across scenes. */
+export const VIDEO_SCENE_MIN_SECONDS = 3;
 export const VIDEO_SCENE_MAX_SECONDS = 15;
 /** Spoken English pace used for the narration word budget per scene. */
 export const NARRATION_WORDS_PER_SECOND = 2.3;
 
 export const VIDEO_LENGTH_OPTIONS = [15, 30, 45, 60, 90, 120] as const;
 export type VideoLengthSeconds = (typeof VIDEO_LENGTH_OPTIONS)[number];
+
+/** Smallest preset length that fits a reference-stills timeline (seconds may exceed the preset until expand runs). */
+export function videoLengthOptionAtLeast(totalSeconds: number): VideoLengthSeconds {
+  const hit = VIDEO_LENGTH_OPTIONS.find((n) => n >= totalSeconds);
+  return hit ?? VIDEO_LENGTH_OPTIONS[VIDEO_LENGTH_OPTIONS.length - 1];
+}
 
 /** Shared by the video models and the image generator (`image-api.ts` AspectRatio). */
 export const VIDEO_ASPECTS = ["16:9", "9:16", "1:1", "4:3", "3:4"] as const;
@@ -43,10 +58,19 @@ export type VideoResolution = (typeof VIDEO_RESOLUTIONS)[number];
 
 /** USD per output second from OpenRouter `/api/v1/videos/models` pricing_skus (Oct 2026); HeyGen rows are the first-frame (reference) rates. */
 const USD_PER_SECOND: Record<string, Partial<Record<VideoResolution, number>>> = {
+  "kwaivgi/kling-v3.0-pro": { "720p": 0.168, "1080p": 0.24 },
+  "kwaivgi/kling-v3.0-std": { "720p": 0.126, "1080p": 0.18 },
+  "kwaivgi/kling-video-o1": { "720p": 0.14, "1080p": 0.20 },
   "heygen/heygen-video-1": { "480p": 0.07, "768p": 0.1, "2K": 0.18 },
   "x-ai/grok-imagine-video": { "480p": 0.05, "720p": 0.07 },
   "x-ai/grok-imagine-video-1.5": { "480p": 0.08, "720p": 0.14, "1080p": 0.25 },
   "x-ai/grok-imagine-video-1.5-lite": { "480p": 0.02, "720p": 0.03, "1080p": 0.14 },
+  "black-forest-labs/flux-3-video": { "720p": 0.10, "1080p": 0.15 },
+  "google/veo-3.1": { "720p": 0.20, "1080p": 0.30 },
+  "google/veo-3.1-fast": { "720p": 0.15, "1080p": 0.22 },
+  "bytedance/seedance-2.5": { "720p": 0.12, "1080p": 0.18 },
+  "minimax/hailuo-3-max": { "720p": 0.12, "1080p": 0.18 },
+  "alibaba/wan-3.0": { "720p": 0.10, "1080p": 0.15 },
 };
 
 /** USD per clip on top of the per-second rate (`reference_input_images` SKU). */

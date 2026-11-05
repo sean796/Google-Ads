@@ -1,6 +1,7 @@
 import { Bot, ListTodo, MessageCircle, Sparkles, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MobileAppTab } from "./mobile-app-types";
+import { Button } from "@/ui";
 
 type MobileBottomNavProps = {
   activeTab: MobileAppTab;
@@ -41,14 +42,10 @@ export function MobileBottomNav({
                 : 0;
 
           return (
-            <button
+            <Button
+              pressed={Boolean(center)}
+              variant="quiet"
               key={id}
-              type="button"
-              className={cn(
-                "mobile-bottom-nav__tab",
-                center && "mobile-bottom-nav__tab--center",
-                active && "mobile-bottom-nav__tab--active",
-              )}
               aria-current={active ? "page" : undefined}
               aria-label={label}
               onClick={() => onTabChange(id)}
@@ -62,7 +59,7 @@ export function MobileBottomNav({
                 ) : null}
               </span>
               <span className="mobile-bottom-nav__label">{label}</span>
-            </button>
+            </Button>
           );
         })}
       </div>

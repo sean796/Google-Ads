@@ -49,4 +49,55 @@ describe("parseVideoPlan audio field", () => {
     const plan = parseVideoPlan(raw, 15, 0);
     expect(plan.audio).toEqual({ backingTrack: "none" });
   });
+
+  it("extracts valid plan when reasoning contains an incomplete JSON scratchpad before the final code block", () => {
+    const rawWithThoughts = `
+I'm thinking about the scenes:
+\`\`\`json
+{
+  "title": "Incomplete thought",
+  "scenes": [
+    { "id": "incomplete"
+\`\`\`
+
+Here is the final verified plan:
+\`\`\`json
+{
+  "title": "Blind Magic Showroom Flythrough",
+  "logline": "Showroom flythrough.",
+  "voice": "none",
+  "continuity": {
+    "heroSubject": "Showroom",
+    "screenDirection": "left_to_right",
+    "cameraSide": "center",
+    "palette": "clean",
+    "lightArc": "daylight"
+  },
+  "scenes": [
+    {
+      "id": "exterior_approach",
+      "order": 1,
+      "title": "Approaching Showroom",
+      "durationSeconds": 15,
+      "sceneInstructions": "Smooth fly-through approach.",
+      "environmentId": "exterior",
+      "environmentPrompt": "Showroom front.",
+      "storyboardPrompt": "Wide establishing angle.",
+      "motionPrompt": "Smooth push-in.",
+      "continuityNotes": "Clean architecture.",
+      "narration": "",
+      "referenceIndexes": [],
+      "transitionIn": null
+    }
+  ]
+}
+\`\`\`
+    `;
+
+    const plan = parseVideoPlan(rawWithThoughts, 15, 0);
+    expect(plan.title).toBe("Blind Magic Showroom Flythrough");
+    expect(plan.scenes.length).toBe(1);
+    expect(plan.scenes[0].id).toBe("exterior_approach");
+  });
 });
+

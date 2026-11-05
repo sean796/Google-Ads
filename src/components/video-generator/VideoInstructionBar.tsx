@@ -1,13 +1,10 @@
 import { Send, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MY_SITES_FIELD, MY_SITES_ICON_BTN, MY_SITES_POPOVER, MY_SITES_TOOL_BTN } from "@/components/hosting/my-sites/my-sites-theme";
+import { MY_SITES_FIELD } from "@/components/hosting/my-sites/my-sites-theme";
 import { PRODUCT_VIEW_DEFINITIONS } from "@/lib/video-generator/video-product-agent";
 import type { ProductViewId } from "@/lib/video-generator/video-generator-types";
-import { cn } from "@/lib/utils";
 import type { InstructionScope } from "./useVideoGenerator";
+import { Button, Field, SelectField } from "@/ui";
 
 type VideoInstructionBarProps = {
   /** Busy or no active mode available. */
@@ -21,8 +18,6 @@ type VideoInstructionBarProps = {
   onSendProductInstruction?: (target: ProductViewId | "all", instruction: string) => void;
   onOpenPostCut?: () => void;
 };
-
-const SCOPE_TRIGGER = `${MY_SITES_FIELD} w-48 whitespace-nowrap [&>span]:line-clamp-none [&>svg]:text-muted-foreground`;
 
 /** Fixed-height row under the stage: scope select, instruction input, send, plus Post-Cut Studio toggle. */
 export function VideoInstructionBar({
@@ -56,35 +51,27 @@ export function VideoInstructionBar({
           submitProduct();
         }}
       >
-        <Select
+        <SelectField
+          placeholder="Product target"
           value={productTarget}
           onValueChange={(v) => setProductTarget(v as ProductViewId | "all")}
+          options={[
+            { value: "all", label: "All 4 product views" },
+            ...PRODUCT_VIEW_DEFINITIONS.map((def) => ({ value: def.id, label: `${def.shortLabel} (${def.label})` })),
+          ]}
+          width="full"
           disabled={disabled}
-        >
-          <SelectTrigger className={SCOPE_TRIGGER} aria-label="Product view target">
-            <SelectValue placeholder="Product target" />
-          </SelectTrigger>
-          <SelectContent className={MY_SITES_POPOVER}>
-            <SelectItem value="all">All 4 product views</SelectItem>
-            {PRODUCT_VIEW_DEFINITIONS.map((def) => (
-              <SelectItem key={def.id} value={def.id}>
-                {def.shortLabel} ({def.label})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Input
+        />
+        <Field
           value={text}
           onChange={(e) => setText(e.target.value)}
           disabled={disabled}
           aria-label="Prompt AI to change the product"
           placeholder={`Prompt AI to change ${targetLabel} (e.g. "lighten fabric color", "show fully lowered")`}
-          className={cn(MY_SITES_FIELD, "flex-1")}
         />
         <Button
+          variant="quiet"
           type="submit"
-          variant="ghost"
-          className={MY_SITES_ICON_BTN}
           disabled={!canSendProduct}
           aria-label="Send product prompt"
         >
@@ -109,16 +96,8 @@ export function VideoInstructionBar({
         submit();
       }}
     >
-      <Select value={scope} onValueChange={(v) => setScope(v as InstructionScope)} disabled={disabled}>
-        <SelectTrigger className={SCOPE_TRIGGER} aria-label="Instruction scope">
-          <SelectValue placeholder="Scope" />
-        </SelectTrigger>
-        <SelectContent className={MY_SITES_POPOVER}>
-          <SelectItem value="scene">{sceneLabel}</SelectItem>
-          <SelectItem value="video">Whole video</SelectItem>
-        </SelectContent>
-      </Select>
-      <Input
+      <SelectField placeholder="Scope" value={scope} onValueChange={(v) => setScope(v as InstructionScope)} disabled={disabled} options={[{ value: "scene", label: sceneLabel }, { value: "video", label: "Whole video" }]} />
+      <Field
         value={text}
         onChange={(e) => setText(e.target.value)}
         disabled={disabled}
@@ -128,16 +107,14 @@ export function VideoInstructionBar({
             ? `Prompt AI to persistently change ${sceneLabel}${selectedSceneTitle ? ` (${selectedSceneTitle})` : ""}: updates frame & clip`
             : "Tell the Director what to change across the whole video"
         }
-        className={cn(MY_SITES_FIELD, "flex-1")}
       />
-      <Button type="submit" variant="ghost" className={MY_SITES_ICON_BTN} disabled={!canSend} aria-label="Send instruction">
+      <Button variant="quiet" type="submit" disabled={!canSend} aria-label="Send instruction">
         <Send className="h-4 w-4" aria-hidden />
       </Button>
       {onOpenPostCut ? (
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          className={cn(MY_SITES_TOOL_BTN, "shrink-0")}
           onClick={onOpenPostCut}
           aria-label="Open Post-Cut Scene AI Editor"
         >

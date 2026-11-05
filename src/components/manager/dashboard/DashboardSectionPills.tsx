@@ -1,10 +1,4 @@
 import { cn } from "@/lib/utils";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
 import type { ManagerSettingsClusterId } from "@/components/manager/manager-settings-cluster";
 import {
   DASHBOARD_SECTION_LABELS,
@@ -17,6 +11,7 @@ import {
   workspacePrimarySelectSlotProps,
   workspacePrimarySelectWidthStyle,
 } from "@/components/shared/workspace-primary-select-styles";
+import { SelectField } from "@/ui";
 
 export type DashboardSectionPillsProps = {
   activeSection: ManagerSettingsClusterId;
@@ -47,32 +42,10 @@ export function DashboardSectionPills({
 
   return (
     <div className={cn(slot.className, className)} style={slot.style}>
-      <Select
-        value={resolvedValue}
-        onValueChange={(id) => {
+      <SelectField placeholder="Dashboard section" value={resolvedValue} onValueChange={(id) => {
           const next = id as ManagerSettingsClusterId;
           if (next !== activeSection) onSectionChange(next);
-        }}
-        disabled={disabled}
-      >
-        <SelectTrigger
-          className={WORKSPACE_PRIMARY_SELECT_TRIGGER_CLASS}
-          aria-label="Dashboard section"
-        >
-          <span className="whitespace-nowrap">{activeLabel}</span>
-        </SelectTrigger>
-        <SelectContent
-          position="popper"
-          className={cn(WORKSPACE_PRIMARY_SELECT_MENU_CLASS, "!max-h-none")}
-          style={menuWidth}
-        >
-          {visibleSections.map((id) => (
-            <SelectItem key={id} value={id} className={WORKSPACE_PRIMARY_SELECT_ITEM_CLASS}>
-              {DASHBOARD_SECTION_LABELS[id]}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        }} disabled={disabled} options={visibleSections.map((id) => ({ value: id, label: DASHBOARD_SECTION_LABELS[id] }))} />
     </div>
   );
 }

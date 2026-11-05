@@ -80,6 +80,7 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
     remapBindingUrl: base.remapBindingUrl,
     mergeInventoryContentForSource: base.mergeInventoryContentForSource,
     bulkScopeUrlKeys: base.bulkScopeUrlKeys,
+    getBulkGeneratorPushBindings: props.getBulkGeneratorPushBindings,
   });
 
   const faq = useOverviewTabFaqHandlers({

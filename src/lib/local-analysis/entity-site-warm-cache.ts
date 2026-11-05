@@ -569,10 +569,7 @@ export function seedOverviewSessionCachesFromWarm(site: WordPressSite): void {
     const existingByKey = new Map(
       existing.map((r) => [normalizePageUrlKey(r.url), r] as const),
     );
-    const built = applyCachedElementorFieldsToOverviewRows(
-      buildOverviewSessionRowsFromWarmBulk(site, source, prefetchRows),
-      source,
-    );
+    const built = buildOverviewSessionRowsFromWarmBulk(site, source, prefetchRows);
     const rows = built.map((row) => {
       const prev = existingByKey.get(normalizePageUrlKey(row.url));
       if (!prev) return row;

@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import type { TeamTask } from "@/lib/tasks-types";
+import { RowButton } from "@/ui";
 
 export type TasksCalendarViewProps = {
   tasks: TeamTask[];
@@ -34,7 +35,7 @@ export function TasksCalendarView({
   return (
     <div className="flex h-full min-h-0 flex-1 overflow-hidden bg-black">
       <div className="shrink-0 p-3">
-        <Calendar mode="single" className="bg-zinc-950 text-base" />
+        <Calendar mode="single" className="bg-black text-base" />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-3">
         <p className="mb-3 text-base font-semibold text-white">Tasks with due dates</p>
@@ -47,20 +48,17 @@ export function TasksCalendarView({
               const sameDay = tasksByDate.get(key) ?? [];
               return (
                 <li key={task.id}>
-                  <button
+                  <RowButton
+                    selected={task.id === selectedTaskId}
                     type="button"
                     onClick={() => onSelectTask(task.id)}
-                    className={cn(
-                      "flex w-full flex-col items-start gap-0.5 px-2 py-2 text-left",
-                      task.id === selectedTaskId ? "bg-zinc-800" : "hover:bg-zinc-950",
-                    )}
                   >
                     <span className="text-base text-muted-foreground">{key}</span>
                     <span className="text-base text-white">{task.title}</span>
                     {sameDay.length > 1 ? (
                       <span className="text-base text-muted-foreground">{sameDay.length} tasks this day</span>
                     ) : null}
-                  </button>
+                  </RowButton>
                 </li>
               );
             })}

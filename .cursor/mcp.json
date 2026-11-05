@@ -1,12 +1,3 @@
 {
-  "mcpServers": {
-    "emcp-interiorsbylaura-com": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "mcp-remote",
-        "https://interiorsbylaura.com/wp-json/mcp/emcp-tools-server"
-      ]
-    }
-  }
+  "mcpServers": {}
 }

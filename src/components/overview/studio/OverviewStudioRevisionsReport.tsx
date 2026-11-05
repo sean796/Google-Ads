@@ -7,6 +7,7 @@ import {
   sortRevisionsChronological,
 } from "@/lib/overview/studio-doc-revisions-grouping";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 export type OverviewStudioRevisionsReportPanelProps = {
   pageTitle: string;
@@ -56,7 +57,7 @@ export function OverviewStudioRevisionsReportPanel({
     <div
       id="overview-revisions-print-root"
       className={cn(
-        "flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto bg-zinc-950 p-4 text-base text-zinc-200 print:bg-white print:text-black",
+        "flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto bg-black p-4 text-base text-foreground print:bg-white print:text-black",
         className,
       )}
     >
@@ -65,37 +66,33 @@ export function OverviewStudioRevisionsReportPanel({
           Printable summary for this version. Generate AI overview once, then print or save as PDF.
         </p>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
+          <Button
             disabled={reportLoading || revisions.length === 0}
             onClick={onGenerateReport}
-            className="h-8 border-0 bg-zinc-900 px-3 text-base text-cyan-400 hover:bg-zinc-800 disabled:opacity-50"
           >
             {reportLoading ? "Generating…" : report ? "Regenerate AI summary" : "Generate AI summary"}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             disabled={!report}
             onClick={onPrint}
-            className="h-8 border-0 bg-zinc-900 px-3 text-base text-white hover:bg-zinc-800 disabled:opacity-50"
           >
             Print report
-          </button>
+          </Button>
         </div>
       </div>
 
       {reportError ? (
-        <p className="no-print text-base text-red-400" role="alert">
+        <p className="no-print text-base text-ui-danger-hover" role="alert">
           {reportError}
         </p>
       ) : null}
 
       <article className="mx-auto w-full max-w-4xl space-y-6 print:max-w-none">
-        <header className="space-y-1 border-b border-white/10 pb-4 print:border-zinc-300">
+        <header className="space-y-1 border-b border-white/10 pb-4 print:border-border">
           <h2 className="text-lg font-semibold text-white print:text-black">SEO revision report</h2>
           <p className="font-semibold text-white print:text-black">{pageTitle}</p>
-          <p className="font-mono text-base text-cyan-400 print:text-zinc-700">{pageUrl}</p>
-          <p className="text-base text-muted-foreground print:text-zinc-600">
+          <p className="font-mono text-base text-semantic-analysis-foreground print:text-black">{pageUrl}</p>
+          <p className="text-base text-muted-foreground print:text-muted-foreground">
             {runLabel} · Report generated {generatedAt}
           </p>
         </header>
@@ -103,10 +100,10 @@ export function OverviewStudioRevisionsReportPanel({
         {report ? (
           <section className="space-y-2">
             <h3 className="text-base font-semibold text-white print:text-black">Executive summary</h3>
-            <p className="leading-relaxed text-zinc-200 print:text-black">{report.executiveSummary}</p>
+            <p className="leading-relaxed text-foreground print:text-black">{report.executiveSummary}</p>
             {report.reviewBeforePublish?.length ? (
               <div className="mt-3 space-y-1">
-                <h4 className="text-base font-semibold text-amber-400 print:text-black">Review before publish</h4>
+                <h4 className="text-base font-semibold text-semantic-warning-foreground print:text-black">Review before publish</h4>
                 <ul className="list-disc space-y-1 pl-5">
                   {report.reviewBeforePublish.map((line) => (
                     <li key={line} className="leading-relaxed">
@@ -134,38 +131,38 @@ export function OverviewStudioRevisionsReportPanel({
             return (
               <div
                 key={rev.id}
-                className="break-inside-avoid space-y-2 border-b border-white/10 pb-6 print:border-zinc-200"
+                className="break-inside-avoid space-y-2 border-b border-white/10 pb-6 print:border-border"
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <h4 className="text-base font-semibold text-white print:text-black">
                     {index + 1}. {title}
                   </h4>
-                  <span className="tabular-nums text-muted-foreground print:text-zinc-600">
+                  <span className="tabular-nums text-muted-foreground print:text-muted-foreground">
                     {formatRevisionDateTime(rev.at)} · {rev.changed ? "Changed" : "Unchanged"}
                   </span>
                 </div>
                 {summary ? (
-                  <p className="leading-relaxed text-zinc-300 print:text-zinc-800">
+                  <p className="leading-relaxed text-foreground print:text-black">
                     <span className="font-medium text-white print:text-black">Summary: </span>
                     {summary}
                   </p>
                 ) : null}
                 {seo ? (
-                  <p className="leading-relaxed text-zinc-400 print:text-zinc-700">
+                  <p className="leading-relaxed text-muted-foreground print:text-black">
                     <span className="font-medium">SEO: </span>
                     {seo}
                   </p>
                 ) : null}
                 <div className="grid grid-cols-1 gap-3 print:grid-cols-2">
                   <div>
-                    <p className="mb-1 text-base font-medium text-muted-foreground print:text-zinc-600">Before</p>
-                    <div className="whitespace-pre-wrap bg-zinc-900 p-3 leading-relaxed print:border print:border-zinc-300 print:bg-white">
+                    <p className="mb-1 text-base font-medium text-muted-foreground print:text-muted-foreground">Before</p>
+                    <div className="whitespace-pre-wrap bg-ui-field p-3 leading-relaxed print:border print:border-border print:bg-white">
                       {rev.beforePlain.trim() || "(empty)"}
                     </div>
                   </div>
                   <div>
-                    <p className="mb-1 text-base font-medium text-muted-foreground print:text-zinc-600">After</p>
-                    <div className="whitespace-pre-wrap bg-zinc-900 p-3 leading-relaxed print:border print:border-zinc-300 print:bg-white">
+                    <p className="mb-1 text-base font-medium text-muted-foreground print:text-muted-foreground">After</p>
+                    <div className="whitespace-pre-wrap bg-ui-field p-3 leading-relaxed print:border print:border-border print:bg-white">
                       {rev.afterPlain.trim() || "(empty)"}
                     </div>
                   </div>

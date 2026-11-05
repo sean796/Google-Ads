@@ -152,11 +152,31 @@ export function PulseAssistContextProvider({
   }, [managerTab, generatorSection]);
 
   const setOverviewBridge = useCallback((patch: Partial<PulseAssistOverviewBridge>) => {
-    setOverviewState((prev) => ({ ...prev, ...patch }));
+    setOverviewState((prev) => {
+      let changed = false;
+      for (const [k, v] of Object.entries(patch)) {
+        if (prev[k as keyof PulseAssistOverviewBridge] !== v) {
+          changed = true;
+          break;
+        }
+      }
+      if (!changed) return prev;
+      return { ...prev, ...patch };
+    });
   }, []);
 
   const setTasksBridge = useCallback((patch: Partial<PulseAssistTasksBridge>) => {
-    setTasksState((prev) => ({ ...prev, ...patch }));
+    setTasksState((prev) => {
+      let changed = false;
+      for (const [k, v] of Object.entries(patch)) {
+        if (prev[k as keyof PulseAssistTasksBridge] !== v) {
+          changed = true;
+          break;
+        }
+      }
+      if (!changed) return prev;
+      return { ...prev, ...patch };
+    });
   }, []);
 
   const navigateTo = useCallback(

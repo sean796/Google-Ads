@@ -2,6 +2,7 @@ import { ChevronRight } from "lucide-react";
 import type { ApiDocArticle } from "@/lib/api-docs/types";
 import { setApiDocsHash } from "@/lib/api-docs/api-docs-hash";
 import { cn } from "@/lib/utils";
+import { TextButton } from "@/ui";
 
 const API_DOCS_LINK_CLASS =
   "font-medium text-primary underline-offset-4 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45";
@@ -32,13 +33,12 @@ export function ApiDocsBreadcrumbs({ article }: { article: ApiDocArticle }) {
             {isLast ? (
               <span className="font-medium text-white">{crumb.label}</span>
             ) : (
-              <button
+              <TextButton
                 type="button"
                 onClick={() => setApiDocsHash(crumb.slug)}
-                className={cn(API_DOCS_LINK_CLASS, "border-0 bg-transparent p-0 no-underline hover:underline")}
               >
                 {crumb.label}
-              </button>
+              </TextButton>
             )}
           </span>
         );

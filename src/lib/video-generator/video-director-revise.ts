@@ -1,10 +1,47 @@
 import { callAgentCategoryOpenRouterChat } from "@/lib/openrouter-agent-category-api";
 import { parseJsonObjectFromModelText } from "@/lib/openrouter-vision-chat";
-import { PLAN_SCHEMA, SCENE_RULES, briefBlock, directorMessages, parseScene, parseVideoPlan } from "./video-director-agent";
+import {
+  PLAN_SCHEMA,
+  SCENE_RULES,
+  applyReferenceStillsFlythroughPlan,
+  briefBlock,
+  directorMessages,
+  parseScene,
+  parseVideoPlan,
+} from "./video-director-agent";
 import type { VideoBrief, VideoPlan, VideoScenePlan } from "./video-generator-types";
 import { videoLog, videoLogError, videoTimer } from "./video-log";
 
 /** Director revisions driven by the instruction bar or Post-Cut panel: one scene, or the whole plan. Runs on the research model. */
+
+/** Scene-level client notes: patch the plan in place (no Director JSON). Storyboard redraw reads storyboardPrompt + revisionNotes. */
+export function applySceneClientInstruction(scene: VideoScenePlan, instruction: string): VideoScenePlan {
+  const note = instruction.trim();
+  if (!note) return scene;
+  const prior = scene.revisionNotes ?? [];
+  const obey = `Client revision (must obey): ${note}`;
+  const noPeople = /\b(no people|no person|nobody|remove person|without people|empty of people|zero humans)\b/i.test(
+    note,
+  );
+  const storyboardPrompt = noPeople
+    ? `${obey}\nEmpty frame: zero humans visible. Do not depict anyone at desks, chairs, or in the room.\n${scene.storyboardPrompt}`
+    : scene.storyboardPrompt.includes(obey)
+      ? scene.storyboardPrompt
+      : `${obey}\n${scene.storyboardPrompt}`;
+  const updatedMotion = scene.motionPrompt.includes(note)
+    ? scene.motionPrompt
+    : `${scene.motionPrompt}. Client constraint: ${note}.`.trim();
+  return {
+    ...scene,
+    revisionNotes: [...prior, note],
+    sceneInstructions: `${scene.sceneInstructions} ${note}`.trim(),
+    storyboardPrompt,
+    motionPrompt: updatedMotion,
+    continuityNotes: noPeople
+      ? `${scene.continuityNotes} Mandatory: no people in frame.`.trim()
+      : scene.continuityNotes,
+  };
+}
 
 function planBlock(plan: VideoPlan): string {
   return `Current plan (JSON):
@@ -53,7 +90,10 @@ Return the full revised plan now.`;
   });
   videoLog("revise", "plan reply", { seconds: elapsed(), finishReason: res.finishReason, contentChars: res.content.length });
   try {
-    const plan = parseVideoPlan(res.content, args.brief.lengthSeconds, args.brief.references.length);
+    const plan = applyReferenceStillsFlythroughPlan(
+      parseVideoPlan(res.content, args.brief.lengthSeconds, args.brief.references.length),
+      args.brief,
+    );
     const mergedScenes = plan.scenes.map((s) => {
       const prev = args.plan.scenes.find((p) => p.id === s.id);
       const prevNotes = prev?.revisionNotes ?? [];
@@ -126,14 +166,27 @@ Return the revised scene object now.`;
   videoLog("revise", `scene ${scene.order} reply`, { seconds: elapsed(), finishReason: res.finishReason, content: res.content });
   try {
     const parsed = parseScene(parseJsonObjectFromModelText(res.content), idx, args.brief.references.length);
-    if (parsed.id !== scene.id || parsed.durationSeconds !== scene.durationSeconds) {
-      throw new Error(`Director changed the scene id or duration; scene ${scene.order} must keep ${scene.id} at ${scene.durationSeconds} s.`);
-    }
     if (Boolean(parsed.narration) !== Boolean(scene.narration)) {
       throw new Error(`Director ${parsed.narration ? "added" : "dropped"} narration on scene ${scene.order}; narration is ${args.plan.voice === "none" ? "off" : "on"} for this video.`);
     }
+    if (
+      parsed.id !== scene.id ||
+      parsed.order !== scene.order ||
+      parsed.durationSeconds !== scene.durationSeconds
+    ) {
+      videoLog("revise", `scene ${scene.order} reply kept plan id/order/duration`, {
+        modelId: parsed.id,
+        keptId: scene.id,
+        modelDuration: parsed.durationSeconds,
+        keptDuration: scene.durationSeconds,
+      });
+    }
     const revised: VideoScenePlan = {
       ...parsed,
+      id: scene.id,
+      order: scene.order,
+      durationSeconds: scene.durationSeconds,
+      referenceIndexes: scene.referenceIndexes,
       environmentId: parsed.environmentId ?? scene.environmentId,
       environmentPrompt: parsed.environmentPrompt ?? scene.environmentPrompt,
       revisionNotes: [...priorNotes, args.instruction.trim()],

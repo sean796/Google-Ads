@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+
 import {
   REPORTING_SECTION_TAB_ACTIVE,
   REPORTING_SECTION_TAB_INACTIVE,
@@ -10,6 +10,7 @@ import {
 } from "@/lib/organic-dashboard/reporting-sections";
 import { buildGscPageIndexingUrl } from "@/lib/gsc-reporting/gsc-console-ui-url";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 export type ReportingSectionPillsProps = {
   activeSection: ReportingSectionId;
@@ -27,10 +28,9 @@ export function ReportingSectionPills({
 
   const sectionButton = (id: ReportingSectionId) => (
     <Button
+      variant="quiet"
       key={id}
       type="button"
-      variant="ghost"
-      className={activeSection === id ? REPORTING_SECTION_TAB_ACTIVE : REPORTING_SECTION_TAB_INACTIVE}
       aria-pressed={activeSection === id}
       onClick={() => {
         if (activeSection !== id) onSectionChange(id);

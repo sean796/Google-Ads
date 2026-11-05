@@ -162,14 +162,14 @@ export function PulseHostTabContent() {
             }}
             onDownloadCsv={downloadCsv}
           />
-          <p className={cn(MY_SITES_STATUS_LINE, error ? "text-red-300" : "")} title={error || notice || undefined}>
-            <span className="truncate">{error || notice}</span>
+          <p className={cn(MY_SITES_STATUS_LINE, error ? "text-ui-danger-hover" : "")} title={error || notice || undefined}>
+            <span className="break-words">{error || notice}</span>
           </p>
           <div className={cn(SEO_WORKSPACE_BODY_SCROLL_CLASS, "flex flex-col gap-4 pb-4")}>
             {inventoryTab ? (
               <InventoryTable kind={tab === "plugins" ? "plugins" : "themes"} rows={inventoryRows(visible, tab === "plugins" ? "plugins" : "themes")} loading={loading} />
             ) : null}
-            {!inventoryTab && loading && groups.length === 0 ? <div className={cn(MY_SITES_CARD, "h-32 animate-pulse")} aria-busy /> : null}
+            {!inventoryTab && loading && groups.length === 0 ? <div className={cn(MY_SITES_CARD, "h-32")} aria-busy /> : null}
             {!inventoryTab && !loading && visible.length === 0 ? (
               <div className={cn(MY_SITES_CARD, "flex h-32 items-center justify-center text-muted-foreground")}>
                 {groups.length === 0 ? "No hosted sites yet. Use Add site to provision your first WordPress environment." : "No sites match the current tab and filters."}

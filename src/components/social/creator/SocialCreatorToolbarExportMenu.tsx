@@ -1,5 +1,4 @@
 import { Archive, Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,6 +7,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { BULK_HEADER_ICON_TOOL_BTN } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui";
 
 export type SocialCreatorToolbarExportMenuProps = {
   disabled?: boolean;
@@ -30,10 +30,8 @@ export function SocialCreatorToolbarExportMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="sm"
-          className={cn(BULK_HEADER_ICON_TOOL_BTN)}
           disabled={exportDisabled}
           aria-label="Export"
           title="Export CSV or creatives ZIP"

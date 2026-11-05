@@ -1,7 +1,7 @@
 import { Upload } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { CONTENT_OPTIMIZER_ROW_SHELL_CLASS } from "@/components/overview/overview-tab/overview-tab-content-constants";
 import { cn } from "@/lib/utils";
+import { Button, FileInput } from "@/ui";
 
 export type KnowledgeBaseUploadPanelProps = {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
@@ -27,12 +27,10 @@ export function KnowledgeBaseUploadPanel({
   return (
     <div className={cn(CONTENT_OPTIMIZER_ROW_SHELL_CLASS, "flex min-h-[min(50vh,28rem)] items-center justify-center p-6")}>
       <label className="w-full cursor-pointer">
-        <input
+        <FileInput
           ref={fileInputRef}
-          type="file"
           multiple
           onChange={onFileChange}
-          className="hidden"
           accept=".txt,.md,.pdf,.json,.csv"
         />
         <div
@@ -61,9 +59,9 @@ export function KnowledgeBaseUploadPanel({
               </p>
             </div>
             <Button
+              variant="run"
               type="button"
               disabled={isProcessing}
-              className="bg-primary text-black hover:bg-primary/90"
               onClick={(e) => {
                 e.preventDefault();
                 if (!isProcessing) onDropZoneClick();

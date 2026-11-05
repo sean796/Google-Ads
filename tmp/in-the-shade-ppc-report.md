@@ -5,66 +5,64 @@ Prepared for: In the Shade
 
 ## Executive Summary
 
-The quarter closed with $6,002.61 in spend, 1,005 clicks, and 11,114 impressions, producing 230 conversions at a 9.04% CTR, a 5.97 CPC, and a 26.10 CPA. Activity was concentrated in a handful of search campaigns: five funded campaigns carried essentially all volume, while three others recorded no spend or clicks at all. The account's centre of gravity sits with **Search | Branded** and **Search | General Blinds**, which together accounted for 152 of the 230 conversions.
+The account invested 6,002.61 across 1,005 clicks and 11,114 impressions during Jul 1 – Sep 30, 2026, producing a 9.04% CTR and a 5.97 CPC. Those clicks returned 230 conversions at a 26.10 CPA, a blended efficiency that holds despite wide variation between campaigns.
 
-**Search | Branded** was the most productive line in the account, converting 96 times on 909.19 in spend. **Search | General Blinds** generated the highest click volume at 560 clicks and 56 conversions on 1,394.49, drawing heavily on broad, early-research queries. **Search | Top Locations** carried the largest budget at 1,996.39 for 42 conversions, and **Search | Hunter Douglas** returned the fewest conversions of any funded campaign at 11 on 919.30. **Search | Dominator** landed mid-pack with 25 conversions on 782.36.
+**Search | Branded** was the efficiency anchor, spending 909.19 for 96 conversions at a 9.47 CPA. **Search | General Blinds** carried the heaviest click volume, 560 clicks on 1,394.49 for 56 conversions at a 24.90 CPA. **Search | Top Locations** absorbed the largest share of budget at 1,996.39, returning 42 conversions at a 47.53 CPA, while **Search | Hunter Douglas** spent 919.30 for 11 conversions at an 83.57 CPA. **Search | Dominator** added 25 conversions on 782.36 at a 31.29 CPA.
 
-The shape of the period is consistent: brand demand converts readily, while the higher-funnel Hunter Douglas and location-led campaigns absorb comparable or greater budget for a smaller return. **Search | Hunter Douglas Core** spent 0.89 for a single click, and three further campaigns remained inactive across the full period.
+| Campaign | Spend | Clk | Conv | CPA |
+|---|---|---|---|---|
+| Search \| Top Locations | 1,996.39 | 114 | 42 | 47.53 |
+| Search \| General Blinds | 1,394.49 | 560 | 56 | 24.90 |
+| Search \| Hunter Douglas | 919.30 | 66 | 11 | 83.57 |
+| Search \| Branded | 909.19 | 176 | 96 | 9.47 |
+| Search \| Dominator | 782.36 | 88 | 25 | 31.29 |
 
 ### Key Insights
 
-- **Search | Branded** - 96 conversions on 909.19 in spend, the strongest return in the account, led by the branded query in the shade stuart fl at 546.08 and 107 clicks.
-- **Search | General Blinds** - 560 clicks and 56 conversions on 1,394.49, the widest reach in the account, though much of that click volume arrived through broad research queries such as window shades and window blinds near me.
-- **Search | Top Locations** - the largest budget line at 1,996.39 for 42 conversions, with local intent terms such as blinds stuart and blinds port st lucie fl carrying much of that spend.
-- **Search | Hunter Douglas** - 11 conversions on 919.30, the thinnest return among funded campaigns despite spend close to Branded's, with queries such as blinds near me and draperies store near me among its most expensive click drivers.
-- **Search | Dominator** - 25 conversions on 782.36, a mid-pack result, while **Search | Hunter Douglas Core** ran at 0.89 for one click and three campaigns recorded no activity at all.
+- **Search | Branded** converts at 9.47 CPA, well below the account's 26.10 average, and its 96 conversions account for roughly 42% of the 230 total.
+- **Search | Top Locations** holds the largest budget share at 1,996.39 yet returns 42 conversions at 47.53 CPA, the second-highest cost per acquisition among funded campaigns.
+- **Search | Hunter Douglas** spent 919.30 for 11 conversions at 83.57 CPA, the highest CPA in the account and the clearest gap between spend and return.
+- Brand demand also surfaces inside **Search | General Blinds**, where **in the shade stuart fl** drew 58.43 across 25 clicks.
+- Retail and DIY intent runs through the General Blinds keyword list, visible in terms such as **amazon window blinds no drill** and **where can i buy no drill blinds**.
 
 ## Ad Performance This Period
 
-The account spent 6,002.61 in the quarter, generating 11,114 impressions, 1,005 clicks, and 230 conversions. Average CPC was 5.97, CPA was 26.10, and CTR was 9.04%.
-
 | Spend | Clk | Imp | CTR | CPC | Conv | CPA |
-|---|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- | --- |
 | 6,002.61 | 1,005 | 11,114 | 9.04% | 5.97 | 230 | 26.10 |
 
-**Search | Branded** produced 96 conversions on 909.19 in spend, the highest conversion count among the primary campaigns. **Search | General Blinds** drove the most clicks, with 560, and converted 56 times on 1,394.49. **Search | Top Locations** carried the highest spend at 1,996.39, returning 42 conversions from 114 clicks. That pattern places conversion strength and spend weight in different parts of the account.
+The account closed the quarter with 6,002.61 in spend across 1,005 clicks and 11,114 impressions, a 9.04% CTR and 5.97 CPC, returning 230 conversions at a 26.10 CPA. Efficiency is being carried by a small number of campaigns rather than spread evenly, which shapes where the budget is doing the most work.
 
-**Search | Hunter Douglas** returned 11 conversions from 919.30 in spend, while **Search | Branded** produced 96 from 909.19; the two campaigns spent almost the same amount with very different conversion outcomes. At the keyword level, **blinds stuart** absorbed 547.58 for 24 clicks, a sign that some high-spend terms are not drawing click volume in proportion to their cost. The gap in conversion returns across similar spend levels is the clearest signal for where attention can shift.
+**Search | Branded** was the standout, spending 909.19 for 96 conversions at a **9.47 CPA** and confirming that existing demand converts cheaply. **Search | General Blinds** absorbed 1,394.49 for 56 conversions at a 24.90 CPA while generating the heaviest click volume at 560, so it is doing the broadest reach in the account. **Search | Top Locations** took the largest share of budget at 1,996.39 for 42 conversions at a 47.53 CPA, and **Search | Hunter Douglas** spent 919.30 for 11 conversions at an 83.57 CPA. **Search | Dominator** added 25 conversions on 782.36 at a 31.29 CPA.
+
+Brand demand also surfaced inside **Search | General Blinds**, where in the shade stuart fl drew 58.43 across 25 clicks, suggesting some branded traffic is landing in the broader campaign rather than the dedicated one. The keyword list there carries retail and DIY intent such as amazon window blinds no drill and where can i buy no drill blinds, terms that point to shoppers comparing big-box and online options rather than booking a consultation.
 
 ## Key Performance Insights for the Team
 
-Across the quarter, the account spent 6,002.61 and returned 230 conversions from 1,005 clicks and 11,114 impressions, at a 9.04% CTR, a 5.97 CPC and a 26.10 CPA. The pattern is a portfolio that converts strongly where intent is already clear: branded search and general blinds queries supplied the bulk of the volume, while two campaigns absorbed comparable budget with a markedly lighter return.
+The account closed the quarter with 6,002.61 in spend, 1,005 clicks, and 11,114 impressions, producing a 9.04% CTR and 5.97 CPC. Those clicks returned 230 conversions at a 26.10 CPA. **Search | Branded** anchored efficiency, delivering 96 conversions from 909.19 in spend at a 9.47 CPA.
 
-**Search | Branded** was the standout, converting 96 times on 909.19, the largest single contribution in the account. That result rests on a narrow set of high-intent searches led by **in the shade stuart fl** and **in the shade**, which together account for the majority of the campaign's spend. Branded demand is being captured reliably, and it sets the efficiency standard the rest of the account is measured against.
+**Search | Top Locations** absorbed the largest share of budget at 1,996.39, returning 42 conversions at a 47.53 CPA. **Search | General Blinds** spent 1,394.49 for 56 conversions at a 24.90 CPA, while **Search | Hunter Douglas** spent 919.30 for 11 conversions at an 83.57 CPA.
 
-**Search | General Blinds** was the volume engine, generating the most clicks at 560 alongside 56 conversions on 1,394.49. Its budget spreads across a wide net of discovery queries such as **window shades**, **roller shades** and **vertical blinds**, which attract strong click interest but convert at a lower density than branded search.
+**Search | Dominator** added 25 conversions on 782.36 at a 31.29 CPA. Brand terms also drew spend inside **Search | General Blinds**, where **in the shade stuart fl** took 58.43 across 25 clicks.
 
-**Search | Top Locations** carried the highest spend at 1,996.39 and returned 42 conversions, while **Search | Hunter Douglas** converted 11 times on 919.30, the lowest count of any funded campaign. Both lean on broad, unbranded demand, with queries such as **blinds near me** drawing attention without the intent that branded terms carry.
-
-**Search | Dominator** sits in the middle of the pack, with 25 conversions on 782.36 and 88 clicks - a steady contributor rather than a swing factor. Read together, the quarter shows a business winning the searches it already owns and still working to translate broader consideration into conversions, which leaves clear headroom in the campaigns built to reach new customers.
+The **Search | General Blinds** keyword list carries retail and DIY terms such as **amazon window blinds no drill** and **where can i buy no drill blinds**.
 
 ## Campaign Performance
 
-Six campaigns recorded spend in the period, led by **Search | Top Locations** on budget and **Search | Branded** on conversions.
+**Search | Branded** delivered the account's strongest efficiency, while **Search | Top Locations** absorbed the largest share of budget.
 
-| Campaign | Spend | Clk | Conv |
-| --- | --- | --- | --- |
-| Search \| Top Locations | 1,996.39 | 114 | 42 |
-| Search \| General Blinds | 1,394.49 | 560 | 56 |
-| Search \| Hunter Douglas | 919.30 | 66 | 11 |
-| Search \| Branded | 909.19 | 176 | 96 |
-| Search \| Dominator | 782.36 | 88 | 25 |
-| Search \| Hunter Douglas Core | 0.89 | 1 | 0 |
+| Campaign | Spend | Clk | Conv | CPA |
+| Search \| Top Locations | 1,996.39 | 114 | 42 | 47.53 |
+| Search \| General Blinds | 1,394.49 | 560 | 56 | 24.90 |
+| Search \| Hunter Douglas | 919.30 | 66 | 11 | 83.57 |
+| Search \| Branded | 909.19 | 176 | 96 | 9.47 |
+| Search \| Dominator | 782.36 | 88 | 25 | 31.29 |
 
-**Search | Branded** produced the most conversions of any active campaign, turning 176 clicks into 96 on 909.19 spend, while **Search | General Blinds** drove the highest click volume at 560 and converted 56 of them on 1,394.49.
-
-**Search | Top Locations** carried the largest spend at 1,996.39 but returned 42 conversions from 114 clicks, and **Search | Hunter Douglas** converted 11 times on 919.30. **Search | Dominator** added 25 conversions on 782.36.
-
-**Search | Hunter Douglas Core** saw 0.89 spend, one click, and no conversions, and three campaigns, Campaign #1, Display Remarketing | Hunter Douglas, and Search | General Blinds OLD Campaign, recorded no activity in the period.
+**Search | Branded** converted 96 times at a 9.47 CPA, the clearest return in the account, and its reach is still narrow enough that brand coverage in nearby markets such as Jupiter remains untapped. **Search | General Blinds** drew the heaviest click volume at 560, yet its 24.90 CPA reflects a keyword list carrying retail and DIY intent, including amazon window blinds no drill and where can i buy no drill blinds, alongside brand traffic where in the shade stuart fl took 58.43 across 25 clicks. **Search | Hunter Douglas** sits at an 83.57 CPA on 11 conversions, a signal that product-led terms need tighter qualification before further budget follows them.
 
 ## Search Terms
 
-**Window shades** and **blinds stuart** lead keyword spend, with **in the shade stuart fl** close behind.
+**window shades** and **in the shade stuart fl** lead keyword spend, with the branded term drawing 107 clicks.
 
 | Keyword | Spend | Clk |
 | --- | --- | --- |
@@ -72,5 +70,5 @@ Six campaigns recorded spend in the period, led by **Search | Top Locations** on
 | blinds stuart | 547.58 | 24 |
 | in the shade stuart fl | 546.08 | 107 |
 | blinds port st lucie fl | 475.95 | 34 |
+| blinds stuart | 261.43 | 14 |
 | blinds near me | 235.34 | 9 |
-| blinds stuart fl | 216.52 | 12 |

@@ -1,14 +1,5 @@
 import type { ReactNode } from "react";
 import { Download, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { GeneratorToolbarFrame } from "@/components/blog-generator/GeneratorToolbarFrame";
 import {
   GENERATOR_SELECT,
@@ -25,6 +16,7 @@ import type { BlogImportFeaturedImage } from "@/lib/bulk/blog-import-parser";
 import type { WordPressPostDestination } from "@/lib/bulk-auto-generate";
 import { WORDPRESS_POST_DESTINATION_SHORT } from "@/lib/bulk-auto-generate";
 import { cn } from "@/lib/utils";
+import { Button, Field, SelectField } from "@/ui";
 
 export function bulkGeneratorDetailsPanelId(variant: BulkGeneratorStudioVariant): string {
   if (variant === "prompt") return "bulk-prompt-details-panel";
@@ -76,49 +68,13 @@ export function BulkPromptDockToolbar({
 
   return (
     <div className="flex shrink-0 flex-nowrap items-center gap-1.5 whitespace-nowrap">
-      <Select
-        value={featuredImageMode}
-        onValueChange={(v) => handleFeaturedImageMode(v as FeaturedImageMode)}
-        disabled={workspaceBusy}
-      >
-        <SelectTrigger className="h-8 w-[8.25rem] min-w-[8.25rem] max-w-[8.25rem] shrink-0 justify-between rounded-none border border-white/10 bg-zinc-900 px-2 text-xs text-white hover:bg-zinc-800" aria-label="Image">
-          <SelectValue placeholder="Image" />
-        </SelectTrigger>
-        <SelectContent position="popper" className="rounded-none border border-white/10 bg-zinc-900 text-xs text-white">
-          <SelectItem className="rounded-none text-xs" value="ai-generated">
-            AI image
-          </SelectItem>
-          <SelectItem className="rounded-none text-xs" value="google-maps">
-            Google Maps
-          </SelectItem>
-          <SelectItem className="rounded-none text-xs" value="off">
-            None
-          </SelectItem>
-        </SelectContent>
-      </Select>
-      <Select
-        value={postDestination}
-        onValueChange={(v) => onPostDestinationChange(v as WordPressPostDestination)}
-        disabled={workspaceBusy}
-      >
-        <SelectTrigger className="h-8 w-[8.25rem] min-w-[8.25rem] max-w-[8.25rem] shrink-0 justify-between rounded-none border border-white/10 bg-zinc-900 px-2 text-xs text-white hover:bg-zinc-800" aria-label="Destination">
-          <SelectValue placeholder="Destination" />
-        </SelectTrigger>
-        <SelectContent position="popper" className="rounded-none border border-white/10 bg-zinc-900 text-xs text-white">
-          {postDestinationChoices.map((choice) => (
-            <SelectItem key={choice} className="rounded-none text-xs" value={choice}>
-              {WORDPRESS_POST_DESTINATION_SHORT[choice]}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <SelectField placeholder="Image" value={featuredImageMode} onValueChange={(v) => handleFeaturedImageMode(v as FeaturedImageMode)} disabled={workspaceBusy} options={[{ value: "ai-generated", label: "AI image" }, { value: "google-maps", label: "Google Maps" }, { value: "off", label: "None" }]} />
+      <SelectField placeholder="Destination" value={postDestination} onValueChange={(v) => onPostDestinationChange(v as WordPressPostDestination)} disabled={workspaceBusy} options={postDestinationChoices.map((choice) => ({ value: choice, label: WORDPRESS_POST_DESTINATION_SHORT[choice] }))} />
       {scheduleMenu}
       {onClear ? (
         <Button
+          variant="quiet"
           type="button"
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 min-w-8 max-w-8 shrink-0 justify-center rounded-none border border-white/10 bg-zinc-900 p-0 text-muted-foreground hover:bg-zinc-800 hover:text-red-400"
           disabled={workspaceBusy}
           aria-label="Clear batch"
           title="Clear batch"
@@ -193,42 +149,8 @@ export function BulkCsvDockToolbar({
       }
       options={
         <>
-          <Select
-            value={featuredImageMode}
-            onValueChange={(v) => handleFeaturedImageMode(v as "off" | "ai-generated" | "google-maps")}
-            disabled={workspaceBusy}
-          >
-            <SelectTrigger className={GENERATOR_SELECT} aria-label="Image">
-              <SelectValue placeholder="Image" />
-            </SelectTrigger>
-            <SelectContent position="popper">
-              <SelectItem className="text-base" value="ai-generated">
-                AI image
-              </SelectItem>
-              <SelectItem className="text-base" value="google-maps">
-                Google Maps
-              </SelectItem>
-              <SelectItem className="text-base" value="off">
-                None
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          <Select
-            value={postDestination}
-            onValueChange={(v) => onPostDestinationChange(v as WordPressPostDestination)}
-            disabled={workspaceBusy}
-          >
-            <SelectTrigger className={GENERATOR_SELECT} aria-label="Destination">
-              <SelectValue placeholder="Destination" />
-            </SelectTrigger>
-            <SelectContent position="popper">
-              {postDestinationChoices.map((choice) => (
-                <SelectItem key={choice} className="text-base" value={choice}>
-                  {WORDPRESS_POST_DESTINATION_SHORT[choice]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SelectField placeholder="Image" value={featuredImageMode} onValueChange={(v) => handleFeaturedImageMode(v as "off" | "ai-generated" | "google-maps")} disabled={workspaceBusy} options={[{ value: "ai-generated", label: "AI image" }, { value: "google-maps", label: "Google Maps" }, { value: "off", label: "None" }]} />
+          <SelectField placeholder="Destination" value={postDestination} onValueChange={(v) => onPostDestinationChange(v as WordPressPostDestination)} disabled={workspaceBusy} options={postDestinationChoices.map((choice) => ({ value: choice, label: WORDPRESS_POST_DESTINATION_SHORT[choice] }))} />
           {scheduleMenu}
         </>
       }
@@ -301,22 +223,20 @@ export function BulkImportDockToolbar({
         className="flex shrink-0 flex-col gap-1 border-b border-white/10 px-0.5 py-1.5"
         aria-label="Import keyword and title"
       >
-        <Input
+        <Field
           type="text"
           placeholder="Keyword"
           value={focusKeyword}
           onChange={(e) => onFocusKeywordChange(e.target.value)}
-          className={importFieldClass}
           disabled={workspaceBusy}
           autoComplete="off"
           aria-label="Focus keyword"
         />
-        <Input
+        <Field
           type="text"
           placeholder="Title override"
           value={titleOverride}
           onChange={(e) => onTitleOverrideChange(e.target.value)}
-          className={importFieldClass}
           disabled={workspaceBusy}
           autoComplete="off"
           aria-label="Title override"
@@ -326,64 +246,27 @@ export function BulkImportDockToolbar({
         className={cn(GENERATOR_STUDIO_BAND2_TOOLBAR_CLASS, "min-h-11 shrink-0 py-1")}
         options={
           <>
-            <Select
-              value={featuredImageMode}
-              onValueChange={(v) => onFeaturedImageModeChange(v as BlogImportFeaturedImage)}
-              disabled={workspaceBusy}
-            >
-              <SelectTrigger className={importSelectClass} aria-label="Image">
-                <SelectValue placeholder="Image" />
-              </SelectTrigger>
-              <SelectContent position="popper">
-                <SelectItem className="text-base" value="y">
-                  AI image
-                </SelectItem>
-                <SelectItem className="text-base" value="google-maps">
-                  Google Maps
-                </SelectItem>
-                <SelectItem className="text-base" value="n">
-                  None
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <SelectField placeholder="Image" value={featuredImageMode} onValueChange={(v) => onFeaturedImageModeChange(v as BlogImportFeaturedImage)} disabled={workspaceBusy} options={[{ value: "y", label: "AI image" }, { value: "google-maps", label: "Google Maps" }, { value: "n", label: "None" }]} />
             {showEntity ? (
-              <Input
+              <Field
                 type="text"
                 placeholder="Entity"
                 value={entity}
                 onChange={(e) => onEntityChange(e.target.value)}
-                className={cn(importFieldClass, "min-w-[5.5rem] flex-[1.2]")}
                 disabled={workspaceBusy}
                 autoComplete="off"
                 aria-label="Entity for Google Maps"
               />
             ) : null}
-            <Select
-              value={postDestinationChoices.includes(postDestination) ? postDestination : ""}
-              onValueChange={(v) => onPostDestinationChange(v as WordPressPostDestination)}
-              disabled={workspaceBusy}
-            >
-              <SelectTrigger className={importSelectClass} aria-label="Destination">
-                <SelectValue placeholder="Destination" />
-              </SelectTrigger>
-              <SelectContent position="popper">
-                {postDestinationChoices.map((choice) => (
-                  <SelectItem key={choice} className="text-base" value={choice}>
-                    {WORDPRESS_POST_DESTINATION_SHORT[choice]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SelectField placeholder="Destination" value={postDestinationChoices.includes(postDestination) ? postDestination : ""} onValueChange={(v) => onPostDestinationChange(v as WordPressPostDestination)} disabled={workspaceBusy} options={postDestinationChoices.map((choice) => ({ value: choice, label: WORDPRESS_POST_DESTINATION_SHORT[choice] }))} />
             {scheduleMenu}
           </>
         }
         actions={
           <>
             <Button
+              variant="quiet"
               type="button"
-              variant="ghost"
-              size="sm"
-              className={BULK_HEADER_ICON_TOOL_BTN}
               disabled={!canDownloadBlog || !onDownloadBlog}
               onClick={onDownloadBlog}
               aria-label="Download blog"

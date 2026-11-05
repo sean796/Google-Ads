@@ -152,59 +152,31 @@ function slimPersistedForLocalStorage(value: PersistedSitePrefetch): PersistedSi
   };
 }
 
-/** Reclaim multi-MB localStorage keys from older builds that stored full HTML in LS. */
+let bloatedQuotaReclaimedOnce = false;
+
+/** Purge browser localStorage prefetch/overview row caches so localStorage never hits the 5MB quota. */
 export function reclaimBloatedLocalStorageQuota(): void {
-  if (typeof localStorage === "undefined") return;
+  if (bloatedQuotaReclaimedOnce || typeof localStorage === "undefined") return;
+  bloatedQuotaReclaimedOnce = true;
   try {
-    const keysToProcess: string[] = [];
+    const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i += 1) {
       const k = localStorage.key(i);
       if (!k) continue;
       if (
         k.startsWith(STORAGE_PREFIX) ||
-        k.startsWith("neo-pulse-overview-rows-local:v4:")
+        k.startsWith("neo-pulse-overview-rows-local:") ||
+        k.startsWith("neo-pulse-overview-active-row-body:") ||
+        k === "kb_files"
       ) {
-        const raw = localStorage.getItem(k);
-        if (raw && raw.length > 300_000) {
-          keysToProcess.push(k);
-        }
+        keysToRemove.push(k);
       }
     }
-    for (const k of keysToProcess) {
-      const raw = localStorage.getItem(k);
-      if (!raw) continue;
-      if (k.startsWith(STORAGE_PREFIX)) {
-        try {
-          const parsed = JSON.parse(raw) as PersistedSitePrefetch;
-          localStorage.setItem(k, JSON.stringify(slimPersistedForLocalStorage(parsed)));
-        } catch {
-          localStorage.removeItem(k);
-        }
-      } else if (k.startsWith("neo-pulse-overview-rows-local:v4:")) {
-        try {
-          const parsed = JSON.parse(raw) as Array<Record<string, unknown>>;
-          if (Array.isArray(parsed)) {
-            const slimmed = parsed.map((row) => {
-              const {
-                postContent: _pc,
-                postContentOptimized: _pco,
-                elementorDataJson: _edj,
-                blogH2OptimizedHtml: _h2h,
-                blogFaqAppendedHtml: _faqh,
-                blogLinksWeavedHtml: _lwh,
-                blogWikipediaLinkedHtml: _wiki,
-                seoResearch: _sr,
-                contentAnalyzeBulletsMarkdown: _cab,
-                blogH2PlanJson: _h2p,
-                ...rest
-              } = row;
-              return rest;
-            });
-            localStorage.setItem(k, JSON.stringify(slimmed));
-          }
-        } catch {
-          localStorage.removeItem(k);
-        }
+    for (const k of keysToRemove) {
+      try {
+        localStorage.removeItem(k);
+      } catch {
+        /* ignore */
       }
     }
   } catch {
@@ -212,18 +184,8 @@ export function reclaimBloatedLocalStorageQuota(): void {
   }
 }
 
-function writeLocalStorage(key: string, value: PersistedSitePrefetch): void {
-  const payload = JSON.stringify(slimPersistedForLocalStorage(value));
-  try {
-    localStorage.setItem(key, payload);
-  } catch {
-    reclaimBloatedLocalStorageQuota();
-    try {
-      localStorage.setItem(key, payload);
-    } catch {
-      /* quota */
-    }
-  }
+function writeLocalStorage(_key: string, _value: PersistedSitePrefetch): void {
+  reclaimBloatedLocalStorageQuota();
 }
 
 function removeLocalStorage(key: string): void {
@@ -273,32 +235,12 @@ function persistedToWarmBundle(persisted: PersistedSitePrefetch): EntitySiteWarm
   };
 }
 
-function readSitePrefetchPersistSyncByStorageKey(key: string, siteId: string): EntitySiteWarmBundle | null {
-  const persisted = readLocalStorage(key);
-  if (!persisted || persisted.siteId !== siteId) return null;
-  return persistedToWarmBundle(persisted);
-}
-
-/** Synchronous read (localStorage only) for first-paint Details inventory. */
+/** Synchronous read (disabled for multi-MB bundles; IndexedDB handles async persist). */
 export function readSitePrefetchPersistSync(
-  siteId: string,
-  credentialsKey: string,
+  _siteId: string,
+  _credentialsKey: string,
 ): EntitySiteWarmBundle | null {
-  const key = storageKey(siteId, credentialsKey);
-  const direct = readSitePrefetchPersistSyncByStorageKey(key, siteId);
-  if (direct && direct.credentialsKey === credentialsKey) return direct;
-  try {
-    const prefix = `${STORAGE_PREFIX}${siteId}:`;
-    for (let i = 0; i < localStorage.length; i += 1) {
-      const storageKeyName = localStorage.key(i);
-      if (!storageKeyName?.startsWith(prefix)) continue;
-      const match = readSitePrefetchPersistSyncByStorageKey(storageKeyName, siteId);
-      if (match && match.counts.inventoryTotal > 0) return match;
-    }
-  } catch {
-    /* ignore */
-  }
-  return direct;
+  return null;
 }
 
 export async function readSitePrefetchPersist(
@@ -306,8 +248,7 @@ export async function readSitePrefetchPersist(
   credentialsKey: string,
 ): Promise<EntitySiteWarmBundle | null> {
   const key = storageKey(siteId, credentialsKey);
-  const fromIdb = await idbGet(key);
-  const persisted = fromIdb ?? readLocalStorage(key);
+  const persisted = await idbGet(key);
   if (!persisted || persisted.siteId !== siteId || persisted.credentialsKey !== credentialsKey) {
     return null;
   }

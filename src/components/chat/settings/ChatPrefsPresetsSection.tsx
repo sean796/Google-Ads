@@ -1,8 +1,8 @@
 import React from "react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CHAT_BUILTIN_PRESETS } from "@/lib/chat-preferences-presets";
 import type { ChatUserPreferences } from "@/lib/chat-preferences-types";
+import { Button, Field } from "@/ui";
 
 type Props = {
   draft: ChatUserPreferences;
@@ -25,10 +25,9 @@ export function ChatPrefsPresetsSection({
       <div className="flex flex-wrap gap-2">
         {CHAT_BUILTIN_PRESETS.map((preset) => (
           <Button
+            pressed={draft.activePresetId === preset.id}
             key={preset.id}
             type="button"
-            variant={draft.activePresetId === preset.id ? "default" : "outline"}
-            className="h-9 text-base"
             onClick={() => onApplyPreset(preset.id)}
           >
             {preset.label}
@@ -41,17 +40,16 @@ export function ChatPrefsPresetsSection({
           {draft.savedPresets.map((preset) => (
             <div key={preset.id} className="flex items-center gap-2">
               <Button
+                pressed={draft.activePresetId === preset.id}
+                variant="quiet"
                 type="button"
-                variant={draft.activePresetId === preset.id ? "default" : "ghost"}
-                className="h-9 flex-1 justify-start text-base"
                 onClick={() => onApplyPreset(preset.id)}
               >
                 {preset.name}
               </Button>
               <Button
+                variant="quiet"
                 type="button"
-                variant="ghost"
-                className="h-9 text-base text-muted-foreground"
                 onClick={() => onDeleteSaved(preset.id)}
               >
                 Delete
@@ -61,18 +59,14 @@ export function ChatPrefsPresetsSection({
         </div>
       ) : null}
       <div className="flex gap-2">
-        <input
+        <Field
           value={customName}
           onChange={(e) => setCustomName(e.target.value)}
           placeholder="Preset name"
-          className={cn(
-            "h-10 min-w-0 flex-1 rounded-md bg-zinc-900/50 px-3 text-base outline-none",
-            "placeholder:text-muted-foreground",
-          )}
         />
         <Button
+          variant="run"
           type="button"
-          className="h-10 text-base"
           disabled={!customName.trim()}
           onClick={() => {
             onSaveCustom(customName.trim());

@@ -1,20 +1,7 @@
 import React, { useMemo } from "react";
-import {
-  TASK_FORM_SELECT_CONTENT_CLASS,
-  TASK_FORM_SELECT_ITEM_CLASS,
-  TASK_FORM_SELECT_TRIGGER_CLASS,
-  TaskFormDatePicker,
-  TaskFormInlineRow,
-  TaskFormTimePicker,
-} from "@/components/manager/tasks/TaskFormLayout";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { TaskFormDatePicker, TaskFormInlineRow, TaskFormTimePicker } from "@/components/manager/tasks/TaskFormLayout";
 import type { AutomationScheduleBlock, ScheduleFrequency } from "@/lib/automation-planner-types";
+import { SelectField } from "@/ui";
 
 const FREQUENCY_OPTIONS: { value: ScheduleFrequency; label: string }[] = [
   { value: "once", label: "Once" },
@@ -73,7 +60,8 @@ export function AutomationSchedulePanel({
   return (
     <div className="flex flex-col gap-2">
       <TaskFormInlineRow label="Frequency">
-        <Select
+        <SelectField
+          placeholder="Frequency"
           value={block.frequency}
           onValueChange={(v) =>
             onChange({
@@ -81,19 +69,10 @@ export function AutomationSchedulePanel({
               keyword: `schedule-${v}`,
             })
           }
+          options={FREQUENCY_OPTIONS}
+          width="full"
           disabled={disabled}
-        >
-          <SelectTrigger className={TASK_FORM_SELECT_TRIGGER_CLASS}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className={TASK_FORM_SELECT_CONTENT_CLASS}>
-            {FREQUENCY_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value} className={TASK_FORM_SELECT_ITEM_CLASS}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        />
       </TaskFormInlineRow>
       <TaskFormInlineRow label={dateLabel}>
         <TaskFormDatePicker

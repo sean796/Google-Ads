@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactElement, type ReactNode } from "react";
+﻿import { useEffect, useRef, useState, type CSSProperties, type ReactElement, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { ChevronRight, Search, Sparkles, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ChevronRight, FileDown, Search, Sparkles, X } from "lucide-react";
 import { useAgentRunsContext } from "@/contexts/use-agent-runs-context";
 import { cn } from "@/lib/utils";
 import { usePulseAssistSidebarResize } from "@/hooks/use-pulse-assist-sidebar-resize";
@@ -18,6 +17,7 @@ import {
   type SidebarPanel,
 } from "@/lib/pulse-assist/storage";
 import "./pulse-assist-theme.css";
+import { Button } from "@/ui";
 
 export const SEO_INSPECTOR_LABEL = "Page SEO";
 
@@ -30,6 +30,15 @@ function SeoLauncherBrand({ className }: { className?: string }): ReactElement {
   );
 }
 
+function DetailsLauncherBrand({ className }: { className?: string }): ReactElement {
+  return (
+    <span className={cn("pulse-assist-launcher-brand", className)}>
+      <FileDown className="pulse-assist-launcher-brand__spark" aria-hidden />
+      <span className="pulse-assist-launcher-brand__label">Details</span>
+    </span>
+  );
+}
+
 type PulseAssistSidebarShellProps = {
   layout?: PulseAssistLayout;
   open: boolean;
@@ -37,12 +46,14 @@ type PulseAssistSidebarShellProps = {
   panel: SidebarPanel;
   onPanelChange: (panel: SidebarPanel) => void;
   showSeo?: boolean;
+  showDetails?: boolean;
   children: ReactNode;
 };
 
 function MobileAssistCircle({ onOpen }: { onOpen: () => void }): ReactElement | null {
   if (typeof document === "undefined") return null;
   return createPortal(
+    // eslint-disable-next-line no-restricted-syntax -- Pulse UI exception: floating circular launcher styled by pulse-assist.css
     <button
       type="button"
       className="pulse-assist-mobile-circle"
@@ -77,23 +88,26 @@ function MobileAssistCircle({ onOpen }: { onOpen: () => void }): ReactElement | 
 function ShortcutLaunchers({
   docked,
   showSeo = true,
+  showDetails = false,
   onOpenSeo,
+  onOpenDetails,
   onOpenAgents,
   onOpenAssist,
 }: {
   docked: boolean;
   showSeo?: boolean;
+  showDetails?: boolean;
   onOpenSeo: () => void;
+  onOpenDetails: () => void;
   onOpenAgents: () => void;
   onOpenAssist: () => void;
 }): ReactElement {
   const launcherClass = cn("pulse-assist-launcher", docked && "pulse-assist-launcher--docked");
 
   const seoButton = (
-    <button
-      type="button"
-      className={cn(launcherClass, !docked && "neo-pulse-sidebar-launcher--mastra")}
+    <button type="button"
       onClick={onOpenSeo}
+      className={launcherClass}
       aria-label={`Open ${SEO_INSPECTOR_LABEL}`}
       aria-expanded={false}
       aria-controls="neo-pulse-sidebar-panel"
@@ -102,11 +116,22 @@ function ShortcutLaunchers({
     </button>
   );
 
+  const detailsButton = (
+    <button type="button"
+      onClick={onOpenDetails}
+      className={launcherClass}
+      aria-label="Open Details"
+      aria-expanded={false}
+      aria-controls="neo-pulse-sidebar-panel"
+    >
+      <DetailsLauncherBrand />
+    </button>
+  );
+
   const agentsButton = (
-    <button
-      type="button"
-      className={cn(launcherClass, !docked && "neo-pulse-sidebar-launcher--agents")}
+    <button type="button"
       onClick={onOpenAgents}
+      className={launcherClass}
       aria-label={`Open ${RUNNING_AGENTS_LABEL}`}
       aria-expanded={false}
       aria-controls="neo-pulse-sidebar-panel"
@@ -116,10 +141,9 @@ function ShortcutLaunchers({
   );
 
   const assistButton = (
-    <button
-      type="button"
-      className={launcherClass}
+    <button type="button"
       onClick={onOpenAssist}
+      className={launcherClass}
       aria-label={`Open ${NEO_PULSE_ASSIST_LABEL}`}
       aria-expanded={false}
       aria-controls="neo-pulse-sidebar-panel"
@@ -132,6 +156,7 @@ function ShortcutLaunchers({
     return (
       <aside className="pulse-assist-shortcut-rail" aria-label="Sidebar shortcuts">
         {showSeo ? seoButton : null}
+        {showDetails ? detailsButton : null}
         {agentsButton}
         {assistButton}
       </aside>
@@ -141,6 +166,7 @@ function ShortcutLaunchers({
   return (
     <>
       {showSeo ? seoButton : null}
+      {showDetails ? detailsButton : null}
       {agentsButton}
       {assistButton}
     </>
@@ -154,6 +180,7 @@ export function PulseAssistSidebarShell({
   panel,
   onPanelChange,
   showSeo = true,
+  showDetails = false,
   children,
 }: PulseAssistSidebarShellProps): ReactElement {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -164,7 +191,9 @@ export function PulseAssistSidebarShell({
       ? RUNNING_AGENTS_LABEL
       : panel === "seo"
         ? SEO_INSPECTOR_LABEL
-        : NEO_PULSE_ASSIST_LABEL;
+        : panel === "details"
+          ? "Details"
+          : NEO_PULSE_ASSIST_LABEL;
   const { clearHistory, cancelActiveRuns } = useAgentRunsContext();
   const [clearingHistory, setClearingHistory] = useState(false);
   const [cancellingRuns, setCancellingRuns] = useState(false);
@@ -223,15 +252,17 @@ export function PulseAssistSidebarShell({
         <ShortcutLaunchers
           docked={useDockedChrome}
           showSeo={showSeo}
+          showDetails={showDetails}
           onOpenSeo={() => openPanel("seo")}
+          onOpenDetails={() => openPanel("details")}
           onOpenAgents={() => openPanel("agents")}
           onOpenAssist={() => openPanel("assist")}
         />
       ) : null}
 
-      <button
-        type="button"
-        className={cn("fai-sidebar-backdrop", open && "fai-sidebar-backdrop--visible")}
+      <Button
+        pressed={Boolean(open)}
+        variant="quiet"
         onClick={() => onOpenChange(false)}
         aria-label="Close sidebar"
         tabIndex={open ? 0 : -1}
@@ -246,15 +277,13 @@ export function PulseAssistSidebarShell({
         aria-label={panelLabel}
       >
         {open && !isMobile ? (
-          <button
-            type="button"
-            className="pulse-assist-panel-close-tab"
+          <Button
+            size="icon" icon={ChevronRight}
+            variant="quiet"
             onClick={() => onOpenChange(false)}
             aria-label="Close sidebar and minimize to dock"
             title="Minimize to dock"
-          >
-            <ChevronRight className="h-5 w-5" aria-hidden />
-          </button>
+          ></Button>
         ) : null}
         {open && !isMobile ? <PulseAssistSidebarResizeHandle {...handleProps} /> : null}
         {open ? (
@@ -277,6 +306,15 @@ export function PulseAssistSidebarShell({
               onClick={() => onPanelChange("agents")}
               className="h-8 min-w-[4.5rem] shrink-0"
             />
+            {showDetails ? (
+              <WorkspacePill
+                label="Details"
+                active={panel === "details"}
+                square
+                onClick={() => onPanelChange("details")}
+                className="h-8 min-w-[4.5rem] shrink-0"
+              />
+            ) : null}
             {showSeo ? (
               <WorkspacePill
                 label="SEO"
@@ -288,22 +326,19 @@ export function PulseAssistSidebarShell({
             ) : null}
             <div className="ml-auto flex min-w-0 items-center justify-end gap-1">
               {isMobile ? (
-                <button
-                  type="button"
-                  className="pulse-assist-panel-header__icon-btn"
+                <Button
+                  size="icon" icon={X}
+                  variant="quiet"
                   onClick={() => onOpenChange(false)}
                   aria-label="Close sidebar"
-                >
-                  <X className="h-5 w-5" aria-hidden />
-                </button>
+                ></Button>
               ) : null}
               <PulseAssistClock className="min-w-0" />
               {panel === "agents" ? (
                 <>
                   <Button
+                    variant="quiet"
                     type="button"
-                    variant="ghost"
-                    className="h-8 shrink-0 px-2 text-base font-semibold text-foreground hover:text-foreground"
                     disabled={cancellingRuns || clearingHistory}
                     onClick={() => {
                       setCancellingRuns(true);
@@ -313,9 +348,8 @@ export function PulseAssistSidebarShell({
                     {cancellingRuns ? "Cancelling…" : "Cancel"}
                   </Button>
                   <Button
+                    variant="quiet"
                     type="button"
-                    variant="ghost"
-                    className="h-8 shrink-0 px-2 text-base font-semibold text-foreground hover:text-foreground"
                     disabled={clearingHistory || cancellingRuns}
                     onClick={() => {
                       setClearingHistory(true);

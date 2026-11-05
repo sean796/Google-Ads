@@ -1,5 +1,4 @@
 import React from "react";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { NeoPulseAvatar } from "@/components/chat/NeoPulseAvatar";
 import type { ActiveHuddleSummary } from "@/lib/chat-call-types";
+import { Button } from "@/ui";
 
 export type ChatFloHuddleJoinPopupProps = {
   open: boolean;
@@ -30,7 +30,7 @@ export function ChatFloHuddleJoinPopup({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onDismiss()}>
-      <DialogContent className="bg-zinc-950 text-white sm:max-w-md">
+      <DialogContent className="bg-black text-white sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-base text-white">Join huddle in {channelLabel}</DialogTitle>
         </DialogHeader>
@@ -41,16 +41,16 @@ export function ChatFloHuddleJoinPopup({
           <div className="flex flex-wrap items-center gap-2">
             <NeoPulseAvatar className="h-10 w-10" />
             {participantNames.slice(0, 6).map((name) => (
-              <span key={name} className="rounded-full bg-zinc-800 px-3 py-1 text-base text-white">
+              <span key={name} className="rounded-full bg-ui-field-hover px-3 py-1 text-base text-white">
                 {name}
               </span>
             ))}
           </div>
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" className="text-base text-white" onClick={onDismiss}>
+            <Button variant="quiet" type="button" onClick={onDismiss}>
               Dismiss
             </Button>
-            <Button type="button" className="text-base" onClick={onJoin}>
+            <Button variant="run" type="button" onClick={onJoin}>
               Join
             </Button>
           </div>
