@@ -1,7 +1,8 @@
+import { z } from "zod";
 import type { WordPressSite } from "@/components/integrations/types";
 import pLimit from "p-limit";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
-import { parseJsonStrict } from "@/lib/model-json";
+import { parseModelJson } from "@/lib/model-json";
 import { fetchSerpOrganicForQuery } from "@/lib/llm-audit/fetch-seo-content-brief-wave";
 import { isDfsPaymentLatched } from "@/lib/llm-audit/dataforseo-llm-responses-live";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
@@ -25,6 +26,27 @@ import {
   buildProgramStatusResearchQuery,
   cityTokenFromLocation,
 } from "@/lib/content-optimization/topic-research-fanout-queries";
+
+const FactualVerificationPlanItemModelSchema = z.object({
+  claimLabel: z.string().nullish(),
+  verificationQuery: z.string().nullish(),
+  preferDomains: z.array(z.string()).nullish(),
+});
+
+const PageClaimInventoryModelSchema = z.object({
+  claims: z.array(FactualVerificationPlanItemModelSchema).nullish(),
+});
+
+const FactualVerificationPlanModelSchema = z.object({
+  verifications: z.array(FactualVerificationPlanItemModelSchema).nullish(),
+});
+
+const VerifiedFactModelSchema = z.object({
+  status: z.enum(["confirmed", "contradicted", "not_found"]).nullish(),
+  fact: z.string().nullish(),
+  sourceUrl: z.string().nullish(),
+  sourceDomain: z.string().nullish(),
+});
 
 const FACTUAL_VERIFICATION_PLAN_SYSTEM = `You plan factual verification queries for a connected-site article rewrite. Return every checkable claim the rewrite must verify or drop.
 
@@ -419,7 +441,7 @@ export async function extractCheckableClaimsFromPageExcerpt(input: {
         json_schema: { name: "page_claim_inventory", strict: false, schema: PAGE_CLAIM_INVENTORY_SCHEMA },
       },
     });
-    const parsed = parseJsonStrict<unknown>(content);
+    const parsed = parseModelJson(content, PageClaimInventoryModelSchema, "claim inventory");
     return normalizePageClaimInventory(parsed);
   } catch {
     return [];
@@ -469,7 +491,7 @@ export async function planFactualVerificationQueries(input: {
         json_schema: { name: "factual_verification_plan", strict: false, schema: FACTUAL_VERIFICATION_PLAN_SCHEMA },
       },
     });
-    const parsed = parseJsonStrict<unknown>(content);
+    const parsed = parseModelJson(content, FactualVerificationPlanModelSchema, "verification plan");
     return normalizeFactualVerificationPlan(parsed);
   } catch {
     return [];
@@ -554,7 +576,7 @@ async function extractVerifiedFactFromPageText(input: {
       json_schema: { name: "verified_fact_extract", strict: false, schema: VERIFIED_FACT_EXTRACT_SCHEMA },
     },
   });
-  const parsed = parseJsonStrict<unknown>(content);
+  const parsed = parseModelJson(content, VerifiedFactModelSchema, "verified fact");
   return normalizeExtractedVerifiedFact(
     parsed,
     input.claimLabel,

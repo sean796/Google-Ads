@@ -1,9 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/lib/competitor-research/competitor-report-openrouter", () => ({
+  callOpenRouterChatCompletion: vi.fn(),
+}));
+
+import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
 import {
+  analyzeImportedBlogTone,
   buildDraftTextForToneAnalysis,
   formatImportedToneForHarnessPrompt,
   parseImportedToneJson,
 } from "../blog-import-tone";
+
+const mockCall = vi.mocked(callOpenRouterChatCompletion);
 
 describe("buildDraftTextForToneAnalysis", () => {
   it("includes title and section bodies", () => {
@@ -31,6 +40,64 @@ describe("formatImportedToneForHarnessPrompt", () => {
     expect(block).toMatch(/sophistication/i);
     expect(block).toMatch(/Do not dumb down/i);
     expect(block).toMatch(/policy-analytical/);
+  });
+});
+
+describe("analyzeImportedBlogTone model JSON parsing", () => {
+  beforeEach(() => {
+    mockCall.mockReset();
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  it("returns null when the model returns malformed JSON", async () => {
+    mockCall.mockResolvedValue({ raw: null, content: "not json" });
+    await expect(
+      analyzeImportedBlogTone({
+        apiKey: "test-key",
+        title: "Arctic Policy",
+        sections: [{ h2: "Investment scale", body: "Billions in federal funding." }],
+        model: "test-model",
+      }),
+    ).resolves.toBeNull();
+  });
+
+  it("returns null when the model tone has the wrong shape", async () => {
+    mockCall.mockResolvedValue({
+      raw: null,
+      content: JSON.stringify({ register: 123 }),
+    });
+    await expect(
+      analyzeImportedBlogTone({
+        apiKey: "test-key",
+        title: "Arctic Policy",
+        sections: [{ h2: "Investment scale", body: "Billions in federal funding." }],
+        model: "test-model",
+      }),
+    ).resolves.toBeNull();
+  });
+
+  it("returns a profile for valid model JSON", async () => {
+    mockCall.mockResolvedValue({
+      raw: null,
+      content: JSON.stringify({
+        register: "journalistic",
+        sophistication: "high",
+        voice_traits: ["neutral"],
+        sentence_rhythm: "steady",
+        vocabulary_notes: "precise",
+        do_not: ["no hype"],
+        sample_phrases: ["according to analysts"],
+      }),
+    });
+    const profile = await analyzeImportedBlogTone({
+      apiKey: "test-key",
+      title: "Arctic Policy",
+      sections: [{ h2: "Investment scale", body: "Billions in federal funding." }],
+      model: "test-model",
+    });
+    expect(profile?.register).toBe("journalistic");
+    expect(profile?.voice_traits).toEqual(["neutral"]);
+    expect(profile?.do_not.some((d) => /dumb down/i.test(d))).toBe(true);
   });
 });
 

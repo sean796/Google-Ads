@@ -144,6 +144,18 @@ describe("Direct OpenRouter meta", () => {
     ).toThrow(/Series Topic/);
   });
 
+  it("throws a labeled error on malformed meta JSON", () => {
+    expect(() => parseDirectImportMeta("not json", "post.md")).toThrow(
+      "Invalid blog import meta JSON: model did not return valid JSON.",
+    );
+    expect(() =>
+      parseDirectImportMeta(
+        JSON.stringify({ title: 123, keyword: "k", meta_description: "m", slug: "s" }),
+        "post.md",
+      ),
+    ).toThrow(/Invalid blog import meta JSON:/);
+  });
+
   it("uses series root plus part as the slug, not the full title", () => {
     const meta = parseDirectImportMeta(
       metaJson({

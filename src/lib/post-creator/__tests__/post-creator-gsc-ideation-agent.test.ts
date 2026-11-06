@@ -82,6 +82,25 @@ describe("post-creator GSC ideation agent (single pass)", () => {
     expect(user).toContain("national-seo-canada");
   });
 
+  it("throws on malformed JSON instead of returning empty rows", async () => {
+    vi.mocked(callOpenRouterChatCompletion).mockResolvedValueOnce({
+      raw: {},
+      content: "{not valid json",
+    });
+
+    await expect(
+      runPostCreatorGscIdeationAgent({
+        apiKey: "test-key",
+        siteName: "Neo Digital",
+        postCount: 1,
+        bucketJson: SAMPLE_BUCKET,
+        siteKwJsonText: SAMPLE_KW,
+      }),
+    ).rejects.toThrow("Invalid post creator ideation rows JSON");
+
+    expect(callOpenRouterChatCompletion).toHaveBeenCalledTimes(1);
+  });
+
   it("does not retry when OpenRouter returns too few rows", async () => {
     vi.mocked(callOpenRouterChatCompletion).mockResolvedValueOnce({
       raw: {},

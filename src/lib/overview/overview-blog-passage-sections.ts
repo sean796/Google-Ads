@@ -1,6 +1,7 @@
+import { z } from "zod";
 import { stitchHarnessSections } from "@/lib/bulk/bulk-harness-outline";
 import { headingTitleToHarnessAnchorId } from "@/lib/bulk/harness-section-anchor-ids";
-import { parseJsonStrict } from "@/lib/model-json";
+import { parseModelJson } from "@/lib/model-json";
 import { callAgentCategoryOpenRouterChat } from "@/lib/openrouter-agent-category-api";
 import {
   findH2OpenPositions,
@@ -141,6 +142,19 @@ export function stitchOverviewBlogPostHtml(args: {
 
 export type PassageRewriteMode = "header" | "copy" | "both";
 
+const PassageSectionHeaderModelSchema = z.object({
+  title: z.string().nullish(),
+});
+
+const PassageSectionCopyModelSchema = z.object({
+  bodyHtml: z.string().nullish(),
+});
+
+const PassageSectionBothModelSchema = z.object({
+  title: z.string().nullish(),
+  bodyHtml: z.string().nullish(),
+});
+
 export async function rewriteBlogPassageSection(args: {
   mode: PassageRewriteMode;
   section: BlogPassageSection;
@@ -231,7 +245,7 @@ export async function rewriteBlogPassageSection(args: {
       useWordBlacklist: true,
     });
 
-    const parsed = parseJsonStrict<{ title?: string }>(content);
+    const parsed = parseModelJson(content, PassageSectionHeaderModelSchema, "passage section");
     const rawTitle = parsed.title?.trim();
     if (!rawTitle) {
       throw new Error("Heading rewrite returned empty title in JSON.");
@@ -308,8 +322,17 @@ export async function rewriteBlogPassageSection(args: {
     useWordBlacklist: true,
   });
 
-  const parsed = parseJsonStrict<{ title?: string; bodyHtml?: string }>(content);
-  const rawBody = parsed.bodyHtml?.trim();
+  let parsedBodyHtml: string | null | undefined;
+  let parsedTitle: string | null | undefined;
+  if (mode === "copy") {
+    const parsed = parseModelJson(content, PassageSectionCopyModelSchema, "passage section");
+    parsedBodyHtml = parsed.bodyHtml;
+  } else {
+    const parsed = parseModelJson(content, PassageSectionBothModelSchema, "passage section");
+    parsedBodyHtml = parsed.bodyHtml;
+    parsedTitle = parsed.title;
+  }
+  const rawBody = parsedBodyHtml?.trim();
   if (!rawBody) {
     throw new Error("Passage rewrite returned empty bodyHtml in JSON.");
   }
@@ -322,7 +345,7 @@ export async function rewriteBlogPassageSection(args: {
 
   let title = section.title;
   if (mode === "both") {
-    const rawTitle = parsed.title?.trim();
+    const rawTitle = parsedTitle?.trim();
     if (!rawTitle) {
       throw new Error("Passage rewrite returned empty title in JSON.");
     }

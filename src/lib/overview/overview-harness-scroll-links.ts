@@ -1,5 +1,6 @@
+import { z } from "zod";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
-import { parseJsonStrict } from "@/lib/model-json";
+import { parseModelJson } from "@/lib/model-json";
 import type { HarnessSectionAnchorEntry } from "@/lib/bulk/harness-section-anchor-ids";
 import { HARNESS_OVERVIEW_ANCHOR_ID } from "@/lib/bulk/harness-section-anchor-ids";
 import { stitchHarnessSections } from "@/lib/bulk/bulk-harness-outline";
@@ -16,9 +17,17 @@ export type OverviewHarnessScrollLinkBullet = {
   sentenceHtml: string;
 };
 
-type OverviewHarnessScrollLinksPayload = {
-  bullets: OverviewHarnessScrollLinkBullet[];
-};
+const OverviewHarnessScrollLinksModelSchema = z.object({
+  bullets: z
+    .array(
+      z.object({
+        anchorId: z.string().nullish(),
+        bulletLabel: z.string().nullish(),
+        sentenceHtml: z.string().nullish(),
+      }),
+    )
+    .nullish(),
+});
 
 function defaultBulletLabel(displayTitle: string): string {
   const words = displayTitle.trim().split(/\s+/).filter(Boolean);
@@ -26,7 +35,13 @@ function defaultBulletLabel(displayTitle: string): string {
 }
 
 function normalizeScrollLinkBullet(
-  got: Partial<OverviewHarnessScrollLinkBullet> | undefined,
+  got:
+    | {
+        anchorId?: string | null;
+        bulletLabel?: string | null;
+        sentenceHtml?: string | null;
+      }
+    | undefined,
   expected: HarnessSectionAnchorEntry,
 ): OverviewHarnessScrollLinkBullet | null {
   const anchorId = expected.anchorId;
@@ -335,9 +350,9 @@ Return JSON with exactly ${anchorMap.length} bullets — one per anchor above, i
     signal: args.signal,
   });
 
-  const parsed = parseJsonStrict<OverviewHarnessScrollLinksPayload>(content);
+  const parsed = parseModelJson(content, OverviewHarnessScrollLinksModelSchema, "harness scroll links");
 
-  const rawBullets = Array.isArray(parsed.bullets) ? parsed.bullets : [];
+  const rawBullets = parsed.bullets ?? [];
   const normalizedBullets = anchorMap
     .map((expected, i) => normalizeScrollLinkBullet(rawBullets[i], expected))
     .filter((b): b is OverviewHarnessScrollLinkBullet => b !== null);

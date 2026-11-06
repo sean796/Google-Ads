@@ -101,6 +101,17 @@ describe("classifyAgentMailEmail", () => {
     expect(result.isBlogRequest).toBe(false);
     expect(result.reason).toBe("General question only");
   });
+
+  it("throws on malformed classifier JSON", async () => {
+    vi.mocked(callOpenRouterChatCompletion).mockResolvedValue({
+      raw: {},
+      content: "{not valid json",
+    });
+
+    await expect(classifyAgentMailEmail(baseInbound, "test-key")).rejects.toThrow(
+      "Invalid agentmail classification JSON",
+    );
+  });
 });
 
 describe("runAgentMailEmailIntake", () => {

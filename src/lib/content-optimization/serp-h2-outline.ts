@@ -1,7 +1,12 @@
+import { z } from "zod";
 import type { SeoContentBriefV1 } from "@/lib/overview-seo-content-brief";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
-import { parseJsonStrict } from "@/lib/model-json";
+import { parseModelJson } from "@/lib/model-json";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
+
+const SerpH2OutlineModelSchema = z.object({
+  h2Titles: z.array(z.string()),
+});
 
 const OUTLINE_SCHEMA = {
   type: "object",
@@ -145,9 +150,6 @@ export async function deriveSerpH2Outline(input: {
     },
   });
 
-  const parsed = parseJsonStrict<{ h2Titles?: unknown }>(content);
-  const raw = Array.isArray(parsed?.h2Titles)
-    ? parsed!.h2Titles.map((t) => String(t ?? "").trim()).filter(Boolean)
-    : [];
-  return validateSerpH2OutlineTitles(raw, input.forbiddenLiveH2s);
+  const parsed = parseModelJson(content, SerpH2OutlineModelSchema, "SERP H2 outline");
+  return validateSerpH2OutlineTitles(parsed.h2Titles, input.forbiddenLiveH2s);
 }

@@ -1,6 +1,7 @@
+import { z } from "zod";
 import type { CSVRow } from "@/lib/bulk/bulk-csv-parser";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
-import { parseJsonWithRepair } from "@/lib/json-repair-utility";
+import { parseModelJson } from "@/lib/model-json";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import {
   BENCHMARK_SEO_CONTENT_SPECIALIST_PERSONA,
@@ -8,6 +9,16 @@ import {
 } from "@/lib/vertical-benchmark/vertical-benchmark-inventory-cannibal";
 
 type IdeaRow = { keyword: string; title: string; entity: string };
+
+const PostCreatorIdeationSchema = z.object({
+  rows: z.array(
+    z.object({
+      keyword: z.string(),
+      title: z.string(),
+      entity: z.string(),
+    }),
+  ),
+});
 
 const POST_CREATOR_INVENTORY_CANNIBALIZATION = BENCHMARK_SITE_INVENTORY_CANNIBALIZATION.replace(
   /GSC OUTPUT line you adapt/g,
@@ -72,22 +83,16 @@ function buildUserPrompt(args: {
 }
 
 function parseIdeaRows(raw: string, limit: number): IdeaRow[] {
-  const { parsed } = parseJsonWithRepair<{ rows?: unknown }>(raw, {
-    targetKeys: ["rows"],
-    fallback: { rows: [] },
-  });
-  const rows = Array.isArray(parsed.rows) ? parsed.rows : [];
+  const parsed = parseModelJson(raw, PostCreatorIdeationSchema, "post creator ideation rows");
   const out: IdeaRow[] = [];
-  for (const item of rows) {
-    if (!item || typeof item !== "object") continue;
-    const record = item as { keyword?: unknown; title?: unknown; entity?: unknown };
-    const keyword = typeof record.keyword === "string" ? record.keyword.trim() : "";
-    const title = typeof record.title === "string" ? record.title.trim() : "";
+  for (const item of parsed.rows) {
+    const keyword = item.keyword.trim();
+    const title = item.title.trim();
     if (!keyword || !title) continue;
     out.push({
       keyword,
       title,
-      entity: typeof record.entity === "string" ? record.entity.trim() : "",
+      entity: item.entity.trim(),
     });
     if (out.length >= limit) break;
   }

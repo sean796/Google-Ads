@@ -15,7 +15,7 @@ import {
   type ImportedBlogDraft,
 } from "@/lib/bulk/blog-import-parser";
 import { resolveBlogImportRowViaOpenRouter } from "@/lib/bulk/blog-import-openrouter-run";
-import { parseJsonWithRepair } from "@/lib/json-repair-utility";
+import { parseModelJson } from "@/lib/model-json";
 import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
 import {
   fetchAgentMailInbound,
@@ -136,6 +136,19 @@ const AgentMailClassifierOutputSchema = z.object({
   ),
 });
 
+const AgentMailClassifierParseSchema = z.object({
+  isBlogRequest: z.boolean(),
+  reason: z.string(),
+  intent: z.string(),
+  sources: z.array(
+    z.object({
+      kind: z.enum(["attachment", "body"]),
+      filename: z.string().optional(),
+      treatment: z.enum(["import_draft", "context_only"]),
+    }),
+  ),
+});
+
 export const agentmailIntakeClassifierAgent = createPulseAgent<
   z.infer<typeof AgentMailClassifierInputSchema>,
   AgentMailIntakeClassification
@@ -165,32 +178,29 @@ export const agentmailIntakeClassifierAgent = createPulseAgent<
       input.attachmentLines.length ? input.attachmentLines.join("\n") : "(none)",
     ].join("\n"),
   parseOutput: (rawContent) => {
-    const { parsed } = parseJsonWithRepair<{
-      isBlogRequest?: boolean;
-      reason?: string;
-      intent?: string;
-      sources?: Array<{
-        kind?: string;
-        filename?: string;
-        treatment?: string;
-      }>;
-    }>(rawContent);
+    const parsed = parseModelJson(
+      rawContent,
+      AgentMailClassifierParseSchema,
+      "agentmail classification",
+    );
 
     const sources: AgentMailIntakeSource[] = [];
-    for (const source of parsed?.sources ?? []) {
-      const kind = source.kind === "body" ? "body" : "attachment";
-      const treatment = source.treatment === "context_only" ? "context_only" : "import_draft";
-      if (kind === "body") {
-        sources.push({ kind: "body", treatment });
+    for (const source of parsed.sources) {
+      if (source.kind === "body") {
+        sources.push({ kind: "body", treatment: source.treatment });
       } else if (source.filename?.trim()) {
-        sources.push({ kind: "attachment", filename: source.filename.trim(), treatment });
+        sources.push({
+          kind: "attachment",
+          filename: source.filename.trim(),
+          treatment: source.treatment,
+        });
       }
     }
 
     return {
-      isBlogRequest: parsed?.isBlogRequest === true,
-      reason: String(parsed?.reason ?? "").trim(),
-      intent: String(parsed?.intent ?? "").trim(),
+      isBlogRequest: parsed.isBlogRequest,
+      reason: parsed.reason.trim(),
+      intent: parsed.intent.trim(),
       sources,
     };
   },

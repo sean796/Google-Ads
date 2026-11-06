@@ -1,6 +1,7 @@
 import mammoth from "mammoth";
+import { z } from "zod";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
-import { parseJsonStrict } from "@/lib/model-json";
+import { parseModelJson } from "@/lib/model-json";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import type { CSVRow } from "@/lib/bulk/bulk-csv-parser";
 import { serializeModifierLinksJson } from "@/lib/bulk/bulk-csv-parser";
@@ -67,24 +68,33 @@ type BlogImportAiExtract = {
   sections: ImportedBlogSection[];
 };
 
-function parseBlogImportAiExtract(content: string): BlogImportAiExtract {
-  const parsed = parseJsonStrict<{
-    title?: string;
-    keyword?: string;
-    meta_description?: string;
-    sections?: Array<{ h2?: string; body?: string }>;
-  }>(content);
+const BlogImportAiExtractSchema = z.object({
+  title: z.string().nullish(),
+  keyword: z.string().nullish(),
+  meta_description: z.string().nullish(),
+  sections: z
+    .array(
+      z.object({
+        h2: z.string().nullish(),
+        body: z.string().nullish(),
+      }),
+    )
+    .nullish(),
+});
 
-  const sections = (parsed?.sections ?? [])
+function parseBlogImportAiExtract(content: string): BlogImportAiExtract {
+  const parsed = parseModelJson(content, BlogImportAiExtractSchema, "blog import extract");
+
+  const sections = (parsed.sections ?? [])
     .map((s) => ({
-      h2: String(s.h2 ?? "").trim(),
-      body: String(s.body ?? "").trim(),
+      h2: (s.h2 ?? "").trim(),
+      body: (s.body ?? "").trim(),
     }))
     .filter((s) => s.h2);
 
-  const title = String(parsed?.title ?? "").trim();
-  const keyword = String(parsed?.keyword ?? "").trim();
-  const meta_description = String(parsed?.meta_description ?? "").trim();
+  const title = (parsed.title ?? "").trim();
+  const keyword = (parsed.keyword ?? "").trim();
+  const meta_description = (parsed.meta_description ?? "").trim();
 
   if (!title || !keyword) {
     throw new Error("AI could not extract title and keyword from the document");
@@ -157,18 +167,20 @@ function seriesRootPlusPartSlug(title: string, part: number): string {
   return `${root}-pt${part}`;
 }
 
-export function parseDirectImportMeta(content: string, filename: string): DirectImportMeta {
-  const parsed = parseJsonStrict<{
-    title?: string;
-    keyword?: string;
-    meta_description?: string;
-    slug?: string;
-  }>(content);
+const DirectImportMetaSchema = z.object({
+  title: z.string().nullish(),
+  keyword: z.string().nullish(),
+  meta_description: z.string().nullish(),
+  slug: z.string().nullish(),
+});
 
-  const title = String(parsed?.title ?? "").trim();
-  const keyword = String(parsed?.keyword ?? "").trim();
-  const meta_description = String(parsed?.meta_description ?? "").trim();
-  let slug = sanitizeDirectImportSlug(String(parsed?.slug ?? ""));
+export function parseDirectImportMeta(content: string, filename: string): DirectImportMeta {
+  const parsed = parseModelJson(content, DirectImportMetaSchema, "blog import meta");
+
+  const title = (parsed.title ?? "").trim();
+  const keyword = (parsed.keyword ?? "").trim();
+  const meta_description = (parsed.meta_description ?? "").trim();
+  let slug = sanitizeDirectImportSlug(parsed.slug ?? "");
 
   if (!title || !keyword || !meta_description) {
     throw new Error("OpenRouter meta agent did not return title, keyword, and meta_description");

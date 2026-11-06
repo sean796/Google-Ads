@@ -1,6 +1,7 @@
+import { z } from "zod";
 import type { WordPressSite } from "@/components/integrations/types";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
-import { parseJsonStrict } from "@/lib/model-json";
+import { parseModelJson } from "@/lib/model-json";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
 import type { IllustrativeExample, QueryFanoutSerpRow } from "@/lib/overview-seo-content-brief";
@@ -40,6 +41,18 @@ const ILLUSTRATIVE_EXTRACT_SCHEMA = {
     recommendationParagraph: { type: "string" },
   },
 } as const;
+
+const IllustrativeExampleModelSchema = z.object({
+  leadIn: z.string().nullish(),
+  personaName: z.string().nullish(),
+  householdProfile: z.string().nullish(),
+  situationHook: z.string().nullish(),
+  scenarioQuestion: z.string().nullish(),
+  scenarioNarrative: z.string().nullish(),
+  recommendationTitle: z.string().nullish(),
+  recommendationParagraph: z.string().nullish(),
+  quoteBody: z.string().nullish(),
+});
 
 export const ILLUSTRATIVE_PERSONA_EXTRACT_TEMPERATURE = 0.85;
 
@@ -221,7 +234,7 @@ export async function extractIllustrativeExample(input: {
   });
   let parsed: unknown;
   try {
-    parsed = parseJsonStrict(content);
+    parsed = parseModelJson(content, IllustrativeExampleModelSchema, "illustrative example");
   } catch {
     console.warn("[Illustrative extract] JSON parse failed; continuing without stored persona");
     return undefined;

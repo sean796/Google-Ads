@@ -1,6 +1,7 @@
+import { z } from "zod";
 import { loadApiKey, streamChatCompletion, type Message } from "@/lib/api";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
-import { parseJsonWithRepair } from "@/lib/json-repair-utility";
+import { parseModelJson } from "@/lib/model-json";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 
 const GENERIC_BASE_NAMES = new Set([
@@ -91,6 +92,7 @@ function sanitizeDerivedBasename(raw: string): string {
 }
 
 const SYSTEM_DERIVE_NAME = `You label client instruction documents for a file list. Return JSON only.
+Output shape: {"filename": string}
 
 Rules:
 - filename: short slug-style base name (2-5 words, lowercase words joined by hyphens). Describe the document topic from the text. No file extension.
@@ -118,8 +120,12 @@ export async function deriveInstructionDocumentName(
     responseFormat: { type: "json_object" },
   });
 
-  const { parsed } = parseJsonWithRepair<{ filename?: string }>(content);
-  const base = sanitizeDerivedBasename(String(parsed?.filename ?? ""));
+  const parsed = parseModelJson(
+    content,
+    z.object({ filename: z.string() }),
+    "instruction document name",
+  );
+  const base = sanitizeDerivedBasename(parsed.filename);
   if (!base) return null;
   return `${base}.${extensionFromFileName(options.fileName)}`;
 }

@@ -423,41 +423,44 @@ export async function fillSapRowTitlesFromOpenRouter(
         const idx = pendingIndices[j]!;
         applyValidatedOrFallbackTitle(out, idx, titles[j] ?? "", titleTemplate, options.siteName);
       }
+    } catch {
+      await delay(Math.min(10_000, 1_000 * attempt));
+    }
 
-      const titled = pendingIndices
-        .map((i) => ({ i, title: out[i]!.title?.trim() ?? "" }))
-        .filter((x) => x.title);
-      if (titled.length > 0 && options.siteName.trim()) {
-        const rejected = await aiRejectBrandOrBlockedTexts({
-          apiKey,
-          model,
-          companyName: options.siteName,
-          candidates: titled.map((x) => x.title),
-          kind: "title",
-        });
-        if (rejected.length > 0) {
-          const rejectKeys = new Set(
-            rejected.map((t) => t.trim().toLowerCase().replace(/\s+/g, " ")),
-          );
-          for (const { i, title } of titled) {
-            const key = title.toLowerCase().replace(/\s+/g, " ");
-            if (rejectKeys.has(key)) {
-              const row = out[i]!;
-              out[i] = {
-                ...row,
-                title: resolveEntitySapTitleFromTemplate(
-                  (row.keyword ?? "").trim(),
-                  (row.entity ?? "").trim(),
-                  titleTemplate,
-                  options.siteName,
-                ),
-              };
-            }
+    // Brand gate runs outside the retry catch on purpose (Wave 2): an
+    // unparseable gate response throws and fails the run visibly instead of
+    // silently shipping unfiltered titles.
+    const titled = pendingIndices
+      .map((i) => ({ i, title: out[i]!.title?.trim() ?? "" }))
+      .filter((x) => x.title);
+    if (titled.length > 0 && options.siteName.trim()) {
+      const rejected = await aiRejectBrandOrBlockedTexts({
+        apiKey,
+        model,
+        companyName: options.siteName,
+        candidates: titled.map((x) => x.title),
+        kind: "title",
+      });
+      if (rejected.length > 0) {
+        const rejectKeys = new Set(
+          rejected.map((t) => t.trim().toLowerCase().replace(/\s+/g, " ")),
+        );
+        for (const { i, title } of titled) {
+          const key = title.toLowerCase().replace(/\s+/g, " ");
+          if (rejectKeys.has(key)) {
+            const row = out[i]!;
+            out[i] = {
+              ...row,
+              title: resolveEntitySapTitleFromTemplate(
+                (row.keyword ?? "").trim(),
+                (row.entity ?? "").trim(),
+                titleTemplate,
+                options.siteName,
+              ),
+            };
           }
         }
       }
-    } catch {
-      await delay(Math.min(10_000, 1_000 * attempt));
     }
     options.onRowsUpdate?.(out.map((row) => ({ ...row })));
     options.onProgress?.(

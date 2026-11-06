@@ -1,5 +1,6 @@
+import { z } from "zod";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
-import { parseJsonStrict } from "@/lib/model-json";
+import { parseModelJson } from "@/lib/model-json";
 import { getProductionModel } from "@/lib/optimization-settings-storage";
 
 /** When false, harness uses one OpenRouter pass per section only — no length rewrite pass. */
@@ -9,6 +10,11 @@ export type HarnessSectionLengthResult = {
   compliant: boolean;
   section_html: string;
 };
+
+const HarnessSectionLengthSchema = z.object({
+  compliant: z.boolean().nullish(),
+  section_html: z.string().nullish(),
+});
 
 const SYSTEM = `You are a harness section editor for WordPress HTML. Return JSON only.
 
@@ -103,12 +109,9 @@ Return JSON: {"compliant":boolean,"section_html":"..."}`;
       signal: args.signal,
     });
 
-    const parsed = parseJsonStrict<HarnessSectionLengthResult>(content);
+    const parsed = parseModelJson(content, HarnessSectionLengthSchema, "harness section length");
 
-    const html =
-      typeof parsed.section_html === "string" && parsed.section_html.trim()
-        ? parsed.section_html.trim()
-        : args.sectionHtml;
+    const html = parsed.section_html?.trim() ? parsed.section_html.trim() : args.sectionHtml;
 
     if (parsed.compliant === false) {
       console.info(

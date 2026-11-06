@@ -1,6 +1,7 @@
+import { z } from "zod";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
 import { getCompetitorReportMaxOutputTokens } from "@/lib/competitor-research/competitor-report-openrouter-limits";
-import { parseJsonStrict } from "@/lib/model-json";
+import { parseModelJson } from "@/lib/model-json";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
 import type { SeoContentBriefV1 } from "@/lib/overview-seo-content-brief";
@@ -86,6 +87,18 @@ const CLASSIFY_SCHEMA = {
     },
   },
 } as const;
+
+const AuthorityLinkClassificationModelSchema = z.object({
+  links: z.array(
+    z.object({
+      url: z.string().nullish(),
+      category: z.string().nullish(),
+      include: z.boolean().nullish(),
+      anchorText: z.string().nullish(),
+      reason: z.string().nullish(),
+    }),
+  ),
+});
 
 function registrableHost(url: string): string {
   try {
@@ -201,7 +214,7 @@ function parseClassifierJson(
     return null;
   }
   try {
-    return parseJsonStrict(trimmed);
+    return parseModelJson(trimmed, AuthorityLinkClassificationModelSchema, "authority link classification");
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
     if (onFailure) {

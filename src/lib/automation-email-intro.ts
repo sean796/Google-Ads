@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createPulseAgent } from "@/lib/agent-pipeline";
-import { parseJsonStrict } from "@/lib/model-json";
+import { parseModelJson } from "@/lib/model-json";
 import type { GscClientQuestion } from "@/lib/gsc-reporting/gsc-reporting-meeting-script-markdown";
 import type { TaskExecutionKind } from "@/lib/tasks-types";
 
@@ -75,15 +75,27 @@ function parseClientQuestions(raw: unknown, maxItems: number): GscClientQuestion
   return out;
 }
 
+const AutomationEmailIntroModelSchema = z.object({
+  intro: z.string().nullish(),
+  highlights: z.array(z.string()).nullish(),
+  subject: z.string().nullish(),
+  talkingPoints: z.array(z.string()).nullish(),
+  meetingPoints: z.array(z.string()).nullish(),
+  clientQuestions: z
+    .array(
+      z.union([
+        z.string(),
+        z.object({
+          question: z.string().nullish(),
+          answer: z.string().nullish(),
+        }),
+      ]),
+    )
+    .nullish(),
+});
+
 function parseIntroJson(raw: string, executionKind: TaskExecutionKind): AutomationEmailIntroResult {
-  const parsed = parseJsonStrict<{
-    intro?: unknown;
-    highlights?: unknown;
-    meetingPoints?: unknown;
-    talkingPoints?: unknown;
-    clientQuestions?: unknown;
-    subject?: unknown;
-  }>(raw);
+  const parsed = parseModelJson(raw, AutomationEmailIntroModelSchema, "automation email intro");
   const intro = typeof parsed.intro === "string" ? parsed.intro.trim() : "";
   const subject = typeof parsed.subject === "string" ? parsed.subject.trim() : undefined;
   if (!intro) {

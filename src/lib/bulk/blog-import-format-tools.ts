@@ -1,5 +1,4 @@
 import { catalogFromBlocks, setBlockTag, wrapBlocksAsList, type FormatBlock } from "@/lib/bulk/blog-import-format-blocks";
-import { parseJsonStrict } from "@/lib/model-json";
 
 export type DirectFormatToolName = "set_block_tag" | "wrap_list";
 
@@ -82,35 +81,6 @@ export function executeDirectFormatTool(
   }
 
   return { ok: false, error: `unknown tool ${name}` };
-}
-
-export function parseDirectFormatOperations(content: string): DirectFormatOperation[] {
-  const parsed = parseJsonStrict<{ operations?: unknown }>(content);
-  const raw = Array.isArray(parsed?.operations) ? parsed.operations : null;
-  if (!raw) {
-    throw new Error("OpenRouter format agent did not return operations");
-  }
-
-  return raw.map((item, index) => {
-    if (!item || typeof item !== "object") {
-      throw new Error(`Format operation ${index} is invalid`);
-    }
-    const row = item as Record<string, unknown>;
-    const name = String(row.name ?? "");
-    if (name === "set_block_tag") {
-      const ids = Array.isArray(row.ids) ? row.ids.map((n) => Number(n)) : [];
-      return { name, ids, tag: String(row.tag ?? "") };
-    }
-    if (name === "wrap_list") {
-      return {
-        name,
-        startId: Number(row.startId),
-        endId: Number(row.endId),
-        list: String(row.list ?? "") as "ul" | "ol",
-      };
-    }
-    throw new Error(`unknown format tool ${name}`);
-  });
 }
 
 export function applyDirectFormatOperations(

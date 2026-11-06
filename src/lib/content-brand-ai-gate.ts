@@ -3,9 +3,10 @@
  * Narrow rejects only: own trading name (fuzzy) + permanent blocked topics (e.g. Bali Blinds).
  */
 
+import { z } from "zod";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
 import { GLOBAL_BLOCKED_TOPIC_PHRASES } from "@/lib/content-topic-blocklist";
-import { parseJsonWithRepair } from "@/lib/json-repair-utility";
+import { parseModelJson } from "@/lib/model-json";
 
 /** Human labels for permanent topic bans (AI decides fuzzy matches). */
 export const AI_BLOCKED_TOPIC_LABELS: string[] = [
@@ -42,7 +43,7 @@ Return ONLY JSON: {"reject":["..."]}
 - Each reject entry MUST be copied EXACTLY from the input candidates array.
 - If none reject: {"reject":[]}`;
 
-type GateResponse = { reject?: unknown };
+const BrandGateResponseSchema = z.object({ reject: z.array(z.string()) });
 
 function normKey(s: string): string {
   return s.trim().toLowerCase().replace(/\s+/g, " ");
@@ -93,14 +94,9 @@ export async function aiRejectBrandOrBlockedTexts(args: {
     responseFormat: { type: "json_object" },
   });
 
-  const { parsed } = parseJsonWithRepair<GateResponse>(content, {
-    targetKeys: ["reject"],
-    fallback: { reject: [] },
-  });
-  const rejectList = Array.isArray(parsed.reject) ? parsed.reject : [];
+  const parsed = parseModelJson(content, BrandGateResponseSchema, "brand gate");
   const rejectKeys = new Set<string>();
-  for (const item of rejectList) {
-    if (typeof item !== "string") continue;
+  for (const item of parsed.reject) {
     const key = normKey(item);
     if (key) rejectKeys.add(key);
   }

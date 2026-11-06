@@ -1,5 +1,6 @@
+import { z } from "zod";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
-import { parseJsonStrict } from "@/lib/model-json";
+import { parseModelJson } from "@/lib/model-json";
 import { getProductionModel } from "@/lib/optimization-settings-storage";
 import type { ImportedBlogDraft, ImportedBlogSection } from "./blog-import-parser";
 import { parseImportedSectionsJson } from "./bulk-csv-parser";
@@ -57,6 +58,16 @@ export function parseImportedToneJson(raw: string | undefined | null): ImportedB
   }
 }
 
+const ImportedBlogToneModelSchema = z.object({
+  register: z.string().nullish(),
+  sophistication: z.string().nullish(),
+  voice_traits: z.array(z.string()).nullish(),
+  sentence_rhythm: z.string().nullish(),
+  vocabulary_notes: z.string().nullish(),
+  do_not: z.array(z.string()).nullish(),
+  sample_phrases: z.array(z.string()).nullish(),
+});
+
 const TONE_SYSTEM = `You are a literary and editorial tone analyst. Read the supplied draft excerpt and return JSON only.
 
 Goal: capture how this author sounds so a rewriter can match voice while applying SEO structure elsewhere in the pipeline.
@@ -102,8 +113,8 @@ export async function analyzeImportedBlogTone(args: {
       signal: args.signal,
     });
 
-    const parsed = parseJsonStrict<ImportedBlogToneProfile>(content);
-    if (!parsed?.register?.trim()) return null;
+    const parsed = parseModelJson(content, ImportedBlogToneModelSchema, "blog tone");
+    if (!parsed.register?.trim()) return null;
 
     const doNot = Array.isArray(parsed.do_not) ? parsed.do_not.map(String).filter(Boolean) : [];
     if (!doNot.some((d) => /dumb down|simplif/i.test(d))) {

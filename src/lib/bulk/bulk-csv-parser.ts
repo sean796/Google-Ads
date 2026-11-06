@@ -1,4 +1,5 @@
 import Papa from 'papaparse';
+import { z } from "zod";
 import { isConnectedSiteBrandAsKeyword } from '@/lib/bulk/bulk-gsc-site-queries';
 import {
   collectImportedDraftLinksFromSource,
@@ -7,7 +8,7 @@ import {
 } from '@/lib/bulk/blog-import-draft-links';
 import { callOpenRouterChatCompletion } from '@/lib/competitor-research/competitor-report-openrouter';
 import { isBlockedContentTopicPhrase } from '@/lib/content-topic-blocklist';
-import { parseJsonStrict } from '@/lib/model-json';
+import { parseModelJson } from '@/lib/model-json';
 import { getResearchModel } from '@/lib/optimization-settings-storage';
 import { parseTitleTemplate } from '../title-template-parser';
 
@@ -634,6 +635,24 @@ export async function parseCsvStatic(file: File): Promise<CSVRow[]> {
   return parseCsvStaticText(csvText);
 }
 
+const BulkCsvAiRowSchema = z.object({
+  keyword: z.string(),
+  title: z.string(),
+  entity: z.string().nullish(),
+  modifier: z.string().nullish(),
+  featuredImage: z.string().nullish(),
+  meta_description: z.string().nullish(),
+  publish_date_gmt: z.string().nullish(),
+  sitemap_type: z.enum(["post", "entity"]).nullish(),
+  target_slug: z.string().nullish(),
+  wikipedia_url: z.string().nullish(),
+  wikipedia_title: z.string().nullish(),
+});
+
+const BulkCsvAiRowsSchema = z.object({
+  rows: z.array(BulkCsvAiRowSchema),
+});
+
 /** Upload CSV: raw file text → OpenRouter → bulk rows. */
 export async function parseCSV(
   file: File,
@@ -661,10 +680,22 @@ export async function parseCSV(
     responseFormat: { type: 'json_object' },
   });
 
-  const parsed = parseJsonStrict<{ rows?: CSVRow[] }>(content);
-  const rows = Array.isArray(parsed?.rows)
-    ? parsed.rows.filter((r) => r?.keyword?.trim() && r?.title?.trim())
-    : [];
+  const parsed = parseModelJson(content, BulkCsvAiRowsSchema, "bulk CSV rows");
+  const rows: CSVRow[] = parsed.rows
+    .filter((r) => r.keyword.trim() && r.title.trim())
+    .map((r) => {
+      const row: CSVRow = { keyword: r.keyword, title: r.title };
+      if (r.entity != null) row.entity = r.entity;
+      if (r.modifier != null) row.modifier = r.modifier;
+      if (r.featuredImage != null) row.featuredImage = r.featuredImage;
+      if (r.meta_description != null) row.meta_description = r.meta_description;
+      if (r.publish_date_gmt != null) row.publish_date_gmt = r.publish_date_gmt;
+      if (r.sitemap_type != null) row.sitemap_type = r.sitemap_type;
+      if (r.target_slug != null) row.target_slug = r.target_slug;
+      if (r.wikipedia_url != null) row.wikipedia_url = r.wikipedia_url;
+      if (r.wikipedia_title != null) row.wikipedia_title = r.wikipedia_title;
+      return row;
+    });
 
   if (!rows.length) {
     throw new Error('OpenRouter returned no bulk rows');

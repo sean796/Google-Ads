@@ -1,6 +1,7 @@
+import { z } from "zod";
 import type { WordPressSite } from "@/components/integrations/types";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
-import { parseJsonStrict } from "@/lib/model-json";
+import { parseModelJson } from "@/lib/model-json";
 import { fetchChatGptCompanyAuthority } from "@/lib/llm-audit/llm-audit-dataforseo";
 import { fetchSerpOrganicForQuery } from "@/lib/llm-audit/fetch-seo-content-brief-wave";
 import { isDfsPaymentLatched } from "@/lib/llm-audit/dataforseo-llm-responses-live";
@@ -38,6 +39,20 @@ import {
   runFactualVerificationPass,
   serpRowFromDump,
 } from "@/lib/content-optimization/topic-research-fanout-verification";
+
+const TopicResearchPlanModelSchema = z.object({
+  researchQueries: z.array(z.string()).nullish(),
+  namedPrograms: z.array(z.string()).nullish(),
+});
+
+const FirstPartyClaimsModelSchema = z.object({
+  claims: z.array(
+    z.object({
+      text: z.string().nullish(),
+      source: z.string().nullish(),
+    }),
+  ),
+});
 
 export function normalizeTopicResearchPlan(raw: unknown): TopicResearchPlan {
   if (!raw || typeof raw !== "object") {
@@ -122,7 +137,7 @@ export async function planTopicResearchQueries(input: {
       json_schema: { name: "topic_research_plan", strict: false, schema: PLAN_SCHEMA },
     },
   });
-  const parsed = parseJsonStrict<unknown>(content);
+  const parsed = parseModelJson(content, TopicResearchPlanModelSchema, "topic research plan");
   const plan = normalizeTopicResearchPlan(parsed);
   const localizedQueries = attachLocationToQfoQueries(plan.researchQueries, location);
   const researchQueries = filterBoilerplateResearchQueries(localizedQueries, {
@@ -166,7 +181,7 @@ export async function extractFirstPartyClaims(input: {
       json_schema: { name: "first_party_claims", strict: false, schema: CLAIMS_SCHEMA },
     },
   });
-  const parsed = parseJsonStrict<unknown>(content);
+  const parsed = parseModelJson(content, FirstPartyClaimsModelSchema, "topic research claims");
   return normalizeFirstPartyClaims(parsed);
 }
 

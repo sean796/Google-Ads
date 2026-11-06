@@ -1,5 +1,6 @@
+import { z } from "zod";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
-import { parseJsonWithRepair } from "@/lib/json-repair-utility";
+import { parseModelJson } from "@/lib/model-json";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { llmAuditGuidanceFromBrief } from "@/lib/llm-audit/llm-audit-dataforseo";
 import type { SeoContentBriefV1 } from "@/lib/overview-seo-content-brief";
@@ -10,11 +11,11 @@ export type LlmAuditContentSummary = {
   blueprintNotes: string;
 };
 
-type SummarizeJson = {
-  summary?: string;
-  checklistItems?: string[];
-  blueprintNotes?: string;
-};
+const LlmAuditSummarySchema = z.object({
+  summary: z.string(),
+  checklistItems: z.array(z.string()),
+  blueprintNotes: z.string(),
+});
 
 function normalizeChecklistItems(items: unknown): string[] {
   if (!Array.isArray(items)) return [];
@@ -75,12 +76,11 @@ Return JSON:
     responseFormat: { type: "json_object" },
   });
 
-  const parsed = parseJsonWithRepair(content) as SummarizeJson | null;
-  if (!parsed || typeof parsed !== "object") return null;
+  const parsed = parseModelJson(content, LlmAuditSummarySchema, "LLM audit summary");
 
-  const summary = typeof parsed.summary === "string" ? parsed.summary.trim() : "";
+  const summary = parsed.summary.trim();
   const checklistItems = normalizeChecklistItems(parsed.checklistItems);
-  const blueprintNotes = typeof parsed.blueprintNotes === "string" ? parsed.blueprintNotes.trim() : "";
+  const blueprintNotes = parsed.blueprintNotes.trim();
 
   if (!summary && checklistItems.length === 0 && !blueprintNotes) return null;
 
