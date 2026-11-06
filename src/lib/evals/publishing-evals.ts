@@ -3,6 +3,10 @@
  * (article HTML, FAQ entries, JSON-LD) before publish and in CI. They never edit
  * content: a failing score is a visible defect, not something to scrub away.
  */
+import {
+  gradeFactualityVerdicts,
+  type FactualityClaimVerdict,
+} from "@/lib/evals/factuality-evals";
 
 export type PublishingEvalIssue = { code: string; detail: string };
 
@@ -13,6 +17,8 @@ export type PublishingEvalReport = {
   links: PublishingEvalResult;
   schema: PublishingEvalResult;
   faqAnswers: PublishingEvalResult;
+  /** Present only when factuality verdicts are fed in (Wave 4 judge). */
+  factuality?: PublishingEvalResult;
 };
 
 function result(issues: PublishingEvalIssue[]): PublishingEvalResult {
@@ -203,6 +209,9 @@ export function runPublishingEvals(args: {
   faqEntries: FaqEvalEntry[];
   inventoryUrls: Iterable<string>;
   siteUrl?: string;
+  /** Judge verdicts from runFactualityJudge; graded deterministically here. */
+  factualityVerdicts?: FactualityClaimVerdict[];
+  factualitySourceContext?: string;
 }): PublishingEvalReport {
   const links = scoreLinkResolution(args.html, {
     inventoryUrls: args.inventoryUrls,
@@ -210,5 +219,14 @@ export function runPublishingEvals(args: {
   });
   const schema = scoreSchemaValidity(args.html);
   const faqAnswers = scoreTemplatedFaqAnswers(args.faqEntries);
-  return { pass: links.pass && schema.pass && faqAnswers.pass, links, schema, faqAnswers };
+  const factuality = args.factualityVerdicts
+    ? result(gradeFactualityVerdicts(args.factualityVerdicts, args.factualitySourceContext).issues)
+    : undefined;
+  return {
+    pass: links.pass && schema.pass && faqAnswers.pass && (factuality?.pass ?? true),
+    links,
+    schema,
+    faqAnswers,
+    ...(factuality ? { factuality } : {}),
+  };
 }

@@ -157,4 +157,34 @@ describe("runPublishingEvals", () => {
     expect(report.schema.pass).toBe(false);
     expect(report.faqAnswers.pass).toBe(false);
   });
+
+  it("leaves factuality out unless verdicts are fed in", () => {
+    const report = runPublishingEvals({
+      html: GOOD_HTML,
+      faqEntries: GOOD_FAQ,
+      inventoryUrls: INVENTORY,
+      siteUrl: SITE,
+    });
+    expect(report.factuality).toBeUndefined();
+    expect(report.pass).toBe(true);
+  });
+
+  it("fails the report when fed verdicts contain an unsupported claim", () => {
+    const report = runPublishingEvals({
+      html: GOOD_HTML,
+      faqEntries: GOOD_FAQ,
+      inventoryUrls: INVENTORY,
+      siteUrl: SITE,
+      factualityVerdicts: [
+        {
+          claim: "Lowest price in Canada, guaranteed.",
+          verdict: "unsupported",
+          reason: "Not in the pack.",
+        },
+      ],
+    });
+    expect(report.factuality?.pass).toBe(false);
+    expect(report.factuality?.issues[0]?.code).toBe("unsupported-claim");
+    expect(report.pass).toBe(false);
+  });
 });
