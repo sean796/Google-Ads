@@ -1,4 +1,5 @@
 import { Key } from "lucide-react";
+import { ApiKeyContent } from "@/components/ApiKeyContent";
 import { DataForSEOApiKeyContent } from "@/components/DataForSEOApiKeyContent";
 import { SemrushApiKeyContent } from "@/components/SemrushApiKeyContent";
 import { AgentMailApiKeyContent } from "@/components/AgentMailApiKeyContent";
@@ -60,6 +61,7 @@ export function ApiKeysSettingsContent({
       <div className={DASHBOARD_SETTINGS_GROUP_CLASS}>
         <p className="font-semibold text-white">Service keys</p>
         <div className="space-y-6">
+          <ApiKeyContent apiKey={apiKey} setApiKey={setApiKey} saveApiKey={saveApiKey} />
           <DataForSEOApiKeyContent
             apiKey={dataForSEOApiKey}
             setApiKey={setDataForSEOApiKey}
