@@ -10,7 +10,7 @@ import type {
   OpenRouterAppResponseFormat,
   OpenRouterAppStreamDelta,
 } from "@/lib/openrouter-app-api";
-import { parseJsonStrict } from "@/lib/json-repair-utility";
+import { parseJsonStrict } from "@/lib/model-json";
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 
 export type PulseAgentDomain =

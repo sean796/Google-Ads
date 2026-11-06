@@ -1,6 +1,6 @@
 import type { SeoContentBriefV1 } from "@/lib/overview-seo-content-brief";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
-import { parseJsonStrict } from "@/lib/json-repair-utility";
+import { parseJsonStrict } from "@/lib/model-json";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 
 const OUTLINE_SCHEMA = {

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createPulseAgent } from "@/lib/agent-pipeline";
-import { parseJsonStrict } from "@/lib/json-repair-utility";
+import { parseJsonStrict } from "@/lib/model-json";
 import type { GscClientQuestion } from "@/lib/gsc-reporting/gsc-reporting-meeting-script-markdown";
 import type { TaskExecutionKind } from "@/lib/tasks-types";
 

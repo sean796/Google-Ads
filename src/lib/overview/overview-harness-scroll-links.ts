@@ -1,5 +1,5 @@
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
-import { parseJsonStrict } from "@/lib/json-repair-utility";
+import { parseJsonStrict } from "@/lib/model-json";
 import type { HarnessSectionAnchorEntry } from "@/lib/bulk/harness-section-anchor-ids";
 import { HARNESS_OVERVIEW_ANCHOR_ID } from "@/lib/bulk/harness-section-anchor-ids";
 import { stitchHarnessSections } from "@/lib/bulk/bulk-harness-outline";

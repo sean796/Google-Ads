@@ -1,5 +1,5 @@
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
-import { parseJsonStrict } from "@/lib/json-repair-utility";
+import { parseJsonStrict } from "@/lib/model-json";
 import { getProductionModel } from "@/lib/optimization-settings-storage";
 import type { ImportedBlogDraft, ImportedBlogSection } from "./blog-import-parser";
 import { parseImportedSectionsJson } from "./bulk-csv-parser";

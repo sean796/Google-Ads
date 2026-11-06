@@ -1,6 +1,6 @@
 import type { WordPressSite } from "@/components/integrations/types";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
-import { parseJsonStrict } from "@/lib/json-repair-utility";
+import { parseJsonStrict } from "@/lib/model-json";
 import { fetchChatGptCompanyAuthority } from "@/lib/llm-audit/llm-audit-dataforseo";
 import { fetchSerpOrganicForQuery } from "@/lib/llm-audit/fetch-seo-content-brief-wave";
 import { isDfsPaymentLatched } from "@/lib/llm-audit/dataforseo-llm-responses-live";

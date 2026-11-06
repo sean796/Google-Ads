@@ -1,6 +1,6 @@
 import type { WordPressSite } from "@/components/integrations/types";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
-import { parseJsonStrict } from "@/lib/json-repair-utility";
+import { parseJsonStrict } from "@/lib/model-json";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
 import type { IllustrativeExample, QueryFanoutSerpRow } from "@/lib/overview-seo-content-brief";

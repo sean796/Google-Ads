@@ -1,6 +1,6 @@
 import { stitchHarnessSections } from "@/lib/bulk/bulk-harness-outline";
 import { headingTitleToHarnessAnchorId } from "@/lib/bulk/harness-section-anchor-ids";
-import { parseJsonStrict } from "@/lib/json-repair-utility";
+import { parseJsonStrict } from "@/lib/model-json";
 import { callAgentCategoryOpenRouterChat } from "@/lib/openrouter-agent-category-api";
 import {
   findH2OpenPositions,

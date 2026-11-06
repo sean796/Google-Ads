@@ -7,7 +7,7 @@ import {
 } from '@/lib/bulk/blog-import-draft-links';
 import { callOpenRouterChatCompletion } from '@/lib/competitor-research/competitor-report-openrouter';
 import { isBlockedContentTopicPhrase } from '@/lib/content-topic-blocklist';
-import { parseJsonStrict } from '@/lib/json-repair-utility';
+import { parseJsonStrict } from '@/lib/model-json';
 import { getResearchModel } from '@/lib/optimization-settings-storage';
 import { parseTitleTemplate } from '../title-template-parser';
 

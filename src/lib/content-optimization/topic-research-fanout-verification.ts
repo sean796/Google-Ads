@@ -1,7 +1,7 @@
 import type { WordPressSite } from "@/components/integrations/types";
 import pLimit from "p-limit";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
-import { parseJsonStrict } from "@/lib/json-repair-utility";
+import { parseJsonStrict } from "@/lib/model-json";
 import { fetchSerpOrganicForQuery } from "@/lib/llm-audit/fetch-seo-content-brief-wave";
 import { isDfsPaymentLatched } from "@/lib/llm-audit/dataforseo-llm-responses-live";
 import { getResearchModel } from "@/lib/optimization-settings-storage";

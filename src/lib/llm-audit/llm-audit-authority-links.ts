@@ -1,6 +1,6 @@
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
 import { getCompetitorReportMaxOutputTokens } from "@/lib/competitor-research/competitor-report-openrouter-limits";
-import { parseJsonStrict } from "@/lib/json-repair-utility";
+import { parseJsonStrict } from "@/lib/model-json";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
 import type { SeoContentBriefV1 } from "@/lib/overview-seo-content-brief";

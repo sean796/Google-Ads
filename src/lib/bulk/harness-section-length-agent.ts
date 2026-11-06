@@ -1,5 +1,5 @@
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
-import { parseJsonStrict } from "@/lib/json-repair-utility";
+import { parseJsonStrict } from "@/lib/model-json";
 import { getProductionModel } from "@/lib/optimization-settings-storage";
 
 /** When false, harness uses one OpenRouter pass per section only — no length rewrite pass. */

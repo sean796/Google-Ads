@@ -1,5 +1,5 @@
 import { catalogFromBlocks, setBlockTag, wrapBlocksAsList, type FormatBlock } from "@/lib/bulk/blog-import-format-blocks";
-import { parseJsonStrict } from "@/lib/json-repair-utility";
+import { parseJsonStrict } from "@/lib/model-json";
 
 export type DirectFormatToolName = "set_block_tag" | "wrap_list";
 

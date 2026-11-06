@@ -1,6 +1,6 @@
 import mammoth from "mammoth";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
-import { parseJsonStrict } from "@/lib/json-repair-utility";
+import { parseJsonStrict } from "@/lib/model-json";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import type { CSVRow } from "@/lib/bulk/bulk-csv-parser";
 import { serializeModifierLinksJson } from "@/lib/bulk/bulk-csv-parser";
