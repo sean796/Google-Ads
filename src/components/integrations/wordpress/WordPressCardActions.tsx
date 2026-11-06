@@ -1,43 +1,11 @@
-import React, { useState, useRef } from "react";
+import React from "react";
 import { TestTube, Map, Network, Database, CheckCircle2, XCircle, BarChart3, Building2, Download } from "lucide-react";
-import { type WordPressSite, KB_FILES_STORAGE_KEY, type StoredFile } from "../types";
 import { getCyberpunkTextClasses } from "./cyberpunk-theme";
-import { notify, notifyHeaderError } from "@/lib/app-notifications";
-import { NOTIFY_ADD_GA4_PROPERTY_ID_FOR_THIS_SITE_CLICK_, NOTIFY_ENTITY_POST_CREATED_DATE_MODIFIER, NOTIFY_GMB_STATS_ADDED_TO_KNOWLEDGE_BASE, NOTIFY_NO_GMB_PERFORMANCE_DATA_RETURNED, NOTIFY_POST_CREATED_NO_DATE_MODIFIER, notifyAcfRestFailedX, notifyEntityPostFailedX, notifyGmbStatsSavedButApiReportedXUseL } from "@/lib/notify-messages";
-import { extractEndpointFromEntitySitemapUrl } from "@/lib/entity-endpoint-extractor";
-import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
-import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
-import { getGMBPullDateRanges } from "@/lib/gmb-date-helpers";
-import { loadApiKey } from "@/lib/api";
-import { resolveRecommendedAuthor } from "@/lib/wordpress-api/author-resolver";
-import { normalizeGa4PropertyIdForApi, resolveGa4PropertyIdForReporting } from "@/lib/ga4-property-id";
 import { cn } from "@/lib/utils";
-import { HOST_DIVIDER } from "@/components/hosting/my-sites/my-sites-theme";
 import { PROFILE_CARD, PROFILE_CARD_HEAD, PROFILE_CARD_TITLE } from "@/components/hosting/site-profile/site-profile-theme";
 import { Button } from "@/ui";
-
-interface NeoFieldsTestResult {
-  success: boolean;
-  hasNeoFieldsSupport?: boolean;
-  neoFields?: Record<string, unknown>;
-  error?: string;
-  requiredConfig?: { php: string[] };
-}
-
-interface WordPressCardActionsProps {
-  site: WordPressSite;
-  isTesting: boolean;
-  isDetecting: boolean;
-  isExtractingNAPAndGraph: boolean;
-  onTest: () => void;
-  onDetect: () => void;
-  onExtractNAPAndGraph?: () => void;
-  onPatchSite?: (siteId: string, patch: Partial<WordPressSite>) => void;
-  /** Embedded property panel on black: white labels, flat section chrome. */
-  tone?: "card" | "propertyBlack";
-  /** `profileCard`: host-style Connections card for the property profile page. */
-  layout?: "default" | "profileCard";
-}
+import type { ConnectionAction, WordPressCardActionsProps } from "./wordpress-card-actions-types";
+import { useWordPressCardActions } from "./use-wordpress-card-actions";
 
 export const WordPressCardActions: React.FC<WordPressCardActionsProps> = ({
   site,
@@ -54,302 +22,17 @@ export const WordPressCardActions: React.FC<WordPressCardActionsProps> = ({
   const isPropertyBlack = tone === "propertyBlack";
   const isProfileCard = layout === "profileCard";
   const isDisabled = site.enabled === false;
-  const [isTestingNeoFields, setIsTestingNeoFields] = useState(false);
-  const [isTestingGA, setIsTestingGA] = useState(false);
-  const [isTestingGMB, setIsTestingGMB] = useState(false);
-  const [isPullingGMBStats, setIsPullingGMBStats] = useState(false);
-  const pullGMBInProgressRef = useRef(false);
-  const [neoFieldsTestResult, setNeoFieldsTestResult] = useState<NeoFieldsTestResult & { dateModifierSet?: boolean; postId?: number; postUrl?: string } | null>(null);
-
-  const handlePullGMBStats = async () => {
-    if (pullGMBInProgressRef.current) return;
-    pullGMBInProgressRef.current = true;
-    const dates = getGMBPullDateRanges(); // current period end capped at today-3d for API data lag
-    const body = { ...dates } as Record<string, unknown>;
-    if (site.gbpLocationId?.trim()) {
-      body.locationIds = [site.gbpLocationId.trim()];
-    }
-    setIsPullingGMBStats(true);
-    try {
-      const response = await fetch(`${BACKEND_API_BASE}/api/gmb/performance`, {
-        method: "POST",
-        credentials: "include",
-        headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify(body),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        notify.error(data?.error ?? response.statusText ?? "Failed to pull GMB stats");
-        return;
-      }
-      if (!data.success || !data.currentPeriod) {
-        notify.error(NOTIFY_NO_GMB_PERFORMANCE_DATA_RETURNED);
-        return;
-      }
-      const cur = data.currentPeriod;
-      const comp = data.comparisonPeriod;
-      const apiWarning = data.apiWarning;
-      const curTotal = (cur.calls ?? 0) + (cur.directions ?? 0) + (cur.websiteClicks ?? 0);
-      const compTotal = (comp?.calls ?? 0) + (comp?.directions ?? 0) + (comp?.websiteClicks ?? 0);
-      const allZero = curTotal === 0 && compTotal === 0;
-      let footnote = "";
-      if (apiWarning) footnote += `\n\n**API note:** ${apiWarning}\n`;
-      if (allZero && !apiWarning) footnote += "\n\n*All metrics are 0 for these periods (no recorded activity in GBP for these dates, or data not yet available).*\n";
-      const content = `# Google Business Profile – Performance snapshot
-Pulled: ${new Date().toISOString().slice(0, 19)}Z | Locations: ${data.locationCount ?? 0}
-
-## Current period (${cur.startDate} – ${cur.endDate})
-| Metric | Count |
-| --- | --- |
-| Call clicks | ${cur.calls?.toLocaleString() ?? 0} |
-| Direction requests | ${cur.directions?.toLocaleString() ?? 0} |
-| Website clicks | ${cur.websiteClicks?.toLocaleString() ?? 0} |
-
-## Comparison period (${comp?.startDate} – ${comp?.endDate})
-| Metric | Count |
-| --- | --- |
-| Call clicks | ${comp?.calls?.toLocaleString() ?? 0} |
-| Direction requests | ${comp?.directions?.toLocaleString() ?? 0} |
-| Website clicks | ${comp?.websiteClicks?.toLocaleString() ?? 0} |
-${footnote}`;
-      const timestamp = Date.now();
-      const newFile: StoredFile = {
-        name: `gmb-stats-${timestamp}.md`,
-        size: content.length,
-        content,
-        starred: false,
-        timestamp,
-      };
-      const stored = localStorage.getItem(KB_FILES_STORAGE_KEY) || "[]";
-      const files: StoredFile[] = JSON.parse(stored);
-      localStorage.setItem(KB_FILES_STORAGE_KEY, JSON.stringify([...files, newFile]));
-      window.dispatchEvent(new CustomEvent("kb-files-updated", { detail: { files: [...files, newFile] } }));
-      if (apiWarning) notify.warning(notifyGmbStatsSavedButApiReportedXUseL(apiWarning));
-      else notify.success(NOTIFY_GMB_STATS_ADDED_TO_KNOWLEDGE_BASE);
-    } catch (err) {
-      notifyHeaderError("GMB stats pull failed", err);
-    } finally {
-      pullGMBInProgressRef.current = false;
-      setIsPullingGMBStats(false);
-    }
-  };
-
-  const handleTestGMB = async () => {
-    setIsTestingGMB(true);
-    try {
-      const response = await fetch(`${BACKEND_API_BASE}/api/gmb/test`, {
-        method: "POST",
-        credentials: "include",
-        headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (response.ok && data.success) {
-        notify.success(data.message || "Google Business Profile connection OK");
-      } else {
-        notify.error(data.error || response.statusText || "GMB test failed");
-      }
-    } catch (err) {
-      notifyHeaderError("GMB test failed", err);
-    } finally {
-      setIsTestingGMB(false);
-    }
-  };
-
-  const handleTestGA = async () => {
-    let propertyId = "";
-    try {
-      const raw = resolveGa4PropertyIdForReporting(site);
-      propertyId = raw ? normalizeGa4PropertyIdForApi(raw) : "";
-    } catch (err) {
-      notify.error(err instanceof Error ? err.message : "Invalid GA4 Property ID.");
-      return;
-    }
-    if (!propertyId) {
-      notify.error(NOTIFY_ADD_GA4_PROPERTY_ID_FOR_THIS_SITE_CLICK_);
-      return;
-    }
-    setIsTestingGA(true);
-    try {
-      const response = await fetch(`${BACKEND_API_BASE}/api/ga/test`, {
-        method: "POST",
-        headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ propertyId }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (response.ok && data.success) {
-        notify.success(data.message || "Google Analytics connection OK");
-      } else {
-        notify.error(data.error || response.statusText || "Google Analytics test failed");
-      }
-    } catch (err) {
-      notifyHeaderError("Google Analytics test failed", err);
-    } finally {
-      setIsTestingGA(false);
-    }
-  };
-
-  const handleTestNeoFields = async () => {
-    setIsTestingNeoFields(true);
-    setNeoFieldsTestResult(null);
-    
-    try {
-      // Use entity sitemap URL to determine the correct endpoint
-      let testPostType = 'post';
-      let testEndpoint = 'posts';
-      
-      // Priority: Use entitySitemapUrl if available (this is the entity/CPT endpoint)
-      if (site.entitySitemapUrl) {
-        testEndpoint = extractEndpointFromEntitySitemapUrl(site.entitySitemapUrl);
-        testPostType = testEndpoint; // For CPTs, type and endpoint are usually the same
-        console.log('[NEO Fields Test] Using entity endpoint from entitySitemapUrl:', testEndpoint);
-      }
-      
-      // CREATE A NEW POST with date_modifier set to today
-      let dateModifierSet = false;
-      let newPostId: number | undefined;
-      let postUrl: string | undefined;
-      let createError: string | undefined;
-      const today = new Date().toISOString().split('T')[0]; // "2026-01-19"
-      
-      console.log('[NEO Fields Test] Creating new entity post with endpoint:', testEndpoint);
-
-      let authorId: number | undefined;
-      try {
-        authorId = await resolveRecommendedAuthor({
-          site,
-          postTypeEndpoint: testEndpoint,
-          apiKey: loadApiKey(),
-          siteId: site.id,
-        });
-      } catch {
-        authorId = undefined;
-      }
-      
-      try {
-        const requestBody: Record<string, unknown> = {
-          siteUrl: site.siteUrl,
-          username: site.username,
-          appPassword: site.appPassword,
-          title: `NEO Test - ${today}`,
-          content: `<p>Test post created to verify NEO Fields REST API. Date modifier: ${today}</p>`,
-          status: 'draft',
-          postType: testPostType,
-          postTypeEndpoint: testEndpoint
-        };
-        if (authorId != null) requestBody.author = authorId;
-        
-        // Create a new post in the entity CPT
-        const createResponse = await fetch(`${BACKEND_API_BASE}/api/wordpress/create-post`, {
-          method: 'POST',
-          headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify(requestBody)
-        });
-
-        const createText = await createResponse.text();
-        let createData: { success?: boolean; postId?: number; id?: number; link?: string; url?: string; error?: string };
-        try {
-          createData = createText ? JSON.parse(createText) : {};
-        } catch {
-          throw new Error(
-            `Server returned invalid JSON. Status: ${createResponse.status}. ` +
-            `Ensure VITE_MCP_API_BASE points to your backend on Render. Body: ${createText.slice(0, 150) || "empty"}`
-          );
-        }
-        
-        console.log('[NEO Fields Test] Create response:', createData);
-        
-        if (createData.success && (createData.postId || createData.id)) {
-          newPostId = createData.postId || createData.id;
-          postUrl = createData.link || createData.url;
-          
-          // Now set the date_modifier field on the new post
-          const updateResponse = await fetch(`${BACKEND_API_BASE}/api/wordpress/update-acf-fields`, {
-            method: 'POST',
-            headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
-            body: JSON.stringify({
-              siteUrl: site.siteUrl,
-              username: site.username,
-              appPassword: site.appPassword,
-              postId: newPostId,
-              postType: testPostType,
-              postTypeEndpoint: testEndpoint,
-              fields: {
-                date_modifier: today
-              },
-              options: {
-                verifyAfterUpdate: true
-              }
-            })
-          });
-
-          const updateText = await updateResponse.text();
-          let updateData: { success?: boolean; error?: string; updated?: unknown; failed?: unknown };
-          try {
-            updateData = updateText ? JSON.parse(updateText) : {};
-          } catch {
-            throw new Error(
-              `NEO Fields update returned invalid JSON. Status: ${updateResponse.status}. ` +
-              `Body: ${updateText.slice(0, 150) || "empty"}`
-            );
-          }
-          
-          console.log('[NEO Fields Test] Update response:', updateData);
-          dateModifierSet = updateData.success;
-          
-          if (dateModifierSet) {
-            console.log(`[NEO Fields Test] Created new post ${newPostId} with date_modifier = ${today}`);
-          } else {
-            console.warn('[NEO Fields Test] Post created but failed to set date_modifier:', updateData.error || updateData.failed);
-          }
-        } else {
-          createError = createData.error || 'Failed to create post';
-          console.error('[NEO Fields Test] Failed to create test post:', createError);
-        }
-      } catch (err) {
-        createError = err instanceof Error ? err.message : 'Unknown error';
-        console.error('[NEO Fields Test] Error creating test post:', err);
-      }
-      
-      const success = !!newPostId;
-      
-      setNeoFieldsTestResult({
-        success,
-        hasNeoFieldsSupport: success,
-        dateModifierSet,
-        postId: newPostId,
-        postUrl,
-        error: createError
-      });
-      
-      if (success) {
-        if (dateModifierSet && newPostId) {
-          console.log("[NEO Fields Test] date_modifier set", { newPostId, testEndpoint, today });
-          notify.success(NOTIFY_ENTITY_POST_CREATED_DATE_MODIFIER);
-        } else if (newPostId) {
-          console.warn("[NEO Fields Test] date_modifier not set", newPostId);
-          notify.warning(NOTIFY_POST_CREATED_NO_DATE_MODIFIER);
-        }
-      } else {
-        const errShort =
-          (createError && createError.length > 90)
-            ? `${createError.slice(0, 87)}...`
-            : createError || "Create failed";
-        notify.error(notifyEntityPostFailedX(errShort));
-      }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      setNeoFieldsTestResult({
-        success: false,
-        error: errorMsg
-      });
-      const short =
-        errorMsg.length > 100 ? `${errorMsg.slice(0, 97)}...` : errorMsg;
-      notify.error(`NEO Fields failed: ${short}`);
-    } finally {
-      setIsTestingNeoFields(false);
-    }
-  };
-
+  const {
+    isTestingNeoFields,
+    isTestingGA,
+    isTestingGMB,
+    isPullingGMBStats,
+    neoFieldsTestResult,
+    handlePullGMBStats,
+    handleTestGMB,
+    handleTestGA,
+    handleTestNeoFields,
+  } = useWordPressCardActions(site);
   /** Label column in action rows — stays white on black when disabled. */
   const rowLabel = cn("min-w-0 flex-1", isPropertyBlack && "text-white");
 
@@ -387,17 +70,6 @@ ${footnote}`;
     (isPropertyBlack ? "gap-0 sm:gap-x-0.5 sm:gap-y-0" : "gap-0.5 sm:gap-x-1 sm:gap-y-0.5");
 
   const actionGridScroll = actionGrid;
-
-  type ConnectionAction = {
-    key: string;
-    label: string;
-    icon: React.ReactNode;
-    onClick: () => void;
-    disabled: boolean;
-    className?: string;
-    title?: string;
-  };
-
   const connectionActions: ConnectionAction[] = [
     {
       key: "test",
@@ -718,4 +390,3 @@ ${footnote}`;
     </div>
   );
 };
-

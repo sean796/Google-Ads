@@ -1,69 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { ImagePlus, Layers, Play, ShieldCheck, Sparkles, Undo2, Video, X } from "lucide-react";
-import { IMAGE_REFERENCE_ACCEPT, prepareVideoStudioReference } from "@/lib/image-generator/manual-reference-upload";
-import type { PostCutSceneReference, VideoScenePlan } from "@/lib/video-generator/video-generator-types";
-
-
-import { MY_SITES_FIELD } from "@/components/hosting/my-sites/my-sites-theme";
-import {
-  VIDEO_FADE_DURATIONS,
-  VIDEO_TRANSITION_DURATIONS,
-  VIDEO_TRANSITION_OPTIONS,
-  type StoryboardFrame,
-  type VideoPlan,
-  type VideoRenderSnapshot,
-  type VideoTransition,
-  type VideoTransitionType,
-} from "@/lib/video-generator/video-generator-types";
+import { Play, Sparkles, Undo2, Video } from "lucide-react";
+import { prepareVideoStudioReference } from "@/lib/image-generator/manual-reference-upload";
+import type { PostCutSceneReference } from "@/lib/video-generator/video-generator-types";
 import { reviseScenePromptWithAi } from "@/lib/video-generator/video-prompt-remaker-agent";
-import { Button, FileInput, SelectField, TextareaField, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/ui";
-
-export type VideoPostCutPanelProps = {
-  apiKey?: string;
-  plan: VideoPlan | null;
-  frames: StoryboardFrame[];
-  render: VideoRenderSnapshot | null;
-  selectedSceneId: string | null;
-  disabled: boolean;
-  onSelectScene: (sceneId: string) => void;
-  onSendSceneInstruction: (sceneId: string, instruction: string, postCutReference?: PostCutSceneReference) => void;
-  onRegenerateEnvironmentPlate: (sceneId: string) => void;
-  onRegenerateFrame: (sceneId: string, customInstruction?: string) => void;
-  onRestoreReferenceFrame?: (sceneId: string) => void;
-  onRerenderSceneClip: (sceneId: string, customPrompt?: string) => void;
-  onClearSceneRevisionNotes?: (sceneId: string) => void;
-  onUpdateSceneTransition: (sceneId: string, transition: VideoTransition, applyToAll?: boolean) => void;
-  onUpdatePlanFades: (fadeInSeconds: number, fadeOutSeconds: number) => void;
-  onUpdateScenePrompts?: (
-    sceneId: string,
-    patch: {
-      environmentPrompt?: string;
-      storyboardPrompt?: string;
-      motionPrompt?: string;
-      videoPrompt?: string;
-      postCutReferenceDataUrl?: string;
-      postCutReferenceFileName?: string;
-      customClipFile?: string | null;
-      customClipUrl?: string | null;
-    },
-    action?: "save" | "redraw" | "rerender",
-  ) => void;
-  onRestitch: () => void;
-};
-
-function getInitialScenePrompt(
-  frame?: StoryboardFrame,
-  activeScene?: VideoScenePlan | null,
-): string {
-  return (frame?.videoPrompt || activeScene?.motionPrompt || "").trim();
-}
-
-function getInitialInstructionText(activeScene?: VideoScenePlan | null): string {
-  if (activeScene?.revisionNotes?.length) {
-    return activeScene.revisionNotes[activeScene.revisionNotes.length - 1] ?? "";
-  }
-  return "";
-}
+import { Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/ui";
+import type { VideoPostCutPanelProps } from "./video-post-cut-panel-types";
+import { getInitialInstructionText, getInitialScenePrompt } from "./video-post-cut-panel-helpers";
+import { VideoPostCutPromptAccordion } from "./VideoPostCutPromptAccordion";
+import { VideoPostCutTransitions } from "./VideoPostCutTransitions";
 
 export function VideoPostCutPanel({
   apiKey,
@@ -229,12 +173,6 @@ export function VideoPostCutPanel({
     );
   }
 
-  const transition = activeScene.transitionIn ?? { type: "dissolve" as const, seconds: 0.7 };
-  const transitionMeta =
-    VIDEO_TRANSITION_OPTIONS.find((o) => o.value === transition.type) ?? VIDEO_TRANSITION_OPTIONS[0];
-  const fadeIn = plan.fadeInSeconds ?? 0.6;
-  const fadeOut = plan.fadeOutSeconds ?? 0.8;
-
   const onReferenceFiles = async (files: FileList | null) => {
     if (!files?.length || !activeScene) return;
     const file = files[0];
@@ -317,143 +255,20 @@ export function VideoPostCutPanel({
           </p>
         </div>
 
-        {/* Collapsible Accordion for Prompts - Closed by default */}
-        <Accordion type="multiple" defaultValue={[]} className="flex flex-col gap-2">
-          {/* Accordion Item 1: Desired Changes */}
-          <AccordionItem value="instruction" className="border-0 bg-ui-field px-3 py-1">
-            <AccordionTrigger className="py-2 text-sm font-semibold text-white hover:no-underline">
-              <div className="flex flex-1 items-center justify-between pr-2">
-                <span className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" aria-hidden />
-                  <span>Desired Changes</span>
-                </span>
-                {instructionText.trim() ? (
-                  <span className="rounded bg-primary/20 px-2 py-0.5 text-base font-normal text-primary">
-                    Drafted
-                  </span>
-                ) : null}
-              </div>
-            </AccordionTrigger>
-            <AccordionContent forceMount className="pt-2 pb-2 flex flex-col gap-2">
-              <FileInput
-                ref={referenceInputRef}
-                accept={IMAGE_REFERENCE_ACCEPT}
-                aria-label="Client reference photo for this scene"
-                onChange={(e) => void onReferenceFiles(e.target.files)}
-              />
-              <div className="flex items-center gap-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="icon" icon={ImagePlus}
-                      variant="run"
-                      onClick={() => referenceInputRef.current?.click()}
-                      aria-label="Upload reference photo"
-                    ></Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">Upload Reference Photo</TooltipContent>
-                </Tooltip>
-
-                {sceneReference ? (
-                  <div className="relative group/ref flex items-center">
-                    <img
-                      src={sceneReference.dataUrl}
-                      alt="Scene reference"
-                      className="h-8 w-12 object-cover border border-white/10"
-                    />
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          size="icon" icon={X}
-                          variant="danger"
-                          onClick={handleRemoveReference}
-                          aria-label="Remove reference photo"
-                        ></Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">Remove photo</TooltipContent>
-                    </Tooltip>
-                  </div>
-                ) : null}
-              </div>
-
-              <TextareaField
-                value={instructionText}
-                onChange={(e) => setInstructionText(e.target.value)}
-                rows={2}
-                aria-label={`Input prompt for Scene ${activeScene.order}`}
-                placeholder={`Type changes here (e.g. no people, pan left to desk)...`}
-              />
-
-              <div className="flex items-center justify-end">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      onClick={() => void applyInstructionToMainPrompt(instructionText)}
-                      disabled={!instructionText.trim() || isRemakingPrompt}
-                    >
-                      {isRemakingPrompt ? (
-                        <>
-                          <Sparkles className="mr-1 h-3 w-3 text-primary" aria-hidden />
-                          Harmonizing...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="mr-1 h-3 w-3" aria-hidden />
-                          Apply to Prompt
-                        </>
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">AI remakes prompt to eliminate conflicts and prioritize changes</TooltipContent>
-                </Tooltip>
-              </div>
-
-              {remakeNotice ? (
-                <div className="flex items-start gap-1.5 rounded border border-primary/40 bg-primary/40 p-2 text-xs text-primary">
-                  <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
-                  <span>
-                    <strong>AI Harmonized:</strong> {remakeNotice}
-                  </span>
-                </div>
-              ) : null}
-            </AccordionContent>
-          </AccordionItem>
-
-          {/* Accordion Item 2: Main Video Motion Prompt */}
-          <AccordionItem value="main-prompt" className="border-0 bg-ui-field px-3 py-1">
-            <AccordionTrigger className="py-2 text-sm font-semibold text-white hover:no-underline">
-              <div className="flex flex-1 items-center justify-between pr-2">
-                <span className="flex items-center gap-2">
-                  <Video className="h-4 w-4 text-primary" aria-hidden />
-                  <span>Main Motion Prompt</span>
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {promptText.trim().split(/\s+/).filter(Boolean).length}w
-                  </span>
-                  <span className="inline-flex items-center gap-1 bg-primary/60 px-1.5 py-0.5 text-base font-medium text-primary border border-primary/30">
-                    <ShieldCheck className="h-3 w-3" aria-hidden />
-                    d1.1
-                  </span>
-                </div>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent forceMount className="pt-2 pb-2 flex flex-col gap-2">
-              <TextareaField
-                value={promptText}
-                onChange={(e) => handleMainPromptChange(e.target.value)}
-                rows={4}
-                aria-label={`Main Prompt for Scene ${activeScene.order}`}
-                placeholder={`Full cinematic video motion prompt...`}
-              />
-              <div className="flex items-center justify-between text-base text-muted-foreground">
-                <span>{promptText.trim().split(/\s+/).filter(Boolean).length} words</span>
-                <span>Grok & Decision Model input</span>
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+        <VideoPostCutPromptAccordion
+          activeScene={activeScene}
+          instructionText={instructionText}
+          setInstructionText={setInstructionText}
+          promptText={promptText}
+          handleMainPromptChange={handleMainPromptChange}
+          isRemakingPrompt={isRemakingPrompt}
+          remakeNotice={remakeNotice}
+          sceneReference={sceneReference}
+          referenceInputRef={referenceInputRef}
+          onReferenceFiles={onReferenceFiles}
+          applyInstructionToMainPrompt={applyInstructionToMainPrompt}
+          handleRemoveReference={handleRemoveReference}
+        />
 
         {/* Sliced Reference Video Clip (Zero-Hallucination Ground Truth) */}
         {(activeScene.referenceClipUrl || activeScene.customClipUrl) ? (
@@ -568,106 +383,15 @@ export function VideoPostCutPanel({
           ) : null}
         </div>
 
-        {/* Scene Transition & Global Fade Controls */}
-        <div className="flex flex-col gap-2.5 bg-ui-field p-3">
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-semibold text-sm text-white">Transitions & Fades</span>
-            {render ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="run"
-                    disabled={disabled}
-                    onClick={onRestitch}
-                  >
-                    Re-stitch MP4
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top">Re-stitch all finished scene clips into final MP4</TooltipContent>
-              </Tooltip>
-            ) : null}
-          </div>
-
-          {activeScene.order > 1 ? (
-            <div className="flex flex-col gap-2">
-              <div className="grid grid-cols-2 gap-2">
-                <SelectField placeholder="Transition style" value={transition.type} disabled={disabled} onValueChange={(val) => {
-                    const nextType = val as VideoTransitionType;
-                    const meta = VIDEO_TRANSITION_OPTIONS.find((o) => o.value === nextType);
-                    onUpdateSceneTransition(activeScene.id, {
-                      type: nextType,
-                      seconds: meta?.hasDuration ? (transition.seconds > 0 ? transition.seconds : meta.defaultSeconds) : 0,
-                    });
-                  }} options={VIDEO_TRANSITION_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))} />
-
-                <SelectField
-                  placeholder="Transition duration"
-                  value={String(transitionMeta.hasDuration ? (transition.seconds || transitionMeta.defaultSeconds) : 0)}
-                  disabled={disabled || !transitionMeta.hasDuration}
-                  onValueChange={(val) =>
-                    onUpdateSceneTransition(activeScene.id, {
-                      type: transition.type,
-                      seconds: Number(val),
-                    })
-                  }
-                  options={
-                    transitionMeta.hasDuration
-                      ? VIDEO_TRANSITION_DURATIONS.map((sec) => ({ value: String(sec), label: `${sec}s transition` }))
-                      : [{ value: "0", label: "0s instant" }]
-                  }
-                  width="full"
-                />
-              </div>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    disabled={disabled}
-                    onClick={() =>
-                      onUpdateSceneTransition(
-                        activeScene.id,
-                        {
-                          type: transition.type,
-                          seconds: transitionMeta.hasDuration ? (transition.seconds || transitionMeta.defaultSeconds) : 0,
-                        },
-                        true,
-                      )
-                    }
-                  >
-                    <Layers className="mr-1.5 h-3 w-3" aria-hidden />
-                    Apply {transitionMeta.shortLabel} to all cuts
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top">Apply {transitionMeta.shortLabel} ({transition.seconds}s) to all scene cuts</TooltipContent>
-              </Tooltip>
-            </div>
-          ) : (
-            <p className="bg-black px-2.5 py-1.5 text-xs text-muted-foreground">
-              Scene 1 opens the video (use Fade In below). Select Scene 2+ for cuts.
-            </p>
-          )}
-
-          <div className="grid grid-cols-2 gap-2">
-            <SelectField
-              placeholder="Fade in"
-              value={String(fadeIn)}
-              disabled={disabled}
-              onValueChange={(val) => onUpdatePlanFades(Number(val), fadeOut)}
-              options={VIDEO_FADE_DURATIONS.map((sec) => ({ value: String(sec), label: `Fade in: ${sec === 0 ? "Off" : `${sec}s`}` }))}
-              width="full"
-            />
-
-            <SelectField
-              placeholder="Fade out"
-              value={String(fadeOut)}
-              disabled={disabled}
-              onValueChange={(val) => onUpdatePlanFades(fadeIn, Number(val))}
-              options={VIDEO_FADE_DURATIONS.map((sec) => ({ value: String(sec), label: `Fade out: ${sec === 0 ? "Off" : `${sec}s`}` }))}
-              width="full"
-            />
-          </div>
-        </div>
+        <VideoPostCutTransitions
+          activeScene={activeScene}
+          plan={plan}
+          render={render}
+          disabled={disabled}
+          onRestitch={onRestitch}
+          onUpdateSceneTransition={onUpdateSceneTransition}
+          onUpdatePlanFades={onUpdatePlanFades}
+        />
       </div>
     </TooltipProvider>
   );

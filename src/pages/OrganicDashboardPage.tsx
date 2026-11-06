@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -30,16 +30,12 @@ import { getPublicSiteUrl } from "@/lib/wordpress-site-public-url";
 import { useOrganicDashboardBundleQuery } from "@/hooks/use-organic-dashboard-bundle-query";
 import {
   mergeHighlightsWithLocalGridNarrative,
-  organicReportingHighlightsQueryKey,
-  runOrganicReportingHighlightsQuery,
   useLocalGridReportNarrativeQuery,
   useOrganicReportingHighlightsQuery,
 } from "@/hooks/use-organic-reporting-highlights-query";
 import {
   buildOrganicReportingHighlightsSnapshot,
-  fetchLocalGridReportingNarrative,
 } from "@/lib/organic-dashboard/organic-reporting-highlights";
-import { ORGANIC_DASHBOARD_QUERY_STALE_MS } from "@/lib/organic-dashboard/organic-dashboard-prefetch";
 import { buildOrganicDashboardViewModel } from "@/lib/organic-dashboard/organic-dashboard-view-model";
 import {
   buildOrganicDashboardFetchParams,
@@ -56,12 +52,12 @@ import {
   buildLocalGridReportingSnapshot,
   fetchAllLocalGridScansForSite,
 } from "@/lib/organic-dashboard/local-grid-client-report";
-import { publishOrganicClientReportDeckAndBuildShareUrl } from "@/lib/organic-dashboard/organic-client-report-deck-publish";
 import { downloadOrganicClientReportMarkdown } from "@/lib/organic-dashboard/organic-client-report-markdown";
-import { downloadOrganicClientReportPdf } from "@/lib/organic-dashboard/organic-client-report-print";
 import { writeOrganicDashboardDateSession } from "@/lib/organic-dashboard/organic-dashboard-date-session";
 import { formatLocalYmd } from "@/lib/reporting/reporting-date-presets";
 import { resolveOrganicClientReportClientLogoUrl } from "@/lib/integrations/client-site-logo";
+import { useOrganicReportingExportActions } from "@/pages/use-organic-reporting-export-actions";
+import type { OrganicReportingPanelProps } from "@/pages/organic-dashboard-page-types";
 
 /** Deep links only: hand off to the main app Reporting tab (same shell as Generator). */
 export default function OrganicDashboardPage() {
@@ -100,12 +96,6 @@ export default function OrganicDashboardPage() {
   );
 }
 
-export type OrganicReportingPanelProps = {
-  site: WordPressSite;
-  /** Main Index tab: do not navigate to `/sites/.../organic`. */
-  inAppTab?: boolean;
-};
-
 export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReportingPanelProps) {
   const { setActiveWordPressSiteId } = useActiveWordPressSite();
   const { reportError } = useManagerErrorLog();
@@ -117,10 +107,6 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     refreshOrganicReportingDateHarness(defaultOrganicReportingDateHarness()),
   );
   const [datePopoverOpen, setDatePopoverOpen] = useState(false);
-  const [shareCopied, setShareCopied] = useState(false);
-  const [downloadPdfBusy, setDownloadPdfBusy] = useState(false);
-  const [clientReportBusy, setClientReportBusy] = useState(false);
-  const clientReportOpenLock = useRef(false);
   const [ga4PropertyId, setGa4PropertyId] = useState(() => resolveGa4PropertyIdForReporting(site));
   const [googleAdsCustomerId, setGoogleAdsCustomerId] = useState(() =>
     resolveGoogleAdsCustomerIdForReporting(site),
@@ -385,176 +371,15 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     });
   }, [handlePatchSite, site.id]);
 
-  const resolveReadyHighlights = useCallback(async () => {
-    if (
-      mergedHighlights &&
-      (!localGridSnapshot?.scanId || mergedHighlights.localGridNarrative.length > 0)
-    ) {
-      return mergedHighlights;
-    }
-    if (mergedHighlights && localGridSnapshot && viewModel) {
-      const snapshot = buildOrganicReportingHighlightsSnapshot(
-        viewModel,
-        siteDisplayName,
-        sitePublicUrl,
-        showCompare,
-        localGridSnapshot,
-      );
-      const supplemental = await fetchLocalGridReportingNarrative(snapshot, site.id);
-      if (supplemental.length > 0) {
-        return { ...mergedHighlights, localGridNarrative: supplemental };
-      }
-      return mergedHighlights;
-    }
-    if (!bundleQuery.data || !fetchParams) {
-      throw new Error("Performance data is not ready yet.");
-    }
-    const queryKey = organicReportingHighlightsQueryKey({
-      siteId: site.id,
-      fetchParams,
-      showCompare,
-      siteDisplayName,
-      sitePublicUrl,
-      localGridScanId: localGridSnapshot?.scanId ?? null,
+  const { shareCopied, downloadPdfBusy, clientReportBusy, handleShareLink, handleDownloadPdf } =
+    useOrganicReportingExportActions({
+      site, mergedHighlights, localGridSnapshot, viewModel, fetchParams, showCompare,
+      siteDisplayName, sitePublicUrl, googleAdsCustomerId, queryClient,
+      reportExportReady, reportError, shareState,
+      preparedOn, clientLogoUrl, logoBoxTheme, primaryLocalGridScan,
+      bundleData: bundleQuery.data,
+      localGridScansData: localGridScansQuery.data,
     });
-    return queryClient.fetchQuery({
-      queryKey,
-      staleTime: ORGANIC_DASHBOARD_QUERY_STALE_MS,
-      retry: 0,
-      queryFn: ({ signal }) =>
-        runOrganicReportingHighlightsQuery(
-          {
-            siteId: site.id,
-            bundle: bundleQuery.data,
-            fetchParams,
-            showCompare,
-            siteDisplayName,
-            sitePublicUrl,
-            googleAdsCustomerIdForReporting: googleAdsCustomerId,
-            localGridSnapshot,
-          },
-          signal,
-        ),
-    });
-  }, [
-    bundleQuery.data,
-    fetchParams,
-    googleAdsCustomerId,
-    localGridSnapshot,
-    mergedHighlights,
-    queryClient,
-    showCompare,
-    site.id,
-    siteDisplayName,
-    sitePublicUrl,
-    viewModel,
-  ]);
-
-  const handleShareLink = useCallback(async () => {
-    if (clientReportBusy || clientReportOpenLock.current) return;
-    if (!viewModel || !reportExportReady) {
-      reportError("Client report · wait for Performance metrics to finish loading.");
-      return;
-    }
-    clientReportOpenLock.current = true;
-    setClientReportBusy(true);
-    try {
-      const [readyHighlights, freshScans] = await Promise.all([
-        resolveReadyHighlights(),
-        fetchAllLocalGridScansForSite(site.id),
-      ]);
-      const scansForReport =
-        freshScans.length > 0 ? freshScans : (localGridScansQuery.data ?? null);
-      const { shareUrl: publishedUrl } = await publishOrganicClientReportDeckAndBuildShareUrl({
-        siteId: site.id,
-        siteDisplayName,
-        sitePublicUrl,
-        shareState,
-        viewModel,
-        readyHighlights,
-        showCompare,
-        localGridScan: scansForReport?.[0] ?? primaryLocalGridScan,
-        localGridScans: scansForReport,
-        clientLogoUrl,
-        clientLogoBoxTheme: logoBoxTheme,
-      });
-      await navigator.clipboard.writeText(publishedUrl);
-      setShareCopied(true);
-      window.setTimeout(() => setShareCopied(false), 2000);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Could not publish share link.";
-      reportError(`Client report · ${message}`);
-      setShareCopied(false);
-    } finally {
-      clientReportOpenLock.current = false;
-      setClientReportBusy(false);
-    }
-  }, [
-    clientReportBusy,
-    reportExportReady,
-    reportError,
-    resolveReadyHighlights,
-    shareState,
-    showCompare,
-    site.id,
-    clientLogoUrl,
-    logoBoxTheme,
-    siteDisplayName,
-    sitePublicUrl,
-    viewModel,
-    primaryLocalGridScan,
-    localGridScansQuery.data,
-  ]);
-
-  const handleDownloadPdf = useCallback(async () => {
-    if (downloadPdfBusy) return;
-    if (!viewModel || !reportExportReady) {
-      reportError("Client report · wait for Performance metrics to finish loading.");
-      return;
-    }
-    setDownloadPdfBusy(true);
-    try {
-      const [readyHighlights, freshScans] = await Promise.all([
-        resolveReadyHighlights(),
-        fetchAllLocalGridScansForSite(site.id),
-      ]);
-      const scansForReport =
-        freshScans.length > 0 ? freshScans : (localGridScansQuery.data ?? null);
-      const content = buildOrganicClientReportContent({
-        viewModel,
-        highlights: readyHighlights,
-        siteName: siteDisplayName,
-        siteUrl: sitePublicUrl,
-        showCompare,
-        preparedOn,
-        localGridScan: scansForReport?.[0] ?? primaryLocalGridScan,
-        localGridScans: scansForReport,
-        clientLogoUrl,
-        clientLogoBoxTheme: logoBoxTheme,
-      });
-      await downloadOrganicClientReportPdf({ content, preparedOn });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "PDF download failed.";
-      reportError(`Client report · ${message}`);
-    } finally {
-      setDownloadPdfBusy(false);
-    }
-  }, [
-    downloadPdfBusy,
-    reportExportReady,
-    reportError,
-    resolveReadyHighlights,
-    showCompare,
-    site.id,
-    siteDisplayName,
-    sitePublicUrl,
-    viewModel,
-    primaryLocalGridScan,
-    localGridScansQuery.data,
-    clientLogoUrl,
-    logoBoxTheme,
-    preparedOn,
-  ]);
 
   const handleDownloadMarkdown = useCallback(() => {
     if (!reportContent) return;

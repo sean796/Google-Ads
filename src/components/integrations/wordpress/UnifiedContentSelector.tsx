@@ -1,28 +1,11 @@
-import React, { useState, useEffect, useCallback } from "react";
-
-
-
-import { RefreshCw, Check, ChevronsUpDown, FileText, ExternalLink, Download } from "lucide-react";
+import React, { useState } from "react";
+import { RefreshCw, Check, ChevronsUpDown, FileText, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getPublishedPosts, getPublishedPages, resolveWordPressUrls, getWordPressPostContent, parseSitemap } from "@/lib/wordpress-api";
-import { type WordPressSite } from "../types";
-import { notify } from "@/lib/app-notifications";
-import { NOTIFY_FETCHING_DATA, NOTIFY_NO_ENTITIES_FOUND_IN_ENTITY_SITEMAP, NOTIFY_NO_ENTITY_SITEMAP_CONFIGURED_PLEASE_SET_, NOTIFY_SITE_CREDENTIALS_NOT_AVAILABLE, NOTIFY_WORDPRESS_CREDENTIALS_MISSING_PLEASE_UPD, notifyDownloadedXItemSAsJson, notifyFailedToFetchEntitiesX, notifyFailedToFetchPagesX, notifyFailedToFetchPostsX } from "@/lib/notify-messages";
-import { getCyberpunkTextClasses, getCyberpunkButtonClasses } from "./cyberpunk-theme";
 import { Button, Field, Popover, PopoverContent, PopoverTrigger, Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, Checkbox } from "@/ui";
-
-interface UnifiedContentSelectorProps {
-  site: WordPressSite;
-  value: string | string[];
-  onValueChange: (url: string | string[]) => void;
-  postType: 'post' | 'service-area' | 'page' | 'both';
-  onPostTypeChange: (type: 'post' | 'service-area' | 'page' | 'both') => void;
-  disabled?: boolean;
-  multiSelect?: boolean;
-  onPostDataChange?: (postData: { id: number; subtype: string; link: string; slug?: string; endpoint?: string } | null) => void;
-  /** `cyberpunk` matches Elementor / integrations; `default` matches manager Card theme */
-  theme?: 'cyberpunk' | 'default';
-}
+import type { UnifiedContentSelectorProps } from "./UnifiedContentSelector-types";
+import { unifiedContentSelectorDefaultStyles } from "./UnifiedContentSelector-theme";
+import { useUnifiedContentSelector } from "./use-unified-content-selector";
+import { UnifiedContentSelectorScrapeBar } from "./UnifiedContentSelectorScrapeBar";
 
 export const UnifiedContentSelector: React.FC<UnifiedContentSelectorProps> = ({
   site,
@@ -36,248 +19,32 @@ export const UnifiedContentSelector: React.FC<UnifiedContentSelectorProps> = ({
   theme = 'cyberpunk',
 }) => {
   const isDefault = theme === 'default';
-  /** Default theme: requested flat #090909 surfaces (replaces muted grey panels); 1rem min type */
-  const d = isDefault
-    ? {
-        bg: "bg-[#090909]",
-        bgHover: "hover:bg-[#0c0c0c]",
-        bgStripe: "bg-[#090909]",
-        rowHover: "hover:bg-[#0c0c0c]",
-        chipOn: "border border-border bg-[#0c0c0c] text-foreground shadow-sm",
-        chipOff:
-          "border border-transparent text-muted-foreground hover:border-border/50 hover:bg-[#0c0c0c] hover:text-foreground",
-        text: "text-base",
-        /** Override cmdk CommandItem `data-[selected]:bg-muted` (theme grey ≠ #090909) */
-        itemRow: "bg-[#090909] data-[selected]:!bg-[#090909] hover:!bg-[#0c0c0c]",
-        itemRowOn: "bg-[#0c0c0c] data-[selected]:!bg-[#0c0c0c] hover:!bg-[#121212]",
-      }
-    : null;
+  const d = unifiedContentSelectorDefaultStyles(isDefault);
   const [open, setOpen] = useState(false);
-  const [posts, setPosts] = useState<Array<{ id: number; title: string; link: string; slug?: string; date_gmt?: string; endpoint?: string }>>([]);
-  const [serviceAreas, setServiceAreas] = useState<Array<{ id: number; title: string; link: string; slug?: string; date_gmt?: string; endpoint?: string }>>([]);
-  const [pages, setPages] = useState<Array<{ id: number; title: string; link: string; slug?: string; date_gmt?: string; endpoint?: string }>>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [hasNoPosts, setHasNoPosts] = useState(false);
-  const [hasNoEntities, setHasNoEntities] = useState(false);
-  const [hasNoPages, setHasNoPages] = useState(false);
-
-  const selectedUrls = Array.isArray(value) ? value : (value ? [value] : []);
-  const selectedUrl = Array.isArray(value) ? '' : value;
-
-  const currentItems = postType === 'post' ? posts : postType === 'service-area' ? serviceAreas : postType === 'page' ? pages : [...posts, ...serviceAreas]; // 'both' only includes posts and entities, not pages
-  const selectedItem = currentItems.find(item => item.link === selectedUrl);
-  const selectedItems = currentItems.filter(item => selectedUrls.includes(item.link));
-
-  const fetchPosts = useCallback(async () => {
-    if (!site.username || !site.appPassword) {
-      notify.error(NOTIFY_WORDPRESS_CREDENTIALS_MISSING_PLEASE_UPD);
-      return;
-    }
-setIsLoading(true);
-    setHasNoPosts(false); // Reset flag when attempting to fetch
-    const result = await getPublishedPosts(site.siteUrl, site.username, site.appPassword, 100, 0);
-if (result.error) {
-      // Handle "no posts" case gracefully - don't show error toast
-      if (result.error.includes('No published posts found')) {
-        console.log('[UnifiedContentSelector] No published posts found - this is normal if the site has no posts yet');
-        setPosts([]);
-        setHasNoPosts(true); // Mark that we've determined there are no posts
-} else {
-        notify.error(notifyFailedToFetchPostsX(result.error));
-        setPosts([]);
-        setHasNoPosts(false); // Reset flag on other errors (might be temporary)
-      }
-    } else {
-      setPosts(result.posts || []);
-      setHasNoPosts(result.posts?.length === 0); // Set flag if no posts returned
-}
-    setIsLoading(false);
-  }, [site.siteUrl, site.username, site.appPassword]);
-
-  const fetchEntities = useCallback(async () => {
-    if (!site.username || !site.appPassword) {
-      notify.error(NOTIFY_WORDPRESS_CREDENTIALS_MISSING_PLEASE_UPD);
-      return;
-    }
-    
-    if (!site.entitySitemapUrl) {
-      notify.error(NOTIFY_NO_ENTITY_SITEMAP_CONFIGURED_PLEASE_SET_);
-      setServiceAreas([]);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      // Parse entity sitemap to get entity URLs
-      const parseResult = await parseSitemap(
-        site.siteUrl,
-        site.entitySitemapUrl,
-        site.username,
-        site.appPassword
-      );
-      
-      if (parseResult.urls && parseResult.urls.length > 0) {
-        // Convert URLs to entity format
-        const entitiesFromSitemap = parseResult.urls.map((url: string, index: number) => {
-          try {
-            const urlObj = new URL(url);
-            const pathSegments = urlObj.pathname.split('/').filter(s => s.length > 0);
-            const slug = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : '';
-            
-            // Extract title from slug (convert kebab-case to Title Case)
-            const title = slug
-              .split('-')
-              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(' ') || url;
-            
-            return {
-              id: index + 1, // Temporary ID
-              slug: slug,
-              title: title,
-              link: url,
-              date_gmt: new Date().toISOString(),
-            };
-          } catch {
-            return {
-              id: index + 1,
-              slug: '',
-              title: url,
-              link: url,
-              date_gmt: new Date().toISOString(),
-            };
-          }
-        });
-        
-        setServiceAreas(entitiesFromSitemap);
-        setHasNoEntities(false); // Reset flag when entities are found
-      } else {
-        setServiceAreas([]);
-        setHasNoEntities(true); // Mark that we've determined there are no entities
-        notify.error(NOTIFY_NO_ENTITIES_FOUND_IN_ENTITY_SITEMAP);
-      }
-    } catch (error) {
-      console.error('[UnifiedContentSelector] Error fetching entities:', error);
-      notify.error(notifyFailedToFetchEntitiesX(error instanceof Error ? error.message : 'Unknown error'));
-      setServiceAreas([]);
-      setHasNoEntities(true); // CRITICAL: Set flag to prevent infinite retries in useEffect
-    } finally {
-      setIsLoading(false);
-    }
-  }, [site.siteUrl, site.username, site.appPassword, site.entitySitemapUrl]);
-
-  const fetchPages = useCallback(async () => {
-    if (!site.username || !site.appPassword) {
-      notify.error(NOTIFY_WORDPRESS_CREDENTIALS_MISSING_PLEASE_UPD);
-      return;
-    }
-    setIsLoading(true);
-    setHasNoPages(false); // Reset flag when attempting to fetch
-    const result = await getPublishedPages(site.siteUrl, site.username, site.appPassword, 100, 0);
-    if (result.error) {
-      // Handle "no pages" case gracefully - don't show error toast
-      if (result.error.includes('No published') || result.error.includes('not found')) {
-        console.log('[UnifiedContentSelector] No published pages found - this is normal if the site has no pages yet');
-        setPages([]);
-        setHasNoPages(true); // Mark that we've determined there are no pages
-      } else {
-        notify.error(notifyFailedToFetchPagesX(result.error));
-        setPages([]);
-        setHasNoPages(false); // Reset flag on other errors (might be temporary)
-      }
-    } else {
-      // Exclude thank-you pages (noindex) from selector - Content Optimizer module
-      const allPages = result.posts || [];
-      const isThankYouPage = (p: { slug?: string; link?: string; title?: string }) => {
-        const slug = (p.slug || '').toLowerCase();
-        const link = (p.link || '').toLowerCase();
-        let path = '';
-        try {
-          if (p.link) path = new URL(p.link).pathname.toLowerCase();
-        } catch {
-          path = link;
-        }
-        const title = (p.title || '').toLowerCase();
-        return slug.includes('thank-you') || path.includes('thank-you') || link.includes('thank-you') || title.includes('thank you');
-      };
-      const pagesFiltered = allPages.filter((p) => !isThankYouPage(p));
-      setPages(pagesFiltered);
-      setHasNoPages(pagesFiltered.length === 0);
-    }
-    setIsLoading(false);
-  }, [site.siteUrl, site.username, site.appPassword]);
-
-  // Reset flags when site URL changes
-  useEffect(() => {
-    setHasNoPosts(false);
-    setHasNoEntities(false);
-    setHasNoPages(false);
-    setPosts([]);
-    setServiceAreas([]);
-    setPages([]);
-  }, [site.siteUrl]);
-
-  useEffect(() => {
-    // Don't fetch if we've already determined there are no posts/entities/pages
-    if (open && postType === 'post' && posts.length === 0 && !isLoading && !hasNoPosts) {
-      fetchPosts();
-    } else if (open && postType === 'service-area' && serviceAreas.length === 0 && !isLoading && !hasNoEntities) {
-      fetchEntities();
-    } else if (open && postType === 'page' && pages.length === 0 && !isLoading && !hasNoPages) {
-      fetchPages();
-    } else if (open && postType === 'both') {
-      // Fetch posts and entities if not already loaded (both does not include pages)
-      if (posts.length === 0 && !isLoading && !hasNoPosts) {
-        fetchPosts();
-      }
-      if (serviceAreas.length === 0 && !isLoading && !hasNoEntities && site.entitySitemapUrl) {
-        fetchEntities();
-      }
-    }
-  }, [open, postType, posts.length, serviceAreas.length, pages.length, isLoading, hasNoPosts, hasNoEntities, hasNoPages, fetchPosts, fetchEntities, fetchPages, site.entitySitemapUrl]);
-
-  const filteredItems = currentItems.filter(item =>
-    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.link.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.slug?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const allFilteredSelected = filteredItems.length > 0 && filteredItems.every(item => selectedUrls.includes(item.link));
-
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      onValueChange([...new Set([...selectedUrls, ...filteredItems.map(p => p.link)])]);
-    } else {
-      onValueChange(selectedUrls.filter(url => !filteredItems.map(p => p.link).includes(url)));
-    }
-  };
-
-  const handleToggleItem = (itemUrl: string) => {
-    if (selectedUrls.includes(itemUrl)) {
-      onValueChange(selectedUrls.filter(url => url !== itemUrl));
-    } else {
-      onValueChange([...selectedUrls, itemUrl]);
-    }
-  };
-
-  const getDisplayText = () => {
-    if (multiSelect) {
-      if (selectedItems.length > 0) {
-        const typeLabel = postType === 'post' ? 'posts' : postType === 'service-area' ? 'service areas' : postType === 'page' ? 'pages' : 'URLs';
-        return selectedItems.length === 1 ? selectedItems[0].link : `${selectedItems.length} ${typeLabel} selected`;
-      }
-      const typeLabel = postType === 'post' ? 'posts' : postType === 'service-area' ? 'entities' : postType === 'page' ? 'pages' : 'URLs';
-      return `Select ${typeLabel}...`;
-    }
-    if (selectedItem) {
-      return selectedItem.link;
-    }
-    if (selectedUrl) {
-      return selectedUrl;
-    }
-    const typeLabel = postType === 'post' ? 'post' : postType === 'service-area' ? 'entity' : postType === 'page' ? 'page' : 'URL';
-    return `Select or enter ${typeLabel}...`;
-  };
+  const {
+    posts,
+    isLoading,
+    searchQuery,
+    setSearchQuery,
+    hasNoPosts,
+    hasNoEntities,
+    hasNoPages,
+    setHasNoPosts,
+    setHasNoEntities,
+    setHasNoPages,
+    selectedUrls,
+    selectedUrl,
+    selectedItem,
+    selectedItems,
+    fetchPosts,
+    fetchEntities,
+    fetchPages,
+    filteredItems,
+    allFilteredSelected,
+    handleSelectAll,
+    handleToggleItem,
+    getDisplayText,
+  } = useUnifiedContentSelector({ site, value, onValueChange, postType, open, multiSelect });
 return (
     <div className="space-y-2">
       {!isDefault ? (
@@ -669,131 +436,17 @@ return (
         </div>
       )}
       {multiSelect && selectedItems.length > 0 && (
-        <div
-            className={cn(
-              "flex items-center justify-between font-medium",
-              isDefault ? cn(d!.text, "text-muted-foreground") : cn("text-sm", getCyberpunkTextClasses("muted"))
-            )}
-        >
-          <span>
-            {selectedItems.length} {postType === 'post' ? 'post' : postType === 'service-area' ? 'entity' : postType === 'page' ? 'page' : 'URL'}{selectedItems.length !== 1 ? 's' : ''} selected
-          </span>
-          <Button
-            pressed={Boolean(isDefault)}
-            variant="quiet"
-            onClick={async (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (!site.username || !site.appPassword) {
-                notify.error(NOTIFY_SITE_CREDENTIALS_NOT_AVAILABLE);
-                return;
-              }
-              try {
-                notify.info(NOTIFY_FETCHING_DATA);
-                
-                // Helper to find endpoint from sitemap by matching URL to sitemap URLs
-                const findEndpointFromSitemap = (url: string, site: WordPressSite): string | undefined => {
-                  if (!site.sitemaps?.endpoints || !site.sitemaps?.childSitemaps) {
-                    return undefined;
-                  }
-
-                  const urlPath = new URL(url).pathname.toLowerCase();
-
-                  // Check each sitemap's endpoint
-                  for (const [sitemapUrl, endpoint] of Object.entries(site.sitemaps.endpoints)) {
-                    const sitemapFilename = sitemapUrl.split('/').pop() || '';
-                    const sitemapType = sitemapFilename.replace(/[-_]sitemap\.xml$/i, '').toLowerCase();
-                    
-                    if (urlPath.includes(sitemapType.replace(/s$/, '')) || urlPath.includes(sitemapType)) {
-                      return endpoint;
-                    }
-                  }
-
-                  if (urlPath.includes('/page/') || urlPath.match(/^\/[^/]+$/)) {
-                    if (!urlPath.match(/\/\d{4}\/\d{2}\//)) {
-                      return 'pages';
-                    }
-                  }
-
-                  return undefined;
-                };
-
-                // Determine endpoint using same priority as handleOptimizeContent
-                let knownEndpoint = site.manualEndpoint;
-                if (!knownEndpoint && selectedUrls.length > 0) {
-                  knownEndpoint = findEndpointFromSitemap(selectedUrls[0], site);
-                }
-
-                const entitySitemapUrl = site.entitySitemapUrl || undefined;
-                
-                // Use entity logic - pass entitySitemapUrl and knownEndpoint
-                const resolveResult = await resolveWordPressUrls(
-                  site.siteUrl, 
-                  site.username, 
-                  site.appPassword, 
-                  selectedUrls,
-                  entitySitemapUrl,  // Pass entity sitemap URL
-                  knownEndpoint      // Pass known endpoint
-                );
-                if (!resolveResult.resolved || resolveResult.resolved.length === 0) {
-                  notify.error(resolveResult.unresolvable?.[0]?.reason || 'Could not resolve URLs');
-                  return;
-                }
-                const contentResult = await getWordPressPostContent(
-                  site.siteUrl,
-                  site.username,
-                  site.appPassword,
-                  undefined,
-                  undefined,
-                  resolveResult.resolved.map(r => ({ id: r.id, subtype: r.subtype }))
-                );
-                if (contentResult.error || !contentResult.posts || contentResult.posts.length === 0) {
-                  notify.error(contentResult.error || 'Failed to fetch data');
-                  return;
-                }
-                const jsonData = {
-                  siteUrl: site.siteUrl,
-                  siteName: site.name,
-                  fetchedAt: new Date().toISOString(),
-                  posts: contentResult.posts.map(post => ({
-                    ...post.fullData || post,
-                    parsed: {
-                      id: post.id,
-                      slug: post.slug,
-                      title: post.title,
-                      link: post.link,
-                      status: post.status,
-                      date_gmt: post.date_gmt,
-                      postTypeEndpoint: post.postTypeEndpoint,
-                      postTypeSubtype: post.postTypeSubtype,
-                    }
-                  }))
-                };
-                const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                const typeLabel = postType === 'post' ? 'posts' : postType === 'service-area' ? 'entities' : postType === 'page' ? 'pages' : 'sitemaps';
-                a.download = `wordpress-${typeLabel}-${site.name.replace(/[^a-z0-9]/gi, '-')}-${Date.now()}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                notify.success(notifyDownloadedXItemSAsJson(contentResult.posts.length));
-              } catch (error) {
-                console.error('[UnifiedContentSelector] Error scraping:', error);
-                notify.error(error instanceof Error ? error.message : 'Failed to scrape');
-              }
-            }}
-            disabled={disabled || isLoading || !site.username || !site.appPassword}
-            title={`Download ${postType === 'post' ? 'post' : postType === 'service-area' ? 'entity' : postType === 'page' ? 'page' : 'sitemap'} data as JSON`}
-          >
-            <Download className="h-3 w-3 mr-1" />
-            Scrape
-          </Button>
-        </div>
+        <UnifiedContentSelectorScrapeBar
+          site={site}
+          postType={postType}
+          selectedUrls={selectedUrls}
+          selectedItems={selectedItems}
+          isDefault={isDefault}
+          d={d}
+          disabled={disabled}
+          isLoading={isLoading}
+        />
       )}
     </div>
   );
 };
-

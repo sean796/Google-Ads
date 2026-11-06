@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useState } from "react";
-
 import { cn } from "@/lib/utils";
 import {
   TASK_PROJECT_DIALOG_CLASS,
@@ -11,156 +10,31 @@ import {
 import { TaskAssigneePicker } from "@/components/manager/tasks/TaskAssigneePicker";
 import { TaskTagPicker } from "@/components/manager/tasks/TaskTagPicker";
 import { TaskSubtaskList } from "@/components/manager/tasks/TaskSubtaskList";
-import { TaskCommentComposer } from "@/components/manager/tasks/TaskCommentComposer";
-import { TaskFileUpload } from "@/components/manager/tasks/TaskFileUpload";
 import { TaskTriggerFields } from "@/components/manager/tasks/TaskTriggerFields";
-import { GscReportingExecutionFields } from "@/components/manager/tasks/GscReportingExecutionFields";
-import { AdsReportingExecutionFields } from "@/components/manager/tasks/AdsReportingExecutionFields";
-import { LocalDominatorExportExecutionFields } from "@/components/manager/tasks/LocalDominatorExportExecutionFields";
-import { PostCreatorExecutionFields } from "@/components/manager/tasks/PostCreatorExecutionFields";
-import { EntityPageCreatorExecutionFields } from "@/components/manager/tasks/EntityPageCreatorExecutionFields";
-import { EntityGeneratorExecutionFields } from "@/components/manager/tasks/EntityGeneratorExecutionFields";
-import { SapGeneratorExecutionFields } from "@/components/manager/tasks/SapGeneratorExecutionFields";
-import { ContentGapCheckExecutionFields } from "@/components/manager/tasks/ContentGapCheckExecutionFields";
-import { ensureContentGapCheckPayload } from "@/lib/content-gap/resolve-content-gap-count";
-import { BrowserAutomationExecutionFields } from "@/components/manager/tasks/BrowserAutomationExecutionFields";
 import { ensurePostCreatorPayload } from "@/lib/post-creator/post-creator-defaults";
-import { ensureEntityPageCreatorPayload } from "@/lib/entity-page-creator/entity-page-creator-defaults";
 import { automationUsesTriggerUi, resolveEditorialPostCreatorTask } from "@/lib/task-automation-ui";
 import { TASK_EXECUTION_KIND_OPTIONS } from "@/lib/task-execution-kind-options";
 import { AutomationTaskExecuteButton } from "@/components/manager/tasks/AutomationTaskExecuteButton";
-import { WorkspacePill } from "@/components/shared/WorkspacePill";
-import type {
-  TaskFile,
-  TaskNote,
-  TaskProject,
-  TaskTag,
-  TeamTask,
-  TaskStatus,
-  TaskRecurrenceRule,
-  TaskExecutionKind,
-  TaskExecutionPayload,
-  EntityPageCreatorExecutionPayload,
-  TaskScheduleMode,
-} from "@/lib/tasks-types";
+import type { TaskExecutionKind, TaskRecurrenceRule, TaskStatus } from "@/lib/tasks-types";
+import { ensureContentGapCheckPayload } from "@/lib/content-gap/resolve-content-gap-count";
 import { TASK_RECURRENCE_LABELS, TASK_RECURRENCE_RULES, TASK_STATUS_LABELS, TASK_STATUSES } from "@/lib/tasks-types";
 import {
   defaultTaskTriggerConfig,
-  type TaskTriggerConfig,
 } from "@/lib/task-trigger-types";
-import type { TeamMember } from "@/lib/teams-types";
 import { taskHasPulseAssignee } from "@/lib/tasks-filter";
-import type { WordPressSiteOption } from "@/components/manager/tasks/NewTaskDialog";
 import { Button, Field, TextareaField, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/ui";
-
-export type TaskDetailPaneProps = {
-  open: boolean;
-  task: TeamTask | null;
-  notes: TaskNote[];
-  files: TaskFile[];
-  subtasks: TeamTask[];
-  tags: TaskTag[];
-  members: TeamMember[];
-  siteOptions: WordPressSiteOption[];
-  memberNames: Map<number, string>;
-  teamId: number | null;
-  saving: boolean;
-  uploading: boolean;
-  isAutomationContext?: boolean;
-  automationProject?: Pick<TaskProject, "keyword" | "sourceTemplateKeyword"> | null;
-  onClose: () => void;
-  onMarkDone: () => void;
-  onUpdate: (patch: {
-    keyword?: string;
-    title?: string;
-    description?: string;
-    status?: TaskStatus;
-    assigneeIds?: number[];
-    dueDate?: string;
-    dueTime?: string;
-    tagIds?: string[];
-    recurrenceRule?: TaskRecurrenceRule;
-    scheduleMode?: TaskScheduleMode;
-    triggerConfig?: TaskTriggerConfig;
-    executionKind?: TaskExecutionKind;
-    executionPayload?: TaskExecutionPayload;
-  }) => void;
-  mentionMembers: TeamMember[];
-  onAddNote: (body: string, mentionUserIds: number[]) => void;
-  onUploadFile: (file: File) => void;
-  onAddSubtask: (title: string) => void;
-  onToggleSubtask: (taskId: number, status: TaskStatus) => void;
-  onDelete: () => void;
-  onExecuteAutomationTask?: () => void;
-  onExecuteWithAgent?: () => void;
-  executeWithAgentDisabledReason?: string | null;
-};
-
-type AutomationTab = "details" | "trigger" | "schedule" | "agent" | "activity";
-type RegularTab = "details" | "schedule" | "people" | "activity";
-type DetailTab = AutomationTab | RegularTab;
-
-const AUTOMATION_TRIGGER_TABS: { id: AutomationTab; label: string }[] = [
-  { id: "details", label: "Details" },
-  { id: "trigger", label: "Trigger" },
-  { id: "agent", label: "Agent" },
-  { id: "activity", label: "Activity" },
-];
-
-const AUTOMATION_CALENDAR_TABS: { id: AutomationTab; label: string }[] = [
-  { id: "details", label: "Details" },
-  { id: "schedule", label: "Schedule" },
-  { id: "agent", label: "Agent" },
-  { id: "activity", label: "Activity" },
-];
-
-const REGULAR_TABS: { id: RegularTab; label: string }[] = [
-  { id: "details", label: "Details" },
-  { id: "schedule", label: "Schedule" },
-  { id: "people", label: "People" },
-  { id: "activity", label: "Activity" },
-];
-
-function NoteBody({ body }: { body: string }) {
-  const parts = body.split(/(@\S+(?:\s+\S+)?)/g);
-  return (
-    <p className="whitespace-pre-wrap text-base text-muted-foreground">
-      {parts.map((part, i) =>
-        part.startsWith("@") ? (
-          <span key={i} className="text-primary">
-            {part}
-          </span>
-        ) : (
-          part
-        ),
-      )}
-    </p>
-  );
-}
-
-function TaskDetailTabBar({
-  tabs,
-  activeTab,
-  onChange,
-}: {
-  tabs: { id: DetailTab; label: string }[];
-  activeTab: DetailTab;
-  onChange: (tab: DetailTab) => void;
-}): React.ReactElement {
-  return (
-    <div className="flex shrink-0 flex-wrap gap-1 border-b border-border pb-3" role="tablist">
-      {tabs.map((tab) => (
-        <WorkspacePill
-          key={tab.id}
-          label={tab.label}
-          active={activeTab === tab.id}
-          square
-          onClick={() => onChange(tab.id)}
-        />
-      ))}
-    </div>
-  );
-}
+import {
+  AUTOMATION_CALENDAR_TABS,
+  AUTOMATION_TRIGGER_TABS,
+  REGULAR_TABS,
+  type AutomationTab,
+  type DetailTab,
+  type RegularTab,
+  type TaskDetailPaneProps,
+} from "@/components/manager/tasks/task-detail-pane-types";
+import { TaskDetailTabBar } from "@/components/manager/tasks/TaskDetailTabBar";
+import { TaskDetailAutomationSchedulePanel } from "@/components/manager/tasks/TaskDetailAutomationSchedulePanel";
+import { TaskDetailActivityPanel } from "@/components/manager/tasks/TaskDetailActivityPanel";
 
 export function TaskDetailPane({
   open,
@@ -238,6 +112,7 @@ export function TaskDetailPane({
       : AUTOMATION_CALENDAR_TABS
     : REGULAR_TABS;
 
+
   const detailsPanel = task ? (
     <TaskFormPanel title="Task details">
       <TaskFormFieldGrid>
@@ -286,6 +161,7 @@ export function TaskDetailPane({
     </TaskFormPanel>
   ) : null;
 
+
   const triggerPanel = task ? (
     <TaskFormPanel title="GSC trigger">
       <TaskTriggerFields
@@ -305,6 +181,7 @@ export function TaskDetailPane({
       ) : null}
     </TaskFormPanel>
   ) : null;
+
 
   const agentPanel = task ? (
     <TaskFormPanel title="Agent execution">
@@ -354,144 +231,15 @@ export function TaskDetailPane({
     </TaskFormPanel>
   ) : null;
 
+
   const automationSchedulePanel = task ? (
-    <TaskFormPanel title="Calendar schedule">
-      <TaskFormInfieldSelect
-        label="Recurrence"
-        value={task.recurrenceRule ?? "none"}
-        onChange={(v) => onUpdate({ recurrenceRule: v as TaskRecurrenceRule })}
-        disabled={saving}
-        options={TASK_RECURRENCE_RULES.filter((r) => r !== "none").map((rule) => ({
-          value: rule,
-          label: TASK_RECURRENCE_LABELS[rule],
-        }))}
-      />
-      <TaskFormFieldGrid>
-        <TaskFormInfield label="Due date">
-          <Field
-            placeholder="Due date"
-            type="date"
-            value={task.dueDate ? task.dueDate.slice(0, 10) : ""}
-            onChange={(e) => onUpdate({ dueDate: e.target.value })}
-            disabled={saving}
-          />
-        </TaskFormInfield>
-        <TaskFormInfield label="Due time">
-          <Field
-            placeholder="Due time"
-            type="time"
-            value={task.dueTime ?? ""}
-            onChange={(e) => onUpdate({ dueTime: e.target.value })}
-            disabled={saving}
-            aria-label="Due time"
-          />
-        </TaskFormInfield>
-      </TaskFormFieldGrid>
-      {executionKind === "entity_page_creator" ? (
-        <EntityPageCreatorExecutionFields
-          layout="stack"
-          executionPayload={ensureEntityPageCreatorPayload(executionPayload as EntityPageCreatorExecutionPayload)}
-          disabled={saving}
-          onChange={(nextPayload) =>
-            onUpdate({
-              executionPayload: ensureEntityPageCreatorPayload(nextPayload as EntityPageCreatorExecutionPayload),
-              executionKind: "entity_page_creator",
-              scheduleMode: "calendar",
-            })
-          }
-        />
-      ) : null}
-      {executionKind === "entity_generator" ? (
-        <EntityGeneratorExecutionFields
-          executionPayload={ensureEntityPageCreatorPayload(executionPayload as EntityPageCreatorExecutionPayload)}
-          disabled={saving}
-          onChange={(nextPayload) =>
-            onUpdate({
-              executionPayload: ensureEntityPageCreatorPayload(nextPayload as EntityPageCreatorExecutionPayload),
-              executionKind: "entity_generator",
-              scheduleMode: "calendar",
-            })
-          }
-        />
-      ) : null}
-      {executionKind === "sap_generator" ? (
-        <SapGeneratorExecutionFields
-          executionPayload={ensureEntityPageCreatorPayload(executionPayload as EntityPageCreatorExecutionPayload)}
-          disabled={saving}
-          onChange={(nextPayload) =>
-            onUpdate({
-              executionPayload: ensureEntityPageCreatorPayload(nextPayload as EntityPageCreatorExecutionPayload),
-              executionKind: "sap_generator",
-              scheduleMode: "calendar",
-            })
-          }
-        />
-      ) : null}
-      {executionKind === "post_creator" ? (
-        <PostCreatorExecutionFields
-          layout="stack"
-          executionPayload={ensurePostCreatorPayload(executionPayload)}
-          disabled={saving}
-          onChange={(nextPayload) =>
-            onUpdate({ executionPayload: ensurePostCreatorPayload(nextPayload), executionKind: "post_creator", scheduleMode: "calendar" })
-          }
-        />
-      ) : null}
-      {executionKind === "gsc_reporting" ? (
-        <GscReportingExecutionFields
-          layout="stack"
-          executionPayload={executionPayload}
-          disabled={saving}
-          onChange={(nextPayload) => onUpdate({ executionPayload: nextPayload })}
-        />
-      ) : null}
-      {executionKind === "ads_reporting" ? (
-        <AdsReportingExecutionFields
-          layout="stack"
-          executionPayload={executionPayload}
-          disabled={saving}
-          onChange={(nextPayload) => onUpdate({ executionPayload: nextPayload })}
-        />
-      ) : null}
-      {executionKind === "local_dominator_export" ? (
-        <LocalDominatorExportExecutionFields
-          layout="stack"
-          executionPayload={executionPayload}
-          disabled={saving}
-          onChange={(nextPayload) => onUpdate({ executionPayload: nextPayload })}
-        />
-      ) : null}
-      {executionKind === "content_gap_check" ? (
-        <ContentGapCheckExecutionFields
-          layout="stack"
-          clientSiteId={task.wordpressSiteId ?? ""}
-          executionPayload={executionPayload}
-          disabled={saving}
-          onChange={(nextPayload) =>
-            onUpdate({
-              executionPayload: ensureContentGapCheckPayload(nextPayload),
-              executionKind: "content_gap_check",
-              scheduleMode: "calendar",
-            })
-          }
-        />
-      ) : null}
-      {executionKind === "browser_automation" ? (
-        <BrowserAutomationExecutionFields
-          layout="stack"
-          clientSiteId={task.wordpressSiteId ?? ""}
-          executionPayload={executionPayload}
-          disabled={saving}
-          onChange={(nextPayload) =>
-            onUpdate({
-              executionPayload: nextPayload,
-              executionKind: "browser_automation",
-              scheduleMode: "calendar",
-            })
-          }
-        />
-      ) : null}
-    </TaskFormPanel>
+    <TaskDetailAutomationSchedulePanel
+      task={task}
+      executionKind={executionKind}
+      executionPayload={executionPayload}
+      saving={saving}
+      onUpdate={onUpdate}
+    />
   ) : null;
 
   const schedulePanel = task ? (
@@ -543,41 +291,22 @@ export function TaskDetailPane({
   ) : null;
 
   const activityPanel = task ? (
-    <div className="flex flex-col gap-4">
-      {isAutomationContext ? (
-        <TaskSubtaskList subtasks={subtasks} onToggle={onToggleSubtask} onAdd={onAddSubtask} />
-      ) : null}
-      <div className="flex flex-col gap-2">
-        <p className="text-base font-semibold text-white">Comments</p>
-        {notes.length === 0 ? (
-          <p className="text-base text-muted-foreground">No comments yet.</p>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {notes.map((note) => (
-              <li key={note.id} className="flex flex-col gap-0.5">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-base font-medium text-white">
-                    {memberNames.get(note.authorId) ?? `User ${note.authorId}`}
-                  </span>
-                  <span className="text-base text-muted-foreground">{note.createdAt.slice(0, 10)}</span>
-                </div>
-                <NoteBody body={note.body} />
-              </li>
-            ))}
-          </ul>
-        )}
-        <TaskCommentComposer members={mentionMembers} disabled={saving} onSubmit={onAddNote} />
-      </div>
-      {teamId ? (
-        <TaskFileUpload
-          teamId={teamId}
-          taskId={task.id}
-          files={files}
-          uploading={uploading}
-          onUpload={onUploadFile}
-        />
-      ) : null}
-    </div>
+    <TaskDetailActivityPanel
+      task={task}
+      isAutomationContext={isAutomationContext}
+      subtasks={subtasks}
+      onToggleSubtask={onToggleSubtask}
+      onAddSubtask={onAddSubtask}
+      notes={notes}
+      memberNames={memberNames}
+      mentionMembers={mentionMembers}
+      saving={saving}
+      onAddNote={onAddNote}
+      teamId={teamId}
+      files={files}
+      uploading={uploading}
+      onUploadFile={onUploadFile}
+    />
   ) : null;
 
   const tabPanel = (() => {

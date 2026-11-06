@@ -5,8 +5,10 @@ import { VIDEO_MODEL_PRESETS } from "@/lib/video-generator/video-model-defaults"
 import { useVideoBrainstorm } from "./useVideoBrainstorm";
 import { useVideoGenerator } from "./useVideoGenerator";
 import { VideoInstructionBar } from "./VideoInstructionBar";
-import { VideoStagePanel, type StagePreviewMode } from "./VideoStagePanel";
-import { VideoStudioLeftDock, type StudioLeftTabId } from "./VideoStudioLeftDock";
+import { VideoStagePanel } from "./VideoStagePanel";
+import type { StagePreviewMode } from "./video-stage-panel-helpers";
+import { VideoStudioLeftDock } from "./VideoStudioLeftDock";
+import type { StudioLeftTabId } from "./video-studio-left-dock-types";
 import { VideoTimelineDock } from "./VideoTimelineDock";
 import { VideoWorkspaceHeader } from "./VideoWorkspaceHeader";
 import type { VideoGeneratorStep } from "./video-generator-steps";

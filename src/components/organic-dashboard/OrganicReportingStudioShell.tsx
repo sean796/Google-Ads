@@ -3,7 +3,6 @@ import {
   Download,
   FileText,
   Link2,
-  RefreshCw,
   Square,
 } from "lucide-react";
 import { ContentOptimizerSplashOverlay } from "@/components/overview/studio/ContentOptimizerSplashOverlay";
@@ -14,92 +13,21 @@ import {
   OVERVIEW_TAB_TYPO_CLASS,
   contentOptimizerRowStripeClass,
 } from "@/components/overview/overview-tab/overview-tab-content-constants";
-import type { BulkDetailsDownloadable } from "@/components/shared/bulk-details-tile-sections-helpers";
 import { OrganicClientReportExportDocument } from "@/components/organic-dashboard/OrganicClientReportExportDocument";
-import {
-  Ga4ReportingDateRangePopover,
-  type Ga4ReportingDateHarness,
-} from "@/components/research/reporting/Ga4ReportingDateRangePopover";
-import type { OrganicClientReportContent } from "@/lib/organic-dashboard/organic-client-report-content";
-import { formatOwnerReportHeading } from "@/lib/organic-dashboard/organic-client-report-copy";
+import type { BulkDetailsDownloadable } from "@/components/shared/bulk-details-tile-sections-helpers";
 import { NOTIFY_CSV_DOWNLOADED } from "@/lib/notify-messages";
 import { notify } from "@/lib/app-notifications";
 import { cn } from "@/lib/utils";
 import { Button } from "@/ui";
-
-const LEFT_DOCK_WIDTH_KEY = "neo-pulse:organic-reporting-left-dock-width:v1";
-const LEFT_DOCK_DEFAULT_WIDTH = 320;
-const LEFT_DOCK_MIN_WIDTH = 240;
-const LEFT_DOCK_MAX_WIDTH = 520;
-
-function clampLeftDockWidth(width: number): number {
-  const maxByViewport =
-    typeof window !== "undefined"
-      ? Math.max(LEFT_DOCK_MIN_WIDTH, Math.min(LEFT_DOCK_MAX_WIDTH, window.innerWidth - 360))
-      : LEFT_DOCK_MAX_WIDTH;
-  return Math.round(Math.min(maxByViewport, Math.max(LEFT_DOCK_MIN_WIDTH, width)));
-}
-
-function readLeftDockWidth(): number {
-  if (typeof window === "undefined") return LEFT_DOCK_DEFAULT_WIDTH;
-  try {
-    const raw = window.localStorage.getItem(LEFT_DOCK_WIDTH_KEY);
-    if (!raw) return LEFT_DOCK_DEFAULT_WIDTH;
-    const parsed = Number(raw);
-    if (!Number.isFinite(parsed)) return LEFT_DOCK_DEFAULT_WIDTH;
-    return clampLeftDockWidth(parsed);
-  } catch {
-    return LEFT_DOCK_DEFAULT_WIDTH;
-  }
-}
-
-function triggerBlobDownload(file: BulkDetailsDownloadable) {
-  const blob = new Blob([file.content], { type: file.mimeType || "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = file.name;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-type ReportOutlineItem = {
-  id: string;
-  title: string;
-  subtitle: string;
-  anchorId: string;
-  isReady: boolean;
-  downloadFile: BulkDetailsDownloadable | null;
-};
-
-export type OrganicReportingStudioShellProps = {
-  siteName: string;
-  dateHarness: Ga4ReportingDateHarness;
-  onDateHarnessApply: (next: Ga4ReportingDateHarness) => void;
-  todayYmdMax: string;
-  dateRangePopoverOpen: boolean;
-  onDateRangePopoverOpenChange: (open: boolean) => void;
-  splashVisible: boolean;
-  busy: boolean;
-  activeStatusText: string;
-  reportContent: OrganicClientReportContent | null;
-  highlightsLoading: boolean;
-  localGridNarrativeLoading?: boolean;
-  highlightsError: string | null;
-  onRefresh: () => void;
-  onShareLink: () => void;
-  shareCopied: boolean;
-  onDownloadMarkdown: () => void;
-  onDownloadPdf: () => void;
-  downloadPdfBusy: boolean;
-  exportDisabled: boolean;
-  clientLogoBoxTheme?: "black" | "white";
-  onToggleLogoBoxTheme?: () => void;
-  /** Shown when the shell is idle but reportContent is still null (failed or blocked load). */
-  reportIdleMessage?: string | null;
-};
+import {
+  clampLeftDockWidth,
+  readLeftDockWidth,
+  triggerBlobDownload,
+  LEFT_DOCK_WIDTH_KEY,
+  type OrganicReportingStudioShellProps,
+} from "@/components/organic-dashboard/organic-reporting-studio-shell-helpers";
+import { useOrganicReportingOutlineItems } from "@/components/organic-dashboard/use-organic-reporting-outline-items";
+import { OrganicReportingStudioLeftDock } from "@/components/organic-dashboard/OrganicReportingStudioLeftDock";
 
 export function OrganicReportingStudioShell({
   siteName,
@@ -189,188 +117,8 @@ export function OrganicReportingStudioShell({
     [finishResize],
   );
 
-  const outlineItems = useMemo((): ReportOutlineItem[] => {
-    if (!reportContent) return [];
-    const items: ReportOutlineItem[] = [];
 
-    const hasInsights =
-      Boolean(reportContent.highlights.executiveSummary.trim()) ||
-      reportContent.highlights.keyTakeaways.length > 0;
-    const hasCover =
-      Boolean(reportContent.siteName.trim()) && Boolean(reportContent.periodLine.trim());
-    items.push({
-      id: "outline-cover",
-      title: "Executive cover & insights",
-      subtitle: "/cover",
-      anchorId: "report-cover",
-      isReady: hasCover,
-      downloadFile: hasInsights
-        ? {
-            name: "insights-summary.json",
-            content: JSON.stringify(
-              {
-                executiveSummary: reportContent.highlights.executiveSummary,
-                keyTakeaways: reportContent.highlights.keyTakeaways,
-              },
-              null,
-              2,
-            ),
-            mimeType: "application/json;charset=utf-8",
-          }
-        : null,
-    });
-
-
-
-    if (reportContent.showPerformanceSection) {
-      items.push({
-        id: "outline-performance",
-        title: formatOwnerReportHeading("Performance summary"),
-        subtitle: "/ga4",
-        anchorId: "export-section-performance-summary",
-        isReady: reportContent.traffic.length > 0 || reportContent.search.length > 0,
-        downloadFile: {
-          name: "performance-summary.json",
-          content: JSON.stringify(
-            {
-              narrative: reportContent.performanceNarrative,
-              ga4Traffic: reportContent.traffic,
-              gscSearch: reportContent.search,
-            },
-            null,
-            2,
-          ),
-          mimeType: "application/json;charset=utf-8",
-        },
-      });
-    }
-
-    if (reportContent.showSemrushSection) {
-      items.push({
-        id: "outline-semrush",
-        title: formatOwnerReportHeading("Semrush estimates"),
-        subtitle: "/semrush",
-        anchorId: "export-section-semrush-estimates",
-        isReady:
-          reportContent.semrushDeckRows.length > 0 ||
-          reportContent.topSemrushKeywords.length > 0,
-        downloadFile: {
-          name: "semrush-estimates.json",
-          content: JSON.stringify(
-            {
-              summary: reportContent.semrushDeckRows,
-              topKeywords: reportContent.topSemrushKeywords,
-            },
-            null,
-            2,
-          ),
-          mimeType: "application/json;charset=utf-8",
-        },
-      });
-    }
-
-    if (reportContent.showKeywordSection) {
-      items.push({
-        id: "outline-keywords",
-        title: formatOwnerReportHeading("Keyword performance"),
-        subtitle: "/keyword-performance",
-        anchorId: "export-section-keyword-performance",
-        isReady: reportContent.topQueries.length > 0,
-        downloadFile: {
-          name: "keyword-performance.json",
-          content: JSON.stringify(
-            {
-              narrative: reportContent.keywordNarrative,
-              topQueries: reportContent.topQueries,
-            },
-            null,
-            2,
-          ),
-          mimeType: "application/json;charset=utf-8",
-        },
-      });
-    }
-
-    if (reportContent.showHighlightsSection) {
-      items.push({
-        id: "outline-highlights",
-        title: formatOwnerReportHeading("Highlights"),
-        subtitle: "/highlights",
-        anchorId: "export-section-highlights",
-        isReady:
-          reportContent.highlightStats.length > 0 || reportContent.opportunities.length > 0,
-        downloadFile: {
-          name: "opportunities.json",
-          content: JSON.stringify(
-            {
-              stats: reportContent.highlightStats,
-              opportunities: reportContent.opportunities,
-            },
-            null,
-            2,
-          ),
-          mimeType: "application/json;charset=utf-8",
-        },
-      });
-    }
-
-    if (reportContent.showLocalGridSection && (reportContent.localGridSections?.length || reportContent.localGridSection)) {
-      const sections = reportContent.localGridSections?.length
-        ? reportContent.localGridSections
-        : reportContent.localGridSection
-          ? [reportContent.localGridSection]
-          : [];
-      items.push({
-        id: "outline-local-grid",
-        title: formatOwnerReportHeading("Local map visibility"),
-        subtitle: `/local-map (${sections.length})`,
-        anchorId: "export-section-local-map-visibility",
-        isReady: true,
-        downloadFile: {
-          name: "local-grid.json",
-          content: JSON.stringify(
-            {
-              locations: sections.map((s) => ({
-                meta: s.meta,
-                summaryRows: s.summaryRows,
-              })),
-              narrative: reportContent.localGridNarrative,
-            },
-            null,
-            2,
-          ),
-          mimeType: "application/json;charset=utf-8",
-        },
-      });
-    }
-
-    if (reportContent.showGoogleAdsSection) {
-      items.push({
-        id: "outline-google-ads",
-        title: formatOwnerReportHeading("Google Ads"),
-        subtitle: "/google-ads",
-        anchorId: "export-section-google-ads",
-        isReady:
-          reportContent.googleAdsAccountCard != null ||
-          reportContent.googleAdsDeckRows.length > 0,
-        downloadFile: {
-          name: "google-ads.json",
-          content: JSON.stringify(
-            {
-              narrative: reportContent.googleAdsNarrative,
-              summary: reportContent.googleAdsDeckRows,
-              opportunities: reportContent.googleAdsOpportunities,
-            },
-            null,
-            2,
-          ),
-          mimeType: "application/json;charset=utf-8",
-        },
-      });
-    }
-
-    return items;
-  }, [reportContent]);
+  const outlineItems = useOrganicReportingOutlineItems(reportContent);
 
   const scrollToSection = useCallback((anchorId: string) => {
     setActiveAnchorId(anchorId);
@@ -462,103 +210,25 @@ export function OrganicReportingStudioShell({
           )}
         >
         {/* Left Studio Dock */}
-        <aside
-          aria-label="Reporting studio navigator"
-          style={{ width: `${dockWidth}px` }}
-          className="relative flex h-full shrink-0 flex-col border-r border-white/10 bg-black font-sans text-base text-white"
-        >
-          {/* Top Mode Row */}
-          <div className="flex h-11 shrink-0 items-center justify-between gap-2 bg-ui-field px-3">
-            <span className="inline-flex h-8 items-center bg-primary px-3 text-base font-semibold text-black">
-              Performance
-            </span>
-
-            <Button
-              size="icon" icon={RefreshCw}
-              variant="quiet"
-              type="button"
-              disabled={busy}
-              title="Refresh report metrics and AI overview"
-              aria-label="Refresh report"
-              onClick={onRefresh}
-            ></Button>
-          </div>
-
-          {/* Date Range Filter Row */}
-          <div className="flex flex-col gap-1.5 border-b border-white/10 bg-black p-2.5">
-            <Ga4ReportingDateRangePopover
-              busy={busy}
-              value={dateHarness}
-              onApply={onDateHarnessApply}
-              todayYmdMax={todayYmdMax}
-              open={dateRangePopoverOpen}
-              onOpenChange={onDateRangePopoverOpenChange}
-            />
-            <div className="flex items-center justify-between px-1 text-base text-muted-foreground">
-              <span className="tabular-nums">{outlineItems.length} report sections</span>
-              <span className="tabular-nums text-primary">
-                {readyCount}/{outlineItems.length} ready
-              </span>
-            </div>
-          </div>
-
-          {/* Scrollable Report Sections List */}
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            {outlineItems.length === 0 ? (
-              <div className="min-h-48" aria-hidden />
-            ) : (
-              <ul className="divide-y divide-white/5" aria-label="Report sections">
-                {outlineItems.map((item) => {
-                  const isActive = activeAnchorId === item.anchorId;
-                  return (
-                    <li
-                      key={item.id}
-                      className={cn(
-                        "group flex items-start gap-2.5 px-3.5 py-3 transition-colors",
-                        isActive
-                          ? "border-l-2 border-primary bg-ui-field"
-                          : "bg-black hover:bg-black",
-                      )}
-                    >
-                      <Button
-                        variant="quiet"
-                        onClick={() => scrollToSection(item.anchorId)}
-                      >
-                        <span
-                          className={cn(
-                            "text-base font-medium leading-snug",
-                            isActive ? "text-primary" : "text-white group-hover:text-primary/90",
-                          )}
-                        >
-                          {item.title}
-                        </span>
-                        <span className="w-full break-words text-base text-muted-foreground">
-                          {item.subtitle}
-                        </span>
-                      </Button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-
-          {/* Right-edge click & drag resize handle */}
-          <div
-            role="separator"
-            aria-orientation="vertical"
-            aria-label="Resize reporting dock"
-            onPointerDown={onResizePointerDown}
-            onPointerMove={onResizePointerMove}
-            onPointerUp={onResizePointerUp}
-            onPointerCancel={onResizePointerUp}
-            onDoubleClick={() => finishResize(LEFT_DOCK_DEFAULT_WIDTH)}
-            className={cn(
-              "absolute inset-y-0 -right-1 z-20 w-2 cursor-ew-resize touch-none transition-colors hover:bg-primary/40",
-              isResizing && "bg-primary/60",
-            )}
-          />
-        </aside>
+        <OrganicReportingStudioLeftDock
+          dockWidth={dockWidth}
+          busy={busy}
+          onRefresh={onRefresh}
+          dateHarness={dateHarness}
+          onDateHarnessApply={onDateHarnessApply}
+          todayYmdMax={todayYmdMax}
+          dateRangePopoverOpen={dateRangePopoverOpen}
+          onDateRangePopoverOpenChange={onDateRangePopoverOpenChange}
+          outlineItems={outlineItems}
+          readyCount={readyCount}
+          activeAnchorId={activeAnchorId}
+          scrollToSection={scrollToSection}
+          isResizing={isResizing}
+          onResizePointerDown={onResizePointerDown}
+          onResizePointerMove={onResizePointerMove}
+          onResizePointerUp={onResizePointerUp}
+          finishResize={finishResize}
+        />
 
         {/* Right Studio Document Canvas */}
         <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-black">

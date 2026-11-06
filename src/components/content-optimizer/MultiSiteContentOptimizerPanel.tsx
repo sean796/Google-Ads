@@ -1,28 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Sparkles } from "lucide-react";
 import { MultiSiteContentOptimizerWorkspaceHeader } from "@/components/content-optimizer/MultiSiteContentOptimizerWorkspaceHeader";
-import { MultiSiteRowDatePicker } from "@/components/content-optimizer/MultiSiteRowDatePicker";
-import {
-  MultiSiteSitemapModeSelect,
-} from "@/components/content-optimizer/MultiSiteSitemapModeSelect";
-import type { ContentOptimizerSectionId } from "@/components/content-optimizer/content-optimizer-sections";
-import type { ContentOptimizerGeneratorChrome } from "@/components/content-optimizer/content-optimizer-generator-chrome";
+import type { WordPressSite } from "@/components/integrations/types";
 import { useWordPressSites } from "@/hooks/use-wordpress-sites";
 import { useOptimizationActivityCounts } from "@/hooks/use-optimization-activity-counts";
 import { useWordPressOptimization } from "@/contexts/wordpress-optimization-context";
 import { useAgentRunOptimizerScope } from "@/contexts/agent-run-optimizer-scope-context";
-import type { WordPressSite } from "@/components/integrations/types";
-
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_BATCH_CLEARED_FROM_VIEW, NOTIFY_BOTH_NEEDS_POST_AND_ENTITY_IN_INTEGRATIO, NOTIFY_DETECT_POSTS_FOR_THIS_PROPERTY_IN_INTEGR, NOTIFY_ENTITY_BATCH_DID_NOT_FINISH, NOTIFY_NO_POST_OR_ENTITY_URLS_FOR_THIS_SITE, NOTIFY_NO_SELECTED_SITES_ARE_READY_TO_OPTIMIZE, NOTIFY_NO_URLS_FOR_THIS_SOURCE_ON_THIS_SITE, NOTIFY_POST_BATCH_DID_NOT_FINISH_ENTITY_WAS_NOT, NOTIFY_SAVE_AN_ENTITY_URL_FOR_THIS_SITE_IN_INTE, NOTIFY_STILL_INITIALIZING_THIS_ROW_TRY_AGAIN, notifyBothEntityXUrlSOnX, notifyBothPostFirstXUrlSOnX, notifyOptimizingXUrlSOnX, notifySkippedXSiteSNotConfiguredForCurr } from "@/lib/notify-messages";
-import { buildMultiSiteHeaderMicroSnapshot } from "@/lib/content-optimization/multi-site-header-progress";
 import { cn } from "@/lib/utils";
 import {
   readMultiSiteLastCompletedMap,
   persistMultiSiteLastCompleted,
   readMultiSiteManualRowDateMap,
   persistMultiSiteManualRowDate,
-  resolveMultiSiteRowActivityIso,
   type MultiSiteLastCompletedBySite,
   type MultiSiteManualRowDateBySite,
 } from "@/lib/content-optimization/multi-site-last-completed-at";
@@ -31,55 +21,23 @@ import {
   pickPostSitemapUrlForSite,
   type MultiSiteUrlSource,
 } from "@/lib/content-optimization/multi-site-source-urls";
-import { OptimizationActivityStrip } from "@/components/integrations/wordpress/WordPressSiteList";
-import { optimizationStatsForSite } from "@/components/integrations/wordpress/wordpress-site-list-stats";
-import { CompactWordPressTile } from "@/components/integrations/wordpress/CompactWordPressTile";
 import {
   SEO_WORKSPACE_BODY_SCROLL_CLASS,
   SEO_WORKSPACE_HEADER_CLASS,
 } from "@/components/seo/seo-workspace-layout";
 import {
   CONTENT_OPTIMIZER_BODY_INSET_CLASS,
-  CONTENT_OPTIMIZER_COMPACT_ROW_INNER_CLASS,
-  CONTENT_OPTIMIZER_MULTI_SITE_CLUSTER_LEFT_CELL,
-  CONTENT_OPTIMIZER_MULTI_SITE_CLUSTER_OUTER,
-  CONTENT_OPTIMIZER_MULTI_SITE_CLUSTER_RIGHT_CELL,
-  CONTENT_OPTIMIZER_MULTI_SITE_OPT_COUNT_SLOT,
-  CONTENT_OPTIMIZER_MULTI_SITE_OPTIMIZE_ROW_BTN,
-  CONTENT_OPTIMIZER_MULTI_SITE_ROW_STACK_CLASS,
-  CONTENT_OPTIMIZER_MULTI_SITE_ROW_WRAPPER_CLASS,
-  contentOptimizerRowStripeClass,
   CONTENT_OPTIMIZER_WORKSPACE_SHELL_CLASS,
 } from "@/components/overview/overview-tab/overview-tab-content-constants";
-import { Button, Checkbox } from "@/ui";
-
-type SiteRowConfig = {
-  source: MultiSiteUrlSource;
-};
-
-const PACKAGE_OPTIMIZATION_OVERRIDE = { seoExtraTextFieldOnly: false as const };
-const BOTH_MODE_PREP_OVERRIDE = { prepEntitySitemap: true as const };
-
-/** Match Dashboard → Properties list checkboxes (`WordPressSiteList`), including indeterminate. */
-const MULTI_SITE_CHECKBOX_CLASS =
-  "border-border/60 data-[state=checked]:border-border data-[state=checked]:bg-ui-field-hover data-[state=checked]:text-muted-foreground data-[state=indeterminate]:border-border data-[state=indeterminate]:bg-ui-field-hover data-[state=indeterminate]:text-muted-foreground";
-
-/** Flush stack; only the first row gets top inset below the progress band. */
-const MULTI_SITE_LIST_STACK = CONTENT_OPTIMIZER_MULTI_SITE_ROW_STACK_CLASS;
-
-function MultiSiteOptimizeLogoButtonContent({ busy }: { busy: boolean }) {
-  if (busy) {
-    return null;
-  }
-  return <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary-foreground sm:h-4 sm:w-4" aria-hidden />;
-}
-
-export type MultiSiteContentOptimizerPanelProps = {
-  optimizerSection: ContentOptimizerSectionId;
-  onOptimizerSectionChange: (id: ContentOptimizerSectionId) => void;
-  paginationLayoutTotal: number;
-  generatorChrome?: ContentOptimizerGeneratorChrome;
-};
+import {
+  BOTH_MODE_PREP_OVERRIDE,
+  MULTI_SITE_LIST_STACK,
+  PACKAGE_OPTIMIZATION_OVERRIDE,
+  type MultiSiteContentOptimizerPanelProps,
+  type SiteRowConfig,
+} from "@/components/content-optimizer/multi-site-content-optimizer-panel-types";
+import { useMultiSiteBatchProgress } from "@/components/content-optimizer/use-multi-site-batch-progress";
+import { MultiSiteOptimizerSiteRow } from "@/components/content-optimizer/MultiSiteOptimizerSiteRow";
 
 export const MultiSiteContentOptimizerPanel: React.FC<MultiSiteContentOptimizerPanelProps> = ({
   optimizerSection,
@@ -196,62 +154,6 @@ export const MultiSiteContentOptimizerPanel: React.FC<MultiSiteContentOptimizerP
     [],
   );
 
-  const bulkRunBatchKey = useMemo(() => {
-    if (scope?.batchKey) return scope.batchKey;
-    for (const s of propertySites) {
-      const bk = `${s.id}-batch`;
-      if (isOptimizingContent[bk]) return bk;
-    }
-    for (const key of Object.keys(isOptimizingContent)) {
-      if (key.startsWith("agent-run-") && isOptimizingContent[key]) return key;
-    }
-    if (optimizeBusySiteId) {
-      const busyKey = `${optimizeBusySiteId}-batch`;
-      if (isOptimizingContent[busyKey] || bulkOptimizationState[busyKey]) return busyKey;
-    }
-    for (const key of Object.keys(bulkOptimizationState)) {
-      if (key.startsWith("agent-run-") && bulkOptimizationState[key]) return key;
-    }
-    if (pinnedDetailsBatchKey && bulkOptimizationState[pinnedDetailsBatchKey]) {
-      return pinnedDetailsBatchKey;
-    }
-    return null;
-  }, [
-    scope?.batchKey,
-    propertySites,
-    bulkOptimizationState,
-    isOptimizingContent,
-    optimizeBusySiteId,
-    pinnedDetailsBatchKey,
-  ]);
-
-  const batchSiteId = scope?.siteId
-    ?? (bulkRunBatchKey?.endsWith("-batch") ? bulkRunBatchKey.replace(/-batch$/, "") : "");
-  const batchSite = propertySites.find((s) => s.id === batchSiteId);
-  const batchBulkState = bulkRunBatchKey ? bulkOptimizationState[bulkRunBatchKey] : null;
-  const batchProgress = bulkRunBatchKey ? optimizationProgress[bulkRunBatchKey] : undefined;
-  const isBatchRunning = bulkRunBatchKey ? Boolean(isOptimizingContent[bulkRunBatchKey]) : false;
-  const bulkActiveUrlDs =
-    batchBulkState?.urls?.length && typeof batchBulkState.currentIndex === "number"
-      ? batchBulkState.urls[batchBulkState.currentIndex] ?? null
-      : null;
-  const gscMap = batchSiteId ? gscPerformancePreview[batchSiteId] || {} : {};
-  const gscSnapshotDs = bulkActiveUrlDs ? gscMap[bulkActiveUrlDs] : undefined;
-  const rowProgressDs = batchSite ? optimizationProgress[batchSite.id] ?? batchProgress : batchProgress;
-  const progressTextDs = `${rowProgressDs?.step || ""} ${rowProgressDs?.message || ""}`.toLowerCase();
-  const isBusyDs =
-    Boolean(batchSite && isOptimizingContent[batchSite.id]) ||
-    Boolean(bulkRunBatchKey && isOptimizingContent[bulkRunBatchKey]);
-  const gscPreviewLoadingDs =
-    Boolean(isBusyDs) &&
-    Boolean(bulkActiveUrlDs) &&
-    !gscSnapshotDs?.queries?.length &&
-    (progressTextDs.includes("gsc") ||
-      progressTextDs.includes("search console") ||
-      progressTextDs.includes("page performance"));
-
-  const anyBatchBlocking = Boolean(bulkRunBatchKey && isBatchRunning);
-  const actionsBlocked = anyBatchBlocking || optimizeQueueBusy;
 
   const allSitesSelected =
     propertySites.length > 0 && propertySites.every((s) => selectedSiteIds.has(s.id));
@@ -433,6 +335,7 @@ export const MultiSiteContentOptimizerPanel: React.FC<MultiSiteContentOptimizerP
     }
   }, [propertySites, selectedSiteIds, rowConfigs, optimizeSite]);
 
+
   const runnableSelectedCount = useMemo(() => {
     let n = 0;
     for (const site of propertySites) {
@@ -450,18 +353,27 @@ export const MultiSiteContentOptimizerPanel: React.FC<MultiSiteContentOptimizerP
     return n;
   }, [propertySites, selectedSiteIds, rowConfigs]);
 
-  const workspaceBusy = actionsBlocked || Boolean(optimizeBusySiteId);
-  const progressSnapshot = useMemo(
-    () =>
-      buildMultiSiteHeaderMicroSnapshot({
-        optimizeQueueBusy,
-        optimizeBusySiteId,
-        isBatchRunning,
-        batchBulkState,
-        batchSiteName: batchSite?.name,
-      }),
-    [optimizeQueueBusy, optimizeBusySiteId, isBatchRunning, batchBulkState, batchSite?.name],
-  );
+
+  const {
+    bulkRunBatchKey,
+    batchSite,
+    batchBulkState,
+    rowProgressDs,
+    isBatchRunning,
+    actionsBlocked,
+    progressSnapshot,
+  } = useMultiSiteBatchProgress({
+    scope,
+    propertySites,
+    isOptimizingContent,
+    optimizeBusySiteId,
+    bulkOptimizationState,
+    pinnedDetailsBatchKey,
+    optimizeQueueBusy,
+    gscPerformancePreview,
+    optimizationProgress,
+  });
+
   const handleBatchClose = useCallback(
     (abortingRun: boolean) => {
       if (!bulkRunBatchKey) return;
@@ -473,6 +385,17 @@ export const MultiSiteContentOptimizerPanel: React.FC<MultiSiteContentOptimizerP
     },
     [bulkRunBatchKey, resetBulkBatch],
   );
+
+  const handleToggleSelected = (siteId: string, checked: boolean | "indeterminate") => {
+    setSelectedSiteIds((prev) => {
+      const next = new Set(prev);
+      if (checked === true) next.add(siteId);
+      else next.delete(siteId);
+      return next;
+    });
+  };
+
+  const workspaceBusy = actionsBlocked || Boolean(optimizeBusySiteId);
 
   return (
     <div className={CONTENT_OPTIMIZER_WORKSPACE_SHELL_CLASS}>
@@ -520,163 +443,24 @@ export const MultiSiteContentOptimizerPanel: React.FC<MultiSiteContentOptimizerP
 
       <div className={cn(SEO_WORKSPACE_BODY_SCROLL_CLASS, CONTENT_OPTIMIZER_BODY_INSET_CLASS)}>
         <div className={MULTI_SITE_LIST_STACK}>
-        {propertySites.map((site, stripeIndex) => {
-          const cfg = rowConfigs[site.id];
-          const entityMissing = !site.entitySitemapUrl?.trim();
-          const resolvedPostSitemap = pickPostSitemapUrlForSite(site);
-          const canPost = cfg?.source === "post" && Boolean(resolvedPostSitemap);
-          const canEntity = cfg?.source === "entity" && !entityMissing;
-          const canBoth =
-            cfg?.source === "both" && Boolean(resolvedPostSitemap) && !entityMissing;
-          const canRun = Boolean(cfg) && (canPost || canEntity || canBoth);
-          const rowBusy = optimizeBusySiteId === site.id;
-          const rowSelected = selectedSiteIds.has(site.id);
-          const bySourceDone = cfg ? lastCompletedBySite[site.id] : undefined;
-          const bySourceManual = cfg ? manualRowDateBySite[site.id] : undefined;
-          const lastIso = cfg
-            ? resolveMultiSiteRowActivityIso(
-                bySourceDone,
-                bySourceManual,
-                cfg.source,
-                site,
-                resolvedPostSitemap,
-              )
-            : undefined;
-
-          const sitemapModeErrorTitle =
-            cfg?.source === "post" && !resolvedPostSitemap
-              ? "Detect posts in Integrations."
-              : cfg?.source === "entity" && entityMissing
-                ? "Entity not set in Integrations."
-                : cfg?.source === "both" && (!resolvedPostSitemap || entityMissing)
-                  ? "Both needs post and entity in Integrations."
-                  : null;
-
-          const lastRunFallback = sitemapModeErrorTitle ? "N/A" : "Not optimized";
-          const lastRunTitle =
-            sitemapModeErrorTitle ??
-            (lastIso ? undefined : "No optimization date yet. Pick a date or run optimize.");
-
-          return (
-            <div key={site.id} className={CONTENT_OPTIMIZER_MULTI_SITE_ROW_WRAPPER_CLASS}>
-              <div
-                className={cn(
-                  contentOptimizerRowStripeClass(stripeIndex),
-                  "hover:bg-ui-field",
-                  CONTENT_OPTIMIZER_COMPACT_ROW_INNER_CLASS,
-                  "items-center",
-                )}
-              >
-              <div className="flex shrink-0 items-center justify-center">
-                <Checkbox
-                  id={`ms-row-${site.id}`}
-                  checked={rowSelected}
-                  onCheckedChange={(c) => {
-                    setSelectedSiteIds((prev) => {
-                      const next = new Set(prev);
-                      if (c === true) next.add(site.id);
-                      else next.delete(site.id);
-                      return next;
-                    });
-                  }}
-                  className={MULTI_SITE_CHECKBOX_CLASS}
-                  aria-label={`Select ${site.name}`}
-                />
-              </div>
-
-              <div className="flex min-h-0 min-w-0 flex-1 items-center border-0 bg-transparent px-0 py-0">
-                <CompactWordPressTile
-                  variant="listRow"
-                  site={site}
-                  isTesting={false}
-                  isExpanded={false}
-                  onToggle={() => {}}
-                  propertyRowDisplay="compact"
-                  hideCopyUrl
-                  linkTitleToSite
-                />
-              </div>
-
-              <div
-                className={cn(
-                  "flex min-w-0 shrink-0 flex-nowrap items-center justify-end gap-1 sm:gap-2",
-                )}
-              >
-                <div className={CONTENT_OPTIMIZER_MULTI_SITE_OPT_COUNT_SLOT}>
-                  <OptimizationActivityStrip
-                    site={site}
-                    stats={optimizationStatsForSite(site, optimizationStatsBySite)}
-                    rowDisplay="compact"
-                  />
-                </div>
-
-                {!cfg ? (
-                  <>
-                    <div className={CONTENT_OPTIMIZER_MULTI_SITE_CLUSTER_OUTER}>
-                      <div className={CONTENT_OPTIMIZER_MULTI_SITE_CLUSTER_LEFT_CELL}>
-                        <div
-                          className="h-full w-full shrink-0 rounded-none bg-ui-field/90"
-                          aria-hidden
-                        />
-                      </div>
-                      <div className="flex min-w-0 flex-1 items-center self-stretch">
-                        <div className={CONTENT_OPTIMIZER_MULTI_SITE_CLUSTER_RIGHT_CELL}>
-                          <span className="break-words !text-white">Initializing…</span>
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      variant="run"
-                      type="button"
-                      disabled
-                      aria-label="Optimize with AI"
-                    >
-                      <MultiSiteOptimizeLogoButtonContent busy={false} />
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <div className={CONTENT_OPTIMIZER_MULTI_SITE_CLUSTER_OUTER}>
-                      <div className={CONTENT_OPTIMIZER_MULTI_SITE_CLUSTER_LEFT_CELL}>
-                        <MultiSiteSitemapModeSelect
-                          value={cfg.source}
-                          onSelect={(next) => setRowSource(site.id, next)}
-                          availability={{
-                            post: Boolean(resolvedPostSitemap),
-                            entity: !entityMissing,
-                          }}
-                          disabled={actionsBlocked}
-                          ariaLabel={`Source for ${site.name}`}
-                          showMixedSentinel={false}
-                        />
-                      </div>
-                      <MultiSiteRowDatePicker
-                        siteId={site.id}
-                        source={cfg.source}
-                        activityIso={lastIso}
-                        fallbackLabel={lastRunFallback}
-                        title={lastRunTitle}
-                        disabled={Boolean(sitemapModeErrorTitle) || actionsBlocked}
-                        onPick={handleManualRowDatePick}
-                      />
-                    </div>
-
-                    <Button
-                      variant="run"
-                      type="button"
-                      disabled={!canRun || rowBusy || actionsBlocked}
-                      onClick={() => void optimizeSite(site)}
-                      aria-label={rowBusy ? `Optimizing ${site.name}` : `Optimize ${site.name} with AI`}
-                    >
-                      <MultiSiteOptimizeLogoButtonContent busy={rowBusy} />
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-            </div>
-          );
-        })}
+        {propertySites.map((site, stripeIndex) => (
+          <MultiSiteOptimizerSiteRow
+            key={site.id}
+            site={site}
+            stripeIndex={stripeIndex}
+            cfg={rowConfigs[site.id]}
+            rowSelected={selectedSiteIds.has(site.id)}
+            rowBusy={optimizeBusySiteId === site.id}
+            actionsBlocked={actionsBlocked}
+            optimizationStatsBySite={optimizationStatsBySite}
+            lastCompletedBySite={lastCompletedBySite}
+            manualRowDateBySite={manualRowDateBySite}
+            onToggleSelected={handleToggleSelected}
+            onSetRowSource={setRowSource}
+            onManualRowDatePick={handleManualRowDatePick}
+            onOptimizeSite={optimizeSite}
+          />
+        ))}
         </div>
       </div>
 

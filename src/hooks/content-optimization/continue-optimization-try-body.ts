@@ -4,20 +4,9 @@ import { type WordPressSite } from "@/components/integrations/types";
 import {
   updateOptimizationProgress,
   bindRunProgressReporter,
-  saveKeywordResearch,
 } from "./optimization-helpers";
-import { saveSerpResearchBrief } from "./optimization-helpers-b";
-import { createSiteCache, seedSiteCacheFromLinkablePosts } from "@/lib/wordpress-site-cache";
-import { buildMergedLinkPoolRows } from "@/lib/content-generation/extra-text-inventory-links";
-import {
-  ensureMergedPostsPagesLinkPool,
-  getBulkOptimizerInventoryFromSession,
-} from "./bulk-optimization-load-inventory-snapshot";
-import { snapshotHasInventoryEntries } from "@/lib/wordpress-api/inventory-match";
-import { updateKeywordResearchFile } from "./keyword-research-flow";
 import {
   buildOptimizeSelectionsFromStoredBrief,
-  llmAuditSummaryFromSeoResearchBrief,
   mergeStoredSeoResearchBriefIntoContext,
   parseSeoResearchBrief,
   type PageGscResultLike,
@@ -34,30 +23,29 @@ import type {
   WpExistingPostLike,
 } from "./use-optimization-state";
 import type { OptimizationContext } from "@/lib/content-generation-upload";
-import { markContentPrepHarnessSection, syncContentOptimizeHarnessBodySections } from "@/lib/overview/overview-content-prep-harness-run";
+import { markContentPrepHarnessSection } from "@/lib/overview/overview-content-prep-harness-run";
 import type { ContentPrepHarnessSetters } from "@/lib/overview/overview-content-prep-harness-run";
 import {
-  buildContentOptimizePipelineTitles,
   contentOptimizeHarnessSectionIndex,
   flushUrlGeneratedFilesToBulkState,
   sanitizeHarnessArticleTitle,
 } from "@/lib/overview/overview-content-optimize-pipeline";
 import { extractChecklistItemTitle } from "@/lib/checklist-item-title";
-import { resolveDfsArticleAuditBlockForUrl } from "@/lib/dfs-article-audit/resolve-dfs-article-audit-block";
 import type { AIDrivenACFContext } from "@/lib/content-generation/ai-driven-acf-reader";
-import { resolveSiteLocationLabel } from "@/lib/llm-audit/resolve-site-location-label";
-import {
-  firstPartyAuthorityBlockFromBrief,
-  buildConnectedSiteIdentityBlock,
-  swotTextFromResearchFields,
-} from "@/lib/content-optimization/first-party-authority-prompt";
 import { extractH2Titles } from "@/lib/content-optimization/optimize-output-verification";
 import { mergeOptimizerInstructions } from "@/lib/prompt-builders/system-user";
 import { isAgentRunBatchKey } from "@/lib/agent-runs/agent-run-batch-key";
-import type { LinkTargetsPlan } from "@/lib/bulk/bulk-generation-wp-inventory";
+import { syncContentOptimizeHarnessBodySections } from "@/lib/overview/overview-content-prep-harness-run";
 import {
-  runContentLinkTargetsHarness,
-} from "@/lib/overview/overview-content-link-targets-harness-run";
+  buildContinueOptimizationBlueprintPrep,
+  loadContinueOptimizationWordPressPosts,
+  saveContinueOptimizationKeywordResearch,
+} from "./continue-optimization-try-body-prep";
+import {
+  completeContinueOptimizationAfterUpload,
+  markContinueOptimizationBlueprintHarness,
+  resolveContinueOptimizationLinkTargets,
+} from "./continue-optimization-try-body-finalize";
 
 export interface ContinueOptimizationTryBodyInput {
   siteId: string;
@@ -296,126 +284,56 @@ async function runContinueOptimizationTryBodyInner(input: ContinueOptimizationTr
     sapEntity: extractedEntity !== "N/A" ? extractedEntity : undefined,
   });
 
-  saveKeywordResearch(fileManager, primaryKeyword, {
+
+  saveContinueOptimizationKeywordResearch({
+    fileManager,
     primaryKeyword,
-    gscMetrics: selectedKeyword,
+    selectedKeyword,
     keywordData,
     aiAnalysis,
-    peopleAlsoAsk: aiAnalysis.peopleAlsoAsk ?? [],
-    relatedGSCKeywords: relatedKeywords,
-    selectedKeywords: finalKwList,
-    selectedH2Sections: finalH2,
-    selectedPeopleAlsoAsk: finalPaa,
-    selectedResearchLinks: finalLinks,
-  });
-
-  if (contentPrepHarnessSetters) {
-    markContentPrepHarnessSection(
-      url,
-      contentOptimizeHarnessSectionIndex("Keyword research"),
-      "done",
-      contentPrepHarnessSetters,
-    );
-    flushGeneratedFiles();
-  }
-
-  updateKeywordResearchFile(
-    fileManager,
-    siteId,
+    relatedKeywords,
     finalKwList,
     finalH2,
     finalPaa,
     finalLinks,
+    url,
+    contentPrepHarnessSetters,
+    flushGeneratedFiles,
+    siteId,
     setOptimizationFileManagers,
-  );
+  });
 
-  let wordPressPosts: Array<{
-    id: number;
-    slug: string;
-    title: string;
-    excerpt: string;
-    link: string;
-    date_gmt: string;
-    postType?: "post" | "page" | "service-area";
-  }> = [];
-  const wordPressPagesForOfferTable = pending.wordPressPagesForOfferTable ?? [];
-
-  if (site.username && site.appPassword) {
-    const merged = await ensureMergedPostsPagesLinkPool(
+  const { wordPressPosts, wordPressPagesForOfferTable } =
+    await loadContinueOptimizationWordPressPosts({
       site,
-      (msg) => {
-        updateOptimizationProgress(setOptimizationProgress, siteId, "plan", 0.5, msg);
-      },
-      { warmCacheOnly: true },
-    );
-    wordPressPosts = buildMergedLinkPoolRows(merged, site.siteUrl);
-    if (wordPressPosts.length > 0) seedSiteCacheFromLinkablePosts(site, wordPressPosts);
-  } else if (pending.wordPressPosts?.length) {
-    wordPressPosts = pending.wordPressPosts;
-  } else {
-    const inv = getBulkOptimizerInventoryFromSession(site);
-    if (inv && snapshotHasInventoryEntries(inv)) {
-      wordPressPosts = buildMergedLinkPoolRows(inv, site.siteUrl);
-      if (wordPressPosts.length > 0) seedSiteCacheFromLinkablePosts(site, wordPressPosts);
-    } else {
-      updateOptimizationProgress(setOptimizationProgress, siteId, "plan", 0.5, "Loading link pool…");
-      const cache = await createSiteCache(site, undefined, (msg) => {
-        updateOptimizationProgress(setOptimizationProgress, siteId, "plan", 0.55, msg);
-      });
-      wordPressPosts = cache.posts;
-    }
-  }
+      pending,
+      setOptimizationProgress,
+      siteId,
+    });
 
   updateOptimizationProgress(setOptimizationProgress, siteId, "plan", 0.65, "Building blueprint…");
 
-  const dfsArticleAuditBlock =
-    String(finalOptimizationOptions?.dfsArticleAuditBlock ?? "").trim()
-    || (await resolveDfsArticleAuditBlockForUrl({
-      articleUrl: url,
-      workflowOutputs: (
-        finalOptimizationOptions as {
-          workflowAuditOutputs?: import("@/lib/workflow/workflow-types").WorkflowStepOutput[];
-        }
-      )?.workflowAuditOutputs,
-      workflowContextBlock: String(finalOptimizationOptions?.workflowContextBlock ?? ""),
-    }));
-
-  const titleForBlueprint = sanitizeHarnessArticleTitle(
-    pendingCleanedTitle || finalTitle || existingTitle,
-    { pageUrl: url, keyword: primaryKeyword },
-  );
-  if (!site.name?.trim()) {
-    throw new Error("Connected site name is required for content optimization.");
-  }
-
-  const parsedBrief = parsedBriefFromAcf;
-
-  const swotText = swotTextFromResearchFields({
-    promptModifier: String(
-      workingAcfContext.promptModifier
-      ?? (acfFields as { prompt_modifier?: string } | undefined)?.prompt_modifier
-      ?? "",
-    ),
-    seoResearch: seoResearchRaw,
+  const {
+    dfsArticleAuditBlock,
+    titleForBlueprint,
+    firstPartyAuthorityBlock,
+    llmAuditSummary,
+  } = await buildContinueOptimizationBlueprintPrep({
+    finalOptimizationOptions,
+    url,
+    pendingCleanedTitle,
+    finalTitle,
+    existingTitle,
+    primaryKeyword,
+    site,
+    parsedBriefFromAcf,
+    workingAcfContext,
+    acfFields,
+    seoResearchRaw,
+    fileManager,
+    contentPrepHarnessSetters,
+    flushGeneratedFiles,
   });
-  const serviceArea = resolveSiteLocationLabel(site, primaryKeyword);
-  const firstPartyAuthorityBlock = [
-    firstPartyAuthorityBlockFromBrief(parsedBrief, swotText),
-    buildConnectedSiteIdentityBlock(site.name.trim(), serviceArea),
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-  saveSerpResearchBrief(fileManager, primaryKeyword, seoResearchRaw);
-  if (contentPrepHarnessSetters) {
-    markContentPrepHarnessSection(
-      url,
-      contentOptimizeHarnessSectionIndex("SERP research brief"),
-      "done",
-      contentPrepHarnessSetters,
-    );
-    flushGeneratedFiles();
-  }
-  const llmAuditSummary = llmAuditSummaryFromSeoResearchBrief(seoResearchRaw);
 
   updateOptimizationProgress(setOptimizationProgress, siteId, "plan", 0.68, "Building blueprint…");
   const forbiddenLiveH2s = existingContent?.trim() ? extractH2Titles(existingContent) : undefined;
@@ -469,95 +387,29 @@ async function runContinueOptimizationTryBodyInner(input: ContinueOptimizationTr
     },
   );
 
-  if (contentPrepHarnessSetters) {
-    const bodyTitles = (blueprintResult.agents ?? [])
-      .map((agent: { title?: string }) => agent.title?.trim())
-      .filter(Boolean) as string[];
-    const pipelineTitles = buildContentOptimizePipelineTitles(bodyTitles);
-    if (bodyTitles.length) {
-      syncContentOptimizeHarnessBodySections(url, bodyTitles, contentPrepHarnessSetters);
-    }
-    markContentPrepHarnessSection(
-      url,
-      contentOptimizeHarnessSectionIndex("Checklist"),
-      "done",
-      contentPrepHarnessSetters,
-      0,
-      undefined,
-      pipelineTitles,
-    );
-    markContentPrepHarnessSection(
-      url,
-      contentOptimizeHarnessSectionIndex("Blueprint"),
-      "done",
-      contentPrepHarnessSetters,
-      0,
-      undefined,
-      pipelineTitles,
-    );
-    flushGeneratedFiles();
-  }
+  markContinueOptimizationBlueprintHarness({
+    blueprintResult,
+    url,
+    contentPrepHarnessSetters,
+    flushGeneratedFiles,
+  });
 
-  const bodyTitlesForLinkPlan = (blueprintResult.agents ?? [])
-    .map((agent: { title?: string }) => agent.title?.trim())
-    .filter(Boolean) as string[];
-  const pipelineTitlesAfterBlueprint = buildContentOptimizePipelineTitles(bodyTitlesForLinkPlan);
-  let linkTargetsPlan: LinkTargetsPlan | undefined = pending.linkTargetsPlan;
-
-  if (contentPrepHarnessSetters) {
-    markContentPrepHarnessSection(
-      url,
-      contentOptimizeHarnessSectionIndex("Link targets"),
-      "start",
-      contentPrepHarnessSetters,
-      0,
-      undefined,
-      pipelineTitlesAfterBlueprint,
-    );
-  }
-
-  if (!linkTargetsPlan && wordPressPosts.length > 0) {
-    const fileSlug =
-      url
-        .split("/")
-        .filter(Boolean)
-        .pop()
-        ?.toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "")
-        .slice(0, 60) || "article";
-    linkTargetsPlan = await runContentLinkTargetsHarness({
-      apiKey: openRouterApiKey,
-      siteId,
-      primaryKeyword,
-      bodySectionTitles: bodyTitlesForLinkPlan,
-      linkPool: wordPressPosts.map((row) => ({
-        ...row,
-        postType: row.postType === "page" ? ("page" as const) : ("post" as const),
-      })),
-      fileManager,
-      fileSlug,
-    });
-    flushGeneratedFiles();
-  }
-
-  if (contentPrepHarnessSetters && linkTargetsPlan) {
-    markContentPrepHarnessSection(
-      url,
-      contentOptimizeHarnessSectionIndex("Link targets"),
-      "done",
-      contentPrepHarnessSetters,
-      0,
-      undefined,
-      pipelineTitlesAfterBlueprint,
-    );
-    flushGeneratedFiles();
-  }
-
-  if (contentPrepHarnessSetters && bodyTitlesForLinkPlan.length) {
-    syncContentOptimizeHarnessBodySections(url, bodyTitlesForLinkPlan, contentPrepHarnessSetters);
-    flushGeneratedFiles();
-  }
+  const {
+    linkTargetsPlan,
+    bodyTitlesForLinkPlan,
+    pipelineTitlesAfterBlueprint,
+  } = await resolveContinueOptimizationLinkTargets({
+    blueprintResult,
+    pendingLinkTargetsPlan: pending.linkTargetsPlan,
+    wordPressPosts,
+    url,
+    contentPrepHarnessSetters,
+    flushGeneratedFiles,
+    openRouterApiKey,
+    siteId,
+    primaryKeyword,
+    fileManager,
+  });
 
   setOptimizationFileManagers((prev: Record<string, OptimizationFileManager>) => ({ ...prev, [siteId]: fileManager }));
 
@@ -611,80 +463,23 @@ async function runContinueOptimizationTryBodyInner(input: ContinueOptimizationTr
       : undefined,
   );
 
-  if (contentPrepHarnessSetters) {
-    if (contentHtmlIndex >= 0) {
-      markContentPrepHarnessSection(
-        url,
-        contentHtmlIndex,
-        "done",
-        contentPrepHarnessSetters,
-        0,
-        undefined,
-        pipelineTitlesForContent,
-      );
-    }
-    if (contentMdIndex >= 0) {
-      markContentPrepHarnessSection(
-        url,
-        contentMdIndex,
-        "done",
-        contentPrepHarnessSetters,
-        0,
-        undefined,
-        pipelineTitlesForContent,
-      );
-    }
-    if (implReportIndex >= 0) {
-      markContentPrepHarnessSection(
-        url,
-        implReportIndex,
-        "done",
-        contentPrepHarnessSetters,
-        0,
-        undefined,
-        pipelineTitlesForContent,
-      );
-    }
-    if (wpUploadIndex >= 0) {
-      markContentPrepHarnessSection(
-        url,
-        wpUploadIndex,
-        "done",
-        contentPrepHarnessSetters,
-        0,
-        undefined,
-        pipelineTitlesForContent,
-      );
-    }
-    flushGeneratedFiles();
-  }
-
-  if (changes) {
-    setPendingOptimization((prev: Record<string, PendingOptimization>) => {
-      const pend = prev[siteId];
-      if (!pend) return prev;
-      return {
-        ...prev,
-        [siteId]: { ...pend, optimizationChanges: changes, url },
-      };
-    });
-    await new Promise((resolve) => setTimeout(resolve, 200));
-  }
-
-  setPendingOptimization((prev: Record<string, PendingOptimization>) => {
-    const updated = { ...prev };
-    delete updated[siteId];
-    return updated;
+  const { fileCount, timeString } = await completeContinueOptimizationAfterUpload({
+    contentPrepHarnessSetters,
+    url,
+    contentHtmlIndex,
+    contentMdIndex,
+    implReportIndex,
+    wpUploadIndex,
+    pipelineTitlesForContent,
+    flushGeneratedFiles,
+    changes,
+    setPendingOptimization,
+    siteId,
+    setOptimizationFileManagers,
+    optimizationFileManagers,
+    fileManager,
+    optimizationStartTime,
   });
-
-  setOptimizationFileManagers((prev: Record<string, OptimizationFileManager>) => ({ ...prev }));
-
-  const finalFileManager = optimizationFileManagers[siteId] || fileManager;
-  const fileCount = finalFileManager.getFileCount();
-  const totalOptimizationTime = Math.floor((Date.now() - optimizationStartTime) / 1000);
-  const minutes = Math.floor(totalOptimizationTime / 60);
-  const seconds = totalOptimizationTime % 60;
-  const timeString = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
 
   if (!isAgentRunBatchKey(batchKey)) {
     updateOptimizationProgress(

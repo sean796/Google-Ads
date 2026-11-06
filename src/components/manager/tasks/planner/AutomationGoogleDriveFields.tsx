@@ -7,7 +7,6 @@ import {
 import { Button, Field, Pill, SelectField } from "@/ui";
 import { CheckCircle } from "lucide-react";
 import {
-  CUSTOM_DRIVE_PURPOSE_SELECT_VALUE,
   DRIVE_MONTH_SEGMENTS,
   GOOGLE_DRIVE_PATH_PRESETS,
   driveYearSelectOptions,
@@ -16,9 +15,7 @@ import {
   googleDrivePurposeFolderLabel,
   isDriveCalendarMonth,
   isDriveCalendarYear,
-  listDrivePurposeSelectOptions,
   presetPurposeValueFromName,
-  rememberCustomDrivePurposePreset,
 } from "@/lib/google-drive/google-drive-folder-hierarchy";
 import {
   findGoogleDriveFolderPresetByFolderId,
@@ -28,258 +25,19 @@ import {
   resolveGoogleDriveFolderPreset,
   suggestPresetForSiteName,
 } from "@/lib/google-drive/google-drive-folder-presets";
-import {
-  googleDriveFolderIsConfigured,
-  resolveGoogleDriveFolder,
-} from "@/lib/google-drive/resolve-google-drive-folder";
+import { googleDriveFolderIsConfigured } from "@/lib/google-drive/resolve-google-drive-folder";
 import type { GoogleDriveFolderSource, TaskExecutionPayload } from "@/lib/tasks-types";
 import { cn } from "@/lib/utils";
+import { DrivePurposeSelect } from "@/components/manager/tasks/planner/DrivePurposeSelect";
+import { WorkflowDriveFolderPreview } from "@/components/manager/tasks/planner/WorkflowDriveFolderPreview";
+import {
+  CUSTOM_FOLDER,
+  FOLDER_SOURCE_OPTIONS,
+  folderPathFromPayload,
+  resolveFolderSource,
+  type AutomationGoogleDriveFieldsProps,
+} from "@/components/manager/tasks/planner/automation-google-drive-fields-shared";
 
-const CUSTOM_FOLDER = "custom";
-
-
-const FOLDER_SOURCE_OPTIONS: { value: GoogleDriveFolderSource; label: string }[] = [
-  { value: "manual", label: "Manual" },
-  { value: "client_root", label: "Client folder" },
-  { value: "path", label: "Path" },
-  { value: "variable", label: "Variable" },
-];
-
-function folderPathFromPayload(payload: TaskExecutionPayload): string {
-  const folderId = String(payload.googleDriveFolderId ?? "").trim();
-  if (!folderId) return "";
-  return formatGoogleDriveFolderUrl(folderId) || folderId;
-}
-
-function resolveFolderSource(payload: TaskExecutionPayload): GoogleDriveFolderSource {
-  const source = payload.googleDriveFolderSource;
-  if (source === "client_root" || source === "path" || source === "variable") return source;
-  return "manual";
-}
-
-export type DriveFolderVariableOption = {
-  key: string;
-  label: string;
-};
-
-export type AutomationGoogleDriveFieldsProps = {
-  payload: TaskExecutionPayload;
-  disabled?: boolean;
-  siteName?: string;
-  siteUrl?: string;
-  executionKind?: string;
-  layout?: "stack" | "workflow";
-  inferredFolderPath?: string;
-  folderVariableOptions?: DriveFolderVariableOption[];
-  onChange: (patch: Partial<TaskExecutionPayload>) => void;
-};
-
-type WorkflowDriveFolderPreviewState = {
-  label: string;
-  webViewLink: string;
-  loading: boolean;
-  error: string;
-};
-
-function WorkflowDriveFolderPreview({
-  payload,
-  siteName,
-  siteUrl,
-  executionKind,
-  connected,
-  disabled,
-}: {
-  payload: TaskExecutionPayload;
-  siteName: string;
-  siteUrl: string;
-  executionKind?: string;
-  connected: boolean;
-  disabled: boolean;
-}): React.ReactElement | null {
-  const [preview, setPreview] = useState<WorkflowDriveFolderPreviewState>({
-    label: "",
-    webViewLink: "",
-    loading: false,
-    error: "",
-  });
-
-  const storedFolderId = parseGoogleDriveFolderId(String(payload.googleDriveTargetFolderId ?? ""));
-  const storedLabel = String(payload.googleDriveFolderLabel ?? "").trim();
-  const storedLink = storedFolderId ? formatGoogleDriveFolderUrl(storedFolderId) : "";
-
-  useEffect(() => {
-    if (disabled || !connected) {
-      setPreview({ label: "", webViewLink: "", loading: false, error: "" });
-      return;
-    }
-    const trimmedSite = siteName.trim();
-    if (!trimmedSite) {
-      setPreview({ label: "", webViewLink: "", loading: false, error: "" });
-      return;
-    }
-    if (!googleDriveFolderIsConfigured(payload, trimmedSite)) {
-      setPreview({ label: "", webViewLink: "", loading: false, error: "" });
-      return;
-    }
-
-    let cancelled = false;
-    const timer = window.setTimeout(() => {
-      setPreview((current) => ({ ...current, loading: true, error: "" }));
-      resolveGoogleDriveFolder({
-        contract: { ...payload, saveToGoogleDrive: true },
-        siteName: trimmedSite,
-        siteUrl: siteUrl.trim() || undefined,
-        executionKind,
-      })
-        .then((resolved) => {
-          if (cancelled) return;
-          if (!resolved?.folderId) {
-            setPreview({ label: "", webViewLink: "", loading: false, error: "Could not resolve folder." });
-            return;
-          }
-          setPreview({
-            label: resolved.label.trim(),
-            webViewLink: resolved.webViewLink?.trim() || formatGoogleDriveFolderUrl(resolved.folderId),
-            loading: false,
-            error: "",
-          });
-        })
-        .catch((err: unknown) => {
-          if (cancelled) return;
-          const message = err instanceof Error ? err.message.trim() : "Could not resolve folder.";
-          setPreview({ label: "", webViewLink: "", loading: false, error: message });
-        });
-    }, 250);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [
-    connected,
-    disabled,
-    executionKind,
-    payload,
-    payload.googleDriveFolderMonth,
-    payload.googleDriveFolderPath,
-    payload.googleDriveFolderPathManual,
-    payload.googleDriveFolderSource,
-    payload.googleDriveFolderYear,
-    payload.googleDrivePresetKey,
-    payload.googleDriveFolderId,
-    payload.googleDriveFolderVariable,
-    payload.saveToGoogleDrive,
-    siteName,
-    siteUrl,
-  ]);
-
-  const link = preview.webViewLink || storedLink;
-  const label = preview.label || storedLabel;
-
-  if (!connected) return null;
-
-  if (preview.loading && !link) {
-    return <p className="min-w-0 break-words text-base text-muted-foreground">Resolving folder</p>;
-  }
-
-  if (preview.error && !link) {
-    return (
-      <p className="min-w-0 break-words text-base text-semantic-warning" title={preview.error}>
-        {preview.error}
-      </p>
-    );
-  }
-
-  if (!siteName.trim()) {
-    return <p className="min-w-0 break-words text-base text-muted-foreground">Select a client to preview the folder.</p>;
-  }
-
-  if (!link) return null;
-
-  return (
-    <a
-      href={link}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="min-w-0 break-words text-base text-primary underline-offset-2 hover:underline"
-      title={label || link}
-    >
-      {label || "Open folder"}
-    </a>
-  );
-}
-
-function DrivePurposeSelect({
-  value,
-  inferred,
-  disabled,
-  onSelect,
-}: {
-  value: string;
-  inferred: string;
-  disabled?: boolean;
-  onSelect: (value: string) => void;
-}): React.ReactElement {
-  const [enteringCustom, setEnteringCustom] = useState(false);
-  const [customDraft, setCustomDraft] = useState("");
-  const [options, setOptions] = useState(() => listDrivePurposeSelectOptions(value));
-
-  useEffect(() => {
-    setOptions(listDrivePurposeSelectOptions(value));
-  }, [value]);
-
-  const commitCustom = () => {
-    const raw = customDraft.trim();
-    setEnteringCustom(false);
-    setCustomDraft("");
-    if (!raw) return;
-    const path = rememberCustomDrivePurposePreset(raw);
-    if (!path) return;
-    setOptions(listDrivePurposeSelectOptions(path));
-    onSelect(path);
-  };
-
-  if (enteringCustom) {
-    return (
-      <Field
-        placeholder="Custom folder"
-        value={customDraft}
-        disabled={disabled}
-        autoFocus
-        onChange={(event) => setCustomDraft(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            commitCustom();
-          }
-          if (event.key === "Escape") {
-            setEnteringCustom(false);
-            setCustomDraft("");
-          }
-        }}
-        onBlur={commitCustom}
-      />
-    );
-  }
-
-  return (
-    <SelectField
-      placeholder="Purpose"
-      width="full"
-      value={value || inferred}
-      disabled={disabled}
-      options={[...options, { value: CUSTOM_DRIVE_PURPOSE_SELECT_VALUE, label: "Custom" }]}
-      onValueChange={(next) => {
-        if (next === CUSTOM_DRIVE_PURPOSE_SELECT_VALUE) {
-          setEnteringCustom(true);
-          setCustomDraft("");
-          return;
-        }
-        onSelect(next);
-      }}
-    />
-  );
-}
 export function GoogleDriveConnectionInline(): React.ReactElement | null {
   const { connected, loading, email } = useGoogleDriveConnectionStatus();
   if (loading) return null;
