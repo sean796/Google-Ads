@@ -2,7 +2,7 @@ import type { PointerEventHandler } from "react";
 import type { BulkDetailsDownloadable } from "@/components/shared/bulk-details-tile-sections-helpers";
 import type {
   Ga4ReportingDateHarness,
-} from "@/components/research/reporting/Ga4ReportingDateRangePopover";
+} from "@/components/research/reporting/Ga4ReportingDateRangePopover-types";
 import type { OrganicClientReportContent } from "@/lib/organic-dashboard/organic-client-report-content";
 
 export const LEFT_DOCK_WIDTH_KEY = "neo-pulse:organic-reporting-left-dock-width:v1";

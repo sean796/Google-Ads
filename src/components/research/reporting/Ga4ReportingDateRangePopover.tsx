@@ -1,157 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DateRange } from "react-day-picker";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { Ga4ScrollableMonthsCalendar } from "@/components/research/reporting/Ga4ScrollableMonthsCalendar";
-
 import {
   GA4_COMPARE_BASELINE_OPTIONS,
   GA4_PRIMARY_PRESET_OPTIONS,
   buildGa4ReportingRanges,
   formatGa4DatePickerTriggerCompact,
-  type Ga4CompareBaselineId,
-  type Ga4PrimaryPresetId,
 } from "@/lib/reporting/ga4-analytics-date-ranges";
 import {
   validateReportingCompareFetchRanges,
   validateReportingPrimaryFetchRange,
 } from "@/lib/reporting/reporting-date-presets";
-import type { ReportingCompareRanges } from "@/lib/reporting/reporting-date-presets";
-import { cn } from "@/lib/utils";
-import { Button, RowButton, Field, Popover, PopoverContent, PopoverTrigger } from "@/ui";
-
-export type Ga4ReportingDateHarness = {
-  primaryPreset: Ga4PrimaryPresetId;
-  compareBaseline: Ga4CompareBaselineId;
-  compareEnabled: boolean;
-  compareRangeDraft: ReportingCompareRanges;
-};
-
-export type Ga4ReportingDateRangePopoverProps = {
-  busy?: boolean;
-  value: Ga4ReportingDateHarness;
-  onApply: (next: Ga4ReportingDateHarness) => void;
-  todayYmdMax: string;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-};
-
-function ymdToDate(ymd: string): Date | undefined {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd.trim());
-  if (!m) return undefined;
-  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-}
-
-function dateToYmd(d: Date): string {
-  const y = d.getFullYear();
-  const mo = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${mo}-${day}`;
-}
-
-function Ga4OutlinedDateInput({
-  label,
-  value,
-  max,
-  disabled,
-  onChange,
-  onFocus,
-}: {
-  label: string;
-  value: string;
-  max: string;
-  disabled: boolean;
-  onChange: (ymd: string) => void;
-  onFocus?: () => void;
-}) {
-  return (
-    <div className="relative min-w-0 flex-1">
-      <span className="pointer-events-none absolute left-2 top-0 z-[1] -translate-y-1/2 bg-ui-field px-1 text-base text-muted-foreground">
-        {label}
-      </span>
-      <Field
-        placeholder={label}
-        type="date"
-        aria-label={label}
-        max={max}
-        disabled={disabled}
-        value={value}
-        onFocus={onFocus}
-        onChange={(e) => onChange(e.target.value)}
-      />
-    </div>
-  );
-}
-
-type WeekSubmenuId = "this_week" | "last_week" | null;
-
-type CalendarTarget = "primary" | "compare";
-
-function presetMatchesSidebarRow(
-  preset: Ga4PrimaryPresetId,
-  rowId: Ga4PrimaryPresetId,
-): boolean {
-  if (preset === rowId) return true;
-  if (rowId === "this_week_sun") {
-    return preset === "this_week_sun" || preset === "this_week_mon";
-  }
-  if (rowId === "last_week_sun_sat") {
-    return preset === "last_week_sun_sat" || preset === "last_week_mon_sat";
-  }
-  return false;
-}
-
-function SidebarRow({
-  active,
-  label,
-  submenu,
-  disabled,
-  onSelect,
-}: {
-  active: boolean;
-  label: string;
-  submenu?: boolean;
-  disabled: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <RowButton
-      selected={Boolean(active)}
-      type="button"
-      disabled={disabled}
-      onClick={onSelect}
-    >
-      <span className="min-w-0 flex-1">{label}</span>
-      {submenu ? <ChevronRight className="h-4 w-4 shrink-0 opacity-60" aria-hidden /> : null}
-    </RowButton>
-  );
-}
-
-function CompareToggle({
-  checked,
-  disabled,
-  onChange,
-}: {
-  checked: boolean;
-  disabled: boolean;
-  onChange: (next: boolean) => void;
-}) {
-  return (
-    <Button
-      pressed={Boolean(checked)}
-      role="switch"
-      aria-checked={checked}
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
-    >
-      <span
-        className={cn(
-          "absolute top-0.5 block h-4 w-4 rounded-full bg-white transition-transform",
-          checked ? "translate-x-[1.125rem]" : "translate-x-0.5",
-        )}
-      />
-    </Button>
-  );
-}
+import { Button, Popover, PopoverContent, PopoverTrigger } from "@/ui";
+import type { Ga4ReportingDateHarness, Ga4ReportingDateRangePopoverProps } from "@/components/research/reporting/Ga4ReportingDateRangePopover-types";
+import { dateToYmd, presetMatchesSidebarRow, ymdToDate, type CalendarTarget, type WeekSubmenuId } from "@/components/research/reporting/Ga4ReportingDateRangePopover-helpers";
+import { CompareToggle, Ga4OutlinedDateInput, SidebarRow } from "@/components/research/reporting/Ga4ReportingDateRangePopover-controls";
 
 export function Ga4ReportingDateRangePopover({
   busy = false,

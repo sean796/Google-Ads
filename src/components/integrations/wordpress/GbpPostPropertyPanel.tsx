@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { type WordPressSite } from "../types";
 import {
   NOTIFY_GBP_POST_FAILED,
@@ -6,8 +6,6 @@ import {
   NOTIFY_GBP_POST_QUEUED,
   NOTIFY_NO_CLIENTS_SELECTED_SELECT_AT_LEAST_ONE_,
   NOTIFY_OPENROUTER_API_KEY_REQUIRED_IN_API_KEYS_,
-  NOTIFY_SET_GOOGLE_BUSINESS_PROFILE_LOCATION_ID_,
-  NOTIFY_WORDPRESS_CREDENTIALS_MISSING_PLEASE_UPD,
 } from "@/lib/notify-messages";
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
 import { loadApiKey } from "@/lib/api";
@@ -20,11 +18,8 @@ import type { GbpPublishPreview } from "@/components/gbp-post/GbpPostPublishPrev
 import type { GbpSchedulerSectionState } from "@/lib/gbp-post/gbp-schedule-plan";
 import { defaultGbpSchedulerState } from "@/lib/gbp-post/gbp-schedule-plan";
 import { GbpPostWorkspaceHeader } from "@/components/gbp-post/GbpPostWorkspaceHeader";
-import {
-  buildGbpPostBulkGeneratorDetailsProps,
-  gbpPostDetailsCanOpen,
-  gbpPostIsMultiSiteDrawer,
-} from "@/lib/gbp-post/gbp-post-bulk-generator-bindings";
+import { validateSitePrereqs } from "@/components/integrations/wordpress/gbp-post-property-panel-helpers";
+import { useGbpPostPropertyPanelDetails } from "@/components/integrations/wordpress/use-gbp-post-property-panel-details";
 import {
   SEO_WORKSPACE_HEADER_CLASS,
   SEO_WORKSPACE_INNER_CLASS,
@@ -56,20 +51,6 @@ interface GbpPostPropertyPanelProps {
   /** All WordPress properties; roster shows those with a GBP Location ID. */
   allSites: WordPressSite[];
   onPlatformChange?: (tab: "gbp-post" | "content-calendar" | "social-creator") => void;
-}
-
-function validateSitePrereqs(target: WordPressSite): string | null {
-  // GBP roster is keyed on GBP Location ID; `enabled` is only the single active header connection.
-  if (!target.gbpLocationId?.trim()) {
-    return NOTIFY_SET_GOOGLE_BUSINESS_PROFILE_LOCATION_ID_;
-  }
-  if (!target.username?.trim() || !target.appPassword?.trim()) {
-    return NOTIFY_WORDPRESS_CREDENTIALS_MISSING_PLEASE_UPD;
-  }
-  if (!loadApiKey()?.trim() && !import.meta.env.VITE_OPENROUTER_API_KEY) {
-    return NOTIFY_OPENROUTER_API_KEY_REQUIRED_IN_API_KEYS_;
-  }
-  return null;
 }
 
 export const GbpPostPropertyPanel: React.FC<GbpPostPropertyPanelProps> = ({
@@ -393,93 +374,28 @@ export const GbpPostPropertyPanel: React.FC<GbpPostPropertyPanelProps> = ({
     }));
   }, []);
 
-  const canOpenDetails = useMemo(
-    () =>
-      gbpPostDetailsCanOpen(
-        roster.rosterSites.length,
-        isBusy,
-        Boolean(resolvedTopic),
-        selectedCount > 0,
-        Boolean(bulkSummary) || Boolean(statusLine.trim()),
-      ),
-    [roster.rosterSites.length, isBusy, resolvedTopic, selectedCount, bulkSummary, statusLine],
-  );
-
-  const multiSiteDrawer = useMemo(
-    () =>
-      gbpPostIsMultiSiteDrawer({
-        multiPropertyRun,
-        selectedSites: roster.selectedSites,
-        harnessSectionsBySiteId,
-        hasRunData:
-          Boolean(bulkSummary) ||
-          harnessSections.length > 0 ||
-          Object.keys(harnessSectionsBySiteId).length > 0 ||
-          Object.values(previewBySiteId).some(Boolean),
-      }),
-    [
-      multiPropertyRun,
-      roster.selectedSites,
-      harnessSectionsBySiteId,
-      bulkSummary,
-      harnessSections.length,
-      previewBySiteId,
-    ],
-  );
-
-  const detailsProps = useMemo(
-    () =>
-      buildGbpPostBulkGeneratorDetailsProps({
-        displaySite,
-        selectedSites: roster.selectedSites,
-        topicForSite: roster.topicForSite,
-        landingPageForSite: roster.landingPageForSite,
-        sitemapSource,
-        isPosting,
-        workspaceBusy: isBusy,
-        statusLine,
-        resolvedTopic,
-        harnessSections,
-        harnessSectionsBySiteId,
-        harnessPlannedCount,
-        bulkSlotIndex,
-        harnessTotalRows,
-        multiPropertyRun,
-        activeSiteId,
-        activePropertyIndex,
-        previewBySiteId,
-        inventoryLinkBySiteId,
-        bulkSummary,
-        numberOfPosts: totalPosts,
-        selectedCount,
-        rosterCount: roster.rosterSites.length,
-      }),
-    [
-      displaySite,
-      roster.selectedSites,
-      roster.topicForSite,
-      roster.landingPageForSite,
-      sitemapSource,
-      isPosting,
-      isBusy,
-      statusLine,
-      resolvedTopic,
-      harnessSections,
-      harnessSectionsBySiteId,
-      harnessPlannedCount,
-      bulkSlotIndex,
-      harnessTotalRows,
-      multiPropertyRun,
-      activeSiteId,
-      activePropertyIndex,
-      previewBySiteId,
-      inventoryLinkBySiteId,
-      bulkSummary,
-      totalPosts,
-      selectedCount,
-      roster.rosterSites.length,
-    ],
-  );
+  const { canOpenDetails, multiSiteDrawer, detailsProps } = useGbpPostPropertyPanelDetails({
+    roster,
+    isBusy,
+    resolvedTopic,
+    selectedCount,
+    bulkSummary,
+    statusLine,
+    multiPropertyRun,
+    harnessSectionsBySiteId,
+    harnessSections,
+    previewBySiteId,
+    displaySite,
+    sitemapSource,
+    isPosting,
+    harnessPlannedCount,
+    bulkSlotIndex,
+    harnessTotalRows,
+    activeSiteId,
+    activePropertyIndex,
+    inventoryLinkBySiteId,
+    totalPosts,
+  });
 
   return (
     <div className={SEO_WORKSPACE_INNER_CLASS}>

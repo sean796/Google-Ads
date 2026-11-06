@@ -1,16 +1,15 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React from "react";
 
 
 
 import { RefreshCw, Check, ChevronsUpDown, FileText, ExternalLink, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getPublishedPosts, type PublishedPostsResult, resolveWordPressUrls, getWordPressPostContent, parseSitemap } from "@/lib/wordpress-api";
-import { extractEndpointFromEntitySitemapUrl } from "@/lib/entity-endpoint-extractor";
 import { type WordPressSite } from "../types";
-import { notify } from "@/lib/app-notifications";
-import { NOTIFY_FETCHING_SERVICE_AREA_DATA, NOTIFY_SITE_CREDENTIALS_NOT_AVAILABLE, notifyDownloadedXServiceAreaSAsJson } from "@/lib/notify-messages";
 import { getCyberpunkTextClasses, getCyberpunkButtonClasses } from "./cyberpunk-theme";
 import { Button, Field, Popover, PopoverContent, PopoverTrigger, Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, Checkbox } from "@/ui";
+import { extractEndpointFromEntitySitemapUrl } from "@/lib/entity-endpoint-extractor";
+import { useServiceAreaData } from "./use-service-area-data";
+import { downloadServiceAreasAsJson } from "./service-area-scrape-download";
 
 interface ServiceAreaSelectorProps {
   site: WordPressSite;
@@ -29,134 +28,7 @@ export const ServiceAreaSelector: React.FC<ServiceAreaSelectorProps> = ({
   multiSelect = false,
   onPostDataChange,
 }) => {
-  const [open, setOpen] = useState(false);
-  const [serviceAreas, setServiceAreas] = useState<PublishedPostsResult['posts']>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-
-  // Get entity sitemap URL (entity sitemap pattern - use entitySitemapUrl from site)
-  const getEntitySitemapUrl = useCallback((): string | null => {
-    // Use entitySitemapUrl from site if available (entity sitemap pattern)
-    if (site.entitySitemapUrl) {
-      return site.entitySitemapUrl;
-    }
-    // Fallback: try to find in child sitemaps (for backward compatibility)
-    if (site.sitemaps?.childSitemaps) {
-      // Look for any entity sitemap (not hardcoded to service-area)
-      return site.sitemaps.childSitemaps.find(url => 
-        url.toLowerCase().includes('-sitemap.xml') || 
-        url.toLowerCase().includes('_sitemap.xml')
-      ) || null;
-    }
-    return null;
-  }, [site.entitySitemapUrl, site.sitemaps]);
-
-  const fetchServiceAreas = useCallback(async () => {
-    if (!site.username || !site.appPassword) {
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      // First try to parse entity sitemap for instant results (entity sitemap pattern)
-      const sitemapUrl = getEntitySitemapUrl();
-      if (sitemapUrl) {
-        try {
-          const parseResult = await parseSitemap(
-            site.siteUrl,
-            sitemapUrl,
-            site.username,
-            site.appPassword
-          );
-          
-          if (parseResult.urls && parseResult.urls.length > 0) {
-            // Convert URLs to service area format
-            const serviceAreasFromSitemap: PublishedPostsResult['posts'] = parseResult.urls.map((url, index) => {
-              try {
-                const urlObj = new URL(url);
-                const pathSegments = urlObj.pathname.split('/').filter(s => s.length > 0);
-                const slug = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : '';
-                
-                // Extract title from slug (convert kebab-case to Title Case)
-                const title = slug
-                  .split('-')
-                  .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                  .join(' ') || url;
-                
-                return {
-                  id: index + 1, // Temporary ID
-                  slug: slug,
-                  title: title,
-                  date_gmt: '',
-                  excerpt: '',
-                  link: url
-                };
-              } catch {
-                return {
-                  id: index + 1,
-                  slug: '',
-                  title: url,
-                  date_gmt: '',
-                  excerpt: '',
-                  link: url
-                };
-              }
-            });
-            
-            setServiceAreas(serviceAreasFromSitemap);
-            setIsLoading(false);
-            return;
-          }
-        } catch (error) {
-          console.warn('[ServiceAreaSelector] Error parsing sitemap, falling back to API:', error);
-        }
-      }
-      
-      // Fallback to API if sitemap parsing fails
-      // Use entity endpoint extraction pattern (Content Optimizer module approach)
-      const entitySitemapUrl = getEntitySitemapUrl();
-      const entityEndpoint = entitySitemapUrl 
-        ? extractEndpointFromEntitySitemapUrl(entitySitemapUrl)
-        : null;
-      
-      // Use getPublishedPosts with entity endpoint (if available) or default to 'posts'
-      // Note: getPublishedPosts doesn't currently support endpoint parameter, 
-      // so this uses the backend endpoint extraction logic
-      const result = await getPublishedPosts(
-        site.siteUrl, 
-        site.username, 
-        site.appPassword, 
-        100, 
-        0
-      );
-      if (result.error) {
-        // Handle "no service areas" case gracefully - don't show error toast
-        if (result.error.includes('No published service areas found')) {
-          console.log('[ServiceAreaSelector] No published service areas found - this is normal if the site has no service areas yet');
-          setServiceAreas([]);
-          return;
-        }
-        throw new Error(result.error);
-      }
-      setServiceAreas(result.posts || []);
-    } catch (error) {
-      // Only log error, don't show toast - this is not critical
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      if (!errorMessage.includes('No published service areas found')) {
-        console.warn('[ServiceAreaSelector] Error fetching service areas:', errorMessage);
-      }
-      setServiceAreas([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [site.siteUrl, site.username, site.appPassword, getEntitySitemapUrl]);
-
-  // Only fetch service areas when popover opens (lazy loading) - same as posts
-  useEffect(() => {
-    if (open && site.username && site.appPassword && serviceAreas.length === 0 && !isLoading) {
-      fetchServiceAreas();
-    }
-  }, [open, site.username, site.appPassword, fetchServiceAreas, serviceAreas.length, isLoading]);
+  const { open, setOpen, serviceAreas, isLoading, searchQuery, setSearchQuery, getEntitySitemapUrl, fetchServiceAreas } = useServiceAreaData(site);
 
   const selectedUrls = multiSelect ? (Array.isArray(value) ? value : []) : [];
   const selectedUrl = multiSelect ? undefined : (typeof value === 'string' ? value : '');
@@ -412,145 +284,10 @@ export const ServiceAreaSelector: React.FC<ServiceAreaSelectorProps> = ({
           </span>
           <Button
             variant="quiet"
-            onClick={async (e) => {
+            onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-if (!site.username || !site.appPassword) {
-                notify.error(NOTIFY_SITE_CREDENTIALS_NOT_AVAILABLE);
-                return;
-              }
-
-              try {
-                notify.info(NOTIFY_FETCHING_SERVICE_AREA_DATA);
-                
-                // Helper function to convert subtype to endpoint (same as in use-content-optimization.ts)
-                const subtypeToEndpoint = (subtype?: string): string | undefined => {
-                  const map: Record<string, string> = {
-                    post: 'posts',
-                    page: 'pages', // Hard rule: pages always use 'pages'
-                  };
-                  // For custom subtypes, try entity endpoint extraction if available
-                  if (subtype && !map[subtype]) {
-                    const entitySitemapUrl = getEntitySitemapUrl();
-                    if (entitySitemapUrl) {
-                      return extractEndpointFromEntitySitemapUrl(entitySitemapUrl);
-                    }
-                  }
-                  return subtype ? map[subtype] : undefined;
-                };
-
-                // Helper to find endpoint from sitemap by matching URL to sitemap URLs
-                const findEndpointFromSitemap = (url: string, site: WordPressSite): string | undefined => {
-                  if (!site.sitemaps?.endpoints || !site.sitemaps?.childSitemaps) {
-                    return undefined;
-                  }
-
-                  const urlPath = new URL(url).pathname.toLowerCase();
-
-                  // Check each sitemap's endpoint
-                  for (const [sitemapUrl, endpoint] of Object.entries(site.sitemaps.endpoints)) {
-                    // Extract sitemap type from filename (e.g., "post-sitemap.xml" -> "post")
-                    const sitemapFilename = sitemapUrl.split('/').pop() || '';
-                    const sitemapType = sitemapFilename.replace(/[-_]sitemap\.xml$/i, '').toLowerCase();
-                    
-                    // Match URL path to sitemap type
-                    // e.g., /page/about -> page-sitemap.xml -> 'pages'
-                    // e.g., /entity-slug/denver -> entity-slug-sitemap.xml -> 'entity-slugs'
-                    if (urlPath.includes(sitemapType.replace(/s$/, '')) || urlPath.includes(sitemapType)) {
-                      console.log(`[ServiceAreaSelector Scrape] Matched URL to sitemap: ${url} -> ${sitemapUrl} -> endpoint: ${endpoint}`);
-                      return endpoint;
-                    }
-                  }
-
-                  // Hard rule: if URL contains /page/ or looks like a page, use 'pages'
-                  if (urlPath.includes('/page/') || urlPath.match(/^\/[^/]+$/)) {
-                    // Check if it's NOT a post (posts usually have dates in path)
-                    if (!urlPath.match(/\/\d{4}\/\d{2}\//)) {
-                      console.log(`[ServiceAreaSelector Scrape] Hard rule: URL looks like a page, using 'pages' endpoint`);
-                      return 'pages';
-                    }
-                  }
-
-                  return undefined;
-                };
-
-                // Determine endpoint using same priority as handleOptimizeContent:
-                // 1. Manual endpoint (authoritative)
-                // 2. Subtype to endpoint mapping (with hard rules)
-                // 3. Sitemap detection (match URL to sitemap)
-                let knownEndpoint = site.manualEndpoint;
-                
-                // If no endpoint yet, try to find it from sitemap detection (check first URL)
-                if (!knownEndpoint && selectedUrls.length > 0) {
-                  knownEndpoint = findEndpointFromSitemap(selectedUrls[0], site);
-                }
-
-                const entitySitemapUrl = site.entitySitemapUrl || undefined;
-// Resolve URLs to get post IDs and types - NOW USING ENTITY LOGIC
-                const resolveResult = await resolveWordPressUrls(
-                  site.siteUrl,
-                  site.username,
-                  site.appPassword,
-                  selectedUrls,
-                  entitySitemapUrl,  // Pass entity sitemap URL
-                  knownEndpoint      // Pass known endpoint from manual, subtype, or sitemap detection
-                );
-if (!resolveResult.resolved || resolveResult.resolved.length === 0) {
-const errorMsg = resolveResult.unresolvable?.[0]?.reason || 'Could not resolve service area URLs';
-                  notify.error(errorMsg);
-                  return;
-                }
-// Fetch full service area content with all fields
-                const contentResult = await getWordPressPostContent(
-                  site.siteUrl,
-                  site.username,
-                  site.appPassword,
-                  undefined,
-                  undefined,
-                  resolveResult.resolved.map(r => ({ id: r.id, subtype: r.subtype }))
-                );
-if (contentResult.error || !contentResult.posts || contentResult.posts.length === 0) {
-notify.error(contentResult.error || 'Failed to fetch service area data');
-                  return;
-                }
-
-                // Create JSON file with all service area data
-                const jsonData = {
-                  siteUrl: site.siteUrl,
-                  siteName: site.name,
-                  fetchedAt: new Date().toISOString(),
-                  serviceAreas: contentResult.posts.map(post => ({
-                    ...post.fullData || post, // Include fullData if available, otherwise use post
-                    // Also include parsed fields for convenience
-                    parsed: {
-                      id: post.id,
-                      slug: post.slug,
-                      title: post.title,
-                      link: post.link,
-                      status: post.status,
-                      date_gmt: post.date_gmt,
-                      postTypeEndpoint: post.postTypeEndpoint,
-                      postTypeSubtype: post.postTypeSubtype,
-                    }
-                  }))
-                };
-
-                // Download JSON file
-                const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `wordpress-service-areas-${site.name.replace(/[^a-z0-9]/gi, '-')}-${Date.now()}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-
-                notify.success(notifyDownloadedXServiceAreaSAsJson(contentResult.posts.length));
-              } catch (error) {
-console.error('[ServiceAreaSelector] Error scraping service areas:', error);
-                notify.error(error instanceof Error ? error.message : 'Failed to scrape service areas');
-              }
+              void downloadServiceAreasAsJson({ site, selectedUrls, getEntitySitemapUrl });
             }}
             disabled={disabled || isLoading || !site.username || !site.appPassword}
             title="Download service area data as JSON"

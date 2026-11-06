@@ -30,28 +30,16 @@ import {
   type PollIntervalUnit,
   type TaskTriggerSource,
 } from "@/lib/task-trigger-types";
-
-export type TaskTriggerFieldsProps = {
-  triggerConfig: TaskTriggerConfig;
-  executionPayload?: TaskExecutionPayload | null;
-  disabled?: boolean;
-  layout?: "stack" | "inline";
-  onChange: (config: TaskTriggerConfig) => void;
-  onExecutionPayloadChange: (payload: TaskExecutionPayload) => void;
-};
-
-function conditionKey(condition: TaskTriggerCondition): string {
-  return `${condition.signal}:${condition.operator}:${condition.value}:${condition.minImpressions ?? ""}`;
-}
-
-const MATCH_OPTIONS = [
-  { value: "any", label: "Any condition" },
-  { value: "all", label: "All conditions" },
-];
-const EVALUATE_STATES = ["Evaluate", "Evaluating"] as const;
-const TEST_FIRE_STATES = ["Test trigger (simulated match, live run)", "Queuing"] as const;
-const ROW_CLASS = "flex min-h-9 min-w-0 flex-wrap items-center gap-x-2 gap-y-1";
-
+import {
+  EVALUATE_STATES,
+  MATCH_OPTIONS,
+  ROW_CLASS,
+  TEST_FIRE_STATES,
+  conditionKey,
+  toggleCondition,
+  type TaskTriggerEvaluatePanelProps,
+  type TaskTriggerFieldsProps,
+} from "./task-trigger-fields-helpers";
 function TriggerStackedNumericCell({
   label,
   value,
@@ -119,26 +107,6 @@ function PollFrequencyField({
     </TaskFormPlaceholderCell>
   );
 }
-function toggleCondition(
-  conditions: TaskTriggerCondition[],
-  signal: TaskTriggerSignal,
-): TaskTriggerCondition[] {
-  const existing = conditions.find((c) => c.signal === signal);
-  if (existing) {
-    return conditions.filter((c) => c.signal !== signal);
-  }
-  const defaults = TASK_TRIGGER_SIGNAL_DEFAULTS[signal];
-  return [
-    ...conditions,
-    {
-      signal,
-      operator: defaults.operator,
-      value: defaults.value,
-      minImpressions: defaults.minImpressions,
-    },
-  ];
-}
-
 export function TaskTriggerFields({
   triggerConfig,
   executionPayload,
@@ -434,16 +402,6 @@ export function TaskTriggerFields({
     </div>
   );
 }
-export type TaskTriggerEvaluatePanelProps = {
-  evaluating: boolean;
-  testFiring: boolean;
-  result: TaskTriggerEvaluateResult | null;
-  error: string | null;
-  disabled?: boolean;
-  onEvaluate: () => void;
-  onTestFire: () => void;
-};
-
 export function TaskTriggerEvaluatePanel({
   evaluating,
   testFiring,

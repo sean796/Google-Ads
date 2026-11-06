@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { TASK_FORM_FLAT_CONTROL_CLASS, TaskFormFlatField } from "@/components/manager/tasks/TaskFormLayout";
+import {
+  TaskFormFlatField,
+} from "@/components/manager/tasks/TaskFormLayout";
+import {
+  TASK_FORM_FLAT_CONTROL_CLASS,
+} from "@/components/manager/tasks/task-form-layout-styles";
 import type { WordPressSite } from "../types";
 import { propertyWpEngineInstall } from "./property-profile-view-model";
 import { Field } from "@/ui";

@@ -30,38 +30,39 @@ import {
 } from "@/lib/agent-runs/resolve-agent-run-site";
 import { completeTaskExecution, fetchTaskExecution, reopenTaskExecutionForResume } from "@/lib/tasks-api";
 import {
-  clearPersistedAgentRunCancellations,
-  isAgentRunCancelledPersisted,
-  persistAgentRunCancelled,
-  readPersistedCancelledAgentRunIds,
-} from "@/lib/agent-runs/agent-run-cancellation-storage";
-
-const activeRunIds = new Set<number>();
-const TAB_SESSION_KEY = "neo_pulse_tab_session_id";
-
-function tabSessionId(): string {
-  const existing = sessionStorage.getItem(TAB_SESSION_KEY);
-  if (existing) return existing;
-  const next = crypto.randomUUID();
-  sessionStorage.setItem(TAB_SESSION_KEY, next);
-  return next;
-}
-
-function tryAcquireRunLease(runId: number): boolean {
-  const key = `neo_pulse_agent_run_${runId}`;
-  const owner = tabSessionId();
-  const existing = sessionStorage.getItem(key);
-  if (existing && existing !== owner) return false;
-  sessionStorage.setItem(key, owner);
-  return true;
-}
-
-function releaseRunLease(runId: number): void {
-  const key = `neo_pulse_agent_run_${runId}`;
-  if (sessionStorage.getItem(key) === tabSessionId()) {
-    sessionStorage.removeItem(key);
-  }
-}
+  clearLocalAgentRunCancellations,
+  hydrateCancelledRunsForTeam,
+  isAgentRunCancelledLocally,
+  markAgentRunCancelledLocally,
+  markAgentRunsCancelledLocally,
+} from "@/lib/agent-runs/executor-cancellation";
+import {
+  activeRunIds,
+  hasClientRunAttempted,
+  inflightRuns,
+  isAgentRunInflight,
+  markClientRunAttempted,
+  clearClientRunAttempted,
+  isAgentRunActive,
+  releaseRunLease,
+  tabSessionId,
+  tryAcquireRunLease,
+  waitForAgentRunInflight,
+} from "@/lib/agent-runs/executor-run-state";
+export {
+  clearLocalAgentRunCancellations,
+  isAgentRunCancelledLocally,
+  markAgentRunCancelledLocally,
+  markAgentRunsCancelledLocally,
+};
+export {
+  clearClientRunAttempted,
+  hasClientRunAttempted,
+  isAgentRunActive,
+  isAgentRunInflight,
+  markClientRunAttempted,
+  waitForAgentRunInflight,
+};
 
 class AgentRunCancelledError extends Error {
   constructor() {
@@ -70,43 +71,6 @@ class AgentRunCancelledError extends Error {
   }
 }
 
-const locallyCancelledRunIds = new Set<number>();
-
-function hydrateCancelledRunsForTeam(teamId: number): void {
-  for (const runId of readPersistedCancelledAgentRunIds(teamId)) {
-    locallyCancelledRunIds.add(runId);
-  }
-}
-
-export function markAgentRunCancelledLocally(runId: number, teamId?: number): void {
-  locallyCancelledRunIds.add(runId);
-  if (teamId != null && teamId > 0) {
-    persistAgentRunCancelled(teamId, runId);
-  }
-}
-
-export function markAgentRunsCancelledLocally(
-  runIds: Iterable<number>,
-  teamId?: number,
-): void {
-  for (const runId of runIds) {
-    markAgentRunCancelledLocally(runId, teamId);
-  }
-}
-
-export function clearLocalAgentRunCancellations(teamId?: number): void {
-  locallyCancelledRunIds.clear();
-  clearPersistedAgentRunCancellations(teamId);
-}
-
-export function isAgentRunCancelledLocally(runId: number, teamId?: number): boolean {
-  if (locallyCancelledRunIds.has(runId)) return true;
-  if (teamId != null && isAgentRunCancelledPersisted(teamId, runId)) {
-    locallyCancelledRunIds.add(runId);
-    return true;
-  }
-  return false;
-}
 
 async function isRunCancelled(teamId: number, runId: number): Promise<boolean> {
   if (isAgentRunCancelledLocally(runId, teamId)) return true;
@@ -195,30 +159,6 @@ async function closeRunFromTaskExecution(run: AgentRun): Promise<AgentRunResult 
 
 function isServerExecutionRun(run: AgentRun): boolean {
   return run.result?.executionMode === "server" || run.plan?.executionMode === "server";
-}
-
-const inflightRuns = new Map<number, Promise<void>>();
-/** Client harness started once per run id; blocks auto re-dispatch until explicit resume. */
-const attemptedClientRunIds = new Set<number>();
-
-export function markClientRunAttempted(runId: number): void {
-  if (runId > 0) attemptedClientRunIds.add(runId);
-}
-
-export function clearClientRunAttempted(runId: number): void {
-  attemptedClientRunIds.delete(runId);
-}
-
-export function hasClientRunAttempted(runId: number): boolean {
-  return attemptedClientRunIds.has(runId);
-}
-
-export function isAgentRunInflight(runId: number): boolean {
-  return inflightRuns.has(runId);
-}
-
-export function waitForAgentRunInflight(runId: number): Promise<void> {
-  return inflightRuns.get(runId) ?? Promise.resolve();
 }
 
 export function executeAgentRun(run: AgentRun, sites: WordPressSite[]): Promise<void> {
@@ -518,10 +458,6 @@ async function executeAgentRunOnce(
     activeRunIds.delete(run.id);
     releaseRunLease(run.id);
   }
-}
-
-export function isAgentRunActive(runId: number): boolean {
-  return activeRunIds.has(runId);
 }
 
 export function filterRunnableRuns(runs: AgentRun[]): AgentRun[] {

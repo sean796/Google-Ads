@@ -1,20 +1,20 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import { notify } from "@/lib/app-notifications";
-import { NOTIFY_ANSWER_CLARIFICATION_QUESTIONS_THEN_CLIC, NOTIFY_ANSWER_THE_QUESTIONS_THEN_CONTINUE, NOTIFY_ENTER_A_GOAL_PROMPT_FIRST, NOTIFY_GENERATION_ABORTED, NOTIFY_GOAL_PROMPT_UPDATED, NOTIFY_NO_CLARIFICATION_NEEDED_RUN_OUTLINE_OR_F, NOTIFY_REPORT_GENERATED, NOTIFY_SET_YOUR_OPENROUTER_API_KEY_IN_THE_MANAG, notifyOutlineReadyXSections, notifyRebuiltX } from "@/lib/notify-messages";
-import type { GenerationResult } from "@/lib/api";
+import { NOTIFY_ANSWER_CLARIFICATION_QUESTIONS_THEN_CLIC, NOTIFY_ENTER_A_GOAL_PROMPT_FIRST, NOTIFY_GENERATION_ABORTED, NOTIFY_REPORT_GENERATED, NOTIFY_SET_YOUR_OPENROUTER_API_KEY_IN_THE_MANAG, notifyRebuiltX } from "@/lib/notify-messages";
 import { checkAborted } from "@/lib/agent-generation-helpers";
 import {
   buildPlanMarkdownDoc,
   runFlowFreeformClarify,
-  runFlowFreeformEnhanceGoalPrompt,
   runFlowFreeformOneSection,
   runFlowFreeformOutline,
   runFlowFreeformSuggestTitle,
   stitchSectionMarkdown,
 } from "@/lib/flow-freeform/flow-freeform-pipeline";
-import type { FlowFreeformClarifyQuestion, FlowFreeformSectionPlan } from "@/lib/flow-freeform/flow-freeform-types";
+import type { FlowFreeformSectionPlan } from "@/lib/flow-freeform/flow-freeform-types";
+import type { UseFlowFreeformGenerationArgs } from "@/hooks/flow-freeform-generation-types";
+import { useFlowFreeformPlanningActions } from "@/hooks/use-flow-freeform-planning";
 
-type SetGen = React.Dispatch<React.SetStateAction<GenerationResult>>;
+export type { UseFlowFreeformGenerationArgs } from "@/hooks/flow-freeform-generation-types";
 
 function stitchFromMap(ordered: FlowFreeformSectionPlan[], bodies: Record<string, string>): string {
   const parts: { plan: FlowFreeformSectionPlan; index: number; markdownBlock: string }[] = [];
@@ -23,24 +23,6 @@ function stitchFromMap(ordered: FlowFreeformSectionPlan[], bodies: Record<string
     if (md) parts.push({ plan, index, markdownBlock: md });
   });
   return stitchSectionMarkdown(parts);
-}
-
-export interface UseFlowFreeformGenerationArgs {
-  apiKey: string;
-  selectedModel: string;
-  flowTitle: string;
-  flowPurpose: string;
-  activeKnowledgeBaseText: string;
-  userGoalPrompt: string;
-  clarificationAnswers: Record<string, string>;
-  setFlowTitle: (title: string) => void;
-  setUserGoalPrompt: (prompt: string) => void;
-  setClarificationQuestions: (q: FlowFreeformClarifyQuestion[] | null) => void;
-  setSections: React.Dispatch<React.SetStateAction<FlowFreeformSectionPlan[]>>;
-  setSectionBodies: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-  currentAbortController: React.MutableRefObject<AbortController | null>;
-  setIsGenerating: React.Dispatch<React.SetStateAction<boolean>>;
-  setGenerationResult: SetGen;
 }
 
 export function useFlowFreeformGeneration({
@@ -60,7 +42,6 @@ export function useFlowFreeformGeneration({
   setIsGenerating,
   setGenerationResult,
 }: UseFlowFreeformGenerationArgs) {
-  const [isClarifying, setIsClarifying] = useState(false);
   const kbRef = useRef(activeKnowledgeBaseText);
   kbRef.current = activeKnowledgeBaseText;
 
@@ -106,169 +87,23 @@ export function useFlowFreeformGeneration({
     }
   }, [currentAbortController, setIsGenerating, setGenerationResult]);
 
-  const runClarifyOnly = useCallback(async () => {
-    if (!apiKey.trim()) {
-      notify.error(NOTIFY_SET_YOUR_OPENROUTER_API_KEY_IN_THE_MANAG);
-      return;
-    }
-    if (!userGoalPrompt.trim()) {
-      notify.error(NOTIFY_ENTER_A_GOAL_PROMPT_FIRST);
-      return;
-    }
-    const kb = kbRef.current;
-    const c = new AbortController();
-    currentAbortController.current = c;
-    setIsClarifying(true);
-    try {
-      const resolvedTitle = await resolveFlowTitleForGeneration({ signal: c.signal });
-      const r = await runFlowFreeformClarify({
-        apiKey,
-        model: selectedModel,
-        flowTitle: resolvedTitle,
-        flowPurpose,
-        userGoalPrompt,
-        kbText: kb,
-        signal: c.signal,
-      });
-      checkAborted(c.signal);
-      setClarificationQuestions(r.questions.length ? r.questions : null);
-      if (r.questions.length === 0) {
-        notify.success(NOTIFY_NO_CLARIFICATION_NEEDED_RUN_OUTLINE_OR_F);
-      } else {
-        notify.info(NOTIFY_ANSWER_THE_QUESTIONS_THEN_CONTINUE);
-      }
-    } catch (e) {
-      if ((e as Error).message !== "Aborted") {
-        notify.error((e as Error).message || "Clarify failed");
-      }
-    } finally {
-      setIsClarifying(false);
-      currentAbortController.current = null;
-    }
-  }, [
+
+  const { runClarifyOnly, runEnhanceGoalPrompt, runOutlineOnly, isClarifying } = useFlowFreeformPlanningActions({
     apiKey,
     selectedModel,
     flowPurpose,
     userGoalPrompt,
+    clarificationAnswers,
+    activeKnowledgeBaseText,
     resolveFlowTitleForGeneration,
     setClarificationQuestions,
-    currentAbortController,
-  ]);
-
-  const runEnhanceGoalPrompt = useCallback(async (opts?: { silent?: boolean }): Promise<boolean> => {
-    if (!apiKey.trim()) {
-      notify.error(NOTIFY_SET_YOUR_OPENROUTER_API_KEY_IN_THE_MANAG);
-      return false;
-    }
-    if (!userGoalPrompt.trim()) {
-      if (!opts?.silent) notify.error(NOTIFY_ENTER_A_GOAL_PROMPT_FIRST);
-      return false;
-    }
-    const c = new AbortController();
-    currentAbortController.current = c;
-    setIsGenerating(true);
-    setGenerationResult((prev) => ({ ...prev, currentStage: "planning" }));
-    try {
-      const resolvedTitle = await resolveFlowTitleForGeneration({ signal: c.signal });
-      const enhanced = await runFlowFreeformEnhanceGoalPrompt({
-        apiKey,
-        model: selectedModel,
-        flowTitle: resolvedTitle,
-        userGoalPrompt,
-        clarificationAnswers,
-        kbText: kbRef.current,
-        signal: c.signal,
-      });
-      checkAborted(c.signal);
-      const next = enhanced.trim() || userGoalPrompt;
-      setUserGoalPrompt(next);
-      setGenerationResult((prev) => ({ ...prev, currentStage: "idle" }));
-      if (!opts?.silent) {
-        notify.success(NOTIFY_GOAL_PROMPT_UPDATED);
-      }
-      return true;
-    } catch (e) {
-      if ((e as Error).message !== "Aborted") {
-        notify.error((e as Error).message || "Enhance failed");
-        setGenerationResult((prev) => ({ ...prev, currentStage: "error", final: String(e) }));
-      }
-      return false;
-    } finally {
-      setIsGenerating(false);
-      currentAbortController.current = null;
-    }
-  }, [
-    apiKey,
-    selectedModel,
-    userGoalPrompt,
-    clarificationAnswers,
-    resolveFlowTitleForGeneration,
-    setUserGoalPrompt,
-    currentAbortController,
-    setIsGenerating,
-    setGenerationResult,
-  ]);
-
-  const runOutlineOnly = useCallback(async () => {
-    if (!apiKey.trim()) {
-      notify.error(NOTIFY_SET_YOUR_OPENROUTER_API_KEY_IN_THE_MANAG);
-      return;
-    }
-    if (!userGoalPrompt.trim()) {
-      notify.error(NOTIFY_ENTER_A_GOAL_PROMPT_FIRST);
-      return;
-    }
-    const kb = kbRef.current;
-    const c = new AbortController();
-    currentAbortController.current = c;
-    setIsGenerating(true);
-    setGenerationResult((prev) => ({ ...prev, currentStage: "planning" }));
-    try {
-      const resolvedTitle = await resolveFlowTitleForGeneration({ signal: c.signal });
-      const plans = await runFlowFreeformOutline({
-        apiKey,
-        model: selectedModel,
-        flowTitle: resolvedTitle,
-        flowPurpose,
-        userGoalPrompt,
-        clarificationAnswers,
-        kbText: kb,
-        signal: c.signal,
-      });
-      checkAborted(c.signal);
-      setSections(plans);
-      setSectionBodies({});
-      const planMd = buildPlanMarkdownDoc(plans);
-      setGenerationResult({
-        plan: planMd,
-        draft: "",
-        final: "",
-        currentStage: "idle",
-        isGenerating: false,
-      });
-      notify.success(notifyOutlineReadyXSections(plans.length));
-    } catch (e) {
-      if ((e as Error).message !== "Aborted") {
-        notify.error((e as Error).message || "Outline failed");
-        setGenerationResult((prev) => ({ ...prev, currentStage: "error", final: String(e) }));
-      }
-    } finally {
-      setIsGenerating(false);
-      currentAbortController.current = null;
-    }
-  }, [
-    apiKey,
-    selectedModel,
-    flowPurpose,
-    userGoalPrompt,
-    clarificationAnswers,
-    resolveFlowTitleForGeneration,
     setSections,
     setSectionBodies,
     currentAbortController,
     setIsGenerating,
     setGenerationResult,
-  ]);
+    setUserGoalPrompt,
+  });
 
   const runAllSections = useCallback(
     async (plans: FlowFreeformSectionPlan[]) => {

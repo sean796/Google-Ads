@@ -1,7 +1,7 @@
 import { Sparkles } from "lucide-react";
 import { MultiSiteRowDatePicker } from "@/components/content-optimizer/MultiSiteRowDatePicker";
 import { MultiSiteSitemapModeSelect } from "@/components/content-optimizer/MultiSiteSitemapModeSelect";
-import { OptimizationActivityStrip } from "@/components/integrations/wordpress/WordPressSiteList";
+import { OptimizationActivityStrip } from "@/components/integrations/wordpress/WordPressSiteListMetrics";
 import { optimizationStatsForSite } from "@/components/integrations/wordpress/wordpress-site-list-stats";
 import { CompactWordPressTile } from "@/components/integrations/wordpress/CompactWordPressTile";
 import {

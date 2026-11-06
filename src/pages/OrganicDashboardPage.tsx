@@ -17,7 +17,7 @@ import {
   NEO_PULSE_OPEN_ORGANIC_REPORTING_EVENT,
   type OpenOrganicReportingDetail,
 } from "@/lib/organic-dashboard/organic-reporting-nav";
-import type { Ga4ReportingDateHarness } from "@/components/research/reporting/Ga4ReportingDateRangePopover";
+import type { Ga4ReportingDateHarness } from "@/components/research/reporting/Ga4ReportingDateRangePopover-types";
 import {
   resolveGa4PropertyIdForReporting,
   resolveGa4PropertyIdForReportingAsync,

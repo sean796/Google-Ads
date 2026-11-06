@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { ContentOptimizerSplashOverlay } from "@/components/overview/studio/ContentOptimizerSplashOverlay";
-import { OverviewSitemapLeftDock, type OverviewSitemapLeftDockProps } from "@/components/overview/studio/OverviewSitemapLeftDock";
+import { OverviewSitemapLeftDock } from "@/components/overview/studio/OverviewSitemapLeftDock";
+import type { OverviewSitemapLeftDockProps } from "@/components/overview/studio/overview-sitemap-left-dock-types";
 import {
   CONTENT_OPTIMIZER_SQUARE_CONTROLS_CLASS,
   OVERVIEW_TAB_TYPO_CLASS,

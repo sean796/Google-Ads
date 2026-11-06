@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
-  TASK_PROJECT_DIALOG_CLASS,
   TaskFormFieldGrid,
   TaskFormInfield,
   TaskFormInfieldSelect,
   TaskFormPanel,
 } from "@/components/manager/tasks/TaskFormLayout";
+import {
+  TASK_PROJECT_DIALOG_CLASS,
+} from "@/components/manager/tasks/task-form-layout-styles";
 import { TaskAssigneePicker } from "@/components/manager/tasks/TaskAssigneePicker";
 import { TaskTagPicker } from "@/components/manager/tasks/TaskTagPicker";
 import { TaskSubtaskList } from "@/components/manager/tasks/TaskSubtaskList";

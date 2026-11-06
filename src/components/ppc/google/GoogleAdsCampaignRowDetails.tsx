@@ -1,27 +1,20 @@
 import { useCallback, useMemo, useState } from "react";
-import { AlignLeft, ChevronDown, Heading2, LayoutGrid, Link, Megaphone } from "lucide-react";
+import { AlignLeft, Heading2, LayoutGrid, Link, Megaphone } from "lucide-react";
 
 import { GoogleAdsCampaignLiveInsightsSection } from "@/components/ppc/google/GoogleAdsCampaignLiveInsightsSection";
 import { GoogleAdsCampaignRowGenerateButton } from "@/components/ppc/google/GoogleAdsCampaignRowGenerateButton";
 import { GoogleAdsCampaignRowCompact } from "@/components/ppc/google/GoogleAdsCampaignRowCompact";
 import { GoogleAdsDetailsSection } from "@/components/ppc/google/google-ads-details-accordion";
-import {
-  PPC_DETAILS_ACCORDION_STACK,
-  PPC_DETAILS_TRIGGER,
-} from "@/components/ppc/google/google-ads-row-constants";
-import { GoogleAdsCountedInputShell } from "@/components/ppc/google/GoogleAdsFieldCount";
+import { PPC_DETAILS_ACCORDION_STACK } from "@/components/ppc/google/google-ads-row-constants";
 import { PpcInlineField } from "@/components/ppc/google/PpcInlineField";
-import { PPC_DETAIL_INPUT_CLASS } from "@/components/ppc/google/google-ads-row-details-styles";
 import { contentOptimizerRowStripeClass } from "@/components/overview/overview-tab/overview-tab-content-constants";
-import { GoogleAdsRowEndRail } from "@/components/ppc/google/GoogleAdsRowEndRail";
-import { PPC_ROW_CONTENT_SPAN_CLASS } from "@/components/ppc/google/google-ads-row-constants";
 import {
   GOOGLE_ADS_FINAL_URL_MAX,
   GOOGLE_ADS_RSA_DESCRIPTION_MAX,
   GOOGLE_ADS_RSA_HEADLINE_MAX,
   GOOGLE_ADS_RSA_PATH_MAX,
 } from "@/lib/ppc/google-ads-field-limits";
-import { PPC_AD_GROUP_COUNT_MIN, type PpcCampaignRow, type PpcResponsiveSearchAd, type PpcWpPageContext } from "@/lib/ppc/google-ads-types";
+import { PPC_AD_GROUP_COUNT_MIN, type PpcResponsiveSearchAd } from "@/lib/ppc/google-ads-types";
 import {
   buildPpcInsightsScopeFromRowFocus,
   keywordLineFromTextareaValue,
@@ -30,65 +23,10 @@ import {
   resolvePpcAdGroupIdForIndex,
 } from "@/lib/ppc/ppc-campaign-insights-scope";
 import type { PpcCampaignStructureAd, PpcCampaignStructureAdGroup } from "@/lib/ppc/ppc-campaign-insights-types";
-import { cn } from "@/lib/utils";
-import { Field, TextareaField, Input } from "@/ui";
-
-export type GoogleAdsCampaignRowDetailsProps = {
-  row: PpcCampaignRow;
-  adGroupKeywords: string[];
-  stripeIndex: number;
-  panelId: string;
-  deleteDisabled?: boolean;
-  wpPages?: PpcWpPageContext[];
-  wpPagesLoading?: boolean;
-  landingPageReadOnly?: boolean;
-  onCollapse: () => void;
-  onDelete: () => void;
-  onUpdateCampaign: (patch: Partial<PpcCampaignRow>) => void;
-  onKeywordChange?: (keyword: string) => void;
-  onLandingPageChange?: (url: string) => void;
-  onDailyBudgetChange?: (budget: number | undefined) => void;
-  onLoadWpPages?: () => void;
-  onAdGroupKeywordChange?: (index: number, keyword: string) => void;
-  generateDisabled?: boolean;
-  isRowGenerating?: boolean;
-  onGenerate?: () => void;
-  generatingAdGroupKey?: string | null;
-  onGenerateAdGroup?: (adGroupIndex: number) => void;
-  adsCustomerId?: string;
-};
-
-function PpcCountedInputField({
-  label,
-  value,
-  max,
-  readOnly = false,
-  onChange,
-  inputId,
-}: {
-  label: string;
-  value: string;
-  max: number;
-  readOnly?: boolean;
-  onChange?: (value: string) => void;
-  inputId?: string;
-}) {
-  const padClass = max >= 1000 ? "pr-16" : "pr-12";
-
-  return (
-    <PpcInlineField label={label}>
-      <GoogleAdsCountedInputShell value={value} max={max}>
-        <Input
-          id={inputId}
-          value={value}
-          readOnly={readOnly}
-          className={cn(PPC_DETAIL_INPUT_CLASS, padClass)}
-          onChange={onChange ? (e) => onChange(e.target.value) : undefined}
-        />
-      </GoogleAdsCountedInputShell>
-    </PpcInlineField>
-  );
-}
+import { TextareaField } from "@/ui";
+import type { GoogleAdsCampaignRowDetailsProps } from "@/components/ppc/google/google-ads-campaign-row-details-types";
+import { PpcCountedInputField } from "@/components/ppc/google/GoogleAdsCampaignRowDetailsCountedField";
+import { GoogleAdsCampaignRowDetailsIdleAdGroups } from "@/components/ppc/google/GoogleAdsCampaignRowDetailsIdleAdGroups";
 
 export function GoogleAdsCampaignRowDetails({
   row,
@@ -336,38 +274,15 @@ export function GoogleAdsCampaignRowDetails({
           ) : null}
 
           {showIdleAdGroups ? (
-            <div className={PPC_DETAILS_ACCORDION_STACK} role="region" aria-label="Ad groups">
-              {adGroupKeywords.map((keyword, agIndex) => (
-                <div key={`${row.id}-idle-ag-${agIndex}`} className={PPC_DETAILS_TRIGGER}>
-                  <div className={PPC_ROW_CONTENT_SPAN_CLASS}>
-                    <span className="inline-flex shrink-0 [&_svg]:h-4 [&_svg]:w-4">
-                      <LayoutGrid aria-hidden />
-                    </span>
-                    <span className="shrink-0 text-base font-medium text-white">{`Ad group ${agIndex + 1}:`}</span>
-                    <Field
-                      value={keyword}
-                      readOnly={keywordReadOnly}
-                      placeholder="Ad group title"
-                      aria-label={`Ad group ${agIndex + 1} title`}
-                      onClick={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => e.stopPropagation()}
-                      onChange={(e) => onAdGroupKeywordChange?.(agIndex, e.target.value)}
-                    />
-                  </div>
-                  <GoogleAdsRowEndRail
-                    generate={renderAdGroupGenerateButton(agIndex)}
-                    onDelete={() => handleDeleteAdGroup(agIndex)}
-                    deleteDisabled={adGroupDeleteDisabled}
-                    deleteLabel={`Delete ad group ${agIndex + 1}`}
-                    chevron={
-                      <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground">
-                        <ChevronDown className="h-4 w-4" aria-hidden />
-                      </span>
-                    }
-                  />
-                </div>
-              ))}
-            </div>
+            <GoogleAdsCampaignRowDetailsIdleAdGroups
+              row={row}
+              adGroupKeywords={adGroupKeywords}
+              keywordReadOnly={keywordReadOnly}
+              onAdGroupKeywordChange={onAdGroupKeywordChange}
+              renderAdGroupGenerateButton={renderAdGroupGenerateButton}
+              handleDeleteAdGroup={handleDeleteAdGroup}
+              adGroupDeleteDisabled={adGroupDeleteDisabled}
+            />
           ) : null}
 
           {campaign ? (

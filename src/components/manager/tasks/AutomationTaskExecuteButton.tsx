@@ -2,7 +2,9 @@ import React, { useCallback, useState } from "react";
 import { Play } from "lucide-react";
 import { useAgentRunsContext } from "@/contexts/use-agent-runs-context";
 import { cn } from "@/lib/utils";
-import { TASK_FORM_DIALOG_BUTTON_CLASS } from "@/components/manager/tasks/TaskFormLayout";
+import {
+  TASK_FORM_DIALOG_BUTTON_CLASS,
+} from "@/components/manager/tasks/task-form-layout-styles";
 import {
   automationExecuteUsesTriggerRun,
   prepareTaskForAutomationExecute,

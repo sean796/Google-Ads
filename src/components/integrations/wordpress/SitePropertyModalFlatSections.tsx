@@ -8,7 +8,15 @@ import { isEditorialContentPackageTier } from "@/lib/editorial-content-package";
 import { isOptimizationPackageTier } from "@/lib/wordpress-optimization-package";
 import { PropertyProfileTagPills } from "./PropertyProfileTagPills";
 import { normalizeProfileTags } from "@/lib/wordpress-property-profile-tags";
-import { TASK_FORM_FLAT_CONTROL_CLASS, TaskFormFlatField, TaskFormFlatGrid, TaskFormPlaceholderCell, TaskFormSideSection } from "@/components/manager/tasks/TaskFormLayout";
+import {
+  TaskFormFlatField,
+  TaskFormFlatGrid,
+  TaskFormPlaceholderCell,
+  TaskFormSideSection,
+} from "@/components/manager/tasks/TaskFormLayout";
+import {
+  TASK_FORM_FLAT_CONTROL_CLASS,
+} from "@/components/manager/tasks/task-form-layout-styles";
 import type { PropertySettingsSubSectionId } from "./property-settings-types";
 import { BenchmarkCategoryTagField } from "./BenchmarkCategoryTagField";
 import { PropertyClientLogoFields } from "./PropertyClientLogoFields";

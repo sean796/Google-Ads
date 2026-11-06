@@ -33,51 +33,11 @@ import { emitEntitySapPipelineHarnessDone } from "@/lib/bulk/bulk-harness-progre
 import type { ExternalLinkPair } from "../content-generation/external-link-placeholders";
 import type { LlmAuditAuthorityLinkLike } from "./modifier-external-links";
 
-function bulkRowSerpLocationName(row: {
-  title?: string;
-  keyword?: string;
-  modifier?: string;
-  prompt_modifier?: string;
-}): string {
-  return resolveSerpLocationName("", [row.title, row.keyword, row.prompt_modifier, row.modifier].filter(Boolean).join(" "));
-}
-
-export type BulkRowResearchEnrichmentResult = {
-  enrichedRow: CSVRow;
-  aiAnalysis: KeywordAIAnalysis;
-  semrushKeywordsContext?: string;
-  semrushScatterContext?: string;
-  rowExternalUrlsForSanitize: string[];
-  semrushSnapshotForAcf?: SemrushBulkEnrichmentResult;
-  semrushCitationForAcf: string | null;
-  intelligentMergeForAcf: IntelligentKeywordResearchMergeResult | null;
-  selectedKeywords: string[];
-  selectedH2Sections: string[];
-  selectedPeopleAlsoAsk: string[];
-  importedDraftLinks: ImportedDraftLink[];
-  importedH2Outline: string[];
-  modifierExternalLinks: ModifierExternalLink[];
-  rowExplicitExternalPairs: ExternalLinkPair[];
-  prefilledRowContract: string;
-  pipelineSiteId: string | undefined;
-  pipelineResearchModel: string;
-  pipelineBlogModel: string;
-  pipelineImageModel: string;
-  serpLlmBrief: SeoContentBriefV1;
-  serpLlmBriefJson: string;
-  serpStoredFile: string | null;
-  llmOkCount: number;
-  llmAuditSummaryPrompt: string;
-  dfsArticleAuditBlock: string;
-  firstPartyAuthorityBlock: string;
-  llmAuditAuthorityLinks: LlmAuditAuthorityLinkLike[];
-  selectedResearchLinks: string[];
-  destinationPageUrl: string;
-  entityForLocalTemplate: string | undefined;
-  serpSite: import("@/components/integrations/types").WordPressSite | undefined;
-};
+import type { BulkRowResearchEnrichmentResult } from "./bulk-row-research-enrichment-types";
+import { bulkRowSerpLocationName, fallbackSeoContentBrief, mergePaaQuestionsIntoAiAnalysis } from "./bulk-row-research-enrichment-helpers";
 
 export { bulkRowSerpLocationName };
+export type { BulkRowResearchEnrichmentResult };
 
 export async function runBulkRowResearchEnrichmentPhase(input: {
   rowIndex: number;
@@ -150,40 +110,7 @@ export async function runBulkRowResearchEnrichmentPhase(input: {
   let serpSite: import("@/components/integrations/types").WordPressSite | undefined;
 
   try {
-    // CRITICAL FIX: Merge PAA questions from paaRawResponse into aiAnalysis
-    // The AI analyzer returns empty peopleAlsoAsk because PAA is extracted separately
-    // We need to populate it here so autoSelectPeopleAlsoAsk works correctly
-    const paaRoot = paaRawResponse as
-      | {
-          tasks?: Array<{
-            result?: Array<{
-              items?: Array<{
-                type?: string;
-                items?: Array<{ title?: string; snippet?: string }>;
-              }>;
-            }>;
-          }>;
-        }
-      | null
-      | undefined;
-    if (paaRoot?.tasks?.[0]?.result?.[0]?.items) {
-      const paaItems = paaRoot.tasks[0].result[0].items;
-      if (Array.isArray(paaItems) && paaItems.length > 0) {
-        aiAnalysis.peopleAlsoAsk = paaItems
-          .filter((item) => item.type === 'people_also_ask' && item.items)
-          .flatMap((item) => item.items || [])
-          .slice(0, 10)
-          .map((item) => ({
-            question: item.title || '',
-            snippet: item.snippet || ''
-          }))
-          .filter((paa) => paa.question);
-        console.log('[Bulk Auto-Generate] Merged PAA questions into aiAnalysis:', {
-          paaItemsCount: paaItems.length,
-          aiAnalysisPAACount: aiAnalysis.peopleAlsoAsk.length
-        });
-      }
-    }
+    mergePaaQuestionsIntoAiAnalysis(paaRawResponse, aiAnalysis);
 
     semrushCitationForAcf = prefetchedResearch?.primaryExternalCitationUrl ?? null;
     intelligentMergeForAcf = prefetchedResearch?.intelligentMerge ?? null;
@@ -356,32 +283,7 @@ export async function runBulkRowResearchEnrichmentPhase(input: {
         },
       }).catch((e) => {
         console.warn("[Bulk Auto-Generate] SERP + LLM wave failed (non-fatal):", e);
-        const fallbackBrief: SeoContentBriefV1 = {
-          version: 1,
-          generatedAt: new Date().toISOString(),
-          pageUrl: serpPageUrl,
-          focusKeyword: waveKeyword,
-          gsc: { pageUrl: serpPageUrl, queries: [] },
-          dataforseo: {
-            seedKeyword: waveKeyword,
-            organic: [],
-            peopleAlsoAsk: [],
-            peopleAlsoSearchPhrases: [],
-            relatedSearches: [],
-            refinementChips: [],
-            popularProducts: [],
-          },
-          semrush: {
-            urlOrganicKeywords: [],
-            phraseRelatedKeywords: [],
-            urlOrganicUrls: [],
-            phraseRelatedUrls: [],
-            phraseOrganicUrls: [],
-            externalSemrushUrls: [],
-          },
-          llmAudit: { siteUrl: serpBaseUrl, location: serpLocation, focusKeyword: waveKeyword, platforms: [] },
-        };
-        return { brief: fallbackBrief, storedFile: null as string | null };
+        return { brief: fallbackSeoContentBrief({ waveKeyword, serpPageUrl, serpBaseUrl, serpLocation }), storedFile: null as string | null };
       });
       const [modifierLinks, wave] = await Promise.all([
         runModifierLinkResearch(),

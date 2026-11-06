@@ -1,4 +1,4 @@
-import type { Ga4ReportingDateHarness } from "@/components/research/reporting/Ga4ReportingDateRangePopover";
+import type { Ga4ReportingDateHarness } from "@/components/research/reporting/Ga4ReportingDateRangePopover-types";
 
 const STORAGE_KEY = "neo-pulse-organic-dashboard-dates";
 

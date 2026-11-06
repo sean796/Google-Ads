@@ -7,6 +7,8 @@ import type { BulkGeneratorWorkspaceBindings } from "@/components/keyword-resear
 import { useOverviewTabController } from "@/hooks/overview/use-overview-tab-controller";
 import { useBulkGeneratorOverviewRowSync } from "@/hooks/bulk/use-bulk-generator-overview-row-sync";
 import { usePulseAssistOverviewBridge } from "@/hooks/use-pulse-assist-overview-bridge";
+import type { BulkGeneratorOverviewTabContentProps } from "@/components/keyword-research/bulk/bulk-generator-overview-tab-content-types";
+import { BulkGeneratorOverviewTabBody } from "@/components/keyword-research/bulk/BulkGeneratorOverviewTabBody";
 import { setStudioDocRevisionsViewBridge } from "@/lib/overview/studio-doc-revisions-view-bridge";
 import {
   pickLatestRowContentHtml,
@@ -16,7 +18,7 @@ import type { CSVRow } from "@/lib/bulk-auto-generate";
 import { PROMPT_LOG_FILE_TYPE } from "@/lib/openrouter-prompt-trace";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
-import type { OverviewSitemapLeftDockBulkGeneratorDock } from "@/components/overview/studio/OverviewSitemapLeftDock";
+import type { OverviewSitemapLeftDockBulkGeneratorDock } from "@/components/overview/studio/overview-sitemap-left-dock-types";
 import {
   bulkCsvRowPatchForSitemapSource,
   bulkGeneratorPushBindingsFromFiles,
@@ -40,32 +42,6 @@ import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-
 import type { ContentOptimizerSectionId } from "@/components/content-optimizer/content-optimizer-sections";
 import type { ReactNode } from "react";
 
-export type BulkGeneratorOverviewTabContentProps = {
-  site: WordPressSite;
-  bindings: BulkGeneratorWorkspaceBindings;
-  variant: BulkGeneratorStudioVariant;
-  studioEditorMode: StudioEditorModeId;
-  onStudioEditorModeChange: (mode: StudioEditorModeId) => void;
-  workspaceBusy: boolean;
-  apiKey: string;
-  selectedModel: string;
-  temperature: number;
-  maxTokens: number;
-  topP: number;
-  bulkGeneratorDock: OverviewSitemapLeftDockBulkGeneratorDock;
-  bulkGeneratorDetailsPanel: BulkGeneratorDetailsPanelProps | null;
-  customDrawerContent?: ReactNode;
-  progressSnapshot: MetaBulkMicroSnapshot | null;
-  bulkGeneratorBand2Toolbar: ReactNode;
-  optimizerSection: ContentOptimizerSectionId;
-  onOptimizerSectionChange: (id: ContentOptimizerSectionId) => void;
-  focusKeyword?: string;
-  onFocusKeywordChange?: (v: string) => void;
-  titleOverride?: string;
-  onTitleOverrideChange?: (v: string) => void;
-  pressReleaseComposeProps?: BulkPromptComposePanelProps["pressRelease"];
-  verticalBenchmarkComposeProps?: BulkPromptComposePanelProps["verticalBenchmark"];
-};
 
 export function BulkGeneratorOverviewTabContent({
   site,
@@ -431,105 +407,40 @@ export function BulkGeneratorOverviewTabContent({
     sync.selectDocUrl(url);
   };
 
-  const showModeComposeScreen =
-    studioCenterView === "document" &&
-    (studioEditorMode === "press-release" ||
-      !activeRow ||
-      ((studioEditorMode === "prompt" || studioEditorMode === "vertical-benchmarks") &&
-        (!bindings.hasGeneratedChecklist || showingStudioModeScreen)) ||
-      (studioEditorMode === "csv" &&
-        (!(bulkGeneratorDock.csvFileName || bulkGeneratorDock.importedFileName) ||
-          showingStudioModeScreen)));
-
-  const studioBody: ReactNode = showModeComposeScreen ? (
-      <BulkPromptComposePanel
-        studioMode={studioEditorMode}
-        generalIntent={bindings.generalIntent}
-        onGeneralIntentChange={(v) => bindings.setGeneralIntent(v)}
-        numberOfBlogs={bindings.numberOfBlogs}
-        onNumberOfBlogsChange={(v) => bindings.setNumberOfBlogs(v)}
-        optionalPrompt={bindings.optionalPrompt}
-        onOptionalPromptChange={(v) => bindings.setOptionalPrompt(v)}
-        workspaceBusy={bulkWorkspaceBusy}
-        hasGeneratedChecklist={bindings.hasGeneratedChecklist}
-        promptSiteContextBlocked={
-          Boolean(bindings.connectedSite) && !bindings.promptSiteContextReady
-        }
-        csvFileName={bulkGeneratorDock.csvFileName}
-        onPickCsvFile={(file) => {
-          setShowingStudioModeScreen(false);
-          bulkGeneratorDock.onPickCsvFile?.(file);
-        }}
-        csvParsing={bulkGeneratorDock.csvLoading}
-        csvEnrichingTitlesUrls={bulkGeneratorDock.csvEnrichingTitlesUrls}
-        importParsing={bulkGeneratorDock.importParsing}
-        importedFileName={bulkGeneratorDock.importedFileName}
-        focusKeyword={focusKeyword}
-        onFocusKeywordChange={onFocusKeywordChange}
-        titleOverride={titleOverride}
-        onTitleOverrideChange={onTitleOverrideChange}
-        onPickImportFiles={bulkGeneratorDock.onPickImportFiles}
-        pressRelease={pressReleaseComposeProps}
-        verticalBenchmark={
-          verticalBenchmarkComposeProps
-            ? {
-                ...verticalBenchmarkComposeProps,
-                onApprove: () => {
-                  setShowingStudioModeScreen(false);
-                  verticalBenchmarkComposeProps.onApprove();
-                },
-              }
-            : undefined
-        }
-      />
-  ) : undefined;
-
   return (
-    <OverviewStudioTabShell
-      dock={{
-        ctrl,
-        activeUrl: ideationMode && !bindings.hasGeneratedChecklist ? null : (activeRow?.url ?? null),
-        optimizingRowUrl: sync.optimizingRowUrl,
-        batchBulkState: undefined,
-        batchRunning: false,
-        onSelectUrl: handleSelectDockUrl,
-        bulkWorkspaceBusy,
-        optimizerSection,
-        onOptimizerSectionChange,
-        bulkGeneratorDock,
-      }}
-      main={
-        studioCenterView === "revisions" && activeRow ? (
-          <OverviewStudioRevisionsPage
-            row={activeRow}
-            wpTitlesByUrl={ctrl.wpTitlesByUrl}
-            siteId={ctrl.site?.id ?? null}
-            onBackToEditor={() => setStudioCenterView("document")}
-          />
-        ) : (
-          <OverviewVisualDocCanvas
-            ctrl={ctrl}
-            row={showModeComposeScreen ? null : activeRow}
-            rowIndex={showModeComposeScreen ? -1 : activeRowIndex}
-            bulkWorkspaceBusy={bulkWorkspaceBusy}
-            bulkMicroSnapshot={progressSnapshot}
-            batchBulkState={undefined}
-            optimizingRowUrl={sync.optimizingRowUrl}
-            onInFlightAutoSeoUrlChange={setInFlightAutoSeoUrl}
-            onOpenRevisions={() => setStudioCenterView("revisions")}
-            bulkGeneratorStudioActions={bulkGeneratorStudioActions}
-            promptLogFile={promptLogFile}
-            bulkGeneratorDetailsPanel={bulkGeneratorDetailsPanel ?? undefined}
-            customDrawerContent={customDrawerContent}
-            bulkGeneratedFilesPanelId={bulkGeneratorDetailsPanelId(variant)}
-            bulkGeneratorBand2Toolbar={bulkGeneratorBand2Toolbar}
-            studioBody={studioBody}
-            studioEditorMode={studioEditorMode}
-            onStudioEditorModeChange={handleSelectStudioEditorMode}
-            bulkTitleUrlOptimizing={Boolean(bulkGeneratorDock.csvEnrichingTitlesUrls)}
-          />
-        )
-      }
+    <BulkGeneratorOverviewTabBody
+      bindings={bindings}
+      variant={variant}
+      studioEditorMode={studioEditorMode}
+      bulkGeneratorDock={bulkGeneratorDock}
+      bulkGeneratorDetailsPanel={bulkGeneratorDetailsPanel}
+      customDrawerContent={customDrawerContent}
+      progressSnapshot={progressSnapshot}
+      bulkGeneratorBand2Toolbar={bulkGeneratorBand2Toolbar}
+      optimizerSection={optimizerSection}
+      onOptimizerSectionChange={onOptimizerSectionChange}
+      focusKeyword={focusKeyword}
+      onFocusKeywordChange={onFocusKeywordChange}
+      titleOverride={titleOverride}
+      onTitleOverrideChange={onTitleOverrideChange}
+      pressReleaseComposeProps={pressReleaseComposeProps}
+      verticalBenchmarkComposeProps={verticalBenchmarkComposeProps}
+      ctrl={ctrl}
+      sync={sync}
+      site={site}
+      activeRow={activeRow}
+      activeRowIndex={activeRowIndex}
+      bulkWorkspaceBusy={bulkWorkspaceBusy}
+      studioCenterView={studioCenterView}
+      setStudioCenterView={setStudioCenterView}
+      setShowingStudioModeScreen={setShowingStudioModeScreen}
+      setInFlightAutoSeoUrl={setInFlightAutoSeoUrl}
+      showingStudioModeScreen={showingStudioModeScreen}
+      ideationMode={ideationMode}
+      bulkGeneratorStudioActions={bulkGeneratorStudioActions}
+      promptLogFile={promptLogFile}
+      handleSelectStudioEditorMode={handleSelectStudioEditorMode}
+      handleSelectDockUrl={handleSelectDockUrl}
     />
   );
 }

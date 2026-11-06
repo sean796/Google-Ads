@@ -4,10 +4,12 @@ import { Field, RowButton, Button, Popover, PopoverAnchor, PopoverContent, Popov
 
 import { getStoredSites } from "@/components/integrations/storage";
 import {
-  TASK_FORM_SELECT_CONTENT_CLASS,
-  TASK_FORM_SELECT_ITEM_CLASS,
   TaskFormPlaceholderCell,
 } from "@/components/manager/tasks/TaskFormLayout";
+import {
+  TASK_FORM_SELECT_CONTENT_CLASS,
+  TASK_FORM_SELECT_ITEM_CLASS,
+} from "@/components/manager/tasks/task-form-layout-styles";
 import { cn } from "@/lib/utils";
 import {
   ENTITY_SAP_PACKAGE_SELECT_OPTIONS,

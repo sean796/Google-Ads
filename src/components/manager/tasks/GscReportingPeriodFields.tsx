@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { WorkflowInspectorGroup } from "@/components/manager/workflow/WorkflowInspectorLayout";
 import { WORKFLOW_FORM_FLAT_CONTROL_CLASS } from "@/components/manager/workflow/forge-workflow-styles";
-import { TASK_FORM_FLAT_CONTROL_CLASS } from "@/components/manager/tasks/TaskFormLayout";
+import {
+  TASK_FORM_FLAT_CONTROL_CLASS,
+} from "@/components/manager/tasks/task-form-layout-styles";
 import {
   computeTrailingFullMonthsCompareRanges,
   formatGscComparePeriodLabel,

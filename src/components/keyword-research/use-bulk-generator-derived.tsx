@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import type { OverviewSitemapLeftDockBulkGeneratorDock } from "@/components/overview/studio/OverviewSitemapLeftDock";
+import type { OverviewSitemapLeftDockBulkGeneratorDock } from "@/components/overview/studio/overview-sitemap-left-dock-types";
 import { BulkPromptDockToolbar } from "@/components/keyword-research/bulk/bulk-generator-studio-chrome";
 import type { BulkGeneratorDetailsPanelProps } from "@/components/keyword-research/bulk/BulkGeneratorDetailsPanel";
 import type { BulkGeneratorWorkspaceBindings } from "@/components/keyword-research/bulk/bulk-generator-workspace-bindings";

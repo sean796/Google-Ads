@@ -1,10 +1,8 @@
 import { Download, ExternalLink, Link2, RefreshCw } from "lucide-react";
 import { ActionButton, Button, FilterRowDivider } from "@/ui";
 import { GeneratorToolbarFrame } from "@/components/blog-generator/GeneratorToolbarFrame";
-import {
-  Ga4ReportingDateRangePopover,
-  type Ga4ReportingDateHarness,
-} from "@/components/research/reporting/Ga4ReportingDateRangePopover";
+import { Ga4ReportingDateRangePopover } from "@/components/research/reporting/Ga4ReportingDateRangePopover";
+import type { Ga4ReportingDateHarness } from "@/components/research/reporting/Ga4ReportingDateRangePopover-types";
 
 export type OrganicDashboardToolbarProps = {
   onRefresh: () => void;

@@ -1,0 +1,37 @@
+import type { BulkGeneratorWorkspaceBindings } from "@/components/keyword-research/bulk/bulk-generator-workspace-bindings";
+import type { BulkGeneratorStudioVariant } from "@/lib/bulk/bulk-generator-studio-rows";
+import type { OverviewSitemapLeftDockBulkGeneratorDock } from "@/components/overview/studio/overview-sitemap-left-dock-types";
+import type { BulkPromptComposePanelProps } from "@/components/keyword-research/bulk/BulkPromptComposePanel";
+import type { BulkGeneratorDetailsPanelProps } from "@/components/keyword-research/bulk/BulkGeneratorDetailsPanel";
+import type { StudioEditorModeId } from "@/components/keyword-research/bulk/studio-editor-modes";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
+import type { ContentOptimizerSectionId } from "@/components/content-optimizer/content-optimizer-sections";
+import type { WordPressSite } from "@/components/integrations/types";
+import type { ReactNode } from "react";
+
+export type BulkGeneratorOverviewTabContentProps = {
+  site: WordPressSite;
+  bindings: BulkGeneratorWorkspaceBindings;
+  variant: BulkGeneratorStudioVariant;
+  studioEditorMode: StudioEditorModeId;
+  onStudioEditorModeChange: (mode: StudioEditorModeId) => void;
+  workspaceBusy: boolean;
+  apiKey: string;
+  selectedModel: string;
+  temperature: number;
+  maxTokens: number;
+  topP: number;
+  bulkGeneratorDock: OverviewSitemapLeftDockBulkGeneratorDock;
+  bulkGeneratorDetailsPanel: BulkGeneratorDetailsPanelProps | null;
+  customDrawerContent?: ReactNode;
+  progressSnapshot: MetaBulkMicroSnapshot | null;
+  bulkGeneratorBand2Toolbar: ReactNode;
+  optimizerSection: ContentOptimizerSectionId;
+  onOptimizerSectionChange: (id: ContentOptimizerSectionId) => void;
+  focusKeyword?: string;
+  onFocusKeywordChange?: (v: string) => void;
+  titleOverride?: string;
+  onTitleOverrideChange?: (v: string) => void;
+  pressReleaseComposeProps?: BulkPromptComposePanelProps["pressRelease"];
+  verticalBenchmarkComposeProps?: BulkPromptComposePanelProps["verticalBenchmark"];
+};

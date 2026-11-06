@@ -1,10 +1,7 @@
-import React, { useEffect, useState } from "react";
-import type { WordPressSite } from "@/components/integrations/types";
+import React from "react";
 import { X } from "lucide-react";
 
-import { KnowledgeBaseTab, StoredFile } from "@/components/KnowledgeBaseTab";
-import type { ManagerSettingsClusterId } from "@/components/manager/manager-settings-cluster";
-import { ManagerSettingsContent } from "@/components/manager/ManagerSettingsContent";
+import { KnowledgeBaseTab } from "@/components/KnowledgeBaseTab";
 import { BlogGeneratorShell } from "@/components/blog-generator/BlogGeneratorShell";
 import { IntegrationsTab } from "@/components/IntegrationsTab";
 import { ChatTabContent } from "@/components/chat/ChatTabContent";
@@ -12,11 +9,6 @@ import { TasksTabContent } from "@/components/manager/tasks/TasksTabContent";
 import { PulseForgeTabContent } from "@/components/manager/pulse-forge/PulseForgeTabContent";
 import { UsersTabContent } from "@/components/manager/UsersTabContent";
 import { SupportTabContent } from "@/components/manager/support/SupportTabContent";
-import { PpcTabContent } from "@/components/ppc/PpcTabContent";
-import { MetaAdsCampaignWorkspace } from "@/components/ppc/meta/MetaAdsCampaignWorkspace";
-import { GbpPostShell } from "@/components/gbp-post/GbpPostShell";
-import { ContentCreatorCampaignWorkspace } from "@/components/social/content-creator/ContentCreatorCampaignWorkspace";
-import { SocialCreatorCampaignWorkspace } from "@/components/social/creator/SocialCreatorCampaignWorkspace";
 import { SitemapOptimizerResearchTab } from "@/components/research/sitemap-optimizer/SitemapOptimizerResearchTab";
 import { PulseHostTabContent } from "@/components/hosting/PulseHostTabContent";
 import { AgentLibraryTabContent } from "@/components/manager/agents/AgentLibraryTabContent";
@@ -25,80 +17,22 @@ import { VideoGeneratorTabContent } from "@/components/video-generator/VideoGene
 import { OrganicReportingEmbeddedPanel } from "@/components/organic-dashboard/OrganicReportingEmbeddedPanel";
 import { OrganicReportingLocalGridSection } from "@/components/organic-dashboard/local-grid/OrganicReportingLocalGridSection";
 import { ApiDocsTabContent } from "@/components/api-docs/ApiDocsTabContent";
-import { saveDataForSEOApiKey, saveSemrushApiKey, loadSemrushApiKey, loadDataForSEOApiKey } from "@/lib/api";
-import { hydrateRuntimeApiKeysFromCloud } from "@/components/integrations/storage";
-import type { GeneratorFreeFlowBindings } from "@/components/generator/generator-free-flow-bindings";
-import type { AssistNavigateTarget } from "@/lib/pulse-assist/types";
-import type { BlogGeneratorSectionId } from "@/components/blog-generator/blog-generator-sections";
 import { cn } from "@/lib/utils";
 import { ManagerMegaMenuNav } from "@/components/manager/ManagerMegaMenuNav";
 import { ManagerTopBarDisplayConsole } from "@/components/manager/ManagerTopBarDisplayConsole";
 import { ManagerSeedWorkspaceProvider } from "@/contexts/ManagerSeedWorkspaceProvider";
 import { ManagerErrorLogProvider } from "@/contexts/ManagerErrorLogProvider";
-import {
-  MANAGER_SITE_CONSOLE_DOCK_CLASS,
-  MANAGER_TOP_BAR_CLASS,
-  MANAGER_TOP_BAR_EDGE_INSET_CLASS,
-  MANAGER_TOP_BAR_MENU_RAIL_RESERVE_CLASS,
-  MANAGER_TOP_BAR_ROW_CLASS,
-} from "@/components/manager/manager-top-bar-nav-styles";
 import { PulseAssistContextProvider } from "@/contexts/PulseAssistContextProvider";
 import { PulseAssistRoot } from "@/components/pulse-assist/PulseAssistRoot";
 import { AgentRunsShell } from "@/components/agent-runs/AgentRunsShell";
 import { Button, Tabs, TabsContent } from "@/ui";
-
-export interface ManagerWorkspaceProps {
-  variant: "embedded" | "overlay";
-  onClose?: () => void;
-  /** Flow + Image bindings for Generator section pills */
-  freeFlowBindings?: GeneratorFreeFlowBindings;
-  onResetBlueprint?: () => void;
-  onResetWorkspace?: () => void;
-  managerTab: string;
-  onManagerTabChange: (tab: string) => void;
-  onManualContentUpdate: (content: string) => void;
-  onFilesUpdate: (files: StoredFile[]) => void;
-  currentKBFiles: StoredFile[];
-  apiKey: string;
-  setApiKey: (key: string) => void;
-  saveApiKey: (key: string) => void;
-  selectedModel: string;
-  setSelectedModel: (model: string) => void;
-  agentResearchModel: string;
-  setAgentResearchModel: (model: string) => void;
-  agentImageModel: string;
-  setAgentImageModel: (model: string) => void;
-  agentMetaModel: string;
-  setAgentMetaModel: (model: string) => void;
-  agentReportModel: string;
-  setAgentReportModel: (model: string) => void;
-  agentAdsModel: string;
-  setAgentAdsModel: (model: string) => void;
-  temperature: number;
-  setTemperature: (value: number) => void;
-  maxTokens: number;
-  setMaxTokens: (value: number) => void;
-  topP: number;
-  setTopP: (value: number) => void;
-  flowPurpose?: string;
-  /** @deprecated Notifications are built into ManagerTopBarDisplayConsole */
-  embeddedTopBarNotifications?: React.ReactNode;
-  /** Row 1 far left: logo / brand only. */
-  embeddedTopBarStart?: React.ReactNode;
-  /** Shown below the top row when set (e.g. generation progress) */
-  embeddedTopBarProgress?: React.ReactNode;
-  /** Shown at bottom of embedded scroll area (inside the same overflow-y-auto as tab content). */
-  embeddedFooter?: React.ReactNode;
-  /** Active Dashboard section (Properties, API Keys, …) - synced with mega menu. */
-  managerDashboardCluster: ManagerSettingsClusterId;
-  onManagerDashboardClusterChange: (id: ManagerSettingsClusterId) => void;
-  /** Integrations: open Generator → Entity with site + entity sitemap prefilled. */
-  onNavigateToSapGenerator?: (site: WordPressSite, sitemapUrl: string) => void;
-  /** Pulse Assist in-app navigation (pulse:nav/... links). */
-  onAssistNavigate?: (target: AssistNavigateTarget) => void;
-  /** Tools → SEO mega menu generator mode rows. */
-  onGeneratorSectionChange?: (section: BlogGeneratorSectionId) => void;
-}
+import type { ManagerWorkspaceProps } from "@/components/manager/manager-workspace-props";
+import { useManagerWorkspaceApiKeys } from "@/components/manager/use-manager-workspace-api-keys";
+import {
+  ManagerWorkspacePlatformTabs,
+  ManagerWorkspaceSettingsTab,
+  ManagerWorkspaceStickyHeader,
+} from "@/components/manager/ManagerWorkspaceSections";
 
 export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
   variant,
@@ -142,25 +76,8 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
   onAssistNavigate,
   onGeneratorSectionChange,
 }) => {
-  const [dataForSEOApiKey, setDataForSEOApiKey] = useState<string>(() => loadDataForSEOApiKey());
-  const [semrushApiKey, setSemrushApiKey] = useState<string>(() => {
-    try {
-      return loadSemrushApiKey();
-    } catch {
-      return "";
-    }
-  });
-  useEffect(() => {
-    let live = true;
-    void hydrateRuntimeApiKeysFromCloud().then(() => {
-      if (!live) return;
-      setDataForSEOApiKey(loadDataForSEOApiKey());
-      setSemrushApiKey(loadSemrushApiKey());
-    });
-    return () => {
-      live = false;
-    };
-  }, []);
+  const { dataForSEOApiKey, setDataForSEOApiKey, semrushApiKey, setSemrushApiKey } =
+    useManagerWorkspaceApiKeys();
   const embedded = variant === "embedded";
   const displayConsole = <ManagerTopBarDisplayConsole variant="embedded" />;
   const chatFullBleed =
@@ -186,40 +103,12 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
 
   const embeddedManagerStickyHeader =
     embedded && showResetToolbar ? (
-      <div className="neo-pulse-embedded-sticky-chrome sticky top-0 z-[60] w-full shrink-0 bg-black">
-        <div
-          data-neo-pulse-manager-sticky-nav
-          className={cn(MANAGER_TOP_BAR_ROW_CLASS, MANAGER_TOP_BAR_CLASS, "text-foreground shadow-none")}
-        >
-          <div
-            className={cn(
-              "flex h-9 min-h-9 items-center gap-2 overflow-hidden self-center",
-              MANAGER_TOP_BAR_EDGE_INSET_CLASS,
-              MANAGER_TOP_BAR_MENU_RAIL_RESERVE_CLASS,
-            )}
-          >
-            {embeddedTopBarStart ? (
-              <div className="flex shrink-0 items-center">{embeddedTopBarStart}</div>
-            ) : null}
-            <div className="flex min-w-0 items-center overflow-x-auto">
-              <ManagerMegaMenuNav
-                managerTab={managerTab}
-                onManagerTabChange={onManagerTabChange}
-                onGeneratorSectionChange={onGeneratorSectionChange}
-                variant="embedded"
-                dashboardCluster={managerDashboardCluster}
-                onDashboardClusterChange={onManagerDashboardClusterChange}
-              />
-            </div>
-          </div>
-          <div className={MANAGER_SITE_CONSOLE_DOCK_CLASS}>{displayConsole}</div>
-        </div>
-        {embeddedTopBarProgress ? (
-          <div className="relative z-[1] shrink-0 bg-ui-field px-3 py-1.5 md:px-5 md:py-2">
-            {embeddedTopBarProgress}
-          </div>
-        ) : null}
-      </div>
+      <ManagerWorkspaceStickyHeader
+        managerTab={managerTab} onManagerTabChange={onManagerTabChange}
+        onGeneratorSectionChange={onGeneratorSectionChange} managerDashboardCluster={managerDashboardCluster}
+        onManagerDashboardClusterChange={onManagerDashboardClusterChange} embeddedTopBarStart={embeddedTopBarStart}
+        embeddedTopBarProgress={embeddedTopBarProgress} displayConsole={displayConsole}
+      />
     ) : null;
 
   const inner = (
@@ -391,130 +280,29 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
           {managerTab === "users" ? <UsersTabContent /> : null}
         </TabsContent>
 
-        <TabsContent
-          value="dashboard"
-          className={cn(
-            embeddedTabPanelTopClass,
-            "shadow-none ring-0 ring-offset-0 outline-none focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=inactive]:hidden",
-            embeddedTabPanelStretch,
-          )}
-        >
-          {managerTab === "dashboard" ? (
-            <ManagerSettingsContent
-              apiKey={apiKey}
-              setApiKey={setApiKey}
-              saveApiKey={saveApiKey}
-              dataForSEOApiKey={dataForSEOApiKey}
-              setDataForSEOApiKey={setDataForSEOApiKey}
-              saveDataForSEOApiKeyToStorage={saveDataForSEOApiKey}
-              semrushApiKey={semrushApiKey}
-              setSemrushApiKey={setSemrushApiKey}
-              saveSemrushApiKeyToStorage={saveSemrushApiKey}
-              selectedModel={selectedModel}
-              setSelectedModel={setSelectedModel}
-              agentResearchModel={agentResearchModel}
-              setAgentResearchModel={setAgentResearchModel}
-              agentImageModel={agentImageModel}
-              setAgentImageModel={setAgentImageModel}
-              agentMetaModel={agentMetaModel}
-              setAgentMetaModel={setAgentMetaModel}
-              agentReportModel={agentReportModel}
-              setAgentReportModel={setAgentReportModel}
-              agentAdsModel={agentAdsModel}
-              setAgentAdsModel={setAgentAdsModel}
-              temperature={temperature}
-              setTemperature={setTemperature}
-              maxTokens={maxTokens}
-              setMaxTokens={setMaxTokens}
-              topP={topP}
-              setTopP={setTopP}
-              settingsCluster={managerDashboardCluster}
-              onSettingsClusterChange={onManagerDashboardClusterChange}
-            />
-          ) : null}
-        </TabsContent>
+        <ManagerWorkspaceSettingsTab
+          embeddedTabPanelTopClass={embeddedTabPanelTopClass} embeddedTabPanelStretch={embeddedTabPanelStretch}
+          managerTab={managerTab} apiKey={apiKey} setApiKey={setApiKey} saveApiKey={saveApiKey}
+          dataForSEOApiKey={dataForSEOApiKey} setDataForSEOApiKey={setDataForSEOApiKey}
+          semrushApiKey={semrushApiKey} setSemrushApiKey={setSemrushApiKey}
+          selectedModel={selectedModel} setSelectedModel={setSelectedModel}
+          agentResearchModel={agentResearchModel} setAgentResearchModel={setAgentResearchModel}
+          agentImageModel={agentImageModel} setAgentImageModel={setAgentImageModel}
+          agentMetaModel={agentMetaModel} setAgentMetaModel={setAgentMetaModel}
+          agentReportModel={agentReportModel} setAgentReportModel={setAgentReportModel}
+          agentAdsModel={agentAdsModel} setAgentAdsModel={setAgentAdsModel}
+          temperature={temperature} setTemperature={setTemperature}
+          maxTokens={maxTokens} setMaxTokens={setMaxTokens} topP={topP} setTopP={setTopP}
+          managerDashboardCluster={managerDashboardCluster}
+          onManagerDashboardClusterChange={onManagerDashboardClusterChange}
+        />
 
-        <TabsContent
-          value="ppc-google"
-          className={cn(
-            embeddedTabPanelTopClass,
-            "data-[state=inactive]:hidden",
-            embeddedTabPanelStretch,
-            embedded && "overflow-hidden",
-          )}
-        >
-          {managerTab === "ppc-google" ? (
-            <PpcTabContent
-              apiKey={apiKey}
-              selectedModel={selectedModel}
-              temperature={temperature}
-              maxTokens={maxTokens}
-              topP={topP}
-              onPlatformChange={onManagerTabChange}
-            />
-          ) : null}
-        </TabsContent>
-
-        <TabsContent
-          value="ppc-meta"
-          className={cn(
-            embeddedTabPanelTopClass,
-            "data-[state=inactive]:hidden",
-            embeddedTabPanelStretch,
-            embedded && "overflow-hidden",
-          )}
-        >
-          {managerTab === "ppc-meta" ? (
-            <MetaAdsCampaignWorkspace
-              apiKey={apiKey}
-              selectedModel={selectedModel}
-              onPlatformChange={onManagerTabChange}
-            />
-          ) : null}
-        </TabsContent>
-
-        <TabsContent
-          value="gbp-post"
-          className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}
-        >
-          {managerTab === "gbp-post" ? <GbpPostShell onPlatformChange={onManagerTabChange} /> : null}
-        </TabsContent>
-
-        <TabsContent
-          value="content-calendar"
-          className={cn(
-            embeddedTabPanelTopClass,
-            "data-[state=inactive]:hidden",
-            embeddedTabPanelStretch,
-            embedded && "overflow-hidden",
-          )}
-        >
-          {managerTab === "content-calendar" ? (
-            <ContentCreatorCampaignWorkspace
-              apiKey={apiKey}
-              selectedModel={selectedModel}
-              onPlatformChange={onManagerTabChange}
-            />
-          ) : null}
-        </TabsContent>
-
-        <TabsContent
-          value="social-creator"
-          className={cn(
-            embeddedTabPanelTopClass,
-            "data-[state=inactive]:hidden",
-            embeddedTabPanelStretch,
-            embedded && "overflow-hidden",
-          )}
-        >
-          {managerTab === "social-creator" ? (
-            <SocialCreatorCampaignWorkspace
-              apiKey={apiKey}
-              selectedModel={selectedModel}
-              onPlatformChange={onManagerTabChange}
-            />
-          ) : null}
-        </TabsContent>
+        <ManagerWorkspacePlatformTabs
+          embedded={embedded} embeddedTabPanelTopClass={embeddedTabPanelTopClass}
+          embeddedTabPanelStretch={embeddedTabPanelStretch} managerTab={managerTab}
+          apiKey={apiKey} selectedModel={selectedModel} temperature={temperature}
+          maxTokens={maxTokens} topP={topP} onManagerTabChange={onManagerTabChange}
+        />
 
         <TabsContent
           value="sitemap-optimizer"

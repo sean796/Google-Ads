@@ -1,57 +1,27 @@
-import React, { useMemo } from "react";
-import { Calendar as CalendarIcon, ChevronDown, Clock } from "lucide-react";
-import { format, parse } from "date-fns";
-
-
-import { CheckField, SelectField, RowButton, Button, Calendar, Popover, PopoverContent, PopoverTrigger } from "@/ui";
+import React from "react";
+import { SelectField } from "@/ui";
 import { cn } from "@/lib/utils";
+import {
+  TASK_FORM_BAND_CLASS,
+  TASK_FORM_BAND_FIELDS_CLASS,
+  TASK_FORM_CELL_CLASS,
+  TASK_FORM_COMPACT_CELL_CLASS,
+  TASK_FORM_COMPACT_INFIELD_LABEL_CLASS,
+  TASK_FORM_INFIELD_CONTROL_CLASS,
+  TASK_FORM_INFIELD_SHELL_CLASS,
+  TASK_FORM_PANEL_CLASS,
+  fromSelectValue,
+  toSelectValue,
+  type TaskFormInfieldSelectOption,
+} from "@/components/manager/tasks/task-form-layout-styles";
+import { TaskFormPlaceholderCell } from "@/components/manager/tasks/TaskFormPickers";
 
-export const TASK_PROJECT_DIALOG_CLASS =
-  "flex max-h-[85vh] max-w-[1280px] w-[min(1280px,98vw)] flex-col gap-1 overflow-hidden rounded-none sm:rounded-none border-0 bg-black p-3 text-foreground [&>button]:rounded-none";
-
-export const TASK_FORM_BAND_CLASS = "flex flex-col gap-0.5 rounded-none p-1";
-
-export const TASK_FORM_BAND_FIELDS_CLASS = "flex w-full min-w-0 flex-col gap-0.5 rounded-none p-1";
-
-export const TASK_FORM_COMPACT_CELL_CLASS =
-  "flex min-h-10 min-w-0 flex-col justify-center rounded-none bg-ui-field px-2 py-1";
-
-export const TASK_FORM_COMPACT_INFIELD_LABEL_CLASS = "text-base leading-tight text-muted-foreground";
-
-export const TASK_FORM_CELL_CLASS =
-  "flex min-h-12 min-w-0 flex-col justify-center rounded-none bg-ui-field px-2 py-1.5";
-
-const TASK_FORM_PLACEHOLDER_CELL_CLASS = "flex min-h-9 min-w-0 items-center rounded-none bg-ui-field";
-
-export const TASK_FORM_DIALOG_BUTTON_CLASS = "rounded-none";
-
-export const TASK_FORM_FLAT_CONTROL_CLASS =
-  "h-9 min-h-9 w-full min-w-0 rounded-none border-0 bg-transparent px-2 py-0 text-base text-foreground shadow-none outline-none ring-0 focus-visible:ring-0";
-
-export const TASK_FORM_PANEL_CLASS = "flex flex-col gap-1.5 rounded-none";
-export const TASK_FORM_PANEL_INNER_CLASS = "flex flex-col gap-1.5 rounded-none";
-
-export const TASK_FORM_INFIELD_SHELL_CLASS = "flex min-w-0 flex-col gap-0.5 rounded-none bg-ui-field px-3 py-2";
-
-export const TASK_FORM_INFIELD_CONTROL_CLASS =
-  "min-w-0 [&_input]:h-9 [&_input]:w-full [&_input]:border-0 [&_input]:bg-transparent [&_input]:p-0 [&_input]:text-base [&_input]:text-foreground [&_input]:shadow-none [&_input]:outline-none [&_input]:ring-0 [&_input]:focus-visible:ring-0 [&_textarea]:min-h-[2.5rem] [&_textarea]:w-full [&_textarea]:resize-none [&_textarea]:border-0 [&_textarea]:bg-transparent [&_textarea]:p-0 [&_textarea]:text-base [&_textarea]:text-foreground [&_textarea]:shadow-none [&_textarea]:outline-none [&_textarea]:ring-0 [&_textarea]:focus-visible:ring-0";
-
-export const TASK_FORM_SELECT_CONTENT_CLASS = "border-0 bg-black text-foreground shadow-lg";
-
-export const TASK_FORM_SELECT_ITEM_CLASS = "text-base text-foreground focus:bg-ui-field focus:text-foreground";
-
-export const TASK_FORM_SELECT_TRIGGER_CLASS =
-  "h-9 min-h-9 rounded-none border-0 bg-transparent p-0 text-base text-foreground shadow-none focus:ring-0 focus:ring-offset-0";
-
-const EMPTY_SELECT_VALUE = "__empty__";
-
-function toSelectValue(value: string): string {
-  return value === "" ? EMPTY_SELECT_VALUE : value;
-}
-
-function fromSelectValue(value: string): string {
-  return value === EMPTY_SELECT_VALUE ? "" : value;
-}
+export { TaskFormPlaceholderCell };
+export {
+  TaskFormDatePicker,
+  TaskFormMultiSelect,
+  TaskFormTimePicker,
+} from "@/components/manager/tasks/TaskFormPickers";
 
 export function TaskFormPanel({
   title,
@@ -129,8 +99,6 @@ export function TaskFormPanelGrid({
 }): React.ReactElement {
   return <div className={cn("grid grid-cols-1 gap-3 lg:grid-cols-2", className)}>{children}</div>;
 }
-
-export type TaskFormInfieldSelectOption = { value: string; label: string };
 
 export function TaskFormInfieldSelect({
   label,
@@ -325,16 +293,6 @@ export function TaskFormCompactCell({
   );
 }
 
-export function TaskFormPlaceholderCell({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}): React.ReactElement {
-  return <div className={cn(TASK_FORM_PLACEHOLDER_CELL_CLASS, className)}>{children}</div>;
-}
-
 export function TaskFormFlatSelectPlaceholder({
   placeholder,
   value,
@@ -360,204 +318,6 @@ export function TaskFormFlatSelectPlaceholder({
         disabled={disabled}
         options={options.map((opt) => ({ value: toSelectValue(opt.value), label: opt.label }))}
       />
-    </TaskFormPlaceholderCell>
-  );
-}
-
-export type TaskFormMultiSelectOption = { value: string; label: string };
-
-export function TaskFormMultiSelect({
-  placeholder,
-  options,
-  selectedValues,
-  onChange,
-  disabled = false,
-  className,
-}: {
-  placeholder: string;
-  options: TaskFormMultiSelectOption[];
-  selectedValues: string[];
-  onChange: (values: string[]) => void;
-  disabled?: boolean;
-  className?: string;
-}): React.ReactElement {
-  const triggerLabel = useMemo(() => {
-    if (selectedValues.length === 0) return placeholder;
-    const labels = selectedValues
-      .map((value) => options.find((opt) => opt.value === value)?.label ?? value)
-      .filter(Boolean);
-    return labels.join(", ");
-  }, [options, placeholder, selectedValues]);
-
-  const toggle = (value: string) => {
-    if (selectedValues.includes(value)) {
-      onChange(selectedValues.filter((v) => v !== value));
-    } else {
-      onChange([...selectedValues, value]);
-    }
-  };
-
-  return (
-    <TaskFormPlaceholderCell className={className}>
-      <Popover>
-        <PopoverTrigger asChild disabled={disabled}>
-          <RowButton
-            type="button"
-            aria-label={placeholder}
-          >
-            <span className="min-w-0 flex-1 whitespace-nowrap">{triggerLabel}</span>
-            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-          </RowButton>
-        </PopoverTrigger>
-        <PopoverContent
-          align="start"
-          className="w-[var(--radix-popover-trigger-width)] rounded-none border-0 bg-black p-1 text-foreground shadow-lg"
-        >
-          <div className="flex max-h-48 flex-col gap-0.5 overflow-y-auto">
-            {options.map((opt) => {
-              const checked = selectedValues.includes(opt.value);
-              return (
-                <CheckField key={opt.value} label={opt.label} checked={checked} onCheckedChange={() => toggle(opt.value)} />
-              );
-            })}
-          </div>
-        </PopoverContent>
-      </Popover>
-    </TaskFormPlaceholderCell>
-  );
-}
-
-const SCHEDULE_TICK_MINUTES = 5;
-
-const TASK_TIME_SLOTS: string[] = (() => {
-  const slots: string[] = [];
-  for (let hour = 0; hour < 24; hour += 1) {
-    for (let minute = 0; minute < 60; minute += SCHEDULE_TICK_MINUTES) {
-      slots.push(`${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`);
-    }
-  }
-  return slots;
-})();
-
-function parseTaskIsoDate(value: string): Date | undefined {
-  if (!value.trim()) return undefined;
-  const [year, month, day] = value.split("-").map(Number);
-  if (!year || !month || !day) return undefined;
-  return new Date(year, month - 1, day);
-}
-
-function toTaskIsoDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function formatTaskTimeLabel(value: string): string {
-  if (!value.trim()) return "";
-  const normalized = value.trim().slice(0, 5);
-  return format(parse(normalized, "HH:mm", new Date()), "h:mm a");
-}
-
-export function TaskFormDatePicker({
-  placeholder,
-  value,
-  onChange,
-  disabled = false,
-  className,
-}: {
-  placeholder: string;
-  value: string;
-  onChange: (value: string) => void;
-  disabled?: boolean;
-  className?: string;
-}): React.ReactElement {
-  const selected = useMemo(() => parseTaskIsoDate(value), [value]);
-  const label = selected ? format(selected, "MM/dd/yyyy") : placeholder;
-
-  return (
-    <TaskFormPlaceholderCell className={className}>
-      <Popover>
-        <PopoverTrigger asChild disabled={disabled}>
-          <RowButton
-            selected={Boolean(selected)}
-            type="button"
-            aria-label={placeholder}
-          >
-            <CalendarIcon className="h-4 w-4 shrink-0" />
-            <span className="min-w-0 flex-1 whitespace-nowrap">{label}</span>
-          </RowButton>
-        </PopoverTrigger>
-        <PopoverContent
-          align="start"
-          className="w-auto rounded-none border-0 bg-black p-0 text-foreground shadow-lg"
-        >
-          <Calendar
-            mode="single"
-            selected={selected}
-            onSelect={(date) => {
-              if (!date) return;
-              onChange(toTaskIsoDate(date));
-            }}
-            initialFocus
-            className="rounded-none bg-black text-base text-foreground"
-          />
-        </PopoverContent>
-      </Popover>
-    </TaskFormPlaceholderCell>
-  );
-}
-
-export function TaskFormTimePicker({
-  placeholder,
-  value,
-  onChange,
-  disabled = false,
-  className,
-}: {
-  placeholder: string;
-  value: string;
-  onChange: (value: string) => void;
-  disabled?: boolean;
-  className?: string;
-}): React.ReactElement {
-  const normalized = value.trim().slice(0, 5);
-  const label = normalized ? formatTaskTimeLabel(normalized) : placeholder;
-
-  return (
-    <TaskFormPlaceholderCell className={className}>
-      <Popover>
-        <PopoverTrigger asChild disabled={disabled}>
-          <RowButton
-            selected={Boolean(normalized)}
-            type="button"
-            aria-label={placeholder}
-          >
-            <Clock className="h-4 w-4 shrink-0" />
-            <span className="min-w-0 flex-1 whitespace-nowrap">{label}</span>
-          </RowButton>
-        </PopoverTrigger>
-        <PopoverContent
-          align="start"
-          className="w-36 rounded-none border-0 bg-black p-1 text-foreground shadow-lg"
-        >
-          <div className="flex max-h-48 flex-col gap-0.5 overflow-y-auto">
-            {TASK_TIME_SLOTS.map((slot) => {
-              const active = normalized === slot;
-              return (
-                <Button
-                  pressed={Boolean(active)}
-                  variant="quiet"
-                  key={slot}
-                  onClick={() => onChange(slot)}
-                >
-                  {formatTaskTimeLabel(slot)}
-                </Button>
-              );
-            })}
-          </div>
-        </PopoverContent>
-      </Popover>
     </TaskFormPlaceholderCell>
   );
 }

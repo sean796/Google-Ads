@@ -2,120 +2,17 @@ import React, { useState, useCallback, useRef, useEffect } from "react";
 import { ActionButton, Button, CheckField, DialogShell, TextareaField, FileInput } from "@/ui";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_NO_PENDING_TASKS_TO_FIX, NOTIFY_PASTE_OR_UPLOAD_A_TASK_LIST_FIRST, NOTIFY_SHEET_EXPORTED, notifyFixRunCompleteXTaskSProcessed, notifyInterpretedXTaskS } from "@/lib/notify-messages";
-import { Wrench, Upload, FileText, Download, Printer, Check, Circle, ChevronDown, ChevronUp } from "lucide-react";
-import type { WordPressSite } from "@/components/integrations/types";
-import { interpretSemTaskList, type InterpretedSemTask } from "@/lib/sem-task-interpreter";
+import { Wrench, Upload, FileText, Download, Printer } from "lucide-react";
+import { interpretSemTaskList } from "@/lib/sem-task-interpreter";
 import { SEM_FOCUS_CATEGORIES, deriveSuggestedFocusFromFileName, deriveFocusFromTask } from "@/lib/sem-categories";
 import { useWordPressOptimization } from "@/contexts/wordpress-optimization-context";
-import type {
-  BooleanMapSetter,
-  ClusterAnalysisSetter,
-  GscQueriesSetter,
-} from "@/hooks/content-optimization/bulk-optimization-params";
-import type { ImageType } from "@/lib/image-section-analyzer";
-
-export type SemTaskRow = InterpretedSemTask & {
-  status: "pending" | "fixing" | "done" | "error";
-  changeSummary?: string;
-  error?: string;
-  /** Per-row checklist completion (one boolean per checklist item) */
-  checklistDone: boolean[];
-  /** Tech spec prompt sent to AI (for "View prompt" expandable) */
-  promptSent?: { system: string; user: string };
-};
-
-/** Full-post optimizer (content optimizer flow) with optional SEM task context. SEM fix path returns optimizationChanges. */
-type OnOptimizeContent = (
-  site: WordPressSite,
-  url: string,
-  updateMode: "update" | "draft",
-  setGscQueriesForSelection: GscQueriesSetter,
-  setIsKeywordSelectionOpen: BooleanMapSetter,
-  setGscClusterAnalysis: ClusterAnalysisSetter,
-  setIsAnalyzingClusters: BooleanMapSetter,
-  skipOnNoGSC: boolean,
-  optimizationOptions?: { optimizeTitle?: boolean; optimizeMeta?: boolean; optimizeExcerpt?: boolean; optimizeContent?: boolean },
-  inContentImageRequest?: { imageType: ImageType; userPrompt?: string },
-  resolvedPost?: { id: number; subtype: string; link?: string; slug?: string; endpoint?: string },
-  testMode?: boolean,
-  semTaskContext?: { suggestedAction: string; checklist?: string[]; promptModifier?: string; focusCategories?: string[] }
-) => Promise<{ optimizationChanges?: Record<string, unknown> } | void | undefined>;
-
-interface SEMTaskListDialogProps {
-  site: WordPressSite;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onOptimizeContent: OnOptimizeContent;
-  setGscQueriesForSelection: GscQueriesSetter;
-  setIsKeywordSelectionOpen: BooleanMapSetter;
-  setGscClusterAnalysis: ClusterAnalysisSetter;
-  setIsAnalyzingClusters: BooleanMapSetter;
-}
-
-const STATUS_CLASS: Record<SemTaskRow["status"], string> = {
-  pending: "text-muted-foreground",
-  fixing: "text-primary",
-  done: "text-primary",
-  error: "text-ui-danger",
-};
-const INTERPRET_STATES = ["Interpret list", "Interpreting"] as const;
-const FIX_STATES = ["Fix it (AI Technical Mechanic)", "Fixing"] as const;
-const CELL = "bg-ui-field p-2 text-left align-top text-base";
-
-function TaskTable({ tasks, expandedPromptKey, onTogglePrompt }: { tasks: SemTaskRow[]; expandedPromptKey?: string | null; onTogglePrompt?: (key: string) => void }) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-separate border-spacing-px text-base">
-        <thead>
-          <tr>
-            {["#", "URL", "Action", "Checklist", "Status", "Change"].map((h) => (<th key={h} className={`${CELL} font-semibold`}>{h}</th>))}
-          </tr>
-        </thead>
-        <tbody>
-          {tasks.map((t, idx) => {
-            const key = `${t.lineIndex}-${t.url}`;
-            const open = expandedPromptKey === key;
-            return (
-              <tr key={`${key}-${idx}`}>
-                <td className={`${CELL} text-muted-foreground`}>{t.lineIndex}</td>
-                <td className={`${CELL} break-all text-muted-foreground`} title={t.url}>{t.url}</td>
-                <td className={`${CELL} text-muted-foreground`}>{t.suggestedAction}</td>
-                <td className={CELL}>
-                  <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
-                    {(t.checklist ?? []).map((item, i) => (
-                      <li key={i} className="flex items-start gap-1">
-                        {t.checklistDone?.[i] ? <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> : <Circle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />}
-                        <span className={t.checklistDone?.[i] ? "text-muted-foreground line-through" : "text-muted-foreground"}>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </td>
-                <td className={`${CELL} ${STATUS_CLASS[t.status]}`}>{t.status}</td>
-                <td className={`${CELL} text-muted-foreground`}>
-                  <div className="flex flex-col gap-1">
-                    <span>{t.changeSummary ?? (t.error ? t.error : " - ")}</span>
-                    {onTogglePrompt && t.promptSent ? (
-                      <Button variant="tool" icon={open ? ChevronUp : ChevronDown} onClick={() => onTogglePrompt(key)}>
-                        {open ? "Hide prompt" : "View prompt"}
-                      </Button>
-                    ) : null}
-                    {open && t.promptSent ? (
-                      <pre className="max-h-48 overflow-auto whitespace-pre-wrap bg-ui-field-hover p-2 font-mono text-base">
-                        <span className="text-primary">System:</span>{"\n"}{t.promptSent.system}{"\n\n"}
-                        <span className="text-primary">User:</span>{"\n"}{t.promptSent.user}
-                      </pre>
-                    ) : null}
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
+import {
+  FIX_STATES,
+  INTERPRET_STATES,
+  type SEMTaskListDialogProps,
+  type SemTaskRow,
+} from "./sem-task-list-dialog-helpers";
+import { SEMTaskTable } from "./SEMTaskTable";
 export const SEMTaskListDialog: React.FC<SEMTaskListDialogProps> = ({
   site,
   open,
@@ -476,7 +373,7 @@ export const SEMTaskListDialog: React.FC<SEMTaskListDialogProps> = ({
 
         {hasTasks ? (
           <>
-            <TaskTable
+            <SEMTaskTable
               tasks={tasks}
               expandedPromptKey={expandedPromptKey}
               onTogglePrompt={(key) => setExpandedPromptKey((k) => (k === key ? null : key))}
@@ -505,7 +402,7 @@ export const SEMTaskListDialog: React.FC<SEMTaskListDialogProps> = ({
           </Button>
         }
       >
-        <TaskTable tasks={tasks} />
+        <SEMTaskTable tasks={tasks} />
       </DialogShell>
     </>
   );

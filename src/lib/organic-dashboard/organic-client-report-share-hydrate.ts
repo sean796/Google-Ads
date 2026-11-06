@@ -1,5 +1,5 @@
 import type { WordPressSite } from "@/components/integrations/types";
-import type { Ga4ReportingDateHarness } from "@/components/research/reporting/Ga4ReportingDateRangePopover";
+import type { Ga4ReportingDateHarness } from "@/components/research/reporting/Ga4ReportingDateRangePopover-types";
 import { formatLocalYmd } from "@/lib/reporting/reporting-date-presets";
 import {
   resolveGa4PropertyIdForReporting,

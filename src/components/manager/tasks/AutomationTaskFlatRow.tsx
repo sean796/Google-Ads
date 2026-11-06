@@ -1,12 +1,14 @@
 import React from "react";
 import {
-  TASK_FORM_FLAT_CONTROL_CLASS,
   TaskFormDatePicker,
   TaskFormFlatGrid,
   TaskFormFlatSelectPlaceholder,
   TaskFormPlaceholderCell,
   TaskFormTimePicker,
 } from "@/components/manager/tasks/TaskFormLayout";
+import {
+  TASK_FORM_FLAT_CONTROL_CLASS,
+} from "@/components/manager/tasks/task-form-layout-styles";
 import { GscReportingExecutionFields } from "@/components/manager/tasks/GscReportingExecutionFields";
 import { AdsReportingExecutionFields } from "@/components/manager/tasks/AdsReportingExecutionFields";
 import { LocalDominatorExportExecutionFields } from "@/components/manager/tasks/LocalDominatorExportExecutionFields";

@@ -1,18 +1,6 @@
-import type { WordPressSite } from "@/components/integrations/types";
 import { getImageModel, getResearchModel } from "@/lib/optimization-settings-storage";
 import { loadPpcGoogleMasterRules } from "@/lib/ppc/load-ppc-google-master-rules";
-import { loadPpcGoogleGscContext } from "@/lib/ppc/google-ads-gsc-context";
-import type { PpcGscPageContext, PpcWpPageContext } from "@/lib/ppc/google-ads-types";
-import {
-  buildMetaGscQueriesMarkdown,
-  buildMetaUnifiedContextBlock,
-  loadMetaContextResearch,
-  loadMetaNeoPulseAppContextResearch,
-  metaContextResearchToLandingPage,
-  metaContextUrlsMatch,
-  metaNeoPulseAppLandingPage,
-  type MetaContextResearch,
-} from "@/lib/ppc/meta-ad-context-assembler";
+import { metaContextUrlsMatch } from "@/lib/ppc/meta-ad-context-assembler";
 import { applyUserVisualToolPaletteToBrief } from "@/lib/ppc/meta-ad-creative-brief";
 import {
   buildCreativeBriefSectionMarkdown,
@@ -21,24 +9,17 @@ import {
   buildVisualReferencePlanSectionMarkdown,
   createMetaResearchSection,
   META_RESEARCH_SECTION_IDS,
-  syncMetaMergedResearchSections,
   upsertMetaResearchSection,
 } from "@/lib/ppc/meta-ad-research-sections";
-import { resolveMetaAdLocalityContext } from "@/lib/ppc/meta-ad-locality-context";
 import {
   createInitialMetaGenerateProgress,
-  patchMetaGenerateGranularStep,
   type MetaGenerateGranularStepId,
-  type MetaGenerateProgressState,
-  type MetaGenerateStepId,
 } from "@/lib/ppc/meta-ads-progress-types";
+import { resolveAllowPeopleInImage } from "@/lib/ppc/meta-ad-visual-tool-palette";
+import { resolveMetaTypographyStyle } from "@/lib/ppc/meta-ad-typography-styles";
 import {
-  resolveAllowPeopleInImage,
-} from "@/lib/ppc/meta-ad-visual-tool-palette";
-import { resolveMetaTypographyStyle, type MetaAdTypographyStyle } from "@/lib/ppc/meta-ad-typography-styles";
-import {
-  runMetaAdCopyChecklistAgent,
   runMetaAdCopyAgent,
+  runMetaAdCopyChecklistAgent,
   runMetaAdCreativeBriefAgent,
   runMetaAdImageAgent,
   runMetaAdImageChecklistAgent,
@@ -46,139 +27,26 @@ import {
   runMetaAdInstagramReferenceAgent,
   runMetaAdVisualReferencePlanAgent,
 } from "@/lib/ppc/meta-ad-agents";
-import {
-  type MetaAdBlueprint,
-  type MetaAdChecklistItem,
-  type MetaAdContextSource,
-  type MetaAdCopy,
-  type MetaAdCreative,
-  type MetaAdCreativeBrief,
-  type MetaAdInstagramGoal,
-  type MetaAdResearchSection,
-  type MetaAdVisualReferenceElement,
-  type MetaGenerateConfig,
-  type MetaAdRow,
-  type MetaAdColorPalette,
-  metaGoalToBlueprint,
-} from "@/lib/ppc/meta-ads-types";
-import type { MetaAdImageReferenceSummary } from "@/lib/ppc/meta-ad-image-reference-types";
-import {
-  isNeoPulseProductLandingUrl,
-} from "@/lib/ppc/neo-pulse-meta-marketing-context";
+import { metaGoalToBlueprint, type MetaAdResearchSection } from "@/lib/ppc/meta-ads-types";
 import { getNeoPulseMetaProgramBrief } from "@/lib/ppc/load-neo-pulse-meta-program-brief";
+import type {
+  RunPpcMetaAdGenerateOptions,
+  RunPpcMetaAdGenerateResult,
+} from "@/lib/ppc/run-ppc-meta-ad-generate-types";
+import {
+  patchPhase,
+  patchStep,
+  publishMergedResearchSections,
+  publishPartialUpdate,
+  resolveContextSource,
+} from "@/lib/ppc/run-ppc-meta-ad-generate-publish";
+import { loadMetaGenerateContextPhase } from "@/lib/ppc/run-ppc-meta-ad-generate-context";
 
-export type RunPpcMetaAdGenerateResult = {
-  goal: MetaAdInstagramGoal;
-  creativeBrief: MetaAdCreativeBrief;
-  blueprint: MetaAdBlueprint;
-  copyChecklist: MetaAdChecklistItem[];
-  copy: MetaAdCopy;
-  imageChecklist?: MetaAdChecklistItem[];
-  visualReferenceElements?: MetaAdVisualReferenceElement[];
-  creative?: MetaAdCreative;
-  imagePromptDescription?: string;
-  imageReferences: MetaAdImageReferenceSummary[];
-  researchSections: MetaAdResearchSection[];
-};
-
-export type MetaAdGeneratePartialUpdate = Partial<
-  Pick<
-    MetaAdRow,
-    | "instagramGoal"
-    | "creativeBrief"
-    | "blueprint"
-    | "copyChecklist"
-    | "copy"
-    | "imageChecklist"
-    | "visualReferenceElements"
-    | "imageReferences"
-    | "creative"
-    | "imagePromptDescription"
-    | "researchSections"
-  >
->;
-
-export type RunPpcMetaAdGenerateOptions = {
-  site: WordPressSite;
-  apiKey: string;
-  model: string;
-  config: MetaGenerateConfig;
-  focusKeyword?: string;
-  contextSource?: MetaAdContextSource;
-  contextUrl?: string;
-  landingPageUrl?: string;
-  allowPeopleInImage?: boolean;
-  imagePromptModifier?: string;
-  fbInstagramContent?: string;
-  typographyStyle?: MetaAdTypographyStyle;
-  colorPalette?: MetaAdColorPalette;
-  visualToolPalette?: MetaAdCreativeBrief["visualToolPalette"];
-  teamName?: string | null;
-  onProgress: (progress: MetaGenerateProgressState) => void;
-  onResearchSections?: (sections: MetaAdResearchSection[]) => void;
-  onPartialUpdate?: (patch: MetaAdGeneratePartialUpdate) => void;
-  signal?: AbortSignal;
-};
-
-function patchStep(
-  progress: MetaGenerateProgressState,
-  stepId: MetaGenerateGranularStepId,
-  status: "running" | "done" | "error",
-  statusMessage?: string,
-): MetaGenerateProgressState {
-  return patchMetaGenerateGranularStep(progress, stepId, status, statusMessage);
-}
-
-function patchPhase(
-  progress: MetaGenerateProgressState,
-  stepId: MetaGenerateStepId,
-  status: "running" | "done" | "error",
-  statusMessage?: string,
-): MetaGenerateProgressState {
-  const steps = progress.steps.map((step) =>
-    step.id === stepId ? { ...step, status } : step,
-  );
-  const completed = steps.filter((step) => step.status === "done").length;
-  const active = steps.find((step) => step.status === "running");
-  return {
-    ...progress,
-    steps,
-    activeStepId: status === "running" ? stepId : progress.activeStepId,
-    completed,
-    label: active?.label ?? progress.label,
-    statusMessage,
-  };
-}
-
-function publishMergedResearchSections(
-  sections: MetaAdResearchSection[],
-  onResearchSections?: (sections: MetaAdResearchSection[]) => void,
-  onPartialUpdate?: (patch: MetaAdGeneratePartialUpdate) => void,
-) {
-  const merged = syncMetaMergedResearchSections(sections);
-  publishResearchSections(merged, onResearchSections, onPartialUpdate);
-  return merged;
-}
-
-function resolveContextSource(source: MetaAdContextSource | undefined): MetaAdContextSource {
-  return source === "neo-pulse_app" ? "neo-pulse_app" : "custom";
-}
-
-function publishPartialUpdate(
-  patch: MetaAdGeneratePartialUpdate,
-  onPartialUpdate?: (patch: MetaAdGeneratePartialUpdate) => void,
-) {
-  onPartialUpdate?.(patch);
-}
-
-function publishResearchSections(
-  sections: MetaAdResearchSection[],
-  onResearchSections?: (sections: MetaAdResearchSection[]) => void,
-  onPartialUpdate?: (patch: MetaAdGeneratePartialUpdate) => void,
-) {
-  onResearchSections?.(sections);
-  publishPartialUpdate({ researchSections: sections }, onPartialUpdate);
-}
+export type {
+  MetaAdGeneratePartialUpdate,
+  RunPpcMetaAdGenerateOptions,
+  RunPpcMetaAdGenerateResult,
+} from "@/lib/ppc/run-ppc-meta-ad-generate-types";
 
 export async function runPpcMetaAdGenerate(
   options: RunPpcMetaAdGenerateOptions,
@@ -254,129 +122,29 @@ export async function runPpcMetaAdGenerate(
 
   const resolvedKeyword = focusKeyword?.trim() || "";
 
-  let contextResearch: MetaContextResearch | null = null;
-  let landingResearch: MetaContextResearch | null = null;
-  let gscPage: PpcGscPageContext | undefined;
 
-  if (isNeoPulseAppContext) {
-    contextResearch = loadMetaNeoPulseAppContextResearch();
-    researchSections = upsertMetaResearchSection(
-      researchSections,
-      createMetaResearchSection(
-        META_RESEARCH_SECTION_IDS.neoPulseAppContext,
-        "done",
-        contextResearch.markdown,
-      ),
-    );
-    researchSections = publishMergedResearchSections(researchSections, onResearchSections, onPartialUpdate);
-  }
-
-  if (needsContextResearch) {
-    contextResearch = await runStep("load-seo-context", () =>
-      loadMetaContextResearch(customContextUrl, {
-        focusKeyword: resolvedKeyword || undefined,
-        signal,
-      }),
-    );
-    researchSections = upsertMetaResearchSection(
-      researchSections,
-      createMetaResearchSection(
-        META_RESEARCH_SECTION_IDS.contextUrl,
-        "done",
-        contextResearch.markdown,
-      ),
-    );
-    researchSections = publishMergedResearchSections(researchSections, onResearchSections, onPartialUpdate);
-  }
-
-  if (needsLandingResearch) {
-    landingResearch = await runStep("load-landing-research", () =>
-      loadMetaContextResearch(resolvedLandingUrl, {
-        focusKeyword: resolvedKeyword || undefined,
-        signal,
-      }),
-    );
-    researchSections = upsertMetaResearchSection(
-      researchSections,
-      createMetaResearchSection(
-        META_RESEARCH_SECTION_IDS.landingPage,
-        "done",
-        landingResearch.markdown,
-      ),
-    );
-    researchSections = publishMergedResearchSections(researchSections, onResearchSections, onPartialUpdate);
-  }
-
-  if (hasLandingUrl) {
-    gscPage = (
-      await runStep("load-gsc-queries", () =>
-        loadPpcGoogleGscContext(
-          site,
-          [
-            {
-              url: resolvedLandingUrl,
-              title: resolvedLandingUrl,
-              excerpt: "",
-              metaDescription: "",
-              keyword: "",
-            },
-          ],
-          signal,
-        ),
-      )
-    )[0];
-    const gscMarkdown = buildMetaGscQueriesMarkdown(gscPage);
-    if (gscMarkdown.trim()) {
-      researchSections = upsertMetaResearchSection(
-        researchSections,
-        createMetaResearchSection(META_RESEARCH_SECTION_IDS.gscQueries, "done", gscMarkdown),
-      );
-      researchSections = publishMergedResearchSections(researchSections, onResearchSections, onPartialUpdate);
-    }
-  }
-
-  const pageContext = buildMetaUnifiedContextBlock({
-    contextResearch,
-    landingResearch,
-    gscMarkdown: buildMetaGscQueriesMarkdown(gscPage),
-    focusKeyword: resolvedKeyword,
-    contextSource: resolvedContextSource,
+  const contextPhase = await loadMetaGenerateContextPhase({
+    site,
+    resolvedContextSource,
+    isNeoPulseAppContext,
+    customContextUrl,
+    hasCustomContextUrl,
+    resolvedLandingUrl,
+    hasLandingUrl,
+    needsLandingResearch,
+    needsContextResearch,
+    resolvedKeyword,
     teamName,
     imagePromptModifier,
     colorPalette,
+    signal,
+    runStep,
+    onResearchSections,
+    onPartialUpdate,
   });
+  const { pageContext, landingPage, finalUrl, locality, resolvedSiteName } = contextPhase;
+  researchSections = contextPhase.researchSections;
 
-  let landingPage: PpcWpPageContext | undefined;
-  if (landingResearch) {
-    landingPage = metaContextResearchToLandingPage(landingResearch, resolvedKeyword);
-  } else if (isNeoPulseAppContext) {
-    landingPage = metaNeoPulseAppLandingPage(resolvedKeyword);
-  } else if (contextResearch) {
-    landingPage = metaContextResearchToLandingPage(contextResearch, resolvedKeyword);
-  }
-
-  const finalUrl =
-    resolvedLandingUrl ||
-    (hasCustomContextUrl ? customContextUrl : "") ||
-    site.siteUrl?.trim() ||
-    "";
-
-  if (!finalUrl.trim() && !resolvedKeyword && !isNeoPulseAppContext) {
-    throw new Error("Add a focus keyword or landing page URL before generating.");
-  }
-  if (!isNeoPulseAppContext && !hasCustomContextUrl && !resolvedKeyword) {
-    throw new Error("Add a focus keyword, NEO Pulse app context, or custom context URL before generating.");
-  }
-
-  const locality = resolveMetaAdLocalityContext({
-    focusKeyword: resolvedKeyword,
-    landingPage,
-  });
-
-  const resolvedSiteName = site.name?.trim();
-  if (!resolvedSiteName) {
-    throw new Error("Connected site name is required.");
-  }
 
   const goal = await runStep("instagram-goal", () =>
     runMetaAdInstagramGoalAgent({

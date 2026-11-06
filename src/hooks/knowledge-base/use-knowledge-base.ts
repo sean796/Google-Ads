@@ -3,14 +3,9 @@ import { knowledgeBaseDetailsCanOpen } from "@/components/knowledge-base/knowled
 import { notify } from "@/lib/app-notifications";
 import {
   NOTIFY_A_SCRAPE_IS_ALREADY_RUNNING,
-  NOTIFY_CONTENT_CLEARED,
   NOTIFY_FAILED_TO_START_SITE_SCRAPER,
   NOTIFY_FILE_DELETED,
-  NOTIFY_PLEASE_ENTER_A_PROFILE_NAME,
   NOTIFY_PLEASE_ENTER_A_URL_TO_SCRAPE,
-  NOTIFY_PLEASE_SELECT_A_PROFILE_TO_UPDATE,
-  NOTIFY_PROFILE_SAVED,
-  NOTIFY_PROFILE_UPDATED,
   NOTIFY_SCRAPER_FINISHED_BUT_NO_PAGES_WERE_STORE,
   NOTIFY_SITE_SCRAPER_FAILED_SEE_CONSOLE_FOR_DETA,
   NOTIFY_SITE_SCRAPE_CANCELLED,
@@ -21,18 +16,17 @@ import {
   notifyXUnstarredFileSCleared,
 } from "@/lib/notify-messages";
 import { processCSVToChunks, processSingleFile } from "@/lib/file-processing";
+import { useKnowledgeBaseProfiles } from "./use-knowledge-base-profiles";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
 import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import type {
   KnowledgeBaseSectionId,
-  KnowledgeProfile,
   ScraperLogEntry,
   StoredFile,
 } from "@/lib/knowledge-base/types";
 import {
   CSV_CHUNK_THRESHOLD,
   KB_FILES_STORAGE_KEY,
-  KB_PROFILES_STORAGE_KEY,
   formatKbFileSize,
   saveFilesToLocalStorage,
 } from "@/lib/knowledge-base/storage";
@@ -51,10 +45,6 @@ export function useKnowledgeBase({
   onManualContentUpdate,
 }: UseKnowledgeBaseArgs) {
   const [activeSection, setActiveSection] = useState<KnowledgeBaseSectionId>("text");
-  const [profiles, setProfiles] = useState<KnowledgeProfile[]>([]);
-  const [selectedProfile, setSelectedProfile] = useState("");
-  const [newProfileName, setNewProfileName] = useState("");
-  const [manualContent, setManualContent] = useState("");
   const [files, setFiles] = useState<StoredFile[]>(currentFiles);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -69,15 +59,10 @@ export function useKnowledgeBase({
   const [scraperLog, setScraperLog] = useState<ScraperLogEntry[]>([]);
   const scraperAbortRef = useRef<AbortController | null>(null);
 
+  const { profiles, selectedProfile, setSelectedProfile, newProfileName, setNewProfileName, manualContent, setManualContent, saveProfile, clearContent } =
+    useKnowledgeBaseProfiles({ currentFiles, onManualContentUpdate });
+
   useEffect(() => {
-    const storedProfiles = localStorage.getItem(KB_PROFILES_STORAGE_KEY);
-    if (storedProfiles) {
-      try {
-        setProfiles(JSON.parse(storedProfiles) as KnowledgeProfile[]);
-      } catch (e) {
-        console.error("Error loading profiles:", e);
-      }
-    }
     setFiles(currentFiles);
   }, [currentFiles]);
 
@@ -119,62 +104,11 @@ export function useKnowledgeBase({
     };
   }, [onFilesUpdate]);
 
-  useEffect(() => {
-    if (selectedProfile) {
-      const profile = profiles.find((p) => p.id === selectedProfile);
-      if (profile) {
-        setManualContent(profile.content);
-      }
-    }
-  }, [selectedProfile, profiles]);
-
-  useEffect(() => {
-    onManualContentUpdate(manualContent);
-  }, [manualContent, onManualContentUpdate]);
 
   useEffect(() => {
     onFilesUpdate(files);
   }, [files, onFilesUpdate]);
 
-  const saveProfile = useCallback(
-    (isNew: boolean) => {
-      if (isNew && !newProfileName.trim()) {
-        notify.error(NOTIFY_PLEASE_ENTER_A_PROFILE_NAME);
-        return;
-      }
-
-      if (isNew) {
-        const newProfile: KnowledgeProfile = {
-          id: `profile-${Date.now()}`,
-          name: newProfileName.trim(),
-          content: manualContent,
-        };
-        const updated = [...profiles, newProfile];
-        setProfiles(updated);
-        localStorage.setItem(KB_PROFILES_STORAGE_KEY, JSON.stringify(updated));
-        setSelectedProfile(newProfile.id);
-        setNewProfileName("");
-        notify.success(NOTIFY_PROFILE_SAVED);
-      } else {
-        if (!selectedProfile) {
-          notify.error(NOTIFY_PLEASE_SELECT_A_PROFILE_TO_UPDATE);
-          return;
-        }
-        const updated = profiles.map((p) =>
-          p.id === selectedProfile ? { ...p, content: manualContent } : p,
-        );
-        setProfiles(updated);
-        localStorage.setItem(KB_PROFILES_STORAGE_KEY, JSON.stringify(updated));
-        notify.success(NOTIFY_PROFILE_UPDATED);
-      }
-    },
-    [newProfileName, manualContent, profiles, selectedProfile],
-  );
-
-  const clearContent = useCallback(() => {
-    setManualContent("");
-    notify.success(NOTIFY_CONTENT_CLEARED);
-  }, []);
 
   const handleUpload = useCallback(
     async (fileList: FileList | null) => {

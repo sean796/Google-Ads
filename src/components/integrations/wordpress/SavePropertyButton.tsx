@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { cn } from "@/lib/utils";
-import { TASK_FORM_DIALOG_BUTTON_CLASS } from "@/components/manager/tasks/TaskFormLayout";
+import {
+  TASK_FORM_DIALOG_BUTTON_CLASS,
+} from "@/components/manager/tasks/task-form-layout-styles";
 import { Button } from "@/ui";
 
 const CLICKED_MS = 500;

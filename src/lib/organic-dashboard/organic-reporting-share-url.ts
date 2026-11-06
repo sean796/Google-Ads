@@ -2,7 +2,7 @@ import {
   normalizeReportingSectionId,
   type ReportingSectionId,
 } from "@/lib/organic-dashboard/reporting-sections";
-import type { Ga4ReportingDateHarness } from "@/components/research/reporting/Ga4ReportingDateRangePopover";
+import type { Ga4ReportingDateHarness } from "@/components/research/reporting/Ga4ReportingDateRangePopover-types";
 import {
   buildGa4ReportingRanges,
   type Ga4CompareBaselineId,

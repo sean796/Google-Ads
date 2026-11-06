@@ -2,9 +2,11 @@ import React, { useEffect } from "react";
 import { EntitySapPageCountFields } from "@/components/manager/tasks/EntitySapPageCountFields";
 import { ForgeWhatPublishScheduleFields } from "@/components/manager/tasks/ForgeWhatPublishScheduleFields";
 import {
-  TASK_FORM_FLAT_CONTROL_CLASS,
   TaskFormPlaceholderCell,
 } from "@/components/manager/tasks/TaskFormLayout";
+import {
+  TASK_FORM_FLAT_CONTROL_CLASS,
+} from "@/components/manager/tasks/task-form-layout-styles";
 import { ensureEntityPageCreatorPayload } from "@/lib/entity-page-creator/entity-page-creator-defaults";
 import { entityInspectorPayloadForClientSite } from "@/lib/editorial/sync-editorial-sap-payload-from-site";
 import type { EntityPageCreatorExecutionPayload, TaskExecutionPayload } from "@/lib/tasks-types";

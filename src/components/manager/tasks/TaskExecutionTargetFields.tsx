@@ -1,13 +1,15 @@
 import React from "react";
 import {
-  TASK_FORM_SELECT_CONTENT_CLASS,
-  TASK_FORM_SELECT_ITEM_CLASS,
-  TASK_FORM_SELECT_TRIGGER_CLASS,
   TaskFormFlatSelect,
   TaskFormFlatSelectPlaceholder,
   TaskFormInfieldSelect,
   TaskFormPlaceholderCell,
 } from "@/components/manager/tasks/TaskFormLayout";
+import {
+  TASK_FORM_SELECT_CONTENT_CLASS,
+  TASK_FORM_SELECT_ITEM_CLASS,
+  TASK_FORM_SELECT_TRIGGER_CLASS,
+} from "@/components/manager/tasks/task-form-layout-styles";
 import type { TaskExecutionPayload } from "@/lib/tasks-types";
 import {
   TASK_EXECUTION_TARGET_BUCKETS,

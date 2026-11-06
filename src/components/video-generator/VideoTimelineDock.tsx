@@ -13,52 +13,19 @@ import {
   SlidersHorizontal,
   Sparkles,
   Trash2,
-  X,
 } from "lucide-react";
 import {
-  VIDEO_TRANSITION_DURATIONS,
   VIDEO_TRANSITION_OPTIONS,
   formatTransitionBadge,
   formatVideoPlanAudioSummary,
-  type StoryboardFrame,
-  type VideoPlan,
-  type VideoRenderScene,
-  type VideoTransition,
   type VideoTransitionType,
 } from "@/lib/video-generator/video-generator-types";
 import { VideoStudioPlaceholderSplash } from "./VideoStudioPlaceholderSplash";
 import { cn } from "@/lib/utils";
 import { Button, FileInput } from "@/ui";
-
-export type VideoTimelineDockProps = {
-  plan: VideoPlan | null;
-  totalSeconds: number;
-  frames: StoryboardFrame[];
-  renderScenes: VideoRenderScene[] | null;
-  selectedSceneId: string | null;
-  disabled: boolean;
-  onSelectScene: (sceneId: string) => void;
-  onPreviewClip?: (sceneId: string) => void;
-  onRegenerateFrame: (sceneId: string) => void;
-  onRerenderSceneClip?: (sceneId: string) => void;
-  onUpdateSceneTransition?: (sceneId: string, transition: VideoTransition, applyToAll?: boolean) => void;
-  onOpenPostCutForScene?: (sceneId: string) => void;
-  onAddVideoClips?: (files: FileList | File[]) => void;
-  onMoveScene?: (sceneId: string, direction: -1 | 1) => void;
-  onRemoveScene?: (sceneId: string) => void;
-};
-
-function buildRulerTicks(totalSeconds: number): number[] {
-  const step = totalSeconds <= 30 ? 5 : totalSeconds <= 60 ? 10 : 15;
-  const ticks: number[] = [];
-  for (let t = 0; t <= totalSeconds; t += step) {
-    ticks.push(t);
-  }
-  if (ticks[ticks.length - 1] !== totalSeconds) {
-    ticks.push(totalSeconds);
-  }
-  return ticks;
-}
+import type { VideoTimelineDockProps } from "./video-timeline-dock-types";
+import { buildRulerTicks } from "./video-timeline-dock-helpers";
+import { VideoTimelineTransitionPopover } from "./VideoTimelineTransitionPopover";
 
 export function VideoTimelineDock({
   plan,
@@ -138,67 +105,16 @@ export function VideoTimelineDock({
 
       {/* Floating Instagram-Style Transition Popover Bar (zero CLS overlay) */}
       {editingScene && onUpdateSceneTransition ? (
-        <div
-          role="dialog"
-          aria-label={`Transition into Scene ${editingScene.order}`}
-          className="absolute inset-x-3 top-1 z-30 flex flex-wrap items-center justify-between gap-2 bg-ui-field px-3 py-1.5 shadow-lg ring-1 ring-primary"
-        >
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="font-semibold text-primary">
-              Cut {editingScene.order - 1}→{editingScene.order}:
-            </span>
-            {VIDEO_TRANSITION_OPTIONS.map((opt) => (
-              <Button
-                pressed={activeTransition.type === opt.value}
-                key={opt.value}
-                disabled={disabled}
-                onClick={() => applyTransitionType(opt.value)}
-              >
-                {opt.shortLabel}
-              </Button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            {activeTransitionMeta.hasDuration
-              ? VIDEO_TRANSITION_DURATIONS.map((sec) => (
-                  <Button
-                    variant="quiet"
-                    key={sec}
-                    disabled={disabled}
-                    onClick={() => applyTransitionDuration(sec)}
-                  >
-                    {sec}s
-                  </Button>
-                ))
-              : null}
-            <Button
-              variant="run"
-              disabled={disabled}
-              onClick={() => {
-                onUpdateSceneTransition(
-                  editingScene.id,
-                  {
-                    type: activeTransition.type,
-                    seconds: activeTransitionMeta.hasDuration
-                      ? activeTransition.seconds || activeTransitionMeta.defaultSeconds
-                      : 0,
-                  },
-                  true,
-                );
-                setEditingTransitionSceneId(null);
-              }}
-            >
-              Apply to all
-            </Button>
-            <Button
-              size="icon" icon={X}
-              variant="quiet"
-              onClick={() => setEditingTransitionSceneId(null)}
-              aria-label="Close transition picker"
-            ></Button>
-          </div>
-        </div>
+        <VideoTimelineTransitionPopover
+          editingScene={editingScene}
+          activeTransition={activeTransition}
+          activeTransitionMeta={activeTransitionMeta}
+          disabled={disabled}
+          applyTransitionType={applyTransitionType}
+          applyTransitionDuration={applyTransitionDuration}
+          onUpdateSceneTransition={onUpdateSceneTransition}
+          setEditingTransitionSceneId={setEditingTransitionSceneId}
+        />
       ) : null}
 
       {/* Time Ruler */}

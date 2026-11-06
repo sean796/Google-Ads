@@ -1,20 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ChevronDown,
-  Search,
-  Sparkles,
-} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, Search } from "lucide-react";
 
-import type { ContentOptimizerSectionId } from "@/components/content-optimizer/content-optimizer-sections";
-import { isOverviewRowOptimizationActive } from "@/components/overview/overview-tab/overview-bulk-run-helpers";
 import { OverviewBulkClusterFlyout } from "@/components/overview/overview-tab/OverviewBulkClusterFlyout";
 import {
   CONTENT_OPTIMIZER_ACTIVE_ROW_HIGHLIGHT_CLASS,
   CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS,
 } from "@/components/overview/overview-tab/overview-tab-content-constants";
 import { DASHBOARD_LIST_CHECKBOX_CLASS } from "@/components/shared/workspace-checkbox-styles";
-import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
-import type { OverviewTabController } from "@/hooks/overview/use-overview-tab-controller";
+import { isOverviewRowOptimizationActive } from "@/components/overview/overview-tab/overview-bulk-run-helpers";
 import { buildOverviewBulkActionClusters } from "@/lib/overview/overview-bulk-action-clusters";
 import {
   overviewDisplayRowSelectionKeys,
@@ -33,72 +26,16 @@ import {
 } from "@/lib/overview/overview-tab-display";
 import { normalizePageUrlKey } from "@/lib/sitemap-optimizer/normalize-page-url";
 import { cn } from "@/lib/utils";
-import {
-  bulkGeneratorSapPathConfigError,
-  type BulkGeneratorStudioVariant,
-} from "@/lib/bulk/bulk-generator-studio-rows";
+import { bulkGeneratorSapPathConfigError } from "@/lib/bulk/bulk-generator-studio-rows";
 import { rowIndexForOverviewUrl } from "@/lib/bulk/bulk-generator-overview-row-bridge";
 import { BulkStudioTitleUrlOptimizingBlock } from "@/components/keyword-research/bulk/BulkStudioTitleUrlOptimizingBlock";
 import { Field, RowButton, SelectField, Checkbox } from "@/ui";
-
-export type OverviewSitemapLeftDockBulkGeneratorDock = {
-  variant: BulkGeneratorStudioVariant;
-  csvLoading?: boolean;
-  /** Title + URL slug agents running (CSV enrich). */
-  csvEnrichingTitlesUrls?: boolean;
-  importParsing?: boolean;
-  importedFileName?: string | null;
-  csvFileName?: string | null;
-  onPickCsvFile?: (file: File | null) => void;
-  onPickImportFiles?: (files: File[]) => void;
-  promptSelection?: boolean;
-  selectedBlogIndices: Set<number>;
-  setSelectedBlogIndices: (
-    value: Set<number> | ((prev: Set<number>) => Set<number>),
-  ) => void;
-};
-
-/** @deprecated Use OverviewSitemapLeftDockBulkGeneratorDock */
-export type OverviewSitemapLeftDockGeneratorDock = OverviewSitemapLeftDockBulkGeneratorDock;
-
-export interface OverviewSitemapLeftDockProps {
-  ctrl: OverviewTabController;
-  activeUrl: string | null;
-  optimizingRowUrl?: string | null;
-  batchBulkState?: BulkOptimizationState;
-  batchRunning?: boolean;
-  onSelectUrl: (url: string) => void;
-  bulkWorkspaceBusy: boolean;
-  optimizerSection: ContentOptimizerSectionId;
-  onOptimizerSectionChange: (id: ContentOptimizerSectionId) => void;
-  bulkGeneratorDock?: OverviewSitemapLeftDockBulkGeneratorDock;
-}
-
-const LEFT_DOCK_WIDTH_KEY = "neo-pulse:overview-sitemap-left-dock-width:v1";
-const LEFT_DOCK_DEFAULT_WIDTH = 320;
-const LEFT_DOCK_MIN_WIDTH = 240;
-const LEFT_DOCK_MAX_WIDTH = 680;
-
-function clampLeftDockWidth(width: number): number {
-  const maxByViewport =
-    typeof window !== "undefined"
-      ? Math.max(LEFT_DOCK_MIN_WIDTH, Math.min(LEFT_DOCK_MAX_WIDTH, window.innerWidth - 360))
-      : LEFT_DOCK_MAX_WIDTH;
-  return Math.round(Math.min(maxByViewport, Math.max(LEFT_DOCK_MIN_WIDTH, width)));
-}
-
-function readLeftDockWidth(): number {
-  if (typeof window === "undefined") return LEFT_DOCK_DEFAULT_WIDTH;
-  try {
-    const raw = window.localStorage.getItem(LEFT_DOCK_WIDTH_KEY);
-    if (!raw) return LEFT_DOCK_DEFAULT_WIDTH;
-    const parsed = Number(raw);
-    if (!Number.isFinite(parsed)) return LEFT_DOCK_DEFAULT_WIDTH;
-    return clampLeftDockWidth(parsed);
-  } catch {
-    return LEFT_DOCK_DEFAULT_WIDTH;
-  }
-}
+import type { OverviewSitemapLeftDockProps } from "@/components/overview/studio/overview-sitemap-left-dock-types";
+import {
+  LEFT_DOCK_DEFAULT_WIDTH,
+  useOverviewSitemapLeftDockWidth,
+} from "@/components/overview/studio/use-overview-sitemap-left-dock-width";
+import { OverviewSitemapLeftDockPlaceholder } from "@/components/overview/studio/OverviewSitemapLeftDockPlaceholder";
 
 export function OverviewSitemapLeftDock({
   ctrl: c,
@@ -113,70 +50,18 @@ export function OverviewSitemapLeftDock({
   bulkGeneratorDock,
 }: OverviewSitemapLeftDockProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [dockWidth, setDockWidth] = useState<number>(() => readLeftDockWidth());
-  const [isResizing, setIsResizing] = useState(false);
-  const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const {
+    dockWidth,
+    isResizing,
+    finishResize,
+    onResizePointerDown,
+    onResizePointerMove,
+    onResizePointerUp,
+  } = useOverviewSitemapLeftDockWidth();
   const rowRefs = useRef<Map<string, HTMLLIElement>>(new Map());
   const hasDetectedSitemaps = Boolean(c.site?.sitemaps?.mainSitemapUrl);
   const isBulkGeneratorDock = Boolean(bulkGeneratorDock);
 
-  useEffect(() => {
-    const onResize = () => setDockWidth((prev) => clampLeftDockWidth(prev));
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
-  useEffect(() => {
-    if (!isResizing) return;
-    document.body.style.userSelect = "none";
-    document.body.style.cursor = "ew-resize";
-    return () => {
-      document.body.style.userSelect = "";
-      document.body.style.cursor = "";
-    };
-  }, [isResizing]);
-
-  const finishResize = useCallback((nextWidth: number) => {
-    const clamped = clampLeftDockWidth(nextWidth);
-    setDockWidth(clamped);
-    try {
-      window.localStorage.setItem(LEFT_DOCK_WIDTH_KEY, String(clamped));
-    } catch {
-      // Ignore storage errors
-    }
-    setIsResizing(false);
-    dragRef.current = null;
-  }, []);
-
-  const onResizePointerDown = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      if (e.button !== 0) return;
-      e.preventDefault();
-      dragRef.current = { startX: e.clientX, startWidth: dockWidth };
-      setIsResizing(true);
-      e.currentTarget.setPointerCapture(e.pointerId);
-    },
-    [dockWidth],
-  );
-
-  const onResizePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current;
-    if (!drag) return;
-    const nextWidth = drag.startWidth + (e.clientX - drag.startX);
-    setDockWidth(clampLeftDockWidth(nextWidth));
-  }, []);
-
-  const onResizePointerUp = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      const drag = dragRef.current;
-      if (!drag) return;
-      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      }
-      finishResize(drag.startWidth + (e.clientX - drag.startX));
-    },
-    [finishResize],
-  );
 
   const sourceOptions = useMemo(
     () =>
@@ -495,86 +380,7 @@ export function OverviewSitemapLeftDock({
                     {isTitleUrlOptimizing ? (
                       <BulkStudioTitleUrlOptimizingBlock />
                     ) : isPlaceholderRow ? (
-                      <div className="flex w-full items-center gap-3 rounded-lg border border-dashed border-border/60 bg-ui-field/40 p-2.5 transition-all group-hover:border-primary/50 group-hover:bg-ui-field/80">
-                        {/* Blueprint Article Graphic */}
-                        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border/60 bg-gradient-to-b from-muted-foreground to-muted-foreground shadow-inner group-hover:border-primary/40 transition-colors">
-                          <svg
-                            viewBox="0 0 28 28"
-                            fill="none"
-                            className="h-6 w-6 text-muted-foreground transition-colors group-hover:text-primary"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                          >
-                            <rect
-                              x="2"
-                              y="2"
-                              width="24"
-                              height="24"
-                              rx="3"
-                              strokeDasharray="2.5 2.5"
-                              className="stroke-muted-foreground group-hover:stroke-primary/50"
-                            />
-                            <rect
-                              x="6"
-                              y="6"
-                              width="6"
-                              height="6"
-                              rx="1.5"
-                              className="fill-muted-foreground/50 stroke-muted-foreground group-hover:fill-primary/20 group-hover:stroke-primary/60"
-                            />
-                            <line
-                              x1="15"
-                              y1="7"
-                              x2="22"
-                              y2="7"
-                              strokeLinecap="round"
-                              className="stroke-muted-foreground group-hover:stroke-primary/70"
-                            />
-                            <line
-                              x1="15"
-                              y1="10.5"
-                              x2="20"
-                              y2="10.5"
-                              strokeLinecap="round"
-                              className="stroke-muted-foreground"
-                            />
-                            <line
-                              x1="6"
-                              y1="16"
-                              x2="22"
-                              y2="16"
-                              strokeLinecap="round"
-                              className="stroke-muted-foreground"
-                            />
-                            <line
-                              x1="6"
-                              y1="19.5"
-                              x2="17"
-                              y2="19.5"
-                              strokeLinecap="round"
-                              className="stroke-muted-foreground"
-                            />
-                          </svg>
-                          <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/80 opacity-40" />
-                            <span className="relative inline-flex h-2 w-2 rounded-full bg-primary/80" />
-                          </span>
-                        </div>
-
-                        {/* Graphic details and wireframe bars */}
-                        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1 rounded bg-ui-field-hover/90 px-1.5 py-0.5 text-base font-semibold uppercase tracking-wider text-foreground group-hover:bg-primary/20 group-hover:text-primary transition-colors">
-                              <Sparkles className="h-2.5 w-2.5 text-primary" />
-                              Slot {slotNum}
-                            </span>
-                          </div>
-                          <div className="flex flex-col gap-1 w-full pt-0.5">
-                            <div className="h-2 w-4/5 rounded-full bg-ui-field-hover group-hover:bg-ui-field-hover/60 transition-colors" />
-                            <div className="h-1.5 w-1/2 rounded-full bg-ui-field-hover/60 group-hover:bg-ui-field-hover/40 transition-colors" />
-                          </div>
-                        </div>
-                      </div>
+                      <OverviewSitemapLeftDockPlaceholder slotNum={slotNum} />
                     ) : (
                       <div className="flex min-w-0 flex-1 flex-col items-start gap-1 text-left">
                         <div className="flex w-full items-center justify-between gap-2">

@@ -1,5 +1,5 @@
 import type { WordPressSite } from "@/components/integrations/types";
-import type { Ga4ReportingDateHarness } from "@/components/research/reporting/Ga4ReportingDateRangePopover";
+import type { Ga4ReportingDateHarness } from "@/components/research/reporting/Ga4ReportingDateRangePopover-types";
 import { buildGa4ReportingRanges } from "@/lib/reporting/ga4-analytics-date-ranges";
 import { getPublicSiteUrl } from "@/lib/wordpress-site-public-url";
 import { resolveSemrushDatabaseForSite } from "@/lib/organic-dashboard/resolve-semrush-database-for-site";

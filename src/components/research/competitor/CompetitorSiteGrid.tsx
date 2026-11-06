@@ -1,98 +1,30 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, ExternalLink, ListFilter } from "lucide-react";
+import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 import type {
-  CompetitorKeywordRow,
   CompetitorResearchSemrushResponse,
-  CompetitorTierGroup,
   TieredCompetitorsResult,
 } from "@/lib/competitor-research/types";
 import { normalizeCompetitorDomainKey } from "@/lib/competitor-research/competitor-domain-key";
 import { filterEnrichmentWithAiClassifier } from "@/lib/competitor-research/competitor-keyword-ai-classify";
 import { sortOnlyTopCompetitorsByCommonKeywords } from "@/lib/competitor-research/competitor-top-rows";
 import { semrushDomainOverviewUrl } from "@/lib/competitor-research/semrush-domain-overview-url";
-import { formatCompetitorMetricCell } from "@/lib/competitor-research/competitor-report-number-format";
 import { cn } from "@/lib/utils";
+import {
+  DEFAULT_AS_BAND,
+  UNTIERED_FILTER_KEY,
+  fmtAiRelevance,
+  fmtMoney,
+  fmtNum,
+  isDirectCompetitorTier,
+  tierBadgeClass,
+  tierGroupKey,
+  tierMetaKey,
+} from "@/components/research/competitor/competitor-site-grid-helpers";
+import { KeywordsMiniTable } from "@/components/research/competitor/CompetitorKeywordsMiniTable";
+import { CompetitorTierFilterMenu } from "@/components/research/competitor/CompetitorTierFilterMenu";
 
 
-import { Button, Checkbox, DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/ui";
-
-function fmtNum(n: number | null | undefined): string {
-  return formatCompetitorMetricCell(n);
-}
-
-function fmtMoney(n: number | null | undefined): string {
-  if (n == null || !Number.isFinite(n)) return "-";
-  return n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-}
-
-function fmtAiRelevance(score: number | undefined): string {
-  if (score == null || !Number.isFinite(score)) return "-";
-  return `${Math.round(Math.min(100, Math.max(0, score)))}`;
-}
-
-const UNTIERED_FILTER_KEY = "__untiered__";
-
-/** Authority Score band vs seed site when "AS near site" filter is on. */
-const DEFAULT_AS_BAND = 25;
-
-function tierGroupKey(g: CompetitorTierGroup): string {
-  return `${g.tier}::${g.label}`;
-}
-
-function tierMetaKey(meta: { tier: string; label: string } | undefined): string | null {
-  if (!meta) return null;
-  return `${meta.tier}::${meta.label}`;
-}
-
-function tierBadgeClass(tier: string | undefined): string {
-  const t = (tier || "").toLowerCase();
-  if (t.includes("high")) return "border-semantic-warning/40 bg-semantic-warning/30 text-semantic-warning-foreground";
-  if (t.includes("low")) return "border-border/40 bg-black/40 text-foreground";
-  return "border-primary/35 bg-primary/10 text-primary";
-}
-
-/** Direct / same-niche competitors: schema tier `high`, or label contains "direct" but not "indirect". */
-function isDirectCompetitorTier(g: CompetitorTierGroup): boolean {
-  if ((g.tier || "").toLowerCase() === "high") return true;
-  const label = (g.label || "").toLowerCase();
-  if (/\bindirect\b/.test(label)) return false;
-  return /\bdirect\b/.test(label);
-}
-
-function KeywordsMiniTable({ title, rows }: { title?: string; rows: CompetitorKeywordRow[] }) {
-  if (!rows.length) return null;
-  return (
-    <div className="space-y-1.5">
-      {title ? (
-        <div className="min-h-[1rem] text-base font-medium uppercase leading-normal tracking-wide text-muted-foreground">
-          {title}
-        </div>
-      ) : null}
-      <div className="overflow-x-auto rounded border border-border/40 bg-black/20">
-        <table className="w-full min-w-[320px] border-collapse text-left text-base leading-normal">
-          <thead>
-            <tr className="border-b border-border/40 text-muted-foreground">
-              <th className="px-2 py-1 font-medium">Keyword</th>
-              <th className="px-2 py-1 font-medium">Volume</th>
-              <th className="px-2 py-1 font-medium">Traffic est.</th>
-              <th className="px-2 py-1 font-medium">Pos.</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((k, i) => (
-              <tr key={`${title}-${i}`} className="border-b border-border/20 last:border-0">
-                <td className="max-w-[220px] px-2 py-1 text-foreground/90">{k.phrase}</td>
-                <td className="px-2 py-1 font-mono">{fmtNum(k.volume)}</td>
-                <td className="px-2 py-1 font-mono">{fmtNum(k.traffic)}</td>
-                <td className="px-2 py-1 font-mono">{fmtNum(k.position)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
+import { Button, Checkbox } from "@/ui";
 
 export function CompetitorSiteGrid({
   tiers,
@@ -387,52 +319,7 @@ export function CompetitorSiteGrid({
                     <th className="whitespace-nowrap px-2 py-2 font-medium">
                       <div className="flex items-center gap-1">
                         <span>Tier</span>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              size="icon" icon={ListFilter}
-                              pressed={Boolean(tierFilterActive)}
-                              variant="quiet"
-                              title="Filter rows by tier"
-                              aria-label="Filter rows by tier"
-                            ></Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="max-w-[min(22rem,calc(100vw-2rem))]">
-                            <DropdownMenuLabel className="text-base font-semibold leading-normal">Show tiers</DropdownMenuLabel>
-                            {tierFilterOptions.map((o) => (
-                              <DropdownMenuCheckboxItem
-                                key={o.key}
-                                checked={selectedTierKeys.has(o.key)}
-                                onCheckedChange={(v) => toggleTierFilterKey(o.key, v === true)}
-                                onSelect={(e) => e.preventDefault()}
-                                className="text-base leading-normal"
-                              >
-                                <span
-                                  className={cn(
-                                    "mr-2 inline-block min-h-[1rem] rounded border px-1.5 py-0.5 text-base font-medium leading-normal",
-                                    tierBadgeClass(o.tier),
-                                  )}
-                                >
-                                  {o.label}
-                                </span>
-                              </DropdownMenuCheckboxItem>
-                            ))}
-                            {hasUntieredRows ? (
-                              <DropdownMenuCheckboxItem
-                                checked={selectedTierKeys.has(UNTIERED_FILTER_KEY)}
-                                onCheckedChange={(v) => toggleTierFilterKey(UNTIERED_FILTER_KEY, v === true)}
-                                onSelect={(e) => e.preventDefault()}
-                                className="text-base leading-normal"
-                              >
-                                No tier (-)
-                              </DropdownMenuCheckboxItem>
-                            ) : null}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-base leading-normal" onSelect={() => selectAllTierFilters()}>
-                              Show all tiers
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                            <CompetitorTierFilterMenu tierFilterOptions={tierFilterOptions} selectedTierKeys={selectedTierKeys} toggleTierFilterKey={toggleTierFilterKey} hasUntieredRows={hasUntieredRows} selectAllTierFilters={selectAllTierFilters} tierFilterActive={tierFilterActive} />
                       </div>
                     </th>
                   ) : null}

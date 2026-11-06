@@ -65,7 +65,7 @@ describe("workflow client publish cron", () => {
     expect(host).not.toContain("120000");
 
     const layout = readFileSync(
-      join(root, "../../src/components/manager/tasks/TaskFormLayout.tsx"),
+      join(root, "../../src/components/manager/tasks/task-form-date-time-helpers.ts"),
       "utf8",
     );
     expect(layout).toContain("const SCHEDULE_TICK_MINUTES = 5");

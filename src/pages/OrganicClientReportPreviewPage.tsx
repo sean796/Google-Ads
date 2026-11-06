@@ -18,10 +18,8 @@ import {
 } from "@/lib/organic-dashboard/organic-client-report-share-api";
 import { resolveOrganicReportingDateHarnessFromSearch } from "@/lib/organic-dashboard/organic-dashboard-fetch-params";
 import type { WordPressSite } from "@/components/integrations/types";
-import {
-  Ga4ReportingDateRangePopover,
-  type Ga4ReportingDateHarness,
-} from "@/components/research/reporting/Ga4ReportingDateRangePopover";
+import { Ga4ReportingDateRangePopover } from "@/components/research/reporting/Ga4ReportingDateRangePopover";
+import type { Ga4ReportingDateHarness } from "@/components/research/reporting/Ga4ReportingDateRangePopover-types";
 import { formatLocalYmd } from "@/lib/reporting/reporting-date-presets";
 import { OrganicClientReportExportDocument } from "@/components/organic-dashboard/OrganicClientReportExportDocument";
 import "@/components/organic-dashboard/organic-reporting-client-deck.css";
