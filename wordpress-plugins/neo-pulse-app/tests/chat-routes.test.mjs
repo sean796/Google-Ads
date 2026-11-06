@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -6,7 +6,21 @@ import { describe, expect, it } from "vitest";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 function readPhp(relativePath) {
-  return readFileSync(join(root, relativePath), "utf8");
+  const content = readFileSync(join(root, relativePath), "utf8");
+  const dir = dirname(join(root, relativePath));
+  const slug = relativePath
+    .split("/")
+    .pop()
+    .replace(/^class-/, "")
+    .replace(/\.php$/, "");
+  const traitFiles = readdirSync(dir)
+    .filter((name) => name.startsWith(`trait-${slug}-`) && name.endsWith(".php"))
+    .sort();
+  if (traitFiles.length === 0) {
+    return content;
+  }
+  const traits = traitFiles.map((name) => readFileSync(join(dir, name), "utf8"));
+  return [content, ...traits].join("\n");
 }
 
 describe("chat routes", () => {

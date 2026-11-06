@@ -7,14 +7,19 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 function readPhp(relativePath) {
   const content = readFileSync(join(root, relativePath), "utf8");
-  if (relativePath !== "includes/tasks/class-tasks-store.php") {
+  const dir = dirname(join(root, relativePath));
+  const slug = relativePath
+    .split("/")
+    .pop()
+    .replace(/^class-/, "")
+    .replace(/\.php$/, "");
+  const traitFiles = readdirSync(dir)
+    .filter((name) => name.startsWith(`trait-${slug}-`) && name.endsWith(".php"))
+    .sort();
+  if (traitFiles.length === 0) {
     return content;
   }
-  const tasksDir = join(root, "includes/tasks");
-  const traitFiles = readdirSync(tasksDir)
-    .filter((name) => name.startsWith("trait-tasks-store-") && name.endsWith(".php"))
-    .sort();
-  const traits = traitFiles.map((name) => readFileSync(join(tasksDir, name), "utf8"));
+  const traits = traitFiles.map((name) => readFileSync(join(dir, name), "utf8"));
   return [content, ...traits].join("\n");
 }
 
