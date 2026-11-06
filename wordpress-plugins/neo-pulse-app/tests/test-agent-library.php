@@ -114,11 +114,11 @@ check( 'suffix null without a key', $res['data']['settings']['openRouter']['suff
 check( 'default model is the hub flash model', $res['data']['settings']['openRouterModel'] === 'deepseek/deepseek-v4.1-flash' );
 
 // 2. The server-resolved key drives configured plus suffix (never the key itself).
-Neo_Pulse_App_Secrets::$key = 'sk-or-server-1234567890abcd';
+Neo_Pulse_App_Secrets::$key = 'unit-test-server-key-0000abcd';
 $res = dispatch( '', 'GET' );
 check( 'server key marks configured', $res['data']['settings']['openRouter']['configured'] === true );
 check( 'suffix is the last four of the server key', $res['data']['settings']['openRouter']['suffix'] === 'abcd' );
-check( 'response never contains the full server key', strpos( (string) json_encode( $res['data'] ), 'sk-or-server-1234567890abcd' ) === false );
+check( 'response never contains the full server key', strpos( (string) json_encode( $res['data'] ), 'unit-test-server-key-0000abcd' ) === false );
 
 // 3. Toggle persists to the private data root and sticks across reads.
 $res = dispatch( 'toggle', 'POST', array( 'agentId' => 'write', 'enabled' => false ) );
@@ -137,14 +137,14 @@ $res = dispatch( 'toggle', 'POST', array( 'agentId' => 'write' ) );
 check( 'toggle without enabled is a 400', $res['status'] === 400 && $res['data']['ok'] === false );
 
 // 5. Settings save the model and the key override; the key stays server-side.
-$res = dispatch( 'settings', 'POST', array( 'openRouterApiKey' => 'sk-or-override-xyz9876', 'openRouterModel' => 'openai/gpt-5.2' ) );
+$res = dispatch( 'settings', 'POST', array( 'openRouterApiKey' => 'unit-test-override-key-00009876', 'openRouterModel' => 'openai/gpt-5.2' ) );
 check( 'settings responds 200', $res['status'] === 200 );
 check( 'settings saves the model', $res['data']['settings']['openRouterModel'] === 'openai/gpt-5.2' );
 check( 'override key marks configured', $res['data']['settings']['openRouter']['configured'] === true );
 check( 'suffix is the last four of the override key', $res['data']['settings']['openRouter']['suffix'] === '9876' );
-check( 'response never contains the full override key', strpos( (string) json_encode( $res['data'] ), 'sk-or-override-xyz9876' ) === false );
+check( 'response never contains the full override key', strpos( (string) json_encode( $res['data'] ), 'unit-test-override-key-00009876' ) === false );
 $stored = json_decode( (string) file_get_contents( $stored_path ), true );
-check( 'override key persists server-side', ( $stored['settings']['openRouterApiKey'] ?? '' ) === 'sk-or-override-xyz9876' );
+check( 'override key persists server-side', ( $stored['settings']['openRouterApiKey'] ?? '' ) === 'unit-test-override-key-00009876' );
 
 // 6. An empty settings save changes nothing (matches the client contract).
 $res = dispatch( 'settings', 'POST', array() );
