@@ -25,6 +25,40 @@ class Neo_Pulse_App_Json_File_Store {
 	}
 
 	/**
+	 * Locked read-modify-write. The mutator receives the current decoded
+	 * value (null when the file is missing or unreadable) and returns the
+	 * array to store; returning anything else aborts without writing.
+	 * Writers serialize on a sidecar lock file, so a value computed from
+	 * the current contents can never be overwritten by a stale read.
+	 * Use write() instead when the new value does not depend on the old.
+	 *
+	 * @param callable $mutator fn(array|null): mixed
+	 */
+	public static function update( string $path, callable $mutator ): bool {
+		$dir = dirname( $path );
+		if ( ! is_dir( $dir ) ) {
+			wp_mkdir_p( $dir );
+		}
+		$lock = fopen( $path . '.lock', 'c' );
+		if ( $lock === false ) {
+			return false;
+		}
+		try {
+			if ( ! flock( $lock, LOCK_EX ) ) {
+				return false;
+			}
+			$next = $mutator( self::read( $path ) );
+			if ( ! is_array( $next ) ) {
+				return false;
+			}
+			return self::write( $path, $next );
+		} finally {
+			flock( $lock, LOCK_UN );
+			fclose( $lock );
+		}
+	}
+
+	/**
 	 * @param mixed $data
 	 */
 	public static function write( string $path, $data ): bool {

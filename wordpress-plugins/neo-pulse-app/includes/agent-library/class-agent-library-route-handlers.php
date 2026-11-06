@@ -111,14 +111,14 @@ class Neo_Pulse_App_Agent_Library_Route_Handlers {
 	}
 
 	/**
+	 * @param mixed $raw Decoded agent-library.json contents, if readable.
 	 * @return array{overrides: array<string,bool>, settings: array<string,string>}
 	 */
-	private static function read_state(): array {
+	private static function normalize_state( $raw ): array {
 		$state = array(
 			'overrides' => array(),
 			'settings'  => array(),
 		);
-		$raw   = Neo_Pulse_App_Json_File_Store::read( Neo_Pulse_App_Data_Paths::agent_library_path() );
 		if ( ! is_array( $raw ) ) {
 			return $state;
 		}
@@ -138,15 +138,31 @@ class Neo_Pulse_App_Agent_Library_Route_Handlers {
 	}
 
 	/**
-	 * @param array{overrides: array<string,bool>, settings: array<string,string>} $state State to persist.
+	 * @return array{overrides: array<string,bool>, settings: array<string,string>}
 	 */
-	private static function write_state( array $state ): bool {
-		return Neo_Pulse_App_Json_File_Store::write(
+	private static function read_state(): array {
+		return self::normalize_state(
+			Neo_Pulse_App_Json_File_Store::read( Neo_Pulse_App_Data_Paths::agent_library_path() )
+		);
+	}
+
+	/**
+	 * Apply a change to the stored state under the store lock, so two
+	 * requests cannot read the same state and overwrite each other.
+	 *
+	 * @param callable $mutator fn(array &$state): void
+	 */
+	private static function mutate_state( callable $mutator ): bool {
+		return Neo_Pulse_App_Json_File_Store::update(
 			Neo_Pulse_App_Data_Paths::agent_library_path(),
-			array(
-				'overrides' => $state['overrides'],
-				'settings'  => $state['settings'],
-			)
+			static function ( $current ) use ( $mutator ) {
+				$state = self::normalize_state( $current );
+				$mutator( $state );
+				return array(
+					'overrides' => $state['overrides'],
+					'settings'  => $state['settings'],
+				);
+			}
 		);
 	}
 
@@ -202,9 +218,12 @@ class Neo_Pulse_App_Agent_Library_Route_Handlers {
 			Neo_Pulse_App_Api_Dispatcher::send_json( array( 'ok' => false, 'error' => 'enabled is required' ), 400 );
 			return;
 		}
-		$state                              = self::read_state();
-		$state['overrides'][ $agent_id ]    = (bool) $body['enabled'];
-		if ( ! self::write_state( $state ) ) {
+		$saved = self::mutate_state(
+			static function ( array &$state ) use ( $agent_id, $body ): void {
+				$state['overrides'][ $agent_id ] = (bool) $body['enabled'];
+			}
+		);
+		if ( ! $saved ) {
 			Neo_Pulse_App_Api_Dispatcher::send_json( array( 'ok' => false, 'error' => 'Agent Library save failed' ), 500 );
 			return;
 		}
@@ -215,17 +234,20 @@ class Neo_Pulse_App_Agent_Library_Route_Handlers {
 	 * @param array<string,mixed> $body JSON body.
 	 */
 	private static function save_settings( array $body ): void {
-		$state = self::read_state();
-		if ( isset( $body['openRouterApiKey'] ) && is_string( $body['openRouterApiKey'] ) && trim( $body['openRouterApiKey'] ) !== '' ) {
-			$state['settings']['openRouterApiKey'] = trim( $body['openRouterApiKey'] );
-		}
-		if ( isset( $body['openRouterModel'] ) && is_string( $body['openRouterModel'] ) && trim( $body['openRouterModel'] ) !== '' ) {
-			$state['settings']['openRouterModel'] = sanitize_text_field( $body['openRouterModel'] );
-		}
-		if ( isset( $body['openRouterAccountEmail'] ) && is_string( $body['openRouterAccountEmail'] ) ) {
-			$state['settings']['openRouterAccountEmail'] = sanitize_email( $body['openRouterAccountEmail'] );
-		}
-		if ( ! self::write_state( $state ) ) {
+		$saved = self::mutate_state(
+			static function ( array &$state ) use ( $body ): void {
+				if ( isset( $body['openRouterApiKey'] ) && is_string( $body['openRouterApiKey'] ) && trim( $body['openRouterApiKey'] ) !== '' ) {
+					$state['settings']['openRouterApiKey'] = trim( $body['openRouterApiKey'] );
+				}
+				if ( isset( $body['openRouterModel'] ) && is_string( $body['openRouterModel'] ) && trim( $body['openRouterModel'] ) !== '' ) {
+					$state['settings']['openRouterModel'] = sanitize_text_field( $body['openRouterModel'] );
+				}
+				if ( isset( $body['openRouterAccountEmail'] ) && is_string( $body['openRouterAccountEmail'] ) ) {
+					$state['settings']['openRouterAccountEmail'] = sanitize_email( $body['openRouterAccountEmail'] );
+				}
+			}
+		);
+		if ( ! $saved ) {
 			Neo_Pulse_App_Api_Dispatcher::send_json( array( 'ok' => false, 'error' => 'Agent Library save failed' ), 500 );
 			return;
 		}

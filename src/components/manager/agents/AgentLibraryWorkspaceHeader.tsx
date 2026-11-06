@@ -154,7 +154,7 @@ export function AgentLibraryWorkspaceHeader({
               className={cn(BULK_HEADER_TOOL_BTN, "inline-flex items-center gap-1.5")}
               aria-label="Refresh Agent Library"
             >
-              <RotateCw className={cn("h-4 w-4", busy && "animate-spin")} aria-hidden />
+              <RotateCw className={cn("h-4 w-4", busy && "animate-pulse")} aria-hidden />
               Refresh
             </button>
           </div>

@@ -258,7 +258,7 @@ The PureStride Compact features an ultra-quiet 2.5 HP brushless motor that stays
                 disabled={isRunning}
                 className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs h-8 flex items-center gap-1.5"
               >
-                {isRunning ? <RotateCcw className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+                {isRunning ? <RotateCcw className="h-3.5 w-3.5 animate-pulse" /> : <Play className="h-3.5 w-3.5" />}
                 {isRunning ? 'Evaluating...' : 'Run Decision Tree QA'}
               </Button>
             </div>
@@ -302,7 +302,7 @@ The PureStride Compact features an ultra-quiet 2.5 HP brushless motor that stays
                     <Info className="h-3.5 w-3.5" />
                     <span>Real-Time Audit Trail ({auditLog.length} steps):</span>
                   </div>
-                  <div className="max-h-60 overflow-y-auto space-y-1.5 p-2 rounded-lg bg-black/60 border border-zinc-800/80 font-mono text-[11px]">
+                  <div className="max-h-60 overflow-y-auto space-y-1.5 p-2 rounded-lg bg-black/60 border border-zinc-800/80 font-mono text-base">
                     {auditLog.map((entry, idx) => (
                       <div key={idx} className="flex items-start gap-2 text-zinc-300">
                         <span className="text-zinc-500 shrink-0">[{entry.nodeId}]</span>

@@ -4,6 +4,7 @@
  * payload matches the app contract, toggles persist to the private data
  * root, settings save the model, and the stored OpenRouter key never
  * appears in a response (only configured plus the last four characters).
+ * The store's locked update is covered too: increments never get lost.
  *
  * Run via: php wordpress-plugins/neo-pulse-app/tests/test-agent-library.php
  */
@@ -158,6 +159,35 @@ check( 'wrong method on the root route is a 404', $res['status'] === 404 );
 Neo_Pulse_App_Auth_Session::$user = null;
 $res = dispatch( '', 'GET' );
 check( 'logged-out request is a 401', $res['status'] === 401 && $res['data']['ok'] === false );
+
+// 8. The locked store update reads the freshest value under the lock, so
+// back-to-back read-modify-write cycles never lose a change.
+$counter_path = $tmp_root . '/neo-pulse-data/counter.json';
+Neo_Pulse_App_Json_File_Store::write( $counter_path, array( 'count' => 1 ) );
+$increment = static function ( $current ) {
+	return array( 'count' => ( isset( $current['count'] ) ? (int) $current['count'] : 0 ) + 1 );
+};
+check( 'first locked update succeeds', Neo_Pulse_App_Json_File_Store::update( $counter_path, $increment ) === true );
+check( 'second locked update succeeds', Neo_Pulse_App_Json_File_Store::update( $counter_path, $increment ) === true );
+$after = Neo_Pulse_App_Json_File_Store::read( $counter_path );
+check( 'locked updates never lose an increment', ( $after['count'] ?? 0 ) === 3 );
+$seen_null = false;
+Neo_Pulse_App_Json_File_Store::update(
+	$tmp_root . '/neo-pulse-data/fresh.json',
+	static function ( $current ) use ( &$seen_null ) {
+		$seen_null = $current === null;
+		return array( 'created' => true );
+	}
+);
+check( 'update on a missing file passes null to the mutator', $seen_null );
+$aborted = Neo_Pulse_App_Json_File_Store::update(
+	$counter_path,
+	static function () {
+		return null;
+	}
+);
+$after_abort = Neo_Pulse_App_Json_File_Store::read( $counter_path );
+check( 'a mutator returning a non-array aborts without writing', $aborted === false && ( $after_abort['count'] ?? 0 ) === 3 );
 
 putenv( 'NEO_PULSE_DATA_DIR' );
 remove_tree( $tmp_root );
