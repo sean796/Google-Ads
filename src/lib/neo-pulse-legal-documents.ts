@@ -2,7 +2,7 @@ export type NeoPulseLegalDocId = "terms-of-service" | "privacy-policy";
 
 export type NeoPulseLegalSection = {
   heading?: string;
-  paragraphs: string[];
+  paragraphs?: string[];
   bullets?: string[];
 };
 

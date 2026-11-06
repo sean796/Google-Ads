@@ -3,6 +3,8 @@ import type { AgentConfig } from "@/types/agent-config";
 import {
   assertHarnessTokenBudgetPreflight,
   computeHarnessSectionTokenBudgets,
+  createHarnessTokenBudgetTracker,
+  estimateTokensFromText,
   isHarnessSeoOpenerBodyAgent,
 } from "@/lib/bulk/harness-section-max-tokens";
 import { BLOG_HARNESS_SUMMARY_AGENT_ID } from "@/lib/bulk/blog-harness-summary-agent";
@@ -94,5 +96,47 @@ describe("isHarnessSeoOpenerBodyAgent", () => {
     expect(
       isHarnessSeoOpenerBodyAgent(bodyAgent({ id: BLOG_HARNESS_SUMMARY_AGENT_ID, step: 4 })),
     ).toBe(false);
+  });
+});
+
+describe("createHarnessTokenBudgetTracker", () => {
+  const slots = [
+    { sectionKey: "Answer", maxTokens: 500, weight: 0.15, estimatedNeed: 72 },
+    { sectionKey: "Body", maxTokens: 1500, weight: 1, estimatedNeed: 480 },
+  ];
+
+  it("records estimated versus actual tokens per section", () => {
+    const seen: string[] = [];
+    const tracker = createHarnessTokenBudgetTracker({
+      totalBudget: 2000,
+      slots,
+      onUsage: (u) => seen.push(u.sectionKey),
+    });
+    const usage = tracker.record("Body", "p".repeat(400), "c".repeat(800));
+    expect(usage.estimatedTokens).toBe(480);
+    expect(usage.promptTokens).toBe(100);
+    expect(usage.completionTokens).toBe(200);
+    expect(usage.actualTokens).toBe(300);
+    expect(seen).toEqual(["Body"]);
+
+    const summary = tracker.summary();
+    expect(summary.estimatedTokens).toBe(552);
+    expect(summary.actualTokens).toBe(300);
+    expect(summary.totalBudget).toBe(2000);
+  });
+
+  it("stops the run visibly when measured completion tokens pass the budget", () => {
+    const tracker = createHarnessTokenBudgetTracker({ totalBudget: 300, slots });
+    tracker.record("Answer", "", "c".repeat(400));
+    expect(() => tracker.record("Body", "", "c".repeat(1000))).toThrow(
+      /Harness token budget exceeded for this row/,
+    );
+    expect(() => tracker.record("Body", "", "c".repeat(1000))).toThrow(/budget of 300/);
+  });
+
+  it("estimateTokensFromText is deterministic", () => {
+    expect(estimateTokensFromText("")).toBe(0);
+    expect(estimateTokensFromText("abcd")).toBe(1);
+    expect(estimateTokensFromText("abcde")).toBe(2);
   });
 });

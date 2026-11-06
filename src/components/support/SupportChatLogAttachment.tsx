@@ -1,4 +1,5 @@
 import { Paperclip } from "lucide-react";
+import { supportChatLogByteSize } from "@/components/support/support-chat-log-helpers";
 
 type SupportChatLogAttachmentProps = {
   chatLog?: Record<string, unknown> | null;
@@ -9,15 +10,6 @@ type SupportChatLogAttachmentProps = {
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   return `${(bytes / 1024).toFixed(1)} KB`;
-}
-
-export function supportChatLogFileName(ticketId?: number): string {
-  return ticketId ? `ticket-${ticketId}-chat-log.json` : "pulse-assist-chat-log.json";
-}
-
-export function supportChatLogByteSize(chatLog: Record<string, unknown> | null): number {
-  if (!chatLog) return 0;
-  return new Blob([JSON.stringify(chatLog, null, 2)]).size;
 }
 
 export function SupportChatLogAttachment({

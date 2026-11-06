@@ -6,7 +6,7 @@ export function normalizeInventoryUrl(url: string): string {
   if (!trimmed) return "";
   try {
     const u = new URL(trimmed);
-    let path = u.pathname.replace(/\/+$/, "") || "/";
+    const path = u.pathname.replace(/\/+$/, "") || "/";
     return `${u.origin}${path}`.toLowerCase();
   } catch {
     return trimmed.replace(/\/+$/, "").toLowerCase();

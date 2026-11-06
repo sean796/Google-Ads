@@ -30,6 +30,17 @@ export type GbpSchedulerSectionState = {
   rowOrder: number[];
 };
 
+export const defaultGbpSchedulerState = (): GbpSchedulerSectionState => ({
+  numberOfPosts: 1,
+  scheduleFrequency: "custom",
+  customInterval: 4,
+  dayOfWeek: 1,
+  startDateOption: "custom",
+  customStartDate: getFirstOfThisMonthDate("09:00"),
+  startTime: "09:00",
+  rowOrder: [0],
+});
+
 export function gbpSchedulerToPlanState(s: GbpSchedulerSectionState): GbpScheduleUiState {
   return {
     numberOfPosts: s.numberOfPosts,

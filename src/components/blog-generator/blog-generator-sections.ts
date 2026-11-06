@@ -7,7 +7,7 @@ import {
   Newspaper,
   Workflow,
 } from "lucide-react";
-import { parseGeneratorSectionFromHash } from "@/lib/agent-runs/agent-run-optimizer-url";
+import { parseGeneratorSectionFromPath } from "@/lib/agent-runs/agent-run-optimizer-url";
 
 export type BlogGeneratorSectionId =
   | "opt"
@@ -85,10 +85,10 @@ export const BLOG_GENERATOR_SECTION_STORAGE_KEY = "neo-pulse-blog-generator-sect
 
 export function readStoredBlogGeneratorSection(): BlogGeneratorSectionId {
   try {
-    if (typeof window !== "undefined" && window.location?.hash) {
-      const fromHash = parseGeneratorSectionFromHash(window.location.hash);
-      if (fromHash) {
-        const coerced = coerceBlogGeneratorSectionId(fromHash);
+    if (typeof window !== "undefined" && window.location?.pathname) {
+      const fromPath = parseGeneratorSectionFromPath(window.location.pathname);
+      if (fromPath) {
+        const coerced = coerceBlogGeneratorSectionId(fromPath);
         sessionStorage.setItem(BLOG_GENERATOR_SECTION_STORAGE_KEY, coerced);
         return coerced;
       }

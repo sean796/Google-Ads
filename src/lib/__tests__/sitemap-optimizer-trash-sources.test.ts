@@ -7,7 +7,7 @@ import {
 import { buildContentSheetRows } from "@/lib/sitemap-optimizer/build-content-sheet-rows";
 import type { SitemapOptimizerRunResult } from "@/lib/sitemap-optimizer/types";
 
-const sampleResultBase = {
+const sampleResultBase: Omit<SitemapOptimizerRunResult, "contentSheet"> = {
   rows: [
     {
       postId: "wp:10",

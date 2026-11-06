@@ -1,5 +1,5 @@
 import type { AssistCardLink, AssistNavigateTarget } from "./types";
-import { isPulseForgeHash, parsePulseForgeRouteFromHash } from "@/lib/pulse-forge/pulse-forge-hash";
+import { isPulseForgePath, parsePulseForgeRoute } from "@/lib/pulse-forge/pulse-forge-route";
 
 export const PULSE_NAV_PREFIX = "pulse:nav/";
 
@@ -42,6 +42,10 @@ export function parseAppHref(href: string): AssistNavigateTarget | null {
   if (pulse) return pulse;
 
   let hash = href.trim();
+  if (hash.startsWith("/") && !hash.startsWith("//")) {
+    // Route-path href (Wave 4): treat the path body like the old hash body.
+    hash = `#${hash.slice(1)}`;
+  }
   try {
     if (hash.includes("#")) {
       const url = new URL(hash, typeof window !== "undefined" ? window.location.origin : "https://neodigital.ca");
@@ -61,7 +65,7 @@ export function parseAppHref(href: string): AssistNavigateTarget | null {
   if (normalized === "generator") {
     return { kind: "managerTab", tab: "generator" };
   }
-  if (normalized === "pulse-forge" || isPulseForgeHash(hash)) {
+  if (normalized === "pulse-forge" || isPulseForgePath(hash)) {
     return { kind: "pulseForge", hash: hash.replace(/^#/, "") };
   }
   return { kind: "managerTab", tab: normalized };
@@ -126,13 +130,14 @@ export function executeAssistNavigation(
   }
 }
 
-export function forgeContextFromHash(rawHash?: string): {
+export function forgeContextFromPath(rawPath?: string): {
   forgeSection?: string;
   forgeWorkflowId?: number;
   forgeRecipeKeyword?: string;
 } {
-  if (!isPulseForgeHash(rawHash)) return {};
-  const route = parsePulseForgeRouteFromHash(rawHash);
+  const path = rawPath ?? (typeof window !== "undefined" ? window.location.pathname : "");
+  if (!isPulseForgePath(path)) return {};
+  const route = parsePulseForgeRoute(path);
   const forgeSection = route.section;
   if (route.section === "recipes" && "view" in route && route.view === "builder") {
     return {

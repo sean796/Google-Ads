@@ -82,7 +82,7 @@ export async function runContentCalendarFbInstagramCopyAgent(options: {
     model: options.model,
     system,
     user,
-    maxTokens: getCompetitorReportMaxOutputTokens(512),
+    maxTokens: Math.min(512, getCompetitorReportMaxOutputTokens(options.model)),
     temperature: 0.45,
     errorLabel: "Content FB/Instagram copy agent",
     signal: options.signal,

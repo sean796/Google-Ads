@@ -2,6 +2,7 @@
  * DataForSEO organic SERP for a single "write for us" style keyword.
  */
 
+import { resolveMcpApiBase } from "@/lib/mcp-tools";
 import type { BacklinkTile } from "@/lib/backlink-research/openrouter-backlink-tiles";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
 
@@ -130,7 +131,7 @@ export async function fetchWriteForUsSerpOrganic(args: {
 }): Promise<{ keyword: string; rows: SerpOrganicRow[]; raw: unknown }> {
   const keyword = buildWriteForUsKeyword(args.industry);
   const base = (BACKEND_API_BASE || "").replace(/\/$/, "");
-  const url = `${base}/api/mcp/DataForSEO_serp_organic_live_advanced`;
+  const url = `${base}/DataForSEO_serp_organic_live_advanced`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

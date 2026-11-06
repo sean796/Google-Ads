@@ -36,12 +36,16 @@ describe("resolveBrowserTargetUrl", () => {
   it("resolves variable source from textPreview URL", () => {
     const outputs: WorkflowStepOutput[] = [
       {
+        id: 1,
+        runId: 1,
         nodeId: "a1",
         variableKey: "step_a1__site-a",
         scope: "run",
         siteId: "site-a",
         label: "Prior step",
         textPreview: "https://prior.example/home",
+        fileRefs: [],
+        createdAt: "",
       },
     ];
     const url = resolveBrowserTargetUrl(
@@ -54,12 +58,15 @@ describe("resolveBrowserTargetUrl", () => {
 
   it("extractUrlFromStepOutput prefers file ref URL", () => {
     const output: WorkflowStepOutput = {
+      id: 1,
+      runId: 1,
       nodeId: "a1",
       variableKey: "step_a1",
       scope: "run",
       label: "Drive",
       textPreview: "Uploaded report",
       fileRefs: [{ name: "report.csv", url: "https://drive.example/file" }],
+      createdAt: "",
     };
     expect(extractUrlFromStepOutput(output)).toBe("https://drive.example/file");
   });

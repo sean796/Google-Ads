@@ -1,7 +1,36 @@
+import { z } from "zod";
 import { extractFirstBalancedJsonValue } from "@/lib/competitor-research/competitor-report-json-parse";
 import { parseFaqEntries, serializeFaqEntriesPlain, type FaqEntry } from "@/lib/faq-entries";
 import { normalizeOverviewKeywordUrlKey } from "@/lib/overview/overview-keyword-batch-parse";
 import type { AiAllMetaCatalogRow } from "@/lib/overview/overview-ai-all-meta-batch-catalog";
+
+const metaBatchItemSchema = z.object({
+  url: z.string().optional(),
+  page: z.string().optional(),
+  metaDescription: z.string().optional(),
+  meta: z.string().optional(),
+  description: z.string().optional(),
+  title: z.string().optional(),
+  faq: z.string().optional(),
+  faqPairs: z
+    .array(z.object({ question: z.string().optional(), answer: z.string().optional() }))
+    .optional(),
+});
+
+const metaBatchEnvelopeSchema = z
+  .union([
+    z.array(metaBatchItemSchema),
+    z.object({ results: z.array(metaBatchItemSchema) }),
+    z.object({ rows: z.array(metaBatchItemSchema) }),
+  ])
+  .transform((value) => {
+    if (Array.isArray(value)) return value;
+    const obj = value as {
+      results?: z.infer<typeof metaBatchItemSchema>[];
+      rows?: z.infer<typeof metaBatchItemSchema>[];
+    };
+    return obj.results ?? obj.rows ?? [];
+  });
 
 export type AiAllMetaBatchRawResult = {
   url: string;
@@ -71,27 +100,34 @@ function normalizeResults(list: unknown[]): AiAllMetaBatchRawResult[] {
   return out;
 }
 
+/**
+ * Parse the meta batch model response. Throws on empty, non-JSON, or
+ * off-schema output so a failed generation surfaces as an error instead of
+ * an empty result that looks like "no metas to apply".
+ */
 export function parseAiAllMetaBatchJson(content: string): AiAllMetaBatchRawResult[] {
   const trimmed = stripMarkdownFence(content ?? "");
-  if (!trimmed) return [];
+  if (!trimmed) {
+    throw new Error("AI meta batch returned no content");
+  }
 
   const jsonSlice = extractFirstBalancedJsonValue(trimmed) ?? trimmed;
-  if (!jsonSlice.trim()) return [];
-
-  try {
-    const raw = JSON.parse(jsonSlice) as unknown;
-    if (Array.isArray(raw)) {
-      return normalizeResults(raw);
-    }
-    if (raw && typeof raw === "object") {
-      const obj = raw as { results?: unknown[]; rows?: unknown[] };
-      const list = obj.results ?? obj.rows;
-      if (Array.isArray(list)) return normalizeResults(list);
-    }
-  } catch {
-    return [];
+  if (!jsonSlice.trim()) {
+    throw new Error("AI meta batch returned no content");
   }
-  return [];
+
+  let raw: unknown;
+  try {
+    raw = JSON.parse(jsonSlice) as unknown;
+  } catch {
+    throw new Error("AI meta batch response was not valid JSON");
+  }
+
+  const envelope = metaBatchEnvelopeSchema.safeParse(raw);
+  if (!envelope.success) {
+    throw new Error("AI meta batch response did not match the results schema");
+  }
+  return normalizeResults(envelope.data);
 }
 
 export function aiAllMetaBatchResultsToMap(

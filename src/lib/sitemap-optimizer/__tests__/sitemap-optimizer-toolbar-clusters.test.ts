@@ -14,6 +14,9 @@ describe("buildSitemapOptimizerToolbarClusters", () => {
       id: "1",
       name: "Test",
       siteUrl: "https://example.com",
+      username: "user",
+      appPassword: "pass",
+      connectedAt: 0,
       entitySitemapUrl: "https://example.com/service-area-sitemap.xml",
     } satisfies WordPressSite;
     const entity = buildSitemapOptimizerCollectionOptions(site).find((o) => o.key === "entity");

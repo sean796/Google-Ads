@@ -51,6 +51,6 @@ describe("neo_pulse_fields-only REST inventory shape", () => {
     const acf = restAcfFromFullPost(wpRestPost);
     expect(acf.keyword_focus).toBe("local seo");
     expect(acf.meta_description).toBe("Meta from fields");
-    expect(wpRestPost.acf).toBeUndefined();
+    expect(wpRestPost).not.toHaveProperty("acf");
   });
 });

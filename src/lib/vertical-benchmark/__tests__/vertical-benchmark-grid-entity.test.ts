@@ -20,9 +20,18 @@ const mockGridContext = {
   placeWeaknessWeights: [],
   gridRowsForDirectSap: [
     {
+      scanDate: "2026-01-01",
       keyword: "blinds",
       rank: 12,
+      business: "Example Blinds",
       address: "Sherwood Park, Alberta, Canada",
+      placeId: "place-1",
+      websiteUrl: "https://example.com",
+      scanSize: "5x5",
+      distance: 1,
+      distanceMeasure: "mi",
+      primaryCategory: "Window treatment store",
+      secondaryCategories: "",
       latitude: 53.5,
       longitude: -113.2,
     },

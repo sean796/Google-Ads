@@ -21,6 +21,7 @@ describe("VideoWorkspaceHeader", () => {
           aspect: "16:9",
           resolution: "720p",
           references: [],
+          subject: null,
         },
         videoModel: DEFAULT_VIDEO_MODEL,
         onVideoModelChange: noop,

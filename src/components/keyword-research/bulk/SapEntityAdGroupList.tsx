@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
 import { MapPin } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@/ui";
+
 import type { CSVRow } from "@/lib/bulk-auto-generate";
 import { BULK_GENERATOR_EMPTY_ROW_COUNT } from "@/components/keyword-research/blog-generator-tab-classes";
-import { BlogIdeaRowCompact, BLOG_IDEA_ROW_SELECT_CHECKBOX_CLASS } from "@/components/keyword-research/bulk/BlogIdeaRowCompact";
+import { BlogIdeaRowCompact } from "@/components/keyword-research/bulk/BlogIdeaRowCompact";
+import { BLOG_IDEA_ROW_SELECT_CHECKBOX_CLASS } from "@/components/shared/workspace-checkbox-styles";
 import {
   CONTENT_OPTIMIZER_MULTI_SITE_ROW_STACK_CLASS,
   CONTENT_OPTIMIZER_MULTI_SITE_ROW_WRAPPER_CLASS,
@@ -222,7 +224,7 @@ export function SapEntityAdGroupList({
         return (
           <div key={`entity-placeholder-${i}`} className={CONTENT_OPTIMIZER_MULTI_SITE_ROW_WRAPPER_CLASS}>
             <BlogIdeaRowCompact
-              row={{}}
+              row={{ keyword: "", title: "" }}
               index={-(i + 1)}
               stripeIndex={padStripe}
               isSelected={false}

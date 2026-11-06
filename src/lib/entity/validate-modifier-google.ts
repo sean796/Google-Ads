@@ -58,6 +58,7 @@ export async function validateEntityModifierViaGoogle(
     ],
     temperature: 0.1,
     maxTokens: 20,
+    topP: 1,
     onContentChunk: (chunk) => {
       out += chunk;
     },

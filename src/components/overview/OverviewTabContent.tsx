@@ -84,38 +84,42 @@ export function OverviewTabContent(props: OverviewTabContentProps) {
     }
   }, [derived.batchBulkState?.urlStatuses, ctrl]);
 
-  const prevSitemapSourceRef = useRef(ctrl.sitemapSource);
+  const ctrlSitemapSource = ctrl.sitemapSource;
+  const ctrlExpandedPageUrl = ctrl.expandedPageUrl;
+  const ctrlDisplayRows = ctrl.displayRows;
+  const ctrlSetExpandedPageUrl = ctrl.setExpandedPageUrl;
+  const prevSitemapSourceRef = useRef(ctrlSitemapSource);
   // Auto-select the first available article when none is selected so the Visual Doc Studio is immediately active
   useEffect(() => {
-    const sitemapSourceChanged = prevSitemapSourceRef.current !== ctrl.sitemapSource;
-    prevSitemapSourceRef.current = ctrl.sitemapSource;
+    const sitemapSourceChanged = prevSitemapSourceRef.current !== ctrlSitemapSource;
+    prevSitemapSourceRef.current = ctrlSitemapSource;
 
     if (sitemapSourceChanged) {
-      const firstUrl = ctrl.displayRows[0]?.url;
+      const firstUrl = ctrlDisplayRows[0]?.url;
       if (firstUrl) {
-        ctrl.setExpandedPageUrl(firstUrl);
+        ctrlSetExpandedPageUrl(firstUrl);
         return;
       }
-      ctrl.setExpandedPageUrl(null);
+      ctrlSetExpandedPageUrl(null);
       return;
     }
 
-    if (ctrl.expandedPageUrl) {
-      const activeKey = normalizePageUrlKey(ctrl.expandedPageUrl);
-      const exists = ctrl.displayRows.some(
+    if (ctrlExpandedPageUrl) {
+      const activeKey = normalizePageUrlKey(ctrlExpandedPageUrl);
+      const exists = ctrlDisplayRows.some(
         (r) => normalizePageUrlKey(r.url) === activeKey,
       );
       if (exists) return;
     }
-    const firstUrl = ctrl.displayRows[0]?.url;
+    const firstUrl = ctrlDisplayRows[0]?.url;
     if (firstUrl) {
-      ctrl.setExpandedPageUrl(firstUrl);
+      ctrlSetExpandedPageUrl(firstUrl);
     }
   }, [
-    ctrl.sitemapSource,
-    ctrl.expandedPageUrl,
-    ctrl.displayRows,
-    ctrl.setExpandedPageUrl,
+    ctrlSitemapSource,
+    ctrlExpandedPageUrl,
+    ctrlDisplayRows,
+    ctrlSetExpandedPageUrl,
   ]);
 
   const activeRowIndex = useMemo(() => {

@@ -4,8 +4,8 @@ import { ManagerMegaMenuNav } from "@/components/manager/ManagerMegaMenuNav";
 import { ManagerTopBarDisplayConsole } from "@/components/manager/ManagerTopBarDisplayConsole";
 import { ManagerAppFooter } from "@/components/manager/ManagerAppFooter";
 import { NeoPulseAppBrand } from "@/components/manager/NeoPulseAppBrand";
-import { ManagerErrorLogProvider } from "@/contexts/manager-error-log-context";
-import { ManagerSeedWorkspaceProvider } from "@/contexts/manager-seed-workspace-context";
+import { ManagerErrorLogProvider } from "@/contexts/ManagerErrorLogProvider";
+import { ManagerSeedWorkspaceProvider } from "@/contexts/ManagerSeedWorkspaceProvider";
 import {
   readStoredManagerSettingsCluster,
   writeStoredManagerSettingsCluster,
@@ -20,7 +20,7 @@ import {
 } from "@/components/manager/manager-top-bar-nav-styles";
 import { cn } from "@/lib/utils";
 
-const MANAGER_TAB_STORAGE_KEY = "neo-pulse-manager-tab";
+import { managerTabPath } from "@/lib/manager-tab-routes";
 
 /** Same sticky mega menu + site console + footer as the main Index shell. */
 export function ManagerEmbeddedPageChrome({ children }: { children: ReactNode }) {
@@ -31,13 +31,7 @@ export function ManagerEmbeddedPageChrome({ children }: { children: ReactNode })
 
   const onManagerTabChange = useCallback(
     (tab: string) => {
-      try {
-        localStorage.setItem(MANAGER_TAB_STORAGE_KEY, tab);
-      } catch {
-        /* ignore */
-      }
-      const hash = tab === "dashboard" ? "settings" : tab;
-      navigate({ pathname: "/", hash: `#${hash}` });
+      navigate(managerTabPath(tab));
     },
     [navigate],
   );

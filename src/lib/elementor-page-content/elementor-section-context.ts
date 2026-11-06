@@ -440,7 +440,7 @@ export function validateBodyHtmlAgainstBlueprint(
   if (!html) throw new Error("Section body HTML is empty.");
 
   for (const tag of blueprint.forbiddenTags) {
-    const name = tag.replace(/[<>\/]/g, "").trim().toLowerCase();
+    const name = tag.replace(/[<>/]/g, "").trim().toLowerCase();
     if (!name) continue;
     const re = new RegExp(`<${name}\\b`, "i");
     if (re.test(html)) {

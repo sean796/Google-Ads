@@ -10,6 +10,7 @@ import type {
   SitemapDetectionResult,
   SitemapParseResult
 } from './types';
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 /** Empty string = same-origin `/api/*` (neodigital.ca WP plugin). */
 let postCreatorWorkerApiBase = "";
@@ -66,9 +67,7 @@ export async function testWordPressConnection(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         username,
@@ -113,9 +112,7 @@ export async function detectSitemaps(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         username,
@@ -161,9 +158,7 @@ export async function parseSitemap(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         sitemapUrl,
@@ -183,14 +178,17 @@ export async function parseSitemap(
       
       // Enhanced error message with details if available
       const errorMessage = errorData.error || errorData.message || `HTTP ${response.status}`;
-      const enhancedError = new Error(errorMessage);
-      
+      const enhancedError = new Error(errorMessage) as Error & {
+        details?: unknown;
+        suggestion?: unknown;
+      };
+
       // Attach additional error details if available
       if (errorData.details) {
-        (enhancedError as any).details = errorData.details;
+        enhancedError.details = errorData.details;
       }
       if (errorData.suggestion) {
-        (enhancedError as any).suggestion = errorData.suggestion;
+        enhancedError.suggestion = errorData.suggestion;
       }
       
       throw enhancedError;

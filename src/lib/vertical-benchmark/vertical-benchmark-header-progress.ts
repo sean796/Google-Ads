@@ -1,4 +1,4 @@
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import type { BenchmarkPipelineProgress } from "@/lib/vertical-benchmark/vertical-benchmark-pipeline-types";
 
 const GSC_EXPORT_LABEL = "GSC export";

@@ -92,7 +92,7 @@ export async function fetchPromptIdeasGscQueries(site: WordPressSite): Promise<G
     endDate: dateRange.endDate,
     rowLimit: PROMPT_IDEAS_GSC_LIMIT,
   });
-  if (!res.ok) {
+  if (res.ok === false) {
     throw new Error(res.error || "Google Search Console returned no keywords for this site.");
   }
   const queries = sortGscQueriesByStats(res.queries.filter((q) => q.query?.trim()));

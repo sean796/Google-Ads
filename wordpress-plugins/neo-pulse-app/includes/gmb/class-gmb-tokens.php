@@ -12,7 +12,24 @@ class Neo_Pulse_App_Gmb_Tokens {
 	/**
 	 * @return array{access_token:string,refresh_token?:string,expiry_date?:int}|null
 	 */
+	private static function env_refresh_token(): string {
+		if ( defined( 'NEO_PULSE_APP_GMB_OAUTH_REFRESH_TOKEN' ) && NEO_PULSE_APP_GMB_OAUTH_REFRESH_TOKEN !== '' ) {
+			return trim( (string) NEO_PULSE_APP_GMB_OAUTH_REFRESH_TOKEN );
+		}
+		$env = getenv( 'NEO_PULSE_APP_GMB_OAUTH_REFRESH_TOKEN' );
+		return is_string( $env ) ? trim( $env ) : '';
+	}
+
 	public static function get_tokens(): ?array {
+		$env_refresh = self::env_refresh_token();
+		if ( $env_refresh !== '' ) {
+			$cached = get_transient( 'neo_pulse_app_gmb_access' );
+			return array(
+				'access_token'  => is_string( $cached ) ? $cached : '',
+				'refresh_token' => $env_refresh,
+				'expiry_date'   => is_string( $cached ) && $cached !== '' ? (int) round( microtime( true ) * 1000 ) + 3600000 : 1,
+			);
+		}
 		$data = Neo_Pulse_App_Json_File_Store::read( Neo_Pulse_App_Data_Paths::gmb_tokens_path() );
 		if ( is_array( $data ) && ! empty( $data['access_token'] ) ) {
 			return $data;
@@ -68,6 +85,13 @@ class Neo_Pulse_App_Gmb_Tokens {
 		if ( $store['refresh_token'] === '' && is_array( $existing ) && ! empty( $existing['refresh_token'] ) ) {
 			$store['refresh_token'] = (string) $existing['refresh_token'];
 		}
+		if ( self::env_refresh_token() !== '' ) {
+			// Wave 0: access tokens are runtime-only when the refresh token lives in env.
+			if ( $store['access_token'] !== '' ) {
+				set_transient( 'neo_pulse_app_gmb_access', $store['access_token'], 3000 );
+			}
+			return;
+		}
 		Neo_Pulse_App_Json_File_Store::write( Neo_Pulse_App_Data_Paths::gmb_tokens_path(), $store );
 	}
 
@@ -76,12 +100,12 @@ class Neo_Pulse_App_Gmb_Tokens {
 	 */
 	public static function get_valid_access_token() {
 		$tokens = self::get_tokens();
-		if ( ! is_array( $tokens ) || empty( $tokens['access_token'] ) ) {
+		if ( ! is_array( $tokens ) || ( empty( $tokens['access_token'] ) && empty( $tokens['refresh_token'] ) ) ) {
 			return new WP_Error( 'neo-pulse_gmb_not_connected', 'Not connected. Use Connect Google Business first.' );
 		}
 		$expiry        = isset( $tokens['expiry_date'] ) ? (int) $tokens['expiry_date'] : 0;
 		$now_ms        = (int) round( microtime( true ) * 1000 );
-		$needs_refresh = $expiry > 0 && $now_ms >= ( $expiry - 60000 ) && ! empty( $tokens['refresh_token'] );
+		$needs_refresh = ! empty( $tokens['refresh_token'] ) && ( empty( $tokens['access_token'] ) || ( $expiry > 0 && $now_ms >= ( $expiry - 60000 ) ) );
 		if ( ! $needs_refresh ) {
 			return (string) $tokens['access_token'];
 		}

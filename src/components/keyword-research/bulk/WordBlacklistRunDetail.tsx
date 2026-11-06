@@ -1,6 +1,6 @@
 import { Download } from "lucide-react";
 import { buildWordBlacklistDownloadText } from "@/lib/content-word-blocklist";
-import { META_FIELD_END_RAIL_BTN } from "@/components/overview/MetaOptimizerPageRowDetails";
+import { META_FIELD_END_RAIL_BTN } from "@/components/overview/meta-optimizer-row-constants";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_CSV_DOWNLOADED } from "@/lib/notify-messages";
 import { Button } from "@/ui";

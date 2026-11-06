@@ -5,7 +5,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/ui/vendor/dialog";
 import { cn } from "@/lib/utils";
 import { UI_DIALOG, UI_DIALOG_BODY } from "@/ui/tokens";
 

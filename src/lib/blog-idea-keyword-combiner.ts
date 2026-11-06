@@ -1,7 +1,8 @@
 import type { KeywordExtractionResult } from './blog-idea-kb-keyword-extractor';
+import { getResearchModel } from "@/lib/optimization-settings-storage";
 import type { SelectedKeywords } from './blog-idea-gsc-keyword-selector';
 import { isBlockedContentTopicPhrase } from './content-topic-blocklist';
-import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
+import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
 
 export interface BlogIdeaKeywords {
   primaryKeyword: string;
@@ -192,9 +193,8 @@ ${flowPurpose ? `\n**PURPOSE**: "${flowPurpose}" - Ensure keywords align with th
 Select exactly ${blogCount} primary keywords and 3-5 related keywords for each. Prioritize GSC keywords when they align with the purpose/topic AND are contextually relevant to the site. Return the JSON object with selectedKeywords array.`;
 
   try {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const response = await postOpenRouterAppChatFetch({
       method: "POST",
-      headers: openRouterWebAppHeaders(apiKey),
       body: JSON.stringify({
         model,
         messages: [

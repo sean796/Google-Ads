@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   pickMetaBulkMicroSnapshot,
   resolveBulkPostTicker,
-} from "@/components/overview/OverviewBulkMicroProgress";
+} from "@/components/overview/overview-bulk-micro-progress-helpers";
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import { buildWpUploadBatchPipelineSteps } from "@/lib/overview/overview-batch-pipeline-progress";
 
@@ -32,7 +32,8 @@ describe("pickMetaBulkMicroSnapshot", () => {
 
   it("shows WordPress upload 1/4 while the first post is running", () => {
     const urls = Array.from({ length: 4 }, (_, i) => `https://example.com/p-${i}/`);
-    const steps = buildWpUploadBatchPipelineSteps(4);
+    // Numeric totals batch up to 25 per WP step; four 1-post chunks give a 1/4 ticker.
+    const steps = buildWpUploadBatchPipelineSteps([1, 1, 1, 1]);
     steps[0] = { ...steps[0]!, status: "running" };
     const batchState: BulkOptimizationState = {
       urls,

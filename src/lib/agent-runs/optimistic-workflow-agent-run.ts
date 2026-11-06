@@ -24,6 +24,8 @@ export function createOptimisticWorkflowAgentRun(input: {
     plan: {},
     result: {
       checkpoint: {
+        completedUrls: [],
+        uploadedUrls: [],
         lastMessage: "Starting…",
         lastStepLabel: "Starting…",
       },
@@ -76,6 +78,8 @@ export function applyOptimisticWorkflowAgentProgress(
       ...run,
       result: {
         checkpoint: {
+          completedUrls: [],
+          uploadedUrls: [],
           lastMessage: message,
           lastStepLabel: message,
         },

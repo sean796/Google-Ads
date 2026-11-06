@@ -1,4 +1,5 @@
 import { BACKEND_API_BASE, BACKEND_CONNECTION_ERROR } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { formatGscResolutionError } from "@/lib/wordpress-api/gsc";
 import type { PageIndexingReport, PageIndexingReportParams } from "@/lib/organic-dashboard/page-indexing-report-types";
 
@@ -11,7 +12,8 @@ export async function fetchPageIndexingReport(
   try {
     const response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl: params.siteUrl,
         sitemapUrl: params.sitemapUrl,

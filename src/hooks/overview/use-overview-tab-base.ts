@@ -446,12 +446,12 @@ export function useOverviewTabBase({
   useEffect(() => {
     if (studioRowSource === "bulk-generator") return;
     setExpandedPageUrl(null);
-  }, [site?.id, sitemapSource, gridPageIndex, studioRowSource]);
+  }, [site?.id, sitemapSource, gridPageIndex, studioRowSource, setExpandedPageUrl]);
 
   const gridPaginationLayoutTotal = useMemo(() => {
     if (!site?.id) return displayRows.length;
     return resolveOverviewGridPaginationLayoutTotal([site.id], displayRows.length);
-  }, [site?.id, displayRows.length, sitemapSource]);
+  }, [site?.id, displayRows.length]);
 
   const napSummary =
     site?.napInfo ? createNAPSummary(site.napInfo, site.locations) : undefined;

@@ -1,6 +1,6 @@
 import type { CSVRow } from "@/lib/bulk/bulk-csv-parser";
 import type { CompetitorGridPlaceRow } from "@/lib/competitor-research/local-dominator-grid-parse";
-import type { CompetitorComparisonHarnessGroup } from "@/lib/competitor-analysis/competitor-comparison-harness-state";
+import type { CompetitorComparisonHarnessGroup } from "@/lib/competitor-research/competitor-comparison-harness-state";
 import type { WordPressSite } from "@/components/integrations/types";
 
 export type CompetitorGenerationProgress = {

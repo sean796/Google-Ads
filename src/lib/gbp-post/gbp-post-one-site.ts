@@ -1,6 +1,7 @@
 import type { WordPressSite } from "@/components/integrations/types";
 import type { BulkHarnessSectionPayload } from "@/lib/bulk-auto-generate";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import {
   runGbpPostCardPipeline,
   completeGbpPostCardHarnessStep,
@@ -223,7 +224,7 @@ async function runGbpSitePostBatchInner(
     const response = await fetch(`${BACKEND_API_BASE}/api/gmb/publish-from-harness`, {
       method: "POST",
       credentials: "include",
-      headers: { "Content-Type": "application/json" },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl: site.siteUrl,
         username: site.username,
@@ -304,6 +305,7 @@ async function runGbpSitePostBatchInner(
       const flushRes = await fetch(`${BACKEND_API_BASE}/api/gmb/process-schedule-queue`, {
         method: "POST",
         credentials: "include",
+        headers: neoPulseApiHeaders(),
       });
       const flushData = (await flushRes.json().catch(() => ({}))) as Record<string, unknown>;
       if (flushRes.ok && flushData.success) {

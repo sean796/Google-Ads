@@ -6,7 +6,7 @@ import {
   type StudioEditorModeId,
 } from "@/components/keyword-research/bulk/studio-editor-modes";
 import { DetailsDockPortal } from "@/components/pulse-assist/details-dock";
-import type { BulkDetailsDownloadable } from "@/components/shared/bulk-details-tile-sections";
+import type { BulkDetailsDownloadable } from "@/components/shared/bulk-details-tile-sections-helpers";
 import { cn } from "@/lib/utils";
 import { Button, SelectField } from "@/ui";
 

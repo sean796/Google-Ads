@@ -18,6 +18,13 @@ import {
   type ContentOptimizerStepId,
   type RunProgressPatch,
 } from "@/lib/content-optimization/content-optimizer-run-progress";
+import type {
+  GscResultLike,
+  OptimizationProgressState,
+  PendingOptimization,
+} from "@/hooks/content-optimization/use-optimization-state";
+
+export type { GscResultLike };
 import { clearSiteCache } from "@/lib/wordpress-site-cache";
 import { clearValidationCache } from "@/lib/cached-link-validation";
 import { clearRelevanceCache } from "@/lib/content-generation/ai-link-relevance-filter";
@@ -33,24 +40,34 @@ export type OptimizationProgressPatch = RunProgressPatch &
   }> &
   Record<string, unknown>;
 
+export type OptimizationProgressMap = Record<string, OptimizationProgressState>;
+
+export type MapSetter<V> = (
+  updater: (prev: Record<string, V>) => Record<string, V>,
+) => void;
+
+export type ProgressSetter = MapSetter<OptimizationProgressState>;
+
 function syncSiteProgressToBatchKey(
-  prev: Record<string, any>,
+  prev: OptimizationProgressMap,
   siteId: string,
-  siteEntry: Record<string, any>,
-): Record<string, any> {
+  siteEntry: OptimizationProgressState,
+): OptimizationProgressMap {
   const batchKey = `${siteId}-batch`;
-  const batchEntry = prev[batchKey];
+  const batchEntry = prev[batchKey] as
+    | (OptimizationProgressState & { bulkMeta?: BulkProgressMeta })
+    | undefined;
   if (!batchEntry?.bulkMeta) return prev;
-  const batchProgress = computeBatchProgressFromSiteEntry(siteEntry, batchEntry.bulkMeta as BulkProgressMeta);
+  const batchProgress = computeBatchProgressFromSiteEntry(siteEntry, batchEntry.bulkMeta);
   return mergeRunProgress(prev, batchKey, {
-    stepId: siteEntry.stepId as ContentOptimizerStepId,
+    stepId: siteEntry.stepId,
     subProgress: siteEntry.subProgress ?? 0,
     message: siteEntry.message,
     batchProgress,
     harnessSections: siteEntry.harnessSections,
     harnessPlannedSectionCount: siteEntry.harnessPlannedSectionCount,
     linkCheckResults: siteEntry.linkCheckResults,
-  });
+  }) as OptimizationProgressMap;
 }
 
 function resolveProgressPatch(
@@ -93,12 +110,15 @@ function attachGeneratedFiles(
  * Legacy callers may pass `{ step, progress, message }` only; inherits stepId/subProgress from prev when present.
  */
 export function mergeOptimizationProgress(
-  prev: Record<string, any>,
+  prev: OptimizationProgressMap,
   key: string,
   incoming: OptimizationProgressPatch,
-): Record<string, any> {
-  const prevEntry = prev[key] || {};
-  const { stepId, subProgress } = resolveProgressPatch(prevEntry, incoming);
+): OptimizationProgressMap {
+  const prevEntry: Partial<OptimizationProgressState> = prev[key] ?? {};
+  const { stepId, subProgress } = resolveProgressPatch(
+    prevEntry as Record<string, unknown>,
+    incoming,
+  );
 
   if (stepId != null && subProgress != null) {
     const merged = mergeRunProgress(prev, key, {
@@ -107,8 +127,12 @@ export function mergeOptimizationProgress(
       subProgress,
     });
     const nextEntry = merged[key]!;
-    attachGeneratedFiles(prevEntry, nextEntry, incoming);
-    return merged;
+    attachGeneratedFiles(
+      prevEntry as Record<string, unknown>,
+      nextEntry as Record<string, unknown>,
+      incoming,
+    );
+    return merged as OptimizationProgressMap;
   }
 
   // Legacy overview / prep harness: raw step + progress without stepId contract
@@ -117,7 +141,7 @@ export function mergeOptimizationProgress(
     const prevProgress = typeof prevEntry.progress === "number" ? prevEntry.progress : 0;
     siteNext.progress = Math.max(prevProgress, incoming.progress);
   }
-  return { ...prev, [key]: siteNext };
+  return { ...prev, [key]: siteNext as unknown as OptimizationProgressState };
 }
 
 /** Attach latest fileManager snapshot so download buttons update during a run (metadata only). */
@@ -134,24 +158,27 @@ export function progressWithGeneratedFiles(
 
 /** Apply a progress patch via setState (for nested callbacks from blueprint / keyword research). */
 export function patchOptimizationProgress(
-  setProgress: (prev: any) => any,
+  setProgress: ProgressSetter,
   key: string,
   incoming: Partial<OptimizationProgressPatch> & Record<string, unknown>,
 ) {
-  setProgress((prev: any) =>
+  setProgress((prev) =>
     mergeOptimizationProgress(prev, key, incoming as OptimizationProgressPatch),
   );
 }
 
 /** Extra text / content harness lives on site.id; bulk UI also reads `${siteId}-batch`. */
 export function mergeHarnessProgressSiteAndBatch(
-  prev: Record<string, any>,
+  prev: OptimizationProgressMap,
   siteId: string,
   incoming: OptimizationProgressPatch,
-): Record<string, any> {
-  const prevEntry = prev[siteId] || {};
+): OptimizationProgressMap {
+  const prevEntry: Partial<OptimizationProgressState> = prev[siteId] ?? {};
   const batchKey = `${siteId}-batch`;
-  const { stepId, subProgress } = resolveProgressPatch(prevEntry, incoming);
+  const { stepId, subProgress } = resolveProgressPatch(
+    prevEntry as Record<string, unknown>,
+    incoming,
+  );
 
   if (stepId != null && subProgress != null) {
     let next = mergeOptimizationProgress(prev, siteId, {
@@ -159,15 +186,23 @@ export function mergeHarnessProgressSiteAndBatch(
       stepId,
       subProgress,
     });
-    next = syncSiteProgressToBatchKey(next, siteId, next[siteId] ?? { ...incoming, stepId, subProgress });
+    next = syncSiteProgressToBatchKey(
+      next,
+      siteId,
+      next[siteId] ??
+        ({ ...incoming, stepId, subProgress } as unknown as OptimizationProgressState),
+    );
     return next;
   }
 
   // Legacy overview / prep harness: raw step + progress without stepId contract
   const siteNext = { ...prevEntry, ...incoming };
-  let next: Record<string, any> = { ...prev, [siteId]: siteNext };
+  let next: OptimizationProgressMap = {
+    ...prev,
+    [siteId]: siteNext as unknown as OptimizationProgressState,
+  };
   if (prev[batchKey] != null) {
-    const batchPrev = prev[batchKey] || {};
+    const batchPrev: Partial<OptimizationProgressState> = prev[batchKey] ?? {};
     next = {
       ...next,
       [batchKey]: {
@@ -177,14 +212,14 @@ export function mergeHarnessProgressSiteAndBatch(
         harnessPlannedSectionCount:
           incoming.harnessPlannedSectionCount ?? batchPrev.harnessPlannedSectionCount,
         linkCheckResults: incoming.linkCheckResults ?? batchPrev.linkCheckResults,
-      },
+      } as OptimizationProgressState,
     };
   }
   return next;
 }
 
 export function bindRunProgressReporter(
-  setProgress: (prev: any) => any,
+  setProgress: ProgressSetter,
   key: string,
 ): (
   stepId: ContentOptimizerStepId,
@@ -198,14 +233,14 @@ export function bindRunProgressReporter(
 }
 
 export function updateOptimizationProgress(
-  setProgress: (prev: any) => any,
+  setProgress: ProgressSetter,
   key: string,
   stepId: ContentOptimizerStepId,
   subProgress: number,
   message?: string,
   extra?: Omit<OptimizationProgressPatch, "stepId" | "subProgress" | "message">,
 ) {
-  setProgress((prev: Record<string, any>) => {
+  setProgress((prev) => {
     let next = mergeOptimizationProgress(prev, key, {
       stepId,
       subProgress,
@@ -213,38 +248,39 @@ export function updateOptimizationProgress(
       ...extra,
     });
     const siteId = key.endsWith("-batch") ? key.replace(/-batch$/, "") : key;
-    if (!key.endsWith("-batch") && next[siteId]) {
-      next = syncSiteProgressToBatchKey(next, siteId, next[siteId]);
+    const siteEntry = next[siteId];
+    if (!key.endsWith("-batch") && siteEntry) {
+      next = syncSiteProgressToBatchKey(next, siteId, siteEntry);
     }
     return next;
   });
 }
 
 export function setOptimizingState(
-  setIsOptimizing: (prev: any) => any,
+  setIsOptimizing: MapSetter<boolean>,
   key: string,
   isOptimizing: boolean
 ) {
-  setIsOptimizing((prev: any) => ({ ...prev, [key]: isOptimizing }));
+  setIsOptimizing((prev) => ({ ...prev, [key]: isOptimizing }));
 }
 
 export function clearOptimizationState(
-  setIsOptimizing: (prev: any) => any,
-  setProgress: (prev: any) => any,
-  setPending: (prev: any) => any,
+  setIsOptimizing: MapSetter<boolean>,
+  setProgress: ProgressSetter,
+  setPending: MapSetter<PendingOptimization>,
   key: string
 ) {
-  setIsOptimizing((prev: any) => {
+  setIsOptimizing((prev) => {
     const updated = { ...prev };
     delete updated[key];
     return updated;
   });
-  setProgress((prev: any) => {
+  setProgress((prev) => {
     const updated = { ...prev };
     delete updated[key];
     return updated;
   });
-  setPending((prev: any) => {
+  setPending((prev) => {
     const updated = { ...prev };
     delete updated[key];
     return updated;
@@ -252,10 +288,10 @@ export function clearOptimizationState(
 }
 
 export function clearOptimizationFileManager(
-  setFileManagers: (prev: any) => any,
+  setFileManagers: MapSetter<OptimizationFileManager>,
   key: string
 ) {
-  setFileManagers((prev: any) => {
+  setFileManagers((prev) => {
     const updated = { ...prev };
     delete updated[key];
     return updated;
@@ -263,22 +299,22 @@ export function clearOptimizationFileManager(
 }
 
 export function clearOptimization(
-  setIsOptimizing: (prev: any) => any,
-  setProgress: (prev: any) => any,
-  setPending: (prev: any) => any,
+  setIsOptimizing: MapSetter<boolean>,
+  setProgress: ProgressSetter,
+  setPending: MapSetter<PendingOptimization>,
   siteId: string
 ) {
-  setIsOptimizing((prev: any) => {
+  setIsOptimizing((prev) => {
     const updated = { ...prev };
     delete updated[siteId];
     return updated;
   });
-  setProgress((prev: any) => {
+  setProgress((prev) => {
     const updated = { ...prev };
     delete updated[siteId];
     return updated;
   });
-  setPending((prev: any) => {
+  setPending((prev) => {
     const updated = { ...prev };
     delete updated[siteId];
     return updated;
@@ -374,30 +410,27 @@ export async function determineEntity(
 // GSC Data Helpers
 // ============================================================================
 
-export function validateGSCData(gscResult: any): {
+export function validateGSCData(gscResult: GscResultLike): {
   hasValidData: boolean;
   primaryKeyword: string | null;
   isNoQueriesError: boolean;
 } {
   const isNoQueriesError =
-    gscResult.error &&
     typeof gscResult.error === "string" &&
     gscResult.error.toLowerCase().includes("no valid search queries found");
 
   let hasValidGSCData = false;
   let primaryKeywordFromGSC: string | null = null;
 
+  const topQuery =
+    typeof gscResult.topKeyword?.query === "string" ? gscResult.topKeyword.query : "";
   if (gscResult.success && gscResult.topKeyword) {
-    if (
-      gscResult.topKeyword.query !== "Page-level aggregate" &&
-      gscResult.topKeyword.query &&
-      gscResult.topKeyword.query.trim().length > 0
-    ) {
+    if (topQuery !== "Page-level aggregate" && topQuery.trim().length > 0) {
       if (gscResult.queries && Array.isArray(gscResult.queries) && gscResult.queries.length > 0) {
-        const keywordExists = gscResult.queries.some((q: any) => q.query === gscResult.topKeyword.query);
+        const keywordExists = gscResult.queries.some((q) => q.query === topQuery);
         if (keywordExists) {
           hasValidGSCData = true;
-          primaryKeywordFromGSC = gscResult.topKeyword.query.trim();
+          primaryKeywordFromGSC = topQuery.trim();
         }
       }
     }
@@ -638,7 +671,7 @@ Return ONLY the keyword phrase, nothing else. No quotes, no explanation.`,
   }
 }
 
-export function isNoQueriesError(error: any): boolean {
+export function isNoQueriesError(error: unknown): boolean {
   if (!error) return false;
   const errorMessage = error instanceof Error ? error.message : String(error);
   return errorMessage.toLowerCase().includes("no valid search queries found");

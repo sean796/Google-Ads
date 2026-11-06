@@ -75,13 +75,15 @@ describe("refreshContentSheetRowTitles", () => {
       { title: "Welcome New Partner 2019" } as SitemapOptimizerPostRow,
     ]);
     const sheet: SitemapOptimizerContentSheetRow = {
+      postId: "wp:1",
       sourceUrl: "https://example.com/new/",
       sourceTitle: "Welcome New Partner 2019",
+      action: "keep",
+      priority: "medium",
       proposedTitle: "Welcome New Partner 2019",
       proposedPrimaryKeyword: "kwb partner 2019",
       proposedMeta: "Celebrating our 2019 partner.",
       rationale: "Firm news",
-      publishedAt: new Date().toISOString(),
     };
     const out = refreshContentSheetRowTitles(sheet, members, 2026);
     expect(out.proposedTitle).toBe("Welcome New Partner 2019");
@@ -149,7 +151,7 @@ describe("applyGridOutputPolicies", () => {
     expect(outClusters.clusters).toHaveLength(1);
   });
 
-  it("dedupes content sheet to one row per shared new_url in 1:1 redirect mode", () => {
+  it("keeps per-row clusters while deduping content sheet by shared new_url in 1:1 redirect mode", () => {
     const dest = "https://www.kwbllp.com/blog/2026-canadian-alberta-tax-brackets/";
     const rows: SitemapOptimizerPostRow[] = [2024, 2025, 2026].map((y, i) => ({
       postId: `csv:${i}`,
@@ -191,8 +193,8 @@ describe("applyGridOutputPolicies", () => {
       analyzedAt: "2026-06-01T00:00:00.000Z",
     });
 
-    expect(outClusters.clusters).toHaveLength(1);
-    expect(outClusters.clusters[0]?.memberPostIds).toHaveLength(3);
+    expect(outClusters.clusters).toHaveLength(3);
+    expect(outClusters.clusters[0]?.memberPostIds).toHaveLength(1);
     expect(contentSheet).toHaveLength(1);
     expect(contentSheet[0]?.sourceUrl).toBe(dest);
     expect(contentSheet[0]?.proposedTitle).toContain("2026");

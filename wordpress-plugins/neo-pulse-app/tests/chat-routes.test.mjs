@@ -171,7 +171,8 @@ describe("chat routes", () => {
 
     const openrouter = readPhp("includes/chat/class-chat-openrouter.php");
     expect(openrouter).toContain("api_key_from_request");
-    expect(openrouter).toContain("HTTP_X_OPENROUTER_API_KEY");
+    // Wave 0: client-supplied OpenRouter keys (header or body) are ignored.
+    expect(openrouter).not.toContain("HTTP_X_OPENROUTER_API_KEY");
 
     const teams = readPhp("includes/teams/class-teams-store.php");
     expect(teams).toContain("ensure_team_member( $team_id )");

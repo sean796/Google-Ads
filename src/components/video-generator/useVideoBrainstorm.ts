@@ -79,7 +79,7 @@ export function useVideoBrainstorm(
     const elapsed = videoTimer();
     videoLog("brainstorm", "start", { notesChars: notes.length, images: images.length, video: video?.file.name ?? null, subjectHarness: Boolean(subjectDataUrl) });
     try {
-      let samples: VideoSample[] = [];
+      const samples: VideoSample[] = [];
       let referenceVideo: VideoBriefReferenceClip | null = null;
       if (video) {
         setBusy("Uploading reference video for the Producer");

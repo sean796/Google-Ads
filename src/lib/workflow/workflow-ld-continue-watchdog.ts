@@ -54,8 +54,13 @@ export async function isLdGridCsvReceived(
 
   const artifacts = await fetchAgentRunArtifacts(teamId, agentRunId);
   const fromArtifacts = artifacts
-    .filter((artifact) => artifact.url && (artifact.stepKey === "grid_export" || isGridCsvFileRef(artifact)))
-    .filter((artifact) => isGridCsvFileRef(artifact))
+    .filter(
+      (artifact) =>
+        artifact.url &&
+        (artifact.stepKey === "grid_export" ||
+          isGridCsvFileRef({ name: artifact.name, mime: artifact.mime })),
+    )
+    .filter((artifact) => isGridCsvFileRef({ name: artifact.name, mime: artifact.mime }))
     .map((artifact) => ({
       name: artifact.name,
       url: artifact.url,

@@ -3,6 +3,8 @@
  * Frontend helpers for WordPress integration. All routes use this app's /api.
  */
 
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
+
 // Re-export all types
 export * from './wordpress-api/types';
 
@@ -65,16 +67,14 @@ export async function updateWordPressAcfFields(
   postId: number,
   postType: string,
   postTypeEndpoint: string | undefined,
-  fields: Record<string, any>,
+  fields: Record<string, unknown>,
 ): Promise<{ success: boolean; error?: string }> {
   const { BACKEND_API_BASE } = await import('./wordpress-api/connection');
   const url = `${BACKEND_API_BASE}/api/wordpress/update-acf-fields`;
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         username,
@@ -90,8 +90,8 @@ export async function updateWordPressAcfFields(
       return { success: false, error: data.error || response.statusText || 'ACF update failed' };
     }
     return { success: true };
-  } catch (e: any) {
-    return { success: false, error: e?.message || String(e) };
+  } catch (e: unknown) {
+    return { success: false, error: e instanceof Error && e.message ? e.message : String(e) };
   }
 }
 

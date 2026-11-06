@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">NEOPulse</string>
-    <string name="title_activity_main">NEOPulse</string>
-    <string name="package_name">ca.neodigital.neopulse.mobile</string>
-    <string name="custom_url_scheme">ca.neodigital.neopulse.mobile</string>
-</resources>

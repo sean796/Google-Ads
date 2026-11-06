@@ -41,7 +41,7 @@ export function buildInventoryCatalogFromBulkRows(
       url,
       fields: {
         title: row.fields?.title,
-        keyword: row.fields?.keyword_focus ?? row.fields?.keyword,
+        keyword: row.fields?.keyword,
       },
     });
   }

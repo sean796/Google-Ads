@@ -27,6 +27,7 @@ import {
   querySpotlightNarrativeFileContent,
 } from "@/lib/gsc-reporting/gsc-query-spotlight";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import {
   csvDashNumberCell,
   csvNumberCell,
@@ -874,7 +875,7 @@ async function fetchGaReportDataForReporting(
 ): Promise<GA4ReportData & { success?: boolean; error?: string }> {
   const response = await fetch(`${apiBase}/api/ga/report-data`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       propertyId,
       startDate,
@@ -935,7 +936,7 @@ export async function fetchGscQueriesRawForReporting(
 
   const response = await fetch(`${API_BASE}/api/gsc/fetch-reporting-bundle`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(requestBody),
   });
 

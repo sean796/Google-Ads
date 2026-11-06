@@ -4,7 +4,7 @@
  */
 
 import type { WordPressSite, NAPInfo, Location } from '@/components/integrations/types';
-import { parseSitemap } from './wordpress-api';
+import { parseSitemap, getWordPressPostContent, getSitePageInventory } from './wordpress-api';
 import { streamChatCompletion } from './api';
 import { htmlToMarkdown } from './wordpress-converter';
 import { getResearchModel } from './optimization-settings-storage';
@@ -43,34 +43,25 @@ async function checkPageExists(
   slug: string
 ): Promise<{ id: number; slug: string; title: string; link: string } | null> {
   try {
-    const normalizedUrl = site.siteUrl.replace(/\/$/, '');
-    const authHeader = site.username && site.appPassword 
-      ? `Basic ${btoa(`${site.username}:${site.appPassword}`)}`
-      : null;
-
-    const apiUrl = `${normalizedUrl}/wp-json/wp/v2/pages?slug=${encodeURIComponent(slug)}&status=publish&per_page=1`;
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...(authHeader ? { 'Authorization': authHeader } : {}),
-      },
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      if (Array.isArray(data) && data.length > 0) {
-        const page = data[0];
-        return {
-          id: page.id,
-          slug: page.slug,
-          title: page.title?.rendered || page.title || '',
-          link: page.link || `${normalizedUrl}/${page.slug}`,
-        };
-      }
+    const result = await getWordPressPostContent(
+      site.siteUrl,
+      site.username,
+      site.appPassword,
+      undefined,
+      [slug],
+      undefined,
+      { restEndpointHints: ['pages'] },
+    );
+    const page = result.posts?.[0];
+    if (page) {
+      return {
+        id: page.id,
+        slug: page.slug,
+        title: page.title || '',
+        link: page.link || `${site.siteUrl.replace(/\/$/, '')}/${page.slug}`,
+      };
     }
-    
+
     return null;
   } catch (error) {
     return null;
@@ -205,29 +196,19 @@ async function searchPublishedPages(
   perPage: number
 ): Promise<Array<{ id: number; slug: string; title: string; link: string }>> {
   try {
-    const normalizedUrl = site.siteUrl.replace(/\/$/, '');
-    const authHeader =
-      site.username && site.appPassword
-        ? `Basic ${btoa(`${site.username}:${site.appPassword}`)}`
-        : null;
-    const apiUrl = `${normalizedUrl}/wp-json/wp/v2/pages?search=${encodeURIComponent(search)}&per_page=${perPage}&status=publish`;
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        ...(authHeader ? { Authorization: authHeader } : {}),
-      },
-    });
-    if (!response.ok) return [];
-    const data = await response.json();
-    if (!Array.isArray(data)) return [];
-    return data.map((page: { id: number; slug?: string; title?: { rendered?: string }; link?: string }) => ({
-      id: page.id,
-      slug: page.slug || '',
-      title: page.title?.rendered || '',
-      link: page.link || `${normalizedUrl}/${page.slug || ''}`,
-    }));
+    const inventory = await getSitePageInventory(site.siteUrl, site.username, site.appPassword);
+    const needle = search.toLowerCase();
+    return (inventory.posts ?? [])
+      .filter((row) =>
+        (row.fields?.title || '').toLowerCase().includes(needle) ||
+        (row.slug || '').toLowerCase().includes(needle))
+      .slice(0, perPage)
+      .map((row) => ({
+        id: row.id ?? 0,
+        slug: row.slug || '',
+        title: row.fields?.title || '',
+        link: row.url || `${site.siteUrl.replace(/\/$/, '')}/${row.slug || ''}`,
+      }));
   } catch {
     return [];
   }
@@ -284,37 +265,25 @@ async function fetchPageContentById(
   pageId: number
 ): Promise<{ title: string; content: string; url: string } | null> {
   try {
-    const normalizedUrl = site.siteUrl.replace(/\/$/, '');
-    const authHeader = site.username && site.appPassword 
-      ? `Basic ${btoa(`${site.username}:${site.appPassword}`)}`
-      : null;
-
-    const apiUrl = `${normalizedUrl}/wp-json/wp/v2/pages/${pageId}`;
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...(authHeader ? { 'Authorization': authHeader } : {}),
-      },
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const title = data.title?.rendered || data.title || '';
-      const contentHtml = data.content?.rendered || data.content || '';
-      const excerptHtml = data.excerpt?.rendered || data.excerpt || '';
-      const contentText = htmlToMarkdown(contentHtml).trim();
-      const excerptText = htmlToMarkdown(excerptHtml).trim();
+    const result = await getWordPressPostContent(
+      site.siteUrl,
+      site.username,
+      site.appPassword,
+      [pageId],
+    );
+    const data = result.posts?.[0];
+    if (data) {
+      const contentText = htmlToMarkdown(data.content || '').trim();
+      const excerptText = htmlToMarkdown(data.excerpt || '').trim();
       const fullContent = excerptText ? excerptText + '\n\n' + contentText : contentText;
-      
+
       return {
-        title,
+        title: data.title || '',
         content: fullContent,
-        url: data.link || `${normalizedUrl}/${data.slug || ''}`,
+        url: data.link || `${site.siteUrl.replace(/\/$/, '')}/${data.slug || ''}`,
       };
     }
-    
+
     return null;
   } catch (error) {
     console.error(`[NAP Extractor] Error fetching page ${pageId}:`, error);
@@ -338,55 +307,32 @@ async function fetchPageContentFromUrl(
       return null;
     }
 
-    const normalizedUrl = site.siteUrl.replace(/\/$/, '');
-    const authHeader = site.username && site.appPassword 
-      ? `Basic ${btoa(`${site.username}:${site.appPassword}`)}`
-      : null;
+    const restHints = pathSegments.length > 1
+      ? Array.from(new Set([pathSegments[0], pathSegments[0].replace(/-/g, '_'), 'pages', 'posts']))
+      : ['pages', 'posts'];
 
-    // Try pages first, then posts
-    const postTypes = ['pages', 'posts'];
-    
-    // Detect custom post type from URL path
-    if (pathSegments.length > 1) {
-      const pathSegment = pathSegments[0];
-      postTypes.push(pathSegment.replace(/-/g, '_'));
+    const result = await getWordPressPostContent(
+      site.siteUrl,
+      site.username,
+      site.appPassword,
+      undefined,
+      [slug],
+      undefined,
+      { restEndpointHints: restHints },
+    );
+    const contentData = result.posts?.[0];
+    if (contentData) {
+      const contentText = htmlToMarkdown(contentData.content || '').trim();
+      const excerptText = htmlToMarkdown(contentData.excerpt || '').trim();
+      const fullContent = excerptText ? excerptText + '\n\n' + contentText : contentText;
+
+      return {
+        title: contentData.title || '',
+        content: fullContent,
+        url,
+      };
     }
 
-    for (const postType of postTypes) {
-      try {
-        const apiUrl = `${normalizedUrl}/wp-json/wp/v2/${postType}?slug=${encodeURIComponent(slug)}`;
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            ...(authHeader ? { 'Authorization': authHeader } : {}),
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (Array.isArray(data) && data.length > 0) {
-            const contentData = data[0];
-            const title = contentData.title?.rendered || contentData.title || '';
-            const contentHtml = contentData.content?.rendered || contentData.content || '';
-            const excerptHtml = contentData.excerpt?.rendered || contentData.excerpt || '';
-            const contentText = htmlToMarkdown(contentHtml).trim();
-            const excerptText = htmlToMarkdown(excerptHtml).trim();
-            const fullContent = excerptText ? excerptText + '\n\n' + contentText : contentText;
-            
-            return {
-              title,
-              content: fullContent,
-              url,
-            };
-          }
-        }
-      } catch (error) {
-        // Continue to next post type
-      }
-    }
-    
     return null;
   } catch (error) {
     console.error(`[NAP Extractor] Error fetching page ${url}:`, error);
@@ -517,14 +463,37 @@ Extract every location mentioned. For locations without specific emails, use the
 
     if (jsonMatch) {
       const jsonText = jsonMatch[1] || jsonMatch[0];
-      const parsed = JSON.parse(jsonText);
-      
+      interface RawNapLocation {
+        name?: string;
+        address?: string;
+        streetAddress?: string;
+        city?: string;
+        addressLocality?: string;
+        state?: string;
+        addressRegion?: string;
+        zip?: string;
+        postalCode?: string;
+        zipCode?: string;
+        phone?: string;
+        telephone?: string;
+        email?: string;
+        emailAddress?: string;
+        isDefault?: boolean;
+      }
+      const parsed = JSON.parse(jsonText) as {
+        name?: string;
+        address?: string;
+        phone?: string;
+        email?: string;
+        locations?: RawNapLocation[];
+      };
+
       // Clean up "Not specified" values
-      const cleanValue = (val: any) => {
-        if (!val || val === 'Not specified' || val === 'not specified' || (typeof val === 'string' && val.trim() === '')) {
+      const cleanValue = (val: string | undefined): string | undefined => {
+        if (!val || val === 'Not specified' || val === 'not specified' || val.trim() === '') {
           return undefined;
         }
-        return typeof val === 'string' ? val.trim() : val;
+        return val.trim();
       };
       
       const napInfo: NAPInfo = {
@@ -536,13 +505,13 @@ Extract every location mentioned. For locations without specific emails, use the
 
       // Process locations
       if (parsed.locations && Array.isArray(parsed.locations) && parsed.locations.length > 0) {
-        const locations: Location[] = parsed.locations.map((loc: any, index: number) => {
+        const locations: Location[] = parsed.locations.map((loc, index: number) => {
           // Clean up "Not specified" values
-          const cleanValue = (val: any) => {
-            if (!val || val === 'Not specified' || val === 'not specified' || (typeof val === 'string' && val.trim() === '')) {
+          const cleanValue = (val: string | undefined): string => {
+            if (!val || val === 'Not specified' || val === 'not specified' || val.trim() === '') {
               return '';
             }
-            return typeof val === 'string' ? val.trim() : String(val).trim();
+            return val.trim();
           };
           
           // Email fallback: use location-specific email, then general business email

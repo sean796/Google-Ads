@@ -289,7 +289,7 @@ export async function runEntityPageCreatorDirectHarness(
     run,
     resumePoint: ctx.resumePoint,
     isCancelled: ctx.isCancelled,
-    onProgress: async (label, resumePayload) => {
+    onProgress: async (label, _progress, resumePayload) => {
       await ctx.onStep?.(label, "running", resumePayload);
     },
   });

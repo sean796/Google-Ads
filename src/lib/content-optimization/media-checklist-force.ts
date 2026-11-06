@@ -3,7 +3,7 @@ import type { ExtractedMediaItem } from "@/lib/content-optimization/images-extra
 /** Checklist lines that force exact existing media URLs into Content Opt. */
 export function buildForcedMediaChecklistLines(media: ExtractedMediaItem[]): string[] {
   return media.map((m) => {
-    const label = (m.linkLabel || m.altTag || m.title || "Existing media").replace(/[\[\]]/g, "").trim();
+    const label = (m.linkLabel || m.altTag || m.title || "Existing media").replace(/[[\]]/g, "").trim();
     const url = m.url.trim();
     if (m.kind === "video") {
       return `[LINK]: [${label}](${url}) — existing video/media from the current post; use this exact href (do not invent a replacement)`;
@@ -16,7 +16,7 @@ export function buildForcedMediaChecklistLines(media: ExtractedMediaItem[]): str
 export function buildForcedMediaUserPrompt(media: ExtractedMediaItem[]): string {
   if (!media.length) return "";
   const lines = media.map((m, i) => {
-    const label = (m.linkLabel || m.altTag || m.title || "Existing media").replace(/[\[\]]/g, "").trim();
+    const label = (m.linkLabel || m.altTag || m.title || "Existing media").replace(/[[\]]/g, "").trim();
     return `${i + 1}. kind=${m.kind}; markdown=[${label}](${m.url.trim()})`;
   });
   return [

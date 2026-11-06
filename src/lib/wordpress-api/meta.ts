@@ -9,6 +9,7 @@ import type {
   WordPressPostMetaResult,
   WordPressPostMetaUpdateResult
 } from './types';
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 export type { OverviewBulkSeoApiItem };
 
@@ -86,9 +87,7 @@ export async function getWordPressPostMeta(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         username,
@@ -143,17 +142,15 @@ export async function updateWordPressPostMeta(
   appPassword: string,
   postId: number,
   postType: string = 'post',
-  postTypeEndpoint?: string, // Actual WordPress REST API endpoint name from scraped post
-  meta: Record<string, any>
+  postTypeEndpoint: string | undefined, // Actual WordPress REST API endpoint name from scraped post
+  meta: Record<string, unknown>
 ): Promise<WordPressPostMetaUpdateResult> {
   const url = backendApiUrl('/wordpress/update-post-meta');
   
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         username,
@@ -199,9 +196,7 @@ export async function updateOverviewSeoItem(
   try {
     const response = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         username,
@@ -256,9 +251,7 @@ export async function bulkUpdateOverviewSeo(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         username,

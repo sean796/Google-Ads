@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  assertHarnessBodySectionInternalLinkMinimum,
-  countHarnessInternalLinkPlaceholders,
-} from "@/lib/bulk/harness-section-validate";
+import { countHarnessInternalLinkPlaceholders } from "@/lib/bulk/harness-section-validate";
 
 describe("harness section internal link validation", () => {
   it("counts [[LINK:query|anchor]] placeholders", () => {
@@ -10,10 +7,8 @@ describe("harness section internal link validation", () => {
     expect(countHarnessInternalLinkPlaceholders(html)).toBe(2);
   });
 
-  it("throws when below minimum placeholders", () => {
-    const html = `<h2>Permits</h2><p>Only [[LINK:one link|one link]] here.</p>`;
-    expect(() => assertHarnessBodySectionInternalLinkMinimum(html, "Permits")).toThrow(
-      /minimum is 2/,
-    );
+  it("counts zero when a section has no internal links (allowed, no minimum)", () => {
+    const html = `<h2>Permits</h2><p>No links in this section.</p>`;
+    expect(countHarnessInternalLinkPlaceholders(html)).toBe(0);
   });
 });

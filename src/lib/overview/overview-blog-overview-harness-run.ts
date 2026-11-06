@@ -1,13 +1,11 @@
 import type { Dispatch, SetStateAction } from "react";
+import { harnessStepProgress, mergeOverviewHarnessProgress, mergeOverviewHarnessProgressSiteAndBatch } from "@/lib/overview/overview-harness-progress";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { AiseoCacheWriteAccumulator } from "@/lib/overview/overview-aiseo-cache-write";
 import type { AiseoAfterRowWriteFn } from "@/lib/overview/overview-aiseo-after-upload";
 import { aiseoRowFilesForUpload } from "@/lib/overview/overview-aiseo-row-artifacts";
-import {
-  mergeHarnessProgressSiteAndBatch,
-  setOptimizingState,
-} from "@/hooks/content-optimization/optimization-helpers-a";
-import { mergeOptimizationProgress } from "@/hooks/content-optimization/optimization-helpers";
+import { setOptimizingState } from "@/hooks/content-optimization/optimization-helpers-a";
+
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import { ensureMasterInstructionsInMemory } from "@/lib/master-instructions-storage";
 import {
@@ -89,7 +87,7 @@ export function initOverviewBlogOverviewHarnessBatchState(params: {
 
   setOptimizingState(setIsOptimizingContent, batchKey, true);
   setOptimizationProgress((prev) =>
-    mergeOptimizationProgress(prev as Record<string, unknown>, site.id, {
+    mergeOverviewHarnessProgress(prev as Record<string, unknown>, site.id, {
       step: "Overview",
       progress: 2,
       message: prepMessage,
@@ -110,13 +108,13 @@ export function initOverviewBlogOverviewHarnessBatchState(params: {
       harnessStartedAt: Date.now(),
       urlHarnessSections: {},
       urlGeneratedFiles: {},
-      currentStepProgress: {
+      currentStepProgress: harnessStepProgress(undefined, {
         step: "Overview",
         progress: 2,
         message: prepMessage,
         harnessSections: [],
         harnessPlannedSectionCount: 2,
-      },
+      }),
     },
   }));
   initOverviewBulkHarnessPagination(batchKey, urls.length, setBulkOptimizationState);
@@ -134,7 +132,7 @@ export function finalizeOverviewBlogOverviewHarnessBatch(
   setOptimizationProgress((prev) => {
     const next = { ...(prev as Record<string, unknown>) };
     delete next[batchKey];
-    mergeHarnessProgressSiteAndBatch(next, siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(next, siteId, {
       step: "Complete",
       progress: 100,
       message: "Overview batch finished",

@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   overviewGridCountLabelMinCh,
   overviewGridPageSlice,
-} from "@/components/overview/OverviewGridPagination";
-import { CONTENT_OPTIMIZER_BULK_PAGE_SIZE } from "@/lib/content-optimizer/content-optimizer-bulk-page-size";
+} from "@/components/overview/overview-grid-pagination-helpers";
+import { CONTENT_OPTIMIZER_BULK_PAGE_SIZE } from "@/lib/content-optimization/content-optimizer-bulk-page-size";
 
 describe("overviewGridCountLabelMinCh", () => {
   it("reserves width for longest end/total pair", () => {

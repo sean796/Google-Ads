@@ -14,6 +14,7 @@ android/local.properties
 *.local
 .env
 .env.local
+.env.development
 .env.*.local
 .env.localdominator
 .env.residential-proxy
@@ -49,6 +50,7 @@ scripts/local-wp-staging.config.json
 REPORT_DATE_RANGE.md
 
 # Local agent temp dumps, audits, and one-off probes (never commit)
+tmp/
 .cursor-tmp*
 .cursor-tmp-*
 .tmp-*

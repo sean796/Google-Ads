@@ -1,4 +1,4 @@
-import type { PulseForgeRoute } from "@/lib/pulse-forge/pulse-forge-hash";
+import type { PulseForgeRoute } from "@/lib/pulse-forge/pulse-forge-route";
 import type { TaskExecutionKind } from "@/lib/tasks-types";
 import type { WorkflowActionConfig, WorkflowNode } from "@/lib/workflow/workflow-types";
 import { isWorkflowClientKind } from "@/lib/workflow/workflow-types";

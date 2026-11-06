@@ -10,7 +10,7 @@ import { EntityGenerationDialog } from "./ui/EntityGenerationDialog";
 import { CSVTemplateDialog } from "./ui/CSVTemplateDialog";
 import type { EntityGenerationFeatureRef, EntityGenerationFeatureProps } from "./types";
 import type { EntityWithCriteria } from "./types";
-import type { WordPressSite } from "../../types";
+import type { WordPressSite } from "../types";
 
 export const EntityGenerationFeature: React.FC<EntityGenerationFeatureProps> = ({ onRef }) => {
   const [csvTitleFormat, setCsvTitleFormat] = useState<string>('');

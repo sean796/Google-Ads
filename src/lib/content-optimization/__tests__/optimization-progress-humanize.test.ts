@@ -23,25 +23,26 @@ const FULL_RUN: Pick<OptimizationProgressState, "stepId" | "message" | "microLog
 describe("optimization-progress-humanize (stepId)", () => {
   it("collapses a full run to pipeline step labels", () => {
     const milestones = collapseOptimizationProgressToMilestones(FULL_RUN);
+    // Milestone labels prefer the full status message when present; stepLabel is only a fallback.
     expect(milestones.map((m) => m.label)).toEqual([
-      "Load",
-      "Plan",
-      "Write",
-      "Polish",
-      "Publish",
+      "Loading page and ACF…",
+      "Building blueprint…",
+      "Generating content and meta…",
+      "Resolving links…",
+      "Uploading to WordPress…",
       "Optimization complete in 27s.",
     ]);
   });
 
   it("pickLatestOptimizationStatus uses current stepId", () => {
     expect(pickLatestOptimizationStatus(FULL_RUN)).toBe("Optimization complete in 27s.");
-    expect(pickLatestOptimizationStatus({ stepId: "write", message: "Drafting FAQ…" })).toBe("Write");
+    expect(pickLatestOptimizationStatus({ stepId: "write", message: "Drafting FAQ…" })).toBe("Drafting FAQ…");
   });
 
   it("formatOptimizationProgressLog joins milestone labels", () => {
     const log = formatOptimizationProgressLog(FULL_RUN);
     expect(log.split("\n")).toHaveLength(6);
-    expect(log).toContain("Write");
+    expect(log).toContain("Generating content and meta…");
   });
 
   it("formatRawOptimizationProgressLog includes step labels", () => {

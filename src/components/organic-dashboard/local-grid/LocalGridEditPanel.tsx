@@ -48,7 +48,6 @@ const GRID_SIZE_LABELS: Record<LocalGridScanSize, { label: string; pins: number 
   "5x5": { label: "25 Pins | 5x5", pins: 25 },
   "7x7": { label: "49 Pins | 7x7", pins: 49 },
   "9x9": { label: "81 Pins | 9x9", pins: 81 },
-  "11x11": { label: "121 Pins | 11x11", pins: 121 },
   "13x13": { label: "133 Pins | Ø13", pins: 133 },
   "15x15": { label: "177 Pins | Ø15", pins: 177 },
 };
@@ -90,7 +89,7 @@ export function LocalGridEditPanel({
     activeBusiness.business?.trim() || site.napInfo?.name || site.name || "Target Business";
   const address =
     activeBusiness.address?.trim() || site.napInfo?.address?.trim() || "";
-  const phone = activeBusiness.phone?.trim() || site.napInfo?.phone?.trim() || "";
+  const phone = site.napInfo?.phone?.trim() || "";
   const cid = activeBusiness.cid?.trim() || activeBusiness.placeId?.trim() || null;
   const primaryCategory = activeBusiness.primaryCategory?.trim() || "";
 
@@ -223,7 +222,7 @@ export function LocalGridEditPanel({
             <div className="flex items-center justify-between">
               <span className="text-base font-semibold">Map Grid</span>
               <div className="flex items-center gap-1">
-                <Pill square label="km" active={distanceMeasure === "kilometer"} onClick={() => onDistanceMeasureChange("kilometer")} />
+                <Pill square label="km" active={distanceMeasure === "km"} onClick={() => onDistanceMeasureChange("km")} />
                 <Pill square label="mi" active={distanceMeasure === "mile"} onClick={() => onDistanceMeasureChange("mile")} />
               </div>
             </div>

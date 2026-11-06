@@ -8,7 +8,7 @@ import { SitemapPlanCollectionPills } from "@/components/research/sitemap-optimi
 import { SitemapWorkspaceModePills } from "@/components/research/sitemap-optimizer/SitemapWorkspaceModePills";
 import { UrlOptimizerToolbar } from "@/components/research/url-optimizer/UrlOptimizerToolbar";
 import { ContentOptimizerDetailsDrawer } from "@/components/overview/overview-tab/ContentOptimizerDetailsDrawer";
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import type { SitemapOptimizerWorkspaceMode } from "@/lib/sitemap-optimizer/types";
 import {
   buildSitemapMergePublishBulkGeneratorDetailsProps,

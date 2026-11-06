@@ -31,6 +31,7 @@ vi.mock("@/lib/master-instructions-storage", () => ({
 }));
 
 vi.mock("@/lib/local-analysis/site-prefetch-persist", () => ({
+  readWarmUrlMirrorSync: () => [],
   readSitePrefetchPersist: (...args: unknown[]) => persistReadMock(...args),
   writeSitePrefetchPersist: (...args: unknown[]) => persistWriteMock(...args),
   deleteSitePrefetchPersist: (...args: unknown[]) => persistDeleteMock(...args),
@@ -126,7 +127,6 @@ describe("entity-site-warm-cache", () => {
   });
 
   it("seedOverviewSessionCachesFromWarm writes overview session rows from bulk inventory", async () => {
-    await ensureEntitySiteWarmCache(site);
     bulkReadyMock.mockReturnValue([
       {
         id: 1,
@@ -134,7 +134,7 @@ describe("entity-site-warm-cache", () => {
         slug: "post-a",
         collection: "posts",
         date_gmt: "2024-01-01T00:00:00",
-        fields: { title: "Post A", meta: "", keyword: "widgets" },
+        fields: { title: "Post A", meta: "", keyword: "Post A" },
       },
       {
         id: 2,
@@ -145,13 +145,14 @@ describe("entity-site-warm-cache", () => {
         fields: { title: "Page B", meta: "", keyword: "pages" },
       },
     ]);
+    await ensureEntitySiteWarmCache(site);
 
     seedOverviewSessionCachesFromWarm(site);
 
     const posts = getOverviewRowsSessionCache(site.id, "posts");
     expect(posts?.length).toBe(1);
     expect(posts?.[0]?.title).toBe("Post A");
-    expect(posts?.[0]?.focusKeyword).toBe("widgets");
+    expect(posts?.[0]?.focusKeyword).toBe("Post A");
   });
 
   it("siteWarmCredentialsKey tracks url username password", () => {

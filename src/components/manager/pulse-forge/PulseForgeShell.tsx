@@ -30,10 +30,10 @@ import type { PulseForgeNavMode } from "@/components/manager/pulse-forge/PulseFo
 import {
   pulseForgeNavModeFromRoute,
   isPulseForgeWorkflowEditorOpen,
-  setPulseForgeHash,
+  setPulseForgeRoute,
   usePulseForgeRoute,
   type PulseForgeRoute,
-} from "@/lib/pulse-forge/pulse-forge-hash";
+} from "@/lib/pulse-forge/pulse-forge-route";
 import { filterVisibleAutomationProjects } from "@/lib/pulse-forge/forge-automation-visibility";
 import { useAuth } from "@/contexts/AuthContext";
 import { useManagerErrorLog } from "@/contexts/manager-error-log-context";
@@ -181,12 +181,14 @@ export function PulseForgeShell(): React.ReactElement {
   }, [route, teamId]);
 
   const navigate = useCallback((next: PulseForgeRoute) => {
-    setPulseForgeHash(next);
+    setPulseForgeRoute(next);
   }, []);
 
   const navigateSection = useCallback(
     (section: PulseForgeNavMode) => {
-      navigate({ section });
+      if (section === "forge") navigate({ section: "forge" });
+      else if (section === "recipes") navigate({ section: "recipes" });
+      else navigate({ section: "workflows" });
     },
     [navigate],
   );
@@ -345,11 +347,7 @@ export function PulseForgeShell(): React.ReactElement {
             <PulseForgeBreadcrumbs
               route={route}
               recipeName={recipeForRoute?.name}
-              workflowName={
-                route.section === "workflows" && "view" in route && route.view === "new"
-                  ? draftWorkflowName
-                  : workflowName
-              }
+              workflowName={workflowName}
               className="px-4 py-3"
             />
           </div>

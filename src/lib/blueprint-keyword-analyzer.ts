@@ -9,6 +9,7 @@ import { BlueprintData } from "@/hooks/use-blueprint-management";
 import { callMCPKeywordOverview } from "./keyword-mcp-service";
 import type { KeywordData } from "./keyword-types";
 import { formatKeyword, formatKeywords } from "./keyword-formatter";
+import { flowFreeformSectionsToAgents } from "@/lib/flow-freeform/flow-freeform-types";
 
 interface KeywordExtractionResult {
   primaryKeyword: string;
@@ -34,8 +35,8 @@ export async function extractKeywordsFromBlueprint(
 Blueprint Title: ${blueprint.title}
 Blueprint Purpose: ${blueprint.purpose}
 
-Agents (${blueprint.agents.length}):
-${blueprint.agents.map((agent, idx) => `
+Agents (${flowFreeformSectionsToAgents(blueprint.flowFreeform.sections).length}):
+${flowFreeformSectionsToAgents(blueprint.flowFreeform.sections).map((agent, idx) => `
 Agent ${idx + 1}:
 - Title: ${agent.title}
 - Description: ${agent.description}
@@ -132,7 +133,7 @@ Return the JSON object with primaryKeyword${searchedKeyword ? `="${searchedKeywo
  */
 function cleanKeyword(keyword: string): string {
   // Remove common placeholders in brackets
-  let cleaned = keyword
+  const cleaned = keyword
     .replace(/\[target entity\]/gi, '')
     .replace(/\[location\]/gi, '')
     .replace(/\[city\]/gi, '')

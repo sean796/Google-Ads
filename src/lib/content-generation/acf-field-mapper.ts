@@ -27,7 +27,7 @@ export const NEO_PULSE_DEFAULT_FIELD_MAPPING: Required<ACFFieldMapping> = {
   seoTitle: "seo_title",
 };
 
-export function getPromptModifierValueFromACFFields(acfFields: Record<string, any>): string {
+export function getPromptModifierValueFromACFFields(acfFields: Record<string, unknown>): string {
   if (!acfFields || typeof acfFields !== "object") return "";
   const mapping = fallbackFieldMapping(acfFields);
   const key = mapping.promptModifier;
@@ -36,7 +36,7 @@ export function getPromptModifierValueFromACFFields(acfFields: Record<string, an
   return typeof v === "string" ? v.trim() : "";
 }
 
-export function getMetaDescriptionValueFromACFFields(acfFields: Record<string, any>): string {
+export function getMetaDescriptionValueFromACFFields(acfFields: Record<string, unknown>): string {
   if (!acfFields || typeof acfFields !== "object") return "";
   const mapping = fallbackFieldMapping(acfFields);
   const key = mapping.metaDescription;
@@ -45,7 +45,7 @@ export function getMetaDescriptionValueFromACFFields(acfFields: Record<string, a
   return typeof v === "string" ? v.trim() : "";
 }
 
-export function fallbackFieldMapping(acfFields: Record<string, any>): ACFFieldMapping {
+export function fallbackFieldMapping(acfFields: Record<string, unknown>): ACFFieldMapping {
   const fieldNames = Object.keys(acfFields ?? {});
   if (fieldNames.length === 0) {
     return { ...NEO_PULSE_DEFAULT_FIELD_MAPPING };
@@ -136,7 +136,7 @@ export function fallbackFieldMapping(acfFields: Record<string, any>): ACFFieldMa
 }
 
 export async function discoverACFFieldMapping(
-  acfFields: Record<string, any>,
+  acfFields: Record<string, unknown>,
   _postType: string,
   _apiKey: string,
   _siteUrl?: string,

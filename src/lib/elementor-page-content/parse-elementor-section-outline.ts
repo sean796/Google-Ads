@@ -273,7 +273,9 @@ export function parseElementorSectionOutline(elementorData: unknown): ElementorS
     const textParts = collectBandTextParts(children);
     const bodyHtml = collectBandBodyHtml(children);
     const headingCandidates = collectHeadingCandidates(children);
-    let { title, hasHeadingWidget } = pickHeadingTitle(headingCandidates);
+    const pickedHeading = pickHeadingTitle(headingCandidates);
+    const hasHeadingWidget = pickedHeading.hasHeadingWidget;
+    let title = pickedHeading.title;
     let headingInBodyHtml = false;
     let headingHtml = "";
     let sectionBodyHtml = bodyHtml;

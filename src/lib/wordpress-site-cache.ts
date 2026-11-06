@@ -8,6 +8,7 @@ import type { WordPressSite } from '@/components/integrations/types';
 import { 
   getPublishedPosts, 
   getPublishedServiceAreas,
+  getSitePageInventory,
   parseSitemap,
   detectSitemaps 
 } from './wordpress-api';
@@ -218,13 +219,13 @@ export async function createSiteCache(
           );
 
           if (serviceAreaResult.posts && serviceAreaResult.posts.length > 0) {
-            const serviceAreaPosts = serviceAreaResult.posts.map((p: any) => ({
+            const serviceAreaPosts = serviceAreaResult.posts.map((p) => ({
               id: p.id,
               slug: p.slug || '',
-              title: (typeof p.title === 'object' && p.title?.rendered) ? p.title.rendered : (p.title || ''),
-              excerpt: ((typeof p.excerpt === 'object' && p.excerpt?.rendered) ? p.excerpt.rendered : (p.excerpt || '')).replace(/<[^>]+>/g, '').substring(0, 200),
+              title: p.title || '',
+              excerpt: (p.excerpt || '').replace(/<[^>]+>/g, '').substring(0, 200),
               link: p.link || `${normalizedUrl}/${p.slug || `service-area-${p.id}`}`,
-              date_gmt: p.date_gmt || (p as any).date || '',
+              date_gmt: p.date_gmt || '',
               postType: 'service-area' as const
             }));
 
@@ -325,13 +326,13 @@ async function fetchAllPosts(
       );
 
       if (publishedResult.posts && publishedResult.posts.length > 0) {
-        const postsMetadata = publishedResult.posts.map((p: any) => ({
+        const postsMetadata = publishedResult.posts.map((p) => ({
           id: p.id,
           slug: p.slug || '',
-          title: (typeof p.title === 'object' && p.title?.rendered) ? p.title.rendered : (p.title || ''),
-          excerpt: ((typeof p.excerpt === 'object' && p.excerpt?.rendered) ? p.excerpt.rendered : (p.excerpt || '')).replace(/<[^>]+>/g, '').substring(0, 200),
+          title: p.title || '',
+          excerpt: (p.excerpt || '').replace(/<[^>]+>/g, '').substring(0, 200),
           link: p.link || `${normalizedUrl}/${p.slug || `post-${p.id}`}`,
-          date_gmt: p.date_gmt || (p as any).date || '',
+          date_gmt: p.date_gmt || '',
           postType: 'post' as const
         }));
 
@@ -367,51 +368,21 @@ async function fetchAllPages(
   progressRange: number = 20
 ): Promise<void> {
   try {
-    let page = 1;
-    let hasMore = true;
-    const perPage = 100;
-    let totalFetched = 0;
+    const inventory = await getSitePageInventory(site.siteUrl, site.username, site.appPassword);
+    const rows = inventory.posts ?? [];
+    if (rows.length > 0) {
+      const pagesMetadata = rows.map((p) => ({
+        id: p.id ?? 0,
+        slug: p.slug || '',
+        title: p.fields?.title || '',
+        excerpt: (p.fields?.excerpt || '').replace(/<[^>]+>/g, '').substring(0, 200),
+        link: p.url || `${normalizedUrl}/${p.slug || `page-${p.id}`}`,
+        date_gmt: p.date_gmt || '',
+        postType: 'page' as const
+      }));
 
-    while (hasMore) {
-      const pagesApiUrl = `${normalizedUrl}/wp-json/wp/v2/pages?per_page=${perPage}&page=${page}&status=publish`;
-      const authHeader = `Basic ${btoa(`${site.username}:${site.appPassword}`)}`;
-
-      const pagesResponse = await fetch(pagesApiUrl, {
-        headers: {
-          'Authorization': authHeader,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (pagesResponse.ok) {
-        const pagesData = await pagesResponse.json();
-        if (Array.isArray(pagesData) && pagesData.length > 0) {
-          const pagesMetadata = pagesData.map((p: any) => ({
-            id: p.id,
-            slug: p.slug || '',
-            title: p.title?.rendered || p.title || '',
-            excerpt: (p.excerpt?.rendered || p.excerpt || '').replace(/<[^>]+>/g, '').substring(0, 200),
-            link: p.link || `${normalizedUrl}/${p.slug || `page-${p.id}`}`,
-            date_gmt: p.date_gmt || p.date || '',
-            postType: 'page' as const
-          }));
-
-          allPosts.push(...pagesMetadata);
-          totalFetched += pagesMetadata.length;
-          page++;
-
-          const progress = startProgress + Math.min((totalFetched / 1000) * progressRange, progressRange); // Estimate max 1000 pages
-          onProgress?.(`Fetched ${totalFetched} pages...`, progress);
-
-          if (pagesData.length < perPage) {
-            hasMore = false;
-          }
-        } else {
-          hasMore = false;
-        }
-      } else {
-        hasMore = false;
-      }
+      allPosts.push(...pagesMetadata);
+      onProgress?.(`Fetched ${pagesMetadata.length} pages...`, startProgress + progressRange);
     }
   } catch (error) {
     console.warn('[Site Cache] Error fetching pages:', error);

@@ -1,12 +1,8 @@
 import { useMemo } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import {
-  Dialog,
-  DialogHeader,
-  DialogPortal,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogHeader, DialogPortal, DialogTitle } from "@/ui";
+
 import type { AgentRunLogTimelineRow } from "@/lib/agent-runs/agent-run-log-format";
 import {
   agentRunBrowserPreviewBase64FromArtifact,

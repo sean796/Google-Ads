@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { FloatingLabelTextarea } from "@/components/ui/floating-label-textarea";
+
 import { notify } from "@/lib/app-notifications";
 import { DASHBOARD_SETTINGS_FIELD_CLASS } from "@/components/manager/dashboard/dashboard-panel-styles";
 import { useTeam } from "@/contexts/TeamContext";
@@ -8,7 +8,7 @@ import { useTeamPermission } from "@/hooks/use-team-permission";
 import { ACCESS_ROLE_OPTIONS, type TeamMember } from "@/lib/teams-types";
 import { useAuth } from "@/contexts/AuthContext";
 import { TeamJobTitleField } from "@/components/manager/teams/TeamJobTitleField";
-import { Button, Field, SelectField } from "@/ui";
+import { Button, Field, SelectField, FloatingLabelTextarea } from "@/ui";
 
 const INPUT_CLASS = `${DASHBOARD_SETTINGS_FIELD_CLASS} min-w-0 flex-1 h-12`;
 

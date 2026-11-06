@@ -65,17 +65,3 @@ export function GoogleAdsDetailsPanel({
     </WorkspaceDetailsStack>
   );
 }
-
-export function googleAdsDetailsCanOpen(
-  generateProgress: PpcGenerateProgressState | null,
-  isGenerating: boolean,
-  pageBucketHostedLink?: PpcPageBucketHostedLink | null,
-  isPublishing = false,
-): boolean {
-  return (
-    Boolean(pageBucketHostedLink) ||
-    isGenerating ||
-    isPublishing ||
-    Boolean(generateProgress?.steps.some((s) => s.status !== "waiting"))
-  );
-}

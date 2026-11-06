@@ -4,11 +4,17 @@ import { notifyFilledSeoResearchFromSerpForXUrl, notifySeoResearchErrorForX } fr
 import {
   getSeoResearchFromAcf,
   mergeSeoResearchFromAcfIntoContext,
+  type AIDrivenACFContext,
 } from "@/lib/content-generation/ai-driven-acf-reader";
 import { fetchMergedSeoContentBriefLive } from "@/lib/llm-audit/fetch-merged-seo-content-brief";
 import type { WordPressSite } from "@/components/integrations/types";
 import { pageGscQueryStringsFromPending } from "./bulk-optimization-prefetch-page-gsc";
-import type { PrefilledOverviewTarget } from "./bulk-optimization-params";
+import type {
+  HandleOptimizeMultipleContentParams,
+  PrefilledOverviewTarget,
+} from "./bulk-optimization-params";
+
+type BulkStateSetter = HandleOptimizeMultipleContentParams["setBulkOptimizationState"];
 import { hasSubstantiveSeoResearchBrief } from "@/lib/content-optimization/seo-research-brief-for-optimize";
 
 /** Caps parallel MCP / DataForSEO SERP calls during bulk content run research. */
@@ -68,9 +74,9 @@ export async function fetchDataForSeoSerpBriefJson(opts: {
   }
 }
 
-function bulkCancelled(batchKey: string, setBulkOptimizationState: (fn: (prev: any) => any) => void): boolean {
+function bulkCancelled(batchKey: string, setBulkOptimizationState: BulkStateSetter): boolean {
   let cancelled = false;
-  setBulkOptimizationState((prev: any) => {
+  setBulkOptimizationState((prev) => {
     const current = prev[batchKey];
     if (current?.cancelRequested) cancelled = true;
     return prev;
@@ -82,8 +88,8 @@ function bulkCancelled(batchKey: string, setBulkOptimizationState: (fn: (prev: a
 export function seedBulkUrlSerpResearchReadyFromAcfCache(opts: {
   urls: string[];
   batchKey: string;
-  prefetchedAcfFieldsCache: Map<number, Record<string, any>>;
-  setBulkOptimizationState: (fn: (prev: any) => any) => void;
+  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
+  setBulkOptimizationState: BulkStateSetter;
 }): void {
   const { urls, batchKey, prefetchedAcfFieldsCache, setBulkOptimizationState } = opts;
   const next: Record<string, boolean> = {};
@@ -91,7 +97,7 @@ export function seedBulkUrlSerpResearchReadyFromAcfCache(opts: {
     const row = prefetchedAcfFieldsCache.get(i) ?? {};
     if (hasSubstantiveSeoResearch(row)) next[urls[i]] = true;
   }
-  setBulkOptimizationState((prev: any) => {
+  setBulkOptimizationState((prev) => {
     const current = prev[batchKey];
     if (!current) return prev;
     return {
@@ -107,7 +113,7 @@ export function seedBulkUrlSerpResearchReadyFromAcfCache(opts: {
 export function applyBriefToCaches(
   i: number,
   brief: string,
-  prefetchedAcfFieldsCache: Map<number, Record<string, any>>,
+  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>,
   prefetchedPendingCache: Map<number, { pending: Record<string, unknown>; primaryKeyword: string }>,
 ): void {
   const prevRow = prefetchedAcfFieldsCache.get(i) ?? {};
@@ -116,11 +122,14 @@ export function applyBriefToCaches(
 
   const pend = prefetchedPendingCache.get(i);
   if (pend?.pending) {
-    const p = pend.pending as Record<string, any>;
+    const p = pend.pending as Record<string, unknown>;
     const prevAf =
-      p.acfFields && typeof p.acfFields === "object" ? (p.acfFields as Record<string, any>) : {};
+      p.acfFields && typeof p.acfFields === "object" ? (p.acfFields as Record<string, unknown>) : {};
     p.acfFields = { ...prevAf, ...mergedRow };
-    p.acfContext = mergeSeoResearchFromAcfIntoContext(p.acfFields, p.acfContext);
+    p.acfContext = mergeSeoResearchFromAcfIntoContext(
+      p.acfFields as Record<string, unknown>,
+      p.acfContext as AIDrivenACFContext | undefined,
+    );
   }
 }
 
@@ -128,10 +137,10 @@ export function applyBriefToCaches(
 export function seedOverviewSeoResearchFromPrefilledTargets(opts: {
   urls: string[];
   prefilledOverviewTargets?: Record<string, PrefilledOverviewTarget>;
-  prefetchedAcfFieldsCache: Map<number, Record<string, any>>;
+  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
   prefetchedPendingCache: Map<number, { pending: Record<string, unknown>; primaryKeyword: string }>;
   batchKey: string;
-  setBulkOptimizationState: (fn: (prev: any) => any) => void;
+  setBulkOptimizationState: BulkStateSetter;
 }): void {
   const {
     urls,
@@ -157,7 +166,7 @@ export function seedOverviewSeoResearchFromPrefilledTargets(opts: {
 
   if (Object.keys(urlSerpReady).length === 0) return;
 
-  setBulkOptimizationState((prev: any) => {
+  setBulkOptimizationState((prev) => {
     const current = prev[batchKey];
     if (!current) return prev;
     return {
@@ -195,9 +204,9 @@ export async function fillMissingBulkSeoResearchFromSerp(opts: {
   isAcfKeywordMode: boolean;
   seoExtraTextFieldOnly: boolean;
   muteToasts: boolean;
-  prefetchedAcfFieldsCache: Map<number, Record<string, any>>;
+  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
   prefetchedPendingCache: Map<number, { pending: Record<string, unknown>; primaryKeyword: string }>;
-  setBulkOptimizationState: (fn: (prev: any) => any) => void;
+  setBulkOptimizationState: BulkStateSetter;
   /** Process only indices in [start, end). */
   indexRange?: { start: number; end: number };
   /** Test hook: override SERP brief fetcher (default `fetchDataForSeoSerpBriefJson`). */
@@ -256,7 +265,7 @@ export async function fillMissingBulkSeoResearchFromSerp(opts: {
     if (urlPatch) {
       for (const k of Object.keys(urlPatch)) delete pendingUrlReady[k];
     }
-    setBulkOptimizationState((prev: any) => {
+    setBulkOptimizationState((prev) => {
       const current = prev[batchKey];
       if (!current) return prev;
       return {
@@ -265,6 +274,8 @@ export async function fillMissingBulkSeoResearchFromSerp(opts: {
           ...current,
           currentStep: "SEO research…",
           currentStepProgress: {
+            stepId: "prepResearch" as const,
+            subProgress: Math.min(0.15, (done / Math.max(1, workTotal)) * 0.15),
             step: "SEO research…",
             progress: Math.min(15, Math.round((done / Math.max(1, workTotal)) * 15)),
             message: `Filling empty seo_research (${done}/${workTotal})`,

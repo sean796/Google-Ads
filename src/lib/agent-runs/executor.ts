@@ -236,6 +236,7 @@ async function executeAgentRunOnce(
   run: AgentRun,
   sites: WordPressSite[],
 ): Promise<void> {
+  const teamId = run.teamId;
   if (!tryAcquireRunLease(run.id)) {
     const inflight = inflightRuns.get(run.id);
     if (inflight) {
@@ -260,7 +261,6 @@ async function executeAgentRunOnce(
   activeRunIds.add(run.id);
   markClientRunAttempted(run.id);
 
-  const teamId = run.teamId;
   let activeRun = run;
 
   try {

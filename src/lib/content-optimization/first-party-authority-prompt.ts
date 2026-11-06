@@ -159,8 +159,8 @@ export const AISO_SEMANTIC_BREADTH_RULE = `**AISO SEMANTIC BREADTH (NON-NEGOTIAB
 - **Local phrasing**: After Answer establishes the topic, most topic mentions omit the place entity (~70%). Use weighted **ENTITY KEYWORD VARIANTS** templates for the remaining ~30% (natural grammar) — not "{keyword} {neighborhood} {city}" slug stacks. Forbidden: "the perfect {keyword} {area} needs", "Homes near {keyword} {area} often", "{keyword} {area} residents need".
 - AISO factual precision and readability override checklist density targets when they conflict.`;
 
-/** Checklist generation: qualifies FOCUS KEYWORD DENSITY when first-party AISO rules apply. */
-export const AISO_CHECKLIST_KEYWORD_RULE = `**AISO CHECKLIST KEYWORD (NON-NEGOTIABLE when FIRST-PARTY AUTHORITY is present)**:
+/** Checklist generation: the single keyword doctrine for every checklist. */
+export const AISO_CHECKLIST_KEYWORD_RULE = `**AISO CHECKLIST KEYWORD (NON-NEGOTIABLE)**: 
 - Prefer semantic variants across the article; do not chase ~1% exact-phrase density at the cost of natural reading.
 - Exact Primary Keyword: required in Answer; up to ~4 additional natural body mentions across the full article (not in every Pros row or consecutive paragraphs).
 - **[EXACT PRIMARY PER H2]**: At most once per H2 body when natural; skip when the prior body section already used the exact phrase. Synonyms and partials count toward topical coverage elsewhere.

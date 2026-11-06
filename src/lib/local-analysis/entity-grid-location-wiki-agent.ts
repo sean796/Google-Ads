@@ -1108,7 +1108,7 @@ export async function runEntityLocationClusterFromBuckets(
   }));
 
   const clusterWikipedia = resolvedClusters.map((r) => r.wiki);
-  let sapRows = clusterSapRowsFromResolved(resolvedClusters);
+  const sapRows = clusterSapRowsFromResolved(resolvedClusters);
   if (hasExplicitLayout) {
     const targetRows = explicitLayoutRowBudget(entityAdGroupCount!, entityAdsPerGroup!);
     if (sapRows.length !== targetRows) {

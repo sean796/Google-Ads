@@ -59,7 +59,7 @@ export function enforceOneImagePerSection(html: string): string {
 export function removeForbiddenSections(content: string): string {
   if (!content) return content;
   
-  let fixed = content;
+  const fixed = content;
   let removedCount = 0;
   
   // Patterns to match forbidden section headings (case-insensitive)
@@ -235,9 +235,9 @@ export function removeArticleTitleLabels(content: string): string {
   
   // Patterns to match "Article Title" labels in various formats
   const articleTitlePatterns = [
-    /^\s*\*\*Article Title[\.:]\*\*\s*.+$/i,  // **Article Title.** or **Article Title:**
-    /^\s*\*\*Article Title\*\*\s*[\.:]\s*.+$/i,  // **Article Title** : or **Article Title** .
-    /^\s*Article Title[\.:]\s*.+$/i,  // Article Title: or Article Title.
+    /^\s*\*\*Article Title[.:]\*\*\s*.+$/i,  // **Article Title.** or **Article Title:**
+    /^\s*\*\*Article Title\*\*\s*[.:]\s*.+$/i,  // **Article Title** : or **Article Title** .
+    /^\s*Article Title[.:]\s*.+$/i,  // Article Title: or Article Title.
     /^\s*\*\*Article Title\*\*\s*$/i,  // **Article Title** (standalone)
     /^\s*Article Title\s*$/i,  // Article Title (standalone)
   ];

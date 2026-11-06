@@ -1,9 +1,10 @@
+import { resolveMcpApiBase } from "@/lib/mcp-tools";
 import type { Location, WordPressSite } from "@/components/integrations/types";
 import { extractCompetitorDiscoverySerpRows } from "@/lib/backlink-research/serp-write-for-us";
 import {
   hostnameFromUrl,
   isConnectedSiteHostname,
-} from "@/lib/competitor/filter-connected-site-competitors";
+} from "@/lib/competitor-research/filter-connected-site-competitors";
 import type { CompetitorGridPlaceRow } from "@/lib/competitor-research/local-dominator-grid-parse";
 import {
   getPrimaryCityStateLabel,
@@ -120,7 +121,7 @@ async function fetchGoogleOrganicSerpJson(args: {
   signal?: AbortSignal;
 }): Promise<unknown> {
   const base = (BACKEND_API_BASE || "").replace(/\/$/, "");
-  const url = `${base}/api/mcp/DataForSEO_serp_organic_live_advanced`;
+  const url = `${base}/DataForSEO_serp_organic_live_advanced`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

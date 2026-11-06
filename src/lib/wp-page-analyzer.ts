@@ -289,10 +289,11 @@ export async function analyzeWordPressPages(
   const examples = posts.slice(0, 5).map(post => {
     // Handle excerpt that might be string or object with rendered property
     let excerptText = '';
-    if (typeof post.excerpt === 'string') {
-      excerptText = post.excerpt;
-    } else if (typeof post.excerpt === 'object' && post.excerpt && 'rendered' in post.excerpt) {
-      excerptText = post.excerpt.rendered || '';
+    const excerptRaw: unknown = post.excerpt;
+    if (typeof excerptRaw === 'string') {
+      excerptText = excerptRaw;
+    } else if (typeof excerptRaw === 'object' && excerptRaw && 'rendered' in excerptRaw) {
+      excerptText = typeof (excerptRaw as { rendered?: unknown }).rendered === 'string' ? (excerptRaw as { rendered: string }).rendered : '';
     } else {
       excerptText = '';
     }

@@ -2,6 +2,7 @@
  * DataForSEO On-Page Content Parsing (live) - fetch parsed page body for a URL.
  */
 
+import { resolveMcpApiBase } from "@/lib/mcp-tools";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
 
 export async function fetchOnPageContentParsing(args: {
@@ -11,7 +12,7 @@ export async function fetchOnPageContentParsing(args: {
   signal?: AbortSignal;
 }): Promise<unknown> {
   const base = (BACKEND_API_BASE || "").replace(/\/$/, "");
-  const endpoint = `${base}/api/mcp/DataForSEO_on_page_content_parsing`;
+  const endpoint = `${base}/DataForSEO_on_page_content_parsing`;
   const res = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

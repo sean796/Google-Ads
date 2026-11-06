@@ -112,6 +112,12 @@ export const UI_ROW_BUTTON =
 
 export const UI_ROW_BUTTON_SELECTED = "bg-ui-field-hover";
 
+/** Green sidebar rail launcher (matches the right docked rail): icon above label, fixed box. */
+export const UI_RAIL_BUTTON =
+  "flex min-h-[4.5rem] w-full flex-col items-center justify-center gap-2.5 rounded-none border-0 bg-primary px-1 py-3 text-base text-black shadow-none hover:bg-primary/85 disabled:opacity-50 [&_svg]:text-black";
+
+export const UI_RAIL_BUTTON_SELECTED = "bg-black/25 hover:bg-black/25";
+
 /** Color tile that carries a data-driven color (theme preview, tag chip, chart series). */
 export const UI_SWATCH_BUTTON =
   "inline-flex min-h-8 shrink-0 items-center justify-center gap-1.5 rounded-none border-0 px-2.5 text-base shadow-none disabled:opacity-50";

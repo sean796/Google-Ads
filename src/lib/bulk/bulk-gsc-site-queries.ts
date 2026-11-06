@@ -280,7 +280,7 @@ export async function fetchBulkSiteGscQueries(
     siteUrl,
     rowLimit: BULK_GSC_QUERY_ROW_LIMIT,
   });
-  if (!res.ok) {
+  if (res.ok === false) {
     throw new Error(
       res.error || "Google Search Console returned no keywords for this site.",
     );
@@ -314,7 +314,7 @@ export async function fetchEntityGscKeywordBundle(
     siteUrl,
     rowLimit,
   });
-  if (!res.ok) {
+  if (res.ok === false) {
     throw new Error(
       res.error || "Google Search Console returned no keywords for this site.",
     );

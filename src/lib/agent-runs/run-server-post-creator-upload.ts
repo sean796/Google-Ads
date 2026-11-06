@@ -14,10 +14,11 @@ import {
   patchAgentRun,
   processAgentRun,
   uploadAgentRunArtifact,
+  type AgentRunArtifactRecord,
 } from "@/lib/agent-runs-api";
 import { agentRunIsServerExecution } from "@/lib/agent-runs/agent-run-display";
 import { resolveAgentRunRecipeKey } from "@/lib/agent-runs/agent-run-navigation";
-import type { AgentRun, AgentRunArtifactRecord, AgentRunStep } from "@/lib/agent-runs-types";
+import type { AgentRun, AgentRunStep } from "@/lib/agent-runs-types";
 import { uploadPostCreatorRowToWordPress } from "@/lib/post-creator/post-creator-wordpress-upload";
 import { postCreatorRowStepKey } from "@/lib/agent-runs/agent-run-step-keys";
 import {

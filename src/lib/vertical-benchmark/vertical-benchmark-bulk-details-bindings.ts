@@ -11,19 +11,18 @@ import type {
 function stepStatusToHarness(status: BenchmarkPipelineStepStatus): BulkHarnessSectionUi["status"] {
   if (status === "active") return "generating";
   if (status === "done") return "done";
-  if (status === "error") return "skipped";
+  if (status === "error") return "done";
   return "waiting";
-}
-
-function categoryFilterLabel(tagFilter: string): string {
-  return tagFilter;
 }
 
 function contentTypeLabel(contentTypeFilter: ContentTypeFilter): string {
   if (contentTypeFilter === "post") return "Posts";
   if (contentTypeFilter === "entity") return "Entity";
-  if (contentTypeFilter === "both") return "Posts + Entity";
   return "All content";
+}
+
+function categoryFilterLabel(tagFilter: string): string {
+  return tagFilter;
 }
 
 function benchmarkInventoryLinks(
@@ -108,7 +107,7 @@ export function buildVerticalBenchmarkBulkGeneratorDetailsProps(
     {
       sectionIndex: 0,
       title: "Grid CSV",
-      status: input.gridCsvContext ? "done" : input.gridCsvParsing ? "generating" : "waiting",
+      status: input.gridCsvContext ? "done" : input.busy ? "generating" : "waiting",
     },
     {
       sectionIndex: 1,

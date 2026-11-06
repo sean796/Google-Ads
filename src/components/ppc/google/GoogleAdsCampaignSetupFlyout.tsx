@@ -1,6 +1,6 @@
 import { ChevronDown, Minus, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 import { GoogleAdsCampaignStatusFilterSelect } from "@/components/ppc/google/GoogleAdsCampaignStatusFilterSelect";
 import { BULK_HEADER_FIELD, BULK_TOOLBAR_GROUP_DIVIDER } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import {
@@ -18,7 +18,7 @@ import {
 import type { PpcGoogleAdsCampaignStatusFilter } from "@/lib/ppc/ppc-google-ads-status-filter";
 import type { PpcGoogleWorkspaceController } from "@/hooks/ppc/use-ppc-google-workspace";
 import { cn } from "@/lib/utils";
-import { Button, Field } from "@/ui";
+import { Button, Field, Popover, PopoverContent, PopoverTrigger } from "@/ui";
 
 const STATUS_LABEL: Record<PpcGoogleAdsCampaignStatusFilter, string> = {
   active: "Active",

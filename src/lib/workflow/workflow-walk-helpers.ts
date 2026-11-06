@@ -33,10 +33,10 @@ export function applyLocalDominatorWorkflowKeyword(
 export function resolveWorkflowSiteContext(siteId: string | undefined): {
   name: string;
   url?: string;
-  site: { name: string; siteUrl?: string; productionSiteUrl?: string };
+  site: { name: string; siteUrl: string; productionSiteUrl?: string };
 } {
   if (!siteId?.trim()) {
-    return { name: "", site: { name: "" } };
+    return { name: "", site: { name: "", siteUrl: "" } };
   }
   const site = getStoredSites().find((item) => item.id === siteId.trim());
   const name = site ? wordpressSiteDisplayName(site) : "";
@@ -46,7 +46,7 @@ export function resolveWorkflowSiteContext(siteId: string | undefined): {
     url,
     site: {
       name,
-      siteUrl: site?.siteUrl,
+      siteUrl: site?.siteUrl ?? "",
       productionSiteUrl: site?.productionSiteUrl,
     },
   };

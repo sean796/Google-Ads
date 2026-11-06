@@ -1,10 +1,8 @@
 import React, { type CSSProperties, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { BULK_TOOLBAR_GROUP_DIVIDER } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
-import {
-  MetaBulkMicroProgress,
-  type MetaBulkMicroSnapshot,
-} from "@/components/overview/OverviewBulkMicroProgress";
+import { MetaBulkMicroProgress } from "@/components/overview/OverviewBulkMicroProgress";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import type { MetaBulkActionKey, BulkProgressSlice } from "@/components/overview/overview-tab-constants";
 import { cn } from "@/lib/utils";
 import { DetailsDockPortal } from "@/components/pulse-assist/details-dock";
@@ -165,7 +163,7 @@ export function UnifiedWorkspaceChrome(props: UnifiedWorkspaceChromeProps) {
         )}
 
         <div className={UNIFIED_PROGRESS_BAND_CLASS} aria-hidden={isEmptyProgressBand}>
-          {isEmptyProgressBand ? null : (
+          {props.progressBand === "empty" ? null : (
             <>
               <div className="flex w-full min-w-0 flex-1 items-center justify-start gap-2.5 overflow-visible">
                 {props.progressLeading ? (

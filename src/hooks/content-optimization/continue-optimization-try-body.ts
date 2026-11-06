@@ -28,7 +28,12 @@ import {
 } from "@/lib/content-optimization/ensure-seo-research-brief-for-optimize";
 import { getMuteOptimizationToasts } from "./optimization-toast-mute";
 import { generateBlueprintFlow, generateAndUploadFlow } from "./blueprint-content-flow";
-import type { PendingOptimization } from "./use-optimization-state";
+import type {
+  PendingOptimization,
+  ResolvedTargetLike,
+  WpExistingPostLike,
+} from "./use-optimization-state";
+import type { OptimizationContext } from "@/lib/content-generation-upload";
 import { markContentPrepHarnessSection, syncContentOptimizeHarnessBodySections } from "@/lib/overview/overview-content-prep-harness-run";
 import type { ContentPrepHarnessSetters } from "@/lib/overview/overview-content-prep-harness-run";
 import {
@@ -60,8 +65,8 @@ export interface ContinueOptimizationTryBodyInput {
   url: string;
   updateMode: "update" | "draft";
   gscResult: unknown;
-  existingPost: unknown;
-  resolved: unknown;
+  existingPost: WpExistingPostLike | null;
+  resolved: ResolvedTargetLike | null;
   existingTitle: string;
   existingContent: string;
   existingExcerpt: string;
@@ -69,7 +74,7 @@ export interface ContinueOptimizationTryBodyInput {
   clusterKeywords?: string[];
   secondaryKeywords?: string[];
   optimizationOptions: Record<string, unknown>;
-  inContentImageRequest: unknown;
+  inContentImageRequest: OptimizationContext["inContentImageRequest"];
   acfFields: Record<string, unknown>;
   acfContext: unknown;
   pending: PendingOptimization;
@@ -136,7 +141,7 @@ export async function runContinueOptimizationTryBody(input: ContinueOptimization
   } catch (err) {
     if (contentPrepHarnessSetters) {
       const errIndex = contentOptimizeHarnessSectionIndex("Blueprint");
-      markContentPrepHarnessSection(url, errIndex, "error", contentPrepHarnessSetters);
+      markContentPrepHarnessSection(url, errIndex, "done", contentPrepHarnessSetters);
     }
     throw err;
   }
@@ -331,7 +336,7 @@ async function runContinueOptimizationTryBodyInner(input: ContinueOptimizationTr
     excerpt: string;
     link: string;
     date_gmt: string;
-    postType?: "post" | "page";
+    postType?: "post" | "page" | "service-area";
   }> = [];
   const wordPressPagesForOfferTable = pending.wordPressPagesForOfferTable ?? [];
 
@@ -367,7 +372,11 @@ async function runContinueOptimizationTryBodyInner(input: ContinueOptimizationTr
     String(finalOptimizationOptions?.dfsArticleAuditBlock ?? "").trim()
     || (await resolveDfsArticleAuditBlockForUrl({
       articleUrl: url,
-      workflowOutputs: finalOptimizationOptions?.workflowAuditOutputs,
+      workflowOutputs: (
+        finalOptimizationOptions as {
+          workflowAuditOutputs?: import("@/lib/workflow/workflow-types").WorkflowStepOutput[];
+        }
+      )?.workflowAuditOutputs,
       workflowContextBlock: String(finalOptimizationOptions?.workflowContextBlock ?? ""),
     }));
 
@@ -522,7 +531,10 @@ async function runContinueOptimizationTryBodyInner(input: ContinueOptimizationTr
       siteId,
       primaryKeyword,
       bodySectionTitles: bodyTitlesForLinkPlan,
-      linkPool: wordPressPosts,
+      linkPool: wordPressPosts.map((row) => ({
+        ...row,
+        postType: row.postType === "page" ? ("page" as const) : ("post" as const),
+      })),
       fileManager,
       fileSlug,
     });

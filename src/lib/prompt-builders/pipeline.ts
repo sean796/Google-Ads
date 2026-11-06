@@ -20,7 +20,7 @@ const LIST_FORMAT =
   "Lists: Steps/sequences/processes MUST use numbered format (1. 2. 3.) - never bullets for ordered content. Features/benefits use bullet format (- item). Never output list-like items as separate paragraphs - every such item needs a leading - or 1. One line per item (number and sentence on the same line). Forbidden: 1. on its own line then the sentence below; <br> inside list items.";
 
 const MANDATORY_STRUCTURE =
-  "Required: at least 1 table, 1 bullet list, 1 numbered list; distribute across sections. Blog without all three is incomplete. " + LIST_FORMAT + " " + COMPARISON_FORMAT;
+  "Use a table or a list only where the content genuinely calls for one (comparison data, steps, feature sets). Articles with no natural comparison or process need neither. " + LIST_FORMAT + " " + COMPARISON_FORMAT;
 
 const NO_EXTERNAL_HEADINGS =
   "No headings about Houzz, Reddit, Pinterest, Yelp, Amazon, or external sites. No competitor names in headings. Focus on the target site's topic and content.";

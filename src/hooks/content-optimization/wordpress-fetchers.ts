@@ -100,7 +100,7 @@ export async function fetchAllServiceAreasForSite(site: WordPressSite): Promise<
       const endpoint = site.manualEndpoint || (endpointKeys.length > 0 ? endpoints[endpointKeys[0]] : 'service-areas');
       if (endpoint === 'service-areas' || endpoint.includes('service')) {
         // Try to get service areas via API (similar to posts)
-        let offset = 0;
+        const offset = 0;
         const limit = 100;
         let hasMore = true;
         

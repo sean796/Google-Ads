@@ -1,19 +1,14 @@
 import React, { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
 import { openChatDm } from "@/lib/chat-api";
 import type { ChatChannel } from "@/lib/chat-types";
 import { NeoPulseAvatar } from "@/components/chat/NeoPulseAvatar";
 import { isNeoPulseBotMember, sortMembersWithNeoPulseBotFirst } from "@/lib/chat-neo-pulse";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+
 import { cn } from "@/lib/utils";
-import { Button, RowButton } from "@/ui";
+import { Button, RowButton, Dialog, DialogContent, DialogHeader, DialogTitle, Avatar, AvatarFallback } from "@/ui";
 
 export type DmMemberPickerProps = {
   open: boolean;

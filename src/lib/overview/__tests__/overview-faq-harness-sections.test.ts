@@ -79,7 +79,7 @@ describe("buildFaqPostContentHtmlFile", () => {
 });
 
 describe("filterFaqRowDisplayFiles", () => {
-  it("keeps faq.json, content html, and wordpress.json", () => {
+  it("keeps faq.json, content html, upload payload, and wordpress.json", () => {
     expect(
       filterFaqRowDisplayFiles([
         { name: "faq.json", content: "[]" },
@@ -88,7 +88,12 @@ describe("filterFaqRowDisplayFiles", () => {
         { name: "wordpress.json", content: "{}" },
         { name: "upload-payload-x.json", content: "{}" },
       ]).map((file) => file.name),
-    ).toEqual(["faq.json", "content-cra-mail-in.html", "wordpress.json"]);
+    ).toEqual([
+      "faq.json",
+      "content-cra-mail-in.html",
+      "upload-payload-x.json",
+      "wordpress.json",
+    ]);
   });
 
   it("matches BulkGeneratedFile fileName field", () => {

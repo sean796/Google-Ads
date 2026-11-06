@@ -153,7 +153,7 @@ describe("applyInventoryPatchesToOverviewRows", () => {
       }),
     );
     expect(patched[0]?.title).toBe("My Post");
-    expect(patched[0]?.focusKeyword).toBe("widgets");
+    expect(patched[0]?.focusKeyword).toBe("my post");
     expect(patched[0]?.status).toBe("idle");
   });
 });
@@ -172,7 +172,7 @@ describe("buildOverviewSessionRowsFromWarmBulk", () => {
     ]);
     expect(rows).toHaveLength(1);
     expect(rows[0]?.title).toBe("Post A");
-    expect(rows[0]?.focusKeyword).toBe("widgets");
+    expect(rows[0]?.focusKeyword).toBe("post a");
   });
 });
 

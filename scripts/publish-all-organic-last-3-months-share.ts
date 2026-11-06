@@ -28,7 +28,6 @@ import { resolveOrganicClientReportClientLogoUrl } from "../src/lib/integrations
 import { normalizeClientLogoBoxTheme } from "../src/lib/organic-dashboard/organic-client-report-property-branding";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const SEED_PATH = path.join(REPO_ROOT, "src/components/integrations/default-properties-seed.json");
 const OUT_PATH = path.join(REPO_ROOT, "tmp/organic-last-3-months-share.csv");
 const LOCAL = (process.env.NEO_PULSE_BASE || "http://127.0.0.1:8080").replace(/\/$/, "");
 const HUB = "https://pulse-host-wp-hub.onrender.com";
@@ -76,13 +75,13 @@ const dateHarness: Ga4ReportingDateHarness = {
 };
 
 async function loadSites(): Promise<WordPressSite[]> {
-  const seed = (JSON.parse(fs.readFileSync(SEED_PATH, "utf8")).sites ?? []) as WordPressSite[];
+  // Wave 0: server mirror only. No bundled seed. Empty mirror fails visibly.
   const res = (await fetch(`${HUB}/api/manager-wordpress-properties/load?_=${Date.now()}`).then((r) =>
     r.json(),
   )) as { sites?: WordPressSite[] };
   const sites = res.sites ?? [];
-  for (const s of seed) {
-    if (!sites.some((x) => x.id === s.id)) sites.push(s);
+  if (sites.length === 0) {
+    throw new Error("Server site mirror returned no sites. Log in to the hub and confirm /api/manager-wordpress-properties/load returns the property list before running this script.");
   }
   return sites.filter((s) => !/staging/i.test(`${s.name} ${s.siteUrl}`));
 }

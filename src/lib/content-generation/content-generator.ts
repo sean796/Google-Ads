@@ -10,7 +10,6 @@ import { loadApiKey } from "@/lib/api";
 import { markdownToHtml, generateExcerpt } from "@/lib/markdown-to-html";
 import { htmlToMarkdown } from "@/lib/wordpress-converter";
 import { OptimizationFileManager } from "@/lib/optimization-file-manager";
-import { progressWithGeneratedFiles } from "@/hooks/content-optimization/optimization-helpers";
 import {
   generateInContentImage,
   generateInContentImageFromHtml,
@@ -28,6 +27,8 @@ import type { KeywordData } from "@/lib/keyword-types";
 import { buildFocusedArticlePurpose } from "@/lib/content-generation/article-length-policy";
 import { isGeneratedContentHtml } from "@/lib/content-generation/content-format";
 import { postOpenRouterAppChat } from "@/lib/openrouter-app-api";
+import type { AgentConfig } from "@/types/agent-config";
+import type { FlowFreeformSectionPlan } from "@/lib/flow-freeform/flow-freeform-types";
 import { llmAuditSummaryFromSeoResearchBrief } from "@/lib/content-optimization/seo-research-brief-for-optimize";
 
 /**
@@ -47,15 +48,15 @@ export async function generateMetaDescription(
   try {
     // CRITICAL: Meta description is INDEPENDENT - but can use WordPress content as context if available
     // Extract text content - remove HTML and markdown formatting
-    let textContent = markdownContent
+    const textContent = markdownContent
       .replace(/<[^>]*>/g, '') // Remove ALL HTML tags
       .replace(/^#+\s+/gm, '') // Remove headers
       .replace(/```[\s\S]*?```/g, '') // Remove code blocks
       .replace(/`[^`]+`/g, '') // Remove inline code
-      .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Convert links to text
-      .replace(/!\[([^\]]*)\]\([^\)]+\)/g, '') // Remove images
-      .replace(/\*\*([^\*]+)\*\*/g, '$1') // Remove bold
-      .replace(/\*([^\*]+)\*/g, '$1') // Remove italic
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Convert links to text
+      .replace(/!\[([^\]]*)\]\([^)]+\)/g, '') // Remove images
+      .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove bold
+      .replace(/\*([^*]+)\*/g, '$1') // Remove italic
       .replace(/\s+/g, ' ') // Normalize whitespace
       .trim()
       .substring(0, 3000); // Use up to 3000 chars if WordPress content is available
@@ -218,7 +219,15 @@ Write ONLY the meta description (120-150 characters). Output a single line of pl
 }
 
 export interface ContentGeneratorOptions {
-  blueprintResult: any;
+  blueprintResult: {
+    title?: string;
+    purpose?: string;
+    agents: AgentConfig[];
+    entity?: string;
+    h2Outline?: string[];
+    blueprintVersion?: number;
+    flowFreeform?: { sections: FlowFreeformSectionPlan[] };
+  };
   existingTitle: string;
   primaryKeyword: string;
   site: WordPressSite;
@@ -228,7 +237,7 @@ export interface ContentGeneratorOptions {
     url: string;
     existingContent: string;
     inContentImageRequest?: { imageType: ImageType; userPrompt?: string };
-    acfFields?: Record<string, any>;
+    acfFields?: Record<string, unknown>;
     acfContext?: AIDrivenACFContext; // When present, use for prompt (no reader call)
     isPage?: boolean;
     /** Real Search Console queries JSON - model picks 10–20 and spreads across sections */
@@ -510,7 +519,7 @@ export async function generateOptimizedContent(
 
     const isHtmlContent = isGeneratedContentHtml(markdownContent);
     const linkPatternHtml = /<a\s+[^>]*href=["'](https?:\/\/[^"']+)["'][^>]*>/gi;
-    const linkPatternMd = /\[([^\]]+)\]\(https?:\/\/[^\)]+\)/g;
+    const linkPatternMd = /\[([^\]]+)\]\(https?:\/\/[^)]+\)/g;
     const linkCount = isHtmlContent
       ? (markdownContent.match(linkPatternHtml) || []).length
       : (markdownContent.match(linkPatternMd) || []).length;
@@ -695,10 +704,7 @@ export async function generateOptimizedContent(
   );
 
   setProgress(
-    progressWithGeneratedFiles(
-      { step: 'Content ready', progress: 88, message: 'HTML and markdown saved for download' },
-      fileManager,
-    ),
+    { step: 'Content ready', progress: 88, message: 'HTML and markdown saved for download' },
   );
 
   return {

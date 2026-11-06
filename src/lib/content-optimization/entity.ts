@@ -85,7 +85,7 @@ export async function extractGeographicEntityWithAI(
       temperature: 0.2,
       maxTokens: 120,
     });
-    let out = content
+    const out = content
       .trim()
       .replace(/^["']|["']$/g, "")
       .replace(/\*\*/g, "")

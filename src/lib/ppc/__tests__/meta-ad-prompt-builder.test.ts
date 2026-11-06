@@ -256,7 +256,7 @@ describe("buildMetaImagePrompt", () => {
     const prompt = buildMetaImagePrompt({
       creativeBrief: sampleBrief,
       focusKeyword: "AI SEO Edmonton",
-      checklist: [{ id: "1", label: "Render exact on-image headline once" }],
+      checklist: [{ label: "Render exact on-image headline once" }],
       placement: "feed_4x5",
       siteName: "Acme Windows",
       typographyStyle: "inter",

@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { ExternalLink, Megaphone } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
+
 import type { WordPressSite } from "@/components/integrations/types";
 import { SocialMediaModal } from "./SocialMediaModal";
-import { Button } from "@/ui";
+import { Button, Checkbox, ScrollArea } from "@/ui";
 
 export type GmbContentRow = {
   id: number;

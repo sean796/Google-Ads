@@ -15,7 +15,6 @@ import type { WordPressSite } from "@/components/integrations/types";
 import { OptimizationFileManager } from "@/lib/optimization-file-manager";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { truncateTitleForSEO } from "@/lib/content-generation/content-sanitizer";
-import { progressWithGeneratedFiles } from "@/hooks/content-optimization/optimization-helpers";
 import { cleanTitleForNonEntity } from "./title-cleaning";
 import type { SemrushClusterScatterPlan } from "@/lib/semrush-cluster-scatter";
 import { buildSemrushScatterContextJson } from "@/lib/semrush-cluster-scatter";
@@ -30,6 +29,14 @@ import {
   type LlmAuditAuthorityLinkLike,
 } from "@/lib/bulk/modifier-external-links";
 import type { ExternalLinkPair } from "@/lib/content-generation/external-link-placeholders";
+import type { WpExistingPostLike } from "@/hooks/content-optimization/use-optimization-state";
+
+/** Blueprint from `generateBlueprintFromTemplate`, plus pipeline-attached fields. */
+export type GeneratedBlueprintResult = Awaited<ReturnType<typeof generateBlueprintFromTemplate>> & {
+  entity?: string;
+  entityAnalysis?: unknown;
+  h2Outline?: string[];
+};
 
 export async function generateOptimizedBlueprint(
   selectedKeywords: string[],
@@ -39,14 +46,14 @@ export async function generateOptimizedBlueprint(
   existingTitle: string,
   primaryKeyword: string,
   primaryKeywordData: KeywordData,
-  paaRawResponse: any,
+  paaRawResponse: unknown,
   site: WordPressSite,
   fileManager: OptimizationFileManager,
   setProgress: (progress: { step: string; progress: number; message?: string }) => void,
   wordPressPosts?: Array<{ id: number; slug: string; title: string; excerpt: string; link: string; date_gmt: string }>,
   wordPressPagesForOfferTable?: Array<{ id: number; slug: string; title: string; excerpt: string; link: string; date_gmt: string }>,
   currentPageUrl?: string,
-  existingPost?: any,
+  existingPost?: WpExistingPostLike,
   hasEntityOverride?: boolean,
   semrushForBlueprint?: {
     keywordsRag?: string;
@@ -63,7 +70,7 @@ export async function generateOptimizedBlueprint(
   onArtifactSaved?: () => void,
   onChecklistReady?: (pipelineChecklist: string[]) => void,
   onSerpH2OutlineReady?: (bodyHarnessTitles: string[]) => void,
-): Promise<{ blueprintResult: any; checklist: string[]; llmAuditAuthorityExternalPairs: ExternalLinkPair[] }> {
+): Promise<{ blueprintResult: GeneratedBlueprintResult; checklist: string[]; llmAuditAuthorityExternalPairs: ExternalLinkPair[] }> {
   const openRouterApiKey = loadApiKey();
   if (!openRouterApiKey?.trim()) throw new Error("OpenRouter API key not found. Please set it in settings.");
 
@@ -73,7 +80,7 @@ export async function generateOptimizedBlueprint(
   const researchModel = getResearchModel(site.id);
 
   const bodyHtmlForMedia =
-    (typeof existingPost?.content === "string" ? existingPost.content : "") || "";
+    typeof existingPost?.content === "string" ? existingPost.content : "";
   const existingMedia = bodyHtmlForMedia.trim() ? extractMediaFromHtmlTags(bodyHtmlForMedia) : [];
   const forcedMediaPrompt = buildForcedMediaUserPrompt(existingMedia);
 
@@ -83,7 +90,7 @@ export async function generateOptimizedBlueprint(
       ? semrushForBlueprint.keywordsRag
       : undefined;
 
-  let checklistResult = await generateChecklistFromSelections(
+  const checklistResult = await generateChecklistFromSelections(
     selectedKeywords,
     selectedH2Sections,
     existingTitle || primaryKeyword,
@@ -117,7 +124,7 @@ export async function generateOptimizedBlueprint(
       ...(serpResearchBriefJson?.trim() ? { serpResearchBriefJson } : {}),
       ...(forbiddenLiveH2s?.length ? { forbiddenLiveH2s } : {}),
       ...(onSerpH2OutlineReady ? { onSerpH2OutlineReady } : {}),
-    } as any
+    }
   );
 
   let checklist = checklistResult.items;
@@ -148,10 +155,7 @@ export async function generateOptimizedBlueprint(
 
   if (!getMuteOptimizationToasts()) notify.success(notifyChecklistCreatedXItemsBuildingBluep(pipelineChecklist.length), { duration: 4000 });
   setProgress(
-    progressWithGeneratedFiles(
-      { step: "Generating optimized blueprint...", progress: 70, message: "Converting checklist to blueprint structure..." },
-      fileManager,
-    ),
+    { step: "Generating optimized blueprint...", progress: 70, message: "Converting checklist to blueprint structure..." },
   );
 
   const blueprintContext: BlogTemplateContext = {
@@ -161,9 +165,7 @@ export async function generateOptimizedBlueprint(
     ...(forcedMediaPrompt ? { userPrompt: forcedMediaPrompt } : {}),
   };
 
-  let blueprintResult: Awaited<ReturnType<typeof generateBlueprintFromTemplate>>;
-
-  blueprintResult = await generateBlueprintFromTemplate(pipelineChecklist, blueprintContext, {
+  const blueprintResult: GeneratedBlueprintResult = await generateBlueprintFromTemplate(pipelineChecklist, blueprintContext, {
     apiKey: openRouterApiKey,
     model: researchModel,
     temperature: 1.0,
@@ -172,8 +174,6 @@ export async function generateOptimizedBlueprint(
     connectedSite: { name: site.name, siteUrl: site.siteUrl },
     wordPressPosts,
     currentPageUrl,
-    siteId: site.id,
-    primaryKeyword,
     semrushKeywordsContext: semrushKeywordsCtx,
     semrushScatterContext: semrushScatterStr,
     semrushApprovedExternalUrls: semrushForBlueprint?.externalUrls,
@@ -183,7 +183,7 @@ export async function generateOptimizedBlueprint(
     ...(llmAuditSummary?.trim() ? { llmAuditSummary } : {}),
     ...(firstPartyAuthorityBlock?.trim() ? { firstPartyAuthorityBlock } : {}),
     ...(llmAuditAuthorityLinks?.length ? { llmAuditAuthorityLinks } : {}),
-  } as any);
+  });
 
   if (!blueprintResult.agents?.length) {
     throw new Error("Blueprint contract failed: no agents");
@@ -199,9 +199,9 @@ export async function generateOptimizedBlueprint(
     );
   }
 
-  (blueprintResult as any).entityAnalysis = undefined;
+  blueprintResult.entityAnalysis = undefined;
   if (checklistResult.h2Outline?.length) {
-    (blueprintResult as any).h2Outline = checklistResult.h2Outline;
+    blueprintResult.h2Outline = checklistResult.h2Outline;
   }
 
   if (blueprintResult.title) {
@@ -214,7 +214,7 @@ export async function generateOptimizedBlueprint(
 
   if (blueprintResult.title) {
     const originalLength = blueprintResult.title.length;
-    blueprintResult.title = truncateTitleForSEO(blueprintResult.title, 50);
+    blueprintResult.title = truncateTitleForSEO(blueprintResult.title);
     if (originalLength > 50) {
       console.log("[Optimize Content] Truncated blueprint title to 50 characters (Content Optimizer module requirement):", {
         originalLength,
@@ -230,14 +230,11 @@ export async function generateOptimizedBlueprint(
   onArtifactSaved?.();
 
   setProgress(
-    progressWithGeneratedFiles(
-      {
-        step: "Generating optimized content...",
-        progress: 75,
-        message: `Blueprint ready (${blueprintResult.agents.length} sections)`,
-      },
-      fileManager,
-    ),
+    {
+      step: "Generating optimized content...",
+      progress: 75,
+      message: `Blueprint ready (${blueprintResult.agents.length} sections)`,
+    },
   );
 
   return {

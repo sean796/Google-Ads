@@ -106,15 +106,6 @@ function buildInContentImageCatalogFromCache(
           };
         })()
       : { hasInv: false, kw: "", title: "" };
-    // #region agent log
-    if (
-      url.toLowerCase().includes("city-centre") ||
-      url.toLowerCase().includes("city_centre") ||
-      (row.title || "").toLowerCase().includes("city centre")
-    ) {
-      fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'kw-cache',hypothesisId:'B',location:'use-overview-tab-blog-in-content-image.ts:buildCatalog',message:'City Centre catalog keyword sources',data:{url:url.slice(0,140),rowFocusKeyword:(row.focusKeyword||'').trim().slice(0,120),rowTitle:(row.title||'').trim().slice(0,120),cacheHasInv:invKw.hasInv,cacheFocusKeyword:invKw.kw.slice(0,120),cacheTitle:invKw.title,htmlLen:html.length,forceLocalMode:forceLocalMode||null,existingScope},timestamp:Date.now()})}).catch(()=>{});
-    }
-    // #endregion
     if (forceLocalMode) {
       catalog.push({
         index,
@@ -262,7 +253,6 @@ export function useOverviewTabBlogInContentImage({
             warm?.bulkInventoryRows?.filter((r) =>
               Boolean((r.fields?.keyword || "").trim()),
             ).length ?? 0;
-          fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'kw-cache',hypothesisId:'B',location:'use-overview-tab-blog-in-content-image.ts:after-catalog',message:'Local Image catalog vs connected-site warm cache',data:{catalogLen:catalog.length,catalogEmptyFocusKeyword:emptyKw,warmRowCount:warmCount,warmWithKeywordField:warmWithKw,forceLocalMode:forceLocalMode||null,siteName:(site.name||site.siteUrl||'').slice(0,50)},timestamp:Date.now()})}).catch(()=>{});
         }
         // #endregion
 
@@ -331,8 +321,9 @@ export function useOverviewTabBlogInContentImage({
       bulkScopeUrlKeys,
       resolveBindings,
       getInventoryMatchForUrl,
-      prefetchOverviewInventory,
       updateRow,
+      rowsRef,
+      uploadAfterRowWrite,
       opt,
       makeHarnessSetters,
     ],

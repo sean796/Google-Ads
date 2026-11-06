@@ -1,9 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+
 import { ChevronDown, Download, ExternalLink } from "lucide-react";
 import { BulkHarnessSectionsPanel } from "@/components/keyword-research/bulk/BulkHarnessSectionsPanel";
 import { WordPressPostingConfig } from "@/components/keyword-research/bulk/WordPressPostingConfig";
@@ -35,8 +31,7 @@ import type { ResearchBatchSignals } from "@/lib/overview/overview-bulk-pipeline
 import { BulkSitemapInventoryRunDetail } from "@/components/keyword-research/bulk/BulkSitemapInventoryRunDetail";
 import { WordBlacklistRunDetail } from "@/components/keyword-research/bulk/WordBlacklistRunDetail";
 import { SitemapInventoryLinksList } from "@/components/keyword-research/bulk/SitemapInventoryLinksList";
-import { workspaceDetailsCanOpen } from "@/lib/workspace/workspace-details-can-open";
-import { Button } from "@/ui";
+import { Button, Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui";
 
 export type BulkGeneratorDetailsVariant = "csv" | "prompt" | "blog-import";
 
@@ -74,7 +69,6 @@ export type BulkGeneratorDetailsPanelProps = {
   sitemapInventoryLinks?: PromptBulkSitemapInventoryLink[];
   inventoryRows?: import("@/lib/overview/site-warm-inventory-display-rows").SiteWarmInventoryDisplayRow[];
   siteKwHostedLink?: import("@/lib/bulk/prompt-bulk-site-kw-scrape").PromptBulkSiteKwHostedLink | null;
-  inventoryRows?: import("@/lib/overview/site-warm-inventory-display-rows").SiteWarmInventoryDisplayRow[];
   sitemapInventoryLoading?: boolean;
   filesByRow?: Map<number, BulkGeneratedFile[]>;
   downloadFile?: (file: BulkGeneratedFile) => void;
@@ -84,7 +78,7 @@ export type BulkGeneratorDetailsPanelProps = {
   draftOnly?: boolean;
   directionsSiteName?: string;
   prepAccordionTitle?: string;
-  pipelineSectionTitles?: string[];
+  pipelineSectionTitles?: readonly string[];
   runKind?: BulkOptimizationState["runKind"];
   researchBatchSignals?: ResearchBatchSignals;
   researchRowIndices?: ReadonlySet<number>;
@@ -94,15 +88,6 @@ export type BulkGeneratorDetailsPanelProps = {
   /** Global row index of first visible row when details are paginated (default 0). */
   detailsPageStart?: number;
 };
-
-export function bulkGeneratorDetailsCanOpen(
-  hasRows: boolean,
-  isProcessing: boolean,
-  hasFile: boolean,
-  hasDraft: boolean,
-): boolean {
-  return workspaceDetailsCanOpen(hasRows, isProcessing, hasFile, hasDraft);
-}
 
 function BlogImportWorkspaceInline({
   postDestination,
@@ -382,7 +367,7 @@ function BulkGeneratorIdleDetail(props: BulkGeneratorDetailsPanelProps): ReactNo
             isDisabled={workspaceBusy}
             hideDestinationRadios
             hideScheduleFields
-            hideSitemapField={variant === "csv" || variant === "prompt"}
+            hideSitemapField={variant === "csv"}
           />
         </div>
       ) : null}

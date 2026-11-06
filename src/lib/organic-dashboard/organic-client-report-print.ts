@@ -27,7 +27,7 @@ export { ORGANIC_CLIENT_REPORT_PDF_CAPTURE_CLASS };
 export type OrganicClientReportPdfHtml2PdfOptions = {
   margin: number;
   filename: string;
-  image: { type: string; quality: number };
+  image: { type: "jpeg" | "png" | "webp"; quality: number };
   html2canvas: {
     scale: number;
     useCORS: boolean;
@@ -36,7 +36,7 @@ export type OrganicClientReportPdfHtml2PdfOptions = {
     windowWidth: number;
     onclone: (clonedDoc: Document) => void;
   };
-  jsPDF: { unit: string; format: string; orientation: string };
+  jsPDF: { unit: "pt" | "px" | "in" | "mm" | "cm" | "ex" | "em" | "pc"; format: string; orientation: "portrait" | "landscape" };
   pagebreak: {
     mode: string[];
     before: string[];

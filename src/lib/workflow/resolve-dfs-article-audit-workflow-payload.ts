@@ -12,11 +12,14 @@ function normalizeBucket(value: unknown): TaskExecutionTargetBucket {
   return "posts";
 }
 
+type DfsArticleAuditPayload = TaskExecutionPayload & { url?: string };
+
 export async function resolveDfsArticleAuditWorkflowPayload(
   site: WordPressSite,
   payload: TaskExecutionPayload,
 ): Promise<TaskExecutionPayload> {
-  let targetUrl = String(payload.targetUrl ?? payload.url ?? "").trim();
+  const inputPayload: DfsArticleAuditPayload = payload;
+  let targetUrl = String(inputPayload.targetUrl ?? inputPayload.url ?? "").trim();
   if (!targetUrl || targetUrl.toUpperCase() === "ALL") {
     const bucket = normalizeBucket(payload.targetBucket);
     const urls = await resolveTaskExecutionBucketUrls(site, bucket);
@@ -41,7 +44,7 @@ export async function resolveDfsArticleAuditWorkflowPayload(
     }
   }
 
-  return {
+  const resolved: TaskExecutionPayload & { url: string } = {
     ...payload,
     targetBucket: normalizeBucket(payload.targetBucket),
     targetUrl,
@@ -49,4 +52,5 @@ export async function resolveDfsArticleAuditWorkflowPayload(
     ...(focusKeyword ? { focusKeyword, keyword: focusKeyword } : {}),
     ...(seoResearchBrief ? { seoResearchBrief } : {}),
   };
+  return resolved;
 }

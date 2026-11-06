@@ -1,4 +1,5 @@
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { normalizeGoogleAdsCustomerId } from "@/lib/ads-reporting/ads-reporting-metrics";
 import {
   normalizePpcCampaignInsights,
@@ -41,7 +42,7 @@ export async function loadPpcCampaignInsights(
   const res = await fetch(backendApiUrl("/google-ads/fetch-campaign-insights"), {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
     signal: options.signal,
   });

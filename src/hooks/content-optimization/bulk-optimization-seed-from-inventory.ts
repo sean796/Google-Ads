@@ -10,6 +10,7 @@ import {
 } from "@/lib/wordpress-api/inventory-match";
 import { mergeSeoResearchFromAcfIntoContext } from "@/lib/content-generation/ai-driven-acf-reader";
 import type { HandleOptimizeMultipleContentParams } from "./bulk-optimization-params";
+import type { LinkPoolPostRow } from "./bulk-optimization-do-prefetch";
 import { DEATH_STAR_NO_GSC, bulkOptimizationWpStr } from "./bulk-optimization-constants";
 import { inventoryRowToAcfKeywordFields } from "./bulk-optimization-grep-acf";
 import type { SitePostInventoryRow } from "@/lib/wordpress-api/types";
@@ -35,9 +36,9 @@ export type SeedAllBulkPrefetchFromInventoryParams = {
   updateMode: HandleOptimizeMultipleContentParams["updateMode"];
   optimizationOptions: HandleOptimizeMultipleContentParams["optimizationOptions"];
   inContentImageRequest: HandleOptimizeMultipleContentParams["inContentImageRequest"];
-  wordPressPostsForRun: any[];
+  wordPressPostsForRun: LinkPoolPostRow[];
   isAcfKeywordMode: boolean;
-  prefetchedAcfFieldsCache: Map<number, Record<string, any>>;
+  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
   prefetchedPostPayloadByUrlIndex: Map<number, WpPostSnapshotFromAcfByUrl>;
   prefetchedAcfFullPostByUrlIndex: Map<number, Record<string, unknown>>;
   prefetchedPendingCache: Map<
@@ -129,7 +130,7 @@ export function seedAllBulkPrefetchCachesFromInventory(
 
     const targetNorm = normalizeMatch(site.siteUrl, targetUrl);
     const cachedPost = wordPressPostsForRun.find(
-      (p: any) => p?.link && normalizeMatch(site.siteUrl, p.link) === targetNorm,
+      (p) => p?.link && normalizeMatch(site.siteUrl, p.link) === targetNorm,
     );
     const typeHint = typeHintFromCachedPost(cachedPost);
     const invHit = lookupInventoryRowWithSource(
@@ -142,7 +143,7 @@ export function seedAllBulkPrefetchCachesFromInventory(
     const skipReason = inventoryRowSkipReason(invHit);
     if (skipReason) {
       skippedUrls[targetUrl] = skipReason;
-      setBulkOptimizationState((prev: any) => {
+      setBulkOptimizationState((prev) => {
         const current = prev[batchKey];
         if (!current) return prev;
         return {
@@ -161,7 +162,7 @@ export function seedAllBulkPrefetchCachesFromInventory(
     const keywordSeed = inventoryRowToAcfKeywordFields(hit.row);
     const acfFromRow =
       hit.row.acf && typeof hit.row.acf === "object"
-        ? ({ ...(hit.row.acf as Record<string, unknown>) } as Record<string, any>)
+        ? ({ ...(hit.row.acf as Record<string, unknown>) } as Record<string, unknown>)
         : {};
     const acfFields = keywordSeed ? { ...keywordSeed.acfFields } : { ...acfFromRow };
     const primaryKeyword = (
@@ -194,7 +195,6 @@ export function seedAllBulkPrefetchCachesFromInventory(
     prefetchedAcfFieldsCache.set(urlIndex, acfFields);
     if (primaryKeyword) {
       urlKeywords[targetUrl] = primaryKeyword;
-    } else {
     }
 
     const postSnapshot = postSnapshotFromInventory(hit);
@@ -210,7 +210,7 @@ export function seedAllBulkPrefetchCachesFromInventory(
     const postTypeSubtype = postSnapshot.postTypeSubtype;
     const pendingHasEntity = isSapBulkRun;
 
-    let acfContext = mergeSeoResearchFromAcfIntoContext(
+    const acfContext = mergeSeoResearchFromAcfIntoContext(
       acfFields,
       primaryKeyword ? { keywordFocus: primaryKeyword } : {},
     );
@@ -281,7 +281,7 @@ export function seedAllBulkPrefetchCachesFromInventory(
   }
 
   if (Object.keys(urlKeywords).length > 0) {
-    setBulkOptimizationState((prev: any) => {
+    setBulkOptimizationState((prev) => {
       const current = prev[batchKey];
       if (!current) return prev;
       return {

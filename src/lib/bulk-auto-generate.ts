@@ -12,6 +12,7 @@ import type {
 import { hasCsvFilledWikipediaUrl } from './bulk/prefilled-bulk-row-contract';
 import type { BulkProcessingOptions } from './bulk/bulk-auto-generate-types';
 import type { CSVRow } from './bulk/bulk-csv-parser';
+import type { WikipediaChunk } from './wikipedia/types';
 
 export {
   buildSitesToPostFromPosting,
@@ -94,7 +95,7 @@ export async function generateRowOutputs(
           console.warn(`[Bulk Generator] Entity "${row.entity}" does not exist on Wikipedia. Skipping Wikipedia content fetch.`);
           options.onProgress?.(rowIndex, 0, `Entity "${row.entity}" not found on Wikipedia, skipping...`);
         } else {
-          let wikipediaChunks: unknown[] = [];
+          let wikipediaChunks: WikipediaChunk[] = [];
           let retries = 3;
           let lastError: Error | null = null;
 

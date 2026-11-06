@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Location, WordPressSite } from "@/components/integrations/types";
-import { selectCompetitorPlacesForRun } from "@/lib/competitor/filter-connected-site-competitors";
+import { selectCompetitorPlacesForRun } from "@/lib/competitor-research/filter-connected-site-competitors";
 import {
   buildMapsSearchKeyword,
   parseOrganicSerpPlacesFromJson,

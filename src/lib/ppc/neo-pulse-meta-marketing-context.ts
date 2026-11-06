@@ -116,7 +116,7 @@ export function metaJobsNeedPageBucket(
   return jobs.some((job) => {
     const source = job.contextSource === "neo-pulse_app" ? "neo-pulse_app" : "custom";
     if (source === "neo-pulse_app") return false;
-    const contextUrl = source === "neo-pulse_app" ? NEO_PULSE_PRODUCT_URL : job.contextUrl?.trim() ?? "";
+    const contextUrl = job.contextUrl?.trim() ?? "";
     if (/^https?:\/\//i.test(contextUrl)) return false;
     return !isNeoPulseProductLandingUrl(job.landingPageUrl);
   });

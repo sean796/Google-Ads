@@ -29,7 +29,7 @@ function packIdsIntoClusters(args: {
   bucketIndex: number;
   sortedIds: string[];
   rowById: Map<string, SitemapOptimizerPostRow>;
-  maxUrlsPerPost: EntityCompressionProfile["maxUrlsPerPost"];
+  maxUrlsPerPost: GridMaxUrlsPerPost;
   rationale: string;
 }): SitemapOptimizerCluster[] {
   const { bucketKey, bucketIndex, sortedIds, rowById, maxUrlsPerPost, rationale } = args;

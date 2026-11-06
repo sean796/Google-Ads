@@ -1,13 +1,7 @@
 import React, { useCallback, useState } from "react";
-import { Card } from "@/components/ui/card";
+
 import { XCircle, Copy, Power, Wand2, Trash2, Pencil, MoreHorizontal, ExternalLink } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 import { cn } from "@/lib/utils";
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
 import { loadApiKey } from "@/lib/api";
@@ -18,7 +12,7 @@ import { editorialContentPackageShortLabelForSite } from "@/lib/editorial-conten
 import { propertyWpAdminUrl } from "./property-profile-view-model";
 import type { WordPressPropertyRowDisplay } from "@/lib/wordpress-properties-row-display";
 import { getCyberpunkCardClasses, getCyberpunkTextClasses, getPropertyListRowBlackIconButtonClass, getPropertyListRowIconButtonHoverGlowClass } from "./cyberpunk-theme";
-import { Button, TextButton } from "@/ui";
+import { Button, TextButton, Card, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/ui";
 
 type CopyControlTone = "default" | "white";
 

@@ -1,13 +1,13 @@
 import React from "react";
 import { Trash2 } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { BULK_HEADER_ICON_TOOL_BTN } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import {
   getPropertyListRowBlackIconButtonClass,
   getPropertyListRowIconButtonHoverGlowClass,
 } from "@/components/integrations/wordpress/cyberpunk-theme";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui";
+import { Button, Checkbox } from "@/ui";
 
 const CHECKBOX_CLASS =
   "border-white/50 data-[state=checked]:border-white data-[state=checked]:bg-white data-[state=checked]:text-black data-[state=indeterminate]:border-white data-[state=indeterminate]:bg-white data-[state=indeterminate]:text-black pointer-events-none";

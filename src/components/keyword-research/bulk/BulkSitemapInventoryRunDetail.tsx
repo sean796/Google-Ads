@@ -3,12 +3,12 @@ import type { PromptBulkSitemapInventoryLink } from "@/lib/bulk/prompt-bulk-site
 import type { BulkGscKeywordsHostedLink } from "@/lib/bulk/bulk-gsc-keywords-hosted-link";
 import type { PromptBulkSiteKwHostedLink } from "@/lib/bulk/prompt-bulk-site-kw-scrape";
 import type { SiteWarmInventoryDisplayRow } from "@/lib/overview/site-warm-inventory-display-rows";
+import { SitemapInventoryLinksList } from "@/components/keyword-research/bulk/SitemapInventoryLinksList";
 import {
-  SitemapInventoryLinksList,
   downloadAllHostedInventoryFiles,
   hostedInventoryDownloads,
-} from "@/components/keyword-research/bulk/SitemapInventoryLinksList";
-import { META_FIELD_END_RAIL_BTN } from "@/components/overview/MetaOptimizerPageRowDetails";
+} from "@/components/keyword-research/bulk/sitemap-inventory-downloads";
+import { META_FIELD_END_RAIL_BTN } from "@/components/overview/meta-optimizer-row-constants";
 import { Button } from "@/ui";
 
 export type BulkSitemapInventoryRunDetailProps = {

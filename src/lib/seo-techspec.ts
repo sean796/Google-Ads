@@ -8,6 +8,7 @@ import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { updateWordPressPost } from "@/lib/wordpress-api/crud";
 import { updateACFFields } from "@/lib/wordpress-acf-origin";
 import type { WordPressSite } from "@/components/integrations/types";
+import type { WpExistingPostLike } from "@/hooks/content-optimization/use-optimization-state";
 
 const CONTENT_PROMPT_MAX_CHARS = 12000;
 
@@ -28,13 +29,13 @@ function subtypeToEndpoint(subtype?: string): string | undefined {
 export interface RunSEO_techspecParams {
   site: WordPressSite;
   resolved: { id: number; subtype?: string; endpoint?: string; slug?: string };
-  existingPost: any;
+  existingPost: WpExistingPostLike;
   existingTitle: string;
   existingContent: string;
   existingExcerpt: string;
   checklist: string[];
   suggestedAction?: string;
-  acfFields: Record<string, any>;
+  acfFields: Record<string, unknown>;
 }
 
 export interface SEO_techspecChanges {

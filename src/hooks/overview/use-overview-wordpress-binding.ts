@@ -739,9 +739,9 @@ export function useOverviewWordPressBinding(
           setWpTitlesByUrl((prev) => ({ ...prev, ...titlesMap }));
         }
         return map;
-      } catch (err: any) {
+      } catch (err) {
         const msg =
-          err?.message ||
+          (err instanceof Error ? err.message : "") ||
           "Failed to resolve WordPress URLs for Overview. Ensure the connected site has valid credentials.";
         if (persistBindings) {
           setError(msg);

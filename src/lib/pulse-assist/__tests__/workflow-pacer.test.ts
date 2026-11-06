@@ -33,10 +33,10 @@ describe("WorkflowPacer", () => {
       "Meta description reviewer:running",
       "Focus keyword reviewer:running",
       "Body content reviewer:running",
-      "Lead synthesis:pending",
+      "Lead execution:pending",
     ]);
 
-    const leadRunningView = views.find((view) => view[3] === "Lead synthesis:running");
+    const leadRunningView = views.find((view) => view[3] === "Lead execution:running");
     expect(leadRunningView).toBeDefined();
 
     const allDoneView = views.find(
@@ -44,7 +44,7 @@ describe("WorkflowPacer", () => {
         view[0]?.endsWith(":done") &&
         view[1]?.endsWith(":done") &&
         view[2]?.endsWith(":done") &&
-        view[3] === "Lead synthesis:done",
+        view[3] === "Lead execution:done",
     );
     expect(allDoneView).toBeDefined();
 

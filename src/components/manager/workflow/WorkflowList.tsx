@@ -5,7 +5,7 @@ import { FORGE_RECIPE_PAGE_CLASS } from "@/components/manager/pulse-forge/forge-
 import { WorkflowCard } from "@/components/manager/workflow/WorkflowCard";
 import { groupWorkflowsByStatus, workflowMatchesClientFilter, WORKFLOW_HEADER_BAND_CLASS } from "@/components/manager/workflow/forge-workflow-styles";
 import { deleteWorkflow, fetchWorkflows } from "@/lib/workflow/workflow-api";
-import type { PulseForgeRoute } from "@/lib/pulse-forge/pulse-forge-hash";
+import type { PulseForgeRoute } from "@/lib/pulse-forge/pulse-forge-route";
 import type { WorkflowDefinition } from "@/lib/workflow/workflow-types";
 import { Button, SelectField } from "@/ui";
 

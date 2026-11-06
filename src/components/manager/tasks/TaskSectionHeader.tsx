@@ -1,17 +1,8 @@
 import React, { useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui";
+import { Button, AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/ui";
 
 const SECTION_HEADER_GRID =
   "grid w-full grid-cols-[2rem_minmax(12rem,1fr)_minmax(6rem,auto)_minmax(5rem,auto)_minmax(11rem,auto)_minmax(5rem,auto)_4rem_5rem] items-center gap-x-3";

@@ -12,7 +12,7 @@ import type { BlogTemplateContext } from "./blog-template-builder-types";
 
 const LINK_FEATURE_PLACEHOLDER = `[LINK]: ${INTERNAL_LINK_PLACEHOLDER_FEATURE_SUFFIX}`;
 
-function agentFromChecklistRow(item: string, index: number): AgentConfig {
+export function agentFromChecklistRow(item: string, index: number): AgentConfig {
   const extracted = sanitizeForbiddenHeadingTitle(extractChecklistItemTitle(item)).trim();
   const afterNumber = item.replace(/^\d+\.\s*/, "").trim();
   const beforeMarker = afterNumber.split("[")[0]?.trim() ?? "";

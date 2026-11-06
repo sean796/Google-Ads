@@ -1,24 +1,30 @@
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/ui";
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider } from "@/contexts/AuthProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Register from "./pages/Register";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import { LegacyHashRedirect } from "@/components/LegacyHashRedirect";
+import { MANAGER_TAB_ROUTES } from "@/lib/manager-tab-routes";
+
+/** Tabs whose workspace owns deeper path segments (sections, runs, docs). */
+const SUBPATH_TABS = new Set(["generator", "pulse-forge", "pulse-host", "api"]);
+
 import HuddlePopupPage from "./pages/HuddlePopupPage";
 import OrganicDashboardPage from "./pages/OrganicDashboardPage";
 import OrganicClientReportPreviewPage from "./pages/OrganicClientReportPreviewPage";
 import HostingManagerPage from "./pages/manager/HostingManagerPage";
 import { WordPressSitesProvider } from "@/hooks/use-wordpress-sites";
 import { SitesHydrate } from "@/components/integrations/SitesHydrate";
-import { ActiveWordPressSiteProvider } from "@/contexts/active-wordpress-site-context";
-import { HashAuthRedirect } from "@/components/HashAuthRedirect";
-import { TeamProvider } from "@/contexts/TeamContext";
-import { WordPressOptimizationProvider } from "@/contexts/wordpress-optimization-context";
-import { AgentRunOptimizerScopeProvider } from "@/contexts/agent-run-optimizer-scope-context";
+import { ActiveWordPressSiteProvider } from "@/contexts/ActiveWordPressSiteProvider";
+import { TeamProvider } from "@/contexts/TeamProvider";
+import { WordPressOptimizationProvider } from "@/contexts/WordPressOptimizationProvider";
+import { AgentRunOptimizerScopeProvider } from "@/contexts/AgentRunOptimizerScopeProvider";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,7 +49,6 @@ if (typeof window !== 'undefined') {
 }
 
 const App = () => {
-  try {
     return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
@@ -62,7 +67,7 @@ const App = () => {
               >
                 <AuthProvider>
                   <TeamProvider>
-                  <HashAuthRedirect />
+                  <LegacyHashRedirect />
                   <ErrorBoundary>
                     <Routes>
                       <Route
@@ -100,7 +105,16 @@ const App = () => {
                             </div>
                           </ProtectedRoute>
                         }
-                      />
+                      >
+                        <Route index element={null} />
+                        {MANAGER_TAB_ROUTES.map((tab) => (
+                          <Route
+                            key={tab.id}
+                            path={SUBPATH_TABS.has(tab.id) ? `${tab.segment}/*` : tab.segment}
+                            element={null}
+                          />
+                        ))}
+                      </Route>
                       <Route
                         path="/sites/:siteId/organic/client-report"
                         element={
@@ -153,9 +167,6 @@ const App = () => {
       </QueryClientProvider>
     </ErrorBoundary>
     );
-  } catch (error) {
-    throw error;
-  }
 };
 
 export default App;

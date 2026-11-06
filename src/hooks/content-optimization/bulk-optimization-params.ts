@@ -1,6 +1,24 @@
 import type React from "react";
+import type { Dispatch, SetStateAction } from "react";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { OptimizationFileManager } from "@/lib/optimization-file-manager";
+import type {
+  GSCQuery,
+  GSCQueryClusterAnalysis,
+} from "@/lib/gsc-query-clustering";
+import type {
+  BulkOptimizationState,
+  OptimizationProgressState,
+} from "./use-optimization-state";
+import type { ImageType } from "@/lib/image-section-analyzer";
+
+export type GscQueriesSetter = Dispatch<
+  SetStateAction<Record<string, GSCQuery[]>>
+>;
+export type BooleanMapSetter = Dispatch<SetStateAction<Record<string, boolean>>>;
+export type ClusterAnalysisSetter = Dispatch<
+  SetStateAction<Record<string, GSCQueryClusterAnalysis>>
+>;
 
 export type PrefilledOverviewTarget = {
   postId: number;
@@ -24,16 +42,17 @@ export interface HandleOptimizeMultipleContentParams {
     date_gmt: string;
   }>;
   updateMode: "update" | "draft";
-  setGscQueriesForSelection: (prev: any) => any;
-  setIsKeywordSelectionOpen: (prev: any) => any;
-  setGscClusterAnalysis: (prev: any) => any;
-  setIsAnalyzingClusters: (prev: any) => any;
+  setGscQueriesForSelection: GscQueriesSetter;
+  setIsKeywordSelectionOpen: BooleanMapSetter;
+  setGscClusterAnalysis: ClusterAnalysisSetter;
+  setIsAnalyzingClusters: BooleanMapSetter;
   optimizationOptions?: {
     optimizeTitle?: boolean;
     optimizeMeta?: boolean;
     optimizeExcerpt?: boolean;
     optimizeContent?: boolean;
     optimizeFeaturedImage?: boolean;
+    featuredImageType?: "ai-generated" | "google-maps";
     optimizeExtraText?: boolean;
     optimizeExtraImage?: boolean;
     hasEntity?: boolean;
@@ -47,18 +66,24 @@ export interface HandleOptimizeMultipleContentParams {
     /** Multi-site Both: download entity sitemap CSV in batch prep without SAP optimization mode. */
     prepEntitySitemap?: boolean;
   };
-  inContentImageRequest?: { imageType: string; userPrompt?: string };
-  setIsOptimizingContent: (prev: any) => any;
-  setOptimizationProgress: (prev: any) => any;
-  setBulkOptimizationState: (prev: any) => any;
+  inContentImageRequest?: { imageType: ImageType; userPrompt?: string };
+  setIsOptimizingContent: BooleanMapSetter;
+  setOptimizationProgress: Dispatch<
+    SetStateAction<Record<string, OptimizationProgressState>>
+  >;
+  setBulkOptimizationState: Dispatch<
+    SetStateAction<Record<string, BulkOptimizationState>>
+  >;
   optimizationFileManagers: Record<string, OptimizationFileManager>;
-  setOptimizationFileManagers?: (prev: any) => any;
+  setOptimizationFileManagers?: Dispatch<
+    SetStateAction<Record<string, OptimizationFileManager>>
+  >;
   continueOptimizationRef: React.MutableRefObject<
     | ((
         siteId: string,
-        selectedKeyword: any,
+        selectedKeyword: GSCQuery,
         clusterKeywords?: string[],
-        setIsKeywordSelectionOpen?: (prev: any) => any,
+        setIsKeywordSelectionOpen?: BooleanMapSetter,
         testMode?: boolean
       ) => Promise<void>)
     | null

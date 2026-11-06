@@ -42,6 +42,7 @@ describe("serializeOrganicClientReportMarkdown", () => {
         performanceNarrative: ["GA4 narrative."],
         keywordNarrative: ["Keyword narrative."],
         googleAdsNarrative: [],
+        localGridNarrative: [],
         topOpportunities: [],
       },
       siteName: "Blind Magic",

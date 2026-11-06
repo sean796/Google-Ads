@@ -1,7 +1,11 @@
 
-import { TabsContent } from "@/components/ui/tabs";
+import { TabsContent } from "@/ui";
+
+import type { Dispatch, SetStateAction } from "react";
+import type { GenerationResult } from "@/lib/api";
+import type { AgentConfig } from "@/types/agent-config";
 import { formatMarkdownContent, formatElapsedTime } from "../utils";
-import { FeaturedImageGenerator } from "../FeaturedImageGenerator";
+import { FeaturedImageGenerator, type FeaturedImageGeneratorState } from "../FeaturedImageGenerator";
 import { VideoScriptGenerator } from "../VideoScriptGenerator";
 
 interface OutputTabsProps {
@@ -19,13 +23,13 @@ interface OutputTabsProps {
   apiKey: string;
   flowTitle: string;
   flowPurpose: string;
-  agents: any[];
+  agents: AgentConfig[];
   selectedModel: string;
   temperature: number;
   maxTokens: number;
   topP: number;
-  setGenerationResult?: (result: any) => void;
-  onImageStateChange?: (state: any) => void;
+  setGenerationResult?: Dispatch<SetStateAction<GenerationResult>>;
+  onImageStateChange?: (state: FeaturedImageGeneratorState) => void;
   hideImageVideoTabs?: boolean;
 }
 

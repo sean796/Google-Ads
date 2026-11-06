@@ -122,6 +122,7 @@ export const CHAT_BUILTIN_PRESETS: PresetDef[] = [
         showLinkPreviews: true,
         showTypingIndicators: false,
         collapseThreadsByDefault: true,
+        noiseCancellationStrength: 75,
       },
     },
   },

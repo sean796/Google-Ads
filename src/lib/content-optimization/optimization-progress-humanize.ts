@@ -48,7 +48,7 @@ export function collapseOptimizationProgressToMilestones(
 
   for (const entry of entries) {
     const key = entry.stepId ?? "other";
-    const label = labelForStepId(key, entry.message);
+    const label = humanizeOptimizationMilestone(key, entry.message);
     const prev = milestones[milestones.length - 1];
     if (prev?.key === key) {
       prev.label = label;
@@ -86,7 +86,7 @@ export function humanizeOptimizationMilestone(
 }
 
 export function pickLatestOptimizationStatus(
-  progress: Pick<OptimizationProgressState, "stepId" | "step" | "message" | "microLog"> | undefined,
+  progress: (Pick<OptimizationProgressState, "stepId" | "message" | "microLog"> & { step?: string }) | undefined,
 ): string {
   if (progress?.stepId) {
     return labelForStepId(progress.stepId, progress.message);

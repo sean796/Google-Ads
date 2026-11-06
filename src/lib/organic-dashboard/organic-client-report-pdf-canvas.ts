@@ -1,4 +1,4 @@
-import { jsPDF } from "jspdf";
+import { jsPDF, type jsPDFOptions } from "jspdf";
 import {
   planPdfCanvasSlices,
   type PdfAvoidRegion,
@@ -12,7 +12,7 @@ export type ReportCanvasToPdfOptions = {
   margin: number;
   imageType: "jpeg" | "png";
   imageQuality: number;
-  jsPDF: { unit: string; format: string; orientation: string };
+  jsPDF: jsPDFOptions;
   theme: OrganicClientReportPdfTheme;
   breakpointsCanvasPx?: number[];
   avoidRegionsCanvasPx?: PdfAvoidRegion[];

@@ -268,7 +268,7 @@ export function useAgentRunLiveSnapshot(run: AgentRun): AgentRunLiveSnapshot | n
   const siteId = agentRunSiteId(run);
   const batchKey = resolveAgentRunBatchKey(run, siteId);
   const contract = run.plan?.clientRunContract;
-  const checkpoint = readAgentRunCheckpoint(run);
+  const checkpoint = useMemo(() => readAgentRunCheckpoint(run), [run]);
 
   const bulkBusy = batchKey ? Boolean(opt.isOptimizingContent[batchKey]) : false;
   const siteBusy = siteId ? Boolean(opt.isOptimizingContent[siteId]) : false;
@@ -377,24 +377,14 @@ export function useAgentRunLiveSnapshot(run: AgentRun): AgentRunLiveSnapshot | n
       completedUrlFiles: [],
     };
   }, [
-    batchKey,
     batchProgress,
     bulkBusy,
     bulkState,
-    checkpoint.completedUrlSummaries,
-    checkpoint.completedUrls,
-    checkpoint.currentIndex,
-    checkpoint.currentUrl,
-    checkpoint.currentUrlProgress,
-    checkpoint.lastMessage,
-    checkpoint.totalCount,
-    checkpoint.uploadedUrls,
+    checkpoint,
     contract?.resolvedPost?.link,
     contract?.resolvedPost?.slug,
     contract?.url,
     run,
-    run.errorMessage,
-    run.status,
     siteBusy,
     siteProgress,
   ]);

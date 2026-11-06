@@ -1,7 +1,19 @@
 import type React from "react";
+import type { Dispatch, SetStateAction } from "react";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { OptimizationFileManager } from "@/lib/optimization-file-manager";
+import type { GSCQuery } from "@/lib/gsc-query-clustering";
 import type { GscPerformancePreviewByUrl } from "./gsc-preview-types";
+import type {
+  BooleanMapSetter,
+  ClusterAnalysisSetter,
+  GscQueriesSetter,
+} from "./bulk-optimization-params";
+import type {
+  OptimizationProgressState,
+  PendingOptimization,
+} from "./use-optimization-state";
+import type { ImageType } from "@/lib/image-section-analyzer";
 
 /** Derive a keyword hint from SEM task suggestedAction (e.g. "Optimize for 'zebra shades'" -> "zebra shades"). */
 export function deriveKeywordHintFromSuggestedAction(suggestedAction: string): string | undefined {
@@ -25,10 +37,10 @@ export interface HandleOptimizeContentParams {
     date_gmt: string;
   }>;
   updateMode: "update" | "draft";
-  setGscQueriesForSelection: (prev: any) => any;
-  setIsKeywordSelectionOpen: (prev: any) => any;
-  setGscClusterAnalysis: (prev: any) => any;
-  setIsAnalyzingClusters: (prev: any) => any;
+  setGscQueriesForSelection: GscQueriesSetter;
+  setIsKeywordSelectionOpen: BooleanMapSetter;
+  setGscClusterAnalysis: ClusterAnalysisSetter;
+  setIsAnalyzingClusters: BooleanMapSetter;
   skipOnNoGSC: boolean;
   optimizationOptions?: {
     optimizeTitle?: boolean;
@@ -46,7 +58,7 @@ export interface HandleOptimizeContentParams {
     useAcfKeyword?: boolean;
     manualKeyword?: string;
   };
-  inContentImageRequest?: { imageType: string; userPrompt?: string };
+  inContentImageRequest?: { imageType: ImageType; userPrompt?: string };
   /** Sheet / inventory row: id required. Optional body skips WP fetch + URL resolve. */
   resolvedPost?: {
     id: number;
@@ -69,18 +81,26 @@ export interface HandleOptimizeContentParams {
     promptModifier?: string;
     focusCategories?: string[];
   };
-  setIsOptimizingContent: (prev: any) => any;
-  setOptimizationProgress: (prev: any) => any;
-  setOptimizationFileManagers: (prev: any) => any;
-  setPendingOptimization: (prev: any) => any;
+  setIsOptimizingContent: BooleanMapSetter;
+  setOptimizationProgress: Dispatch<
+    SetStateAction<Record<string, OptimizationProgressState>>
+  >;
+  setOptimizationFileManagers: Dispatch<
+    SetStateAction<Record<string, OptimizationFileManager>>
+  >;
+  setPendingOptimization: Dispatch<
+    SetStateAction<Record<string, PendingOptimization>>
+  >;
   optimizationFileManagers: Record<string, OptimizationFileManager>;
   continueOptimizationRef: React.MutableRefObject<
     | ((
         siteId: string,
-        selectedKeyword: any,
+        selectedKeyword: GSCQuery,
         clusterKeywords?: string[],
-        setIsKeywordSelectionOpen?: (prev: any) => any,
-        testMode?: boolean
+        setIsKeywordSelectionOpen?: BooleanMapSetter,
+        testMode?: boolean,
+        secondaryKeywords?: string[],
+        pendingOverride?: PendingOptimization
       ) => Promise<void>)
     | null
   >;

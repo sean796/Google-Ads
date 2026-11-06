@@ -15,25 +15,31 @@ import { patchOptimizationProgress } from "./optimization-helpers";
 import {
   hasSubstantiveSeoResearchBrief,
   buildOptimizeSelectionsFromStoredBrief,
+  type PageGscResultLike,
+  type PageGscQueryRow,
 } from "@/lib/content-optimization/seo-research-brief-for-optimize";
+import type { ProgressSetter } from "./optimization-helpers-a";
+import type { Dispatch, SetStateAction } from "react";
+
+type PaaResult = Awaited<ReturnType<typeof performKeywordResearch>>["paaResult"];
 
 export async function performKeywordResearchFlow(
   primaryKeyword: string,
-  selectedKeyword: any,
-  gscResult: any,
+  selectedKeyword: PageGscQueryRow,
+  gscResult: PageGscResultLike | null | undefined,
   clusterKeywords: string[] | undefined,
   site: WordPressSite,
   siteId: string,
   testMode: boolean,
-  setOptimizationProgress: (prev: any) => any,
+  setOptimizationProgress: ProgressSetter,
   /** When true, skip DataForSEO keyword/PAA APIs entirely (use primaryKeyword only). */
   skipKeywordApi: boolean = false,
   seoResearchBrief?: string | null,
 ): Promise<{
   keywordData: KeywordData;
   aiAnalysis: KeywordAIAnalysis;
-  paaResult: any;
-  paaRawResponse: any;
+  paaResult: PaaResult;
+  paaRawResponse: unknown;
   relatedKeywords: string[];
 }> {
   if (testMode) {
@@ -42,7 +48,7 @@ export async function performKeywordResearchFlow(
     return {
       keywordData: createMockKeywordData(primaryKeyword),
       aiAnalysis: createMockAIAnalysis(primaryKeyword),
-      paaResult: { items: [] },
+      paaResult: { items: [], rawResponse: null, extractionLog: [] },
       paaRawResponse: null,
       relatedKeywords: []
     };
@@ -51,7 +57,13 @@ export async function performKeywordResearchFlow(
   const gscQueries = gscResult?.queries || [];
   const relatedGSCKeywords = findRelatedGSCKeywords(
     primaryKeyword,
-    Array.isArray(gscQueries) ? gscQueries : [],
+    (Array.isArray(gscQueries) ? gscQueries : []).map((q) => ({
+      query: q.query,
+      clicks: q.clicks,
+      impressions: q.impressions,
+      ctr: q.ctr ?? 0,
+      position: q.position ?? 0,
+    })),
     clusterKeywords
   );
 
@@ -72,7 +84,11 @@ export async function performKeywordResearchFlow(
     return {
       keywordData: selections.keywordData,
       aiAnalysis: selections.aiAnalysis,
-      paaResult: { items: selections.selectedPeopleAlsoAsk },
+      paaResult: {
+        items: selections.selectedPeopleAlsoAsk.map((question) => ({ question })),
+        rawResponse: null,
+        extractionLog: [],
+      },
       paaRawResponse: null,
       relatedKeywords: selections.relatedKeywords,
     };
@@ -108,7 +124,7 @@ export async function performKeywordResearchFlow(
     return {
       keywordData,
       aiAnalysis,
-      paaResult: { items: [] },
+      paaResult: { items: [], rawResponse: null, extractionLog: [] },
       paaRawResponse: null,
       relatedKeywords: relatedGSCKeywords ?? [],
     };
@@ -118,7 +134,13 @@ export async function performKeywordResearchFlow(
 
   const researchResult = await performKeywordResearch(
     primaryKeyword,
-    selectedKeyword,
+    {
+      query: selectedKeyword.query,
+      clicks: selectedKeyword.clicks,
+      impressions: selectedKeyword.impressions,
+      ctr: selectedKeyword.ctr ?? 0,
+      position: selectedKeyword.position ?? 0,
+    },
     (progress) => patchOptimizationProgress(setOptimizationProgress, siteId, progress),
     relatedGSCKeywords
   );
@@ -134,10 +156,9 @@ export async function performKeywordResearchFlow(
   );
 
   if (researchResult.paaResult?.items && Array.isArray(researchResult.paaResult.items) && researchResult.paaResult.items.length > 0) {
-    aiAnalysis.peopleAlsoAsk = researchResult.paaResult.items.map((item: any) => ({
-      question: typeof item === 'string' ? item : (item.question || item.title || ''),
-      snippet: typeof item === 'string' ? '' : (item.snippet || item.description || '')
-    })).filter((paa: any) => paa.question);
+    aiAnalysis.peopleAlsoAsk = researchResult.paaResult.items
+      .map((item) => ({ question: item.question || "", answer: item.answer || "" }))
+      .filter((paa) => paa.question);
   }
 
   return {
@@ -158,8 +179,8 @@ export async function autoSelectOptimizationItems(
 ): Promise<{
   selectedKeywords: string[];
   selectedH2Sections: string[];
-  selectedPeopleAlsoAsk: any[];
-  selectedResearchLinks: any[];
+  selectedPeopleAlsoAsk: string[];
+  selectedResearchLinks: string[];
   updatedPrimaryKeyword?: string;
 }> {
   const { autoSelectKeywords, autoSelectH2Sections, autoSelectPeopleAlsoAsk, autoSelectResearchLinks } = getAutoSelectHelpers();
@@ -203,9 +224,9 @@ export function updateKeywordResearchFile(
   siteId: string,
   selectedKeywords: string[],
   selectedH2Sections: string[],
-  selectedPeopleAlsoAsk: any[],
-  selectedResearchLinks: any[],
-  setOptimizationFileManagers: (prev: any) => any
+  selectedPeopleAlsoAsk: string[],
+  selectedResearchLinks: string[],
+  setOptimizationFileManagers: Dispatch<SetStateAction<Record<string, OptimizationFileManager>>>
 ): void {
   const keywordResearchFiles = fileManager.getFiles().filter(f => f.name.includes('keyword-research'));
   if (keywordResearchFiles.length > 0) {
@@ -221,6 +242,6 @@ export function updateKeywordResearchFile(
       JSON.stringify(keywordResearchData, null, 2),
       'application/json'
     );
-    setOptimizationFileManagers((prev: any) => ({ ...prev, [siteId]: fileManager }));
+    setOptimizationFileManagers((prev) => ({ ...prev, [siteId]: fileManager }));
   }
 }

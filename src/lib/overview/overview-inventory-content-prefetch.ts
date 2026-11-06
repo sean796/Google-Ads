@@ -37,7 +37,7 @@ export async function ensureOverviewInventoryIncludesContent(
   for (let i = 0; i < pages.length; i += 1) {
     const page = i + 1;
     onPage?.(page, pageCount);
-    // eslint-disable-next-line no-await-in-loop
+     
     const batch = await fetchOverviewPageContentBatch({
       site,
       sitemapSource,

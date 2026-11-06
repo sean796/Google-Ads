@@ -99,6 +99,7 @@ function buildGscPipelineWorkflow(): WorkflowDefinition {
     id: 1,
     teamId: 1,
     name: "GSC pipeline",
+    status: "draft",
     nodes: [trigger],
     edges: [],
     ragVariables: [],
@@ -170,6 +171,8 @@ describe("executeWorkflowRun linear tail", () => {
     vi.mocked(fetchWorkflowStepOutputs).mockResolvedValue([]);
     vi.mocked(saveWorkflowStepOutput).mockImplementation(async (_teamId, _wfId, _runId, payload) => {
       const output: WorkflowStepOutput = {
+        id: 1,
+        runId: 10,
         nodeId: payload.nodeId,
         variableKey: payload.variableKey,
         scope: payload.scope,
@@ -177,6 +180,7 @@ describe("executeWorkflowRun linear tail", () => {
         textPreview: payload.textPreview,
         agentRunId: payload.agentRunId ?? undefined,
         fileRefs: payload.fileRefs,
+        createdAt: "",
       };
       savedOutputs.push(output);
       return { ok: true, output };

@@ -1,4 +1,5 @@
 import type { CSVRow } from "@/lib/bulk-auto-generate";
+import { GEMINI_FLASH_MODEL } from "@/lib/global-agent-models";
 import type { BulkSitemapScopeTag } from "@/lib/bulk/bulk-sitemap-mode";
 import { postOpenRouterAppChat } from "@/lib/openrouter-app-api";
 import type { PromptBulkKwConnectedSiteContext } from "@/lib/bulk/prompt-bulk-kw-research-agent";
@@ -212,7 +213,7 @@ export async function generateSimplePromptIdeas(args: {
   }));
 
   const topicLine = [args.topic?.trim(), args.modifier?.trim()].filter(Boolean).join(". ");
-  const model = args.model?.trim() || "google/gemini-2.5-flash";
+  const model = args.model?.trim() || GEMINI_FLASH_MODEL;
 
   const user = buildPromptBulkIdeasUserPayload({
     count,

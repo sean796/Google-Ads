@@ -38,7 +38,8 @@ describe("ads-reporting-section-prompts", () => {
     });
     expect(user).toContain("already applied, do not write it");
     expect(user).toContain("Do not output any ## heading");
-    expect(user).toContain("Bold those names only");
+    expect(user).toContain("Bold those names in prose only");
+    expect(user).toContain("pipe table cells must be plain text");
     expect(user).toContain("Never bold spend, clicks, impressions, conversions");
     expect(user).toContain("Only CPA, CPC, and CTR stay in all caps");
   });

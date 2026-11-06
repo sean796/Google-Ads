@@ -1,7 +1,7 @@
 import React from "react";
 import { ChevronRight } from "lucide-react";
-import type { PulseForgeRoute } from "@/lib/pulse-forge/pulse-forge-hash";
-import { setPulseForgeHash } from "@/lib/pulse-forge/pulse-forge-hash";
+import type { PulseForgeRoute } from "@/lib/pulse-forge/pulse-forge-route";
+import { setPulseForgeRoute } from "@/lib/pulse-forge/pulse-forge-route";
 import { cn } from "@/lib/utils";
 import { Button } from "@/ui";
 
@@ -16,6 +16,17 @@ const SECTION_LABELS = {
   workflows: "Workflows",
 } as const;
 
+type WorkflowEditRoute = Extract<PulseForgeRoute, { view: "edit" }>;
+type RecipeBuilderRoute = Extract<PulseForgeRoute, { view: "builder" }>;
+
+function isWorkflowEditRoute(route: PulseForgeRoute): route is WorkflowEditRoute {
+  return route.section === "workflows" && "view" in route && route.view === "edit";
+}
+
+function isRecipeBuilderRoute(route: PulseForgeRoute): route is RecipeBuilderRoute {
+  return route.section === "recipes" && "view" in route && route.view === "builder";
+}
+
 function buildCrumbs(
   route: PulseForgeRoute,
   recipeName: string | null | undefined,
@@ -23,27 +34,25 @@ function buildCrumbs(
 ): Crumb[] {
   const crumbs: Crumb[] = [{ label: "Forge", route: { section: "forge" } }];
 
-  if (route.section === "forge" && !("view" in route)) {
+  if (route.section === "forge") {
     crumbs.push({ label: SECTION_LABELS.forge, route: null });
     return crumbs;
   }
 
   if (route.section === "workflows") {
     crumbs.push({ label: SECTION_LABELS.workflows, route: { section: "workflows" } });
-    if ("view" in route) {
-      if (route.view === "new") {
-        crumbs.push({ label: workflowName?.trim() || "New workflow", route: null });
-      } else {
-        crumbs.push({
-          label: workflowName?.trim() || `Workflow ${route.workflowId}`,
-          route: null,
-        });
-      }
+    if ("view" in route && route.view === "new") {
+      crumbs.push({ label: workflowName?.trim() || "New workflow", route: null });
+    } else if (isWorkflowEditRoute(route)) {
+      crumbs.push({
+        label: workflowName?.trim() || `Workflow ${route.workflowId}`,
+        route: null,
+      });
     }
     return crumbs;
   }
 
-  if (route.section === "recipes" && "view" in route && route.view === "builder") {
+  if (isRecipeBuilderRoute(route)) {
     if (route.workflowId) {
       const workflowRoute = {
         section: "workflows" as const,
@@ -68,8 +77,8 @@ function buildCrumbs(
   }
 
   crumbs.push({
-    label: SECTION_LABELS[route.section],
-    route: { section: route.section },
+    label: SECTION_LABELS.recipes,
+    route: { section: "recipes" },
   });
 
   return crumbs;
@@ -106,7 +115,7 @@ export function PulseForgeBreadcrumbs({
                 <span className="font-normal text-white">{crumb.label}</span>
               ) : (
                 <Button
-                  onClick={() => setPulseForgeHash(crumb.route!)}
+                  onClick={() => setPulseForgeRoute(crumb.route!)}
                 >
                   {crumb.label}
                 </Button>

@@ -19,6 +19,7 @@ import {
   type GoogleImagesSerpItem,
 } from "@/lib/overview/overview-local-image-dfs-normalize";
 import { BACKEND_API_BASE, backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
 import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
@@ -140,6 +141,8 @@ export type ImageReferenceResult = {
   imageUrl: string;
   sourceUrl?: string;
   query: string;
+  /** Role label from the grounding target this ref was picked for. */
+  role?: string;
   kind: ImageGroundingKind;
   layer: ImageGroundingLayer;
   why: string;
@@ -1142,7 +1145,7 @@ async function fetchGoogleImagesForQuery(
   const location_name = (locationName || "").trim() || "United States";
   const res = await fetch(`${BACKEND_API_BASE}/api/dataforseo/google-images`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       keyword,
       location_name,
@@ -1164,7 +1167,7 @@ async function prefetchImageDataUrl(imageUrl: string, referer?: string): Promise
   try {
     const res = await fetch(backendApiUrl("/images/fetch-data-url"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         url: imageUrl,
         referer: (referer || "").trim() || "https://www.google.com/",
@@ -1322,6 +1325,7 @@ ${pickInstructions}`,
       imageUrl: remoteImage,
       sourceUrl,
       query: params.target.query,
+      role: params.target.role,
       kind: params.target.kind,
       layer: params.target.layer || defaultLayerForKind(params.target.kind),
       why: pick.why,

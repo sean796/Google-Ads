@@ -1,4 +1,5 @@
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import type { CompetitorResearchSemrushResponse } from "@/lib/competitor-research/types";
 import { fetchCompetitorResearchSemrush, fetchManualCompetitorDomain } from "@/lib/competitor-research/competitor-semrush-client";
 
@@ -21,7 +22,7 @@ export async function fetchCompetitorResearchForTab(options: {
   const url = `${base}/api/dataforseo/competitor-research`;
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       siteUrl: options.siteUrl ?? "",
       portfolioBlockedHosts: options.portfolioBlockedHosts,
@@ -58,7 +59,7 @@ export async function fetchManualCompetitorDomainForTab(options: {
   const url = `${base}/api/dataforseo/competitor-research/manual-domain`;
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       domain: options.domain.trim(),
       siteUrl: options.siteUrl ?? "",

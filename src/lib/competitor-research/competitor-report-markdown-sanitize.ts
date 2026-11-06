@@ -35,7 +35,7 @@ function sanitizeMarkdownLineHyphenExplosion(line: string): string {
   if (DASH_ONLY_LINE.test(t)) return "---";
   if (!t.startsWith("|")) return line;
   // Pipe table separator / alignment rows use only | : - and whitespace
-  if (!/^[\s|:\-]+$/.test(t)) return line;
+  if (!/^[\s|:-]+$/.test(t)) return line;
   return sanitizePipeTableSeparatorLine(line);
 }
 
@@ -161,7 +161,7 @@ export function stripHtmlDecorations(md: string): string {
 function isPipeTableSeparatorRow(line: string): boolean {
   const t = line.trim();
   if (!t.startsWith("|")) return false;
-  return /^[\s|:\-]+$/.test(t);
+  return /^[\s|:-]+$/.test(t);
 }
 
 function hrefLooksLikeCmsDuplicatePage(href: string): boolean {

@@ -1,16 +1,11 @@
 import React, { useCallback, useRef, useState } from "react";
 import { Sparkles, SpellCheck } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 import { cn } from "@/lib/utils";
 import { transformChatHtml, type ChatAiMode } from "@/lib/chat-ai-compose";
 import type { ChatRichEditorHandle } from "@/components/chat/editor/ChatRichEditor";
 import { CHAT_ICON_BTN_CLASS } from "@/components/chat/chat-theme";
-import { Button } from "@/ui";
+import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/ui";
 
 const AI_MENU: Array<{ mode: ChatAiMode; label: string }> = [
   { mode: "correct", label: "Correct" },
@@ -57,7 +52,7 @@ export function ChatAiToolbar({
       if (controller.signal.aborted) return;
 
       setActiveMode(null);
-      if (result.ok) {
+      if (result.ok === true) {
         editor.setHtml(result.bodyHtml);
         onHtmlChange?.(result.bodyHtml);
       } else if (result.error !== "Cancelled") {

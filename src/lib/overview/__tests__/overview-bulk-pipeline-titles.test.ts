@@ -134,7 +134,7 @@ describe("resolveBulkRowPipelineTitles", () => {
       },
       urlHarnessSections: {
         "https://example.com/a": [
-          { sectionIndex: 0, title: "DataForSEO SERP", status: "generating" },
+          { sectionIndex: 0, title: "DataForSEO SERP", status: "generating" as const },
         ],
       },
     };
@@ -244,7 +244,7 @@ describe("resolveBulkRowPipelineTitles", () => {
   it("uses provided curate step titles instead of SERP research brief", () => {
     expect(
       resolveBulkRowPipelineTitles(undefined, [
-        { sectionIndex: 0, title: "GSC post top 10: Lindsey Blinds", status: "active" },
+        { sectionIndex: 0, title: "GSC post top 10: Lindsey Blinds", status: "generating" },
         { sectionIndex: 1, title: "Site inventory: Lindsey Blinds", status: "waiting" },
       ], [], [
         "GSC post top 10: Lindsey Blinds",

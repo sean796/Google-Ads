@@ -7,9 +7,8 @@ import type {
   TieredCompetitorsResult,
 } from "@/lib/competitor-research/types";
 import { sortKeywordsByTrafficThenVolume } from "@/lib/competitor-research/competitor-keyword-sort";
-import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
+import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
 
-const OR = "https://openrouter.ai/api/v1/chat/completions";
 
 function parseTiersJson(content: string): TieredCompetitorsResult {
   try {
@@ -138,9 +137,8 @@ Rules:
 - Include all domains from semrushRows (same count); do not invent domains.
 - summary: synthesize the competitive set using **GSC/seed sub-niche themes (when present), keyword overlap, and fit**, not region guesses.`;
 
-  const res = await fetch(OR, {
+  const res = await postOpenRouterAppChatFetch({
     method: "POST",
-    headers: openRouterWebAppHeaders(apiKey),
     body: JSON.stringify({
       model: getResearchModel(options?.siteId),
       messages: [

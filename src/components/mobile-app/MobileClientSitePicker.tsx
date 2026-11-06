@@ -2,14 +2,9 @@ import { ChevronDown } from "lucide-react";
 import { useWordPressSites } from "@/hooks/use-wordpress-sites";
 import { useActiveWordPressSite } from "@/contexts/active-wordpress-site-context";
 import { wordpressSiteMenuDisplayName } from "@/lib/wordpress-site-display-name";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui";
+import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/ui";
 
 export function MobileClientSitePicker() {
   const { sites, handleConnectSite } = useWordPressSites();

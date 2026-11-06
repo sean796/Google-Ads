@@ -3,6 +3,7 @@
  */
 
 import { BACKEND_API_BASE } from '@/lib/wordpress-api/connection';
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 export interface LocationDiscoveryAddress {
   label: string;
@@ -62,10 +63,10 @@ export async function fetchEnrichLocationPageAddresses(
   try {
     const res = await fetch(url, {
       method: 'POST',
-      headers: {
+      headers: neoPulseApiHeaders({
         'Content-Type': 'application/json',
         'x-openrouter-api-key': options.apiKey.trim(),
-      },
+      }),
       body: JSON.stringify({
         siteUrl: trimmed,
         pages: pages.map((p) => ({ path: p.path, href: p.href })),
@@ -107,7 +108,7 @@ export async function fetchLocationDiscovery(
   try {
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         siteUrl: trimmed,
         ...(entitySitemapUrl ? { entitySitemapUrl } : {}),

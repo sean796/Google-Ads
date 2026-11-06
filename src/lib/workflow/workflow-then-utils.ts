@@ -103,7 +103,7 @@ export function applyThenStepScheduleFromPayload(
   for (const key of THEN_STEP_SCHEDULE_KEYS) {
     const value = executionPayload[key];
     if (value !== undefined) {
-      schedulePatch[key] = value;
+      (schedulePatch as Record<string, unknown>)[key] = value;
     }
   }
 

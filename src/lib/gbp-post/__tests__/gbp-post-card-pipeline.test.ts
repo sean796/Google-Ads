@@ -8,9 +8,9 @@ const sampleSite: WordPressSite = {
   siteUrl: "https://example.com",
   username: "user",
   appPassword: "pass",
+  connectedAt: 0,
   gbpLocationId: "loc-1",
   enabled: true,
-  pagesSitemapUrl: "https://example.com/page-sitemap.xml",
 };
 
 describe("runGbpPostCardPipeline preferredUrl", () => {

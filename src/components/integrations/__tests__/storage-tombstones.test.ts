@@ -21,6 +21,13 @@ describe("storage tombstone and recovery hardening", () => {
       removeItem: (key: string) => {
         delete store[key];
       },
+      clear: () => {
+        store = {};
+      },
+      key: (index: number) => Object.keys(store)[index] ?? null,
+      get length() {
+        return Object.keys(store).length;
+      },
     } satisfies Storage);
   });
 
@@ -56,11 +63,8 @@ describe("storage tombstone and recovery hardening", () => {
     expect(tombstones.some((t) => t.name === "in the shade")).toBe(false);
   });
 
-  it("self-heals and returns all 17 default clients when storage is empty", () => {
+  it("returns an empty visible list when storage is empty (Wave 0: no bundled seed)", () => {
     const sites = getStoredSites();
-    expect(sites.length).toBe(17);
-    expect(sites.some((s) => s.name === "In the Shade")).toBe(true);
-    expect(sites.some((s) => s.name === "Advance Blinds")).toBe(true);
-    expect(sites.some((s) => s.name === "Blind Magic")).toBe(true);
+    expect(sites).toEqual([]);
   });
 });

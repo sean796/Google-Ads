@@ -4,9 +4,8 @@
  */
 import { loadApiKey } from "@/lib/api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
-import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
+import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
 
-const OR = "https://openrouter.ai/api/v1/chat/completions";
 
 function keysFromModelContent(content: string, n: number): string[] | null {
   const t = content.trim();
@@ -27,9 +26,8 @@ async function aiKeys(lines: string[], siteId?: string, apiKeyOverride?: string)
   const apiKey = (apiKeyOverride ?? loadApiKey()).trim();
   if (!apiKey) return passThroughKeys(lines);
   try {
-    const res = await fetch(OR, {
+    const res = await postOpenRouterAppChatFetch({
       method: "POST",
-      headers: openRouterWebAppHeaders(apiKey),
       body: JSON.stringify({
         model: getResearchModel(siteId),
         messages: [

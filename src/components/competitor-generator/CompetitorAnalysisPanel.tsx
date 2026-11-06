@@ -12,7 +12,7 @@ import { BulkEntityWorkspaceBody } from "@/components/keyword-research/bulk/Bulk
 import { useCompetitorGeneration } from "@/components/competitor-generation/hooks/useCompetitorGeneration";
 import { useCompetitorGridCsv } from "@/components/competitor-generation/hooks/useCompetitorGridCsv";
 import type { CompetitorWorkspaceControls } from "@/components/competitor-generation/types";
-import { buildCompetitorMicroSnapshot } from "@/lib/competitor-analysis/competitor-comparison-harness-state";
+import { buildCompetitorMicroSnapshot } from "@/lib/competitor-research/competitor-comparison-harness-state";
 import { allRowIndicesSet } from "@/lib/bulk-processing-order";
 import { downloadLocalAnalysisBulkCsv } from "@/lib/local-analysis-csv-export";
 import {

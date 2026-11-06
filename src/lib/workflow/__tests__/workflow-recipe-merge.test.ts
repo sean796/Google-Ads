@@ -16,6 +16,7 @@ function chainWorkflow(nodes: ReturnType<typeof createWorkflowNode>[]): Workflow
     id: 7,
     teamId: 1,
     name: "GSC Monthly MoM Report",
+    status: "draft",
     nodes,
     edges,
     ragVariables: [],

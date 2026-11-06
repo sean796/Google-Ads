@@ -162,10 +162,10 @@ export function injectImportedLinksIntoChecklist(
   return next;
 }
 
-export function injectImportedLinksIntoBlueprintAgents(
-  agents: Array<{ title?: string; features?: string[] }>,
+export function injectImportedLinksIntoBlueprintAgents<T extends { title?: string; features?: string[] }>(
+  agents: T[],
   links: ImportedDraftLink[],
-): Array<{ title?: string; features?: string[] }> {
+): T[] {
   if (links.length === 0) return agents;
   return agents.map((agent) => {
     const features = Array.isArray(agent.features) ? [...agent.features] : [];

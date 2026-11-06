@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 export interface OverviewScrapeResult {
   title: string;
@@ -31,9 +32,9 @@ export function useOverviewScrape(): UseOverviewScrapeResult {
     try {
       const response = await fetch(`${BACKEND_API_BASE}/api/overview/fetch-page-meta`, {
         method: "POST",
-        headers: {
+        headers: neoPulseApiHeaders({
           "Content-Type": "application/json",
-        },
+        }),
         body: JSON.stringify({ url: trimmed }),
       });
 
@@ -57,8 +58,8 @@ export function useOverviewScrape(): UseOverviewScrapeResult {
         metaDescription: json.metaDescription || "",
         pageHeading: json.pageHeading || "",
       };
-    } catch (err: any) {
-      const message = err?.message || "Failed to scrape meta for URL.";
+    } catch (err) {
+      const message = (err instanceof Error ? err.message : "") || "Failed to scrape meta for URL.";
       setError(message);
       return null;
     } finally {

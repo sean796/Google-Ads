@@ -4,6 +4,7 @@ import {
   generateBlueprintFromTemplate,
 } from "@/lib/blog-template-builder";
 import { INTERNAL_LINK_PLACEHOLDER_FEATURE_SUFFIX } from "@/lib/content-generation/internal-link-placeholders";
+import type { KeywordData } from "@/lib/keyword-types";
 import { deriveSerpH2Outline } from "@/lib/content-optimization/serp-h2-outline";
 
 const streamChatCompletion = vi.fn();
@@ -39,11 +40,15 @@ vi.mock("@/lib/content-optimization/serp-h2-outline", async (importOriginal) => 
   };
 });
 
-const keywordData = {
+const keywordData: KeywordData = {
   keyword: "solar panels edmonton",
   searchVolume: 100,
   difficulty: 40,
+  cpc: 1,
+  competition: "LOW",
   intent: "informational",
+  relatedKeywords: [],
+  serpFeatures: [],
 };
 
 describe("generateChecklistFromSelections posts optimize", () => {
@@ -243,7 +248,6 @@ describe("generateChecklistFromSelections posts optimize", () => {
         currentPageUrl: "https://blindmagic.com/blog/smart-blinds-automation/",
         connectedSite: { name: "Blind Magic", siteUrl: "https://blindmagic.com" },
         wordPressPosts: pageInventory,
-        existingContent: liveHtml,
       },
     );
 
@@ -402,7 +406,7 @@ describe("generateChecklistFromSelections posts optimize", () => {
     expect(result.agents[0]?.title).toBe("Salt Air Fades Roman Shade Fabric Fast");
   });
 
-  it("uses the checklist row when json_object is invalid", async () => {
+  it("throws when the blueprint response is not valid JSON", async () => {
     postOpenRouterAppChat.mockResolvedValue({
       content: "not valid json",
       finishReason: "stop",
@@ -410,15 +414,31 @@ describe("generateChecklistFromSelections posts optimize", () => {
     });
 
     const checklist = ["1. Salt Air And Roman Shades [STRUCTURE]: 2 paragraphs. [LINK]: links."];
-    const result = await generateBlueprintFromTemplate(
-      checklist,
-      { flowTitle: "Test", flowPurpose: "Guide", keywordData: keywordData as never },
-      { apiKey: "test-key", currentPageUrl: "https://example.com/page/" },
-    );
-
-    expect(result.agents.length).toBe(1);
-    expect(result.agents[0]?.title).toBe("Salt Air And Roman Shades");
+    await expect(
+      generateBlueprintFromTemplate(
+        checklist,
+        { flowTitle: "Test", flowPurpose: "Guide", keywordData: keywordData as never },
+        { apiKey: "test-key", currentPageUrl: "https://example.com/page/" },
+      ),
+    ).rejects.toThrow(/Blueprint response was not valid JSON/);
     expect(postOpenRouterAppChat).toHaveBeenCalledTimes(1);
+  });
+
+  it("throws when the blueprint response does not match the schema", async () => {
+    postOpenRouterAppChat.mockResolvedValue({
+      content: JSON.stringify({ title: "", agents: [] }),
+      finishReason: "stop",
+      raw: {},
+    });
+
+    const checklist = ["1. Salt Air And Roman Shades [STRUCTURE]: 2 paragraphs. [LINK]: links."];
+    await expect(
+      generateBlueprintFromTemplate(
+        checklist,
+        { flowTitle: "Test", flowPurpose: "Guide", keywordData: keywordData as never },
+        { apiKey: "test-key", currentPageUrl: "https://example.com/page/" },
+      ),
+    ).rejects.toThrow(/did not match the blueprint schema/);
   });
 
   it("fills missing agents so the blueprint matches the checklist count", async () => {

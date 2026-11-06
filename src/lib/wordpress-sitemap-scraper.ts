@@ -143,12 +143,6 @@ export async function scrapeChildSitemap(
       onProgress?.(`Fetching content from ${i + 1}/${allUrls.length}: ${url.substring(0, 50)}...`);
       console.log(`[WordPress] Fetching content from WordPress API: ${url}`);
       
-      // Extract last path segment, try posts then pages, ALWAYS SAVE
-      const normalizedUrl = site.siteUrl.replace(/\/$/, '');
-      const authHeader = site.username && site.appPassword 
-        ? `Basic ${btoa(`${site.username}:${site.appPassword}`)}`
-        : null;
-      
       let pageContent = '';
       let title = url;
       
@@ -176,97 +170,36 @@ export async function scrapeChildSitemap(
       }
       
       if (slug && !isHomepage && !pageContent) {
-        // Build list of post types to try: posts, pages, and custom post types from URL path
-        const postTypes = ['posts', 'pages'];
-        
-        // Detect custom post type from URL path (e.g., /service-area/... -> service-area)
-        if (pathSegments.length > 1) {
-          const pathSegment = pathSegments[0]; // e.g., "service-area"
-          // Try both hyphenated and underscore versions (WordPress REST uses underscores)
-          postTypes.push(pathSegment.replace(/-/g, '_')); // service-area -> service_area
-          // Also try exact path segment in case REST base is different
-          if (pathSegment.includes('-')) {
-            postTypes.push(pathSegment); // Keep service-area as-is
+        // Hub slug lookup: the server resolves posts, pages, and custom post types.
+        try {
+          if (i > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayBetweenRequests));
           }
-        }
-        
-        // Try each post type via WordPress REST API ONLY
-        for (const postType of postTypes) {
-          if (pageContent) break; // Stop if we found content
-          
-          try {
-            const apiUrl = `${normalizedUrl}/wp-json/wp/v2/${postType}?slug=${encodeURIComponent(slug)}`;
-            
-            // Rate limiting - delay before each API request
-            if (i > 0 || postTypes.indexOf(postType) > 0) {
-              await new Promise(resolve => setTimeout(resolve, delayBetweenRequests));
+          const restHints = pathSegments.length > 1
+            ? Array.from(new Set([pathSegments[0], pathSegments[0].replace(/-/g, '_')]))
+            : undefined;
+          const result = await getWordPressPostContent(
+            site.siteUrl,
+            site.username,
+            site.appPassword,
+            undefined,
+            [slug],
+            undefined,
+            { restEndpointHints: restHints },
+          );
+          const found = result.posts?.[0];
+          if (found) {
+            if (found.title) {
+              title = found.title;
+              pageTitle = title;
             }
-            
-            const response = await fetch(apiUrl, {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                ...(authHeader ? { 'Authorization': authHeader } : {}),
-              },
-            });
-            
-            if (response.ok) {
-              const data = await response.json();
-              if (Array.isArray(data) && data.length > 0) {
-                const contentData = data[0];
-                
-                if (contentData.title?.rendered) {
-                  title = contentData.title.rendered;
-                  pageTitle = title;
-                }
-                
-                const contentHtml = contentData.content?.rendered || contentData.content || '';
-                const excerptHtml = contentData.excerpt?.rendered || contentData.excerpt || '';
-                const contentText = htmlToMarkdown(contentHtml).trim();
-                const excerptText = htmlToMarkdown(excerptHtml).trim();
-                
-                pageContent = excerptText ? excerptText + '\n\n' + contentText : contentText;
-                console.log(`[WordPress] Found via REST API as ${postType}: ${slug}`);
-                break;
-              }
-            } else if (response.status === 404) {
-              // Post type doesn't exist or not REST-exposed - try next
-              console.log(`[WordPress] Post type ${postType} not found or not REST-exposed (404)`);
-            } else if (response.status === 429) {
-              // Rate limited - wait longer and retry
-              console.warn(`[WordPress] Rate limited (429) for ${postType}, waiting longer...`);
-              await new Promise(resolve => setTimeout(resolve, delayBetweenRequests * 3));
-              // Retry once
-              const retryResponse = await fetch(apiUrl, {
-                method: 'GET',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Accept': 'application/json',
-                  ...(authHeader ? { 'Authorization': authHeader } : {}),
-                },
-              });
-              if (retryResponse.ok) {
-                const data = await retryResponse.json();
-                if (Array.isArray(data) && data.length > 0) {
-                  const contentData = data[0];
-                  if (contentData.title?.rendered) {
-                    title = contentData.title.rendered;
-                    pageTitle = title;
-                  }
-                  const contentHtml = contentData.content?.rendered || contentData.content || '';
-                  const excerptHtml = contentData.excerpt?.rendered || contentData.excerpt || '';
-                  const contentText = htmlToMarkdown(contentHtml).trim();
-                  const excerptText = htmlToMarkdown(excerptHtml).trim();
-                  pageContent = excerptText ? excerptText + '\n\n' + contentText : contentText;
-                  console.log(`[WordPress] Found via REST API as ${postType} (after retry): ${slug}`);
-                  break;
-                }
-              }
-            }
-          } catch (error) {
-            console.warn(`[WordPress] Error fetching ${postType} via REST API: ${error}`);
+            const contentText = htmlToMarkdown(found.content || '').trim();
+            const excerptText = htmlToMarkdown(found.excerpt || '').trim();
+            pageContent = excerptText ? excerptText + '\n\n' + contentText : contentText;
+            console.log(`[WordPress] Found via hub content lookup: ${slug}`);
           }
+        } catch (error) {
+          console.warn(`[WordPress] Hub content lookup failed for slug ${slug}: ${error}`);
         }
       }
       

@@ -6,7 +6,7 @@ import { ApiDocsSidebar } from "@/components/api-docs/ApiDocsSidebar";
 import { ApiDocsToc } from "@/components/api-docs/ApiDocsToc";
 import { SEO_WORKSPACE_TYPO_CLASS } from "@/components/seo/seo-workspace-layout";
 import { getArticleToc, loadApiDocArticle } from "@/lib/api-docs";
-import { setApiDocsHash, useApiDocsSlug } from "@/lib/api-docs/api-docs-hash";
+import { setApiDocsRoute, useApiDocsSlug } from "@/lib/api-docs/api-docs-route";
 import type { ApiDocArticle } from "@/lib/api-docs/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/ui";
@@ -33,7 +33,7 @@ function ApiDocsArticle({ article }: { article: ApiDocArticle }) {
               {article.related.map((rel) => (
                 <li key={rel}>
                   <Button
-                    onClick={() => setApiDocsHash(rel)}
+                    onClick={() => setApiDocsRoute(rel)}
                   >
                     {rel}
                   </Button>
@@ -55,7 +55,7 @@ function ApiDocsNotFound({ slug }: { slug: string }) {
         <h1 className="mb-2 font-sans text-2xl font-normal text-white">Article not found</h1>
         <p className="mb-6 text-base text-white">No documentation for `{slug}`.</p>
         <Button
-          onClick={() => setApiDocsHash("getting-started")}
+          onClick={() => setApiDocsRoute("getting-started")}
         >
           Go to Introduction
         </Button>

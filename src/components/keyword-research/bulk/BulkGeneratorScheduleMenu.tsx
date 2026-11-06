@@ -1,5 +1,5 @@
 import { CalendarClock } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 import {
   WordPressScheduleFields,
   type WordPressScheduleFieldsProps,
@@ -7,7 +7,7 @@ import {
 import { BULK_HEADER_ICON_TOOL_BTN } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import { formatBulkScheduleSummary } from "@/lib/bulk/bulk-schedule-summary";
 import type { WordPressPostDestination } from "@/lib/bulk-auto-generate";
-import { Button } from "@/ui";
+import { Button, Popover, PopoverContent, PopoverTrigger } from "@/ui";
 
 export type BulkGeneratorScheduleMenuProps = WordPressScheduleFieldsProps & {
   postDestination: WordPressPostDestination;

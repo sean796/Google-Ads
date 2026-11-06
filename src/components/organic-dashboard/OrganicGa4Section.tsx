@@ -1,6 +1,7 @@
 import { BarChart3 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { useBoxReady } from "@/components/ui/chart-box-ready";
+import { useBoxReady } from "@/ui";
+
 import type {
   OrganicChartPoint,
   OrganicDashboardPeriodLabels,

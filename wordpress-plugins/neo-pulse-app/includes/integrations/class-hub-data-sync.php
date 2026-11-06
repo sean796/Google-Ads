@@ -33,9 +33,6 @@ class Neo_Pulse_App_Hub_Data_Sync {
 
 	public static function require_sync_token(): bool {
 		$expected = self::sync_token();
-		if ( $expected === '' && self::allow_open_local_export() ) {
-			return true;
-		}
 		if ( $expected === '' ) {
 			Neo_Pulse_App_Api_Dispatcher::send_json(
 				array(
@@ -60,17 +57,6 @@ class Neo_Pulse_App_Hub_Data_Sync {
 			return false;
 		}
 		return true;
-	}
-
-	private static function is_hub_container(): bool {
-		if ( defined( 'NEO_PULSE_HUB' ) && (string) NEO_PULSE_HUB === '1' ) {
-			return true;
-		}
-		return trim( (string) getenv( 'NEO_PULSE_HUB' ) ) === '1';
-	}
-
-	private static function allow_open_local_export(): bool {
-		return ! self::is_hub_container();
 	}
 
 	/**

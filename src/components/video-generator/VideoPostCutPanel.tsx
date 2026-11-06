@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Layers, Play, ShieldCheck, Sparkles, Undo2, Video, X } from "lucide-react";
 import { IMAGE_REFERENCE_ACCEPT, prepareVideoStudioReference } from "@/lib/image-generator/manual-reference-upload";
-import type { PostCutSceneReference } from "@/lib/video-generator/video-generator-types";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import type { PostCutSceneReference, VideoScenePlan } from "@/lib/video-generator/video-generator-types";
+
+
 import { MY_SITES_FIELD } from "@/components/hosting/my-sites/my-sites-theme";
 import {
   VIDEO_FADE_DURATIONS,
@@ -16,7 +16,7 @@ import {
   type VideoTransitionType,
 } from "@/lib/video-generator/video-generator-types";
 import { reviseScenePromptWithAi } from "@/lib/video-generator/video-prompt-remaker-agent";
-import { Button, FileInput, SelectField, TextareaField } from "@/ui";
+import { Button, FileInput, SelectField, TextareaField, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/ui";
 
 export type VideoPostCutPanelProps = {
   apiKey?: string;
@@ -90,7 +90,7 @@ export function VideoPostCutPanel({
   const clip = activeScene && render ? render.scenes.find((s) => s.sceneId === activeScene.id) : undefined;
 
   const isFrameGenerating = frame?.status === "generating";
-  const isClipRendering = clip?.status === "generating" || clip?.status === "rendering";
+  const isClipRendering = clip?.status === "generating";
   const isRenderActive = render?.status === "rendering" || render?.status === "stitching";
 
   const [promptText, setPromptText] = useState(() => getInitialScenePrompt(frame, activeScene));
@@ -103,7 +103,7 @@ export function VideoPostCutPanel({
     setPromptText(getInitialScenePrompt(frame, activeScene));
     setInstructionText(getInitialInstructionText(activeScene));
     setRemakeNotice(null);
-  }, [frame?.videoPrompt, activeScene?.id, activeScene?.revisionNotes]);
+  }, [frame?.videoPrompt, activeScene?.id, activeScene?.revisionNotes, activeScene, frame]);
 
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const sceneReference: PostCutSceneReference | null =

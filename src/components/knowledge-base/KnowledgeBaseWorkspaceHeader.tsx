@@ -13,7 +13,7 @@ import {
   type KnowledgeBaseToolbarProps,
 } from "@/components/knowledge-base/KnowledgeBaseToolbar";
 import type { KnowledgeBaseSectionId } from "@/lib/knowledge-base/types";
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 
 const DETAILS_PANEL_ID = "knowledge-base-details-panel";
 

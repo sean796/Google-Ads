@@ -53,7 +53,7 @@ export async function filterWikipediaPoolWithAI(
   if (existingAcfContext.length === 0) return pool;
 
   const existingSet = buildExistingLocationSet(existingAcfContext);
-  let poolAfterExact = pool.filter(
+  const poolAfterExact = pool.filter(
     (item) => !existingSet.has(item.entity.trim().toLowerCase())
   );
   const exactRemoved = pool.length - poolAfterExact.length;

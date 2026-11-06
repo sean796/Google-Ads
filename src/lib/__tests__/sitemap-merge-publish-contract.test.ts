@@ -7,7 +7,7 @@ import { resolveMergeDestinationUrl } from "@/lib/sitemap-optimizer/sitemap-opti
 import { buildContentSheetRows } from "@/lib/sitemap-optimizer/build-content-sheet-rows";
 import type { SitemapOptimizerRunResult } from "@/lib/sitemap-optimizer/types";
 
-const sampleResultBase = {
+const sampleResultBase: Omit<SitemapOptimizerRunResult, "contentSheet"> = {
   rows: [
     {
       postId: "wp:1",
@@ -146,13 +146,14 @@ describe("sitemap-merge-publish-contract", () => {
             label: "Charleswood blinds",
             intent: "local",
             memberPostIds: [row.postId],
-            confidence: "high",
+            confidence: "high" as const,
             rationale: "",
           },
         ],
         singletons: [],
       },
       merges: [merge],
+      contentSheet: [],
       gscMissCount: 0,
       dateRange: { startDate: "2026-04-01", endDate: "2026-05-01" },
       analyzedAt: "2026-05-01T00:00:00.000Z",
@@ -187,7 +188,7 @@ describe("sitemap-merge-publish-contract", () => {
             label: "Boynton Beach blinds",
             intent: "local",
             memberPostIds: [row.postId],
-            confidence: "high",
+            confidence: "high" as const,
             rationale: "",
           },
         ],
@@ -199,8 +200,8 @@ describe("sitemap-merge-publish-contract", () => {
           postId: row.postId,
           sourceUrl: destinationUrl,
           sourceTitle: "",
-          action: "merge",
-          priority: "medium",
+          action: "merge" as const,
+          priority: "medium" as const,
           proposedTitle: "Boynton Beach Window Coverings",
           proposedPrimaryKeyword: "blinds boynton beach",
           proposedMeta: "Local blinds in Boynton Beach.",

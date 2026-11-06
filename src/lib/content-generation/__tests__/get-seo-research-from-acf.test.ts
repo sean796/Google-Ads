@@ -22,7 +22,7 @@ describe("downloadFieldsFromInventoryRow", () => {
         seo_research: '{"focusKeyword":"hunter douglas blinds"}',
         keyword_focus: "hunter douglas blinds",
       },
-      fields: { title: "Title", excerpt: "Excerpt" },
+      fields: { title: "Title", excerpt: "Excerpt", meta: "", keyword: "" },
     };
     const fields = downloadFieldsFromInventoryRow(row);
     expect(fields.seoResearch).toContain("focusKeyword");

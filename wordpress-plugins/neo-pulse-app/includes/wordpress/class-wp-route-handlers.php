@@ -20,7 +20,7 @@ class Neo_Pulse_App_Wp_Route_Handlers {
 			array(
 				'methods'             => WP_REST_Server::ALLMETHODS,
 				'callback'            => array( __CLASS__, 'rest_dispatch' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Neo_Pulse_App_Auth_Session', 'rest_permission' ),
 			)
 		);
 	}

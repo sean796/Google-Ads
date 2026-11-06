@@ -1,10 +1,8 @@
 import { RefreshCw } from "lucide-react";
 import { GoogleAdsCampaignInsightsPanel } from "@/components/ppc/google/GoogleAdsCampaignInsightsPanel";
 import { GoogleAdsLiveAdsSelect } from "@/components/ppc/google/GoogleAdsLiveAdsSelect";
-import {
-  GoogleAdsDetailsSection,
-  PPC_DETAILS_ACCORDION_STACK,
-} from "@/components/ppc/google/google-ads-details-accordion";
+import { GoogleAdsDetailsSection } from "@/components/ppc/google/google-ads-details-accordion";
+import { PPC_DETAILS_ACCORDION_STACK } from "@/components/ppc/google/google-ads-row-constants";
 import { usePpcCampaignInsights } from "@/hooks/ppc/use-ppc-campaign-insights";
 import type { PpcInsightsScope } from "@/lib/ppc/ppc-campaign-insights-scope";
 import { PPC_INSIGHTS_SCOPE_CAMPAIGN } from "@/lib/ppc/ppc-campaign-insights-scope";

@@ -1,10 +1,7 @@
 import { useState } from "react";
 import { ChevronDown, Download, ExternalLink } from "lucide-react";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui";
+
 import type {
   PostCreatorContentBucketProofFile,
   PostCreatorProofRow,

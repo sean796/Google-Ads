@@ -5,7 +5,7 @@ import { GoogleServicesSettingsContent } from "@/components/manager/GoogleServic
 import { ManagerMasterRulesSettingsContent } from "@/components/manager/ManagerMasterRulesSettingsContent";
 import { DecisionTreeManagerContent } from "@/components/manager/decision-tree/DecisionTreeManagerContent";
 import { IntegrationsTab } from "@/components/IntegrationsTab";
-import { PropertiesDashboardChromeProvider } from "@/components/manager/dashboard/PropertiesDashboardChromeContext";
+import { PropertiesDashboardChromeProvider } from "@/components/manager/dashboard/PropertiesDashboardChromeProvider";
 import { ManagerDashboardShell } from "@/components/manager/dashboard/ManagerDashboardShell";
 import {
   type ManagerSettingsClusterId,

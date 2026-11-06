@@ -5,7 +5,7 @@ import type { LocalAnalysisDetailsPanelProps } from "@/components/sap-generator/
 import { EntityDetailsDrawer } from "@/components/sap-generator/EntityDetailsDrawer";
 import { SapGeneratorToolbar } from "@/components/sap-generator/SapGeneratorToolbar";
 import type { LocalAnalysisWorkspaceControls } from "@/components/sap-generator/LocalAnalysisPanel";
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import type { EntityGeographicLevel } from "@/lib/entity-geographic-level";
 
 export type SapGeneratorWorkspaceHeaderProps = {

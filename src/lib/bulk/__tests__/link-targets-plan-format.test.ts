@@ -40,14 +40,14 @@ describe("link targets plan formatting", () => {
     expect(block).toContain("tent rental services");
     expect(block).toContain("quote request contact");
     expect(block).toContain("permit approval guide");
-    expect(block).toContain("non-negotiable");
-    expect(block).toContain("fewer than 2");
+    expect(block).toContain("genuinely fits");
+    expect(block).not.toContain("non-negotiable");
   });
 
   it("formatLinkTargetsPlanPrompt includes per-section summary", () => {
     const block = formatLinkTargetsPlanPrompt(plan);
-    expect(block).toContain("Per-section link counts");
+    expect(block).toContain("Per-section assigned link queries");
     expect(block).toContain("Tent Permit Approval Timelines");
-    expect(block).toContain("2-5");
+    expect(block).not.toContain("2-5");
   });
 });

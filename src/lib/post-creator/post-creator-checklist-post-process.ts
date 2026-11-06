@@ -45,7 +45,7 @@ export function parseBlogTemplateChecklistRaw(aiResponse: string): string[] {
 
   for (const line of lines) {
     const trimmed = line.trim();
-    const match = trimmed.match(/^(?:\d+\.|\-|\*)\s+(.+)$/);
+    const match = trimmed.match(/^(?:\d+\.|-|\*)\s+(.+)$/);
     if (match?.[1]) {
       const item = stripChecklistItemMarkdownHeading(match[1].trim());
       if (item && !isBoldOnlyChecklistLine(item)) {

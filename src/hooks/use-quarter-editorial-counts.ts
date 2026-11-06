@@ -203,7 +203,10 @@ export function useQuarterEditorialCounts(sites: WordPressSite[]): {
   const [tick, setTick] = useState(0);
   const [isRefreshingAllQuarterCounts, setIsRefreshingAllQuarterCounts] = useState(false);
   const [selectedMonthKey, setSelectedMonthKey] = useState(() => getDefaultDashboardEditorialMonthKey());
-  const monthOptions = useMemo(() => buildDashboardEditorialMonthOptions(new Date()), [tick]);
+  const monthOptions = useMemo(() => {
+    void tick;
+    return buildDashboardEditorialMonthOptions(new Date());
+  }, [tick]);
 
   const dayKey = useMemo(() => {
     void tick;

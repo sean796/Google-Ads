@@ -7,15 +7,8 @@ import { useActiveWordPressSite } from "@/contexts/active-wordpress-site-context
 import type { WordPressSite } from "@/components/integrations/types";
 import { prefetchOrganicDashboardBundle } from "@/lib/organic-dashboard/organic-dashboard-prefetch";
 import { openOrganicReporting } from "@/lib/organic-dashboard/organic-reporting-nav";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/ui";
+
 import {
   MANAGER_NAV_DROPDOWN_ITEM_BASE,
   MANAGER_NAV_DROPDOWN_PANEL,

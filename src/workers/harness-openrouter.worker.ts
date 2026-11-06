@@ -11,7 +11,6 @@ ctx.onmessage = (e: MessageEvent<HarnessOpenRouterWorkerPayload>) => {
   void (async () => {
     try {
       const result = await postOpenRouterAppChat({
-        apiKey: data.apiKey,
         model: data.model,
         messages: data.messages,
         temperature: data.temperature,

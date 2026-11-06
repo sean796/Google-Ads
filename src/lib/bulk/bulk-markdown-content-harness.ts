@@ -13,13 +13,15 @@ import { pressReleaseHarnessSectionLabel } from '@/lib/press-release/press-relea
 import { buildFocusedArticlePurpose } from '@/lib/content-generation/article-length-policy';
 import { formatSapPageWriterBlock } from '@/lib/prompt-builders/sap-page-template';
 import { formatCompetitorComparisonWriterBlock } from '@/lib/prompt-builders/competitor-comparison-page-template';
-import { isCompetitorComparisonRow } from '@/lib/competitor/competitor-csv-row';
+import { isCompetitorComparisonRow } from '@/lib/competitor-research/competitor-csv-row';
 import { getBlogModel } from '@/lib/optimization-settings-storage';
 import { resolveHarnessHttpReferer, runHarnessOpenRouterSection } from '@/lib/bulk/harness-openrouter-worker-client';
 import {
+  assertHarnessIllustrativeSectionHtml,
+  assertStitchedHarnessArticle,
   harnessSectionPreparedValid,
   prepareHarnessSectionHtml,
-  stitchedHarnessArticleValid,
+  validateHarnessSectionOrThrow,
 } from '@/lib/bulk/harness-section-validate';
 import { runHarnessHtmlQualityControl } from '@/lib/content-generation/harness-html-quality-control';
 import { injectBlacklistRagIntoMessages } from '@/lib/content-word-blocklist';
@@ -41,6 +43,7 @@ import {
 import {
   assertHarnessTokenBudgetPreflight,
   computeHarnessSectionTokenBudgets,
+  createHarnessTokenBudgetTracker,
   isHarnessSeoOpenerBodyAgent,
 } from '@/lib/bulk/harness-section-max-tokens';
 import { formatMandatoryEntityWikipediaForPrompt } from '@/lib/bulk/entity-wikipedia-prompt';
@@ -60,7 +63,7 @@ import {
 import { parseSeoResearchBrief } from '@/lib/content-optimization/seo-research-brief-for-optimize';
 import { resolveSiteLocationLabel } from '@/lib/llm-audit/resolve-site-location-label';
 import type { WordPressSite } from '@/components/integrations/types';
-import type { AIDrivenACFContext } from "@/lib/prompt-builders/system-user";
+import type { AIDrivenACFContext } from "@/lib/content-generation/ai-driven-acf-reader";
 import { mergeOptimizerInstructions } from "@/lib/prompt-builders/system-user";
 import { resolveAgentsForBulk } from "./bulk-blueprint-agents";
 import { formatLinkTargetsPlanForSection } from "@/lib/bulk/bulk-generation-wp-inventory";
@@ -173,20 +176,18 @@ export async function generateMarkdownContentHarnessed(
   const isPressReleaseHarness = promptEnv?.contentKind === "press_release";
   const releaseTopic =
     promptEnv?.primaryKeyword?.trim() || row.keyword?.trim() || row.keyword_focus?.trim() || "";
+  const bulkPrimaryKw =
+    promptEnv?.primaryKeyword?.trim() || row.keyword?.trim() || row.keyword_focus?.trim() || "";
 
   const finalizeStitchedHarnessHtml = async (stitchedHtml: string): Promise<string> => {
     if (isPressReleaseHarness) return stitchedHtml;
     options.onProgress?.(harnessRowIndex, 0, 'Quality control: checking HTML...');
-    try {
-      return await runHarnessHtmlQualityControl({
-        html: stitchedHtml,
-        apiKey: options.openRouterApiKey,
-        model: getBlogModel(promptEnv?.siteId),
-      });
-    } catch (err) {
-      console.warn('[Bulk Harness] HTML quality control failed (non-fatal, keeping stitched HTML):', err);
-      return stitchedHtml;
-    }
+    // QC failure throws and fails the row; un-QC'd HTML never uploads.
+    return runHarnessHtmlQualityControl({
+      html: stitchedHtml,
+      apiKey: options.openRouterApiKey,
+      model: getBlogModel(promptEnv?.siteId),
+    });
   };
 
   const entityFromRow =
@@ -266,6 +267,16 @@ export async function generateMarkdownContentHarnessed(
     const n = agentsForBulk.length;
     const perSectionMax = Math.min(1400, Math.max(640, Math.floor(totalBudget / Math.max(n, 1))));
     const totalSections = agentsForBulk.length;
+    const pressTokenTracker = createHarnessTokenBudgetTracker({
+      totalBudget,
+      slots: agentsForBulk.map((_, i) => ({
+        sectionKey: pressReleaseHarnessSectionLabel(i),
+        maxTokens: perSectionMax,
+        weight: 1,
+        estimatedNeed: perSectionMax,
+      })),
+      onUsage: options.onHarnessTokenUsage,
+    });
 
     const pieces = await Promise.all(
       agentsForBulk.map(async (agent, i) => {
@@ -314,6 +325,7 @@ export async function generateMarkdownContentHarnessed(
           promptEnv?.llmAuditSummary,
           promptEnv?.dfsArticleAuditBlock,
           promptEnv?.firstPartyAuthorityBlock,
+          undefined,
           promptEnv?.llmAuditAuthorityExternalPairs,
           undefined,
           competitorComparisonHarness,
@@ -343,7 +355,7 @@ export async function generateMarkdownContentHarnessed(
 
         let sectionContent = (result.content || '').trim();
         if (!sectionContent) {
-          sectionContent = `# ${titleForCb}\n\n`;
+          throw new Error(`Harness: section "${titleForCb}" returned no content`);
         }
 
         if (releaseTopic) {
@@ -356,6 +368,8 @@ export async function generateMarkdownContentHarnessed(
             model: getBlogModel(promptEnv?.siteId),
           });
         }
+
+        pressTokenTracker.record(titleForCb, `${systemPrompt}\n${userPrompt}`, sectionContent);
 
         const truncated = isCompletionTruncatedByTokenLimit(result.finishReason);
         if (truncated) {
@@ -376,6 +390,10 @@ export async function generateMarkdownContentHarnessed(
       }),
     );
 
+    const pressSummary = pressTokenTracker.summary();
+    console.info(
+      `[Bulk Harness] Token usage for row ${harnessRowIndex}: estimated ~${pressSummary.estimatedTokens}, actual ~${pressSummary.actualTokens} (prompt ~${pressSummary.promptTokens} + completion ~${pressSummary.completionTokens}) of budget ${pressSummary.totalBudget}`,
+    );
     const stitched = stitchHarnessSections(pieces);
     if (!stitched?.trim()) {
       return stripTrailingCopyrightBoilerplate(pieces.filter(Boolean).join("\n\n"));
@@ -426,6 +444,17 @@ export async function generateMarkdownContentHarnessed(
   const harnessTokenBySectionKey = new Map(
     harnessTokenSlots.map((slot) => [slot.sectionKey, slot.maxTokens]),
   );
+  const tokenBudgetTracker = createHarnessTokenBudgetTracker({
+    totalBudget,
+    slots: harnessTokenSlots,
+    onUsage: options.onHarnessTokenUsage,
+  });
+  const logTokenBudgetSummary = () => {
+    const s = tokenBudgetTracker.summary();
+    console.info(
+      `[Bulk Harness] Token usage for row ${harnessRowIndex}: estimated ~${s.estimatedTokens}, actual ~${s.actualTokens} (prompt ~${s.promptTokens} + completion ~${s.completionTokens}) of budget ${s.totalBudget}`,
+    );
+  };
 
   const harnessPrimaryKeyword =
     promptEnv?.primaryKeyword?.trim()
@@ -659,46 +688,58 @@ export async function generateMarkdownContentHarnessed(
           ? "[ILLUSTRATIVE]"
           : titleForCb;
 
-    let sectionContent = '';
-    let finishReason: string | undefined;
-    try {
-      const result = await runHarnessOpenRouterSection({
-        sectionIndex,
-        apiKey: options.openRouterApiKey,
-        model: getBlogModel(promptEnv?.siteId),
-        messages: injectBlacklistRagIntoMessages([
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ]),
-        temperature: options.temperature || 1.0,
-        maxTokens: opts.maxTokens,
-        topP: options.topP || 0.9,
-        httpReferer,
-      });
-      sectionContent = (result.content || '').trim();
-      finishReason = result.finishReason;
-    } catch (err) {
-      console.warn(`[Bulk Harness] Section "${sectionLabel}" OpenRouter call encountered an error; falling back to synthesis:`, err);
-    }
-
+    // Section call failure fails the row visibly. No synthesized substitute
+    // section is generated.
+    const result = await runHarnessOpenRouterSection({
+      sectionIndex,
+      apiKey: options.openRouterApiKey,
+      model: getBlogModel(promptEnv?.siteId),
+      messages: injectBlacklistRagIntoMessages([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ]),
+      temperature: options.temperature || 1.0,
+      maxTokens: opts.maxTokens,
+      topP: options.topP || 0.9,
+      httpReferer,
+    });
+    const sectionContent = (result.content || '').trim();
+    const finishReason = result.finishReason;
     if (!sectionContent) {
-      const primaryKw = bulkPrimaryKw || titleForCb;
-      sectionContent = `## ${titleForCb}\n\nUnderstanding the essentials of ${primaryKw} helps make informed decisions. Key factors include quality craftsmanship, tailored dimensions, professional assessment, and long-term durability. Exploring tailored options ensures practical functionality and elevated design.`;
+      throw new Error(`Harness: section "${sectionLabel}" returned no content`);
     }
     const truncated = isCompletionTruncatedByTokenLimit(finishReason);
 
-    let prepared = prepareHarnessSectionHtml(sectionContent, {
+    const prepared = prepareHarnessSectionHtml(sectionContent, {
       title: titleForCb,
       isOverview: opts.isOverviewSection,
       isAnswer: opts.isAnswerSection,
       isIllustrative,
     });
     if (!prepared.trim()) {
-      prepared = `<h2>${titleForCb}</h2>\n<p>Comprehensive insights and practical details regarding ${bulkPrimaryKw || titleForCb}.</p>`;
+      throw new Error(`Harness: section "${sectionLabel}" produced no HTML`);
     }
     if (!harnessSectionPreparedValid(prepared, { isIllustrative })) {
       console.warn(`[Bulk Harness] Section "${sectionLabel}" did not strictly match illustrative sub-tags; keeping section HTML.`);
     }
+    // Publish gate: truncated or incomplete sections fail the row here,
+    // before stitching and WordPress upload.
+    validateHarnessSectionOrThrow(prepared, {
+      title: titleForCb,
+      finishReason,
+      isOverview: opts.isOverviewSection,
+      isAnswer: opts.isAnswerSection,
+    });
+    if (isIllustrative) {
+      assertHarnessIllustrativeSectionHtml(prepared);
+    }
+
+    const budgetSectionKey = opts.isAnswerSection
+      ? "Answer"
+      : opts.isOverviewSection
+        ? "Overview"
+        : titleForCb;
+    tokenBudgetTracker.record(budgetSectionKey, `${systemPrompt}\n${userPrompt}`, prepared);
 
     options.onHarnessSection?.({
       rowIndex: harnessRowIndex,
@@ -765,9 +806,8 @@ export async function generateMarkdownContentHarnessed(
     }
     const requireIllustrative = bodyAgents.some(agentHasIllustrativeFeature);
     const sequentialHtml = stripTrailingCopyrightBoilerplate(stitchHarnessSections(sequentialPieces));
-    if (!stitchedHarnessArticleValid(sequentialHtml, { requireIllustrative })) {
-      console.warn("[Bulk Harness] Sequential stitched article missing optional sub-markers; keeping stitched HTML.");
-    }
+    assertStitchedHarnessArticle(sequentialHtml, { requireIllustrative });
+    logTokenBudgetSummary();
     return finalizeStitchedHarnessHtml(sequentialHtml);
   }
 
@@ -823,10 +863,7 @@ export async function generateMarkdownContentHarnessed(
   }
   const html = stripTrailingCopyrightBoilerplate(stitched);
   const requireIllustrativeParallel = bodyAgents.some(agentHasIllustrativeFeature);
-  if (!stitchedHarnessArticleValid(html, { requireIllustrative: requireIllustrativeParallel })) {
-    console.warn(
-      "[Bulk Harness] Stitched article missing optional sub-markers; keeping stitched HTML.",
-    );
-  }
+  assertStitchedHarnessArticle(html, { requireIllustrative: requireIllustrativeParallel });
+  logTokenBudgetSummary();
   return finalizeStitchedHarnessHtml(html);
 }

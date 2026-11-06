@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { buildBulkRunContentCsv } from '@/lib/bulk-run-content-csv';
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
-import { NOTIFY_INTERNAL_ERROR_ROW_INDEX_MAPPING_DOES_NO, NOTIFY_INVALID_TARGET_SITE_EXAMPLE_COM_IS_NOT_A, NOTIFY_LOADING_WORDPRESS_SITE_INVENTORY_ONE_REQ, NOTIFY_OPENROUTER_API_KEY_IS_REQUIRED, NOTIFY_PROCESSING_CANCELLED_BY_USER, notifyBulkProcessingCompleteXFilesGenerat, notifyBulkProcessingFailedX, notifyLoadedXLinkableUrlsFromSiteInvento, notifyRowXFailedX, notifyRowXXCompletedXFilesGenerated, notifyWordpressFetchFailedX, notifyWordpressSiteNotFoundX } from "@/lib/notify-messages";
+import { NOTIFY_INTERNAL_ERROR_ROW_INDEX_MAPPING_DOES_NO, NOTIFY_INVALID_TARGET_SITE_EXAMPLE_COM_IS_NOT_A, NOTIFY_LOADING_WORDPRESS_SITE_INVENTORY_ONE_REQ, NOTIFY_PROCESSING_CANCELLED_BY_USER, notifyBulkProcessingCompleteXFilesGenerat, notifyBulkProcessingFailedX, notifyLoadedXLinkableUrlsFromSiteInvento, notifyRowXFailedX, notifyRowXXCompletedXFilesGenerated, notifyWordpressFetchFailedX, notifyWordpressSiteNotFoundX } from "@/lib/notify-messages";
 import {
   parseCsvStatic,
   generateRowOutputs,
@@ -27,7 +27,9 @@ import {
   beginPromptTrace,
   buildPromptTraceMarkdown,
   endPromptTrace,
+  type PromptTrace,
 } from '@/lib/openrouter-prompt-trace';
+import { savePromptTraceToHub } from '@/lib/wordpress-api/prompt-trace-api';
 import { useKeywordResearch } from './use-keyword-research';
 import type { KeywordData, KeywordAIAnalysis } from '@/lib/keyword-types';
 import type { StoredFile } from '@/components/KnowledgeBaseTab';
@@ -292,11 +294,18 @@ export function useBulkAutoGenerate({
     return () => fileManager.setOnMutation(undefined);
   }, [fileManager]);
 
-  const stats = useMemo(() => fileManager.getStats(), [fileManager, filesTick]);
-  const filesByRow = useMemo(() => fileManager.getFilesByRow(), [fileManager, filesTick]);
+  const stats = useMemo(() => {
+    void filesTick;
+    return fileManager.getStats();
+  }, [fileManager, filesTick]);
+  const filesByRow = useMemo(() => {
+    void filesTick;
+    return fileManager.getFilesByRow();
+  }, [fileManager, filesTick]);
 
   /** After a run ends, offer one CSV with every post body for manual import if upload failed. */
   const runContentCsvAvailable = useMemo(() => {
+    void filesTick;
     if (isProcessing) return false;
     const { rowCount } = buildBulkRunContentCsv(fileManager.getAllFiles());
     return rowCount > 0;
@@ -358,13 +367,9 @@ isAnalyzingRef.current = isAnalyzing;
       setRows(staticRows);
       setTotalRows(staticRows.length);
 
-      let apiKey = "";
-      try {
-        apiKey = (await resolveOpenRouterApiKeyForHarness()).trim();
-      } catch {
-        apiKey = "";
-      }
-      if (apiKey) {
+      const apiKey = (await resolveOpenRouterApiKeyForHarness()).trim();
+      // Wave 0: enrichment runs keyless through the server transport.
+      {
         setIsCsvEnriching(true);
         try {
           const sites = getStoredSites();
@@ -398,7 +403,7 @@ isAnalyzingRef.current = isAnalyzing;
       notifyHeaderError("Bulk generate failed", errorMessage);
       return [];
     }
-  }, [openRouterApiKey, selectedModel, connectedSite]);
+  }, [selectedModel, connectedSite]);
 
   /**
    * Process a single row completely
@@ -598,7 +603,7 @@ isAnalyzingRef.current = isAnalyzing;
       }
 
       // Step 3: Load knowledge base from localStorage (+ Wikipedia artifact from generateRowOutputs)
-      let { knowledgeFiles, activeKnowledgeBaseText } = loadKnowledgeBaseFromStorage();
+      const { knowledgeFiles, activeKnowledgeBaseText } = loadKnowledgeBaseFromStorage();
       for (const f of initialFiles) {
         if (f.mimeType.includes("csv") && f.fileName.toLowerCase().includes("wikipedia")) {
           knowledgeFiles.push({ name: f.fileName, content: f.content });
@@ -664,13 +669,10 @@ isAnalyzingRef.current = isAnalyzing;
   }, [
     fileManager,
     analyzeKeyword,
-    keywordsVolumeData,
     paaRawResponse,
     clearResults,
     connectedSite,
-    openRouterApiKey,
     selectedModel,
-    appendProcessingStep,
     setRows,
     updateRowHarness,
   ]);
@@ -687,15 +689,7 @@ isAnalyzingRef.current = isAnalyzing;
       return;
     }
     processingInFlightRef.current = true;
-    let effectiveOpenRouterKey = "";
-    try {
-      effectiveOpenRouterKey = (await resolveOpenRouterApiKeyForHarness()).trim();
-    } catch (e) {
-      processingInFlightRef.current = false;
-      const msg = e instanceof Error ? e.message : NOTIFY_OPENROUTER_API_KEY_IS_REQUIRED;
-      notifyHeaderError("Play failed", msg);
-      return;
-    }
+    const effectiveOpenRouterKey = (await resolveOpenRouterApiKeyForHarness()).trim();
 
     const effectiveDataForSeoKey = apiKey?.trim() || loadDataForSEOApiKey()?.trim() || "";
     setRuntimeDataForSeoApiKey(effectiveDataForSeoKey);
@@ -900,11 +894,13 @@ isAnalyzingRef.current = isAnalyzing;
         }
       };
 
+      let endedTrace: PromptTrace | null = null;
       beginPromptTrace(`Bulk run, ${csvRows.length} row${csvRows.length === 1 ? '' : 's'} in parallel`);
       try {
         await runBulkRowsInParallel({ rowCount: csvRows.length, signal: controller.signal, runRow });
       } finally {
         const trace = endPromptTrace();
+        endedTrace = trace;
         if (trace && trace.calls.length > 0) {
           const timestamp = Date.now();
           const content = buildPromptTraceMarkdown(trace, {
@@ -931,6 +927,20 @@ isAnalyzingRef.current = isAnalyzing;
         notify.success(notifyBulkProcessingCompleteXFilesGenerat(fileManager.getStats().completed, ""));
       } else {
         recordRunStatus("Bulk run finished with row errors");
+      }
+
+      if (endedTrace && endedTrace.calls.length > 0) {
+        try {
+          await savePromptTraceToHub({
+            siteUrl: connectedSite?.siteUrl ?? '',
+            runLabel: endedTrace.label,
+            trace: endedTrace,
+          });
+        } catch (traceError) {
+          const msg = traceError instanceof Error ? traceError.message : String(traceError);
+          appendProcessingStep(`Warning: prompt log was not saved to the hub: ${msg}`);
+          recordRunStatus(`Warning: prompt log was not saved to the hub: ${msg}`);
+        }
       }
     } catch (error) {
       if (error instanceof Error && error.message === BULK_PROCESSING_CANCELLED_MESSAGE) {
@@ -978,7 +988,7 @@ isAnalyzingRef.current = isAnalyzing;
       abortControllerRef.current = null;
       processingInFlightRef.current = false;
     }
-  }, [apiKey, openRouterApiKey, selectedModel, temperature, maxTokens, topP, flowPurpose, fileManager, processRow, connectedSite, wordPressPosting, siteConfigs, selectedWordPressSites, blogImportSourceFile, blogImportForm, bulkPostDestination, recordRunStatus]);
+  }, [apiKey, selectedModel, temperature, maxTokens, topP, flowPurpose, featuredImageType, fileManager, processRow, connectedSite, wordPressPosting, siteConfigs, selectedWordPressSites, blogImportSourceFile, blogImportForm, bulkPostDestination, recordRunStatus, appendProcessingStep]);
 
   /**
    * Cancel processing

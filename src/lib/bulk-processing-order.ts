@@ -93,7 +93,7 @@ export function allRowIndicesSet(count: number): Set<number> {
 }
 
 export function createPlaceholderBlogIdeaRows(count: number): CSVRow[] {
-  return Array.from({ length: count }, () => ({}));
+  return Array.from({ length: count }, () => ({ keyword: "", title: "" }));
 }
 
 /** Fisher–Yates shuffle of indices 0..n-1. */

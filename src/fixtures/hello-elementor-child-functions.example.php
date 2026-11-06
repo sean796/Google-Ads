@@ -412,7 +412,7 @@ function neo_render_directions_map( $atts ) {
 		return '';
 	}
 
-	$api_key     = 'AIzaSyD0cYtIvrNLFO9Nj2drqh2WK3rzkAGkbDk';
+	$api_key     = 'YOUR_GOOGLE_MAPS_API_KEY';
 	$origin      = rawurlencode( sanitize_text_field( $atts['origin'] ) );
 	$destination = rawurlencode( sanitize_text_field( $atts['destination'] ) );
 	$mode        = in_array( $atts['mode'], array( 'driving', 'walking', 'bicycling', 'transit' ), true ) ? $atts['mode'] : 'driving';

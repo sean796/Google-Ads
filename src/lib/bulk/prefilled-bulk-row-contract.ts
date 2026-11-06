@@ -2,7 +2,7 @@ import type { CSVRow } from "@/lib/bulk/bulk-csv-parser";
 import {
   COMPETITOR_COMPARISON_PROSE_PROMPT_BLOCK,
   isCompetitorCsvKeyword,
-} from "@/lib/competitor/competitor-csv-row";
+} from "@/lib/competitor-research/competitor-csv-row";
 
 export type PrefilledBulkRowFields = {
   keyword?: string;

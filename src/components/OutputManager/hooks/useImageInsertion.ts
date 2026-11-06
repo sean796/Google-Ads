@@ -1,11 +1,12 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, type Dispatch, type SetStateAction } from "react";
+import type { GenerationResult } from "@/lib/api";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_CANNOT_INSERT_IMAGE_FINAL_OUTPUT_NOT_AVA, NOTIFY_FAILED_TO_INSERT_IMAGE_INTO_SECTION, notifyImageInsertedIntoXSection, notifySectionXNotFoundPleaseCheckTheSec } from "@/lib/notify-messages";
 import { insertContentIntoSection } from "@/lib/section-parser";
 
 interface UseImageInsertionProps {
   finalOutput: string;
-  setGenerationResult?: (result: any) => void;
+  setGenerationResult?: Dispatch<SetStateAction<GenerationResult>>;
 }
 
 export function useImageInsertion({ finalOutput, setGenerationResult }: UseImageInsertionProps) {
@@ -39,7 +40,7 @@ export function useImageInsertion({ finalOutput, setGenerationResult }: UseImage
         return;
       }
       
-      setGenerationResult((prev: any) => ({
+      setGenerationResult((prev) => ({
         ...prev,
         final: updatedOutput
       }));

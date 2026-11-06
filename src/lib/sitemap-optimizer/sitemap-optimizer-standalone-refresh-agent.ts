@@ -69,7 +69,7 @@ function normalizeProposal(
   const safeTitle = title || displayPostTitle(row.title) || p.postId;
   return {
     postId: p.postId,
-    action: "refresh",
+    action: p.action === "keep" ? "keep" : "refresh",
     proposedTitle: safeTitle,
     proposedPrimaryKeyword: keyword,
     proposedMeta: meta,
@@ -140,7 +140,7 @@ async function refreshOneBatch(
     if (!resolvedId) continue;
     const row = rowById.get(resolvedId);
     if (!row) continue;
-    byId.set(resolvedId, normalizeProposal({ ...p, postId: resolvedId, action: "refresh" }, row));
+    byId.set(resolvedId, normalizeProposal({ ...p, postId: resolvedId }, row));
   }
   return [...byId.values()];
 }

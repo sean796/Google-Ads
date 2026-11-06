@@ -11,13 +11,17 @@ import { analyzeAndUpdateOriginField } from "@/lib/wordpress-acf-origin";
 import type { WordPressSite } from "@/components/integrations/types";
 import { extractEndpointFromEntitySitemapUrl } from "@/lib/entity-endpoint-extractor";
 import { extractOriginFromSapTitle } from "@/lib/sap-origin-from-title";
+import type {
+  ResolvedTargetLike,
+  WpExistingPostLike,
+} from "@/hooks/content-optimization/use-optimization-state";
 
 export interface ACFOriginUpdaterOptions {
   postId: number;
   finalTitle: string;
   site: WordPressSite;
-  existingPost?: any;
-  resolved?: any;
+  existingPost?: WpExistingPostLike;
+  resolved?: ResolvedTargetLike;
   setProgress: (progress: { step: string; progress: number; message?: string }) => void;
   /** Page URL (e.g. .../painter-near-baranow-edmonton/) so origin uses slug location, not just city from title. */
   pageUrl?: string;

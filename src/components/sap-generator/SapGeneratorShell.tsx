@@ -89,7 +89,6 @@ export const SapGeneratorShell: React.FC<SapGeneratorShellProps> = ({
         tempSeedUrl,
         onTempSeedUrlChange: setTempSeedUrl,
         showConnectedToggle: canUseConnected,
-        connectedSiteName: connectedSite?.name?.trim() || null,
         connectedSiteUrl: connectedSite ? getPublicSiteUrl(connectedSite) || null : null,
         onPickTempFromConnected: pickTempFromConnected,
       }}

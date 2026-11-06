@@ -4,7 +4,7 @@ import { GeneratorToolbarFrame } from "@/components/blog-generator/GeneratorTool
 import { GENERATOR_FIELD_KEYWORD } from "@/components/blog-generator/generator-toolbar-theme";
 import type { BlogGeneratorSectionId } from "@/components/blog-generator/blog-generator-sections";
 import { BulkGeneratorRunActions } from "@/components/keyword-research/bulk/BulkGeneratorRunActions";
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import { PressReleaseContentDetailsDrawer } from "@/components/press-release/PressReleaseContentDetailsDrawer";
 import type { PressReleaseDetailsPanelProps } from "@/components/press-release/PressReleaseDetailsPanel";
 import { Field } from "@/ui";

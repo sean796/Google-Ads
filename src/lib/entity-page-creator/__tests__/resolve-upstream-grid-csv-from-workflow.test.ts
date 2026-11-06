@@ -16,7 +16,7 @@ import { fetchWorkflowStepOutputs } from "@/lib/workflow/workflow-api";
 const outputs: WorkflowStepOutput[] = [
   {
     id: 1,
-    workflowRunId: 294,
+    runId: 294,
     nodeId: "ld-node",
     variableKey: "local_dominator_export_1",
     scope: "run",

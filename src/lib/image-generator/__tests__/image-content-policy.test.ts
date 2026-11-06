@@ -28,6 +28,7 @@ describe("detectMatureImageRequest", () => {
       "@/lib/competitor-research/competitor-report-openrouter"
     );
     vi.mocked(callOpenRouterChatCompletion).mockResolvedValue({
+      raw: {},
       content: '{"matureContentRequested": true}',
     });
 

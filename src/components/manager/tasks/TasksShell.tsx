@@ -106,8 +106,16 @@ export function TasksShell({ onOpenPulseForge }: TasksShellProps = {}): React.Re
 
   const activeBundle = activeProjectId != null ? projectBundles[activeProjectId] : null;
   const inProjectBundle = isProjectBundleNavMode(navMode);
-  const tasks = navMode === "my" ? myTasks : (activeBundle?.tasks ?? []);
-  const sections = navMode === "my" ? [] : (activeBundle?.sections ?? []);
+  const activeBundleTasks = activeBundle?.tasks;
+  const activeBundleSections = activeBundle?.sections;
+  const tasks = useMemo(
+    () => (navMode === "my" ? myTasks : (activeBundleTasks ?? [])),
+    [activeBundleTasks, myTasks, navMode],
+  );
+  const sections = useMemo(
+    () => (navMode === "my" ? [] : (activeBundleSections ?? [])),
+    [activeBundleSections, navMode],
+  );
   const projectFiles = navMode === "my" ? [] : (activeBundle?.files ?? []);
 
   const regularProjects = useMemo(() => {

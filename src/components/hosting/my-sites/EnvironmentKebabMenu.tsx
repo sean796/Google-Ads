@@ -1,14 +1,8 @@
 import { MoreVertical } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 import type { HostedEnvironment } from "@/lib/hosting-api";
 import { MY_SITES_ICON_BTN, MY_SITES_POPOVER } from "./my-sites-theme";
-import { Button } from "@/ui";
+import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/ui";
 
 export type EnvironmentAction = "backup" | "cache-clear" | "redeploy" | "retry-provision" | "delete" | "copy" | "users";
 

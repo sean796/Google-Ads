@@ -13,12 +13,13 @@ export function useAgentRunEnrichedProgressSteps(
   const { activeTeam } = useTeam();
   const teamId = activeTeam?.id ?? null;
   const baseSteps = useAgentRunProgressSteps(run, progressLabel);
+  const isServerExecution = agentRunIsServerExecution(run);
   const [serverArtifacts, setServerArtifacts] = useState<
     Awaited<ReturnType<typeof fetchAgentRunArtifacts>>
   >([]);
 
   useEffect(() => {
-    if (!teamId || !agentRunIsServerExecution(run)) {
+    if (!teamId || !isServerExecution) {
       setServerArtifacts([]);
       return;
     }
@@ -37,7 +38,7 @@ export function useAgentRunEnrichedProgressSteps(
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [run.id, run.updatedAt, run.steps, run.result, teamId]);
+  }, [isServerExecution, run.id, run.status, run.updatedAt, run.steps, run.result, teamId]);
 
   return useMemo(
     () => enrichAgentRunStepsWithServerData(run, baseSteps, serverArtifacts),

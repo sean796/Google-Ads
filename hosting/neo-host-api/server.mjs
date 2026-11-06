@@ -65,14 +65,7 @@ async function dispatch(req, res) {
 }
 
 const server = http.createServer((req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Neo-Pulse-Team-Id, X-Neo-Pulse-User-Id, X-Neo-Pulse-Hosting-Write");
-  if (req.method === "OPTIONS") {
-    res.statusCode = 204;
-    res.end();
-    return;
-  }
+  // No CORS: the only caller is the server-side PHP hub proxy, never a browser.
   dispatch(req, res).catch((err) => {
     console.error("[pulse-host-api]", err);
     sendJson(res, 500, { ok: false, error: err instanceof Error ? err.message : String(err) });

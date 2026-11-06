@@ -4,6 +4,8 @@ export const PROMPT_LOG_FILE_TYPE = "prompt_log";
 
 export type PromptTraceCall = {
   model: string;
+  /** Model the provider actually served, read from the response payload. */
+  servedModel: string | null;
   system: string;
   user: string;
   schemaName: string | null;
@@ -82,8 +84,9 @@ export function buildPromptTraceMarkdown(
     out.push(`## Model: ${model} (${calls.length} calls)`, "");
     calls.forEach((call, i) => {
       const schema = call.schemaName ? ` · schema: ${call.schemaName}` : "";
+      const served = call.servedModel && call.servedModel !== model ? ` · served: ${call.servedModel}` : "";
       out.push(
-        `### Call ${i + 1}${schema} · ${(call.durationMs / 1000).toFixed(1)}s · finish: ${call.finishReason}`,
+        `### Call ${i + 1}${schema}${served} · ${(call.durationMs / 1000).toFixed(1)}s · finish: ${call.finishReason}`,
         "**System**",
         call.system,
         "**User**",

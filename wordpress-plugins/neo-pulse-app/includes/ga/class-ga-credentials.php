@@ -198,11 +198,7 @@ class Neo_Pulse_App_Ga_Credentials {
 		if ( is_array( self::$cached ) ) {
 			return self::$cached;
 		}
-		$file = Neo_Pulse_App_Json_File_Store::read( Neo_Pulse_App_Data_Paths::ga_service_account_path() );
-		if ( is_array( $file ) ) {
-			self::$cached = self::normalize_credentials( $file );
-			return self::$cached;
-		}
+		// Wave 0: env and wp-config constants win over the uploads file.
 		$raw = Neo_Pulse_App_Secrets::ga_service_account_json();
 		if ( $raw !== '' ) {
 			$data = json_decode( trim( $raw ), true );
@@ -210,6 +206,11 @@ class Neo_Pulse_App_Ga_Credentials {
 				self::$cached = self::normalize_credentials( $data );
 				return self::$cached;
 			}
+		}
+		$file = Neo_Pulse_App_Json_File_Store::read( Neo_Pulse_App_Data_Paths::ga_service_account_path() );
+		if ( is_array( $file ) ) {
+			self::$cached = self::normalize_credentials( $file );
+			return self::$cached;
 		}
 		return null;
 	}

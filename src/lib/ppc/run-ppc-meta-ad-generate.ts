@@ -310,7 +310,19 @@ export async function runPpcMetaAdGenerate(
   if (hasLandingUrl) {
     gscPage = (
       await runStep("load-gsc-queries", () =>
-        loadPpcGoogleGscContext(site, [{ url: resolvedLandingUrl, title: resolvedLandingUrl }], signal),
+        loadPpcGoogleGscContext(
+          site,
+          [
+            {
+              url: resolvedLandingUrl,
+              title: resolvedLandingUrl,
+              excerpt: "",
+              metaDescription: "",
+              keyword: "",
+            },
+          ],
+          signal,
+        ),
       )
     )[0];
     const gscMarkdown = buildMetaGscQueriesMarkdown(gscPage);

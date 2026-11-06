@@ -281,7 +281,9 @@ export function assignUniqueKeywordsPerAdGroup(
             ? composeServiceKeywordWithAdGroupEntity(service, section.entity)
             : service.toLowerCase(),
         };
-      } else if (!existingKeyword) {
+      } else {
+        // Duplicate within this AdGroup (or nothing left after stripping):
+        // blank it so the pool refill below assigns a unique keyword.
         next[idx] = { ...next[idx]!, keyword: "" };
       }
     }
@@ -407,7 +409,7 @@ export async function refreshEntityPreloadSlotKeywords(
   const model = options?.model?.trim() || "";
   const gridCsvText = options?.gridCsvText?.trim() || "";
 
-  let next = rows.map((r) => ({
+  let next: CSVRow[] = rows.map((r) => ({
     ...r,
     entity: isBadPreloadEntityLabel(r.entity) ? undefined : r.entity,
   }));

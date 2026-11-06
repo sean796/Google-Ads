@@ -42,10 +42,10 @@ describe("automation-recipes-catalog", () => {
     expect(csvBlock?.executionPayload?.csvHeaders).toEqual(["url", "H2"]);
     expect(csvBlock?.executionPayload?.csvColumnMap).toEqual({ url: "url", research: "H2" });
     expect(csvBlock?.executionPayload?.optionalPrompt).toBeUndefined();
-    expect(csvBlock?.executionPayload?.auditOnly).toBeUndefined();
+    expect(csvBlock?.executionPayload).not.toHaveProperty("auditOnly");
     const optimizeBlock = (missingTemplate?.actionBlocks ?? []).find((block) => block.title === "Full AISEO");
     expect(optimizeBlock?.executionPayload?.optionalPrompt).toContain("do not fit");
-    expect(optimizeBlock?.executionPayload?.auditOnly).toBeUndefined();
+    expect(optimizeBlock?.executionPayload).not.toHaveProperty("auditOnly");
     expect(optimizeBlock?.executionPayload?.targetBucket).toBe("posts");
     expect(optimizeBlock?.executionPayload?.optimizationOptions?.forceNewResearch).toBe(true);
     expect(missingTemplate?.notes?.join(" ")).not.toMatch(/Manual/i);

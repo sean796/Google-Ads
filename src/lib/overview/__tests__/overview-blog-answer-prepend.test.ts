@@ -23,6 +23,7 @@ beforeEach(() => {
 describe("generateAnswerSectionHtml entity prompts", () => {
   it("passes place entity into OpenRouter user and system prompts for SAP pages", async () => {
     vi.mocked(callOpenRouterChatCompletion).mockResolvedValueOnce({
+      raw: null,
       content: `<h2>Answer</h2><p>One sourced fact. Two. Acme Plumbing sizes installs to stack height.</p>`,
     });
 
@@ -48,6 +49,7 @@ describe("generateAnswerSectionHtml entity prompts", () => {
 
   it("injects CONNECTED SITE IDENTITY on regular posts so Answer names the business", async () => {
     vi.mocked(callOpenRouterChatCompletion).mockResolvedValueOnce({
+      raw: null,
       content: `<h2>Answer</h2><p>One. Two. Acme Tax closes with a sourced claim.</p>`,
     });
 
@@ -96,6 +98,7 @@ describe("generateAndPrependAnswerHtml", () => {
 
   it("prepends Answer onto existing body", async () => {
     vi.mocked(callOpenRouterChatCompletion).mockResolvedValueOnce({
+      raw: null,
       content: `<h2>Answer</h2><p>One. Two. Three.</p>`,
     });
     const result = await generateAndPrependAnswerHtml({
@@ -111,6 +114,7 @@ describe("generateAndPrependAnswerHtml", () => {
 
   it("deletes an existing Answer and places the new one before Overview", async () => {
     vi.mocked(callOpenRouterChatCompletion).mockResolvedValueOnce({
+      raw: null,
       content: `<h2>Answer</h2><p>New answer one. New answer two.</p>`,
     });
     const result = await generateAndPrependAnswerHtml({
@@ -135,6 +139,7 @@ describe("generateAndPrependAnswerHtml", () => {
 
   it("strips duplicate post title heading from body before prepend", async () => {
     vi.mocked(callOpenRouterChatCompletion).mockResolvedValueOnce({
+      raw: null,
       content: `<h2>Answer</h2><p>One. Two.</p>`,
     });
     const result = await generateAndPrependAnswerHtml({
@@ -162,6 +167,7 @@ describe("stripLeadingDuplicateArticleTitleHeading", () => {
 describe("generateAndPrependOverviewHtml", () => {
   it("throws when Answer HTML is empty", async () => {
     vi.mocked(callOpenRouterChatCompletion).mockResolvedValue({
+      raw: null,
       content: "",
     });
 

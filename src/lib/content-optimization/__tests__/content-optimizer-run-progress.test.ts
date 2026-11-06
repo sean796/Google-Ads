@@ -8,6 +8,7 @@ import {
   computeUrlProgress,
   harnessSubProgress,
   mergeRunProgress,
+  type RunProgressEntry,
 } from "@/lib/content-optimization/content-optimizer-run-progress";
 
 describe("content-optimizer-run-progress", () => {
@@ -26,7 +27,7 @@ describe("content-optimizer-run-progress", () => {
   });
 
   it("mergeRunProgress is monotonic", () => {
-    let state: Record<string, any> = {};
+    let state: Record<string, RunProgressEntry | undefined> = {};
     state = mergeRunProgress(state, "site-1", { stepId: "write", subProgress: 0.5 });
     expect(state["site-1"]!.progress).toBeGreaterThan(0);
     const mid = state["site-1"]!.progress;

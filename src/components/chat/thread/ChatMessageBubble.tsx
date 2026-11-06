@@ -1,21 +1,16 @@
 import React from "react";
 import { MessageSquare, MoreHorizontal, Pencil, SpellCheck, Trash2 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { NeoPulseAvatar, isNeoPulseBotDisplayName } from "@/components/chat/NeoPulseAvatar";
+
+
+import { NeoPulseAvatar } from "@/components/chat/NeoPulseAvatar";
+import { isNeoPulseBotDisplayName } from "@/lib/chat-neo-pulse";
 import { cn } from "@/lib/utils";
 import { chatFileDownloadUrl } from "@/lib/chat-api";
 import type { ChatMessage } from "@/lib/chat-types";
 import { ChatAttachmentChip } from "@/components/chat/thread/ChatAttachmentChip";
 import { ChatLinkPreviewCard } from "@/components/chat/thread/ChatLinkPreviewCard";
 import { CHAT_MESSAGE_PROSE_CLASS, CHAT_ROW_HOVER, CHAT_TEXT_MUTED, CHAT_TEXT_PRIMARY, CHAT_ICON_BTN_CLASS } from "@/components/chat/chat-theme";
-import { Button } from "@/ui";
+import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Avatar, AvatarFallback, AvatarImage } from "@/ui";
 
 const messageBodyClass = cn(
   CHAT_MESSAGE_PROSE_CLASS,

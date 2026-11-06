@@ -1,14 +1,12 @@
-import {
-  patchTaskExecutionProgress,
-  type TaskExecution,
-} from "@/lib/tasks-api";
+import { patchTaskExecutionProgress } from "@/lib/tasks-api";
+import type { TaskExecution } from "@/lib/tasks-types";
 import type { ContentOptimizerStepId, RunProgressPatch } from "@/lib/content-optimization/content-optimizer-run-progress";
 
 export function createExecutionProgressReporter(
   teamId: number,
   executionId: number,
-): (patch: RunProgressPatch) => void {
-  return (patch: RunProgressPatch) => {
+): (patch: RunProgressPatch & { progress?: number }) => void {
+  return (patch: RunProgressPatch & { progress?: number }) => {
     void patchTaskExecutionProgress(teamId, executionId, {
       stepId: patch.stepId,
       subProgress: patch.subProgress,

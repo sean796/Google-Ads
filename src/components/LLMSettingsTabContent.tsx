@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Slider } from "@/components/ui/slider";
-import { Field } from "@/ui";
+
+import { Field, Slider } from "@/ui";
 import { DashboardAgentModelSelect } from "@/components/manager/DashboardAgentModelSelect";
 import {
   DECISION_AGENT_MODEL_PRESETS,
@@ -10,6 +10,10 @@ import {
 } from "@/lib/global-agent-models";
 import type { OpenRouterModelCatalogEntry } from "@/lib/openrouter-app-api";
 import { fetchOpenRouterModelsCatalog } from "@/lib/openrouter-models-catalog";
+import {
+  formatModelCatalogValidation,
+  validateConfiguredModelsAgainstCatalog,
+} from "@/lib/model-catalog-validation";
 import {
   estimateAgentRunCostUsd,
   formatBlogTokenWorkloadHint,
@@ -178,6 +182,39 @@ export const LLMSettingsTabContent: React.FC<LLMSettingsTabContentProps> = ({
     };
   }, []);
 
+  const modelValidation = useMemo(() => {
+    if (catalogLoading) return null;
+    return validateConfiguredModelsAgainstCatalog(
+      [
+        { label: "Research agent", modelId: researchModel },
+        { label: "Blog agent", modelId: blogModel },
+        { label: "Image agent", modelId: imageModel },
+        { label: "Meta agent", modelId: metaModel },
+        { label: "Report agent", modelId: reportModel },
+        { label: "Ads agent", modelId: adsModel },
+        { label: "Video agent", modelId: videoModel },
+        { label: "Decision agent", modelId: decisionModel },
+      ],
+      catalog,
+      catalogError,
+    );
+  }, [
+    catalog,
+    catalogError,
+    catalogLoading,
+    researchModel,
+    blogModel,
+    imageModel,
+    metaModel,
+    reportModel,
+    adsModel,
+    videoModel,
+    decisionModel,
+  ]);
+  const modelValidationMessage = modelValidation
+    ? formatModelCatalogValidation(modelValidation)
+    : null;
+
   const researchWorkloadHint = useMemo(
     () =>
       estimateAgentRunCostUsd({
@@ -269,6 +306,17 @@ export const LLMSettingsTabContent: React.FC<LLMSettingsTabContentProps> = ({
           {catalogError ? (
             <p className="mt-2 text-base text-semantic-warning">
               OpenRouter catalog unavailable ({catalogError}). Presets still work; add an API key or retry.
+            </p>
+          ) : null}
+          {modelValidationMessage ? (
+            <p
+              className={
+                modelValidation?.status === "invalid"
+                  ? "mt-2 text-base text-destructive"
+                  : "mt-2 text-base text-semantic-warning"
+              }
+            >
+              {modelValidationMessage}
             </p>
           ) : null}
         </div>

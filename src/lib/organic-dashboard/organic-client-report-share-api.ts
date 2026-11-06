@@ -1,10 +1,9 @@
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import {
   parseOrganicClientReportDeckPayload,
   type OrganicClientReportDeckPayload,
 } from "@/lib/organic-dashboard/organic-client-report-deck-session";
-import { mergeHubPropertyBrandingIntoClientReportDeck } from "@/lib/organic-dashboard/organic-client-report-property-branding";
-
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -26,10 +25,9 @@ export async function saveOrganicClientReportDeckShare(
   const response = await fetch(backendApiUrl("/organic-dashboard/client-report/save"), {
     method: "POST",
     credentials: hubToken ? "omit" : "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(hubToken ? { "X-Pulse-Host-Api-Token": hubToken } : {}),
-    },
+    headers: hubToken
+      ? { "Content-Type": "application/json", "X-Pulse-Host-Api-Token": hubToken }
+      : neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ deckId: deckId.trim(), payload }),
   });
   if (!response.ok) {
@@ -76,6 +74,7 @@ export async function fetchOrganicClientReportDeckShare(
   const parseHint = payloadSiteId || hinted;
   const parsed = parseOrganicClientReportDeckPayload(parseHint, data.payload);
   if (!parsed) return null;
-  const origin = typeof window !== "undefined" ? window.location.origin : undefined;
-  return mergeHubPropertyBrandingIntoClientReportDeck(parsed, origin);
+  // Wave 0: branding is merged into the payload server-side. The public
+  // page must not call the gated manager properties endpoint.
+  return parsed;
 }

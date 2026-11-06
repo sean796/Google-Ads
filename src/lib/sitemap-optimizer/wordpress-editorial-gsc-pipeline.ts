@@ -6,8 +6,8 @@ import { buildContentSheetRows } from "@/lib/sitemap-optimizer/build-content-she
 import {
   appendCompanyKeepContentRows,
   mergeClusterResults,
-  type SitemapOptimizerClusterResult,
 } from "@/lib/sitemap-optimizer/company-content-policy";
+import type { SitemapOptimizerClusterResult } from "@/lib/sitemap-optimizer/types";
 import { runGscPerformanceTriage } from "@/lib/sitemap-optimizer/gsc-performance-triage-agent";
 import { applyGridOutputPolicies } from "@/lib/sitemap-optimizer/grid-output-policies";
 import { clusterRedirectMapForFamilies } from "@/lib/sitemap-optimizer/grid-prefilled-group-cluster";

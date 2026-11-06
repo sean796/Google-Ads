@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
+import { harnessStepProgress, mergeOverviewHarnessProgressSiteAndBatch } from "@/lib/overview/overview-harness-progress";
 import type { BulkHarnessSectionPayload } from "@/lib/bulk-auto-generate";
 import { reduceHarnessSectionList, type HarnessSectionListItem } from "@/lib/bulk/harness-sections-reducer";
 import { mergeAiseoRowFinishFiles } from "@/lib/overview/overview-aiseo-row-artifacts";
@@ -6,9 +7,7 @@ import {
   buildFaqJsonGeneratedFile,
   formatFaqPairMarkdown,
 } from "@/lib/overview/overview-faq-harness-sections";
-import {
-  mergeHarnessProgressSiteAndBatch,
-} from "@/hooks/content-optimization/optimization-helpers-a";
+
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import type { FaqEntry } from "@/lib/faq-entries";
 import { serializeFaqEntriesPlain } from "@/lib/faq-entries";
@@ -134,19 +133,18 @@ export function applyFaqHarnessPayload(
       [batchKey]: {
         ...nextBatch,
         currentProgress: latestProgress,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "AI FAQs",
           progress: latestProgress,
           message,
           harnessPlannedSectionCount: payload.totalSections,
-        },
+        }),
       },
     };
   });
 
   setOptimizationProgress((prev) =>
-    mergeHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
       step: "AI FAQs",
       progress: latestProgress,
       message,
@@ -168,7 +166,7 @@ export function finishFaqRowHarness(
   rowIndex: number,
   entries: FaqEntry[],
   setters: FaqHarnessSetters,
-  cacheWrite?: AiseoCacheWriteAccumulator,
+  cacheWrite: AiseoCacheWriteAccumulator | undefined,
   updateRow: (index: number, patch: Partial<OverviewRow>) => void,
   options?: {
     postHtml?: string;
@@ -213,12 +211,11 @@ export function finishFaqRowHarness(
       [batchKey]: {
         ...nextBatch,
         currentProgress: progress,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "AI FAQs",
           progress,
           message: `FAQ complete`,
-        },
+        }),
       },
     };
   });

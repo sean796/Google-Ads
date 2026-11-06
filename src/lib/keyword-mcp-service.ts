@@ -3,6 +3,7 @@
  * This service calls MCP tools directly for keyword research
  */
 
+import { resolveMcpApiBase } from "@/lib/mcp-tools";
 import type { KeywordData, KeywordResearchResult } from "./keyword-types";
 import { loadDataForSEOApiKey } from "./api";
 import { withDataForSeoLocationCode } from "./dataforseo-location-code";
@@ -110,25 +111,64 @@ export async function callMCPSemanticKeywords(
   }
 }
 
-// Search intent function removed - using heuristics in classifySearchIntent instead
+// Search intent: classifySearchIntent in keyword-api.ts uses the AI classifier (keyword-intent-classify.ts)
 // Competitor analysis removed - keeping it simple, just keyword data
 
 /**
  * Transform MCP API response to KeywordData format
  */
-function transformMCPKeywordData(apiResponse: any): KeywordData[] {
+interface McpKeywordInfo {
+  keyword?: string;
+  keyword_difficulty?: number;
+  search_volume?: number;
+  cpc?: number;
+  competition_level?: string;
+}
+
+interface McpKeywordItem {
+  keyword?: string;
+  keyword_info?: McpKeywordInfo;
+  keyword_properties?: { keyword_difficulty?: number };
+  keyword_difficulty?: number;
+  search_volume?: number;
+  cpc?: number;
+  competition_level?: string;
+  items?: McpKeywordItem[] | null;
+  items_count?: number;
+  keyword_data?: McpKeywordItem | McpKeywordItem[];
+  keyword_intent?: { label?: string; probability?: number };
+  search_intent?: { intent?: string; probability?: number };
+}
+
+interface McpTask {
+  status_code?: number;
+  status_message?: string;
+  result_count?: number;
+  result?: McpKeywordItem | McpKeywordItem[];
+}
+
+interface McpApiResponse {
+  tasks?: McpTask[];
+}
+
+function asMcpResponse(apiResponse: unknown): McpApiResponse {
+  return apiResponse && typeof apiResponse === "object" ? (apiResponse as McpApiResponse) : {};
+}
+
+function transformMCPKeywordData(apiResponse: unknown): KeywordData[] {
   // Transform based on DataForSEO API response structure
   // Structure: tasks[].result[] where each result has { keyword, keyword_info }
   console.log('[Transform] Raw API response:', JSON.stringify(apiResponse, null, 2));
-  
-  if (!apiResponse?.tasks || !Array.isArray(apiResponse.tasks)) {
+  const response = asMcpResponse(apiResponse);
+
+  if (!response.tasks || !Array.isArray(response.tasks)) {
     console.warn('[Transform] No tasks array in response');
     return [];
   }
 
   const results: KeywordData[] = [];
 
-  for (const task of apiResponse.tasks) {
+  for (const task of response.tasks) {
     console.log('[Transform] Processing task:', {
       status_code: task.status_code,
       status_message: task.status_message,
@@ -240,14 +280,15 @@ function transformMCPKeywordData(apiResponse: any): KeywordData[] {
 /**
  * Transform MCP semantic keywords response (keyword_ideas endpoint)
  */
-function transformMCPSemanticData(apiResponse: any): KeywordData[] {
-  if (!apiResponse?.tasks || !Array.isArray(apiResponse.tasks)) {
+function transformMCPSemanticData(apiResponse: unknown): KeywordData[] {
+  const response = asMcpResponse(apiResponse);
+  if (!response.tasks || !Array.isArray(response.tasks)) {
     return [];
   }
 
   const results: KeywordData[] = [];
 
-  for (const task of apiResponse.tasks) {
+  for (const task of response.tasks) {
     if (task.status_code && task.status_code !== 20000) {
       console.error('[Transform Semantic] Task error:', {
         status_code: task.status_code,
@@ -275,7 +316,10 @@ function transformMCPSemanticData(apiResponse: any): KeywordData[] {
         }
         // Alternative structure: keyword_data as object (not array)
         else if (item.keyword_data && typeof item.keyword_data === 'object') {
-          const kd = item.keyword_data;
+          const kd = Array.isArray(item.keyword_data)
+            ? item.keyword_data[0]
+            : item.keyword_data;
+          if (!kd) continue;
           results.push({
             keyword: kd.keyword || "",
             difficulty: kd.keyword_difficulty || kd.keyword_info?.keyword_difficulty || 0,
@@ -317,14 +361,15 @@ function transformMCPSemanticData(apiResponse: any): KeywordData[] {
  * Transform MCP search intent response
  * DataForSEO API returns: item.keyword_intent.label and item.keyword_intent.probability
  */
-function transformMCPIntentData(apiResponse: any): { keyword: string; intent: 'informational' | 'commercial' | 'transactional' | 'navigational'; probability: number }[] {
-  if (!apiResponse?.tasks || !Array.isArray(apiResponse.tasks)) {
+function transformMCPIntentData(apiResponse: unknown): { keyword: string; intent: 'informational' | 'commercial' | 'transactional' | 'navigational'; probability: number }[] {
+  const response = asMcpResponse(apiResponse);
+  if (!response.tasks || !Array.isArray(response.tasks)) {
     return [];
   }
 
   const results: { keyword: string; intent: 'informational' | 'commercial' | 'transactional' | 'navigational'; probability: number }[] = [];
 
-  for (const task of apiResponse.tasks) {
+  for (const task of response.tasks) {
     if (task.result && Array.isArray(task.result)) {
       for (const item of task.result) {
         // DataForSEO API returns keyword_intent.label and keyword_intent.probability
@@ -384,9 +429,8 @@ export async function callPageIntersection(
   location: string = "United States",
   language: string = "en",
   intersectionMode: 'intersect' | 'union' = 'intersect'
-): Promise<any> {
-  const MCP_API_BASE = import.meta.env.VITE_MCP_API_BASE || 
-    (import.meta.env.DEV ? 'http://localhost:3001/api/mcp' : '/api/mcp');
+): Promise<unknown> {
+  const MCP_API_BASE = resolveMcpApiBase();
   
   try {
     console.log('[Page Intersection] Calling API with:', { pages, location, language, intersectionMode });

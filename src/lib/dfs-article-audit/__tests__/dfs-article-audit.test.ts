@@ -230,11 +230,15 @@ describe("findWorkflowDfsArticleAuditFileRef", () => {
     const ref = findWorkflowDfsArticleAuditFileRef(
       [
         {
+          id: 1,
+          runId: 1,
           nodeId: "a1",
           variableKey: "dfs_llm_article_audit_1",
           scope: "run",
           label: "Audit",
+          textPreview: "",
           fileRefs: [{ name: "dfs-article-audit-my-post.json", url: "https://x.test/a.json" }],
+          createdAt: "",
         },
       ],
       "https://example.com/my-post/",

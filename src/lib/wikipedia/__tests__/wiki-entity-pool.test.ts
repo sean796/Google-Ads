@@ -17,6 +17,7 @@ const altonaBucket: GridLocationBucket = {
   placeLabel: "Altona, MB",
   weight: 10,
   avgRank: 12,
+  rowCount: 1,
   sampleAddresses: ["123 Main St, Altona, MB R0G 0B0"],
 };
 
@@ -157,9 +158,9 @@ describe("wiki-entity-pool", () => {
         tier: "place" as const,
       },
       {
-        wikipediaTitle: "Plum Coulee",
-        wikipediaUrl: "https://en.wikipedia.org/wiki/Plum_Coulee",
-        entityLabel: "Plum Coulee, Altona, MB",
+        wikipediaTitle: "Parkview, Altona",
+        wikipediaUrl: "https://en.wikipedia.org/wiki/Parkview%2C_Altona",
+        entityLabel: "Parkview, Altona, MB",
         tier: "place" as const,
       },
     ];
@@ -167,7 +168,7 @@ describe("wiki-entity-pool", () => {
     streamChatCompletion.mockImplementation(async (opts: { onContentChunk?: (c: string) => void }) => {
       opts.onContentChunk?.(
         JSON.stringify({
-          titles: ["Millwood, Altona", "Plum Coulee"],
+          titles: ["Millwood, Altona", "Parkview, Altona"],
         }),
       );
     });
@@ -185,7 +186,7 @@ describe("wiki-entity-pool", () => {
     });
 
     expect(picked).toHaveLength(2);
-    expect(picked.map((e) => e.wikipediaTitle)).toEqual(["Millwood, Altona", "Plum Coulee"]);
+    expect(picked.map((e) => e.wikipediaTitle)).toEqual(["Millwood, Altona", "Parkview, Altona"]);
     expect(streamChatCompletion).toHaveBeenCalledTimes(1);
   });
 

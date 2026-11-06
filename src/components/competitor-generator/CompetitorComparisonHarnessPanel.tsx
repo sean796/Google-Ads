@@ -1,16 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, ChevronDown, MinusCircle } from "lucide-react";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+
 import {
   type CompetitorComparisonHarnessGroup,
-} from "@/lib/competitor-analysis/competitor-comparison-harness-state";
+} from "@/lib/competitor-research/competitor-comparison-harness-state";
 import { BULK_ACTIVE_SEMANTIC_BORDER_CLASS } from "@/lib/bulk/bulk-active-semantic-border";
 import { cn } from "@/lib/utils";
-import { RowButton } from "@/ui";
+import { RowButton, Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui";
 
 export type CompetitorComparisonHarnessPanelProps = {
   phase: string;

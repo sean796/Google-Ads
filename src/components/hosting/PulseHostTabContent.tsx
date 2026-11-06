@@ -12,7 +12,7 @@ import {
   type HostedSiteGroup,
   type HostedTag,
 } from "@/lib/hosting-api";
-import { setPulseHostHash, usePulseHostRoute } from "@/lib/hosting/pulse-host-hash";
+import { setPulseHostRoute, usePulseHostRoute } from "@/lib/hosting/pulse-host-route";
 import { fetchTeamMembers } from "@/lib/teams-api";
 import type { TeamMember } from "@/lib/teams-types";
 import { cn } from "@/lib/utils";
@@ -184,7 +184,7 @@ export function PulseHostTabContent() {
                     onAddEnvironment={(g) => setDialog({ kind: "add", group: g })}
                     onManageTags={(g) => setDialog({ kind: "tags", group: g })}
                     onEnvironmentAction={(action, env) => void onEnvironmentAction(action, env)}
-                    onOpenSite={(g, env) => setPulseHostHash({ view: "site", groupId: g.id, envId: env?.id ?? null, section: "overview" })}
+                    onOpenSite={(g, env) => setPulseHostRoute({ view: "site", groupId: g.id, envId: env?.id ?? null, section: "overview" })}
                   />
                 ))
               : null}

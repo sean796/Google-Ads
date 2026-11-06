@@ -1,6 +1,6 @@
 import type { MouseEvent } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import type { WordPressSite } from "@/components/integrations/types";
 import {
   contentOptimizerRowStripeClass,
@@ -16,7 +16,7 @@ import {
 } from "@/components/gbp-post/gbp-post-row-constants";
 import { gbpRosterSiteDisplayName } from "@/lib/gbp-post/gbp-roster-site-display-name";
 import { cn } from "@/lib/utils";
-import { Button, Field } from "@/ui";
+import { Button, Field, Checkbox } from "@/ui";
 
 export type GbpPostRowCompactProps = {
   site: WordPressSite;

@@ -1,9 +1,10 @@
 import type { WordPressSite } from "@/components/integrations/types";
 import { getPublicSiteUrl } from "@/lib/wordpress-site-public-url";
+import { readSiteServiceCountry } from "@/lib/wordpress-api/site-service-area";
 
 /** Regional Semrush database for domain overview (matches server `database_from_site_url`). */
 export function resolveSemrushDatabaseForSite(site: WordPressSite): string {
-  const profileCountry = site.country?.trim().toLowerCase();
+  const profileCountry = readSiteServiceCountry(site).trim().toLowerCase();
   if (profileCountry === "canada" || profileCountry === "ca") {
     return "ca";
   }

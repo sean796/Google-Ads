@@ -46,7 +46,7 @@ export function usePromptBulkSiteContext(
     return () => {
       cancelled = true;
     };
-  }, [site?.id, site?.siteUrl]);
+  }, [site]);
 
   const sitemapInventoryLoading = warm.sitemapInventoryLoading || contextLoading;
   const promptSiteContextReady = Boolean(ideasContext?.isReady) && !sitemapInventoryLoading;

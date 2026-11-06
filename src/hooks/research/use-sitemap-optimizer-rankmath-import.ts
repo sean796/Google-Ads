@@ -100,7 +100,7 @@ export function useSitemapOptimizerRankMathImport() {
             },
           });
 
-          if (!gridRes.ok) {
+          if (gridRes.ok === false) {
             if (gridRes.error !== "Cancelled") setError(gridRes.error);
             setPhase(gridRes.error === "Cancelled" ? "idle" : "error");
             return { ok: false as const, error: gridRes.error };
@@ -143,7 +143,7 @@ export function useSitemapOptimizerRankMathImport() {
         setProgress({ phase: "inventory", completed: 0, total: 1, detail: "Loading inventory" });
 
         const catalogRes = await fetchSitemapOptimizerCatalog(site, collections);
-        if (!catalogRes.ok) {
+        if (catalogRes.ok === false) {
           setError(catalogRes.error);
           setPhase("error");
           return { ok: false as const, error: catalogRes.error };

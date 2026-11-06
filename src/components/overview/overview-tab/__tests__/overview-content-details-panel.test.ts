@@ -4,11 +4,19 @@ import {
   hasSinglePageOptimizationDetailsActivity,
   isOverviewResearchWorkerActive,
   overviewContentDetailsCanOpen,
-} from "@/components/overview/overview-tab/OverviewContentDetailsPanel";
-import { buildSinglePageOptimizationSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+} from "@/components/overview/overview-tab/overview-content-details-helpers";
+import { buildSinglePageOptimizationSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
+import type { WordPressSite } from "@/components/integrations/types";
 
 describe("overviewContentDetailsCanOpen", () => {
-  const site = { id: "1" } as { id: string };
+  const site: WordPressSite = {
+    id: "1",
+    name: "Test Site",
+    siteUrl: "https://example.com",
+    username: "admin",
+    appPassword: "test-password",
+    connectedAt: 0,
+  };
 
   it("returns false without site", () => {
     expect(overviewContentDetailsCanOpen(null, {}, undefined)).toBe(false);
@@ -173,7 +181,7 @@ describe("isOverviewResearchWorkerActive", () => {
 describe("buildSinglePageOptimizationSnapshot", () => {
   it("builds header snapshot from optimization progress", () => {
     const snapshot = buildSinglePageOptimizationSnapshot(
-      { step: "Blueprint", progress: 75, message: "Generating sections" },
+      { step: "Blueprint", stepId: "plan", subProgress: 0, progress: 75, message: "Generating sections" },
       { isOptimizing: true, pageUrl: "https://example.com/page" },
     );
     expect(snapshot).toMatchObject({

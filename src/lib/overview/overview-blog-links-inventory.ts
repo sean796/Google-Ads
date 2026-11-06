@@ -142,7 +142,6 @@ export async function loadBlogLinksLinkInventory(
   const bulk = await getSiteInventoryBulk(site.siteUrl, site.username, site.appPassword, {
     collections: ["posts", "pages"],
     includeContent: false,
-    includeRawAcf: false,
   });
 
   if (bulk.error?.trim() && !(bulk.rows?.length ?? 0)) {

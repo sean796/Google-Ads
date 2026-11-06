@@ -1,6 +1,6 @@
 import { loadApiKey } from "@/lib/api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
-import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
+import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
 
 export type ChatAiMode = "correct" | "enhance" | "professional" | "shorter" | "clearer";
 
@@ -50,9 +50,8 @@ export async function transformChatHtml(
   const model = getResearchModel();
 
   try {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const response = await postOpenRouterAppChatFetch({
       method: "POST",
-      headers: openRouterWebAppHeaders(apiKey),
       body: JSON.stringify({
         model,
         messages: [
@@ -74,7 +73,7 @@ export async function transformChatHtml(
 
     if (!response.ok) {
       const errText = await response.text();
-      return { ok: false, error: errText.trim() || response.statusText || "Request failed" };
+      return { ok: false, error: errText.trim() || `Request failed (${response.status})` };
     }
 
     const data = (await response.json()) as {

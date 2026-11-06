@@ -11,12 +11,7 @@ import { ChatPersonalizationModal } from "@/components/chat/settings/ChatPersona
 import { ChatCallModal } from "@/components/chat/calls/ChatCallModal";
 import { ChatIncomingCallModal } from "@/components/chat/calls/ChatIncomingCallModal";
 import { ChatFloHuddleJoinPopup } from "@/components/chat/calls/ChatFloHuddleJoinPopup";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+
 import { ChatRichEditor } from "@/components/chat/editor/ChatRichEditor";
 import { ChatDraftLinkPreviews } from "@/components/chat/editor/ChatDraftLinkPreviews";
 import {
@@ -28,8 +23,9 @@ import { SEO_WORKSPACE_TYPO_CLASS } from "@/components/seo/seo-workspace-layout"
 import { channelTitle, threadBarLabel } from "@/components/chat/layout/chat-shell-utils";
 import { fetchMentionUnreadCount } from "@/lib/chat-api";
 import type { ChatMessage } from "@/lib/chat-types";
+import type { ChatCallTranscriptLine } from "@/lib/chat-call-types";
 import type { ChatShellViewModel } from "@/components/chat/layout/useChatShellState";
-import { Button } from "@/ui";
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "@/ui";
 
 type MobileChatScreenProps = {
   onMentionUnreadCountChange?: (count: number) => void;
@@ -95,38 +91,46 @@ export function MobileChatScreen({
   const [showThread, setShowThread] = useState(false);
   const [channelDrawerOpen, setChannelDrawerOpen] = useState(false);
   const [visibleDay, setVisibleDay] = useState("");
+  const stateReady = state.ready;
+  const stateTeamId = state.ready ? state.teamId : null;
+  const stateMentionUnreadCount = state.ready ? state.mentionUnreadCount : 0;
+  const stateActiveChannelId = state.ready ? state.activeChannelId : null;
+  const stateMessages = state.ready ? state.messages : null;
+  const stateOnSelectChannel = state.ready ? state.onSelectChannel : null;
+  const stateOpenThread = state.ready ? state.openThread : null;
+  const stateSetHighlightMessageId = state.ready ? state.setHighlightMessageId : null;
 
   useEffect(() => {
-    if (!state.ready) return;
-    onMentionUnreadCountChange?.(state.mentionUnreadCount);
+    if (!stateReady || stateTeamId == null) return;
+    onMentionUnreadCountChange?.(stateMentionUnreadCount);
     let cancelled = false;
-    void fetchMentionUnreadCount(state.teamId).then((count) => {
+    void fetchMentionUnreadCount(stateTeamId).then((count) => {
       if (!cancelled) onMentionUnreadCountChange?.(count);
     });
     return () => {
       cancelled = true;
     };
-  }, [onMentionUnreadCountChange, state.ready, state.ready ? state.teamId : null, state.ready ? state.mentionUnreadCount : 0]);
+  }, [onMentionUnreadCountChange, stateReady, stateTeamId, stateMentionUnreadCount]);
 
   useEffect(() => {
-    if (!state.ready || state.activeChannelId == null) return;
+    if (!stateReady || stateActiveChannelId == null) return;
     setShowThread(true);
-  }, [state.ready, state.ready ? state.activeChannelId : null]);
+  }, [stateReady, stateActiveChannelId]);
 
   useEffect(() => {
     setVisibleDay("");
-  }, [state.ready ? state.activeChannelId : null]);
+  }, [stateActiveChannelId]);
 
   useEffect(() => {
-    if (!state.ready || !pushNav?.channelId) return;
-    state.onSelectChannel(pushNav.channelId);
+    if (!stateReady || !pushNav?.channelId || !stateOnSelectChannel) return;
+    stateOnSelectChannel(pushNav.channelId);
     setShowThread(true);
     setChannelDrawerOpen(false);
     if (pushNav.threadRootId) {
-      const root = state.messages.find((message) => message.id === pushNav.threadRootId);
-      if (root) state.openThread(root);
+      const root = stateMessages?.find((message) => message.id === pushNav.threadRootId);
+      if (root && stateOpenThread) stateOpenThread(root);
     } else if (pushNav.messageId) {
-      state.setHighlightMessageId(pushNav.messageId);
+      stateSetHighlightMessageId?.(pushNav.messageId);
     }
     onPushNavHandled?.();
   }, [
@@ -134,7 +138,11 @@ export function MobileChatScreen({
     pushNav?.channelId,
     pushNav?.messageId,
     pushNav?.threadRootId,
-    state.ready,
+    stateReady,
+    stateMessages,
+    stateOnSelectChannel,
+    stateOpenThread,
+    stateSetHighlightMessageId,
   ]);
 
   if (!state.ready) {
@@ -234,7 +242,10 @@ export function MobileChatScreen({
 
           <ChatNotificationPermissionPrompt
             teamId={vm.teamId}
-            onEnableDesktopAlerts={vm.handleEnableDesktopAlerts}
+            onEnableDesktopAlerts={async () => {
+              await vm.handleEnableDesktopAlerts();
+              return true;
+            }}
           />
 
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -249,7 +260,10 @@ export function MobileChatScreen({
                 isTeamAdmin={vm.isTeamAdmin}
                 loadThread={vm.loadThread}
                 markThreadRead={vm.markThreadRead}
-                sendMessage={vm.handleSend}
+                sendMessage={async (html, attachmentAssetIds) => {
+                  const result: unknown = await vm.handleSend(html, attachmentAssetIds);
+                  return result !== false;
+                }}
                 pingTyping={vm.pingTyping}
                 sending={vm.sending}
                 highlightMessageId={vm.highlightMessageId}
@@ -362,7 +376,7 @@ export function MobileChatScreen({
         cameraOff={vm.callCameraOff}
         error={vm.callError}
         floMode={vm.floCall}
-        floTranscript={vm.floTranscriptLines}
+        floTranscript={vm.floTranscriptLines as unknown as ChatCallTranscriptLine[]}
         onHangUp={() => void vm.hangUp()}
         onToggleMute={vm.toggleMute}
         onToggleCamera={vm.toggleCamera}

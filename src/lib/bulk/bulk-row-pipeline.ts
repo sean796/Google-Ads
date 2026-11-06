@@ -7,7 +7,7 @@ import { BulkProcessingOptions, PrefetchedBulkKeywordResearch } from './bulk-aut
 import type { CSVRow } from './bulk-csv-parser';
 import { keepBlogPlayLinkTargets } from './bulk-generation-wp-inventory';
 import { populateACFFieldsFromDFS } from '@/lib/bulk/bulk-row-acf-meta';
-import { isCompetitorCsvKeyword } from '@/lib/competitor/competitor-csv-row';
+import { isCompetitorCsvKeyword } from '@/lib/competitor-research/competitor-csv-row';
 import { buildSitesToPostFromPosting } from '@/lib/bulk/bulk-wordpress-link-prefetch';
 import { publishBulkRowToWordPressSites } from '@/lib/bulk/bulk-wordpress-publish-row';
 import { runBulkRowResearchEnrichmentPhase } from './bulk-row-research-enrichment';
@@ -92,8 +92,8 @@ export async function generateBlueprintAndContent(
   row: CSVRow,
   keywordData: KeywordData,
   aiAnalysis: KeywordAIAnalysis,
-  keywordsWithVolumeData: any[],
-  paaRawResponse: any,
+  keywordsWithVolumeData: KeywordData[],
+  paaRawResponse: unknown,
   options: BulkProcessingOptions,
   fileManager: BulkFileManager,
   knowledgeFiles: Array<{ name: string; content: string }> = [],
@@ -293,7 +293,8 @@ export async function generateBlueprintAndContent(
           apiKey: options.openRouterApiKey,
         });
 
-        const qaFileName = BulkFileManager.generateFileName(row, 'decision_tree_qa', timestamp);
+        // BulkFileManager.generateFileName has no decision_tree_qa case; it falls through to this default name.
+        const qaFileName = `file-${timestamp}.txt`;
         const qaFileId = BulkFileManager.createFileId(rowIndex, 'decision-qa', timestamp);
         fileManager.addFile({
           id: qaFileId,
@@ -305,7 +306,6 @@ export async function generateBlueprintAndContent(
           timestamp,
           rowData: {
             ...row,
-            decision_audit_json: JSON.stringify(decisionAudit),
           },
         });
       } catch (auditErr) {

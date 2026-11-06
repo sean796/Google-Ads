@@ -3,6 +3,7 @@ import type { WordPressSite } from "@/components/integrations/types";
 
 vi.mock("@/lib/wordpress-api/connection", () => ({
   BACKEND_API_BASE: "",
+  backendApiUrl: (path: string) => `/api${path.startsWith("/") ? path : `/${path}`}`,
 }));
 
 vi.mock("@/lib/wordpress-api", () => ({

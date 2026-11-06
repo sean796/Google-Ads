@@ -95,6 +95,10 @@ export function cloneVisualToolPalette(palette: MetaAdVisualToolPalette): MetaAd
   return normalizeVisualToolPalette(palette);
 }
 
+export function clonePaletteForEdit(palette: MetaAdVisualToolPalette): MetaAdVisualToolPalette {
+  return cloneVisualToolPalette(palette);
+}
+
 export function hasActiveVisualToolPalette(palette: MetaAdVisualToolPalette): boolean {
   return META_VISUAL_TOOL_KEYS.some((key) => visualToolIsActive(palette[key]));
 }

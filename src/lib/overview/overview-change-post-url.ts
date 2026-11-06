@@ -181,7 +181,7 @@ export async function applyOverviewRowSlugChangeToWordPress(
     return { ok: false, error: result.error || "WordPress rejected the slug update." };
   }
 
-  let permalink = result.permalink?.trim() || (await fetchLivePermalink(site, binding)) || "";
+  const permalink = result.permalink?.trim() || (await fetchLivePermalink(site, binding)) || "";
   const verify = verifyWordPressSlugMatchesPlan(permalink || null, plan, result.slug);
   if (!verify.ok) {
     return { ok: false, error: verify.error };

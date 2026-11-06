@@ -453,7 +453,12 @@ export async function uploadDeliverableToGoogleDriveIfConfigured(args: {
   deliverable?: ResolvedPrimaryDeliverable | null;
   compareLabel?: string;
   comparePreset?: "mom" | "yoy";
-  onStep?: (label: string, status?: DriveStepStatus) => void | Promise<void>;
+  onStep?: (
+    label: string,
+    status?: DriveStepStatus,
+    resumePayload?: Record<string, unknown>,
+    stepKey?: string,
+  ) => void | Promise<void>;
 }): Promise<GoogleDriveDeliveryResult> {
   const reportStep = async (label: string, status: DriveStepStatus = "running") => {
     const stepKey = inferAutomationDeliveryStepKey(label, status);

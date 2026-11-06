@@ -120,7 +120,7 @@ export const generateImage = async ({
 
     // Check for error in response
     if (data.error) {
-      const errorMsg = typeof data.error === 'string' ? data.error : (data.error.message || JSON.stringify(data.error));
+      const errorMsg = typeof data.error === 'string' ? data.error : (typeof (data.error as { message?: unknown }).message === 'string' ? (data.error as { message: string }).message : JSON.stringify(data.error));
       console.error('Image generation API returned an error:', errorMsg);
 throw new Error(`Image generation API error: ${errorMsg}`);
     }
@@ -156,13 +156,13 @@ throw new Error(
     }
     
     // Format 0b: Check for direct data fields at top level
-    if (data.url) {
+    if (typeof data.url === 'string') {
       return { imageUrl: data.url };
     }
     if (data.b64_json) {
       return { imageBase64: `data:image/png;base64,${data.b64_json}` };
     }
-    if (data.image_url) {
+    if (typeof data.image_url === 'string') {
       return { imageUrl: data.image_url };
     }
     
@@ -179,7 +179,8 @@ throw new Error(
             imageUrl = firstImage.image_url;
           } else if (typeof firstImage.image_url === 'object' && firstImage.image_url !== null) {
             // Extract URL from object (common properties: url, image_url, href)
-            imageUrl = (firstImage.image_url as any).url || (firstImage.image_url as any).image_url || (firstImage.image_url as any).href;
+            const imageUrlObj = firstImage.image_url as { url?: string; image_url?: string; href?: string };
+            imageUrl = imageUrlObj.url || imageUrlObj.image_url || imageUrlObj.href;
 if (!imageUrl || typeof imageUrl !== 'string') {
               console.error('Could not extract URL from image_url object:', firstImage.image_url);
               // Continue to next check
@@ -203,7 +204,8 @@ return { imageBase64: imageUrl };
             url = firstImage.url;
           } else if (typeof firstImage.url === 'object' && firstImage.url !== null) {
             // Extract URL from object
-            url = (firstImage.url as any).url || (firstImage.url as any).image_url || (firstImage.url as any).href;
+            const urlObj = firstImage.url as { url?: string; image_url?: string; href?: string };
+            url = urlObj.url || urlObj.image_url || urlObj.href;
 if (!url || typeof url !== 'string') {
               console.error('Could not extract URL from url object:', firstImage.url);
               // Continue to next check
@@ -290,7 +292,7 @@ return { imageBase64: content };
 return { imageBase64: `data:image/png;base64,${content}` };
         }
         // Check if content contains image URL in markdown format
-        const urlMatch = content.match(/https?:\/\/[^\s\)\"\']+\.(png|jpg|jpeg|webp|gif)(\?[^\s\)\"\']*)?/i);
+        const urlMatch = content.match(/https?:\/\/[^\s)"']+\.(png|jpg|jpeg|webp|gif)(\?[^\s)"']*)?/i);
         if (urlMatch) {
 return { imageUrl: urlMatch[0] };
         }
@@ -414,7 +416,7 @@ if (parsedContent.url) return { imageUrl: parsedContent.url };
               return { imageBase64: base64Match[0].trim() };
             }
             // Check for URL in text (more flexible pattern)
-            const urlMatch = part.text.match(/https?:\/\/[^\s\)\"\']+\.(png|jpg|jpeg|webp|gif)(\?[^\s\)\"\']*)?/i);
+            const urlMatch = part.text.match(/https?:\/\/[^\s)"']+\.(png|jpg|jpeg|webp|gif)(\?[^\s)"']*)?/i);
             if (urlMatch) {
               console.log('Extracting URL from text content');
               return { imageUrl: urlMatch[0] };
@@ -482,8 +484,9 @@ return { imageUrl: part.url };
     }
     
     // Format 2: Direct image URL in response
-    if (data.image_url || data.url) {
-      return { imageUrl: data.image_url || data.url };
+    const directImageUrl = typeof data.image_url === 'string' ? data.image_url : typeof data.url === 'string' ? data.url : undefined;
+    if (directImageUrl) {
+      return { imageUrl: directImageUrl };
     }
     
     // Format 3: Base64 in response
@@ -531,37 +534,38 @@ return { imageUrl: part.url };
 
     // Last resort: Deep search for any URL or base64 in the entire response
     console.log('=== DEEP SEARCH FOR IMAGE DATA ===');
-    const deepSearch = (obj: any, path: string = '', visited: Set<any> = new Set()): string | null => {
+    const deepSearch = (obj: unknown, path: string = '', visited: Set<object> = new Set()): string | null => {
       // Prevent infinite loops with circular references
-      if (visited.has(obj)) return null;
       if (!obj || typeof obj !== 'object') return null;
+      if (visited.has(obj)) return null;
       visited.add(obj);
-      
+      const record = obj as Record<string, unknown>;
+
       // Check for common image fields first
-      if (obj.url && typeof obj.url === 'string') {
-        if (obj.url.startsWith('http') || obj.url.startsWith('data:image') || obj.url.match(/\.(png|jpg|jpeg|webp|gif)(\?|$)/i)) {
+      if (typeof record.url === 'string') {
+        if (record.url.startsWith('http') || record.url.startsWith('data:image') || record.url.match(/\.(png|jpg|jpeg|webp|gif)(\?|$)/i)) {
           console.log(`Found URL at path: ${path}.url`);
-          return obj.url;
+          return record.url;
         }
       }
-      if (obj.image_url && typeof obj.image_url === 'string') {
+      if (typeof record.image_url === 'string') {
         console.log(`Found image_url at path: ${path}.image_url`);
-        return obj.image_url;
+        return record.image_url;
       }
-      if (obj.b64_json && typeof obj.b64_json === 'string') {
+      if (typeof record.b64_json === 'string') {
         console.log(`Found b64_json at path: ${path}.b64_json`);
-        return `data:image/png;base64,${obj.b64_json}`;
+        return `data:image/png;base64,${record.b64_json}`;
       }
-      if (obj.base64 && typeof obj.base64 === 'string') {
+      if (typeof record.base64 === 'string') {
         console.log(`Found base64 at path: ${path}.base64`);
-        return obj.base64.startsWith('data:') ? obj.base64 : `data:image/png;base64,${obj.base64}`;
+        return record.base64.startsWith('data:') ? record.base64 : `data:image/png;base64,${record.base64}`;
       }
       // Check for data field that might contain image
-      if (obj.data && typeof obj.data === 'string' && (obj.data.startsWith('data:image') || obj.data.startsWith('http'))) {
+      if (typeof record.data === 'string' && (record.data.startsWith('data:image') || record.data.startsWith('http'))) {
         console.log(`Found data field at path: ${path}.data`);
-        return obj.data;
+        return record.data;
       }
-      
+
       // Recursively search nested objects and arrays
       if (Array.isArray(obj)) {
         for (let i = 0; i < obj.length; i++) {
@@ -570,15 +574,15 @@ return { imageUrl: part.url };
           if (result) return result;
         }
       } else {
-        for (const key in obj) {
-          if (obj.hasOwnProperty(key) && key !== 'usage' && key !== 'created') { // Skip common metadata
+        for (const key in record) {
+          if (Object.prototype.hasOwnProperty.call(record, key) && key !== 'usage' && key !== 'created') { // Skip common metadata
             const newPath = path ? `${path}.${key}` : key;
-            const result = deepSearch(obj[key], newPath, visited);
+            const result = deepSearch(record[key], newPath, visited);
             if (result) return result;
           }
         }
       }
-      
+
       return null;
     };
     

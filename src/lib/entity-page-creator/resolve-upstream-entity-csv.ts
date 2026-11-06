@@ -17,12 +17,6 @@ function pickEntityCsvAgentRunId(
 
   const tryPick = (list: WorkflowStepOutput[]): number | undefined => {
     for (const output of list) {
-      if (output.stepKey === "entity_bulk_csv") {
-        const hasCsv = (output.fileRefs ?? []).some((file) => file.url && isEntityCsvFileRef(file));
-        if (hasCsv && output.agentRunId) return output.agentRunId;
-      }
-    }
-    for (const output of list) {
       const hasBulk = (output.fileRefs ?? []).some(
         (file) => file.url && file.name?.trim().toLowerCase() === "entity-bulk.csv",
       );
@@ -52,12 +46,6 @@ function pickEntityCsvUrlFromOutputs(
   const runScoped = outputs.filter((output) => output.scope === "run");
 
   const tryPick = (list: WorkflowStepOutput[]): string | undefined => {
-    for (const output of list) {
-      if (output.stepKey === "entity_bulk_csv") {
-        const csvRef = (output.fileRefs ?? []).find((file) => file.url && isEntityCsvFileRef(file));
-        if (csvRef?.url) return csvRef.url;
-      }
-    }
     for (const output of list) {
       const csvRef = (output.fileRefs ?? []).find(
         (file) => file.url && file.name?.trim().toLowerCase() === "entity-bulk.csv",

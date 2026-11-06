@@ -1,5 +1,6 @@
 import type { WordPressSite } from "@/components/integrations/types";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { getPublicSiteUrl } from "@/lib/wordpress-site-public-url";
 
 export type LocalBusinessAddressHint = {
@@ -16,7 +17,7 @@ export async function importSchemaHintsFromLiveSite(
   try {
     const res = await fetch(`${BACKEND_API_BASE}/api/seo/local-business-address`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ url: url.trim() }),
     });
     if (!res.ok) return null;

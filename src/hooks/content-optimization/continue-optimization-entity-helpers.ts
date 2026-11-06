@@ -3,6 +3,7 @@ import { lookupOverviewInventoryHitForUrl } from "@/hooks/content-optimization/b
 import { normalizeEntityHintCommaLabel } from "@/lib/comma-place-label";
 import { parseEntityFromSapTitle } from "@/lib/local-analysis/entity-sap-inventory-collision";
 import { extractOriginFromSapTitle } from "@/lib/sap-origin-from-title";
+import type { HandleOptimizeMultipleContentParams } from "./bulk-optimization-params";
 
 const SAP_ENTITY_ACF_KEYS = ["origin", "service_area", "service_area_name", "location", "entity"] as const;
 
@@ -162,10 +163,10 @@ export async function updateBulkStateWithEntity(
   _primaryKeyword: string,
   extractedEntity: string | "N/A",
   _finalTitle: string,
-  setBulkOptimizationState: (prev: any) => any,
+  setBulkOptimizationState: HandleOptimizeMultipleContentParams["setBulkOptimizationState"],
 ): Promise<void> {
   const batchKey = `${site.id}-batch`;
-  setBulkOptimizationState((prev: any) => {
+  setBulkOptimizationState((prev) => {
     const current = prev[batchKey];
     if (current && current.urls.includes(url)) {
       return {

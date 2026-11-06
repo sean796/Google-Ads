@@ -10,9 +10,9 @@ import {
   getPropertyListRowBlackIconButtonClass,
   getPropertyListRowIconButtonHoverGlowClass,
 } from "@/components/integrations/wordpress/cyberpunk-theme";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/ui";
+
+
+import { Button, Popover, PopoverContent, PopoverTrigger, Checkbox } from "@/ui";
 
 const FORGE_AUTOMATION_SELECT_CHECKBOX_CLASS =
   "border-white/50 data-[state=checked]:border-white data-[state=checked]:bg-white data-[state=checked]:text-black";

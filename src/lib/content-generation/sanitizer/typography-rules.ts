@@ -3,7 +3,7 @@ export function removeColons(content: string): string {
   if (!content) return content;
 
   const urlOrColonRe =
-    /(https?:\/\/[^\s\)"<>]+|!\[[^\]]*\]\([^\)]+\)|\[[^\]]*\]\([^\)]+\)|<img[^>]*src=["']https?:\/\/[^"']+["'][^>]*>|<a[^>]*href=["']https?:\/\/[^"']+["'][^>]*>)|:/gi;
+    /(https?:\/\/[^\s)"<>]+|!\[[^\]]*\]\([^)]+\)|\[[^\]]*\]\([^)]+\)|<img[^>]*src=["']https?:\/\/[^"']+["'][^>]*>|<a[^>]*href=["']https?:\/\/[^"']+["'][^>]*>)|:/gi;
   let colonCount = 0;
   const sanitized = content.replace(urlOrColonRe, (match) => {
     if (match === ':') {
@@ -30,7 +30,7 @@ export function removeEmDashes(content: string): string {
   const enDashPattern = /\u2013|&ndash;|&#8211;/gi;
 
   const urlPattern =
-    /(https?:\/\/[^\s\)"<>]+|!\[[^\]]*\]\([^\)]+\)|\[[^\]]*\]\([^\)]+\)|<img[^>]*src=["']https?:\/\/[^"']+["'][^>]*>|<a[^>]*href=["']https?:\/\/[^"']+["'][^>]*>)/gi;
+    /(https?:\/\/[^\s)"<>]+|!\[[^\]]*\]\([^)]+\)|\[[^\]]*\]\([^)]+\)|<img[^>]*src=["']https?:\/\/[^"']+["'][^>]*>|<a[^>]*href=["']https?:\/\/[^"']+["'][^>]*>)/gi;
   const urlPlaceholders: string[] = [];
   let placeholderIndex = 0;
 

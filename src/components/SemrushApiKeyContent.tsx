@@ -6,7 +6,6 @@ import {
   NOTIFY_SEMRUSH_API_KEY_SAVED_SUCCESSFULLY,
 } from "@/lib/notify-messages";
 import { saveSemrushApiKey, loadSemrushApiKey } from "../lib/api";
-import { syncSemrushToWorkspace } from "@/lib/manager-wordpress-properties-api";
 import { DASHBOARD_SETTINGS_FIELD_CLASS } from "@/components/manager/dashboard/dashboard-panel-styles";
 import { Button, Field } from "@/ui";
 
@@ -31,17 +30,11 @@ export const SemrushApiKeyContent: React.FC<SemrushApiKeyContentProps> = ({
       saveKeyInLocalStorage(trimmed);
       saveSemrushApiKey(trimmed);
       setApiKey(trimmed);
-      const sync = await syncSemrushToWorkspace({ semrushApiKey: trimmed });
-      if (!sync.ok) {
-        notify.error(sync.error || "Semrush key saved in this browser but server sync failed.");
-        return;
-      }
       notify.success(NOTIFY_SEMRUSH_API_KEY_SAVED_SUCCESSFULLY);
     } else {
       saveKeyInLocalStorage("");
       saveSemrushApiKey("");
       setApiKey("");
-      await syncSemrushToWorkspace({ semrushApiKey: "" });
       notify.warning(NOTIFY_SEMRUSH_API_KEY_CLEARED);
     }
   }, [localApiKey, setApiKey, saveKeyInLocalStorage]);
@@ -61,7 +54,7 @@ export const SemrushApiKeyContent: React.FC<SemrushApiKeyContentProps> = ({
         >
           Open API keys
         </a>
-        . Saved locally and synced to your server.
+        . Saved locally in this browser.
       </p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <Field

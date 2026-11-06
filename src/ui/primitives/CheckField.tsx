@@ -1,4 +1,4 @@
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@/ui/vendor/checkbox";
 import { cn } from "@/lib/utils";
 import { UI_CHECKBOX } from "@/ui/tokens";
 

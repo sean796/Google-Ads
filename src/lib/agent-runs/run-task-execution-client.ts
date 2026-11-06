@@ -154,7 +154,7 @@ function resolveRunContract(run: AgentRun): TaskExecutionClientRunContract & obj
 async function completeOptimizerWithOptionalEmail(args: {
   run: AgentRun;
   site: WordPressSite;
-  contract: NonNullable<AgentRun["plan"]>["clientRunContract"] & object;
+  contract: TaskExecutionClientRunContract & object;
   executionId: number;
   saveLocalArchive: boolean;
   ok: boolean;
@@ -477,7 +477,7 @@ export async function runTaskExecutionClientHarness(
     title: "",
     link: contract.resolvedPost.link ?? contract.url,
     slug: contract.resolvedPost.slug ?? "",
-    type: contract.resolvedPost.subtype,
+    subtype: contract.resolvedPost.subtype,
     endpoint: contract.resolvedPost.endpoint,
   };
 
@@ -569,7 +569,7 @@ function prefilledOverviewTargetsFromContract(
 async function runTaskExecutionBulkClientHarness(
   run: AgentRun,
   site: WordPressSite,
-  contract: NonNullable<AgentRun["plan"]>["clientRunContract"] & object,
+  contract: TaskExecutionClientRunContract & object,
   executionId: number,
   ctx: AgentRunHarnessContext,
   batchKey: string,

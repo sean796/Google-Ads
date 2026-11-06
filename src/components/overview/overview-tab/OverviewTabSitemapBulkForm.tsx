@@ -2,7 +2,7 @@ import React from "react";
 import { OverviewContentHeader } from "@/components/overview/overview-tab/OverviewMetaWorkspaceBar";
 import type { ContentOptimizerSectionId } from "@/components/content-optimizer/content-optimizer-sections";
 import type { ContentOptimizerGeneratorChrome } from "@/components/content-optimizer/content-optimizer-generator-chrome";
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import type { OverviewTabController } from "@/hooks/overview/use-overview-tab-controller";
 import type { useWordPressOptimization } from "@/contexts/wordpress-optimization-context";
 import type { MetaBulkActionKey, BulkProgressSlice } from "@/components/overview/overview-tab-constants";

@@ -2,16 +2,11 @@ import {
   Download,
   Wand2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { VendorButton as Button, Checkbox, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui";
+
+
+
+
 import { MY_SITES_FIELD } from "@/components/hosting/my-sites/my-sites-theme";
 import { DASHBOARD_LIST_CHECKBOX_CLASS } from "@/components/shared/workspace-checkbox-styles";
 import type { WordPressSite } from "@/components/integrations/types";

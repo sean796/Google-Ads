@@ -1,4 +1,0 @@
-
-
-/* Hide nd-site-note mu-plugin footer block */
-.nd-site-note { display: none !important; }

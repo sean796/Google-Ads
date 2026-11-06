@@ -60,8 +60,9 @@ function emptyBrief(): SeoContentBriefV1 {
 
 describe("attachLocationToQfoQuery", () => {
   it("appends the location label when the city is missing", () => {
+    // Production appends only the city token, not the ", AB" province suffix.
     expect(attachLocationToQfoQuery("solar grants canada", "Edmonton, AB")).toBe(
-      "solar grants canada Edmonton, AB",
+      "solar grants canada Edmonton",
     );
     expect(cityTokenFromLocation("Edmonton, AB")).toBe("Edmonton");
   });
@@ -88,8 +89,8 @@ describe("attachLocationToQfoQuery", () => {
         "Edmonton, AB",
       ),
     ).toEqual([
-      "solar panel efficiency Edmonton, AB",
-      "how solar payback works Edmonton, AB",
+      "solar panel efficiency Edmonton",
+      "how solar payback works Edmonton",
       "net metering solar Edmonton, AB",
     ]);
   });

@@ -1,4 +1,5 @@
 import { ensureAllPostIdsInClusterResult } from "@/lib/sitemap-optimizer/ensure-cluster-catalog-coverage";
+import type { SitemapOptimizerCluster, SitemapOptimizerClusterResult, SitemapOptimizerPostRow } from "@/lib/sitemap-optimizer/types";
 import { sharedGridClusterDestinationUrl } from "@/lib/sitemap-optimizer/grid-merge-group-ids";
 import type { GridMaxUrlsPerPost } from "@/lib/sitemap-optimizer/grid-macro-cluster-policy";
 import { resolvedMemberRows } from "@/lib/sitemap-optimizer/resolved-cluster-members";

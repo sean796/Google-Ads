@@ -4,7 +4,7 @@ import {
   Search,
   Sparkles,
 } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import type { ContentOptimizerSectionId } from "@/components/content-optimizer/content-optimizer-sections";
 import { isOverviewRowOptimizationActive } from "@/components/overview/overview-tab/overview-bulk-run-helpers";
 import { OverviewBulkClusterFlyout } from "@/components/overview/overview-tab/OverviewBulkClusterFlyout";
@@ -39,7 +39,7 @@ import {
 } from "@/lib/bulk/bulk-generator-studio-rows";
 import { rowIndexForOverviewUrl } from "@/lib/bulk/bulk-generator-overview-row-bridge";
 import { BulkStudioTitleUrlOptimizingBlock } from "@/components/keyword-research/bulk/BulkStudioTitleUrlOptimizingBlock";
-import { Field, RowButton, SelectField } from "@/ui";
+import { Field, RowButton, SelectField, Checkbox } from "@/ui";
 
 export type OverviewSitemapLeftDockBulkGeneratorDock = {
   variant: BulkGeneratorStudioVariant;

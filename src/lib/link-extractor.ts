@@ -6,28 +6,60 @@ import type { ResearchLink } from "./keyword-types";
  * - organic type items
  * - url, title, description fields
  */
-export function extractResearchLinksFromSerp(serpData: any): {
+export interface SerpLinkItem {
+  type?: string;
+  url?: string;
+  link?: string;
+  title?: string;
+  text?: string;
+  description?: string;
+  snippet?: string;
+  items?: SerpLinkItem[];
+  organic?: SerpLinkItem[];
+}
+
+export interface SerpResultItem {
+  items?: SerpLinkItem[];
+  organic?: SerpLinkItem[];
+}
+
+interface SerpTask {
+  status_code?: number;
+  status_message?: string;
+  result?: SerpResultItem | SerpResultItem[];
+}
+
+interface SerpResponseShape {
+  tasks?: SerpTask[];
+}
+
+function asSerpResponse(serpData: unknown): SerpResponseShape {
+  return serpData && typeof serpData === "object" ? (serpData as SerpResponseShape) : {};
+}
+
+export function extractResearchLinksFromSerp(serpData: unknown): {
   items: ResearchLink[];
-  rawResponse: any;
+  rawResponse: unknown;
   extractionLog: string[];
 } {
   const links: ResearchLink[] = [];
   const extractionLog: string[] = [];
-  
+
   if (!serpData) {
     extractionLog.push('[Link Extractor] No serpData provided');
     return { items: [], rawResponse: serpData, extractionLog };
   }
+  const serp = asSerpResponse(serpData);
 
   // Log initial structure
-  extractionLog.push(`[Link Extractor] Starting extraction. Has tasks: ${!!serpData.tasks}, tasks is array: ${Array.isArray(serpData.tasks)}`);
-  
-  if (!serpData?.tasks || !Array.isArray(serpData.tasks)) {
+  extractionLog.push(`[Link Extractor] Starting extraction. Has tasks: ${!!serp.tasks}, tasks is array: ${Array.isArray(serp.tasks)}`);
+
+  if (!serp.tasks || !Array.isArray(serp.tasks)) {
     extractionLog.push('[Link Extractor] No tasks array found in response');
     return { items: [], rawResponse: serpData, extractionLog };
   }
 
-  for (const task of serpData.tasks) {
+  for (const task of serp.tasks) {
     // Check task status
     if (task.status_code && task.status_code !== 20000) {
       extractionLog.push(`[Link Extractor] Task has error status: ${task.status_code} - ${task.status_message}`);
@@ -72,7 +104,7 @@ export function extractResearchLinksFromSerp(serpData: any): {
  * Extract links from a single result item
  */
 function extractFromResultItem(
-  resultItem: any,
+  resultItem: SerpResultItem,
   links: ResearchLink[],
   extractionLog: string[]
 ): void {
@@ -146,7 +178,7 @@ function extractDomain(url: string): string {
     return urlObj.hostname.replace('www.', '');
   } catch {
     // If URL parsing fails, try to extract domain manually
-    const match = url.match(/(?:https?:\/\/)?(?:www\.)?([^\/]+)/);
+    const match = url.match(/(?:https?:\/\/)?(?:www\.)?([^/]+)/);
     return match ? match[1] : url;
   }
 }
@@ -155,19 +187,20 @@ function extractDomain(url: string): string {
  * Extracts all organic result URLs from DataForSEO SERP response
  * Returns only URLs (no title/description) for use in page intersection analysis
  */
-export function extractUrlsFromSerp(serpData: any): string[] {
+export function extractUrlsFromSerp(serpData: unknown): string[] {
   const urls: string[] = [];
-  
+
   try {
     if (!serpData) {
       return urls;
     }
-    
-    if (!serpData?.tasks || !Array.isArray(serpData.tasks)) {
+    const serp = asSerpResponse(serpData);
+
+    if (!serp.tasks || !Array.isArray(serp.tasks)) {
       return urls;
     }
-    
-    for (const task of serpData.tasks) {
+
+    for (const task of serp.tasks) {
       try {
         // Check task status
         if (task.status_code && task.status_code !== 20000) {
@@ -230,7 +263,7 @@ export function extractUrlsFromSerp(serpData: any): string[] {
 /**
  * Extract URLs from a single result item
  */
-function extractUrlsFromResultItem(resultItem: any, urls: string[]): void {
+function extractUrlsFromResultItem(resultItem: SerpResultItem, urls: string[]): void {
   // Method 1: Check for items array with organic results
   if (resultItem.items && Array.isArray(resultItem.items)) {
     for (const item of resultItem.items) {

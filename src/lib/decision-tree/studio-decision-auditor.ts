@@ -20,6 +20,8 @@ import type {
 import type { CSVRow } from '@/lib/bulk/bulk-csv-parser';
 import { hasNegativePeopleConstraint } from '@/lib/video-generator/video-storyboard-agent';
 
+export type AuditedCSVRow = CSVRow & { decision_audit_json?: string };
+
 export interface IdeaAuditSummary {
   keyword: string;
   title: string;
@@ -70,7 +72,7 @@ export async function auditBlogIdeasWithDecisionAgent(args: {
   siteId?: string | null;
   clientBrandName?: string;
 }): Promise<{
-  auditedIdeas: CSVRow[];
+  auditedIdeas: AuditedCSVRow[];
   summaries: IdeaAuditSummary[];
 }> {
   if (!args.ideas.length) {
@@ -78,7 +80,7 @@ export async function auditBlogIdeasWithDecisionAgent(args: {
   }
 
   const summaries: IdeaAuditSummary[] = [];
-  const auditedIdeas: CSVRow[] = [];
+  const auditedIdeas: AuditedCSVRow[] = [];
 
   for (const idea of args.ideas) {
     const brief: DecisionJobBrief = {
@@ -125,7 +127,7 @@ export async function auditBlogIdeasWithDecisionAgent(args: {
       summaries.push(summary);
 
       // Attach decision audit JSON to the row so UI and pipeline can display badge
-      const updatedRow: CSVRow = {
+      const updatedRow: AuditedCSVRow = {
         ...idea,
         rationale: idea.rationale || summary.reasoning,
         decision_audit_json: JSON.stringify(summary),

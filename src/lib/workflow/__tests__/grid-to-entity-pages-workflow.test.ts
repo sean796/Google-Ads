@@ -5,6 +5,7 @@ import type { AutomationPlan } from "@/lib/automation-planner-types";
 describe("automationPlanToWorkflowGraph grid chain wiring", () => {
   it("locks entity step to grid workflow mode after local dominator export", () => {
     const plan: AutomationPlan = {
+      keyword: "grid-to-entity-pages",
       name: "Chain",
       trigger: {
         keyword: "schedule-monthly",

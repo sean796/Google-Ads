@@ -278,7 +278,7 @@ export async function hydrateOverviewContentInBackground(
     if (isStaleLoad(generation)) return;
 
     const pageRows = pages[i]!;
-    // eslint-disable-next-line no-await-in-loop
+     
     const batch = await fetchOverviewPageContentBatch({
       site,
       sitemapSource: source,

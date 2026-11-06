@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { padListWithPlaceholders } from "@/components/keyword-research/bulk/GeneratedBlogIdeasList";
+import { padListWithPlaceholders } from "@/components/keyword-research/bulk/generated-blog-ideas-list-helpers";
 import { BULK_GENERATOR_EMPTY_ROW_COUNT } from "@/components/keyword-research/blog-generator-tab-classes";
 
 describe("padListWithPlaceholders", () => {

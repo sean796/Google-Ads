@@ -24,7 +24,7 @@ import { CHAT_MAIN_CLASS } from "@/components/chat/chat-theme";
 import { cn } from "@/lib/utils";
 import { chatZoneProps } from "@/lib/chat-theme-palettes";
 import { useChatPreferences } from "@/hooks/use-chat-preferences";
-import { chatMessageHash } from "@/lib/chat-activity-log";
+import { writeChatMessagePath } from "@/lib/chat-activity-log";
 import { transformChatHtml } from "@/lib/chat-ai-compose";
 import type { HuddleParticipantAvatar } from "@/components/chat/calls/ChatHuddleSidebar";
 import { useChatCall } from "@/hooks/use-chat-call";
@@ -34,7 +34,7 @@ import { useChatScreenShare } from "@/hooks/use-chat-screen-share";
 import { isNeoPulseBotMember, NEO_PULSE_BOT_DISPLAY_NAME } from "@/lib/chat-neo-pulse";
 import { fetchChatCallTranscript, fetchActiveHuddles, fetchIncomingChatCalls } from "@/lib/chat-call-api";
 import { summarizeChatCall } from "@/lib/chat-call-summary";
-import type { ActiveHuddleSummary } from "@/lib/chat-call-types";
+import type { ActiveHuddleSummary, ChatCallTranscriptLine } from "@/lib/chat-call-types";
 import { readCachedActiveChannelId, readCachedMentionState, subscribeChatSessionCache, writeChatSessionCache } from "@/lib/chat-session-cache";
 import { toggleStarredChannelId } from "@/lib/chat-starred-channels";
 import { streamHasLiveAudio } from "@/components/chat/layout/chat-shell-utils";
@@ -113,7 +113,7 @@ export type ChatShellViewModel = {
   callCameraOff: boolean;
   callError: string | null;
   floCall: boolean;
-  floTranscriptLines: string[];
+  floTranscriptLines: ChatCallTranscriptLine[];
   micReady: boolean;
   peerConnected: boolean;
   presenting: boolean;
@@ -147,7 +147,7 @@ export type ChatShellViewModel = {
   handleSaveEdit: () => Promise<void>;
   handleDeleteMessage: (message: ChatMessage) => Promise<void>;
   handleAiCorrect: (message: ChatMessage) => Promise<void>;
-  handleSend: (html: string, attachmentAssetIds: number[]) => Promise<void>;
+  handleSend: (html: string, attachmentAssetIds: number[], parentMessageId?: number) => Promise<boolean>;
   loadThread: ReturnType<typeof useChatPoll>["loadThread"];
   markThreadRead: ReturnType<typeof useChatPoll>["markThreadRead"];
   pingTyping: ReturnType<typeof useChatPoll>["pingTyping"];
@@ -157,7 +157,7 @@ export type ChatShellViewModel = {
   setMessageSearchQuery: (query: string) => void;
   setThreadSearchQuery: (query: string) => void;
   setHighlightMessageId: (id: number | null) => void;
-  handleEnableDesktopAlerts: () => Promise<ChatUserPreferences>;
+  handleEnableDesktopAlerts: () => Promise<boolean>;
   handleStartHuddle: () => Promise<void>;
   handleJoinChannelHuddle: () => Promise<void>;
   handleLeaveHuddle: () => Promise<void>;
@@ -177,7 +177,8 @@ export type ChatShellState = ChatShellViewModel | { ready: false };
 export function useChatShellState(): ChatShellState {
   const { user } = useAuth();
   const { activeTeam, members, refreshMembers } = useTeam();
-  const { canWrite } = useTeamPermission("communication");
+  const { canWrite: canWriteForArea } = useTeamPermission();
+  const canWrite = canWriteForArea("communication");
   const teamId = activeTeam?.id ?? null;
   const isTeamAdmin = activeTeam?.accessRole === "owner" || activeTeam?.accessRole === "admin";
   const initialMentionState = teamId ? readCachedMentionState(teamId) : { mentions: [], mentionUnreadCount: 0 };
@@ -650,8 +651,8 @@ export function useChatShellState(): ChatShellState {
     [threadRoot],
   );
 
-  const handleSend = async (html: string, attachmentAssetIds: number[]) => {
-    await sendMessage(html, attachmentAssetIds);
+  const handleSend = async (html: string, attachmentAssetIds: number[], parentMessageId?: number) => {
+    return sendMessage(html, attachmentAssetIds, parentMessageId);
   };
 
   const closeThread = useCallback(() => {
@@ -672,7 +673,7 @@ export function useChatShellState(): ChatShellState {
     (messageId: number) => {
       closeThread();
       setHighlightMessageId(messageId);
-      window.location.hash = chatMessageHash(messageId);
+      writeChatMessagePath(messageId);
     },
     [closeThread],
   );
@@ -744,7 +745,7 @@ export function useChatShellState(): ChatShellState {
       }
       if (alert.messageId > 0) {
         setHighlightMessageId(alert.messageId);
-        window.location.hash = chatMessageHash(alert.messageId);
+        writeChatMessagePath(alert.messageId);
       }
       dismissAlert(alert.id);
     },
@@ -761,7 +762,7 @@ export function useChatShellState(): ChatShellState {
     const finish = (messageId: number) => {
       if (cancelled) return;
       setHighlightMessageId(messageId);
-      window.location.hash = chatMessageHash(messageId);
+      writeChatMessagePath(messageId);
       setPendingMention(null);
     };
 

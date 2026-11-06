@@ -7,10 +7,8 @@ import { CONTENT_PAGINATION_SLOT_CLASS } from "@/components/overview/overview-ta
 import { PpcGoogleWorkspaceModePills } from "@/components/ppc/google/PpcGoogleWorkspaceModePills";
 import type { PpcGoogleWorkspaceMode } from "@/components/ppc/google/ppc-google-workspace-mode";
 import { GoogleAdsGenerateToolbar } from "@/components/ppc/google/GoogleAdsGenerateToolbar";
-import {
-  GoogleAdsDetailsPanel,
-  googleAdsDetailsCanOpen,
-} from "@/components/ppc/google/GoogleAdsDetailsPanel";
+import { GoogleAdsDetailsPanel } from "@/components/ppc/google/GoogleAdsDetailsPanel";
+import { googleAdsDetailsCanOpen } from "@/components/ppc/google/google-ads-details-can-open";
 import type { PpcGoogleWorkspaceController } from "@/hooks/ppc/use-ppc-google-workspace";
 
 export type GoogleAdsWorkspaceHeaderProps = {

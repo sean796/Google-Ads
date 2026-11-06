@@ -1,14 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { ChevronDown, ListFilter } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 import { BULK_HEADER_SELECT_TRIGGER } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import type {
   ForgeAutomationCategory,
@@ -36,7 +28,7 @@ import {
   forgeFilterMenuStripeClass,
 } from "@/components/manager/pulse-forge/forge-dashboard-styles";
 import { cn } from "@/lib/utils";
-import { Button, Field, SelectField } from "@/ui";
+import { Button, Field, SelectField, DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/ui";
 
 export type ForgeAutomationsTableHeaderRowProps = {
   query: ForgeAutomationsListQuery;

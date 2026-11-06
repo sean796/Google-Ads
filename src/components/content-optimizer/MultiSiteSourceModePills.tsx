@@ -2,7 +2,7 @@ import { WorkspacePill } from "@/components/shared/WorkspacePill";
 import {
   multiSiteSourceLabel,
   type MultiSiteUrlSource,
-} from "@/lib/content-optimizer/multi-site-source-urls";
+} from "@/lib/content-optimization/multi-site-source-urls";
 import { cn } from "@/lib/utils";
 
 export const SITEMAP_MIXED_SENTINEL = "__ms_sitemap_mixed__" as const;

@@ -74,7 +74,7 @@ function parsePipeCells(line: string): string[] {
 function isPipeSeparatorRow(line: string): boolean {
   const t = line.trim();
   if (!t.startsWith("|")) return false;
-  return /^[\s|:\-]+$/.test(t);
+  return /^[\s|:-]+$/.test(t);
 }
 
 function parseNumericCell(cell: string): number {

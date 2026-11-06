@@ -146,12 +146,12 @@ export function SitemapOptimizerResearchTab() {
     setSelected(new Set<SitemapOptimizerCollectionKey>([key]));
   }, [collectionOptions]);
 
+  const siteId = site?.id;
   useEffect(() => {
-    if (!site) {
+    if (!siteId) {
       selectionInitializedForSiteRef.current = null;
       return;
     }
-    const siteId = site.id;
     if (selectionInitializedForSiteRef.current === siteId) return;
     selectionInitializedForSiteRef.current = siteId;
 
@@ -161,7 +161,7 @@ export function SitemapOptimizerResearchTab() {
       return;
     }
     setSelected(new Set<SitemapOptimizerCollectionKey>(["posts"]));
-  }, [site?.id, collectionOptions]);
+  }, [siteId, collectionOptions]);
 
   const redirectMapUpload =
     gscPagesUpload?.length && isRedirectMapUpload(gscPagesUpload) ? gscPagesUpload : null;

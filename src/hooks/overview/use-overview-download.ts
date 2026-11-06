@@ -56,7 +56,7 @@ export function useOverviewDownloadFromSite(): UseOverviewDownloadResult {
         }
 
         const meta = result.meta;
-        const acf = (result as any).acf || {};
+        const acf = result.acf || {};
         const postTitle =
           typeof result.title === "string"
             ? result.title.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
@@ -116,9 +116,9 @@ export function useOverviewDownloadFromSite(): UseOverviewDownloadResult {
           dateModifier: acfDate || undefined,
           seoResearch: acfSeoResearch || undefined,
         };
-      } catch (err: any) {
+      } catch (err) {
         const msg =
-          err?.message ||
+          (err instanceof Error ? err.message : "") ||
           `Failed to download SEO fields for ${url}. Check WordPress REST access for this post and excerpt/meta fields.`;
         setError(msg);
         return null;

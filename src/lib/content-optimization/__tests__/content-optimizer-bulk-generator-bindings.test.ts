@@ -315,6 +315,8 @@ describe("buildContentOptimizerBulkGeneratorDetailsProps", () => {
           currentStep: "prepInventory",
           urlHarnessSections: { [url]: contentPrepHarness },
           currentStepProgress: {
+            stepId: "prepInventory",
+            subProgress: 0,
             step: "prepInventory",
             progress: 0,
             message: "Initializing batch…",
@@ -324,6 +326,7 @@ describe("buildContentOptimizerBulkGeneratorDetailsProps", () => {
         siteProgress: {
           stepId: "prepInventory",
           subProgress: 0,
+          step: "Prep inventory",
           progress: 0,
           message: "Initializing batch…",
         },

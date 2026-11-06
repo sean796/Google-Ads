@@ -10,7 +10,7 @@ export function redirectMapClusterPackPart(clusterId: string): number {
 
 /** Overflow chunk when a CSV new_url family exceeds max URLs per post (part 2+). */
 export function isRedirectMapOverflowPackCluster(
-  cluster: Pick<SitemapOptimizerCluster, "clusterId" | "rationale">,
+  cluster: Pick<SitemapOptimizerCluster, "clusterId"> & { rationale?: string },
 ): boolean {
   if (cluster.clusterId.startsWith("grid-temporal-")) return false;
   return redirectMapClusterPackPart(cluster.clusterId) > 1;

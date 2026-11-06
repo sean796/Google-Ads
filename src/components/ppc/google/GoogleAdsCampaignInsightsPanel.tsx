@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from "react";
 import { Line, LineChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/ui";
+
 import {
   formatGoogleAdsCustomerId,
   googleAdsCampaignUrl,
@@ -34,6 +35,8 @@ const METRIC_WELL =
 const METRIC_WELL_GROW = cn(METRIC_WELL, "flex-1");
 
 const META_METRICS_GRID = "grid w-full grid-cols-2 gap-2 lg:grid-cols-4";
+
+const PERFORMANCE_METRICS_GRID = "grid w-full grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-6";
 
 const PERFORMANCE_METRICS_ROW =
   "flex w-full min-w-0 flex-wrap gap-2 sm:flex-nowrap";

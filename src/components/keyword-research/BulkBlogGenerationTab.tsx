@@ -53,7 +53,7 @@ import {
   pressReleaseHeaderProgressFromState,
 } from "@/lib/press-release/press-release-header-progress";
 import { notify } from "@/lib/app-notifications";
-import { notifyLoadedCsvX, NOTIFY_OPENROUTER_API_KEY_IS_REQUIRED } from "@/lib/notify-messages";
+import { notifyLoadedCsvX } from "@/lib/notify-messages";
 import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
 import { useVerticalBenchmarkController } from "@/hooks/vertical-benchmark/use-vertical-benchmark-controller";
 import { buildVerticalBenchmarkMicroSnapshot } from "@/lib/vertical-benchmark/vertical-benchmark-header-progress";
@@ -103,7 +103,7 @@ export function BulkBlogGenerationTab({
       setStudioEditorModeState("prompt");
       writeStoredStudioEditorMode("prompt");
     }
-  }, [activeSection]);
+  }, [activeSection, studioEditorMode]);
 
   const handleStudioEditorModeChange = useCallback(
     (nextMode: StudioEditorModeId) => {
@@ -139,35 +139,34 @@ export function BulkBlogGenerationTab({
   const [pressReleaseBindings, setPressReleaseBindings] =
     useState<PressReleaseWorkspaceBindings | null>(null);
 
+  const bulkHasGeneratedChecklist = bulkBindings?.hasGeneratedChecklist;
+  const bulkNumberOfBlogs = bulkBindings?.numberOfBlogs;
+  const bulkSetNumberOfBlogs = bulkBindings?.setNumberOfBlogs;
+
   useEffect(() => {
-    if (!isVerticalBenchmark || !bulkBindings) return;
-    if (!bulkBindings.hasGeneratedChecklist && bulkBindings.numberOfBlogs !== vb.blogCount) {
-      bulkBindings.setNumberOfBlogs(vb.blogCount);
+    if (!isVerticalBenchmark || !bulkSetNumberOfBlogs) return;
+    if (!bulkHasGeneratedChecklist && bulkNumberOfBlogs !== vb.blogCount) {
+      bulkSetNumberOfBlogs(vb.blogCount);
     }
   }, [
     isVerticalBenchmark,
     vb.blogCount,
-    bulkBindings?.hasGeneratedChecklist,
-    bulkBindings?.numberOfBlogs,
-    bulkBindings?.setNumberOfBlogs,
+    bulkHasGeneratedChecklist,
+    bulkNumberOfBlogs,
+    bulkSetNumberOfBlogs,
   ]);
 
   useEffect(() => {
     vb.setBlogCount(0);
     if (bulkBindings && !bulkBindings.hasGeneratedChecklist) bulkBindings.setNumberOfBlogs(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- vb and bulkBindings are recreated on every render, so adding them would reset blog counts on every render; this effect must run only when studioEditorMode changes and both setters delegate to stable state setters
   }, [studioEditorMode]);
 
   const handlePickImportFiles = useCallback(
     async (files: File[]) => {
       if (files.length === 0 || !bulkBindings) return;
       const dest: WordPressPostDestination = bulkBindings.bulkPostDestination ?? "wordpress";
-      let apiKey = "";
-      try {
-        apiKey = (await resolveOpenRouterApiKeyForHarness()).trim();
-      } catch (e) {
-        notify.error(e instanceof Error ? e.message : NOTIFY_OPENROUTER_API_KEY_IS_REQUIRED);
-        return;
-      }
+      const apiKey = (await resolveOpenRouterApiKeyForHarness()).trim();
       setIsParsingImport(true);
       try {
         const accepted = files.filter((file) => isBlogImportFileAccepted(file));
@@ -192,7 +191,8 @@ export function BulkBlogGenerationTab({
         const next: CSVRow[] = [];
         for (const file of accepted) {
           try {
-            const importedRow = await buildImportCsvRowFromFile(file, form, dest, apiKey, selectedModel);
+            const importedRow: CSVRow & { decision_audit_json?: string } =
+              await buildImportCsvRowFromFile(file, form, dest, apiKey, selectedModel);
             try {
               const { auditImportDraftWithDecisionTree } = await import("@/lib/decision-tree/studio-decision-auditor");
               const draftBody = importedRow.imported_markdown || importedRow.imported_html || "";
@@ -344,13 +344,18 @@ export function BulkBlogGenerationTab({
     return { links, gscHostedLink, sitemapInventoryLoading };
   }, [bulkBindings, warmSiteDetails]);
 
-  const googleImagePipelineTitles =
-    bulkBindings?.featuredImageType === "google-maps"
-      ? [...GOOGLE_IMAGE_ENTITY_SAP_PIPELINE_TITLES]
-      : undefined;
+  const googleImagePipelineTitles = useMemo(
+    () =>
+      bulkBindings?.featuredImageType === "google-maps"
+        ? [...GOOGLE_IMAGE_ENTITY_SAP_PIPELINE_TITLES]
+        : undefined,
+    [bulkBindings?.featuredImageType],
+  );
 
-  const wpConfig = bulkBindings
-    ? {
+  const wpConfig = useMemo(
+    () =>
+      bulkBindings
+        ? {
         selectedWordPressSites: bulkBindings.selectedWordPressSites,
         setSelectedWordPressSites: bulkBindings.setSelectedWordPressSites,
         siteConfigs: bulkBindings.siteConfigs,
@@ -381,29 +386,42 @@ export function BulkBlogGenerationTab({
         scheduleOccupancy: bulkBindings.scheduleOccupancy,
         scheduleOccupancyLoading: bulkBindings.scheduleOccupancyLoading,
       }
-    : null;
+    : null,
+    [bulkBindings, postDestinationChoices],
+  );
 
-  const baseDetailsProps = {
-    workspaceBusy,
-    headerProgress,
-    isProcessing: Boolean(bulkBindings?.isProcessing),
-    status: bulkBindings?.status ?? "",
-    processingStepLog: bulkBindings?.processingStepLog ?? [],
-    harnessSections: bulkBindings?.harnessSections ?? [],
-    harnessByRow: bulkBindings?.harnessByRow ?? new Map(),
-    harnessPlannedSectionCount: bulkBindings?.harnessPlannedSectionCount ?? null,
-    currentRow: bulkBindings?.currentRow ?? 0,
-    totalRows: bulkBindings?.totalRows ?? 0,
-    displayRows: bulkBindings?.displayRows ?? [],
-    postDestination,
-    wpConfig,
-    runKind: "content" as const,
-    pipelineSectionTitles: googleImagePipelineTitles,
-    entitySapRowDisplay: bulkBindings?.featuredImageType === "google-maps",
-    sitemapInventoryLinks: mergedInventoryDetails.links,
-    siteKwHostedLink: mergedInventoryDetails.gscHostedLink,
-    sitemapInventoryLoading: mergedInventoryDetails.sitemapInventoryLoading,
-  };
+  const baseDetailsProps = useMemo(
+    () => ({
+      workspaceBusy,
+      headerProgress,
+      isProcessing: Boolean(bulkBindings?.isProcessing),
+      status: bulkBindings?.status ?? "",
+      processingStepLog: bulkBindings?.processingStepLog ?? [],
+      harnessSections: bulkBindings?.harnessSections ?? [],
+      harnessByRow: bulkBindings?.harnessByRow ?? new Map(),
+      harnessPlannedSectionCount: bulkBindings?.harnessPlannedSectionCount ?? null,
+      currentRow: bulkBindings?.currentRow ?? 0,
+      totalRows: bulkBindings?.totalRows ?? 0,
+      displayRows: bulkBindings?.displayRows ?? [],
+      postDestination,
+      wpConfig,
+      runKind: "content" as const,
+      pipelineSectionTitles: googleImagePipelineTitles,
+      entitySapRowDisplay: bulkBindings?.featuredImageType === "google-maps",
+      sitemapInventoryLinks: mergedInventoryDetails.links,
+      siteKwHostedLink: mergedInventoryDetails.gscHostedLink,
+      sitemapInventoryLoading: mergedInventoryDetails.sitemapInventoryLoading,
+    }),
+    [
+      workspaceBusy,
+      headerProgress,
+      bulkBindings,
+      postDestination,
+      wpConfig,
+      googleImagePipelineTitles,
+      mergedInventoryDetails,
+    ],
+  );
 
   const scheduleMenu = useMemo(() => {
     if (!bulkBindings) {

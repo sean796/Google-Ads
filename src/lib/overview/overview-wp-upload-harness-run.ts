@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
+import { harnessStepProgress, mergeOverviewHarnessProgress, mergeOverviewHarnessProgressSiteAndBatch } from "@/lib/overview/overview-harness-progress";
 import type { BulkHarnessSectionPayload } from "@/lib/bulk-auto-generate";
 import { reduceHarnessSectionList, type HarnessSectionListItem } from "@/lib/bulk/harness-sections-reducer";
 import type { WordPressSite } from "@/components/integrations/types";
@@ -18,11 +19,8 @@ import {
   type WpUploadHarnessDoneSummary,
 } from "@/lib/overview/overview-wp-upload-harness-sections";
 import type { BulkOverviewSeoResultRow } from "@/lib/wordpress-api/meta";
-import {
-  mergeHarnessProgressSiteAndBatch,
-  setOptimizingState,
-} from "@/hooks/content-optimization/optimization-helpers-a";
-import { mergeOptimizationProgress } from "@/hooks/content-optimization/optimization-helpers";
+import { setOptimizingState } from "@/hooks/content-optimization/optimization-helpers-a";
+
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import {
   buildWpUploadBatchPipelineSteps,
@@ -121,7 +119,7 @@ export function initOverviewWpUploadHarnessBatchState(params: {
 
   setOptimizingState(setIsOptimizingContent, batchKey, true);
   setOptimizationProgress((prev) =>
-    mergeOptimizationProgress(prev as Record<string, unknown>, site.id, {
+    mergeOverviewHarnessProgress(prev as Record<string, unknown>, site.id, {
       step: "Uploading to WordPress",
       progress: 2,
       message: prepMessage,
@@ -143,13 +141,13 @@ export function initOverviewWpUploadHarnessBatchState(params: {
       batchPipelineSteps,
       urlHarnessSections: {},
       urlGeneratedFiles: {},
-      currentStepProgress: {
+      currentStepProgress: harnessStepProgress(undefined, {
         step: "Uploading to WordPress",
         progress: 2,
         message: prepMessage,
         harnessSections: wpUploadBatchHarnessSections,
         harnessPlannedSectionCount: plannedBatchCount,
-      },
+      }),
     },
   }));
   initOverviewBulkHarnessPagination(batchKey, urls.length, setBulkOptimizationState);
@@ -165,7 +163,7 @@ export function setWpUploadBatchPrepMessage(
 ): void {
   const { setBulkOptimizationState, setOptimizationProgress } = setters;
   setOptimizationProgress((prev) =>
-    mergeOptimizationProgress(prev as Record<string, unknown>, siteId, {
+    mergeOverviewHarnessProgress(prev as Record<string, unknown>, siteId, {
       step: "Uploading to WordPress",
       progress: 5,
       message,
@@ -179,12 +177,11 @@ export function setWpUploadBatchPrepMessage(
       [batchKey]: {
         ...current,
         currentStep: "Uploading to WordPress",
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "Uploading to WordPress",
           progress: 5,
           message,
-        },
+        }),
       },
     };
   });
@@ -249,19 +246,18 @@ export function emitWpUploadHarnessSection(
       [batchKey]: {
         ...current,
         currentProgress: latestProgress,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "Uploading to WordPress",
           progress: latestProgress,
           message,
           harnessPlannedSectionCount: WP_UPLOAD_HARNESS_TOTAL_SECTIONS,
-        },
+        }),
       },
     };
   });
 
   setOptimizationProgress((prev) =>
-    mergeHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
       step: "Uploading to WordPress",
       progress: latestProgress,
       message,
@@ -348,19 +344,18 @@ export function applyWpUploadBatchProgress(
         urlSkipReasons,
         batchPipelineSteps,
         currentProgress: progressPct,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "Uploading to WordPress",
           progress: progressPct,
           message,
           harnessPlannedSectionCount: params.wpBatchCount,
-        },
+        }),
       },
     };
   });
 
   setOptimizationProgress((prev) =>
-    mergeOptimizationProgress(prev as Record<string, unknown>, siteId, {
+    mergeOverviewHarnessProgress(prev as Record<string, unknown>, siteId, {
       step: "Uploading to WordPress",
       progress: progressPct,
       message,
@@ -395,10 +390,9 @@ export function finalizeWpUploadHarnessSections(
       [batchKey]: {
         ...current,
         wpUploadBatchHarnessSections: sections,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           harnessSections: sections,
-        },
+        }),
       },
     };
   });
@@ -430,13 +424,12 @@ export function finishWpUploadBatchHarness(
       urlStatuses,
       urlSkipReasons,
       currentProgress: 100,
-      currentStepProgress: {
-        ...(current.currentStepProgress || {}),
+      currentStepProgress: harnessStepProgress(current.currentStepProgress, {
         step: "Uploading to WordPress",
         progress: 100,
         message: "Upload batch complete",
         harnessPlannedSectionCount: current.batchPipelineSteps?.length ?? 1,
-      },
+      }),
     };
     return {
       ...prev,
@@ -492,13 +485,12 @@ export function finishWpUploadRowHarness(
       [batchKey]: {
         ...nextBatch,
         currentProgress: latestProgress,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "Uploading to WordPress",
           progress: latestProgress,
           message: success ? "Row uploaded" : "Row upload failed",
           harnessPlannedSectionCount: WP_UPLOAD_HARNESS_TOTAL_SECTIONS,
-        },
+        }),
       },
     };
   });
@@ -513,7 +505,7 @@ export function finalizeOverviewWpUploadHarnessBatch(
 ): void {
   const { setBulkOptimizationState, setOptimizationProgress } = setters;
   setOptimizationProgress((prev) =>
-    mergeOptimizationProgress(prev as Record<string, unknown>, siteId, {
+    mergeOverviewHarnessProgress(prev as Record<string, unknown>, siteId, {
       step: "Upload complete",
       progress: 100,
       message: summaryMessage,
@@ -533,13 +525,12 @@ export function finalizeOverviewWpUploadHarnessBatch(
         batchPipelineSteps,
         currentStep: "Upload complete",
         currentProgress: 100,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "Upload complete",
           progress: 100,
           message: summaryMessage,
           harnessPlannedSectionCount: batchPipelineSteps.length,
-        },
+        }),
       },
     };
   });

@@ -1,8 +1,6 @@
 import React from "react";
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/ui";
+
 import type { BulkOptimizationState } from "@/hooks/use-content-optimization";
 import type { LinkCheckResult } from "@/lib/wordpress-api/validate-internal-links";
 import { BulkOptimizationPanel } from "./BulkOptimizationPanel";

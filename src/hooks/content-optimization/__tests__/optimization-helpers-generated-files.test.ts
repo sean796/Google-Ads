@@ -6,13 +6,17 @@ describe("mergeOptimizationProgress generatedFiles", () => {
     const next = mergeOptimizationProgress(
       {
         "site-1": {
+          stepId: "plan",
+          subProgress: 0.2,
+          step: "Plan",
+          progress: 10,
           generatedFiles: [
             { name: "serp-research-brief-old.json", content: "{}", mimeType: "application/json" },
           ],
         },
       },
       "site-1",
-      { step: "plan", progress: 1, generatedFiles: [] },
+      { stepId: "plan", subProgress: 1, generatedFiles: [] },
     );
     expect(next["site-1"].generatedFiles).toEqual([]);
   });
@@ -23,6 +27,8 @@ describe("mergeOptimizationProgress generatedFiles", () => {
         "site-1": {
           stepId: "plan",
           subProgress: 0.2,
+          step: "Plan",
+          progress: 10,
           generatedFiles: [
             { name: "serp-research-brief-old.json", content: "{}", mimeType: "application/json" },
           ],

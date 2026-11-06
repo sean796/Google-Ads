@@ -1,22 +1,16 @@
 import { useState, type ReactNode, type SyntheticEvent } from "react";
 import { ChevronDown } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
 import { GoogleAdsRowEndRail } from "@/components/ppc/google/GoogleAdsRowEndRail";
 import {
   PPC_CAMPAIGN_ROW_GRID_COLS,
+  PPC_DETAILS_ACCORDION_STACK,
+  PPC_DETAILS_SUBTRIGGER,
+  PPC_DETAILS_TRIGGER,
   PPC_ROW_CONTENT_SPAN_CLASS,
 } from "@/components/ppc/google/google-ads-row-constants";
 import { cn } from "@/lib/utils";
-import { Button, Field } from "@/ui";
-
-export const PPC_DETAILS_ACCORDION_STACK = "flex flex-col gap-2.5 rounded-none pt-1";
-
-export const PPC_DETAILS_TRIGGER = cn(
-  "grid w-full min-w-0 min-h-[3rem] items-center gap-x-2 rounded-none border-0 bg-black py-1.5 text-left text-base font-medium text-white sm:min-h-[3.25rem] sm:gap-x-3",
-  PPC_CAMPAIGN_ROW_GRID_COLS,
-);
-
-export const PPC_DETAILS_SUBTRIGGER = cn(PPC_DETAILS_TRIGGER, "bg-ui-field/80");
+import { Button, Field, Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui";
 
 export type GoogleAdsDetailsSectionProps = {
   title: string;

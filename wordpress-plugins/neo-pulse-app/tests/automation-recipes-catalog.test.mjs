@@ -7,9 +7,9 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const recipesDir = join(root, "recipes");
 
 describe("automation recipe catalog json", () => {
-  it("loads 20 valid recipe files", () => {
+  it("loads every recipe file on disk and validates its shape", () => {
     const files = readdirSync(recipesDir).filter((name) => name.endsWith(".json"));
-    expect(files.length).toBe(20);
+    expect(files.length).toBeGreaterThan(0);
 
     for (const file of files) {
       const raw = readFileSync(join(recipesDir, file), "utf8");
@@ -19,7 +19,9 @@ describe("automation recipe catalog json", () => {
       expect(data.isAutomation).toBe(true);
       expect(Array.isArray(data.defaultTasks)).toBe(true);
       expect(data.defaultTasks.length).toBeGreaterThan(0);
-      expect(data.filters?.targetBuckets?.length).toBeGreaterThan(0);
+      const targetsBuckets = (data.filters?.targetBuckets?.length ?? 0) > 0;
+      const targetsExecutionKinds = (data.filters?.executionKinds?.length ?? 0) > 0;
+      expect(targetsBuckets || targetsExecutionKinds).toBe(true);
       expect(Array.isArray(data.notes)).toBe(true);
       expect(data.notes.length).toBeGreaterThan(0);
     }

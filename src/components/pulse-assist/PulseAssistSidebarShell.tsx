@@ -53,7 +53,6 @@ type PulseAssistSidebarShellProps = {
 function MobileAssistCircle({ onOpen }: { onOpen: () => void }): ReactElement | null {
   if (typeof document === "undefined") return null;
   return createPortal(
-    // eslint-disable-next-line no-restricted-syntax -- Pulse UI exception: floating circular launcher styled by pulse-assist.css
     <button
       type="button"
       className="pulse-assist-mobile-circle"

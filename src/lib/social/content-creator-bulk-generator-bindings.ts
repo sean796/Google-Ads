@@ -1,5 +1,5 @@
 import type { BulkGeneratorDetailsPanelProps } from "@/components/keyword-research/bulk/BulkGeneratorDetailsPanel";
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import type { BulkHarnessSectionUi } from "@/hooks/use-bulk-auto-generate";
 import {
   blogImportHeaderProgressFromBulk,
@@ -307,11 +307,7 @@ export function buildContentCreatorBulkGeneratorDetailsProps(options: {
     wpConfig: null,
     filesByRow: buildFilesByRow(displayRowModels, options.pageBucketHostedLink),
     downloadFile: (file) => {
-      downloadManager.downloadFile({
-        name: file.fileName,
-        content: file.content,
-        mimeType: file.mimeType,
-      });
+      downloadManager.downloadFile(file);
     },
   };
 }

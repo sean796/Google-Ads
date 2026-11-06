@@ -4,6 +4,7 @@
  */
 
 import { notify } from "@/lib/app-notifications";
+import { buildImagePrompt } from "@/lib/image-prompt-builder";
 import { NOTIFY_FEATURED_IMAGE_GENERATED_BUT_UPLOAD_FAIL, NOTIFY_GOOGLE_MAPS_FEATURED_IMAGE_GENERATED_BUT, notifyFeaturedImageGeneratedAndUploadedId, notifyGoogleMapsFeaturedImageGeneratedAnd, notifyGoogleMapsFeaturedImageGenerationFa, notifyKeepingExistingFeaturedImageIdX } from "@/lib/notify-messages";
 import { IMAGE_SCENE_PLAUSIBILITY_PROMPT } from "@/lib/image-scene-plausibility";
 import { windowTreatmentImagePromptSuffix } from "@/lib/image-window-treatment-prompt-rules";
@@ -24,15 +25,16 @@ import { OptimizationFileManager } from "@/lib/optimization-file-manager";
 import type { WordPressSite } from "@/components/integrations/types";
 import { fetchGoogleMapsImageForEntity } from "@/lib/content-generation/google-maps-image-api";
 import { getImageModel, getResearchModel } from "@/lib/optimization-settings-storage";
+import type { WpExistingPostLike } from "@/hooks/content-optimization/use-optimization-state";
 
 export interface FeaturedImageHandlerOptions {
-  blueprintResult: any;
+  blueprintResult: { title?: string; purpose?: string };
   existingTitle: string;
   primaryKeyword: string;
   site: WordPressSite;
   markdownContent: string;
   existingContent: string;
-  existingPost?: any;
+  existingPost?: WpExistingPostLike;
   fileManager: OptimizationFileManager;
   setProgress: (progress: { step: string; progress: number; message?: string }) => void;
   shouldOptimizeFeaturedImage: boolean;
@@ -68,11 +70,25 @@ export async function handleFeaturedImage(
 
   if (!shouldOptimizeFeaturedImage && existingPost) {
     // Featured image optimization disabled - keep existing featured image
-    const existingFeaturedMedia = existingPost.fullData?.featured_media || existingPost.fullData?._embedded?.featured_media?.[0]?.id || existingPost.featured_media;
+    const fullData =
+      existingPost.fullData && typeof existingPost.fullData === 'object'
+        ? (existingPost.fullData as {
+            featured_media?: unknown;
+            _embedded?: { featured_media?: Array<{ id?: unknown }> };
+          })
+        : undefined;
+    const existingFeaturedMedia: unknown =
+      fullData?.featured_media || fullData?._embedded?.featured_media?.[0]?.id || existingPost.featured_media;
     if (existingFeaturedMedia) {
-      featuredImageId = typeof existingFeaturedMedia === 'number' ? existingFeaturedMedia : existingFeaturedMedia.id;
+      featuredImageId =
+        typeof existingFeaturedMedia === 'number'
+          ? existingFeaturedMedia
+          : typeof existingFeaturedMedia === 'object' &&
+              typeof (existingFeaturedMedia as { id?: unknown }).id === 'number'
+            ? (existingFeaturedMedia as { id: number }).id
+            : undefined;
       console.log('[Optimize Content] Keeping existing featured image:', featuredImageId);
-      if (!getMuteOptimizationToasts()) notify.info(notifyKeepingExistingFeaturedImageIdX(featuredImageId), { duration: 3000 });
+      if (featuredImageId && !getMuteOptimizationToasts()) notify.info(notifyKeepingExistingFeaturedImageIdX(featuredImageId), { duration: 3000 });
     } else {
       console.log('[Optimize Content] No existing featured image found');
     }
@@ -85,7 +101,7 @@ export async function handleFeaturedImage(
         setProgress({ step: 'Generating Google Maps featured image...', progress: 88, message: `Generating Google Maps screenshot for ${entity}...` });
 
         const mapsImage = await fetchGoogleMapsImageForEntity(entity.trim());
-        let imageBase64 = mapsImage.imageBase64;
+        const imageBase64 = mapsImage.imageBase64;
         const mimeType = mapsImage.mimeType || 'image/jpeg';
         
         // Generate SEO-friendly filename

@@ -36,18 +36,18 @@ class Neo_Pulse_App_Url_Text_Proxy {
 	 */
 	public static function fetch_text( array $body ): void {
 		$url = isset( $body['url'] ) ? trim( (string) $body['url'] ) : '';
-		$check = self::validate_http_url( $url );
+		$check = Neo_Pulse_App_Ssrf_Guard::validate_public_url( $url );
 		if ( $check !== null ) {
 			Neo_Pulse_App_Api_Dispatcher::send_json( array( 'ok' => false, 'error' => $check, 'content' => '' ), 200 );
 			return;
 		}
 
-		$response = wp_remote_get(
+		$response = Neo_Pulse_App_Ssrf_Guard::get(
 			$url,
 			array(
-				'timeout'     => 30,
-				'redirection' => 3,
-				'headers'     => array(
+				'timeout'            => 30,
+				'limit_response_size' => self::MAX_BYTES,
+				'headers'            => array(
 					'User-Agent' => 'NEO Pulse/1.0 (url text proxy; +https://neodigital.ca/neo-pulse/)',
 					'Accept'     => 'text/*,application/json,application/csv,*/*;q=0.8',
 				),
@@ -82,26 +82,5 @@ class Neo_Pulse_App_Url_Text_Proxy {
 			),
 			200
 		);
-	}
-
-	private static function validate_http_url( string $url ): ?string {
-		if ( $url === '' || ! preg_match( '#^https://#i', $url ) ) {
-			return 'url must be an https URL';
-		}
-		$parts = wp_parse_url( $url );
-		if ( ! is_array( $parts ) || empty( $parts['host'] ) ) {
-			return 'url host is invalid';
-		}
-		$host = strtolower( (string) $parts['host'] );
-		if ( $host === 'localhost' || $host === '127.0.0.1' || $host === '0.0.0.0' || $host === '::1' || $host === '[::1]' ) {
-			return 'url host is not allowed';
-		}
-		if ( preg_match( '/^(10\.|192\.168\.|169\.254\.)/', $host ) ) {
-			return 'url host is not allowed';
-		}
-		if ( preg_match( '/^172\.(1[6-9]|2[0-9]|3[0-1])\./', $host ) ) {
-			return 'url host is not allowed';
-		}
-		return null;
 	}
 }

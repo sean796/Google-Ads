@@ -2,13 +2,12 @@ import type { LocalDominatorRow } from "@/lib/local-dominator-csv";
 import { loadApiKey } from "@/lib/api";
 import { normalizeStreetLocationKey, researchAddressKeys } from "@/lib/location-address-dedupe";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
-import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
+import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
 
 const KEY_BATCH = 80;
 /** Chunk size for AI “same storefront?” fallback (strict key match often misses wording variants). */
 const AI_GUESS_CHUNK = 85;
 
-const OR = "https://openrouter.ai/api/v1/chat/completions";
 
 function parseMatchIndicesFromContent(content: string): number[] | null {
   const t = content.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
@@ -46,9 +45,8 @@ async function guessSameStorefrontIndicesInChunk(
   if (chunk.length === 0) return [];
   const numbered = chunk.map((a, i) => `${i + 1}. ${a}`).join("\n");
   try {
-    const res = await fetch(OR, {
+    const res = await postOpenRouterAppChatFetch({
       method: "POST",
-      headers: openRouterWebAppHeaders(apiKey),
       body: JSON.stringify({
         model: getResearchModel(siteId),
         messages: [

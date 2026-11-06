@@ -12,6 +12,8 @@ const bucket: GridLocationBucket = {
   bucketId: "b1",
   placeLabel: "Altona cluster",
   weight: 10,
+  avgRank: 0,
+  rowCount: 1,
   sampleAddresses: ["100 Main St, Altona, MB R0G 0A0"],
 };
 

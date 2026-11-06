@@ -330,7 +330,7 @@ export async function runSocialCreatorGenerate(
   if (hasLandingUrl) {
     gscPage = (
       await runStep("load-gsc-queries", () =>
-        loadPpcGoogleGscContext(site, [{ url: resolvedLandingUrl, title: resolvedLandingUrl }], signal),
+        loadPpcGoogleGscContext(site, [{ url: resolvedLandingUrl, title: resolvedLandingUrl, excerpt: "", metaDescription: "", keyword: "" }], signal),
       )
     )[0];
     const gscMarkdown = buildMetaGscQueriesMarkdown(gscPage);
@@ -437,7 +437,7 @@ export async function runSocialCreatorGenerate(
       signal,
     }),
   );
-  let creativeBrief =
+  const creativeBrief =
     visualToolPalette != null
       ? applyUserVisualToolPaletteToBrief(creativeBriefRaw, visualToolPalette)
       : creativeBriefRaw;

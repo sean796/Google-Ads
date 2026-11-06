@@ -137,7 +137,7 @@ export const OverviewSectionProseEditor = React.memo(function OverviewSectionPro
     if (current !== resolvedValue) {
       editor.commands.setContent(resolvedValue || "", { emitUpdate: false });
     }
-  }, [editor, resolvedValue]);
+  }, [editor, resolvedValue, readOnly]);
 
   const addLink = () => {
     if (!editor) return;

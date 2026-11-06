@@ -197,13 +197,15 @@ export function scheduleStateToPostCreatorPayload(
     scheduleTimesPerMonth = clampTimesPerMonth(state.customInterval);
   }
 
+  // Stored payloads may carry the legacy "bank" destination value.
+  const baseDestination: string | undefined = base.postDestination;
   const postDestination =
-    base.postDestination != null
+    baseDestination != null
       ? state.automationEmailDelivery || state.localArchive || state.googleDriveDelivery
         ? base.postDestination
         : state.wordpressDraftOnly
           ? "draft"
-          : base.postDestination === "bank"
+          : baseDestination === "bank"
             ? "wordpress"
             : "wordpress"
       : base.postDestination;

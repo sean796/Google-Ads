@@ -33,14 +33,14 @@ export function faqTextToJsonLd(rawFaq: string | undefined | null): string | nul
   let current: FaqEntry | null = null;
 
   for (const line of lines) {
-    if (/^Q[:\-]/i.test(line)) {
+    if (/^Q[:-]/i.test(line)) {
       if (current) entries.push(current);
-      current = { question: line.replace(/^Q[:\-]\s*/i, "").trim(), answer: "" };
-    } else if (/^A[:\-]/i.test(line)) {
+      current = { question: line.replace(/^Q[:-]\s*/i, "").trim(), answer: "" };
+    } else if (/^A[:-]/i.test(line)) {
       if (!current) {
-        current = { question: "", answer: line.replace(/^A[:\-]\s*/i, "").trim() };
+        current = { question: "", answer: line.replace(/^A[:-]\s*/i, "").trim() };
       } else {
-        current.answer = line.replace(/^A[:\-]\s*/i, "").trim();
+        current.answer = line.replace(/^A[:-]\s*/i, "").trim();
       }
     } else {
       if (current && current.question && !current.answer) {

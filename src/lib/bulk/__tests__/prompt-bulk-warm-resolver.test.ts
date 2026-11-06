@@ -40,6 +40,7 @@ const site: WordPressSite = {
   siteUrl: "https://www.kwbllp.com/",
   username: "u",
   appPassword: "p",
+  connectedAt: 0,
 };
 
 function warmBundle(overrides: Partial<EntitySiteWarmBundle> = {}): EntitySiteWarmBundle {

@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
+import { harnessStepProgress, mergeOverviewHarnessProgress, mergeOverviewHarnessProgressSiteAndBatch } from "@/lib/overview/overview-harness-progress";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_FAQS_NOT_GENERATED, NOTIFY_FAQ_OPTIMIZATION_FAILED_FOR_ALL_SELECTED, notifyAiFaqOptimizationFinishedForXPage } from "@/lib/notify-messages";
 import type { WordPressSite } from "@/components/integrations/types";
@@ -37,11 +38,8 @@ import { getMetaModel } from "@/lib/optimization-settings-storage";
 import { mapOverviewAiCopyWithConcurrency } from "@/lib/overview/overview-ai-copy-concurrency";
 import { overviewBulkPageRanges } from "@/lib/overview/overview-bulk-page-size";
 import { initOverviewBulkHarnessPagination, setOverviewBulkHarnessPageState } from "@/lib/overview/overview-bulk-page-state";
-import {
-  mergeHarnessProgressSiteAndBatch,
-  setOptimizingState,
-} from "@/hooks/content-optimization/optimization-helpers-a";
-import { mergeOptimizationProgress } from "@/hooks/content-optimization/optimization-helpers";
+import { setOptimizingState } from "@/hooks/content-optimization/optimization-helpers-a";
+
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import type { HarnessSectionListItem } from "@/lib/bulk/harness-sections-reducer";
 
@@ -128,7 +126,7 @@ export function initOverviewFaqHarnessBatchState(params: InitOverviewFaqHarnessP
 
   setOptimizingState(setIsOptimizingContent, batchKey, true);
   setOptimizationProgress((prev) =>
-    mergeOptimizationProgress(prev as Record<string, unknown>, site.id, {
+    mergeOverviewHarnessProgress(prev as Record<string, unknown>, site.id, {
       step: "AI FAQs",
       progress: 2,
       message: prepMessage,
@@ -148,13 +146,13 @@ export function initOverviewFaqHarnessBatchState(params: InitOverviewFaqHarnessP
       runKind: "aiFaq",
       urlHarnessSections: {},
       urlGeneratedFiles: {},
-      currentStepProgress: {
+      currentStepProgress: harnessStepProgress(undefined, {
         step: "AI FAQs",
         progress: 2,
         message: prepMessage,
         harnessSections: [],
         harnessPlannedSectionCount: null,
-      },
+      }),
       harnessStartedAt: Date.now(),
     },
   }));
@@ -173,7 +171,7 @@ export function finalizeOverviewFaqHarnessBatch(
   setOptimizationProgress((prev) => {
     const next = { ...(prev as Record<string, unknown>) };
     delete next[batchKey];
-    mergeHarnessProgressSiteAndBatch(next, siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(next, siteId, {
       step: "Complete",
       progress: 100,
       message: "FAQ batch finished",
@@ -309,11 +307,9 @@ export async function runFaqPairsForRow(params: RunFaqPairsForRowParams): Promis
 
   let appended: ReturnType<typeof appendFaqSectionToPostHtml> = null;
   try {
+    // Wave 0: keyless. Empty key is fine; the server resolves its own.
     const apiKey =
       (loadApiKey() ?? "").trim() || (await resolveOpenRouterApiKeyForHarness());
-    if (!apiKey) {
-      throw new Error("OpenRouter API key required for FAQ intro");
-    }
     const introParagraph = await generateFaqIntroParagraph({
       apiKey,
       model: getMetaModel(site.id),

@@ -7,7 +7,7 @@
 import { ESLint } from "eslint";
 import { globSync, readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
-import { PULSE_UI_EXEMPT, PULSE_UI_PAGE_FILES, PULSE_UI_PAGE_RULES } from "../eslint.pulse-ui-rules.js";
+import { PULSE_UI_EXEMPT, PULSE_UI_IMPORT_BAN, PULSE_UI_PAGE_FILES, PULSE_UI_PAGE_RULES } from "../eslint.pulse-ui-rules.js";
 
 const root = resolve(import.meta.dirname, "..");
 process.chdir(root);
@@ -23,7 +23,10 @@ const CATEGORIES = [
 ];
 
 const eslint = new ESLint({
-  overrideConfig: [{ files: PULSE_UI_PAGE_FILES, ignores: PULSE_UI_EXEMPT, rules: PULSE_UI_PAGE_RULES }],
+  overrideConfig: [
+    { files: ["src/**/*.{ts,tsx}"], ignores: PULSE_UI_EXEMPT, rules: PULSE_UI_IMPORT_BAN },
+    { files: PULSE_UI_PAGE_FILES, ignores: PULSE_UI_EXEMPT, rules: PULSE_UI_PAGE_RULES },
+  ],
 });
 const results = await eslint.lintFiles(["src"]);
 

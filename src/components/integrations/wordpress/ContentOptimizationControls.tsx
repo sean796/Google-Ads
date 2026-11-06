@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
 import { type WordPressSite } from '../types';
 import { UnifiedContentSelector } from './UnifiedContentSelector';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 import type { ImageType } from '@/lib/image-section-analyzer';
 import { saveSites, getStoredSites } from '../storage';
 import { OptimizationSettingsAccordion } from './OptimizationSettingsPopover';
 import type { OptimizationOptions } from '@/hooks/use-optimization-options';
 import type { OptimizationProgressState } from '@/hooks/content-optimization/use-optimization-state';
 import { OptimizationFileManager } from '@/lib/optimization-file-manager';
-import { Button } from "@/ui";
+import { Button, Card, CardContent, CardHeader, CardTitle } from "@/ui";
 
 interface ContentOptimizationControlsProps {
   site: WordPressSite;

@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+
+
 import { CheckCircle2, X, Check, XCircle } from "lucide-react";
 import type { AgentConfig } from "@/types/agent-config";
-import { Button } from "@/ui";
+import { Button, Card, Badge } from "@/ui";
 
 interface AgentSuggestionReviewProps {
   suggestedAgents: AgentConfig[];

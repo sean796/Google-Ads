@@ -46,6 +46,9 @@ describe("resolveEntityPageCreatorClusterContext", () => {
     id: "wp-test",
     name: "KWB LLP",
     siteUrl: "https://kwb.example.com",
+    username: "u",
+    appPassword: "p",
+    connectedAt: 0,
     entitySitemapUrl: "https://kwb.example.com/entity-sitemap.xml",
   };
 
@@ -72,7 +75,7 @@ describe("resolveUpstreamGridCsvUrlFromOutputs", () => {
     const outputs: WorkflowStepOutput[] = [
       {
         id: 1,
-        workflowRunId: 1,
+        runId: 1,
         nodeId: "a",
         variableKey: "local_dominator_export_1",
         scope: "run",
@@ -91,7 +94,7 @@ describe("resolveUpstreamGridCsvUrlFromOutputs", () => {
     const outputs: WorkflowStepOutput[] = [
       {
         id: 1,
-        workflowRunId: 1,
+        runId: 1,
         nodeId: "a",
         variableKey: "local_dominator_export_1",
         scope: "run",
@@ -112,10 +115,9 @@ describe("resolveUpstreamEntityCsvUrlFromOutputs", () => {
     const outputs: WorkflowStepOutput[] = [
       {
         id: 1,
-        workflowRunId: 1,
+        runId: 1,
         nodeId: "a",
         variableKey: "entity_generator_1",
-        stepKey: "entity_bulk_csv",
         scope: "run",
         label: "Entity bulk CSV",
         textPreview: "done",
@@ -132,7 +134,7 @@ describe("resolveUpstreamEntityCsvUrlFromOutputs", () => {
     const outputs: WorkflowStepOutput[] = [
       {
         id: 1,
-        workflowRunId: 1,
+        runId: 1,
         nodeId: "a",
         variableKey: "entity_generator_1",
         scope: "run",

@@ -18,8 +18,8 @@ export async function fetchGscKeywordPoolForEntitySitemap(
   if (!siteUrl || !mapUrl) return [];
 
   try {
-    const urls = await parseSitemap(mapUrl, site.username, site.appPassword);
-    const sample = urls.slice(0, limits?.urlSample ?? DEFAULT_GSC_URL_SAMPLE);
+    const parsed = await parseSitemap(siteUrl, mapUrl, site.username, site.appPassword);
+    const sample = parsed.urls.slice(0, limits?.urlSample ?? DEFAULT_GSC_URL_SAMPLE);
     if (sample.length === 0) return [];
 
     const batch = await fetchGSCPagesPerformanceBatch(siteUrl, sample);

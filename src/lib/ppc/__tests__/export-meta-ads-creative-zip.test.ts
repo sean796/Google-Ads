@@ -100,7 +100,7 @@ describe("export-meta-ads-creative-zip", () => {
 
   it("sanitizes site label in zip filename", () => {
     expect(metaAdsCreativeZipFilename("NEO Pulse Demo Site")).toMatch(
-      /^meta-ads-creatives-neo-pulse_demo_site-\d{4}-\d{2}-\d{2}\.zip$/,
+      /^meta-ads-creatives-neo_pulse_demo_site-\d{4}-\d{2}-\d{2}\.zip$/,
     );
   });
 });

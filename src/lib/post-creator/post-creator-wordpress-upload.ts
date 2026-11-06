@@ -122,7 +122,7 @@ export async function uploadPostCreatorRowToWordPress(
     isEntityRow && site.entitySitemapUrl?.trim()
       ? extractEndpointFromEntitySitemapUrl(site.entitySitemapUrl)
       : "posts";
-  const postTypeSubtype = isEntityRow ? entityEndpoint : "post";
+  const postTypeSubtype: "post" | "service-area" = isEntityRow ? "service-area" : "post";
   const postTypeEndpoint = isEntityRow ? entityEndpoint : "posts";
 
   onProgress?.("Preparing harness content for upload...");

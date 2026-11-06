@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ArrowDown } from "lucide-react";
 import type { ChatMessage } from "@/lib/chat-types";
-import { parseChatMessageHash } from "@/lib/chat-activity-log";
+import { parseChatMessageQuery } from "@/lib/chat-activity-log";
 import { groupMessages } from "@/lib/chat-message-grouping";
 import { ChatMessageBubble } from "@/components/chat/thread/ChatMessageBubble";
 import { CHAT_TEXT_MUTED, CHAT_SCROLL_CLASS, CHAT_DAY_PILL_CLASS } from "@/components/chat/chat-theme";
@@ -125,7 +125,7 @@ export function ChatMessageList({
   }, [messages.length, highlightMessageId, onHighlightDone, atBottom, userSentRef]);
 
   useEffect(() => {
-    const hashId = parseChatMessageHash(window.location.hash);
+    const hashId = parseChatMessageQuery(window.location.search);
     if (hashId && messages.some((m) => m.id === hashId)) {
       window.requestAnimationFrame(() => {
         document.getElementById(`chat-msg-${hashId}`)?.scrollIntoView({ block: "center" });

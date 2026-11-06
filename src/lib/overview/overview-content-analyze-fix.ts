@@ -7,9 +7,8 @@ import { z } from "zod";
 import { clampOpenRouterMaxTokens } from "@/lib/openrouter-stream-chat-core";
 import type { WordPressPostContent } from "@/lib/wordpress-api/types";
 import { splitHtmlForOverviewAudit } from "@/lib/overview/overview-post-html-audit-sections";
-import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
+import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
 
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 /** Max outer verify iterations (re-fetch, fix, re-analyze). */
 export const MAX_VERIFY_PASSES = 3;
@@ -486,9 +485,8 @@ async function openRouterNonStreamCompletion(args: {
   signal?: AbortSignal;
 }): Promise<string> {
   const safeMax = clampOpenRouterMaxTokens(args.maxTokens);
-  const response = await fetch(OPENROUTER_URL, {
+  const response = await postOpenRouterAppChatFetch({
     method: "POST",
-    headers: openRouterWebAppHeaders(args.apiKey),
     body: JSON.stringify({
       model: args.model,
       messages: args.messages,

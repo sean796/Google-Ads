@@ -22,7 +22,14 @@ function mockPlan(gscUrlCount: number, name: string): BenchmarkClientPlan {
     content_kind: "post" as const,
   }));
   return {
-    site: { id: `id-${name}`, name, siteUrl: `https://${name}.com` },
+    site: {
+      id: `id-${name}`,
+      name,
+      siteUrl: `https://${name}.com`,
+      username: "user",
+      appPassword: "pass",
+      connectedAt: 0,
+    },
     siteUrl: `https://${name}.com`,
     categoryLabel: "Window Treatment",
     contentKind: "post" as const,

@@ -1,7 +1,8 @@
-import { Card } from "@/components/ui/card";
+import { Card } from "@/ui";
+
 
 interface PAADataViewerProps {
-  rawResponse: any;
+  rawResponse: unknown;
 }
 
 export function PAADataViewer({

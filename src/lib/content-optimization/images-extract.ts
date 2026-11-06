@@ -353,7 +353,7 @@ export async function matchMediaToSections(
       const fromMedia = byUrl.get(mediaUrl);
       const linkLabel = ((a.linkLabel ?? a.altTag) ?? "").trim() || fromMedia?.linkLabel || "";
       if (!linkLabel) continue;
-      let targetSection = (a.targetSection ?? "").trim();
+      const targetSection = (a.targetSection ?? "").trim();
       if (!targetSection) continue;
       const matched = availableSections.find((s) => s.toLowerCase().trim() === targetSection.toLowerCase());
       const section =

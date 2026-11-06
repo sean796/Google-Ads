@@ -59,9 +59,9 @@ export function ChatGptAuditQueryPanel({
 
   const jobId = readJobId(run);
   const sessionReady = readSessionReady(run);
-  const workerLabel = useMemo(() => readWorkerLabel(run), [run.result]);
-  const responseCount = useMemo(() => readResponseCount(run), [run.result]);
-  const setupQuestions = useMemo(() => readSetupQuestions(run), [run.plan]);
+  const workerLabel = useMemo(() => readWorkerLabel(run), [run]);
+  const responseCount = useMemo(() => readResponseCount(run), [run]);
+  const setupQuestions = useMemo(() => readSetupQuestions(run), [run]);
   const hasSetupQuestions = setupQuestions.length > 0;
   const canInteract = isRunning && !isAgentRunTerminal(run.status) && Boolean(jobId);
   const canSend = canInteract && sessionReady && question.trim().length > 0 && !busy;

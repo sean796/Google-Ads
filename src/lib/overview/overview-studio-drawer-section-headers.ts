@@ -1,9 +1,7 @@
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import type { WordPressSite } from "@/components/integrations/types";
-import {
-  elementorSectionHeadersFromCachedRow,
-  type ElementorSectionHeader,
-} from "@/lib/elementor-page-content/elementor-section-headers-from-cache";
+import { elementorSectionHeadersFromCachedRow } from "@/lib/elementor-page-content/elementor-section-headers-from-cache";
+import type { ElementorSectionHeader } from "@/lib/elementor-page-content/parse-elementor-section-outline";
 import { overviewStudioRowFromWarmInventory } from "@/lib/overview/overview-studio-row-inventory-merge";
 import type { OverviewSitemapSource } from "@/lib/overview/overview-sitemap-source";
 

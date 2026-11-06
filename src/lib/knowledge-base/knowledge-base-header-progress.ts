@@ -1,4 +1,4 @@
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import { SCRAPER_STEP_LABELS } from "@/lib/knowledge-base/scraper-constants";
 
 export function buildKnowledgeBaseMicroSnapshot(args: {

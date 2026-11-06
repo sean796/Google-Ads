@@ -17,7 +17,9 @@ export function parseOpenRouterResponseBody(text: string, status: number): unkno
   }
 }
 
-export async function readOpenRouterResponseJson(res: Response): Promise<unknown> {
+export async function readOpenRouterResponseJson(
+  res: Pick<Response, "text" | "status">,
+): Promise<unknown> {
   const text = await res.text();
   return parseOpenRouterResponseBody(text, res.status);
 }

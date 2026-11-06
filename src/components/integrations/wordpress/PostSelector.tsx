@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
-import { Checkbox } from "@/components/ui/checkbox";
+
+
+
 import { RefreshCw, Check, ChevronsUpDown, FileText, ExternalLink, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getPublishedPosts, type PublishedPostsResult, resolveWordPressUrls, getWordPressPostContent } from "@/lib/wordpress-api";
 import { type WordPressSite } from "../types";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_FETCHING_POST_DATA, NOTIFY_SITE_CREDENTIALS_NOT_AVAILABLE, notifyDownloadedXPostSAsJson } from "@/lib/notify-messages";
-import { Button, Field } from "@/ui";
+import { Button, Field, Popover, PopoverContent, PopoverTrigger, Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, Checkbox } from "@/ui";
 
 interface PostSelectorProps {
   site: WordPressSite;
@@ -363,7 +363,7 @@ if (!site.username || !site.appPassword) {
                   }
 
                   // Hard rule: if URL contains /page/ or looks like a page, use 'pages'
-                  if (urlPath.includes('/page/') || urlPath.match(/^\/[^\/]+$/)) {
+                  if (urlPath.includes('/page/') || urlPath.match(/^\/[^/]+$/)) {
                     // Check if it's NOT a post (posts usually have dates in path)
                     if (!urlPath.match(/\/\d{4}\/\d{2}\//)) {
                       console.log(`[PostSelector Scrape] Hard rule: URL looks like a page, using 'pages' endpoint`);

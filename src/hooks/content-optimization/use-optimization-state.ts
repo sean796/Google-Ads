@@ -6,7 +6,12 @@ import type { LinkCheckResult } from "@/lib/wordpress-api/validate-internal-link
 import type { SemrushClusterScatterPlan } from "@/lib/semrush-cluster-scatter";
 import type { HarnessSectionListItem } from "@/lib/bulk/harness-sections-reducer";
 import type { MetaPipelineStepUi } from "@/components/overview/overview-tab-constants";
-import type { ContentOptimizerStepId } from "@/lib/content-optimization/content-optimizer-run-progress";
+import type {
+  BulkProgressMeta,
+  ContentOptimizerStepId,
+} from "@/lib/content-optimization/content-optimizer-run-progress";
+import type { ExtraTextInventoryLinkRow } from "@/lib/content-generation/extra-text-inventory-links";
+import type { ImageType } from "@/lib/image-section-analyzer";
 
 /** One line in the live micro-step list during content optimization. */
 export interface OptimizationMicroLogEntry {
@@ -34,6 +39,43 @@ export interface OptimizationProgressState {
   generatedFiles?: OptimizationFile[];
   /** Overview Details header label after pendingOptimization is cleared. */
   pageUrl?: string;
+  /** Batch-level counters carried on the `${siteId}-batch` progress entry. */
+  bulkMeta?: BulkProgressMeta;
+}
+
+/** Loose GSC result bag consumed by validateGSCData (fields narrowed at read). */
+export interface GscResultLike {
+  error?: unknown;
+  success?: unknown;
+  topKeyword?: { query?: unknown } | null;
+  queries?: Array<{ query?: unknown }> | null;
+}
+
+/** WordPress post object as carried through the optimize pipeline (REST or snapshot shape). */
+export interface WpExistingPostLike {
+  id?: number | string;
+  title?: unknown;
+  content?: unknown;
+  excerpt?: unknown;
+  slug?: string;
+  link?: string;
+  status?: string;
+  postType?: string;
+  post_type?: string;
+  postTypeEndpoint?: string;
+  postTypeSubtype?: string;
+  acf?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+/** Resolved inventory target for the page being optimized. */
+export interface ResolvedTargetLike {
+  id?: number | string;
+  subtype?: string;
+  endpoint?: string;
+  slug?: string;
+  link?: string;
+  [key: string]: unknown;
 }
 
 export interface PendingOptimization {
@@ -42,13 +84,14 @@ export interface PendingOptimization {
   /** FIRST step: AI-derived page intent from URL. Overrides prompt_modifier (which is general instructions only). */
   urlDerivedIntent?: string | null;
   updateMode: 'update' | 'draft';
-  gscResult: any;
-  existingPost: any;
-  resolved: any;
+  gscResult: GscResultLike;
+  existingPost: WpExistingPostLike;
+  resolved: ResolvedTargetLike;
   existingTitle: string;
   existingContent: string;
   existingExcerpt: string;
   wordPressPosts?: Array<{ id: number; slug: string; title: string; excerpt: string; link: string; date_gmt: string; postType?: "post" | "page" }>;
+  wordPressPagesForOfferTable?: ExtraTextInventoryLinkRow[];
   linkTargetsPlan?: import("@/lib/bulk/bulk-generation-wp-inventory").LinkTargetsPlan;
   optimizationOptions?: {
     optimizeTitle?: boolean;
@@ -56,13 +99,18 @@ export interface PendingOptimization {
     optimizeExcerpt?: boolean;
     optimizeContent?: boolean;
     optimizeFeaturedImage?: boolean;
+    featuredImageType?: "ai-generated" | "google-maps";
+    optimizeExtraText?: boolean;
+    optimizeExtraImage?: boolean;
     hasEntity?: boolean;
+    useAcfKeyword?: boolean;
+    inventorySitemapSource?: "posts" | "pages" | "sap";
     seoExtraTextFieldOnly?: boolean;
   };
-  inContentImageRequest?: { imageType: string; userPrompt?: string };
+  inContentImageRequest?: { imageType: ImageType; userPrompt?: string };
   cleanedTitle?: string; // Cleaned title (without placeholders/locations when entity is N/A)
   extractedEntity?: string | 'N/A'; // Extracted entity or 'N/A' if no entity
-  acfFields?: Record<string, any>; // Raw ACF for write path
+  acfFields?: Record<string, unknown>; // Raw ACF for write path
   acfContext?: AIDrivenACFContext; // AI-driven semantic ACF context for prompt/read (no static key names)
   /** Full REST post object from prefetch `getACFFieldsForPost` — skips repeat fetch during upload when post id matches. */
   acfFullPostSnapshot?: Record<string, unknown>;
@@ -117,6 +165,8 @@ export interface BulkOptimizationState {
   /** AI All Meta: persisted harness section list per URL after row completes. */
   urlHarnessSections?: Record<string, HarnessSectionListItem[]>;
   /** Content prep steps 0–1 (inventory, SERP) shared across the batch. */
+  /** Set by the UI cancel action; polled by bulk loops through the state setter. */
+  cancelRequested?: boolean;
   batchPrepHarnessSections?: HarnessSectionListItem[];
   /** WordPress upload: batch-level CSV harness (not per-URL rows). */
   wpUploadBatchHarnessSections?: HarnessSectionListItem[];

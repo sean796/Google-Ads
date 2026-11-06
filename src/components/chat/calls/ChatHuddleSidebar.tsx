@@ -13,9 +13,9 @@ import {
 import type { ChatThemeId } from "@/lib/chat-preferences-types";
 import { NEO_PULSE_BOT_DISPLAY_NAME } from "@/lib/chat-neo-pulse";
 import { useMicAudioLevel } from "@/hooks/use-mic-audio-level";
-import { Slider } from "@/components/ui/slider";
+
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui";
+import { Button, Slider } from "@/ui";
 
 export type HuddleParticipantAvatar = {
   userId: number;

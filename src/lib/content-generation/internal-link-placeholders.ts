@@ -29,8 +29,8 @@ import {
 
 export const INTERNAL_LINK_PLACEHOLDER_RE = /\[\[LINK:([^|\]]+)\|([^\]]+)\]\]/g;
 
-const MALFORMED_INTERNAL_LINK_RE = /\{\{LINK:([^|\}]+)\|([^\}]+)\}\}/g;
-const MALFORMED_EXTERNAL_LINK_RE = /\{\{EXTERNAL:([^|\}]+)\|([^\}]+)\}\}/g;
+const MALFORMED_INTERNAL_LINK_RE = /\{\{LINK:([^|}]+)\|([^}]+)\}\}/g;
+const MALFORMED_EXTERNAL_LINK_RE = /\{\{EXTERNAL:([^|}]+)\|([^}]+)\}\}/g;
 
 /** Normalize common model typo {{LINK:...}} → [[LINK:...]] before resolve. */
 export function normalizeMalformedHarnessLinkPlaceholders(content: string): string {
@@ -275,7 +275,7 @@ function htmlLinkFormatter(post: LinkablePost, anchor: string): string {
 }
 
 function markdownLinkFormatter(post: LinkablePost, anchor: string): string {
-  const safeAnchor = anchor.replace(/[\[\]()]/g, "");
+  const safeAnchor = anchor.replace(/[[\]()]/g, "");
   return `[${safeAnchor}](${post.link.trim()})`;
 }
 
@@ -304,7 +304,7 @@ export async function resolveInternalLinkPlaceholdersInMarkdown(
   return stitchHarnessSections([split.overview, resolvedBody]);
 }
 
-/** Minimum [[LINK]] placeholders required in each body H2 section (Overview/FAQ excluded). */
+/** Internal link placeholder counts for prompt copy (see INTERNAL_LINKS_PER_SECTION_RULE). */
 export {
   MIN_INTERNAL_LINKS_PER_BODY_H2,
   TARGET_INTERNAL_LINKS_PER_BODY_H2,
@@ -333,4 +333,4 @@ FORBIDDEN in body sections: pasted https:// internal URLs (Overview uses # ancho
 === END INTERNAL LINK PLACEHOLDERS ===`;
 
 export const INTERNAL_LINK_PLACEHOLDER_FEATURE_SUFFIX =
-  `${MIN_INTERNAL_LINKS_PER_BODY_H2}-${TARGET_INTERNAL_LINKS_PER_BODY_H2} [[LINK:query|anchor]] per body H2 (prose + table cells; no raw https:// internal URLs)`;
+  `[[LINK:query|anchor]] where a relevant internal target exists (prose + table cells; no raw https:// internal URLs)`;

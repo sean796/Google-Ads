@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Clock } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
 import { formatEdmontonCalendarTooltip } from "@/lib/edmonton-time";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui";
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@/ui";
 
 type PulseAssistClockProps = {
   className?: string;

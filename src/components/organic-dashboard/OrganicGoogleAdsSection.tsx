@@ -1,6 +1,7 @@
 import { Megaphone } from "lucide-react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { useBoxReady } from "@/components/ui/chart-box-ready";
+import { useBoxReady } from "@/ui";
+
 import { OrganicMetricDelta } from "@/components/organic-dashboard/OrganicMetricDelta";
 import type {
   OrganicGoogleAdsChartPoint,

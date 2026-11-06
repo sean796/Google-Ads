@@ -173,9 +173,9 @@ export function useOverviewUploadToSite(): UseOverviewUploadResult {
           throw new Error(result.error || "WordPress rejected the update.");
         }
         return true;
-      } catch (err: any) {
+      } catch (err) {
         const msg =
-          err?.message ||
+          (err instanceof Error ? err.message : "") ||
           `Failed to upload SEO fields for ${url}. Check WordPress permissions and SEO field setup.`;
         setError(msg);
         return false;

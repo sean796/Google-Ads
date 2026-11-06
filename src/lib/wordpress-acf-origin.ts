@@ -4,6 +4,7 @@ import { extractGeographicEntityWithAI } from "@/lib/content-optimization-helper
 import { BACKEND_CONNECTION_ERROR, backendApiUrl } from "@/lib/wordpress-api/connection";
 import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
 import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 /**
  * Analyzes a WordPress post title to extract the origin entity (location) using AI
@@ -96,7 +97,7 @@ IMPORTANT:
     const data = await response.json();
     const origin = data.choices?.[0]?.message?.content?.trim() || "";
 // Clean up any markdown formatting or extra text
-    let cleanedOrigin = origin
+    const cleanedOrigin = origin
       .replace(/^["']|["']$/g, '') // Remove surrounding quotes
       .replace(/\*\*/g, '') // Remove markdown bold
       .replace(/`/g, '') // Remove code blocks
@@ -188,7 +189,7 @@ RULES:
       throw new Error(`AI origin extraction failed: ${response.status} ${err.slice(0, 150)}`);
     }
     const data = await response.json();
-    let origin = (data.choices?.[0]?.message?.content ?? "").trim()
+    const origin = (data.choices?.[0]?.message?.content ?? "").trim()
       .replace(/^["']|["']$/g, "")
       .replace(/\*\*/g, "")
       .trim();
@@ -234,9 +235,7 @@ export async function updateACFOriginField(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         username,
@@ -290,7 +289,7 @@ export async function updateACFFields(
   username: string,
   appPassword: string,
   postId: number,
-  fields: Record<string, any>,
+  fields: Record<string, unknown>,
   postType: string = 'post',
   postTypeEndpoint?: string,
   options?: {
@@ -303,7 +302,7 @@ export async function updateACFFields(
   updated: string[];
   failed: Array<{ field: string; error: string }>;
   methods: Record<string, string>;
-  diagnostics?: any;
+  diagnostics?: unknown;
   error?: string;
 }> {
   const url = backendApiUrl("/wordpress/update-acf-fields");
@@ -311,9 +310,7 @@ export async function updateACFFields(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         username,

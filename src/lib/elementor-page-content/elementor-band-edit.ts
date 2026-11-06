@@ -60,7 +60,7 @@ function collectBodyWidgetTargets(band: ElementorNode): BodyWidgetTarget[] {
 }
 
 export function applyBodyHtmlToBand(band: ElementorNode, bodyHtml: string): boolean {
-  let targets = collectBodyWidgetTargets(band);
+  const targets = collectBodyWidgetTargets(band);
   if (!targets.length) {
     const widget: ElementorNode = {
       elType: "widget",

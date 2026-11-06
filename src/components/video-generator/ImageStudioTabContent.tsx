@@ -1,19 +1,8 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
-import { Bookmark, BookmarkPlus, CheckSquare, ChevronLeft, Copy, Download, FolderOpen, Image as ImageIcon, Send, Sparkles, Trash2, Upload, X } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Bookmark, BookmarkPlus, CheckSquare, Copy, Download, FolderOpen, Image as ImageIcon, Send, Sparkles, Trash2, Upload, X } from "lucide-react";
+
+
+
 import { WorkspacePill } from "@/components/shared/WorkspacePill";
 import { MY_SITES_FIELD, MY_SITES_ICON_BTN } from "@/components/hosting/my-sites/my-sites-theme";
 import {
@@ -37,7 +26,7 @@ import type {
 } from "@/lib/image-generator/image-generator-options";
 import { VideoStudioPlaceholderSplash } from "./VideoStudioPlaceholderSplash";
 import { cn } from "@/lib/utils";
-import { Button, Field, FileInput, RowButton, SelectField, TextareaField } from "@/ui";
+import { Button, Field, FileInput, RailButton, RowButton, SelectField, TextareaField, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/ui";
 
 type ImageStudioLeftTabId = "assets" | "brief" | "checklist";
 
@@ -149,39 +138,23 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
       <div className="relative flex h-full w-20 shrink-0 select-none text-base">
         <aside
           aria-label="Image studio sidebar shortcuts"
-          className="z-20 flex h-full w-20 flex-col items-center justify-center gap-3 border-r border-white/10 bg-black px-2 py-4"
+          className="z-20 flex h-full w-20 flex-col items-center justify-center gap-3 bg-primary"
         >
           {RAIL_ITEMS.map((item) => {
-            const Icon = item.icon;
             const isCurrent = leftOpen && leftTab === item.id;
             return (
-              <RowButton
-                selected={Boolean(isCurrent)}
+              <RailButton
                 key={item.id}
-                type="button"
+                icon={item.icon}
+                label={item.label}
+                selected={Boolean(isCurrent)}
                 onClick={() => openPanelTab(item.id)}
                 aria-label={`Open ${item.label}`}
                 aria-expanded={isCurrent}
-              >
-                <Icon
-                  className={cn(
-                    "h-5 w-5 shrink-0 text-primary transition-transform",
-                    "drop-shadow-[0_0_6px_hsl(var(--primary)/0.55)] group-hover:drop-shadow-[0_0_10px_hsl(var(--primary)/0.85)]",
-                  )}
-                  aria-hidden
-                />
-                <span className="leading-none tracking-wide">{item.label}</span>
-              </RowButton>
+              />
             );
           })}
         </aside>
-
-        <Button
-          variant="quiet"
-          aria-label="Close image studio sidebar"
-          tabIndex={leftOpen ? 0 : -1}
-          onClick={() => setLeftOpen(false)}
-        />
 
         <div
           role="dialog"
@@ -195,14 +168,6 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
               : "pointer-events-none invisible -translate-x-full opacity-0",
           )}
         >
-          {leftOpen ? (
-            <Button
-              size="icon" icon={ChevronLeft}
-              onClick={() => setLeftOpen(false)}
-              aria-label="Collapse studio sidebar"
-            ></Button>
-          ) : null}
-
           <div
             role="tablist"
             aria-label="Image studio sections"
@@ -218,12 +183,14 @@ export function ImageStudioTabContent({ apiKey, bindings }: ImageStudioTabConten
                 className="h-8 shrink-0 px-2"
               />
             ))}
-            <Button
-              size="icon" icon={X}
-              variant="quiet"
-              onClick={() => setLeftOpen(false)}
-              aria-label="Close sidebar"
-            ></Button>
+            <div className="ml-auto">
+              <Button
+                size="icon" icon={X}
+                variant="quiet"
+                onClick={() => setLeftOpen(false)}
+                aria-label="Close sidebar"
+              ></Button>
+            </div>
           </div>
 
           <div

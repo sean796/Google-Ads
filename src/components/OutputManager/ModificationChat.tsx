@@ -4,8 +4,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Message } from "@/lib/api";
 import { formatElapsedTime } from "./utils";
-import { VersusIcon, AEOIcon, LocalIcon } from "@/components/ui/blog-shortcut-icons";
-import { Button, TextareaField } from "@/ui";
+
+import { Button, TextareaField, VersusIcon, AEOIcon, LocalIcon } from "@/ui";
 
 interface ModificationChatProps {
   isActive: boolean;
@@ -296,7 +296,7 @@ export const ModificationChat = ({
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
-                        a: ({ node, ...rest }: any) => <a {...rest} target="_blank" rel="noopener noreferrer" className="text-semantic-publish-foreground hover:text-semantic-publish-foreground underline" />,
+                        a: ({ node, ...rest }) => <a {...rest} target="_blank" rel="noopener noreferrer" className="text-semantic-publish-foreground hover:text-semantic-publish-foreground underline" />,
                         p: ({ children }) => <p className="text-sm leading-relaxed last:mb-0 mb-2">{children}</p>,
                         code: ({ children }) => <code className="bg-background/50 rounded px-1.5 py-0.5 text-xs font-mono">{children}</code>,
                         pre: ({ children }) => <pre className="p-2 rounded-md overflow-x-auto text-xs bg-background/50 font-mono my-2">{children}</pre>,

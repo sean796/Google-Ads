@@ -4,6 +4,7 @@ import {
   metaAdRowToCsvRow,
   metaAdsDetailsCanOpen,
 } from "@/lib/ppc/meta-ads-bulk-generator-bindings";
+import { createDefaultMetaGenerateConfig } from "@/lib/ppc/meta-ads-field-limits";
 import type { MetaAdRow } from "@/lib/ppc/meta-ads-types";
 
 const sampleRow: MetaAdRow = {
@@ -34,7 +35,12 @@ describe("meta-ads-bulk-generator-bindings", () => {
   it("builds BulkGeneratorDetailsPanelProps with generated files", () => {
     const props = buildMetaAdsBulkGeneratorDetailsProps({
       ads: [sampleRow],
-      generateConfig: { adCount: 1, placement: "feed_1x1", includeImage: true },
+      generateConfig: {
+        ...createDefaultMetaGenerateConfig(),
+        adCount: 1,
+        placement: "feed_1x1",
+        includeImage: true,
+      },
       generateProgress: {
         steps: [
           { id: "read-master-rules", label: "Reading master rules", status: "done" },

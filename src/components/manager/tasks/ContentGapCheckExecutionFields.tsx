@@ -21,8 +21,6 @@ import type {
 } from "@/lib/tasks-types";
 import { cn } from "@/lib/utils";
 
-export { ensureContentGapCheckPayload } from "@/lib/content-gap/resolve-content-gap-count";
-
 const COUNT_MODE_OPTIONS: { value: ContentGapCountMode; label: string }[] = [
   { value: "sitemap", label: "Sitemap total" },
   { value: "editorial_month", label: "Scheduled and posted in month" },

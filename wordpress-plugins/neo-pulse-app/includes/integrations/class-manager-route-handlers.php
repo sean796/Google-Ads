@@ -9,32 +9,35 @@ defined( 'ABSPATH' ) || exit;
 
 class Neo_Pulse_App_Manager_Route_Handlers {
 
+	private const SNAPSHOT_SECRET_KEYS = array(
+		'openrouter-api-key',
+		'dataforseo-api-key',
+		'semrush-api-key',
+		'agentmail-api-key',
+		'slack-bot-token',
+		'slack-global-settings',
+	);
+
 	/**
-	 * Merge one API key into workspace manager settings (server-side Semrush, DataForSEO, etc.).
+	 * Remove secret material from a manager snapshot before it is stored or returned.
+	 *
+	 * @param mixed $snapshot
+	 * @return mixed
 	 */
-	private static function merge_manager_snapshot_api_key( string $key_id, string $value ): void {
-		$path = Neo_Pulse_App_Data_Paths::manager_settings_path();
-		$data = Neo_Pulse_App_Json_File_Store::read( $path );
-		if ( ! is_array( $data ) ) {
-			$data = array();
+	public static function strip_snapshot_secrets( $snapshot ) {
+		if ( ! is_array( $snapshot ) || ! isset( $snapshot['keys'] ) || ! is_array( $snapshot['keys'] ) ) {
+			return $snapshot;
 		}
-		if ( ! isset( $data['snapshot'] ) || ! is_array( $data['snapshot'] ) ) {
-			$data['snapshot'] = array(
-				'version'     => 1,
-				'collectedAt' => gmdate( 'c' ),
-				'keys'        => array(),
-			);
+		foreach ( self::SNAPSHOT_SECRET_KEYS as $key ) {
+			unset( $snapshot['keys'][ $key ] );
 		}
-		if ( ! isset( $data['snapshot']['keys'] ) || ! is_array( $data['snapshot']['keys'] ) ) {
-			$data['snapshot']['keys'] = array();
+		if ( isset( $snapshot['keys']['wordpress_sites'] ) && is_string( $snapshot['keys']['wordpress_sites'] ) ) {
+			$sites = json_decode( $snapshot['keys']['wordpress_sites'], true );
+			if ( is_array( $sites ) ) {
+				$snapshot['keys']['wordpress_sites'] = wp_json_encode( Neo_Pulse_App_Sites_Sync::strip_site_secrets( $sites ) );
+			}
 		}
-		if ( $value !== '' ) {
-			$data['snapshot']['keys'][ $key_id ] = $value;
-		} else {
-			unset( $data['snapshot']['keys'][ $key_id ] );
-		}
-		$data['updatedAt'] = gmdate( 'c' );
-		Neo_Pulse_App_Json_File_Store::write( $path, $data );
+		return $snapshot;
 	}
 
 	private static function file_store_status(): array {
@@ -62,7 +65,7 @@ class Neo_Pulse_App_Manager_Route_Handlers {
 		}
 
 		if ( $subpath === 'save' && $method === 'POST' ) {
-			$snapshot = isset( $body['snapshot'] ) ? $body['snapshot'] : null;
+			$snapshot = isset( $body['snapshot'] ) ? self::strip_snapshot_secrets( $body['snapshot'] ) : null;
 			$updated  = gmdate( 'c' );
 			Neo_Pulse_App_Json_File_Store::write(
 				$path,
@@ -84,7 +87,7 @@ class Neo_Pulse_App_Manager_Route_Handlers {
 			Neo_Pulse_App_Api_Dispatcher::send_json(
 				array(
 					'ok'        => true,
-					'snapshot'  => $data['snapshot'] ?? null,
+					'snapshot'  => self::strip_snapshot_secrets( $data['snapshot'] ?? null ),
 					'updatedAt' => $data['updatedAt'] ?? null,
 				)
 			);
@@ -116,46 +119,15 @@ class Neo_Pulse_App_Manager_Route_Handlers {
 		}
 
 		if ( $subpath === 'load' && $method === 'GET' ) {
-			$data  = Neo_Pulse_App_Sites_Sync::load_mirror();
+			$data  = Neo_Pulse_App_Sites_Sync::load_public_mirror();
 			$sites = is_array( $data ) && isset( $data['sites'] ) && is_array( $data['sites'] ) ? $data['sites'] : array();
-			$tokens = array();
-			foreach ( $sites as $site ) {
-				if ( ! is_array( $site ) ) {
-					continue;
-				}
-				if ( ! empty( $site['pluginAccessToken'] ) && ! empty( $site['id'] ) ) {
-					$tokens[] = array(
-						'siteId'             => (string) $site['id'],
-						'pluginAccessToken'  => (string) $site['pluginAccessToken'],
-					);
-				}
-			}
 			Neo_Pulse_App_Api_Dispatcher::send_json(
 				array(
 					'ok'     => true,
 					'sites'  => $sites,
-					'tokens' => $tokens,
+					'tokens' => array(),
 				)
 			);
-			return;
-		}
-
-		if ( $subpath === 'sync-openrouter' && $method === 'POST' ) {
-			$openrouter = isset( $body['openRouterApiKey'] ) ? trim( (string) $body['openRouterApiKey'] ) : '';
-			if ( $openrouter !== '' && class_exists( 'Neo_Pulse_Wp_Api' ) ) {
-				Neo_Pulse_Wp_Api::save_agency_openrouter_api_key( $openrouter );
-			}
-			if ( $openrouter !== '' ) {
-				$keys_path = Neo_Pulse_App_Data_Paths::root() . '/email-worker-keys.json';
-				$existing  = Neo_Pulse_App_Json_File_Store::read( $keys_path );
-				if ( ! is_array( $existing ) ) {
-					$existing = array();
-				}
-				$existing['openRouterApiKey'] = $openrouter;
-				$existing['updatedAt']        = gmdate( 'c' );
-				Neo_Pulse_App_Json_File_Store::write( $keys_path, $existing );
-			}
-			Neo_Pulse_App_Api_Dispatcher::send_json( array( 'ok' => true, 'updated' => $openrouter !== '' ? 1 : 0 ) );
 			return;
 		}
 
@@ -174,19 +146,6 @@ class Neo_Pulse_App_Manager_Route_Handlers {
 				return;
 			}
 			Neo_Pulse_App_Api_Dispatcher::send_json( $result['body'] ?? array( 'error' => 'Not found' ), (int) $result['status'] );
-			return;
-		}
-
-		if ( $subpath === 'sync-semrush' && $method === 'POST' ) {
-			$semrush = isset( $body['semrushApiKey'] ) ? trim( (string) $body['semrushApiKey'] ) : '';
-			if ( $semrush !== '' && str_starts_with( $semrush, 'semrtkn-' ) ) {
-				$server = Neo_Pulse_App_Secrets::semrush_workspace_api_key();
-				if ( $server !== '' ) {
-					$semrush = $server;
-				}
-			}
-			self::merge_manager_snapshot_api_key( 'semrush-api-key', $semrush );
-			Neo_Pulse_App_Api_Dispatcher::send_json( array( 'ok' => true, 'updated' => $semrush !== '' ? 1 : 0 ) );
 			return;
 		}
 

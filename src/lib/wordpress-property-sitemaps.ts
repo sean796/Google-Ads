@@ -1,14 +1,22 @@
 import type { WordPressSite } from "@/components/integrations/types";
 
+/** Minimal site shape for sitemap exclusion checks (full WordPressSite also satisfies this). */
+export type SitemapExclusionSite = {
+  sitemaps?: {
+    disabledChildSitemapUrls?: string[];
+    childSitemaps?: string[];
+  } | null;
+} | null | undefined;
+
 /** Child sitemap URLs the user excluded for this property (Sitemaps tab menu). */
 export function getExcludedChildSitemapUrls(
-  site: Pick<WordPressSite, "sitemaps"> | null | undefined,
+  site: SitemapExclusionSite,
 ): string[] {
   return site?.sitemaps?.disabledChildSitemapUrls ?? [];
 }
 
 export function isChildSitemapExcludedFromProperty(
-  site: Pick<WordPressSite, "sitemaps"> | null | undefined,
+  site: SitemapExclusionSite,
   childUrl: string,
 ): boolean {
   const url = childUrl.trim();

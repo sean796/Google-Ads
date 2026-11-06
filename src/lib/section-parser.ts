@@ -21,7 +21,7 @@ export interface BlueprintAgent {
   id: string;
   step: number;
   title: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface SectionContext {
@@ -338,6 +338,7 @@ export function identifySectionsFromChecklist(
   return {
     markdownSections: uniqueSections,
     agentIds: [...new Set(agentIds)],
+    referencedAgentTitles: [...new Set(referencedAgentTitles)],
   };
 }
 

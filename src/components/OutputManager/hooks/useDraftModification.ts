@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect, useRef } from "react";
-import { streamChatCompletion, Message } from "@/lib/api";
+import { useState, useCallback, useEffect, useRef, type Dispatch, type SetStateAction } from "react";
+import { streamChatCompletion, Message, type GenerationResult } from "@/lib/api";
+import type { AgentConfig } from "@/types/agent-config";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_COULD_NOT_GENERATE_A_VALID_CHECKLIST_PLE, NOTIFY_DRAFT_REPORT_UPDATED_SUCCESSFULLY, NOTIFY_FAILED_TO_GENERATE_CHECKLIST_PLEASE_TRY_, NOTIFY_FAILED_TO_UPDATE_DRAFT_REPORT_PLEASE_TRY, NOTIFY_NO_CHECKLIST_AVAILABLE, NOTIFY_PLEASE_PROVIDE_MODIFICATION_INSTRUCTIONS, NOTIFY_UPDATING_DRAFT_REPORT_BASED_ON_CHECKLIST } from "@/lib/notify-messages";
 import { 
@@ -27,7 +28,7 @@ interface UseDraftModificationProps {
   setDraftModificationChecklist?: (checklist: string[]) => void;
   setIsGeneratingDraftChecklist?: (isGenerating: boolean) => void;
   setIsUpdatingDraft?: (isUpdating: boolean) => void;
-  setGenerationResult?: (result: any) => void;
+  setGenerationResult?: Dispatch<SetStateAction<GenerationResult>>;
   apiKey: string;
   selectedModel: string;
   temperature: number;
@@ -35,7 +36,7 @@ interface UseDraftModificationProps {
   topP: number;
   flowTitle: string;
   flowPurpose: string;
-  agents: any[];
+  agents: AgentConfig[];
   activeKnowledgeBaseText: string;
 }
 
@@ -140,8 +141,8 @@ export function useDraftModification({
       // Parse checklist from response
       const checklistItems = checklistContent
         .split('\n')
-        .filter(line => line.trim().match(/^\d+[\.\)]\s+/))
-        .map(line => line.replace(/^\d+[\.\)]\s+/, '').trim())
+        .filter(line => line.trim().match(/^\d+[.)]\s+/))
+        .map(line => line.replace(/^\d+[.)]\s+/, '').trim())
         .filter(item => item.length > 0);
 
       if (checklistItems.length < 3) {
@@ -246,7 +247,7 @@ export function useDraftModification({
               const partialSections = parseMarkdownSections(updatedSectionsContent);
               if (partialSections.length > 0) {
                 const partialMerged = mergeSectionsIntoMarkdown(currentDraft, partialSections, markdownSections);
-                setGenerationResult((prev: any) => ({
+                setGenerationResult((prev) => ({
                   ...prev,
                   draft: partialMerged
                 }));
@@ -269,7 +270,7 @@ export function useDraftModification({
           }
           
           // Final update with complete merged content
-          setGenerationResult((prev: any) => ({
+          setGenerationResult((prev) => ({
             ...prev,
             draft: mergedDraft
           }));
@@ -303,7 +304,7 @@ export function useDraftModification({
         onContentChunk: (chunk) => {
           updatedDraftContent += chunk;
           // Stream updates in real-time
-          setGenerationResult((prev: any) => ({
+          setGenerationResult((prev) => ({
             ...prev,
             draft: updatedDraftContent
           }));
@@ -312,7 +313,7 @@ export function useDraftModification({
 
       if (updatedDraftContent) {
         // Final update to ensure complete content is set
-        setGenerationResult((prev: any) => ({
+        setGenerationResult((prev) => ({
           ...prev,
           draft: updatedDraftContent
         }));

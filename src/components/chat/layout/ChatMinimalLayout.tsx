@@ -7,7 +7,7 @@ import { ChatComposer } from "@/components/chat/thread/ChatComposer";
 import { ChatThreadPanel } from "@/components/chat/thread/ChatThreadPanel";
 import { ChatSharedBrowser } from "@/components/chat/shared/ChatSharedBrowser";
 import { ChatPanelResizeHandle } from "@/components/chat/shared/ChatPanelResizeHandle";
-import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+
 import { ChatNotificationPermissionPrompt } from "@/components/chat/ChatNotificationPermissionPrompt";
 import { ChatHuddleSidebar } from "@/components/chat/calls/ChatHuddleSidebar";
 import {
@@ -23,7 +23,7 @@ import {
 import { channelTitle, threadBarLabel, typingLabel } from "@/components/chat/layout/chat-shell-utils";
 import type { ChatShellViewModel } from "@/components/chat/layout/useChatShellState";
 import { ChatChannelHeaderTabs } from "@/components/chat/slack/ChatChannelHeaderTabs";
-import { Button, Field } from "@/ui";
+import { Button, Field, ResizablePanel, ResizablePanelGroup } from "@/ui";
 
 type Props = {
   vm: ChatShellViewModel;

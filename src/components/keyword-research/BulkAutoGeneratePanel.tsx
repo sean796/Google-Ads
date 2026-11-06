@@ -5,8 +5,8 @@ import {
   BLOG_IMPORT_POST_DESTINATION_CHOICES,
   BULK_POST_DESTINATION_CHOICES,
 } from '@/lib/bulk-auto-generate';
-import { Card } from '@/components/ui/card';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+
+
 import { Upload, Play, Square, Download, FileText, MessageSquare, Globe } from 'lucide-react';
 import { computePublishDateLabelsByGeneratedIndex } from '@/lib/bulk/bulk-slot-publish-dates';
 import { getFirstOfThisMonthDate, type ScheduleFrequency } from '@/lib/wordpress-scheduler';
@@ -18,7 +18,8 @@ import { usePromptBulkGenerate } from '@/hooks/use-prompt-bulk-generate';
 import { usePromptBulkSiteContext } from '@/hooks/use-prompt-bulk-site-context';
 import { useActiveWordPressSite } from '@/contexts/active-wordpress-site-context';
 import { resolveActiveIntegrationSite } from '@/lib/integrations/resolve-active-integration-site';
-import { getStoredSites, type WordPressSite } from '@/components/IntegrationsTab';
+import { getStoredSites } from "@/components/integrations/storage";
+import type { WordPressSite } from "@/components/integrations/types";
 import type { ConnectedSiteSummary } from '@/components/integrations/types';
 import { CSVUploadSection } from './bulk/CSVUploadSection';
 import { PromptInputSection } from './bulk/PromptInputSection';
@@ -45,7 +46,7 @@ import {
 import { cn } from '@/lib/utils';
 import { seedPromptBlogSlots, syncPromptBlogRowsToCount } from '@/lib/bulk/prompt-blog-slots';
 import { buildBulkBaseRows, identityRowOrder, allRowIndicesSet } from '@/lib/bulk-processing-order';
-import { Field } from "@/ui";
+import { Field, Card, RadioGroup, RadioGroupItem } from "@/ui";
 interface BulkAutoGeneratePanelProps {
   openRouterApiKey?: string;
   /** Non-generator integrations (SAP, legacy bulk) may still pass DataForSEO. */
@@ -829,7 +830,7 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
         });
       }
     },
-    [inputMode, setGeneratedRows],
+    [inputMode, setGeneratedRows, setRows],
   );
 
   // Resolve author for display when we have generated ideas and a connected WordPress site.
@@ -1124,6 +1125,13 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
     handleGeneratedRowChange,
     handleBatchDisplayRowsChange,
     publishDateLabelByGeneratedIndex,
+    fileManager,
+    processingStepLog,
+    setCurrentRow,
+    setGeneratedRows,
+    setHasGeneratedChecklist,
+    setRows,
+    setTotalRows,
   ]);
 
   if (bulkGeneratorWorkspace && (inputMode === "csv" || inputMode === "prompt")) {

@@ -1,12 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button, Field, SelectField, SwitchField, TextareaField } from "@/ui";
+
+import { Button, Field, SelectField, SwitchField, TextareaField, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/ui";
 import { useTeam } from "@/contexts/TeamContext";
 import { isNeoPulseBotMember } from "@/lib/chat-neo-pulse";
 import type { TaskExecutionPayload } from "@/lib/tasks-types";

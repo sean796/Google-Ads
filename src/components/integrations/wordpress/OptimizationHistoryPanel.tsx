@@ -1,12 +1,12 @@
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { ExternalLink, Download, Trash2, Clock, CheckCircle2, XCircle, AlertCircle, Copy } from "lucide-react";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_URL_COPIED } from "@/lib/notify-messages";
 import { format } from "date-fns";
 import { type WordPressSite } from "../types";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui";
+import { Button, Card, CardContent, CardHeader, CardTitle } from "@/ui";
 
 export interface OptimizationHistoryEntry {
   id: string;

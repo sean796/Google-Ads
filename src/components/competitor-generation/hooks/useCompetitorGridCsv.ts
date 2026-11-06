@@ -6,7 +6,7 @@ import { notifyFileTooLargeMaxXMb } from "@/lib/notify-messages";
 import {
   filterPlacesExcludingConnectedSite,
   GRID_ONLY_CONNECTED_SITE_MESSAGE,
-} from "@/lib/competitor/filter-connected-site-competitors";
+} from "@/lib/competitor-research/filter-connected-site-competitors";
 import {
   GRID_CSV_MAX_PLACES_DEFAULT,
   parseCompetitorGridTopPlaces,

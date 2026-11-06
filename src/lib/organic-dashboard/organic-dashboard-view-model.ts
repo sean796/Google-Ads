@@ -474,6 +474,8 @@ export type OrganicDashboardViewModelOptions = {
   showCompare?: boolean;
   googleAdsCustomerIdForReporting?: string;
   periodTotalColumnLabel?: string;
+  /** Accepted for call-site compatibility; the Semrush overview URL is derived from the bundle payload. */
+  siteSemrushProjectDashboardUrl?: string;
 };
 
 export function buildOrganicDashboardViewModel(

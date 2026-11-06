@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 export function useGmbConnectionStatus(): { connected: boolean; loading: boolean } {
   const [connected, setConnected] = useState(false);
@@ -8,7 +9,7 @@ export function useGmbConnectionStatus(): { connected: boolean; loading: boolean
   useEffect(() => {
     let cancelled = false;
     const cacheBust = `_=${Date.now()}`;
-    fetch(`${BACKEND_API_BASE}/api/gmb/status?${cacheBust}`, { credentials: "include", cache: "no-store" })
+    fetch(`${BACKEND_API_BASE}/api/gmb/status?${cacheBust}`, { credentials: "include", cache: "no-store", headers: neoPulseApiHeaders() })
       .then((res) => res.json().catch(() => ({})))
       .then((data) => {
         if (!cancelled) setConnected(Boolean(data?.connected));

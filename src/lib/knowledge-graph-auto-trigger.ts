@@ -6,9 +6,10 @@
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_AI_ANALYZING_KNOWLEDGE_GRAPH_TO_CREATE_T, NOTIFY_AI_SUMMARIZATION_FAILED_SAVING_ORIGINAL_, NOTIFY_DETECTING_LOCATIONS, NOTIFY_DETECTING_SITEMAPS, NOTIFY_FAILED_TO_DETECT_SITEMAPS_PLEASE_DETECT_, NOTIFY_GENERATING_KNOWLEDGE_GRAPH_FROM_SITEMAPS, NOTIFY_KNOWLEDGE_GRAPH_GENERATION_STARTED, NOTIFY_NO_SITEMAPS_FOUND_PLEASE_ENSURE_YOUR_SIT, NOTIFY_OPENROUTER_KEY, NOTIFY_SITEMAPS_DETECTED_SUCCESSFULLY, notifyAutoTriggeringKnowledgeGraphGenerati, notifyDetectedXLocationxAndAddedToKnowle, notifyFailedToExtractNapX, notifyFailedToSaveGraphToKnowledgeBaseX, notifyFailedToTriggerKnowledgeGraphX, notifyFailedX, notifyKnowledgeGraphGeneratedForXSavingT, notifyKnowledgeGraphSavedToKnowledgeBase, notifyKnowledgeGraphSummarizedXkbXkb, notifyKnowledgeGraphWorkflowFailedX, notifyNapExtractionAndLinkGraphGeneration, notifyNapExtractionFailedX, notifyNapFileNotFoundX, notifyStartingKnowledgeGraphWorkflowForX, notifyStartingNapExtractionAndLinkGraphG, notifyXX3, notifyXXXXPosts } from "@/lib/notify-messages";
 import { detectSitemaps, parseSitemap } from '@/lib/wordpress-api';
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { getStoredSites, saveSites } from '@/components/integrations/storage';
 import type { WordPressSite } from '@/components/integrations/types';
-import { exportGraphToJSON } from '@/lib/knowledge-graph-export';
+import { exportGraphToJSON, type KnowledgeGraph } from '@/lib/knowledge-graph-export';
 import { loadApiKey, streamChatCompletion } from '@/lib/api';
 import { createTempKbFile, updateKbFile } from '@/lib/kb-file-utils';
 import type { StoredFile } from '@/components/KnowledgeBaseTab';
@@ -105,7 +106,7 @@ Provide a concise summary that preserves all critical information while minimizi
  * Save graph to knowledge base with optional AI summarization
  * Exported for use in components
  */
-export async function saveGraphToKnowledgeBase(graphData: any): Promise<void> {
+export async function saveGraphToKnowledgeBase(graphData: KnowledgeGraph): Promise<void> {
   try {
     // Generate JSON from graph
     const graphJSON = exportGraphToJSON(graphData);
@@ -221,9 +222,9 @@ export async function saveGraphToKnowledgeBase(graphData: any): Promise<void> {
     markGraphAsSaved(siteId, generatedAt);
     
     notify.success(notifyKnowledgeGraphSavedToKnowledgeBase(sizeText));
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error saving graph to knowledge base:', error);
-    notify.error(notifyFailedToSaveGraphToKnowledgeBaseX(error.message || 'Unknown error'));
+    notify.error(notifyFailedToSaveGraphToKnowledgeBaseX(error instanceof Error ? error.message : 'Unknown error'));
     throw error;
   }
 }
@@ -245,7 +246,7 @@ async function pollForGraphCompletion(jobId: string, siteName: string): Promise<
       attempts++;
       
       try {
-        const response = await fetch(`${BACKEND_API_BASE}/api/knowledge-model/progress/${jobId}`);
+        const response = await fetch(`${BACKEND_API_BASE}/api/knowledge-model/progress/${jobId}`, { headers: neoPulseApiHeaders() });
         if (!response.ok) {
           // If 404, the job doesn't exist - stop polling immediately
           if (response.status === 404) {
@@ -519,7 +520,7 @@ export async function triggerKnowledgeGraphWorkflow(site: WordPressSite): Promis
     
     const response = await fetch(`${BACKEND_API_BASE}/api/knowledge-model/auto-graph`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         siteId: siteWithSitemaps.id,
         siteUrl: siteWithSitemaps.siteUrl,

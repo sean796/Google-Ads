@@ -77,7 +77,7 @@ describe("reference stills fly-through helpers", () => {
   it("assigns unique scene ids when Director reuses anchor ids", () => {
     const brief: VideoBrief = {
       prompt: "fly-through",
-      lengthSeconds: 12,
+      lengthSeconds: 15,
       aspect: "16:9",
       resolution: "720p",
       references: [

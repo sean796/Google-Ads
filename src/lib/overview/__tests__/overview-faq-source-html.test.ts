@@ -61,6 +61,9 @@ describe("resolveFaqHarnessSourceHtmlFromCache", () => {
           id: 1,
           url,
           fields: {
+            title: "",
+            meta: "",
+            keyword: "",
             content: `<h2>Overview</h2><p>${"Full CRA article body. ".repeat(30)}</p>`,
           },
         },

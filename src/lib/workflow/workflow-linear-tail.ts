@@ -1,7 +1,12 @@
 import { linearOrderedNodes } from "@/lib/workflow/workflow-graph-mutations";
-import { isWorkflowThenKind, type WorkflowDefinition, type WorkflowNode } from "@/lib/workflow/workflow-types";
+import {
+  isWorkflowThenKind,
+  type WorkflowDefinition,
+  type WorkflowNode,
+  type WorkflowNodeKind,
+} from "@/lib/workflow/workflow-types";
 
-export function isExecutableWorkflowStepKind(kind: string): boolean {
+export function isExecutableWorkflowStepKind(kind: WorkflowNodeKind): boolean {
   return kind === "action_agent" || kind === "csv_rows" || kind === "rag_archive" || isWorkflowThenKind(kind);
 }
 

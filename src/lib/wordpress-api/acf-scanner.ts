@@ -20,12 +20,14 @@ function serializeAcfValue(v: unknown): string {
 }
 import type { WordPressSite } from '@/components/integrations/types';
 import type { ScannedPost } from './content-scanner';
+import type { ACFFieldDefinition, ACFFieldGroup } from './acf-discovery';
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 export interface ACFFieldValue {
   fieldName: string;
   fieldLabel: string;
   fieldType: string;
-  value: any;
+  value: unknown;
   postId?: number; // Optional for Options Page fields
   postType?: string; // Optional for Options Page fields
   postTitle?: string; // Optional for Options Page fields
@@ -41,7 +43,7 @@ export interface ACFScanResult {
     label: string;
     type: string;
     occurrenceCount: number;
-    sampleValue: any;
+    sampleValue: unknown;
   }>;
   error?: string;
 }
@@ -49,7 +51,7 @@ export interface ACFScanResult {
 /**
  * Extract Options Page slugs from ACF field group location rules
  */
-function extractOptionsPageSlugs(fieldGroups: any[]): string[] {
+function extractOptionsPageSlugs(fieldGroups: ACFFieldGroup[]): string[] {
   const slugs = new Set<string>();
   
   for (const group of fieldGroups) {
@@ -101,7 +103,7 @@ export async function scanACFOptionsPageOnly(
     };
         const discoverResponse = await fetch(discoverUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(requestBody),
     });
 
@@ -117,8 +119,8 @@ export async function scanACFOptionsPageOnly(
             throw new Error(discoverData.error || 'Failed to discover ACF field groups');
     }
 
-    const fieldGroups = discoverData.fieldGroups || [];
-    const fieldDefinitions = discoverData.fields || [];
+    const fieldGroups = (discoverData.fieldGroups || []) as ACFFieldGroup[];
+    const fieldDefinitions = (discoverData.fields || []) as ACFFieldDefinition[];
     
     // Step 2: Extract Options Page slug(s) from location rules
     let targetSlug = optionsPageSlug;
@@ -140,7 +142,7 @@ export async function scanACFOptionsPageOnly(
     const optionsPageUrl = `${BACKEND_API_BASE}/api/wordpress/get-acf-options-page-fields`;
     const optionsPageResponse = await fetch(optionsPageUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         siteUrl: site.siteUrl,
         username: site.username,
@@ -175,7 +177,7 @@ export async function scanACFOptionsPageOnly(
       fieldName: string;
       fieldLabel: string;
       fieldType: string;
-      value: any;
+      value: unknown;
     }>();
 
     for (const [fieldName, fieldValue] of Object.entries(acfFields)) {
@@ -187,7 +189,7 @@ export async function scanACFOptionsPageOnly(
       if (!valueStr) continue;
 
       // Find field definition
-      const fieldDef = fieldDefinitions.find((f: any) => f.name === fieldName);
+      const fieldDef = fieldDefinitions.find((f) => f.name === fieldName);
       
       const fieldLabel = fieldDef?.label || fieldName.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
       const fieldType = fieldDef?.type || 'text';
@@ -255,7 +257,7 @@ export async function scanACFFieldsOnly(
     const discoverUrl = `${BACKEND_API_BASE}/api/wordpress/discover-acf-field-groups`;
     const discoverResponse = await fetch(discoverUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         siteUrl: site.siteUrl,
         username: site.username,
@@ -274,7 +276,7 @@ export async function scanACFFieldsOnly(
       throw new Error(discoverData.error || 'Failed to discover ACF field groups');
     }
 
-    const fieldDefinitions = discoverData.fields || [];
+    const fieldDefinitions = (discoverData.fields || []) as ACFFieldDefinition[];
     onProgress?.(`Found ${fieldDefinitions.length} ACF field definitions`, 20);
 
     // Step 2: Get all post types
@@ -282,7 +284,7 @@ export async function scanACFFieldsOnly(
     const postTypesUrl = `${BACKEND_API_BASE}/api/wordpress/get-post-types`;
     const postTypesResponse = await fetch(postTypesUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         siteUrl: site.siteUrl,
         username: site.username,
@@ -325,7 +327,7 @@ export async function scanACFFieldsOnly(
       while (hasMore && page <= 10) {
         const postsResponse = await fetch(postsUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({
             siteUrl: site.siteUrl,
             username: site.username,
@@ -361,7 +363,7 @@ export async function scanACFFieldsOnly(
           const acfUrl = `${BACKEND_API_BASE}/api/wordpress/get-acf-fields`;
           const acfResponse = await fetch(acfUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({
               siteUrl: site.siteUrl,
               username: site.username,
@@ -385,7 +387,7 @@ export async function scanACFFieldsOnly(
                 if (!valueStr) continue;
 
                 // Find field definition
-                const fieldDef = fieldDefinitions.find((f: any) => f.name === fieldName);
+                const fieldDef = fieldDefinitions.find((f) => f.name === fieldName);
                 
                 const key = fieldName;
                 if (!fieldValueMap.has(key)) {

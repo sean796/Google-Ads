@@ -1,5 +1,6 @@
 import React from "react";
-import { ResizableHandle } from "@/components/ui/resizable";
+import { ResizableHandle } from "@/ui";
+
 import { cn } from "@/lib/utils";
 
 export function ChatPanelResizeHandle(): React.ReactElement {

@@ -1,18 +1,16 @@
 import type { Dispatch, SetStateAction } from "react";
+import { harnessStepProgress, mergeOverviewHarnessProgress, mergeOverviewHarnessProgressSiteAndBatch } from "@/lib/overview/overview-harness-progress";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
-import {
-  mergeHarnessProgressSiteAndBatch,
-  setOptimizingState,
-} from "@/hooks/content-optimization/optimization-helpers-a";
-import { mergeOptimizationProgress } from "@/hooks/content-optimization/optimization-helpers";
+import { setOptimizingState } from "@/hooks/content-optimization/optimization-helpers-a";
+
 import { ensureMasterInstructionsInMemory } from "@/lib/master-instructions-storage";
 import { initOverviewBulkHarnessPagination, setOverviewBulkHarnessPageState } from "@/lib/overview/overview-bulk-page-state";
 import { mapOverviewAiCopyWithConcurrency } from "@/lib/overview/overview-ai-copy-concurrency";
 import { overviewBulkPageRanges } from "@/lib/overview/overview-bulk-page-size";
 import type { BlogHeadersCatalogRow } from "@/lib/overview/overview-blog-headers-catalog";
-import type { BlogHeadersAgentOptions } from "@/lib/overview/overview-blog-headers-agent";
+import type { BlogHeadersAgentOptions, BlogHeadersPlanResult } from "@/lib/overview/overview-blog-headers-agent";
 import { extractH2TextsFromHtml } from "@/lib/overview/overview-blog-headers-extract";
 import {
   applyBlogHeadersPlanLocally,
@@ -88,7 +86,7 @@ export function initOverviewHeadersHarnessBatchState(params: {
 
   setOptimizingState(setIsOptimizingContent, batchKey, true);
   setOptimizationProgress((prev) =>
-    mergeOptimizationProgress(prev as Record<string, unknown>, site.id, {
+    mergeOverviewHarnessProgress(prev as Record<string, unknown>, site.id, {
       step: "Headers",
       progress: 2,
       message: prepMessage,
@@ -108,13 +106,13 @@ export function initOverviewHeadersHarnessBatchState(params: {
       runKind: "aiHeaders",
       urlHarnessSections: {},
       urlGeneratedFiles: {},
-      currentStepProgress: {
+      currentStepProgress: harnessStepProgress(undefined, {
         step: "Headers",
         progress: 2,
         message: prepMessage,
         harnessSections: [],
         harnessPlannedSectionCount: null,
-      },
+      }),
     },
   }));
   initOverviewBulkHarnessPagination(batchKey, urls.length, setBulkOptimizationState);
@@ -132,7 +130,7 @@ export function finalizeOverviewHeadersHarnessBatch(
   setOptimizationProgress((prev) => {
     const next = { ...(prev as Record<string, unknown>) };
     delete next[batchKey];
-    mergeHarnessProgressSiteAndBatch(next, siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(next, siteId, {
       step: "Complete",
       progress: 100,
       message: "Headers batch finished",
@@ -177,7 +175,7 @@ async function fetchGscHarnessStep(
 
 function applyAndVerifyLocally(
   row: BlogHeadersCatalogRow,
-  plan: { h2Actions: { action: "optimize" | "add"; index: number; proposedText: string; rationale?: string }[] },
+  plan: BlogHeadersPlanResult,
   setters: HeadersHarnessSetters,
 ): BlogHeadersRowPatch | null {
   const url = row.url.trim();
@@ -205,7 +203,11 @@ function applyAndVerifyLocally(
   const hadGenericBefore = beforeH2s.some(isGenericHarnessHeadingTitle);
   const stillGenericAfter = afterH2s.some(isGenericHarnessHeadingTitle);
   if (!anyReplaced || !verified.ok) {
-    const reason = !anyReplaced ? "No H2 replacements applied" : verified.reason;
+    const reason = !anyReplaced
+      ? "No H2 replacements applied"
+      : verified.ok === false
+        ? verified.reason
+        : "";
     emitHeadersHarnessPayload(
       url,
       setters,

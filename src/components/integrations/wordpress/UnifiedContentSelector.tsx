@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
-import { Checkbox } from "@/components/ui/checkbox";
+
+
+
 import { RefreshCw, Check, ChevronsUpDown, FileText, ExternalLink, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getPublishedPosts, getPublishedPages, resolveWordPressUrls, getWordPressPostContent, parseSitemap } from "@/lib/wordpress-api";
@@ -9,7 +9,7 @@ import { type WordPressSite } from "../types";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_FETCHING_DATA, NOTIFY_NO_ENTITIES_FOUND_IN_ENTITY_SITEMAP, NOTIFY_NO_ENTITY_SITEMAP_CONFIGURED_PLEASE_SET_, NOTIFY_SITE_CREDENTIALS_NOT_AVAILABLE, NOTIFY_WORDPRESS_CREDENTIALS_MISSING_PLEASE_UPD, notifyDownloadedXItemSAsJson, notifyFailedToFetchEntitiesX, notifyFailedToFetchPagesX, notifyFailedToFetchPostsX } from "@/lib/notify-messages";
 import { getCyberpunkTextClasses, getCyberpunkButtonClasses } from "./cyberpunk-theme";
-import { Button, Field } from "@/ui";
+import { Button, Field, Popover, PopoverContent, PopoverTrigger, Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, Checkbox } from "@/ui";
 
 interface UnifiedContentSelectorProps {
   site: WordPressSite;
@@ -709,7 +709,7 @@ return (
                     }
                   }
 
-                  if (urlPath.includes('/page/') || urlPath.match(/^\/[^\/]+$/)) {
+                  if (urlPath.includes('/page/') || urlPath.match(/^\/[^/]+$/)) {
                     if (!urlPath.match(/\/\d{4}\/\d{2}\//)) {
                       return 'pages';
                     }

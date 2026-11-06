@@ -169,3 +169,21 @@ export function regionBelongsToCountry(region: string, country: ServiceCountry):
   return getLocationOptions(country).includes(normalized);
 }
 
+export const SERVICE_COUNTRY_OPTIONS = [...SERVICE_COUNTRIES];
+
+export function nextStateForCountry(state: string, country: string): string {
+  if (!isServiceCountry(country)) return "";
+  return regionBelongsToCountry(state, country) ? state : "";
+}
+
+export function serviceRegionOptions(country: string): string[] {
+  if (!isServiceCountry(country)) return [];
+  return getLocationOptions(country as ServiceCountry);
+}
+
+export function regionPlaceholder(country: string): string {
+  if (country === "United States") return "State";
+  if (country === "Canada") return "Province";
+  return "State or province";
+}
+

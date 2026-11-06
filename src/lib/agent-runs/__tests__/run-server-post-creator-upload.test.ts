@@ -5,9 +5,9 @@ import {
   resolvePostCreatorRunSiteId,
   serverPostCreatorRowCount,
 } from "@/lib/agent-runs/run-server-post-creator-upload";
-import type { AgentRun } from "@/lib/agent-runs-types";
+import type { AgentRun, AgentRunServerCheckpoint } from "@/lib/agent-runs-types";
 
-function stubRun(checkpoint: Record<string, unknown>, extras?: Partial<AgentRun>): AgentRun {
+function stubRun(checkpoint: AgentRunServerCheckpoint, extras?: Partial<AgentRun>): AgentRun {
   return {
     id: 1,
     teamId: 1,
@@ -17,7 +17,7 @@ function stubRun(checkpoint: Record<string, unknown>, extras?: Partial<AgentRun>
     plan: { executionMode: "server", clientRunContract: { postCount: 2, siteId: "site-1" } },
     result: {
       executionMode: "server",
-      checkpoint: { server: checkpoint },
+      checkpoint: { completedUrls: [], uploadedUrls: [], server: checkpoint },
     },
     ...extras,
   } as AgentRun;
@@ -65,7 +65,7 @@ describe("run-server-post-creator-upload", () => {
     const run = stubRun(
       { intraPhase: "awaiting_client_upload", rowIndex: 0 },
       {
-        steps: [{ stepKey: "post0upload", label: "Published", status: "done" }],
+        steps: [{ id: 1, stepIndex: 0, createdAt: "", stepKey: "post0upload", label: "Published", status: "done" }],
       },
     );
     expect(postCreatorRowUploadAlreadyComplete(run, 0)).toBe(true);
@@ -77,7 +77,11 @@ describe("run-server-post-creator-upload", () => {
       {
         result: {
           executionMode: "server",
-          checkpoint: { server: { intraPhase: "awaiting_client_upload", rowIndex: 1 } },
+          checkpoint: {
+            completedUrls: [],
+            uploadedUrls: [],
+            server: { intraPhase: "awaiting_client_upload", rowIndex: 1 },
+          },
           uploadedPosts: [{ url: "https://example.com/a", rowIndex: 0 }],
         },
       },

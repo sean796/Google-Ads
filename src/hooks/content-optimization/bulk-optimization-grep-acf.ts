@@ -10,6 +10,7 @@ import {
 import type { SitePostInventoryRow } from "@/lib/wordpress-api/types";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { HandleOptimizeMultipleContentParams } from "./bulk-optimization-params";
+import type { LinkPoolPostRow } from "./bulk-optimization-do-prefetch";
 
 export type SeedInventoryKeywordsResult = {
   /** Every target URL has a non-empty keyword in prefetchedAcfFieldsCache. */
@@ -26,8 +27,8 @@ export function seedBulkAcfKeywordsFromInventory(params: {
   urls: string[];
   batchKey: string;
   bulkInventorySnapshot: BulkOptimizerInventorySnapshot;
-  wordPressPostsForRun: any[];
-  prefetchedAcfFieldsCache: Map<number, Record<string, any>>;
+  wordPressPostsForRun: LinkPoolPostRow[];
+  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
   setBulkOptimizationState: HandleOptimizeMultipleContentParams["setBulkOptimizationState"];
 }): SeedInventoryKeywordsResult {
   const {
@@ -50,7 +51,7 @@ export function seedBulkAcfKeywordsFromInventory(params: {
 
     const targetNorm = normalizeMatch(site.siteUrl, targetUrl);
     const cached = wordPressPostsForRun.find(
-      (p: any) => p?.link && normalizeMatch(site.siteUrl, p.link) === targetNorm,
+      (p) => p?.link && normalizeMatch(site.siteUrl, p.link) === targetNorm,
     );
     const hint = typeHintFromCachedPost(cached);
     const invRow = lookupInventoryRow(bulkInventorySnapshot, site.siteUrl, targetUrl, hint);
@@ -66,7 +67,7 @@ export function seedBulkAcfKeywordsFromInventory(params: {
   }
 
   if (Object.keys(keywordUpdates).length > 0) {
-    setBulkOptimizationState((prev: any) => {
+    setBulkOptimizationState((prev) => {
       const current = prev[batchKey];
       if (!current) return prev;
       return {
@@ -100,12 +101,12 @@ export function readKeywordFromInventoryRow(row: SitePostInventoryRow | undefine
 
 export function inventoryRowToAcfKeywordFields(
   invRow: SitePostInventoryRow | undefined,
-): { acfFields: Record<string, any>; acfKeywordRaw: string; keywordFromAcfDirect: boolean } | null {
+): { acfFields: Record<string, unknown>; acfKeywordRaw: string; keywordFromAcfDirect: boolean } | null {
   if (!invRow) return null;
 
   const acfObj =
     invRow.acf && typeof invRow.acf === "object" && Object.keys(invRow.acf).length > 0
-      ? (invRow.acf as Record<string, any>)
+      ? (invRow.acf as Record<string, unknown>)
       : null;
   const acfKeywordDirect = acfObj ? readKeywordFocusFromAcfFields(acfObj) : "";
   const keyword = readKeywordFromInventoryRow(invRow);
@@ -129,11 +130,11 @@ export async function bulkOptimizationGrepAcfKeywordFocus(params: {
   batchKey: string;
   muteToasts: boolean;
   setBulkStep: (step: string, message: string, progress?: number) => void;
-  prefetchedAcfFieldsCache: Map<number, Record<string, any>>;
+  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
   prefetchedPostPayloadByUrlIndex: Map<number, WpPostSnapshotFromAcfByUrl>;
   prefetchedPendingCache?: Map<number, { pending: Record<string, unknown>; primaryKeyword: string }>;
   setBulkOptimizationState: HandleOptimizeMultipleContentParams["setBulkOptimizationState"];
-  wordPressPostsForRun: any[];
+  wordPressPostsForRun: LinkPoolPostRow[];
   bulkInventorySnapshot: BulkOptimizerInventorySnapshot | null;
 }): Promise<void> {
   const {

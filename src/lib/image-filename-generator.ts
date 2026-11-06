@@ -74,7 +74,7 @@ Featured images should end with -featured when it fits.`;
 
     const responseText = content.trim();
 
-    let filename = responseText
+    const filename = responseText
       .trim()
       .replace(/^["']|["']$/g, '') // Remove surrounding quotes
       .replace(/^```\w*\n?|\n?```$/g, '') // Remove markdown code blocks

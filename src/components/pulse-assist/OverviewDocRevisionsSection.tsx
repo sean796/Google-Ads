@@ -1,6 +1,6 @@
 import React, { useSyncExternalStore } from "react";
 import { Download, History } from "lucide-react";
-import { triggerRevisionsJsonDownload } from "@/components/overview/studio/overview-revision-compare-ui";
+import { triggerRevisionsJsonDownload } from "@/components/overview/studio/overview-revision-helpers";
 import {
   getRevisionsForUrl,
   subscribeOverviewStudioRevisions,

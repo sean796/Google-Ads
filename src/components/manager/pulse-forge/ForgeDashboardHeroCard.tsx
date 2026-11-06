@@ -1,7 +1,8 @@
 import React, { useMemo } from "react";
 import { ArrowDown, ArrowUp, Maximize2 } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, XAxis } from "recharts";
-import { useBoxReady } from "@/components/ui/chart-box-ready";
+import { useBoxReady } from "@/ui";
+
 import { cn } from "@/lib/utils";
 import type { ForgeDashboardHeroCard } from "@/lib/pulse-forge/forge-dashboard-demo-data";
 import {

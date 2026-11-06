@@ -1,17 +1,10 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
+
+
 import { ArrowDown, ArrowUp } from "lucide-react";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { ClientTagSortDir } from "@/hooks/vertical-benchmark/use-vertical-benchmark-controller";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui";
+import { Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Checkbox } from "@/ui";
 
 type Props = {
   sites: WordPressSite[];

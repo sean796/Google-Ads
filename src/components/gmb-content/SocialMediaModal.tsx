@@ -7,6 +7,7 @@ import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
 import { loadApiKey } from "@/lib/api";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { GmbContentRow } from "./GmbContentTable";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 const PLATFORMS = {
   gmb: {
@@ -109,7 +110,7 @@ export const SocialMediaModal: React.FC<Props> = ({
         {
           method: "POST",
           credentials: "include",
-          headers: { "Content-Type": "application/json" },
+          headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({
             siteUrl: site.siteUrl,
             username: site.username,
@@ -164,7 +165,7 @@ export const SocialMediaModal: React.FC<Props> = ({
         {
           method: "POST",
           credentials: "include",
-          headers: { "Content-Type": "application/json" },
+          headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({
             siteUrl: site.siteUrl,
             username: site.username,

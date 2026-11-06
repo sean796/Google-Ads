@@ -273,12 +273,12 @@ async function fetchFocusKeywordsBatch(
 
     pendingRowIndices.forEach((origIndex, j) => {
       const attempt = tryValidateDistilledFocusKeyword(rawList[j] ?? "", siteName);
-      if (attempt.ok) {
-        validated[origIndex] = attempt.value;
+      if (attempt.ok === false) {
+        nextPending.push(origIndex);
+        nextRepair.push({ rejected: attempt.rejected, error: attempt.error });
         return;
       }
-      nextPending.push(origIndex);
-      nextRepair.push({ rejected: attempt.rejected, error: attempt.error });
+      validated[origIndex] = attempt.value;
     });
 
     pendingRowIndices = nextPending;

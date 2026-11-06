@@ -23,9 +23,10 @@ function row(partial: Partial<GscTop10CsvRow> & Pick<GscTop10CsvRow, "site_id" |
 }
 
 describe("clampBenchmarkBlogCount", () => {
-  it("clamps to 1–50", () => {
+  it("clamps to 0–50", () => {
     expect(clampBenchmarkBlogCount(10)).toBe(10);
-    expect(clampBenchmarkBlogCount(0)).toBe(1);
+    expect(clampBenchmarkBlogCount(0)).toBe(0);
+    expect(clampBenchmarkBlogCount(-5)).toBe(0);
     expect(clampBenchmarkBlogCount(99)).toBe(50);
   });
 });

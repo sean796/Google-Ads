@@ -14,7 +14,7 @@ export function titleFromUrlPath(url: string): string {
 }
 
 /** One synthetic post row per GSC grid CSV line (no WordPress inventory). */
-export function buildPostRowsFromGscGrid(upload: GscParsedPageRow[]): SitemapOptimizerPostRow[] {
+export function buildPostRowsFromGscGrid(upload: readonly GscParsedPageRow[]): SitemapOptimizerPostRow[] {
   return upload.map((row, index) => {
     const url = row.page.trim();
     const tagLabel = row.gridTagLabel?.trim();

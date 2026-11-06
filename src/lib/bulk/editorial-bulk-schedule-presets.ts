@@ -5,7 +5,6 @@ import {
   type BulkNamedSchedulePreset,
   type BulkSchedulePresetFields,
 } from "@/lib/bulk/bulk-schedule-presets";
-import type { BulkSitemapScopeTag } from "@/lib/bulk/bulk-sitemap-mode";
 import {
   resolveEditorialContentPackageForSite,
 } from "@/lib/editorial-content-package";

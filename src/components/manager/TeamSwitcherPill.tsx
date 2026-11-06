@@ -1,11 +1,7 @@
 import { useState } from "react";
 import { Plus, Users } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/ui";
+
 import { ManagerDisplayChipFace } from "@/components/manager/ManagerDisplayChipFace";
 import { NewAgencyDialog } from "@/components/manager/teams/NewAgencyDialog";
 import { MANAGER_DISPLAY_DROPDOWN_PANEL } from "@/components/manager/manager-header-chip-styles";
@@ -40,7 +36,6 @@ export function TeamSwitcherPill({
     <>
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
-          {/* eslint-disable-next-line no-restricted-syntax -- Pulse UI exception: bespoke composite menu trigger with two-part segmented layout */}
           <button
             type="button"
             style={menuWidthStyle}

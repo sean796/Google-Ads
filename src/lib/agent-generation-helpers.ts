@@ -170,7 +170,7 @@ export interface RebuildGenerationContextParams {
   flowTitle: string;
   flowPurpose: string;
   knowledgeFiles: StoredFile[];
-  generateBlueprint: () => any;
+  generateBlueprint: () => Parameters<typeof getKeywordDataFromBlueprint>[0];
 }
 
 export function rebuildGenerationContext(params: RebuildGenerationContextParams): GenerationContext {

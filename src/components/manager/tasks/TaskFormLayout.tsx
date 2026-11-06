@@ -1,9 +1,9 @@
 import React, { useMemo } from "react";
 import { Calendar as CalendarIcon, ChevronDown, Clock } from "lucide-react";
 import { format, parse } from "date-fns";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CheckField, SelectField, RowButton, Button } from "@/ui";
+
+
+import { CheckField, SelectField, RowButton, Button, Calendar, Popover, PopoverContent, PopoverTrigger } from "@/ui";
 import { cn } from "@/lib/utils";
 
 export const TASK_PROJECT_DIALOG_CLASS =

@@ -1,5 +1,5 @@
 import { getProductionModel } from "@/lib/optimization-settings-storage";
-import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
+import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
 
 /** Structural labels models copy; used only for detection, never shown in prompts. */
 const BANNED_HEADING_NORMALIZED = new Set([
@@ -79,9 +79,8 @@ export async function ensurePressReleaseSectionHeading(opts: {
   }
 
   const model = opts.model || getProductionModel();
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  const res = await postOpenRouterAppChatFetch({
     method: "POST",
-    headers: openRouterWebAppHeaders(opts.apiKey),
     body: JSON.stringify({
       model,
       response_format: { type: "json_object" },

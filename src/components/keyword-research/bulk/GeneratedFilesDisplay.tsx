@@ -1,13 +1,13 @@
 
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
+
 import { Download } from 'lucide-react';
 import { ImageThumbnail } from '@/components/OutputManager/ImageThumbnail';
 import type { BulkGeneratedFile } from '@/lib/bulk-file-manager';
 import type { CSVRow } from '@/lib/bulk-auto-generate';
 import { getFileIcon, getStatusIcon, isImageWithPreview } from './bulk-utils';
 import { cn } from '@/lib/utils';
-import { Button } from "@/ui";
+import { Button, Badge, ScrollArea } from "@/ui";
 
 interface GeneratedFilesDisplayProps {
   filesByRow: Map<number, BulkGeneratedFile[]>;

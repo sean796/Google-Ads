@@ -6,6 +6,7 @@ import { notify, notifyHeaderError } from "@/lib/app-notifications";
 import { NOTIFY_ADD_GA4_PROPERTY_ID_FOR_THIS_SITE_CLICK_, NOTIFY_ENTITY_POST_CREATED_DATE_MODIFIER, NOTIFY_GMB_STATS_ADDED_TO_KNOWLEDGE_BASE, NOTIFY_NO_GMB_PERFORMANCE_DATA_RETURNED, NOTIFY_POST_CREATED_NO_DATE_MODIFIER, notifyAcfRestFailedX, notifyEntityPostFailedX, notifyGmbStatsSavedButApiReportedXUseL } from "@/lib/notify-messages";
 import { extractEndpointFromEntitySitemapUrl } from "@/lib/entity-endpoint-extractor";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { getGMBPullDateRanges } from "@/lib/gmb-date-helpers";
 import { loadApiKey } from "@/lib/api";
 import { resolveRecommendedAuthor } from "@/lib/wordpress-api/author-resolver";
@@ -73,7 +74,7 @@ export const WordPressCardActions: React.FC<WordPressCardActionsProps> = ({
       const response = await fetch(`${BACKEND_API_BASE}/api/gmb/performance`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(body),
       });
       const data = await response.json().catch(() => ({}));
@@ -139,7 +140,7 @@ ${footnote}`;
       const response = await fetch(`${BACKEND_API_BASE}/api/gmb/test`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       });
       const data = await response.json().catch(() => ({}));
       if (response.ok && data.success) {
@@ -171,7 +172,7 @@ ${footnote}`;
     try {
       const response = await fetch(`${BACKEND_API_BASE}/api/ga/test`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ propertyId }),
       });
       const data = await response.json().catch(() => ({}));
@@ -240,7 +241,7 @@ ${footnote}`;
         // Create a new post in the entity CPT
         const createResponse = await fetch(`${BACKEND_API_BASE}/api/wordpress/create-post`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify(requestBody)
         });
 
@@ -264,7 +265,7 @@ ${footnote}`;
           // Now set the date_modifier field on the new post
           const updateResponse = await fetch(`${BACKEND_API_BASE}/api/wordpress/update-acf-fields`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({
               siteUrl: site.siteUrl,
               username: site.username,

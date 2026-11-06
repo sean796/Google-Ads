@@ -118,7 +118,7 @@ export function parseOpenRouterJsonContent<T>(content: string, step: string): T 
 
   let lastError: unknown;
   for (const base of candidates) {
-    let working = base;
+    const working = base;
     const attempts = [working, removeTrailingCommas(working), tryCloseUnbalancedBrackets(working)];
     const closed = tryCloseUnbalancedBrackets(removeTrailingCommas(working));
     if (!attempts.includes(closed)) attempts.push(closed);

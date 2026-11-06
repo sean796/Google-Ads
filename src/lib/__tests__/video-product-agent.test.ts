@@ -175,7 +175,7 @@ describe("Director briefBlock, productView, and Instagram-style transitions", ()
   it("applyReferenceStillsFlythroughPlan maps scene order to matching upload index", () => {
     const brief: VideoBrief = {
       prompt: "Walkthrough",
-      lengthSeconds: 10,
+      lengthSeconds: 15,
       aspect: "16:9",
       resolution: "720p",
       references: [

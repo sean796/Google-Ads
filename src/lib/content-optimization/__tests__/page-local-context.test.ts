@@ -18,6 +18,7 @@ const edmontonSite: WordPressSite = {
       id: "loc1",
       name: "HQ",
       address: "123 Main",
+      phone: "",
       city: "Edmonton",
       state: "AB",
       zip: "T5J 0A1",

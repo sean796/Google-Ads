@@ -15,14 +15,15 @@ export function useAgentRunPostCreatorProof(run: AgentRun): PostCreatorProofSnap
   const teamId = activeTeam?.id ?? null;
   const runRef = useRef(run);
   runRef.current = run;
+  const isServerExecution = agentRunIsServerExecution(run);
 
   useEffect(() => {
-    if (!teamId || !agentRunIsServerExecution(run)) return;
-    syncPostCreatorProofFromServerRun(run, []);
-  }, [run.id, run.steps, run.updatedAt, teamId]);
+    if (!teamId || !isServerExecution) return;
+    syncPostCreatorProofFromServerRun(runRef.current, []);
+  }, [isServerExecution, run.id, run.steps, run.updatedAt, teamId]);
 
   useEffect(() => {
-    if (!teamId || !agentRunIsServerExecution(run)) return;
+    if (!teamId || !isServerExecution) return;
 
     let cancelled = false;
     const sync = async () => {
@@ -42,7 +43,7 @@ export function useAgentRunPostCreatorProof(run: AgentRun): PostCreatorProofSnap
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [run.id, run.updatedAt, run.result, run.status, teamId]);
+  }, [isServerExecution, run.id, run.updatedAt, run.result, run.status, teamId]);
 
   return useSyncExternalStore(
     (listener) => subscribePostCreatorProof(run.id, listener),

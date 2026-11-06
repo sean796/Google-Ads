@@ -22,6 +22,7 @@ import {
   type ResearchHarnessDoneSummary,
 } from "@/lib/overview/overview-research-harness-sections";
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import type { WordPressSite } from "@/components/integrations/types";
 
@@ -122,7 +123,7 @@ export async function exportOverviewGscForPageUrls(
   if (!unique.length) return null;
   const exportRes = await fetch(backendApiUrl("/gsc/export-overview-quick-wins"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       siteUrl: siteUrl.trim(),
       pageUrls: unique,
@@ -210,7 +211,7 @@ async function loadGscBriefContext(
   }
   const ctxRes = await fetch(backendApiUrl("/gsc/quick-wins-context"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ filename, pageUrl: pageUrl.trim() }),
   });
   const ctxJson = await ctxRes.json().catch(() => null);
@@ -256,7 +257,7 @@ async function uploadSeoBrief(content: string, keyword: string): Promise<string 
     return await seoBriefSaveLimit(async () => {
       const saveRes = await fetch(backendApiUrl("/overview/seo-brief"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ content, keyword }),
       });
       const saveJson = await saveRes.json().catch(() => null);

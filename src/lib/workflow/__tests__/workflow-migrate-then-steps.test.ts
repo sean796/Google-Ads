@@ -12,6 +12,7 @@ describe("workflow-migrate-then-steps", () => {
     id: 1,
     teamId: 1,
     name: "GSC",
+    status: "draft",
     nodes: [
       { id: "trigger", kind: "trigger_manual", label: "Trigger", config: {}, position: { x: 0, y: 0 } },
       {

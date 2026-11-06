@@ -254,9 +254,11 @@ describe("buildOrganicReportingHighlightsSnapshot", () => {
             ctr: 0.025,
             avgPosition: 10,
           },
-          topKeywords: [{ query: "blinds", clicks: 20, impressions: 500, ctr: 0.04, position: 8 }],
+          comparisonPeriod: { startDate: "2025-09-01", endDate: "2025-10-31", clicks: 40, impressions: 1600, ctr: 0.025, avgPosition: 11 },
+          comparisons: {},
+          topKeywords: [{ query: "blinds", currentRanking: 8, previousRanking: 9, rankingChange: 1, currentClicks: 20, previousClicks: 15, clicksChange: 5, currentImpressions: 500, previousImpressions: 400, impressionsChange: 100 }],
         },
-        timeseries: [{ date: "2025-11-15", clicks: 50, impressions: 2000, ctr: 0.025, avgPosition: 10 }],
+        timeseries: [{ date: "2025-11-15", clicks: 50, impressions: 2000, avgPosition: 10 }],
       },
       sources: { ga4: "ok", gsc: "ok", gscHistorical: "skipped" },
     };
@@ -373,8 +375,8 @@ describe("parseOrganicReportingHighlightsPayload", () => {
     expect(result.executiveSummary).toBe("Headline summary.");
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     const [, init] = fetchSpy.mock.calls[0]!;
-    const headers = (init?.headers ?? {}) as Record<string, string>;
-    expect(headers["X-OpenRouter-Api-Key"]).toBe("sk-or-v1-test-key");
+    const headers = new Headers(init?.headers);
+    expect(headers.get("X-OpenRouter-Api-Key")).toBe("sk-or-v1-test-key");
 
     fetchSpy.mockRestore();
     keySpy.mockRestore();

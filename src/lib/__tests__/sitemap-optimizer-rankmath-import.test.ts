@@ -11,6 +11,8 @@ import {
   parseRankMathRedirectCsv,
 } from "@/lib/sitemap-optimizer/sitemap-optimizer-rankmath-import";
 import type {
+  SitemapOptimizerClusterResult,
+  SitemapOptimizerMergeRecommendation,
   SitemapOptimizerPostRow,
   SitemapOptimizerRunResult,
 } from "@/lib/sitemap-optimizer/types";
@@ -56,13 +58,27 @@ describe("sitemap-optimizer-rankmath-import", () => {
   });
 
   it("does not treat 1:1 destinations as import errors when some groups matched", () => {
+    // A merge group needs >= 2 members (SITEMAP_OPTIMIZER_MIN_MERGE_GROUP_SIZE);
+    // a lone 1:1 destination lands in tooFewMembers but is not fatal when a group matched.
+    const extra: SitemapOptimizerPostRow = {
+      postId: "wp:3",
+      url: "https://example.com/blog/old-c/",
+      collection: "posts",
+      title: "Old C",
+      keyword: "old c",
+      meta: "",
+      contentSnippet: "",
+      gscQueries: [],
+      gscFetched: false,
+    };
     const csv = buildRankMathRedirectCsv([
-      { source: "blog/old-a/", destination: "https://example.com/blog/dest-a/" },
-      { source: "blog/old-b/", destination: "https://example.com/blog/dest-b/" },
+      { source: "blog/old-a/", destination: "https://example.com/blog/merged-guide/" },
+      { source: "blog/old-b/", destination: "https://example.com/blog/merged-guide/" },
+      { source: "blog/old-c/", destination: "https://example.com/blog/dest-c/" },
     ]);
     const { rows } = parseRankMathRedirectCsv(csv);
     const groups = groupRedirectsByDestination(rows);
-    const match = matchSourcesToInventory(groups, inventory.slice(0, 1));
+    const match = matchSourcesToInventory(groups, [...inventory, extra]);
     expect(match.groups.length).toBeGreaterThan(0);
     expect(match.tooFewMembers.length).toBeGreaterThan(0);
     expect(formatRankMathImportErrors(match)).toBeNull();
@@ -83,7 +99,7 @@ describe("sitemap-optimizer-rankmath-import", () => {
 
   it("locked destination on merge preserves exact sheet URL in contract", () => {
     const lockedDest = "https://example.com/blog/my-custom-slug/";
-    const clusters = {
+    const clusters: SitemapOptimizerClusterResult = {
         clusters: [
           {
             clusterId: "rankmath:test",
@@ -96,7 +112,7 @@ describe("sitemap-optimizer-rankmath-import", () => {
         ],
         singletons: [],
     };
-    const merges = [
+    const merges: SitemapOptimizerMergeRecommendation[] = [
         {
           clusterId: "rankmath:test",
           recommendedTitle: "Custom Guide",

@@ -38,6 +38,7 @@ function inventoryFromPostsBucketJson(json: string): LoadBulkSitemapInventoryRes
     totalRows: rowCount,
     sources: ["posts"],
     errors: {},
+    postsMetadata: [],
   };
 }
 

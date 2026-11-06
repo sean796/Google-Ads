@@ -1,46 +1,16 @@
-import { backendApiUrl } from "@/lib/wordpress-api/connection";
-import { loadApiKey, saveApiKey } from "@/lib/api";
+import { loadApiKey } from "@/lib/api";
 
-type ResolvedOpenRouterKeyResponse = {
-  ok?: boolean;
-  key?: string;
-};
+// Wave 0: the server OpenRouter key never reaches the browser. The resolver
+// is local-only: it returns the user's own locally saved key when present,
+// and "" otherwise. Callers pass "" through the app transport, and the
+// server resolves its env key. An unconfigured server fails visibly there.
 
-async function fetchSettingsPluginOpenRouterKey(): Promise<string> {
-  const res = await fetch(backendApiUrl("/integrations/resolved-openrouter-key"), {
-    credentials: "include",
-  });
-  if (!res.ok) return "";
-  const data = (await res.json()) as ResolvedOpenRouterKeyResponse;
-  return typeof data.key === "string" ? data.key.trim() : "";
-}
-
-/** Settings plugin key only. Does not use Dashboard/localStorage. */
-export async function resolveOpenRouterApiKeyFromSettingsPlugin(): Promise<string> {
-  const serverKey = await fetchSettingsPluginOpenRouterKey();
-  if (serverKey) return serverKey;
-  throw new Error("Add an OpenRouter API key in Settings.");
-}
-
-/** Sync key for app API headers (Dashboard localStorage). */
+/** Local Dashboard key only. Never fetches the server key. */
 export function getOpenRouterApiKeyForApp(): string {
   return loadApiKey()?.trim() ?? "";
 }
 
-/** Prefer Dashboard/local key; use server secrets only when the client key is unset. */
+/** Local key when set, "" when not. Never throws, never calls the server. */
 export async function resolveOpenRouterApiKeyForHarness(): Promise<string> {
-  const clientKey = loadApiKey()?.trim() ?? "";
-  if (clientKey) return clientKey;
-
-  try {
-    const serverKey = await fetchSettingsPluginOpenRouterKey();
-    if (serverKey) {
-      saveApiKey(serverKey);
-      return serverKey;
-    }
-  } catch {
-    /* ignore */
-  }
-
-  throw new Error("Add an OpenRouter API key in Settings.");
+  return getOpenRouterApiKeyForApp();
 }

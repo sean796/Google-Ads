@@ -6,7 +6,7 @@ import {
   findH2OpenPositions,
 } from "@/lib/overview/overview-blog-overview-prepend";
 import { plainTextFromH2InnerHtml } from "@/lib/overview/overview-blog-headers-extract";
-import { scrubOverviewContentOutput } from "@/lib/content-word-blocklist";
+import { assertNoForbiddenWordViolations } from "@/lib/content-word-blocklist";
 import {
   normalizeSectionProseHtml,
   prosePlainText,
@@ -199,7 +199,7 @@ export async function rewriteBlogPassageSection(args: {
 
   if (mode === "header") {
     const system = [
-      "You are a Mastra AISEO Passage Heading Architect.",
+      "You are a Pulse Engine AISEO Passage Heading Architect.",
       AISEO_FULL_REWRITE_SYSTEM_RULE,
       "Author a brand-new, specific, search-intent-aligned H2 heading from scratch that replaces the legacy heading and is distinct from sibling H2s.",
       'Return JSON only: {"title":"..."}. Plain text only, Title Case, no HTML tags or colons.',
@@ -236,9 +236,10 @@ export async function rewriteBlogPassageSection(args: {
     if (!rawTitle) {
       throw new Error("Heading rewrite returned empty title in JSON.");
     }
-    const title = scrubOverviewContentOutput(rawTitle);
+    const title = rawTitle;
+    assertNoForbiddenWordViolations(title, "Heading rewrite");
     if (!title.trim()) {
-      throw new Error("Heading rewrite title was empty after scrub.");
+      throw new Error("Heading rewrite title was empty.");
     }
     assertAiseoHeadingRewriteChanged(section.title, title);
     return {
@@ -250,7 +251,7 @@ export async function rewriteBlogPassageSection(args: {
   const system =
     mode === "copy"
       ? [
-          "You are a Mastra AISEO Section Author.",
+          "You are a Pulse Engine AISEO Section Author.",
           AISEO_FULL_REWRITE_SYSTEM_RULE,
           "Author a complete from-scratch replacement for this H2 section body for passage-level ranking, AI Overviews citation clarity, and factual specificity.",
           'Return JSON only: {"bodyHtml":"..."}.',
@@ -262,7 +263,7 @@ export async function rewriteBlogPassageSection(args: {
           "Obey the WORD BLACKLIST in the user message (no em dashes, no banned words).",
         ].join(" ")
       : [
-          "You are a Mastra AISEO Section & Heading Architect.",
+          "You are a Pulse Engine AISEO Section & Heading Architect.",
           AISEO_FULL_REWRITE_SYSTEM_RULE,
           "Author a brand-new H2 heading (Title Case, plain text, no colons) and a complete from-scratch replacement for the section body for passage-level ranking, AI Overviews citation clarity, and factual specificity.",
           'Return JSON only: {"title":"...","bodyHtml":"..."}.',
@@ -312,9 +313,10 @@ export async function rewriteBlogPassageSection(args: {
   if (!rawBody) {
     throw new Error("Passage rewrite returned empty bodyHtml in JSON.");
   }
-  const bodyHtml = scrubOverviewContentOutput(normalizeSectionProseHtml(rawBody));
+  const bodyHtml = normalizeSectionProseHtml(rawBody);
+  assertNoForbiddenWordViolations(bodyHtml, "Passage rewrite");
   if (!prosePlainText(bodyHtml).trim()) {
-    throw new Error("Passage rewrite bodyHtml was empty after normalize and scrub.");
+    throw new Error("Passage rewrite bodyHtml was empty after normalize.");
   }
   assertAiseoBodyRewriteChanged(section.bodyHtml, bodyHtml);
 
@@ -324,9 +326,10 @@ export async function rewriteBlogPassageSection(args: {
     if (!rawTitle) {
       throw new Error("Passage rewrite returned empty title in JSON.");
     }
-    const nextTitle = scrubOverviewContentOutput(rawTitle).trim();
+    const nextTitle = rawTitle.trim();
+    assertNoForbiddenWordViolations(nextTitle, "Passage rewrite title");
     if (!nextTitle) {
-      throw new Error("Passage rewrite title was empty after scrub.");
+      throw new Error("Passage rewrite title was empty.");
     }
     assertAiseoHeadingRewriteChanged(section.title, nextTitle);
     title = nextTitle;

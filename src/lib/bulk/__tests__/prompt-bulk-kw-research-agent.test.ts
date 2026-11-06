@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-vi.mock("@/lib/competitor-research/competitor-report-openrouter", () => ({
-  callOpenRouterChatCompletion: vi.fn(),
+vi.mock("@/lib/openrouter-app-api", () => ({
+  postOpenRouterAppChat: vi.fn(),
 }));
 
 vi.mock("@/lib/optimization-settings-storage", () => ({
@@ -12,13 +12,13 @@ vi.mock("@/lib/content-brand-ai-gate", () => ({
   aiFilterAllowedBrandTexts: vi.fn(async ({ candidates }: { candidates: string[] }) => candidates),
 }));
 
-import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
+import { postOpenRouterAppChat } from "@/lib/openrouter-app-api";
 import {
   buildLowHangingKeywordsResponseFormat,
   selectPromptBulkLowHangingKeywords,
 } from "@/lib/bulk/prompt-bulk-kw-research-agent";
 
-const mockCall = vi.mocked(callOpenRouterChatCompletion);
+const mockCall = vi.mocked(postOpenRouterAppChat);
 
 describe("selectPromptBulkLowHangingKeywords", () => {
   beforeEach(() => {
@@ -27,6 +27,7 @@ describe("selectPromptBulkLowHangingKeywords", () => {
 
   it("requests a capped json schema and exactly numberOfBlogs keywords", async () => {
     mockCall.mockResolvedValue({
+      raw: {},
       content: JSON.stringify({ keywords: ["roman shades", "cellular shades"] }),
     });
 
@@ -39,7 +40,7 @@ describe("selectPromptBulkLowHangingKeywords", () => {
     expect(result).toEqual(["roman shades", "cellular shades"]);
     expect(mockCall).toHaveBeenCalledTimes(1);
     const call = mockCall.mock.calls[0]![0];
-    expect(call.maxTokens).toBe(256);
+    expect(call.maxTokens).toBe(4096);
     expect(call.responseFormat).toEqual(buildLowHangingKeywordsResponseFormat(2));
     expect(call.system).toContain("Never dump the product catalog");
     expect(call.system).toContain("JSON contract");
@@ -48,6 +49,7 @@ describe("selectPromptBulkLowHangingKeywords", () => {
 
   it("fails fast on truncated JSON instead of repairing", async () => {
     mockCall.mockResolvedValue({
+      raw: {},
       content: '{"keywords": ["hunter douglas", "roman shades", "ban',
     });
 

@@ -7,7 +7,7 @@ import {
 } from "@/lib/wordpress-api";
 import { updateACFFields } from "@/lib/wordpress-acf-origin";
 import type { WordPressSite } from "@/components/integrations/types";
-import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
+import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
 
 export interface FixLinksOnPostResult {
   success: boolean;
@@ -76,9 +76,8 @@ ${html}`;
     userPrompt += `\n\nAdditional instructions: ${promptModifier.trim()}`;
   }
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  const response = await postOpenRouterAppChatFetch({
     method: "POST",
-    headers: openRouterWebAppHeaders(apiKey),
     body: JSON.stringify({
       model,
       messages: [

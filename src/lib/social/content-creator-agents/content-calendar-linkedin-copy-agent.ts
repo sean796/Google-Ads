@@ -70,7 +70,7 @@ export async function runContentCalendarLinkedinCopyAgent(options: {
     model: options.model,
     system,
     user,
-    maxTokens: getCompetitorReportMaxOutputTokens(768),
+    maxTokens: Math.min(768, getCompetitorReportMaxOutputTokens(options.model)),
     temperature: 0.5,
     errorLabel: "Content LinkedIn copy agent",
     signal: options.signal,

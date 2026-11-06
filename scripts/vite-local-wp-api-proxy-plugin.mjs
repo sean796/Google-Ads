@@ -3,21 +3,6 @@ import fs from "node:fs";
 import nodePath from "node:path";
 import http from "node:http";
 import https from "node:https";
-import {
-  dataForSeoAuthConfigError,
-  handleDataForSeoLlmResponsesLive,
-  isLlmResponsesLiveRequest,
-  resolveDataForSeoAuthFromRequest,
-} from "./dataforseo-llm-responses-direct.mjs";
-import {
-  handleOpenRouterModelsCatalog,
-  isOpenRouterModelsCatalogRequest,
-} from "./openrouter-models-direct.mjs";
-import {
-  handleOpenRouterChatCompletion,
-  isOpenRouterChatCompletionRequest,
-} from "./openrouter-chat-direct.mjs";
-
 const require = createRequire(import.meta.url);
 const { resolveDevApiTarget, isLocalWpProxyTarget } = require("./resolve-dev-api-target.cjs");
 
@@ -42,7 +27,6 @@ function upstreamRequest(url, options, body) {
         path: `${parsed.pathname}${parsed.search}`,
         method: options.method,
         headers: options.headers,
-        rejectUnauthorized: parsed.protocol === "https:" ? false : undefined,
       },
       (res) => {
         // SSE must reach the browser as it arrives; everything else is buffered for the redirect handling below.
@@ -256,138 +240,6 @@ export function localWpApiProxyPlugin() {
         const rawUrl = req.url ?? "";
         const path = rawUrl.split("?")[0] ?? "";
 
-        if (isOpenRouterModelsCatalogRequest(req.method ?? "GET", path)) {
-          try {
-            const result = await handleOpenRouterModelsCatalog(req);
-            res.statusCode = result.status;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.setHeader("cache-control", "no-store");
-            res.end(JSON.stringify(result.json));
-          } catch (error) {
-            res.statusCode = 502;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.end(
-              JSON.stringify({
-                ok: false,
-                error: error instanceof Error ? error.message : "OpenRouter models request failed",
-              }),
-            );
-          }
-          return;
-        }
-
-        if (isOpenRouterChatCompletionRequest(req.method ?? "POST", path)) {
-          try {
-            const body =
-              req.method && !["GET", "HEAD"].includes(req.method) ? await readRequestBody(req) : undefined;
-            const result = await handleOpenRouterChatCompletion(req, body, res);
-            if (result.piped) {
-              return;
-            }
-            res.statusCode = result.status;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.setHeader("cache-control", "no-store");
-            res.end(JSON.stringify(result.json));
-          } catch (error) {
-            res.statusCode = 502;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.end(
-              JSON.stringify({
-                ok: false,
-                error: error instanceof Error ? error.message : "OpenRouter chat completion failed",
-              }),
-            );
-          }
-          return;
-        }
-
-        if (isLlmResponsesLiveRequest(req.method, path)) {
-          try {
-            const body =
-              req.method && !["GET", "HEAD"].includes(req.method) ? await readRequestBody(req) : undefined;
-            const bodyJson = body?.length ? JSON.parse(body.toString("utf8")) : {};
-            const auth = resolveDataForSeoAuthFromRequest(req, bodyJson);
-            if (!auth) {
-              const err = dataForSeoAuthConfigError(req, bodyJson);
-              res.statusCode = 401;
-              res.setHeader("content-type", "application/json; charset=utf-8");
-              res.end(JSON.stringify(err));
-              return;
-            }
-            const result = await handleDataForSeoLlmResponsesLive(body, auth);
-            res.statusCode = result.status;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.end(JSON.stringify(result.json));
-          } catch (error) {
-            res.statusCode = 502;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.end(
-              JSON.stringify({
-                error: error instanceof Error ? error.message : "DataForSEO LLM request failed",
-              }),
-            );
-          }
-          return;
-        }
-
-        if (path === "/api/overview/studio-snapshot" || path === "/api/overview/studio-snapshot/") {
-          const snapDir = nodePath.join(process.cwd(), ".cache", "overview-studio-snapshots");
-          fs.mkdirSync(snapDir, { recursive: true });
-          const method = (req.method ?? "GET").toUpperCase();
-          if (method === "GET") {
-            const qs = new URL(rawUrl, "http://localhost").searchParams;
-            const siteId = String(qs.get("siteId") ?? "").replace(/[^a-zA-Z0-9._-]/g, "_");
-            const source = ["pages", "posts", "sap"].includes(String(qs.get("source")))
-              ? String(qs.get("source"))
-              : "pages";
-            const file = nodePath.join(snapDir, `${siteId}__${source}.json`);
-            let snapshot = null;
-            if (siteId && fs.existsSync(file)) {
-              try {
-                snapshot = JSON.parse(fs.readFileSync(file, "utf8"));
-              } catch {
-                snapshot = null;
-              }
-            }
-            res.statusCode = 200;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.end(JSON.stringify({ ok: true, snapshot }));
-            return;
-          }
-          if (method === "POST") {
-            try {
-              const bodyBuf = await readRequestBody(req);
-              const payload = bodyBuf?.length ? JSON.parse(bodyBuf.toString("utf8")) : {};
-              const siteId = String(payload.siteId ?? "").replace(/[^a-zA-Z0-9._-]/g, "_");
-              const source = ["pages", "posts", "sap"].includes(String(payload.source))
-                ? String(payload.source)
-                : "pages";
-              if (siteId && Array.isArray(payload.rows) && payload.rows.length > 0) {
-                const file = nodePath.join(snapDir, `${siteId}__${source}.json`);
-                fs.writeFileSync(
-                  file,
-                  JSON.stringify({
-                    siteId: payload.siteId,
-                    source,
-                    activeUrl: payload.activeUrl ?? null,
-                    rows: payload.rows,
-                    updatedAt: new Date().toISOString(),
-                  }),
-                  "utf8",
-                );
-              }
-              res.statusCode = 200;
-              res.setHeader("content-type", "application/json; charset=utf-8");
-              res.end(JSON.stringify({ ok: true }));
-            } catch (err) {
-              res.statusCode = 400;
-              res.setHeader("content-type", "application/json; charset=utf-8");
-              res.end(JSON.stringify({ ok: false, error: String(err) }));
-            }
-            return;
-          }
-        }
-
         if (!path.startsWith("/api")) {
           next();
           return;
@@ -425,34 +277,6 @@ export function localWpApiProxyPlugin() {
             targetOrigin,
           );
 
-          if (path.startsWith("/api/mcp/") && (upstream.status === 422 || upstream.status === 400)) {
-            res.statusCode = 200;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.setHeader("cache-control", "no-store");
-            res.end(
-              JSON.stringify({
-                skipped: true,
-                reason: "dfs_unsupported_or_empty",
-                tasks: [],
-              }),
-            );
-            return;
-          }
-
-          if (path.includes("proxy/fetch-text") && (upstream.status === 413 || upstream.status === 502)) {
-            res.statusCode = 200;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.setHeader("cache-control", "no-store");
-            res.end(
-              JSON.stringify({
-                ok: false,
-                content: "",
-                error: upstream.status === 413 ? "Payload truncated" : "Upstream fetch error",
-              }),
-            );
-            return;
-          }
-
           if (path.includes("/video/") && upstream.status === 413) {
             res.statusCode = 413;
             res.setHeader("content-type", "application/json; charset=utf-8");
@@ -461,24 +285,6 @@ export function localWpApiProxyPlugin() {
               JSON.stringify({
                 ok: false,
                 error: "Uploaded video file exceeds the server maximum body limit (413 Payload Too Large).",
-              }),
-            );
-            return;
-          }
-
-          if (upstream.status === 504) {
-            res.statusCode = 200;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.setHeader("cache-control", "no-store");
-            res.end(
-              JSON.stringify({
-                ok: false,
-                success: false,
-                error: "WordPress timed out",
-                workflows: [],
-                runs: [],
-                tasks: [],
-                rows: [],
               }),
             );
             return;
@@ -537,127 +343,6 @@ export function localWpApiProxyPlugin() {
           }
           res.end(upstream.body);
         } catch (error) {
-          // Graceful fallbacks when local WordPress container is not running (ECONNREFUSED / offline)
-          if (path.startsWith("/api/agent-runs")) {
-            res.statusCode = 200;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.setHeader("cache-control", "no-store");
-            res.end(JSON.stringify({ ok: true, runs: [] }));
-            return;
-          }
-          if (path.includes("/tasks/calendar-automations")) {
-            res.statusCode = 200;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.setHeader("cache-control", "no-store");
-            res.end(JSON.stringify({ ok: true, automations: [] }));
-            return;
-          }
-          if (path.includes("/tasks/pulse-assigned") || path.includes("/tasks/trigger-pending") || path.includes("/tasks/my")) {
-            res.statusCode = 200;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.setHeader("cache-control", "no-store");
-            res.end(JSON.stringify({ ok: true, tasks: [] }));
-            return;
-          }
-          if (path.includes("/workflows/trigger-pending")) {
-            res.statusCode = 200;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.setHeader("cache-control", "no-store");
-            res.end(JSON.stringify({ ok: true, workflows: [] }));
-            return;
-          }
-          if (path.includes("/chat/mentions/unread-count")) {
-            res.statusCode = 200;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.setHeader("cache-control", "no-store");
-            res.end(JSON.stringify({ ok: true, count: 0 }));
-            return;
-          }
-          if (path.includes("/chat/channels") || path.includes("/chat/mentions")) {
-            res.statusCode = 200;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.setHeader("cache-control", "no-store");
-            res.end(JSON.stringify({ ok: true, channels: [], mentions: [] }));
-            return;
-          }
-          if (path.includes("/members") || path.includes("/job-titles") || path.includes("/invites")) {
-            res.statusCode = 200;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.setHeader("cache-control", "no-store");
-            res.end(JSON.stringify({ ok: true, members: [], jobTitles: [], invites: [] }));
-            return;
-          }
-          if (path.includes("/tasks/projects") || path.includes("/tasks/tags") || path.includes("/tasks/templates")) {
-            res.statusCode = 200;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.setHeader("cache-control", "no-store");
-            res.end(JSON.stringify({ ok: true, projects: [], tags: [], templates: [] }));
-            return;
-          }
-          if (path.startsWith("/api/teams")) {
-            res.statusCode = 200;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.setHeader("cache-control", "no-store");
-            res.end(
-              JSON.stringify({
-                ok: true,
-                teams: [
-                  {
-                    id: 1,
-                    name: "Default Team",
-                    slug: "default-team",
-                    accessRole: "owner",
-                    jobTitle: "Administrator",
-                    permissions: {},
-                    seatLimit: 10,
-                    seatsUsed: 1,
-                    createdAt: new Date().toISOString(),
-                  },
-                ],
-              }),
-            );
-            return;
-          }
-          if (path.startsWith("/api/auth/me")) {
-            res.statusCode = 200;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.setHeader("cache-control", "no-store");
-            res.end(JSON.stringify({ ok: true, user: { id: 1, name: "Local Dev", email: "dev@neopulse.local", role: "administrator" } }));
-            return;
-          }
-          if (path.startsWith("/api/auth/login")) {
-            res.statusCode = 200;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.setHeader("cache-control", "no-store");
-            res.end(JSON.stringify({ ok: true, token: "local-dev-token", user: { id: 1, name: "Local Dev" } }));
-            return;
-          }
-          if (path.includes("/manager-wordpress-properties/load")) {
-            res.statusCode = 200;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.setHeader("cache-control", "no-store");
-            const seedFile = nodePath.join(process.cwd(), "src", "components", "integrations", "default-properties-seed.json");
-            if (fs.existsSync(seedFile)) {
-              res.end(fs.readFileSync(seedFile, "utf8"));
-            } else {
-              res.end(JSON.stringify({ ok: true, sites: [] }));
-            }
-            return;
-          }
-          if (path.includes("/manager-wordpress-properties/sync-openrouter")) {
-            res.statusCode = 200;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.setHeader("cache-control", "no-store");
-            res.end(JSON.stringify({ ok: true, updated: 1 }));
-            return;
-          }
-          if (path.includes("/gsc/service-account-email")) {
-            res.statusCode = 200;
-            res.setHeader("content-type", "application/json; charset=utf-8");
-            res.setHeader("cache-control", "no-store");
-            res.end(JSON.stringify({ ok: true, email: "pulse-gsc@neopulse.iam.gserviceaccount.com" }));
-            return;
-          }
           res.statusCode = 502;
           res.setHeader("content-type", "application/json; charset=utf-8");
           res.end(

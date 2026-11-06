@@ -1,3 +1,4 @@
+import { resolveMcpApiBase } from "@/lib/mcp-tools";
 import {
   analyzeKeywordWithAI,
   extractPeopleAlsoAskWithAI,
@@ -18,16 +19,11 @@ import type {
 } from "@/lib/keyword-types";
 import { getPublicSiteUrl } from "@/lib/wordpress-site-public-url";
 import type { ConnectedSiteSummary } from "@/components/integrations/types";
-import {
-  dataForSeoRequestHeaders,
-  withDataForSeoRequestAuth,
-} from "@/lib/dataforseo-request-auth";
 import { withDataForSeoLocationCode } from "@/lib/dataforseo-location-code";
 
 function mcpApiBase(): string {
   return (
-    import.meta.env.VITE_MCP_API_BASE ||
-    (import.meta.env.DEV ? "http://localhost:3001/api/mcp" : "/api/mcp")
+    resolveMcpApiBase()
   );
 }
 
@@ -48,8 +44,8 @@ async function fetchSerpOrganicRaw(
 
   const serpResponse = await fetch(`${mcpApiBase()}/DataForSEO_serp_organic_live_advanced`, {
     method: "POST",
-    headers: dataForSeoRequestHeaders(),
-    body: JSON.stringify(withDataForSeoRequestAuth(serpRequestPayload)),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify((serpRequestPayload)),
   });
 
   if (serpResponse.ok) {

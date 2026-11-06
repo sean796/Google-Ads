@@ -1,6 +1,6 @@
 import type { AssistCardStep } from "@/lib/pulse-assist/types";
 import { browserAutomationIsConfigured, browserAutomationRequiresClient } from "@/lib/browser-automation/resolve-browser-target-url";
-import type { TaskExecutionPayload } from "@/lib/tasks-types";
+import type { TaskExecutionClientRunContract, TaskExecutionPayload } from "@/lib/tasks-types";
 import {
   taskExecutionLocalDominatorIsConfigured,
   taskExecutionEntityPageCreatorIsConfigured,
@@ -78,8 +78,11 @@ export type AgentRunContext = {
 
 export type AgentRunPlan = Record<string, unknown> & {
   taskExecutionId?: number;
-  clientRunContract?: import("@/lib/tasks-types").TaskExecutionClientRunContract;
-  executionPayload?: import("@/lib/tasks-types").TaskExecutionPayload;
+  /** Stored run plans often carry a partial contract (e.g. only siteId); the full contract is merged at run time. */
+  clientRunContract?: Omit<TaskExecutionClientRunContract, "executionId"> & {
+    executionId?: number;
+  };
+  executionPayload?: TaskExecutionPayload & { wordpressSiteId?: string };
   sitemapSource?: string;
   executionMode?: "client" | "server";
 };
@@ -89,9 +92,16 @@ export type AgentRunCheckpointUrlSummary = {
   postTitle?: string;
 };
 
+export type AgentRunServerCheckpoint = {
+  rowIndex?: number;
+  intraPhase?: string;
+  checklistRows?: Array<{ keyword?: string; title?: string }>;
+};
+
 export type AgentRunCheckpoint = {
   completedUrls: string[];
   uploadedUrls: string[];
+  server?: AgentRunServerCheckpoint;
   currentUrl?: string;
   currentIndex?: number;
   totalCount?: number;
@@ -150,6 +160,13 @@ export type AgentRunResult = {
   googleDriveSkipReason?: string;
   gapCount?: number;
   goalMet?: boolean;
+  comparePreset?: "mom" | "yoy";
+  compareLabel?: string;
+  sectionCount?: number;
+  jobId?: string;
+  sessionReady?: boolean;
+  responseCount?: number;
+  responses?: import("@/lib/chatgpt-audit-api").ChatGptAuditQueryResponse[];
 };
 
 export type AgentRun = {
@@ -222,24 +239,7 @@ export function taskExecutionKindToRecipe(kind: string): AgentRunRecipeKey | nul
 
 function taskExecutionIsConfigured(
   kind: string,
-  payload?: {
-    targetUrl?: string;
-    targetBucket?: string;
-    targetUrls?: string[];
-    comparePreset?: string;
-    businessName?: string;
-    keyword?: string;
-    postCount?: number;
-    focusKeyword?: string;
-    locationSource?: string;
-    entityPageCount?: number;
-    contentGapSitemapSource?: string;
-    contentGapCountMode?: string;
-    contentGapTargetCount?: number;
-    browserInstructionsHtml?: string;
-    targetUrlSource?: string;
-    targetUrlVariable?: string;
-  },
+  payload?: TaskExecutionPayload,
 ): boolean {
   if (kind === "gsc_reporting" || kind === "ads_reporting") return taskExecutionReportingIsConfigured(payload);
   if (kind === "local_dominator_export") return taskExecutionLocalDominatorIsConfigured(payload);
@@ -267,7 +267,7 @@ function taskExecutionIsConfigured(
 export function taskCanExecuteWithAgent(
   task: {
     executionKind?: string;
-    executionPayload?: { targetUrl?: string; targetBucket?: string };
+    executionPayload?: TaskExecutionPayload;
     assigneeIds?: number[];
     wordpressSiteId?: string;
   },
@@ -303,7 +303,7 @@ export function taskCanExecuteWithAgent(
 export function scheduledPulseTaskCanExecute(
   task: {
     executionKind?: string;
-    executionPayload?: { targetUrl?: string; targetBucket?: string };
+    executionPayload?: TaskExecutionPayload;
     wordpressSiteId?: string;
   },
   activeWordPressSiteId?: string | null,

@@ -7,29 +7,56 @@ import type { PeopleAlsoAsk } from "./keyword-types";
  * - ai_overview_reference objects
  * - references arrays
  */
-export function extractPeopleAlsoAskFromSerp(serpData: any): {
+export interface PaaSerpNode {
+  type?: string;
+  question?: string;
+  title?: string;
+  text?: string;
+  text_pre?: string;
+  text_post?: string;
+  answer?: string;
+  description?: string;
+  snippet?: string;
+  url?: string;
+  link?: string;
+  items?: PaaSerpNode[];
+  people_also_ask_items?: PaaSerpNode[];
+  people_also_ask?: PaaSerpNode[];
+  references?: PaaSerpNode[];
+  [key: string]: unknown;
+}
+
+interface PaaSerpTask {
+  status_code?: number;
+  status_message?: string;
+  result?: PaaSerpNode | PaaSerpNode[];
+}
+
+export function extractPeopleAlsoAskFromSerp(serpData: unknown): {
   items: PeopleAlsoAsk[];
-  rawResponse: any;
+  rawResponse: unknown;
   extractionLog: string[];
 } {
   const paaItems: PeopleAlsoAsk[] = [];
   const extractionLog: string[] = [];
   const MAX_LOG_ITEMS = 15; // Limit log array to prevent excessive memory usage
-  
+
   if (!serpData) {
     extractionLog.push('[PAA Extractor] No serpData provided');
     return { items: [], rawResponse: serpData, extractionLog };
   }
+  const serp: { tasks?: PaaSerpTask[] } =
+    typeof serpData === "object" ? (serpData as { tasks?: PaaSerpTask[] }) : {};
 
   // Log initial structure
-  extractionLog.push(`[PAA Extractor] Starting extraction. Has tasks: ${!!serpData.tasks}, tasks is array: ${Array.isArray(serpData.tasks)}`);
-  
-  if (!serpData?.tasks || !Array.isArray(serpData.tasks)) {
+  extractionLog.push(`[PAA Extractor] Starting extraction. Has tasks: ${!!serp.tasks}, tasks is array: ${Array.isArray(serp.tasks)}`);
+
+  if (!serp.tasks || !Array.isArray(serp.tasks)) {
     extractionLog.push('[PAA Extractor] No tasks array found in response');
     return { items: [], rawResponse: serpData, extractionLog };
   }
 
-  for (const task of serpData.tasks) {
+  for (const task of serp.tasks) {
     // Check task status
     if (task.status_code && task.status_code !== 20000) {
       extractionLog.push(`[PAA Extractor] Task has error status: ${task.status_code} - ${task.status_message}`);
@@ -84,14 +111,15 @@ export function extractPeopleAlsoAskFromSerp(serpData: any): {
  * Recursively searches for PAA data in any structure
  */
 function extractFromResultItem(
-  resultItem: any,
+  resultItemInput: unknown,
   paaItems: PeopleAlsoAsk[],
   extractionLog: string[],
   depth: number = 0
 ): void {
   if (depth > 5) return; // Prevent infinite recursion
-  
-  if (!resultItem || typeof resultItem !== 'object') return;
+
+  if (!resultItemInput || typeof resultItemInput !== 'object') return;
+  const resultItem = resultItemInput as PaaSerpNode;
   
   // Limit logging to prevent excessive array growth
   const MAX_LOG_ITEMS = 15;
@@ -228,7 +256,7 @@ function extractFromResultItem(
   // Skip detailed logging for recursive searches to prevent log explosion
   if (depth < 3) {
     for (const key in resultItem) {
-      if (resultItem.hasOwnProperty(key) && typeof resultItem[key] === 'object' && resultItem[key] !== null) {
+      if (Object.prototype.hasOwnProperty.call(resultItem, key) && typeof resultItem[key] === 'object' && resultItem[key] !== null) {
         if (Array.isArray(resultItem[key])) {
           // If it's an array, check each item
           for (const arrItem of resultItem[key]) {

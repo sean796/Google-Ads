@@ -1,4 +1,8 @@
-import type { BlogLinksPlanResult } from "@/lib/overview/overview-blog-links-agent";
+import type {
+  BlogLinksAddAction,
+  BlogLinksPlanResult,
+  BlogLinksReplaceAction,
+} from "@/lib/overview/overview-blog-links-agent";
 import {
   countInternalLinksInHtml,
   extractAllSectionLinkEditSpans,
@@ -200,7 +204,10 @@ export function applyBlogLinksPlanStepByStep(
   const linkCountBefore = countInternalLinksInHtml(html, siteBaseUrl, pageUrl);
 
   const replaceActions = [...plan.linkActions]
-    .filter((a) => a.action === "replace" && a.index >= 0 && a.index < existingLinks.length)
+    .filter(
+      (a): a is BlogLinksReplaceAction =>
+        a.action === "replace" && a.index >= 0 && a.index < existingLinks.length,
+    )
     .sort((a, b) => a.index - b.index);
 
   for (let slotIndex = 0; slotIndex < existingLinks.length; slotIndex += 1) {
@@ -235,7 +242,7 @@ export function applyBlogLinksPlanStepByStep(
   }
 
   const addActions = [...plan.linkActions]
-    .filter((a) => a.action === "add")
+    .filter((a): a is BlogLinksAddAction => a.action === "add")
     .sort((a, b) => a.paragraphIndex - b.paragraphIndex);
 
   const applyAddOrder = [...addActions].sort((a, b) => b.paragraphIndex - a.paragraphIndex);

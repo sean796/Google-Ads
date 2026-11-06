@@ -44,17 +44,6 @@ class Neo_Pulse_App_Integrations_Route_Handlers {
 			return;
 		}
 
-		if ( $subpath === 'resolved-openrouter-key' && $method === 'GET' ) {
-			$key = trim( Neo_Pulse_App_Secrets::openrouter_api_key() );
-			Neo_Pulse_App_Api_Dispatcher::send_json(
-				array(
-					'ok'  => true,
-					'key' => $key,
-				)
-			);
-			return;
-		}
-
 		if ( $subpath === 'hub-data-export' && $method === 'POST' ) {
 			Neo_Pulse_App_Hub_Data_Sync::export( $body );
 			return;
@@ -62,28 +51,6 @@ class Neo_Pulse_App_Integrations_Route_Handlers {
 
 		if ( $subpath === 'hub-data-import' && $method === 'POST' ) {
 			Neo_Pulse_App_Hub_Data_Sync::import( $body );
-			return;
-		}
-
-		if ( $subpath === 'sync-email-worker-keys' && $method === 'POST' ) {
-			$openrouter = isset( $body['openRouterApiKey'] ) ? trim( (string) $body['openRouterApiKey'] ) : '';
-			$inbox      = isset( $body['agentmailGeneralEmail'] ) ? sanitize_email( strtolower( trim( (string) $body['agentmailGeneralEmail'] ) ) ) : '';
-			$webhook_secret = isset( $body['agentmailWebhookSecret'] ) ? trim( (string) $body['agentmailWebhookSecret'] ) : '';
-			$keys_path  = Neo_Pulse_App_Data_Paths::root() . '/email-worker-keys.json';
-			Neo_Pulse_App_Json_File_Store::write(
-				$keys_path,
-				array(
-					'agentmailApiKey'        => isset( $body['agentmailApiKey'] ) ? (string) $body['agentmailApiKey'] : '',
-					'agentmailGeneralEmail'  => $inbox,
-					'agentmailWebhookSecret' => $webhook_secret,
-					'openRouterApiKey'       => $openrouter,
-					'updatedAt'              => gmdate( 'c' ),
-				)
-			);
-			if ( $openrouter !== '' && class_exists( 'Neo_Pulse_Wp_Api' ) ) {
-				Neo_Pulse_Wp_Api::save_agency_openrouter_api_key( $openrouter );
-			}
-			Neo_Pulse_App_Api_Dispatcher::send_json( array( 'ok' => true ) );
 			return;
 		}
 

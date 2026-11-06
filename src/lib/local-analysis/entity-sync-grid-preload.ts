@@ -254,7 +254,7 @@ export function syncEntityLabelsFromGridRows(
     const cityRows = gridRows.filter(
       (r) => firstCityStateLabelFromAddress(r.address)?.toLowerCase() === bucket.placeLabel.toLowerCase(),
     );
-    let labels = extractNonStreetPlaceLabelsFromCityRows(cityRows, bucket.placeLabel);
+    const labels = extractNonStreetPlaceLabelsFromCityRows(cityRows, bucket.placeLabel);
     if (labels.length === 0) continue;
     entities.push(...distributeLabelsAcrossPages(labels, pages));
   }

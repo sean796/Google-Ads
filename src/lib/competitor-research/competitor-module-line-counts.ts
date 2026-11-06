@@ -17,7 +17,7 @@ export const COMPETITOR_MODULE_LINE_COUNTS: CompetitorModuleLineCount[] = [
   { path: "src/lib/competitor-research/competitor-selection-filter.ts", lines: 55 },
   { path: "src/lib/competitor-research/competitor-gsc-queries.ts", lines: 70 },
   { path: "src/lib/competitor-research/competitor-keyword-sort.ts", lines: 65 },
-  { path: "src/lib/competitor-research/competitor-keyword-site-relevance.ts", lines: 105 },
+  { path: "src/lib/competitor-research/competitor-keyword-ai-classify.ts", lines: 150 },
   { path: "src/lib/competitor-research/competitor-bulk-content-csv.ts", lines: 152 },
   { path: "src/lib/competitor-research/competitor-report-keyword-extract.ts", lines: 259 },
   { path: "src/lib/competitor-research/filter-competitors-by-gsc-relevance.ts", lines: 107 },
@@ -40,6 +40,6 @@ export const COMPETITOR_MODULE_LINE_COUNTS: CompetitorModuleLineCount[] = [
   { path: "src/lib/competitor-research/competitor-report-appendix.ts", lines: 26 },
   { path: "src/lib/competitor-research/competitor-module-line-counts.ts", lines: 46 },
   { path: "src/components/research/competitor/CompetitorResearchTab.tsx", lines: 1739 },
-  { path: "src/components/research/competitor/CompetitorSiteGrid.tsx", lines: 572 },
+  { path: "src/components/research/competitor/CompetitorSiteGrid.tsx", lines: 598 },
   { path: "scripts/update-competitor-line-counts.mjs", lines: 86 },
 ];

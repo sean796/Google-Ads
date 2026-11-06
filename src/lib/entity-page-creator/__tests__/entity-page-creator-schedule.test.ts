@@ -19,6 +19,9 @@ const site: WordPressSite = {
   id: "kwb",
   name: "KWB",
   siteUrl: "https://kwbllp.com",
+  username: "user",
+  appPassword: "pass",
+  connectedAt: 0,
   entitySitemapUrl: "https://kwbllp.com/entity-sitemap.xml",
 };
 

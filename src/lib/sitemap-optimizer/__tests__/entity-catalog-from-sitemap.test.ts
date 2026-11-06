@@ -48,7 +48,7 @@ describe("fetchEntityCatalogFromSitemap", () => {
       "service-area",
     );
     expect(res.ok).toBe(false);
-    if (res.ok) return;
+    if (res.ok === true) return;
     expect(res.error).toMatch(/entity sitemap/i);
     expect(parseSitemap).not.toHaveBeenCalled();
   });

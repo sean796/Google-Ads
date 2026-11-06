@@ -6,7 +6,7 @@
 import { appendMasterInstructionsToSystemPrompt, ensureMasterInstructionsInMemory } from "@/lib/master-instructions-storage";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { extractFirstBalancedJsonValue } from "@/lib/competitor-research/competitor-report-json-parse";
-import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
+import { postOpenRouterAppChatFetch, type OpenRouterAppChatFetchResponse } from "@/lib/openrouter-app-api";
 import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
 
 // ---------------------------------------------------------------------------
@@ -113,7 +113,7 @@ async function postOpenRouter(
   siteId: string | undefined,
   messages: ChatMsg[],
 ): Promise<string> {
-  let res: Response;
+  let res: OpenRouterAppChatFetchResponse;
   try {
     res = await postOpenRouterAppChatFetch({
       method: "POST",
@@ -134,7 +134,7 @@ async function postOpenRouter(
   }
   let j: { choices?: Array<{ message?: { content?: unknown } }> };
   try {
-    j = await res.json();
+    j = (await res.json()) as { choices?: Array<{ message?: { content?: unknown } }> };
   } catch {
     return "";
   }

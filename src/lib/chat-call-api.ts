@@ -1,14 +1,10 @@
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
-import { loadApiKey } from "@/lib/api";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import type { ActiveHuddleSummary, ChatCall, ChatCallSignal, ChatCallTranscriptLine } from "@/lib/chat-call-types";
 
 function api(path: string, options?: RequestInit): Promise<Response> {
   const p = path.startsWith("/") ? path : `/${path}`;
-  const headers = new Headers(options?.headers);
-  const openRouterKey = loadApiKey().trim();
-  if (openRouterKey && !headers.has("X-OpenRouter-Api-Key")) {
-    headers.set("X-OpenRouter-Api-Key", openRouterKey);
-  }
+  const headers = neoPulseApiHeaders(options?.headers);
   return fetch(backendApiUrl(p), { ...options, headers, credentials: "include", cache: "no-store" });
 }
 

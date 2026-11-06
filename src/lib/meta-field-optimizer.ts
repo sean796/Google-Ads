@@ -5,7 +5,7 @@ import { appendMasterInstructionsToSystemPrompt, ensureMasterInstructionsInMemor
 import { BULK_WORDPRESS_POST_TITLE_RULE, META_DESCRIPTION_ANTI_CLICKBAIT_RULE } from "@/lib/prompt-builders/title-rules";
 
 export interface OptimizedMetaFields {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -26,7 +26,7 @@ export async function generateOptimizedMetaFields(
   postTitle: string,
   metaDescription: string | undefined,
   primaryKeyword: string,
-  existingMeta: Record<string, any>,
+  existingMeta: Record<string, unknown>,
   siteUrl: string,
   postLink?: string,
   isPage?: boolean,
@@ -85,7 +85,7 @@ export async function generateOptimizedMetaFields(
   const systemPrompt = `You are a senior SEO content specialist optimizing WordPress SEO meta fields. Analyze the post and write accurate, neutral titles and descriptions aligned with search intent.
 
 CRITICAL REQUIREMENTS:
-1. SEO title: Act as a senior SEO content title specialist. Must be 50-60 characters, include primary keyword naturally near the BEGINNING (first few words), and be accurate, specific, and neutral. Treat the title as a neutral page label, not an advertisement. Reject clickbait, sensationalism, manufactured urgency, exaggerated importance, empty promotional claims, sales-driven calls to action, and immediate-action or acquisition framing. Avoid promotional hype verbs and marketing stock language such as boost, maximize, unlock, and similar. Do NOT prepend site name, business name, or brand. Forbidden: leading company/site before the topic (e.g. "Brand | …", "Brand – …", "Company: …", or "EJH Distribution …"). Output ONLY the topic-focused SEO title text - the same rule applies to Facebook and Twitter titles (no brand prefix; topic only)
+1. SEO title: Act as a senior SEO content title specialist. At most 60 characters (aim for 50-60), include primary keyword naturally near the BEGINNING (first few words), and be accurate, specific, and neutral. Treat the title as a neutral page label, not an advertisement. Reject clickbait, sensationalism, manufactured urgency, exaggerated importance, empty promotional claims, sales-driven calls to action, and immediate-action or acquisition framing. Avoid promotional hype verbs and marketing stock language such as boost, maximize, unlock, and similar. Do NOT prepend site name, business name, or brand. Forbidden: leading company/site before the topic (e.g. "Brand | …", "Brand – …", "Company: …", or "EJH Distribution …"). Output ONLY the topic-focused SEO title text - the same rule applies to Facebook and Twitter titles (no brand prefix; topic only)
 2. Meta description: Write a grammatically natural, fluent 140-155 character sentence in standard sentence case. Weave the topic words from the Focus Keyword naturally with prepositions/articles (never shove the raw keyword at the start with a colon or force an ungrammatical keyword string).${isPage ? ' Naturally weave the page topic into the opening clause, then continue with a clear value proposition.' : ' Do NOT copy the post title verbatim; summarize the concrete value and specifics of the article in natural prose.'}
 ${META_DESCRIPTION_ANTI_CLICKBAIT_RULE}
 3. Focus keyword: Use the exact primary keyword provided
@@ -101,8 +101,8 @@ SEARCH CONSOLE QUERIES: Real Google search queries for this page are in the user
 ` : ''}
 Return ONLY a valid JSON object. Use the exact same meta field keys as in EXISTING META FIELDS for the SEO title, meta description, focus keyword, canonical URL, robots, and social fields you optimize.
 
-Character limits are STRICT:
-- SEO Title: 50-60 characters (optimal: 55). Count before returning; if over 60, rewrite shorter with a complete last word (never end mid-word).
+Character limits:
+- SEO Title: at most 60 characters (optimal: 55). The system truncates longer titles at a word boundary, so put the primary keyword first and end on a complete word. Do not count characters.
 - Meta Description: 150-160 characters (optimal: 155)
 - Social titles can be up to 70 characters
 - Social descriptions can be up to 200 characters
@@ -131,7 +131,7 @@ EXISTING META FIELDS (heavy/Elementor fields excluded; those are preserved autom
 ${JSON.stringify(existingMetaForPrompt, null, 2)}
 
 Generate optimized meta fields. Focus on:
-1. SEO title (50-60 chars, keyword near the start, specific and informative). Match POST TITLE intent; one keyword mention; complete last word within 60 chars.
+1. SEO title (at most 60 chars, keyword near the start, specific and informative). Match POST TITLE intent; one keyword mention; complete last word.
 2. Meta description (150-160 chars). CRITICAL: Must clearly include the Focus Keyword "${primaryKeyword}" somewhere in the description.${isPage ? ' Begin by naturally weaving in the exact POST TITLE at the very start of the sentence (no quotes, no "Title:" label).' : ' Do NOT include the post title in the description. Start with a question hook or benefit statement.'} Apply the restrained SEO editorial standard above.
 3. Focus keyword (exact match: "${primaryKeyword}")
 4. Canonical URL (use post link if provided)
@@ -198,7 +198,7 @@ Return ONLY a JSON object with the optimized meta fields.`;
     // Try to extract JSON object from response
     const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      let jsonStr = jsonMatch[0];
+      const jsonStr = jsonMatch[0];
       
       // Handle unterminated strings by attempting to fix common issues
       // If JSON parsing fails, try to repair the JSON
@@ -210,7 +210,7 @@ Return ONLY a JSON object with the optimized meta fields.`;
         const lastCompleteMatch = jsonStr.match(/^\{[\s\S]*?("[\w_]+"\s*:\s*"[^"]*")\s*\}?$/);
         if (lastCompleteMatch) {
           // Extract all complete fields before the unterminated one
-          const completeFields = jsonStr.match(/"[\w_]+"\s*:\s*(?:"[^"]*"|\[[^\]]*\]|\{[^\}]*\}|[^,}]+)/g) || [];
+          const completeFields = jsonStr.match(/"[\w_]+"\s*:\s*(?:"[^"]*"|\[[^\]]*\]|\{[^}]*\}|[^,}]+)/g) || [];
           if (completeFields.length > 0) {
             // Reconstruct JSON with only complete fields
             const repairedJson = '{' + completeFields.join(',') + '}';

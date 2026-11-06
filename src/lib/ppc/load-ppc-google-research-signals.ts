@@ -6,6 +6,7 @@ import {
 } from "@/lib/ppc/ppc-google-research-signals";
 import { resolvePpcSiteLanguageCode, resolvePpcSiteLocationName } from "@/lib/ppc/resolve-ppc-site-location";
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { normalizeGoogleAdsCustomerId } from "@/lib/ads-reporting/ads-reporting-metrics";
 
 function aggregateGscQueries(gscPages: PpcGscPageContext[]): Array<{ text: string; clicks: number; impressions: number }> {
@@ -45,7 +46,7 @@ export async function loadPpcGoogleResearchSignals(options: {
   const res = await fetch(backendApiUrl("/google-ads/fetch-ppc-research-signals"), {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       customerId: customerId || undefined,
       focusKeyword,

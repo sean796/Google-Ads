@@ -3,12 +3,12 @@
  * AI-driven DFS search query generation and SERP fetch.
  */
 
+import { resolveMcpApiBase } from "@/lib/mcp-tools";
 import { streamChatCompletion } from '@/lib/api';
 import { getResearchModel } from '@/lib/optimization-settings-storage';
 
 const MCP_API_BASE =
-  import.meta.env.VITE_MCP_API_BASE ||
-  (import.meta.env.DEV ? 'http://localhost:3001/api/mcp' : '/api/mcp');
+  resolveMcpApiBase();
 
 export interface SerpOrganicItem {
   title: string;
@@ -94,7 +94,7 @@ export async function deriveTitleFormatFromExistingTitles(
   const systemPrompt =
     'You infer naming patterns from the titles provided. Return ONLY a single template string. ' +
     'The template must contain exactly the placeholder {entity} where the location/area name goes. ' +
-    'CRITICAL: The template MUST include the word "near". Pattern: [keyword/service phrase] near {entity}. The word "near" is MANDATORY. Keyword = service/product ONLY. Entity only after "near". Infer the pure service phrase; place it before "near" and {entity} after. ' +
+    'Mirror the pattern the existing titles actually use. If they pair a service phrase with the location, keep that shape with natural local phrasing (for example "[service phrase] in {entity}" or "[service phrase] near {entity}"); do not force the word "near" when the existing titles do not use it. Keyword = service/product ONLY. ' +
     'Return nothing else: no explanation, no quotes, just the template.';
 
   const userPrompt = `Entity page titles (from entity URL / sitemap):\n\n${titlesList}\n\nInfer the naming pattern. Return one template string with {entity} as the only placeholder for the location name.`;

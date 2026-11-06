@@ -367,13 +367,18 @@ Return ONLY the JSON object, no markdown, no explanations.`;
     }
 
     // Parse JSON response
-    const parsed = JSON.parse(cleanedResponse);
+    const parsed = JSON.parse(cleanedResponse) as {
+      prioritizedKeywords?: Array<{ keyword: string; priority: string; reason: string }>;
+      optimizationRecommendations?: string[];
+      contentOpportunities?: Array<{ keyword: string; opportunity: string }>;
+      insights?: string;
+    };
 
     // Format insights as a readable string
     const insights = `AI Analysis Insights:
 
 PRIORITIZED KEYWORDS:
-${parsed.prioritizedKeywords?.map((kw: any) => 
+${parsed.prioritizedKeywords?.map((kw) =>
   `- "${kw.keyword}" (${kw.priority}): ${kw.reason}`
 ).join('\n') || 'None provided'}
 
@@ -383,7 +388,7 @@ ${parsed.optimizationRecommendations?.map((rec: string, idx: number) =>
 ).join('\n') || 'None provided'}
 
 CONTENT OPPORTUNITIES:
-${parsed.contentOpportunities?.map((opp: any) => 
+${parsed.contentOpportunities?.map((opp) =>
   `- "${opp.keyword}": ${opp.opportunity}`
 ).join('\n') || 'None provided'}
 

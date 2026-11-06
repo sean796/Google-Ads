@@ -35,7 +35,7 @@ async function runOneBlogHeadersRow(
   const plan = await runBlogHeadersPlan(row, { ...agentOptions, signal });
   const apply = await runBlogHeadersApply(row, plan, { ...agentOptions, signal });
   const verified = verifyBlogHeadersApply(row.html, apply, plan);
-  if (!verified.ok) {
+  if (verified.ok === false) {
     throw new Error(verified.reason);
   }
 

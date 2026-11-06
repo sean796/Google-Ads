@@ -6,7 +6,9 @@ import type { PeerFeaturedImageReportCollector } from '@/lib/bulk/peer-featured-
 import type { PeerFeaturedLibraryCsvFile } from '@/lib/overview/sap-peer-featured-image-search';
 import type { WorkflowStepOutput } from '@/lib/workflow/workflow-types';
 import type { SeoContentBriefV1 } from '@/lib/overview-seo-content-brief';
+import type { HarnessSectionTokenUsage } from '@/lib/bulk/harness-section-max-tokens';
 import type { SemrushBulkEnrichmentResult } from '@/lib/wordpress-api/semrush';
+import type { ExtraTextInventoryLinkRow } from '@/lib/content-generation/extra-text-inventory-links';
 import type { IntelligentKeywordResearchMergeResult } from '@/lib/bulk/intelligent-keyword-research-merge';
 
 export type WordPressPostDestination = 'wordpress' | 'local' | 'direct';
@@ -113,6 +115,7 @@ export interface BulkProcessingOptions {
   onError?: (rowIndex: number, error: Error) => void;
   onAppendHistory?: (entry: RunHistoryEntry) => void;
   onHarnessSection?: (payload: BulkHarnessSectionPayload) => void;
+  onHarnessTokenUsage?: (usage: HarnessSectionTokenUsage) => void;
   sequentialHarnessSections?: boolean;
   siteSummary?: string;
   optionalPrompt?: string;
@@ -123,14 +126,7 @@ export interface BulkProcessingOptions {
   peerSites?: WordPressSite[];
   peerFeaturedReport?: PeerFeaturedImageReportCollector;
   onPeerFeaturedCsv?: (file: PeerFeaturedLibraryCsvFile) => void;
-  wordPressPagesForOfferTable?: Array<{
-    id: number;
-    slug: string;
-    title: string;
-    excerpt: string;
-    link: string;
-    date_gmt: string;
-  }>;
+  wordPressPagesForOfferTable?: ExtraTextInventoryLinkRow[];
   reservedUploadSlugsBySite?: Map<string, Set<string>>;
   workflowSerpResearch?: {
     outputs?: WorkflowStepOutput[];

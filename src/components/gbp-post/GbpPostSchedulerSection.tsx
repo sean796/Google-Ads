@@ -26,18 +26,6 @@ function buildGbpPreviewRows(count: number, keyword: string): CSVRow[] {
 }
 
 export type { GbpSchedulerSectionState } from "@/lib/gbp-post/gbp-schedule-plan";
-export { gbpSchedulerToPlanState } from "@/lib/gbp-post/gbp-schedule-plan";
-
-export const defaultGbpSchedulerState = (): GbpSchedulerSectionState => ({
-  numberOfPosts: 1,
-  scheduleFrequency: "custom",
-  customInterval: 4,
-  dayOfWeek: 1,
-  startDateOption: "custom",
-  customStartDate: getFirstOfThisMonthDate("09:00"),
-  startTime: "09:00",
-  rowOrder: [0],
-});
 
 function ensureSchedulerDate(value: unknown, startTime: string): Date {
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
@@ -149,13 +137,7 @@ export const GbpPostSchedulerSection: React.FC<GbpPostSchedulerSectionProps> = (
           setStartDateOption={(v) => setScheduler((p) => ({ ...p, startDateOption: v }))}
           customStartDate={ensureSchedulerDate(scheduler.customStartDate, scheduler.startTime)}
           setCustomStartDate={(d) =>
-            setScheduler((p) => ({
-              ...p,
-              customStartDate:
-                typeof d === "function"
-                  ? d(ensureSchedulerDate(p.customStartDate, p.startTime))
-                  : d,
-            }))
+            setScheduler((p) => ({ ...p, customStartDate: d }))
           }
           startTime={scheduler.startTime}
           setStartTime={(t) => setScheduler((p) => ({ ...p, startTime: t }))}

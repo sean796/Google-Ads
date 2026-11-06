@@ -23,8 +23,7 @@ export type PulseAgentDomain =
   | "ppc-ads"
   | "social"
   | "video"
-  | "wikipedia"
-  | "emcp";
+  | "wikipedia";
 
 export type PulseAgentMetadata = {
   id: string;
@@ -48,7 +47,7 @@ export type PulseAgentRunContext = {
 
 export type CreatePulseAgentConfig<TInput, TOutput> = PulseAgentMetadata & {
   inputSchema: z.ZodType<TInput>;
-  outputSchema: z.ZodType<TOutput>;
+  outputSchema: z.ZodType<TOutput, z.ZodTypeDef, unknown>;
   temperature?: number;
   maxTokens?: number;
   responseFormat?: OpenRouterAppResponseFormat;
@@ -59,7 +58,7 @@ export type CreatePulseAgentConfig<TInput, TOutput> = PulseAgentMetadata & {
 
 export type PulseAgent<TInput, TOutput> = PulseAgentMetadata & {
   inputSchema: z.ZodType<TInput>;
-  outputSchema: z.ZodType<TOutput>;
+  outputSchema: z.ZodType<TOutput, z.ZodTypeDef, unknown>;
   resolveModel: (siteId?: string | null) => string;
   run: (input: TInput, context?: PulseAgentRunContext) => Promise<TOutput>;
   stream: (
@@ -100,7 +99,7 @@ export function createPulseAgent<TInput, TOutput>(
       return config.outputSchema.parse(config.parseOutput(rawContent, validatedInput));
     }
     if (config.outputSchema instanceof z.ZodString) {
-      return config.outputSchema.parse(rawContent.trim());
+      return config.outputSchema.parse(rawContent.trim()) as TOutput;
     }
     const parsedJson = parseJsonStrict<unknown>(rawContent);
     return config.outputSchema.parse(parsedJson);
@@ -205,14 +204,30 @@ export function createStep<TInput, TOutput>(
   return step;
 }
 
+/** Type-erased step shape inside a committed workflow; zod schemas validate at runtime. */
+type AnyPulseStep = {
+  id: string;
+  title: string;
+  inputSchema: z.ZodType<unknown>;
+  outputSchema: z.ZodType<unknown>;
+  artifact?: (
+    output: unknown,
+    input: unknown,
+  ) => PulseStepArtifact | PulseStepArtifact[] | null;
+  execute: (params: {
+    inputData: unknown;
+    context: PulseWorkflowContext;
+  }) => Promise<unknown>;
+};
+
 type WorkflowNode =
-  | { kind: "single"; step: PulseStep<any, any> }
-  | { kind: "parallel"; steps: PulseStep<any, any>[] }
+  | { kind: "single"; step: AnyPulseStep }
+  | { kind: "parallel"; steps: AnyPulseStep[] }
   | {
       kind: "branch";
       branches: Array<{
-        condition: (input: any, context: PulseWorkflowContext) => boolean | Promise<boolean>;
-        step: PulseStep<any, any>;
+        condition: (input: unknown, context: PulseWorkflowContext) => boolean | Promise<boolean>;
+        step: AnyPulseStep;
       }>;
     };
 
@@ -236,22 +251,25 @@ export class PulseWorkflowBuilder<TInitialInput, TCurrentOutput> {
       id: string;
       runKind?: BulkOptimizationState["runKind"];
       inputSchema: z.ZodType<TInitialInput>;
-      outputSchema: z.ZodType<any>;
+      outputSchema: z.ZodType<unknown>;
     },
   ) {}
 
   then<TNextOutput>(
     step: PulseStep<TCurrentOutput, TNextOutput>,
   ): PulseWorkflowBuilder<TInitialInput, TNextOutput> {
-    this.nodes.push({ kind: "single", step });
+    this.nodes.push({ kind: "single", step: step as unknown as AnyPulseStep });
     return this as unknown as PulseWorkflowBuilder<TInitialInput, TNextOutput>;
   }
 
-  parallel<TSteps extends readonly PulseStep<TCurrentOutput, any>[]>(
+  parallel<TSteps extends readonly PulseStep<TCurrentOutput, unknown>[]>(
     steps: TSteps,
-  ): PulseWorkflowBuilder<TInitialInput, Record<string, any>> {
-    this.nodes.push({ kind: "parallel", steps: [...steps] });
-    return this as unknown as PulseWorkflowBuilder<TInitialInput, Record<string, any>>;
+  ): PulseWorkflowBuilder<TInitialInput, Record<string, unknown>> {
+    this.nodes.push({
+      kind: "parallel",
+      steps: steps.map((s) => s as unknown as AnyPulseStep),
+    });
+    return this as unknown as PulseWorkflowBuilder<TInitialInput, Record<string, unknown>>;
   }
 
   branch<TBranchOutput>(
@@ -260,7 +278,16 @@ export class PulseWorkflowBuilder<TInitialInput, TCurrentOutput> {
       step: PulseStep<TCurrentOutput, TBranchOutput>;
     }>,
   ): PulseWorkflowBuilder<TInitialInput, TBranchOutput> {
-    this.nodes.push({ kind: "branch", branches });
+    this.nodes.push({
+      kind: "branch",
+      branches: branches.map((b) => ({
+        condition: b.condition as (
+          input: unknown,
+          context: PulseWorkflowContext,
+        ) => boolean | Promise<boolean>,
+        step: b.step as unknown as AnyPulseStep,
+      })),
+    });
     return this as unknown as PulseWorkflowBuilder<TInitialInput, TBranchOutput>;
   }
 
@@ -292,13 +319,13 @@ export class PulseWorkflowBuilder<TInitialInput, TCurrentOutput> {
         inputData: TInitialInput,
         context: PulseWorkflowContext = {},
       ): Promise<{ output: TCurrentOutput; artifacts: PulseStepArtifact[] }> {
-        let current: any = inputSchema.parse(inputData);
+        let current: unknown = inputSchema.parse(inputData);
         const artifacts: PulseStepArtifact[] = [];
         const allTitles = getPipelineTitles();
         const totalSections = allTitles.length;
         let sectionCursor = 0;
 
-        const runOneStep = async (step: PulseStep<any, any>, stepInput: any, sectionIndex: number) => {
+        const runOneStep = async (step: AnyPulseStep, stepInput: unknown, sectionIndex: number) => {
           context.onStepProgress?.({
             stepId: step.id,
             title: step.title,

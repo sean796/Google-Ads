@@ -5,6 +5,7 @@
 
 import { loadApiKey } from './api';
 import type { WordPressSite } from '@/components/integrations/types';
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 export interface GSCPerformanceRecommendation {
   recommendedKeywords: Array<{
@@ -54,9 +55,7 @@ export async function analyzeGSCPerformance(
     const queriesUrl = `${BACKEND_API_BASE}/api/gsc/fetch-queries`;
     const queriesResponse = await fetch(queriesUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl: site.siteUrl,
         startDate: startDateStr,

@@ -107,7 +107,8 @@ async function resolveCompareLabelFromUpstream(
 ): Promise<string | undefined> {
   if (!upstream?.agentRunId) return undefined;
   const run = await fetchAgentRun(teamId, upstream.agentRunId);
-  const compareLabel = run?.result?.compareLabel;
+  const result = run?.result;
+  const compareLabel = result && "compareLabel" in result ? result.compareLabel : undefined;
   return typeof compareLabel === "string" && compareLabel.trim() ? compareLabel.trim() : undefined;
 }
 

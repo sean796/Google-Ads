@@ -18,12 +18,6 @@ import { WORDPRESS_POST_DESTINATION_SHORT } from "@/lib/bulk-auto-generate";
 import { cn } from "@/lib/utils";
 import { Button, Field, SelectField } from "@/ui";
 
-export function bulkGeneratorDetailsPanelId(variant: BulkGeneratorStudioVariant): string {
-  if (variant === "prompt") return "bulk-prompt-details-panel";
-  if (variant === "blog-import") return "blog-import-details-panel";
-  return "bulk-csv-details-panel";
-}
-
 type FeaturedImageMode = "off" | "ai-generated" | "google-maps";
 
 export type BulkPromptDockToolbarProps = {

@@ -7,6 +7,8 @@ vi.mock("../bulk-optimization-do-prefetch", () => ({
 }));
 
 import { bulkOptimizationDoPrefetch } from "../bulk-optimization-do-prefetch";
+import type { BulkOptimizationState } from "../use-optimization-state";
+import type { SetStateAction } from "react";
 
 const site: WordPressSite = {
   id: "site-1",
@@ -58,7 +60,9 @@ describe("bulkOptimizationRunPostLoop halt on failure", () => {
       serpWarmup: {
         maintainBuffer: vi.fn(),
         ensureReady: vi.fn(),
+        seedReadyFromAcf: vi.fn(),
         clearWarmingIndices: vi.fn(),
+        isIndexReady: vi.fn(() => true),
       },
       prefetchArgs: {
         site,
@@ -109,7 +113,9 @@ describe("bulkOptimizationRunPostLoop halt on failure", () => {
       serpWarmup: {
         maintainBuffer: vi.fn(),
         ensureReady: vi.fn(),
+        seedReadyFromAcf: vi.fn(),
         clearWarmingIndices: vi.fn(),
+        isIndexReady: vi.fn(() => true),
       },
       prefetchArgs: {
         site,
@@ -145,13 +151,21 @@ describe("bulkOptimizationRunPostLoop halt on failure", () => {
       fm?.addFile("content-edmonton.md", "## Answer", "text/markdown");
       fm?.addFile("checklist-edmonton.json", "1. Sunlight", "text/plain");
     });
-    let store: Record<string, { urls: string[]; urlStatuses?: Record<string, string>; urlGeneratedFiles?: Record<string, Array<{ name: string }>> }> = {
-      "site-1-batch": { urls, urlStatuses: {}, urlGeneratedFiles: {} },
+    let store: Record<string, BulkOptimizationState> = {
+      "site-1-batch": { urls, currentIndex: 0, urlStatuses: {}, currentStep: "", urlGeneratedFiles: {} },
     };
-    const setBulkOptimizationState = vi.fn((updater: (prev: typeof store) => typeof store) => {
-      store = updater(store);
-      return store;
-    });
+    const setBulkOptimizationState = vi.fn(
+      (action: SetStateAction<Record<string, BulkOptimizationState>>) => {
+        if (typeof action === "function") {
+          store = (
+            action as (
+              prev: Record<string, BulkOptimizationState>,
+            ) => Record<string, BulkOptimizationState>
+          )(store);
+        }
+        return store;
+      },
+    );
 
     await bulkOptimizationRunPostLoop({
       urls,
@@ -211,13 +225,21 @@ describe("bulkOptimizationRunPostLoop halt on failure", () => {
       [0, makePending(url)],
     ]);
     const continueFn = vi.fn().mockRejectedValue(new Error("WordPress upload failed"));
-    let store: Record<string, { urls: string[]; urlStatuses?: Record<string, string> }> = {
-      "site-1-batch": { urls, urlStatuses: {} },
+    let store: Record<string, BulkOptimizationState> = {
+      "site-1-batch": { urls, currentIndex: 0, urlStatuses: {}, currentStep: "" },
     };
-    const setBulkOptimizationState = vi.fn((updater: (prev: typeof store) => typeof store) => {
-      store = updater(store);
-      return store;
-    });
+    const setBulkOptimizationState = vi.fn(
+      (action: SetStateAction<Record<string, BulkOptimizationState>>) => {
+        if (typeof action === "function") {
+          store = (
+            action as (
+              prev: Record<string, BulkOptimizationState>,
+            ) => Record<string, BulkOptimizationState>
+          )(store);
+        }
+        return store;
+      },
+    );
 
     await bulkOptimizationRunPostLoop({
       urls,

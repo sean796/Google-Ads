@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import * as React from "react";
 import { Image as ImageIcon } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/ui";
+
 
 interface ImageThumbnailProps {
   src: string; // base64 data URL

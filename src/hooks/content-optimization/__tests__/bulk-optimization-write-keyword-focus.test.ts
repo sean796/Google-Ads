@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { writeBulkResearchedKeywordFocusToWordPress } from "../bulk-optimization-write-keyword-focus";
+import type { WordPressSite } from "@/components/integrations/types";
 
 const updateWordPressAcfFields = vi.fn();
 
@@ -14,7 +15,7 @@ describe("writeBulkResearchedKeywordFocusToWordPress", () => {
   });
 
   it("writes keyword_focus for researched indices with valid post id", async () => {
-    const prefetchedAcfFieldsCache = new Map<number, Record<string, any>>();
+    const prefetchedAcfFieldsCache = new Map<number, Record<string, unknown>>();
     prefetchedAcfFieldsCache.set(0, { keyword_focus: "researched kw" });
 
     const prefetchedPendingCache = new Map<
@@ -35,7 +36,7 @@ describe("writeBulkResearchedKeywordFocusToWordPress", () => {
         siteUrl: "https://example.com",
         username: "u",
         appPassword: "p",
-      } as any,
+      } as unknown as WordPressSite,
       researchedIndices: [0],
       prefetchedPendingCache,
       prefetchedAcfFieldsCache,
@@ -55,7 +56,7 @@ describe("writeBulkResearchedKeywordFocusToWordPress", () => {
   });
 
   it("skips write when post id is missing", async () => {
-    const prefetchedAcfFieldsCache = new Map<number, Record<string, any>>();
+    const prefetchedAcfFieldsCache = new Map<number, Record<string, unknown>>();
     prefetchedAcfFieldsCache.set(0, { keyword_focus: "kw" });
 
     const prefetchedPendingCache = new Map<
@@ -73,7 +74,7 @@ describe("writeBulkResearchedKeywordFocusToWordPress", () => {
         siteUrl: "https://example.com",
         username: "u",
         appPassword: "p",
-      } as any,
+      } as unknown as WordPressSite,
       researchedIndices: [0],
       prefetchedPendingCache,
       prefetchedAcfFieldsCache,

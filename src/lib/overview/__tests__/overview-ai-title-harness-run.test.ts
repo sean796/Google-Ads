@@ -3,6 +3,8 @@ import type { WordPressSite } from "@/components/integrations/types";
 import { createEmptyOverviewRow } from "@/lib/overview/overview-row-helpers";
 import { OVERVIEW_AISEO_ROW_CONCURRENCY_MAX } from "@/lib/overview/overview-ai-copy-concurrency";
 import { runOverviewAiTitleHarnessBatch } from "@/lib/overview/overview-ai-title-harness-run";
+import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
+import type { TitleHarnessSetters } from "@/lib/overview/overview-ai-title-harness-mutations";
 
 vi.mock("@/lib/overview/overview-aiseo-source-html", () => ({
   resolveAiseoHarnessSourceHtml: vi.fn(async () => ({
@@ -23,8 +25,8 @@ const site = {
   appPassword: "p",
 } as WordPressSite;
 
-function makeHarnessSetters() {
-  const bulkState: Record<string, unknown> = {
+function makeHarnessSetters(): TitleHarnessSetters {
+  const bulkState: Record<string, BulkOptimizationState> = {
     "wp-1-batch": {
       urls: [],
       currentIndex: 0,
@@ -37,7 +39,7 @@ function makeHarnessSetters() {
   return {
     siteId: "wp-1",
     batchKey: "wp-1-batch",
-    setBulkOptimizationState: (updater: (prev: typeof bulkState) => typeof bulkState) => {
+    setBulkOptimizationState: (updater) => {
       Object.assign(bulkState, typeof updater === "function" ? updater(bulkState) : updater);
     },
     setOptimizationProgress: vi.fn(),

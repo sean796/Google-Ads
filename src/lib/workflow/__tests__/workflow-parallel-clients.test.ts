@@ -77,6 +77,7 @@ describe("workflow parallel clients", () => {
     id: 1,
     teamId: 1,
     name: "Multi client",
+    status: "draft",
     nodes: [
       { id: "trigger", kind: "trigger_manual", label: "Trigger", config: {}, position: { x: 0, y: 0 } },
       {
@@ -332,6 +333,7 @@ describe("workflowStepChainKey scope", () => {
     id: 1,
     teamId: 1,
     name: "Chain",
+    status: "draft",
     nodes: [
       { id: "trigger", kind: "trigger_manual", label: "Trigger", config: {}, position: { x: 0, y: 0 } },
       {
@@ -373,12 +375,27 @@ describe("workflowStepChainKey scope", () => {
       await import("@/lib/workflow/workflow-api");
     const { fetchAgentRun } = await import("@/lib/agent-runs-api");
 
-    const agentRun = {
+    const agentRun: AgentRun = {
       id: 501,
       teamId: 1,
+      createdBy: 1,
+      title: "LD",
+      recipeKey: "local_dominator_export",
+      recipeTitle: "LD",
+      status: "done",
+      source: "workflow",
+      taskId: 0,
+      taskTitle: "",
       context: { siteId: "site-a", workflowId: 1, workflowRunId: 10, workflowNodeId: "agent" },
       plan: { workflowId: 1, workflowRunId: 10, workflowNodeId: "agent" },
-    } as AgentRun;
+      result: null,
+      errorMessage: "",
+      clientBatchKey: "",
+      startedAt: null,
+      finishedAt: null,
+      createdAt: "",
+      updatedAt: "",
+    };
 
     vi.mocked(fetchWorkflow).mockResolvedValue({
       ...baseWorkflow,

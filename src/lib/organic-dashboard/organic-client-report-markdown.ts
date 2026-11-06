@@ -230,25 +230,6 @@ export function serializeOrganicClientReportMarkdown(content: OrganicClientRepor
     blocks.push("");
   }
 
-  if (content.showLeadsSection && content.leadsSummary) {
-    const s = content.leadsSummary;
-    blocks.push(
-      "## Lead Generation & Revenue Outcomes (Organic vs. Paid)",
-      "",
-      `> **Google Ads ROI:** ${s.roiHeadline}`,
-      `> **Organic SEO Impact:** ${s.organicHeadline}`,
-      "",
-      "### Lead Acquisition Funnel",
-      "",
-      "| Funnel Stage | Organic (SEO) | Paid (Google Ads) | Total / Blended |",
-      "| --- | ---: | ---: | ---: |",
-    );
-    for (const r of content.leadsFunnelTable) {
-      blocks.push(`| ${r.stage} | ${r.organic} | ${r.paid} | ${r.total} |`);
-    }
-    blocks.push("");
-  }
-
   if (showPerformanceSection) {
     blocks.push("## Performance summary", "");
     if (performanceNarrative.length > 0) {

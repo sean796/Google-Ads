@@ -5,6 +5,7 @@
  */
 
 import { backendApiUrl } from './connection';
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 export type PostWithLink = { id: number; slug: string; title: string; excerpt: string; link: string; date_gmt: string };
 
@@ -38,7 +39,7 @@ export function extractInternalLinksFromContent(content: string, siteBaseUrl: st
   } catch {
     return [];
   }
-  const linkPattern = /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)|<a[^>]*href=["'](https?:\/\/[^"']+)["'][^>]*>|<a[^>]*href=["'](\/[^"']*)["'][^>]*>/gi;
+  const linkPattern = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)|<a[^>]*href=["'](https?:\/\/[^"']+)["'][^>]*>|<a[^>]*href=["'](\/[^"']*)["'][^>]*>/gi;
   const seen = new Set<string>();
   const out: string[] = [];
   let m;
@@ -117,7 +118,9 @@ async function consumeNdjsonStream(
         results = obj.results;
         allOk = obj.allOk ?? results.every((r) => r.ok);
       }
-    } catch {}
+    } catch {
+      // Partial stream buffer is not valid JSON yet: keep the results collected so far.
+    }
   }
   return { results, allOk };
 }
@@ -140,7 +143,7 @@ export async function filterPostsToValidatedLinksOnly(
   try {
     const response = await fetch(backendApiUrl("/bulk/validate-internal-links"), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ urls: fullUrls }),
     });
     if (!response.ok) {
@@ -212,7 +215,7 @@ export async function validateContentLinksBeforeUpload(
   try {
     const response = await fetch(backendApiUrl("/bulk/validate-internal-links"), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ content: combined, siteBaseUrl }),
     });
     if (!response.ok) {
@@ -263,7 +266,7 @@ function stripFailedLinksFromText(
   const isFailed = (url: string) => failedUrls.has(norm(url)) || failedUrls.has(norm(url.trim()));
 
   let out = content;
-  out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/gi, (match, text: string, url: string) => {
+  out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/gi, (match, text: string, url: string) => {
     if (isFailed(url)) {
       console.warn(`[validate-internal-links] Stripped invalid link: ${url}`);
       return text;
@@ -287,7 +290,9 @@ function stripFailedLinksFromText(
           console.warn(`[validate-internal-links] Stripped invalid link: ${full}`);
           return text;
         }
-      } catch {}
+      } catch {
+        // Malformed href: leave the original anchor untouched.
+      }
       return match;
     });
   }
@@ -325,7 +330,7 @@ export async function validateAndStripInvalidLinksFromContent(
   try {
     const response = await fetch(backendApiUrl("/bulk/validate-internal-links"), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ content: combined, siteBaseUrl }),
     });
     if (!response.ok) {

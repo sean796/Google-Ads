@@ -30,7 +30,9 @@ export interface ContentComparison {
   gscResult?: PageGscResultLike | unknown;
   seoResearchRaw?: string;
   faqEntries?: Array<{ question: string; answer?: string }>;
-  blueprintResult?: any;
+  blueprintResult?: {
+    agents?: Array<{ title?: unknown; purpose?: unknown; description?: unknown }>;
+  };
   updateMode: "update" | "draft";
   url: string;
   siteId?: string | null;

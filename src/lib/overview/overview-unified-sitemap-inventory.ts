@@ -35,21 +35,17 @@ async function parseSitemapUrlEntries(
 ): Promise<UrlWithCollection[]> {
   const user = site.username?.trim();
   const pass = site.appPassword?.trim();
-  try {
-    const result = await parseSitemap(
-      site.siteUrl,
-      sitemapXmlUrl,
-      user || undefined,
-      pass || undefined,
-    );
-    const urls = Array.isArray(result?.urls) ? result.urls : [];
-    return urls
-      .map((u) => String(u || "").trim())
-      .filter(Boolean)
-      .map((url) => ({ url, collection }));
-  } catch (err: unknown) {
-    throw err;
-  }
+  const result = await parseSitemap(
+    site.siteUrl,
+    sitemapXmlUrl,
+    user || undefined,
+    pass || undefined,
+  );
+  const urls = Array.isArray(result?.urls) ? result.urls : [];
+  return urls
+    .map((u) => String(u || "").trim())
+    .filter(Boolean)
+    .map((url) => ({ url, collection }));
 }
 
 function dedupeUrlEntries(entries: UrlWithCollection[]): UrlWithCollection[] {
@@ -139,7 +135,9 @@ export async function crawlOverviewSourceSitemapUrls(
 
   let mergeChain = Promise.resolve();
   const safeMergeBatch = (batch: string[]) => {
-    mergeChain = mergeChain.then(() => mergeBatch(batch));
+    mergeChain = mergeChain.then(() => {
+      mergeBatch(batch);
+    });
     return mergeChain;
   };
 

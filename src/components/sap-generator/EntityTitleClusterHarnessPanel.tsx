@@ -1,16 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, ChevronDown, Circle } from "lucide-react";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+
 import {
   countEntityHarnessSteps,
   type EntityTitleHarnessClusterGroup,
 } from "@/lib/local-analysis/entity-title-harness-state";
 import { cn } from "@/lib/utils";
-import { RowButton } from "@/ui";
+import { RowButton, Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui";
 
 export type EntityTitleClusterHarnessPanelProps = {
   phase: string;

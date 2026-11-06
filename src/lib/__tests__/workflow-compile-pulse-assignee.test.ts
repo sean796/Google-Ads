@@ -20,6 +20,7 @@ const baseWorkflow: WorkflowDefinition = {
   id: 7,
   teamId: 1,
   name: "Gap to posts",
+  status: "draft",
   nodes: [
     {
       id: "agent_1",
@@ -113,6 +114,7 @@ function gapToPostsWorkflow(): WorkflowDefinition {
     id: 7,
     teamId: 1,
     name: "Gap to posts",
+  status: "draft",
     nodes: [
       {
         id: "client_1",

@@ -116,6 +116,7 @@ describe("uploadPostCreatorRowToWordPress", () => {
       siteUrl: "https://example.com",
       username: "user",
       appPassword: "pass",
+      connectedAt: 0,
     };
     const row: CSVRow = {
       keyword: "battery shades",

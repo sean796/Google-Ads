@@ -1,4 +1,5 @@
 import { streamChatCompletion, type Message } from './api';
+import { getResearchModel } from "@/lib/optimization-settings-storage";
 
 export interface KeywordExtractionResult {
   primaryKeywords: string[]; // One per blog idea

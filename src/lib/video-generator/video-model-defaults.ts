@@ -1,6 +1,7 @@
 /** OpenRouter id for default video generation (Kling: Video v3.0 Pro). */
 export const DEFAULT_VIDEO_MODEL = "kwaivgi/kling-v3.0-pro";
 export const PRODUCT_VISION_MODEL = "google/gemini-2.5-flash";
+export const VIDEO_PROMPT_REMAKER_PRO_MODEL = "google/gemini-2.5-pro";
 
 export const VIDEO_MODEL_PRESETS: { value: string; label: string }[] = [
   { value: "kwaivgi/kling-v3.0-pro", label: "Kling: Video v3.0 Pro" },

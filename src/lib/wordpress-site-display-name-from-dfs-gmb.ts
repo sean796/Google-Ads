@@ -5,6 +5,7 @@
  * place_id / cid or a matching organic title when Maps Listings + GMB keyword paths miss.
  */
 
+import { resolveMcpApiBase } from "@/lib/mcp-tools";
 import type { WordPressSite } from "@/components/integrations/types";
 import { hostnameFromMyBusinessInfoResponse } from "@/lib/competitor-research/competitor-grid-dfs-client";
 import { normalizeCompetitorDomainKey } from "@/lib/competitor-research/competitor-domain-key";
@@ -264,7 +265,7 @@ async function fetchSerpOrganicLiveAdvancedJson(args: {
   signal?: AbortSignal;
 }): Promise<unknown | null> {
   const base = (BACKEND_API_BASE || "").replace(/\/$/, "");
-  const url = `${base}/api/mcp/DataForSEO_serp_organic_live_advanced`;
+  const url = `${base}/DataForSEO_serp_organic_live_advanced`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -427,7 +428,7 @@ export async function applyGbpPropertyWand(
     locationDiscovery: geo.locationDiscovery,
     localBusinessHint: geo.localBusinessHint,
   });
-  if (!imp.ok) return { ok: false, error: imp.error };
+  if (imp.ok === false) return { ok: false, error: imp.error };
 
   const name =
     imp.businessName.trim() ||
@@ -781,7 +782,7 @@ export async function bulkApplyGmbSuggestedDisplayNames(
   for (let i = 0; i < sites.length; i++) {
     const site = sites[i]!;
     const r = results[i]!;
-    if (!r.ok) {
+    if (r.ok === false) {
       failed += 1;
       if (!firstError) firstError = r.error;
       continue;

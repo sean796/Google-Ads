@@ -9,6 +9,7 @@ import {
 } from "@/lib/content-generation/apply-meta-optimizer-to-acf";
 import type { WordPressSite } from "@/components/integrations/types";
 import { OptimizationFileManager } from "@/lib/optimization-file-manager";
+import type { WpExistingPostLike } from "@/hooks/content-optimization/use-optimization-state";
 
 export interface MetaOptimizerOptions {
   postId: number;
@@ -18,7 +19,7 @@ export interface MetaOptimizerOptions {
   primaryKeyword: string;
   site: WordPressSite;
   postLink: string;
-  existingPost?: any;
+  existingPost?: WpExistingPostLike;
   fileManager: OptimizationFileManager;
   setProgress: (progress: { step: string; progress: number; message?: string }) => void;
   shouldOptimizeMeta: boolean;

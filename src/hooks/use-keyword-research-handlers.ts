@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { NOTIFY_PLEASE_ENTER_A_PRIMARY_KEYWORD, NOTIFY_KEYWORD_RESEARCH_CLEARED, NOTIFY_ALL_CACHED_KEYWORD_DATA_CLEARED, NOTIFY_PLEASE_ENTER_A_KEYWORD_TO_ANALYZE, NOTIFY_CHECKING_KEYWORD_SERVER_STATUS, notifyFailedToCheckServerStatusX, notifyServerErrorX, NOTIFY_KEYWORD_SERVER_STARTED_SUCCESSFULLY, notifyAnalyzingKeywordX, notifyKeywordXAnalyzedSuccessfully, notifyAnalysisFailedX, notifyUnexpectedErrorX } from "@/lib/notify-messages";
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
 import { clearAllKeywordData, clearKeywordResearchCache } from "@/lib/keyword-db";
 import { clearKeywordCache } from "@/lib/keyword-api";
@@ -10,7 +11,7 @@ interface UseKeywordResearchHandlersProps {
   location: string;
   language: string;
   forceRefresh: boolean;
-  setBlueprintAnalysisResult: (result: any) => void;
+  setBlueprintAnalysisResult: (result: null) => void;
   setIsAnalyzingKeyword: (isAnalyzing: boolean) => void;
   analyzeKeyword: (keyword: string, options: KeywordAnalysisOptions) => Promise<void>;
   clearResults: () => void;

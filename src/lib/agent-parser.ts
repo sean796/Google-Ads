@@ -58,7 +58,7 @@ export function parseAgentSuggestions(markdown: string): ParsedAgent[] {
     }
     
     // Also look for features without the [TYPE]: prefix but with brackets
-    const altFeatureMatches = trimmed.matchAll(/[-*]\s*\[([A-Z]+)\]\s*[:\-]?\s*(.+?)(?=\n[-*]|$)/g);
+    const altFeatureMatches = trimmed.matchAll(/[-*]\s*\[([A-Z]+)\]\s*[:-]?\s*(.+?)(?=\n[-*]|$)/g);
     for (const match of altFeatureMatches) {
       const featureType = match[1];
       const featureDesc = match[2]?.trim();

@@ -175,11 +175,3 @@ export function OverviewStudioRevisionsReportPanel({
     </div>
   );
 }
-
-export function printOverviewStudioRevisionsReport(): void {
-  document.body.classList.add("overview-revisions-printing");
-  window.print();
-  window.requestAnimationFrame(() => {
-    document.body.classList.remove("overview-revisions-printing");
-  });
-}

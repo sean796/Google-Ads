@@ -14,14 +14,16 @@ export function buildCallAudioConstraints(strength = 75): MediaTrackConstraints 
     };
   }
 
-  const constraints: MediaTrackConstraints = {
+  const constraints: MediaTrackConstraints & { voiceIsolation?: boolean } = {
     noiseSuppression: true,
     echoCancellation: true,
     autoGainControl: level >= 35,
   };
 
   if (typeof navigator !== "undefined" && navigator.mediaDevices?.getSupportedConstraints) {
-    const supported = navigator.mediaDevices.getSupportedConstraints();
+    const supported = navigator.mediaDevices.getSupportedConstraints() as MediaTrackSupportedConstraints & {
+      voiceIsolation?: boolean;
+    };
     if (supported.voiceIsolation && level >= 55) {
       constraints.voiceIsolation = true;
     }

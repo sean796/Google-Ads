@@ -10,7 +10,7 @@ describe("resolveWorkflowActionPayload", () => {
     const result = resolveWorkflowActionPayload(
       "local_dominator_export",
       { keyword: "auto" },
-      { name: "Blind Magic Window Coverings | Hunter Douglas Blinds" },
+      { name: "Blind Magic Window Coverings | Hunter Douglas Blinds", siteUrl: "https://example.com" },
     );
     expect(result.businessName).toBe("Blind Magic Window Coverings");
   });
@@ -19,7 +19,7 @@ describe("resolveWorkflowActionPayload", () => {
     const result = resolveWorkflowActionPayload(
       "local_dominator_export",
       { keyword: "blinds near me" },
-      { name: "Advance Blinds" },
+      { name: "Advance Blinds", siteUrl: "https://example.com" },
     );
     expect(result.businessName).toBe("Advance Blinds");
     expect(result.keyword).toBe("blinds near me");
@@ -29,7 +29,7 @@ describe("resolveWorkflowActionPayload", () => {
     const result = resolveWorkflowActionPayload(
       "local_dominator_export",
       { businessName: "", keyword: "auto" },
-      { name: "Advance Blinds" },
+      { name: "Advance Blinds", siteUrl: "https://example.com" },
     );
     expect(result.businessName).toBe("Advance Blinds");
     expect(result.keyword).toBe("auto");
@@ -39,7 +39,7 @@ describe("resolveWorkflowActionPayload", () => {
     const result = resolveWorkflowActionPayload(
       "local_dominator_export",
       { businessName: "Custom Co", keyword: "plumber" },
-      { name: "Advance Blinds" },
+      { name: "Advance Blinds", siteUrl: "https://example.com" },
     );
     expect(result.businessName).toBe("Advance Blinds");
   });
@@ -57,14 +57,14 @@ describe("resolveWorkflowActionPayload", () => {
     const result = resolveWorkflowActionPayload(
       "entity_page_creator",
       { focusKeyword: "blinds near me" },
-      { name: "Advance Blinds" },
+      { name: "Advance Blinds", siteUrl: "https://example.com" },
     );
     expect(result.businessName).toBe("Advance Blinds");
   });
 
   it("passes through other execution kinds unchanged", () => {
     const payload = { keyword: "test" };
-    const result = resolveWorkflowActionPayload("gsc_reporting", payload, { name: "Site A" });
+    const result = resolveWorkflowActionPayload("gsc_reporting", payload, { name: "Site A", siteUrl: "https://example.com" });
     expect(result).toEqual(payload);
   });
 
@@ -73,7 +73,7 @@ describe("resolveWorkflowActionPayload", () => {
     const result = resolveWorkflowActionPayload(
       "entity_page_creator",
       { locationSource: "grid", gridInputSource: "workflow", focusKeyword: "" },
-      { name: "KWB" },
+      { name: "KWB", siteUrl: "https://example.com" },
       42,
     );
     expect(result.focusKeyword).toBe("kwb near me");
@@ -85,7 +85,7 @@ describe("resolveWorkflowActionPayload", () => {
     const result = resolveWorkflowActionPayload(
       "entity_page_creator",
       { locationSource: "grid", gridInputSource: "workflow", focusKeyword: "" },
-      { name: "KWB" },
+      { name: "KWB", siteUrl: "https://example.com" },
       44,
     );
     expect(result.focusKeyword).toBe("blinds near me");
@@ -98,7 +98,7 @@ describe("resolveWorkflowActionPayload", () => {
     const result = resolveWorkflowActionPayload(
       "entity_page_creator",
       { locationSource: "wiki", focusKeyword: "" },
-      { name: "KWB" },
+      { name: "KWB", siteUrl: "https://example.com" },
       45,
     );
     expect(result.focusKeyword).toBe("kwb near me");
@@ -115,7 +115,7 @@ describe("resolveWorkflowActionPayload", () => {
     const result = resolveWorkflowActionPayload(
       "entity_page_creator",
       { locationSource: "wiki", focusKeyword: "" },
-      { name: "KWB" },
+      { name: "KWB", siteUrl: "https://example.com" },
       47,
     );
     expect(result.focusKeyword).toBe("KWB");

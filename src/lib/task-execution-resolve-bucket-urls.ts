@@ -96,7 +96,6 @@ async function fetchBucketInventory(
   onProgress?.(`Loading ${source} inventory…`);
   const fetched = await fetchOverviewInventoryForSource(site, source, {
     includeContent,
-    includeRawAcf: false,
   });
   if (fetched.errors && Object.keys(fetched.errors).length > 0 && !fetched.rows.length) {
     const first = Object.values(fetched.errors).find(Boolean);

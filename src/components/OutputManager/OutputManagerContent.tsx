@@ -1,4 +1,6 @@
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/ui";
+
+import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { useState, useEffect, useMemo } from "react";
 import { OutputManagerContentProps } from "./types";
 import { parseMarkdownSections } from "@/lib/section-parser";

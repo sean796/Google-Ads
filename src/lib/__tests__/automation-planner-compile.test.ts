@@ -43,7 +43,7 @@ describe("automation-planner-compile", () => {
           maxUrls: 5,
         },
       },
-      { keyword: "posts-ctr-rescue", name: "Posts CTR Rescue" },
+      { keyword: "posts-ctr-rescue", name: "Posts CTR Rescue", description: "", category: "reactive", prerequisites: [] },
     );
     expect(plan.trigger.kind).toBe("gsc");
     const task = planToTaskDef(plan);
@@ -130,7 +130,8 @@ describe("automation-planner recipe round-trip", () => {
   const recipes = loadRecipes();
 
   it(`loads ${recipes.length} recipe files`, () => {
-    expect(recipes.length).toBe(24);
+    const onDisk = readdirSync(recipesDir).filter((f) => f.endsWith(".json")).length;
+    expect(recipes.length).toBe(onDisk);
   });
 
   for (const recipe of recipes) {
@@ -148,7 +149,8 @@ describe("automation-planner recipe round-trip", () => {
       }
       if (original.scheduleMode === "calendar") {
         expect(compiled.recurrenceRule).toBe(original.recurrenceRule);
-        expect(compiled.dueTime).toBe(original.dueTime);
+        // Production defaults a missing calendar time to "09:00" (automation-planner-compile.ts).
+        expect(compiled.dueTime).toBe(original.dueTime ?? "09:00");
       }
     });
   }

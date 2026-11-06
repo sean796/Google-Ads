@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   LOCAL_DOMINATOR_GRID_KEYWORD_AUTO,
+  LOCAL_DOMINATOR_GRID_KEYWORD_PROPERTY,
   isLocalDominatorAutoGridKeyword,
   normalizeLocalDominatorGridKeywordStored,
   resolveLocalDominatorExportKeyword,
@@ -21,9 +22,10 @@ describe("local-dominator-export-keyword", () => {
     expect(normalizeLocalDominatorGridKeywordStored("custom shades")).toBe("custom shades");
   });
 
-  it("resolves auto token to empty export keyword", () => {
-    expect(resolveLocalDominatorExportKeyword("auto")).toBe("");
-    expect(resolveLocalDominatorExportKeyword("")).toBe("");
+  it("preserves auto sentinel as the export keyword", () => {
+    // Sentinels stay as sentinels until site resolve (production doc comment).
+    expect(resolveLocalDominatorExportKeyword("auto")).toBe(LOCAL_DOMINATOR_GRID_KEYWORD_AUTO);
+    expect(resolveLocalDominatorExportKeyword("")).toBe(LOCAL_DOMINATOR_GRID_KEYWORD_AUTO);
     expect(resolveLocalDominatorExportKeyword("blinds near me")).toBe("blinds near me");
   });
 
@@ -34,7 +36,7 @@ describe("local-dominator-export-keyword", () => {
         "blinds near me",
         "KWB",
       ),
-    ).toBe(LOCAL_DOMINATOR_GRID_KEYWORD_AUTO);
+    ).toBe(LOCAL_DOMINATOR_GRID_KEYWORD_PROPERTY);
     expect(
       resolveWorkflowLocalDominatorGridKeyword(
         { keyword: "blinds near me", businessName: "Advance Blinds & Drapery" },

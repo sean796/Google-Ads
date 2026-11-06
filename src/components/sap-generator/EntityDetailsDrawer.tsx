@@ -24,7 +24,17 @@ export function EntityDetailsDrawer({
     <BulkGeneratorDetailsDrawer
       variant="prompt"
       workspaceBusy={workspaceBusy}
-      headerProgress={headerProgress}
+      headerProgress={
+        headerProgress
+          ? {
+              phase: headerProgress.phase,
+              completed: headerProgress.completed,
+              total: headerProgress.total,
+              progressPct: headerProgress.progressPct,
+              harnessActive: harnessSections.length > 0,
+            }
+          : null
+      }
       isProcessing={isProcessing}
       status={status || headerProgress?.phase?.trim() || ""}
       harnessSections={harnessSections}

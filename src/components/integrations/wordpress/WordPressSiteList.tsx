@@ -1,6 +1,7 @@
 ﻿import React, { useState } from "react";
 import { FileText, MapPin, Sparkles } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox, Tooltip, TooltipContent, TooltipTrigger } from "@/ui";
+
 import { cn } from "@/lib/utils";
 import { CompactWordPressTile } from "./CompactWordPressTile";
 import { SiteDisplayNameDialog } from "@/components/manager/SiteDisplayNameDialog";
@@ -16,8 +17,13 @@ import {
   propertiesRowOuterClass,
 } from "./wordpress-properties-surfaces";
 import { isEntitySitemapDisabled } from "@/lib/entity-endpoint-extractor";
+import {
+  optimizationStatsForSite,
+  quarterStatsForSite,
+  siteHasWpCredentials,
+} from "./wordpress-site-list-stats";
 import { editorialQuotasForSite } from "@/lib/editorial-content-package";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
 import { getPropertyListRowBlackMetricFrameClass } from "./cyberpunk-theme";
 function nextEditorialPeriodTooltipText(isoExclusiveEnd: string): string {
   const boundary = new Date(isoExclusiveEnd);
@@ -30,63 +36,6 @@ function nextEditorialPeriodTooltipText(isoExclusiveEnd: string): string {
   return `Next editorial period starts ${d}. Plan a full republish for the new window.`;
 }
 
-function siteHasWpCredentials(site: WordPressSite): boolean {
-  return Boolean(site.siteUrl?.trim() && site.username?.trim() && site.appPassword?.trim());
-}
-
-/** Before the hook fills state, keep the tile skeleton in a loading state. */
-function optimizationStatsForSite(
-  site: WordPressSite,
-  optimizationStatsBySite: Record<string, OptimizationActivityTileStats> | undefined,
-): OptimizationActivityTileStats | undefined {
-  if (!OPTIMIZATION_TILE_COUNTS_ENABLED) return undefined;
-  if (!siteHasWpCredentials(site)) return undefined;
-  const cap = optimizationPeriodCapForPackage(site.optimizationPackage);
-  if (!cap) return undefined;
-  const found = optimizationStatsBySite?.[site.id];
-  if (found) return found;
-  const range = getEditorialCountsRange(site.editorialCountsPeriodStartYmd, new Date());
-  return {
-    quarterLabel: range.quarterLabel,
-    loading: true,
-    totalOptimized: null,
-    cap,
-    remaining: null,
-    countsPeriodAfterIso: range.after,
-    countsPeriodEndExclusiveIso: range.before,
-    countsPeriodMode: range.mode,
-  };
-}
-
-function quarterStatsForSite(
-  site: WordPressSite,
-  quarterStatsBySite: Record<string, QuarterEditorialTileStats> | undefined,
-  selectedMonthKey: string,
-): QuarterEditorialTileStats | undefined {
-  if (!siteHasWpCredentials(site)) return undefined;
-  const found = quarterStatsBySite?.[site.id];
-  if (found) return found;
-  const range = resolveEditorialCountsRangeForDashboard(
-    site.editorialCountsPeriodStartYmd,
-    selectedMonthKey,
-    new Date(),
-  );
-  const sitemapDisabled = isEntitySitemapDisabled(site);
-  const entityUrlActive = sitemapDisabled ? "" : site.entitySitemapUrl?.trim() ?? "";
-  return {
-    quarterLabel: range.quarterLabel,
-    loading: true,
-    postsLive: null,
-    postsScheduled: null,
-    entityLive: null,
-    entityScheduled: null,
-    entityConfigured: Boolean(site.manualEndpoint?.trim() || entityUrlActive),
-    entityCountsAvailable: false,
-    countsPeriodAfterIso: range.after,
-    countsPeriodEndExclusiveIso: range.before,
-    countsPeriodMode: range.mode,
-  };
-}
 
 /** Metric cells in a row; flush black bar, no gaps between count frames. */
 const PROPERTY_METRICS_CLUSTER_CLASS = "inline-flex shrink-0 items-stretch gap-0";
@@ -593,4 +542,4 @@ export const WordPressSiteList: React.FC<WordPressSiteListProps> = ({
   );
 };
 
-export { OptimizationActivityStrip, QuarterEditorialCountsStrip, optimizationStatsForSite, quarterStatsForSite };
+export { OptimizationActivityStrip, QuarterEditorialCountsStrip };

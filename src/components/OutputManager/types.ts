@@ -1,4 +1,6 @@
+import type { Dispatch, SetStateAction } from "react";
 import { AgentConfig } from "@/types/agent-config";
+import type { GenerationResult } from "@/lib/api";
 import type { KeywordData } from "@/lib/keyword-types";
 
 export interface OutputManagerProps {
@@ -34,7 +36,7 @@ export interface OutputManagerContentProps {
   setModificationChecklist?: (checklist: string[]) => void;
   setIsGeneratingChecklist?: (isGenerating: boolean) => void;
   setIsUpdatingPlan?: (isUpdating: boolean) => void;
-  setGenerationResult?: (result: any) => void;
+  setGenerationResult?: Dispatch<SetStateAction<GenerationResult>>;
   apiKey?: string;
   selectedModel?: string;
   temperature?: number;
@@ -82,7 +84,7 @@ export interface FeaturedImageGeneratorProps {
   temperature?: number;
   maxTokens?: number;
   topP?: number;
-  setGenerationResult?: (result: any) => void;
+  setGenerationResult?: Dispatch<SetStateAction<GenerationResult>>;
   /** When true, skip the in-body title block (unified Generator chrome carries context). */
   hideHeader?: boolean;
 }

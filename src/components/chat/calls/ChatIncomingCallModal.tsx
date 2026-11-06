@@ -1,13 +1,8 @@
 import React from "react";
 import { Phone, PhoneOff } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+
 import type { ChatCall } from "@/lib/chat-call-types";
-import { Button } from "@/ui";
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "@/ui";
 
 export type ChatIncomingCallModalProps = {
   call: ChatCall | null;

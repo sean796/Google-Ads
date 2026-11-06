@@ -38,18 +38,18 @@ function extractUrls(content: string): {
   
   const urlPatterns = [
     // Markdown links: [text](url)
-    /\[([^\]]*)\]\(([^\)]+)\)/g,
+    /\[([^\]]*)\]\(([^)]+)\)/g,
     // Markdown images: ![alt](url)
-    /!\[([^\]]*)\]\(([^\)]+)\)/g,
+    /!\[([^\]]*)\]\(([^)]+)\)/g,
     // Plain HTTP/HTTPS URLs
-    /https?:\/\/[^\s\)\]]+/g,
+    /https?:\/\/[^\s)\]]+/g,
   ];
   
   let contentWithoutUrls = content;
   let placeholderIndex = 0;
   
   // First, handle markdown links and images (more specific patterns)
-  contentWithoutUrls = contentWithoutUrls.replace(/\[([^\]]*)\]\(([^\)]+)\)/g, (match, text, url) => {
+  contentWithoutUrls = contentWithoutUrls.replace(/\[([^\]]*)\]\(([^)]+)\)/g, (match, text, url) => {
     if (!urls.includes(url)) {
       urls.push(url);
       const placeholder = `__URL_PLACEHOLDER_${placeholderIndex}__`;
@@ -60,7 +60,7 @@ function extractUrls(content: string): {
     return match;
   });
   
-  contentWithoutUrls = contentWithoutUrls.replace(/!\[([^\]]*)\]\(([^\)]+)\)/g, (match, alt, url) => {
+  contentWithoutUrls = contentWithoutUrls.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => {
     if (!urls.includes(url)) {
       urls.push(url);
       const placeholder = `__URL_PLACEHOLDER_${placeholderIndex}__`;
@@ -72,7 +72,7 @@ function extractUrls(content: string): {
   });
   
   // Then handle plain URLs
-  contentWithoutUrls = contentWithoutUrls.replace(/https?:\/\/[^\s\)\]]+/g, (match) => {
+  contentWithoutUrls = contentWithoutUrls.replace(/https?:\/\/[^\s)\]]+/g, (match) => {
     if (!urls.includes(match)) {
       urls.push(match);
       const placeholder = `__URL_PLACEHOLDER_${placeholderIndex}__`;
@@ -108,7 +108,7 @@ function restoreUrls(content: string, placeholders: Map<string, string>): string
  */
 function countWords(text: string): number {
   // Remove URLs first, then count words
-  const textWithoutUrls = text.replace(/https?:\/\/[^\s]+/g, '').replace(/\[([^\]]*)\]\(([^\)]+)\)/g, '');
+  const textWithoutUrls = text.replace(/https?:\/\/[^\s]+/g, '').replace(/\[([^\]]*)\]\(([^)]+)\)/g, '');
   return textWithoutUrls.trim().split(/\s+/).filter(word => word.length > 0).length;
 }
 
@@ -132,7 +132,7 @@ function minimizePunctuation(text: string): string {
   });
   
   // Preserve markdown links
-  result = result.replace(/\[([^\]]*)\]\(([^\)]+)\)/g, (match) => {
+  result = result.replace(/\[([^\]]*)\]\(([^)]+)\)/g, (match) => {
     const marker = `__PRESERVED_${markerIndex}__`;
     preserved.push({ original: match, marker });
     markerIndex++;
@@ -140,7 +140,7 @@ function minimizePunctuation(text: string): string {
   });
   
   // Preserve markdown images
-  result = result.replace(/!\[([^\]]*)\]\(([^\)]+)\)/g, (match) => {
+  result = result.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match) => {
     const marker = `__PRESERVED_${markerIndex}__`;
     preserved.push({ original: match, marker });
     markerIndex++;
@@ -148,7 +148,7 @@ function minimizePunctuation(text: string): string {
   });
   
   // Preserve plain URLs
-  result = result.replace(/https?:\/\/[^\s\)\]]+/g, (match) => {
+  result = result.replace(/https?:\/\/[^\s)\]]+/g, (match) => {
     const marker = `__PRESERVED_${markerIndex}__`;
     preserved.push({ original: match, marker });
     markerIndex++;

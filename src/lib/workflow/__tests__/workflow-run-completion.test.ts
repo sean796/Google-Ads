@@ -13,12 +13,15 @@ function output(
   fileRefs: WorkflowStepOutput["fileRefs"] = [],
 ): WorkflowStepOutput {
   return {
+    id: 1,
+    runId: 1,
     nodeId,
     variableKey: `step_${nodeId}`,
     scope: "run",
     label: nodeId,
     textPreview,
     fileRefs,
+    createdAt: "",
   };
 }
 
@@ -46,8 +49,10 @@ describe("hasIncompleteWorkflowSteps", () => {
       id: 1,
       teamId: 1,
       name: "Pipeline",
+      status: "draft",
       nodes: [trigger],
       edges: [],
+      ragVariables: [],
       createdAt: "",
       updatedAt: "",
     };
@@ -103,8 +108,10 @@ describe("hasIncompleteWorkflowSteps", () => {
       id: 3,
       teamId: 1,
       name: "Gap to entity",
+      status: "draft",
       nodes: [trigger],
       edges: [],
+      ragVariables: [],
       createdAt: "",
       updatedAt: "",
     };
@@ -148,8 +155,10 @@ describe("hasIncompleteWorkflowSteps", () => {
       id: 2,
       teamId: 1,
       name: "Gap then posts",
+      status: "draft",
       nodes: [trigger],
       edges: [],
+      ragVariables: [],
       createdAt: "",
       updatedAt: "",
     };
@@ -188,8 +197,10 @@ describe("hasIncompleteWorkflowSteps", () => {
       id: 3,
       teamId: 1,
       name: "Multi-client gap",
+      status: "draft",
       nodes: [trigger],
       edges: [],
+      ragVariables: [],
       createdAt: "",
       updatedAt: "",
     };

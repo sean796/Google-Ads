@@ -6,4 +6,4 @@ export {
   contentOptimizerBulkPageRanges as overviewBulkPageRanges,
   contentOptimizerBulkUsesPagination as overviewBulkUsesPagination,
   type ContentOptimizerBulkPageRange as OverviewBulkPageRange,
-} from "@/lib/content-optimizer/content-optimizer-bulk-page-size";
+} from "@/lib/content-optimization/content-optimizer-bulk-page-size";

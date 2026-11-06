@@ -10,12 +10,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useBoxReady } from "@/components/ui/chart-box-ready";
+
 import type { OrganicChartPoint, OrganicDashboardPeriodLabels, OrganicGscQueryRow, OrganicGscSummary } from "@/lib/organic-dashboard/organic-dashboard-view-model";
 import { formatCanadianCompactNumber } from "@/lib/gsc-reporting/gsc-number-format";
 import { ORGANIC_DASHBOARD_ICON_BADGE_CLASS, ORGANIC_DASHBOARD_SECTION_PANEL_CLASS, ORGANIC_DASHBOARD_SECTION_TITLE_CLASS, ORGANIC_GSC_CHART_CLASS, ORGANIC_GSC_CLICKS_COLOR, ORGANIC_GSC_IMPRESSIONS_COLOR } from "@/components/organic-dashboard/organic-dashboard-styles";
 import { cn } from "@/lib/utils";
-import { Button, SwatchButton } from "@/ui";
+import { Button, SwatchButton, useBoxReady } from "@/ui";
 
 type GscChartSeries = "clicks" | "impressions" | "ctr" | "position";
 

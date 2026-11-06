@@ -43,7 +43,7 @@ function normalizeMemberPostIds(
   for (const raw of ids) {
     const id = raw.trim();
     if (!id) continue;
-    let resolved = catalogSet.has(id) ? id : remapBareNumericPostId(id, catalogSet);
+    const resolved = catalogSet.has(id) ? id : remapBareNumericPostId(id, catalogSet);
     if (!resolved || seen.has(resolved)) continue;
     seen.add(resolved);
     out.push(resolved);

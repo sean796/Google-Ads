@@ -212,6 +212,9 @@ export function useOverviewTabKeywordsHarness({
       updateRow,
       setBulkActionProgress,
       opt,
+      getInventoryMatchForUrl,
+      sitemapSource,
+      uploadAfterRowWrite,
     ],
   );
 

@@ -365,7 +365,7 @@ export async function runTopicResearchFanout(input: {
 
   const addedVerifiedFacts =
     Boolean(fanout.verifiedFacts?.length) &&
-    !Boolean(input.brief.queryFanout?.verifiedFacts?.length);
+    !input.brief.queryFanout?.verifiedFacts?.length;
   const needsMerge =
     fanout !== input.brief.queryFanout || !input.brief.firstPartyClaims || addedVerifiedFacts;
   if (!needsMerge) {

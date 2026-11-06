@@ -7,6 +7,7 @@ function gapToPostsWorkflow(): WorkflowDefinition {
     id: 1,
     teamId: 1,
     name: "Gap to posts",
+    status: "draft",
     nodes: [
       {
         id: "client_1",

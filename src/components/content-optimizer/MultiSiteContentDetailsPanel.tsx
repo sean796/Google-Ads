@@ -29,18 +29,6 @@ export type MultiSiteContentDetailsPanelProps = {
   optimizationFileManagers: Record<string, OptimizationFileManager>;
 };
 
-export function multiSiteContentDetailsCanOpen(
-  batchBulkState: BulkOptimizationState | null | undefined,
-  warmInventory?: {
-    sitemapInventoryLinks: PromptBulkSitemapInventoryLink[];
-    gscHostedLink: BulkGscKeywordsHostedLink | null;
-    sitemapInventoryLoading: boolean;
-  },
-): boolean {
-  if (Boolean(batchBulkState?.urls?.length)) return true;
-  return Boolean(warmInventory);
-}
-
 export function MultiSiteContentDetailsPanel({
   batchBulkState,
   bulkRunBatchKey,

@@ -197,7 +197,7 @@ export function planToTaskDef(plan: AutomationPlan, taskKeyword?: string): TaskT
   if (plan.trigger.kind === "poll" && plan.trigger.watchSchedule) {
     Object.assign(payload, plan.trigger.watchSchedule);
   }
-  if (Boolean(String(payload.automationEmailTo ?? "").trim())) {
+  if (String(payload.automationEmailTo ?? "").trim()) {
     payload.sendAutomationEmail = true;
     payload.saveLocalArchive = true;
   }

@@ -170,6 +170,17 @@ export type MetaAdRow = {
   errorMessage?: string;
 };
 
+/** Fields read by meta ad deliverable builders (shared by MetaAdRow and SocialCreatorRow). */
+export type MetaAdDeliverableRow = {
+  adName?: string;
+  focusKeyword?: string;
+  config?: { placement?: MetaAdPlacement };
+  copy?: MetaAdCopy;
+  creative?: MetaAdCreative;
+  researchSections?: MetaAdResearchSection[];
+  imagePromptDescription?: string;
+};
+
 export const META_AD_COUNT_MIN = 1;
 export const META_AD_COUNT_MAX = 20;
 export const META_DEFAULT_AD_COUNT = 1;
@@ -206,7 +217,7 @@ export function resolveMetaRowContextUrl(row: Pick<MetaAdRow, "contextSource" | 
   return row.contextUrl?.trim() ?? "";
 }
 
-export function resolveMetaRowFocusKeyword(row: MetaAdRow): string {
+export function resolveMetaRowFocusKeyword(row: MetaAdDeliverableRow): string {
   if (row.focusKeyword !== undefined) return row.focusKeyword;
   return row.copy?.headline?.trim() ?? row.adName?.trim() ?? "";
 }
@@ -216,7 +227,7 @@ export function resolveMetaRowLandingPageUrl(row: MetaAdRow): string {
   return row.copy?.finalUrl?.trim() ?? "";
 }
 
-export function resolveMetaRowAdName(row: MetaAdRow): string {
+export function resolveMetaRowAdName(row: MetaAdDeliverableRow): string {
   if (row.adName !== undefined) return row.adName;
   const keyword = resolveMetaRowFocusKeyword(row);
   return keyword.trim() || row.copy?.headline?.trim() || "";

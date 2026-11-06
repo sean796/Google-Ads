@@ -195,7 +195,6 @@ export async function ensureBulkOptimizerInventoryForRun(
     onProgress?.(`Loading ${preferredSource} inventory…`);
     const fetched = await fetchOverviewInventoryForSource(site, preferredSource, {
       includeContent: false,
-      includeRawAcf: false,
     });
     if (fetched.error?.trim() && !fetched.rows.length) {
       throw new Error(fetched.error.trim());
@@ -282,7 +281,6 @@ export async function ensurePostsPagesInventoryForLinking(
   const bulk = await getSiteInventoryBulk(site.siteUrl, site.username, site.appPassword, {
     collections: collectionsToFetch.length > 0 ? collectionsToFetch : ["posts", "pages"],
     includeContent: false,
-    includeRawAcf: false,
   });
 
   if (bulk.error?.trim() && !(bulk.rows?.length ?? 0)) {
@@ -460,7 +458,6 @@ export async function ensurePagesInventoryForLinking(
 
   const fetched = await fetchOverviewInventoryForSource(site, "pages", {
     includeContent: false,
-    includeRawAcf: false,
   });
 
   if (fetched.error?.trim() && !fetched.rows.length) {

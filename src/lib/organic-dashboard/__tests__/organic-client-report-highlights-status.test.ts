@@ -24,6 +24,8 @@ describe("clientReportDeckNeedsAgentHighlights", () => {
               rank: 1,
               label: "Opportunity",
               why: "Because.",
+              metrics: "",
+              action: "",
               comparisonRows: [
                 { metric: "Clicks", comparePeriodValue: "1", primaryPeriodValue: "2" },
               ],
@@ -32,6 +34,8 @@ describe("clientReportDeckNeedsAgentHighlights", () => {
               rank: 2,
               label: "Opportunity 2",
               why: "Because.",
+              metrics: "",
+              action: "",
               comparisonRows: [
                 { metric: "Clicks", comparePeriodValue: "1", primaryPeriodValue: "2" },
               ],
@@ -40,6 +44,8 @@ describe("clientReportDeckNeedsAgentHighlights", () => {
               rank: 3,
               label: "Opportunity 3",
               why: "Because.",
+              metrics: "",
+              action: "",
               comparisonRows: [
                 { metric: "Clicks", comparePeriodValue: "1", primaryPeriodValue: "2" },
               ],
@@ -66,6 +72,8 @@ describe("clientReportDeckNeedsAgentHighlights", () => {
               rank: 1,
               label: "Opportunity",
               why: "Because.",
+              metrics: "",
+              action: "",
               comparisonRows: [
                 { metric: "Clicks", comparePeriodValue: "1", primaryPeriodValue: "2" },
               ],
@@ -74,6 +82,8 @@ describe("clientReportDeckNeedsAgentHighlights", () => {
               rank: 2,
               label: "Opportunity 2",
               why: "Because.",
+              metrics: "",
+              action: "",
               comparisonRows: [
                 { metric: "Clicks", comparePeriodValue: "1", primaryPeriodValue: "2" },
               ],
@@ -82,6 +92,8 @@ describe("clientReportDeckNeedsAgentHighlights", () => {
               rank: 3,
               label: "Opportunity 3",
               why: "Because.",
+              metrics: "",
+              action: "",
               comparisonRows: [
                 { metric: "Clicks", comparePeriodValue: "1", primaryPeriodValue: "2" },
               ],

@@ -4,11 +4,11 @@
  */
 
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
+
 import { MapPin, Star } from 'lucide-react';
 import type { Location } from '@/components/integrations/types';
 import { getCyberpunkTextClasses } from './cyberpunk-theme';
-import { SelectField } from "@/ui";
+import { SelectField, Badge } from "@/ui";
 
 interface LocationSelectorProps {
   site: {

@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
+
 import { Upload, X, FileText } from "lucide-react";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_SOME_FILES_WERE_REJECTED_ONLY_TEXT_PDF_J } from "@/lib/notify-messages";
-import { Button, FileInput } from "@/ui";
+import { Button, FileInput, Card } from "@/ui";
 
 interface FileManagerProps {
   files: File[];

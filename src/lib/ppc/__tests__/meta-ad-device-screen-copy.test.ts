@@ -36,7 +36,7 @@ describe("meta-ad-device-screen-copy", () => {
 
   it("normalizes ui style labels from model", () => {
     expect(normalizeMetaDeviceScreenUiStyle("Elementor editor")).toBe("elementor");
-    expect(normalizeMetaDeviceScreenUiStyle("NEO Pulse action list")).toBe("neo-pulse");
+    expect(normalizeMetaDeviceScreenUiStyle("Neo-Pulse action list")).toBe("neo-pulse");
   });
 
   it("formats exact strings for image prompt", () => {

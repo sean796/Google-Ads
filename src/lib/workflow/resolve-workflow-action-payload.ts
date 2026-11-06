@@ -17,7 +17,7 @@ type SiteNameSource = Pick<WordPressSite, "name" | "siteUrl" | "productionSiteUr
 
 function siteBusinessName(site: SiteNameSource): string {
   if (!site) return "";
-  return stripTitlePipeSuffix(wordpressSiteDisplayName(site));
+  return stripTitlePipeSuffix(wordpressSiteDisplayName(site as WordPressSite));
 }
 
 const WORKFLOW_CLIENT_BUSINESS_KINDS = new Set<TaskExecutionKind>([

@@ -3,7 +3,7 @@ import { BulkFileManager } from "@/lib/bulk-file-manager";
 import { buildBulkSelectedKeywordArtifactPayload } from "@/lib/bulk-auto-generate";
 import {
   resolvePipelineSectionDownloadable,
-} from "@/components/shared/bulk-details-tile-sections";
+} from "@/components/shared/bulk-details-tile-sections-helpers";
 
 describe("bulk pipeline artifact filenames", () => {
   const rowData = {

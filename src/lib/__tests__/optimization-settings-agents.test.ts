@@ -42,6 +42,9 @@ import {
 import { runOverviewAiseoFeaturedImageRow } from "@/lib/overview/overview-aiseo-featured-image-run";
 import { runBlogHeadersPlanStream } from "@/lib/overview/overview-blog-headers-plan-stream";
 import { runBlogLinksAddIntent } from "@/lib/overview/overview-blog-links-link-intent";
+import type { AiAllMetaCatalogRow } from "@/lib/overview/overview-ai-all-meta-batch-catalog";
+import type { AiAllMetaRowPatch } from "@/lib/overview/overview-ai-all-meta-batch-parse";
+import type { OverviewKeywordCatalogRow } from "@/lib/overview/overview-keyword-batch-agent";
 
 const streamChatCompletionMock = vi.fn();
 const callOpenRouterChatCompletionMock = vi.fn();
@@ -143,6 +146,7 @@ describe("optimization settings and global AI & Models switching across all AISE
       adsModel: "ads/model",
       imageModel: "image/model",
       videoModel: "video/model",
+      decisionModel: "liquid/d1.1",
       customModels: [],
       temperature: 1,
       maxTokens: 4000,
@@ -193,6 +197,7 @@ describe("optimization settings and global AI & Models switching across all AISE
       adsModel: "deepseek/deepseek-v4.1-flash",
       imageModel: "google/gemini-3.1-flash-image",
       videoModel: "heygen/video-1",
+      decisionModel: "liquid/d1.1",
       customModels: [],
       temperature: 1,
       maxTokens: 4000,
@@ -235,7 +240,14 @@ describe("optimization settings and global AI & Models switching across all AISE
       },
     );
 
-    let api!: ReturnType<typeof useOverviewAiOptimize>;
+    let api!: ReturnType<typeof useOverviewAiOptimize> & {
+      runAiAllMetaBatchForCatalog: (
+        catalog: AiAllMetaCatalogRow[],
+      ) => Promise<Map<string, AiAllMetaRowPatch>>;
+      deriveFocusKeywordsFromPageContextBatch: (
+        catalog: OverviewKeywordCatalogRow[],
+      ) => Promise<Map<string, string>>;
+    };
     function Harness() {
       api = useOverviewAiOptimize({
         apiKey: "sk-or-test-key",
@@ -311,11 +323,16 @@ describe("optimization settings and global AI & Models switching across all AISE
     });
     await api.runAiAllMetaBatchForCatalog([
       {
+        index: 0,
         url: "https://example.com/blinds",
         focusKeyword: "custom window blinds",
         includeTitle: true,
         existingTitle: "Old Title",
         existingMeta: "Old Meta",
+        seoResearchBrief: "",
+        faqMode: "none",
+        faqPairCount: 0,
+        seedCount: 0,
       },
     ]);
     expect(callOpenRouterChatCompletionMock).toHaveBeenLastCalledWith(
@@ -445,8 +462,15 @@ describe("optimization settings and global AI & Models switching across all AISE
         title: "Window Blinds Guide",
         focusKeyword: "window blinds",
         html: "<p>Compare window blinds and roller shades for your windows.</p>",
-        existingInternalLinks: [],
+        seoResearchBrief: "",
+        existingLinks: [],
+        wordCount: 9,
+        sectionHeadings: 0,
+        linksToAdd: 1,
+        paragraphCount: 1,
         linkPool: {
+          postCount: 1,
+          pageCount: 0,
           postInventory: [
             {
               url: "https://example.com/roller-shades",
@@ -516,7 +540,7 @@ describe("optimization settings and global AI & Models switching across all AISE
         siteUrl: "https://example.com",
         username: "admin",
         appPassword: "pw",
-        connectedAt: new Date().toISOString(),
+        connectedAt: Date.now(),
       },
     });
     expect(streamChatCompletionMock).toHaveBeenLastCalledWith(
@@ -537,7 +561,7 @@ describe("optimization settings and global AI & Models switching across all AISE
         siteUrl: "https://example.com",
         username: "admin",
         appPassword: "pw",
-        connectedAt: new Date().toISOString(),
+        connectedAt: Date.now(),
       },
     });
     expect(generateImageMock).toHaveBeenLastCalledWith(
@@ -600,7 +624,7 @@ describe("optimization settings and global AI & Models switching across all AISE
         siteUrl: "https://example.com",
         username: "admin",
         appPassword: "pw",
-        connectedAt: new Date().toISOString(),
+        connectedAt: Date.now(),
       },
     });
     expect(streamChatCompletionMock).toHaveBeenLastCalledWith(

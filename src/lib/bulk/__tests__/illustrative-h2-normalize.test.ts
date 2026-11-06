@@ -113,7 +113,8 @@ describe("unified formatting prompt", () => {
     expect(AUTHENTICITY_CHECKLIST_RULE).toContain("UNIFIED COPY FORMATTING");
     expect(AUTHENTICITY_CHECKLIST_RULE).toContain("UNIQUE DYNAMIC BODY H2s");
     expect(AUTHENTICITY_CHECKLIST_RULE).not.toContain("keyword jobs");
-    expect(UNIFIED_COPY_FORMATTING_RULE).toContain("Title Case everywhere");
+    expect(UNIFIED_COPY_FORMATTING_RULE).toContain("Title Case in headings and titles");
+    expect(UNIFIED_COPY_FORMATTING_RULE).toContain("Title Case does **not** apply to link anchor phrases");
     expect(HARNESS_HEADING_TITLE_CASE_RULE).toContain("Title Case");
 
     const agent: AgentConfig = {

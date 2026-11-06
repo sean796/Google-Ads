@@ -3,7 +3,7 @@ import { Download, ExternalLink, FileText, Play, RefreshCw, Sparkles, Upload } f
 import { useAgentRunsContext } from "@/contexts/use-agent-runs-context";
 import {
   type MetaBulkMicroSnapshot,
-} from "@/components/overview/OverviewBulkMicroProgress";
+} from "@/components/overview/overview-bulk-micro-progress-helpers";
 import type { OverviewRow, RowStatus } from "@/components/overview/overview-meta-row-types";
 import {
   CONTENT_OPTIMIZER_ACTIVE_ROW_HIGHLIGHT_CLASS,
@@ -14,7 +14,7 @@ import { OverviewDocSectionBlocks } from "@/components/overview/studio/OverviewD
 import {
   resolveSerpBriefDownloadable,
   type BulkDetailsDownloadable,
-} from "@/components/shared/bulk-details-tile-sections";
+} from "@/components/shared/bulk-details-tile-sections-helpers";
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import type { OverviewTabController } from "@/hooks/overview/use-overview-tab-controller";
 import { buildWordBlacklistDownloadText } from "@/lib/content-word-blocklist";
@@ -293,6 +293,7 @@ export function OverviewVisualDocCanvas({
     );
   }, [row, rowGeneratedFiles]);
 
+  const currentStepProgressStep = activeBatchState?.currentStepProgress?.step;
   // Build stable, non-jumping drawer rows using actual page headers (never "Post content")
   const drawerStepRows = useMemo((): StudioDrawerStepRow[] => {
     if (!studioRow) return [];
@@ -501,7 +502,7 @@ export function OverviewVisualDocCanvas({
         batchActiveStepLabel === "FAQs" ||
         passageStepTitle === "FAQs" ||
         batchActiveStepLabel === "AI FAQs" ||
-        activeBatchState?.currentStepProgress?.step === "AI FAQs" ||
+        currentStepProgressStep === "AI FAQs" ||
         (busy && runKind === "aiFaq"),
       isDone: faqEntries.length > 0,
       downloadFile:
@@ -541,6 +542,7 @@ export function OverviewVisualDocCanvas({
     isElementorRow,
     activeBatchState?.runKind,
     activeBatchState?.currentStep,
+    currentStepProgressStep,
     busy,
     serpBriefDownload,
     bodyHtml,
@@ -660,7 +662,7 @@ export function OverviewVisualDocCanvas({
         ? passageStatus.label.split(":").slice(1).join(":").trim()
         : null;
 
-  // Sync the active row's SERP & Meta inspector into the existing right-hand Mastra sidebar
+  // Sync the active row's SERP & Meta inspector into the existing right-hand Pulse Engine sidebar
   useEffect(() => {
     if (!row || rowIndex < 0) {
       setStudioDocMetaInspectorBridge(null);

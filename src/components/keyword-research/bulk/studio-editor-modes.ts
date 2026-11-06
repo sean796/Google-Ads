@@ -30,13 +30,6 @@ export function readStoredStudioEditorMode(
   if (activeSection === "bulk-press-release") return "press-release";
   if (activeSection === "bulk-csv" || activeSection === "bulk-blog-import") return "csv";
   try {
-    if (typeof window !== "undefined" && window.location?.hash) {
-      const hash = window.location.hash.replace(/^#/, "").trim();
-      if (hash === "vertical-benchmarks" || hash === "generator/vertical-benchmarks") {
-        sessionStorage.setItem(STUDIO_EDITOR_MODE_STORAGE_KEY, "vertical-benchmarks");
-        return "vertical-benchmarks";
-      }
-    }
     const raw = sessionStorage.getItem(STUDIO_EDITOR_MODE_STORAGE_KEY);
     if (raw === "blog-import") return "csv";
     if (raw && isStudioEditorModeId(raw)) {

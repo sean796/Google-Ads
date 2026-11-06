@@ -456,7 +456,7 @@ export function overviewBindingForRow(
 }
 
 type InventoryBindingHit = {
-  row: { id: number; date_gmt?: string | null };
+  row: { id?: number | null; date_gmt?: string | null };
   subtype: string;
 };
 

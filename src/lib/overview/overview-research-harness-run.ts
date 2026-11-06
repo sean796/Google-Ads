@@ -1,4 +1,5 @@
 import type { BulkHarnessSectionUi } from "@/hooks/use-bulk-auto-generate";
+import { harnessStepProgress, mergeOverviewHarnessProgress, mergeOverviewHarnessProgressSiteAndBatch } from "@/lib/overview/overview-harness-progress";
 import type { Dispatch, SetStateAction } from "react";
 import type { BulkHarnessSectionPayload } from "@/lib/bulk-auto-generate";
 import { reduceHarnessSectionList, type HarnessSectionListItem } from "@/lib/bulk/harness-sections-reducer";
@@ -15,11 +16,8 @@ import {
   researchStepArtifactFile,
 } from "@/lib/overview/overview-research-harness-sections";
 import type { ResearchArtifactFile } from "@/lib/overview/overview-research-row";
-import {
-  mergeHarnessProgressSiteAndBatch,
-  setOptimizingState,
-} from "@/hooks/content-optimization/optimization-helpers-a";
-import { mergeOptimizationProgress } from "@/hooks/content-optimization/optimization-helpers";
+import { setOptimizingState } from "@/hooks/content-optimization/optimization-helpers-a";
+
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import { initOverviewBulkHarnessPagination } from "@/lib/overview/overview-bulk-page-state";
 import { normalizePageUrlKey } from "@/lib/sitemap-optimizer/normalize-page-url";
@@ -100,7 +98,7 @@ export function initOverviewResearchHarnessBatchState(
     [site.id]: new OptimizationFileManager(),
   }));
   setOptimizationProgress((prev) => {
-    const clearedSite = mergeOptimizationProgress(prev as Record<string, unknown>, site.id, {
+    const clearedSite = mergeOverviewHarnessProgress(prev as Record<string, unknown>, site.id, {
       subProgress: 0.02,
       step: "Researching…",
       progress: 2,
@@ -109,7 +107,7 @@ export function initOverviewResearchHarnessBatchState(
       harnessPlannedSectionCount: RESEARCH_HARNESS_TOTAL_SECTIONS,
       generatedFiles: [],
     });
-    return mergeOptimizationProgress(clearedSite, batchKey, {
+    return mergeOverviewHarnessProgress(clearedSite, batchKey, {
       subProgress: 0.02,
       step: "Researching…",
       progress: 2,
@@ -138,7 +136,7 @@ export function initOverviewResearchHarnessBatchState(
       warmingUpIndex: null,
       warmingUpIndex2: null,
       researchedUrls: [],
-      currentStepProgress: {
+      currentStepProgress: harnessStepProgress(undefined, {
         subProgress: 0.02,
         step: "Researching…",
         progress: 2,
@@ -146,7 +144,7 @@ export function initOverviewResearchHarnessBatchState(
         harnessSections: [],
         harnessPlannedSectionCount: RESEARCH_HARNESS_TOTAL_SECTIONS,
         generatedFiles: [],
-      },
+      }),
     },
   }));
   initOverviewBulkHarnessPagination(batchKey, urls.length, setBulkOptimizationState);
@@ -162,7 +160,7 @@ export function setResearchBatchPrepMessage(
 ): void {
   const { setBulkOptimizationState, setOptimizationProgress } = setters;
   setOptimizationProgress((prev) =>
-    mergeOptimizationProgress(prev as Record<string, unknown>, siteId, {
+    mergeOverviewHarnessProgress(prev as Record<string, unknown>, siteId, {
       step: "Researching…",
       progress: 2,
       message,
@@ -176,12 +174,11 @@ export function setResearchBatchPrepMessage(
       [batchKey]: {
         ...current,
         currentStep: "Researching…",
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "Researching…",
           progress: 2,
           message,
-        },
+        }),
       },
     };
   });
@@ -205,17 +202,16 @@ export function setResearchActiveRow(
     const total = totalRows ?? current.urls?.length ?? 0;
     const message =
       total > 0 ? `Research row ${rowNum}/${total}…` : "Researching…";
-    const existingSections = current.urlHarnessSections?.[trimmedUrl] as
-      | BulkHarnessSectionUi[]
-      | undefined;
+    const existingSections = current.urlHarnessSections?.[trimmedUrl];
+    // Stored sections can carry an "error" status at runtime even though
+    // HarnessSectionListItem's status union does not declare it.
+    const preservedStatuses: readonly string[] = ["generating", "done", "error"];
     const preserveHarness =
       existingSections?.length &&
       existingSections.some(
         (section) =>
           harnessTitleIsResearchStep(section.title) &&
-          (section.status === "generating" ||
-            section.status === "done" ||
-            section.status === "error"),
+          preservedStatuses.includes(section.status),
       );
     return {
       ...prev,
@@ -231,12 +227,11 @@ export function setResearchActiveRow(
             : buildWaitingResearchHarnessSections(),
         },
         currentStep: "Researching…",
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "Researching…",
           message,
           harnessPlannedSectionCount: RESEARCH_HARNESS_TOTAL_SECTIONS,
-        },
+        }),
       },
     };
   });
@@ -371,19 +366,18 @@ export function applyResearchHarnessPayload(
       [batchKey]: {
         ...nextBatch,
         currentProgress: latestProgress,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "Researching…",
           progress: latestProgress,
           message,
           harnessPlannedSectionCount: RESEARCH_HARNESS_TOTAL_SECTIONS,
-        },
+        }),
       },
     };
   });
 
   setOptimizationProgress((prev) =>
-    mergeHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
       step: "Researching…",
       progress: latestProgress,
       message,
@@ -439,19 +433,18 @@ export function failResearchRowHarness(
         ...nextBatch,
         currentProgress: latestProgress,
         currentStep: batchStep,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: batchStep,
           progress: latestProgress,
           message,
           harnessPlannedSectionCount: RESEARCH_HARNESS_TOTAL_SECTIONS,
-        },
+        }),
       },
     };
   });
 
   setOptimizationProgress((prev) =>
-    mergeHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
       step: batchStep,
       progress: latestProgress,
       message,
@@ -511,19 +504,18 @@ export function finishResearchRowHarness(
         ...nextBatch,
         currentProgress: progress,
         currentStep: batchStep,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: batchStep,
           progress,
           message,
           harnessPlannedSectionCount: RESEARCH_HARNESS_TOTAL_SECTIONS,
-        },
+        }),
       },
     };
   });
 
   setOptimizationProgress((prev) =>
-    mergeHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
       step: batchStep,
       progress: latestProgress,
       message,
@@ -574,7 +566,7 @@ export function finalizeOverviewResearchHarnessBatch(
 ): void {
   const message = `Research finished: ${applied}/${total} updated`;
   setOptimizationProgress((prev) =>
-    mergeOptimizationProgress(prev as Record<string, unknown>, siteId, {
+    mergeOverviewHarnessProgress(prev as Record<string, unknown>, siteId, {
       step: "Batch complete",
       progress: 100,
       message,
@@ -589,12 +581,11 @@ export function finalizeOverviewResearchHarnessBatch(
         ...current,
         currentStep: "Batch complete",
         currentProgress: 100,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "Batch complete",
           progress: 100,
           message,
-        },
+        }),
       },
     };
   });

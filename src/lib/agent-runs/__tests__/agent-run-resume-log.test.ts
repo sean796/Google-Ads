@@ -284,6 +284,8 @@ describe("agent-run-log-format", () => {
     const run = baseRun({
       result: {
         checkpoint: {
+          completedUrls: [],
+          uploadedUrls: [],
           lastStepPayload: {
             phase: "gsc_outline",
             cachedFiles: [{ name: "Queries-MoM.csv", content: "z".repeat(8000) }],

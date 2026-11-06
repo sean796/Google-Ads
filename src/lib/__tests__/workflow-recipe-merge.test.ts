@@ -3,6 +3,7 @@ import type { AutomationRecipeCatalogItem } from "@/lib/automation-recipes-types
 import { emptyWorkflowDraft } from "@/lib/workflow/workflow-migrate-from-planner";
 import { linearOrderedNodes } from "@/lib/workflow/workflow-graph-mutations";
 import { mergeRecipeIntoWorkflow, recipeToActionSubgraph } from "@/lib/workflow/workflow-recipe-merge";
+import { defaultTaskTriggerConfig } from "@/lib/task-trigger-types";
 
 const singleActionRecipe: AutomationRecipeCatalogItem = {
   keyword: "pages-ctr-rescue",
@@ -20,8 +21,7 @@ const singleActionRecipe: AutomationRecipeCatalogItem = {
     source: "gsc",
     targetBucket: "pages",
     triggerConfig: {
-      sources: ["gsc"],
-      match: "any",
+      ...defaultTaskTriggerConfig(),
       conditions: [{ signal: "ctr_drop", operator: "gte", value: 15, minImpressions: 100 }],
     },
   },
@@ -56,7 +56,9 @@ const multiActionRecipe: AutomationRecipeCatalogItem = {
 describe("workflow-recipe-merge", () => {
   it("starts from empty draft", () => {
     const draft = emptyWorkflowDraft(1, null);
-    expect(draft.nodes).toHaveLength(0);
+    // Intentional starter: every workflow begins with one Client node (ensureWorkflowClientNode).
+    expect(draft.nodes).toHaveLength(1);
+    expect(draft.nodes[0]?.kind).toBe("workflow_client");
     expect(draft.edges).toHaveLength(0);
   });
 

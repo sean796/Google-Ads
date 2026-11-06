@@ -1,4 +1,4 @@
-import { getStoredSites } from '@/components/IntegrationsTab';
+import { getStoredSites } from "@/components/integrations/storage";
 import type { BulkHarnessSectionUi } from '@/hooks/use-bulk-auto-generate';
 import type { CSVRow } from '@/lib/bulk-auto-generate';
 import { BulkHarnessSectionsPanel } from './BulkHarnessSectionsPanel';

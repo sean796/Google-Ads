@@ -20,7 +20,7 @@ class Neo_Pulse_App_Overview_Route_Handlers {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( __CLASS__, 'fetch_page_meta' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Neo_Pulse_App_Auth_Session', 'rest_permission' ),
 			)
 		);
 		register_rest_route(
@@ -29,7 +29,7 @@ class Neo_Pulse_App_Overview_Route_Handlers {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( __CLASS__, 'optimize_meta_ai' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Neo_Pulse_App_Auth_Session', 'rest_permission' ),
 			)
 		);
 		register_rest_route(
@@ -38,7 +38,7 @@ class Neo_Pulse_App_Overview_Route_Handlers {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( __CLASS__, 'seo_brief_post' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Neo_Pulse_App_Auth_Session', 'rest_permission' ),
 			)
 		);
 		register_rest_route(
@@ -47,7 +47,7 @@ class Neo_Pulse_App_Overview_Route_Handlers {
 			array(
 				'methods'             => 'GET',
 				'callback'            => array( __CLASS__, 'seo_brief_get' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Neo_Pulse_App_Auth_Session', 'rest_permission' ),
 			)
 		);
 		register_rest_route(
@@ -56,7 +56,7 @@ class Neo_Pulse_App_Overview_Route_Handlers {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( __CLASS__, 'blog_links_log' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Neo_Pulse_App_Auth_Session', 'rest_permission' ),
 			)
 		);
 		register_rest_route(
@@ -66,12 +66,12 @@ class Neo_Pulse_App_Overview_Route_Handlers {
 				array(
 					'methods'             => 'GET',
 					'callback'            => array( __CLASS__, 'studio_snapshot_get' ),
-					'permission_callback' => '__return_true',
+					'permission_callback' => array( 'Neo_Pulse_App_Auth_Session', 'rest_permission' ),
 				),
 				array(
 					'methods'             => 'POST',
 					'callback'            => array( __CLASS__, 'studio_snapshot_post' ),
-					'permission_callback' => '__return_true',
+					'permission_callback' => array( 'Neo_Pulse_App_Auth_Session', 'rest_permission' ),
 				),
 			)
 		);

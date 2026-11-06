@@ -17,8 +17,9 @@ class Neo_Pulse_App_Image_Fetch_Data_Url {
 	 */
 	public static function fetch( array $body ): array {
 		$url = isset( $body['url'] ) ? trim( (string) $body['url'] ) : '';
-		if ( $url === '' || ! preg_match( '#^https?://#i', $url ) ) {
-			return array( 'status' => 400, 'body' => array( 'error' => 'url must be an http(s) image URL' ) );
+		$ssrf_error = Neo_Pulse_App_Ssrf_Guard::validate_public_url( $url, true );
+		if ( $ssrf_error !== null ) {
+			return array( 'status' => 400, 'body' => array( 'error' => $ssrf_error ) );
 		}
 
 		$referer = isset( $body['referer'] ) ? trim( (string) $body['referer'] ) : '';
@@ -26,18 +27,20 @@ class Neo_Pulse_App_Image_Fetch_Data_Url {
 			$referer = 'https://www.google.com/';
 		}
 
-		$response = wp_remote_get(
+		$response = Neo_Pulse_App_Ssrf_Guard::get(
 			$url,
 			array(
 				'timeout'     => 25,
-				'redirection' => 5,
+				'limit_response_size' => self::MAX_BYTES,
 				'user-agent'  => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
 				'headers'     => array(
 					'Accept'          => 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
 					'Accept-Language' => 'en-US,en;q=0.9',
 					'Referer'         => $referer,
 				),
-			)
+			),
+			3,
+			true
 		);
 
 		if ( is_wp_error( $response ) ) {

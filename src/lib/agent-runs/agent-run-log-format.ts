@@ -1,6 +1,12 @@
 import type { AgentRunArtifactRecord } from "@/lib/agent-runs-api";
 import { formatAgentRunTimeOnly, formatAgentRunTimestamp } from "@/lib/edmonton-time";
-import type { AgentRun, AgentRunStep, AgentRunStepArtifact, AgentRunUploadedPost } from "@/lib/agent-runs-types";
+import type {
+  AgentRun,
+  AgentRunCheckpoint,
+  AgentRunStep,
+  AgentRunStepArtifact,
+  AgentRunUploadedPost,
+} from "@/lib/agent-runs-types";
 import { AGENT_RUN_STATUS_LABELS } from "@/lib/agent-runs-types";
 import { agentRunSourceLine, isAgentRunNodeDiagnosticLabel } from "@/lib/agent-runs/agent-run-display";
 import { driveFolderDisplayName } from "@/lib/google-drive/google-drive-folder-hierarchy";
@@ -291,8 +297,8 @@ export function enrichAgentRunStepsWithServerData(
 }
 
 function sanitizeCheckpointForExport(
-  checkpoint: AgentRun["result"] extends infer R ? (R extends { checkpoint?: infer C } ? C : null) : null,
-) {
+  checkpoint: AgentRunCheckpoint | null,
+): AgentRunCheckpoint | null {
   if (!checkpoint || typeof checkpoint !== "object") return checkpoint;
   const record = checkpoint as Record<string, unknown>;
   const server = record.server;
@@ -306,7 +312,7 @@ function sanitizeCheckpointForExport(
     delete serverRecord.generatedContent;
     next.server = serverRecord;
   }
-  return next;
+  return next as AgentRunCheckpoint;
 }
 
 function sanitizeStepPayloadForExport(
@@ -407,7 +413,7 @@ export type AgentRunLogJsonExport = {
     googleDriveUrl?: string;
     googleDriveFileName?: string;
   };
-  checkpoint: AgentRun["result"] extends infer R ? (R extends { checkpoint?: infer C } ? C : null) : null;
+  checkpoint: AgentRunCheckpoint | null;
   uploadedPosts: AgentRunUploadedPost[];
   steps: Array<{
     stepKey?: string;
@@ -546,10 +552,11 @@ export function mergeAgentRunDeliveryFields(
 
 export function formatAgentRunLogJson(run: AgentRun, steps: AgentRunStep[]): AgentRunLogJsonExport {
   const normalized = normalizeAgentRunStepsForDisplay(steps);
+  const sanitizedCheckpoint = sanitizeCheckpointForExport(run.result?.checkpoint ?? null);
   const sanitizedResult = run.result
     ? {
         ...run.result,
-        checkpoint: sanitizeCheckpointForExport(run.result.checkpoint ?? null),
+        ...(sanitizedCheckpoint ? { checkpoint: sanitizedCheckpoint } : {}),
       }
     : run.result;
   return {
@@ -569,7 +576,7 @@ export function formatAgentRunLogJson(run: AgentRun, steps: AgentRunStep[]): Age
     emailOutcome: exportEmailOutcomeFromResult(run.result),
     googleDriveOutcome: exportGoogleDriveOutcomeFromResult(run.result),
     deliverables: exportDeliverablesFromResult(run.result),
-    checkpoint: sanitizeCheckpointForExport(run.result?.checkpoint ?? null),
+    checkpoint: sanitizedCheckpoint,
     uploadedPosts: exportedUploadedPosts(run),
     steps: normalized.map((step) => ({
       stepKey: step.stepKey,

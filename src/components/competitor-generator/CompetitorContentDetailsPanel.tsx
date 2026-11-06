@@ -3,7 +3,7 @@ import type { CompetitorGenerationProgress } from "@/components/competitor-gener
 import type { BulkGscKeywordsHostedLink } from "@/lib/bulk/bulk-gsc-keywords-hosted-link";
 import type { PromptBulkSitemapInventoryLink } from "@/lib/bulk/prompt-bulk-sitemap-inventory";
 import type { CSVRow } from "@/lib/bulk/bulk-csv-parser";
-import { buildCompetitorBulkGeneratorDetailsProps } from "@/lib/competitor/competitor-bulk-details-bindings";
+import { buildCompetitorBulkGeneratorDetailsProps } from "@/lib/competitor-research/competitor-bulk-details-bindings";
 
 export type CompetitorContentDetailsPanelProps = {
   workspaceBusy: boolean;

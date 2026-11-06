@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from "react";
-import { ActionButton, Button, Field, SelectField, SwitchField } from "@/ui";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { ActionButton, Button, Field, SelectField, SwitchField, RadioGroup, RadioGroupItem, Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/ui";
+
+
 import { Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/app-notifications";
@@ -38,13 +38,15 @@ import { BenchmarkCategoryTagField } from "./BenchmarkCategoryTagField";
 import { PropertyClientLogoFields } from "./PropertyClientLogoFields";
 import { WpEngineHostingFields } from "./WpEngineHostingFields";
 import {
-  nextStateForCountry,
   ProfileAdditionalLocationsEditor,
   ProfileLocationSelect,
+} from "./ProfileServiceAreaFields";
+import {
+  nextStateForCountry,
   regionPlaceholder,
   SERVICE_COUNTRY_OPTIONS,
   serviceRegionOptions,
-} from "./ProfileServiceAreaFields";
+} from "@/lib/keyword-location-utils";
 
 export type SitePropertyFormChrome = "dark" | "light";
 
@@ -291,7 +293,7 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
     setSemrushMatching(true);
     try {
       const res = await matchSemrushProjectForSite(url);
-      if (res.ok) {
+      if (res.ok === true) {
         onFormSemrushSiteAuditProjectIdChange(res.projectId);
         if (onPatchSite && patchSiteId) {
           onPatchSite(patchSiteId, { semrushSiteAuditProjectId: res.projectId });
@@ -304,7 +306,7 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
       } else {
         notify.error(res.error);
         if (res.candidates?.length) {
-          // eslint-disable-next-line no-console
+           
           console.info("[Semrush] project candidates (no hostname match):", res.candidates);
         }
       }

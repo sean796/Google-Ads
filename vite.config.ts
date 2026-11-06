@@ -1,10 +1,9 @@
 import { createRequire } from "module";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { localDominatorDevExportPlugin } from "./scripts/vite-local-dominator-export-plugin.mjs";
-import { gscFetchQueriesDevPlugin } from "./scripts/vite-gsc-fetch-queries-dev-plugin.mjs";
 import { localWpApiProxyPlugin } from "./scripts/vite-local-wp-api-proxy-plugin.mjs";
 import { entityMapsPuppeteerDevPlugin } from "./scripts/vite-entity-maps-puppeteer-plugin.mjs";
 
@@ -16,11 +15,8 @@ const repoRoot = path.resolve(__dirname);
 const deployGitSha =
   process.env.RENDER_GIT_COMMIT || process.env.VERCEL_GIT_COMMIT_SHA || process.env.CF_PAGES_COMMIT_SHA || "";
 const isMobileApp = process.env.VITE_MOBILE_APP === "1";
-const openRouterApiKey =
-  process.env.VITE_OPENROUTER_API_KEY ||
-  process.env.OPEN_ROUTER_API_KEY ||
-  process.env.OPENROUTER_API_KEY ||
-  "";
+// Wave 0: the OpenRouter key is never inlined into the client bundle.
+// The server resolves its env key; the browser sends no key.
 
 export default defineConfig(({ mode, command }) => {
   const isDevServer = command === "serve";
@@ -46,7 +42,6 @@ export default defineConfig(({ mode, command }) => {
     define: {
       "import.meta.env.VITE_DEPLOY_GIT_SHA": JSON.stringify(deployGitSha),
       "import.meta.env.VITE_MOBILE_APP": JSON.stringify(isMobileApp ? "1" : ""),
-      "import.meta.env.VITE_OPENROUTER_API_KEY": JSON.stringify(openRouterApiKey),
     },
     build: {
       rollupOptions: {
@@ -95,11 +90,10 @@ export default defineConfig(({ mode, command }) => {
             next();
           });
         },
-      },
+      } satisfies Plugin,
       isDev && componentTagger(),
       isDevServer && entityMapsPuppeteerDevPlugin(),
       isDevServer && localDominatorDevExportPlugin(),
-      isDevServer && gscFetchQueriesDevPlugin(),
       isDevServer && localWpApiProxyPlugin(),
     ].filter(Boolean),
     resolve: {

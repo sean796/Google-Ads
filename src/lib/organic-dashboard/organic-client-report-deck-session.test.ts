@@ -89,7 +89,9 @@ describe("organic client report deck session", () => {
 
   it("returns null when site id does not match", () => {
     writeOrganicClientReportDeckSession("deck-a", payload);
-    expect(readOrganicClientReportDeckSession("deck-a", "other")).toBeNull();
+    // Production only rejects when both ids are concrete wp-* Integrations ids;
+    // a slug hint (non wp-*) is not a mismatch.
+    expect(readOrganicClientReportDeckSession("deck-a", "wp-2")).toBeNull();
   });
 
   it("backfills Semrush fields on older stored view models", () => {
@@ -107,7 +109,7 @@ describe("organic client report deck session", () => {
         hasGsc: false,
       },
     };
-    writeOrganicClientReportDeckSession("deck-stale", stale);
+    storage.set("neo-pulse:organic-client-report:deck-stale", JSON.stringify(stale));
     const read = readOrganicClientReportDeckSession("deck-stale", "wp-1");
     expect(read?.viewModel.semrushKeywords).toEqual([]);
     expect(read?.viewModel.hasSemrush).toBe(false);

@@ -93,12 +93,48 @@ export type MastraWorkflowPipelineState = {
   completedNodeIds: string[];
 };
 
-const MastraWorkflowPipelineStateSchema: z.ZodType<MastraWorkflowPipelineState> = z.object({
+const WorkflowStepOutputFileRefSchema = z.object({
+  id: z.number().optional(),
+  name: z.string(),
+  url: z.string().optional(),
+  mime: z.string().optional(),
+});
+
+const WorkflowStepOutputSchema = z.object({
+  id: z.number(),
+  runId: z.number(),
+  nodeId: z.string(),
+  variableKey: z.string(),
+  scope: z.enum(["run", "agent", "shared"]),
+  label: z.string(),
+  textPreview: z.string(),
+  fileRefs: z.array(WorkflowStepOutputFileRefSchema),
+  agentRunId: z.number().nullable().optional(),
+  siteId: z.string().nullable().optional(),
+  deliveryMeta: z
+    .object({
+      googleDriveUrl: z.string().optional(),
+      googleDriveFileId: z.string().optional(),
+      googleDriveFileName: z.string().optional(),
+      googleDriveFolderUrl: z.string().optional(),
+      googleDriveFolderLabel: z.string().optional(),
+      googleDriveTargetFolderId: z.string().optional(),
+      googleDriveFoldersCreated: z.array(z.string()).optional(),
+      emailSent: z.boolean().optional(),
+      emailError: z.string().optional(),
+      localSaved: z.boolean().optional(),
+      scheduled: z.boolean().optional(),
+    })
+    .optional(),
+  createdAt: z.string(),
+});
+
+const MastraWorkflowPipelineStateSchema = z.object({
   workflowId: z.number(),
   runId: z.number(),
-  outputs: z.array(z.custom<WorkflowStepOutput>()),
+  outputs: z.array(WorkflowStepOutputSchema),
   completedNodeIds: z.array(z.string()),
-});
+}) as z.ZodType<MastraWorkflowPipelineState, z.ZodTypeDef, MastraWorkflowPipelineState>;
 
 export function buildMastraWorkflowPipeline(
   workflow: Pick<WorkflowDefinition, "id" | "name" | "nodes" | "edges">,

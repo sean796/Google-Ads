@@ -16,18 +16,19 @@ function sapRow(kw: string, entity: string): CSVRow {
 }
 
 function isOpenRouterAppUrl(url: unknown): boolean {
-  return String(url).includes("/openrouter/chat-completion");
+  const u = String(url);
+  return u.includes("/openrouter/chat-completion") || u.includes("chat/completions");
 }
 
-function appChatResponse(content: string) {
-  return {
-    ok: true,
-    json: async () => ({
+function appChatResponse(content: string): Response {
+  return new Response(
+    JSON.stringify({
       ok: true,
       content,
       raw: { choices: [{ message: { content } }] },
     }),
-  };
+    { status: 200, headers: { "Content-Type": "application/json" } },
+  );
 }
 
 describe("buildEntityTitleClusterJobs", () => {
@@ -91,8 +92,8 @@ describe("fillSapRowTitlesFromOpenRouter", () => {
             }),
           );
         }
-        return { ok: false, text: async () => "" };
-      }) as typeof fetch,
+        return new Response("", { status: 500 });
+      }),
     );
 
     const rows = [
@@ -107,8 +108,8 @@ describe("fillSapRowTitlesFromOpenRouter", () => {
     });
 
     expect(openRouterCalls).toBe(1);
-    expect(filled[0]!.title).toBe("Custom Blinds in A, City");
-    expect(filled[1]!.title).toBe("Custom Blinds in B, City");
+    expect(filled[0]!.title).toBe("Custom Blinds In A, City");
+    expect(filled[1]!.title).toBe("Custom Blinds In B, City");
   });
 
   it("retries the batch until all titles are returned", async () => {
@@ -117,18 +118,21 @@ describe("fillSapRowTitlesFromOpenRouter", () => {
       "fetch",
       vi.fn(async (url) => {
         if (!isOpenRouterAppUrl(url)) {
-          return { ok: false, text: async () => "" };
+          return new Response("", { status: 500 });
         }
         openRouterCalls += 1;
         if (openRouterCalls === 1) {
-          return { ok: false, status: 429, json: async () => ({ ok: false, error: "rate limit" }) };
+          return new Response(JSON.stringify({ ok: false, error: "rate limit" }), {
+            status: 429,
+            headers: { "Content-Type": "application/json" },
+          });
         }
         return appChatResponse(
           JSON.stringify({
             titles: ["Title in A, City, CA", "Title in B, City, CA"],
           }),
         );
-      }) as typeof fetch,
+      }),
     );
 
     const rows = [sapRow("custom blinds", "A, City, CA"), sapRow("custom blinds", "B, City, CA")];
@@ -141,7 +145,7 @@ describe("fillSapRowTitlesFromOpenRouter", () => {
 
     expect(openRouterCalls).toBe(2);
     expect(filled.every((r) => r.title?.trim())).toBe(true);
-    expect(filled[0]!.title).toBe("custom blinds Near A, City");
+    expect(filled[0]!.title).toBe("Custom Blinds Near A, City");
   });
 
   it("calls OpenRouter when forceRewrite is true even if title is prefilled", async () => {
@@ -166,8 +170,8 @@ describe("fillSapRowTitlesFromOpenRouter", () => {
             }),
           );
         }
-        return { ok: false, text: async () => "" };
-      }) as typeof fetch,
+        return new Response("", { status: 500 });
+      }),
     );
 
     const rows = [
@@ -186,7 +190,7 @@ describe("fillSapRowTitlesFromOpenRouter", () => {
     });
 
     expect(openRouterCalls).toBe(1);
-    expect(filled[0]!.title).toBe("Advanced Window Coverings Near Plum Coulee, MB");
+    expect(filled[0]!.title).toBe("Advanced Window Coverings Near Plum Coulee, Mb");
     expect(filled[0]!.title).not.toContain(":");
   });
 
@@ -201,7 +205,7 @@ describe("fillSapRowTitlesFromOpenRouter", () => {
             ],
           }),
         ),
-      ) as typeof fetch,
+      ),
     );
 
     const filled = await fillSapRowTitlesFromOpenRouter(
@@ -215,7 +219,7 @@ describe("fillSapRowTitlesFromOpenRouter", () => {
       },
     );
 
-    expect(filled[0]!.title).toBe("advanced window coverings Near Plum Coulee, MB");
+    expect(filled[0]!.title).toBe("Advanced Window Coverings Near Plum Coulee, Mb");
     expect(filled[0]!.title).not.toContain(":");
   });
 });
@@ -234,7 +238,7 @@ describe("entity SAP title helpers", () => {
   it("resolveEntitySapTitleFromTemplate applies keyword Near entity pattern", () => {
     expect(
       resolveEntitySapTitleFromTemplate("advanced window coverings", "Plum Coulee, MB"),
-    ).toBe("advanced window coverings Near Plum Coulee, MB");
+    ).toBe("Advanced Window Coverings Near Plum Coulee, Mb");
   });
 
   it("resolveEntitySapPostTitle prefers valid existing title", () => {
@@ -244,7 +248,7 @@ describe("entity SAP title helpers", () => {
         "Plum Coulee, MB",
         "Advanced Window Coverings Near Plum Coulee, MB",
       ),
-    ).toBe("Advanced Window Coverings Near Plum Coulee, MB");
+    ).toBe("Advanced Window Coverings Near Plum Coulee, Mb");
   });
 
   it("resolveEntitySapPostTitle replaces invalid colon title with template", () => {
@@ -254,6 +258,6 @@ describe("entity SAP title helpers", () => {
         "Plum Coulee, MB",
         "Advanced Window Coverings Plum Coulee: Advanced Window Coverings In Plum Coulee",
       ),
-    ).toBe("advanced window coverings Near Plum Coulee, MB");
+    ).toBe("Advanced Window Coverings Near Plum Coulee, Mb");
   });
 });

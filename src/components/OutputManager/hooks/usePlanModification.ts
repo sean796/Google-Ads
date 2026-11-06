@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect, useRef } from "react";
-import { streamChatCompletion, Message } from "@/lib/api";
+import { useState, useCallback, useEffect, useRef, type Dispatch, type SetStateAction } from "react";
+import { streamChatCompletion, Message, type GenerationResult } from "@/lib/api";
+import type { AgentConfig } from "@/types/agent-config";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_COULD_NOT_GENERATE_A_VALID_CHECKLIST_PLE, NOTIFY_FAILED_TO_GENERATE_CHECKLIST_PLEASE_TRY_, NOTIFY_FAILED_TO_UPDATE_PLAN_PLEASE_TRY_AGAIN, NOTIFY_NO_CHECKLIST_AVAILABLE, NOTIFY_PLAN_UPDATED_SUCCESSFULLY, NOTIFY_PLEASE_PROVIDE_MODIFICATION_INSTRUCTIONS, NOTIFY_UPDATING_PLAN_BASED_ON_CHECKLIST } from "@/lib/notify-messages";
 import { 
@@ -26,7 +27,7 @@ interface UsePlanModificationProps {
   setModificationChecklist?: (checklist: string[]) => void;
   setIsGeneratingChecklist?: (isGenerating: boolean) => void;
   setIsUpdatingPlan?: (isUpdating: boolean) => void;
-  setGenerationResult?: (result: any) => void;
+  setGenerationResult?: Dispatch<SetStateAction<GenerationResult>>;
   apiKey: string;
   selectedModel: string;
   temperature: number;
@@ -34,7 +35,7 @@ interface UsePlanModificationProps {
   topP: number;
   flowTitle: string;
   flowPurpose: string;
-  agents: any[];
+  agents: AgentConfig[];
   activeKnowledgeBaseText: string;
 }
 
@@ -136,8 +137,8 @@ export function usePlanModification({
       // Parse checklist from response
       const checklistItems = checklistContent
         .split('\n')
-        .filter(line => line.trim().match(/^\d+[\.\)]\s+/))
-        .map(line => line.replace(/^\d+[\.\)]\s+/, '').trim())
+        .filter(line => line.trim().match(/^\d+[.)]\s+/))
+        .map(line => line.replace(/^\d+[.)]\s+/, '').trim())
         .filter(item => item.length > 0);
 
       if (checklistItems.length < 3) {
@@ -240,7 +241,7 @@ export function usePlanModification({
               const partialSections = parseMarkdownSections(updatedSectionsContent);
               if (partialSections.length > 0) {
                 const partialMerged = mergeSectionsIntoMarkdown(currentPlan, partialSections, markdownSections);
-                setGenerationResult((prev: any) => ({
+                setGenerationResult((prev) => ({
                   ...prev,
                   plan: partialMerged
                 }));
@@ -264,7 +265,7 @@ export function usePlanModification({
           }
           
           // Final update with complete merged content
-          setGenerationResult((prev: any) => ({
+          setGenerationResult((prev) => ({
             ...prev,
             plan: mergedPlan
           }));
@@ -298,7 +299,7 @@ export function usePlanModification({
         onContentChunk: (chunk) => {
           updatedPlanContent += chunk;
           // Stream updates in real-time
-          setGenerationResult((prev: any) => ({
+          setGenerationResult((prev) => ({
             ...prev,
             plan: updatedPlanContent
           }));
@@ -307,7 +308,7 @@ export function usePlanModification({
 
       if (updatedPlanContent) {
         // Final update to ensure complete content is set
-        setGenerationResult((prev: any) => ({
+        setGenerationResult((prev) => ({
           ...prev,
           plan: updatedPlanContent
         }));

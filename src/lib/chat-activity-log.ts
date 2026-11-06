@@ -43,11 +43,19 @@ export function activityLabel(entry: ChatActivityLogEntry): string {
   return "Link";
 }
 
-export function chatMessageHash(messageId: number): string {
-  return `#m${messageId}`;
+import { appNavigate } from "@/lib/app-navigation";
+
+export function chatMessagePath(messageId: number): string {
+  return `/chat?message=${messageId}`;
 }
 
-export function parseChatMessageHash(hash: string): number | null {
-  const m = /^#?m(\d+)$/.exec(hash.trim());
-  return m ? Number(m[1]) : null;
+export function writeChatMessagePath(messageId: number): void {
+  appNavigate(chatMessagePath(messageId), { replace: true });
+}
+
+export function parseChatMessageQuery(search: string): number | null {
+  const raw = new URLSearchParams(search).get("message");
+  if (!raw) return null;
+  const id = Number(raw);
+  return Number.isInteger(id) && id > 0 ? id : null;
 }

@@ -78,6 +78,7 @@ describe("buildBulkGeneratorOverviewRows", () => {
               mimeType: "text/markdown",
               status: "completed",
               timestamp: 1,
+              rowData: { keyword: "solarium blinds", title: "Solarium Blinds Guide" },
             },
             {
               id: "2",
@@ -87,6 +88,7 @@ describe("buildBulkGeneratorOverviewRows", () => {
               mimeType: "text/html",
               status: "completed",
               timestamp: 2,
+              rowData: { keyword: "solarium blinds", title: "Solarium Blinds Guide" },
             },
           ],
         ],
@@ -206,6 +208,7 @@ describe("buildBulkGeneratorOverviewRows", () => {
               mimeType: "application/json",
               status: "completed",
               timestamp: 1,
+              rowData: { keyword: "custom blinds", title: "Custom Blinds Guide" },
             },
           ],
         ],

@@ -1,12 +1,12 @@
 import React from 'react';
-import { Progress } from '@/components/ui/progress';
+
 import { CheckCircle2, Circle, Copy } from 'lucide-react';
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_COPIED_TO_CLIPBOARD } from "@/lib/notify-messages";
 import { cn } from '@/lib/utils';
 import { getCyberpunkTextClasses } from './cyberpunk-theme';
 import { OPTIMIZATION_STEPS, getCurrentStep, type ProgressData } from './optimization-constants';
-import { Button } from "@/ui";
+import { Button, Progress } from "@/ui";
 
 interface OptimizationProgressDisplayProps {
   progress?: ProgressData;

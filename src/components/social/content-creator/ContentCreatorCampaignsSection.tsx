@@ -6,7 +6,7 @@ import {
   CONTENT_OPTIMIZER_MULTI_SITE_ROW_WRAPPER_CLASS,
   contentOptimizerRowStripeClass,
 } from "@/components/overview/overview-tab/overview-tab-content-constants";
-import { overviewGridPageSlice } from "@/components/overview/OverviewGridPagination";
+import { overviewGridPageSlice } from "@/components/overview/overview-grid-pagination-helpers";
 import { buildContentCreatorGridRows } from "@/components/social/content-creator/content-creator-row-constants";
 import { cn } from "@/lib/utils";
 import type { ContentCreatorWorkspaceController } from "@/hooks/social/use-content-creator-workspace";

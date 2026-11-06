@@ -1,4 +1,4 @@
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import { URL_OPTIMIZER_STEPS, urlOptimizerOverallPct } from "@/lib/url-optimizer/url-optimizer-progress-display";
 import type { UrlOptimizerProgress } from "@/lib/url-optimizer/types";
 

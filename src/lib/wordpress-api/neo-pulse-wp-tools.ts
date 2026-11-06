@@ -4,6 +4,7 @@
 
 import { BACKEND_API_BASE } from './connection';
 import type { WordPressSite } from '@/components/integrations/types';
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 export type NeoPulseWpToolResult = Record<string, unknown> & {
   ok?: boolean;
@@ -32,7 +33,7 @@ export async function executeNeoPulseWpTool(
   const url = `${BACKEND_API_BASE}/api/wordpress/neo-pulse-wp-tool`;
   const response = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       ...siteAuthBody(site),
       tool,
@@ -57,7 +58,7 @@ export async function listNeoPulseWpTools(site: WordPressSite): Promise<NeoPulse
   const url = `${BACKEND_API_BASE}/api/wordpress/neo-pulse-wp-tools-list`;
   const response = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(siteAuthBody(site)),
   });
   const data = await response.json().catch(() => ({}));

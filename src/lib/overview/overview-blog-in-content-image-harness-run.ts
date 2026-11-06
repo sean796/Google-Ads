@@ -1,13 +1,11 @@
 import type { Dispatch, SetStateAction } from "react";
+import { harnessStepProgress, mergeOverviewHarnessProgress, mergeOverviewHarnessProgressSiteAndBatch } from "@/lib/overview/overview-harness-progress";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import type { AiseoCacheWriteAccumulator } from "@/lib/overview/overview-aiseo-cache-write";
 import type { AiseoAfterRowWriteFn } from "@/lib/overview/overview-aiseo-after-upload";
-import {
-  mergeHarnessProgressSiteAndBatch,
-  setOptimizingState,
-} from "@/hooks/content-optimization/optimization-helpers-a";
-import { mergeOptimizationProgress } from "@/hooks/content-optimization/optimization-helpers";
+import { setOptimizingState } from "@/hooks/content-optimization/optimization-helpers-a";
+
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import { ensureMasterInstructionsInMemory } from "@/lib/master-instructions-storage";
 import {
@@ -99,18 +97,17 @@ function setInContentImageHarnessMessage(
       ...prev,
       [setters.batchKey]: {
         ...current,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "In Content Image",
           progress: pct,
           message,
-        },
+        }),
       },
     };
   });
   setters.setOptimizationProgress((prev) => {
     const next = { ...(prev as Record<string, unknown>) };
-    mergeHarnessProgressSiteAndBatch(next, setters.siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(next, setters.siteId, {
       step: "In Content Image",
       progress: pct,
       message,
@@ -191,19 +188,18 @@ function emitInContentImageHarnessPayload(
           ...(current.urlHarnessSections || {}),
           [url]: nextUrlSections,
         },
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "In Content Image",
           progress,
           message,
           harnessPlannedSectionCount: IN_CONTENT_IMAGE_HARNESS_SECTION_TITLES.length,
-        },
+        }),
       },
     };
   });
 
   setters.setOptimizationProgress((prev) =>
-    mergeHarnessProgressSiteAndBatch(prev as Record<string, unknown>, setters.siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(prev as Record<string, unknown>, setters.siteId, {
       step: "In Content Image",
       progress,
       message,
@@ -241,7 +237,7 @@ export function initOverviewBlogInContentImageHarnessBatchState(params: {
 
   setOptimizingState(setIsOptimizingContent, batchKey, true);
   setOptimizationProgress((prev) =>
-    mergeOptimizationProgress(prev as Record<string, unknown>, site.id, {
+    mergeOverviewHarnessProgress(prev as Record<string, unknown>, site.id, {
       step: "In Content Image",
       progress: 2,
       message: prepMessage,
@@ -262,13 +258,13 @@ export function initOverviewBlogInContentImageHarnessBatchState(params: {
       harnessStartedAt: Date.now(),
       urlHarnessSections: {},
       urlGeneratedFiles: {},
-      currentStepProgress: {
+      currentStepProgress: harnessStepProgress(undefined, {
         step: "In Content Image",
         progress: 2,
         message: prepMessage,
         harnessSections: [],
         harnessPlannedSectionCount: IN_CONTENT_IMAGE_HARNESS_SECTION_TITLES.length,
-      },
+      }),
     },
   }));
   initOverviewBulkHarnessPagination(batchKey, urls.length, setBulkOptimizationState);
@@ -281,19 +277,19 @@ export function finalizeOverviewBlogInContentImageHarnessBatch(
   siteId: string,
   setIsOptimizingContent: SetIsOptimizing,
   setOptimizationProgress: SetOptProgress,
-  setBulkOptimizationState?: (prev: any) => any,
+  setBulkOptimizationState?: SetBulkState,
 ): void {
   setOptimizingState(setIsOptimizingContent, batchKey, false);
   // Also clear leftover site-level optimizing from a prior Content Opt run.
-  setIsOptimizingContent((prev: any) => {
-    const updated = { ...(prev as Record<string, boolean>) };
+  setIsOptimizingContent((prev) => {
+    const updated = { ...prev };
     delete updated[siteId];
     return updated;
   });
   // Keep the batch state so the completed report stays visible in the Details drawer.
   // It is cleared only when the user explicitly closes the batch (resetBulkBatch).
   if (setBulkOptimizationState) {
-    setBulkOptimizationState((prev: any) => {
+    setBulkOptimizationState((prev) => {
       const current = prev[batchKey];
       if (!current) return prev;
       return { ...prev, [batchKey]: { ...current, currentStep: "Complete" } };
@@ -302,7 +298,7 @@ export function finalizeOverviewBlogInContentImageHarnessBatch(
   setOptimizationProgress((prev) => {
     const next = { ...(prev as Record<string, unknown>) };
     delete next[batchKey];
-    mergeHarnessProgressSiteAndBatch(next, siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(next, siteId, {
       step: "Complete",
       progress: 100,
       message: "In Content Image batch finished",
@@ -504,7 +500,6 @@ export async function runOverviewBlogInContentImageHarnessBatch(
             ok += 1;
             updateRow(row.index, { status: "idle" });
             // #region agent log
-            fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'post-fix',hypothesisId:'A',location:'overview-blog-in-content-image-harness-run.ts:existing-scope-skip',message:'Marking skipped — Local Image existing scope',data:{url:String(url||'').slice(0,140),title:(row.title||'').slice(0,100),focusKeyword:(row.focusKeyword||'').slice(0,120),skipReason:gate.reason,existingScope:existingScope||'new',hasExisting,htmlLen:sourceHtml.length},timestamp:Date.now()})}).catch(()=>{});
             // #endregion
             harnessSetters.setBulkOptimizationState((prev) => {
               const current = prev[harnessSetters.batchKey];
@@ -591,14 +586,12 @@ export async function runOverviewBlogInContentImageHarnessBatch(
             apiKey,
           });
           // #region agent log
-          fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'kw-cache',hypothesisId:'B',location:'overview-blog-in-content-image-harness-run.ts:before-local',message:'Harness calling Generate Local',data:{entity:String(entity||'').slice(0,120),localImageMode:resolvedLocalMode,existingScope:existingScope||'new',stripExisting:gate.stripExisting,rowFocusKeyword:(row.focusKeyword||'').slice(0,120),rowTitle:(row.title||'').slice(0,100),peerSitesPassed:(peerSites??[]).length,peerNames:(peerSites??[]).slice(0,15).map((s)=>((s.name||s.siteUrl||'')+'').slice(0,40)),writeSite:(site.name||site.siteUrl||'').slice(0,40)},timestamp:Date.now()})}).catch(()=>{});
           // #endregion
 
           const publishPeerPlan = (
             peers: Array<{ name: string; siteUrl: string }>,
           ) => {
             // #region agent log
-            fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'empty-peers',hypothesisId:'C',location:'overview-blog-in-content-image-harness-run.ts:publishPeerPlan',message:'Publishing peer plan to Details',data:{url:String(url||'').slice(0,120),entity:String(entity||'').slice(0,80),peerCount:peers.length,peerNames:peers.slice(0,12).map((p)=>p.name.slice(0,40))},timestamp:Date.now()})}).catch(()=>{});
             // #endregion
             const planFile = buildPeerSitesPlanFile({ entity, peers });
             harnessSetters.setBulkOptimizationState((prev) => {
@@ -691,7 +684,6 @@ export async function runOverviewBlogInContentImageHarnessBatch(
             onLocalImagePhase: publishLocalPhase,
             onPeerLibrariesReady: (peerCsvFiles) => {
               // #region agent log
-              fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'csv-ui',hypothesisId:'I',location:'overview-blog-in-content-image-harness-run.ts:peer-ready',message:'Early attach peer CSVs before DFS/AI',data:{url:String(url||'').slice(0,120),peerCsvCount:peerCsvFiles.length,peerCsvNames:peerCsvFiles.slice(0,8).map((f)=>f.name)},timestamp:Date.now()})}).catch(()=>{});
               // #endregion
               harnessSetters.setBulkOptimizationState((prev) => {
                 const current = prev[harnessSetters.batchKey];
@@ -846,7 +838,6 @@ export async function runOverviewBlogInContentImageHarnessBatch(
             result.sharedFromPageUrl?.trim() || undefined,
         });
         // #region agent log
-        fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'csv-ui',hypothesisId:'I',location:'overview-blog-in-content-image-harness-run.ts:attach-ok',message:'Attaching urlGeneratedFiles on success',data:{url:String(url||'').slice(0,120),peerCsvCount:(result.peerCsvFiles??[]).length,peerCsvNames:(result.peerCsvFiles??[]).slice(0,8).map((f)=>f.name),reusedFromCrossSite:Boolean(result.reusedFromCrossSite)},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
         harnessSetters.setBulkOptimizationState((prev) => {
           const current = prev[harnessSetters.batchKey];
@@ -896,7 +887,6 @@ export async function runOverviewBlogInContentImageHarnessBatch(
               ).peerCsvFiles
             : undefined;
         // #region agent log
-        fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'csv-ui',hypothesisId:'I',location:'overview-blog-in-content-image-harness-run.ts:attach-err',message:'Error path peer CSV attach',data:{url:String(url||'').slice(0,120),peerCsvCount:peerCsvFiles?.length??0,peerCsvNames:(peerCsvFiles??[]).slice(0,8).map((f)=>f.name),message:String(message||'').slice(0,160)},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
         updateRow(row.index, { status: "error" });
         harnessSetters.setBulkOptimizationState((prev) => {

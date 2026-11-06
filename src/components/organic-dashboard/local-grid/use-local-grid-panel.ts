@@ -60,7 +60,7 @@ import {
 import type { LocalAnalysisHeaderProgress } from "@/lib/local-analysis/header-progress";
 import type { BulkHarnessSectionUi } from "@/hooks/use-bulk-auto-generate";
 import type { GscSiteQueryRow } from "@/lib/competitor-research/types";
-import type { GscCompetitorDateRange } from "@/lib/competitor-research/competitor-gsc-queries";
+import type { GscCompetitorDateRange } from "@/lib/competitor-research/types";
 import {
   buildLocalGridEntityHeaderProgress,
   buildLocalGridEntityPipelineHarness,
@@ -146,7 +146,7 @@ export function useLocalGridPanel(
   const siteRef = useRef(site);
   siteRef.current = site;
 
-  const editorialCountSites = useMemo(() => [site], [site.id]);
+  const editorialCountSites = useMemo(() => [site], [site]);
   const { bySiteId: quarterEditorialBySiteId } = useQuarterEditorialCounts(editorialCountSites);
   const editorialEntityRowCount = useMemo((): number | null | undefined => {
     if (!editorialQuotasForSite(site)) return null;
@@ -471,7 +471,7 @@ export function useLocalGridPanel(
             setRecenterSignal((n) => n + 1);
           }
         }
-        if (res.suggestedKeyword && !layoutLockedRef.current && !readSitePrimaryLocalKeyword(site)) {
+        if (res.suggestedKeyword && !layoutLockedRef.current && !readSitePrimaryLocalKeyword(currentSite)) {
           setKeyword(res.suggestedKeyword);
         }
       } catch {

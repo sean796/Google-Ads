@@ -1,19 +1,15 @@
 import { useState, useCallback, useEffect } from "react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+
+
+
+
 import { TrendingUp, CheckCircle2, Check, ChevronDown, ChevronRight, Maximize2, Minimize2, Sparkles } from "lucide-react";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_CLUSTERING_REMOVED, notifyDeselectedAllXKeywordsInX, notifyDeselectedAllXSemanticKeywords, notifySelectedAllXKeywordsInX, notifySelectedAllXSemanticKeywords } from "@/lib/notify-messages";
 import type { KeywordData } from "@/lib/keyword-types";
 import { clusterKeywordsWithAI, type KeywordCluster } from "@/lib/keyword-clustering";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
-import { Button } from "@/ui";
+import { Button, Card, Badge, Progress, Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui";
 
 interface SemanticKeywordsListProps {
   keywords: KeywordData[];
@@ -95,10 +91,6 @@ export function SemanticKeywordsList({
     }
   }, [keywords, openRouterApiKey, keywordsKey, isClustering, clusters, handleClusterKeywords]);
 
-  if (!keywords || keywords.length === 0) {
-    return null;
-  }
-
   const allSemantic = keywords.map(kw => kw.keyword);
   const allSelected = allSemantic.every(kw => selectedKeywords.has(kw));
   const selectedSemanticCount = keywords.filter(
@@ -176,6 +168,10 @@ export function SemanticKeywordsList({
       </div>
     );
   }, [selectedKeywords, onKeywordToggle]);
+
+  if (!keywords || keywords.length === 0) {
+    return null;
+  }
 
   return (
     <Card variant="neonFlat" className="p-4">

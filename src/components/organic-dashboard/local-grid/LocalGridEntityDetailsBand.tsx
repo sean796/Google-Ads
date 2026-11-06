@@ -3,7 +3,7 @@ import { BulkSitemapInventoryRunDetail } from "@/components/keyword-research/bul
 import {
   downloadAllHostedInventoryFiles,
   hostedInventoryDownloads,
-} from "@/components/keyword-research/bulk/SitemapInventoryLinksList";
+} from "@/components/keyword-research/bulk/sitemap-inventory-downloads";
 import { OverviewStudioGeneratedFilesBand } from "@/components/overview/studio/OverviewStudioGeneratedFilesBand";
 import {
   buildEntityBatchPrepHarnessSections,

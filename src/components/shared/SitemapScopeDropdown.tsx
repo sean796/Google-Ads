@@ -1,6 +1,5 @@
 
 import { generatorTitleRowPrimarySelectSlotProps } from "@/components/blog-generator/generator-title-row-select-width";
-import { WORKSPACE_PRIMARY_SELECT_SLOT_CLASS, sitemapScopeDropdownReserveProps } from "@/components/shared/workspace-primary-select-styles";
 import { SelectField } from "@/ui";
 
 export type SitemapScopeDropdownOption = {
@@ -16,11 +15,6 @@ export type SitemapScopeDropdownProps = {
   ariaLabel: string;
   disabled?: boolean;
 };
-
-/** @deprecated Use {@link sitemapScopeDropdownReserveProps}. */
-export const SITEMAP_SCOPE_DROPDOWN_SLOT_CLASS = WORKSPACE_PRIMARY_SELECT_SLOT_CLASS;
-
-export { sitemapScopeDropdownReserveProps };
 
 export function SitemapScopeDropdown({
   options,

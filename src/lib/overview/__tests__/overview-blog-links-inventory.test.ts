@@ -9,14 +9,14 @@ describe("buildBlogLinksSiteLinkPoolFromRows", () => {
         url: "https://example.com/blog/tax-tips/",
         slug: "tax-tips",
         collection: "posts",
-        fields: { title: "Tax Tips" },
+        fields: { title: "Tax Tips", meta: "", keyword: "" },
       },
       {
         id: 2,
         url: "https://example.com/wealth-management/",
         slug: "wealth-management",
         collection: "pages",
-        fields: { title: "Wealth Management" },
+        fields: { title: "Wealth Management", meta: "", keyword: "" },
       },
     ]);
 

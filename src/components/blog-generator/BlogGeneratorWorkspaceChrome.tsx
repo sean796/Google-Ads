@@ -5,7 +5,7 @@ import {
   getBlogGeneratorSectionMeta,
   type BlogGeneratorSectionId,
 } from "@/components/blog-generator/blog-generator-sections";
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import type { MetaBulkActionKey, BulkProgressSlice } from "@/components/overview/overview-tab-constants";
 export type BlogGeneratorWorkspaceChromeProps = {
   activeSection: BlogGeneratorSectionId;

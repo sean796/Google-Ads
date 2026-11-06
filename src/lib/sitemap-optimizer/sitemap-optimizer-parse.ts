@@ -100,14 +100,26 @@ const mergeRecommendationSchema = z
     };
   });
 
+/**
+ * Parse a cluster model response. Throws on missing or invalid JSON so a
+ * failed call is an explicit error, not an all-singletons result that looks
+ * like "no merges found".
+ */
 export function parseClusterResultJson(content: string): SitemapOptimizerClusterResult {
   const sub = extractFirstBalancedJsonValue(content);
-  if (!sub) return { clusters: [], singletons: [] };
+  if (!sub) {
+    throw new Error("Sitemap cluster response contained no JSON");
+  }
+  let raw: unknown;
   try {
-    const raw = JSON.parse(sub) as unknown;
+    raw = JSON.parse(sub) as unknown;
+  } catch {
+    throw new Error("Sitemap cluster response was not valid JSON");
+  }
+  try {
     return clusterResultSchema.parse(raw);
   } catch {
-    return { clusters: [], singletons: [] };
+    throw new Error("Sitemap cluster response did not match the cluster schema");
   }
 }
 
@@ -139,7 +151,7 @@ const standaloneProposalEntrySchema = z
     rationale: z.string().optional(),
   })
   .transform((p) => {
-    const action: "refresh" | "keep" = "refresh";
+    const action: "refresh" | "keep" = p.action === "keep" ? "keep" : "refresh";
     return {
       postId: String(p.postId ?? "").trim(),
       action,
@@ -160,15 +172,22 @@ const standaloneRefreshBatchSchema = z
 
 export function parseStandaloneRefreshBatchJson(content: string): SitemapOptimizerStandaloneProposal[] {
   const sub = extractFirstBalancedJsonValue(content);
-  if (!sub) return [];
+  if (!sub) {
+    throw new Error("Standalone proposal response contained no JSON");
+  }
+  let raw: unknown;
   try {
-    const raw = JSON.parse(sub) as unknown;
+    raw = JSON.parse(sub) as unknown;
+  } catch {
+    throw new Error("Standalone proposal response was not valid JSON");
+  }
+  try {
     if (Array.isArray(raw)) {
       return z.array(standaloneProposalEntrySchema).parse(raw);
     }
     return standaloneRefreshBatchSchema.parse(raw);
   } catch {
-    return [];
+    throw new Error("Standalone proposal response did not match the proposal schema");
   }
 }
 

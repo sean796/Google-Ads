@@ -13,6 +13,7 @@ const site: WordPressSite = {
   siteUrl: "https://example.com",
   username: "u",
   appPassword: "p",
+  connectedAt: 0,
 };
 
 function sapRow(slug: string, url?: string): SiteInventoryBulkRow {
@@ -21,7 +22,7 @@ function sapRow(slug: string, url?: string): SiteInventoryBulkRow {
     slug,
     url: url ?? `https://example.com/${slug}/`,
     collection: "service-area",
-    fields: { title: "Plum Coulee page" },
+    fields: { title: "Plum Coulee page", meta: "", keyword: "" },
   };
 }
 

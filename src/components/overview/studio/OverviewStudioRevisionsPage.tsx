@@ -4,12 +4,12 @@ import type { OverviewRow } from "@/components/overview/overview-meta-row-types"
 import {
   OverviewRevisionComparePanes,
   OverviewRevisionListItem,
-  triggerRevisionsJsonDownload,
 } from "@/components/overview/studio/overview-revision-compare-ui";
+import { OverviewStudioRevisionsReportPanel } from "@/components/overview/studio/OverviewStudioRevisionsReport";
 import {
-  OverviewStudioRevisionsReportPanel,
   printOverviewStudioRevisionsReport,
-} from "@/components/overview/studio/OverviewStudioRevisionsReport";
+  triggerRevisionsJsonDownload,
+} from "@/components/overview/studio/overview-revision-helpers";
 import {
   generateOverviewStudioRevisionsReport,
   reportItemForRevision,

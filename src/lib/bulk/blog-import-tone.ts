@@ -95,10 +95,8 @@ export async function analyzeImportedBlogTone(args: {
     const { content } = await callOpenRouterChatCompletion({
       apiKey: args.apiKey,
       model: args.model ?? getProductionModel(),
-      messages: [
-        { role: "system", content: TONE_SYSTEM },
-        { role: "user", content: user },
-      ],
+      system: TONE_SYSTEM,
+      user,
       temperature: 0.2,
       maxTokens: 900,
       signal: args.signal,

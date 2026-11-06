@@ -125,7 +125,7 @@ export function applyStreamEvent(state: WorkflowState, evt: AssistStreamEvent): 
       s.step_kind === "lead"
         ? { ...s, status: evt.state === "running" ? "running" : evt.state === "done" ? "done" : s.status }
         : s.step_kind === "agent" && s.status === "running"
-          ? { ...s, status: "done" }
+          ? { ...s, status: "done" as const }
           : s,
     );
     return { ...state, steps };
@@ -342,7 +342,7 @@ export async function consumeAssistNdjsonStream(
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  let pendingChips: AssistStreamEvent | null = null;
+  let pendingChips: Extract<AssistStreamEvent, { status: "chips" }> | null = null;
   let sawDone = false;
 
   while (true) {
@@ -393,7 +393,7 @@ async function handleStreamEvent(
   evt: AssistStreamEvent,
   handlers: StreamHandlers,
   ackShownAtRef: { value: number },
-  setPendingChips: (evt: AssistStreamEvent) => void,
+  setPendingChips: (evt: Extract<AssistStreamEvent, { status: "chips" }>) => void,
 ): Promise<void> {
   if (evt.status === "ack" && evt.text) {
     handlers.onEvent?.(evt);
@@ -436,7 +436,7 @@ export async function processNdjsonEvents(
   handlers: StreamHandlers,
   ackShownAtRef: { value: number },
 ): Promise<void> {
-  let pendingChips: AssistStreamEvent | null = null;
+  let pendingChips: Extract<AssistStreamEvent, { status: "chips" }> | null = null;
   let workflow = INITIAL_WORKFLOW;
 
   for (const raw of lines) {

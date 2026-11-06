@@ -16,6 +16,7 @@ function chainWorkflow(nodes: WorkflowNode[]): WorkflowDefinition {
     id: 10,
     teamId: 1,
     name: "Chain",
+    status: "draft",
     nodes,
     edges,
     ragVariables: [],

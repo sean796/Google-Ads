@@ -179,7 +179,7 @@ describe("serviceKeywordForSapTitle", () => {
     const entity = "Municipality of Rhineland, Altona, MB";
     const keyword = "window treatments municipality of rhineland altona";
     const title = resolveEntitySapTitleFromTemplate(keyword, entity);
-    expect(title).toBe("window treatments Near Municipality of Rhineland, Altona, MB");
+    expect(title).toBe("Window Treatments Near Municipality Of Rhineland, Altona");
     expect(title.toLowerCase().match(/municipality of rhineland/g)?.length).toBe(1);
   });
 });

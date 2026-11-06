@@ -109,6 +109,7 @@ describe("organic-dashboard-google-ads", () => {
         currencyCode: "CAD",
         customerId: "1234567890",
         dailySeries: [],
+        budgetPacing: null,
       },
       true,
     );
@@ -138,6 +139,7 @@ describe("organic-dashboard-google-ads", () => {
         currencyCode: "CAD",
         customerId: "1234567890",
         dailySeries: [],
+        budgetPacing: null,
       },
       true,
     );

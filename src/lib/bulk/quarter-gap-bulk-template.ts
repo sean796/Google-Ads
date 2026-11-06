@@ -286,10 +286,9 @@ export async function runQuarterGapBulkTemplateDownload(options: {
   const quarterLabel = quarterStats.quarterLabel;
 
   onProgress?.("Fetching WordPress post and page inventory…");
-  const inventoryOpts = { includeRawAcf: true } as const;
   const [postsInv, pagesInv] = await Promise.all([
-    getSitePostInventory(site.siteUrl, user, pass, inventoryOpts),
-    getSitePageInventory(site.siteUrl, user, pass, inventoryOpts),
+    getSitePostInventory(site.siteUrl, user, pass),
+    getSitePageInventory(site.siteUrl, user, pass),
   ]);
 
   if (postsInv.error) {

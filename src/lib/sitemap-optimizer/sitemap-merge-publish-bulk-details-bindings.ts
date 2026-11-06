@@ -1,4 +1,4 @@
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import type { BulkGeneratorDetailsPanelProps } from "@/components/keyword-research/bulk/BulkGeneratorDetailsPanel";
 import type { BulkHarnessSectionUi } from "@/hooks/use-bulk-auto-generate";
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";

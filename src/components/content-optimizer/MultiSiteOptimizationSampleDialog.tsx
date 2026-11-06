@@ -1,13 +1,7 @@
 import React, { useEffect, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+
 import { takeRandomSample } from "@/lib/wordpress-optimization-package";
-import { Button, Field } from "@/ui";
+import { Button, Field, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/ui";
 
 export interface MultiSiteOptimizationSamplePayload {
   siteName: string;

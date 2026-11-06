@@ -4,6 +4,7 @@ import { ActionButton, Button, Field } from "@/ui";
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
 import { NOTIFY_REDIRECT_URI_COPIED } from "@/lib/notify-messages";
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import {
   openGoogleAdsAuthorize,
   useGoogleAdsConnectionStatus,
@@ -44,7 +45,7 @@ export function GoogleAdsSettingsContent() {
       const response = await fetch(backendApiUrl("/google-ads/test-and-save"), {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           developerToken: developerToken.trim(),
           mccId: mccInput.trim(),
@@ -72,7 +73,7 @@ export function GoogleAdsSettingsContent() {
       const response = await fetch(backendApiUrl("/google-ads/test"), {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({}),
       });
       const data = await response.json().catch(() => ({}));

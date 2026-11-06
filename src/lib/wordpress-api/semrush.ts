@@ -1,11 +1,12 @@
 import { backendApiUrl } from './connection';
 import { loadSemrushApiKeyForAppRequests } from '@/lib/api';
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 function semrushRequestHeaders(): HeadersInit {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers = neoPulseApiHeaders({ 'Content-Type': 'application/json' });
   const key = loadSemrushApiKeyForAppRequests();
   if (key) {
-    headers['X-Semrush-Api-Key'] = key;
+    headers.set('X-Semrush-Api-Key', key);
   }
   return headers;
 }
@@ -60,7 +61,7 @@ export async function fetchSemrushBulkEnrichment(params: {
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(body),
     });
     const data = (await response.json()) as SemrushBulkEnrichmentResult & { error?: string };
@@ -105,7 +106,7 @@ export async function fetchSemrushSiteAuditUrl(params: {
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         pageUrl: params.pageUrl,
         projectId: params.projectId,
@@ -160,7 +161,7 @@ export async function matchSemrushProjectForSite(siteUrl: string): Promise<Semru
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ siteUrl }),
     });
     const data = (await response.json()) as Record<string, unknown>;
@@ -207,7 +208,7 @@ export async function fetchSemrushAuditAiContext(params: {
   try {
     const response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         filename: params.filename,
         maxChars: params.maxChars,

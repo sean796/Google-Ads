@@ -1,6 +1,6 @@
 import { loadApiKey } from "@/lib/api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
-import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
+import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
 
 export interface InterpretedSemTask {
   lineIndex: number;
@@ -81,9 +81,8 @@ Return JSON array of { lineIndex, url, suggestedAction, rawLine, checklist } for
   }
 
   try {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const response = await postOpenRouterAppChatFetch({
       method: "POST",
-      headers: openRouterWebAppHeaders(apiKey),
       body: JSON.stringify({
         model,
         messages: [

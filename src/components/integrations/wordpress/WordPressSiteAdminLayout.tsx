@@ -76,7 +76,10 @@ export function WordPressSiteAdminLayout<T extends string = WordPressSiteAdminSe
   lockTabMinHeight = false,
   propertyTabContentShell = false,
 }: WordPressSiteAdminLayoutProps<T>) {
-  const visibleSections = sections.filter((s) => s.visible !== false);
+  const visibleSections = React.useMemo(
+    () => sections.filter((s) => s.visible !== false),
+    [sections]
+  );
   const firstVisible = visibleSections[0]?.id ?? defaultSectionId;
   const defaultVisible = visibleSections.some((s) => s.id === defaultSectionId)
     ? defaultSectionId
@@ -99,7 +102,7 @@ export function WordPressSiteAdminLayout<T extends string = WordPressSiteAdminSe
         setInternalActive(defaultVisible);
       }
     }
-  }, [activeSectionId, defaultVisible, visibleSectionKey, isControlled, onActiveSectionChange]);
+  }, [activeSectionId, defaultVisible, visibleSectionKey, isControlled, onActiveSectionChange, visibleSections]);
 
   const setActiveSectionId = React.useCallback(
     (id: T) => {
@@ -153,7 +156,7 @@ export function WordPressSiteAdminLayout<T extends string = WordPressSiteAdminSe
       panelMinHeightRef.current = max;
       setPanelMinHeight(max);
     }
-  }, [visibleSectionKey, displayViewportHeight, layoutFlex, propertyShell]);
+  }, [visibleSectionKey, displayViewportHeight, layoutFlex, propertyShell, visibleSections]);
 
   const [sideNavCollapsed, setSideNavCollapsed] = React.useState(false);
 

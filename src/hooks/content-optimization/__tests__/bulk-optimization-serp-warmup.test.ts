@@ -1,5 +1,13 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { createBulkSerpWarmupController } from "../bulk-optimization-serp-warmup";
+import type { BulkOptimizationState } from "../use-optimization-state";
+
+const emptyBatch = (): BulkOptimizationState => ({
+  urls: [],
+  currentIndex: 0,
+  urlStatuses: {},
+  currentStep: "",
+});
 import { hasSubstantiveSeoResearch } from "../bulk-optimization-missing-seo-research";
 
 const fetchBrief = vi.fn();
@@ -27,7 +35,7 @@ describe("createBulkSerpWarmupController", () => {
     ]);
     const pending = new Map<number, { pending: Record<string, unknown>; primaryKeyword: string }>();
     const skipUrlSet = new Set<string>();
-    let batchState: Record<string, unknown> = {};
+    let batchState: BulkOptimizationState = emptyBatch();
 
     const controller = createBulkSerpWarmupController({
       urls,
@@ -36,9 +44,10 @@ describe("createBulkSerpWarmupController", () => {
       muteToasts: true,
       prefetchedAcfFieldsCache: acf,
       prefetchedPendingCache: pending,
-      setBulkOptimizationState: (updater) => {
-        batchState = updater({ "site-batch": batchState })["site-batch"] as Record<string, unknown>;
-        return { "site-batch": batchState };
+      setBulkOptimizationState: (action) => {
+        if (typeof action === "function") {
+          batchState = action({ "site-batch": batchState })["site-batch"]!;
+        }
       },
     });
 
@@ -80,7 +89,9 @@ describe("createBulkSerpWarmupController", () => {
       muteToasts: true,
       prefetchedAcfFieldsCache: acf,
       prefetchedPendingCache: pending,
-      setBulkOptimizationState: (updater) => updater({ "site-batch": {} }),
+      setBulkOptimizationState: (action) => {
+        if (typeof action === "function") action({ "site-batch": emptyBatch() });
+      },
     });
 
     await expect(controller.ensureReady(0)).rejects.toThrow(/keyword_focus is required/i);
@@ -102,7 +113,9 @@ describe("createBulkSerpWarmupController", () => {
       muteToasts: true,
       prefetchedAcfFieldsCache: acf,
       prefetchedPendingCache: pending,
-      setBulkOptimizationState: (updater) => updater({ "site-batch": {} }),
+      setBulkOptimizationState: (action) => {
+        if (typeof action === "function") action({ "site-batch": emptyBatch() });
+      },
     });
 
     await expect(controller.ensureReady(0)).rejects.toThrow("DataForSEO unavailable");
@@ -124,7 +137,9 @@ describe("createBulkSerpWarmupController", () => {
       muteToasts: true,
       prefetchedAcfFieldsCache: acf,
       prefetchedPendingCache: pending,
-      setBulkOptimizationState: (updater) => updater({ "site-batch": {} }),
+      setBulkOptimizationState: (action) => {
+        if (typeof action === "function") action({ "site-batch": emptyBatch() });
+      },
     });
 
     controller.seedReadyFromAcf();

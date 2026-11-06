@@ -5,7 +5,7 @@ import type {
   OptimizationProgressState,
 } from "@/hooks/content-optimization/use-optimization-state";
 import type { BulkHarnessSectionUi } from "@/hooks/use-bulk-auto-generate";
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import type { BulkGeneratedFile } from "@/lib/bulk-file-manager";
 import type { CSVRow } from "@/lib/bulk-auto-generate";
 import {
@@ -50,7 +50,7 @@ import {
 import {
   CONTENT_OPTIMIZER_BULK_PAGE_SIZE,
   contentOptimizerBulkUsesPagination,
-} from "@/lib/content-optimizer/content-optimizer-bulk-page-size";
+} from "@/lib/content-optimization/content-optimizer-bulk-page-size";
 
 export type ContentOptimizerBulkGeneratorBindingsInput = {
   siteId: string;

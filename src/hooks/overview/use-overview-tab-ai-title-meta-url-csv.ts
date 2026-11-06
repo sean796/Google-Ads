@@ -10,6 +10,7 @@ import {
 } from "@/lib/overview/overview-redirect-row";
 import { buildOverviewRowsCsvForDownload } from "@/lib/export-overview-rows-csv";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import { overviewTitlePrimarySegment } from "@/lib/overview/overview-tab-display";
 import type { WordPressSite } from "@/components/integrations/types";
@@ -152,9 +153,9 @@ export function useOverviewTabAiTitleMetaUrlCsv({
       });
     };
     try {
-      await mapOverviewAiCopyWithConcurrency(eligible, (i) =>
-        handleAiTitleRow(i, undefined, { skipOptimizeTitleLoading: true }).finally(bump),
-      );
+      await mapOverviewAiCopyWithConcurrency(eligible, async (i) => {
+        await handleAiTitleRow(i, undefined, { skipOptimizeTitleLoading: true }).finally(bump);
+      });
     } finally {
       setBulkActionProgress((p) => {
         const next = { ...p };
@@ -200,7 +201,7 @@ export function useOverviewTabAiTitleMetaUrlCsv({
         try {
           const ctxRes = await fetch(`${BACKEND_API_BASE}/api/gsc/quick-wins-context`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
             body: JSON.stringify({ filename: gscFilenameForMeta, pageUrl: pageUrlForGsc }),
           });
           const ctxJson = await ctxRes.json().catch(() => null);
@@ -258,9 +259,9 @@ export function useOverviewTabAiTitleMetaUrlCsv({
       });
     };
     try {
-      await mapOverviewAiCopyWithConcurrency(indices, (i) =>
-        handleAiMetaRow(i, undefined, { skipOptimizeMetaLoading: true }).finally(bump),
-      );
+      await mapOverviewAiCopyWithConcurrency(indices, async (i) => {
+        await handleAiMetaRow(i, undefined, { skipOptimizeMetaLoading: true }).finally(bump);
+      });
     } finally {
       setBulkActionProgress((p) => {
         const next = { ...p };
@@ -438,6 +439,7 @@ export function useOverviewTabAiTitleMetaUrlCsv({
       setOverviewMetaCsvExportBusy(false);
     }
   }, [
+    rows,
     bulkScopeUrlKeys,
     site,
     bindings,

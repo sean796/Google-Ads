@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { CSVRow } from "@/lib/bulk/bulk-csv-parser";
 import { postCreatorPayloadFromContract } from "@/lib/post-creator/post-creator-agent-harness";
 import { applyUpstreamContextToPostCreatorPayload } from "@/lib/workflow/upstream-research-facts";
 
@@ -33,16 +34,17 @@ describe("useUpstreamContext", () => {
   });
 
   it("leaves row keyword and URL in place when the flag is off", () => {
+    const prefilledImportRows: CSVRow[] = [
+      {
+        keyword: "window blinds",
+        title: "Window blinds",
+        destination_url: "https://example.com/blinds/",
+        seo_research: "Prairie sun",
+      },
+    ];
     const payload = applyUpstreamContextToPostCreatorPayload({
       useUpstreamContext: false,
-      prefilledImportRows: [
-        {
-          keyword: "window blinds",
-          title: "Window blinds",
-          destination_url: "https://example.com/blinds/",
-          seo_research: "Prairie sun",
-        },
-      ],
+      prefilledImportRows,
     });
     expect(payload.prefilledImportRows?.[0]?.prompt_modifier).toBeUndefined();
     expect(payload.prefilledImportRows?.[0]?.keyword).toBe("window blinds");

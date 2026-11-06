@@ -22,7 +22,7 @@ import {
 } from "@/lib/bulk/blog-import-draft-links";
 import { markdownToHtml, generateExcerpt } from "@/lib/markdown-to-html";
 import { createWordPressPost } from "@/lib/wordpress-api";
-import { resolveEntityEndpointForRow } from "@/lib/competitor/competitor-entity-sitemap";
+import { resolveEntityEndpointForRow } from "@/lib/competitor-research/competitor-entity-sitemap";
 import { acfCompetitorAppliesForRow } from "@/lib/acf-competitor-applies";
 import { loadApiKey } from "@/lib/api";
 import {

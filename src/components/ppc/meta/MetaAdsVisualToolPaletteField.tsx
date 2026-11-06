@@ -1,7 +1,5 @@
-import {
-  MetaAdsColorColumnCell,
-  metaVisualColorColumnMode,
-} from "@/components/ppc/meta/MetaAdsColorPaletteField";
+import { MetaAdsColorColumnCell } from "@/components/ppc/meta/MetaAdsColorPaletteField";
+import { metaVisualColorColumnMode } from "@/components/ppc/meta/meta-visual-color-palette";
 import {
   cloneVisualToolPalette,
   emptyVisualToolPalette,
@@ -180,8 +178,4 @@ export function MetaAdsVisualToolPaletteField({
       })}
     </div>
   );
-}
-
-export function clonePaletteForEdit(palette: MetaAdVisualToolPalette): MetaAdVisualToolPalette {
-  return cloneVisualToolPalette(palette);
 }

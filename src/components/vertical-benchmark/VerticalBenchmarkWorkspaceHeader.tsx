@@ -22,6 +22,7 @@ import type {
   BenchmarkPipelineProgress,
 } from "@/lib/vertical-benchmark/vertical-benchmark-pipeline-types";
 import type { ContentTypeFilter } from "@/hooks/vertical-benchmark/use-vertical-benchmark-controller";
+import type { BenchmarkBulkTemplateDownloadResult } from "@/lib/vertical-benchmark/vertical-benchmark-bulk-template";
 import { Button, Field, FileInput, SelectField, TextButton } from "@/ui";
 
 const DETAILS_PANEL_ID = "vertical-benchmark-details-panel";
@@ -32,7 +33,10 @@ export type VerticalBenchmarkWorkspaceHeaderProps = {
   tagFilter: string;
   onTagFilterChange: (value: string) => void;
   tagFilterOptions: string[];
-  onCreateBulkTemplate: () => void | Promise<void>;
+  onCreateBulkTemplate: (opts?: {
+    skipAutoDownload?: boolean;
+    blogCountOverride?: number;
+  }) => Promise<BenchmarkBulkTemplateDownloadResult | null>;
   onDownloadBulkTemplate: () => void;
   canDownloadBulkTemplate: boolean;
   onGridCsvFile: (file: File | null) => void | Promise<void>;

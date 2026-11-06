@@ -1,4 +1,5 @@
 import { parseClarifyJson } from "@/lib/flow-freeform/flow-freeform-prompts";
+import { PRODUCT_VISION_MODEL } from "@/lib/video-generator/video-model-defaults";
 import type { FlowFreeformClarifyResult } from "@/lib/flow-freeform/flow-freeform-types";
 import {
   callAgentCategoryOpenRouterChat,
@@ -35,7 +36,7 @@ import {
 } from "./video-model-defaults";
 
 /** Director agent: clarifies the brief, then writes the scene plan. Uses Gemini multimodal vision when a reference clip is attached. */
-export const DIRECTOR_VIDEO_VISION_MODEL = "google/gemini-2.5-flash";
+export const DIRECTOR_VIDEO_VISION_MODEL = PRODUCT_VISION_MODEL;
 
 export function hasAttachedReferenceVideo(brief: VideoBrief): boolean {
   const clip = brief.referenceVideo;

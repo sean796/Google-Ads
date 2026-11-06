@@ -78,7 +78,7 @@ export function downloadBacklinkBulkCsv(rows: CSVRow[], filenameBase: string): v
     return;
   }
   const csvContent = buildBacklinkBulkCsvContent(filtered);
-  const safeBase = filenameBase.replace(/[^\w\-]+/g, "-").slice(0, 80) || "backlink-bulk";
+  const safeBase = filenameBase.replace(/[^\w-]+/g, "-").slice(0, 80) || "backlink-bulk";
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -133,7 +133,7 @@ export function createBulkTemplateDownloadArtifact(
   const filtered = rows.filter((r) => r.keyword?.trim() && r.title?.trim());
   if (filtered.length === 0) return null;
   const csvContent = buildBulkAutoGenerateTemplateCsv(filtered, csvOptions);
-  const safeBase = filenameBase.replace(/[^\w\-]+/g, "-").slice(0, 80) || "bulk-pitch";
+  const safeBase = filenameBase.replace(/[^\w-]+/g, "-").slice(0, 80) || "bulk-pitch";
   const stamp = new Date().toISOString().slice(0, 10);
   const filename = `${safeBase}-${stamp}.csv`;
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });

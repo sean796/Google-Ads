@@ -1,4 +1,6 @@
 import { injectImportedLinksIntoChecklist } from "./blog-import-draft-links";
+import { loadApiKey } from "@/lib/api";
+import { buildPreBlogSeoResearchSkeleton } from "@/lib/content-generation/bulk-acf-seo-bundle";
 import type { ImportedDraftLink } from "./blog-import-draft-links";
 import { injectEntityWikipediaIntoChecklist } from "./entity-wikipedia-prompt";
 import {
@@ -17,6 +19,7 @@ import type { KeywordData } from "../keyword-types";
 import { BulkFileManager, type BulkGeneratedFile } from "../bulk-file-manager";
 import { sanitizeWordPressSlugSegment } from "../rank-math-redirect-csv";
 import { bulkPostsToExtraTextLinkRows, emitEntitySapPipelineHarnessDone } from "@/lib/bulk/bulk-harness-progress";
+import type { BulkInternalLinkRow } from "@/lib/bulk/bulk-harness-progress";
 import type { SeoContentBriefV1 } from "@/lib/overview-seo-content-brief";
 import type { BulkProcessingOptions } from "./bulk-auto-generate-types";
 import type { CSVRow } from "./bulk-csv-parser";
@@ -91,10 +94,10 @@ export async function runBulkRowChecklistAndBlueprintPhase(input: {
   semrushKeywordsContext?: string;
   semrushScatterContext?: string;
 }): Promise<BulkRowChecklistBlueprintPhaseResult> {
-  let {
+  let { enrichedRow } = input;
+  const {
     rowIndex,
     row,
-    enrichedRow,
     keywordData,
     options,
     fileManager,
@@ -136,7 +139,7 @@ export async function runBulkRowChecklistAndBlueprintPhase(input: {
     options.onProgress?.(rowIndex, 0, 'Generating checklist...');
     const prosePrimaryKeyword = resolveBulkPrimaryKeyword(row, enrichedRow, keywordData, enrichedRow.title);
 
-    let checklistResult = await generateChecklistFromSelections(
+    const checklistResult = await generateChecklistFromSelections(
       selectedKeywords,
       selectedH2Sections,
       enrichedRow.title,
@@ -153,7 +156,7 @@ export async function runBulkRowChecklistAndBlueprintPhase(input: {
         selectedPeopleAlsoAsk,
         selectedResearchLinks,
         connectedSite,
-        postsForInternalLinks,
+        wordPressPosts: postsForInternalLinks,
         runExternalResearch: rowExplicitExternalPairs.length > 0,
         locationName: bulkRowSerpLocationName(enrichedRow),
         languageCode: "en",

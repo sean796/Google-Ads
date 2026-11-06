@@ -1,4 +1,5 @@
 import { parseSitemap, getPublishedPosts } from '../wordpress-api';
+import { getResearchModel } from "@/lib/optimization-settings-storage";
 import type { WordPressSite } from '@/components/integrations/types';
 import { extractEndpointFromEntitySitemapUrl } from '../entity-endpoint-extractor';
 import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
@@ -169,7 +170,7 @@ What is the service nickname that appears in the majority of these titles? Retur
     const serviceName = data.choices?.[0]?.message?.content?.trim() || '';
     
     // Clean up the response
-    let cleaned = serviceName
+    const cleaned = serviceName
       .replace(/["']/g, '')
       .replace(/^service\s*:\s*/i, '')
       .replace(/^nickname\s*:\s*/i, '')

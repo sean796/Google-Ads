@@ -123,7 +123,7 @@ export async function runGscReportingAgentHarness(
   const check = periodProgress
     ? validateGscPrimaryFetchRange(compareRangeDraft.primary)
     : validateGscCompareFetchRanges(compareRangeDraft.primary, compareRangeDraft.compare);
-  if (!check.ok) {
+  if (check.ok === false) {
     throw new Error(check.error);
   }
   const progressMonthCount = countCalendarMonthsInRange(

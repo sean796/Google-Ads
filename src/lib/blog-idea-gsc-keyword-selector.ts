@@ -1,7 +1,7 @@
 import { isBlockedContentTopicPhrase } from "./content-topic-blocklist";
 import { isNonEnglishKeyword, filterAndRankQueriesWithAI } from "./gsc-query-processor";
 import { getResearchModel } from "./optimization-settings-storage";
-import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
+import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
 
 export interface GSCQuery {
   query: string;
@@ -140,9 +140,8 @@ ${blogTopic ? `\n**TOPIC**: "${blogTopic}" - Keywords should relate to this topi
 
 Select exactly ${numberOfBlogs} primary keywords and 3-5 related keywords for each. Prioritize keywords that are contextually relevant to the site AND align with the purpose/topic. Return the JSON object with selectedKeywords array.`;
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const response = await postOpenRouterAppChatFetch({
       method: "POST",
-      headers: openRouterWebAppHeaders(apiKey),
       body: JSON.stringify({
         model,
         messages: [

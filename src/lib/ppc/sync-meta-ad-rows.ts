@@ -5,7 +5,7 @@ export function syncMetaAdRowsToCount(
   targetCount: number,
   defaultColorPalette?: MetaAdColorPalette,
 ): MetaAdRow[] {
-  let next = [...rows];
+  const next = [...rows];
 
   while (next.length < targetCount) {
     next.push({

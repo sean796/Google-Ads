@@ -9,8 +9,8 @@ describe("activeBlogImportPhaseIndex", () => {
   it("matches pipeline phases by prefix", () => {
     expect(activeBlogImportPhaseIndex("Sending local file to OpenRouter...")).toBe(0);
     expect(activeBlogImportPhaseIndex("Running keyword research...")).toBe(1);
-    expect(activeBlogImportPhaseIndex("Analyzing imported draft tone & voice...")).toBe(2);
-    expect(activeBlogImportPhaseIndex("Generating blog content (harness: one section at a time)...")).toBe(5);
+    expect(activeBlogImportPhaseIndex("Analyzing imported draft tone & voice...")).toBe(3);
+    expect(activeBlogImportPhaseIndex("Generating blog content (harness: one section at a time)...")).toBe(6);
   });
 
   it("returns -1 for unknown phase", () => {
@@ -47,7 +47,7 @@ describe("blogImportHeaderProgressFromBulk", () => {
       harnessSections: [],
     });
     expect(progress?.harnessActive).toBe(false);
-    expect(activeBlogImportPhaseIndex(progress!.phase)).toBe(3);
+    expect(activeBlogImportPhaseIndex(progress!.phase)).toBe(4);
   });
 
   it("prefers csv row counts when processing", () => {

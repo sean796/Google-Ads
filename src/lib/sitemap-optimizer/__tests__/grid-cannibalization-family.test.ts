@@ -217,7 +217,7 @@ describe("clusterRedirectMapForOneToOne", () => {
 });
 
 describe("applyGridOutputPolicies", () => {
-  it("dedupes content sheet for near-duplicate topics with distinct new_urls", () => {
+  it("keeps one-row-per-upload clusters separate in 1:1 redirect-map mode", () => {
     const rows = [
       redirectRow({
         id: "csv:1",
@@ -246,8 +246,8 @@ describe("applyGridOutputPolicies", () => {
       analyzedAt: "2026-06-01T00:00:00.000Z",
     });
 
-    expect(outClusters.clusters).toHaveLength(1);
-    expect(contentSheet).toHaveLength(1);
+    expect(outClusters.clusters).toHaveLength(2);
+    expect(contentSheet).toHaveLength(2);
   });
 });
 

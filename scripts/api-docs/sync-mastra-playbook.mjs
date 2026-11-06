@@ -5,9 +5,9 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..", "..");
-const PLAYBOOK_DIR = path.join(ROOT, "docs", "api", "mastra", "playbook");
-const INDEX_PATH = path.join(ROOT, "docs", "api", "mastra", "playbook-index.md");
-const MANIFEST_JSON_PATH = path.join(ROOT, "docs", "api", "mastra", "playbook-manifest.json");
+const PLAYBOOK_DIR = path.join(ROOT, "docs", "api", "pulse-engine", "playbook");
+const INDEX_PATH = path.join(ROOT, "docs", "api", "pulse-engine", "playbook-index.md");
+const MANIFEST_JSON_PATH = path.join(ROOT, "docs", "api", "pulse-engine", "playbook-manifest.json");
 
 const GROUP_CONFIG = [
   {
@@ -192,25 +192,25 @@ export async function syncMastraPlaybook() {
   const manifestEntries = [];
   let order = 40;
 
-  const indexSlug = "mastra/playbook-index";
+  const indexSlug = "pulse-engine/playbook-index";
   const indexFrontmatter = [
     "---",
-    'title: "Mastra Playbook: Complete Index (llms.txt)"',
+    'title: "Pulse Engine Playbook: Complete Index (vendored Mastra llms.txt)"',
     `slug: ${indexSlug}`,
-    "section: Mastra",
+    "section: Pulse Engine",
     `order: ${order}`,
     "related:",
-    "  - mastra/overview",
-    "  - mastra/playbook/agents-and-subagents",
-    "  - mastra/playbook/workflows",
-    "  - mastra/playbook/harness",
-    "  - mastra/playbook/reference-agents-and-tools",
-    "  - mastra/playbook/reference-workflows-core-and-memory",
+    "  - pulse-engine/overview",
+    "  - pulse-engine/playbook/agents-and-subagents",
+    "  - pulse-engine/playbook/workflows",
+    "  - pulse-engine/playbook/harness",
+    "  - pulse-engine/playbook/reference-agents-and-tools",
+    "  - pulse-engine/playbook/reference-workflows-core-and-memory",
     "---",
     "",
     "<!-- manual -->",
     "",
-    "Complete Mastra documentation index (`https://mastra.ai/llms.txt`) and local playbook map for NEO Pulse coding agents. Every Mastra playbook domain and core API reference is scraped and stored locally under `docs/api/mastra/playbook/*.md` so coding agents can read exact TypeScript signatures, schemas, and patterns offline without external fetches.",
+    "Vendored upstream Mastra documentation index (`https://mastra.ai/llms.txt`) and local playbook map for NEO Pulse coding agents. These pages are the design reference for the local Pulse Engine (`src/lib/agent-pipeline/`); NEO Pulse does not run `@mastra/core`. Every playbook domain and core API reference is stored locally under `docs/api/pulse-engine/playbook/*.md` so coding agents can read exact TypeScript signatures, schemas, and patterns offline without external fetches.",
     "",
     "## Local Playbook Files for Coding Agents",
     "",
@@ -218,7 +218,7 @@ export async function syncMastraPlaybook() {
     "| --- | --- | --- |",
     ...GROUP_CONFIG.map(
       (g) =>
-        `| \`docs/api/mastra/playbook/${g.key}.md\` | \`mastra/playbook/${g.key}\` | ${g.title} |`
+        `| \`docs/api/pulse-engine/playbook/${g.key}.md\` | \`pulse-engine/playbook/${g.key}\` | ${g.title} |`
     ),
     "",
     "## Canonical Mastra `llms.txt` Index",
@@ -237,7 +237,7 @@ export async function syncMastraPlaybook() {
   for (const group of GROUP_CONFIG) {
     order += 10;
     const groupPages = fetchedPages.filter((p) => group.match(p.rel));
-    const slug = `mastra/playbook/${group.key}`;
+    const slug = `pulse-engine/playbook/${group.key}`;
     const filePath = path.join(PLAYBOOK_DIR, `${group.key}.md`);
 
     const tocRows = groupPages.map(
@@ -261,13 +261,13 @@ export async function syncMastraPlaybook() {
       "---",
       `title: "${group.title}"`,
       `slug: ${slug}`,
-      "section: Mastra",
+      "section: Pulse Engine",
       `order: ${order}`,
       "related:",
-      "  - mastra/overview",
-      "  - mastra/playbook-index",
-      "  - mastra/workflows-and-steps",
-      "  - mastra/agents-and-models",
+      "  - pulse-engine/overview",
+      "  - pulse-engine/playbook-index",
+      "  - pulse-engine/workflows-and-steps",
+      "  - pulse-engine/agents-and-models",
       "---",
       "",
       "<!-- manual -->",

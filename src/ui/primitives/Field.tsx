@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Input, type InputProps } from "@/components/ui/input";
+import { Input, type InputProps } from "@/ui/vendor/input";
 import { cn } from "@/lib/utils";
 import { UI_FIELD } from "@/ui/tokens";
 

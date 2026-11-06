@@ -1,12 +1,10 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { useCallback, useState } from "react";
-import { ActionButton, Button, Field, TextareaField } from "@/ui";
-import { Dialog, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  SupportChatLogAttachment,
-  supportChatLogFileName,
-} from "@/components/support/SupportChatLogAttachment";
+import { ActionButton, Button, Field, TextareaField, Dialog, DialogFooter, DialogHeader, DialogTitle } from "@/ui";
+
+import { SupportChatLogAttachment } from "@/components/support/SupportChatLogAttachment";
+import { supportChatLogFileName } from "@/components/support/support-chat-log-helpers";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
 import { usePulseAssistContext } from "@/contexts/pulse-assist-context";

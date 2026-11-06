@@ -22,6 +22,7 @@ const site: WordPressSite = {
   siteUrl: "https://example.com",
   username: "u",
   appPassword: "p",
+  connectedAt: 0,
   enabled: true,
   connectionStatus: "success",
 };
@@ -48,6 +49,10 @@ function warmBundle(overrides?: Partial<EntitySiteWarmBundle>): EntitySiteWarmBu
         sap: { json: "[]", rowCount: 0 },
       },
       links: [],
+      totalRows: 1,
+      sources: [],
+      errors: {},
+      postsMetadata: [],
     },
     gsc: {
       queries: [],

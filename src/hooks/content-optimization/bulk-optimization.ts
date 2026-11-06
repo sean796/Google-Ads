@@ -6,7 +6,13 @@ import { buildMergedLinkPoolRows, buildWordPressPagesForLinkingFromInventory } f
 import { clearSiteCache, seedSiteCacheFromLinkablePosts } from "@/lib/wordpress-site-cache";
 import { clearValidationCache } from "@/lib/cached-link-validation";
 import { clearRelevanceCache } from "@/lib/content-generation/ai-link-relevance-filter";
-import type { HandleOptimizeMultipleContentParams } from "./bulk-optimization-params";
+import type {
+  BooleanMapSetter,
+  HandleOptimizeMultipleContentParams,
+} from "./bulk-optimization-params";
+import type { Dispatch, SetStateAction } from "react";
+import type { GSCQuery } from "@/lib/gsc-query-clustering";
+import type { PendingOptimization } from "./use-optimization-state";
 import { OptimizationFileManager } from "@/lib/optimization-file-manager";
 import { seedBulkUrlKeywordsFromCaches } from "./bulk-optimization-seed-keywords";
 import {
@@ -38,7 +44,7 @@ import {
   CONTENT_OPTIMIZER_BULK_PAGE_SIZE,
   contentOptimizerBulkPageRanges,
   contentOptimizerBulkUsesPagination,
-} from "@/lib/content-optimizer/content-optimizer-bulk-page-size";
+} from "@/lib/content-optimization/content-optimizer-bulk-page-size";
 import {
   buildContentPrepUrlHarnessMap,
   type ContentPrepHarnessSetters,
@@ -90,7 +96,7 @@ function bulkRunCancelRequested(
   setBulkOptimizationState: HandleOptimizeMultipleContentParams["setBulkOptimizationState"],
 ): boolean {
   let cancelled = false;
-  setBulkOptimizationState((prev: any) => {
+  setBulkOptimizationState((prev) => {
     if (prev[batchKey]?.cancelRequested) cancelled = true;
     return prev;
   });
@@ -141,7 +147,7 @@ export async function handleOptimizeMultipleContent(
   }
 
   let researchBatchBlocked = false;
-  setBulkOptimizationState((prev: Record<string, { runKind?: string }>) => {
+  setBulkOptimizationState((prev) => {
     if (prev[batchKey]?.runKind === "research") {
       researchBatchBlocked = true;
     }
@@ -167,7 +173,7 @@ export async function handleOptimizeMultipleContent(
   const waitingBatchPrepHarnessSections = () =>
     buildWaitingBatchPrepHarnessSections(batchPrepSectionTitles);
 
-  const pendingOptimizationData: Record<string, any> = {};
+  const pendingOptimizationData: Record<string, PendingOptimization> = {};
   const bulkContextRef: { current: { bulkIndex: number; totalBulkUrls: number; batchKey: string } | null } = {
     current: null,
   };
@@ -175,11 +181,20 @@ export async function handleOptimizeMultipleContent(
     number,
     { pending: Record<string, unknown>; primaryKeyword: string }
   >();
-  const prefetchedAcfFieldsCache = new Map<number, Record<string, any>>();
+  const prefetchedAcfFieldsCache = new Map<number, Record<string, unknown>>();
   const prefetchedPostPayloadByUrlIndex = new Map<number, WpPostSnapshotFromAcfByUrl>();
   const prefetchedAcfFullPostByUrlIndex = new Map<number, Record<string, unknown>>();
-  const setPendingOptimization = (updater: (prev: any) => any) => {
-    const updated = updater(pendingOptimizationData);
+  const setPendingOptimization: Dispatch<
+    SetStateAction<Record<string, PendingOptimization>>
+  > = (action) => {
+    const updated =
+      typeof action === "function"
+        ? (
+            action as (
+              prev: Record<string, PendingOptimization>,
+            ) => Record<string, PendingOptimization>
+          )(pendingOptimizationData)
+        : action;
     Object.assign(pendingOptimizationData, updated);
     const ctx = bulkContextRef.current;
     if (ctx && pendingOptimizationData[site.id] && typeof pendingOptimizationData[site.id] === "object") {
@@ -195,9 +210,9 @@ export async function handleOptimizeMultipleContent(
     ...continueOptimizationRef,
     current: async (
       siteId: string,
-      selectedKeyword: any,
+      selectedKeyword: GSCQuery,
       clusterKeywords?: string[],
-      setIsKeywordSelectionOpen?: (prev: any) => any,
+      setIsKeywordSelectionOpen?: BooleanMapSetter,
       testMode?: boolean,
       secondaryKeywords?: string[]
     ) => {
@@ -230,7 +245,7 @@ export async function handleOptimizeMultipleContent(
   const bulkPageRanges = contentOptimizerBulkPageRanges(urls.length);
   const bulkUsesPagination = contentOptimizerBulkUsesPagination(urls.length);
 
-  setBulkOptimizationState((prev: any) => {
+  setBulkOptimizationState((prev) => {
     const existing = prev[batchKey];
     const batchPrepHarnessSections = waitingBatchPrepHarnessSections();
     const articleTitleByUrl = articleTitleByUrlFromPosts(urls, wordPressPosts, prefilledUrlKeywords);
@@ -308,7 +323,7 @@ export async function handleOptimizeMultipleContent(
     const files = fm.getFiles();
     if (!files || files.length === 0) return;
 
-    setBulkOptimizationState((prev: any) => {
+    setBulkOptimizationState((prev) => {
       const current = prev[batchKey];
       if (!current) return prev;
       return {
@@ -349,7 +364,7 @@ export async function handleOptimizeMultipleContent(
           : bucket === "posts"
             ? snapshot.postsMaps.byLink.size
             : snapshot.pagesMaps.byLink.size;
-    setBulkOptimizationState((prev: any) => {
+    setBulkOptimizationState((prev) => {
       const current = prev[batchKey];
       if (!current) return prev;
       const waitingSections = waitingBatchPrepHarnessSections();
@@ -366,6 +381,10 @@ export async function handleOptimizeMultipleContent(
           ...current,
           batchPrepHarnessSections: nextSections,
           currentStepProgress: {
+            stepId: "prepInventory" as const,
+            subProgress: 0,
+            step: "prepInventory",
+            progress: 0,
             ...(current.currentStepProgress || {}),
             harnessSections: nextSections,
             harnessPlannedSectionCount: batchPrepHarnessTotalSections,
@@ -383,7 +402,7 @@ export async function handleOptimizeMultipleContent(
   ) => {
     const progress = computePrepProgress(stepId, subProgress);
     updateOptimizationProgress(setOptimizationProgress, batchKey, stepId, subProgress, message);
-    setBulkOptimizationState((prev: any) => {
+    setBulkOptimizationState((prev) => {
       const current = prev[batchKey];
       if (!current) return prev;
       const activeUrl = (current.currentUrl || urls[current.currentIndex ?? 0] || urls[0] || "").trim();
@@ -619,14 +638,17 @@ export async function handleOptimizeMultipleContent(
   );
 
   if (wordPressPostsForRun.length > 0) {
-    setPendingOptimization((prev: any) => ({
-      ...prev,
-      wordPressPosts: wordPressPostsForRun,
-      wordPressPagesForOfferTable,
-    }));
+    // Legacy pseudo-keys on the pending map (link pools), read by older flows only.
+    setPendingOptimization((prev) =>
+      ({
+        ...prev,
+        wordPressPosts: wordPressPostsForRun,
+        wordPressPagesForOfferTable,
+      }) as unknown as Record<string, PendingOptimization>,
+    );
   }
 
-  let siteServiceContext: string | null = null;
+  const siteServiceContext: string | null = null;
 
   if (!useInventoryOnlyPrep) {
     throw new Error(
@@ -652,7 +674,7 @@ export async function handleOptimizeMultipleContent(
 
   const setBulkPageState = (page: number) => {
     if (!bulkUsesPagination) return;
-    setBulkOptimizationState((prev: any) => {
+    setBulkOptimizationState((prev) => {
       const current = prev[batchKey];
       if (!current) return prev;
       return {
@@ -683,7 +705,7 @@ export async function handleOptimizeMultipleContent(
     bulkMeta: { totalUrls: urls.length, completedUrls: 0, prepComplete: true },
   });
 
-  setBulkOptimizationState((prev: any) => {
+  setBulkOptimizationState((prev) => {
     const current = prev[batchKey];
     if (!current) return prev;
     return {

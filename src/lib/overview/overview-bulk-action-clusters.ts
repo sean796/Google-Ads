@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { notify } from "@/lib/app-notifications";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import type { OverviewTabController } from "@/hooks/overview/use-overview-tab-controller";
 import { isActiveBulkProgressSlice } from "@/lib/overview/overview-bulk-inline-status";
 
@@ -413,6 +414,7 @@ export function buildOverviewBulkActionClusters(
             const filename = c.gscQuickWinsFile;
             const res = await fetch(
               `${BACKEND_API_BASE}/api/gsc/quick-wins-csv/${encodeURIComponent(filename)}`,
+              { headers: neoPulseApiHeaders() },
             );
             if (!res.ok) {
               const text = await res.text();

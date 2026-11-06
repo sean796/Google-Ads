@@ -17,6 +17,7 @@ import {
 import type {
   BenchmarkInventoryHostedLink,
   BenchmarkPipelineProgress,
+  BenchmarkPipelineStep,
 } from "@/lib/vertical-benchmark/vertical-benchmark-pipeline-types";
 import {
   applyCustomTagsFromSites,
@@ -80,13 +81,13 @@ export function useVerticalBenchmarkController(openRouterApiKey: string) {
     [sites],
   );
 
-  const tagPreset = useMemo(() => applyCustomTagsFromSites(sites), [sitesKey]);
+  const tagPreset = useMemo(() => applyCustomTagsFromSites(sites), [sites]);
   const clientTagBySiteId = tagPreset.tagBySiteId;
   const clientTagLabelBySiteId = tagPreset.labelBySiteId;
 
   const labeledSites = useMemo(
     () => sites.filter((s) => Boolean(readSiteBenchmarkCustomTag(s))),
-    [sitesKey],
+    [sites],
   );
 
   const tagFilterOptions = useMemo(() => {
@@ -121,7 +122,7 @@ export function useVerticalBenchmarkController(openRouterApiKey: string) {
   }, [tagFilterOptions, connectedTagLabel]);
 
   const rosterSites = useMemo(() => {
-    let list = tagFilter
+    const list = tagFilter
       ? labeledSites.filter((s) => clientTagLabelBySiteId[s.id] === tagFilter)
       : [];
     list.sort((a, b) => {
@@ -191,7 +192,7 @@ export function useVerticalBenchmarkController(openRouterApiKey: string) {
     const contentKinds = resolveBenchmarkContentKinds(contentTypeFilter);
     const contentLabel = benchmarkContentKindLabel(contentKinds);
 
-    let gscSteps = toExport.map((s) => ({
+    let gscSteps: BenchmarkPipelineStep[] = toExport.map((s) => ({
       id: `gsc-${s.id}`,
       label: `GSC top 10 — ${s.name}`,
       status: "waiting" as const,
@@ -419,7 +420,7 @@ export function useVerticalBenchmarkController(openRouterApiKey: string) {
       try {
         const text = await file.text();
         const result = await parseBenchmarkGridCsv(text, file.size);
-        if (!result.ok) {
+        if (result.ok === false) {
           notify.error(result.error);
           return;
         }
@@ -435,7 +436,7 @@ export function useVerticalBenchmarkController(openRouterApiKey: string) {
         setGridCsvParsing(false);
       }
     },
-    [openRouterApiKey],
+    [],
   );
 
   const clearGridCsv = useCallback(() => {

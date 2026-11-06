@@ -1,4 +1,5 @@
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import type { CompetitorKeywordRow } from "@/lib/competitor-research/types";
 
 export type SeedRankedKeywordsResponse = {
@@ -18,7 +19,7 @@ export async function fetchSeedRankedKeywordsForSite(siteUrl: string): Promise<S
   const url = `${base}/api/dataforseo/seed-ranked-keywords`;
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ siteUrl: siteUrl ?? "" }),
   });
   const j = (await res.json()) as { error?: string } & Partial<SeedRankedKeywordsResponse>;

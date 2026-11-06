@@ -1,6 +1,6 @@
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import type { WordPressSite } from "@/components/integrations/types";
-import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
+import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
 
 function parseJsonObject(raw: string): Record<string, unknown> | null {
   let text = raw.trim();
@@ -38,9 +38,8 @@ export async function resolveGbpTopicKeyword(
       ? `Recent site content titles:\n${recentPostTitles.slice(0, 12).map((t, i) => `${i + 1}. ${t}`).join("\n")}`
       : "No recent post titles available.";
 
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  const res = await postOpenRouterAppChatFetch({
     method: "POST",
-    headers: openRouterWebAppHeaders(apiKey),
     body: JSON.stringify({
       model: getResearchModel(site.id),
       messages: [
@@ -62,7 +61,9 @@ export async function resolveGbpTopicKeyword(
   if (!res.ok) {
     return site.name?.trim() || "local business";
   }
-  const data = await res.json().catch(() => ({}));
+  const data = (await res.json().catch(() => ({}))) as {
+    choices?: { message?: { content?: string } }[];
+  };
   const content = data?.choices?.[0]?.message?.content;
   if (typeof content !== "string") {
     return site.name?.trim() || "local business";

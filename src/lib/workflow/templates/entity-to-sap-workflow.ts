@@ -1,10 +1,11 @@
 import type { AutomationPlan } from "@/lib/automation-planner-types";
+import type { TaskExecutionPayload } from "@/lib/tasks-types";
 import { automationPlanToWorkflowGraph } from "@/lib/workflow/workflow-migrate-from-planner";
 import type { WorkflowDefinition } from "@/lib/workflow/workflow-types";
 
 export const ENTITY_TO_SAP_RECIPE_KEYWORD = "entity-to-sap-monthly";
 
-const ENTITY_GENERATOR_PAYLOAD = {
+const ENTITY_GENERATOR_PAYLOAD: TaskExecutionPayload = {
   locationSource: "grid",
   gridInputSource: "workflow",
   entityAdGroupCount: 3,
@@ -18,7 +19,7 @@ const ENTITY_GENERATOR_PAYLOAD = {
   saveLocalArchive: true,
 };
 
-const SAP_GENERATOR_PAYLOAD = {
+const SAP_GENERATOR_PAYLOAD: TaskExecutionPayload = {
   entityAdGroupCount: 3,
   entityAdsPerGroup: 5,
   entityPageCount: 15,
@@ -42,6 +43,7 @@ export function buildEntityToSapWorkflowDraft(
   siteId?: string | null,
 ): Omit<WorkflowDefinition, "id" | "createdAt" | "updatedAt" | "publishedAt"> {
   const plan: AutomationPlan = {
+    keyword: ENTITY_TO_SAP_RECIPE_KEYWORD,
     name: "Entity to SAP pages",
     description: "Generate entity CSV rows, then hydrate and schedule SAP pages.",
     trigger: {

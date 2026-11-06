@@ -315,7 +315,7 @@ function buildServerProofSnapshot(
   for (const artifact of artifacts) {
     const stepKey = artifact.stepKey?.trim() ?? "";
     const parsed = parseServerPostStepKey(stepKey);
-    let rowIndex = parsed?.rowIndex ?? inferRowIndexFromStepKey(stepKey);
+    const rowIndex = parsed?.rowIndex ?? inferRowIndexFromStepKey(stepKey);
     let slotKey = parsed ? serverPhaseToProofSlot(parsed.phase) : null;
     if (!slotKey && artifact.name) {
       slotKey = artifactSlotFromFileName(artifact.name);
@@ -684,7 +684,7 @@ export function syncPostCreatorContentBucketProof(
   runId: number,
   files: readonly PostCreatorContentBucketFile[],
 ): PostCreatorProofSnapshot | null {
-  let entry = proofByRunId.get(runId);
+  const entry = proofByRunId.get(runId);
   if (!entry) return null;
   entry.contentBucketFiles = contentBucketFilesToHosted(runId, files).map((file) => ({
     bucket: file.id.replace("content-bucket-", ""),

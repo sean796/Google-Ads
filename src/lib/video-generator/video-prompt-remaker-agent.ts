@@ -1,4 +1,5 @@
 import { postOpenRouterAppChat } from "@/lib/openrouter-app-api";
+import { PRODUCT_VISION_MODEL, VIDEO_PROMPT_REMAKER_PRO_MODEL } from "@/lib/video-generator/video-model-defaults";
 import { getOpenRouterApiKeyForApp, resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
 import { callAgentCategoryOpenRouterChat } from "@/lib/openrouter-agent-category-api";
 import { parseJsonObjectFromModelText } from "@/lib/openrouter-vision-chat";
@@ -237,7 +238,7 @@ Return ONLY valid JSON.`;
   try {
     const res = await postOpenRouterAppChat({
       apiKey,
-      model: "google/gemini-2.5-flash",
+      model: PRODUCT_VISION_MODEL,
       messages: [
         { role: "system", content: buildPromptRemakerSystemPrompt() },
         { role: "user", content: userContent },
@@ -253,7 +254,7 @@ Return ONLY valid JSON.`;
     try {
       const resPro = await postOpenRouterAppChat({
         apiKey,
-        model: "google/gemini-2.5-pro",
+        model: VIDEO_PROMPT_REMAKER_PRO_MODEL,
         messages: [
           { role: "system", content: buildPromptRemakerSystemPrompt() },
           { role: "user", content: userContent },

@@ -55,7 +55,7 @@ export const DraftRecoveryDialog: React.FC<DraftRecoveryDialogProps> = ({
               <p className="mt-2 text-base text-muted-foreground">{draft.blueprint.purpose}</p>
             )}
             <p className="mt-2 text-base text-muted-foreground">
-              {draft.blueprint.agents.length} agent(s) configured
+              {draft.blueprint.flowFreeform.sections.length} agent(s) configured
             </p>
           </div>
         </div>

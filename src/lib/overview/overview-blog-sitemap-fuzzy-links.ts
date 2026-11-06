@@ -299,7 +299,7 @@ export async function resolveSitemapFuzzyLinkPool(args: {
           title: r.fields?.title,
           slug: r.slug,
           collection: r.collection,
-          focusKeyword: r.fields?.keyword || r.fields?.focus_keyword,
+          focusKeyword: r.fields?.keyword,
           excerpt: r.fields?.excerpt || r.fields?.meta,
         });
       }
@@ -313,7 +313,7 @@ export async function resolveSitemapFuzzyLinkPool(args: {
           title: r.fields?.title,
           slug: r.slug,
           collection: r.collection,
-          focusKeyword: r.fields?.keyword || r.fields?.focus_keyword,
+          focusKeyword: r.fields?.keyword,
           excerpt: r.fields?.excerpt || r.fields?.meta,
         });
       }

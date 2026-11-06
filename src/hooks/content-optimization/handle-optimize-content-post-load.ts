@@ -10,6 +10,7 @@ import {
 } from "./optimization-helpers";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { HandleOptimizeContentParams } from "./handle-optimize-content-params";
+import type { WpExistingPostLike } from "./use-optimization-state";
 
 function wpStr(v: unknown): string {
   if (v == null) return "";
@@ -57,12 +58,12 @@ export async function loadHandleOptimizePostAndIntent(params: {
   resolved:
     | { id: number; subtype: string; url: string; link: string; slug?: string; endpoint?: string }
     | undefined;
-  existingPost: any;
+  existingPost: WpExistingPostLike | null;
   existingTitle: string;
   existingContent: string;
   existingExcerpt: string;
   urlDerivedIntent: string | null;
-  acfPrefetch?: { fields: Record<string, any> };
+  acfPrefetch?: { fields: Record<string, unknown> };
 }> {
   const { site, url, resolvedPost, optimizationOptions, setOptimizationProgress, researchModel, openRouterApiKey } =
     params;
@@ -70,7 +71,7 @@ export async function loadHandleOptimizePostAndIntent(params: {
   let resolved:
     | { id: number; subtype: string; url: string; link: string; slug?: string; endpoint?: string }
     | undefined;
-  let existingPost: any = null;
+  let existingPost: WpExistingPostLike | null = null;
   let existingTitle = "";
   let existingContent = "";
   let existingExcerpt = "";
@@ -134,16 +135,16 @@ export async function loadHandleOptimizePostAndIntent(params: {
     );
     if (slugResult.posts && slugResult.posts.length > 0) {
       const post = slugResult.posts[0];
-      const endpoint = (post as any).postTypeEndpoint || "posts";
+      const endpoint = post.postTypeEndpoint || "posts";
       const subtype = endpoint === "pages" ? "page" : endpoint === "posts" ? "post" : endpoint;
       resolved = {
         id: post.id,
         subtype,
         url,
-        link: (post as any).link || post.link || url,
-        slug: (post as any).slug || post.slug || slug,
+        link: post.link || url,
+        slug: post.slug || slug,
       };
-      existingPost = post;
+      existingPost = { ...post };
       existingTitle = wpStr(post.title) || "";
       existingContent = wpStr(post.content) || "";
       existingExcerpt = wpStr(post.excerpt) || "";
@@ -156,7 +157,7 @@ export async function loadHandleOptimizePostAndIntent(params: {
     );
   }
 
-  let acfPrefetch: { fields: Record<string, any> } | undefined;
+  let acfPrefetch: { fields: Record<string, unknown> } | undefined;
 
   if (resolved && !existingPost) {
     const postTypeEndpoint =
@@ -210,8 +211,12 @@ export async function loadHandleOptimizePostAndIntent(params: {
       }
       if (postContentResult.errors && postContentResult.errors.length > 0) {
         const errorDetails = postContentResult.errors
-          .map((e: any) => {
-            const obj = e.resolvedObject || e;
+          .map((e) => {
+            const withResolved = e as typeof e & {
+              resolvedObject?: { subtype?: string; id?: number | string };
+            };
+            const obj: { subtype?: string; id?: number | string } =
+              withResolved.resolvedObject ?? e;
             return `Failed to fetch ${obj.subtype || "post"}/${obj.id}: ${e.error || "Unknown error"}`;
           })
           .join("; ");
@@ -222,7 +227,7 @@ export async function loadHandleOptimizePostAndIntent(params: {
           `Failed to fetch post content for ID: ${resolved.id}, Type: ${resolved.subtype}. Please verify the post exists and you have permission to access it.`
         );
       }
-      existingPost = postContentResult.posts[0];
+      existingPost = { ...postContentResult.posts[0] };
       existingTitle = wpStr(existingPost.title) || "";
       existingContent = wpStr(existingPost.content) || "";
       existingExcerpt = wpStr(existingPost.excerpt) || "";
@@ -231,7 +236,7 @@ export async function loadHandleOptimizePostAndIntent(params: {
 
   const manualKeyword = (optimizationOptions?.manualKeyword ?? "").trim();
 
-  let urlDerivedIntent: string | null = null;
+  const urlDerivedIntent: string | null = null;
 
   return {
     resolved,

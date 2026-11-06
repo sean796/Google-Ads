@@ -1,10 +1,8 @@
 import type { Dispatch, SetStateAction } from "react";
+import { harnessStepProgress, mergeOverviewHarnessProgress, mergeOverviewHarnessProgressSiteAndBatch } from "@/lib/overview/overview-harness-progress";
 import type { BulkHarnessSectionPayload } from "@/lib/bulk-auto-generate";
 import type { HarnessSectionListItem } from "@/lib/bulk/harness-sections-reducer";
-import {
-  mergeHarnessProgressSiteAndBatch,
-  mergeOptimizationProgress,
-} from "@/hooks/content-optimization/optimization-helpers-a";
+
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import {
   applyBatchPrepHarnessPayload,
@@ -89,7 +87,7 @@ export function setContentPrepBatchMessage(
 ): void {
   const { siteId, batchKey, setBulkOptimizationState, setOptimizationProgress } = setters;
   setOptimizationProgress((prev) =>
-    mergeOptimizationProgress(prev as Record<string, unknown>, siteId, { step, progress: 2, message }),
+    mergeOverviewHarnessProgress(prev as Record<string, unknown>, siteId, { step, progress: 2, message }),
   );
   setBulkOptimizationState((prev) => {
     const current = prev[batchKey];
@@ -99,14 +97,13 @@ export function setContentPrepBatchMessage(
       [batchKey]: {
         ...current,
         currentStep: step,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step,
           progress: 2,
           message,
           harnessSections: current.batchPrepHarnessSections ?? current.currentStepProgress?.harnessSections,
           harnessPlannedSectionCount: CONTENT_PREP_BATCH_HARNESS_TOTAL_SECTIONS,
-        },
+        }),
       },
     };
   });
@@ -141,19 +138,18 @@ export function markContentPrepBatchHarnessSection(
       [batchKey]: {
         ...nextBatch,
         currentProgress: latestProgress,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           progress: latestProgress,
           message: displayMessage,
           harnessSections: nextBatchSections,
           harnessPlannedSectionCount: CONTENT_PREP_BATCH_HARNESS_TOTAL_SECTIONS,
-        },
+        }),
       },
     };
   });
 
   setOptimizationProgress((prev) =>
-    mergeHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
       progress: latestProgress,
       message: displayMessage,
       harnessPlannedSectionCount: CONTENT_PREP_BATCH_HARNESS_TOTAL_SECTIONS,
@@ -192,19 +188,18 @@ function applyContentOptimizeHarnessToUrl(
         ...nextBatch,
         currentUrl: url,
         currentProgress: latestProgress,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           progress: latestProgress,
           message,
           harnessSections: nextUrlSections,
           harnessPlannedSectionCount: plannedCount,
-        },
+        }),
       },
     };
   });
 
   setOptimizationProgress((prev) =>
-    mergeHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
       progress: latestProgress,
       message,
       harnessPlannedSectionCount: pipelineTitles?.length ?? CONTENT_OPTIMIZE_PIPELINE_TOTAL,

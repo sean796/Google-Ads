@@ -5,7 +5,7 @@ export function syncSocialCreatorRowsToCount(
   targetCount: number,
   defaultColorPalette?: MetaAdColorPalette,
 ): SocialCreatorRow[] {
-  let next = [...rows];
+  const next = [...rows];
 
   while (next.length < targetCount) {
     next.push({

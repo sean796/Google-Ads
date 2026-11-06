@@ -111,7 +111,7 @@ export function computeGridGeographicFootprint(rows: LocalDominatorRow[]): GridG
 }
 
 /** Match "City, ST" segments in address lines (e.g. Phoenix, AZ). */
-const CITY_ST_IN_ADDRESS = /([A-Za-z][A-Za-z\s\.'-]{0,48}?),\s*([A-Z]{2})\b/g;
+const CITY_ST_IN_ADDRESS = /([A-Za-z][A-Za-z\s.'-]{0,48}?),\s*([A-Z]{2})\b/g;
 
 /** Normalize whitespace in a grid cell; do not truncate - full text is sent to the model. */
 export function normalizeGridEvidenceCell(s: string): string {
@@ -781,9 +781,9 @@ export function sampleGridRowsForAnalysis(
   const total = originalCount;
 
   const quotas = buckets.map(({ n }) => (maxRows * n) / total);
-  let seats = quotas.map((q) => Math.floor(q));
+  const seats = quotas.map((q) => Math.floor(q));
   let sumSeats = seats.reduce((a, b) => a + b, 0);
-  let remainder = maxRows - sumSeats;
+  const remainder = maxRows - sumSeats;
   const fracs = quotas.map((q, i) => ({ i, f: q - Math.floor(q) }));
   fracs.sort((a, b) => b.f - a.f);
   for (let k = 0; k < remainder && k < fracs.length; k++) {

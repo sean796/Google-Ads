@@ -1,12 +1,6 @@
 import { Bot, RotateCw, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui";
+
 import { UnifiedWorkspaceChrome } from "@/components/shared/UnifiedWorkspaceChrome";
 import { WorkspacePill } from "@/components/shared/WorkspacePill";
 import {

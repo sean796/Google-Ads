@@ -1,6 +1,6 @@
 import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+
 import { AutomationRecipeLibrary } from "@/components/manager/tasks/recipes/AutomationRecipeLibrary";
 import { FORGE_RECIPE_CARD_TILE_CLASS } from "@/components/manager/pulse-forge/forge-recipe-styles";
 import { defaultNodeLabel } from "@/lib/workflow/workflow-graph-utils";
@@ -9,7 +9,7 @@ import type { AutomationRecipeCatalogItem } from "@/lib/automation-recipes-types
 import type { WorkflowNodeKind } from "@/lib/workflow/workflow-types";
 import { WORKFLOW_THEN_KINDS } from "@/lib/workflow/workflow-types";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui";
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, Tabs, TabsContent, TabsList, TabsTrigger } from "@/ui";
 
 const TRIGGER_AGENT_KINDS: WorkflowNodeKind[] = [
   "trigger_manual",

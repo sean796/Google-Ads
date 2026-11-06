@@ -136,7 +136,10 @@ const AgentMailClassifierOutputSchema = z.object({
   ),
 });
 
-export const agentmailIntakeClassifierAgent = createPulseAgent({
+export const agentmailIntakeClassifierAgent = createPulseAgent<
+  z.infer<typeof AgentMailClassifierInputSchema>,
+  AgentMailIntakeClassification
+>({
   id: "workflow.agentmail.intake-classifier",
   label: "AgentMail Inbound Blog Request Classifier",
   category: "research",
@@ -146,7 +149,9 @@ export const agentmailIntakeClassifierAgent = createPulseAgent({
   maxTokens: 2000,
   responseFormat: { type: "json_object" },
   inputSchema: AgentMailClassifierInputSchema,
-  outputSchema: AgentMailClassifierOutputSchema,
+  // zod's static output widens to all-optional under this repo's non-strict tsconfig; the schema still validates at runtime via parse().
+  outputSchema:
+    AgentMailClassifierOutputSchema as z.ZodType<AgentMailIntakeClassification, z.ZodTypeDef, unknown>,
   buildSystemPrompt: () => CLASSIFY_SYSTEM,
   buildUserPrompt: (input) =>
     [

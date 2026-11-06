@@ -332,9 +332,11 @@ describe("buildOrganicDashboardViewModel", () => {
     expect(vm.hasSemrush).toBe(true);
     expect(vm.semrushSummary?.keywords).toBe("36");
     expect(vm.semrushSummary?.traffic).toBe("14");
-    expect(vm.semrushTrend).toHaveLength(2);
+    expect(vm.semrushTrend).toHaveLength(3);
     expect(vm.semrushTrend[0]?.label).toBe("2025-10");
     expect(vm.semrushTrend[1]?.semrushTraffic).toBe(12);
+    expect(vm.semrushTrend[2]?.label).toBe("2025-12");
+    expect(vm.semrushTrend[2]?.semrushTraffic).toBe(14);
     expect(vm.semrushKeywords).toHaveLength(2);
     expect(vm.semrushKeywords[0]?.phrase).toBe("calgary blinds");
     expect(vm.semrushKeywords[1]?.phrase).toBe("how to clean blinds properly");

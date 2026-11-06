@@ -16,7 +16,7 @@ const saveMock = vi.fn();
 const getMock = vi.fn().mockResolvedValue({ width: 720, height: 2400 });
 const toCanvasMock = vi.fn(() => ({ get: getMock }));
 const fromMock = vi.fn(() => ({ toCanvas: toCanvasMock }));
-const setMock = vi.fn(() => ({ from: fromMock }));
+const setMock = vi.fn((_options: unknown) => ({ from: fromMock }));
 const cleanupMock = vi.fn();
 
 vi.mock("html2pdf.js", () => ({
@@ -58,10 +58,19 @@ const emptyVm: OrganicDashboardViewModel = {
   semrushOverviewUrl: "",
   semrushDomain: "",
   semrushDatabase: "us",
+  semrushLoadError: null,
   periodLabels: { primary: "Sep", compare: "Aug" },
+  reportStructure: "compare",
+  periodProgressTables: null,
   hasGa4: false,
   hasGsc: false,
   hasSemrush: false,
+  googleAdsSummary: null,
+  googleAdsTable: [],
+  googleAdsDailyChart: [],
+  googleAdsLoadError: null,
+  googleAdsBudgetPacing: null,
+  hasGoogleAds: false,
 };
 
 function sampleContent() {
@@ -73,6 +82,7 @@ function sampleContent() {
       performanceNarrative: [],
       keywordNarrative: [],
       googleAdsNarrative: [],
+      localGridNarrative: [],
       topOpportunities: [],
     },
     siteName: "Blind Magic",

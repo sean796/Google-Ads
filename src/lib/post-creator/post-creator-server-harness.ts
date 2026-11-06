@@ -1,7 +1,7 @@
 import type { WordPressSite } from "@/components/integrations/types";
 import { AGENT_RUN_STEP_KEYS } from "@/lib/agent-runs/agent-run-step-keys";
 import { checkpointFieldsFromStepPayload, readAgentRunCheckpoint } from "@/lib/agent-runs/agent-run-checkpoint";
-import type { AgentRun, AgentRunResumePoint } from "@/lib/agent-runs-types";
+import type { AgentRun, AgentRunCheckpoint, AgentRunResult, AgentRunResumePoint, AgentRunServerCheckpoint } from "@/lib/agent-runs-types";
 import {
   postCreatorPayloadFromContract,
   runPostCreatorAgentHarness,
@@ -104,7 +104,10 @@ function resumePointFromCheckpoint(
         : "";
   if (workerPhase !== "bulk" && workerPhase !== "ideation") return null;
   return {
-    stepKey: AGENT_RUN_STEP_KEYS.bulkStart,
+    label: typeof checkpoint.lastStepLabel === "string" ? checkpoint.lastStepLabel : "Resume bulk generation",
+    status: "done",
+    createdAt: typeof checkpoint.lastStepAt === "string" ? checkpoint.lastStepAt : new Date().toISOString(),
+    stepIndex: 0,
     payload: {
       phase: workerPhase,
       rowIndex: typeof s.rowIndex === "number" ? s.rowIndex : 0,
@@ -186,7 +189,7 @@ export async function runPostCreatorServerJob(
               lastStepAt: stepAt,
               lastStepPayload: resumePayload,
               lastMessage: p.label,
-              server: mergeWorkerServerCheckpoint(run, resumePayload ?? {}),
+              server: mergeWorkerServerCheckpoint(run, resumePayload ?? {}) as AgentRunServerCheckpoint,
             },
           },
         });
@@ -215,9 +218,9 @@ export async function runPostCreatorServerJob(
         uploadedPosts: harnessResult.uploadedPosts,
         blockedRows: harnessResult.blockedRows,
         checkpoint: {
-          server: { orchestratorPhase: "done", phase: "done" },
-        },
-      },
+          server: { orchestratorPhase: "done", phase: "done" } as AgentRunServerCheckpoint,
+        } as AgentRunCheckpoint,
+      } as AgentRunResult,
       step: {
         label: "Complete",
         status: "done",

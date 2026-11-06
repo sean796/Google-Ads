@@ -1,8 +1,6 @@
 import { Film } from "lucide-react";
-import {
-  BULK_HEADER_RUN_BTN,
-  BULK_TOOLBAR_GROUP_DIVIDER,
-} from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
+import { BULK_TOOLBAR_GROUP_DIVIDER } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
+import { UnifiedWorkspaceChrome } from "@/components/shared/UnifiedWorkspaceChrome";
 import type {
   StoryboardFrame,
   VideoBrief,
@@ -12,7 +10,6 @@ import type {
 import { type VideoAspect, type VideoLengthSeconds, type VideoResolution } from "@/lib/video-generator/video-model-defaults";
 import { type VideoGeneratorStep } from "./video-generator-steps";
 import { VideoWorkspaceFileMenu, VideoWorkspaceSettingsMenu } from "./VideoWorkspaceHeaderMenus";
-import { cn } from "@/lib/utils";
 import { Button } from "@/ui";
 
 export type VideoWorkspaceHeaderProps = {
@@ -78,7 +75,7 @@ export function VideoWorkspaceHeader(props: VideoWorkspaceHeaderProps) {
   const totalScenes = plan?.scenes.length ?? 0;
 
   const statusText = working
-    ? status || "Processing…"
+    ? status || "Processing"
     : render
       ? render.status === "done"
         ? `Final cut ready (${totalScenes} scenes)`
@@ -90,59 +87,62 @@ export function VideoWorkspaceHeader(props: VideoWorkspaceHeaderProps) {
           : costLabel;
 
   return (
-    <header className="flex h-12 w-full shrink-0 items-center gap-2 bg-black px-3 text-base">
-      <div className="flex shrink-0 items-center gap-2 pr-1">
-        <Film className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-        <span className="font-semibold tracking-tight text-white">Video Studio</span>
-      </div>
+    <UnifiedWorkspaceChrome
+      icon={Film}
+      title="Video Studio"
+      workspaceBusy={working}
+      progressBand="empty"
+      toolbar={
+        <>
+          <VideoWorkspaceFileMenu
+            working={working}
+            plan={plan}
+            render={render}
+            renderActive={renderActive}
+            onReset={onReset}
+            onExportJson={onExportJson}
+            onImportJson={onImportJson}
+            onExportZip={onExportZip}
+            onRegenerateProductViews={onRegenerateProductViews}
+            onRegeneratePlan={onRegeneratePlan}
+            onSyncAllFramesFromReferenceVideo={onSyncAllFramesFromReferenceVideo}
+            hasReferenceVideo={hasReferenceVideo}
+            onRestitch={onRestitch}
+          />
 
-      <div className={BULK_TOOLBAR_GROUP_DIVIDER} aria-hidden />
+          <div className={BULK_TOOLBAR_GROUP_DIVIDER} aria-hidden />
 
-      <VideoWorkspaceFileMenu
-        working={working}
-        plan={plan}
-        render={render}
-        renderActive={renderActive}
-        onReset={onReset}
-        onExportJson={onExportJson}
-        onImportJson={onImportJson}
-        onExportZip={onExportZip}
-        onRegenerateProductViews={onRegenerateProductViews}
-        onRegeneratePlan={onRegeneratePlan}
-        onSyncAllFramesFromReferenceVideo={onSyncAllFramesFromReferenceVideo}
-        hasReferenceVideo={hasReferenceVideo}
-        onRestitch={onRestitch}
-      />
+          <VideoWorkspaceSettingsMenu
+            working={working}
+            brief={brief}
+            videoModel={videoModel}
+            modelLabel={modelLabel}
+            onVideoModelChange={onVideoModelChange}
+            onLengthChange={onLengthChange}
+            onAspectChange={onAspectChange}
+            onResolutionChange={onResolutionChange}
+          />
 
-      <VideoWorkspaceSettingsMenu
-        working={working}
-        brief={brief}
-        videoModel={videoModel}
-        modelLabel={modelLabel}
-        onVideoModelChange={onVideoModelChange}
-        onLengthChange={onLengthChange}
-        onAspectChange={onAspectChange}
-        onResolutionChange={onResolutionChange}
-      />
+          <div className="ml-auto flex min-w-0 items-center gap-3">
+            {!working ? (
+              <div className="hidden min-w-0 items-center break-words text-base text-muted-foreground lg:flex">
+                <span className="break-words tabular-nums">{statusText}</span>
+              </div>
+            ) : null}
 
-      <div className="ml-auto flex min-w-0 items-center gap-3">
-        {!working ? (
-          <div className="hidden min-w-0 items-center break-words text-base text-muted-foreground lg:flex">
-            <span className="break-words tabular-nums">{statusText}</span>
+            {primaryAction ? (
+              <Button
+                variant="run"
+                type="button"
+                disabled={primaryAction.disabled}
+                onClick={primaryAction.onClick}
+              >
+                <span className="break-words">{primaryAction.label}</span>
+              </Button>
+            ) : null}
           </div>
-        ) : null}
-
-        {primaryAction ? (
-          <Button
-            variant="run"
-            type="button"
-            disabled={primaryAction.disabled}
-            onClick={primaryAction.onClick}
-          >
-            <span className="break-words">{primaryAction.label}</span>
-          </Button>
-        ) : null}
-      </div>
-    </header>
+        </>
+      }
+    />
   );
 }

@@ -1,4 +1,5 @@
 import { postOpenRouterAppChat, type OpenRouterAppMessage } from '@/lib/openrouter-app-api';
+import { GEMINI_FLASH_LITE_MODEL } from "@/lib/global-agent-models";
 import { getDecisionModel } from '@/lib/optimization-settings-storage';
 import { resolveOpenRouterApiKeyForHarness } from '@/lib/openrouter-api-key-resolve';
 import type {
@@ -119,7 +120,7 @@ export async function evaluateDecisionBatch(
   apiKeyOverride?: string,
 ): Promise<DecisionBatchResponse> {
   const model = getDecisionModel(siteId);
-  const apiKey = apiKeyOverride?.trim() || resolveOpenRouterApiKeyForHarness() || '';
+  const apiKey = apiKeyOverride?.trim() || (await resolveOpenRouterApiKeyForHarness()) || '';
 
   const system = buildDecisionModelSystemPrompt(payload.questions);
   const user = buildDecisionEvaluationUserMessage(payload);
@@ -141,11 +142,11 @@ export async function evaluateDecisionBatch(
     rawOutput = res.content || '';
   } catch (err) {
     console.warn(`[DecisionModel] API call failed for model ${model}, trying high-availability fallback:`, err);
-    if (model !== 'google/gemini-2.5-flash-lite') {
+    if (model !== GEMINI_FLASH_LITE_MODEL) {
       try {
         const fallbackRes = await postOpenRouterAppChat({
           apiKey,
-          model: 'google/gemini-2.5-flash-lite',
+          model: GEMINI_FLASH_LITE_MODEL,
           messages,
           temperature: 0.1,
           maxTokens: 1200,
@@ -160,7 +161,7 @@ export async function evaluateDecisionBatch(
   const results: Record<string, QuestionResult> = {};
 
   // Parse JSON response
-  let parsed: Record<string, any> = {};
+  let parsed: Record<string, unknown> = {};
   try {
     const cleaned = rawOutput
       .replace(/^```json\s*/i, '')
@@ -184,37 +185,49 @@ export async function evaluateDecisionBatch(
 
   // Populate results for all requested questions with safe bounds
   for (const q of payload.questions) {
-    const item = parsed[q.id];
+    const item = parsed[q.id] as
+      | {
+          yesProbability?: unknown;
+          yes?: unknown;
+          reasoning?: unknown;
+          score?: unknown;
+          selectedOption?: unknown;
+          confidence?: unknown;
+        }
+      | number
+      | string
+      | undefined;
+    const itemObj = item && typeof item === "object" ? item : undefined;
     if (q.kind === 'noul') {
-      let prob = typeof item?.yesProbability === 'number' ? item.yesProbability : typeof item === 'number' ? item : 0.75;
-      if (typeof item?.yes === 'boolean') prob = item.yes ? 0.9 : 0.1;
+      let prob = typeof itemObj?.yesProbability === 'number' ? itemObj.yesProbability : typeof item === 'number' ? item : 0.75;
+      if (typeof itemObj?.yes === 'boolean') prob = itemObj.yes ? 0.9 : 0.1;
       prob = Math.max(0, Math.min(1, prob));
       results[q.id] = {
         kind: 'noul',
         yesProbability: prob,
-        reasoning: typeof item?.reasoning === 'string' ? item.reasoning : undefined,
+        reasoning: typeof itemObj?.reasoning === 'string' ? itemObj.reasoning : undefined,
       };
     } else if (q.kind === 'score') {
       const maxScore = q.maxScore ?? 3;
-      let score = typeof item?.score === 'number' ? item.score : typeof item === 'number' ? item : 2;
+      let score = typeof itemObj?.score === 'number' ? itemObj.score : typeof item === 'number' ? item : 2;
       score = Math.max(0, Math.min(maxScore, score));
       results[q.id] = {
         kind: 'score',
         score,
         maxScore,
-        reasoning: typeof item?.reasoning === 'string' ? item.reasoning : undefined,
+        reasoning: typeof itemObj?.reasoning === 'string' ? itemObj.reasoning : undefined,
       };
     } else {
       const allowed = q.options ?? [];
-      let selected = typeof item?.selectedOption === 'string' ? item.selectedOption : typeof item === 'string' ? item : allowed[0] || '';
+      let selected = typeof itemObj?.selectedOption === 'string' ? itemObj.selectedOption : typeof item === 'string' ? item : allowed[0] || '';
       if (!allowed.includes(selected) && allowed.length > 0) {
         selected = allowed[0];
       }
       results[q.id] = {
         kind: 'choice',
         selectedOption: selected,
-        confidence: typeof item?.confidence === 'number' ? Math.max(0, Math.min(1, item.confidence)) : 0.8,
-        reasoning: typeof item?.reasoning === 'string' ? item.reasoning : undefined,
+        confidence: typeof itemObj?.confidence === 'number' ? Math.max(0, Math.min(1, itemObj.confidence)) : 0.8,
+        reasoning: typeof itemObj?.reasoning === 'string' ? itemObj.reasoning : undefined,
       };
     }
   }

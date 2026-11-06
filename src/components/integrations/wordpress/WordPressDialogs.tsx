@@ -24,6 +24,7 @@ export interface WordPressSiteFormDialogsProps {
   formBenchmarkCustomTag: string;
   formPrimaryLocalKeyword: string;
   formClientLogoUrl: string;
+  formClientLogoBoxTheme: "black" | "white";
   formProfileTags: string[];
   formServiceCity: string;
   formServiceState: string;
@@ -46,6 +47,7 @@ export interface WordPressSiteFormDialogsProps {
   onFormBenchmarkCustomTagChange: (value: string) => void;
   onFormPrimaryLocalKeywordChange: (value: string) => void;
   onFormClientLogoUrlChange: (value: string) => void;
+  onFormClientLogoBoxThemeChange: (value: "black" | "white") => void;
   onFormProfileTagsChange: (tags: string[]) => void;
   onFormServiceCityChange: (value: string) => void;
   onFormServiceStateChange: (value: string) => void;
@@ -77,6 +79,7 @@ export const WordPressDialogs: React.FC<WordPressSiteFormDialogsProps> = ({
   formBenchmarkCustomTag,
   formPrimaryLocalKeyword,
   formClientLogoUrl,
+  formClientLogoBoxTheme,
   formProfileTags,
   formServiceCity,
   formServiceState,
@@ -99,6 +102,7 @@ export const WordPressDialogs: React.FC<WordPressSiteFormDialogsProps> = ({
   onFormBenchmarkCustomTagChange,
   onFormPrimaryLocalKeywordChange,
   onFormClientLogoUrlChange,
+  onFormClientLogoBoxThemeChange,
   onFormProfileTagsChange,
   onFormServiceCityChange,
   onFormServiceStateChange,
@@ -129,6 +133,7 @@ export const WordPressDialogs: React.FC<WordPressSiteFormDialogsProps> = ({
       formBenchmarkCustomTag={formBenchmarkCustomTag}
       formPrimaryLocalKeyword={formPrimaryLocalKeyword}
       formClientLogoUrl={formClientLogoUrl}
+      formClientLogoBoxTheme={formClientLogoBoxTheme}
       formProfileTags={formProfileTags}
       formServiceCity={formServiceCity}
       formServiceState={formServiceState}
@@ -151,6 +156,7 @@ export const WordPressDialogs: React.FC<WordPressSiteFormDialogsProps> = ({
       onFormBenchmarkCustomTagChange={onFormBenchmarkCustomTagChange}
       onFormPrimaryLocalKeywordChange={onFormPrimaryLocalKeywordChange}
       onFormClientLogoUrlChange={onFormClientLogoUrlChange}
+      onFormClientLogoBoxThemeChange={onFormClientLogoBoxThemeChange}
       onFormProfileTagsChange={onFormProfileTagsChange}
       onFormServiceCityChange={onFormServiceCityChange}
       onFormServiceStateChange={onFormServiceStateChange}

@@ -39,14 +39,7 @@ class Neo_Pulse_App_Openrouter_Chat_Completion_Route {
 	 * @param array<string,mixed> $body Request JSON.
 	 */
 	public static function chat_completion( array $body ): void {
-		$api_key = isset( $body['apiKey'] ) ? trim( (string) $body['apiKey'] ) : '';
-		if ( $api_key === '' && isset( $body['openRouterApiKey'] ) ) {
-			$api_key = trim( (string) $body['openRouterApiKey'] );
-		}
-		if ( $api_key !== '' && class_exists( 'Neo_Pulse_App_Chat_Openrouter' ) ) {
-			Neo_Pulse_App_Chat_Openrouter::use_request_api_key( $api_key );
-		}
-
+		// Wave 0: the key is resolved server-side only. Body and header keys are ignored.
 		$resolved = class_exists( 'Neo_Pulse_App_Chat_Openrouter' )
 			? Neo_Pulse_App_Chat_Openrouter::api_key_from_request( $body )
 			: '';
@@ -54,7 +47,7 @@ class Neo_Pulse_App_Openrouter_Chat_Completion_Route {
 			Neo_Pulse_App_Api_Dispatcher::send_json(
 				array(
 					'ok'    => false,
-					'error' => 'OpenRouter API key is missing. Add it in Dashboard → API Keys.',
+					'error' => 'OpenRouter API key is not configured on the server.',
 				),
 				500
 			);

@@ -3,41 +3,11 @@ import type { PromptBulkSitemapInventoryLink } from "@/lib/bulk/prompt-bulk-site
 import type { BulkGscKeywordsHostedLink } from "@/lib/bulk/bulk-gsc-keywords-hosted-link";
 import type { PromptBulkSiteKwHostedLink } from "@/lib/bulk/prompt-bulk-site-kw-scrape";
 import type { SiteWarmInventoryDisplayRow } from "@/lib/overview/site-warm-inventory-display-rows";
-
-export const HOSTED_INVENTORY_DOWNLOAD_STAGGER_MS = 300;
-
-export type HostedInventoryDownload = { href: string; filename: string };
-
-export function hostedInventoryDownloads(
-  links: PromptBulkSitemapInventoryLink[],
-  gscLink?: BulkGscKeywordsHostedLink | PromptBulkSiteKwHostedLink | null,
-): HostedInventoryDownload[] {
-  const out: HostedInventoryDownload[] = links.map((link) => ({
-    href: link.href,
-    filename: link.filename,
-  }));
-  if (gscLink) out.push({ href: gscLink.href, filename: gscLink.filename });
-  return out;
-}
-
-export function downloadHostedInventoryFile(file: HostedInventoryDownload): void {
-  const a = document.createElement("a");
-  a.href = file.href;
-  a.download = file.filename;
-  a.rel = "noopener";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-
-export function downloadAllHostedInventoryFiles(
-  links: PromptBulkSitemapInventoryLink[],
-  gscLink?: BulkGscKeywordsHostedLink | PromptBulkSiteKwHostedLink | null,
-): void {
-  hostedInventoryDownloads(links, gscLink).forEach((file, index) => {
-    setTimeout(() => downloadHostedInventoryFile(file), index * HOSTED_INVENTORY_DOWNLOAD_STAGGER_MS);
-  });
-}
+import {
+  downloadAllHostedInventoryFiles,
+  downloadHostedInventoryFile,
+  hostedInventoryDownloads,
+} from "@/components/keyword-research/bulk/sitemap-inventory-downloads";
 
 const ROW_CLASS = "flex min-h-9 min-w-0 items-center gap-2 text-base";
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { WordPressSite } from "@/components/integrations/types";
-import { overviewGridPageSlice } from "@/components/overview/OverviewGridPagination";
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import { overviewGridPageSlice } from "@/components/overview/overview-grid-pagination-helpers";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import {
   contentCreatorGridRowCount,
   CONTENT_CREATOR_PLACEHOLDER_ROW_COUNT,
@@ -304,7 +304,7 @@ export function useContentCreatorWorkspace({
       });
 
       for (const outcome of results) {
-        if (outcome.ok) {
+        if (outcome.ok === true) {
           applyGeneratedResult(outcome.rowId, outcome.result);
         } else {
           updateRow(outcome.rowId, {

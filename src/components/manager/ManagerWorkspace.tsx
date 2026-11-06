@@ -1,7 +1,9 @@
-import React, { lazy, Suspense, useState } from "react";
+import React, { useState } from "react";
+import type { WordPressSite } from "@/components/integrations/types";
 import { X } from "lucide-react";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { StoredFile, KnowledgeBaseTab } from "@/components/KnowledgeBaseTab";
+
+import { KnowledgeBaseTab, StoredFile } from "@/components/KnowledgeBaseTab";
+import type { ManagerSettingsClusterId } from "@/components/manager/manager-settings-cluster";
 import { ManagerSettingsContent } from "@/components/manager/ManagerSettingsContent";
 import { BlogGeneratorShell } from "@/components/blog-generator/BlogGeneratorShell";
 import { IntegrationsTab } from "@/components/IntegrationsTab";
@@ -16,25 +18,22 @@ import { GbpPostShell } from "@/components/gbp-post/GbpPostShell";
 import { ContentCreatorCampaignWorkspace } from "@/components/social/content-creator/ContentCreatorCampaignWorkspace";
 import { SocialCreatorCampaignWorkspace } from "@/components/social/creator/SocialCreatorCampaignWorkspace";
 import { SitemapOptimizerResearchTab } from "@/components/research/sitemap-optimizer/SitemapOptimizerResearchTab";
-import { VerticalBenchmarkShell } from "@/components/vertical-benchmark/VerticalBenchmarkShell";
 import { PulseHostTabContent } from "@/components/hosting/PulseHostTabContent";
 import { AgentLibraryTabContent } from "@/components/manager/agents/AgentLibraryTabContent";
 import { ImageStudioTabContent } from "@/components/video-generator/ImageStudioTabContent";
 import { VideoGeneratorTabContent } from "@/components/video-generator/VideoGeneratorTabContent";
-
-const ApiDocsTabContent = lazy(() =>
-  import("@/components/api-docs/ApiDocsTabContent").then((m) => ({ default: m.ApiDocsTabContent })),
-);
+import { OrganicReportingEmbeddedPanel } from "@/components/organic-dashboard/OrganicReportingEmbeddedPanel";
+import { OrganicReportingLocalGridSection } from "@/components/organic-dashboard/local-grid/OrganicReportingLocalGridSection";
+import { ApiDocsTabContent } from "@/components/api-docs/ApiDocsTabContent";
 import { saveDataForSEOApiKey, saveSemrushApiKey, loadSemrushApiKey } from "@/lib/api";
-import type { ManagerSettingsClusterId } from "@/components/manager/manager-settings-cluster";
 import type { GeneratorFreeFlowBindings } from "@/components/generator/generator-free-flow-bindings";
 import type { AssistNavigateTarget } from "@/lib/pulse-assist/types";
 import type { BlogGeneratorSectionId } from "@/components/blog-generator/blog-generator-sections";
 import { cn } from "@/lib/utils";
 import { ManagerMegaMenuNav } from "@/components/manager/ManagerMegaMenuNav";
 import { ManagerTopBarDisplayConsole } from "@/components/manager/ManagerTopBarDisplayConsole";
-import { ManagerSeedWorkspaceProvider } from "@/contexts/manager-seed-workspace-context";
-import { ManagerErrorLogProvider } from "@/contexts/manager-error-log-context";
+import { ManagerSeedWorkspaceProvider } from "@/contexts/ManagerSeedWorkspaceProvider";
+import { ManagerErrorLogProvider } from "@/contexts/ManagerErrorLogProvider";
 import {
   MANAGER_SITE_CONSOLE_DOCK_CLASS,
   MANAGER_TOP_BAR_CLASS,
@@ -42,12 +41,10 @@ import {
   MANAGER_TOP_BAR_MENU_RAIL_RESERVE_CLASS,
   MANAGER_TOP_BAR_ROW_CLASS,
 } from "@/components/manager/manager-top-bar-nav-styles";
-import { PulseAssistContextProvider } from "@/contexts/pulse-assist-context";
+import { PulseAssistContextProvider } from "@/contexts/PulseAssistContextProvider";
 import { PulseAssistRoot } from "@/components/pulse-assist/PulseAssistRoot";
 import { AgentRunsShell } from "@/components/agent-runs/AgentRunsShell";
-import { OrganicReportingEmbeddedPanel } from "@/components/organic-dashboard/OrganicReportingEmbeddedPanel";
-import { OrganicReportingLocalGridSection } from "@/components/organic-dashboard/local-grid/OrganicReportingLocalGridSection";
-import { Button } from "@/ui";
+import { Button, Tabs, TabsContent } from "@/ui";
 
 export interface ManagerWorkspaceProps {
   variant: "embedded" | "overlay";
@@ -539,7 +536,6 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
           ) : null}
         </TabsContent>
 
-
         <TabsContent
           value="pulse-host"
           className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}
@@ -570,9 +566,7 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
 
         <TabsContent value="api" className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}>
           {managerTab === "api" ? (
-            <Suspense fallback={null}>
-              <ApiDocsTabContent />
-            </Suspense>
+            <ApiDocsTabContent />
           ) : null}
         </TabsContent>
         </div>
@@ -602,7 +596,11 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
 
   return (
     <AgentRunsShell>
-      <PulseAssistContextProvider managerTab={managerTab} onAssistNavigate={onAssistNavigate}>
+      <PulseAssistContextProvider
+        managerTab={managerTab}
+        managerDashboardCluster={managerDashboardCluster}
+        onAssistNavigate={onAssistNavigate}
+      >
         <div className="relative flex h-full min-h-0 min-w-0 w-full max-w-none flex-1 flex-col overflow-hidden bg-background">
           {embeddedManagerStickyHeader}
           <div className="relative flex min-h-0 min-w-0 flex-1 flex-row overflow-hidden">

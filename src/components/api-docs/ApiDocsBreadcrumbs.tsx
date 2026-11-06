@@ -1,6 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import type { ApiDocArticle } from "@/lib/api-docs/types";
-import { setApiDocsHash } from "@/lib/api-docs/api-docs-hash";
+import { setApiDocsRoute } from "@/lib/api-docs/api-docs-route";
 import { cn } from "@/lib/utils";
 import { TextButton } from "@/ui";
 
@@ -35,7 +35,7 @@ export function ApiDocsBreadcrumbs({ article }: { article: ApiDocArticle }) {
             ) : (
               <TextButton
                 type="button"
-                onClick={() => setApiDocsHash(crumb.slug)}
+                onClick={() => setApiDocsRoute(crumb.slug)}
               >
                 {crumb.label}
               </TextButton>

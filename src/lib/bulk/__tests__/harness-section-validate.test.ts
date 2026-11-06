@@ -170,13 +170,16 @@ describe("prepareHarnessSectionHtml", () => {
 });
 
 describe("validateHarnessSectionOrThrow", () => {
-  it("does not throw on any section shape (no-op gate removed)", () => {
+  it("throws on token-limit truncation even when the HTML looks complete", () => {
     expect(() =>
       validateHarnessSectionOrThrow(
         '<h2>T</h2><p>Complete sentence here.</p>',
         { title: "T", finishReason: "length", isOverview: false },
       ),
-    ).not.toThrow();
+    ).toThrow(/truncated/);
+  });
+
+  it("accepts complete body sections", () => {
     expect(() =>
       validateHarnessSectionOrThrow(
         '<h2>A</h2><p>Body text.</p><h2 id="b">B</h2>',

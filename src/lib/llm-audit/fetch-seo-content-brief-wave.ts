@@ -1,5 +1,6 @@
 import type { WordPressSite } from "@/components/integrations/types";
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import {
   isDataForSeoPaymentFailure,
   isDfsPaymentLatched,
@@ -322,7 +323,10 @@ export async function loadSerpDumpJson(
   serpDumpUrl?: (filename: string) => string,
 ): Promise<Record<string, unknown>> {
   const url = serpDumpUrl ? serpDumpUrl(storedFile) : serpDumpFilenameUrl(storedFile);
-  const serpRes = await fetch(url, { signal: AbortSignal.timeout(SERP_DUMP_LOAD_TIMEOUT_MS) });
+  const serpRes = await fetch(url, {
+    headers: neoPulseApiHeaders(),
+    signal: AbortSignal.timeout(SERP_DUMP_LOAD_TIMEOUT_MS),
+  });
   if (!serpRes.ok) {
     throw new Error(`SERP dump load failed (HTTP ${serpRes.status})`);
   }

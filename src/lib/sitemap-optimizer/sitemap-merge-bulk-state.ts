@@ -4,7 +4,7 @@ import type { WordPressSite } from "@/components/integrations/types";
 import {
   CONTENT_OPTIMIZER_BULK_PAGE_SIZE,
   contentOptimizerBulkPageCount,
-} from "@/lib/content-optimizer/content-optimizer-bulk-page-size";
+} from "@/lib/content-optimization/content-optimizer-bulk-page-size";
 import type { CSVRow } from "@/lib/bulk-auto-generate";
 import type { BulkGeneratedFile } from "@/lib/bulk-file-manager";
 import type { SitemapOptimizerRunResult } from "@/lib/sitemap-optimizer/types";
@@ -154,6 +154,8 @@ export function buildSitemapMergeBulkState(
     currentUrl: activeUrl,
     currentProgress: stepProgress,
     currentStepProgress: {
+      stepId: publishing ? "publish" : "write",
+      subProgress: stepProgress,
       step: status,
       progress: stepProgress,
       message: status,

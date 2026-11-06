@@ -49,8 +49,8 @@ describe("chat-preferences-presets", () => {
     const base = defaultChatPreferences();
     const merged = mergeChatPreferences(base, {
       appearance: {
-        sidebarSections: { alerts: false },
-        zoneThemes: { main: "dark" },
+        sidebarSections: { channels: true, dms: true, mentions: true, alerts: false },
+        zoneThemes: { left: "light", main: "dark", right: "light" },
       },
     });
     expect(merged.appearance.sidebarSections.alerts).toBe(false);
@@ -63,10 +63,14 @@ describe("chat preferences migration", () => {
   it("migrates v1 themeId to zoneThemes and headingTheme", () => {
     const normalized = normalizeAppearance({
       themeId: "dark",
+      zoneThemes: { left: "dark", main: "dark", right: "dark" },
+      headingTheme: "dark",
       accentPreset: "brand",
       density: "comfortable",
       fontScale: "default",
       sidebarSections: { channels: true, dms: true, mentions: true, alerts: true },
+      layoutMode: "default",
+      starredChannelIds: [],
     });
     expect(normalized.zoneThemes).toEqual({ left: "dark", main: "dark", right: "dark" });
     expect(normalized.headingTheme).toBe("dark");

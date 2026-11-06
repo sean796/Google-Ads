@@ -130,10 +130,10 @@ export async function generateExtraTextForPage(
       .replace(/^#+\s+/gm, "")
       .replace(/```[\s\S]*?```/g, "")
       .replace(/`[^`]+`/g, "")
-      .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
-      .replace(/!\[([^\]]*)\]\([^\)]+\)/g, "")
-      .replace(/\*\*([^\*]+)\*\*/g, "$1")
-      .replace(/\*([^\*]+)\*/g, "$1")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .replace(/!\[([^\]]*)\]\([^)]+\)/g, "")
+      .replace(/\*\*([^*]+)\*\*/g, "$1")
+      .replace(/\*([^*]+)\*/g, "$1")
       .replace(/\s+/g, " ")
       .trim()
       .substring(0, 3000);
@@ -325,8 +325,8 @@ export async function generateExtraImageForPage(
       .replace(/^#+\s+/gm, '')
       .replace(/```[\s\S]*?```/g, '')
       .replace(/`[^`]+`/g, '')
-      .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
-      .replace(/!\[([^\]]*)\]\([^\)]+\)/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
       .trim()
       .substring(0, 1500);
 

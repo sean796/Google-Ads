@@ -105,7 +105,7 @@ export function mergeSeoResearchFromAcfIntoContext(
   return { ...(acfContext ?? {}), seoResearch: sr };
 }
 
-function cacheKey(acf: Record<string, any>, siteUrl?: string, postType?: string): string {
+function cacheKey(acf: Record<string, unknown>, siteUrl?: string, postType?: string): string {
   const keysHash = Object.keys(acf).sort().join(",");
   return [siteUrl ?? "", postType ?? "", keysHash].filter(Boolean).join("|") || keysHash || "empty";
 }
@@ -125,7 +125,7 @@ export function hasExtraImageField(ctx: AIDrivenACFContext): boolean {
  * Use this for prompt generation, optimization, and upload logic - never static key names for read semantics.
  */
 export async function readACFFieldsAgentically(
-  acf: Record<string, any>,
+  acf: Record<string, unknown>,
   options?: { apiKey?: string; siteUrl?: string; postType?: string; model?: string }
 ): Promise<AIDrivenACFContext> {
   if (!acf || typeof acf !== "object") {
@@ -202,7 +202,7 @@ Map each field to the semantic roles and return the JSON object with string valu
     const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
     if (jsonMatch) jsonStr = jsonMatch[0];
 
-    const parsed = JSON.parse(jsonStr) as Record<string, any>;
+    const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
     const context: AIDrivenACFContext = {
       promptModifier: typeof parsed.promptModifier === "string" ? parsed.promptModifier.trim() : "",
       keywordFocus: typeof parsed.keywordFocus === "string" ? parsed.keywordFocus.trim() : "",

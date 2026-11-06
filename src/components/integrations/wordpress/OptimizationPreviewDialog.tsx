@@ -84,7 +84,7 @@ export const OptimizationPreviewDialog: React.FC<OptimizationPreviewDialogProps>
         ["Search Volume", data.keywordData.searchVolume?.toLocaleString() || "N/A"],
         ["Competition", data.keywordData.competition || "N/A"],
         ["CPC", `$${data.keywordData.cpc || "N/A"}`],
-        ["KD", data.keywordData.keywordDifficulty || "N/A"],
+        ["KD", data.keywordData.difficulty || "N/A"],
       ]
     : [];
 
@@ -172,9 +172,6 @@ export const OptimizationPreviewDialog: React.FC<OptimizationPreviewDialogProps>
           ) : null}
           {data.aiAnalysis ? (
             <Section title="AI Analysis">
-              {data.aiAnalysis.searchIntent ? (
-                <p className="text-base text-muted-foreground">Search Intent: {data.aiAnalysis.searchIntent}</p>
-              ) : null}
               {data.aiAnalysis.contentGaps?.length ? (
                 <p className="text-base text-muted-foreground">Content Gaps: {data.aiAnalysis.contentGaps.length} identified</p>
               ) : null}

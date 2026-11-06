@@ -7,6 +7,8 @@ import {
 import { buildInventoryLookupMaps } from "@/lib/wordpress-api/inventory-match";
 import type { SitePostInventoryRow } from "@/lib/wordpress-api/types";
 import type { WordPressSite } from "@/components/integrations/types";
+import type { SetStateAction } from "react";
+import type { BulkOptimizationState } from "../use-optimization-state";
 
 const site: WordPressSite = {
   id: "site-1",
@@ -14,12 +16,12 @@ const site: WordPressSite = {
   siteUrl: "https://example.com",
   username: "u",
   appPassword: "p",
+  connectedAt: 0,
 };
 
 function snapshotForRow(row: SitePostInventoryRow) {
   const postsMaps = buildInventoryLookupMaps([row], site.siteUrl);
   return {
-    siteUrl: site.siteUrl,
     postsMaps,
     pagesMaps: buildInventoryLookupMaps([], site.siteUrl),
     customMapsByCollection: {},
@@ -33,6 +35,7 @@ const fullRow: SitePostInventoryRow = {
   date_gmt: "2026-01-01T00:00:00",
   fields: {
     title: "Energy Rebate",
+    meta: "",
     keyword: "energy rebate st albert",
     content: "<p>Substantive post body for optimization harness.</p>",
     excerpt: "Excerpt",
@@ -48,7 +51,6 @@ describe("assertBulkInventorySnapshotReady", () => {
     expect(() => assertBulkInventorySnapshotReady(null)).toThrow(/requires WordPress inventory/);
     expect(() =>
       assertBulkInventorySnapshotReady({
-        siteUrl: site.siteUrl,
         postsMaps: buildInventoryLookupMaps([], site.siteUrl),
         pagesMaps: buildInventoryLookupMaps([], site.siteUrl),
         customMapsByCollection: {},
@@ -64,9 +66,11 @@ describe("seedAllBulkPrefetchCachesFromInventory", () => {
     const postCache = new Map();
     const fullPostCache = new Map<number, Record<string, unknown>>();
     const pendingCache = new Map();
-    const setBulk = vi.fn((fn: (prev: Record<string, unknown>) => Record<string, unknown>) => {
-      fn({});
-    });
+    const setBulk = vi.fn(
+      (action: SetStateAction<Record<string, BulkOptimizationState>>) => {
+        if (typeof action === "function") action({});
+      },
+    );
 
     const result = seedAllBulkPrefetchCachesFromInventory({
       site,
@@ -78,7 +82,7 @@ describe("seedAllBulkPrefetchCachesFromInventory", () => {
       inContentImageRequest: undefined,
       wordPressPostsForRun: [],
       isAcfKeywordMode: true,
-      prefetchedAcfFieldsCache: acfCache as Map<number, Record<string, any>>,
+      prefetchedAcfFieldsCache: acfCache,
       prefetchedPostPayloadByUrlIndex: postCache,
       prefetchedAcfFullPostByUrlIndex: fullPostCache,
       prefetchedPendingCache: pendingCache,
@@ -143,6 +147,7 @@ describe("seedAllBulkPrefetchCachesFromInventory", () => {
       ...fullRow,
       fields: {
         title: "T",
+        meta: "",
         keyword: "kw",
         content: "",
         excerpt: "",

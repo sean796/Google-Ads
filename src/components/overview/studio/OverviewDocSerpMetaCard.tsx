@@ -142,8 +142,8 @@ export function OverviewDocSerpMetaCard({
           type="button"
           disabled={busy}
           onClick={() => void onAiTitle(rowIndex)}
-          title="Rewrite Title via Mastra"
-          aria-label="Rewrite Title via Mastra"
+          title="Rewrite Title via Pulse Engine"
+          aria-label="Rewrite Title via Pulse Engine"
         ></Button>
       </div>
 
@@ -175,7 +175,7 @@ export function OverviewDocSerpMetaCard({
             type="button"
             disabled={busy}
             onClick={() => void onAiMeta(rowIndex)}
-            title="Rewrite Meta Description via Mastra"
+            title="Rewrite Meta Description via Pulse Engine"
           >
             <Wand2 className="mr-1.5 h-4 w-4 text-primary" aria-hidden />
             Write Meta

@@ -25,7 +25,7 @@ export interface EntityWithCriteria {
 export interface CriteriaData {
   matches: boolean;
   confidence: number;
-  extractedData: Record<string, any>;
+  extractedData: Record<string, unknown>;
   rankingValue?: number;
 }
 
@@ -69,7 +69,7 @@ export interface GenerationOptions {
 export interface ValidationResult {
   matches: boolean;
   confidence: number;
-  extractedData?: Record<string, any>;
+  extractedData?: Record<string, unknown>;
   rankingValue?: number;
 }
 

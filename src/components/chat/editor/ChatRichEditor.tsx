@@ -144,7 +144,7 @@ export const ChatRichEditor = forwardRef<ChatRichEditorHandle, ChatRichEditorPro
       aiHandleRef.current = handle;
       return handle;
     },
-    [editor],
+    [],
   );
 
   React.useEffect(() => {
@@ -245,5 +245,3 @@ export const ChatRichEditor = forwardRef<ChatRichEditorHandle, ChatRichEditorPro
     </div>
   );
 });
-
-export { isEditorEmpty };

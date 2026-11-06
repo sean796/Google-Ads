@@ -44,7 +44,7 @@ describe("fetchLocalSeoStrategyFromGrid - refineSapRowKeywordsWithRag", () => {
             choices: [{ message: { content } }],
           }),
         };
-      }) as typeof fetch
+      }) as unknown as typeof fetch
     );
 
     const result = await fetchLocalSeoStrategyFromGrid({
@@ -97,7 +97,7 @@ describe("fetchLocalSeoStrategyFromGrid - refineSapRowKeywordsWithRag", () => {
             ],
           }),
         };
-      }) as typeof fetch
+      }) as unknown as typeof fetch
     );
 
     await fetchLocalSeoStrategyFromGrid({

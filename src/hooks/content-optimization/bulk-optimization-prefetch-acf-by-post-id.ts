@@ -9,7 +9,8 @@ import {
 } from "@/lib/wordpress-api/inventory-match";
 import type { WordPressSite } from "@/components/integrations/types";
 import { hasSubstantiveSeoResearch } from "./bulk-optimization-missing-seo-research";
-import { mergeSeoResearchFromAcfIntoContext } from "@/lib/content-generation/ai-driven-acf-reader";
+import { mergeSeoResearchFromAcfIntoContext, type AIDrivenACFContext } from "@/lib/content-generation/ai-driven-acf-reader";
+import type { LinkPoolPostRow } from "./bulk-optimization-do-prefetch";
 
 /**
  * Resolve post id + REST endpoints for ACF batch reads without extra network calls
@@ -19,7 +20,7 @@ export function resolveExistingPostMetaForAcfBatch(args: {
   urlIndex: number;
   targetUrl: string;
   site: WordPressSite;
-  wordPressPostsForRun: any[];
+  wordPressPostsForRun: LinkPoolPostRow[];
   bulkInventorySnapshot: BulkOptimizerInventorySnapshot | null;
   prefetchedPostPayloadByUrlIndex: Map<number, WpPostSnapshotFromAcfByUrl>;
   prefetchedExistingPostByUrlIndex?: Map<number, Record<string, unknown>>;
@@ -36,7 +37,7 @@ export function resolveExistingPostMetaForAcfBatch(args: {
 
   const targetNorm = normalizeMatch(site.siteUrl, targetUrl);
   const cachedPost = wordPressPostsForRun.find(
-    (p: any) => p?.link && normalizeMatch(site.siteUrl, p.link) === targetNorm,
+    (p) => p?.link && normalizeMatch(site.siteUrl, p.link) === targetNorm,
   );
   const typeHint = typeHintFromCachedPost(cachedPost);
   const invHit = bulkInventorySnapshot
@@ -96,12 +97,11 @@ export function resolveExistingPostMetaForAcfBatch(args: {
   }
 
   if (cachedPost?.id) {
-    const existingPost: Record<string, unknown> = cachedPost;
     const postTypeEndpoint =
-      (existingPost.postTypeEndpoint as string) ||
-      (existingPost.postTypeSubtype === "page" ? "pages" : "posts");
+      cachedPost.postTypeEndpoint ||
+      (cachedPost.postTypeSubtype === "page" ? "pages" : "posts");
     const postTypeSubtype =
-      (existingPost.postTypeSubtype as string) || (postTypeEndpoint === "pages" ? "page" : "post");
+      cachedPost.postTypeSubtype || (postTypeEndpoint === "pages" ? "page" : "post");
     return {
       id: Number(cachedPost.id),
       postTypeEndpoint,
@@ -115,9 +115,9 @@ export function resolveExistingPostMetaForAcfBatch(args: {
 export interface PrefetchBulkAcfByPostIdArgs {
   site: WordPressSite;
   urls: string[];
-  wordPressPostsForRun: any[];
+  wordPressPostsForRun: LinkPoolPostRow[];
   bulkInventorySnapshot: BulkOptimizerInventorySnapshot | null;
-  prefetchedAcfFieldsCache: Map<number, Record<string, any>>;
+  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
   prefetchedPostPayloadByUrlIndex: Map<number, WpPostSnapshotFromAcfByUrl>;
   prefetchedExistingPostByUrlIndex?: Map<number, Record<string, unknown>>;
   prefetchedAcfFullPostByUrlIndex: Map<number, Record<string, unknown>>;
@@ -127,9 +127,9 @@ export interface PrefetchBulkAcfByPostIdArgs {
 }
 
 function mergeAcfFieldsPreservingKeyword(
-  prev: Record<string, any>,
-  incoming: Record<string, any>,
-): Record<string, any> {
+  prev: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+): Record<string, unknown> {
   const merged = { ...prev, ...incoming };
   const prevKw = String(prev.keyword_focus ?? "").trim();
   if (prevKw && !String(merged.keyword_focus ?? "").trim()) {
@@ -140,17 +140,20 @@ function mergeAcfFieldsPreservingKeyword(
 
 function syncPendingAcfFromCache(
   urlIndex: number,
-  acfFields: Record<string, any>,
+  acfFields: Record<string, unknown>,
   prefetchedPendingCache:
     | Map<number, { pending: Record<string, unknown>; primaryKeyword: string }>
     | undefined,
 ): void {
   const pend = prefetchedPendingCache?.get(urlIndex);
   if (!pend?.pending) return;
-  const p = pend.pending as Record<string, any>;
-  const prevAf = p.acfFields && typeof p.acfFields === "object" ? (p.acfFields as Record<string, any>) : {};
+  const p = pend.pending as Record<string, unknown>;
+  const prevAf = p.acfFields && typeof p.acfFields === "object" ? (p.acfFields as Record<string, unknown>) : {};
   p.acfFields = { ...prevAf, ...acfFields };
-  p.acfContext = mergeSeoResearchFromAcfIntoContext(p.acfFields, p.acfContext);
+  p.acfContext = mergeSeoResearchFromAcfIntoContext(
+    p.acfFields as Record<string, unknown>,
+    p.acfContext as AIDrivenACFContext | undefined,
+  );
   const kw = String(acfFields.keyword_focus ?? pend.primaryKeyword ?? "").trim();
   prefetchedPendingCache!.set(urlIndex, {
     pending: p,

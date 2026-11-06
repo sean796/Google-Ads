@@ -261,7 +261,7 @@ export function fixMalformedMarkdownTables(content: string): string {
   const fixedLines = lines.map((line, idx) => {
     const trimmed = line.trim();
     // Dashes-only line (no pipes): WRONG separator - replace with proper |---||---|
-    const dashesOnly = /^[\s\-]+$/.test(trimmed) && trimmed.replace(/\s/g, '').length >= 2;
+    const dashesOnly = /^[\s-]+$/.test(trimmed) && trimmed.replace(/\s/g, '').length >= 2;
     if (dashesOnly && prevHeaderColCount != null && prevHeaderColCount >= 1) {
       const properSeparator = '|' + '---|'.repeat(prevHeaderColCount);
       fixedCount++;
@@ -274,7 +274,7 @@ export function fixMalformedMarkdownTables(content: string): string {
     }
 
     // Period inside separator cells: |.------ | -> |------ | (AI outputs period after pipe in separator)
-    if (trimmed.includes('|.') && trimmed.includes('-') && /^\s*\|[\s\-\.:|]+\|?\s*$/.test(trimmed)) {
+    if (trimmed.includes('|.') && trimmed.includes('-') && /^\s*\|[\s\-.:|]+\|?\s*$/.test(trimmed)) {
       const fixed = trimmed.replace(/\|\./g, '|');
       if (fixed !== trimmed) {
         fixedCount++;
@@ -352,9 +352,9 @@ export function fixMalformedMarkdownTables(content: string): string {
     }
     
     // Pattern 5: Any other single punctuation character before pipe
-    if (/^\s*[\.\:\-\+\*]\s*\|/.test(line)) {
+    if (/^\s*[.:\-+*]\s*\|/.test(line)) {
       fixedCount++;
-      const fixed = line.replace(/^\s*[\.\:\-\+\*]\s*\|/, '|');
+      const fixed = line.replace(/^\s*[.:\-+*]\s*\|/, '|');
       prevHeaderColCount = Math.max((fixed.match(/\|/g) || []).length - 1, 1);
       return fixed;
     }

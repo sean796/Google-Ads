@@ -104,7 +104,7 @@ export function fillBlankEntitySapKeywordsDeterministic(
 export function fallbackEntityClusterSapRows(locationLabel: string, total: number): CSVRow[] {
   const entity = locationLabel.trim() || "Service area";
   const n = Math.max(1, Math.floor(total));
-  return Array.from({ length: n }, () => ({ entity }));
+  return Array.from({ length: n }, () => ({ entity, keyword: "", title: "" }));
 }
 
 const DEFAULT_ENTITY_TITLE_TEMPLATE = "{keyword} Near {entity}";
@@ -352,7 +352,7 @@ export async function hydratePreloadedEntitySapRows(
       forceRewriteTitles: Boolean(args.titleTemplate?.trim()),
       sapOccupancy,
       ...(args.entityTypeFocus && args.entityTypeFocus.length > 0
-        ? { entityTypeFocus: args.entityTypeFocus }
+        ? { entityTypeFocus: [...args.entityTypeFocus] }
         : {}),
       onTitleProgress: (done, titleTotal) => {
         args.onPhase?.("Writing titles", done, titleTotal);

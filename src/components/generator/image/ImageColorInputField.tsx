@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 import { HexColorPicker } from "react-colorful";
 import { cn } from "@/lib/utils";
 import {
@@ -10,7 +10,7 @@ import {
   META_VISUAL_LABEL_COL,
   META_VISUAL_TOOL_LABEL_CLASS,
 } from "@/components/ppc/meta/meta-ads-visual-settings-layout";
-import { Button, Field } from "@/ui";
+import { Button, Field, Popover, PopoverContent, PopoverTrigger } from "@/ui";
 
 type ImageColorInputFieldProps = {
   label: string;

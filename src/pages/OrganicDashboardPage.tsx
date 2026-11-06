@@ -160,7 +160,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     if (typeof window === "undefined" || window.location.search === nextSearch) return;
     if (inAppTab) {
       const path = window.location.pathname;
-      window.history.replaceState(null, "", `${path}${nextSearch}#organic-reporting`);
+      window.history.replaceState(null, "", `${path}${nextSearch}`);
       return;
     }
     navigate({ pathname: `/sites/${site.id}/organic`, search: qs }, { replace: true });
@@ -169,7 +169,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
   useEffect(() => {
     if (!inAppTab) return;
     return () => {
-      window.history.replaceState(null, "", `${window.location.pathname}${window.location.hash}`);
+      window.history.replaceState(null, "", window.location.pathname);
     };
   }, [inAppTab]);
 
@@ -545,6 +545,7 @@ export function OrganicReportingPanel({ site, inAppTab = false }: OrganicReporti
     reportError,
     resolveReadyHighlights,
     showCompare,
+    site.id,
     siteDisplayName,
     sitePublicUrl,
     viewModel,

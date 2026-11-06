@@ -30,7 +30,7 @@ export async function fetchOverviewSapInventoryFromEntitySitemap(
   }
 
   const catalog = await fetchEntityCatalogFromSitemap(site, coll);
-  if (!catalog.ok) {
+  if (catalog.ok === false) {
     return { rows: [], errors: {}, error: catalog.error };
   }
 
@@ -40,7 +40,6 @@ export async function fetchOverviewSapInventoryFromEntitySitemap(
   }
 
   const bulk = await getSiteInventoryBulk(site.siteUrl, site.username!, site.appPassword!, {
-    includeRawAcf: options?.includeRawAcf !== false,
     includeContent: options?.includeContent === true,
     includePageHeading: options?.includePageHeading === true,
     collections: [coll],

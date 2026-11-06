@@ -5,10 +5,7 @@ import { EntityGenerationFeature, type EntityGenerationFeatureRef } from "./inte
 import { type WordPressSite, WORDPRESS_SITES_STORAGE_KEY } from "./integrations/types";
 import { getStoredSites } from "./integrations/storage";
 
-// Re-export types and functions for backward compatibility
 export type { WordPressSite } from "./integrations/types";
-export { WORDPRESS_SITES_STORAGE_KEY } from "./integrations/types";
-export { getStoredSites, syncWordPressSitesToServer } from "./integrations/storage";
 
 interface IntegrationsTabProps {
   /** When set, entity sitemap "Generate entities" opens the SAP generator tab with prefill instead of the modal flow. */

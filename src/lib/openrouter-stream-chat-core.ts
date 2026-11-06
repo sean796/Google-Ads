@@ -108,7 +108,6 @@ export async function streamOpenRouterChatCompletionCore({
       cache: 'no-store',
       headers: openRouterAppApiHeaders(resolvedKey),
       body: JSON.stringify({
-        apiKey: resolvedKey || undefined,
         model,
         messages,
         temperature,

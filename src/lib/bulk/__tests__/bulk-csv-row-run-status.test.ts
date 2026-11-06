@@ -8,11 +8,13 @@ import {
 function completedFile(rowIndex: number): BulkGeneratedFile {
   return {
     id: `f-${rowIndex}`,
+    rowIndex,
     fileName: `row-${rowIndex}.md`,
     content: "body",
+    mimeType: "text/markdown",
     status: "completed",
-    type: "markdown",
-    rowIndex,
+    timestamp: 1,
+    rowData: { keyword: "k", title: `Row ${rowIndex}` },
   };
 }
 

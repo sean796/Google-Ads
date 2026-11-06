@@ -1,4 +1,5 @@
 import type { WordPressSite } from "@/components/integrations/types";
+import { getResearchModel } from "@/lib/optimization-settings-storage";
 import type { BulkProcessingOptions } from "@/lib/bulk-auto-generate";
 import {
   addKeywordResearchSnapshotToBulkFiles,
@@ -218,7 +219,7 @@ export async function appendDirectFaqAndSchema(args: {
     throw new Error("Direct FAQ schema was empty");
   }
 
-  let html = args.html;
+  const html = args.html;
   const visibleFaqEntries = resolveFaqEntriesForVisibleTable(bundle.faqEntries);
   if (!visibleFaqEntries.length) {
     throw new Error("Direct FAQ entries were empty");

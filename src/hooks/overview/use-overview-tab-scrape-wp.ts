@@ -373,6 +373,7 @@ export function useOverviewTabScrapeWp({
             mergeInventoryContentForSource(site, sitemapSource, [
               {
                 ...invMatchAfter.row,
+                collection: invMatchAfter.subtype === "page" ? "pages" : "posts",
                 fields: {
                   ...(invMatchAfter.row.fields ?? {}),
                   content: liveBodyHtml.trim(),

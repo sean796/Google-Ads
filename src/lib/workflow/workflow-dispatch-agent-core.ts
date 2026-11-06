@@ -1,5 +1,6 @@
 import type { StartAgentRunPayload } from "@/lib/agent-runs-types";
-import { isAgentRunTerminal, taskExecutionKindToRecipe, type AgentRun } from "@/lib/agent-runs-types";
+import { taskExecutionKindToRecipe, type AgentRun } from "@/lib/agent-runs-types";
+import type { WordPressSite } from "@/components/integrations/types";
 import {
   resolveStepOutputFileRefsWithRetry,
 } from "@/lib/workflow/workflow-step-file-refs";
@@ -304,13 +305,18 @@ export async function startWorkflowAgentForSite(args: {
     if (!detail.task) {
       return {
         ok: false,
-        error: detail.error ?? "Compiled task missing for this workflow action.",
+        error: "Compiled task missing for this workflow action.",
       };
     }
+    const compiledPayload: TaskExecutionPayload & { wordpressSiteId: string } = {
+      ...(config.executionPayload ?? {}),
+      siteId,
+      wordpressSiteId: siteId,
+    };
     let executionPayload: TaskExecutionPayload = applyCsvRowsPayloadForNode(
       run.id,
       node.id,
-      { ...(config.executionPayload ?? {}), siteId, wordpressSiteId: siteId },
+      compiledPayload,
       siteId,
     );
     if (config.executionKind === "dfs_llm_article_audit" && siteId.trim()) {
@@ -346,13 +352,16 @@ export async function startWorkflowAgentForSite(args: {
     return { ok: false, error: started.error ?? "Agent run failed to start" };
   }
 
-  await attachPageAuditCsvToAgentRun({
-    agentRun: started.run,
-    outputs,
-    workflow,
-    actionNodeId: node.id,
-    persistToTask: !config.compiledTaskId,
-  });
+  const startedAgentRun = await fetchAgentRun(workflow.teamId, started.run.id);
+  if (startedAgentRun) {
+    await attachPageAuditCsvToAgentRun({
+      agentRun: startedAgentRun,
+      outputs,
+      workflow,
+      actionNodeId: node.id,
+      persistToTask: !config.compiledTaskId,
+    });
+  }
 
   let agentRunId = started.run.id;
   let status = started.run.status;
@@ -371,7 +380,10 @@ export async function startWorkflowAgentForSite(args: {
     agentRunId = terminal.id;
     status = terminal.status;
     resolvedResult = terminal.result as Record<string, unknown> | undefined;
-  } else if (awaitAgentCompletion && isAgentRunTerminal(status)) {
+  } else if (
+    awaitAgentCompletion &&
+    (status === "done" || status === "failed" || status === "cancelled")
+  ) {
     terminalRun = await fetchAgentRun(workflow.teamId, agentRunId);
     if (terminalRun) {
       status = terminalRun.status;
@@ -535,7 +547,7 @@ async function buildActionPayload(
     const gapSite = resolvedSiteId
       ? getStoredSites().find((item) => item.id === resolvedSiteId) ?? siteContext.site
       : siteContext.site;
-    payload = applyEditorialPackageContentGapTarget(payload, gapSite ?? undefined);
+    payload = applyEditorialPackageContentGapTarget(payload, gapSite as WordPressSite);
   }
   if (
     kind === "entity_generator"
@@ -545,7 +557,7 @@ async function buildActionPayload(
     const entitySite = resolvedSiteId
       ? getStoredSites().find((item) => item.id === resolvedSiteId) ?? siteContext.site
       : siteContext.site;
-    payload = applyEditorialPackageEntityPageCount(payload, entitySite ?? undefined);
+    payload = applyEditorialPackageEntityPageCount(payload, entitySite as WordPressSite);
   }
   const clientSiteUrl = (siteContext.url ?? siteContext.site.siteUrl ?? siteContext.site.productionSiteUrl ?? "").trim();
   if (clientSiteUrl) {

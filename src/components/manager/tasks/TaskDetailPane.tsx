@@ -1,11 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+
 import { cn } from "@/lib/utils";
 import {
   TASK_PROJECT_DIALOG_CLASS,
@@ -27,7 +21,8 @@ import { PostCreatorExecutionFields } from "@/components/manager/tasks/PostCreat
 import { EntityPageCreatorExecutionFields } from "@/components/manager/tasks/EntityPageCreatorExecutionFields";
 import { EntityGeneratorExecutionFields } from "@/components/manager/tasks/EntityGeneratorExecutionFields";
 import { SapGeneratorExecutionFields } from "@/components/manager/tasks/SapGeneratorExecutionFields";
-import { ContentGapCheckExecutionFields, ensureContentGapCheckPayload } from "@/components/manager/tasks/ContentGapCheckExecutionFields";
+import { ContentGapCheckExecutionFields } from "@/components/manager/tasks/ContentGapCheckExecutionFields";
+import { ensureContentGapCheckPayload } from "@/lib/content-gap/resolve-content-gap-count";
 import { BrowserAutomationExecutionFields } from "@/components/manager/tasks/BrowserAutomationExecutionFields";
 import { ensurePostCreatorPayload } from "@/lib/post-creator/post-creator-defaults";
 import { ensureEntityPageCreatorPayload } from "@/lib/entity-page-creator/entity-page-creator-defaults";
@@ -56,7 +51,7 @@ import {
 import type { TeamMember } from "@/lib/teams-types";
 import { taskHasPulseAssignee } from "@/lib/tasks-filter";
 import type { WordPressSiteOption } from "@/components/manager/tasks/NewTaskDialog";
-import { Button, Field, TextareaField } from "@/ui";
+import { Button, Field, TextareaField, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/ui";
 
 export type TaskDetailPaneProps = {
   open: boolean;
@@ -200,13 +195,17 @@ export function TaskDetailPane({
   const [localDescription, setLocalDescription] = useState("");
   const [activeTab, setActiveTab] = useState<DetailTab>("details");
 
+  const taskId = task?.id;
+  const taskTitle = task?.title;
+  const taskKeyword = task?.keyword;
+  const taskDescription = task?.description;
   useEffect(() => {
-    if (!task) return;
-    setLocalTitle(task.title);
-    setLocalKeyword(task.keyword);
-    setLocalDescription(task.description);
+    if (taskId == null) return;
+    setLocalTitle(taskTitle ?? "");
+    setLocalKeyword(taskKeyword ?? "");
+    setLocalDescription(taskDescription ?? "");
     setActiveTab("details");
-  }, [task?.id, task?.title, task?.keyword, task?.description]);
+  }, [taskId, taskTitle, taskKeyword, taskDescription]);
 
   const flushFields = useCallback(() => {
     if (!task) return;

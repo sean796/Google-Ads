@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SEO_WORKSPACE_BODY_SCROLL_CLASS } from "@/components/seo/seo-workspace-layout";
 import { fetchHostedSiteActivity, fetchHostingJob, refreshHostedSiteStats, type HostedEnvironment, type HostedSiteActivity, type HostedSiteGroup } from "@/lib/hosting-api";
-import { setPulseHostHash, type PulseHostRoute, type SiteProfileSection } from "@/lib/hosting/pulse-host-hash";
+import { setPulseHostRoute, type PulseHostRoute, type SiteProfileSection } from "@/lib/hosting/pulse-host-route";
 import type { TeamMember } from "@/lib/teams-types";
 import { cn } from "@/lib/utils";
 import type { EnvironmentAction } from "../my-sites/EnvironmentKebabMenu";
@@ -50,7 +50,7 @@ export function SiteProfilePage({ route, groups, groupsLoading, canAdmin, teamMe
   /* Canonical hash carries the environment id so refresh and sharing land on the same install. */
   useEffect(() => {
     if (!group || !envId || route.envId === envId) return;
-    setPulseHostHash({ view: "site", groupId: group.id, envId, section: route.section });
+    setPulseHostRoute({ view: "site", groupId: group.id, envId, section: route.section });
   }, [group, envId, route.envId, route.section]);
 
   const loadActivity = useCallback(async () => {
@@ -77,7 +77,7 @@ export function SiteProfilePage({ route, groups, groupsLoading, canAdmin, teamMe
 
   function go(section: SiteProfileSection, target: HostedEnvironment | null = env) {
     if (!group || !target) return;
-    setPulseHostHash({ view: "site", groupId: group.id, envId: target.id, section });
+    setPulseHostRoute({ view: "site", groupId: group.id, envId: target.id, section });
   }
 
   async function runAction(action: EnvironmentAction, target: HostedEnvironment) {
@@ -123,7 +123,7 @@ export function SiteProfilePage({ route, groups, groupsLoading, canAdmin, teamMe
     return (
       <>
         <div className={PROFILE_TITLE_BAND}>
-          <Button variant="quiet" onClick={() => setPulseHostHash({ view: "list" })}>
+          <Button variant="quiet" onClick={() => setPulseHostRoute({ view: "list" })}>
             Back to Sites
           </Button>
         </div>
@@ -140,7 +140,7 @@ export function SiteProfilePage({ route, groups, groupsLoading, canAdmin, teamMe
         group={group}
         env={env}
         canAdmin={canAdmin}
-        onBack={() => setPulseHostHash({ view: "list" })}
+        onBack={() => setPulseHostRoute({ view: "list" })}
         onSelectEnvironment={(target) => go(route.section, target)}
         onAddEnvironment={onAddEnvironment}
         onManageTags={onManageTags}

@@ -1,8 +1,8 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 import { cn } from "@/lib/utils";
-import { RowButton } from "@/ui";
+import { RowButton, Popover, PopoverContent, PopoverTrigger } from "@/ui";
 
 export type ClientSiteFilterOption = {
   id: string;
@@ -87,7 +87,6 @@ export function ClientSiteFilterSelect({
       ) : null}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          {/* eslint-disable-next-line no-restricted-syntax -- Pulse UI exception: popover trigger with measured width and custom layout */}
           <button
             ref={triggerRef}
             type="button"

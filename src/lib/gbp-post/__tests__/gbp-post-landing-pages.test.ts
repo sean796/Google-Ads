@@ -13,6 +13,7 @@ const sampleSite: WordPressSite = {
   siteUrl: "https://example.com",
   username: "user",
   appPassword: "pass",
+  connectedAt: 0,
   gbpLocationId: "loc-1",
   enabled: true,
 };

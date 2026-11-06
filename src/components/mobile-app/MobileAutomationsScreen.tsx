@@ -58,7 +58,8 @@ export function MobileAutomationsScreen() {
   }, [activeProjectId, projectBundles, refreshProjectBundle, teamId]);
 
   const activeBundle = activeProjectId != null ? projectBundles[activeProjectId] : null;
-  const tasks = activeBundle?.tasks ?? [];
+  const activeBundleTasks = activeBundle?.tasks;
+  const tasks = useMemo(() => activeBundleTasks ?? [], [activeBundleTasks]);
 
   const runningCount = useMemo(
     () => runs.filter((run) => !isAgentRunTerminal(run.status)).length,
@@ -202,7 +203,7 @@ export function MobileAutomationsScreen() {
         }}
         onAddSubtask={(title) => {
           if (!teamId || !selectedTask) return;
-          void createSubtask(teamId, selectedTask.id, title).then(() => refreshTaskDetail());
+          void createSubtask(teamId, selectedTask.id, { title }).then(() => refreshTaskDetail());
         }}
         onToggleSubtask={(taskId, status) => {
           if (!teamId) return;

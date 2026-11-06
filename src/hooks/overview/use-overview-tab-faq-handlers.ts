@@ -1,4 +1,4 @@
-import { useCallback, type MutableRefObject } from "react";
+import { useCallback, useMemo, type MutableRefObject } from "react";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_AI_OPTIMIZED_FAQS_FOR_THIS_ROW, NOTIFY_CONNECT_A_WORDPRESS_SITE_FIRST_IN_THE_IN, NOTIFY_FAQ_OPTIMIZATION_FAILED_FOR_THIS_ROW } from "@/lib/notify-messages";
 import type { WordPressSite } from "@/components/integrations/types";
@@ -59,12 +59,15 @@ export function useOverviewTabFaqHandlers({
   rowsRef,
   uploadAfterRowWrite,
 }: Args) {
-  const faqDeps: FaqHarnessOptimizeDeps = {
-    optimizeFaq,
-    optimizeFaqQuestion,
-    optimizeFaqAnswer,
-    getDfsSerpContext,
-  };
+  const faqDeps: FaqHarnessOptimizeDeps = useMemo(
+    () => ({
+      optimizeFaq,
+      optimizeFaqQuestion,
+      optimizeFaqAnswer,
+      getDfsSerpContext,
+    }),
+    [optimizeFaq, optimizeFaqQuestion, optimizeFaqAnswer, getDfsSerpContext],
+  );
 
   const makeHarnessSetters = useCallback(
     (batchKey: string): FaqHarnessSetters | null => {
@@ -221,6 +224,7 @@ export function useOverviewTabFaqHandlers({
     },
     [
       site,
+      sitemapSource,
       bulkAiFaqSeedCount,
       makeHarnessSetters,
       getInventoryMatchForUrl,

@@ -30,7 +30,7 @@ import {
   BulkPromptComposePanel,
   type BulkPromptComposePanelProps,
 } from "@/components/keyword-research/bulk/BulkPromptComposePanel";
-import { bulkGeneratorDetailsPanelId } from "@/components/keyword-research/bulk/bulk-generator-studio-chrome";
+import { bulkGeneratorDetailsPanelId } from "@/components/keyword-research/bulk/bulk-generator-studio-helpers";
 import type { BulkGeneratorDetailsPanelProps } from "@/components/keyword-research/bulk/BulkGeneratorDetailsPanel";
 import type { StudioEditorModeId } from "@/components/keyword-research/bulk/studio-editor-modes";
 import {
@@ -38,7 +38,7 @@ import {
   overviewSitemapSourceToUploadConfig,
 } from "@/lib/bulk/bulk-sitemap-mode";
 import { editorialPackageScheduleFieldsForSite } from "@/lib/bulk/editorial-bulk-schedule-presets";
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import type { ContentOptimizerSectionId } from "@/components/content-optimizer/content-optimizer-sections";
 import type { ReactNode } from "react";
 
@@ -191,6 +191,7 @@ export function BulkGeneratorOverviewTabContent({
   }, [
     variant,
     bindings.csvFileName,
+    ctrl,
     ctrl.displayRows,
     ctrl.displayRows.length,
     ctrl.selectedCount,
@@ -199,7 +200,7 @@ export function BulkGeneratorOverviewTabContent({
 
   const sapInventoryRows = useMemo(
     () => (site?.id ? getSitePrefetchOverviewRowsForSourceSync(site, "sap") : []),
-    [site?.id, site?.siteUrl],
+    [site],
   );
 
   const prevEditorialScheduleKeyRef = useRef("");
@@ -249,7 +250,7 @@ export function BulkGeneratorOverviewTabContent({
         bindings.setStartTime(fields.startTime);
       }
     }
-  }, [ctrl.sitemapSource, bindings.wordPressSite?.id, bindings.setSiteConfigs, site?.id, site?.siteUrl]);
+  }, [ctrl.sitemapSource, bindings, bindings.wordPressSite?.id, bindings.setSiteConfigs, site, site?.id, site?.siteUrl]);
 
   // Rewrite CSV destination paths when dock source (or SAP inventory) changes — not during URL enrich.
   useEffect(() => {
@@ -277,7 +278,7 @@ export function BulkGeneratorOverviewTabContent({
         b.onDisplayRowChange(index, patch);
       });
     }
-  }, [variant, ctrl.sitemapSource, site?.id, site?.siteUrl, sapInventoryRows.length]);
+  }, [variant, ctrl.sitemapSource, site, site?.id, site?.siteUrl, sapInventoryRows, sapInventoryRows.length]);
 
   useEffect(() => {
     if (
@@ -296,6 +297,7 @@ export function BulkGeneratorOverviewTabContent({
     const firstUrl = ctrl.displayRows[0]?.url;
     if (firstUrl) ctrl.setExpandedPageUrl(firstUrl);
   }, [
+    ctrl,
     ctrl.expandedPageUrl,
     ctrl.displayRows,
     ctrl.setExpandedPageUrl,
@@ -305,10 +307,7 @@ export function BulkGeneratorOverviewTabContent({
     bulkGeneratorDock.csvFileName,
   ]);
 
-  const activeRowIndex = useMemo(
-    () => sync.resolveActiveDocRowIndex(),
-    [sync.resolveActiveDocRowIndex, ctrl.expandedPageUrl, ctrl.rows, ctrl.sitemapSource],
-  );
+  const activeRowIndex = useMemo(() => sync.resolveActiveDocRowIndex(), [sync]);
 
   const activeRow = activeRowIndex >= 0 ? ctrl.rows[activeRowIndex] ?? null : null;
 
@@ -417,11 +416,7 @@ export function BulkGeneratorOverviewTabContent({
     studioEditorMode,
     pressReleaseComposeProps,
     ideationMode,
-    bindings.hasGeneratedChecklist,
-    bindings.isGeneratingChecklist,
-    bindings.numberOfBlogs,
-    bindings.handleGenerateChecklist,
-    bindings.handleStartProcessing,
+    bindings,
     verticalBenchmarkComposeProps,
     bulkWorkspaceBusy,
     activeRowPublishable,

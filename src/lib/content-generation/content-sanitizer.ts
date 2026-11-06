@@ -51,11 +51,14 @@ export function stripTitleSeparatorSuffix(title: string): string {
   return (cut < t.length ? t.substring(0, cut) : t).trim();
 }
 
+/** The one SEO title limit for the whole app. Prompts state it; code enforces it. */
+export const SEO_TITLE_MAX_CHARS = 60;
+
 /**
- * Truncate title to maximum 50 characters for optimal SEO (Content Optimizer module requirement)
- * Preserves word boundaries when possible to avoid cutting words in half
+ * Truncate an SEO title to SEO_TITLE_MAX_CHARS at a word boundary.
+ * Models are never asked to count characters; this is the enforcement.
  */
-export function truncateTitleForSEO(title: string, maxLength: number = 50): string {
+export function truncateTitleForSEO(title: string, maxLength: number = SEO_TITLE_MAX_CHARS): string {
   if (!title) return title;
   
   const trimmed = title.trim();

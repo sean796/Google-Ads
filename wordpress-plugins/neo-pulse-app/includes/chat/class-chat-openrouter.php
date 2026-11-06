@@ -688,18 +688,8 @@ class Neo_Pulse_App_Chat_Openrouter {
 	 * @param array<string,mixed> $body
 	 */
 	public static function api_key_from_request( array $body = array() ): string {
-		$header = isset( $_SERVER['HTTP_X_OPENROUTER_API_KEY'] )
-			? trim( (string) wp_unslash( $_SERVER['HTTP_X_OPENROUTER_API_KEY'] ) )
-			: '';
-		if ( $header !== '' ) {
-			return $header;
-		}
-		if ( ! empty( $body['openRouterApiKey'] ) && is_string( $body['openRouterApiKey'] ) ) {
-			$body_key = trim( $body['openRouterApiKey'] );
-			if ( $body_key !== '' ) {
-				return $body_key;
-			}
-		}
+		// Wave 0: client-supplied keys (header or body) are ignored. Server env only.
+		unset( $body );
 		return self::resolve_key();
 	}
 
@@ -790,12 +780,6 @@ class Neo_Pulse_App_Chat_Openrouter {
 	private static function resolve_key(): string {
 		if ( self::$request_api_key !== '' ) {
 			return self::$request_api_key;
-		}
-		$header = isset( $_SERVER['HTTP_X_OPENROUTER_API_KEY'] )
-			? trim( (string) wp_unslash( $_SERVER['HTTP_X_OPENROUTER_API_KEY'] ) )
-			: '';
-		if ( $header !== '' ) {
-			return $header;
 		}
 		if ( class_exists( 'Neo_Pulse_App_Secrets' ) ) {
 			$key = trim( Neo_Pulse_App_Secrets::openrouter_api_key() );

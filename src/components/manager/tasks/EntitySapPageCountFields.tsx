@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useEffect, useState, useCallback } from "react";
 import { ChevronDown } from "lucide-react";
-import { Field, RowButton, Button } from "@/ui";
-import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Field, RowButton, Button, Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/ui";
+
 import { getStoredSites } from "@/components/integrations/storage";
 import {
   TASK_FORM_SELECT_CONTENT_CLASS,

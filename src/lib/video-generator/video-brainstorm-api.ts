@@ -137,7 +137,7 @@ export async function uploadReferenceVideoFile(args: {
     durationSeconds: data.durationSeconds,
     llmSegmentCount: data.llmSegmentCount ?? data.llmSegments?.length ?? 0,
   });
-  return data;
+  return data as VideoSamplesResult;
 }
 
 /** Tiles the subject photos into one harness sheet on the server; the sheet is attached first to every agent and frame. */

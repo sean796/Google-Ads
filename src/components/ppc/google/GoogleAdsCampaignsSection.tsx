@@ -6,7 +6,7 @@ import {
   CONTENT_OPTIMIZER_MULTI_SITE_ROW_WRAPPER_CLASS,
   contentOptimizerRowStripeClass,
 } from "@/components/overview/overview-tab/overview-tab-content-constants";
-import { overviewGridPageSlice } from "@/components/overview/OverviewGridPagination";
+import { overviewGridPageSlice } from "@/components/overview/overview-grid-pagination-helpers";
 import {
   buildPpcGoogleGridRows,
 } from "@/components/ppc/google/google-ads-row-constants";

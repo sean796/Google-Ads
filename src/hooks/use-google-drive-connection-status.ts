@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 export type GoogleDriveConnectionStatus = {
   connected: boolean;
@@ -50,10 +51,12 @@ async function fetchGoogleDriveStatus(): Promise<GoogleDriveStatusSnapshot> {
     fetch(`${backendApiUrl("/google-mcp/status")}?${cacheBust}`, {
       credentials: "include",
       cache: "no-store",
+      headers: neoPulseApiHeaders(),
     }),
     fetch(`${backendApiUrl("/google-mcp/config-status")}?${cacheBust}`, {
       credentials: "include",
       cache: "no-store",
+      headers: neoPulseApiHeaders(),
     }),
   ]);
   const statusData = await statusRes.json().catch(() => ({}));

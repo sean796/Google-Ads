@@ -371,7 +371,6 @@ Mandatory HTML: <h2>${h2Title}</h2> (exact title — must start with "Scenario: 
     maxTokens: 1400,
     topP: 0.9,
     httpReferer: resolveHarnessHttpReferer(),
-    signal: args.signal,
   });
 
   return scenarioSectionHtmlFromModel(result.content || "");

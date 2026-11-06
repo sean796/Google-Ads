@@ -1,9 +1,15 @@
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
+import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { getMuteOptimizationToasts } from "./optimization-toast-mute";
 import { loadApiKey } from "@/lib/api";
 import { OptimizationFileManager } from "@/lib/optimization-file-manager";
 import { type WordPressSite } from "@/components/integrations/types";
 import { selectBestKeywordForEntityPage } from "@/lib/content-optimization-helpers";
+import type {
+  MapSetter,
+  ProgressSetter,
+} from "./optimization-helpers-a";
+import type { OptimizationProgressState } from "./use-optimization-state";
 
 function escapeCsvField(value: unknown): string {
   if (value === null || value === undefined) return "";
@@ -12,11 +18,15 @@ function escapeCsvField(value: unknown): string {
   return s;
 }
 
-function buildGscCsvContent(gscResult: any, _pageUrl: string, _note?: string): string {
+function buildGscCsvContent(
+  gscResult: { queries?: ReadonlyArray<{ query?: unknown }> | null } | null | undefined,
+  _pageUrl: string,
+  _note?: string,
+): string {
   const lines: string[] = ["query"];
   const queries = Array.isArray(gscResult?.queries) ? gscResult.queries : [];
   for (const q of queries) {
-    const kw = (q?.query ?? "").trim();
+    const kw = typeof q?.query === "string" ? q.query.trim() : "";
     if (kw) lines.push(escapeCsvField(kw));
   }
   return lines.join("\n");
@@ -24,7 +34,7 @@ function buildGscCsvContent(gscResult: any, _pageUrl: string, _note?: string): s
 
 export function savePostData(
   fileManager: OptimizationFileManager,
-  post: any,
+  post: { fullData?: unknown } & Record<string, unknown>,
   postId: string | number
 ): void {
   const postDataForJson = post.fullData || post;
@@ -38,7 +48,7 @@ export function savePostData(
 
 export function saveGSCData(
   fileManager: OptimizationFileManager,
-  gscResult: any,
+  gscResult: { queries?: ReadonlyArray<{ query?: unknown }> | null } | null | undefined,
   url: string,
   note?: string
 ): void {
@@ -53,15 +63,15 @@ export function saveKeywordResearch(
   keyword: string,
   data: {
     primaryKeyword: string;
-    gscMetrics: any;
-    keywordData: any;
-    aiAnalysis: any;
-    peopleAlsoAsk: any[];
+    gscMetrics: unknown;
+    keywordData: unknown;
+    aiAnalysis: unknown;
+    peopleAlsoAsk: unknown[];
     relatedGSCKeywords: string[];
     selectedKeywords: string[];
     selectedH2Sections: string[];
-    selectedPeopleAlsoAsk?: any[];
-    selectedResearchLinks?: any[];
+    selectedPeopleAlsoAsk?: unknown[];
+    selectedResearchLinks?: unknown[];
   }
 ): void {
   const keywordResearchFileName = OptimizationFileManager.generateFilename("keyword-research", keyword, "json");
@@ -71,7 +81,7 @@ export function saveKeywordResearch(
 export function saveSelectedKeyword(
   fileManager: OptimizationFileManager,
   keyword: string,
-  selectedKeyword: any
+  selectedKeyword: unknown
 ): void {
   const selectedKeywordFileName = OptimizationFileManager.generateFilename("selected-keyword", keyword, "json");
   fileManager.addFile(selectedKeywordFileName, JSON.stringify(selectedKeyword, null, 2), "application/json");
@@ -118,22 +128,22 @@ export function saveSerpResearchBrief(
 export function handleOptimizationError(
   error: unknown,
   siteId: string,
-  setIsOptimizing: (prev: any) => any,
-  setProgress: (prev: any) => any,
+  setIsOptimizing: MapSetter<boolean>,
+  setProgress: ProgressSetter,
 ): void {
   const errorMessage = error instanceof Error ? error.message : "Unknown error occurred during optimization";
 
   try {
-    setIsOptimizing((prev: any) => ({ ...prev, [siteId]: false }));
-    setProgress((prev: any) => {
-      const prevEntry = prev[siteId] || {};
+    setIsOptimizing((prev) => ({ ...prev, [siteId]: false }));
+    setProgress((prev) => {
+      const prevEntry: Partial<OptimizationProgressState> = prev[siteId] ?? {};
       return {
         ...prev,
         [siteId]: {
           ...prevEntry,
           error: errorMessage,
           message: errorMessage,
-        },
+        } as OptimizationProgressState,
       };
     });
   } catch (stateError) {
@@ -171,7 +181,7 @@ export function findEndpointFromSitemap(url: string, site: WordPressSite): strin
     }
   }
 
-  if (urlPath.includes("/page/") || urlPath.match(/^\/[^\/]+$/)) {
+  if (urlPath.includes("/page/") || urlPath.match(/^\/[^/]+$/)) {
     if (!urlPath.match(/\/\d{4}\/\d{2}\//)) {
       return "pages";
     }

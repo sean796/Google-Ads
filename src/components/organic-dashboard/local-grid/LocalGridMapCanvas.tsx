@@ -147,11 +147,11 @@ function MapViewportSync({
   viewportProfile: "studio" | "report";
 }) {
   const map = useMap();
+  const { minLat, maxLat, minLng, maxLng } = bounds;
 
   useEffect(() => {
     const applyFit = () => {
       map.invalidateSize({ pan: false });
-      const { minLat, maxLat, minLng, maxLng } = bounds;
       const latLngBounds = L.latLngBounds(
         [minLat, minLng],
         [maxLat, maxLng],
@@ -173,15 +173,7 @@ function MapViewportSync({
       window.clearTimeout(timer2);
       window.removeEventListener("resize", applyFit);
     };
-  }, [
-    map,
-    bounds.minLat,
-    bounds.maxLat,
-    bounds.minLng,
-    bounds.maxLng,
-    recenterSignal,
-    viewportProfile,
-  ]);
+  }, [map, minLat, maxLat, minLng, maxLng, recenterSignal, viewportProfile]);
 
   return null;
 }

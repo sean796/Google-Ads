@@ -29,6 +29,9 @@ const site: WordPressSite = {
   enabled: true,
   entitySitemapUrl: "https://example.com/service-area-sitemap.xml",
   sitemaps: {
+    mainSitemapUrl: "https://example.com/sitemap.xml",
+    detectedAt: 0,
+    type: "index",
     endpoints: {
       "https://example.com/service-area-sitemap.xml": "service-area",
     },

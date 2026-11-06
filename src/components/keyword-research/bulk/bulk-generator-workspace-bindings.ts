@@ -1,4 +1,5 @@
 import type { BulkHarnessSectionUi } from "@/hooks/use-bulk-auto-generate";
+import type { BulkSitemapMode, BulkRowSitemapType } from "@/lib/bulk/bulk-sitemap-mode";
 import type { BulkGeneratedFile } from "@/lib/bulk-file-manager";
 import type { PromptBulkSitemapInventoryLink } from "@/lib/bulk/prompt-bulk-sitemap-inventory";
 import type { CSVRow, WordPressPostDestination } from "@/lib/bulk-auto-generate";

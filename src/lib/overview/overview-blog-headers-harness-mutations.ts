@@ -1,8 +1,9 @@
 import type { Dispatch, SetStateAction } from "react";
+import { harnessStepProgress, mergeOverviewHarnessProgressSiteAndBatch } from "@/lib/overview/overview-harness-progress";
 import type { BulkHarnessSectionPayload } from "@/lib/bulk-auto-generate";
 import type { HarnessSectionListItem } from "@/lib/bulk/harness-sections-reducer";
 import { reduceHarnessSectionList } from "@/lib/bulk/harness-sections-reducer";
-import { mergeHarnessProgressSiteAndBatch } from "@/hooks/content-optimization/optimization-helpers-a";
+
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import type { AiseoCacheWriteAccumulator } from "@/lib/overview/overview-aiseo-cache-write";
@@ -43,18 +44,17 @@ export function setHeadersHarnessMessage(
       ...prev,
       [setters.batchKey]: {
         ...current,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "Headers",
           progress: pct,
           message,
-        },
+        }),
       },
     };
   });
   setters.setOptimizationProgress((prev) => {
     const next = { ...(prev as Record<string, unknown>) };
-    mergeHarnessProgressSiteAndBatch(next, setters.siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(next, setters.siteId, {
       step: "Headers",
       progress: pct,
       message,
@@ -186,19 +186,18 @@ export function emitHeadersHarnessPayload(
       [batchKey]: {
         ...nextBatch,
         currentProgress: latestProgress,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "Headers",
           progress: latestProgress,
           message,
           harnessPlannedSectionCount: payload.totalSections,
-        },
+        }),
       },
     };
   });
 
   setOptimizationProgress((prev) =>
-    mergeHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
       step: "Headers",
       progress: latestProgress,
       message,
@@ -258,12 +257,11 @@ export function finishHeadersRowHarness(
       [batchKey]: {
         ...nextBatch,
         currentProgress: progress,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "Headers",
           progress,
           message: "Headers complete",
-        },
+        }),
       },
     };
   });

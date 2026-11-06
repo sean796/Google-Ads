@@ -30,8 +30,8 @@ export function replaceChecklistItemHeading(item: string, newTitle: string): str
 /** Strip [ILLUSTRATIVE] / [BLOCKQUOTE] markers from non-illustrative SAP checklist rows. */
 export function stripIllustrativeMarkersFromChecklistItem(item: string): string {
   return item
-    .replace(/\s*\[ILLUSTRATIVE\][^\[]*(?=\[|$)/gi, "")
-    .replace(/\s*\[BLOCKQUOTE\][^\[]*(?=\[|$)/gi, "")
+    .replace(/\s*\[ILLUSTRATIVE\][^[]*(?=\[|$)/gi, "")
+    .replace(/\s*\[BLOCKQUOTE\][^[]*(?=\[|$)/gi, "")
     .replace(/\s{2,}/g, " ")
     .trim();
 }

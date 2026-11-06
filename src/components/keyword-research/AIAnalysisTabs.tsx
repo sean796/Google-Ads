@@ -1,13 +1,12 @@
 import { useState, useCallback } from "react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { getResearchModel } from "@/lib/optimization-settings-storage";
+
 import { Sparkles } from "lucide-react";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_NO_SERP_DATA_AVAILABLE_TO_EXTRACT_FROM, NOTIFY_OPENROUTER_API_KEY_IS_REQUIRED_TO_EXTRAC, notifyExtractedXPaaQuestions, notifyFailedToExtractPaaQuestionsX } from "@/lib/notify-messages";
-import type { KeywordAIAnalysis, KeywordResearchResult, PeopleAlsoAsk } from "@/lib/keyword-types";
+import type { KeywordAIAnalysis, KeywordData, KeywordResearchResult, PeopleAlsoAsk } from "@/lib/keyword-types";
 import { extractPeopleAlsoAskWithAI } from "@/lib/keyword-ai-analyzer";
-import { Button, CheckField } from "@/ui";
+import { Button, CheckField, Tabs, TabsList, TabsTrigger, TabsContent, Card, ScrollArea } from "@/ui";
 
 interface AIAnalysisTabsProps {
   aiAnalysis: KeywordAIAnalysis;
@@ -18,7 +17,7 @@ interface AIAnalysisTabsProps {
   selectedContentGaps: Set<string>;
   selectedPeopleAlsoAsk: Set<string>;
   selectedResearchLinks: Set<string>;
-  keywordsWithVolumeData: Map<string, any>;
+  keywordsWithVolumeData: Map<string, KeywordData>;
   minVolumeFilter: number;
   isAnalyzingWithAI: boolean;
   showAIAnalysis: boolean;
@@ -26,7 +25,7 @@ interface AIAnalysisTabsProps {
   location: string;
   language: string;
   forceRefresh: boolean;
-  paaRawResponse: any;
+  paaRawResponse: unknown;
   paaExtractionLog: string[];
   paaAiRawResponse: string;
   openRouterApiKey?: string;
@@ -42,8 +41,8 @@ interface AIAnalysisTabsProps {
   onResearchLinkToggle: (url: string) => void;
   onSelectAllKeywords: (keywords: string[]) => void;
   onSetPrimaryKeyword: (keyword: string) => void;
-  onAnalyzeKeyword: (keyword: string, options?: any) => Promise<void>;
-  onRegenerateKeywords: (primaryKeyword: string, selectedKeywords: string[], minVolumeFilter: number, options: { location: string; language: string }) => Promise<any>;
+  onAnalyzeKeyword: (keyword: string, options?: { location?: string; language?: string }) => Promise<void>;
+  onRegenerateKeywords: (primaryKeyword: string, selectedKeywords: string[], minVolumeFilter: number, options: { location: string; language: string }) => Promise<unknown>;
   onMinVolumeFilterChange: (filter: number) => void;
   onPaaQuestionsUpdate?: (questions: PeopleAlsoAsk[]) => void;
 }
@@ -89,29 +88,18 @@ export function AIAnalysisTabs({
   const [isExtractingPaa, setIsExtractingPaa] = useState(false);
   const [extractedPaaQuestions, setExtractedPaaQuestions] = useState<PeopleAlsoAsk[]>([]);
 
-  // Validate aiAnalysis structure to prevent crashes
-  if (!aiAnalysis) {
-    return (
-      <Card variant="neonFlat" className="p-4">
-        <div className="text-center text-muted-foreground">
-          <p>AI Analysis data is not available.</p>
-        </div>
-      </Card>
-    );
-  }
-
   // Ensure all required properties exist with safe defaults
   const safeAiAnalysis = {
-    keywordSuggestions: aiAnalysis.keywordSuggestions || {
+    keywordSuggestions: aiAnalysis?.keywordSuggestions || {
       primary: primaryKeyword || "",
       variations: [],
       longTail: [],
       semantic: [],
     },
-    h2Suggestions: Array.isArray(aiAnalysis.h2Suggestions) ? aiAnalysis.h2Suggestions : [],
-    contentGaps: Array.isArray(aiAnalysis.contentGaps) ? aiAnalysis.contentGaps : [],
-    peopleAlsoAsk: Array.isArray(aiAnalysis.peopleAlsoAsk) ? aiAnalysis.peopleAlsoAsk : [],
-    researchLinks: Array.isArray(aiAnalysis.researchLinks) ? aiAnalysis.researchLinks : [],
+    h2Suggestions: Array.isArray(aiAnalysis?.h2Suggestions) ? aiAnalysis.h2Suggestions : [],
+    contentGaps: Array.isArray(aiAnalysis?.contentGaps) ? aiAnalysis.contentGaps : [],
+    peopleAlsoAsk: Array.isArray(aiAnalysis?.peopleAlsoAsk) ? aiAnalysis.peopleAlsoAsk : [],
+    researchLinks: Array.isArray(aiAnalysis?.researchLinks) ? aiAnalysis.researchLinks : [],
   };
 
   const handleExtractPaaQuestions = useCallback(async () => {
@@ -159,6 +147,17 @@ export function AIAnalysisTabs({
   const gapsCount = safeAiAnalysis.contentGaps?.length || 0;
   const paaCount = displayPaaQuestions.length;
   const linksCount = safeAiAnalysis.researchLinks?.length || 0;
+
+  // Validate aiAnalysis structure to prevent crashes (after all hooks)
+  if (!aiAnalysis) {
+    return (
+      <Card variant="neonFlat" className="p-4">
+        <div className="text-center text-muted-foreground">
+          <p>AI Analysis data is not available.</p>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card variant="neonFlat" className="p-4">

@@ -1,16 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+
 import { CheckCircle2, AlertCircle, Circle, CircleDot, Copy, Download, FileText, FileDown, Map as MapIcon, MinusCircle, Upload, X, ChevronDown } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+
+
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_COPIED_TO_CLIPBOARD, NOTIFY_CSV_DOWNLOADED, NOTIFY_REPORT_COPIED_TO_CLIPBOARD } from "@/lib/notify-messages";
 import { cn } from "@/lib/utils";
@@ -36,7 +28,7 @@ import {
   contentOptimizerBulkPageCount,
   contentOptimizerBulkPageForIndex,
   contentOptimizerBulkUsesPagination,
-} from "@/lib/content-optimizer/content-optimizer-bulk-page-size";
+} from "@/lib/content-optimization/content-optimizer-bulk-page-size";
 import { OverviewGridPagination } from "@/components/overview/OverviewGridPagination";
 import {
   mergeGeneratedFilesByName,
@@ -46,15 +38,15 @@ import {
 import { BULK_ACTIVE_SEMANTIC_BORDER_CLASS } from "@/lib/bulk/bulk-active-semantic-border";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import { MetaOptimizerPageRowCompact } from "@/components/overview/MetaOptimizerPageRowCompact";
+import { MetaAccordionStripeRow } from "@/components/overview/MetaOptimizerRowParts";
 import {
-  MetaAccordionStripeRow,
   META_FIELD_COUNT,
   META_FIELD_END_RAIL,
   META_FIELD_END_RAIL_BTN,
   META_FIELD_END_RAIL_CELL,
   META_TRIGGER_FLAT,
   zoneMetaAccordionStack,
-} from "@/components/overview/MetaOptimizerPageRowDetails";
+} from "@/components/overview/meta-optimizer-row-constants";
 import {
   CONTENT_OPTIMIZER_MULTI_SITE_ROW_STACK_CLASS,
   CONTENT_OPTIMIZER_MULTI_SITE_ROW_WRAPPER_CLASS,
@@ -137,9 +129,11 @@ function sortFilesForDisplay(files: { name: string; content: string; mimeType: s
 import {
   BulkDetailsDrawerStack,
   BulkDetailsTileSections,
+} from "@/components/shared/bulk-details-tile-sections";
+import {
   resolveDetailsPipelineSections,
   resolveSerpBriefDownloadable,
-} from "@/components/shared/bulk-details-tile-sections";
+} from "@/components/shared/bulk-details-tile-sections-helpers";
 import { resolveBulkRowPipelineTitles, isAiseoSimpleHarnessRunKind } from "@/lib/overview/overview-bulk-pipeline-titles";
 import {
   buildAiseoRowDisplaySections,
@@ -147,7 +141,7 @@ import {
   isAiseoFileSlotRunKind,
 } from "@/lib/overview/overview-aiseo-row-artifacts";
 import { resolveOverviewBulkPipelineTitles } from "@/lib/overview/overview-bulk-details-bindings";
-import { Button, RowButton } from "@/ui";
+import { Button, RowButton, DialogHeader, DialogTitle, DialogDescription, Progress, Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui";
 
 export type BulkPanelVariant = "modal" | "page";
 export type BulkPanelDisplayMode = "full" | "details-only";
@@ -161,6 +155,7 @@ export interface BulkOptimizationPanelProps {
   onApproveKeywords?: (batchKey: string) => void;
   /** Live progress: prefer `optimizationProgress[siteId]` (harness rows); batch key is fallback */
   siteProgress?: {
+    stepId?: ContentOptimizerStepId;
     step: string;
     progress: number;
     message?: string;
@@ -283,9 +278,9 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
   const isDetailsOnly = displayMode === "details-only";
   const drawerDateEditable = isDetailsOnly && Boolean(onRowDateModifierChange);
   // Extract data safely - handle null gracefully
-  const urls = bulkState?.urls || [];
+  const urls = useMemo(() => bulkState?.urls || [], [bulkState?.urls]);
   const currentIndex = bulkState?.currentIndex ?? 0;
-  const urlStatuses = bulkState?.urlStatuses || {};
+  const urlStatuses = useMemo(() => bulkState?.urlStatuses || {}, [bulkState?.urlStatuses]);
   const currentStepId: ContentOptimizerStepId =
     siteProgress?.stepId ??
     (bulkState?.currentStepProgress?.stepId as ContentOptimizerStepId | undefined) ??
@@ -623,7 +618,7 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
   const downloadFile = (file: { name: string; content: string; mimeType: string }) => {
     // Re-use OptimizationFileManager download logic to avoid duplicating blob handling
     const tempManager = new OptimizationFileManager();
-    (tempManager as any).downloadFile(file);
+    tempManager.downloadFile(file);
   };
 
   const downloadAllForUrl = (files: { name: string; content: string; mimeType: string }[]) => {
@@ -789,7 +784,9 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
               isActive ? siteProgress?.generatedFiles ?? [] : [],
             );
             const { otherFiles } = partitionPeerDetailFiles({ peers: [], files: rawFiles });
-            const isFileSlotRun = isAiseoFileSlotRunKind(bulkState?.runKind);
+            const runKind = bulkState?.runKind;
+            const isFileSlotRun = isAiseoFileSlotRunKind(runKind);
+            const fileSlotRunKind = isFileSlotRun ? runKind : undefined;
             const displayFiles = sortFilesForDisplay(
               isFileSlotRun
                 ? filterAiseoRowDisplayFiles(bulkState!.runKind, otherFiles)
@@ -878,7 +875,7 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                         progressLabel={activeProgressLabel || undefined}
                         defaultFilesOpen={isFileSlotRun && isActive}
                         filesOnly={isFileSlotRun}
-                        fileSlotRunKind={isFileSlotRun ? bulkState!.runKind : undefined}
+                        fileSlotRunKind={fileSlotRunKind}
                       />
                     ) : null}
                   </div>
@@ -1344,7 +1341,7 @@ export const BulkOptimizationPanel: React.FC<BulkOptimizationPanelProps> = ({
                       }}
                       className={cn(
                         isDetailsOnly
-                          ? detailsDrawerRowStripeClass(index, {
+                          ? contentOptimizerRowStripeClass(index, {
                               isActiveOptimize: isDetailsCurrentRow,
                             })
                           : cn(

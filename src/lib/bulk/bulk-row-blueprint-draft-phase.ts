@@ -84,10 +84,10 @@ export async function runBulkRowBlueprintDraftPhase(input: {
   semrushKeywordsContext?: string;
   semrushScatterContext?: string;
 }): Promise<BulkRowBlueprintDraftPhaseResult> {
-  let {
+  let { enrichedRow } = input;
+  const {
     rowIndex,
     row,
-    enrichedRow,
     keywordData,
     options,
     fileManager,
@@ -279,22 +279,6 @@ export async function runBulkRowBlueprintDraftPhase(input: {
 
   if (blueprintResult.agents.length === 0) {
     throw new Error("No agents generated from template");
-  }
-
-  const agentsWithoutLinks = blueprintResult.agents.filter((agent) => {
-    const features = Array.isArray(agent.features) ? agent.features : [];
-    const hasLinkFeature = features.some(
-      (f: string) => typeof f === "string" && f.toLowerCase().trim().startsWith("[link]"),
-    );
-    return !hasLinkFeature;
-  });
-
-  if (agentsWithoutLinks.length > 0) {
-    console.error(
-      `[Bulk Generate] ⚠️ ${agentsWithoutLinks.length} agent(s) missing [LINK] feature after generation. This should not happen - validation should have caught this.`,
-    );
-  } else {
-    console.log(`[Bulk Generate] ✅ All ${blueprintResult.agents.length} agents have [LINK] features`);
   }
 
   const blueprintFileName = BulkFileManager.generateFileName(row, "blueprint", timestamp);

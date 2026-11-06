@@ -14,7 +14,7 @@ import {
   OVERVIEW_TAB_TYPO_CLASS,
   contentOptimizerRowStripeClass,
 } from "@/components/overview/overview-tab/overview-tab-content-constants";
-import type { BulkDetailsDownloadable } from "@/components/shared/bulk-details-tile-sections";
+import type { BulkDetailsDownloadable } from "@/components/shared/bulk-details-tile-sections-helpers";
 import { OrganicClientReportExportDocument } from "@/components/organic-dashboard/OrganicClientReportExportDocument";
 import {
   Ga4ReportingDateRangePopover,

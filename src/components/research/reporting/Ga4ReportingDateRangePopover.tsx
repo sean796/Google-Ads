@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Ga4ScrollableMonthsCalendar } from "@/components/research/reporting/Ga4ScrollableMonthsCalendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 import {
   GA4_COMPARE_BASELINE_OPTIONS,
   GA4_PRIMARY_PRESET_OPTIONS,
@@ -17,7 +17,7 @@ import {
 } from "@/lib/reporting/reporting-date-presets";
 import type { ReportingCompareRanges } from "@/lib/reporting/reporting-date-presets";
 import { cn } from "@/lib/utils";
-import { Button, RowButton, Field } from "@/ui";
+import { Button, RowButton, Field, Popover, PopoverContent, PopoverTrigger } from "@/ui";
 
 export type Ga4ReportingDateHarness = {
   primaryPreset: Ga4PrimaryPresetId;
@@ -217,16 +217,9 @@ export function Ga4ReportingDateRangePopover({
     const to = ymdToDate(active.endDate);
     if (!from || !to) return undefined;
     return { from, to: to >= from ? to : from };
-  }, [
-    calendarTarget,
-    draft.compareEnabled,
-    compareRange.startDate,
-    compareRange.endDate,
-    primaryRange.startDate,
-    primaryRange.endDate,
-  ]);
+  }, [calendarTarget, draft.compareEnabled, compareRange, primaryRange]);
 
-  const maxDate = ymdToDate(todayYmdMax) ?? new Date();
+  const maxDate = useMemo(() => ymdToDate(todayYmdMax) ?? new Date(), [todayYmdMax]);
 
   const scrollToDate = useMemo(() => {
     if (calendarTarget === "compare" && draft.compareEnabled) {
@@ -245,7 +238,6 @@ export function Ga4ReportingDateRangePopover({
     compareRange.endDate,
     todayYmdMax,
     maxDate,
-    scrollKey,
   ]);
 
   const handleCalendarSelect = (range: DateRange | undefined) => {
@@ -522,7 +514,7 @@ export function Ga4ReportingDateRangePopover({
                   </div>
                 </div>
               ) : null}
-              {!validation.ok ? (
+              {validation.ok === false ? (
                 <p className="text-base text-destructive" role="alert">
                   {validation.error}
                 </p>

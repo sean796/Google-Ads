@@ -11,7 +11,6 @@ import {
   saveAgentMailApiKey,
   saveAgentMailInbox,
 } from "@/lib/api";
-import { syncEmailWorkerKeys } from "@/lib/integrations-email-worker-api";
 import { DASHBOARD_SETTINGS_FIELD_CLASS } from "@/components/manager/dashboard/dashboard-panel-styles";
 import { Button, Field } from "@/ui";
 
@@ -28,20 +27,12 @@ export function AgentMailApiKeyContent() {
     if (apiKey && inbox) {
       saveAgentMailApiKey(apiKey);
       saveAgentMailInbox(inbox);
-      void syncEmailWorkerKeys({
-        agentmailApiKey: apiKey,
-        agentmailGeneralEmail: inbox,
-      });
       notify.success(NOTIFY_AGENTMAIL_API_KEY_SAVED);
       return;
     }
 
     saveAgentMailApiKey("");
     saveAgentMailInbox("");
-    void syncEmailWorkerKeys({
-      agentmailApiKey: "",
-      agentmailGeneralEmail: "",
-    });
     notify.warning(NOTIFY_AGENTMAIL_API_KEY_CLEARED);
   }, [localApiKey, localInbox]);
 
@@ -58,7 +49,7 @@ export function AgentMailApiKeyContent() {
         >
           agentmail.io
         </a>
-        . Saved locally and synced to your server.
+        . Saved locally in this browser.
       </p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <Field

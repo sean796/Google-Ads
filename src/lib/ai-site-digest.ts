@@ -6,7 +6,7 @@
 import { getSiteCache } from "@/lib/wordpress-site-cache";
 import type { SiteDigest } from "@/lib/wordpress-site-cache";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
-import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
+import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
 
 const MAX_POSTS_FOR_COMPACT = 30;
 
@@ -55,9 +55,8 @@ export async function getOrCreateSiteDigest(
   const userPrompt = `Page titles:\n${listText}\n\nSummarize into 5-10 topic clusters in one paragraph.`;
 
   try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const res = await postOpenRouterAppChatFetch({
       method: "POST",
-      headers: openRouterWebAppHeaders(apiKey),
       body: JSON.stringify({
         model,
         messages: [

@@ -11,6 +11,7 @@ import {
   type ContentPrepHarnessSetters,
 } from "@/lib/overview/overview-content-prep-harness-run";
 import { contentOptimizeHarnessSectionIndex } from "@/lib/overview/overview-content-optimize-pipeline";
+import type { BulkOptimizationState } from "./use-optimization-state";
 
 /** Content optimize runs one post at a time; no SERP warmup for posts not yet started. */
 export const BULK_SERP_WARMUP_BUFFER_AHEAD = 0;
@@ -33,8 +34,8 @@ function bulkCancelled(
   setBulkOptimizationState: CreateBulkSerpWarmupParams["setBulkOptimizationState"],
 ): boolean {
   let cancelled = false;
-  setBulkOptimizationState((prev: Record<string, unknown>) => {
-    const current = (prev as Record<string, { cancelRequested?: boolean }>)[batchKey];
+  setBulkOptimizationState((prev: Record<string, BulkOptimizationState>) => {
+    const current = prev[batchKey];
     if (current?.cancelRequested) cancelled = true;
     return prev;
   });
@@ -82,8 +83,8 @@ export function createBulkSerpWarmupController(params: CreateBulkSerpWarmupParam
     const url = urls[index];
     if (!url) return;
     readyIndices.add(index);
-    setBulkOptimizationState((prev: Record<string, unknown>) => {
-      const current = (prev as Record<string, Record<string, unknown>>)[batchKey];
+    setBulkOptimizationState((prev: Record<string, BulkOptimizationState>) => {
+      const current = prev[batchKey];
       if (!current) return prev;
       const researchedUrls = Array.isArray(current.researchedUrls)
         ? [...(current.researchedUrls as string[])]
@@ -115,8 +116,8 @@ export function createBulkSerpWarmupController(params: CreateBulkSerpWarmupParam
   const setWarmingIndices = (indices: number[]) => {
     const warmingUpIndex = indices[0] ?? null;
     const warmingUpIndex2 = indices[1] ?? null;
-    setBulkOptimizationState((prev: Record<string, unknown>) => {
-      const current = (prev as Record<string, Record<string, unknown>>)[batchKey];
+    setBulkOptimizationState((prev: Record<string, BulkOptimizationState>) => {
+      const current = prev[batchKey];
       if (!current) return prev;
       return {
         ...prev,
@@ -143,20 +144,15 @@ export function createBulkSerpWarmupController(params: CreateBulkSerpWarmupParam
     const existing = inFlight.get(index);
     if (existing) return existing;
 
+    const url = urls[index]!;
     const run = (async () => {
       if (bulkCancelled(batchKey, setBulkOptimizationState)) return false;
-      const url = urls[index]!;
-      let keyword: string;
-      try {
-        keyword = await ensureKeywordForIndex(index);
-      } catch (err) {
-        throw err;
-      }
+      const keyword: string = await ensureKeywordForIndex(index);
       if (harnessSetters) {
         markContentPrepHarnessSection(
           url,
           contentOptimizeHarnessSectionIndex("SERP research brief"),
-          "active",
+          "start",
           harnessSetters,
           index,
         );
@@ -176,7 +172,7 @@ export function createBulkSerpWarmupController(params: CreateBulkSerpWarmupParam
         markContentPrepHarnessSection(
           url,
           contentOptimizeHarnessSectionIndex("SERP research brief"),
-          "error",
+          "done",
           harnessSetters,
           index,
         );

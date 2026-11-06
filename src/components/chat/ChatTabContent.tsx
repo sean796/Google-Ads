@@ -1,5 +1,5 @@
 import React from "react";
-import { ChatPreferencesProvider } from "@/contexts/ChatPreferencesContext";
+import { ChatPreferencesProvider } from "@/contexts/ChatPreferencesProvider";
 import { ChatShell } from "@/components/chat/ChatShell";
 
 export function ChatTabContent(): React.ReactElement {

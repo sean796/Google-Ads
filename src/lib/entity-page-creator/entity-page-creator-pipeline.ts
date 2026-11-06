@@ -95,7 +95,7 @@ export async function generateEntityLocationsGrid(args: {
   }
 
   const processed = await processParsedLocalDominatorRows(parsed.rows);
-  if (!processed.ok) {
+  if (processed.ok === false) {
     throw new Error(processed.error);
   }
 
@@ -150,6 +150,7 @@ export async function generateEntityLocationsGrid(args: {
   const clusterResult = await runEntityGridLocationClusterAgent({
     apiKey: args.apiKey,
     siteId: args.site.id,
+    buckets: [],
     gridRows: parsed.rows,
     gridKeywordWeights: processed.gridKeywordWeights,
     gridLocations: processed.placeHints,

@@ -12,10 +12,10 @@ import { useOptimizationActivityCounts } from "@/hooks/use-optimization-activity
 import { useWordPressOptimization } from "@/contexts/wordpress-optimization-context";
 import { useAgentRunOptimizerScope } from "@/contexts/agent-run-optimizer-scope-context";
 import type { WordPressSite } from "@/components/integrations/types";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_BATCH_CLEARED_FROM_VIEW, NOTIFY_BOTH_NEEDS_POST_AND_ENTITY_IN_INTEGRATIO, NOTIFY_DETECT_POSTS_FOR_THIS_PROPERTY_IN_INTEGR, NOTIFY_ENTITY_BATCH_DID_NOT_FINISH, NOTIFY_NO_POST_OR_ENTITY_URLS_FOR_THIS_SITE, NOTIFY_NO_SELECTED_SITES_ARE_READY_TO_OPTIMIZE, NOTIFY_NO_URLS_FOR_THIS_SOURCE_ON_THIS_SITE, NOTIFY_POST_BATCH_DID_NOT_FINISH_ENTITY_WAS_NOT, NOTIFY_SAVE_AN_ENTITY_URL_FOR_THIS_SITE_IN_INTE, NOTIFY_STILL_INITIALIZING_THIS_ROW_TRY_AGAIN, notifyBothEntityXUrlSOnX, notifyBothPostFirstXUrlSOnX, notifyOptimizingXUrlSOnX, notifySkippedXSiteSNotConfiguredForCurr } from "@/lib/notify-messages";
-import { buildMultiSiteHeaderMicroSnapshot } from "@/lib/content-optimizer/multi-site-header-progress";
+import { buildMultiSiteHeaderMicroSnapshot } from "@/lib/content-optimization/multi-site-header-progress";
 import { cn } from "@/lib/utils";
 import {
   readMultiSiteLastCompletedMap,
@@ -25,16 +25,14 @@ import {
   resolveMultiSiteRowActivityIso,
   type MultiSiteLastCompletedBySite,
   type MultiSiteManualRowDateBySite,
-} from "@/lib/content-optimizer/multi-site-last-completed-at";
+} from "@/lib/content-optimization/multi-site-last-completed-at";
 import {
   loadUrlsForMultiSiteSource,
   pickPostSitemapUrlForSite,
   type MultiSiteUrlSource,
-} from "@/lib/content-optimizer/multi-site-source-urls";
-import {
-  OptimizationActivityStrip,
-  optimizationStatsForSite,
-} from "@/components/integrations/wordpress/WordPressSiteList";
+} from "@/lib/content-optimization/multi-site-source-urls";
+import { OptimizationActivityStrip } from "@/components/integrations/wordpress/WordPressSiteList";
+import { optimizationStatsForSite } from "@/components/integrations/wordpress/wordpress-site-list-stats";
 import { CompactWordPressTile } from "@/components/integrations/wordpress/CompactWordPressTile";
 import {
   SEO_WORKSPACE_BODY_SCROLL_CLASS,
@@ -53,7 +51,7 @@ import {
   contentOptimizerRowStripeClass,
   CONTENT_OPTIMIZER_WORKSPACE_SHELL_CLASS,
 } from "@/components/overview/overview-tab/overview-tab-content-constants";
-import { Button } from "@/ui";
+import { Button, Checkbox } from "@/ui";
 
 type SiteRowConfig = {
   source: MultiSiteUrlSource;
@@ -123,7 +121,7 @@ export const MultiSiteContentOptimizerPanel: React.FC<MultiSiteContentOptimizerP
 
   useEffect(() => {
     setSelectedSiteIds((prev) => {
-      const valid = new Set(propertySites.map((s) => s.id));
+      const valid = new Set(siteIdsKey ? siteIdsKey.split("\u0001") : []);
       const next = new Set<string>();
       for (const id of prev) {
         if (valid.has(id)) next.add(id);
@@ -328,12 +326,12 @@ export const MultiSiteContentOptimizerPanel: React.FC<MultiSiteContentOptimizerP
           bothSequenceRef.current = { siteId: site.id };
 
           const postRes = await loadUrlsForMultiSiteSource(site, "post", resolvedPostSitemap);
-          if (!postRes.ok) {
+          if (postRes.ok === false) {
             notify.error(postRes.error);
             return false;
           }
           const entRes = await loadUrlsForMultiSiteSource(site, "entity", null);
-          if (!entRes.ok) {
+          if (entRes.ok === false) {
             notify.error(entRes.error);
             return false;
           }
@@ -367,7 +365,7 @@ export const MultiSiteContentOptimizerPanel: React.FC<MultiSiteContentOptimizerP
 
         const postUrl = cfg.source === "post" ? resolvedPostSitemap : null;
         const res = await loadUrlsForMultiSiteSource(site, cfg.source, postUrl);
-        if (!res.ok) {
+        if (res.ok === false) {
           notify.error(res.error);
           return false;
         }

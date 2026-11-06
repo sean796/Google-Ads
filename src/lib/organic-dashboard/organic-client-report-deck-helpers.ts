@@ -211,7 +211,7 @@ export function cleanTakeawayBulletText(raw: string): string {
     text = text
       .replace(/^[•\u2022\u2023\u25E6\u2043\u2219]\s*/, "")
       .replace(/^[-*]\s+/, "")
-      .replace(/^\d+[\.\)]\s+/, "")
+      .replace(/^\d+[.)]\s+/, "")
       .trim();
   }
   return text;

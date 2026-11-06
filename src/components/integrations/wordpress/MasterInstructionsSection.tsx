@@ -20,8 +20,8 @@ import {
   summarizeInstructionDocumentForMasterPrompt,
 } from "@/lib/master-instructions-openrouter-summarize";
 import { loadApiKey } from "@/lib/api";
-import { Progress } from "@/components/ui/progress";
-import { Button, FileInput, RowButton } from "@/ui";
+
+import { Button, FileInput, RowButton, Progress } from "@/ui";
 
 const COPY = "font-sans text-base text-white";
 
@@ -225,7 +225,7 @@ export const MasterInstructionsSection: React.FC<MasterInstructionsSectionProps>
         setProgressValue(0);
       }
     },
-    [disabled, siteId]
+    [disabled, siteId, persist]
   );
 
   const onPickFiles = () => {

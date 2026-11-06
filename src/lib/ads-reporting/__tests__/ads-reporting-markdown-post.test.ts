@@ -17,7 +17,8 @@ describe("ads-reporting-markdown-post", () => {
     ].join("\n");
     expect(stripMarkdownSectionH2(md)).not.toContain("## Campaign Performance");
     expect(applyAdsReportingMarkdownPost(md, "campaign_performance")).toContain("Spend rose in August.");
-    expect(applyAdsReportingMarkdownPost(md, "campaign_performance")).toContain("| **Brand** | 100 |");
+    expect(applyAdsReportingMarkdownPost(md, "campaign_performance")).toContain("| Brand | 100 |");
+    expect(applyAdsReportingMarkdownPost(md, "campaign_performance")).not.toContain("**Brand**");
     expect(applyAdsReportingMarkdownPost(md, "campaign_performance")).not.toMatch(/^## /m);
   });
 

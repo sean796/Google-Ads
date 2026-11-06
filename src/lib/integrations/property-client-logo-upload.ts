@@ -1,4 +1,5 @@
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 export async function uploadPropertyClientLogo(
   siteId: string,
@@ -12,7 +13,7 @@ export async function uploadPropertyClientLogo(
   const res = await fetch(backendApiUrl("/manager-wordpress-properties/client-logo/upload"), {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ siteId: id, dataUrl }),
   });
 

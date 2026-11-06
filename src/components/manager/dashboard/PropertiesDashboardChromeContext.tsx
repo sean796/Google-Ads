@@ -19,25 +19,11 @@ type PropertiesDashboardChromeContextValue = {
   setToolbarState: (state: PropertiesWorkspaceToolbarState | null) => void;
 };
 
-const PropertiesDashboardChromeContext = createContext<PropertiesDashboardChromeContextValue | null>(
+export const PropertiesDashboardChromeContext = createContext<PropertiesDashboardChromeContextValue | null>(
   null,
 );
 
-export function PropertiesDashboardChromeProvider({ children }: { children: ReactNode }) {
-  const [toolbarState, setToolbarState] = useState<PropertiesWorkspaceToolbarState | null>(null);
-  const value = useMemo(
-    () => ({
-      toolbarState,
-      setToolbarState,
-    }),
-    [toolbarState],
-  );
-  return (
-    <PropertiesDashboardChromeContext.Provider value={value}>
-      {children}
-    </PropertiesDashboardChromeContext.Provider>
-  );
-}
+
 
 export function usePropertiesDashboardToolbarState(): PropertiesWorkspaceToolbarState | null {
   const ctx = useContext(PropertiesDashboardChromeContext);

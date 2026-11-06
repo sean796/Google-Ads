@@ -9,6 +9,7 @@ import { finalizeEntitySapRowsForAdGroups } from "@/lib/local-analysis/sap-entit
 
 vi.mock("@/lib/local-analysis/entity-site-warm-cache", () => ({
   ensureEntitySiteWarmCache: vi.fn(),
+  ensureEntitySiteWarmInventory: vi.fn(async () => {}),
   gscAllQueriesFromWarmBundle: vi.fn(() => [
     { query: "blinds near me", clicks: 1, impressions: 10 },
   ]),
@@ -32,7 +33,7 @@ import {
 import { fillEntitySapRowKeywordsFromInventoryAndGsc } from "@/lib/local-analysis/entity-sap-row-keyword-fill";
 
 function row(entity: string, keyword = ""): CSVRow {
-  return { entity, keyword, title: "", meta: "", slug: "" };
+  return { entity, keyword, title: "" };
 }
 
 const mockSite = {
@@ -41,7 +42,36 @@ const mockSite = {
   siteUrl: "https://example.com",
   username: "u",
   appPassword: "p",
+  connectedAt: 0,
 } as const;
+
+type WarmBundle = Awaited<ReturnType<typeof ensureEntitySiteWarmCache>>;
+
+function warmBundle(overrides: Partial<WarmBundle> = {}): WarmBundle {
+  return {
+    siteId: "site-1",
+    credentialsKey: "site-1",
+    fetchedAt: 0,
+    inventory: {
+      totalRows: 10,
+      links: [],
+      buckets: {
+        pages: { json: "", rowCount: 0 },
+        posts: { json: "", rowCount: 0 },
+        sap: { json: "", rowCount: 0 },
+      },
+      sources: [],
+      errors: {},
+      postsMetadata: [],
+    },
+    gsc: {
+      queries: [],
+      dateRange: { startDate: "2026-01-01", endDate: "2026-03-31" },
+    },
+    counts: { inventoryTotal: 10, pages: 0, posts: 0, sap: 0, gscQueries: 0 },
+    ...overrides,
+  };
+}
 
 describe("keywordTargetsFromPreloadedSapRows", () => {
   it("builds one target per ad group with correct sapPages", () => {
@@ -87,15 +117,11 @@ describe("fillEntitySlotKeywordsFromGsc", () => {
 
   it("throws when GSC queries are empty", async () => {
     vi.mocked(gscAllQueriesFromWarmBundle).mockReturnValueOnce([]);
-    vi.mocked(ensureEntitySiteWarmCache).mockResolvedValue({
-      inventory: {
-        totalRows: 10,
-        links: [],
-        buckets: {},
-      },
-      gsc: { queries: [], dateRange: undefined },
-      error: undefined,
-    } as Awaited<ReturnType<typeof ensureEntitySiteWarmCache>>);
+    vi.mocked(ensureEntitySiteWarmCache).mockResolvedValue(
+      warmBundle({
+        error: "Google Search Console returned no keywords for this site.",
+      }),
+    );
 
     await expect(
       fillEntitySlotKeywordsFromGsc({
@@ -111,15 +137,34 @@ describe("fillEntitySlotKeywordsFromGsc", () => {
   });
 
   it("returns filled rows when warm cache and fill succeed", async () => {
-    vi.mocked(ensureEntitySiteWarmCache).mockResolvedValue({
-      inventory: {
-        totalRows: 10,
-        links: [{ href: "https://example.com/p", label: "Page" }],
-        buckets: { pages: [] },
-      },
-      gsc: { queries: [{ query: "blinds", clicks: 1, impressions: 10 }], dateRange: undefined },
-      error: undefined,
-    } as Awaited<ReturnType<typeof ensureEntitySiteWarmCache>>);
+    vi.mocked(ensureEntitySiteWarmCache).mockResolvedValue(
+      warmBundle({
+        inventory: {
+          totalRows: 10,
+          links: [
+            {
+              href: "https://example.com/p",
+              filename: "inventory.txt",
+              rowCount: 1,
+              source: "pages",
+              label: "Page",
+            },
+          ],
+          buckets: {
+            pages: { json: "", rowCount: 0 },
+            posts: { json: "", rowCount: 0 },
+            sap: { json: "", rowCount: 0 },
+          },
+          sources: [],
+          errors: {},
+          postsMetadata: [],
+        },
+        gsc: {
+          queries: [{ query: "blinds", clicks: 1, impressions: 10, ctr: 0.1, position: 5 }],
+          dateRange: { startDate: "2026-01-01", endDate: "2026-03-31" },
+        },
+      }),
+    );
 
     const { rows } = await fillEntitySlotKeywordsFromGsc({
       site: mockSite,
@@ -139,15 +184,14 @@ describe("fillEntitySlotKeywordsFromGsc", () => {
   });
 
   it("passes clientAudienceContextMarkdown to keyword fill", async () => {
-    vi.mocked(ensureEntitySiteWarmCache).mockResolvedValue({
-      inventory: {
-        totalRows: 10,
-        links: [],
-        buckets: {},
-      },
-      gsc: { queries: [{ query: "tax preparation", clicks: 1, impressions: 10 }], dateRange: undefined },
-      error: undefined,
-    } as Awaited<ReturnType<typeof ensureEntitySiteWarmCache>>);
+    vi.mocked(ensureEntitySiteWarmCache).mockResolvedValue(
+      warmBundle({
+        gsc: {
+          queries: [{ query: "tax preparation", clicks: 1, impressions: 10, ctr: 0.1, position: 5 }],
+          dateRange: { startDate: "2026-01-01", endDate: "2026-03-31" },
+        },
+      }),
+    );
 
     await fillEntitySlotKeywordsFromGsc({
       site: mockSite,
@@ -168,15 +212,14 @@ describe("fillEntitySlotKeywordsFromGsc", () => {
   });
 
   it("returns rows from keyword fill without a second collision pass", async () => {
-    vi.mocked(ensureEntitySiteWarmCache).mockResolvedValue({
-      inventory: {
-        totalRows: 10,
-        links: [],
-        buckets: {},
-      },
-      gsc: { queries: [{ query: "blinds near me", clicks: 1, impressions: 10 }], dateRange: undefined },
-      error: undefined,
-    } as Awaited<ReturnType<typeof ensureEntitySiteWarmCache>>);
+    vi.mocked(ensureEntitySiteWarmCache).mockResolvedValue(
+      warmBundle({
+        gsc: {
+          queries: [{ query: "blinds near me", clicks: 1, impressions: 10, ctr: 0.1, position: 5 }],
+          dateRange: { startDate: "2026-01-01", endDate: "2026-03-31" },
+        },
+      }),
+    );
 
     vi.mocked(fillEntitySapRowKeywordsFromInventoryAndGsc).mockResolvedValueOnce([
       row("Southland Mall, Winkler, MB", "blinds southland mall winkler mb"),

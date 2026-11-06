@@ -100,7 +100,7 @@ Return ONLY valid JSON.`;
     });
 
     // Try to parse JSON from response
-    let parsed: any = null;
+    let parsed: unknown = null;
     try {
       // Extract JSON from response (might have markdown code blocks)
       const jsonMatch = fullResponse.match(/\{[\s\S]*\}/);
@@ -116,12 +116,18 @@ Return ONLY valid JSON.`;
     }
 
     // Validate and return parsed result
+    const parsedObj = (parsed && typeof parsed === "object" ? parsed : {}) as {
+      shouldSkipOptimization?: unknown;
+      shouldAddImages?: unknown;
+      shouldSkipImages?: unknown;
+      interpretedInstruction?: string;
+    };
     return {
-      shouldSkipOptimization: Boolean(parsed.shouldSkipOptimization),
-      shouldAddImages: Boolean(parsed.shouldAddImages),
-      shouldSkipImages: Boolean(parsed.shouldSkipImages),
+      shouldSkipOptimization: Boolean(parsedObj.shouldSkipOptimization),
+      shouldAddImages: Boolean(parsedObj.shouldAddImages),
+      shouldSkipImages: Boolean(parsedObj.shouldSkipImages),
       modifierText: trimmedModifier,
-      interpretedInstruction: parsed.interpretedInstruction || 'Interpreted instruction'
+      interpretedInstruction: parsedObj.interpretedInstruction || 'Interpreted instruction'
     };
 
   } catch (error) {

@@ -2,13 +2,13 @@ import { useEffect, useState, type ReactElement } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button, Field, SelectField } from "@/ui";
 import {
-  getLocationOptions,
   inferServiceCountry,
   isServiceCountry,
+  nextStateForCountry,
   normalizeServiceRegion,
-  regionBelongsToCountry,
-  SERVICE_COUNTRIES,
-  type ServiceCountry,
+  regionPlaceholder,
+  SERVICE_COUNTRY_OPTIONS,
+  serviceRegionOptions,
 } from "@/lib/keyword-location-utils";
 import { TaskFormFlatGrid, TaskFormPlaceholderCell } from "@/components/manager/tasks/TaskFormLayout";
 import type { Location, WordPressSite } from "@/components/integrations/types";
@@ -16,12 +16,6 @@ import {
   buildSiteAdditionalLocationsPatch,
   readSiteAdditionalLocations,
 } from "@/lib/wordpress-api/site-service-area";
-
-function regionPlaceholder(country: string): string {
-  if (country === "United States") return "State";
-  if (country === "Canada") return "Province";
-  return "State or province";
-}
 
 const UNSET_SELECT_VALUE = "__unset__";
 
@@ -50,19 +44,6 @@ export function ProfileLocationSelect({
     />
   );
 }
-export function nextStateForCountry(state: string, country: string): string {
-  if (!isServiceCountry(country)) return "";
-  return regionBelongsToCountry(state, country) ? state : "";
-}
-
-export function serviceRegionOptions(country: string): string[] {
-  if (!isServiceCountry(country)) return [];
-  return getLocationOptions(country as ServiceCountry);
-}
-
-export const SERVICE_COUNTRY_OPTIONS = [...SERVICE_COUNTRIES];
-export { regionPlaceholder };
-
 type DraftAdditionalLocation = {
   id: string;
   name?: string;

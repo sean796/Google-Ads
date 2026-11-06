@@ -10,6 +10,9 @@ import { bulkOptimizationDoPrefetch, type BulkDoPrefetchArgs } from "./bulk-opti
 import type { BulkSerpWarmupController } from "./bulk-optimization-serp-warmup";
 import type { BulkGoogleMapsImageWarmupController } from "./bulk-optimization-google-maps-image-warmup";
 import { isAgentRunBatchKey } from "@/lib/agent-runs/agent-run-batch-key";
+import type { PendingOptimization } from "./use-optimization-state";
+import type { ContinueOptimizationFn } from "./continue-optimization";
+import type { MutableRefObject } from "react";
 
 export interface BulkPostLoopParams {
   urls: string[];
@@ -21,8 +24,8 @@ export interface BulkPostLoopParams {
   muteToasts: boolean;
   isAcfKeywordMode: boolean;
   prefetchedPendingCache: Map<number, { pending: Record<string, unknown>; primaryKeyword: string }>;
-  prefetchedAcfFieldsCache: Map<number, Record<string, any>>;
-  pendingOptimizationData: Record<string, any>;
+  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
+  pendingOptimizationData: Record<string, PendingOptimization>;
   wordPressPostsForRun?: Array<Record<string, unknown>>;
   wordPressPagesForOfferTable?: Array<{
     id: number;
@@ -33,18 +36,7 @@ export interface BulkPostLoopParams {
     date_gmt: string;
   }>;
   optimizationFileManagers: Record<string, OptimizationFileManager>;
-  bulkContinueOptimizationRef: {
-    current:
-      | ((
-          siteId: string,
-          selectedKeyword: any,
-          clusterKeywords?: string[],
-          setIsKeywordSelectionOpen?: (prev: any) => any,
-          testMode?: boolean,
-          secondaryKeywords?: string[]
-        ) => Promise<void>)
-      | null;
-  };
+  bulkContinueOptimizationRef: MutableRefObject<ContinueOptimizationFn | null>;
   bulkContextRef: { current: { bulkIndex: number; totalBulkUrls: number; batchKey: string } | null };
   setBulkOptimizationState: HandleOptimizeMultipleContentParams["setBulkOptimizationState"];
   setOptimizationProgress: HandleOptimizeMultipleContentParams["setOptimizationProgress"];
@@ -53,7 +45,7 @@ export interface BulkPostLoopParams {
   serpWarmup: BulkSerpWarmupController;
   googleMapsImageWarmup?: BulkGoogleMapsImageWarmupController | null;
   prefetchArgs: Omit<BulkDoPrefetchArgs, "prefetchedAcfFieldsCache" | "prefetchedPendingCache" | "setBulkOptimizationState"> & {
-    prefetchedAcfFieldsCache: Map<number, Record<string, any>>;
+    prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
     prefetchedPendingCache: Map<number, { pending: Record<string, unknown>; primaryKeyword: string }>;
     setBulkOptimizationState: HandleOptimizeMultipleContentParams["setBulkOptimizationState"];
   };
@@ -64,7 +56,7 @@ function patchBulkMetaCompletedUrls(
   batchKey: string,
   completedUrls: number,
 ) {
-  setOptimizationProgress((prev: Record<string, any>) => {
+  setOptimizationProgress((prev) => {
     const batchEntry = prev[batchKey];
     if (!batchEntry?.bulkMeta) return prev;
     return {
@@ -130,7 +122,7 @@ export async function bulkOptimizationRunPostLoop(p: BulkPostLoopParams): Promis
     if (!fm) return;
     const files = fm.getFiles();
     if (!files || files.length === 0) return;
-    setBulkOptimizationState((prev: any) => {
+    setBulkOptimizationState((prev) => {
       const current = prev[batchKey];
       if (!current) return prev;
       return {
@@ -150,14 +142,14 @@ export async function bulkOptimizationRunPostLoop(p: BulkPostLoopParams): Promis
     const url = urls[i]!;
 
     let cancelNow = false;
-    setBulkOptimizationState((prev: any) => {
+    setBulkOptimizationState((prev) => {
       const current = prev[batchKey];
       if (current?.cancelRequested) cancelNow = true;
       return prev;
     });
     if (cancelNow) {
       updateOptimizationProgress(setOptimizationProgress, batchKey, "done", 1, "Operation aborted by user.");
-      setBulkOptimizationState((prev: any) => {
+      setBulkOptimizationState((prev) => {
         const current = prev[batchKey];
         if (!current) return prev;
         return {
@@ -190,7 +182,7 @@ export async function bulkOptimizationRunPostLoop(p: BulkPostLoopParams): Promis
       console.error(`[Batch Optimization] ${msg}`, url);
       if (!muteToasts) notify.error(msg);
       recordBatchFailure(msg);
-      setBulkOptimizationState((prev: any) => {
+      setBulkOptimizationState((prev) => {
         const current = prev[batchKey];
         if (!current) return prev;
         return {
@@ -254,7 +246,7 @@ export async function bulkOptimizationRunPostLoop(p: BulkPostLoopParams): Promis
       console.error(`[Batch Optimization] ${msg}`, url);
       if (!muteToasts) notify.error(msg);
       recordBatchFailure(msg);
-      setBulkOptimizationState((prev: any) => {
+      setBulkOptimizationState((prev) => {
         const current = prev[batchKey];
         if (!current) return prev;
         return {
@@ -272,7 +264,7 @@ export async function bulkOptimizationRunPostLoop(p: BulkPostLoopParams): Promis
       console.error(`[Batch Optimization] Error optimizing post ${currentPost} (${url}):`, error);
       if (!muteToasts) notify.error(`Post ${currentPost} failed: ${errorMessage}`, { duration: 12000 });
       recordBatchFailure(errorMessage);
-      setBulkOptimizationState((prev: any) => {
+      setBulkOptimizationState((prev) => {
         const current = prev[batchKey];
         if (!current) return prev;
         return {
@@ -302,7 +294,7 @@ export async function bulkOptimizationRunPostLoop(p: BulkPostLoopParams): Promis
   );
 
   serpWarmup.clearWarmingIndices();
-  setBulkOptimizationState((prev: any) => {
+  setBulkOptimizationState((prev) => {
     const current = prev[batchKey];
     if (!current) return prev;
     return {

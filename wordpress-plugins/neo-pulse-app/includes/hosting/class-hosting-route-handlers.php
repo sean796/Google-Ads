@@ -56,6 +56,18 @@ class Neo_Pulse_App_Hosting_Route_Handlers {
 			return;
 		}
 
+		// Wave 0: fail closed. Never call the hosting API without the service token.
+		if ( self::host_api_token() === '' ) {
+			Neo_Pulse_App_Api_Dispatcher::send_json(
+				array(
+					'ok'    => false,
+					'error' => 'Pulse Host API is not configured (PULSE_HOST_API_TOKEN).',
+				),
+				503
+			);
+			return;
+		}
+
 		if ( isset( $body['pulseUserId'] ) ) {
 			$body = self::resolve_pulse_user( $body, (int) $team_id );
 			if ( $body === null ) {

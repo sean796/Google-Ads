@@ -1,6 +1,6 @@
 import { Sparkles } from "lucide-react";
 import { Button, CheckField, FilterRow, FilterRowDivider, Pill } from "@/ui";
-import type { MultiSiteUrlSource } from "@/lib/content-optimizer/multi-site-source-urls";
+import type { MultiSiteUrlSource } from "@/lib/content-optimization/multi-site-source-urls";
 
 export type MultiSiteSelectAllControlProps = {
   actionsBlocked: boolean;

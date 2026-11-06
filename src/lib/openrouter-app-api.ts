@@ -1,7 +1,6 @@
 import { getSessionToken } from "@/lib/auth-device";
-import { getOpenRouterApiKeyForApp } from "@/lib/openrouter-api-key-resolve";
 import { promptTraceInputs, recordPromptTraceCall } from "@/lib/openrouter-prompt-trace";
-import { backendApiUrl, resolveBackendApiBase } from "@/lib/wordpress-api/connection";
+import { backendApiUrl } from "@/lib/wordpress-api/connection";
 
 export type OpenRouterAppMessage = {
   role: "system" | "user" | "assistant";
@@ -25,9 +24,6 @@ export type OpenRouterAppReasoning = { effort: "low" | "medium" | "high" };
 export type OpenRouterAppImageConfig = { aspect_ratio: string };
 
 export function openRouterChatCompletionUrl(): string {
-  if (typeof window === "undefined" && !resolveBackendApiBase()) {
-    return "https://openrouter.ai/api/v1/chat/completions";
-  }
   return backendApiUrl("/openrouter/chat-completion");
 }
 
@@ -129,16 +125,16 @@ export function openRouterAssistantTextFromMessage(message: unknown): string {
   return "";
 }
 
-export function openRouterAppApiHeaders(apiKey?: string): Headers {
+export function openRouterAppApiHeaders(_apiKey?: string): Headers {
+  // Wave 0: no key leaves the browser. Session Bearer only; the server
+  // resolves its own OpenRouter key. The apiKey argument is accepted and
+  // ignored so existing callers keep compiling.
+  void _apiKey;
   const headers = new Headers({ "Content-Type": "application/json" });
-  const key = (apiKey ?? getOpenRouterApiKeyForApp()).trim();
   const token = getSessionToken();
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
-  } else if (key) {
-    headers.set("Authorization", `Bearer ${key}`);
   }
-  if (key) headers.set("X-OpenRouter-Api-Key", key);
   return headers;
 }
 
@@ -185,22 +181,16 @@ export function buildOpenRouterAppChatRequestBody(args: {
   webSearchOptions?: Record<string, unknown>;
   reasoning?: OpenRouterAppReasoning;
 }): Record<string, unknown> {
-  const apiKey = (args.apiKey ?? getOpenRouterApiKeyForApp()).trim();
   const system = openRouterPromptText(args.system);
   const user = openRouterPromptText(args.user);
   const filteredMessages = filterOpenRouterAppMessages(args.messages);
 
   const effectiveModel = normalizeOpenRouterChatModel(args.model);
-  const fallbackModel = "google/gemini-2.5-flash";
-  const isSpecialModality = effectiveModel?.includes("image") || effectiveModel?.includes("video");
-  const models = effectiveModel && effectiveModel !== fallbackModel && !isSpecialModality
-    ? [effectiveModel, fallbackModel]
-    : undefined;
 
+  // One model per call. No silent fallback: if the requested model fails,
+  // the call fails visibly and the prompt trace shows what was requested.
   const base: Record<string, unknown> = {
-    apiKey: apiKey || undefined,
     model: effectiveModel,
-    ...(models ? { models } : {}),
     temperature: args.temperature,
     maxTokens: args.maxTokens,
     topP: args.topP,
@@ -254,25 +244,16 @@ export async function postOpenRouterAppChat(args: {
   nativeFinishReason?: string;
   parsed?: Record<string, unknown>;
 }> {
-  const apiKey = (args.apiKey ?? getOpenRouterApiKeyForApp()).trim();
   const effectiveModel = normalizeOpenRouterChatModel(args.model);
-  const requestBody = buildOpenRouterAppChatRequestBody({ ...args, model: effectiveModel, apiKey });
-  const isDirect = openRouterChatCompletionUrl().includes("openrouter.ai/api/v1");
-  const directPayload = isDirect
-    ? {
-        model: effectiveModel,
-        messages: requestBody.messages,
-        temperature: args.temperature ?? 0.7,
-        max_tokens: args.maxTokens ?? 2000,
-      }
-    : requestBody;
-  const payloadStr = JSON.stringify(directPayload);
+  const requestBody = buildOpenRouterAppChatRequestBody({ ...args, model: effectiveModel });
+  const payloadStr = JSON.stringify(requestBody);
   const openRouterStart = Date.now();
   const traceInputs = promptTraceInputs(args);
   const traceSchema = args.responseFormat?.type === "json_schema" ? args.responseFormat.json_schema.name : null;
-  const recordTrace = (finishReason: string, response: string) =>
+  const recordTrace = (finishReason: string, response: string, servedModel: string | null = null) =>
     recordPromptTraceCall({
       model: effectiveModel,
+      servedModel,
       ...traceInputs,
       schemaName: traceSchema,
       durationMs: Date.now() - openRouterStart,
@@ -296,7 +277,7 @@ export async function postOpenRouterAppChat(args: {
       credentials: "include",
       cache: "no-store",
       signal: args.signal,
-      headers: openRouterAppApiHeaders(apiKey),
+      headers: openRouterAppApiHeaders(),
       body: payloadStr,
     });
         // Rate-limit Retry-After or backoff
@@ -374,7 +355,10 @@ export async function postOpenRouterAppChat(args: {
         ? (choices[0] as { message?: { tool_calls?: unknown } }).message
         : undefined;
       if (!message?.tool_calls) {
-        throw new Error(data.error?.trim() || `OpenRouter error (${response.status})`);
+        throw new Error(
+          (typeof data.error === "string" ? data.error.trim() : data.error?.message?.trim()) ||
+            `OpenRouter error (${response.status})`,
+        );
       }
       data.content = "";
     }
@@ -414,7 +398,13 @@ export async function postOpenRouterAppChat(args: {
     }
   }
 
-  recordTrace(data.finishReason ?? "stop", content);
+  const servedModel =
+    typeof (data as { model?: unknown }).model === "string"
+      ? (data as { model: string }).model
+      : data.raw && typeof data.raw === "object" && typeof (data.raw as { model?: unknown }).model === "string"
+        ? (data.raw as { model: string }).model
+        : null;
+  recordTrace(data.finishReason ?? "stop", content, servedModel);
   return {
     raw: data.raw ?? data,
     content,
@@ -438,14 +428,14 @@ export async function streamOpenRouterAppChat(args: {
   signal?: AbortSignal;
   onDelta: (delta: OpenRouterAppStreamDelta) => void;
 }): Promise<{ content: string; reasoning: string; finishReason?: string }> {
-  const apiKey = (args.apiKey ?? getOpenRouterApiKeyForApp()).trim();
-  const requestBody = { ...buildOpenRouterAppChatRequestBody({ ...args, apiKey }), stream: true };
+  const requestBody = { ...buildOpenRouterAppChatRequestBody({ ...args }), stream: true };
   const startedAt = Date.now();
-  const acc = { content: "", reasoning: "", finishReason: undefined as string | undefined, lines: 0 };
+  const acc = { content: "", reasoning: "", finishReason: undefined as string | undefined, lines: 0, servedModel: null as string | null };
   const traceInputs = promptTraceInputs(args);
   const recordTrace = (finishReason: string, response: string) =>
     recordPromptTraceCall({
       model: args.model,
+      servedModel: acc.servedModel,
       ...traceInputs,
       schemaName: args.responseFormat?.type === "json_schema" ? args.responseFormat.json_schema.name : null,
       durationMs: Date.now() - startedAt,
@@ -459,7 +449,7 @@ export async function streamOpenRouterAppChat(args: {
     credentials: "include",
     cache: "no-store",
     signal: args.signal,
-    headers: openRouterAppApiHeaders(apiKey),
+    headers: openRouterAppApiHeaders(),
     body: JSON.stringify(requestBody),
   });
   log("response headers", { status: response.status, contentType: response.headers.get("content-type"), ms: Date.now() - startedAt });
@@ -474,6 +464,7 @@ export async function streamOpenRouterAppChat(args: {
     const data = line.slice(6).trim();
     if (data === "[DONE]") return log("[DONE]");
     let json: {
+      model?: string;
       error?: { message?: string };
       choices?: { delta?: { content?: string; reasoning?: string }; finish_reason?: string | null }[];
     };
@@ -482,6 +473,9 @@ export async function streamOpenRouterAppChat(args: {
     } catch (e) {
       console.error("[video:openrouter-stream] unparseable line", data.slice(0, 300));
       throw e;
+    }
+    if (!acc.servedModel && typeof json.model === "string" && json.model.trim()) {
+      acc.servedModel = json.model;
     }
     if (json.error) {
       console.error("[video:openrouter-stream] error event", json.error);
@@ -538,13 +532,16 @@ export async function streamOpenRouterAppChat(args: {
   return { content: acc.content.trim(), reasoning: acc.reasoning.trim(), finishReason: acc.finishReason };
 }
 
-/** Non-stream chat via app API; same call shape as the old OpenRouter fetch. */
-export async function postOpenRouterAppChatFetch(init: RequestInit): Promise<{
+export type OpenRouterAppChatFetchResponse = {
   ok: boolean;
   status: number;
+  statusText: string;
   json: () => Promise<Record<string, unknown>>;
   text: () => Promise<string>;
-}> {
+};
+
+/** Non-stream chat via app API; same call shape as the old OpenRouter fetch. */
+export async function postOpenRouterAppChatFetch(init: RequestInit): Promise<OpenRouterAppChatFetchResponse> {
   const parsed = JSON.parse(String(init.body ?? "{}")) as {
     apiKey?: string;
     model?: string;
@@ -568,7 +565,6 @@ export async function postOpenRouterAppChatFetch(init: RequestInit): Promise<{
   };
   try {
     const result = await postOpenRouterAppChat({
-      apiKey: parsed.apiKey?.trim() || getOpenRouterApiKeyForApp() || undefined,
       model: parsed.model ?? "",
       messages: parsed.messages,
       system: parsed.system,
@@ -602,6 +598,7 @@ export async function postOpenRouterAppChatFetch(init: RequestInit): Promise<{
     return {
       ok: true,
       status: 200,
+      statusText: "OK",
       json: async () => json,
       text: async () => JSON.stringify(json),
     };
@@ -611,6 +608,7 @@ export async function postOpenRouterAppChatFetch(init: RequestInit): Promise<{
     return {
       ok: false,
       status: 500,
+      statusText: "Internal Server Error",
       json: async () => json,
       text: async () => JSON.stringify(json),
     };

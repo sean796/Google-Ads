@@ -1,5 +1,5 @@
 import { ChevronDown, Download } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
 import {
   CONTENT_OPTIMIZER_MULTI_SITE_ROW_STACK_CLASS,
   contentOptimizerRowStripeClass,
@@ -10,7 +10,7 @@ import {
 } from "@/lib/ppc/meta-ad-research-sections";
 import type { MetaAdResearchSection } from "@/lib/social/social-creator-types";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui";
+import { Button, Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui";
 
 const DETAILS_FLAT_COLLAPSE_TRIGGER =
   "flex min-h-9 w-full items-center justify-between gap-2 rounded-none border-0 bg-black px-3 py-1.5 text-left text-base text-white [&[data-state=open]>svg]:rotate-180";

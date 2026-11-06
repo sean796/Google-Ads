@@ -9,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useBoxReady } from "@/components/ui/chart-box-ready";
+
 import type { PageIndexingReport } from "@/lib/organic-dashboard/page-indexing-report-types";
 import { resolvePagesSitemapUrl } from "@/lib/organic-dashboard/resolve-pages-sitemap-url";
 import { formatCanadianNumber } from "@/lib/gsc-reporting/gsc-number-format";
@@ -20,7 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 import { getPublicSiteUrl } from "@/lib/wordpress-site-public-url";
 import type { WordPressSite } from "@/components/integrations/types";
-import { Button } from "@/ui";
+import { Button, useBoxReady } from "@/ui";
 
 type ChartFocus = "indexed" | "notIndexed";
 
@@ -62,7 +62,7 @@ export function OrganicReportingIndexingSection({
   isRefreshingSitemaps = false,
 }: OrganicReportingIndexingSectionProps) {
   const [chartFocus, setChartFocus] = useState<ChartFocus>("indexed");
-  const { ref: chartRef, ready: chartReady } = useBoxReady();
+  const { boxRef: chartRef, ready: chartReady } = useBoxReady();
 
   const pagesSitemapUrl = useMemo(() => resolvePagesSitemapUrl(site), [site]);
   const propertyUrl = getPublicSiteUrl(site).trim() || site.siteUrl.trim();

@@ -60,7 +60,7 @@ export function isOverviewBulkRunEngaged(
   isOptimizingContent: Record<string, boolean>,
 ): boolean {
   if (isOverviewBatchAllComplete(batchBulkState)) return false;
-  if (Boolean(isOptimizingContent[batchKey] || (siteId && isOptimizingContent[siteId]))) {
+  if (isOptimizingContent[batchKey] || (siteId && isOptimizingContent[siteId])) {
     return true;
   }
   return isOverviewResearchBatchInFlight(batchBulkState);
@@ -254,6 +254,8 @@ export function seedOverviewBulkBatchPrelude(
       batchPrepHarnessSections,
       currentStepProgress: {
         step: currentStep,
+        stepId: "prepInventory",
+        subProgress: 0,
         progress: 2,
         message: currentStep,
         harnessSections: batchPrepHarnessSections,

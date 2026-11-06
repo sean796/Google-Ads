@@ -9,7 +9,7 @@ import { buildSitemapOptimizerContentSheetCsv } from "@/lib/sitemap-optimizer/si
 import { buildContentSheetRows } from "@/lib/sitemap-optimizer/build-content-sheet-rows";
 import type { SitemapOptimizerRunResult } from "@/lib/sitemap-optimizer/types";
 
-const sampleResultBase = {
+const sampleResultBase: Omit<SitemapOptimizerRunResult, "contentSheet"> = {
   rows: [
     {
       postId: "wp:1",
@@ -79,22 +79,24 @@ const sampleResult: SitemapOptimizerRunResult = {
 };
 
 describe("sitemap-optimizer-download-csv", () => {
-  it("content upload csv matches bulk-auto-generate template (6 columns, blank entity and date)", () => {
+  it("content upload csv matches bulk-auto-generate template plus destination_url", () => {
     const publishAt = "2026-05-20T12:00:00.000Z";
     const csv = buildSitemapOptimizerContentUploadCsv(sampleResult, publishAt);
     const lines = csv.split(/\r?\n/).filter((l) => l.length > 0);
-    expect(lines[0]).toBe("keyword,entity,title,modifier,featuredImage,publish_date_gmt");
-    expect(lines[0]).not.toContain("target_slug");
-    expect(lines[0]).not.toContain("destination_url");
+    // Production: SITEMAP_CONTENT_SHEET_EXPORT_COLUMNS = bulk template + destination_url.
+    expect(lines[0]).toBe(
+      "keyword,entity,title,modifier,featuredImage,publish_date_gmt,sitemap_type,meta_description,target_slug,wikipedia_url,wikipedia_title,destination_url",
+    );
     expect(lines[0]).not.toContain("prompt_modifier");
     expect(lines).toHaveLength(2);
-    expect(csv).not.toContain(publishAt);
+    expect(csv).toContain(publishAt);
     expect(csv).toContain("Topic One");
     expect(csv).toContain("Search intent:");
     expect(csv).not.toContain("wp:99");
     const dataLine = lines[1] ?? "";
     expect(dataLine).toMatch(/^"?merged guide"?,,?"?New Merged Guide"?,/);
-    expect(dataLine).toMatch(/,y,?$/);
+    expect(dataLine).toContain(",y,");
+    expect(dataLine).toMatch(/https:\/\/example\.com\/blog\/merged-guide\/$/);
   });
 
   it("rank math csv redirects old urls to new slug under same parent path", () => {
@@ -129,7 +131,9 @@ describe("sitemap-optimizer-download-csv", () => {
   it("buildSitemapOptimizerContentSheetCsv matches bulk template with modifier content", () => {
     const csv = buildSitemapOptimizerContentSheetCsv(sampleResult);
     const lines = csv.split(/\r?\n/).filter((l) => l.length > 0);
-    expect(lines[0]).toBe("keyword,entity,title,modifier,featuredImage,publish_date_gmt");
+    expect(lines[0]).toBe(
+      "keyword,entity,title,modifier,featuredImage,publish_date_gmt,sitemap_type,meta_description,target_slug,wikipedia_url,wikipedia_title,destination_url",
+    );
     expect(lines.length).toBe(1 + sampleResult.contentSheet.length);
     expect(csv).toContain("Search intent:");
     expect(csv).toContain("Required H2 sections:");

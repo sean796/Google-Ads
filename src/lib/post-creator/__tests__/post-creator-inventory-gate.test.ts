@@ -39,6 +39,7 @@ function inventoryFromPosts(
     totalRows: posts.length,
     sources: ["posts"],
     errors: {},
+    postsMetadata: [],
   };
 }
 

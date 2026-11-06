@@ -3,6 +3,7 @@ import { getStoredSites } from "@/components/integrations/storage";
 import { loadDataForSEOApiKey } from "@/lib/api";
 import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
 import type { LoadBulkSitemapInventoryResult } from "@/lib/bulk/bulk-sitemap-inventory-session";
+import type { ExtraTextInventoryLinkRow } from "@/lib/content-generation/extra-text-inventory-links";
 import {
   getBulkGenerationWpInventoryIfReady,
   loadBlogPlayLinkablesForSite,
@@ -328,8 +329,11 @@ export async function runPostCreatorBulkRows(args: {
 
   const wpInventoryRows = getBulkGenerationWpInventoryIfReady(site.id);
   const wordPressPosts = await loadBlogPlayLinkablesForSite(site, wpInventoryRows ?? []);
-  const wordPressPagesForOfferTable = wpInventoryRows?.length
-    ? inventoryRowsToWordPressPagesForOffer(wpInventoryRows)
+  const wordPressPagesForOfferTable: ExtraTextInventoryLinkRow[] = wpInventoryRows?.length
+    ? inventoryRowsToWordPressPagesForOffer(wpInventoryRows).map((row) => ({
+        ...row,
+        postType: "page" as const,
+      }))
     : [];
 
   const storedSites = getStoredSites();

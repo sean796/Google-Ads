@@ -1,14 +1,7 @@
 import { useMemo, useState, type ReactElement } from "react";
 import { Check, ChevronDown } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+
+
 import { cn } from "@/lib/utils";
 import { useWordPressSites } from "@/hooks/use-wordpress-sites";
 import {
@@ -18,7 +11,7 @@ import {
   collectBenchmarkCategoryTags,
   normalizeBenchmarkCategoryTag,
 } from "@/lib/benchmark-category-tags";
-import { RowButton } from "@/ui";
+import { RowButton, Popover, PopoverContent, PopoverTrigger, Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/ui";
 
 const PLACEHOLDER = "Benchmark category tag";
 

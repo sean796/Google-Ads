@@ -92,7 +92,7 @@ export const SitePropertyEditPanel: React.FC<SitePropertyEditPanelProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [formReady, site, onFormGbpLocationIdChange, onFormGa4PropertyIdChange, onFormGoogleAdsCustomerIdChange, onPatchSite]);
+  }, [formReady, site, formGbpLocationId, formGa4PropertyId, formGoogleAdsCustomerId, onFormGbpLocationIdChange, onFormGa4PropertyIdChange, onFormGoogleAdsCustomerIdChange, onPatchSite]);
 
   return (
     <div

@@ -11,6 +11,9 @@ import type {
   SitemapIndexingResult,
   IndexingProgress,
 } from './types';
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
+
+export type { GSCPagePerformanceResult } from "./types";
 
 /** Append Search Console diagnostic fields from JSON error bodies (matches server gscPropertyErrorPayload). */
 export function formatGscResolutionError(
@@ -77,7 +80,7 @@ export async function fetchGSCSitePagesPerformance(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       signal,
       body: JSON.stringify({ siteUrl, startDate, endDate }),
     });
@@ -115,7 +118,7 @@ export async function fetchGSCPagesPerformanceBatch(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       signal,
       body: JSON.stringify({
         siteUrl,
@@ -157,9 +160,7 @@ export async function fetchGSCPagePerformance(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         pageUrl,
@@ -217,9 +218,7 @@ export async function indexSitemapUrls(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         sitemapUrl,

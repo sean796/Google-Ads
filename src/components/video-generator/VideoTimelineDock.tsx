@@ -517,7 +517,6 @@ export function VideoTimelineDock({
                 {plan.scenes.map((scene) => {
                   const selected = scene.id === selectedSceneId;
                   return (
-                    // eslint-disable-next-line no-restricted-syntax -- Pulse UI exception: timeline segment sized by scene duration
                     <button
                       key={`voice-${scene.id}`}
                       type="button"

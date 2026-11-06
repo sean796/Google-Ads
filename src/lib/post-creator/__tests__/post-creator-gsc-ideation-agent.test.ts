@@ -34,6 +34,7 @@ describe("post-creator GSC ideation agent (single pass)", () => {
 
   it("uses exactly one OpenRouter call on the happy path", async () => {
     vi.mocked(callOpenRouterChatCompletion).mockResolvedValueOnce({
+      raw: {},
       content: JSON.stringify({
         rows: [
           { keyword: "elementor help", title: "When to Hire Elementor Experts", entity: "" },
@@ -58,6 +59,7 @@ describe("post-creator GSC ideation agent (single pass)", () => {
 
   it("puts SITE_INVENTORY_CACHE before SITE_KW_JSON in the user prompt", async () => {
     vi.mocked(callOpenRouterChatCompletion).mockResolvedValueOnce({
+      raw: {},
       content: JSON.stringify({
         rows: [{ keyword: "elementor help", title: "Elementor Experts Guide", entity: "" }],
       }),
@@ -82,6 +84,7 @@ describe("post-creator GSC ideation agent (single pass)", () => {
 
   it("does not retry when OpenRouter returns too few rows", async () => {
     vi.mocked(callOpenRouterChatCompletion).mockResolvedValueOnce({
+      raw: {},
       content: JSON.stringify({
         rows: [{ keyword: "elementor help", title: "Elementor Experts Guide", entity: "" }],
       }),

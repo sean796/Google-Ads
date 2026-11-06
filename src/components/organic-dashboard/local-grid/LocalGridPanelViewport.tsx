@@ -154,7 +154,6 @@ export function LocalGridPanelViewport(props: LocalGridPanelViewportProps) {
                     : 100;
                 const isCurrent = item.scanId === activeScan?.scanId;
                 return (
-                  // eslint-disable-next-line no-restricted-syntax -- Pulse UI exception: absolutely positioned timeline marker
                   <button
                     key={item.scanId}
                     type="button"

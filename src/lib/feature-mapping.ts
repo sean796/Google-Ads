@@ -34,7 +34,7 @@ export const mapFeatureToInstruction = (
     const safeAlt = imageFeature.alt.replace(/"/g, "&quot;");
     const safeUrl = imageFeature.url.replace(/"/g, "&quot;");
     if (useMarkdown) {
-      return `[IMAGE EMBED - MANDATORY]: After the first paragraph in this section, output exactly: ![${imageFeature.alt.replace(/[\[\]]/g, "")}](${imageFeature.url}). NEVER use [text](${imageFeature.url}). The image must render inline, not as a keyword link. NEVER omit this image.`;
+      return `[IMAGE EMBED - MANDATORY]: After the first paragraph in this section, output exactly: ![${imageFeature.alt.replace(/[[\]]/g, "")}](${imageFeature.url}). NEVER use [text](${imageFeature.url}). The image must render inline, not as a keyword link. NEVER omit this image.`;
     }
     return `[IMAGE EMBED - MANDATORY]: After the first <p> in this section, output exactly: <figure class="wp-block-image size-full"><img src="${safeUrl}" alt="${safeAlt}" loading="lazy" /></figure>. NEVER use <a href="${safeUrl}">. Images must display as <img>, not text links to the PNG/JPEG. NEVER append a standalone link-only <p> at the section or article end.`;
   }

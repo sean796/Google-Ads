@@ -1,11 +1,5 @@
 import React, { useState, useCallback, useRef } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_LIST_LOADED, NOTIFY_NO_PENDING_TASKS_TO_FIX, NOTIFY_PASTE_OR_UPLOAD_A_TASK_LIST_FIRST, NOTIFY_SELECT_A_WORDPRESS_SITE_FIRST, NOTIFY_SHEET_EXPORTED, notifyFixRunCompleteXTaskSProcessed, notifyInterpretedXTaskS } from "@/lib/notify-messages";
 import { Wrench, Upload, FileText, Download, Printer } from "lucide-react";
@@ -13,7 +7,11 @@ import { getStoredSites } from "@/components/integrations/storage";
 import type { WordPressSite } from "@/components/integrations/types";
 import { interpretSemTaskList, type InterpretedSemTask } from "@/lib/sem-task-interpreter";
 import { useContentOptimization } from "@/hooks/use-content-optimization";
-import { Button, FileInput, SelectField, TextareaField } from "@/ui";
+import type {
+  GSCQuery,
+  GSCQueryClusterAnalysis,
+} from "@/lib/gsc-query-clustering";
+import { Button, FileInput, SelectField, TextareaField, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/ui";
 
 export type SemTaskRow = InterpretedSemTask & {
   status: "pending" | "fixing" | "done" | "error";
@@ -33,10 +31,10 @@ export const SEMFeature: React.FC = () => {
 
   const { handleOptimizeContent } = useContentOptimization();
 
-  const [, setGscQueriesForSelection] = useState<any>(null);
-  const [, setIsKeywordSelectionOpen] = useState(false);
-  const [, setGscClusterAnalysis] = useState<any>(null);
-  const [, setIsAnalyzingClusters] = useState(false);
+  const [, setGscQueriesForSelection] = useState<Record<string, GSCQuery[]>>(() => ({}));
+  const [, setIsKeywordSelectionOpen] = useState<Record<string, boolean>>(() => ({}));
+  const [, setGscClusterAnalysis] = useState<Record<string, GSCQueryClusterAnalysis>>(() => ({}));
+  const [, setIsAnalyzingClusters] = useState<Record<string, boolean>>(() => ({}));
 
   const handleFileUpload = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

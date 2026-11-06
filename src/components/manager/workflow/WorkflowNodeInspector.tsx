@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+import { defaultGscTriggerConfig } from "@/lib/workflow/workflow-migrate-from-planner";
 import React, { useMemo } from "react";
 import {
   TaskFormFlatSelectPlaceholder,
@@ -47,7 +48,8 @@ import { PostCreatorExecutionFields } from "@/components/manager/tasks/PostCreat
 import { ChatGptAuditExecutionFields } from "@/components/manager/tasks/ChatGptAuditExecutionFields";
 import { DfsArticleAuditExecutionFields } from "@/components/manager/tasks/DfsArticleAuditExecutionFields";
 import { BrowserAutomationExecutionFields } from "@/components/manager/tasks/BrowserAutomationExecutionFields";
-import { ContentGapCheckExecutionFields, ensureContentGapCheckPayload } from "@/components/manager/tasks/ContentGapCheckExecutionFields";
+import { ContentGapCheckExecutionFields } from "@/components/manager/tasks/ContentGapCheckExecutionFields";
+import { ensureContentGapCheckPayload } from "@/lib/content-gap/resolve-content-gap-count";
 import { LocalDominatorExportExecutionFields } from "@/components/manager/tasks/LocalDominatorExportExecutionFields";
 import { EntityPageCreatorExecutionFields } from "@/components/manager/tasks/EntityPageCreatorExecutionFields";
 import { EntityGeneratorExecutionFields } from "@/components/manager/tasks/EntityGeneratorExecutionFields";
@@ -61,7 +63,6 @@ import { WorkflowCsvRowsInspector } from "@/components/manager/workflow/Workflow
 import { thenEmailDisplayLabel, withThenEmailRecipientSync } from "@/lib/workflow/workflow-then-utils";
 import { scheduleHasUpstream } from "@/lib/workflow/workflow-schedule-upstream";
 import { cn } from "@/lib/utils";
-import { wordpressSiteDisplayName } from "@/lib/wordpress-site-display-name";
 import type { TaskExecutionKind } from "@/lib/tasks-types";
 import { Button, Field, SelectField } from "@/ui";
 
@@ -116,6 +117,15 @@ export function WorkflowNodeInspector({
   clientsMenuOpen = false,
   onClientsMenuOpenChange,
 }: WorkflowNodeInspectorProps): React.ReactElement {
+  const upstreamUrlVariables = useMemo(
+    () =>
+      upstreamRagVariablesForNode({ nodes, edges, ragVariables }, node?.id ?? "").map((variable) => ({
+        key: variable.key,
+        label: variable.label || variable.key,
+      })),
+    [nodes, edges, ragVariables, node?.id],
+  );
+
   if (!node) {
     return (
       <div className={cn("flex h-full items-center justify-center px-5 py-6", WORKFLOW_SIDEBAR_BG_CLASS)}>
@@ -130,7 +140,7 @@ export function WorkflowNodeInspector({
   const clientSiteName = clientSiteId
     ? (() => {
         const site = sites.find((item) => item.id === clientSiteId);
-        return site ? wordpressSiteDisplayName(site) : "";
+        return site ? site.name : "";
       })()
     : "";
 
@@ -148,15 +158,6 @@ export function WorkflowNodeInspector({
       config: { ...actionConfig, executionPayload: nextPayload },
     });
   };
-
-  const upstreamUrlVariables = useMemo(
-    () =>
-      upstreamRagVariablesForNode({ nodes, edges, ragVariables }, node.id).map((variable) => ({
-        key: variable.key,
-        label: variable.label || variable.key,
-      })),
-    [nodes, edges, ragVariables, node.id],
-  );
 
   const patchAgentKind = (value: string) => {
     const nextPayload =

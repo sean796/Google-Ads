@@ -13,7 +13,8 @@ import { AdsReportingExecutionFields } from "@/components/manager/tasks/AdsRepor
 import { ChatGptAuditExecutionFields } from "@/components/manager/tasks/ChatGptAuditExecutionFields";
 import { DfsArticleAuditExecutionFields } from "@/components/manager/tasks/DfsArticleAuditExecutionFields";
 import { BrowserAutomationExecutionFields } from "@/components/manager/tasks/BrowserAutomationExecutionFields";
-import { ContentGapCheckExecutionFields, ensureContentGapCheckPayload } from "@/components/manager/tasks/ContentGapCheckExecutionFields";
+import { ContentGapCheckExecutionFields } from "@/components/manager/tasks/ContentGapCheckExecutionFields";
+import { ensureContentGapCheckPayload } from "@/lib/content-gap/resolve-content-gap-count";
 import { LocalDominatorExportExecutionFields } from "@/components/manager/tasks/LocalDominatorExportExecutionFields";
 import { TaskExecutionTargetFields } from "@/components/manager/tasks/TaskExecutionTargetFields";
 import {
@@ -92,13 +93,22 @@ const ACTION_KIND_PILLS: { keyword: string; label: string; kind: TaskExecutionKi
   { keyword: "content-gap-check", label: "Content gap check", kind: "content_gap_check" },
 ];
 
+function copyPayloadKey<K extends keyof TaskExecutionPayload>(
+  target: Partial<TaskExecutionPayload>,
+  source: TaskExecutionPayload,
+  key: K,
+): void {
+  const value = source[key];
+  if (value !== undefined) target[key] = value;
+}
+
 function preserveSchedulePayload(
   current: TaskExecutionPayload,
   next: TaskExecutionPayload,
 ): TaskExecutionPayload {
   const preserved: Partial<TaskExecutionPayload> = {};
   for (const key of SCHEDULE_PAYLOAD_KEYS) {
-    if (current[key] !== undefined) preserved[key] = current[key];
+    copyPayloadKey(preserved, current, key);
   }
   return { ...next, ...preserved };
 }

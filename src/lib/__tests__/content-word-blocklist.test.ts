@@ -17,7 +17,7 @@ import {
   sanitizeForbiddenWordsInChecklistItem,
   sanitizeForbiddenWordsInPromptText,
   listForbiddenWordViolations,
-  scrubForbiddenWordsFromHtml,
+  assertNoForbiddenWordViolations,
   sectionHtmlHasForbiddenWords,
 } from "../content-word-blocklist";
 
@@ -121,7 +121,7 @@ describe("enforceForbiddenWordsOnBlueprint", () => {
       purpose: "Test purpose",
       agents: [{ title: "Understanding the 5 New PST Categories", features: ["[LINK]: 3-5 internal links"] }],
     });
-    expect(out.forbiddenWordsPolicy).toBeUndefined();
+    expect(out).not.toHaveProperty("forbiddenWordsPolicy");
     expect(out.agents![0].title).toBe("5 New PST Categories");
     expect(out.agents![0].features).toEqual(["[LINK]: 3-5 internal links"]);
   });
@@ -308,28 +308,34 @@ describe("sanitizeForbiddenWordsInChecklistItem", () => {
   });
 });
 
-describe("scrubForbiddenWordsFromHtml", () => {
-  it("removes crucial and importance-claim phrases from body", () => {
+describe("assertNoForbiddenWordViolations", () => {
+  it("throws a visible error listing violations instead of rewriting copy", () => {
     const html =
       "<h2>5 New PST Categories</h2><p>Understanding these reforms is crucial for businesses to comply.</p>";
-    const out = scrubForbiddenWordsFromHtml(html);
-    expect(out).not.toMatch(/crucial/i);
-    expect(out).not.toMatch(/Understanding these reforms is crucial/i);
+    expect(() => assertNoForbiddenWordViolations(html, "Article body")).toThrow(
+      /failed the word blocklist check/,
+    );
+    expect(() => assertNoForbiddenWordViolations(html, "Article body")).toThrow(/crucial/);
   });
 
-  it("fixes forbidden heading titles", () => {
+  it("throws on forbidden heading titles", () => {
     const html = "<h2>Understanding the 5 New PST Categories</h2><p>Body text.</p>";
-    expect(scrubForbiddenWordsFromHtml(html)).toContain("<h2>5 New PST Categories</h2>");
+    expect(() => assertNoForbiddenWordViolations(html)).toThrow(/forbidden heading/);
   });
 
-  it("keeps we-recommend-when lines and still flags we-often-find", () => {
-    const keep =
-      "<p>We recommend cellular shades when west glass overheats.</p>";
-    expect(scrubForbiddenWordsFromHtml(keep)).toContain("We recommend cellular shades when");
+  it("throws on em dash punctuation", () => {
+    expect(() => assertNoForbiddenWordViolations("<p>Fast service \u2014 booked today.</p>")).toThrow(
+      /em dash or en dash/,
+    );
+  });
+
+  it("passes clean copy and still flags we-often-find", () => {
+    const keep = "<p>We recommend cellular shades when west glass overheats.</p>";
+    expect(() => assertNoForbiddenWordViolations(keep)).not.toThrow();
     expect(listForbiddenWordViolations(keep)).toEqual([]);
     const hollow = "<p>We often find that homeowners prefer cellular shades.</p>";
     expect(listForbiddenWordViolations(hollow)).toContain("banned phrase: we often find");
-    expect(scrubForbiddenWordsFromHtml(hollow)).not.toMatch(/we often find/i);
+    expect(() => assertNoForbiddenWordViolations(hollow)).toThrow(/we often find/);
   });
 });
 

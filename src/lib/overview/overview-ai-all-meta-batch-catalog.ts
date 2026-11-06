@@ -74,13 +74,11 @@ export function buildAiAllMetaCatalog(
       includeTitle: !overviewTitleOptimizationExcluded(row, sitemapSource),
     };
 
-    if (faqMode !== "none") {
-      const faqRaw = (row.faq ?? "").trim();
-      catalogRow.faqExcerpt =
-        faqMode === "refine" && faqRaw
-          ? trimField(faqRaw, OVERVIEW_AI_ALL_META_FAQ_MAX)
-          : undefined;
-    }
+    const faqRaw = (row.faq ?? "").trim();
+    catalogRow.faqExcerpt =
+      faqMode === "refine" && faqRaw
+        ? trimField(faqRaw, OVERVIEW_AI_ALL_META_FAQ_MAX)
+        : undefined;
 
     catalog.push(catalogRow);
   });
@@ -123,13 +121,11 @@ export function buildProvisionalAiAllMetaCatalogRow(
     includeTitle: !overviewTitleOptimizationExcluded(row, sitemapSource),
   };
 
-  if (faqMode !== "none") {
-    const faqRaw = (row.faq ?? "").trim();
-    catalogRow.faqExcerpt =
-      faqMode === "refine" && faqRaw
-        ? trimField(faqRaw, OVERVIEW_AI_ALL_META_FAQ_MAX)
-        : undefined;
-  }
+  const faqRaw = (row.faq ?? "").trim();
+  catalogRow.faqExcerpt =
+    faqMode === "refine" && faqRaw
+      ? trimField(faqRaw, OVERVIEW_AI_ALL_META_FAQ_MAX)
+      : undefined;
 
   return catalogRow;
 }

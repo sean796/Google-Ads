@@ -6,6 +6,7 @@ import {
 } from "../bulk-optimization-grep-acf";
 import { buildInventoryLookupMaps } from "@/lib/wordpress-api/inventory-match";
 import type { SitePostInventoryRow } from "@/lib/wordpress-api/types";
+import type { WordPressSite } from "@/components/integrations/types";
 
 const getACFFieldsForUrlsBatch = vi.fn();
 
@@ -45,7 +46,7 @@ describe("bulkOptimizationGrepAcfKeywordFocus", () => {
         siteUrl: "https://example.com",
         username: "u",
         appPassword: "p",
-      } as any,
+      } as unknown as WordPressSite,
       urls,
       batchKey: "bk",
       muteToasts: true,
@@ -79,7 +80,7 @@ describe("bulkOptimizationGrepAcfKeywordFocus", () => {
     const postsMaps = buildInventoryLookupMaps([row], "https://example.com");
     const cache = new Map<number, Record<string, unknown>>();
     const result = seedBulkAcfKeywordsFromInventory({
-      site: { id: "s1", siteUrl: "https://example.com" } as any,
+      site: { id: "s1", siteUrl: "https://example.com" } as unknown as WordPressSite,
       urls: ["https://example.com/a/"],
       batchKey: "bk",
       bulkInventorySnapshot: { postsMaps, pagesMaps: postsMaps },
@@ -97,7 +98,7 @@ describe("bulkOptimizationGrepAcfKeywordFocus", () => {
       slug: "b",
       url: "https://example.com/b/",
       date_gmt: "",
-      fields: { title: "B", keyword: "fields-only-kw", content: "", excerpt: "" },
+      fields: { title: "B", meta: "", keyword: "fields-only-kw", content: "", excerpt: "" },
     };
     const seeded = inventoryRowToAcfKeywordFields(row);
     expect(seeded?.acfKeywordRaw).toBe("fields-only-kw");

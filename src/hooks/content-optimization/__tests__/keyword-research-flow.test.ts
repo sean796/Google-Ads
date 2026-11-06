@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { performKeywordResearchFlow } from "../keyword-research-flow";
+import type { WordPressSite } from "@/components/integrations/types";
 
 vi.mock("@/lib/content-optimization-helpers", () => ({
   performKeywordResearch: vi.fn(),
@@ -19,7 +20,7 @@ vi.mock("@/lib/optimization-settings-storage", () => ({
 
 import { performKeywordResearch, performAIAnalysis } from "@/lib/content-optimization-helpers";
 
-const site = { id: "s1", name: "Test", siteUrl: "https://example.com" } as any;
+const site = { id: "s1", name: "Test", siteUrl: "https://example.com" } as unknown as WordPressSite;
 
 describe("performKeywordResearchFlow", () => {
   beforeEach(() => {

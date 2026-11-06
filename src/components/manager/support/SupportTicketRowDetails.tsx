@@ -1,8 +1,6 @@
 import { Download } from "lucide-react";
-import {
-  SupportChatLogAttachment,
-  supportChatLogFileName,
-} from "@/components/support/SupportChatLogAttachment";
+import { SupportChatLogAttachment } from "@/components/support/SupportChatLogAttachment";
+import { supportChatLogFileName } from "@/components/support/support-chat-log-helpers";
 import type { SupportTicket } from "@/lib/support-types";
 import { Button, TextareaField } from "@/ui";
 

@@ -25,7 +25,12 @@ export function resolveRankMathFromKeywordResearch(keywordData: KeywordData): {
   metaDescription: string | undefined;
   focusKeyword: string | undefined;
 } {
-  const ext = keywordData as Record<string, unknown>;
+  const ext: KeywordData & {
+    rank_math_title?: unknown;
+    rank_math_description?: unknown;
+    rank_math_focus_keyword?: unknown;
+    focus_keyword?: unknown;
+  } = keywordData;
   const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
   return {
     seoTitle: str(ext.rank_math_title) || undefined,

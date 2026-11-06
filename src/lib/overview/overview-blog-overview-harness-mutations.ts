@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
-import { mergeHarnessProgressSiteAndBatch } from "@/hooks/content-optimization/optimization-helpers-a";
+import { harnessStepProgress, mergeOverviewHarnessProgressSiteAndBatch } from "@/lib/overview/overview-harness-progress";
+
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import type { BulkHarnessSectionPayload } from "@/lib/bulk-auto-generate";
 import { reduceHarnessSectionList } from "@/lib/bulk/harness-sections-reducer";
@@ -36,18 +37,17 @@ export function setOverviewHarnessMessage(
       ...prev,
       [setters.batchKey]: {
         ...current,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "Overview",
           progress: pct,
           message,
-        },
+        }),
       },
     };
   });
   setters.setOptimizationProgress((prev) => {
     const next = { ...(prev as Record<string, unknown>) };
-    mergeHarnessProgressSiteAndBatch(next, setters.siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(next, setters.siteId, {
       step: "Overview",
       progress: pct,
       message,
@@ -97,19 +97,18 @@ export function emitOverviewHarnessPayload(
           ...(current.urlHarnessSections || {}),
           [url]: nextUrlSections,
         },
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "Overview",
           progress,
           message,
           harnessPlannedSectionCount: OVERVIEW_HARNESS_SECTION_TITLES.length,
-        },
+        }),
       },
     };
   });
 
   setOptimizationProgress((prev) =>
-    mergeHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
       step: "Overview",
       progress,
       message,

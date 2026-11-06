@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { prefetchBulkAcfFieldsByPostIdForUrls } from "../bulk-optimization-prefetch-acf-by-post-id";
 import { buildInventoryLookupMaps } from "@/lib/wordpress-api/inventory-match";
 import type { SitePostInventoryRow } from "@/lib/wordpress-api/types";
+import type { WordPressSite } from "@/components/integrations/types";
 
 const getACFFieldsForPostsBatch = vi.fn();
 
@@ -49,7 +50,7 @@ describe("prefetchBulkAcfFieldsByPostIdForUrls", () => {
         siteUrl: "https://example.com",
         username: "u",
         appPassword: "p",
-      } as any,
+      } as unknown as WordPressSite,
       urls,
       wordPressPostsForRun: [],
       bulkInventorySnapshot,
@@ -92,7 +93,7 @@ describe("prefetchBulkAcfFieldsByPostIdForUrls", () => {
     const prefetchedAcfFieldsCache = new Map<number, Record<string, unknown>>();
 
     await prefetchBulkAcfFieldsByPostIdForUrls({
-      site: { id: "s1", siteUrl: "https://example.com", username: "u", appPassword: "p" } as any,
+      site: { id: "s1", siteUrl: "https://example.com", username: "u", appPassword: "p" } as unknown as WordPressSite,
       urls: [rows[0].url],
       wordPressPostsForRun: [],
       bulkInventorySnapshot: { postsMaps: maps, pagesMaps: maps },
@@ -140,7 +141,7 @@ describe("prefetchBulkAcfFieldsByPostIdForUrls", () => {
     ]);
 
     await prefetchBulkAcfFieldsByPostIdForUrls({
-      site: { id: "s1", siteUrl: "https://example.com", username: "u", appPassword: "p" } as any,
+      site: { id: "s1", siteUrl: "https://example.com", username: "u", appPassword: "p" } as unknown as WordPressSite,
       urls: [rows[0].url],
       wordPressPostsForRun: [],
       bulkInventorySnapshot: { postsMaps: maps, pagesMaps: maps },
@@ -178,7 +179,7 @@ describe("prefetchBulkAcfFieldsByPostIdForUrls", () => {
     ]);
 
     await prefetchBulkAcfFieldsByPostIdForUrls({
-      site: { id: "s1", siteUrl: "https://example.com", username: "u", appPassword: "p" } as any,
+      site: { id: "s1", siteUrl: "https://example.com", username: "u", appPassword: "p" } as unknown as WordPressSite,
       urls: [rows[0].url],
       wordPressPostsForRun: [],
       bulkInventorySnapshot: { postsMaps: maps, pagesMaps: maps },

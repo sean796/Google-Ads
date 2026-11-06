@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
+import { harnessStepProgress, mergeOverviewHarnessProgress, mergeOverviewHarnessProgressSiteAndBatch } from "@/lib/overview/overview-harness-progress";
 import { notify } from "@/lib/app-notifications";
 import { notifyAiAllMetaFailedForAllXRowS, notifyAiAllMetaFinishedForXPageS, notifyAiAllMetaFinishedXXUpdatedSkipped } from "@/lib/notify-messages";
 import type { HarnessSectionListItem } from "@/lib/bulk/harness-sections-reducer";
@@ -17,11 +18,8 @@ import {
   type MetaHarnessSetters,
   setMetaUrlStatus,
 } from "@/lib/overview/overview-ai-all-meta-harness-mutations";
-import {
-  mergeHarnessProgressSiteAndBatch,
-  setOptimizingState,
-} from "@/hooks/content-optimization/optimization-helpers-a";
-import { mergeOptimizationProgress } from "@/hooks/content-optimization/optimization-helpers";
+import { setOptimizingState } from "@/hooks/content-optimization/optimization-helpers-a";
+
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import { initOverviewBulkHarnessPagination } from "@/lib/overview/overview-bulk-page-state";
 import type { OverviewSitemapSource } from "@/lib/overview/overview-sitemap-source";
@@ -97,7 +95,7 @@ export function initOverviewAiAllMetaHarnessBatchState(
 
   setOptimizingState(setIsOptimizingContent, batchKey, true);
   setOptimizationProgress((prev) =>
-    mergeOptimizationProgress(prev as Record<string, unknown>, site.id, {
+    mergeOverviewHarnessProgress(prev as Record<string, unknown>, site.id, {
       step: "Generating meta...",
       progress: 5,
       message: prepMessage,
@@ -117,13 +115,13 @@ export function initOverviewAiAllMetaHarnessBatchState(
       runKind: "aiAllMeta",
       urlHarnessSections: {},
       urlGeneratedFiles: {},
-      currentStepProgress: {
+      currentStepProgress: harnessStepProgress(undefined, {
         step: "Generating meta...",
         progress: 5,
         message: prepMessage,
         harnessSections: [],
         harnessPlannedSectionCount: null,
-      },
+      }),
     },
   }));
   initOverviewBulkHarnessPagination(batchKey, urls.length, setBulkOptimizationState);
@@ -263,7 +261,7 @@ export async function runOverviewAiAllMetaHarness(
     }
 
     setOptimizationProgress((prev) =>
-      mergeOptimizationProgress(prev as Record<string, unknown>, site.id, {
+      mergeOverviewHarnessProgress(prev as Record<string, unknown>, site.id, {
         step: "Batch complete",
         progress: 100,
         message: `AI All Meta finished: ${applied}/${totalRows} updated`,
@@ -278,12 +276,11 @@ export async function runOverviewAiAllMetaHarness(
           ...current,
           currentStep: "Batch complete",
           currentProgress: 100,
-          currentStepProgress: {
-            ...(current.currentStepProgress || {}),
+          currentStepProgress: harnessStepProgress(current.currentStepProgress, {
             step: "Batch complete",
             progress: 100,
             message: `AI All Meta finished: ${applied}/${totalRows} updated`,
-          },
+          }),
         },
       };
     });

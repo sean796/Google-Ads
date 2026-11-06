@@ -170,7 +170,11 @@ describe("entity-preload-suggested-keywords", () => {
       adGroupCount: 1,
       adsPerGroup: 1,
     });
-    const withKeywords = rows.map((r) => ({ ...r, keyword: "blinds near me southland mall" }));
+    const withKeywords = rows.map((r) => ({
+      ...r,
+      entity: "Southland Mall, Winkler, MB",
+      keyword: "blinds near me southland mall",
+    }));
     const next = await refreshEntityPreloadSlotKeywords(TEST_SITE, withKeywords, {
       apiKey: "test-key",
       model: "test-model",
@@ -191,9 +195,8 @@ describe("entity-preload-suggested-keywords", () => {
       adGroupCount: 1,
       adsPerGroup: 1,
     });
-    const entity = rows[0]?.entity?.trim();
-    expect(entity).toBeTruthy();
-    const partial = [{ ...rows[0]!, keyword: "" }];
+    const entity = "Southland Mall, Winkler, MB";
+    const partial = [{ ...rows[0]!, entity, keyword: "" }];
     const next = await refreshEntityPreloadSlotKeywords(TEST_SITE, partial, {
       apiKey: "test-key",
       model: "test-model",

@@ -32,6 +32,20 @@ describe("parseAiAllMetaBatchJson", () => {
     });
     expect(parseAiAllMetaBatchJson(raw)).toHaveLength(0);
   });
+
+  it("throws on empty content instead of returning an empty result", () => {
+    expect(() => parseAiAllMetaBatchJson("")).toThrow(/no content/);
+    expect(() => parseAiAllMetaBatchJson("   ")).toThrow(/no content/);
+  });
+
+  it("throws on non-JSON content", () => {
+    expect(() => parseAiAllMetaBatchJson("the model wrote prose instead")).toThrow(/not valid JSON/);
+  });
+
+  it("throws when the JSON does not match the results schema", () => {
+    expect(() => parseAiAllMetaBatchJson(JSON.stringify({ wrong: 1 }))).toThrow(/schema/);
+    expect(() => parseAiAllMetaBatchJson(JSON.stringify({ results: "nope" }))).toThrow(/schema/);
+  });
 });
 
 describe("aiAllMetaBatchResultsToMap", () => {

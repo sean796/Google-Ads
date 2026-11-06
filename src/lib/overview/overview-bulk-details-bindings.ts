@@ -14,7 +14,7 @@ import type {
   OptimizationProgressState,
 } from "@/hooks/content-optimization/use-optimization-state";
 import type { BulkHarnessSectionUi } from "@/hooks/use-bulk-auto-generate";
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import type { BulkGeneratedFile } from "@/lib/bulk-file-manager";
 import type { CSVRow } from "@/lib/bulk-auto-generate";
 import type { PromptBulkSitemapInventoryLink } from "@/lib/bulk/prompt-bulk-sitemap-inventory";
@@ -58,7 +58,7 @@ import { OptimizationFileManager as OptimizationFileManagerClass } from "@/lib/o
 import {
   CONTENT_OPTIMIZER_BULK_PAGE_SIZE,
   contentOptimizerBulkUsesPagination,
-} from "@/lib/content-optimizer/content-optimizer-bulk-page-size";
+} from "@/lib/content-optimization/content-optimizer-bulk-page-size";
 
 export {
   buildContentOptimizerBulkGeneratorDetailsProps,
@@ -129,7 +129,7 @@ function microRowHarnessStatus(
   isProcessing: boolean,
   displayIndex: number,
   slice: BulkProgressSlice,
-): BulkHarnessSectionUi["status"] {
+): BulkHarnessSectionUi["status"] | "error" {
   if (row.status === "error") return "error";
   const activeStatus = MICRO_KEY_ACTIVE_ROW_STATUS[microKey];
   if (activeStatus) {
@@ -167,6 +167,7 @@ function microActionFilesByRow(
         const fileName = generatedFileName(file);
         return {
         id: `micro-${displayIndex}-${fileIndex}-${fileName}`,
+        rowIndex: displayIndex,
         fileName,
         content: file.content,
         mimeType: file.mimeType,
@@ -258,7 +259,7 @@ function buildMicroHarnessByRow(
         title: titles[0] ?? "Processing",
         status: microRowHarnessStatus(row, microKey, isProcessing, displayIndex, slice),
       },
-    ]);
+    ] as BulkHarnessSectionUi[]);
   });
   return map;
 }
@@ -284,8 +285,7 @@ export function resolveOverviewBulkPipelineTitles(
   }
   if (
     bulkState?.currentStepProgress?.harnessPlannedSectionCount === RESEARCH_HARNESS_PIPELINE_TITLES.length &&
-    (runKind === "research" ||
-      bulkState.currentStep?.includes("Research") ||
+    (bulkState.currentStep?.includes("Research") ||
       bulkState.currentStepProgress?.message?.includes("Research"))
   ) {
     return [...RESEARCH_HARNESS_PIPELINE_TITLES];
@@ -322,8 +322,6 @@ export function resolveOverviewBulkPipelineTitles(
     case "content":
     case "extraText":
       return [...CONTENT_OPTIMIZE_PIPELINE_TITLES];
-    case "research":
-      return [...RESEARCH_HARNESS_PIPELINE_TITLES];
     case "aiHeaders":
       return [...HEADERS_HARNESS_SECTION_TITLES];
     case "aiLinks":
@@ -401,22 +399,25 @@ function overviewRowToCsvRowFromOverview(
 }
 
 export function buildOverviewMicroActionDetailsProps(
-  input: Pick<
-    OverviewBulkDetailsBindingsInput,
-    | "siteId"
-    | "batchKey"
-    | "bulkState"
-    | "overviewRows"
-    | "isOptimizingContent"
-    | "optimizationFileManagers"
-    | "siteName"
-    | "bulkActionProgress"
-    | "sitemapInventoryLinks"
-    | "siteKwHostedLink"
-    | "sitemapInventoryLoading"
-    | "sitemapSource"
-    | "bulkScopeUrlKeys"
-  >,
+  input: Omit<
+    Pick<
+      OverviewBulkDetailsBindingsInput,
+      | "siteId"
+      | "batchKey"
+      | "bulkState"
+      | "overviewRows"
+      | "isOptimizingContent"
+      | "optimizationFileManagers"
+      | "siteName"
+      | "bulkActionProgress"
+      | "sitemapInventoryLinks"
+      | "siteKwHostedLink"
+      | "sitemapInventoryLoading"
+      | "sitemapSource"
+      | "bulkScopeUrlKeys"
+    >,
+    "bulkState"
+  > & { bulkState?: BulkOptimizationState },
   microKey: MetaBulkActionKey,
   slice: BulkProgressSlice,
 ): BulkGeneratorDetailsPanelProps {

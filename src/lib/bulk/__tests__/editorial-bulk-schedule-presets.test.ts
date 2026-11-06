@@ -4,7 +4,7 @@ import { buildEditorialPackageQuickPresets } from "@/lib/bulk/editorial-bulk-sch
 describe("buildEditorialPackageQuickPresets", () => {
   it("uses SAP quota when entities sitemap is selected", () => {
     const presets = buildEditorialPackageQuickPresets(
-      { name: "DM Interiors", editorialContentPackage: "standard" },
+      { id: "site-a", name: "DM Interiors", siteUrl: "https://example.com", username: "u", appPassword: "p", connectedAt: 0, editorialContentPackage: "standard" },
       "entities",
     );
     expect(presets).toHaveLength(2);
@@ -15,7 +15,7 @@ describe("buildEditorialPackageQuickPresets", () => {
 
   it("uses blog quota when posts sitemap is selected", () => {
     const presets = buildEditorialPackageQuickPresets(
-      { name: "Advance Blinds", editorialContentPackage: "lite" },
+      { id: "site-b", name: "Advance Blinds", siteUrl: "https://example.com", username: "u", appPassword: "p", connectedAt: 0, editorialContentPackage: "lite" },
       "posts",
     );
     expect(presets[0]?.values.customInterval).toBe(2);

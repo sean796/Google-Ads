@@ -5,11 +5,19 @@
 
 import { BACKEND_CONNECTION_ERROR, backendApiUrl } from './connection';
 import type { WordPressSite } from '@/components/integrations/types';
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 // Lightweight debug logging (to validate ACF keyword_focus presence + timing).
 // Keep bounded to avoid log spam.
-let __acfDebugLogCount = 0;
+const __acfDebugLogCount = 0;
 const __acfDebugLogMax = 6;
+
+/** One ACF field-group location rule (e.g. `options_page == options`). */
+export interface ACFLocationRule {
+  param: string;
+  operator: string;
+  value: string;
+}
 
 export interface ACFFieldDefinition {
   name: string;
@@ -17,8 +25,8 @@ export interface ACFFieldDefinition {
   type: string;
   groupId?: number;
   groupTitle?: string;
-  location?: any[];
-  sampleValue?: any;
+  location?: ACFLocationRule[][];
+  sampleValue?: unknown;
   occurrenceCount?: number;
 }
 
@@ -26,7 +34,7 @@ export interface ACFFieldGroup {
   id: number;
   title: string;
   fields: ACFFieldDefinition[];
-  location: any[];
+  location: ACFLocationRule[][];
 }
 
 export interface ACFDiscoveryResult {
@@ -105,9 +113,7 @@ export async function discoverACFFieldGroups(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl: site.siteUrl,
         username: site.username,
@@ -150,15 +156,13 @@ export async function getACFFieldsForPost(
   postId: number,
   postType: string = 'post',
   postTypeEndpoint?: string
-): Promise<{ success: boolean; fields: Record<string, any>; fullPost?: Record<string, unknown>; error?: string }> {
+): Promise<{ success: boolean; fields: Record<string, unknown>; fullPost?: Record<string, unknown>; error?: string }> {
   const url = backendApiUrl('/wordpress/get-acf-fields');
 
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl: site.siteUrl,
         username: site.username,
@@ -262,7 +266,7 @@ export async function getACFFieldsForUrl(
   postTypeEndpointHint?: string
 ): Promise<{
   success: boolean;
-  fields: Record<string, any>;
+  fields: Record<string, unknown>;
   postId: number | null;
   postTypeEndpointUsed: string | null;
   postSnapshot?: WpPostSnapshotFromAcfByUrl;
@@ -273,7 +277,7 @@ export async function getACFFieldsForUrl(
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         siteUrl: site.siteUrl,
         username: site.username,
@@ -342,7 +346,7 @@ export async function getACFFieldsForUrlsBatch(
   results: Array<{
     url: string;
     success: boolean;
-    fields: Record<string, any>;
+    fields: Record<string, unknown>;
     postId: number | null;
     postTypeEndpointUsed: string | null;
     postSnapshot?: WpPostSnapshotFromAcfByUrl;
@@ -354,7 +358,7 @@ export async function getACFFieldsForUrlsBatch(
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         siteUrl: site.siteUrl,
         username: site.username,
@@ -386,7 +390,7 @@ export async function getACFFieldsForUrlsBatch(
       return {
         url,
         success: row.success === true,
-        fields: row.fields && typeof row.fields === 'object' ? (row.fields as Record<string, any>) : {},
+        fields: row.fields && typeof row.fields === 'object' ? (row.fields as Record<string, unknown>) : {},
         postId: typeof row.postId === 'number' ? row.postId : null,
         postTypeEndpointUsed: (row.postTypeEndpointUsed as string | null) ?? null,
         ...(postSnapshot ? { postSnapshot } : {}),
@@ -418,7 +422,7 @@ export async function getACFFieldsForPostsBatch(
   results: Array<{
     postId: number;
     success: boolean;
-    fields: Record<string, any>;
+    fields: Record<string, unknown>;
     fullPost?: Record<string, unknown>;
     error?: string;
   }>;
@@ -428,7 +432,7 @@ export async function getACFFieldsForPostsBatch(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         siteUrl: site.siteUrl,
         username: site.username,
@@ -458,7 +462,7 @@ export async function getACFFieldsForPostsBatch(
       return {
         postId: Number.isFinite(postId) ? postId : 0,
         success: row.success === true,
-        fields: row.fields && typeof row.fields === 'object' ? (row.fields as Record<string, any>) : {},
+        fields: row.fields && typeof row.fields === 'object' ? (row.fields as Record<string, unknown>) : {},
         fullPost:
           row.fullPost && typeof row.fullPost === 'object'
             ? (row.fullPost as Record<string, unknown>)
@@ -490,7 +494,7 @@ export async function scanACFFieldsAcrossSite(
     name: string;
     type: string;
     occurrenceCount: number;
-    sampleValues: any[];
+    sampleValues: unknown[];
     postTypes: string[];
   }>;
   error?: string;

@@ -27,7 +27,7 @@ describe('buildBulkBaseRows', () => {
   it('fails when csv empty', () => {
     const out = buildBulkBaseRows('csv', [], [row('x')], new Set());
     expect(out.ok).toBe(false);
-    if (!out.ok) expect(out.reason).toBe('csv_empty');
+    if (out.ok === false) expect(out.reason).toBe('csv_empty');
   });
 
   it('uses selection in prompt mode', () => {

@@ -92,7 +92,12 @@ function CardLinks({
   );
 }
 
-function normalizeAssistCardTable(table: AssistCard["table"]): AssistCardTable | null {
+type AssistCardTableInput = {
+  columns?: readonly unknown[];
+  rows?: readonly unknown[];
+};
+
+function normalizeAssistCardTable(table: AssistCardTableInput | null | undefined): AssistCardTable | null {
   if (!table?.columns?.length) return null;
   const columns = table.columns.map((col) => String(col ?? "").trim()).filter(Boolean);
   if (!columns.length) return null;

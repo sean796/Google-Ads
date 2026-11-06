@@ -1,13 +1,8 @@
 import React from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+
 import { NeoPulseAvatar } from "@/components/chat/NeoPulseAvatar";
 import type { ActiveHuddleSummary } from "@/lib/chat-call-types";
-import { Button } from "@/ui";
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "@/ui";
 
 export type ChatFloHuddleJoinPopupProps = {
   open: boolean;

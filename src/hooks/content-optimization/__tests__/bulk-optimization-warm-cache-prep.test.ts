@@ -63,7 +63,7 @@ function postsSnapshot() {
           id: 1,
           slug: "post-a",
           url: batchUrl,
-          fields: { title: "Post A", content: "", excerpt: "", keyword: "kw" },
+          fields: { title: "Post A", meta: "", content: "", excerpt: "", keyword: "kw" },
           acf: { keyword_focus: "kw" },
         },
       ],

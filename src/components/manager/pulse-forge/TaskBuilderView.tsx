@@ -196,7 +196,7 @@ export function TaskBuilderView({
       errors.push("Google Drive folder path is required.");
     }
     return errors;
-  }, [plan, planReady]);
+  }, [plan, planReady, archiveSiteName]);
   const canSaveDraft = planReady && Boolean(plan.name.trim()) && validationErrors.length === 0;
   const canInstallOrCreate =
     canSaveDraft &&
@@ -634,6 +634,7 @@ export function TaskBuilderView({
     selectedClientIds,
     sites,
     teamId,
+    workflowAgentEdit,
   ]);
 
   const handleTestFire = useCallback(async () => {

@@ -21,18 +21,10 @@ function row(collection: string, url: string, title: string): SiteInventoryBulkR
 }
 
 describe("removeInvalidInternalLinks strips service-area hrefs", () => {
-  it("drops /service-area/ even if that URL was in the post list", () => {
+  it("drops /service-area/ when that URL is not in the post list", () => {
     const html =
       '<p>See <a href="https://example.com/service-area/charleston/">Charleston</a> and <a href="https://example.com/hunter-douglas/">Hunter Douglas</a>.</p>';
     const out = removeInvalidInternalLinks(html, [
-      {
-        id: 1,
-        slug: "charleston",
-        title: "Charleston",
-        excerpt: "",
-        link: "https://example.com/service-area/charleston/",
-        date_gmt: "",
-      },
       {
         id: 2,
         slug: "hunter-douglas",

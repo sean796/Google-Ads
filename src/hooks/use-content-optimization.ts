@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect, useState } from "react";
+﻿import { useCallback, useRef, useEffect, useState } from "react";
 import { type WordPressSite } from "@/components/integrations/types";
 import { useOptimizationState, type PendingOptimization, type BulkOptimizationState } from "./content-optimization/use-optimization-state";
 import { handleOptimizeContent as handleOptimizeContentModule } from "./content-optimization/handle-optimize-content";
@@ -9,6 +9,12 @@ import {
 import { clearOptimization as clearOptimizationHelper } from "./content-optimization/optimization-helpers";
 import type { OptimizationFileManager } from "@/lib/optimization-file-manager";
 import type { GscPerformancePreviewByUrl } from "./content-optimization/gsc-preview-types";
+import type {
+  BooleanMapSetter,
+  ClusterAnalysisSetter,
+  GscQueriesSetter,
+} from "./content-optimization/bulk-optimization-params";
+import type { ImageType } from "@/lib/image-section-analyzer";
 
 // Re-export types for backward compatibility
 export type { 
@@ -44,10 +50,10 @@ export function useContentOptimization() {
     site: WordPressSite, 
     url: string, 
     updateMode: 'update' | 'draft',
-    setGscQueriesForSelection: (prev: any) => any,
-    setIsKeywordSelectionOpen: (prev: any) => any,
-    setGscClusterAnalysis: (prev: any) => any,
-    setIsAnalyzingClusters: (prev: any) => any,
+    setGscQueriesForSelection: GscQueriesSetter,
+    setIsKeywordSelectionOpen: BooleanMapSetter,
+    setGscClusterAnalysis: ClusterAnalysisSetter,
+    setIsAnalyzingClusters: BooleanMapSetter,
     skipOnNoGSC: boolean = false,
     optimizationOptions?: {
       optimizeTitle?: boolean;
@@ -63,7 +69,7 @@ export function useContentOptimization() {
       useAcfKeyword?: boolean;
       manualKeyword?: string;
     },
-    inContentImageRequest?: { imageType: string; userPrompt?: string },
+    inContentImageRequest?: { imageType: ImageType; userPrompt?: string },
     resolvedPost?: {
       id: number;
       subtype: string;
@@ -107,7 +113,7 @@ export function useContentOptimization() {
     siteId: string, 
     selectedKeyword: { query: string; clicks: number; impressions: number; ctr: number; position: number },
     clusterKeywords?: string[],
-    setIsKeywordSelectionOpen?: (prev: any) => any,
+    setIsKeywordSelectionOpen?: BooleanMapSetter,
     testMode: boolean = false,
     secondaryKeywords?: string[],
     pendingOverride?: PendingOptimization,
@@ -155,10 +161,10 @@ export function useContentOptimization() {
     site: WordPressSite,
     urls: string[],
     updateMode: 'update' | 'draft',
-    setGscQueriesForSelection: (prev: any) => any,
-    setIsKeywordSelectionOpen: (prev: any) => any,
-    setGscClusterAnalysis: (prev: any) => any,
-    setIsAnalyzingClusters: (prev: any) => any,
+    setGscQueriesForSelection: GscQueriesSetter,
+    setIsKeywordSelectionOpen: BooleanMapSetter,
+    setGscClusterAnalysis: ClusterAnalysisSetter,
+    setIsAnalyzingClusters: BooleanMapSetter,
     optimizationOptions?: {
       optimizeTitle?: boolean;
       optimizeMeta?: boolean;
@@ -173,7 +179,7 @@ export function useContentOptimization() {
       manualKeyword?: string;
       seoExtraTextFieldOnly?: boolean;
     },
-    inContentImageRequest?: { imageType: string; userPrompt?: string },
+    inContentImageRequest?: { imageType: ImageType; userPrompt?: string },
     prefilledUrlKeywords?: Record<string, string>,
     prefilledOverviewTargets?: Record<string, import("@/hooks/content-optimization/bulk-optimization-params").PrefilledOverviewTarget>,
     useSiteWarmCacheOnly?: boolean,

@@ -1,5 +1,5 @@
 import type { CSVRow } from './bulk-csv-parser';
-import { isCompetitorCsvKeyword } from '@/lib/competitor/competitor-csv-row';
+import { isCompetitorCsvKeyword } from '@/lib/competitor-research/competitor-csv-row';
 import type { KeywordData } from '../keyword-types';
 
 /**

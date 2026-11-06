@@ -8,11 +8,20 @@ import {
 
 function gridRow(address: string, rank = 10): LocalDominatorRow {
   return {
+    scanDate: "2026-01-01",
     latitude: 53.5,
     longitude: -113.5,
     rank,
     address,
     keyword: "test",
+    business: "Test Business",
+    placeId: "place-1",
+    websiteUrl: "https://example.com",
+    scanSize: "5x5",
+    distance: 1,
+    distanceMeasure: "mi",
+    primaryCategory: "Store",
+    secondaryCategories: "",
   };
 }
 

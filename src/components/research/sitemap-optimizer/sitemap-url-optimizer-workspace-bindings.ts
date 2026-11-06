@@ -1,4 +1,4 @@
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import type { UrlOptimizerDetailsPanelProps } from "@/components/research/url-optimizer/UrlOptimizerDetailsPanel";
 import type { UrlOptimizerToolbarProps } from "@/components/research/url-optimizer/UrlOptimizerToolbar";
 

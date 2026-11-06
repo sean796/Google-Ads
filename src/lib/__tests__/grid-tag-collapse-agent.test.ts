@@ -1,4 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@/lib/openrouter-app-api", () => ({
+  postOpenRouterAppChat: vi.fn(),
+}));
+
+import { postOpenRouterAppChat } from "@/lib/openrouter-app-api";
 import {
   distinctTopicTagsFromRows,
   collapseGridTopicTags,
@@ -28,9 +34,11 @@ describe("grid-tag-collapse-agent", () => {
     expect(distinct.find((d) => d.topicTag === "alpha")?.urlCount).toBe(2);
   });
 
-  it("skips collapse when already at or below 50 tags", async () => {
-    const rows = Array.from({ length: 40 }, (_, i) => row(String(i), `tag_${i}`));
+  it("skips collapse when already at or below the collapse threshold", async () => {
+    // 40 rows / 5 per post = 8 clusters; "none" allows 24 distinct tags, so 20 skips the LLM call.
+    const rows = Array.from({ length: 40 }, (_, i) => row(String(i), `tag_${i % 20}`));
     const out = await collapseGridTopicTags(rows, "key");
     expect(out).toBe(rows);
+    expect(postOpenRouterAppChat).not.toHaveBeenCalled();
   });
 });

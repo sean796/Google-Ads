@@ -8,6 +8,7 @@ import type {
   GenerateEntitiesResult,
   CheckFuturePostsResult
 } from './types';
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 /**
  * Generate entities based on service-area sitemap URLs (AI-only, no wiki validation).
@@ -146,9 +147,7 @@ export async function checkFuturePosts(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         username,

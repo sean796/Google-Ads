@@ -5,6 +5,7 @@ import { metaAdPlacementLabel } from "@/lib/ppc/meta-ads-field-limits";
 import {
   resolveMetaRowAdName,
   resolveMetaRowFocusKeyword,
+  type MetaAdDeliverableRow,
   type MetaAdRow,
 } from "@/lib/ppc/meta-ads-types";
 
@@ -51,7 +52,7 @@ export async function loadImageBytes(src: string): Promise<Uint8Array | null> {
   }
 }
 
-export function buildMetaAdCopySidecar(row: MetaAdRow): string {
+export function buildMetaAdCopySidecar(row: MetaAdDeliverableRow): string {
   const copy = row.copy;
   if (!copy) return "";
   const lines = [

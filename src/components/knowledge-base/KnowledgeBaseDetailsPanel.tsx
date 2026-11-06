@@ -1,5 +1,6 @@
 import { Activity } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { Progress } from "@/ui";
+
 import { SiteScraperTargetingSequence } from "@/components/knowledge-base/SiteScraperTargetingSequence";
 import { SCRAPER_STEP_LABELS } from "@/lib/knowledge-base/scraper-constants";
 import type { ScraperLogEntry } from "@/lib/knowledge-base/types";
@@ -8,7 +9,6 @@ import {
   WorkspaceDetailsSection,
   WorkspaceDetailsStack,
 } from "@/components/shared/WorkspaceDetailsStack";
-import { workspaceDetailsCanOpen } from "@/lib/workspace/workspace-details-can-open";
 
 export type KnowledgeBaseDetailsPanelProps = {
   profileName?: string | null;
@@ -21,15 +21,6 @@ export type KnowledgeBaseDetailsPanelProps = {
   scraperStep: string | null;
   scraperLog: ScraperLogEntry[];
 };
-
-export function knowledgeBaseDetailsCanOpen(
-  hasProfile: boolean,
-  isUploading: boolean,
-  isScraping: boolean,
-  hasLog: boolean,
-): boolean {
-  return workspaceDetailsCanOpen(hasProfile, isUploading, isScraping, hasLog);
-}
 
 export function KnowledgeBaseDetailsPanel({
   profileName,

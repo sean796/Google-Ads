@@ -294,7 +294,7 @@ async function fetchTitlesBatch(
   };
   const raw = data.choices?.[0]?.message?.content ?? "";
   const template = titleTemplate?.trim() || DEFAULT_ENTITY_TITLE_TEMPLATE;
-  let titles = titlesFromOpenRouterContent(raw).map((t) =>
+  const titles = titlesFromOpenRouterContent(raw).map((t) =>
     truncateAtWordBoundary(
       formatSapHeadlineTitleCase(collapseRepeatedPlaceSegmentsInKeyword(t)),
       SAP_TITLE_MAX_CHARS,

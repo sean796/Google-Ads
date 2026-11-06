@@ -1,10 +1,11 @@
 import { useState, useCallback } from "react";
+import type { GSCQueryClusterAnalysis } from "@/lib/gsc-query-clustering";
 
 export function useKeywordSelection() {
   // Use lazy initialization to prevent React queue issues during concurrent rendering
   const [gscQueriesForSelection, setGscQueriesForSelection] = useState<Record<string, Array<{ query: string; clicks: number; impressions: number; ctr: number; position: number }>>>(() => ({}));
   const [isKeywordSelectionOpen, setIsKeywordSelectionOpen] = useState<Record<string, boolean>>(() => ({}));
-  const [gscClusterAnalysis, setGscClusterAnalysis] = useState<Record<string, any>>(() => ({}));
+  const [gscClusterAnalysis, setGscClusterAnalysis] = useState<Record<string, GSCQueryClusterAnalysis>>(() => ({}));
   const [isAnalyzingClusters, setIsAnalyzingClusters] = useState<Record<string, boolean>>(() => ({}));
   const [selectedCluster, setSelectedCluster] = useState<Record<string, number | null>>(() => ({}));
 

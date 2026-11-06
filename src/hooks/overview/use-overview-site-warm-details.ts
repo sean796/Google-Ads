@@ -28,7 +28,7 @@ export function useOverviewSiteWarmDetails(
       return;
     }
     void ensureEntitySiteWarmCache(site);
-  }, [site?.id, site?.siteUrl]);
+  }, [site]);
 
   return snapshot;
 }

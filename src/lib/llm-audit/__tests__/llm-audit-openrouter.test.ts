@@ -64,7 +64,9 @@ describe("fetchLlmAuditOpenRouter", () => {
       expect.objectContaining({
         apiKey: "test-or-key",
         model: LLM_AUDIT_OPENROUTER_MODEL,
-        system: LLM_AUDIT_SYSTEM_MESSAGE,
+        maxTokens: 2048,
+        temperature: 0.5,
+        system: expect.stringContaining(LLM_AUDIT_SYSTEM_MESSAGE),
         user: expect.stringContaining("solar panel costs"),
       }),
     );

@@ -203,7 +203,6 @@ export async function fetchPromptBulkSitemapInventory(
   const parallel = await fetchAllOverviewInventoriesParallel(site, {
     includeContent: false,
     includePageHeading: false,
-    includeRawAcf: false,
     includeScheduled: true,
   });
   seedBulkGenerationWpInventoryFromParallel(site, parallel);

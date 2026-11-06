@@ -11,9 +11,18 @@ import { fetchAgentRuns } from "@/lib/agent-runs-api";
 function ldRun(partial: Partial<AgentRun> & Pick<AgentRun, "id" | "status">): AgentRun {
   return {
     teamId: 1,
+    createdBy: 1,
     title: "Export Local Dominator grid CSV",
     recipeKey: "local_dominator_export",
+    recipeTitle: "Export Local Dominator grid CSV",
     source: "workflow",
+    taskId: 0,
+    taskTitle: "",
+    result: null,
+    errorMessage: "",
+    clientBatchKey: "",
+    startedAt: null,
+    finishedAt: null,
     context: {
       workflowId: 10,
       workflowRunId: 400,
@@ -68,10 +77,18 @@ describe("findWorkflowNodeAgentRun LD job cleanup", () => {
       {
         id: 4,
         teamId: 1,
+        createdBy: 1,
         title: "Create scheduled entity pages",
         recipeKey: "entity_page_creator",
+        recipeTitle: "Create scheduled entity pages",
         status: "failed",
         source: "workflow",
+        taskId: 0,
+        taskTitle: "",
+        result: null,
+        clientBatchKey: "",
+        startedAt: null,
+        finishedAt: null,
         errorMessage: "Upstream Local Dominator export did not produce a grid CSV.",
         context: {
           workflowId: 10,

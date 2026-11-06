@@ -1,5 +1,5 @@
 /** Bulk: no Google Search Console keyword research - empty payload for downstream types. */
-export const DEATH_STAR_NO_GSC = { success: false as const, queries: [] as any[] };
+export const DEATH_STAR_NO_GSC = { success: false as const, queries: [] as Array<{ query?: unknown }> };
 
 /** Parallel bulk prep: per-URL prefetch and keyword derivation (OpenRouter / WP). */
 export const BULK_PREP_PREFETCH_CONCURRENCY = 8;

@@ -131,7 +131,7 @@ function buildAnalyzeHarnessSections(
 }
 
 function buildBatchPrepHarnessSections(
-  input: SitemapPlanDetailsPanelProps,
+  input: SitemapPlanDetailsPanelProps & { busy: boolean },
   entitySap: boolean,
 ): BulkHarnessSectionUi[] {
   const titles = resolveContentPrepBatchSectionTitles(entitySap);

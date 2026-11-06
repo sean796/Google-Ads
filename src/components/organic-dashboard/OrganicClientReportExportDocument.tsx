@@ -31,7 +31,8 @@ import {
   EXPORT_SECTION_HEAD_CLASS,
 } from "@/components/organic-dashboard/organic-client-report-export-theme";
 import "@/components/organic-dashboard/organic-client-report-export.css";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/ui";
+
 import type { OrganicClientReportContent } from "@/lib/organic-dashboard/organic-client-report-content";
 import {
   parseDeckCountDisplay,

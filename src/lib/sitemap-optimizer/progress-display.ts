@@ -210,9 +210,6 @@ export function sitemapOptimizerPhaseIndeterminate(progress: SitemapOptimizerPro
   }
   if (progress.phase === "inventory") return true;
   if (progress.phase === "clustering") {
-    if (progress.runMode === "grid_csv") {
-      return progress.total <= 0 || progress.completed < progress.total;
-    }
     return progress.clusteringSubphase === "batch"
       ? progress.total <= 0
       : progress.total <= 0 || progress.completed < progress.total;

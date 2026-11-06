@@ -5,7 +5,7 @@ import { isAgentRunBatchKey } from "@/lib/agent-runs/agent-run-batch-key";
 import {
   buildSinglePageOptimizationSnapshot,
   pickMetaBulkMicroSnapshot,
-} from "@/components/overview/OverviewBulkMicroProgress";
+} from "@/components/overview/overview-bulk-micro-progress-helpers";
 import {
   buildContentOptimizerBulkMicroSnapshot,
   isContentOptimizerBulkRun,

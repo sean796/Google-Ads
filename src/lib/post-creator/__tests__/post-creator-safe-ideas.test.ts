@@ -14,6 +14,7 @@ const mockSite: WordPressSite = {
   siteUrl: "https://advanceblinds.ca",
   username: "user",
   appPassword: "pass",
+  connectedAt: 0,
 };
 
 function mockInventory(urls: string[]): LoadBulkSitemapInventoryResult {
@@ -28,6 +29,7 @@ function mockInventory(urls: string[]): LoadBulkSitemapInventoryResult {
     totalRows: urls.length,
     sources: ["posts"],
     errors: {},
+    postsMetadata: [],
   };
 }
 

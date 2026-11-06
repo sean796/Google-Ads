@@ -37,7 +37,10 @@ export type WorkflowStepColumnProps = {
 function renderStepBlock(
   nodes: WorkflowNode[],
   ordered: WorkflowNode[],
-  args: Omit<WorkflowStepColumnProps, "teamId" | "workflow"> & {
+  args: Omit<
+    WorkflowStepColumnProps,
+    "teamId" | "workflow" | "onAddStep" | "onAddActionAgentPreset" | "onAddRecipe"
+  > & {
     onInsertAfter: (nodeId: string) => void;
   },
 ): React.ReactElement[] {

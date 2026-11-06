@@ -1,30 +1,34 @@
+import { timingSafeEqual } from "node:crypto";
+
 const TOKEN = () => (process.env.PULSE_HOST_API_TOKEN || process.env.NEO_HOST_API_TOKEN || "").trim();
 
+function bearerMatches(req, token) {
+  const auth = (req.headers.authorization || "").trim();
+  const expected = `Bearer ${token}`;
+  if (auth.length !== expected.length) return false;
+  return timingSafeEqual(Buffer.from(auth), Buffer.from(expected));
+}
+
+// Wave 0: the only legitimate caller is the PHP hub proxy, which has already
+// verified the user session, team membership, and hosting permissions.
+// Identity headers are trusted only alongside that service token.
 export function assertServiceOrUserAuth(req) {
   const token = TOKEN();
-  const auth = (req.headers.authorization || "").trim();
-  if (token && auth === `Bearer ${token}`) {
-    return {
-      ok: true,
-      mode: "service",
-      teamId: Number(req.headers["x-neo-pulse-team-id"] || 0) || null,
-      userId: Number(req.headers["x-neo-pulse-user-id"] || 0) || null,
-      hostingWrite: true,
-    };
+  if (!token || !bearerMatches(req, token)) {
+    return { ok: false, error: "Unauthorized.", status: 401 };
   }
   const teamId = Number(req.headers["x-neo-pulse-team-id"] || 0);
   const userId = Number(req.headers["x-neo-pulse-user-id"] || 0);
-  const write = (req.headers["x-neo-pulse-hosting-write"] || "") === "1";
-  if (!teamId || !userId) {
+  if (!Number.isInteger(teamId) || teamId < 1 || !Number.isInteger(userId) || userId < 1) {
     return { ok: false, error: "Unauthorized.", status: 401 };
   }
-  return { ok: true, mode: "user", teamId, userId, hostingWrite: write };
+  const write = (req.headers["x-neo-pulse-hosting-write"] || "") === "1";
+  return { ok: true, mode: "service", teamId, userId, hostingWrite: write };
 }
 
 export function cronAuth(req) {
   const token = TOKEN();
-  const auth = (req.headers.authorization || "").trim();
-  if (!token || auth !== `Bearer ${token}`) {
+  if (!token || !bearerMatches(req, token)) {
     return { ok: false, error: "Unauthorized.", status: 401 };
   }
   return { ok: true };

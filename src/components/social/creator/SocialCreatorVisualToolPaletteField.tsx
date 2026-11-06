@@ -1,7 +1,5 @@
-import {
-  MetaAdsColorColumnCell,
-  metaVisualColorColumnMode,
-} from "@/components/social/creator/SocialCreatorColorPaletteField";
+import { MetaAdsColorColumnCell } from "@/components/social/creator/SocialCreatorColorPaletteField";
+import { metaVisualColorColumnMode } from "@/components/social/creator/social-visual-color-palette";
 import {
   cloneVisualToolPalette,
   emptyVisualToolPalette,
@@ -180,8 +178,4 @@ export function SocialCreatorVisualToolPaletteField({
       })}
     </div>
   );
-}
-
-export function clonePaletteForEdit(palette: MetaAdVisualToolPalette): MetaAdVisualToolPalette {
-  return cloneVisualToolPalette(palette);
 }

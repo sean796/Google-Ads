@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { ProposalResearchTab } from "@/components/research/proposal/ProposalResearchTab";
-import { ResearchWorkspaceNavProvider } from "@/components/research/ResearchWorkspaceNavContext";
+import { ResearchWorkspaceNavProvider } from "@/components/research/ResearchWorkspaceNavProvider";
 import type { GeneratorWorkspaceChromeBindings } from "@/components/blog-generator/generator-workspace-chrome-bindings";
 import {
   type ResearchSectionId,

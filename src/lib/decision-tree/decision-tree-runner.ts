@@ -74,7 +74,7 @@ async function callGeminiAction(args: {
   }
 
   const model = getBlogModel(args.siteId);
-  const apiKey = args.apiKey?.trim() || resolveOpenRouterApiKeyForHarness() || '';
+  const apiKey = args.apiKey?.trim() || (await resolveOpenRouterApiKeyForHarness()) || '';
 
   const systemPrompt = `You are a professional editorial writer and copy editor.
 Your task is to execute ONE specific edit task instructed by the editorial decision tree.
@@ -129,8 +129,8 @@ function checkIntakeRequirements(brief: DecisionJobBrief): { ok: boolean; missin
  * Picks the single most important fix action based on failing dimensions.
  */
 function pickFixAction(
-  coreResults?: Record<string, any>,
-  brandResults?: Record<string, any>,
+  coreResults?: Record<string, unknown>,
+  brandResults?: Record<string, unknown>,
   thresholds: DecisionTreeThresholds = DEFAULT_DECISION_THRESHOLDS,
 ): FixActionType {
   // 1. Thin content takes precedence

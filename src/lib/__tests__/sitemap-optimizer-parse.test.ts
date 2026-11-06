@@ -67,8 +67,10 @@ describe("sitemap-optimizer-parse", () => {
     expect(viaAgent?.whatToKeepFromEach[0]?.bullets[0]).toBe("Unique stat from A");
   });
 
-  it("returns empty cluster result on invalid JSON", () => {
-    expect(parseClusterResultJson("not json")).toEqual({ clusters: [], singletons: [] });
+  it("throws on invalid JSON instead of masquerading as no merges", () => {
+    expect(() => parseClusterResultJson("not json")).toThrow(/no JSON|not valid JSON/);
+    expect(() => parseClusterResultJson("")).toThrow(/no JSON/);
+    expect(() => parseClusterResultJson(JSON.stringify({ clusters: "nope" }))).toThrow(/schema/);
   });
 
   it("returns null merge on invalid JSON", () => {

@@ -6,6 +6,7 @@ import {
   syncPpcAdGroupKeywordsToCount,
 } from "@/lib/ppc/google-ads-types";
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { normalizeGoogleAdsCustomerId } from "@/lib/ads-reporting/ads-reporting-metrics";
 
 export type GoogleAdsImportedSearchCampaign = {
@@ -20,10 +21,10 @@ function normalizeAd(raw: unknown, index: number): PpcResponsiveSearchAd | null 
   if (!raw || typeof raw !== "object") return null;
   const row = raw as Record<string, unknown>;
   const headlines = Array.isArray(row.headlines)
-    ? row.headlines.filter((h): h is string => typeof h === "string" && h.trim()).map((h) => h.trim())
+    ? row.headlines.filter((h): h is string => typeof h === "string" && h.trim().length > 0).map((h) => h.trim())
     : [];
   const descriptions = Array.isArray(row.descriptions)
-    ? row.descriptions.filter((d): d is string => typeof d === "string" && d.trim()).map((d) => d.trim())
+    ? row.descriptions.filter((d): d is string => typeof d === "string" && d.trim().length > 0).map((d) => d.trim())
     : [];
   const finalUrl = typeof row.finalUrl === "string" ? row.finalUrl.trim() : "";
   if (headlines.length === 0 && descriptions.length === 0 && !finalUrl) return null;
@@ -55,7 +56,7 @@ function normalizeImportedCampaign(raw: unknown): GoogleAdsImportedSearchCampaig
       const groupName = typeof group.name === "string" ? group.name.trim() : "";
       if (!groupName) return null;
       const keywords = Array.isArray(group.keywords)
-        ? group.keywords.filter((k): k is string => typeof k === "string" && k.trim()).map((k) => k.trim())
+        ? group.keywords.filter((k): k is string => typeof k === "string" && k.trim().length > 0).map((k) => k.trim())
         : [];
       const adsRaw = Array.isArray(group.ads) ? group.ads : [];
       const ads = adsRaw
@@ -104,7 +105,7 @@ export async function loadGoogleAdsSearchCampaignImports(customerId: string): Pr
   const res = await fetch(backendApiUrl("/google-ads/import-search-campaigns"), {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ customerId: normalizedCustomerId }),
   });
 

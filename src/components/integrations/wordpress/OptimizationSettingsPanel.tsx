@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Slider } from "@/components/ui/slider";
+
 import { RotateCcw, Save } from "lucide-react";
-import { Button, Field, SelectField } from "@/ui";
+import { Button, Field, SelectField, Slider } from "@/ui";
 import { type WordPressSite } from "../types";
 import { IMAGE_MODEL_PRESETS } from "@/lib/image-model-defaults";
 import {
@@ -11,7 +11,6 @@ import {
 import { TEXT_AGENT_MODEL_PRESETS } from "@/lib/global-agent-models";
 
 export type { OptimizationSettings } from "@/lib/optimization-settings-defaults";
-export { DEFAULT_SETTINGS } from "@/lib/optimization-settings-defaults";
 
 function buildModelOptions(
   presets: { value: string; label: string }[],

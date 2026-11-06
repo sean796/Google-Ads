@@ -1,6 +1,7 @@
 import React from "react";
 import { Sparkles } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/ui";
+
 import { cn } from "@/lib/utils";
 import { NEO_PULSE_BOT_DISPLAY_NAME } from "@/lib/chat-neo-pulse";
 
@@ -9,14 +10,6 @@ export type NeoPulseAvatarProps = {
   displayName?: string;
   className?: string;
 };
-
-export function isNeoPulseBotDisplayName(displayName: string): boolean {
-  const normalized = displayName.trim().toUpperCase();
-  return normalized === NEO_PULSE_BOT_DISPLAY_NAME.toUpperCase() || normalized === "FLO";
-}
-
-/** @deprecated Use isNeoPulseBotDisplayName */
-export const isFloDisplayName = isNeoPulseBotDisplayName;
 
 export function NeoPulseAvatar({
   avatarUrl,

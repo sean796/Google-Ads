@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { hasValidGscDumpFilename } from "@/lib/overview/overview-research-row";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { OverviewBinding } from "@/hooks/overview/use-overview-wordpress-binding";
@@ -118,7 +119,7 @@ export function useOverviewTabAiMetaHarness({
       try {
         const ctxRes = await fetch(`${BACKEND_API_BASE}/api/gsc/quick-wins-context`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({ filename: gscFilenameForMeta, pageUrl: pageUrlForGsc }),
         });
         const ctxJson = await ctxRes.json().catch(() => null);

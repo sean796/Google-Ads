@@ -19,6 +19,7 @@ import {
   type ACFFieldMapping,
 } from "@/lib/content-generation/acf-field-mapper";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
+import type { WpExistingPostLike } from "@/hooks/content-optimization/use-optimization-state";
 import { buildAcfPayload } from "@/lib/content-generation/apply-meta-acf-payload";
 
 export interface ApplyMetaOptimizerToAcfOptions {
@@ -29,7 +30,7 @@ export interface ApplyMetaOptimizerToAcfOptions {
   primaryKeyword: string;
   site: WordPressSite;
   postLink: string;
-  existingPost?: any;
+  existingPost?: WpExistingPostLike;
   fileManager: OptimizationFileManager;
   setProgress: (progress: { step: string; progress: number; message?: string }) => void;
   shouldApply: boolean;
@@ -76,7 +77,8 @@ export async function applyMetaOptimizerToACF(
       message: "Fetching post and generating SEO copy for ACF...",
     });
 
-    const resolvedSubtype = existingPost?.postTypeSubtype || existingPost?.subtype || "post";
+    const subtypeRaw = existingPost?.postTypeSubtype ?? existingPost?.subtype;
+    const resolvedSubtype = typeof subtypeRaw === "string" && subtypeRaw ? subtypeRaw : "post";
     const postTypeEndpoint =
       existingPost?.postTypeEndpoint ||
       (site.entitySitemapUrl ? extractEndpointFromEntitySitemapUrl(site.entitySitemapUrl) : undefined) ||
@@ -144,11 +146,11 @@ export async function applyMetaOptimizerToACF(
     );
 
     const apiKey = loadApiKey() || "";
-    const fbMapping = fallbackFieldMapping(acfFromPayload as Record<string, any>);
+    const fbMapping = fallbackFieldMapping(acfFromPayload);
     const discoveredMapping =
       Object.keys(acfFromPayload).length > 0 && apiKey.trim()
         ? await discoverACFFieldMapping(
-            acfFromPayload as Record<string, any>,
+            acfFromPayload,
             resolvedSubtype,
             apiKey,
             site.siteUrl,

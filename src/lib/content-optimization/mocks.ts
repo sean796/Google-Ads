@@ -35,7 +35,15 @@ export function createMockAIAnalysis(keyword: string): KeywordAIAnalysis {
   };
 }
 
-export function createMockBlueprint(keyword: string, existingTitle: string): any {
+export function createMockBlueprint(
+  keyword: string,
+  existingTitle: string,
+): {
+  title: string;
+  purpose: string;
+  entity: string;
+  agents: Array<{ id: string; step: number; title: string; content: string }>;
+} {
   return {
     title: existingTitle || `Complete Guide to ${keyword}`,
     purpose: buildFocusedArticlePurpose(keyword),

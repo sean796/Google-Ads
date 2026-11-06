@@ -103,6 +103,7 @@ describe("verifyOverviewHarnessScrollLinks", () => {
 describe("applyOverviewHarnessScrollLinks", () => {
   it("always rebuilds ul from OpenRouter JSON and verifies", async () => {
     vi.mocked(callOpenRouterChatCompletion).mockResolvedValueOnce({
+      raw: null,
       content: JSON.stringify({
         bullets: [
           {
@@ -148,6 +149,7 @@ describe("applyOverviewHarnessScrollLinks", () => {
 
   it("ships partial bullets when scroll-link agent returns wrong bullet count", async () => {
     vi.mocked(callOpenRouterChatCompletion).mockResolvedValueOnce({
+      raw: null,
       content: JSON.stringify({
         bullets: [
           {
@@ -172,6 +174,7 @@ describe("applyOverviewHarnessScrollLinks", () => {
 
   it("repairs anchorId mismatch from model JSON", async () => {
     vi.mocked(callOpenRouterChatCompletion).mockResolvedValueOnce({
+      raw: null,
       content: JSON.stringify({
         bullets: [
           {
@@ -212,6 +215,7 @@ describe("applyOverviewHarnessScrollLinks", () => {
 describe("applyOverviewHarnessScrollLinksToStitchedHtml", () => {
   it("rebuilds overview bullets and preserves body sections", async () => {
     vi.mocked(callOpenRouterChatCompletion).mockResolvedValueOnce({
+      raw: null,
       content: JSON.stringify({
         bullets: [
           {

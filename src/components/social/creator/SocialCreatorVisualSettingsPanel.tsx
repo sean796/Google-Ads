@@ -1,5 +1,5 @@
 
-import { Switch } from "@/components/ui/switch";
+
 import { SocialCreatorColorPaletteField } from "@/components/social/creator/SocialCreatorColorPaletteField";
 import { SocialCreatorDarkSelect } from "@/components/social/creator/SocialCreatorDarkSelect";
 import { SocialCreatorVisualToolPaletteField } from "@/components/social/creator/SocialCreatorVisualToolPaletteField";
@@ -20,7 +20,7 @@ import type {
   SocialVisualToolMode,
 } from "@/lib/social/social-creator-types";
 import { cn } from "@/lib/utils";
-import { TextareaField } from "@/ui";
+import { TextareaField, Switch } from "@/ui";
 
 export type SocialCreatorVisualSettingsPanelProps = {
   colorPalette: MetaAdColorPalette;

@@ -183,31 +183,31 @@ export async function extractEntitiesFromWikipediaList(pageTitle: string): Promi
       const seen = new Set<string>();
 
       for (const line of lines) {
-        let match = line.match(/^[\*\•\-\u2022]\s+(.+?)(?:\s*[\(\[]|$)/);
+        let match = line.match(/^[*•\-\u2022]\s+(.+?)(?:\s*[([]|$)/);
         if (!match) {
-          match = line.match(/^\d+[\.\)]\s+(.+?)(?:\s*[\(\[]|$)/);
+          match = line.match(/^\d+[.)]\s+(.+?)(?:\s*[([]|$)/);
         }
         if (!match) {
-          match = line.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(?:\s*[\(\[,;]|$)/);
+          match = line.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(?:\s*[([,;]|$)/);
         }
         if (!match) {
-          match = line.match(/\[\[([^\|\]]+)(?:\|[^\]]+)?\]\]/);
+          match = line.match(/\[\[([^|\]]+)(?:\|[^\]]+)?\]\]/);
         }
 
         if (match) {
           let entity = match[1].trim();
 
           entity = entity
-            .replace(/\[\[([^\|\]]+)(?:\|[^\]]+)?\]\]/g, "$1")
+            .replace(/\[\[([^|\]]+)(?:\|[^\]]+)?\]\]/g, "$1")
             .replace(/'''([^']+)'''/g, "$1")
             .replace(/''([^']+)''/g, "$1")
             .replace(/\([^)]*\)/g, "")
             .replace(/\[.*?\]/g, "")
-            .replace(/^\d+[\.\)]\s*/, "")
-            .replace(/^[\*\•\-\u2022]\s*/, "")
+            .replace(/^\d+[.)]\s*/, "")
+            .replace(/^[*•\-\u2022]\s*/, "")
             .trim();
 
-          entity = entity.split(/[,\[\(;]/)[0].trim();
+          entity = entity.split(/[,[(;]/)[0].trim();
 
           if (entity.length > 2 && entity.length < 100 && !seen.has(entity.toLowerCase())) {
             const lower = entity.toLowerCase();

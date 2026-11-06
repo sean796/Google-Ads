@@ -10,7 +10,18 @@ function placeTokenFromUrl(url: string): string {
   const tail = urlPathTail(url);
   const leading = leadingPlaceKeyFromPathTail(tail);
   if (leading) return humanizeSlugFromUrl(leading);
-  const slugTail = entityLocationSlugFromRow({ url, title: "", slug: tail, keyword: "" });
+  const slugTail = entityLocationSlugFromRow({
+    postId: "",
+    url,
+    title: "",
+    slug: tail,
+    keyword: "",
+    collection: "",
+    meta: "",
+    contentSnippet: "",
+    gscQueries: [],
+    gscFetched: false,
+  });
   if (slugTail) return humanizeSlugFromUrl(slugTail);
   return humanizeSlugFromUrl(url);
 }

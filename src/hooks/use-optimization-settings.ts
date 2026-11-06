@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import type { OptimizationSettings } from "@/components/integrations/wordpress/OptimizationSettingsPanel";
-import { DEFAULT_SETTINGS } from "@/components/integrations/wordpress/OptimizationSettingsPanel";
+import { DEFAULT_SETTINGS } from "@/lib/optimization-settings-defaults";
 
 const SETTINGS_STORAGE_KEY_PREFIX = "optimization_settings_";
 const MODE_STORAGE_KEY_PREFIX = "optimization_mode_";

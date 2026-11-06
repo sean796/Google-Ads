@@ -26,6 +26,7 @@ describe("hydrateOverviewRowsFromPrefetchInventory", () => {
           date_gmt: "2026-04-07T12:00:00",
           fields: {
             title: "Five Reasons To Upgrade",
+            meta: "",
             excerpt: "Short meta excerpt for the post.",
             keyword: "reasons to upgrade",
           },
@@ -45,7 +46,7 @@ describe("hydrateOverviewRowsFromPrefetchInventory", () => {
     const hydrated = hydrateOverviewRowsFromPrefetchInventory(
       [row],
       site,
-      [{ id: 0, url: "https://example.com/hello/", collection: "posts", slug: "", fields: { title: "" } }],
+      [{ id: 0, url: "https://example.com/hello/", collection: "posts", slug: "", fields: { title: "", meta: "", keyword: "" } }],
     );
     expect(hydrated[0]?.title).toBe("");
   });

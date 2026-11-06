@@ -1,7 +1,5 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -10,18 +8,10 @@ import {
 import { createPortal } from "react-dom";
 import { useAgentRunsContext } from "@/contexts/use-agent-runs-context";
 import { DetailsDrawer } from "@/ui/primitives/DetailsDrawer";
-
-type DetailsDockValue = {
-  target: HTMLElement | null;
-  setTarget: (el: HTMLElement | null) => void;
-  /** Number of mounted workspaces that publish Details content. */
-  count: number;
-  register: () => () => void;
-  /** Sidebar is open on the Details tab. */
-  open: boolean;
-};
-
-const DetailsDockContext = createContext<DetailsDockValue | null>(null);
+import {
+  DetailsDockContext,
+  useDetailsDock,
+} from "@/components/pulse-assist/details-dock-context";
 
 /** Hosts the Details tab of the right sidebar. Wrap inside `AgentRunsContextProvider`. */
 export function DetailsDockProvider({ children }: { children: ReactNode }) {
@@ -41,15 +31,6 @@ export function DetailsDockProvider({ children }: { children: ReactNode }) {
   );
 
   return <DetailsDockContext.Provider value={value}>{children}</DetailsDockContext.Provider>;
-}
-
-export function useDetailsDock(): DetailsDockValue | null {
-  return useContext(DetailsDockContext);
-}
-
-/** True while the sidebar is open on the Details tab. */
-export function useDetailsDockOpen(): boolean {
-  return useDetailsDock()?.open ?? false;
 }
 
 /**

@@ -45,7 +45,7 @@ export function collapseConsecutiveDuplicateWords(text: string): string {
 }
 
 export function normalizeMetaOnImageText(brief: MetaAdCreativeBrief): MetaAdCreativeBrief {
-  let onImageHeadline = collapseConsecutiveDuplicateWords(brief.onImageHeadline);
+  const onImageHeadline = collapseConsecutiveDuplicateWords(brief.onImageHeadline);
   let onImageSubline = brief.onImageSubline.trim()
     ? collapseConsecutiveDuplicateWords(brief.onImageSubline)
     : "";

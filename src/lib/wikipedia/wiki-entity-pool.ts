@@ -250,6 +250,7 @@ function tier1PlaceQueries(geo: ClusterWikiGeo, bucketHints: string[]): string[]
       placeLabel: cityRegion,
       weight: 1,
       avgRank: 0,
+      rowCount: 0,
       sampleAddresses: [],
     }).neighbourhood,
   ];

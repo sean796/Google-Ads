@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { setSessionToken } from "@/lib/auth-device";
 import {
   fetchOrganicDashboardBundle,
   OrganicDashboardFetchPartUnsupportedError,
@@ -28,6 +29,30 @@ const MONOLITH_BODY = {
 describe("fetchOrganicDashboardBundle fetch-part 404", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    setSessionToken(null);
+  });
+
+  it("sends the session Bearer token so hub routes do not 401", async () => {
+    setSessionToken("test-bearer-token");
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("fetch-part")) {
+        return new Response(
+          JSON.stringify({ success: true, sources: { ga4: "ok", gsc: "ok", semrush: "ok", googleAds: "skipped" } }),
+          { status: 200 },
+        );
+      }
+      return new Response("unexpected", { status: 500 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchOrganicDashboardBundle(PARAMS);
+    expect(fetchMock.mock.calls.length).toBeGreaterThan(0);
+    for (const call of fetchMock.mock.calls) {
+      const init = call[1] as RequestInit;
+      const headers = new Headers(init.headers);
+      expect(headers.get("Authorization")).toBe("Bearer test-bearer-token");
+    }
   });
 
   it("falls back to monolith when fetch-part returns 404 without JSON path", async () => {

@@ -338,7 +338,7 @@ function validateOneRange(startDate: string, endDate: string): { ok: true } | { 
   if (!YMD_RE.test(a) || !YMD_RE.test(b)) {
     return { ok: false, error: "Use YYYY-MM-DD for all dates." };
   }
-  if (a > b) {
+  if (a >= b) {
     return { ok: false, error: "Each period: start date must be before end date." };
   }
   const todayYmd = formatLocalYmd(new Date());

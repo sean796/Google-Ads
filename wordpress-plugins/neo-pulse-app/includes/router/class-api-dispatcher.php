@@ -100,6 +100,79 @@ class Neo_Pulse_App_Api_Dispatcher {
 	/**
 	 * @param string $route Path after api/.
 	 */
+	/**
+	 * Routes reachable without a session. Each entry carries its own credential:
+	 * invite token, deck UUID, signed OAuth state, or a handler-enforced
+	 * zero-user/setup-key condition. Nothing is public by pattern alone.
+	 *
+	 * @return array<int,array{0:string,1:string}>
+	 */
+	private static function public_routes(): array {
+		return array(
+			array( 'GET', 'auth/me' ),
+			array( 'POST', 'auth/login' ),
+			array( 'POST', 'auth/logout' ),
+			array( 'POST', 'auth/register' ),
+			array( 'POST', 'auth/bootstrap' ),
+			array( 'POST', 'auth/setup-admin' ),
+			array( 'GET', 'teams/invites/accept' ),
+			array( 'GET', 'organic-dashboard/client-report/load' ),
+			array( 'GET', 'organic-dashboard/client-report/open' ),
+			array( 'GET', 'manager-wordpress-properties/client-logo/*' ),
+			array( 'GET', 'gmb/callback' ),
+			array( 'GET', 'google-ads/callback' ),
+			array( 'GET', 'google-mcp/callback' ),
+		);
+	}
+
+	/**
+	 * Routes guarded by the hub machine token inside their handlers.
+	 *
+	 * @return array<int,array{0:string,1:string}>
+	 */
+	private static function machine_routes(): array {
+		return array(
+			array( 'POST', 'integrations/hub-data-export' ),
+			array( 'POST', 'integrations/hub-data-import' ),
+			array( 'POST', 'organic-dashboard/client-report/save' ),
+		);
+	}
+
+	private static function route_matches( string $method, string $route, array $list ): bool {
+		foreach ( $list as $entry ) {
+			if ( $entry[0] !== $method ) {
+				continue;
+			}
+			$pattern = $entry[1];
+			if ( str_ends_with( $pattern, '/*' ) ) {
+				if ( str_starts_with( $route, substr( $pattern, 0, -1 ) ) ) {
+					return true;
+				}
+				continue;
+			}
+			if ( $route === $pattern ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static function require_gate( string $method, string $route ): bool {
+		if ( self::route_matches( $method, $route, self::public_routes() ) ) {
+			return true;
+		}
+		if ( self::route_matches( $method, $route, self::machine_routes() )
+			&& ( Neo_Pulse_App_Hub_Data_Sync::request_has_valid_sync_token()
+				|| Neo_Pulse_App_Auth_Session::require_user() !== null ) ) {
+			return true;
+		}
+		if ( Neo_Pulse_App_Auth_Session::require_user() !== null ) {
+			return true;
+		}
+		self::send_json( array( 'ok' => false, 'error' => 'Unauthorized' ), 401 );
+		return false;
+	}
+
 	public static function dispatch( string $route ): void {
 		$method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( (string) $_SERVER['REQUEST_METHOD'] ) : 'GET';
 		if ( $method === 'OPTIONS' ) {
@@ -109,6 +182,9 @@ class Neo_Pulse_App_Api_Dispatcher {
 		}
 
 		$trimmed_route = trim( $route, '/' );
+		if ( ! self::require_gate( $method, $trimmed_route ) ) {
+			return;
+		}
 		if ( $trimmed_route === 'video/brainstorm/upload' && $method === 'POST' ) {
 			@set_time_limit( 600 );
 			Neo_Pulse_App_Video_Brainstorm::dispatch_upload_http();
@@ -167,13 +243,8 @@ class Neo_Pulse_App_Api_Dispatcher {
 		}
 
 		if ( preg_match( '#^mcp/(DataForSEO_[a-zA-Z0-9_]+)$#', $route, $m ) && $method === 'POST' ) {
-			self::run_with_dataforseo_request_credentials(
-				$body,
-				function () use ( $m, $body ) {
-					$response = Neo_Pulse_App_Dataforseo_Route_Handlers::handle_mcp_tool_with_status( $m[1], $body );
-					self::send_json( $response['data'], $response['status'] );
-				}
-			);
+			$response = Neo_Pulse_App_Dataforseo_Route_Handlers::handle_mcp_tool_with_status( $m[1], $body );
+			self::send_json( $response['data'], $response['status'] );
 			return;
 		}
 
@@ -188,12 +259,7 @@ class Neo_Pulse_App_Api_Dispatcher {
 		}
 
 		if ( 0 === strpos( $route, 'dataforseo/' ) ) {
-			self::run_with_dataforseo_request_credentials(
-				$body,
-				function () use ( $route, $method, $body ) {
-					Neo_Pulse_App_Dataforseo_Route_Handlers::dispatch_http( substr( $route, 11 ), $method, $body );
-				}
-			);
+			Neo_Pulse_App_Dataforseo_Route_Handlers::dispatch_http( substr( $route, 11 ), $method, $body );
 			return;
 		}
 
@@ -258,6 +324,12 @@ class Neo_Pulse_App_Api_Dispatcher {
 			@set_time_limit( 900 );
 		}
 
+		if ( 0 === strpos( $route, 'prompt-traces/' ) || $route === 'prompt-traces' ) {
+			$prompt_traces_route = $route === 'prompt-traces' ? '' : substr( $route, 14 );
+			Neo_Pulse_App_Prompt_Trace_Route_Handlers::dispatch_http( $prompt_traces_route, $method, $body );
+			return;
+		}
+
 		if ( 0 === strpos( $route, 'agent-runs/' ) || $route === 'agent-runs' ) {
 			$agent_runs_route = $route === 'agent-runs' ? '' : substr( $route, 11 );
 			Neo_Pulse_App_Agent_Runs_Route_Handlers::dispatch_http( $agent_runs_route, $method, $body );
@@ -270,11 +342,6 @@ class Neo_Pulse_App_Api_Dispatcher {
 			return;
 		}
 
-		if ( 0 === strpos( $route, 'emcp/' ) ) {
-			@set_time_limit( 240 );
-			Neo_Pulse_App_Emcp_Route_Handlers::dispatch_http( substr( $route, 5 ), $method, $body );
-			return;
-		}
 
 		if ( 0 === strpos( $route, 'agent-library/' ) || $route === 'agent-library' ) {
 			$agent_lib_route = $route === 'agent-library' ? '' : substr( $route, 14 );
@@ -446,24 +513,6 @@ class Neo_Pulse_App_Api_Dispatcher {
 			header( $name . ': ' . $value );
 		}
 		echo $body;
-	}
-
-	/**
-	 * Dashboard Settings DataForSEO key (header or body) for this request only.
-	 *
-	 * @param array<string,mixed> $body
-	 * @param callable():void     $fn
-	 */
-	private static function run_with_dataforseo_request_credentials( array $body, callable $fn ): void {
-		$dfs_creds = Neo_Pulse_App_Secrets::dataforseo_from_request( $body );
-		if ( $dfs_creds['password'] !== '' ) {
-			Neo_Pulse_App_Secrets::use_request_dataforseo_credentials( $dfs_creds );
-		}
-		try {
-			$fn();
-		} finally {
-			Neo_Pulse_App_Secrets::clear_request_dataforseo_credentials();
-		}
 	}
 
 	private static function apply_cors_headers(): void {

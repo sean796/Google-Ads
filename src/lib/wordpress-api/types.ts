@@ -182,6 +182,35 @@ export interface SitePostInventoryKbPayload {
   posts: SitePostInventoryRow[];
 }
 
+/** WP REST rendered field (title / content / excerpt in `context=edit` payloads). */
+export interface WordPressRenderedField {
+  rendered?: string;
+  raw?: string;
+  protected?: boolean;
+}
+
+/** Raw WP REST post payload carried on `WordPressPostContent.fullData`. */
+export interface WordPressPostFullData {
+  id?: number;
+  slug?: string;
+  status?: string;
+  link?: string;
+  date?: string;
+  date_gmt?: string;
+  title?: WordPressRenderedField;
+  content?: WordPressRenderedField;
+  excerpt?: WordPressRenderedField;
+  featured_media?: number | { id?: number };
+  meta?: Record<string, unknown>;
+  acf?: Record<string, unknown>;
+  neo_pulse_fields?: Record<string, unknown>;
+  _embedded?: {
+    featured_media?: Array<{ id?: number }>;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 export interface WordPressPostContent {
   id: number;
   slug: string;
@@ -198,7 +227,7 @@ export interface WordPressPostContent {
   postTypeEndpoint?: string; // e.g., 'posts', 'pages', 'service-area'
   postTypeSubtype?: string; // Original subtype from resolution (for reference)
   // Complete WordPress API response with all fields (featured_media, ACF, meta, author, etc.)
-  fullData?: any;
+  fullData?: WordPressPostFullData;
 }
 
 export interface PostContentResult {
@@ -310,7 +339,7 @@ export interface CheckFuturePostsResult {
 export interface WordPressPostMetaResult {
   success: boolean;
   postId?: number;
-  meta?: Record<string, any>;
+  meta?: Record<string, unknown>;
   /** Rendered post title (optional; returned for Content Optimizer / server meta AI). */
   title?: string;
   /** Rendered post content HTML (optional). */

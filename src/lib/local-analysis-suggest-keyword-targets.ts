@@ -138,8 +138,8 @@ function distributeRemainderByWeights(weights: number[], rem: number): number[] 
   if (sumW <= 0) return Array.from({ length: n }, () => 0);
   const raw = weights.map((w) => (rem * w) / sumW);
   const floors = raw.map((r) => Math.floor(r));
-  let s = floors.reduce((a, b) => a + b, 0);
-  let leftover = rem - s;
+  const s = floors.reduce((a, b) => a + b, 0);
+  const leftover = rem - s;
   const order = raw
     .map((r, i) => ({ i, frac: r - floors[i]! }))
     .sort((a, b) => b.frac - a.frac || a.i - b.i);
@@ -219,7 +219,7 @@ export function repairSapPageAllocationWeighted(
   }
 
   const pages = Array.from({ length: n }, () => floor);
-  let rem = total - n * floor;
+  const rem = total - n * floor;
   const extras = distributeRemainderByWeights(wOut, rem);
   for (let i = 0; i < n; i++) {
     pages[i]! += extras[i]!;

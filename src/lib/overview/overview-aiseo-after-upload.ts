@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
+import { harnessStepProgress } from "@/lib/overview/overview-harness-progress";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { OverviewBinding } from "@/hooks/overview/use-overview-wordpress-binding";
@@ -342,10 +343,10 @@ export function attachAiseoUploadGeneratedFiles(
           urlGeneratedFiles: {
             [fileKey]: rowFiles,
           },
-          currentStepProgress: {
+          currentStepProgress: harnessStepProgress(undefined, {
             step: "Upload to WordPress",
             message: uploadOk ? `Uploaded ${url}` : `Upload failed: ${url}`,
-          },
+          }),
         },
       };
     }
@@ -362,11 +363,10 @@ export function attachAiseoUploadGeneratedFiles(
           ...(current.urlGeneratedFiles || {}),
           [fileKey]: rowFiles,
         },
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "Upload to WordPress",
           message: uploadOk ? `Uploaded ${url}` : `Upload failed: ${url}`,
-        },
+        }),
       },
     };
   });
@@ -589,12 +589,11 @@ export async function uploadOverviewAiseoWrittenRows(
         [params.batchKey!]: {
           ...current,
           currentStep: "Upload to WordPress",
-          currentStepProgress: {
-            ...(current.currentStepProgress || {}),
+          currentStepProgress: harnessStepProgress(current.currentStepProgress, {
             step: "Upload to WordPress",
             progress: 100,
             message: `WordPress upload: ${uploaded} ok, ${failed} failed, ${skipped} skipped`,
-          },
+          }),
         },
       };
     });

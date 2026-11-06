@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Checkbox } from "@/components/ui/checkbox";
-import { FloatingLabelInput } from "@/components/ui/floating-label-input";
+
+
 import { useAuth } from "@/contexts/AuthContext";
 import { loadDeviceAuth } from "@/lib/auth-device";
 import { AUTH_DISABLED } from "@/lib/auth-disabled";
@@ -9,7 +9,7 @@ import { Lock, User, LogIn } from "lucide-react";
 import {
   NEO_PULSE_BRAND_LOCKUP_SRC,
 } from "@/lib/neo-pulse-branding-assets";
-import { Button } from "@/ui";
+import { Button, Checkbox, FloatingLabelInput } from "@/ui";
 
 export default function Login() {
   const { user, loading, login } = useAuth();

@@ -113,7 +113,7 @@ export function keywordStillContainsPlaceTokens(
   placeCorpus: ReadonlySet<string> | readonly string[],
 ): boolean {
   const set =
-    placeCorpus instanceof Set ? placeCorpus : placeTokenSetFromLabels(placeCorpus);
+    placeCorpus instanceof Set ? placeCorpus : placeTokenSetFromLabels([...placeCorpus]);
   if (set.size === 0) return false;
   const words = keyword
     .trim()

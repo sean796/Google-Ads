@@ -1,4 +1,5 @@
 import { getPool } from "../db/pool.mjs";
+import { ensureTenant } from "../db/tenants.mjs";
 import { sendJson } from "../lib/http.mjs";
 import { runBackupJob } from "../jobs/backup.mjs";
 import { runHealthJob } from "../jobs/health.mjs";
@@ -63,13 +64,19 @@ async function processJob(jobId) {
   }
 }
 
-export async function handleJobsRoute(req, res, subpath, method, _body, _auth) {
+export async function handleJobsRoute(req, res, subpath, method, _body, auth) {
   const jobId = subpath.split("/").filter(Boolean)[0];
-  if (!jobId || method !== "GET") {
+  if (!jobId || method !== "GET" || !auth?.teamId) {
     sendJson(res, 404, { ok: false, error: "Not found." });
     return;
   }
-  const result = await getPool().query(`SELECT * FROM hosting_jobs WHERE id = $1`, [jobId]);
+  const tenantId = await ensureTenant(auth.teamId);
+  const result = await getPool().query(
+    `SELECT j.* FROM hosting_jobs j
+     JOIN hosted_sites s ON s.id = j.site_id
+     WHERE j.id = $1 AND s.tenant_id = $2`,
+    [jobId, tenantId],
+  );
   const row = result.rows[0];
   if (!row) {
     sendJson(res, 404, { ok: false, error: "Job not found." });

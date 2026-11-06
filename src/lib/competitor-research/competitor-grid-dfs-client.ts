@@ -1,5 +1,6 @@
+import { resolveMcpApiBase } from "@/lib/mcp-tools";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
-import { normalizeCompetitorHostname } from "@/lib/competitor/filter-connected-site-competitors";
+import { normalizeCompetitorHostname } from "@/lib/competitor-research/filter-connected-site-competitors";
 
 /**
  * Extract business website hostname from DataForSEO my_business_info JSON response.
@@ -46,7 +47,7 @@ async function fetchGridCompetitorGmbJsonFromDataForSEO(options: {
   longitude: number | null;
 }): Promise<unknown> {
   const base = (BACKEND_API_BASE || "").replace(/\/$/, "");
-  const url = `${base}/api/mcp/DataForSEO_business_data_google_my_business_info_live`;
+  const url = `${base}/DataForSEO_business_data_google_my_business_info_live`;
 
   const body: Record<string, string> = {
     keyword: options.dfsKeyword,

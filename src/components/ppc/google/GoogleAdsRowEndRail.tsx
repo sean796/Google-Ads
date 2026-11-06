@@ -3,11 +3,10 @@ import { Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/ui";
 
-export const PPC_ROW_END_RAIL_ICON_SLOT = "inline-flex h-8 w-8 shrink-0 items-center justify-center";
-
-export const PPC_ROW_END_RAIL_CLASS = cn(
-  "flex w-full flex-nowrap items-center justify-end gap-1 sm:gap-2",
-);
+import {
+  PPC_ROW_END_RAIL_CLASS,
+  PPC_ROW_END_RAIL_ICON_SLOT,
+} from "@/components/ppc/google/google-ads-row-constants";
 
 export type GoogleAdsRowEndRailProps = {
   leading?: ReactNode;

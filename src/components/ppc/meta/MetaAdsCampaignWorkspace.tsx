@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo } from "react";
 import { useWordPressSites } from "@/hooks/use-wordpress-sites";
 import { useWordPressOptimization } from "@/contexts/wordpress-optimization-context";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/ui";
+
 import {
   SEO_WORKSPACE_BODY_SCROLL_CLASS,
   SEO_WORKSPACE_HEADER_CLASS,

@@ -30,18 +30,10 @@ const SLACK_BOT_TOKEN_STORAGE_KEY = "slack-bot-token";
 const SLACK_GLOBAL_SETTINGS_STORAGE_KEY = "slack-global-settings";
 
 export const loadApiKey = () => {
-    const envKey =
-      typeof process !== "undefined"
-        ? (process.env.OPENROUTER_API_KEY ?? process.env.VITE_OPENROUTER_API_KEY)?.trim() ?? ""
-        : "";
-    if (envKey) return envKey;
-    if (typeof localStorage === "undefined") {
-      return (import.meta.env.VITE_OPENROUTER_API_KEY as string | undefined)?.trim() ?? "";
-    }
+    // Wave 0: no baked env key in the bundle. Locally saved user key only.
+    if (typeof localStorage === "undefined") return "";
     const stored = localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY) || "";
-    if (stored.trim()) return stored;
-    const baked = (import.meta.env.VITE_OPENROUTER_API_KEY as string | undefined)?.trim() ?? "";
-    return baked;
+    return stored.trim() ? stored : "";
 };
 
 export const saveApiKey = (key: string) => {

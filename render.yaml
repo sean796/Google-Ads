@@ -18,8 +18,6 @@ services:
         value: https://pulse-host-wp-hub.onrender.com/api/mcp
       - key: NEO_PULSE_RENDER_API_BASE
         value: https://pulse-host-wp-hub.onrender.com/api/mcp
-      - key: VITE_OPENROUTER_API_KEY
-        sync: false
 
   - type: web
     name: neo-pulse-worker
@@ -132,6 +130,63 @@ services:
       - key: PULSE_ADMIN_EMAIL
         value: pulse@neodigital.ca
       - key: PULSE_ADMIN_PASSWORD_HASH
+        sync: false
+      # Wave 0 hub secrets: server env only, populated by owners (see docs/runbooks/wave-0-credential-rotation.md).
+      - key: NEO_PULSE_APP_OPENROUTER_API_KEY
+        sync: false
+      - key: NEO_PULSE_APP_DATAFORSEO_LOGIN
+        sync: false
+      - key: NEO_PULSE_APP_DATAFORSEO_PASSWORD
+        sync: false
+      - key: NEO_PULSE_APP_SEMRUSH_API_KEY
+        sync: false
+      - key: NEO_PULSE_APP_GSC_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: NEO_PULSE_APP_GA_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: NEO_PULSE_APP_FCM_SERVICE_ACCOUNT
+        sync: false
+      - key: NEO_PULSE_APP_GMB_CLIENT_ID
+        sync: false
+      - key: NEO_PULSE_APP_GMB_CLIENT_SECRET
+        sync: false
+      - key: NEO_PULSE_APP_GMB_OAUTH_REFRESH_TOKEN
+        sync: false
+      - key: NEO_PULSE_APP_GOOGLE_ADS_DEVELOPER_TOKEN
+        sync: false
+      - key: NEO_PULSE_APP_GOOGLE_ADS_MCC_ID
+        sync: false
+      - key: NEO_PULSE_APP_GOOGLE_ADS_OAUTH_REFRESH_TOKEN
+        sync: false
+      - key: NEO_PULSE_APP_GOOGLE_MCP_OAUTH_REFRESH_TOKEN
+        sync: false
+      - key: NEO_PULSE_APP_AGENTMAIL_API_KEY
+        sync: false
+      - key: NEO_PULSE_APP_AGENTMAIL_INBOX
+        sync: false
+      - key: NEO_PULSE_APP_AGENTMAIL_WEBHOOK_SECRET
+        sync: false
+      - key: NEO_PULSE_APP_AGENTMAIL_SIGNING_SECRET
+        sync: false
+      - key: NEO_PULSE_APP_CHEKKIT_WEBHOOK_TOKEN
+        sync: false
+      - key: NEO_PULSE_APP_SESSION_SECRET
+        sync: false
+      - key: NEO_PULSE_APP_SETUP_KEY
+        sync: false
+      - key: NEO_PULSE_APP_SMTP_HOST
+        sync: false
+      - key: NEO_PULSE_APP_SMTP_USER
+        sync: false
+      - key: NEO_PULSE_APP_SMTP_PASSWORD
+        sync: false
+      - key: NEO_PULSE_APP_SLACK_BOT_TOKEN
+        sync: false
+      - key: NEO_PULSE_APP_SLACK_SIGNING_SECRET
+        sync: false
+      - key: NEO_PULSE_APP_SITES_JSON
+        sync: false
+      - key: NEO_PULSE_APP_OLLAMA_BASE_URL
         sync: false
 
   - type: pserv

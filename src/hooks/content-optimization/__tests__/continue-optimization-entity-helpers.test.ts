@@ -17,7 +17,7 @@ describe("entityFromGeoKeywordPhrase", () => {
 
   it("parses near-title pattern via resolveSapEntityForOptimize title path", () => {
     const entity = resolveSapEntityForOptimize({
-      site: { id: "s", name: "T", siteUrl: "https://example.com", username: "u", appPassword: "p" },
+      site: { id: "s", name: "T", siteUrl: "https://example.com", username: "u", appPassword: "p", connectedAt: 0 },
       url: "https://example.com/blinds-near-plum-coulee/",
       title: "Blinds Near Plum Coulee, MB",
       keyword: "blinds",

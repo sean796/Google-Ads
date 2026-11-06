@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { prefetchBulkPostBodiesForUrls } from "../bulk-optimization-prefetch-post-batch";
 import type { SitePostInventoryRow } from "@/lib/wordpress-api/types";
+import type { WordPressSite } from "@/components/integrations/types";
 import { buildInventoryLookupMaps } from "@/lib/wordpress-api/inventory-match";
 
 const getWordPressPostContent = vi.fn();
@@ -48,7 +49,7 @@ describe("prefetchBulkPostBodiesForUrls", () => {
       siteUrl: "https://example.com",
       username: "u",
       appPassword: "p",
-    } as any;
+    } as unknown as WordPressSite;
 
     const wordPressPostsForRun = [
       { id: 10, slug: "a", title: "A", excerpt: "", link: "https://example.com/a/", date_gmt: "", postType: "post" },
@@ -75,7 +76,7 @@ describe("prefetchBulkPostBodiesForUrls", () => {
       siteUrl: "https://example.com",
       username: "u",
       appPassword: "p",
-    } as any;
+    } as unknown as WordPressSite;
 
     const row: SitePostInventoryRow = {
       id: 7,

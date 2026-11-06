@@ -1,6 +1,7 @@
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import type { OverviewSitemapSource } from "@/lib/overview/overview-sitemap-source";
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 export type OverviewStudioSnapshotPayload = {
   siteId: string;
@@ -22,6 +23,7 @@ export async function fetchOverviewStudioSnapshotFromServer(
     const res = await fetch(backendApiUrl(`/api/overview/studio-snapshot?${qs.toString()}`), {
       method: "GET",
       credentials: "include",
+      headers: neoPulseApiHeaders(),
     });
     if (!res.ok) return null;
     const data = (await res.json()) as { snapshot?: OverviewStudioSnapshotPayload | null };
@@ -49,7 +51,7 @@ export function saveOverviewStudioSnapshotToServer(
     void fetch(backendApiUrl("/api/overview/studio-snapshot"), {
       method: "POST",
       credentials: "include",
-      headers: { "Content-Type": "application/json" },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteId: siteId.trim(),
         source,

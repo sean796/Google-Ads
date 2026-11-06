@@ -1,4 +1,5 @@
 import { notify } from "@/lib/app-notifications";
+import type { AIDrivenACFContext } from "@/lib/content-generation/ai-driven-acf-reader";
 import { NOTIFY_USING_TEST_BLUEPRINT_DATA } from "@/lib/notify-messages";
 import {
   enforceForbiddenWordsOnBlueprint,
@@ -13,6 +14,33 @@ import { generateOptimizedBlueprint, generateAndUploadContent } from "@/lib/cont
 import { updateOptimizationProgress, patchOptimizationProgress } from "./optimization-helpers";
 import type { ContentOptimizerStepId } from "@/lib/content-optimization/content-optimizer-run-progress";
 import type { SemrushClusterScatterPlan } from "@/lib/semrush-cluster-scatter";
+import type { ExtraTextInventoryLinkRow } from "@/lib/content-generation/extra-text-inventory-links";
+import type {
+  BlueprintResult,
+  OptimizationContext,
+} from "@/lib/content-generation-upload";
+import type { GSCQuery } from "@/lib/gsc-query-clustering";
+import type {
+  ResolvedTargetLike,
+  WpExistingPostLike,
+} from "./use-optimization-state";
+import type { ProgressSetter } from "./optimization-helpers-a";
+import type { HandleOptimizeMultipleContentParams } from "./bulk-optimization-params";
+
+type BulkStateSetter = HandleOptimizeMultipleContentParams["setBulkOptimizationState"];
+
+type UploadFlowOptions = NonNullable<OptimizationContext["optimizationOptions"]> & {
+    optionalPrompt?: string;
+  } &
+  Pick<
+    OptimizationContext,
+    | "llmAuditSummary"
+    | "firstPartyAuthorityBlock"
+    | "llmAuditAuthorityExternalPairs"
+    | "linkTargetsPlan"
+    | "gscResult"
+    | "seoResearchRaw"
+  >;
 
 export async function generateBlueprintFlow(
   selectedKeywords: string[],
@@ -22,17 +50,17 @@ export async function generateBlueprintFlow(
   titleForBlueprint: string,
   primaryKeyword: string,
   keywordData: KeywordData,
-  paaRawResponse: any,
+  paaRawResponse: unknown,
   site: WordPressSite,
   fileManager: OptimizationFileManager,
   siteId: string,
   wordPressPosts: Array<{ id: number; slug: string; title: string; excerpt: string; link: string; date_gmt: string }>,
-  wordPressPagesForOfferTable: Array<{ id: number; slug: string; title: string; excerpt: string; link: string; date_gmt: string }> | undefined,
+  wordPressPagesForOfferTable: ExtraTextInventoryLinkRow[] | undefined,
   url: string,
-  existingPost: any,
+  existingPost: WpExistingPostLike | null | undefined,
   hasEntityOverride: boolean | undefined,
   testMode: boolean,
-  setOptimizationProgress: (prev: any) => any,
+  setOptimizationProgress: ProgressSetter,
   semrushForBlueprint?: {
     keywordsRag?: string;
     clusterScatter?: SemrushClusterScatterPlan;
@@ -48,7 +76,7 @@ export async function generateBlueprintFlow(
   onArtifactSaved?: () => void,
   onChecklistReady?: (pipelineChecklist: string[]) => void,
   onSerpH2OutlineReady?: (bodyHarnessTitles: string[]) => void,
-): Promise<{ blueprintResult: any; checklist: string[]; llmAuditAuthorityExternalPairs: import("@/lib/content-generation/external-link-placeholders").ExternalLinkPair[] }> {
+): Promise<{ blueprintResult: BlueprintResult; checklist: string[]; llmAuditAuthorityExternalPairs: import("@/lib/content-generation/external-link-placeholders").ExternalLinkPair[] }> {
   if (testMode) {
     throw new Error("Test mode is not supported.");
   }
@@ -97,20 +125,20 @@ export async function generateBlueprintFlow(
 }
 
 export async function generateAndUploadFlow(
-  blueprintResult: any,
+  blueprintResult: BlueprintResult,
   existingTitle: string,
   primaryKeyword: string,
   site: WordPressSite,
   url: string,
   updateMode: 'update' | 'draft',
-  existingPost: any,
-  resolved: any,
+  existingPost: WpExistingPostLike | null | undefined,
+  resolved: ResolvedTargetLike | null | undefined,
   existingContent: string,
   existingExcerpt: string,
-  selectedKeyword: any,
+  selectedKeyword: GSCQuery,
   clusterKeywords: string[] | undefined,
   wordPressPosts: Array<{ id: number; slug: string; title: string; excerpt: string; link: string; date_gmt: string }>,
-  wordPressPagesForOfferTable: Array<{ id: number; slug: string; title: string; excerpt: string; link: string; date_gmt: string }> | undefined,
+  wordPressPagesForOfferTable: ExtraTextInventoryLinkRow[] | undefined,
   wordPressRAGContext: string,
   /** Top GSC queries JSON for SEO field inspiration (aligned with Overview export). */
   gscKeywordsContext: string | undefined,
@@ -120,16 +148,16 @@ export async function generateAndUploadFlow(
   semrushScatterContext: string | undefined,
   /** Semrush-approved external URLs - kept in HTML at upload; prompt allowlist. */
   semrushExternalUrls: string[] | undefined,
-  selectedPeopleAlsoAsk: any[],
-  optimizationOptions: any,
-  inContentImageRequest: any,
-  acfFields: Record<string, any> | undefined,
-  acfContext?: AIDrivenACFContext,
-  acfFullPostSnapshot?: Record<string, unknown>,
+  selectedPeopleAlsoAsk: string[],
+  optimizationOptions: UploadFlowOptions | undefined,
+  inContentImageRequest: OptimizationContext["inContentImageRequest"],
+  acfFields: Record<string, unknown> | undefined,
+  acfContext: AIDrivenACFContext | undefined,
+  acfFullPostSnapshot: Record<string, unknown> | undefined,
   fileManager: OptimizationFileManager,
   siteId: string,
-  setOptimizationProgress: (prev: any) => any,
-  setBulkOptimizationState: (prev: any) => any,
+  setOptimizationProgress: ProgressSetter,
+  setBulkOptimizationState: BulkStateSetter,
   report?: (
     stepId: ContentOptimizerStepId,
     subProgress: number,
@@ -170,7 +198,7 @@ export async function generateAndUploadFlow(
     semrushScatterContext,
     semrushExternalUrls,
     optimizationOptions: mergedOptimizationOptions,
-    inContentImageRequest: inContentImageRequest ? { imageType: inContentImageRequest.imageType as any, userPrompt: inContentImageRequest.userPrompt } : undefined,
+    inContentImageRequest: inContentImageRequest ? { imageType: inContentImageRequest.imageType, userPrompt: inContentImageRequest.userPrompt } : undefined,
     selectedPeopleAlsoAsk,
     acfFullPostSnapshot,
     llmAuditSummary: String(optimizationOptions?.llmAuditSummary ?? "").trim() || undefined,

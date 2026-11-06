@@ -47,7 +47,7 @@ export function appendAgentRunStepLocally(
       }
     }
 
-    let nextSteps = steps;
+    const nextSteps = steps;
     const nextStep: AgentRunStep = {
       id: Date.now(),
       stepIndex: nextSteps.length,

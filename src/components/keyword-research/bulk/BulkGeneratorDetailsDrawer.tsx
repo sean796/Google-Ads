@@ -13,10 +13,12 @@ import type { BulkGeneratorDetailsPanelProps } from "@/components/keyword-resear
 import {
   BulkDetailsDrawerStack,
   BulkDetailsTileSections,
+} from "@/components/shared/bulk-details-tile-sections";
+import {
   resolveSerpBriefDownloadable,
   resolveDetailsPipelineSections,
   type BulkDetailsDownloadable,
-} from "@/components/shared/bulk-details-tile-sections";
+} from "@/components/shared/bulk-details-tile-sections-helpers";
 import {
   CONTENT_OPTIMIZER_MULTI_SITE_ROW_WRAPPER_CLASS,
   contentOptimizerRowStripeClass,
@@ -361,7 +363,7 @@ export function BulkGeneratorDetailsDrawer(props: BulkGeneratorDetailsPanelProps
                     displayFiles,
                   );
               const serpBriefDownload = resolveSerpBriefDownloadable(
-                row.keyword?.trim() || row.url?.trim() || "brief",
+                row.keyword?.trim() || row.destination_url?.trim() || "brief",
                 displayFiles,
                 row.seo_research,
               );

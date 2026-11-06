@@ -31,13 +31,15 @@ describe("buildBulkAutoGenerateTemplateCsvFromRows", () => {
     const parsed = Papa.parse<Record<string, string>>(csv, { header: true, skipEmptyLines: true });
     const row = parsed.data[0]!;
     expect(row.meta_description).toBe("Book dumpster rental near Sherwood Park with clear pricing.");
-    expect(row.target_slug).toBe("dumpster-near-me-sherwood-park-ab");
+    // Export blanks a target_slug equal to the slug derived from keyword+entity;
+    // downstream (bulkCsvRowPathLabel) re-derives it when the cell is empty.
+    expect(row.target_slug).toBe("");
     expect(row.wikipedia_url).toBe("https://en.wikipedia.org/wiki/Sherwood_Park");
     expect(row.wikipedia_title).toBe("Sherwood Park, Alberta");
     expect(row.sitemap_type).toBe("entity");
   });
 
-  it("derives target_slug when missing", () => {
+  it("leaves target_slug blank when missing for downstream derivation", () => {
     const rows: CSVRow[] = [
       {
         keyword: "dumpster near me",
@@ -48,7 +50,7 @@ describe("buildBulkAutoGenerateTemplateCsvFromRows", () => {
     ];
     const csv = buildBulkAutoGenerateTemplateCsvFromRows(rows, { defaultSitemapType: "entity" });
     const parsed = Papa.parse<Record<string, string>>(csv, { header: true, skipEmptyLines: true });
-    expect(parsed.data[0]?.target_slug?.length).toBeGreaterThan(2);
-    expect(parsed.data[0]?.target_slug).toContain("dumpster");
+    // Export does not derive a slug; blank is re-derived downstream from keyword+entity.
+    expect(parsed.data[0]?.target_slug).toBe("");
   });
 });

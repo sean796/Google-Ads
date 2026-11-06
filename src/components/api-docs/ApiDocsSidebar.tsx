@@ -1,4 +1,4 @@
-import { useApiDocsSlug, setApiDocsHash } from "@/lib/api-docs/api-docs-hash";
+import { useApiDocsSlug, setApiDocsRoute } from "@/lib/api-docs/api-docs-route";
 import { apiDocsManifest } from "@/lib/api-docs/api-docs-manifest";
 import type { ApiDocNavItem, ApiDocNavSection } from "@/lib/api-docs/types";
 import { cn } from "@/lib/utils";
@@ -16,7 +16,7 @@ function NavButton({ item, currentSlug }: { item: ApiDocNavItem; currentSlug: st
   return (
     <Button
       pressed={Boolean(active)}
-      onClick={() => setApiDocsHash(item.slug)}
+      onClick={() => setApiDocsRoute(item.slug)}
     >
       <span className="block break-words text-base">{item.title}</span>
       {item.method ? (

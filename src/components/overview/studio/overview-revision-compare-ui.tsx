@@ -3,20 +3,7 @@ import type { OverviewStudioRevision } from "@/lib/overview/studio-doc-revisions
 import { revisionRowTitle } from "@/lib/overview/studio-doc-revisions-grouping";
 import { cn } from "@/lib/utils";
 import { RowButton } from "@/ui";
-
-export { revisionRowTitle };
-
-export function formatRevisionTime(at: number): string {
-  try {
-    return new Date(at).toLocaleTimeString(undefined, {
-      hour: "numeric",
-      minute: "2-digit",
-      second: "2-digit",
-    });
-  } catch {
-    return "";
-  }
-}
+import { formatRevisionTime } from "@/components/overview/studio/overview-revision-helpers";
 
 export function OverviewRevisionComparePanes({
   rev,
@@ -76,19 +63,4 @@ export function OverviewRevisionListItem({
       </RowButton>
     </li>
   );
-}
-
-export function triggerRevisionsJsonDownload(
-  list: OverviewStudioRevision[],
-  filename = "studio-revisions.json",
-): void {
-  const blob = new Blob([JSON.stringify(list, null, 2)], {
-    type: "application/json;charset=utf-8",
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
 }

@@ -283,8 +283,6 @@ export function useOverviewTabSitemapLoad({
       getInventoryMatchForUrl,
       setRows,
       isStaleLoad,
-      beginUiLoad,
-      endUiLoad,
     ],
   );
 
@@ -307,7 +305,7 @@ export function useOverviewTabSitemapLoad({
         generation,
       });
     },
-    [loadOverviewSource, sitemapSource],
+    [loadOverviewSource],
   );
 
   useEffect(() => {
@@ -398,10 +396,7 @@ export function useOverviewTabSitemapLoad({
       }
     });
   }, [
-    site?.id,
-    site?.username,
-    site?.appPassword,
-    site?.entitySitemapUrl,
+    site,
     sitemapSource,
     setRows,
     disableAutoSitemapLoad,

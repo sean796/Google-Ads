@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCompetitorBulkGeneratorDetailsProps } from "@/lib/competitor/competitor-bulk-details-bindings";
+import { buildCompetitorBulkGeneratorDetailsProps } from "@/lib/competitor-research/competitor-bulk-details-bindings";
 import { buildFlowBulkGeneratorDetailsProps } from "@/lib/generator/flow/flow-bulk-details-bindings";
 import { buildImageBulkGeneratorDetailsProps } from "@/lib/generator/image/image-bulk-details-bindings";
 import { buildPressReleaseBulkGeneratorDetailsProps } from "@/lib/press-release/press-release-bulk-details-bindings";

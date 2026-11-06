@@ -1,13 +1,15 @@
 import { useState, useCallback, useRef } from 'react';
+import { GEMINI_FLASH_MODEL } from "@/lib/global-agent-models";
 import { notify } from "@/lib/app-notifications";
-import { NOTIFY_ALL_BLOG_IDEAS_ARE_ALREADY_SELECTED_PLEA, NOTIFY_FAILED_TO_GENERATE_CHECKLIST_PLEASE_TRY_, NOTIFY_PLEASE_DESELECT_AT_LEAST_ONE_BLOG_IDEA_T, NOTIFY_PLEASE_ENSURE_API_KEYS_ARE_SET } from "@/lib/notify-messages";
+import { NOTIFY_ALL_BLOG_IDEAS_ARE_ALREADY_SELECTED_PLEA, NOTIFY_FAILED_TO_GENERATE_CHECKLIST_PLEASE_TRY_, NOTIFY_PLEASE_DESELECT_AT_LEAST_ONE_BLOG_IDEA_T } from "@/lib/notify-messages";
 import { resolveOpenRouterApiKeyForHarness } from '@/lib/openrouter-api-key-resolve';
 import type { CSVRow } from '@/lib/bulk-auto-generate';
 import { parseTitleTemplate } from '@/lib/title-template-parser';
 import type { Message } from '@/lib/api';
 import type { PromptBulkIdeasContext } from '@/lib/bulk/prompt-bulk-ideas-context';
 import { resolvePromptBulkIdeasContext } from '@/lib/bulk/prompt-bulk-ideas-context';
-import { getStoredSites, type WordPressSite } from '@/components/IntegrationsTab';
+import { getStoredSites } from "@/components/integrations/storage";
+import type { WordPressSite } from "@/components/integrations/types";
 import type { ConnectedSiteSummary } from '@/components/integrations/types';
 import { getBlogModel, getResearchModel } from '@/lib/optimization-settings-storage';
 import { resolveModelForAgentCategory } from '@/lib/openrouter-agent-category-api';
@@ -100,13 +102,7 @@ export function usePromptBulkGenerate({
    * @param keepIndices Optional array of indices to keep from existing generatedRows
    */
   const handleGenerateChecklist = useCallback(async (keepIndices?: number[]): Promise<CSVRow[] | undefined> => {
-    let effectiveOpenRouterKey = "";
-    try {
-      effectiveOpenRouterKey = (await resolveOpenRouterApiKeyForHarness()).trim();
-    } catch (e) {
-      notify.error(e instanceof Error ? e.message : NOTIFY_PLEASE_ENSURE_API_KEYS_ARE_SET);
-      return undefined;
-    }
+    const effectiveOpenRouterKey = (await resolveOpenRouterApiKeyForHarness()).trim();
 
     setIsGeneratingChecklist(true);
     setLastInventorySentToAiCount(null);
@@ -217,7 +213,7 @@ export function usePromptBulkGenerate({
       const ideaModel =
         getResearchModel(matchedWpSite?.id)?.trim() ||
         resolveModelForAgentCategory("research", matchedWpSite?.id)?.trim() ||
-        "google/gemini-2.5-flash";
+        GEMINI_FLASH_MODEL;
       console.log(
         `%c[Blog Ideas] 🧠 Requesting ${blogsToGenerate} ideas with model: ${ideaModel}`,
         "color: #84bc00; font-weight: bold;",
@@ -359,16 +355,12 @@ export function usePromptBulkGenerate({
       setIsGeneratingChecklist(false);
     }
   }, [
-    openRouterApiKey,
     temperature,
     maxTokens,
-    topP,
     flowPurpose,
     numberOfBlogs,
     entityMode,
     entityValue,
-    keywordMode,
-    keywordValue,
     optionalPrompt,
     titleTemplate,
     entityList,
@@ -377,13 +369,9 @@ export function usePromptBulkGenerate({
     numberList,
     featuredImagePerBlog,
     connectedSite,
-    gscExactKeywords,
     generatedRows,
     onProgress,
-    keywordAnalysisResults,
     promptIdeasContext,
-    promptSiteContextReady,
-    sitemapInventoryLoading,
     siteConfigs,
     selectedWordPressSites,
   ]);

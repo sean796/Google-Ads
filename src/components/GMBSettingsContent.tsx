@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ActionButton, Button, Field, RowButton } from "@/ui";
+
+import { ActionButton, Button, Field, RowButton, Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui";
 import { Building2, CheckCircle, ChevronRight, Copy, Download, Save } from "lucide-react";
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
 import { NOTIFY_CLIENT_ID_SHOULD_BE_THE_FULL_VALUE_FROM_, NOTIFY_GMB_STATS_ADDED_TO_KNOWLEDGE_BASE, NOTIFY_NO_GMB_PERFORMANCE_DATA_RETURNED, NOTIFY_REDIRECT_URI_COPIED } from "@/lib/notify-messages";
 import { KB_FILES_STORAGE_KEY, type StoredFile } from "./integrations/types";
 import { getGMBPullDateRanges } from "@/lib/gmb-date-helpers";
 import { BACKEND_API_BASE as MCP_DERIVED_BACKEND } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { NEO_PULSE_CA_DEPLOY } from "@/lib/neo-pulse-deploy";
 
 const SAVE_STATES = ["Test and save", "Testing and saving"] as const;
@@ -52,8 +53,8 @@ export function GMBSettingsContent() {
     try {
       const cacheBust = `_=${Date.now()}`;
       const [statusRes, configRes] = await Promise.all([
-        fetch(`${BACKEND_API_BASE}/api/gmb/status?${cacheBust}`, { credentials: "include", cache: "no-store" }),
-        fetch(`${BACKEND_API_BASE}/api/gmb/config-status?${cacheBust}`, { credentials: "include", cache: "no-store" }),
+        fetch(`${BACKEND_API_BASE}/api/gmb/status?${cacheBust}`, { credentials: "include", cache: "no-store", headers: neoPulseApiHeaders() }),
+        fetch(`${BACKEND_API_BASE}/api/gmb/config-status?${cacheBust}`, { credentials: "include", cache: "no-store", headers: neoPulseApiHeaders() }),
       ]);
       const statusData = await statusRes.json().catch(() => ({}));
       const configData = await configRes.json().catch(() => ({}));
@@ -86,7 +87,7 @@ export function GMBSettingsContent() {
       const response = await fetch(`${BACKEND_API_BASE}/api/gmb/test-and-save`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           clientId: clientId.trim(),
           clientSecret: clientSecret.trim(),
@@ -118,7 +119,7 @@ export function GMBSettingsContent() {
       const response = await fetch(`${BACKEND_API_BASE}/api/gmb/performance`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(dates),
       });
       const data = await response.json().catch(() => ({}));
@@ -182,7 +183,7 @@ ${footnote}`;
       const response = await fetch(`${BACKEND_API_BASE}/api/gmb/test`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       });
       const data = await response.json().catch(() => ({}));
       if (response.ok) {

@@ -6,7 +6,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/ui/vendor/select";
 import { UI_SELECT_TRIGGER, UI_SELECT_TRIGGER_DATA } from "@/ui/tokens";
 
 const SELECT_WIDTH = {

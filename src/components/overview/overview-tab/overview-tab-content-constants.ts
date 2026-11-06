@@ -2,7 +2,7 @@ import type { OptimizationOptions } from "@/hooks/use-optimization-options";
 import type React from "react";
 import { cn } from "@/lib/utils";
 import { SEO_WORKSPACE_SHELL_CLASS } from "@/components/seo/seo-workspace-layout";
-import { CONTENT_OPTIMIZER_BULK_PAGE_SIZE } from "@/lib/content-optimizer/content-optimizer-bulk-page-size";
+import { CONTENT_OPTIMIZER_BULK_PAGE_SIZE } from "@/lib/content-optimization/content-optimizer-bulk-page-size";
 
 /** Lato + 1rem floor for Content / Overview tab (see typography-min-1rem rule). */
 export const OVERVIEW_TAB_TYPO_CLASS =

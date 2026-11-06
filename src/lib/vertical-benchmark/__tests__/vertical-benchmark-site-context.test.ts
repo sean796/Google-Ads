@@ -56,6 +56,8 @@ describe("buildClientOfferingsPromptBlock", () => {
       city: "Edmonton",
       region: "AB",
       phone: "",
+      latitude: 53.5465,
+      longitude: -113.4938,
     });
     expect(block).toMatch(/CLIENT_OFFERINGS_CONTEXT/);
     expect(block).toMatch(/verified_brands/);

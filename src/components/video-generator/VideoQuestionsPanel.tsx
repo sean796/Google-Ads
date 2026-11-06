@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
 import { MY_SITES_FIELD } from "@/components/hosting/my-sites/my-sites-theme";
 import type { VideoClarifyQuestion } from "@/lib/video-generator/video-generator-types";
 import { cn } from "@/lib/utils";
-import { Field, RowButton } from "@/ui";
+import { Field, RowButton, RadioGroup, RadioGroupItem } from "@/ui";
 
 type VideoQuestionsPanelProps = {
   questions: VideoClarifyQuestion[] | null;

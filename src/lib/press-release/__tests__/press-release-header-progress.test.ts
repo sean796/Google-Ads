@@ -32,8 +32,8 @@ describe("pressReleaseHeaderProgressFromState", () => {
       isProcessing: true,
       runPhase: "Generating press release",
       harnessSections: [
-        { id: "a", label: "Lead", status: "done" },
-        { id: "b", label: "Body", status: "active" },
+        { sectionIndex: 0, title: "Lead", status: "done" },
+        { sectionIndex: 1, title: "Body", status: "generating" },
       ],
       harnessPlannedSectionCount: 4,
     });

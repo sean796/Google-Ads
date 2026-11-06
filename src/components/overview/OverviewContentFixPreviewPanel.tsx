@@ -1,8 +1,15 @@
 import React from "react";
 import { Wrench } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
-import type { OverviewContentFixSectionSliceProgress } from "@/lib/overview/overview-content-analyze-fix";
+import { Separator } from "@/ui";
+
 import { cn } from "@/lib/utils";
+
+export type OverviewContentFixSectionSliceProgress = {
+  sectionIndex: number;
+  sectionLabel: string;
+  beforeHtml: string;
+  afterHtml: string;
+};
 
 const FIX_PREVIEW_CODE = cn(
   "w-full min-w-0 rounded-md border border-white/20 bg-black/60 p-3 text-base leading-relaxed",

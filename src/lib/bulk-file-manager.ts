@@ -129,7 +129,7 @@ export class BulkFileManager {
             blob = new Blob([byteArray], { type: mimeType });
           } catch (e) {
             // Fallback: try fetch method
-            return fetch(file.content)
+            fetch(file.content)
               .then(res => res.blob())
               .then(blob => {
                 const url = URL.createObjectURL(blob);

@@ -62,6 +62,12 @@ class Neo_Pulse_App_Wp_Rest_Client {
 	 */
 	public static function warm_origin_session( $normalized_url ) {
 		$key = Neo_Pulse_App_Wp_Url_Normalize::normalize_url( $normalized_url );
+		if ( Neo_Pulse_App_Ssrf_Guard::validate_public_url( $key, true ) !== null ) {
+			return array(
+				'cookie'        => '',
+				'warmup_status' => 0,
+			);
+		}
 		if ( isset( self::$origin_cookies[ $key ] ) ) {
 			return array(
 				'cookie'        => self::$origin_cookies[ $key ],
@@ -106,6 +112,19 @@ class Neo_Pulse_App_Wp_Rest_Client {
 		$params = isset( $options['params'] ) && is_array( $options['params'] ) ? $options['params'] : array();
 		if ( $params ) {
 			$url = add_query_arg( $params, $url );
+		}
+
+		// Wave 0 SSRF: caller-supplied site URLs must resolve to public hosts.
+		$ssrf_error = Neo_Pulse_App_Ssrf_Guard::validate_public_url( (string) $url, true );
+		if ( $ssrf_error !== null ) {
+			return array(
+				'status'      => 0,
+				'headers'     => array(),
+				'body'        => null,
+				'raw'         => '',
+				'is_wp_error' => true,
+				'error'       => $ssrf_error,
+			);
 		}
 
 		$timeout = isset( $options['timeout'] ) ? (int) $options['timeout'] : 30;

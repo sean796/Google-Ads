@@ -14,7 +14,7 @@ export const buildKeywordAnalysisPrompt = (
   minVolume?: number,
   location?: string,
   entity?: string,
-  serpData?: any,
+  serpData?: unknown,
   connectedSite?: { name: string; siteUrl: string },
   relatedGSCKeywords?: string[],
   acfContext?: AIDrivenACFContext
@@ -457,5 +457,24 @@ Each item should be a clear, actionable instruction like:
 etc.
 
 Output the checklist as a numbered list, one item per line.`;
+};
+
+/**
+ * Builds a prompt for suggesting SEO keywords from knowledge base content.
+ * The caller parses JSON shaped as `{ keywords: [{ keyword, reasoning }] }`.
+ */
+export const buildKBKeywordSuggestionPrompt = (knowledgeBaseContent: string): string => {
+  return `Analyze the knowledge base content below and suggest the 10 most valuable SEO keywords it supports.
+
+Knowledge Base Content:
+${knowledgeBaseContent}
+
+For each keyword:
+1. Ground it in topics, services, locations, or questions actually present in the content
+2. Prefer specific long-tail phrases a searcher would type over generic single words
+3. Explain in one short sentence why the content can rank for it
+
+Output ONLY valid JSON in this exact format, with no markdown or extra text:
+{ "keywords": [{ "keyword": "example keyword phrase", "reasoning": "Why the content supports this keyword" }] }`;
 };
 

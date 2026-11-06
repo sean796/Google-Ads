@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Shuffle } from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
-import { Button, Field, SelectField } from "@/ui";
+
+import { Button, Field, SelectField, Calendar } from "@/ui";
 import { TaskFormPanel } from "@/components/manager/tasks/TaskFormLayout";
 import {
   evenSpreadPublishDays,

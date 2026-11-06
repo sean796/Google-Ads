@@ -1,15 +1,7 @@
 import { Circle, Pause, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function googleAdsEntityStatusKey(
-  status: string | undefined,
-): "enabled" | "paused" | "removed" | "unknown" {
-  const key = (status ?? "").trim().toUpperCase();
-  if (key === "ENABLED") return "enabled";
-  if (key === "PAUSED") return "paused";
-  if (key === "REMOVED") return "removed";
-  return "unknown";
-}
+import { googleAdsEntityStatusKey } from "@/components/ppc/google/google-ads-entity-status";
 
 type GoogleAdsEntityStatusIconProps = {
   status?: string;

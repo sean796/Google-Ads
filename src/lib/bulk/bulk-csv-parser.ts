@@ -346,11 +346,11 @@ function splitNumberedChecklistBlocks(checklistContent: string): string[] {
     const line = normalizeChecklistLine(normalizeMachineChecklistLine(rawLine));
     if (!line.trim()) continue;
 
-    if (line.match(/^\d+[\.\)]\s+/)) {
+    if (line.match(/^\d+[.)]\s+/)) {
       if (current.length > 0) {
         blocks.push(current.join('\n'));
       }
-      current = [line.replace(/^\d+[\.\)]\s+/, '').trim()];
+      current = [line.replace(/^\d+[.)]\s+/, '').trim()];
     } else if (current.length > 0) {
       current.push(line.trim());
     }

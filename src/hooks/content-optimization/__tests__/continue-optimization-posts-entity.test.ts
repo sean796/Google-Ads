@@ -27,7 +27,7 @@ describe("continueOptimizationWithKeyword SAP entity", () => {
       testMode: false,
       pendingOptimization: {
         "site-1": {
-          site: { id: "site-1", name: "T", siteUrl: "https://example.com", username: "u", appPassword: "p" },
+          site: { id: "site-1", name: "T", siteUrl: "https://example.com", username: "u", appPassword: "p", connectedAt: 0 },
           url: "https://example.com/post/",
           updateMode: "update",
           gscResult: {},
@@ -67,7 +67,7 @@ describe("continueOptimizationWithKeyword SAP entity", () => {
       testMode: false,
       pendingOptimization: {
         "site-1": {
-          site: { id: "site-1", name: "T", siteUrl: "https://example.com", username: "u", appPassword: "p" },
+          site: { id: "site-1", name: "T", siteUrl: "https://example.com", username: "u", appPassword: "p", connectedAt: 0 },
           url: "https://example.com/blinds-virginia-park/",
           updateMode: "update",
           gscResult: {},
@@ -106,7 +106,7 @@ describe("continueOptimizationWithKeyword SAP entity", () => {
       testMode: false,
       pendingOptimization: {
         "site-1": {
-          site: { id: "site-1", name: "T", siteUrl: "https://example.com", username: "u", appPassword: "p" },
+          site: { id: "site-1", name: "T", siteUrl: "https://example.com", username: "u", appPassword: "p", connectedAt: 0 },
           url: "https://example.com/blinds-sunset-park/",
           updateMode: "update",
           gscResult: {},

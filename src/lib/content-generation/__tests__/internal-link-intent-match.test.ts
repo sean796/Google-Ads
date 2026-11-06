@@ -11,6 +11,7 @@ vi.mock("@/lib/competitor-research/competitor-report-openrouter", () => ({
 }));
 
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
+import { DEEPSEEK_FLASH_MODEL } from "@/lib/global-agent-models";
 
 const catalog = [
   {
@@ -96,7 +97,7 @@ describe("matchInternalLinkQueriesToCatalog", () => {
     expect(out.get("2")).toBe("https://lindseyblindsetc.com/technology/energy-efficiency/");
     expect(callOpenRouterChatCompletion).toHaveBeenCalledTimes(2);
     const call = vi.mocked(callOpenRouterChatCompletion).mock.calls[0]![0];
-    expect(call.model).toContain("gemini");
+    expect(call.model).toBe(DEEPSEEK_FLASH_MODEL);
     expect(call.system).toContain("internal-linking assistant");
     expect(call.system).toContain("Example: 3,7,12,1,5");
     expect(call.system).toContain("Brand, product, service");
@@ -106,7 +107,7 @@ describe("matchInternalLinkQueriesToCatalog", () => {
     expect(call.user).toContain("Highlighted text: \"Hunter Douglas\"");
     expect(call.user).toContain('[PAGE] "Hunter Douglas"');
     expect(call.user).toContain("Never return 0");
-    expect(call.maxTokens).toBe(30);
+    expect(call.maxTokens).toBe(1024);
   });
 
   it("sends the query bucket so page slots rank PAGE rows", async () => {

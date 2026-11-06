@@ -8,7 +8,6 @@ import {
   WorkspaceDetailsSection,
   WorkspaceDetailsStack,
 } from "@/components/shared/WorkspaceDetailsStack";
-import { workspaceDetailsCanOpen } from "@/lib/workspace/workspace-details-can-open";
 
 export type PressReleaseDetailsPanelProps = {
   isProcessing: boolean;
@@ -20,15 +19,6 @@ export type PressReleaseDetailsPanelProps = {
   harnessPlannedSectionCount: number | null;
   inventoryJsonLink: PressReleaseInventoryHostedLink | null;
 };
-
-export function pressReleaseDetailsCanOpen(
-  busy: boolean,
-  hasKeyword: boolean,
-  hasTitle: boolean,
-  hasInventory: boolean,
-): boolean {
-  return workspaceDetailsCanOpen(busy, hasKeyword, hasTitle, hasInventory);
-}
 
 export function PressReleaseDetailsPanel({
   isProcessing,

@@ -526,5 +526,5 @@ export async function runLocalStrategySapSchedule(
     gridPlaceHints: params.gridPlaceHints,
   });
 
-  return { sapRows: result.sapRows, usedFallback: result.usedFallback ?? false };
+  return { sapRows: result.sapRows, usedFallback: false };
 }

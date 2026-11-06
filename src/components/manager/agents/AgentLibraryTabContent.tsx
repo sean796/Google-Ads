@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { DEEPSEEK_FLASH_MODEL } from "@/lib/global-agent-models";
 import { useActiveWordPressSite } from "@/contexts/active-wordpress-site-context";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
+import { Input, Switch } from "@/ui";
+
 import {
   BULK_HEADER_FIELD,
   BULK_HEADER_RUN_BTN,
@@ -52,7 +53,7 @@ export function AgentLibraryTabContent(): React.ReactElement {
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
   const [settings, setSettings] = useState<AgentLibrarySettingsPublic>({
     openRouter: { configured: true, suffix: null },
-    openRouterModel: "deepseek/deepseek-v4.1-flash",
+    openRouterModel: DEEPSEEK_FLASH_MODEL,
     openRouterAccountEmail: "matt@neodigital.ca",
   });
   const [loading, setLoading] = useState(false);
@@ -60,7 +61,7 @@ export function AgentLibraryTabContent(): React.ReactElement {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [openRouterApiKey, setOpenRouterApiKey] = useState("");
-  const [openRouterModel, setOpenRouterModel] = useState("deepseek/deepseek-v4.1-flash");
+  const [openRouterModel, setOpenRouterModel] = useState<string>(DEEPSEEK_FLASH_MODEL);
   const [savingSettings, setSavingSettings] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
 

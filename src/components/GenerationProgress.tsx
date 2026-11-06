@@ -1,5 +1,6 @@
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
+import { Progress, Badge } from "@/ui";
+
+
 import { ProgressMetrics, formatTime } from "@/hooks/use-generation-progress";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 

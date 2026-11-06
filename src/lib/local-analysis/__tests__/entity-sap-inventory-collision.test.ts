@@ -155,7 +155,7 @@ describe("entity-sap-inventory-collision", () => {
 
     it("replaces colliding keyword with OpenRouter variation", async () => {
       const occupancy = buildEntitySapOccupancy([plumCouleeInventoryRow()]);
-      const rows = [{ entity: PLUM_COLEE_ENTITY, keyword: EXISTING_KEYWORD }];
+      const rows = [{ entity: PLUM_COLEE_ENTITY, keyword: EXISTING_KEYWORD, title: "" }];
       const resolved = await resolveEntitySapRowCollisionsViaOpenRouter({
         apiKey: "test-key",
         model: "test-model",

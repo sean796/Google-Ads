@@ -34,7 +34,10 @@ const DriveFolderDisambiguatorOutputSchema = z.object({
   reason: z.string().optional(),
 });
 
-export const driveFolderDisambiguatorAgent = createPulseAgent({
+export const driveFolderDisambiguatorAgent = createPulseAgent<
+  z.infer<typeof DriveFolderDisambiguatorInputSchema>,
+  DisambiguateDriveFolderResult
+>({
   id: "workflow.drive.folder-disambiguator",
   label: "Google Drive Folder Disambiguation Agent",
   category: "research",
@@ -44,7 +47,9 @@ export const driveFolderDisambiguatorAgent = createPulseAgent({
   maxTokens: 300,
   responseFormat: { type: "json_object" },
   inputSchema: DriveFolderDisambiguatorInputSchema,
-  outputSchema: DriveFolderDisambiguatorOutputSchema,
+  // zod's static output widens to all-optional under this repo's non-strict tsconfig; the schema still validates at runtime via parse().
+  outputSchema:
+    DriveFolderDisambiguatorOutputSchema as z.ZodType<DisambiguateDriveFolderResult, z.ZodTypeDef, unknown>,
   buildSystemPrompt: () =>
     'Pick the best Google Drive folder for the client and purpose. Reply with JSON only: {"folderId":"...","reason":"..."}. folderId must match one candidate id exactly.',
   buildUserPrompt: (input) => {

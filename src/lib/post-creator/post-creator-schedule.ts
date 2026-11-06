@@ -28,6 +28,8 @@ export function resolvePostCreatorSchedule(
 ): ResolvedPostCreatorSchedule {
   const postCount = resolvePostCreatorPostCount(payload);
   const timesPerMonth = clampTimesPerMonth(payload.scheduleTimesPerMonth ?? postCount);
+  // Stored payloads may carry the legacy "bank" destination value.
+  const rawDestination: string | undefined = payload.postDestination;
   return {
     postCount,
     timesPerMonth,
@@ -36,9 +38,9 @@ export function resolvePostCreatorSchedule(
     staggerOptimized: payload.scheduleStaggerOptimized !== false,
     sitemapType: payload.sitemapType === "entity" ? "entity" : "post",
     postDestination:
-      payload.postDestination === "draft"
+      rawDestination === "draft"
         ? "draft"
-        : payload.postDestination === "bank"
+        : rawDestination === "bank"
           ? "wordpress"
           : "wordpress",
     featuredImage: payload.featuredImage !== false,

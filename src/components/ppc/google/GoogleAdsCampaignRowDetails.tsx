@@ -1,15 +1,14 @@
 import { useCallback, useMemo, useState } from "react";
 import { AlignLeft, ChevronDown, Heading2, LayoutGrid, Link, Megaphone } from "lucide-react";
-// eslint-disable-next-line no-restricted-imports -- Pulse UI exception: counted input needs counter padding Field does not expose
-import { Input } from "@/components/ui/input";
+
 import { GoogleAdsCampaignLiveInsightsSection } from "@/components/ppc/google/GoogleAdsCampaignLiveInsightsSection";
 import { GoogleAdsCampaignRowGenerateButton } from "@/components/ppc/google/GoogleAdsCampaignRowGenerateButton";
 import { GoogleAdsCampaignRowCompact } from "@/components/ppc/google/GoogleAdsCampaignRowCompact";
+import { GoogleAdsDetailsSection } from "@/components/ppc/google/google-ads-details-accordion";
 import {
-  GoogleAdsDetailsSection,
   PPC_DETAILS_ACCORDION_STACK,
   PPC_DETAILS_TRIGGER,
-} from "@/components/ppc/google/google-ads-details-accordion";
+} from "@/components/ppc/google/google-ads-row-constants";
 import { GoogleAdsCountedInputShell } from "@/components/ppc/google/GoogleAdsFieldCount";
 import { PpcInlineField } from "@/components/ppc/google/PpcInlineField";
 import { PPC_DETAIL_INPUT_CLASS } from "@/components/ppc/google/google-ads-row-details-styles";
@@ -32,7 +31,7 @@ import {
 } from "@/lib/ppc/ppc-campaign-insights-scope";
 import type { PpcCampaignStructureAd, PpcCampaignStructureAdGroup } from "@/lib/ppc/ppc-campaign-insights-types";
 import { cn } from "@/lib/utils";
-import { Field, TextareaField } from "@/ui";
+import { Field, TextareaField, Input } from "@/ui";
 
 export type GoogleAdsCampaignRowDetailsProps = {
   row: PpcCampaignRow;

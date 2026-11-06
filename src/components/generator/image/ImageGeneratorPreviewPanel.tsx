@@ -1,4 +1,5 @@
-﻿import { Label } from "@/components/ui/label";
+﻿import { Label } from "@/ui";
+
 import type { ImageReferenceProvenance } from "@/components/generator/image/image-generator-types";
 
 type ImageGeneratorPreviewPanelProps = {

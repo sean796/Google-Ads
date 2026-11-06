@@ -1,17 +1,10 @@
 import { Fragment, useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+
 import { contentSheetPrimaryUrl } from "@/lib/sitemap-optimizer/content-sheet-source-url";
 import type { SitemapOptimizerContentSheetRow } from "@/lib/sitemap-optimizer/types";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui";
+import { Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/ui";
 
 type SheetFilter = "all" | "merge" | "standalone" | "high" | "by_cluster";
 
@@ -73,7 +66,7 @@ export function SitemapOptimizerContentSheetGrid({
       if (filter === "high") return row.priority === "high";
       return true;
     });
-  }, [sheet, filter]);
+  }, [sheet, filter, isGrid]);
 
   const toggleExpand = (postId: string) => {
     setExpanded((prev) => {

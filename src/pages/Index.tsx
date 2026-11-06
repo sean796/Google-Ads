@@ -25,12 +25,13 @@ import { registerAgentRunOptimizerNavigation, useAgentRunOptimizerScope } from "
 import { useTeam } from "@/contexts/TeamContext";
 import { fetchAgentRun } from "@/lib/agent-runs-api";
 import {
-  isAgentRunOptimizerLocationHash,
-  isGeneratorHash,
-  parseAgentRunIdFromLocationHash,
-  parseGeneratorSectionFromHash,
-  writeGeneratorSectionHash,
+  isAgentRunOptimizerPath,
+  parseAgentRunIdFromPath,
+  parseGeneratorSectionFromPath,
+  writeGeneratorSectionPath,
 } from "@/lib/agent-runs/agent-run-optimizer-url";
+import { managerTabFromPathname, managerTabPath } from "@/lib/manager-tab-routes";
+import { registerAppNavigate } from "@/lib/app-navigation";
 import { reassembleChunkedFiles } from "../lib/utils";
 import { DEFAULT_THEME_PRIMARY_HEX } from "../lib/theme-defaults";
 import { StoredFile } from "../components/KnowledgeBaseTab";
@@ -43,7 +44,7 @@ import {
   writeStoredBlogGeneratorSection,
 } from "@/components/blog-generator/blog-generator-sections";
 import { writeStoredStudioEditorMode } from "@/components/keyword-research/bulk/studio-editor-modes";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWordPressSites } from "@/hooks/use-wordpress-sites";
 import { useActiveWordPressSite } from "@/contexts/active-wordpress-site-context";
@@ -65,7 +66,7 @@ import {
   NEO_PULSE_LLM_TOP_P_KEY,
   readStoredLlmNumberForIndex,
 } from "@/lib/manager-cloud-settings-snapshot";
-import { DEFAULT_SETTINGS } from "@/components/integrations/wordpress/OptimizationSettingsPanel";
+import { DEFAULT_SETTINGS } from "@/lib/optimization-settings-defaults";
 import { DEFAULT_IMAGE_MODEL } from "@/lib/image-model-defaults";
 import {
   readGlobalAdsAgentModel,
@@ -82,9 +83,9 @@ import {
   writeGlobalResearchAgentModel,
 } from "@/lib/global-agent-models";
 import { NEO_PULSE_OPEN_MASTER_RULES_EVENT } from "@/lib/open-master-rules-settings";
-import { isApiTabHash } from "@/lib/api-docs/api-docs-hash";
-import { isPulseForgeHash, parsePulseForgeRouteFromHash, setPulseForgeHash } from "@/lib/pulse-forge/pulse-forge-hash";
-import { isPulseHostHash } from "@/lib/hosting/pulse-host-hash";
+import { isApiTabPath } from "@/lib/api-docs/api-docs-route";
+import { isPulseForgePath, parsePulseForgeRoute, setPulseForgeRoute } from "@/lib/pulse-forge/pulse-forge-route";
+import { isPulseHostPath } from "@/lib/hosting/pulse-host-route";
 
 const OPENROUTER_API_KEY_STORAGE_KEY = "openrouter-api-key";
 
@@ -103,37 +104,11 @@ const INITIAL_GENERATION_RESULT: GenerationResult = {
   planApproved: undefined,
 };
 
-const MANAGER_TAB_STORAGE_KEY = "neo-pulse-manager-tab";
-
-const VALID_MANAGER_TABS = new Set([
-  "integrations",
-  "knowledge",
-  "generator",
-  "dashboard",
-  "chat",
-  "tasks",
-  "support",
-  "users",
-  "sitemap-optimizer",
-  "gbp-post",
-  "content-calendar",
-  "social-creator",
-  "vertical-benchmarks",
-  "ppc-google",
-  "ppc-meta",
-  "api",
-  "pulse-forge",
-  "organic-reporting",
-  "local-dominator",
-  "pulse-host",
-  "agent-library",
-  "image-generator",
-  "video-generator",
-]);
-
 const Index = () => {
-  const { teamId } = useTeam();
+  const { activeTeam } = useTeam();
+  const teamId = activeTeam?.id;
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const { sites } = useWordPressSites();
   const { activeWordPressSiteId, setActiveWordPressSiteId } = useActiveWordPressSite();
@@ -142,49 +117,12 @@ const Index = () => {
   const [apiKey, setApiKey] = useState<string>(loadApiKey());
   // const [showApiDialog, setShowApiDialog] = useState(false); // Removed
   // const [showKnowledgeBase, setShowKnowledgeBase] = useState(false); // Removed
-  const [managerTab, setManagerTab] = useState<string>(() => {
-    try {
-      if (typeof localStorage !== "undefined" && localStorage.getItem(MANAGER_TAB_STORAGE_KEY) === "neo-emcp") {
-        localStorage.setItem(MANAGER_TAB_STORAGE_KEY, "dashboard");
-      }
-      const hashTab = window.location.hash.replace(/^#/, "").trim();
-      if (!hashTab || hashTab === "settings" || hashTab === "dashboard" || hashTab === "neo-emcp") {
-        if (window.location.hash === "#neo-emcp") {
-          window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#settings`);
-        }
-        return "dashboard";
-      }
-      if (hashTab === ORGANIC_REPORTING_MANAGER_TAB) {
-        return ORGANIC_REPORTING_MANAGER_TAB;
-      }
-      if (hashTab === "vertical-benchmarks" || hashTab === "generator/vertical-benchmarks") {
-        writeStoredStudioEditorMode("vertical-benchmarks");
-        writeStoredBlogGeneratorSection("bulk-prompt");
-        return "generator";
-      }
-      if (parseAgentRunIdFromLocationHash() !== null || isGeneratorHash(window.location.hash)) {
-        return "generator";
-      }
-      if (isApiTabHash(hashTab)) {
-        return "api";
-      }
-      if (isPulseForgeHash(hashTab)) {
-        return "pulse-forge";
-      }
-      if (isPulseHostHash(hashTab)) {
-        return "pulse-host";
-      }
-      if (hashTab === "local-grid" || hashTab === "local-dominator") {
-        return "local-dominator";
-      }
-      if (hashTab && VALID_MANAGER_TABS.has(hashTab)) {
-        return hashTab;
-      }
-    } catch {
-      /* ignore */
-    }
-    return "dashboard";
-  });
+  const managerTab = managerTabFromPathname(location.pathname);
+
+  useEffect(() => {
+    registerAppNavigate(navigate);
+    return () => registerAppNavigate(null);
+  }, [navigate]);
 
   const [managerDashboardCluster, setManagerDashboardCluster] = useState<ManagerSettingsClusterId>(() =>
     readStoredManagerSettingsCluster(),
@@ -197,14 +135,14 @@ const Index = () => {
 
   useEffect(() => {
     const onOpenMasterRules = () => {
-      setManagerTab("dashboard");
+      navigate("/dashboard");
       handleManagerDashboardClusterChange("master-rules");
     };
     window.addEventListener(NEO_PULSE_OPEN_MASTER_RULES_EVENT, onOpenMasterRules as EventListener);
     return () => {
       window.removeEventListener(NEO_PULSE_OPEN_MASTER_RULES_EVENT, onOpenMasterRules as EventListener);
     };
-  }, [handleManagerDashboardClusterChange]);
+  }, [handleManagerDashboardClusterChange, navigate]);
 
   const handleManagerTabChange = useCallback(
     (tab: string) => {
@@ -212,52 +150,31 @@ const Index = () => {
         clearAgentRunOptimizerScope();
         writeStoredStudioEditorMode("vertical-benchmarks");
         writeStoredBlogGeneratorSection("bulk-prompt");
-        setManagerTab("generator");
-        try {
-          const hash = "generator/bulk-prompt";
-          if (window.location.hash.replace(/^#/, "") !== hash) {
-            window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${hash}`);
-          }
-        } catch {
-          /* ignore */
-        }
+        navigate("/generator/bulk-prompt");
         return;
       }
-      if (tab === "generator") {
-        setManagerTab("generator");
-      } else {
+      if (tab !== "generator") {
         clearAgentRunOptimizerScope();
-        setManagerTab(tab);
       }
-      try {
-        let hash: string;
-        if (tab === "dashboard") {
-          hash = "settings";
-        } else if (tab === "local-dominator") {
-          hash = "local-grid";
-        } else if (tab === "api") {
-          const current = window.location.hash.replace(/^#/, "").trim();
-          hash = current.startsWith("api") ? current : "api";
-        } else if (tab === "pulse-forge") {
-          const current = window.location.hash.replace(/^#/, "").trim();
-          hash = isPulseForgeHash(current) ? current : "pulse-forge/forge";
-        } else if (tab === "pulse-host") {
-          const current = window.location.hash.replace(/^#/, "").trim();
-          hash = isPulseHostHash(current) ? current : "pulse-host";
-        } else if (tab === "generator") {
-          const section = readStoredBlogGeneratorSection();
-          hash = `generator/${section}`;
-        } else {
-          hash = tab;
-        }
-        if (window.location.hash.replace(/^#/, "") !== hash) {
-          window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${hash}`);
-        }
-      } catch {
-        /* ignore */
+      if (tab === "generator") {
+        navigate(managerTabPath("generator", readStoredBlogGeneratorSection()));
+        return;
       }
+      if (tab === "api") {
+        navigate(isApiTabPath(location.pathname) ? location.pathname : "/api");
+        return;
+      }
+      if (tab === "pulse-forge") {
+        navigate(isPulseForgePath(location.pathname) ? location.pathname : "/pulse-forge/forge");
+        return;
+      }
+      if (tab === "pulse-host") {
+        navigate(isPulseHostPath(location.pathname) ? location.pathname : "/pulse-host");
+        return;
+      }
+      navigate(managerTabPath(tab));
     },
-    [clearAgentRunOptimizerScope]
+    [clearAgentRunOptimizerScope, navigate, location.pathname]
   );
 
   const handleNavigateToSapGenerator = useCallback(
@@ -291,30 +208,6 @@ const Index = () => {
     return () => window.removeEventListener(NEO_PULSE_OPEN_ORGANIC_REPORTING_EVENT, onOpen);
   }, [openOrganicReportingTab]);
 
-  useEffect(() => {
-    const syncTabFromHash = () => {
-      const hashTab = window.location.hash.replace(/^#/, "").trim();
-      if (!hashTab || hashTab === "settings" || hashTab === "dashboard" || hashTab === "neo-emcp") {
-        if (managerTab !== "dashboard") setManagerTab("dashboard");
-      } else if (hashTab === ORGANIC_REPORTING_MANAGER_TAB && managerTab !== ORGANIC_REPORTING_MANAGER_TAB) {
-        setManagerTab(ORGANIC_REPORTING_MANAGER_TAB);
-      } else if (hashTab === "vertical-benchmarks" || hashTab === "generator/vertical-benchmarks") {
-        writeStoredStudioEditorMode("vertical-benchmarks");
-        writeStoredBlogGeneratorSection("bulk-prompt");
-        if (managerTab !== "generator") setManagerTab("generator");
-      } else if (isGeneratorHash(window.location.hash) && managerTab !== "generator") {
-        setManagerTab("generator");
-      } else if (hashTab === "local-grid" || hashTab === "local-dominator") {
-        if (managerTab !== "local-dominator") setManagerTab("local-dominator");
-      } else if (VALID_MANAGER_TABS.has(hashTab) && managerTab !== hashTab) {
-        setManagerTab(hashTab);
-      }
-    };
-    syncTabFromHash();
-    window.addEventListener("hashchange", syncTabFromHash);
-    return () => window.removeEventListener("hashchange", syncTabFromHash);
-  }, [managerTab]);
-
   const navigateToOrganicReporting = useCallback(() => {
     const enabled = sites.filter((s) => s.enabled !== false);
     const site =
@@ -340,29 +233,21 @@ const Index = () => {
       const coerced = coerceBlogGeneratorSectionId(section);
       try {
         writeStoredBlogGeneratorSection(coerced);
-        localStorage.setItem(MANAGER_TAB_STORAGE_KEY, "generator");
       } catch {
         /* ignore */
       }
       if (!options?.keepAgentScope) {
         clearAgentRunOptimizerScope();
-      }
-      setManagerTab("generator");
-      if (!options?.keepAgentScope) {
-        try {
-          writeGeneratorSectionHash(coerced);
-        } catch {
-          /* ignore */
-        }
+        writeGeneratorSectionPath(coerced);
       }
     },
     [clearAgentRunOptimizerScope],
   );
 
-  const syncAgentRunScopeFromHash = useCallback(async () => {
-    const runId = parseAgentRunIdFromLocationHash();
+  const syncAgentRunScopeFromPath = useCallback(async () => {
+    const runId = parseAgentRunIdFromPath(location.pathname);
     if (runId && teamId) {
-      const section = parseGeneratorSectionFromHash(window.location.hash);
+      const section = parseGeneratorSectionFromPath(location.pathname);
       if (section) {
         const coerced = coerceBlogGeneratorSectionId(section);
         if (readStoredBlogGeneratorSection() !== coerced) {
@@ -374,38 +259,28 @@ const Index = () => {
         }
       }
       if (agentRunOptimizerScope?.runId === runId) {
-        if (managerTab !== "generator") setManagerTab("generator");
         return;
       }
       const run = await fetchAgentRun(teamId, runId);
       if (run) {
         hydrateScopeFromRun(run);
-        if (managerTab !== "generator") setManagerTab("generator");
         return;
       }
     }
-    if (!isAgentRunOptimizerLocationHash()) {
+    if (!isAgentRunOptimizerPath(location.pathname)) {
       clearAgentRunOptimizerScope();
     }
   }, [
+    location.pathname,
     teamId,
     hydrateScopeFromRun,
     clearAgentRunOptimizerScope,
     agentRunOptimizerScope?.runId,
-    managerTab,
   ]);
 
   useLayoutEffect(() => {
-    void syncAgentRunScopeFromHash();
-  }, [syncAgentRunScopeFromHash]);
-
-  useEffect(() => {
-    const onHashChange = () => {
-      void syncAgentRunScopeFromHash();
-    };
-    window.addEventListener("hashchange", onHashChange);
-    return () => window.removeEventListener("hashchange", onHashChange);
-  }, [syncAgentRunScopeFromHash]);
+    void syncAgentRunScopeFromPath();
+  }, [syncAgentRunScopeFromPath]);
 
   useEffect(() => {
     registerAgentRunOptimizerNavigation({
@@ -425,7 +300,8 @@ const Index = () => {
         onDashboardClusterChange: (cluster) =>
           handleManagerDashboardClusterChange(cluster as ManagerSettingsClusterId),
         onPulseForgeHash: (hash) => {
-          setPulseForgeHash(parsePulseForgeRouteFromHash(hash.startsWith("#") ? hash : `#${hash}`));
+          const body = hash.replace(/^#/, "").replace(/^\//, "");
+          setPulseForgeRoute(parsePulseForgeRoute(`/${body}`));
         },
         onOrganicReporting: navigateToOrganicReporting,
       });
@@ -613,13 +489,6 @@ const Index = () => {
     }
   }, [navigateToGeneratorSection]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(MANAGER_TAB_STORAGE_KEY, managerTab);
-    } catch {
-      /* ignore */
-    }
-  }, [managerTab]);
 
   // Load knowledge base files from localStorage on mount and when updated externally
   useEffect(() => {
@@ -689,7 +558,7 @@ const loadKBFiles = () => {
         }
       }
     }
-  }, []);
+  }, [flowFreeformSections.length]);
 
   // Combine manual + files for full RAG (triggers on load after setKnowledgeFiles + setManualKnowledgeText(''))
   useEffect(() => {
@@ -779,7 +648,6 @@ const loadKBFiles = () => {
 
   // This useEffect is now redundant and removed since KnowledgeBaseManager handles combination
   // and processImportedBlueprint (in use-blueprint-management.ts) sets activeKnowledgeBaseText directly.
-try {
     return (
       <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background">
       {/* Draft Recovery Dialog */}
@@ -885,9 +753,6 @@ try {
       />
       </div>
     );
-  } catch (error) {
-throw error;
-  }
 };
 
 export default Index;

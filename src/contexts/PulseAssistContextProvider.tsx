@@ -1,0 +1,175 @@
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import {
+  readStoredBlogGeneratorSection,
+  registerBlogGeneratorSectionListener,
+  unregisterBlogGeneratorSectionListener,
+  type BlogGeneratorSectionId,
+} from "@/components/blog-generator/blog-generator-sections";
+import { CONTENT_OPTIMIZER_SECTION_STORAGE_KEY } from "@/components/content-optimizer/content-optimizer-sections";
+import type { ManagerSettingsClusterId } from "@/components/manager/manager-settings-cluster";
+import { readStoredResearchSection } from "@/components/research/research-workspace-sections";
+import { readStoredSitemapOptimizerSection } from "@/components/research/sitemap-optimizer/sitemap-optimizer-sections";
+import { useWordPressSites } from "@/hooks/use-wordpress-sites";
+import { useActiveWordPressSite } from "@/contexts/active-wordpress-site-context";
+import { useAuth } from "@/contexts/AuthContext";
+import { AUTH_DISABLED } from "@/lib/auth-disabled";
+import { wordpressSiteDisplayName } from "@/lib/wordpress-site-display-name";
+import type { WordPressSite } from "@/components/integrations/types";
+import type { AssistNavigateTarget } from "@/lib/pulse-assist/types";
+
+import {
+  PulseAssistContext,
+  defaultOverview,
+  defaultTasks,
+  readContentOptimizerSection,
+  type PulseAssistContextValue,
+  type PulseAssistOverviewBridge,
+  type PulseAssistTasksBridge,
+} from "./pulse-assist-context";
+
+export function PulseAssistContextProvider({
+  managerTab,
+  managerDashboardCluster,
+  onAssistNavigate,
+  children,
+}: {
+  managerTab: string;
+  managerDashboardCluster: ManagerSettingsClusterId;
+  onAssistNavigate?: (target: AssistNavigateTarget) => void;
+  children: ReactNode;
+}) {
+  const { user } = useAuth();
+  const { sites } = useWordPressSites();
+  const { activeWordPressSiteId } = useActiveWordPressSite();
+  const [overview, setOverviewState] = useState<PulseAssistOverviewBridge>(defaultOverview);
+  const [tasks, setTasksState] = useState<PulseAssistTasksBridge>(defaultTasks);
+
+  const connectedSites = useMemo(() => sites, [sites]);
+
+  const activeSite = useMemo(
+    () => connectedSites.find((s) => s.id === activeWordPressSiteId && s.enabled !== false) ?? null,
+    [connectedSites, activeWordPressSiteId],
+  );
+
+  const [generatorSection, setGeneratorSection] = useState<string>(() => {
+    try {
+      return readStoredBlogGeneratorSection() || "";
+    } catch {
+      return "";
+    }
+  });
+
+  useEffect(() => {
+    const onSection = (id: BlogGeneratorSectionId) => setGeneratorSection(id);
+    registerBlogGeneratorSectionListener(onSection);
+    return () => unregisterBlogGeneratorSectionListener(onSection);
+  }, []);
+
+  useEffect(() => {
+    if (managerTab === "generator") {
+      try {
+        setGeneratorSection(readStoredBlogGeneratorSection() || "");
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [managerTab]);
+
+  const researchSection = useMemo(() => {
+    if (managerTab !== "generator" || generatorSection !== "research") return undefined;
+    return readStoredResearchSection();
+  }, [managerTab, generatorSection]);
+
+  const sitemapMode = useMemo(() => {
+    if (managerTab !== "sitemap-optimizer") return undefined;
+    return readStoredSitemapOptimizerSection();
+  }, [managerTab]);
+
+  const contentOptimizerSection = useMemo(() => {
+    if (managerTab !== "generator" || generatorSection !== "opt") return undefined;
+    return readContentOptimizerSection();
+  }, [managerTab, generatorSection]);
+
+  const setOverviewBridge = useCallback((patch: Partial<PulseAssistOverviewBridge>) => {
+    setOverviewState((prev) => {
+      let changed = false;
+      for (const [k, v] of Object.entries(patch)) {
+        if (prev[k as keyof PulseAssistOverviewBridge] !== v) {
+          changed = true;
+          break;
+        }
+      }
+      if (!changed) return prev;
+      return { ...prev, ...patch };
+    });
+  }, []);
+
+  const setTasksBridge = useCallback((patch: Partial<PulseAssistTasksBridge>) => {
+    setTasksState((prev) => {
+      let changed = false;
+      for (const [k, v] of Object.entries(patch)) {
+        if (prev[k as keyof PulseAssistTasksBridge] !== v) {
+          changed = true;
+          break;
+        }
+      }
+      if (!changed) return prev;
+      return { ...prev, ...patch };
+    });
+  }, []);
+
+  const navigateTo = useCallback(
+    (target: AssistNavigateTarget) => {
+      onAssistNavigate?.(target);
+    },
+    [onAssistNavigate],
+  );
+
+  const value = useMemo(
+    (): PulseAssistContextValue => ({
+      managerTab,
+      dashboardCluster: managerDashboardCluster,
+      activeSite,
+      activeSiteId: activeWordPressSiteId,
+      allSites: connectedSites,
+      siteDisplayName: activeSite ? wordpressSiteDisplayName(activeSite) : "",
+      canAssist: AUTH_DISABLED || Boolean(user),
+      generatorSection,
+      researchSection,
+      sitemapMode,
+      contentOptimizerSection,
+      overview,
+      tasks,
+      setOverviewBridge,
+      setTasksBridge,
+      navigateTo,
+    }),
+    [
+      managerTab,
+      managerDashboardCluster,
+      activeSite,
+      activeWordPressSiteId,
+      connectedSites,
+      generatorSection,
+      researchSection,
+      sitemapMode,
+      contentOptimizerSection,
+      overview,
+      tasks,
+      setOverviewBridge,
+      setTasksBridge,
+      navigateTo,
+      user,
+    ],
+  );
+
+  return <PulseAssistContext.Provider value={value}>{children}</PulseAssistContext.Provider>;
+}

@@ -6,7 +6,7 @@ export { enforceExactFocusKeyword } from "@/lib/overview/enforce-exact-focus-key
 import { META_DESCRIPTION_ANTI_CLICKBAIT_RULE, TITLE_ANTI_CLICKBAIT_RULE, TITLE_KEYWORD_WEAVING_RULE, TITLE_CASE_RULE, TITLE_WELL_KNOWN_ACRONYMS_RULE } from "@/lib/prompt-builders/title-rules";
 import {
   appendUniversalContentRulesToSystemPrompt,
-  scrubOverviewContentOutput,
+  assertNoForbiddenWordViolations,
 } from "@/lib/content-word-blocklist";
 import { appendMasterInstructionsToSystemPrompt, ensureMasterInstructionsInMemory } from "@/lib/master-instructions-storage";
 import { normalizeFocusKeywordPhrase } from "@/lib/seo-redirect-csv";
@@ -53,6 +53,7 @@ interface UseOverviewAiResult {
     sentimentSource?: string,
     /** Merged JSON brief (tile `seo_research`); primary research signal when set. */
     seoResearchBrief?: string,
+    options?: { skipLoadingState?: boolean; titleMode?: "default" | "sap"; signal?: AbortSignal },
   ) => Promise<string | null>;
   optimizeMeta: (
     url: string,
@@ -118,6 +119,15 @@ interface UseOverviewAiResult {
     pageMeta?: string,
     options?: { skipLoadingState?: boolean },
   ) => Promise<string | null>;
+  deriveFocusKeywordsFromPageContextBatch: (
+    catalog: OverviewKeywordCatalogRow[],
+  ) => Promise<Map<string, string>>;
+  deriveEntityKeywordsBatch: (
+    catalog: OverviewKeywordCatalogRow[],
+  ) => Promise<Map<string, string>>;
+  runAiAllMetaBatchForCatalog: (
+    catalog: AiAllMetaCatalogRow[],
+  ) => Promise<Map<string, AiAllMetaRowPatch>>;
   /** Short-tail keyword from SEO brief (primary), then title, then URL; 2–5 words, comparisons allowed. */
   deriveShortTailFocusKeywordFromResearch: (
     brief: string,
@@ -204,7 +214,8 @@ export function useOverviewAiOptimize(options: UseOverviewAiOptions): UseOvervie
       });
 
       const finalRaw = (result.trim() || completion?.content?.trim() || "").trim();
-      const cleaned = scrubOverviewContentOutput(finalRaw);
+      assertNoForbiddenWordViolations(finalRaw, "Overview optimize output");
+      const cleaned = finalRaw;
       console.log("[Auto SEO][OpenRouter Done]", {
         model: activeModel,
         ms: Date.now() - startedAt,
@@ -300,9 +311,9 @@ Return only the new title text with no quotes. Every word must be Title Case.`;
           : `You are a senior SEO content title specialist. Write a brand-new, accurate, neutral title from scratch in full Title Case (every word capitalized) that is distinct from the existing title. ${TITLE_CASE_RULE}`;
         const raw = await runCompletion(systemPrompt, prompt, options?.signal);
         return raw || null;
-      } catch (err: any) {
+      } catch (err) {
         if (!skipLoadingState) {
-          setError(err?.message || "AI title optimization failed.");
+          setError(err instanceof Error ? err.message : "AI title optimization failed.");
         }
         return null;
       } finally {
@@ -394,9 +405,9 @@ Return only the newly authored meta description with no quotes.`;
         const raw = await runCompletion(systemPrompt, prompt, options?.signal);
         const text = raw ? enforceExactFocusKeyword(raw, focusKeyword) : null;
         return text || null;
-      } catch (err: any) {
+      } catch (err) {
         if (!skipLoadingState) {
-          setError(err?.message || "AI meta optimization failed.");
+          setError(err instanceof Error ? err.message : "AI meta optimization failed.");
         }
         return null;
       } finally {
@@ -506,7 +517,7 @@ ${countRule}
 - Do not number them with bullets; just plain sentences.
 - Each question must be meaningfully different in topic and wording (no repeats, no near-duplicates, no simple rephrases).
 - Do NOT start more than one question with the same first 3 words (e.g. avoid repeating patterns like "Where can I find", "How do I", etc.).
-- Vary the structure and angle of questions (mix \"what\", \"how\", \"why\", \"can\", \"do I need\", \"which\", \"should\", etc.).
+- Vary the structure and angle of questions (mix "what", "how", "why", "can", "do I need", "which", "should", etc.).
 - ${FAQ_CONVERSATIONAL_RULE}
 - Questions should read naturally and elegantly, as if written by a senior copywriter.
 - Focus questions on what a serious searcher for this topic would actually ask before contacting the business.
@@ -532,9 +543,9 @@ Return only the questions, one per line, no extra text.`;
             : `You are an SEO specialist who writes high-quality FAQ questions that match searcher intent and align with the business's service area and NAP (city/state, phone, etc.). You must localize questions to that area without broadening it and you must preserve the original sentiment of each question. ${FAQ_CONVERSATIONAL_RULE} ${PRIMARY_CITY_CONSISTENCY_RULE}`;
         const text = await runCompletion(systemPrompt, prompt);
         return text || null;
-      } catch (err: any) {
+      } catch (err) {
         if (!skipLoadingState) {
-          setError(err?.message || "AI FAQ optimization failed.");
+          setError(err instanceof Error ? err.message : "AI FAQ optimization failed.");
         }
         return null;
       } finally {
@@ -584,7 +595,7 @@ Rules
 - Keep the sentiment (positive/neutral/negative) the same; do not soften or exaggerate it.
 - Use the page context and NAP/location only to sharpen wording and geography.
 - The question must not be a duplicate or trivial rephrase of other questions in the existing FAQ block.
-- If several questions in the FAQ block begin with the same first 3 words (e.g. \"Where can I find\"), rewrite this question so it uses a different, more varied opening while preserving intent.
+- If several questions in the FAQ block begin with the same first 3 words (e.g. "Where can I find"), rewrite this question so it uses a different, more varied opening while preserving intent.
 - Localize the geography to the business's primary service area; do NOT broaden it (e.g. if NAP is in Florida, do NOT say "United States and Canada").
 ${
   hasBrief
@@ -628,9 +639,9 @@ Return only the rewritten question, no quotes or bullets.`;
           : `You are an SEO specialist who rewrites FAQ questions from scratch with fresh phrasing aligned with search intent and the site's local service area. Preserve original sentiment and only adjust geography to match the NAP/service area (never broaden it). ${PRIMARY_CITY_CONSISTENCY_RULE}`;
         const text = await runCompletion(systemPrompt, prompt);
         return text || null;
-      } catch (err: any) {
+      } catch (err) {
         if (!skipLoadingState) {
-          setError(err?.message || "AI FAQ question optimization failed.");
+          setError(err instanceof Error ? err.message : "AI FAQ question optimization failed.");
         }
         return null;
       } finally {
@@ -728,9 +739,9 @@ Return only the newly written answer text, no quotes or bullets.`;
           : `You are an SEO specialist who writes clear, concise FAQ answers from scratch with fresh sentence structure that directly address the question using the page context. ${PRIMARY_CITY_CONSISTENCY_RULE}`;
         const text = await runCompletion(systemPrompt, prompt);
         return text || null;
-      } catch (err: any) {
+      } catch (err) {
         if (!skipLoadingState) {
-          setError(err?.message || "AI FAQ answer optimization failed.");
+          setError(err instanceof Error ? err.message : "AI FAQ answer optimization failed.");
         }
         return null;
       } finally {
@@ -791,8 +802,8 @@ Return only the keyword.`;
         const words = unquoted.split(/\s+/).filter(Boolean);
         const short = normalizeFocusKeywordPhrase(words.slice(0, 5).join(" ").trim() || unquoted);
         return short || null;
-      } catch (err: any) {
-        setError(err?.message || "AI focus keyword enhancement failed.");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "AI focus keyword enhancement failed.");
         return null;
       } finally {
         setFocusKeywordLoading(false);
@@ -884,9 +895,9 @@ Return only the keyword.`;
         const words = unquoted.split(/\s+/).filter(Boolean);
         const short = normalizeFocusKeywordPhrase(words.slice(0, 5).join(" ").trim() || unquoted);
         return short || null;
-      } catch (err: any) {
+      } catch (err) {
         if (!skipLoadingState) {
-          setError(err?.message || "AI focus keyword derivation failed.");
+          setError(err instanceof Error ? err.message : "AI focus keyword derivation failed.");
         }
         return null;
       } finally {
@@ -958,9 +969,9 @@ Return only the keyword.`;
         const words = unquoted.split(/\s+/).filter(Boolean);
         const short = normalizeFocusKeywordPhrase(words.slice(0, 6).join(" ").trim() || unquoted);
         return short || null;
-      } catch (err: any) {
+      } catch (err) {
         if (!skipLoadingState) {
-          setError(err?.message || "AI entity keyword derivation failed.");
+          setError(err instanceof Error ? err.message : "AI entity keyword derivation failed.");
         }
         return null;
       } finally {
@@ -1029,8 +1040,8 @@ Return only the keyword.`;
         const words = unquoted.split(/\s+/).filter(Boolean);
         const short = normalizeFocusKeywordPhrase(words.slice(0, 5).join(" ").trim() || unquoted);
         return short || null;
-      } catch (err: any) {
-        setError(err?.message || "AI short-tail focus keyword failed.");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "AI short-tail focus keyword failed.");
         return null;
       } finally {
         setFocusKeywordLoading(false);

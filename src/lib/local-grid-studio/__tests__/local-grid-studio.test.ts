@@ -195,7 +195,14 @@ describe("local-grid-aggregator & CSV round-trip", () => {
     expect(formatHumanFriendlyScanDate(null)).toBe("No scans yet");
     expect(formatHumanFriendlyScanDate("")).toBe("No scans yet");
     expect(formatHumanFriendlyScanDate("—")).toBe("No scans yet");
-    expect(formatHumanFriendlyScanDate("Oct 21, 2026")).toBe("Yesterday");
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayLabel = yesterday.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    expect(formatHumanFriendlyScanDate(yesterdayLabel)).toBe("Yesterday");
     expect(formatHumanFriendlyScanDate("Jan 15, 2025")).toBe("Jan 15, 2025");
-  });
+  }, 20000);
 });

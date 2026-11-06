@@ -39,8 +39,12 @@ export type ChatAppearancePrefs = {
   starredChannelIds: number[];
 };
 
-/** @deprecated v1 field — migrated to zoneThemes on read */
-export type LegacyChatAppearancePrefs = ChatAppearancePrefs & { themeId?: ChatThemeId };
+/** @deprecated v1 fields, migrated to zoneThemes on read */
+export type LegacyChatAppearancePrefs = Omit<ChatAppearancePrefs, "layoutMode" | "starredChannelIds"> & {
+  themeId?: ChatThemeId;
+  layoutMode?: ChatLayoutMode | "slack";
+  starredChannelIds?: number[];
+};
 
 export type ChatNotificationPrefs = {
   mentions: boolean;
@@ -176,11 +180,11 @@ export function normalizeAppearance(raw: LegacyChatAppearancePrefs): ChatAppeara
 
 export function normalizeChatPreferences(raw: Partial<ChatUserPreferences> & { appearance?: LegacyChatAppearancePrefs }): ChatUserPreferences {
   const base = defaultChatPreferences();
-  const rawAppearance = raw.appearance ?? {};
+  const rawAppearance: LegacyChatAppearancePrefs = raw.appearance ?? base.appearance;
   const isV2 =
     (raw.version ?? 1) >= 2 &&
-    rawAppearance.zoneThemes != null &&
-    rawAppearance.headingTheme != null;
+    raw.appearance?.zoneThemes != null &&
+    raw.appearance?.headingTheme != null;
   const appearance = isV2
     ? normalizeAppearance({ ...base.appearance, ...rawAppearance })
     : normalizeAppearance({

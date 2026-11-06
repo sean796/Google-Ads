@@ -7,6 +7,7 @@ export type { VideoBackingTrackMode, VideoPlanAudio } from "./video-audio-plan";
 export { formatVideoPlanAudioSummary, VIDEO_AUDIO_CLARIFY_QUESTION_ID } from "./video-audio-plan";
 
 export type { FlowFreeformClarifyQuestion as VideoClarifyQuestion };
+type VideoClarifyQuestion = FlowFreeformClarifyQuestion;
 
 export type ProductViewId = "front_elevation" | "side_elevation" | "three_quarter" | "glazing_detail";
 

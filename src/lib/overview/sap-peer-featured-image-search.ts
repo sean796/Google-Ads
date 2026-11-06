@@ -11,6 +11,7 @@
 
 import type { WordPressSite } from "@/components/integrations/types";
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { getSiteInventoryBulk } from "@/lib/wordpress-api";
 import type { SiteInventoryBulkRow } from "@/lib/wordpress-api/types";
 import { fetchOverviewSapInventoryFromEntitySitemap } from "@/lib/overview/overview-sap-entity-inventory";
@@ -160,7 +161,7 @@ async function resolveFeaturedMediaUrls(
   if (!mediaIds.length) return {};
   const res = await fetch(backendApiUrl("/wordpress/resolve-featured-media"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       siteUrl: site.siteUrl,
       username: site.username,

@@ -1,4 +1,4 @@
-import { SITE_PROFILE_SECTIONS, SITE_PROFILE_SECTION_LABEL, type SiteProfileSection } from "@/lib/hosting/pulse-host-hash";
+import { SITE_PROFILE_SECTIONS, SITE_PROFILE_SECTION_LABEL, type SiteProfileSection } from "@/lib/hosting/pulse-host-route";
 import { PROFILE_NAV, PROFILE_NAV_BTN } from "./site-profile-theme";
 import { Button } from "@/ui";
 

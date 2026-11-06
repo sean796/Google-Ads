@@ -159,6 +159,7 @@ function WorkflowDriveFolderPreview({
     connected,
     disabled,
     executionKind,
+    payload,
     payload.googleDriveFolderMonth,
     payload.googleDriveFolderPath,
     payload.googleDriveFolderPathManual,
@@ -311,13 +312,15 @@ export function AutomationGoogleDriveFields({
   const [folderPathInput, setFolderPathInput] = useState(() => folderPathFromPayload(payload));
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const folderPathInputRef = useRef(folderPathInput);
+  folderPathInputRef.current = folderPathInput;
+  const payloadFolderPath = folderPathFromPayload(payload);
 
   useEffect(() => {
-    const fromPayload = folderPathFromPayload(payload);
-    if (fromPayload && fromPayload !== folderPathInput) {
-      setFolderPathInput(fromPayload);
+    if (payloadFolderPath && payloadFolderPath !== folderPathInputRef.current) {
+      setFolderPathInput(payloadFolderPath);
     }
-  }, [payload.googleDriveFolderId, payload.googleDrivePresetKey]);
+  }, [payloadFolderPath]);
 
   useEffect(() => {
     if (workflow) return;

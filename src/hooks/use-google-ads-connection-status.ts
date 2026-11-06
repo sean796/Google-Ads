@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 export type GoogleAdsConnectionStatus = {
   connected: boolean;
@@ -56,10 +57,12 @@ async function fetchGoogleAdsStatus(): Promise<GoogleAdsStatusSnapshot> {
     fetch(`${backendApiUrl("/google-ads/status")}?${cacheBust}`, {
       credentials: "include",
       cache: "no-store",
+      headers: neoPulseApiHeaders(),
     }),
     fetch(`${backendApiUrl("/google-ads/config-status")}?${cacheBust}`, {
       credentials: "include",
       cache: "no-store",
+      headers: neoPulseApiHeaders(),
     }),
   ]);
   const statusData = await statusRes.json().catch(() => ({}));

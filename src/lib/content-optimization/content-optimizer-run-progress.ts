@@ -199,7 +199,7 @@ export function mergeRunProgress(
       : computeProgressForStep(incoming.stepId, incoming.subProgress);
   const progress = Math.max(prevEntry?.progress ?? 0, computed);
 
-  let microLog = [...(prevEntry?.microLog ?? [])];
+  const microLog = [...(prevEntry?.microLog ?? [])];
   if (incoming.stepId !== prevEntry?.stepId || incoming.message !== prevEntry?.message) {
     microLog.push({ stepId: incoming.stepId, message: incoming.message });
     while (microLog.length > MICRO_LOG_CAP) microLog.shift();
@@ -231,7 +231,9 @@ export function mergeRunProgress(
 }
 
 export function reportRunProgress(
-  setProgress: (prev: Record<string, RunProgressEntry | undefined>) => Record<string, RunProgressEntry | undefined>,
+  setProgress: (
+    updater: (prev: Record<string, RunProgressEntry | undefined>) => Record<string, RunProgressEntry | undefined>,
+  ) => void,
   key: string,
   patch: RunProgressPatch,
 ): void {
@@ -243,11 +245,11 @@ export function harnessSubProgress(
   stepId: "plan" | "write",
   sectionIndex: number,
   totalSections: number,
-  phase: "start" | "done" | "stream",
+  phase: "start" | "done" | "stream" | "progress",
 ): number {
   const total = Math.max(1, totalSections);
   const base = sectionIndex / total;
   if (phase === "done") return Math.min(1, (sectionIndex + 1) / total);
-  if (phase === "stream") return Math.min(1, base + 0.5 / total);
+  if (phase === "stream" || phase === "progress") return Math.min(1, base + 0.5 / total);
   return base;
 }

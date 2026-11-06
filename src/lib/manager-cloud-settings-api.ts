@@ -1,4 +1,5 @@
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import type { ManagerCloudSnapshotV1 } from "@/lib/manager-cloud-settings-snapshot";
 import { loadTeamWorkspace, saveTeamWorkspace } from "@/lib/teams-api";
 import { AUTH_DISABLED } from "@/lib/auth-disabled";
@@ -17,7 +18,7 @@ export type ManagerCloudSettingsStatus = {
 
 export async function getManagerCloudSettingsStatus(): Promise<ManagerCloudSettingsStatus> {
   try {
-    const res = await fetch(url("/status"), { credentials: "include" });
+    const res = await fetch(url("/status"), { credentials: "include", headers: neoPulseApiHeaders() });
     const data = (await res.json().catch(() => ({}))) as ManagerCloudSettingsStatus;
     return { ok: res.ok && Boolean(data.ok), ...data };
   } catch {
@@ -37,7 +38,7 @@ export async function saveManagerSettingsToCloud(
     const res = await fetch(url("/save"), {
       method: "POST",
       credentials: "include",
-      headers: { "Content-Type": "application/json" },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ snapshot }),
     });
     const data = (await res.json().catch(() => ({}))) as {
@@ -67,7 +68,7 @@ export async function loadManagerSettingsFromCloud(teamId?: number | null): Prom
     return { ok: r.ok, snapshot: r.snapshot, updatedAt: r.updatedAt };
   }
   try {
-    const res = await fetch(url("/load"), { credentials: "include" });
+    const res = await fetch(url("/load"), { credentials: "include", headers: neoPulseApiHeaders() });
     const data = (await res.json().catch(() => ({}))) as {
       ok?: boolean;
       snapshot?: ManagerCloudSnapshotV1 | null;

@@ -57,7 +57,15 @@ describe("content creator cellString guards", () => {
           },
         ],
         {
-          landingPages: [{ url: "https://example.com/other", title: "Other" }],
+          landingPages: [
+            {
+              url: "https://example.com/other",
+              title: "Other",
+              excerpt: "",
+              metaDescription: "",
+              keyword: "",
+            },
+          ],
           landingPageSource: "pages",
         },
       ),

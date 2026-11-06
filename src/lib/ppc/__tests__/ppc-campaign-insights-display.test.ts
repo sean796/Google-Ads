@@ -6,7 +6,17 @@ import {
 
 describe("ppc-campaign-insights-display", () => {
   it("derives CPC from cost and clicks when averageCpc is zero", () => {
-    expect(ppcCampaignInsightsAverageCpcMicros({ impressions: 10, clicks: 2, costMicros: 4_000_000 })).toBe(
+    expect(
+      ppcCampaignInsightsAverageCpcMicros({
+        impressions: 10,
+        clicks: 2,
+        costMicros: 4_000_000,
+        ctr: 0,
+        averageCpc: 0,
+        conversions: 0,
+        conversionsValue: 0,
+      }),
+    ).toBe(
       2_000_000,
     );
   });

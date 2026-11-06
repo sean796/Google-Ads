@@ -1,7 +1,7 @@
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Copy, Download, MapPin, Sparkles, Upload } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
+
 import { useWordPressSites } from "@/hooks/use-wordpress-sites";
 import { buildPortfolioBlockedHosts } from "@/lib/portfolio-link-blocklist";
 import { useManagerSeedWorkspace } from "@/contexts/manager-seed-workspace-context";
@@ -64,7 +64,7 @@ import {
   fetchLocalStrategyGmbOauthSnapshot,
 } from "@/lib/local-strategy-research/local-strategy-gmb-fetch";
 import { loadApiKey } from "@/lib/api";
-import { DEFAULT_SETTINGS } from "@/components/integrations/wordpress/OptimizationSettingsPanel";
+import { DEFAULT_SETTINGS } from "@/lib/optimization-settings-defaults";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_ANALYZE_DONE, NOTIFY_COULD_NOT_COPY, NOTIFY_ENTER_A_SEED_SITE_URL_FIRST, NOTIFY_ENTER_A_SEED_SITE_URL_HTTPS_EXAMPLE_COM, NOTIFY_ENTITY_SAP_CSV_READY, NOTIFY_GENERATE_A_REPORT_FIRST, NOTIFY_GRID_CSV_DOWNLOADED, NOTIFY_GRID_IMPORT_DONE, NOTIFY_LOCAL_BLUEPRINT_READY, NOTIFY_MARKDOWN_COPIED, NOTIFY_NO_NEW_COMPETITORS_FROM_GRID, NOTIFY_NO_SAP_SCHEDULE_CSV_YET, NOTIFY_RUN_ANALYZE_FIRST, NOTIFY_RUN_ANALYZE_FIRST_OR_IMPORT_A_GRID_CSV, NOTIFY_SAP_CSV_SKIPPED, NOTIFY_SELECT_AT_LEAST_ONE_COMPETITOR, NOTIFY_SELECT_A_CONNECTED_SITE_WITH_A_URL, notifyAddedXCompetitorSFromGridCsv, notifyAddedXCompetitorSFromGridCsvUpdat, notifyDataforseoXX, notifyDfsSkipX, notifyDfsXXNoWebsite, notifyDfsXXX, notifyDownloadedXSapRowS, notifyFileTooLargeMaxXMb, notifyGridCsvSapScanX, notifyGscX2, notifyUpdatedXCompetitorSFromGridCsvWer } from "@/lib/notify-messages";
 import { CompetitorSiteGrid } from "@/components/research/competitor/CompetitorSiteGrid";
@@ -81,7 +81,7 @@ import {
   REPORTING_TOOLBAR_BTN_PUBLISH,
 } from "@/components/research/reporting/reporting-toolbar-styles";
 import { cn } from "@/lib/utils";
-import { Button, Field, FileInput, TextButton } from "@/ui";
+import { Button, Field, FileInput, TextButton, Tabs, TabsContent, TabsList, TabsTrigger, Tooltip, TooltipContent, TooltipTrigger } from "@/ui";
 
 /** Local strategy uses DataForSEO Labs only - Semrush API is never required. */
 const LOCAL_ORGANIC_SOURCE = false;
@@ -144,7 +144,7 @@ export function LocalStrategyResearchTab() {
     }
     if (!site?.id) return "none";
     return `connected:${site.id}|${getPublicSiteUrl(site)}`;
-  }, [workspaceMode, tempSeedUrl, site?.id, site?.siteUrl, site?.productionSiteUrl]);
+  }, [workspaceMode, tempSeedUrl, site]);
 
   const activeWorkspaceKeyRef = useRef<string>("");
   activeWorkspaceKeyRef.current = workspaceKey;
@@ -152,7 +152,7 @@ export function LocalStrategyResearchTab() {
   const effectiveSeedUrl = useMemo(() => {
     if (workspaceMode === "temp") return tempSeedUrl.trim();
     return site ? getPublicSiteUrl(site) : "";
-  }, [workspaceMode, tempSeedUrl, site?.siteUrl, site?.productionSiteUrl]);
+  }, [workspaceMode, tempSeedUrl, site]);
 
   const effectivePortfolioHosts = useMemo(
     () => (workspaceMode === "temp" ? [] : portfolioHosts),
@@ -220,12 +220,13 @@ export function LocalStrategyResearchTab() {
   const prevSemrushDomainKeysRef = useRef<Set<string>>(new Set());
   const prevWorkspaceClearKeyRef = useRef<string | null>(null);
 
+  const sitePublicUrl = site ? getPublicSiteUrl(site) : "";
   useEffect(() => {
     const key =
       workspaceMode === "temp"
         ? `temp:${debouncedTempSeed}`
         : site?.id
-          ? `connected:${site.id}|${getPublicSiteUrl(site)}`
+          ? `connected:${site.id}|${sitePublicUrl}`
           : "none";
     if (prevWorkspaceClearKeyRef.current === null) {
       prevWorkspaceClearKeyRef.current = key;
@@ -251,15 +252,15 @@ export function LocalStrategyResearchTab() {
     setGridSapKeywordWeights([]);
     setGridSapParsedRows([]);
     prevSemrushDomainKeysRef.current = new Set();
-  }, [workspaceMode, debouncedTempSeed, site?.id, site?.siteUrl, site?.productionSiteUrl]);
+  }, [workspaceMode, debouncedTempSeed, site?.id, sitePublicUrl]);
 
   useEffect(() => {
-    if (!semrushRows?.length) {
+    if (!semrushRowsFingerprint) {
       prevSemrushDomainKeysRef.current = new Set();
       setSelectedCompetitorKeys(new Set());
       return;
     }
-    const currentKeys = new Set(semrushRows.map((r) => normalizeCompetitorDomainKey(r.domain)));
+    const currentKeys = new Set(semrushRowsFingerprint.split("|"));
     setSelectedCompetitorKeys((prev) => {
       if (prevSemrushDomainKeysRef.current.size === 0) {
         prevSemrushDomainKeysRef.current = new Set(currentKeys);
@@ -718,7 +719,7 @@ export function LocalStrategyResearchTab() {
         if (activeWorkspaceKeyRef.current !== runKeySnapshot) {
           return;
         }
-        if (gridSapRes.ok) {
+        if (gridSapRes.ok === true) {
           setGridSapSummaryMarkdown(gridSapRes.gridSummaryMarkdown);
           setGridSapPlaceHints(gridSapRes.placeHints);
           setGridSapKeywordWeights(gridSapRes.gridKeywordWeights);
@@ -922,9 +923,6 @@ export function LocalStrategyResearchTab() {
       effectiveSeedUrl,
       neutralResearchWire,
       workspaceKey,
-      geoLabel,
-      neutralResearchWire,
-      site,
     ],
   );
 

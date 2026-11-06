@@ -120,7 +120,6 @@ export async function runBulkRowContentAndMediaPhase(input: {
     const siteBundleList = buildSitesToPostFromPosting(options.wordPressPosting, enrichedRow.entity);
     const primarySiteForAcf = siteBundleList[0]?.site;
 
-    let markdownContent: string;
     let precomputedAcfSeoBundle: PrecomputedAcfSeoBundle | null = null;
 
     const harnessPromptEnv: HarnessPromptEnv = {
@@ -300,7 +299,7 @@ export async function runBulkRowContentAndMediaPhase(input: {
       );
 
       const fileNameWithoutExt = imageFileName.replace(/\.(png|jpg|jpeg)$/i, '');
-      const extension = mimeType === 'image/jpeg' ? 'jpg' : 'png';
+      const extension = 'png';
       const finalImageFileName = `${fileNameWithoutExt}.${extension}`;
 
       const imageFileId = BulkFileManager.createFileId(rowIndex, 'image', timestamp);
@@ -475,20 +474,13 @@ export async function runBulkRowContentAndMediaPhase(input: {
       }
     };
 
+    // Markdown failure fails the row visibly (caller records Failed). No
+    // templated substitute content is generated or uploaded.
+    const markdownContent = await runMarkdownPipeline();
     try {
-      markdownContent = await runMarkdownPipeline();
       await runImagePipeline();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.warn('[Bulk Content] Primary markdown generation warning; generating resilient article synthesis so WP upload succeeds:', errorMessage);
-      const postTitle = draft.bulkResolvedPostTitle || enrichedRow.title || row.title || 'Expert Guide';
-      const postKw = draft.bulkPrimaryKwResolved || enrichedRow.keyword || row.keyword || postTitle;
-      const agents = Array.isArray(draft.blueprintResult?.agents) ? draft.blueprintResult.agents : [];
-      const agentSections = agents.map((a: any) => {
-        const hTitle = a.title || a.name || 'Key Insights';
-        return `## ${hTitle}\n\nComprehensive exploration and recommendations regarding ${postKw}. Professional analysis shows that addressing both functional requirements and aesthetic standards delivers optimal long-term results.`;
-      }).join('\n\n');
-      markdownContent = `# ${postTitle}\n\n## Overview\n\nWelcome to our complete guide on ${postKw}. In this article we cover essential considerations, professional recommendations, and practical steps to achieve the best results.\n\n${agentSections || `## Key Considerations\n\nDetailed guidance and professional analysis for ${postKw}.`}`;
+    } catch (imgErr) {
+      console.warn('[Bulk Auto-Generate] Featured image pipeline failed (non-fatal):', imgErr);
     }
 
     precomputedAcfSeoBundle = await scheduleFaqBundlePromise();

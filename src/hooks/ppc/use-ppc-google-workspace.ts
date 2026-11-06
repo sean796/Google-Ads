@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { WordPressSite } from "@/components/integrations/types";
 import { useManagerErrorLog } from "@/contexts/manager-error-log-context";
-import { overviewGridPageSlice } from "@/components/overview/OverviewGridPagination";
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import { overviewGridPageSlice } from "@/components/overview/overview-grid-pagination-helpers";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import {
   clampPpcAdGroupCount,
   clampPpcAdsPerAdGroup,
@@ -173,7 +173,7 @@ export function usePpcGoogleWorkspace({ site, apiKey, selectedModel }: UsePpcGoo
       revokePpcPageBucketHostedLink(pageBucketLinkRef.current);
       pageBucketLinkRef.current = null;
     };
-  }, [reportError, site.appPassword, site.id, site.siteUrl, site.username]);
+  }, [reportError, site]);
 
   useEffect(() => {
     writePpcGenerateConfig(site.id, generateConfig);
@@ -347,7 +347,7 @@ export function usePpcGoogleWorkspace({ site, apiKey, selectedModel }: UsePpcGoo
         });
 
         for (const outcome of results) {
-          if (outcome.ok) {
+          if (outcome.ok === true) {
             const sourceRow = targetRows.find((row) => row.id === outcome.rowId);
             updateCampaign(outcome.rowId, {
               status: "ready",
@@ -475,7 +475,7 @@ export function usePpcGoogleWorkspace({ site, apiKey, selectedModel }: UsePpcGoo
         setIsGenerating(false);
       }
     },
-    [apiKey, campaigns, generateConfig, isGenerating, isPublishing, reportError, selectedModel, site, updateCampaign, wpPages],
+    [apiKey, campaigns, generateConfig, isGenerating, reportError, selectedModel, site, updateCampaign, wpPages],
   );
 
   const handleGenerateAdGroup = useCallback(

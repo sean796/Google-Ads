@@ -46,7 +46,7 @@ class Neo_Pulse_App_Gsc_Route_Handlers {
 				array(
 					'methods'             => $route[0],
 					'callback'            => array( __CLASS__, $route[2] ),
-					'permission_callback' => '__return_true',
+					'permission_callback' => array( 'Neo_Pulse_App_Auth_Session', 'rest_permission' ),
 				)
 			);
 		}

@@ -1,5 +1,5 @@
 import Papa from "papaparse";
-import { hostnameFromUrl } from "@/lib/competitor/filter-connected-site-competitors";
+import { hostnameFromUrl } from "@/lib/competitor-research/filter-connected-site-competitors";
 
 export interface CompetitorGridPlaceRow {
   /** DataForSEO `keyword` value, e.g. `cid:123` or `place_id:ChIJ...`. */

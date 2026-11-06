@@ -120,7 +120,7 @@ export function useSitemapOptimizerRun() {
             site,
             callbacks: { setPhase, setProgress, signal },
           });
-          if (!gridRes.ok) {
+          if (gridRes.ok === false) {
             if (gridRes.error !== "Cancelled") setError(gridRes.error);
             setPhase(gridRes.error === "Cancelled" ? "idle" : "error");
             return { ok: false as const, error: gridRes.error };
@@ -159,7 +159,7 @@ export function useSitemapOptimizerRun() {
         });
         let inventoryRows: SitemapOptimizerPostRow[] = [];
         let inventoryDetail = entityOnly ? "Loading entity sitemap" : "Loading WordPress inventory";
-        if (!catalogRes.ok) {
+        if (catalogRes.ok === false) {
           if (!entityOnly) {
             setError(catalogRes.error);
             setPhase("error");
@@ -424,7 +424,7 @@ export function useSitemapOptimizerRun() {
         };
         let merges: SitemapOptimizerRunResult["merges"] = [];
         let contentSheet: SitemapOptimizerRunResult["contentSheet"] = [];
-        let analyzedAt = new Date().toISOString();
+        const analyzedAt = new Date().toISOString();
 
         if (hasEntityPipeline) {
           try {

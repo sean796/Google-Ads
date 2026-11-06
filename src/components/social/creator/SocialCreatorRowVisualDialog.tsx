@@ -1,12 +1,6 @@
 import { useEffect, useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+
 import { SocialCreatorVisualSettingsPanel } from "@/components/social/creator/SocialCreatorVisualSettingsPanel";
 import { BULK_HEADER_ICON_TOOL_BTN } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import { hasMetaColorPalette } from "@/lib/ppc/meta-ad-color-palette";
@@ -17,7 +11,7 @@ import {
 import { rowHasManualVisualToolPalette } from "@/lib/ppc/meta-ad-visual-tool-themes";
 import type { MetaAdColorPalette, SocialCreatorRow, MetaAdVisualToolPalette, SocialGenerateConfig } from "@/lib/social/social-creator-types";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui";
+import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/ui";
 
 export type SocialCreatorRowVisualDialogProps = {
   row: SocialCreatorRow;

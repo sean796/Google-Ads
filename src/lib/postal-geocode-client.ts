@@ -1,4 +1,5 @@
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 export type PostalCentroidHint = {
   postalCode?: string;
@@ -20,7 +21,7 @@ export async function fetchPostalCentroid(
   try {
     const res = await fetch(`${BACKEND_API_BASE}/api/seo/postal-centroid`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         postalCode: hints.postalCode?.trim() || "",
         city: hints.city?.trim() || "",

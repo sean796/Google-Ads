@@ -24,7 +24,22 @@ vi.mock("../entity-hint-openrouter", () => ({
 }));
 
 vi.mock("../mediawiki-intro", () => ({
-  fetchWikipediaIntroPlainText: async () => "",
+  fetchWikipediaIntroPlainText: async () => "Mill Woods is a neighbourhood in Edmonton.",
+}));
+
+vi.mock("../validate-wikipedia-place-page-openrouter", () => ({
+  validateWikipediaPlacePage: async () => ({
+    kind: "neighbourhood",
+    matchesExpectedCity: true,
+  }),
+  isAcceptedWikiPlaceValidation: (
+    result: { kind: string; matchesExpectedCity: boolean } | null | undefined,
+    tier: string,
+  ) =>
+    Boolean(result?.matchesExpectedCity) &&
+    (tier === "neighbourhood"
+      ? result!.kind === "neighbourhood" || result!.kind === "district"
+      : result!.kind === "city"),
 }));
 
 describe("lookupEntityHintWikipedia sub-city placeHead", () => {

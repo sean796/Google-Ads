@@ -75,10 +75,10 @@ const cleanContentForImageGeneration = (content: string): string => {
   cleaned = cleaned.replace(/`[^`]+`/g, '');
   
   // Remove markdown links [text](url) - keep only the text part
-  cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+  cleaned = cleaned.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
   
   // Remove plain URLs (http://, https://)
-  cleaned = cleaned.replace(/https?:\/\/[^\s\)]+/g, '');
+  cleaned = cleaned.replace(/https?:\/\/[^\s)]+/g, '');
   
   // Remove markdown headers (already being removed, but ensure consistency)
   cleaned = cleaned.replace(/#{1,6}\s+/g, '');

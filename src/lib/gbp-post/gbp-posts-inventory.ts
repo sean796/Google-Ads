@@ -1,4 +1,5 @@
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { readGbpApiError } from "@/lib/gbp-post/gbp-api-error";
 
 export type GbpInventoryRow = {
@@ -37,7 +38,7 @@ export type GbpPostsInventoryHostedLink = {
 };
 
 function siteSlugForInventoryFile(siteName: string): string {
-  const s = siteName.replace(/[^\w\-]+/g, "-").slice(0, 60).replace(/-+$/, "");
+  const s = siteName.replace(/[^\w-]+/g, "-").slice(0, 60).replace(/-+$/, "");
   return s || "gbp-posts";
 }
 
@@ -56,7 +57,7 @@ export async function fetchGbpPostsInventory(
   const res = await fetch(`${BACKEND_API_BASE}/api/gmb/posts-inventory`, {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       gbpLocationId: id,
       ...(siteName?.trim() ? { siteName: siteName.trim() } : {}),

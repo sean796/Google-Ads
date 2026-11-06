@@ -30,9 +30,12 @@ describe("extractOriginFromSapTitle", () => {
 
 describe("applySapOriginFromTitleToRows", () => {
   it("fills origin from title when origin empty", () => {
-    const out = applySapOriginFromTitleToRows([
-      { keyword: "k", title: "K in Woodstock, GA", entity: "Woodstock, GA" },
-    ]);
+    const out = applySapOriginFromTitleToRows<{
+      keyword: string;
+      title: string;
+      entity: string;
+      origin?: string;
+    }>([{ keyword: "k", title: "K in Woodstock, GA", entity: "Woodstock, GA" }]);
     expect(out[0].origin).toBe("Woodstock, GA");
   });
 

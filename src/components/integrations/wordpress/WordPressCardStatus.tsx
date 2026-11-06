@@ -1,10 +1,10 @@
 import React from "react";
-import { Switch } from "@/components/ui/switch";
+
 import { XCircle, Power } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type WordPressSite } from "../types";
 import { getCyberpunkTextClasses, getPropertyListRowBlackIconButtonClass, getPropertyListRowIconButtonHoverGlowClass } from "./cyberpunk-theme";
-import { Button } from "@/ui";
+import { Button, Switch } from "@/ui";
 
 interface WordPressCardStatusProps {
   site: WordPressSite;

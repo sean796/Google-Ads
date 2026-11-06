@@ -57,8 +57,8 @@ describe("uploadOverviewAiseoRowToWordPress", () => {
     });
     expect(result.ok).toBe(true);
     expect(updateWordPressPost).toHaveBeenCalledTimes(1);
-    expect(updateWordPressPost.mock.calls[0]?.[5]).toContain("Cost Factors");
-    expect(updateWordPressPost.mock.calls[0]?.[5]).toContain("Direct answer");
+    expect(vi.mocked(updateWordPressPost).mock.calls[0]?.[5]).toContain("Cost Factors");
+    expect(vi.mocked(updateWordPressPost).mock.calls[0]?.[5]).toContain("Direct answer");
     expect(result.generatedFiles.some((f) => f.name === "wordpress.json")).toBe(true);
     const payloadFile = result.generatedFiles.find((f) => f.name.startsWith("upload-payload-"));
     expect(payloadFile?.content).toContain("postContent");
@@ -80,7 +80,7 @@ describe("uploadOverviewAiseoRowToWordPress", () => {
       getInventoryMatchForUrl: () => undefined,
     });
     expect(result.ok).toBe(true);
-    const uploaded = String(updateWordPressPost.mock.calls[0]?.[5] ?? "");
+    const uploaded = String(vi.mocked(updateWordPressPost).mock.calls[0]?.[5] ?? "");
     const answerPos = uploaded.indexOf('id="answer"');
     const overviewPos = uploaded.indexOf('id="overview"');
     expect(answerPos).toBeGreaterThanOrEqual(0);
@@ -98,8 +98,12 @@ describe("uploadOverviewAiseoRowToWordPress", () => {
       getInventoryMatchForUrl: () => ({
         row: {
           id: 44,
+          url: "https://kwbllp.com/tariffs/",
           date_gmt: null,
           fields: {
+            title: "",
+            meta: "",
+            keyword: "",
             content: "<h2>Answer</h2><p>Direct answer.</p><h2>Cost Factors</h2><p>Body</p>",
           },
         },
@@ -108,7 +112,7 @@ describe("uploadOverviewAiseoRowToWordPress", () => {
     });
     expect(result.ok).toBe(true);
     expect(updateWordPressPost).toHaveBeenCalledTimes(1);
-    expect(updateWordPressPost.mock.calls[0]?.[5]).toContain("Cost Factors");
+    expect(vi.mocked(updateWordPressPost).mock.calls[0]?.[5]).toContain("Cost Factors");
   });
 
   it("uploads WordPress pages via the pages REST endpoint", async () => {
@@ -120,15 +124,20 @@ describe("uploadOverviewAiseoRowToWordPress", () => {
       row,
       bindings: { "https://kwbllp.com/about/": { postId: 99, subtype: "page" } },
       getInventoryMatchForUrl: () => ({
-        row: { id: 99, date_gmt: null, fields: {} },
+        row: {
+          id: 99,
+          url: "https://kwbllp.com/about/",
+          date_gmt: null,
+          fields: { title: "", meta: "", keyword: "" },
+        },
         subtype: "page",
       }),
     });
     expect(result.ok).toBe(true);
     expect(updateWordPressPost).toHaveBeenCalledTimes(1);
-    const endpointArg = updateWordPressPost.mock.calls[0]?.[13];
+    const endpointArg = vi.mocked(updateWordPressPost).mock.calls[0]?.[13];
     expect(endpointArg).toBe("pages");
-    const postTypeArg = updateWordPressPost.mock.calls[0]?.[8];
+    const postTypeArg = vi.mocked(updateWordPressPost).mock.calls[0]?.[8];
     expect(postTypeArg).toBe("page");
   });
 
@@ -224,7 +233,7 @@ describe("uploadAiseoRowAfterWrite", () => {
     expect(result.ok).toBe(true);
     expect(result.skipped).toBe(false);
     expect(updateWordPressPost).toHaveBeenCalledTimes(1);
-    expect(updateWordPressPost.mock.calls[0]?.[3]).toBe(44);
+    expect(vi.mocked(updateWordPressPost).mock.calls[0]?.[3]).toBe(44);
   });
 });
 
@@ -270,7 +279,7 @@ describe("uploadOverviewAiseoWrittenRows", () => {
     });
     expect(stats).toEqual({ uploaded: 1, failed: 1, skipped: 0 });
     expect(bulkUpdateOverviewSeo).toHaveBeenCalledTimes(1);
-    expect(bulkUpdateOverviewSeo.mock.calls[0]?.[3]).toHaveLength(2);
+    expect(vi.mocked(bulkUpdateOverviewSeo).mock.calls[0]?.[3]).toHaveLength(2);
   });
 
   it("creates upload proof shell when batch state is missing", () => {

@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronUp, ExternalLink, GripVertical, MapPin, Sparkles } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import type { CSVRow, WordPressPostDestination } from "@/lib/bulk-auto-generate";
 import {
   BLOG_IMPORT_POST_DESTINATION_CHOICES,
@@ -11,17 +11,15 @@ import {
   serializeModifierLinksJson,
 } from "@/lib/bulk/bulk-csv-parser";
 import { BlogIdeaModifierLinksEditor } from "@/components/keyword-research/bulk/BlogIdeaModifierLinksEditor";
-import {
-  DecisionAuditRowBadge,
-  parseDecisionAuditJson,
-} from "@/components/keyword-research/bulk/DecisionAuditRowBadge";
+import { DecisionAuditRowBadge } from "@/components/keyword-research/bulk/DecisionAuditRowBadge";
+import { parseDecisionAuditJson } from "@/components/keyword-research/bulk/decision-audit-json";
 import {
   CONTENT_OPTIMIZER_PAGE_ROW_TITLE_CELL,
   contentOptimizerCopyableCellProps,
   contentOptimizerRowStripeClass,
 } from "@/components/overview/overview-tab/overview-tab-content-constants";
 import { WorkspaceNestedInput } from "@/components/seo/WorkspaceNestedField";
-import { DASHBOARD_LIST_CHECKBOX_CLASS } from "@/components/shared/workspace-checkbox-styles";
+import { BLOG_IDEA_ROW_SELECT_CHECKBOX_CLASS } from "@/components/shared/workspace-checkbox-styles";
 import { buildSapSlugFromKeywordEntity } from "@/lib/sap-slug-from-keyword-entity";
 import { googleDirectionsSearchUrl } from "@/lib/google-directions-search-url";
 import { PPC_CAMPAIGN_ROW_FIELD_CELL } from "@/components/ppc/google/google-ads-row-constants";
@@ -29,7 +27,7 @@ import { PPC_DETAIL_INPUT_CLASS } from "@/components/ppc/google/google-ads-row-d
 import { BULK_GENERATOR_ROW_GRID_MIN_CLASS } from "@/components/keyword-research/blog-generator-tab-classes";
 import { cn } from "@/lib/utils";
 import type { CSSProperties, ReactNode } from "react";
-import { Button, Field, SelectField } from "@/ui";
+import { Button, Field, SelectField, Checkbox } from "@/ui";
 
 const EXPANDED_FIELD_LABEL = "w-[5.75rem] shrink-0 sm:w-[6.5rem]";
 
@@ -64,8 +62,6 @@ const BLOG_IDEA_ROW_GRID_NO_SELECT_WITH_DEST_DATE_CLASS = cn(
   BULK_GENERATOR_ROW_GRID_MIN_CLASS,
 );
 
-export const BLOG_IDEA_ROW_SELECT_CHECKBOX_CLASS = DASHBOARD_LIST_CHECKBOX_CLASS;
-
 const BLOG_IDEA_ROW_SELECT_CELL = "flex shrink-0 items-center justify-center pl-0.5";
 
 const BLOG_IDEA_ROW_EXPAND_CELL =
@@ -79,8 +75,10 @@ export type BlogIdeaRowDragProps = {
   handleDisabled?: boolean;
 };
 
+export type BlogIdeaRow = CSVRow & { decision_audit_json?: string };
+
 export type BlogIdeaRowCompactProps = {
-  row: CSVRow;
+  row: BlogIdeaRow;
   index: number;
   stripeIndex: number;
   isSelected: boolean;
@@ -178,7 +176,7 @@ function DragHandle({
 }) {
   if (!drag) return null;
   return (
-    // eslint-disable-next-line no-restricted-syntax -- Pulse UI exception: dnd-kit drag handle needs a bare element
+    // Pulse UI exception: dnd-kit drag handle needs a bare element
     <button
       type="button"
       ref={undefined}
@@ -388,7 +386,7 @@ function ExpandedFields({
   onRowChange,
   previewUrl,
 }: {
-  row: CSVRow;
+  row: BlogIdeaRow;
   fieldId: (name: string) => string;
   isProcessing: boolean;
   publishDateLabel?: string;

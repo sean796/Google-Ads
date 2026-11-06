@@ -3,7 +3,7 @@ import { FileText, Link2, X } from "lucide-react";
 import { fetchChatActivityLog } from "@/lib/chat-api";
 import {
   activityLabel,
-  chatMessageHash,
+  writeChatMessagePath,
   isFileActivity,
   isLinkActivity,
   type ChatActivityLogEntry,
@@ -115,7 +115,7 @@ export function ChatSharedDrawer({
             key={entry.id}
             type="button"
             onClick={() => {
-              window.location.hash = chatMessageHash(entry.messageId);
+              writeChatMessagePath(entry.messageId);
               onJumpToMessage(entry.messageId);
             }}
           >

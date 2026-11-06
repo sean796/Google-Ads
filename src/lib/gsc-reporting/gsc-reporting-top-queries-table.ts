@@ -98,7 +98,7 @@ export function buildGscTopQueriesMarkdownTable(csvContent: string, compareLabel
           posCompare: c?.position ?? 0,
         };
       })
-      .sort((a, b) => b.clicks - a.clicks || b.impressions - a.impressions)
+      .sort((a, b) => b.clk - a.clk || b.imp - a.imp)
       .slice(0, TOP_QUERY_ROW_LIMIT);
     if (merged.length === 0) return "";
     return renderTopQueriesTable(merged, compareLabel);

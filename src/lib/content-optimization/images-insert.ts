@@ -154,8 +154,8 @@ export function insertMediaLinkIntoSection(
   }
 
   const linkMarkdown = asImage
-    ? `![${label.replace(/[\[\]]/g, "")}](${mediaUrl})`
-    : `[${label.replace(/[\[\]]/g, "")}](${mediaUrl})`;
+    ? `![${label.replace(/[[\]]/g, "")}](${mediaUrl})`
+    : `[${label.replace(/[[\]]/g, "")}](${mediaUrl})`;
   const lines = markdownContent.split("\n");
   const searchStart = sectionHeading.toLowerCase().substring(0, Math.min(30, sectionHeading.length));
   let insertIndex = -1;

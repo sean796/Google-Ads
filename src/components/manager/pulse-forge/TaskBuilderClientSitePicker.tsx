@@ -1,8 +1,8 @@
 import React, { useMemo } from "react";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import type { WordPressSiteOption } from "@/components/manager/tasks/NewProjectDialog";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui";
+import { Button, Checkbox } from "@/ui";
 
 export type TaskBuilderClientSitePickerProps = {
   sites: WordPressSiteOption[];

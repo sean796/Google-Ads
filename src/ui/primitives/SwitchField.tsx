@@ -1,4 +1,4 @@
-import { Switch } from "@/components/ui/switch";
+import { Switch } from "@/ui/vendor/switch";
 import { cn } from "@/lib/utils";
 import { UI_SWITCH } from "@/ui/tokens";
 

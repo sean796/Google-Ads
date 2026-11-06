@@ -1,4 +1,5 @@
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { PULSE_AGENT_REGISTRY, type PulseRegisteredAgentEntry } from "@/lib/agent-pipeline/pulse-agent-registry";
 import type { AgentOpenRouterCategory } from "@/lib/openrouter-agent-category-api";
 import { resolveModelForAgentCategory } from "@/lib/openrouter-agent-category-api";
@@ -167,6 +168,7 @@ export async function fetchAgentLibraryState(): Promise<AgentLibraryServerPayloa
   const res = await fetch(backendApiUrl("/agent-library"), {
     method: "GET",
     credentials: "include",
+    headers: neoPulseApiHeaders(),
   });
   const data = (await res.json()) as AgentLibraryServerPayload;
   if (!res.ok || !data.ok) {
@@ -182,7 +184,7 @@ export async function toggleAgentLibraryEntry(
   const res = await fetch(backendApiUrl("/agent-library/toggle"), {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ agentId, enabled }),
   });
   const data = (await res.json()) as AgentLibraryServerPayload;
@@ -199,7 +201,7 @@ export async function saveAgentLibrarySettings(params: {
   const res = await fetch(backendApiUrl("/agent-library/settings"), {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(params),
   });
   const data = (await res.json()) as AgentLibraryServerPayload;

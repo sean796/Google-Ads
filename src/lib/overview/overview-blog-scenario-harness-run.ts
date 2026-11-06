@@ -1,13 +1,11 @@
 import type { Dispatch, SetStateAction } from "react";
+import { harnessStepProgress, mergeOverviewHarnessProgress, mergeOverviewHarnessProgressSiteAndBatch } from "@/lib/overview/overview-harness-progress";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import type { AiseoCacheWriteAccumulator } from "@/lib/overview/overview-aiseo-cache-write";
 import type { AiseoAfterRowWriteFn } from "@/lib/overview/overview-aiseo-after-upload";
-import {
-  mergeHarnessProgressSiteAndBatch,
-  setOptimizingState,
-} from "@/hooks/content-optimization/optimization-helpers-a";
-import { mergeOptimizationProgress } from "@/hooks/content-optimization/optimization-helpers";
+import { setOptimizingState } from "@/hooks/content-optimization/optimization-helpers-a";
+
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import { initOverviewBulkHarnessPagination, setOverviewBulkHarnessPageState } from "@/lib/overview/overview-bulk-page-state";
 import { mapOverviewAiCopyWithConcurrency } from "@/lib/overview/overview-ai-copy-concurrency";
@@ -64,7 +62,7 @@ export function initOverviewScenarioHarnessBatchState(params: {
 
   setOptimizingState(setIsOptimizingContent, batchKey, true);
   setOptimizationProgress((prev) =>
-    mergeOptimizationProgress(prev as Record<string, unknown>, site.id, {
+    mergeOverviewHarnessProgress(prev as Record<string, unknown>, site.id, {
       step: "Case scenario",
       progress: 2,
       message: prepMessage,
@@ -85,13 +83,13 @@ export function initOverviewScenarioHarnessBatchState(params: {
       harnessStartedAt: Date.now(),
       urlHarnessSections: {},
       urlGeneratedFiles: {},
-      currentStepProgress: {
+      currentStepProgress: harnessStepProgress(undefined, {
         step: "Case scenario",
         progress: 2,
         message: prepMessage,
         harnessSections: [],
         harnessPlannedSectionCount: 1,
-      },
+      }),
     },
   }));
   initOverviewBulkHarnessPagination(batchKey, urls.length, setBulkOptimizationState);
@@ -117,7 +115,7 @@ export function initOverviewScenarioHarnessRowState(params: {
 
   setOptimizingState(setIsOptimizingContent, batchKey, true);
   setOptimizationProgress((prev) =>
-    mergeOptimizationProgress(prev as Record<string, unknown>, site.id, {
+    mergeOverviewHarnessProgress(prev as Record<string, unknown>, site.id, {
       step: "Case scenario",
       progress: 5,
       message: "Case scenario…",
@@ -138,13 +136,13 @@ export function initOverviewScenarioHarnessRowState(params: {
       harnessStartedAt: Date.now(),
       urlHarnessSections: {},
       urlGeneratedFiles: {},
-      currentStepProgress: {
+      currentStepProgress: harnessStepProgress(undefined, {
         step: "Case scenario",
         progress: 5,
         message: "Case scenario…",
         harnessSections: [],
         harnessPlannedSectionCount: 1,
-      },
+      }),
     },
   }));
 
@@ -161,7 +159,7 @@ export function finalizeOverviewScenarioHarnessBatch(
   setOptimizationProgress((prev) => {
     const next = { ...(prev as Record<string, unknown>) };
     delete next[batchKey];
-    mergeHarnessProgressSiteAndBatch(next, siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(next, siteId, {
       step: "Complete",
       progress: 100,
       message: "Case scenario batch finished",

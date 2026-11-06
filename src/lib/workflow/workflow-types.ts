@@ -1,6 +1,7 @@
 import type { TaskExecutionKind, TaskExecutionPayload, TaskRecurrenceRule } from "@/lib/tasks-types";
 import type { TaskTriggerConfig, TaskTriggerSource } from "@/lib/task-trigger-types";
 import type { AgentRunRecipeKey } from "@/lib/agent-runs-types";
+import type { AutomationRecipeBucket } from "@/lib/automation-recipes-types";
 
 export type WorkflowStatus = "draft" | "published";
 
@@ -79,7 +80,7 @@ export type WorkflowCalendarTriggerConfig = {
 export type WorkflowGscTriggerConfig = {
   source: TaskTriggerSource;
   triggerConfig: TaskTriggerConfig;
-  targetBucket?: string;
+  targetBucket?: AutomationRecipeBucket;
 };
 
 export type WorkflowDocumentTriggerConfig = {

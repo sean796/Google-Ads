@@ -8,7 +8,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const SEED_PATH = path.join(REPO_ROOT, "src/components/integrations/default-properties-seed.json");
 const BASE = (process.env.NEO_PULSE_BASE || "http://127.0.0.1:8080").replace(/\/$/, "");
 
 /** Exact verified coordinates for every client location. */
@@ -99,15 +98,11 @@ function haversineMiles(lat1, lng1, lat2, lng2) {
 }
 
 async function main() {
-  const seed = JSON.parse(fs.readFileSync(SEED_PATH, "utf8")).sites || [];
+  // Wave 0: server mirror only. No bundled seed. Empty mirror fails visibly.
   const loadRes = await fetch(`${BASE}/api/manager-wordpress-properties/load?_=${Date.now()}`).then((r) => r.json());
-  const sites = (loadRes.sites && loadRes.sites.length > 0 ? loadRes.sites : seed);
-
-  // Ensure Shutter Spot is included if missing from server load
-  for (const s of seed) {
-    if (!sites.some((x) => x.id === s.id || x.siteUrl === s.siteUrl)) {
-      sites.push(s);
-    }
+  const sites = loadRes.sites || [];
+  if (sites.length === 0) {
+    throw new Error("Server site mirror returned no sites. Confirm the hub session and /api/manager-wordpress-properties/load before running this script.");
   }
 
   for (const site of sites) {

@@ -254,6 +254,10 @@ describe("resolve-google-drive-folder helpers", () => {
 
   it("extracts folder ids from workflow outputs", () => {
     const output: WorkflowStepOutput = {
+      id: 1,
+      runId: 1,
+      nodeId: "node-1",
+      createdAt: "2026-01-01T00:00:00.000Z",
       variableKey: "upstream_folder",
       label: "Folder",
       scope: "run",

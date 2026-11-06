@@ -127,14 +127,14 @@ export function generateExcerpt(markdown: string, maxLength: number = 155): stri
   }
   
   // Remove markdown headers, code blocks, and links for excerpt
-  let text = markdown
+  const text = markdown
     .replace(/^#+\s+/gm, '') // Remove headers
     .replace(/```[\s\S]*?```/g, '') // Remove code blocks
     .replace(/`[^`]+`/g, '') // Remove inline code
-    .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Convert links to text
-    .replace(/!\[([^\]]*)\]\([^\)]+\)/g, '') // Remove images
-    .replace(/\*\*([^\*]+)\*\*/g, '$1') // Remove bold
-    .replace(/\*([^\*]+)\*/g, '$1') // Remove italic
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Convert links to text
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '') // Remove images
+    .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove bold
+    .replace(/\*([^*]+)\*/g, '$1') // Remove italic
     .trim();
   
   // Split into paragraphs

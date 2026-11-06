@@ -18,7 +18,7 @@ describe("meta-ad-deliverable-files", () => {
         primaryText: "Grow locally.",
         headline: "Edmonton SEO",
         description: "Local search",
-        cta: "LEARN_MORE",
+        cta: "Learn More",
         finalUrl: "https://example.com",
       },
       imagePromptDescription: "# Image prompt",

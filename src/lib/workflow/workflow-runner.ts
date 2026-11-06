@@ -26,7 +26,10 @@ import {
   resolveWorkflowRunStart,
   resolveWorkflowTestWalkStart,
 } from "@/lib/workflow/workflow-graph-utils";
-import type { WorkflowClientConfig } from "@/lib/workflow/workflow-types";
+import type {
+  WorkflowClientConfig,
+  WorkflowStepOutputFileRef,
+} from "@/lib/workflow/workflow-types";
 import {
   completeParallelWorkflowChain,
   clearParallelWorkflowChains,
@@ -91,7 +94,7 @@ export async function runNextWorkflowAgentStep(
   teamId: number,
   agentRun: AgentRun,
   callbacks: WorkflowRunCallbacks,
-  gridFileRefs?: { name: string; url: string; mime?: string }[],
+  gridFileRefs?: WorkflowStepOutputFileRef[],
 ): Promise<void> {
   const binding = readWorkflowAgentBinding(agentRun);
   if (!binding) {
@@ -346,7 +349,7 @@ export async function executeWorkflowRun(
   }
 
   const runValidation = validateWorkflowForRun(workflow);
-  if (!runValidation.ok) return { ok: false, error: runValidation.error };
+  if (runValidation.ok === false) return { ok: false, error: runValidation.error };
 
   const runStart = callbacks.skipSetupSteps
     ? resolveWorkflowTestWalkStart(workflow)

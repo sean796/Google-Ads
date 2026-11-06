@@ -3,7 +3,7 @@ import { Copy, Download } from "lucide-react";
 import { BlogGeneratorTabHeader } from "@/components/keyword-research/BlogGeneratorTabHeader";
 import { BLOG_GENERATOR_TAB_ROOT_CLASS } from "@/components/keyword-research/blog-generator-tab-classes";
 import { BulkHarnessSectionsPanel } from "@/components/keyword-research/bulk/BulkHarnessSectionsPanel";
-import { getStoredSites } from "@/components/IntegrationsTab";
+import { getStoredSites } from "@/components/integrations/storage";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { PressReleaseWorkspaceBindings } from "@/components/press-release/press-release-workspace-bindings";
 import { getPublicSiteUrl } from "@/lib/wordpress-site-public-url";
@@ -271,7 +271,7 @@ export function PressReleaseTab({
           apiKey: openRouterApiKey.trim(),
         });
         console.log(
-          `%c[Decision Agent] 📰 Press Release QA complete: ${decisionState.terminalState} (Score: ${(Number(decisionState.qaScore ?? 0.85) * 100).toFixed(0)}%)`,
+          `%c[Decision Agent] 📰 Press Release QA complete: ${decisionState.terminalState}`,
           "color: #84bc00; font-weight: bold;",
           decisionState,
         );

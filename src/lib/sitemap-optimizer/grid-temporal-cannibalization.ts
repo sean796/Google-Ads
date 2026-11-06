@@ -95,7 +95,7 @@ export function temporalPillarOutline(
 }
 
 export function isTemporalCannibalizationCluster(
-  cluster: Pick<SitemapOptimizerCluster, "clusterId" | "rationale">,
+  cluster: Pick<SitemapOptimizerCluster, "clusterId"> & { rationale?: string },
 ): boolean {
   return (
     cluster.clusterId.startsWith("grid-temporal-") ||

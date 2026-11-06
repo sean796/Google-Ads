@@ -14,10 +14,10 @@ import {
 } from "@/components/overview/overview-tab/overview-tab-content-constants";
 import { metaDisplayTitle, overviewRowDateLabel } from "@/lib/overview/overview-tab-display";
 import { overviewGridFocusKeywordLabel } from "@/lib/overview/focus-keyword-from-wp-sources";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { DASHBOARD_LIST_CHECKBOX_CLASS } from "@/components/shared/workspace-checkbox-styles";
 import { cn } from "@/lib/utils";
-import { Field } from "@/ui";
+import { Field, Checkbox } from "@/ui";
 
 export interface MetaOptimizerPageRowCompactProps {
   row: OverviewRow;

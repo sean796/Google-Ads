@@ -1,6 +1,25 @@
 import { useEffect, useRef } from "react";
 import { postChatCallTranscript } from "@/lib/chat-call-api";
 
+// Minimal Web Speech API surface used here (not in the TS DOM lib).
+interface SpeechRecognitionEvent extends Event {
+  resultIndex: number;
+  results: {
+    length: number;
+    [index: number]: { isFinal: boolean; [index: number]: { transcript: string } };
+  };
+}
+
+interface SpeechRecognition {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+}
+
 type SpeechRecognitionCtor = new () => SpeechRecognition;
 
 function getSpeechRecognition(): SpeechRecognitionCtor | null {

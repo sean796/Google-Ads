@@ -75,6 +75,7 @@ class Neo_Pulse_App_Loader {
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/storage/class-neo-pulse-data-paths.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/storage/class-json-file-store.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/http/class-http-transient-retry.php';
+		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/http/class-ssrf-guard.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/router/class-api-dispatcher.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/webhook/class-chekkit-webhook.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/agentmail/class-agentmail-api.php';
@@ -187,6 +188,8 @@ class Neo_Pulse_App_Loader {
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/tasks/class-tasks-assignments.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/tasks/class-tasks-assets.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/tasks/class-tasks-route-handlers.php';
+		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/prompt-traces/class-prompt-traces-store.php';
+		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/prompt-traces/class-prompt-trace-route-handlers.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/agent-runs/class-agent-runs-recipe-registry.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/agent-runs/class-agent-runs-store.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/agent-runs/class-agent-runs-artifacts.php';
@@ -312,8 +315,6 @@ class Neo_Pulse_App_Loader {
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/seo/class-page-address-llm.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/seo/class-seo-http.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/seo/class-seo-route-handlers.php';
-		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/emcp/class-emcp-site-client.php';
-		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/emcp/class-emcp-route-handlers.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/agent-library/class-agent-library-route-handlers.php';
 
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/vertical-benchmark/class-vertical-benchmark-taxonomy.php';

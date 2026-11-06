@@ -30,7 +30,7 @@ export function resolveClientReportSiteIdFromRoute(
   if (isWordPressIntegrationsSiteId(segment)) return segment;
   const slug = segment.toLowerCase();
   for (const site of sites) {
-    const name = (site.name ?? site.siteName ?? "").trim();
+    const name = (site.name ?? "").trim();
     if (name && clientReportSitePathSegmentFromDisplayName(name) === slug) {
       return site.id;
     }

@@ -19,8 +19,10 @@ describe("linearExecutableTailNodes", () => {
       id: 1,
       teamId: 1,
       name: "GSC pipeline",
+      status: "draft",
       nodes: [trigger],
       edges: [],
+      ragVariables: [],
       createdAt: "",
       updatedAt: "",
     };
@@ -50,8 +52,10 @@ describe("linearExecutableTailNodes", () => {
       id: 1,
       teamId: 1,
       name: "Audit pipeline",
+      status: "draft",
       nodes: [client],
       edges: [],
+      ragVariables: [],
       createdAt: "",
       updatedAt: "",
     };

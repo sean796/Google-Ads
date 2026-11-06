@@ -16,23 +16,16 @@ export const NEO_PULSE_LLM_TEMPERATURE_KEY = "neo-pulse-llm-temperature";
 export const NEO_PULSE_LLM_MAX_TOKENS_KEY = "neo-pulse-llm-max-tokens";
 export const NEO_PULSE_LLM_TOP_P_KEY = "neo-pulse-llm-top-p";
 
-const MANAGER_TAB_STORAGE_KEY = "neo-pulse-manager-tab";
 const STORED_BLUEPRINTS_KEY = "stored-blueprints";
 
 const EXACT_LOCAL_KEYS = [
-  "openrouter-api-key",
-  "dataforseo-api-key",
-  "semrush-api-key",
-  "agentmail-api-key",
-  "agentmail-general-email",
-  "slack-bot-token",
-  "slack-global-settings",
+  // Wave 0: secret keys are never snapshotted to the server. They live in
+  // server env / wp-config constants only.
   WORDPRESS_SITES_STORAGE_KEY,
   WORDPRESS_BENCHMARK_CATEGORY_TAGS_KEY,
   KB_FILES_STORAGE_KEY,
   "kb_profiles",
   MANAGER_SETTINGS_CLUSTER_KEY,
-  MANAGER_TAB_STORAGE_KEY,
   "global_research_model",
   "primaryColor",
   STORED_BLUEPRINTS_KEY,

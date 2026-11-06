@@ -1,5 +1,6 @@
 import { BACKEND_API_BASE } from "./connection";
 import type { OptimizationActivityCountsResult } from "./types";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 export async function fetchOptimizationActivityCounts(payload: {
   siteUrl: string;
@@ -14,7 +15,7 @@ export async function fetchOptimizationActivityCounts(payload: {
 
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       siteUrl: payload.siteUrl,
       username: payload.username,

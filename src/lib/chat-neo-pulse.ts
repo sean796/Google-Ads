@@ -22,6 +22,14 @@ export function isNeoPulseBotMember(
 /** @deprecated Use isNeoPulseBotMember */
 export const isFloMember = isNeoPulseBotMember;
 
+export function isNeoPulseBotDisplayName(displayName: string): boolean {
+  const normalized = displayName.trim().toUpperCase();
+  return normalized === NEO_PULSE_BOT_DISPLAY_NAME.toUpperCase() || normalized === "FLO";
+}
+
+/** @deprecated Use isNeoPulseBotDisplayName */
+export const isFloDisplayName = isNeoPulseBotDisplayName;
+
 export function pulseMemberUserId(
   members: Pick<TeamMember, "email" | "isBot" | "displayName" | "userId">[],
 ): number | null {

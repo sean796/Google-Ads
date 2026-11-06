@@ -1,16 +1,17 @@
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/ui";
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider } from "@/contexts/AuthProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
-import { HashAuthRedirect } from "@/components/HashAuthRedirect";
-import { TeamProvider } from "@/contexts/TeamContext";
+import { HashAuthRedirect } from "@/components/LegacyHashRedirect";
+import { TeamProvider } from "@/contexts/TeamProvider";
 import { WordPressSitesProvider } from "@/hooks/use-wordpress-sites";
-import { ActiveWordPressSiteProvider } from "@/contexts/active-wordpress-site-context";
+import { ActiveWordPressSiteProvider } from "@/contexts/ActiveWordPressSiteProvider";
 import { SitesHydrate } from "@/components/integrations/SitesHydrate";
 import MobileAppPage from "./pages/MobileAppPage";
 

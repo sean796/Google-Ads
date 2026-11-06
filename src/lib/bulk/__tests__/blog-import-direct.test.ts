@@ -161,7 +161,7 @@ describe("Direct OpenRouter meta", () => {
     mockCall.mockImplementation(async ({ user }) => {
       if (String(user).includes("1 of 2")) {
         return {
-          content: metaJson({
+          raw: null, content: metaJson({
             title: "Succession Planning: Ownership Versus Management, Pt 1",
             keyword: "succession planning",
             slug: "succession-planning-ownership-versus-management-pt1",
@@ -169,7 +169,7 @@ describe("Direct OpenRouter meta", () => {
         };
       }
       return {
-        content: metaJson({
+        raw: null, content: metaJson({
           title: "Succession Planning: Employee Retention And Continuity, Pt 2",
           keyword: "succession planning",
           slug: "succession-planning-employee-retention-continuity-pt2",
@@ -207,7 +207,7 @@ describe("Direct OpenRouter meta", () => {
 
   it("parses each file's links into that row's Links field", async () => {
     mockCall.mockResolvedValue({
-      content: metaJson({
+      raw: null, content: metaJson({
         title: "Succession Planning: Ownership Versus Management, Pt 1",
         keyword: "succession planning",
         slug: "succession-planning-pt1",
@@ -255,7 +255,7 @@ Click [here](https://kwbllp.com/consultation/) to book an introductory discussio
     mockCall.mockImplementation(async ({ user }) => {
       if (String(user).includes("part-1.md")) {
         return {
-          content: metaJson({
+          raw: null, content: metaJson({
             title: "First Post",
             keyword: "first post",
             slug: "first-post",
@@ -264,7 +264,7 @@ Click [here](https://kwbllp.com/consultation/) to book an introductory discussio
         };
       }
       return {
-        content: metaJson({
+        raw: null, content: metaJson({
           title: "Second Post",
           keyword: "second post",
           slug: "second-post",
@@ -299,7 +299,7 @@ Click [here](https://kwbllp.com/consultation/) to book an introductory discussio
 
   it("keeps featured image off when Import mode is n", async () => {
     mockCall.mockResolvedValue({
-      content: metaJson({
+      raw: null, content: metaJson({
         title: "First Post",
         keyword: "first post",
         slug: "first-post",

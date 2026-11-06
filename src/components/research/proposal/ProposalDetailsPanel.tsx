@@ -11,7 +11,6 @@ import {
   WorkspaceDetailsSection,
   WorkspaceDetailsStack,
 } from "@/components/shared/WorkspaceDetailsStack";
-import { workspaceDetailsCanOpen } from "@/lib/workspace/workspace-details-can-open";
 import { Button } from "@/ui";
 
 export type ProposalDetailsPanelProps = {
@@ -31,14 +30,6 @@ export type ProposalDetailsPanelProps = {
   hasSapScheduleRows: boolean;
   onDownloadEntitySapCsv: () => void;
 };
-
-export function proposalDetailsCanOpen(
-  busy: boolean,
-  hasGrid: boolean,
-  hasError: boolean,
-): boolean {
-  return workspaceDetailsCanOpen(busy, hasGrid, hasError);
-}
 
 export function ProposalDetailsPanel({
   workspaceMode,

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { BulkGeneratedFile } from "@/lib/bulk-file-manager";
 import type { CSVRow } from "@/lib/bulk-auto-generate";
-import { CONTENT_OPTIMIZER_BULK_PAGE_SIZE } from "@/lib/content-optimizer/content-optimizer-bulk-page-size";
+import { CONTENT_OPTIMIZER_BULK_PAGE_SIZE } from "@/lib/content-optimization/content-optimizer-bulk-page-size";
 import {
   buildSitemapMergeBulkState,
   isEntityCompressionRunResult,
@@ -43,6 +43,9 @@ describe("sitemap-merge-bulk-state", () => {
       id: "1",
       name: "Site",
       siteUrl: "https://example.com",
+      username: "u",
+      appPassword: "p",
+      connectedAt: 0,
       entitySitemapUrl: "https://example.com/service-area-sitemap.xml",
     } satisfies WordPressSite;
     expect(resolveSitemapMergeSitemapType(site, true)).toBe("entity");

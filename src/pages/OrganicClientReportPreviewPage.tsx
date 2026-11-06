@@ -143,8 +143,10 @@ export default function OrganicClientReportPreviewPage() {
   }, [
     payload?.clientLogoUrl,
     payload?.siteName,
+    payload?.siteId,
     reportSite?.clientLogoUrl,
     reportSite?.name,
+    reportSite?.id,
     querySiteId,
     resolvedSiteId,
     routeSiteSegment,

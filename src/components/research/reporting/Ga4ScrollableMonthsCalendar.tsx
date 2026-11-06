@@ -8,8 +8,8 @@ import {
   ga4CalendarSpan,
 } from "@/lib/reporting/ga4-calendar-month-span";
 import { cn } from "@/lib/utils";
-// eslint-disable-next-line no-restricted-imports -- Pulse UI exception: react-day-picker day cell reuses the shadcn ghost button classes
-import { buttonVariants } from "@/components/ui/button";
+import { vendorButtonVariants as buttonVariants } from "@/ui";
+
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"] as const;
 

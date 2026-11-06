@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { RefreshCw } from "lucide-react";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_GOAL_PROMPT_UPDATED } from "@/lib/notify-messages";
 import { cn } from "@/lib/utils";
@@ -14,7 +14,7 @@ import {
   WorkspaceNestedInput,
   WorkspaceNestedTextarea,
 } from "@/components/seo/WorkspaceNestedField";
-import { Button, TextareaField } from "@/ui";
+import { Button, TextareaField, RadioGroup, RadioGroupItem } from "@/ui";
 
 export type FlowFreeformBodyProps = {
   flowTitle: string;
@@ -234,5 +234,3 @@ export function FlowFreeformBody({
     </div>
   );
 }
-
-export { CLARIFY_MERGE_SEP };

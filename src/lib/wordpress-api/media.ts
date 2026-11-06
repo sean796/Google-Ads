@@ -5,6 +5,7 @@
 
 import { BACKEND_CONNECTION_ERROR, backendApiUrl } from './connection';
 import type { WordPressMediaUploadResult } from './types';
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 /**
  * Upload media to WordPress Media Library
@@ -35,9 +36,7 @@ export async function uploadWordPressMedia(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         username,
@@ -92,7 +91,7 @@ export async function listWordPressMedia(
   const url = backendApiUrl('/wordpress/list-media');
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ siteUrl, username, appPassword, maxItems }),
   });
   const data = await response.json().catch(() => ({}));

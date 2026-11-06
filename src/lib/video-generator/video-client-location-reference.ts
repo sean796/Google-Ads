@@ -89,7 +89,7 @@ export function splitReferenceStillDurations(
   const base = Math.floor(totalSeconds / sceneCount);
   const rem = totalSeconds % sceneCount;
   const durations = Array.from({ length: sceneCount }, (_, i) => (i < rem ? base + 1 : base));
-  let total = durations.reduce((sum, d) => sum + d, 0);
+  const total = durations.reduce((sum, d) => sum + d, 0);
   if (total !== totalSeconds) {
     durations[durations.length - 1] += totalSeconds - total;
   }

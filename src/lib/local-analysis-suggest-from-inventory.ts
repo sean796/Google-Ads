@@ -527,7 +527,7 @@ ${formatEntityTaxonomyForPrompt(egLevel, entityTypeFocusRows)}
 
   const entityHintCommaFragment = hasWikiPool
     ? useCityEntityScope
-      ? " **Use only \`###\` article titles** from the Wikipedia granular block - those pages were resolved via Wikipedia first; **do not** substitute CSV address text."
+      ? " **Use only `###` article titles** from the Wikipedia granular block - those pages were resolved via Wikipedia first; **do not** substitute CSV address text."
       : ` **Wikipedia \`###\` titles** may inform **entityHint** when they match **${entityLevelLabel(egLevel)}** scale; otherwise use CLIENT MASTER INSTRUCTIONS, grid, and business context.`
     : csvRaw.length > 0
       ? useCityEntityScope
@@ -539,7 +539,7 @@ ${formatEntityTaxonomyForPrompt(egLevel, entityTypeFocusRows)}
 
   const rulesParagraph5 = useCityEntityScope
     ? hasWikiPool
-      ? "**when the Wikipedia block is present, each entityHint must be exactly one of the \`###\` article titles** in that block (existing Wikipedia pages only), still grid-bounded - **prefer the most specific sub-metro title** (neighbourhood / district / street / landmark) over a whole-city line when both fit. "
+      ? "**when the Wikipedia block is present, each entityHint must be exactly one of the `###` article titles** in that block (existing Wikipedia pages only), still grid-bounded - **prefer the most specific sub-metro title** (neighbourhood / district / street / landmark) over a whole-city line when both fit. "
       : "**never** use a bare **City, Province** or whole-city **City, ST** umbrella when the CSV or markdown shows streets, neighbourhoods, or districts - **never** **Alberta** / province-only - only **grid-bounded** hyperlocal labels from the attachments. "
     : masterRulesPresent
       ? `**entityHint** at **${entityLevelLabel(egLevel)}** scale - use taxonomy types; ground in CLIENT MASTER INSTRUCTIONS, business name, website, and grid when present. **Do not** put geography in **keyword**. `

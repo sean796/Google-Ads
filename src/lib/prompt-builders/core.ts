@@ -289,7 +289,7 @@ ${FORBIDDEN_WORDS_USER_PROMPT_REMINDER}`;
         : "";
     const prInternalLinkRule =
       contentKind === "press_release"
-        ? "\n**INTERNAL LINKS**: Include at least 2 [[LINK:query|anchor]] placeholders in this section, woven into complete sentences. Query is PAGES or BLOG POSTS title words, never a raw URL. Forbidden: markdown [text](https://...) to third-party or competitor URLs; raw https:// internal URLs."
+        ? "\n**INTERNAL LINKS**: Include [[LINK:query|anchor]] placeholders where a relevant internal page supports the text, woven into complete sentences. Query is PAGES or BLOG POSTS title words, never a raw URL. Forbidden: markdown [text](https://...) to third-party or competitor URLs; raw https:// internal URLs."
         : "";
     const harnessBodyContract =
       contentKind !== "press_release" &&
@@ -378,7 +378,7 @@ ${illustrativeHarnessContract}
       !hasFAQFeature
         ? `\n${INTERNAL_LINKS_PER_SECTION_RULE}`
         : "";
-    contentInstruction = `[Write content in HTML. Based on: ${agent.description}${agent.features.length > 0 ? `\nKey points: ${featureInstructions}` : ''}${harnessBodyContract}${authenticityNote}${harnessHeadingTitleCaseNote}${laterSectionOpeningNote}${illustrativeBlockquoteNote}${nonIllustrativeHypotheticalBan}${firstAgentSpecialInstructions}${harnessScopeNote}${harnessKeywordNote}${harnessBodyInternalLinksNote}${harnessLabeledListNote}${sublistPreventionNote}${listFormatNote}${quoteFormatNoteHtml} Use <${hTag}>, <p>, <ul><li>, <ol><li>, <table>, <blockquote><p>. Same-site links MUST be [[LINK:query|anchor]] placeholders only (from PAGES and BLOG POSTS / LINK TARGETS PLAN). FORBIDDEN: raw same-site <a href=\"https://...\"> and homepage-only links. External Wikipedia only when explicitly allowed. NEVER markdown, never **asterisks**, never a keyword or [[LINK]] after the final period or as the last words of a sentence. After a period, capitalize the next sentence. Never wrap a quote with the word blockquote.]`;
+    contentInstruction = `[Write content in HTML. Based on: ${agent.description}${agent.features.length > 0 ? `\nKey points: ${featureInstructions}` : ''}${harnessBodyContract}${authenticityNote}${harnessHeadingTitleCaseNote}${laterSectionOpeningNote}${illustrativeBlockquoteNote}${nonIllustrativeHypotheticalBan}${firstAgentSpecialInstructions}${harnessScopeNote}${harnessKeywordNote}${harnessBodyInternalLinksNote}${harnessLabeledListNote}${sublistPreventionNote}${listFormatNote}${quoteFormatNoteHtml} Use <${hTag}>, <p>, <ul><li>, <ol><li>, <table>, <blockquote><p>. Same-site links MUST be [[LINK:query|anchor]] placeholders only (from PAGES and BLOG POSTS / LINK TARGETS PLAN). FORBIDDEN: raw same-site <a href="https://..."> and homepage-only links. External Wikipedia only when explicitly allowed. NEVER markdown, never **asterisks**, never a keyword or [[LINK]] after the final period or as the last words of a sentence. After a period, capitalize the next sentence. Never wrap a quote with the word blockquote.]`;
   }
 
   let sectionPrompt =

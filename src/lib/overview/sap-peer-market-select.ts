@@ -7,7 +7,7 @@
 import type { WordPressSite } from "@/components/integrations/types";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { parseJsonObjectFromModelText } from "@/lib/openrouter-vision-chat";
-import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
+import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
 
 export type SapPeerMarketPeerInput = Pick<
   WordPressSite,
@@ -211,9 +211,8 @@ async function openRouterResolveMarketCity(params: {
     'Return JSON: {"city":"Edmonton"}',
   ].join("\n");
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  const response = await postOpenRouterAppChatFetch({
     method: "POST",
-    headers: openRouterWebAppHeaders(params.apiKey.trim()),
     body: JSON.stringify({
       model: params.model,
       messages: [
@@ -270,9 +269,8 @@ async function openRouterSameCityPeersJson(params: {
     'Return JSON: {"siteIds":["id1","id2"]} — every peer in Market city.',
   ].join("\n");
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  const response = await postOpenRouterAppChatFetch({
     method: "POST",
-    headers: openRouterWebAppHeaders(params.apiKey.trim()),
     body: JSON.stringify({
       model: params.model,
       messages: [
@@ -315,7 +313,7 @@ export async function resolveMarketCityForPlaceEntity(params: {
   if (!placeEntity || !params.apiKey?.trim()) return "";
 
   const writeSiteNapCities = params.writeSite ? napCitiesFromSite(params.writeSite) : [];
-  let marketCity = marketCityFromWriteSiteHints(placeEntity, writeSiteNapCities);
+  const marketCity = marketCityFromWriteSiteHints(placeEntity, writeSiteNapCities);
   if (marketCity) return marketCity;
 
   const model = params.model?.trim() || getResearchModel();
@@ -328,7 +326,6 @@ export async function resolveMarketCityForPlaceEntity(params: {
     });
   } catch (err) {
     // #region agent log
-    fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'sitemap-city',hypothesisId:'A',location:'sap-peer-market-select.ts:city-error',message:'OpenRouter market city failed',data:{placeEntity:placeEntity.slice(0,120),error:String(err instanceof Error?err.message:err).slice(0,160)},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
     return "";
   }
@@ -380,7 +377,6 @@ export async function selectSameMarketPeerSites(params: {
     });
 
     // #region agent log
-    fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'city-first',hypothesisId:'A',location:'sap-peer-market-select.ts:market-city',message:'Resolved market city from place entity',data:{placeEntity:placeEntity.slice(0,120),marketCity,peersWithNap},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
 
     let raw: Record<string, unknown> = {};
@@ -395,7 +391,6 @@ export async function selectSameMarketPeerSites(params: {
         });
       } catch (err) {
         // #region agent log
-        fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'city-first',hypothesisId:'A',location:'sap-peer-market-select.ts:openrouter-error',message:'OpenRouter same-city peers failed',data:{placeEntity:placeEntity.slice(0,120),marketCity,error:String(err instanceof Error?err.message:err).slice(0,160)},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
         raw = {};
       }
@@ -411,7 +406,6 @@ export async function selectSameMarketPeerSites(params: {
     }
 
     // #region agent log
-    fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'city-first',hypothesisId:'A',location:'sap-peer-market-select.ts:resolved',message:'Same-city peer ids resolved',data:{placeEntity:placeEntity.slice(0,120),marketCity,peerCount:peers.length,peersWithNap,openRouterCount,rawSiteIds:Array.isArray(raw.siteIds)?raw.siteIds.slice(0,20):typeof raw.siteIds,resolvedCount:ids.length,source,sampleNap:rows.slice(0,8).map((r)=>({id:r.id,cities:r.napCities.slice(0,3)}))},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
     if (ids.length > 0) {
       selectionCache.set(cacheKey, ids);

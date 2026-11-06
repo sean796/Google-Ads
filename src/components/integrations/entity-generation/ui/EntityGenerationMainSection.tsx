@@ -6,13 +6,13 @@ import React from "react";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_FAILED_TO_COPY, NOTIFY_FAILED_TO_COPY_TO_CLIPBOARD, NOTIFY_ORIGINS_COPIED_TO_CLIPBOARD, NOTIFY_ORIGIN_COPIED } from "@/lib/notify-messages";
 import { Copy, ExternalLink, X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+
 import type { WikipediaSource } from "@/lib/entity/decide-wikipedia-source-ai";
 import type { WordPressSite } from "../../types";
 import type { CriteriaData, RadiusDistancePreset } from "../types";
 import type { EntityGenerationProgress } from "../hooks/useEntityGeneration";
 import { RADIUS_PRESET_MILES } from "@/lib/entity/radius-filter";
-import { Button, Field, RowButton, TextButton, SelectField } from "@/ui";
+import { Button, Field, RowButton, TextButton, SelectField, Badge } from "@/ui";
 
 function wikipediaSourceKey(s: WikipediaSource): string {
   return `${s.type}:${s.title}`;

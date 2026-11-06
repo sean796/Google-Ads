@@ -162,7 +162,7 @@ function transform(path) {
       if (ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) if (ts.isIdentifier(d.name)) declared.add(d.name.text);
     }
   }
-  const fromUi = (name, suffix) => importedFrom.get(name)?.endsWith(`/components/ui/${suffix}`);
+  const fromUi = (name, suffix) => importedFrom.get(name)?.endsWith(`/ui/vendor/${suffix}`);
   const canUse = (name) => !declared.has(name) && (!importedFrom.has(name) || importedFrom.get(name) === "@/ui");
 
   const hasButtonVariants = importedFrom.has("buttonVariants");
@@ -392,7 +392,7 @@ function fixImports(text, path, need) {
     const mod = st.moduleSpecifier.text;
     const nb = st.importClause.namedBindings;
     if (mod === "@/ui" && nb && ts.isNamedImports(nb) && !st.importClause.isTypeOnly) uiImport = st;
-    const isShadcn = SHADCN_MODULES.some((m) => mod.endsWith(`/components/ui/${m}`));
+    const isShadcn = SHADCN_MODULES.some((m) => mod.endsWith(`/ui/vendor/${m}`));
     const isLucide = mod === "lucide-react";
     if ((isShadcn || isLucide) && nb && ts.isNamedImports(nb)) {
       const keep = nb.elements.filter((e) => used.has(e.name.text) || (isLucide && !["Loader2", "Loader"].includes(e.name.text)));

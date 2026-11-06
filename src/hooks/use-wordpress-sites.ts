@@ -52,10 +52,7 @@ import {
   invalidateEntitySiteWarmCacheIfCredentialsChanged,
   warmEntitySiteCache,
 } from "@/lib/local-analysis/entity-site-warm-cache";
-import {
-  normalizeClientLogoBoxTheme,
-  resetOrganicClientReportPropertyBrandingCache,
-} from "@/lib/organic-dashboard/organic-client-report-property-branding";
+import { normalizeClientLogoBoxTheme } from "@/lib/organic-dashboard/organic-client-report-property-branding";
 
 /** Default list order: site name A-Z (case-insensitive), then URL, then id. */
 function compareWordPressSitesByDisplayName(a: WordPressSite, b: WordPressSite): number {
@@ -988,7 +985,7 @@ function useWordPressSitesState() {
         return updated;
       });
     }
-  }, [sites]);
+  }, []);
 
   const handleCheckFuturePosts = useCallback(async (site: WordPressSite, childSitemapUrl: string) => {
     if (!site.sitemaps) {
@@ -1199,9 +1196,6 @@ function useWordPressSitesState() {
   );
 
   const handlePatchSite = useCallback((siteId: string, patch: Partial<WordPressSite>) => {
-    if (patch.clientLogoBoxTheme !== undefined || patch.clientLogoUrl !== undefined) {
-      resetOrganicClientReportPropertyBrandingCache();
-    }
     setSites((prev) => {
       const updated = prev.map((s) => (s.id === siteId ? { ...s, ...patch } : s));
       saveSites(updated);
@@ -1215,40 +1209,48 @@ function useWordPressSitesState() {
 
     setSites((prev) => {
       let outcome: "added" | "duplicate" | "noop" = "noop";
-      const updated = prev.map((s) => {
-        if (s.id !== site.id || !s.sitemaps) return s;
+      const updated: typeof prev = [];
+      for (const s of prev) {
+        if (s.id !== site.id || !s.sitemaps) {
+          updated.push(s);
+          continue;
+        }
         if (s.sitemaps.type === "index") {
           const existing = s.sitemaps.childSitemaps ?? [];
           if (existing.includes(url)) {
             outcome = "duplicate";
-            return s;
+            updated.push(s);
+            continue;
           }
           outcome = "added";
-          return {
+          updated.push({
             ...s,
             sitemaps: {
               ...s.sitemaps,
               childSitemaps: [...existing, url],
             },
-          };
+          });
+          continue;
         }
         if (s.sitemaps.type === "urlset") {
           const existing = s.sitemaps.urls ?? [];
           if (existing.includes(url)) {
             outcome = "duplicate";
-            return s;
+            updated.push(s);
+            continue;
           }
           outcome = "added";
-          return {
+          updated.push({
             ...s,
             sitemaps: {
               ...s.sitemaps,
               urls: [...existing, url],
             },
-          };
+          });
+          continue;
         }
-        return s;
-      });
+        updated.push(s);
+      }
       if (outcome === "added") {
         saveSites(updated);
         notify.success(NOTIFY_SITEMAP_ADDED);

@@ -37,7 +37,7 @@ export async function generateTitleOptions(
     ? `\n--- Entity Optimization Context ---
 Target Entity: ${options.entity.trim()}
 
-CRITICAL: The title MUST include the word "near" (e.g. "Blinds & Shades Near Ben Hill Atlanta"). Keyword = service/product only; entity appears after "near". Never place entity before the service keyword.
+Pair the service keyword with the entity the way a person would naturally search (e.g. "Blinds & Shades Near Ben Hill Atlanta" or "Blinds & Shades in Ben Hill Atlanta"). Keyword = service/product only; do not force the word "near" when another phrasing reads better. Never place entity before the service keyword.
 ${TITLE_KEYWORD_WEAVING_RULE}`
     : `\n--- NO Entity / Regular Blog Post ---
 CRITICAL: This is a REGULAR BLOG POST with NO entity/location targeting.
@@ -60,12 +60,10 @@ Keyword Context:
 ${h2Context}${entityContext}
 
 Title Requirements:
-- **ABSOLUTELY MANDATORY: Each title MUST be MAXIMUM 50 characters (Content Optimizer module requirement)**
-- **CRITICAL: Count every single character including spaces and punctuation**
-- **If you generate a title longer than 50 characters, it will be automatically truncated and may lose important information**
+- Each title at most 60 characters. The system truncates longer titles at a word boundary, so put the primary keyword first. Do not count characters.
 - ${TITLE_CASE_RULE}
 - ${UNIFIED_COPY_FORMATTING_RULE}
-- Include the primary keyword naturally (same words and order; Title Case; but keep it under 50 chars total)
+- Include the primary keyword naturally (same words and order; Title Case)
 - ${TITLE_ANTI_CLICKBAIT_RULE}
 - Vary the title structures while keeping each one factual, calm, and descriptive
 - Ensure titles accurately reflect the content based on the H2 sections - but keep them concise
@@ -119,9 +117,9 @@ Do not include any explanations, markdown formatting, or additional text. Only t
     // Ensure it's an array and return titles
     if (Array.isArray(parsed)) {
       // CRITICAL: Enforce 50 character limit for Content Optimizer module (optimized content)
-      const filteredTitles = parsed.filter((title: any) => typeof title === "string" && title.trim().length > 0);
-      return filteredTitles.map((title: string) => {
-        const truncated = truncateTitleForSEO(title, 50);
+      const filteredTitles = parsed.filter((title: unknown): title is string => typeof title === "string" && title.trim().length > 0);
+      return filteredTitles.map((title) => {
+        const truncated = truncateTitleForSEO(title);
         if (title.length > 50) {
           console.log('[Title Generator] Truncated title to 50 characters (Content Optimizer module requirement):', {
             original: title,
@@ -149,7 +147,7 @@ Do not include any explanations, markdown formatting, or additional text. Only t
     const finalTitles = titles.length > 0 ? titles.slice(0, 5) : [keywordData.keyword];
     // CRITICAL: Enforce 50 character limit for Content Optimizer module (optimized content)
     return finalTitles.map((title: string) => {
-      const truncated = truncateTitleForSEO(title, 50);
+      const truncated = truncateTitleForSEO(title);
       if (title.length > 50) {
         console.log('[Title Generator] Truncated fallback title to 50 characters (Content Optimizer module requirement):', {
           original: title,
@@ -164,6 +162,6 @@ Do not include any explanations, markdown formatting, or additional text. Only t
     console.error("Error generating title options:", error);
     // Fallback: return a simple title based on keyword (truncated to 50 chars)
     const fallbackTitles = [`Complete Guide to ${keywordData.keyword}`, `How to ${keywordData.keyword}`, `Everything You Need to Know About ${keywordData.keyword}`];
-    return fallbackTitles.map(title => truncateTitleForSEO(title, 50));
+    return fallbackTitles.map(title => truncateTitleForSEO(title));
   }
 }

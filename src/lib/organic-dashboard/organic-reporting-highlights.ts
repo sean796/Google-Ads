@@ -1,6 +1,7 @@
 import type { OrganicPeriodProgressTable } from "@/lib/organic-dashboard/organic-dashboard-period-progress";
 import type { OrganicDashboardViewModel } from "@/lib/organic-dashboard/organic-dashboard-view-model";
 import { loadSemrushApiKeyForAppRequests } from "@/lib/api";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { getOpenRouterApiKeyForApp } from "@/lib/openrouter-api-key-resolve";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
 import {
@@ -202,19 +203,6 @@ export type OrganicReportingHighlightsSnapshot = {
   leadsRoiHeadline?: string | null;
 };
 
-function buildLeadsSnapshotTotals(viewModel: OrganicDashboardViewModel): Array<{ label: string; value: string }> | null {
-  if (!viewModel.hasLeads || !viewModel.leadsSummary) return null;
-  const s = viewModel.leadsSummary;
-  return [
-    { label: "Organic inquiries (SEO)", value: s.organic.inquiries },
-    { label: "Organic closed revenue", value: s.organic.wonRevenue },
-    { label: "Paid inquiries (Google Ads)", value: s.paid.inquiries },
-    { label: "Paid closed revenue (Google Ads)", value: s.paid.wonRevenue },
-    { label: "Google Ads ROAS", value: s.paid.roas },
-    { label: "Total closed sales revenue", value: s.blended.wonRevenue },
-  ];
-}
-
 function serializePeriodProgressTableForSnapshot(
   table: OrganicPeriodProgressTable,
 ): OrganicReportingHighlightsSnapshotMonthlyTable {
@@ -401,8 +389,8 @@ export function buildOrganicReportingHighlightsSnapshot(
           }))
         : null,
       googleAdsBudgetCaption: viewModel.googleAdsBudgetPacing?.caption ?? null,
-      leadsTotals: buildLeadsSnapshotTotals(viewModel),
-      leadsRoiHeadline: viewModel.leadsSummary?.roiHeadline ?? null,
+      leadsTotals: null,
+      leadsRoiHeadline: null,
     };
   }
 
@@ -433,8 +421,8 @@ export function buildOrganicReportingHighlightsSnapshot(
     googleAdsBudgetCaption: viewModel.googleAdsBudgetPacing?.caption ?? null,
     semrushBrandedTotals,
     localGrid: localGridBlock,
-    leadsTotals: buildLeadsSnapshotTotals(viewModel),
-    leadsRoiHeadline: viewModel.leadsSummary?.roiHeadline ?? null,
+    leadsTotals: null,
+    leadsRoiHeadline: null,
   };
 }
 
@@ -585,18 +573,13 @@ export function buildPlaceholderOrganicReportingHighlights(
     );
   }
   if (takeaways.length < 2) {
-    const hasCompare = Boolean(viewModel?.hasCompare && viewModel?.showCompare);
     takeaways.push(
       "Headline GA4 organic traffic and Google Search Console visibility metrics are summarized in the tables below.",
-      hasCompare
-        ? "Top organic search queries and period comparisons are detailed by section."
-        : "Top organic search queries and search visibility metrics are detailed by section.",
+      "Top organic search queries and search visibility metrics are detailed by section.",
     );
   }
   const hasSemrush = Boolean(
-    viewModel?.hasSemrush &&
-      ((viewModel.semrushKeywords && viewModel.semrushKeywords.length > 0) ||
-        (viewModel.semrushTable && viewModel.semrushTable.length > 0)),
+    viewModel?.hasSemrush && viewModel.semrushKeywords && viewModel.semrushKeywords.length > 0,
   );
   const channelText = hasSemrush
     ? "GA4, Google Search Console, and Semrush"
@@ -623,15 +606,16 @@ export function resolveClientReportHighlights(
   return buildPlaceholderOrganicReportingHighlights(siteName, viewModel);
 }
 
-function organicReportingHighlightsRequestHeaders(): HeadersInit {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+function organicReportingHighlightsRequestHeaders(): Headers {
+  // Session Bearer must accompany the cookie: hub routes 401 without it.
+  const headers = neoPulseApiHeaders({ "Content-Type": "application/json" });
   const key = loadSemrushApiKeyForAppRequests();
   if (key) {
-    headers["X-Semrush-Api-Key"] = key;
+    headers.set("X-Semrush-Api-Key", key);
   }
   const openRouterKey = getOpenRouterApiKeyForApp().trim();
   if (openRouterKey) {
-    headers["X-OpenRouter-Api-Key"] = openRouterKey;
+    headers.set("X-OpenRouter-Api-Key", openRouterKey);
   }
   return headers;
 }
@@ -658,11 +642,9 @@ export async function fetchOrganicReportingHighlights(
   signal?: AbortSignal,
   options?: FetchOrganicReportingHighlightsOptions,
 ): Promise<OrganicReportingHighlights> {
-  const headers: Record<string, string> = {
-    ...(organicReportingHighlightsRequestHeaders() as Record<string, string>),
-  };
+  const headers = organicReportingHighlightsRequestHeaders();
   if (options?.bypassCache) {
-    headers["X-Neo-Pulse-Reporting-Highlights-Bypass-Cache"] = "1";
+    headers.set("X-Neo-Pulse-Reporting-Highlights-Bypass-Cache", "1");
   }
 
   const response = await fetch(`${BACKEND_API_BASE}/api/organic-dashboard/reporting-highlights`, {

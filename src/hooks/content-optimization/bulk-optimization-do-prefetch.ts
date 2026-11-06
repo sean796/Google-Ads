@@ -9,7 +9,7 @@ import {
 } from "@/lib/wordpress-api/inventory-match";
 import { loadApiKey } from "@/lib/api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
-import { mergeSeoResearchFromAcfIntoContext } from "@/lib/content-generation/ai-driven-acf-reader";
+import { mergeSeoResearchFromAcfIntoContext, type AIDrivenACFContext } from "@/lib/content-generation/ai-driven-acf-reader";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { HandleOptimizeMultipleContentParams } from "./bulk-optimization-params";
 import {
@@ -32,6 +32,19 @@ import {
   restCollectionMatchesEntitySitemap,
 } from "@/lib/entity-endpoint-extractor";
 
+export interface LinkPoolPostRow {
+  id: number;
+  slug: string;
+  title: string;
+  excerpt: string;
+  link: string;
+  date_gmt: string;
+  content?: string;
+  postTypeEndpoint?: string;
+  postType?: string;
+  postTypeSubtype?: string;
+}
+
 export interface BulkDoPrefetchArgs {
   site: WordPressSite;
   urls: string[];
@@ -40,9 +53,9 @@ export interface BulkDoPrefetchArgs {
   updateMode: HandleOptimizeMultipleContentParams["updateMode"];
   optimizationOptions: HandleOptimizeMultipleContentParams["optimizationOptions"];
   inContentImageRequest: HandleOptimizeMultipleContentParams["inContentImageRequest"];
-  wordPressPostsForRun: any[];
+  wordPressPostsForRun: LinkPoolPostRow[];
   siteServiceContext: string | null;
-  prefetchedAcfFieldsCache: Map<number, Record<string, any>>;
+  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
   /** From grep get-acf-fields-by-url `postSnapshot` — skips redundant get-post-content. */
   prefetchedPostPayloadByUrlIndex: Map<number, WpPostSnapshotFromAcfByUrl>;
   prefetchedExistingPostByUrlIndex?: Map<number, Record<string, unknown>>;
@@ -55,7 +68,7 @@ export interface BulkDoPrefetchArgs {
   bulkInventorySnapshot: BulkOptimizerInventorySnapshot | null;
 }
 
-function existingPostFromSitemapCache(cachedPost: any, targetUrl: string): Record<string, unknown> | null {
+function existingPostFromSitemapCache(cachedPost: LinkPoolPostRow | null | undefined, targetUrl: string): Record<string, unknown> | null {
   if (!cachedPost) return null;
   const ep = cachedPost.postTypeEndpoint;
   const postTypeEndpoint = ep || (cachedPost.postType === "page" ? "pages" : "posts");
@@ -108,7 +121,7 @@ function touchPrefetchHarness(
   urlIndex: number,
   phase: "start" | "done",
 ): void {
-  setBulkOptimizationState((prev: any) => {
+  setBulkOptimizationState((prev) => {
     const current = prev[batchKey];
     if (!current) return prev;
     const serpIndex = contentOptimizeHarnessSectionIndex("SERP research brief");
@@ -126,6 +139,10 @@ function touchPrefetchHarness(
           [url]: nextSections,
         },
         currentStepProgress: {
+          stepId: "prepResearch" as const,
+          subProgress: 0,
+          step: "prepResearch",
+          progress: 0,
           ...(current.currentStepProgress || {}),
           harnessSections: nextSections,
           harnessPlannedSectionCount: CONTENT_PREP_HARNESS_TOTAL_SECTIONS,
@@ -159,7 +176,7 @@ export async function bulkOptimizationDoPrefetch(
   } = args;
 
   let cancelPrefetch = false;
-  setBulkOptimizationState((prev: any) => {
+  setBulkOptimizationState((prev) => {
     const current = prev[batchKey];
     if (current?.cancelRequested) cancelPrefetch = true;
     return prev;
@@ -171,13 +188,13 @@ export async function bulkOptimizationDoPrefetch(
   let primaryKeyword = "";
 
   try {
-    let urlDerivedIntent = "";
+    const urlDerivedIntent = "";
     const apiKey = loadApiKey();
     const researchModel = apiKey ? getResearchModel(site.id) : "";
 
     const targetNorm = normalizeMatch(site.siteUrl, targetUrl);
     const cachedPost = wordPressPostsForRun.find(
-      (p: any) => p?.link && normalizeMatch(site.siteUrl, p.link) === targetNorm,
+      (p) => p?.link && normalizeMatch(site.siteUrl, p.link) === targetNorm,
     );
     const typeHint = typeHintFromCachedPost(cachedPost);
     const invHit = bulkInventorySnapshot
@@ -234,7 +251,7 @@ export async function bulkOptimizationDoPrefetch(
       typeof invRow.acf === "object" &&
       Object.keys(invRow.acf).length > 0
     ) {
-      prefetchedAcfFieldsCache.set(urlIndex, invRow.acf as Record<string, any>);
+      prefetchedAcfFieldsCache.set(urlIndex, invRow.acf as Record<string, unknown>);
     }
 
     const existingTitle = wpStr(existingPost.title) || "";
@@ -256,9 +273,9 @@ export async function bulkOptimizationDoPrefetch(
     const pendingHasEntity = isSapBulkRun;
 
     const cachedAcfFields = prefetchedAcfFieldsCache.get(urlIndex);
-    let acfFields: Record<string, any> = cachedAcfFields ? { ...cachedAcfFields } : {};
+    const acfFields: Record<string, unknown> = cachedAcfFields ? { ...cachedAcfFields } : {};
     let acfFullPostSnapshot: Record<string, unknown> | undefined;
-    let acfContext: { keywordFocus?: string } | undefined;
+    let acfContext: AIDrivenACFContext | undefined;
 
     if (cachedAcfFields) {
       acfContext = { keywordFocus: String(acfFields["keyword_focus"] ?? "").trim() };
@@ -269,7 +286,7 @@ export async function bulkOptimizationDoPrefetch(
       acfContext = { keywordFocus: String(acfFields["keyword_focus"] ?? "").trim() };
     }
 
-    acfContext = mergeSeoResearchFromAcfIntoContext(acfFields, acfContext as any);
+    acfContext = mergeSeoResearchFromAcfIntoContext(acfFields, acfContext);
 
     const acfKeywordRaw = String(acfFields["keyword_focus"] ?? "").trim();
     if (acfKeywordRaw) {

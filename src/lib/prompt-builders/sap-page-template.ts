@@ -31,13 +31,13 @@ export function formatSapPageChecklistBlock(entity: string): string {
     UNIFIED_COPY_FORMATTING_RULE,
     "",
     "Required checklist items (write a unique topical H2 title, then [STRUCTURE] and markers):",
-    `1. Local problem this writing keyword creates for this connected site's trade [STRUCTURE]: 2-3 paragraphs. Opener leads with a sourced local constraint that belongs to this trade. [LINK]: at least 1 [[LINK:PAGES title words|anchor]] mid-sentence. **[EXACT PRIMARY PER H2]**: WRITING KEYWORD once in body only, not in the H2.`,
-    `2. Local conditions that change the job for this trade [STRUCTURE]: 1-2 paragraphs. [LIST]: sourced facts that affect THIS connected site's service here. ${SAP_FORBIDDEN_UNSUBSTANTIATED_LOCAL_EXPERTISE} **[EXACT PRIMARY PER H2]**. [LINK]: at least 1 [[LINK:PAGES title words|anchor]] mid-sentence.`,
-    `3. Options that fit those conditions for this trade [STRUCTURE]: 2-3 paragraphs. [DECISION]: Situation | Importance list (not a third [TABLE]). **[EXACT PRIMARY PER H2]**. [LINK]: at least 1 [[LINK:PAGES title words|anchor]] mid-sentence.`,
+    `1. Local problem this writing keyword creates for this connected site's trade [STRUCTURE]: 2-3 paragraphs. Opener leads with a sourced local constraint that belongs to this trade. [LINK]: [[LINK:PAGES title words|anchor]] mid-sentence where a relevant PAGES target exists. **[EXACT PRIMARY PER H2]**: WRITING KEYWORD once in body only, not in the H2.`,
+    `2. Local conditions that change the job for this trade [STRUCTURE]: 1-2 paragraphs. [LIST]: sourced facts that affect THIS connected site's service here. ${SAP_FORBIDDEN_UNSUBSTANTIATED_LOCAL_EXPERTISE} **[EXACT PRIMARY PER H2]**. [LINK]: [[LINK:PAGES title words|anchor]] mid-sentence where a relevant PAGES target exists.`,
+    `3. Options that fit those conditions for this trade [STRUCTURE]: 2-3 paragraphs. [DECISION]: Situation | Importance list (not a third [TABLE]). **[EXACT PRIMARY PER H2]**. [LINK]: [[LINK:PAGES title words|anchor]] mid-sentence where a relevant PAGES target exists.`,
     `4. Unique topical H2 for the one worked example [STRUCTURE]: 1 summary paragraph, then scenario in <blockquote>. [ILLUSTRATIVE] + [BLOCKQUOTE]. No links in H2 or H3. Exactly one [ILLUSTRATIVE] on item 4 only. The example must be this connected site's buyer for the writing keyword, not a shopper of a product this site does not sell. Forbidden: a second homeowner or example H2.`,
     `5. What this connected site offers [STRUCTURE]: 1-2 short paragraphs. [TABLE]: Service/Product Name (Pages link) | Description. **[EXACT PRIMARY PER H2]**. [LINK]: in table names.`,
     `6. Recommendation for this place [RECOMMENDATION] + [TABLE]: follow LOCAL RECOMMENDATION TABLE. **[EXACT PRIMARY PER H2]**.`,
-    `7. Next steps [STRUCTURE]: 1-2 paragraphs. [LIST]: numbered booking steps. [AGENT PERSONA]: friendly customer-service tone. [LINK]: at least 1 [[LINK:PAGES title words|anchor]] mid-sentence.`,
+    `7. Next steps [STRUCTURE]: 1-2 paragraphs. [LIST]: numbered booking steps. [AGENT PERSONA]: friendly customer-service tone. [LINK]: [[LINK:PAGES title words|anchor]] mid-sentence where a relevant PAGES target exists.`,
     "",
     SAP_LOCAL_RECOMMENDATION_TABLE_RULE,
     "Article [TABLE] cap: What We Offer + Local Recommendation only.",
@@ -66,13 +66,13 @@ export function formatSapPageWriterBlock(entity?: string): string {
 
 export function formatSapChecklistExample(entity: string, _title: string): string {
   const place = entity.trim() || "[Location]";
-  return `1. Local problem for this trade in ${place} [STRUCTURE]: 2-3 paragraphs. Opener leads with a sourced local constraint. **[EXACT PRIMARY PER H2]**. [LINK]: at least 1 [[LINK:PAGES title words|anchor]] mid-sentence.
-2. Local conditions that change the job [STRUCTURE]: 1-2 paragraphs. [LIST]: sourced facts for this trade. **[EXACT PRIMARY PER H2]**. [LINK]: at least 1 [[LINK:PAGES title words|anchor]] mid-sentence.
-3. Options that fit those conditions [STRUCTURE]: 2-3 paragraphs. [DECISION]: Situation | Importance list. **[EXACT PRIMARY PER H2]**. [LINK]: at least 1 [[LINK:PAGES title words|anchor]] mid-sentence.
+  return `1. Local problem for this trade in ${place} [STRUCTURE]: 2-3 paragraphs. Opener leads with a sourced local constraint. **[EXACT PRIMARY PER H2]**. [LINK]: [[LINK:PAGES title words|anchor]] mid-sentence where a relevant PAGES target exists.
+2. Local conditions that change the job [STRUCTURE]: 1-2 paragraphs. [LIST]: sourced facts for this trade. **[EXACT PRIMARY PER H2]**. [LINK]: [[LINK:PAGES title words|anchor]] mid-sentence where a relevant PAGES target exists.
+3. Options that fit those conditions [STRUCTURE]: 2-3 paragraphs. [DECISION]: Situation | Importance list. **[EXACT PRIMARY PER H2]**. [LINK]: [[LINK:PAGES title words|anchor]] mid-sentence where a relevant PAGES target exists.
 4. Unique topical H2 for the one worked example [STRUCTURE]: 1 intro paragraph, then scenario in body. [ILLUSTRATIVE]. [BLOCKQUOTE]. **[EXACT PRIMARY PER H2]**. [LINK]: in body only. Forbidden: a second homeowner or example H2.
 5. What this site offers [STRUCTURE]: 1-2 short paragraphs. [TABLE]: Product/Service Name (Pages link) | Description. **[EXACT PRIMARY PER H2]**. [LINK]: in table names.
 6. Recommendation in ${place} [STRUCTURE]: 1-2 paragraphs. [RECOMMENDATION]. [TABLE]: Product | Best for | Budget | Reason. **[EXACT PRIMARY PER H2]**.
-7. Next steps [STRUCTURE]: 1-2 paragraphs. [LIST]: numbered booking steps. **[EXACT PRIMARY PER H2]**. [LINK]: at least 1 [[LINK:PAGES title words|anchor]] mid-sentence.`;
+7. Next steps [STRUCTURE]: 1-2 paragraphs. [LIST]: numbered booking steps. **[EXACT PRIMARY PER H2]**. [LINK]: [[LINK:PAGES title words|anchor]] mid-sentence where a relevant PAGES target exists.`;
 }
 
 export function sapPageTemplateIsActive(prompt: string): boolean {

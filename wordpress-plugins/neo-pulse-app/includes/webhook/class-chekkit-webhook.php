@@ -14,7 +14,7 @@ class Neo_Pulse_App_Chekkit_Webhook {
 	/**
 	 * @param array<string,mixed> $body
 	 */
-	public static function handle( string $method, array $body ): void {
+	public static function handle( string $method, array $body, string $path_token = '', int $raw_bytes = 0 ): void {
 		if ( $method !== 'POST' ) {
 			self::send_json(
 				array(
@@ -23,6 +23,18 @@ class Neo_Pulse_App_Chekkit_Webhook {
 				),
 				405
 			);
+			return;
+		}
+
+		// Wave 0: Chekkit cannot sign payloads, so a secret token path is required.
+		// The bare /webhook path rejects. Provision the token URL per sender first.
+		$expected = class_exists( 'Neo_Pulse_App_Secrets' ) ? Neo_Pulse_App_Secrets::chekkit_webhook_token() : '';
+		if ( $expected === '' || $path_token === '' || ! hash_equals( $expected, $path_token ) ) {
+			self::send_json( array( 'success' => false, 'message' => 'Unauthorized.' ), 401 );
+			return;
+		}
+		if ( $raw_bytes > 65536 ) {
+			self::send_json( array( 'success' => false, 'message' => 'Payload too large.' ), 413 );
 			return;
 		}
 
@@ -54,10 +66,23 @@ class Neo_Pulse_App_Chekkit_Webhook {
 	private static function handle_inbound_message( array $body ): void {
 		$dir  = Neo_Pulse_App_Data_Paths::subdir( 'chekkit-messages' );
 		$path = $dir . '/inbound.jsonl';
+		if ( file_exists( $path ) && filesize( $path ) > 5242880 ) {
+			rename( $path, $path . '.1' );
+		}
+		$pick = static function ( string $key ) use ( $body ): string {
+			return isset( $body[ $key ] ) ? substr( trim( (string) $body[ $key ] ), 0, 1000 ) : '';
+		};
 		$line = wp_json_encode(
 			array(
 				'received_at' => gmdate( 'c' ),
-				'payload'     => $body,
+				'eventType'   => $pick( 'eventType' ),
+				'name'        => $pick( 'name' ),
+				'phone'       => $pick( 'phone' ),
+				'message'     => $pick( 'message' ),
+				'source'      => $pick( 'source' ),
+				'businessId'  => $pick( 'businessId' ),
+				'customerId'  => $pick( 'customerId' ),
+				'createdAt'   => $pick( 'createdAt' ),
 			)
 		);
 		if ( is_string( $line ) ) {
@@ -150,7 +175,7 @@ class Neo_Pulse_App_Chekkit_Webhook {
 		status_header( $status );
 		header( 'Content-Type: application/json; charset=utf-8' );
 		if ( defined( 'NEO_PULSE_APP_VERSION' ) ) {
-			header( 'X-NEO Pulse-Webhook-Version: ' . NEO_PULSE_APP_VERSION );
+			header( 'X-Neo-Pulse-Webhook-Version: ' . NEO_PULSE_APP_VERSION );
 		}
 		echo wp_json_encode( $data );
 	}

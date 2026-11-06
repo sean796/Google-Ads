@@ -29,7 +29,78 @@ class Neo_Pulse_App_Sites_Sync {
 	 * @param array<string,mixed>              $opts  activeSiteId optional.
 	 * @return array{ok:bool,count:int}
 	 */
+	private const SECRET_FIELDS = array( 'appPassword', 'pluginAccessToken', 'slackIncomingWebhookUrl' );
+
+	/**
+	 * Site credential rows from the server-only sites value.
+	 *
+	 * @return array<string,array<string,mixed>> keyed by site id.
+	 */
+	public static function env_credentials_by_id(): array {
+		$raw = '';
+		if ( defined( 'NEO_PULSE_APP_SITES_JSON' ) && NEO_PULSE_APP_SITES_JSON !== '' ) {
+			$raw = (string) NEO_PULSE_APP_SITES_JSON;
+		} else {
+			$env = getenv( 'NEO_PULSE_APP_SITES_JSON' );
+			$raw = is_string( $env ) ? $env : '';
+		}
+		if ( $raw === '' ) {
+			return array();
+		}
+		$rows = json_decode( $raw, true );
+		if ( ! is_array( $rows ) ) {
+			return array();
+		}
+		$by_id = array();
+		foreach ( $rows as $row ) {
+			if ( is_array( $row ) && ! empty( $row['id'] ) ) {
+				$by_id[ (string) $row['id'] ] = $row;
+			}
+		}
+		return $by_id;
+	}
+
+	/**
+	 * @param array<int,array<string,mixed>> $sites
+	 * @return array<int,array<string,mixed>>
+	 */
+	public static function strip_site_secrets( array $sites ): array {
+		foreach ( $sites as $i => $site ) {
+			if ( ! is_array( $site ) ) {
+				continue;
+			}
+			foreach ( self::SECRET_FIELDS as $field ) {
+				unset( $sites[ $i ][ $field ] );
+			}
+		}
+		return $sites;
+	}
+
+	/**
+	 * Server-internal view: mirror rows plus env credentials. Never send to a browser.
+	 *
+	 * @param array<int,array<string,mixed>> $sites
+	 * @return array<int,array<string,mixed>>
+	 */
+	public static function with_env_credentials( array $sites ): array {
+		$creds = self::env_credentials_by_id();
+		if ( $creds === array() ) {
+			return $sites;
+		}
+		foreach ( $sites as $i => $site ) {
+			if ( ! is_array( $site ) || empty( $site['id'] ) ) {
+				continue;
+			}
+			$row = $creds[ (string) $site['id'] ] ?? null;
+			if ( is_array( $row ) ) {
+				$sites[ $i ] = array_merge( $site, array_filter( $row, static fn( $v ) => $v !== '' && $v !== null ) );
+			}
+		}
+		return $sites;
+	}
+
 	public static function save_mirror( array $sites, array $opts = array() ): array {
+		$sites = self::strip_site_secrets( $sites );
 		$sites = self::merge_preserved_fields( $sites );
 		$payload = array(
 			'sites'        => $sites,
@@ -93,6 +164,21 @@ class Neo_Pulse_App_Sites_Sync {
 	 * @return array<string,mixed>|null
 	 */
 	public static function load_mirror() {
-		return Neo_Pulse_App_Json_File_Store::read( Neo_Pulse_App_Data_Paths::sites_path() );
+		$data = Neo_Pulse_App_Json_File_Store::read( Neo_Pulse_App_Data_Paths::sites_path() );
+		if ( is_array( $data ) && isset( $data['sites'] ) && is_array( $data['sites'] ) ) {
+			$data['sites'] = self::with_env_credentials( $data['sites'] );
+		}
+		return $data;
+	}
+
+	/**
+	 * Browser-safe mirror: no credential fields, ever.
+	 */
+	public static function load_public_mirror() {
+		$data = Neo_Pulse_App_Json_File_Store::read( Neo_Pulse_App_Data_Paths::sites_path() );
+		if ( is_array( $data ) && isset( $data['sites'] ) && is_array( $data['sites'] ) ) {
+			$data['sites'] = self::strip_site_secrets( $data['sites'] );
+		}
+		return $data;
 	}
 }

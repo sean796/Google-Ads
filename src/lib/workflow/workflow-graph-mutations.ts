@@ -13,6 +13,7 @@ import type {
   WorkflowDefinition,
   WorkflowEdge,
   WorkflowNode,
+  WorkflowNodeConfig,
   WorkflowNodeKind,
 } from "@/lib/workflow/workflow-types";
 import { isWorkflowClientKind, isWorkflowThenKind, isWorkflowTriggerKind } from "@/lib/workflow/workflow-types";
@@ -123,13 +124,13 @@ export function rewireLinearChain(nodes: WorkflowNode[], _edges: WorkflowEdge[] 
   return nextEdges;
 }
 
-export function insertNodesAfter(
-  workflow: Pick<WorkflowDefinition, "nodes" | "edges" | "ragVariables">,
+export function insertNodesAfter<T extends Pick<WorkflowDefinition, "nodes" | "edges">>(
+  workflow: T,
   afterNodeId: string | null,
   newNodes: WorkflowNode[],
-): Pick<WorkflowDefinition, "nodes" | "edges"> {
+): T {
   if (newNodes.length === 0) {
-    return { nodes: workflow.nodes, edges: workflow.edges };
+    return workflow;
   }
 
   const ordered = linearOrderedNodes(workflow);
@@ -137,7 +138,7 @@ export function insertNodesAfter(
 
   if (!anchorId) {
     const nodes = syncLinearPositions([...newNodes]);
-    return { nodes, edges: rewireLinearChain(nodes, workflow.edges) };
+    return { ...workflow, nodes, edges: rewireLinearChain(nodes, workflow.edges) };
   }
 
   const anchorIndex = ordered.findIndex((node) => node.id === anchorId);
@@ -148,14 +149,14 @@ export function insertNodesAfter(
   const existingIds = new Set(workflow.nodes.map((node) => node.id));
   const appended = workflow.nodes.filter((node) => !merged.some((item) => item.id === node.id));
   const nodes = syncLinearPositions([...merged, ...appended]);
-  return { nodes, edges: rewireLinearChain(nodes, workflow.edges) };
+  return { ...workflow, nodes, edges: rewireLinearChain(nodes, workflow.edges) };
 }
 
-export function insertNodeAfter(
-  workflow: Pick<WorkflowDefinition, "nodes" | "edges" | "ragVariables">,
+export function insertNodeAfter<T extends Pick<WorkflowDefinition, "nodes" | "edges">>(
+  workflow: T,
   afterNodeId: string | null,
   node: WorkflowNode,
-): Pick<WorkflowDefinition, "nodes" | "edges"> {
+): T {
   return insertNodesAfter(workflow, afterNodeId, [node]);
 }
 
@@ -265,12 +266,16 @@ export function defaultNodeConfig(kind: WorkflowNodeKind): Record<string, unknow
   }
 }
 
-export function createWorkflowNode(kind: WorkflowNodeKind, label?: string): WorkflowNode {
+export function createWorkflowNode(
+  kind: WorkflowNodeKind,
+  label?: string,
+  config?: Partial<WorkflowNodeConfig>,
+): WorkflowNode {
   return {
     id: newWorkflowNodeId(kind),
     kind,
     label: label ?? defaultNodeLabel(kind),
-    config: defaultNodeConfig(kind),
+    config: { ...defaultNodeConfig(kind), ...(config ?? {}) },
     position: { x: STEP_X, y: STEP_Y_START },
   };
 }
@@ -301,11 +306,11 @@ export function createWorkflowActionAgentNode(args: {
   };
 }
 
-export function ensureRagArchiveNode(
-  workflow: Pick<WorkflowDefinition, "nodes" | "edges" | "ragVariables">,
-): Pick<WorkflowDefinition, "nodes" | "edges"> {
+export function ensureRagArchiveNode<
+  T extends Pick<WorkflowDefinition, "nodes" | "edges" | "ragVariables">,
+>(workflow: T): T {
   if (findRagArchiveNode(workflow)) {
-    return { nodes: workflow.nodes, edges: workflow.edges };
+    return workflow;
   }
 
   const ordered = linearOrderedNodes(workflow);

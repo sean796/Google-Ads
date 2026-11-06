@@ -1,7 +1,7 @@
-import { Checkbox } from "@/components/ui/checkbox";
+
 import type { HostedEnvironmentKind, HostedSiteStatus, HostedTag } from "@/lib/hosting-api";
 import { EMPTY_FILTERS, ENVIRONMENT_LABEL, type MySitesFilters } from "./my-sites-view-model";
-import { Button } from "@/ui";
+import { Button, Checkbox } from "@/ui";
 
 export type MySitesFilterPopoverProps = {
   filters: MySitesFilters;

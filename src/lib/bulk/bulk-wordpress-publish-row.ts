@@ -49,7 +49,7 @@ import { acfCompetitorAppliesForRow } from '@/lib/acf-competitor-applies';
 import {
   resolveEntityEndpointForRow,
   resolveEntitySitemapUrlForRow,
-} from '@/lib/competitor/competitor-entity-sitemap';
+} from '@/lib/competitor-research/competitor-entity-sitemap';
 import { loadApiKey } from '@/lib/api';
 import { generateExcerpt } from '@/lib/markdown-to-html';
 import { sanitizeWordPressSlugSegment } from '@/lib/rank-math-redirect-csv';
@@ -73,6 +73,8 @@ import {
   setSapMapsMediaId,
 } from '@/lib/bulk/sap-maps-media-bank';
 import { parseFaqEntries } from '@/lib/faq-entries';
+import type { AgentConfig } from '@/types/agent-config';
+import type { ExternalLinkPair } from '@/lib/content-generation/external-link-placeholders';
 
 export type BulkWordPressPublishContext = {
   options: BulkProcessingOptions;
@@ -85,7 +87,7 @@ export type BulkWordPressPublishContext = {
   timestamp: number;
   bulkPrimaryKwResolved: string;
   bulkResolvedPostTitle: string;
-  blueprintResult: { agents: unknown[]; title?: string };
+  blueprintResult: { agents: AgentConfig[]; title?: string };
   keywordData: KeywordData;
   postsForInternalLinks: Array<{
     id: number;
@@ -97,7 +99,7 @@ export type BulkWordPressPublishContext = {
     collection?: string;
     postType?: string;
   }>;
-  rowExplicitExternalPairs: Array<{ url: string; anchor?: string }>;
+  rowExplicitExternalPairs: ExternalLinkPair[];
   pipelineBlogModel: string;
   precomputedMetaDescription?: string;
   useGoogleMaps: boolean;
@@ -267,7 +269,7 @@ export async function publishBulkRowToWordPressSites(
         if (options.googleMapsImagePromise) {
           await options.googleMapsImagePromise;
         }
-        let mapsPayload =
+        const mapsPayload =
           peekGoogleMapsImageCache(entityForImage) ??
           (await fetchGoogleMapsImageForEntityWithFallback(
             entityForImage,
@@ -534,8 +536,10 @@ export async function publishBulkRowToWordPressSites(
               }
             }
           }
-          let postResult: { success: boolean; postId?: number; link?: string } = { success: false };
+          let postResult: { success: boolean; postId?: number; link?: string; status?: string } = { success: false };
           if (options.updateTargetPostId != null && options.updateTargetPostId > 0) {
+            // updateWordPressPost only accepts draft | publish; a scheduled update is published.
+            const wpUpdateStatus: 'draft' | 'publish' = wpPostStatus === 'draft' ? 'draft' : 'publish';
             const updateResult = await updateWordPressPost(
               site.siteUrl,
               site.username,
@@ -544,7 +548,7 @@ export async function publishBulkRowToWordPressSites(
               postTitle,
               contentForUpload,
               excerpt,
-              wpPostStatus,
+              wpUpdateStatus,
               sitemapType === 'entity' ? entityEndpoint : 'post',
               siteFeaturedImageId,
               undefined,
@@ -556,6 +560,7 @@ export async function publishBulkRowToWordPressSites(
               success: true,
               postId: updateResult.postId ?? options.updateTargetPostId,
               link: updateResult.link,
+              status: updateResult.status,
             };
           } else {
             postResult = await createWordPressPost(
@@ -846,7 +851,7 @@ export async function publishBulkRowToWordPressSites(
                 }
               }
 
-              let seoResearchJsonForDownload = seoResearchJson;
+              const seoResearchJsonForDownload = seoResearchJson;
 
               options.onProgress?.(
                 rowIndex,

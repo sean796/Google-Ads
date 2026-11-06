@@ -1,4 +1,5 @@
 import { loadSemrushApiKeyForAppRequests } from "@/lib/api";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
 import type {
   OrganicDashboardBundleResponse,
@@ -21,11 +22,12 @@ export class OrganicDashboardFetchPartUnsupportedError extends Error {
   }
 }
 
-function organicDashboardRequestHeaders(): HeadersInit {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+function organicDashboardRequestHeaders(): Headers {
+  // Session Bearer must accompany the cookie: hub routes 401 without it.
+  const headers = neoPulseApiHeaders({ "Content-Type": "application/json" });
   const key = loadSemrushApiKeyForAppRequests();
   if (key) {
-    headers["X-Semrush-Api-Key"] = key;
+    headers.set("X-Semrush-Api-Key", key);
   }
   return headers;
 }

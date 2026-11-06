@@ -23,7 +23,6 @@ import type {
 } from "../src/lib/local-grid-studio/local-grid-types";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const SEED_PATH = path.join(REPO_ROOT, "src/components/integrations/default-properties-seed.json");
 const BASE = (process.env.NEO_PULSE_BASE || "http://127.0.0.1:8080").replace(/\/$/, "");
 
 async function scanBatchOnServer(
@@ -286,15 +285,13 @@ async function runFullScanForPanel(
 }
 
 async function main() {
-  const seed = JSON.parse(fs.readFileSync(SEED_PATH, "utf8")).sites || [];
+  // Wave 0: server mirror only. No bundled seed. Empty mirror fails visibly.
   const loadRes = await fetch(`${BASE}/api/manager-wordpress-properties/load?_=${Date.now()}`).then((r) =>
     r.json(),
   );
-  const sites = loadRes.sites && loadRes.sites.length > 0 ? loadRes.sites : seed;
-  for (const s of seed) {
-    if (!sites.some((x: { id: string; siteUrl: string }) => x.id === s.id || x.siteUrl === s.siteUrl)) {
-      sites.push(s);
-    }
+  const sites = loadRes.sites || [];
+  if (sites.length === 0) {
+    throw new Error("Server site mirror returned no sites. Confirm the hub session and /api/manager-wordpress-properties/load before running this script.");
   }
 
   console.log(`Starting live Local Grid scans across ${sites.length} properties...`);

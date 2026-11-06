@@ -133,7 +133,7 @@ export async function handleOptimizeContent(params: HandleOptimizeContentParams)
 
     const acfKeyword = resolveAcfKeyword(acfFields, url);
 
-    let acfContext = mergeStoredSeoResearchBriefIntoContext(
+    const acfContext = mergeStoredSeoResearchBriefIntoContext(
       acfFields,
       mergeSeoResearchFromAcfIntoContext(acfFields, { keywordFocus: acfKeyword }),
       resolvedPost?.seoResearch,

@@ -37,8 +37,6 @@ import type { SitemapOptimizerTrafficFilter } from "@/lib/sitemap-optimizer/enri
 
 export type GridUrlIntent = "informational" | "commercial" | "transactional" | "local" | "mixed";
 
-export type { GridCompressionLevel };
-
 export type SitemapOptimizerProgress = {
   phase: SitemapOptimizerPhase;
   completed: number;
@@ -64,7 +62,8 @@ export type SitemapOptimizerProgress = {
     | "tighten"
     | "finalize"
     | "singleton_sweep"
-    | "compress";
+    | "compress"
+    | "temporal";
   /** Set after inventory load (full catalog size). */
   inventoryCount?: number;
   uploadRowCount?: number;

@@ -144,8 +144,8 @@ function patchRunSessionState(
   },
 ): void {
   patchAgentRunInList(run.id, (current) => {
-    const prev = (current.result ?? {}) as Record<string, unknown>;
-    const nextResult = {
+    const prev: AgentRunResult = current.result ?? {};
+    const nextResult: AgentRunResult = {
       ...prev,
       jobId: patch.jobId ?? prev.jobId,
       sessionReady: patch.sessionReady ?? prev.sessionReady,
@@ -153,7 +153,7 @@ function patchRunSessionState(
     };
     delete nextResult.responses;
     void patchAgentRun(run.teamId, run.id, {
-      result: nextResult as AgentRun["result"],
+      result: nextResult,
     });
     return { result: nextResult };
   });

@@ -138,12 +138,40 @@ export interface GSCAcfContext {
   pageTitle?: string;
 }
 
+export interface GscProcessedQuery {
+  query: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+}
+
+export interface GscSimpleClusterAnalysis {
+  overallRecommendation: {
+    recommendedKeyword: string;
+    secondaryKeywords: string[];
+    topCluster: string;
+    reasoning: string;
+  };
+  clusters: Array<{ name: string; queries: GscProcessedQuery[] }>;
+}
+
+interface GscResultInput {
+  queries: Array<{
+    query?: unknown;
+    clicks?: number;
+    impressions?: number;
+    ctr?: number;
+    position?: number;
+  }>;
+}
+
 export async function processGSCQueriesAndAnalyze(
-  gscResult: any,
+  gscResult: GscResultInput,
   site: WordPressSite,
   url: string,
-  onClusterAnalysisComplete?: (analysis: any) => void,
-  onClusterAnalysisError?: (error: any) => void,
+  onClusterAnalysisComplete?: (analysis: GscSimpleClusterAnalysis) => void,
+  onClusterAnalysisError?: (error: unknown) => void,
   acfContext?: GSCAcfContext,
   /** When set, entity-style GSC filtering applies only for the entity CPT (not every URL on sites with an entity sitemap). */
   postTypeEndpoint?: string | null,
@@ -165,8 +193,8 @@ export async function processGSCQueriesAndAnalyze(
 
   // Normalize queries - minimal validation
   const rawQueries = gscResult.queries
-    .filter((q: any) => q && typeof q === 'object' && q.query && typeof q.query === 'string' && q.query.trim().length > 0)
-    .map((q: any) => ({
+    .filter((q) => q && typeof q === 'object' && q.query && typeof q.query === 'string' && q.query.trim().length > 0)
+    .map((q) => ({
       query: String(q.query).trim(),
       clicks: q.clicks || 0,
       impressions: q.impressions || 0,
@@ -183,7 +211,9 @@ export async function processGSCQueriesAndAnalyze(
       const urlObj = new URL(url);
       const domain = urlObj.hostname.replace('www.', '').split('.')[0];
       companyNameToCheck = domain.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
-    } catch {}
+    } catch {
+      // Malformed site URL: keep the empty company name.
+    }
   }
 
   // Single AI call does all filtering and ranking

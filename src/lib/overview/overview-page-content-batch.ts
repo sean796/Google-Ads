@@ -137,7 +137,6 @@ export async function fetchOverviewPageContentBatch(args: {
       const bulk = await getSiteInventoryBulk(site.siteUrl, site.username, site.appPassword, {
         includeContent: true,
         includePageHeading: true,
-        includeRawAcf: true,
         includeScheduled: sitemapSource === "posts",
         collections: collections.length ? collections : [sitemapSource === "pages" ? "pages" : "posts"],
         includeIds,

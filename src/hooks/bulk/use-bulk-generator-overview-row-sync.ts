@@ -177,18 +177,7 @@ export function useBulkGeneratorOverviewRowSync({
       }
     }
     syncingFromBindingsRef.current = false;
-  }, [
-    bindings,
-    variant,
-    siteBaseUrl,
-    ctrl.sitemapSource,
-    ctrl.rowsRef,
-    ctrl.setRows,
-    ctrl.expandedPageUrl,
-    ctrl.setExpandedPageUrl,
-    pathSite,
-    sapInventoryRows,
-  ]);
+  }, [bindings, variant, siteBaseUrl, ctrl, pathSite, sapInventoryRows]);
 
   const builtRows = ctrl.displayRows;
 
@@ -208,14 +197,7 @@ export function useBulkGeneratorOverviewRowSync({
     if (!url) return;
     if (normalizePageUrlKey(ctrl.expandedPageUrl ?? "") === normalizePageUrlKey(url)) return;
     ctrl.setExpandedPageUrl(url);
-  }, [
-    bindings.isProcessing,
-    bindings.currentRow,
-    followRunRow,
-    builtRows,
-    ctrl.expandedPageUrl,
-    ctrl.setExpandedPageUrl,
-  ]);
+  }, [bindings.isProcessing, bindings.currentRow, followRunRow, builtRows, ctrl]);
 
   useEffect(() => {
     const siteId = ctrl.site?.id;
@@ -299,9 +281,11 @@ export function useBulkGeneratorOverviewRowSync({
     bindings.filesByRow,
     bindings.currentRow,
     bindings.processingStepLog,
+    bindings.isProcessing,
     builtRows,
     ctrl.expandedPageUrl,
     ctrl.site?.id,
+    ctrl.opt,
   ]);
 
   const selectDocUrl = useCallback(

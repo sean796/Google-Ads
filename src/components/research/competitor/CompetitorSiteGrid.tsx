@@ -7,22 +7,14 @@ import type {
   TieredCompetitorsResult,
 } from "@/lib/competitor-research/types";
 import { normalizeCompetitorDomainKey } from "@/lib/competitor-research/competitor-domain-key";
-import { filterEnrichmentDropCompetitorBrandedKeywords } from "@/lib/competitor-research/competitor-keyword-rival-brand-filter";
+import { filterEnrichmentWithAiClassifier } from "@/lib/competitor-research/competitor-keyword-ai-classify";
 import { sortOnlyTopCompetitorsByCommonKeywords } from "@/lib/competitor-research/competitor-top-rows";
 import { semrushDomainOverviewUrl } from "@/lib/competitor-research/semrush-domain-overview-url";
 import { formatCompetitorMetricCell } from "@/lib/competitor-research/competitor-report-number-format";
 import { cn } from "@/lib/utils";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/ui";
+
+
+import { Button, Checkbox, DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/ui";
 
 function fmtNum(n: number | null | undefined): string {
   return formatCompetitorMetricCell(n);
@@ -307,10 +299,33 @@ export function CompetitorSiteGrid({
 
   const selectAllTierFilters = () => setSelectedTierKeys(new Set(fullTierFilterKeySet));
 
-  const enrichmentByDomain = useMemo(
-    () => filterEnrichmentDropCompetitorBrandedKeywords(semrush?.enrichmentByDomain ?? {}) ?? {},
-    [semrush?.enrichmentByDomain],
-  );
+  const [enrichmentByDomain, setEnrichmentByDomain] = useState<
+    NonNullable<CompetitorResearchSemrushResponse["enrichmentByDomain"]>
+  >({});
+  const [keywordFilterError, setKeywordFilterError] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const raw = semrush?.enrichmentByDomain ?? {};
+    void filterEnrichmentWithAiClassifier(raw, {
+      seedDomain: semrush?.seedDomain ?? "",
+      seedKeywordPhrases: (semrush?.seedTopKeywords ?? [])
+        .map((k) => k.phrase || "")
+        .filter(Boolean),
+    })
+      .then((next) => {
+        if (cancelled) return;
+        setEnrichmentByDomain(next ?? {});
+        setKeywordFilterError(null);
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        setEnrichmentByDomain({});
+        setKeywordFilterError(e instanceof Error ? e.message : String(e));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [semrush]);
   const toggleDomain = (dk: string) => {
     setOpenDomains((prev) => {
       const next = new Set(prev);
@@ -336,6 +351,11 @@ export function CompetitorSiteGrid({
 
   return (
     <div className="space-y-4">
+      {keywordFilterError ? (
+        <p className="min-h-[1rem] text-base leading-normal text-destructive">
+          Competitor keyword filtering failed: {keywordFilterError}
+        </p>
+      ) : null}
       {noDirectButTiered ? (
         <p className="min-h-[1rem] text-base leading-normal text-semantic-warning-foreground/90">
           No competitors in the direct tier. The table below includes partial or indirect overlap so you can review and uncheck rows.

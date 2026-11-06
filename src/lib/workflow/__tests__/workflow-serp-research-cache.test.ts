@@ -17,10 +17,14 @@ describe("workflow-serp-research-cache", () => {
   it("finds workflow serp brief file ref by keyword slug", () => {
     const outputs: WorkflowStepOutput[] = [
       {
+        id: 1,
+        runId: 1,
         nodeId: "archive",
         variableKey: "workflow_output",
         scope: "run",
         label: "Archive",
+        textPreview: "",
+        createdAt: "",
         fileRefs: [
           {
             name: "serp-research-brief-alberta-tax-brackets-sherwood-park.json",
@@ -44,10 +48,29 @@ describe("workflow-serp-research-cache", () => {
   it("serializes serp stored file alongside brief", () => {
     const json = serializeWorkflowSerpResearchBrief(
       {
+        version: 1,
+        generatedAt: "",
         focusKeyword: "kw",
-        dataforseo: {},
-        semrush: {},
-        llmAudit: { keyword: "kw", location: "", platforms: [] },
+        pageUrl: "",
+        dataforseo: {
+          seedKeyword: null,
+          organic: [],
+          peopleAlsoAsk: [],
+          peopleAlsoSearchPhrases: [],
+          relatedSearches: [],
+          refinementChips: [],
+          popularProducts: [],
+        },
+        gsc: { pageUrl: "", queries: [] },
+        semrush: {
+          urlOrganicKeywords: [],
+          phraseRelatedKeywords: [],
+          urlOrganicUrls: [],
+          phraseRelatedUrls: [],
+          phraseOrganicUrls: [],
+          externalSemrushUrls: [],
+        },
+        llmAudit: { siteUrl: "", location: "", platforms: [] },
       },
       "serp-file.json",
     );

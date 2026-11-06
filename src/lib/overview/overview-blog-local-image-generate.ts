@@ -34,6 +34,7 @@ import {
 import { parseMarkdownSections } from "@/lib/section-parser";
 import { uploadWordPressMedia } from "@/lib/wordpress-api";
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import {
   isCurrentConnectedSite,
   searchSapCrossSiteInContentImage,
@@ -208,7 +209,7 @@ export async function prepareLocalImageDataUrl(dataUrl: string): Promise<{
 }> {
   const res = await fetch(backendApiUrl("/images/prepare-local-image"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ dataUrl }),
   });
   const data = (await res.json().catch(() => ({}))) as {
@@ -236,7 +237,7 @@ async function fetchGoogleImagesForEntity(
 ): Promise<GoogleImagesSerpItem[]> {
   const res = await fetch(backendApiUrl("/dataforseo/google-images"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       keyword,
       location_name: "United States",
@@ -264,7 +265,7 @@ async function prefetchImageDataUrl(imageUrl: string, referer?: string): Promise
   try {
     const res = await fetch(backendApiUrl("/images/fetch-data-url"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         url: imageUrl,
         referer: (referer || "").trim() || "https://www.google.com/",
@@ -653,7 +654,6 @@ export async function generateLocalInContentImageFromHtml(
   };
 
   // #region agent log
-  fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'pre-fix',hypothesisId:'A',location:'overview-blog-local-image-generate.ts:peer-gate',message:'Generate Local peer gate before search',data:{localImageMode,entity:String(entity||'').slice(0,120),incomingPeerCount:(options.peerSites??[]).length,filteredPeerCount:peerSites.length,peerNames:peerSites.slice(0,12).map((s)=>(s.name||s.siteUrl||'').slice(0,40)),hasApiKey:Boolean(apiKey?.trim()),willSearchPeers:peerSites.length>0},timestamp:Date.now()})}).catch(()=>{});
   // #endregion
 
   // Search OTHER connected SAP sites (all same-city peers; first image hit for reuse).
@@ -682,7 +682,6 @@ export async function generateLocalInContentImageFromHtml(
   }
 
   // #region agent log
-  fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'pre-fix',hypothesisId:'E',location:'overview-blog-local-image-generate.ts:peer-result',message:'Peer search finished',data:{entity:String(entity||'').slice(0,120),found:Boolean(crossHit),sourceSiteName:crossHit?.sourceSiteName??null,sourcePageUrl:(crossHit?.sourcePageUrl||'').slice(0,120),imageUrlHost:(crossHit?.imageUrl||'').slice(0,80),peerCsvCount:peerCsvFiles.length,willFallThroughToDfs:!crossHit&&localImageMode!=='find'},timestamp:Date.now()})}).catch(()=>{});
   // #endregion
 
   if (crossHit) {
@@ -692,7 +691,6 @@ export async function generateLocalInContentImageFromHtml(
     });
     const dataUrl = await prefetchImageDataUrl(crossHit.imageUrl);
     // #region agent log
-    fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'pre-fix',hypothesisId:'F',location:'overview-blog-local-image-generate.ts:prefetch',message:'Peer hit prefetch result',data:{entity:String(entity||'').slice(0,120),sourceSiteName:crossHit.sourceSiteName,prefetchOk:Boolean(dataUrl),imageUrlHost:(crossHit.imageUrl||'').slice(0,100),willThrowOnFail:!dataUrl},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
     if (!dataUrl) {
       emitPhase({
@@ -800,7 +798,6 @@ export async function generateLocalInContentImageFromHtml(
       detail: "Not found on Wikipedia",
     });
     // #region agent log
-    fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'pre-fix',hypothesisId:'E',location:'overview-blog-local-image-generate.ts:dfs-start',message:'Falling through to DataForSEO Google Images',data:{entity:String(entity||'').slice(0,120),localImageMode},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
     emitPhase({
       phase: "looking",

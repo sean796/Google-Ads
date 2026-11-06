@@ -1,6 +1,7 @@
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { Card, Badge, Progress } from "@/ui";
+
+
+
 import { BarChart3, Target } from "lucide-react";
 import type { KeywordData } from "@/lib/keyword-types";
 import { getDifficultyColor, getDifficultyLabel } from "@/lib/keyword-display-utils";

@@ -73,7 +73,7 @@ export function computeHarnessSectionTokenBudgets(
     slot.maxTokens = Math.max(TOKEN_SANITY_MIN, Math.floor((totalBudget * slot.weight) / sumWeights));
   }
 
-  let allocated = weighted.reduce((sum, slot) => sum + slot.maxTokens, 0);
+  const allocated = weighted.reduce((sum, slot) => sum + slot.maxTokens, 0);
   let remainder = totalBudget - allocated;
   const byWeight = [...weighted].sort((a, b) => b.weight - a.weight);
   let idx = 0;
@@ -108,4 +108,90 @@ export function isHarnessSeoOpenerBodyAgent(agent: AgentConfig): boolean {
     agent.id !== BLOG_HARNESS_ANSWER_AGENT_ID &&
     agent.step === 1
   );
+}
+
+export type HarnessSectionTokenUsage = {
+  sectionKey: string;
+  /** Preflight estimate for this section (slot estimatedNeed). */
+  estimatedTokens: number;
+  /** Measured estimate from the real prompt text sent (chars / 4). */
+  promptTokens: number;
+  /** Measured estimate from the real completion text received (chars / 4). */
+  completionTokens: number;
+  actualTokens: number;
+  cumulativeCompletionTokens: number;
+  cumulativeActualTokens: number;
+  totalBudget: number;
+};
+
+export type HarnessTokenBudgetSummary = {
+  totalBudget: number;
+  estimatedTokens: number;
+  promptTokens: number;
+  completionTokens: number;
+  actualTokens: number;
+  records: HarnessSectionTokenUsage[];
+};
+
+/** Deterministic token estimate for budget accounting (about 4 chars per token). */
+export function estimateTokensFromText(text: string): number {
+  if (!text) return 0;
+  return Math.ceil(text.length / 4);
+}
+
+/**
+ * Per-run budget ledger. Records estimated vs actual tokens per section and
+ * stops the run with a visible error when measured completion tokens pass the
+ * row budget. Estimates are labeled estimates; nothing is silently truncated.
+ */
+export function createHarnessTokenBudgetTracker(args: {
+  totalBudget: number;
+  slots: HarnessSectionTokenSlot[];
+  onUsage?: (usage: HarnessSectionTokenUsage) => void;
+}): {
+  record: (sectionKey: string, promptText: string, completionText: string) => HarnessSectionTokenUsage;
+  summary: () => HarnessTokenBudgetSummary;
+} {
+  const estimatedByKey = new Map(args.slots.map((s) => [s.sectionKey, s.estimatedNeed]));
+  const records: HarnessSectionTokenUsage[] = [];
+  let cumulativeCompletion = 0;
+  let cumulativePrompt = 0;
+
+  return {
+    record(sectionKey, promptText, completionText) {
+      const promptTokens = estimateTokensFromText(promptText);
+      const completionTokens = estimateTokensFromText(completionText);
+      cumulativePrompt += promptTokens;
+      cumulativeCompletion += completionTokens;
+      const usage: HarnessSectionTokenUsage = {
+        sectionKey,
+        estimatedTokens: estimatedByKey.get(sectionKey) ?? 0,
+        promptTokens,
+        completionTokens,
+        actualTokens: promptTokens + completionTokens,
+        cumulativeCompletionTokens: cumulativeCompletion,
+        cumulativeActualTokens: cumulativePrompt + cumulativeCompletion,
+        totalBudget: args.totalBudget,
+      };
+      records.push(usage);
+      args.onUsage?.(usage);
+      if (cumulativeCompletion > args.totalBudget) {
+        const estimatedTotal = args.slots.reduce((sum, s) => sum + s.estimatedNeed, 0);
+        throw new Error(
+          `Harness token budget exceeded for this row: measured ~${cumulativeCompletion} completion tokens after section "${sectionKey}" against a budget of ${args.totalBudget} (preflight estimate ~${estimatedTotal}). Run stopped; increase max tokens for this row.`,
+        );
+      }
+      return usage;
+    },
+    summary() {
+      return {
+        totalBudget: args.totalBudget,
+        estimatedTokens: args.slots.reduce((sum, s) => sum + s.estimatedNeed, 0),
+        promptTokens: cumulativePrompt,
+        completionTokens: cumulativeCompletion,
+        actualTokens: cumulativePrompt + cumulativeCompletion,
+        records: [...records],
+      };
+    },
+  };
 }

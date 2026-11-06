@@ -5,7 +5,7 @@ import {
   type MetaOptimizerPageRowDetailsProps,
 } from "@/components/overview/MetaOptimizerPageRowDetails";
 import { MetaOptimizerPageRowCompact } from "@/components/overview/MetaOptimizerPageRowCompact";
-import { overviewGridPageSlice } from "@/components/overview/OverviewGridPagination";
+import { overviewGridPageSlice } from "@/components/overview/overview-grid-pagination-helpers";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import type { OverviewBinding } from "@/hooks/overview/use-overview-wordpress-binding";
 import type { OverviewSitemapSource } from "@/lib/overview/overview-sitemap-source";
@@ -21,7 +21,8 @@ import {
   contentOptimizerRowStripeClass,
 } from "@/components/overview/overview-tab/overview-tab-content-constants";
 import { isOverviewRowBulkActive, isOverviewBulkWorkerActive } from "@/components/overview/overview-tab/overview-bulk-run-helpers";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@/ui";
+
 import { DASHBOARD_LIST_CHECKBOX_CLASS } from "@/components/shared/workspace-checkbox-styles";
 import {
   overviewDisplayRowSelectionKeys,

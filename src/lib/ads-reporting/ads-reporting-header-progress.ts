@@ -1,4 +1,4 @@
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import type { AdsReportingPipelineProgress } from "@/lib/ads-reporting/ads-reporting-types";
 
 export function buildAdsReportingMicroSnapshot(

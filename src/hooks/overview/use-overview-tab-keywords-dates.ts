@@ -424,7 +424,8 @@ export function useOverviewTabKeywordsDates({
       if (!row) return;
       const iso = (dateIso ?? row.dateModifier ?? "").trim();
       if (!iso) return;
-      const binding = resolveBindings(row.url);
+      const bindingMap = await resolveBindings([row.url], site);
+      const binding = bindingMap[row.url];
       if (!binding?.postId) return;
       await pushOverviewRowDateModifierToAcf(site, binding, iso);
     },

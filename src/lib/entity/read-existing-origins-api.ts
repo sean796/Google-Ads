@@ -5,6 +5,7 @@
  */
 
 import { BACKEND_API_BASE } from '@/lib/wordpress-api/connection';
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { getACFFieldsForPost } from '@/lib/wordpress-api/acf-discovery';
 import type { WordPressSite } from '@/components/integrations/types';
 
@@ -86,7 +87,7 @@ async function fetchServiceAreaPosts(
   while (hasMore && posts.length < MAX_SERVICE_AREAS) {
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         siteUrl: site.siteUrl,
         username: site.username,

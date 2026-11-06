@@ -139,7 +139,7 @@ export async function runManagerManualCompetitorsOnlyAnalyze(
 
   let gscRes: FetchCompetitorGscQueriesResult;
   if (neutralResearchWire) {
-    gscRes = { ok: false, queries: [], dateRange: null, error: "neutral" };
+    gscRes = { ok: false, dateRange: getDefaultGscCompetitorDateRange(), error: "neutral" };
   } else {
     gscRes = await fetchCompetitorGscQueries({ siteUrl: seedSiteUrl });
   }
@@ -357,7 +357,7 @@ export async function runManagerLocalAnalysisAnalyze(
 
   let gscRes: FetchCompetitorGscQueriesResult;
   if (neutralResearchWire) {
-    gscRes = { ok: false, queries: [], dateRange: null, error: "neutral" };
+    gscRes = { ok: false, dateRange: getDefaultGscCompetitorDateRange(), error: "neutral" };
   } else {
     gscRes = await fetchCompetitorGscQueries({ siteUrl: seedSiteUrl });
   }

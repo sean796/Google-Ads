@@ -25,10 +25,15 @@ export const NEO_PULSE_AGENT_DECISION_MODEL_KEY = "neo-pulse-agent-decision-mode
 
 const GLOBAL_RESEARCH_MODEL_KEY = "global_research_model";
 
+/** Canonical model IDs. Feature files import these; they never type a model ID inline. */
+export const GEMINI_FLASH_MODEL = "google/gemini-2.5-flash";
+export const GEMINI_FLASH_LITE_MODEL = "google/gemini-2.5-flash-lite";
+export const DEEPSEEK_FLASH_MODEL = "deepseek/deepseek-v4.1-flash";
+
 export const TEXT_AGENT_MODEL_PRESETS: { value: string; label: string }[] = [
-  { value: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
-  { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-  { value: "deepseek/deepseek-v4.1-flash", label: "DeepSeek V4.1 Flash" },
+  { value: GEMINI_FLASH_LITE_MODEL, label: "Gemini 2.5 Flash Lite" },
+  { value: GEMINI_FLASH_MODEL, label: "Gemini 2.5 Flash" },
+  { value: DEEPSEEK_FLASH_MODEL, label: "DeepSeek V4.1 Flash" },
   { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro" },
   { value: "openai/gpt-5-mini", label: "GPT-5 Mini" },
   { value: "openai/gpt-5", label: "GPT-5" },
@@ -37,9 +42,9 @@ export const TEXT_AGENT_MODEL_PRESETS: { value: string; label: string }[] = [
 export const DECISION_AGENT_MODEL_PRESETS: { value: string; label: string }[] = [
   { value: "liquid/d1.1", label: "Liquid d1.1 (Checker & Router)" },
   { value: "liquid/lfm-2.5-24b-a2b", label: "LiquidAI LFM2.5 24B MoE" },
-  { value: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
-  { value: "deepseek/deepseek-v4.1-flash", label: "DeepSeek V4.1 Flash" },
-  { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+  { value: GEMINI_FLASH_LITE_MODEL, label: "Gemini 2.5 Flash Lite" },
+  { value: DEEPSEEK_FLASH_MODEL, label: "DeepSeek V4.1 Flash" },
+  { value: GEMINI_FLASH_MODEL, label: "Gemini 2.5 Flash" },
 ];
 
 export { IMAGE_MODEL_PRESETS, VIDEO_MODEL_PRESETS };

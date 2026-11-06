@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type DragEvent } from "react";
 import {
   Archive,
   Box,
-  ChevronLeft,
   Clapperboard,
   FolderOpen,
   Image as ImageIcon,
@@ -37,7 +36,7 @@ import { VideoPlanPanel } from "./VideoPlanPanel";
 import { VideoPostCutPanel } from "./VideoPostCutPanel";
 import { VideoProjectsPanel } from "./VideoProjectsPanel";
 import { cn } from "@/lib/utils";
-import { Button, FileInput, RowButton, TextareaField } from "@/ui";
+import { Button, FileInput, RailButton, RowButton, TextareaField } from "@/ui";
 
 export type StudioLeftTabId = "assets" | "brief" | "product" | "director" | "postcut" | "projects";
 type AssetFilter = "all" | "product" | "references" | "video";
@@ -371,40 +370,23 @@ export function VideoStudioLeftDock(props: VideoStudioLeftDockProps) {
       {/* Full-Height Vertical Left Docker Rail (matches right-side Agents/Assist 5rem rail) */}
       <aside
         aria-label="Video studio sidebar shortcuts"
-        className="z-20 flex h-full w-20 flex-col items-center justify-center gap-3 border-r border-white/10 bg-black px-2 py-4"
+        className="z-20 flex h-full w-20 flex-col items-center justify-center gap-3 bg-primary"
       >
         {RAIL_ITEMS.map((item) => {
-          const Icon = item.icon;
           const isCurrent = open && activeTab === item.id;
           return (
-            <RowButton
-              selected={Boolean(isCurrent)}
+            <RailButton
               key={item.id}
-              type="button"
+              icon={item.icon}
+              label={item.label}
+              selected={Boolean(isCurrent)}
               onClick={() => openPanelTab(item.id)}
               aria-label={`Open ${item.label}`}
               aria-expanded={isCurrent}
-            >
-              <Icon
-                className={cn(
-                  "h-5 w-5 shrink-0 text-primary transition-transform",
-                  "drop-shadow-[0_0_6px_hsl(var(--primary)/0.55)] group-hover:drop-shadow-[0_0_10px_hsl(var(--primary)/0.85)]",
-                )}
-                aria-hidden
-              />
-              <span className="leading-none tracking-wide">{item.label}</span>
-            </RowButton>
+            />
           );
         })}
       </aside>
-
-      {/* Backdrop when slide-out drawer is open */}
-      <Button
-        variant="quiet"
-        aria-label="Close studio sidebar"
-        tabIndex={open ? 0 : -1}
-        onClick={() => onOpenChange(false)}
-      />
 
       {/* Slide-Out Full-Height Drawer Panel (mirrors PulseAssistSidebarShell) */}
       <div
@@ -419,14 +401,6 @@ export function VideoStudioLeftDock(props: VideoStudioLeftDockProps) {
             : "invisible -translate-x-full opacity-0 pointer-events-none",
         )}
       >
-        {open ? (
-          <Button
-            size="icon" icon={ChevronLeft}
-            onClick={() => onOpenChange(false)}
-            aria-label="Collapse studio sidebar"
-          ></Button>
-        ) : null}
-
         {/* Top WorkspacePill Tablist Header */}
         <div
           role="tablist"
@@ -443,12 +417,14 @@ export function VideoStudioLeftDock(props: VideoStudioLeftDockProps) {
               className="h-8 shrink-0 px-2"
             />
           ))}
-          <Button
-            size="icon" icon={X}
-            variant="quiet"
-            onClick={() => onOpenChange(false)}
-            aria-label="Close sidebar"
-          ></Button>
+          <div className="ml-auto">
+            <Button
+              size="icon" icon={X}
+              variant="quiet"
+              onClick={() => onOpenChange(false)}
+              aria-label="Close sidebar"
+            ></Button>
+          </div>
         </div>
 
         {/* Slide-Out Drawer Content */}

@@ -20,16 +20,36 @@ describe("countHarnessH2Tags", () => {
 });
 
 describe("validateHarnessSectionOrThrow", () => {
-  it("is a no-op so harness sections ship without per-section paragraph gates", () => {
+  it("rejects sections without an h2 and a complete paragraph", () => {
     expect(() =>
       validateHarnessSectionOrThrow("<p>Only paragraph.</p>", {
         title: "Missing",
         isOverview: false,
       }),
-    ).not.toThrow();
+    ).toThrow(/missing <h2>/);
     expect(() =>
       validateHarnessSectionOrThrow('<h2>T</h2><p>Cut off mid sentence without ending', {
         title: "T",
+        isOverview: false,
+      }),
+    ).toThrow(/no complete paragraphs/);
+  });
+
+  it("rejects sections truncated by the token limit", () => {
+    expect(() =>
+      validateHarnessSectionOrThrow('<h2>T</h2><p>Complete sentence here.</p>', {
+        title: "T",
+        finishReason: "length",
+        isOverview: false,
+      }),
+    ).toThrow(/truncated/);
+  });
+
+  it("accepts a complete body section", () => {
+    expect(() =>
+      validateHarnessSectionOrThrow('<h2>T</h2><p>Complete sentence here.</p>', {
+        title: "T",
+        finishReason: "stop",
         isOverview: false,
       }),
     ).not.toThrow();

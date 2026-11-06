@@ -7,6 +7,7 @@
 import { backendApiUrl } from './connection';
 import { streamChatCompletion } from '@/lib/api';
 import { getResearchModel } from '@/lib/optimization-settings-storage';
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 min
 const cache = new Map<
@@ -72,7 +73,7 @@ export async function getAuthorUsage(
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           siteUrl,
           username,

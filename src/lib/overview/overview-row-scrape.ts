@@ -435,7 +435,7 @@ export async function scrapeOverviewRowsBatch(args: {
 
   for (let start = 0; start < args.rows.length; start += OVERVIEW_SCRAPE_CONCURRENCY) {
     const batch = args.rows.slice(start, start + OVERVIEW_SCRAPE_CONCURRENCY);
-    // eslint-disable-next-line no-await-in-loop
+     
     await Promise.all(
       batch.map(async (row) => {
         try {

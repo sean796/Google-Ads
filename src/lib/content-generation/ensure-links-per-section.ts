@@ -15,11 +15,10 @@ import { keepBlogPlayLinkTargets } from "@/lib/bulk/bulk-generation-wp-inventory
 import type { LinkTargetsPlan } from "@/lib/bulk/bulk-generation-wp-inventory";
 import { normalizeInternalLinkUrl } from "@/lib/content-generation/internal-link-intent-match";
 import {
-  MIN_INTERNAL_LINKS_PER_BODY_H2,
   TARGET_INTERNAL_LINKS_PER_BODY_H2,
 } from "@/lib/content-generation/link-anchor-text-case";
 
-const LINK_PATTERN = /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g;
+const LINK_PATTERN = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
 const HREF_PATTERN = /<a[^>]+href=["'](https?:\/\/[^"']+)["'][^>]*>/gi;
 
 /** Target: one internal link per this many words. */
@@ -226,7 +225,7 @@ function weaveLinkIntoParagraphInner(inner: string, href: string, title: string)
 }
 
 const HTML_INTERNAL_LINK_RE = /<a\s[^>]*href=["']https?:\/\//i;
-const MD_INTERNAL_LINK_RE = /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/;
+const MD_INTERNAL_LINK_RE = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/;
 
 function insertOneInternalLinkIntoBlock(
   sectionHtml: string,
@@ -585,7 +584,7 @@ export interface ApplyLinkTargetsPlanDeterministicOptions {
 
 /**
  * One deterministic pass: weave planned page/blog URLs into each body H2 section (prose + tables).
- * No OpenRouter. Ensures at least MIN and up to TARGET internal links per eligible section when inventory allows.
+ * No OpenRouter. Planned links only; no padding to a per-section count.
  */
 export function applyLinkTargetsPlanToHtmlDeterministic(
   options: ApplyLinkTargetsPlanDeterministicOptions,
@@ -601,7 +600,6 @@ export function applyLinkTargetsPlanToHtmlDeterministic(
 
   let currentHtml = htmlContent;
   const headingSections = splitHtmlByHeadingSections(currentHtml);
-  let catalogCursor = 0;
 
   for (let i = 0; i < headingSections.length; i++) {
     let section = headingSections[i]!;
@@ -621,26 +619,6 @@ export function applyLinkTargetsPlanToHtmlDeterministic(
 
     for (const pick of planned) {
       tryInsert(pick);
-    }
-
-    while (
-      countInternalLinksInHtml(section, siteHost, validUrls) < MIN_INTERNAL_LINKS_PER_BODY_H2 &&
-      catalogCursor < allowedForLinking.length
-    ) {
-      const post = allowedForLinking[catalogCursor]!;
-      catalogCursor += 1;
-      if (!post.link?.trim()) continue;
-      tryInsert({ title: post.title, link: post.link });
-    }
-
-    while (
-      countInternalLinksInHtml(section, siteHost, validUrls) < TARGET_INTERNAL_LINKS_PER_BODY_H2 &&
-      catalogCursor < allowedForLinking.length
-    ) {
-      const post = allowedForLinking[catalogCursor]!;
-      catalogCursor += 1;
-      if (!post.link?.trim()) continue;
-      tryInsert({ title: post.title, link: post.link });
     }
 
     headingSections[i] = section;
@@ -713,7 +691,7 @@ export async function applyLinkTargetsPlanToHtml(
 
     const planned = plannedLinksForSection(sectionTitle, linkTargetsPlan, usedUrls).slice(
       0,
-      MIN_INTERNAL_LINKS_PER_BODY_H2,
+      TARGET_INTERNAL_LINKS_PER_BODY_H2,
     );
 
     for (const pick of planned) {

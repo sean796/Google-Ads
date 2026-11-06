@@ -1,9 +1,5 @@
 import { FileText, Download, ChevronDown } from 'lucide-react';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+
 import {
   reportingToolbarButtonData,
 } from '@/components/research/reporting/reporting-toolbar-styles';
@@ -22,7 +18,7 @@ const DETAILS_FLAT_COLLAPSE_TRIGGER =
   "flex min-h-9 w-full items-center justify-between gap-2 rounded-none border-0 bg-black px-3 py-1.5 text-left text-base text-white [&[data-state=open]>svg]:rotate-180";
 import { cn } from '@/lib/utils';
 import type { BulkHarnessSectionUi } from '@/hooks/use-bulk-auto-generate';
-import { Button } from "@/ui";
+import { Button, Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui";
 
 function triggerDownloadMarkdown(filename: string, content: string) {
   const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });

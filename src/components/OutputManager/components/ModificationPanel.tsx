@@ -1,4 +1,5 @@
 import { Image as ImageIcon } from "lucide-react";
+import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_FAILED_TO_COPY_IMAGE_TO_CLIPBOARD, NOTIFY_FAILED_TO_DOWNLOAD_IMAGE, NOTIFY_IMAGE_COPIED_TO_CLIPBOARD, NOTIFY_IMAGE_DOWNLOADED_SUCCESSFULLY } from "@/lib/notify-messages";
 import { ModificationChat } from "../ModificationChat";
@@ -6,21 +7,24 @@ import { ImagePreviewPanel } from "../ImagePreviewPanel";
 import { downloadImage, copyImageToClipboard } from "../image-utils";
 import { FeaturedImageGeneratorState } from "../FeaturedImageGenerator";
 import { generateSEOImageFilename } from "@/lib/image-filename-generator";
+import type { Dispatch, SetStateAction } from "react";
+import type { GenerationResult, Message } from "@/lib/api";
+import type { MarkdownSection } from "@/lib/section-parser";
 
 interface ModificationPanelProps {
   activeTab: string;
   imageState: FeaturedImageGeneratorState;
   imageSourceSection: string | null;
-  availableSectionsForInsertion: any[];
+  availableSectionsForInsertion: MarkdownSection[];
   finalOutput?: string;
-  setGenerationResult?: (result: any) => void;
+  setGenerationResult?: Dispatch<SetStateAction<GenerationResult>>;
   handleInsertImageIntoSection?: (sectionHeader: string, imageMarkdown: string) => void;
   flowTitle?: string;
   apiKey?: string;
   selectedModel?: string;
   // Plan modification props
   isModifyingPlan: boolean;
-  planChatMessages: any[];
+  planChatMessages: Message[];
   planUserInput: string;
   setPlanUserInput: (value: string) => void;
   planModificationChecklist: string[];
@@ -38,7 +42,7 @@ interface ModificationPanelProps {
   planChatEndRef: React.RefObject<HTMLDivElement>;
   // Draft modification props
   isModifyingDraft: boolean;
-  draftChatMessages: any[];
+  draftChatMessages: Message[];
   draftUserInput: string;
   setDraftUserInput: (value: string) => void;
   draftModificationChecklist: string[];
@@ -56,7 +60,7 @@ interface ModificationPanelProps {
   draftChatEndRef: React.RefObject<HTMLDivElement>;
   // Final modification props
   isModifyingFinal: boolean;
-  finalChatMessages: any[];
+  finalChatMessages: Message[];
   finalUserInput: string;
   setFinalUserInput: (value: string) => void;
   finalModificationChecklist: string[];

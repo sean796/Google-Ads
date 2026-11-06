@@ -50,7 +50,7 @@ export async function runContentCalendarPromptModifierAgent(options: {
     model: options.model,
     system,
     user,
-    maxTokens: getCompetitorReportMaxOutputTokens(512),
+    maxTokens: Math.min(512, getCompetitorReportMaxOutputTokens(options.model)),
     temperature: 0.5,
     errorLabel: "Content prompt modifier agent",
     signal: options.signal,

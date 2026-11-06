@@ -434,18 +434,12 @@ class Neo_Pulse_App_Agent_Runs_Route_Handlers {
 			Neo_Pulse_App_Chat_Openrouter::use_request_api_key( $openrouter_key );
 		}
 
-		$dfs_creds = Neo_Pulse_App_Secrets::dataforseo_from_request( $body );
-		if ( $dfs_creds['login'] !== '' && $dfs_creds['password'] !== '' ) {
-			Neo_Pulse_App_Secrets::use_request_dataforseo_credentials( $dfs_creds );
-		}
-
 		try {
 			$processed = self::process_server_run_once( $resolved['team_id'], $run_id, $run );
 		} finally {
 			if ( class_exists( 'Neo_Pulse_App_Chat_Openrouter' ) ) {
 				Neo_Pulse_App_Chat_Openrouter::clear_request_api_key();
 			}
-			Neo_Pulse_App_Secrets::clear_request_dataforseo_credentials();
 		}
 
 		if ( ! $processed ) {

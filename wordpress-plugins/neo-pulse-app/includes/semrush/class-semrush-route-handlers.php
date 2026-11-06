@@ -50,8 +50,7 @@ class Neo_Pulse_App_Semrush_Route_Handlers {
 	 * @param WP_REST_Request $request
 	 */
 	public static function can_access( WP_REST_Request $request ): bool {
-		unset( $request );
-		return true;
+		return Neo_Pulse_App_Auth_Session::rest_permission( $request );
 	}
 
 	/**

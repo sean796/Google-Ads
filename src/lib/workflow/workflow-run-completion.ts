@@ -13,7 +13,7 @@ import { fetchAgentRuns } from "@/lib/agent-runs-api";
 import type { AgentRun } from "@/lib/agent-runs-types";
 import { chainWorkflowAfterAgentComplete } from "@/lib/workflow/workflow-grid-export-chain";
 
-function isExecutableWorkflowStep(node: { kind: string }): boolean {
+function isExecutableWorkflowStep(node: Pick<WorkflowNode, "kind">): boolean {
   return node.kind === "action_agent" || node.kind === "csv_rows" || node.kind === "rag_archive" || isWorkflowThenKind(node.kind);
 }
 
@@ -144,8 +144,7 @@ export async function pollWorkflowRunUntilComplete(args: {
       return { ok: true, outputs };
     }
 
-    const agentList = await fetchAgentRuns(args.teamId);
-    const agentRuns = agentList.runs ?? [];
+    const agentRuns = await fetchAgentRuns(args.teamId);
     const doneAgents = agentRuns.filter((agentRun) => {
       if (agentRun.status !== "done") return false;
       const ctxWorkflowId = Number(agentRun.context?.workflowId ?? agentRun.plan?.workflowId ?? 0);

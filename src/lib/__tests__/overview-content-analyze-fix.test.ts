@@ -275,7 +275,9 @@ describe("parseContentAuditStorage and contentAuditStorageToFixBulletsMarkdown",
     const raw = "{broken json";
     const p = parseContentAuditStorage(raw);
     expect(p.kind).toBe("legacy");
-    expect(p.lines.join(",")).toContain("broken json");
+    if (p.kind === "legacy") {
+      expect(p.lines.join(",")).toContain("broken json");
+    }
   });
 
   it("maps legacy bullets to lines for fix derivation", () => {

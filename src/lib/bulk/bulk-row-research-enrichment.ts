@@ -153,18 +153,31 @@ export async function runBulkRowResearchEnrichmentPhase(input: {
     // CRITICAL FIX: Merge PAA questions from paaRawResponse into aiAnalysis
     // The AI analyzer returns empty peopleAlsoAsk because PAA is extracted separately
     // We need to populate it here so autoSelectPeopleAlsoAsk works correctly
-    if (paaRawResponse?.tasks?.[0]?.result?.[0]?.items) {
-      const paaItems = paaRawResponse.tasks[0].result[0].items;
+    const paaRoot = paaRawResponse as
+      | {
+          tasks?: Array<{
+            result?: Array<{
+              items?: Array<{
+                type?: string;
+                items?: Array<{ title?: string; snippet?: string }>;
+              }>;
+            }>;
+          }>;
+        }
+      | null
+      | undefined;
+    if (paaRoot?.tasks?.[0]?.result?.[0]?.items) {
+      const paaItems = paaRoot.tasks[0].result[0].items;
       if (Array.isArray(paaItems) && paaItems.length > 0) {
         aiAnalysis.peopleAlsoAsk = paaItems
-          .filter((item: any) => item.type === 'people_also_ask' && item.items)
-          .flatMap((item: any) => item.items || [])
+          .filter((item) => item.type === 'people_also_ask' && item.items)
+          .flatMap((item) => item.items || [])
           .slice(0, 10)
-          .map((item: any) => ({
+          .map((item) => ({
             question: item.title || '',
             snippet: item.snippet || ''
           }))
-          .filter((paa: any) => paa.question);
+          .filter((paa) => paa.question);
         console.log('[Bulk Auto-Generate] Merged PAA questions into aiAnalysis:', {
           paaItemsCount: paaItems.length,
           aiAnalysisPAACount: aiAnalysis.peopleAlsoAsk.length
@@ -216,11 +229,8 @@ export async function runBulkRowResearchEnrichmentPhase(input: {
     modifierExternalLinks = [];
 
     const persistModifierLinksFile = (links: ModifierExternalLink[]) => {
-      const modifierLinksFileName = BulkFileManager.generateFileName(
-        enrichedRow,
-        "modifier_external_links",
-        timestamp,
-      );
+      // BulkFileManager.generateFileName has no modifier_external_links case; it falls through to this default name.
+      const modifierLinksFileName = `file-${timestamp}.txt`;
       const modifierLinksFile: BulkGeneratedFile = {
         id: BulkFileManager.createFileId(rowIndex, "modifier-external-links", timestamp),
         rowIndex,
@@ -279,7 +289,14 @@ export async function runBulkRowResearchEnrichmentPhase(input: {
       serpSite?.siteUrl?.replace(/\/+$/, '') ||
       connectedSite?.siteUrl?.replace(/\/+$/, '') ||
       'https://example.com';
-    const serpSlug = serpKeyword ? generateSEOSlug(serpKeyword) : '';
+    const serpSlug = serpKeyword
+      ? await generateSEOSlug(
+          enrichedRow.title || row.title || serpKeyword,
+          serpKeyword,
+          entityForLocalTemplate,
+          options.openRouterApiKey || null,
+        )
+      : '';
     destinationPageUrl = enrichedRow.destination_url?.trim() || row.destination_url?.trim() || "";
     const serpPageUrl =
       destinationPageUrl ||
@@ -344,10 +361,25 @@ export async function runBulkRowResearchEnrichmentPhase(input: {
           generatedAt: new Date().toISOString(),
           pageUrl: serpPageUrl,
           focusKeyword: waveKeyword,
-          gsc: { pageUrl: serpPageUrl, topQueries: [] },
-          dataforseo: { organic: [], peopleAlsoAsk: [], relatedSearches: [] },
-          semrush: { urlOrganicKeywords: [], phraseRelatedKeywords: [], externalUrls: [] },
-          llmAudit: { ranAt: new Date().toISOString(), platforms: [] },
+          gsc: { pageUrl: serpPageUrl, queries: [] },
+          dataforseo: {
+            seedKeyword: waveKeyword,
+            organic: [],
+            peopleAlsoAsk: [],
+            peopleAlsoSearchPhrases: [],
+            relatedSearches: [],
+            refinementChips: [],
+            popularProducts: [],
+          },
+          semrush: {
+            urlOrganicKeywords: [],
+            phraseRelatedKeywords: [],
+            urlOrganicUrls: [],
+            phraseRelatedUrls: [],
+            phraseOrganicUrls: [],
+            externalSemrushUrls: [],
+          },
+          llmAudit: { siteUrl: serpBaseUrl, location: serpLocation, focusKeyword: waveKeyword, platforms: [] },
         };
         return { brief: fallbackBrief, storedFile: null as string | null };
       });
@@ -410,7 +442,8 @@ export async function runBulkRowResearchEnrichmentPhase(input: {
           const failureFile: BulkGeneratedFile = {
             id: BulkFileManager.createFileId(rowIndex, "llm-audit-classifier-raw", timestamp),
             rowIndex,
-            fileName: BulkFileManager.generateFileName(enrichedRow, "llm_audit_classifier_raw", timestamp),
+            // BulkFileManager.generateFileName has no llm_audit_classifier_raw case; it falls through to this default name.
+            fileName: `file-${timestamp}.txt`,
             content: artifactBody,
             mimeType: "application/json",
             status: "error",

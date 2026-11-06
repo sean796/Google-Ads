@@ -176,6 +176,6 @@ describe("run-meta-ad-instagram-reference", () => {
     );
     expect(suffix).toContain("Tablet on stand ref");
     expect(suffix).toContain("bold-minimal");
-    expect(suffix).toContain("perfect spelling");
+    expect(suffix).toContain("placeholder blocks only, no readable text");
   });
 });

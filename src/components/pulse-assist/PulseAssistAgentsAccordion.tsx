@@ -1,9 +1,9 @@
 import { Download } from "lucide-react";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
 import { buildAgentPanelRows } from "@/lib/platform-data/agent-panel";
 import { downloadAgentArtifact } from "@/lib/platform-data/research-download";
 import type { PlatformDataResearchMeta } from "@/lib/platform-data/types";
-import { Button } from "@/ui";
+import { Button, Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/ui";
 
 type PulseAssistAgentsAccordionProps = {
   meta: PlatformDataResearchMeta;

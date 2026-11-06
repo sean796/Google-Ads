@@ -237,7 +237,7 @@ export function migrateGridToEntityToSapWorkflow(workflow: WorkflowDefinition): 
   const recipe = gridRecipeFromCatalog();
   if (!recipe) return workflow;
 
-  let next = replaceLegacyEntityPageCreator(workflow, recipe);
+  const next = replaceLegacyEntityPageCreator(workflow, recipe);
 
   const ldNode = next.nodes.find((node) => actionConfig(node)?.executionKind === "local_dominator_export");
   const entityNode = next.nodes.find((node) => actionConfig(node)?.executionKind === "entity_generator");

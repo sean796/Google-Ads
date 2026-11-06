@@ -18,10 +18,7 @@ import {
   ensureExecutionSchedulePayload,
   type PostCreatorScheduleUiState,
 } from "@/lib/post-creator/post-creator-schedule-payload";
-import {
-  googleDriveClientFolderName,
-  inferGoogleDriveDeliveryPath,
-} from "@/lib/google-drive/google-drive-folder-hierarchy";
+import { inferGoogleDriveDeliveryPath } from "@/lib/google-drive/google-drive-folder-hierarchy";
 import { findUpstreamActionAgent } from "@/lib/workflow/workflow-graph-mutations";
 import { upstreamRagVariablesForNode } from "@/lib/workflow/workflow-rag-utils";
 import type {
@@ -55,7 +52,10 @@ export function WorkflowThenStepInspector({
   onChange,
 }: WorkflowThenStepInspectorProps): React.ReactElement {
   const config = node.config as WorkflowThenStepConfig;
-  const executionPayload = config.executionPayload ?? {};
+  const executionPayload = useMemo(
+    () => config.executionPayload ?? {},
+    [config.executionPayload],
+  );
   const upstream = upstreamRagVariablesForNode({ nodes, edges, ragVariables }, node.id);
 
   const nodeRef = useRef(node);
@@ -72,43 +72,49 @@ export function WorkflowThenStepInspector({
     if (!siteId) return null;
     return sites.find((site) => site.id === siteId) ?? null;
   })();
-  const workflowSiteName = workflowSite ? googleDriveClientFolderName(workflowSite) : "";
-  const workflowSiteUrl = workflowSite?.siteUrl?.trim() ?? "";
+  const workflowSiteName = workflowSite ? workflowSite.name : "";
+  const workflowSiteUrl = "";
   const upstreamExecutionKind = String(
     (findUpstreamActionAgent({ nodes, edges }, node.id)?.config as WorkflowActionConfig | undefined)
       ?.executionKind ?? "",
   ).trim();
 
-  const patchConfig = (patch: Partial<WorkflowThenStepConfig>) => {
-    onChange({
-      ...nodeRef.current,
-      config: {
-        ...configRef.current,
-        ...patch,
-      },
-    });
-  };
-
-  const patchExecutionPayload = (patch: Partial<TaskExecutionPayload>) => {
-    const merged = {
-      ...executionPayloadRef.current,
-      ...patch,
-    };
-    executionPayloadRef.current = merged;
-    if (nodeRef.current.kind === "then_email" && "automationEmailTo" in patch) {
-      const trimmed = String(patch.automationEmailTo ?? "").trim();
+  const patchConfig = useCallback(
+    (patch: Partial<WorkflowThenStepConfig>) => {
       onChange({
         ...nodeRef.current,
-        label: trimmed || "Email",
         config: {
           ...configRef.current,
-          executionPayload: merged,
+          ...patch,
         },
       });
-      return;
-    }
-    patchConfig({ executionPayload: merged });
-  };
+    },
+    [onChange],
+  );
+
+  const patchExecutionPayload = useCallback(
+    (patch: Partial<TaskExecutionPayload>) => {
+      const merged = {
+        ...executionPayloadRef.current,
+        ...patch,
+      };
+      executionPayloadRef.current = merged;
+      if (nodeRef.current.kind === "then_email" && "automationEmailTo" in patch) {
+        const trimmed = String(patch.automationEmailTo ?? "").trim();
+        onChange({
+          ...nodeRef.current,
+          label: trimmed || "Email",
+          config: {
+            ...configRef.current,
+            executionPayload: merged,
+          },
+        });
+        return;
+      }
+      patchConfig({ executionPayload: merged });
+    },
+    [onChange, patchConfig],
+  );
 
   const needsSchedule = node.kind === "then_scheduled" || node.kind === "then_draft";
 
@@ -169,7 +175,7 @@ export function WorkflowThenStepInspector({
         postDestination: nodeRef.current.kind === "then_draft" ? "draft" : "wordpress",
       });
     },
-    [],
+    [patchExecutionPayload],
   );
 
   const commitSchedule = useCallback(

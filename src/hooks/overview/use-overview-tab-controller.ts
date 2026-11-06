@@ -34,6 +34,7 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
   const sitemapLoad = useOverviewTabSitemapLoad({
     rowsRef: base.rowsRef,
     setRows: base.setRows,
+    bindings: base.bindings,
     sitemapSource: base.sitemapSource,
     site,
     resolveBindings: base.resolveBindings,
@@ -328,7 +329,6 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
     sitemapSource: base.sitemapSource,
     rows: base.visibleRows,
     rowsRef: base.rowsRef,
-    updateRow: base.updateRow,
     opt: base.opt,
     apiKey: props.apiKey,
     selectedModel: props.selectedModel,
@@ -342,7 +342,6 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
     sitemapSource: base.sitemapSource,
     rows: base.visibleRows,
     rowsRef: base.rowsRef,
-    updateRow: base.updateRow,
     opt: base.opt,
     apiKey: props.apiKey,
     selectedModel: props.selectedModel,
@@ -404,7 +403,7 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
       await run();
       base.syncRowsFromRef();
     },
-    [base.syncRowsFromRef],
+    [base],
   );
 
   const handleAiAnswerRow = useCallback(
@@ -412,7 +411,7 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
       await blogAnswer.handleAiAnswerRow(index);
       base.syncRowsFromRef();
     },
-    [blogAnswer, base.syncRowsFromRef],
+    [blogAnswer, base],
   );
 
   const handleAiAnswerAll = useCallback(
@@ -425,7 +424,7 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
       await blogOverview.handleAiOverviewRow(index);
       base.syncRowsFromRef();
     },
-    [blogOverview, base.syncRowsFromRef],
+    [blogOverview, base],
   );
 
   const handleAiOverviewAll = useCallback(
@@ -438,7 +437,7 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
       await blogScenario.handleAiScenarioRow(index);
       base.syncRowsFromRef();
     },
-    [blogScenario, base.syncRowsFromRef],
+    [blogScenario, base],
   );
 
   const handleAiScenarioAll = useCallback(
@@ -452,7 +451,7 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
       await uploadAfterAiseo([index]);
       base.syncRowsFromRef();
     },
-    [blogHeaders, uploadAfterAiseo, base.syncRowsFromRef],
+    [blogHeaders, uploadAfterAiseo, base],
   );
 
   const handleAiHeadersAll = useCallback(
@@ -535,7 +534,7 @@ export function useOverviewTabController(props: OverviewTabContentProps) {
       await uploadAfterAiseo([index]);
       base.syncRowsFromRef();
     },
-    [blogLinks, uploadAfterAiseo, base.syncRowsFromRef],
+    [blogLinks, uploadAfterAiseo, base],
   );
 
   const handleAiLinksAll = useCallback(

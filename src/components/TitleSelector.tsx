@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { Card } from "@/components/ui/card";
+
 import { Sparkles, Plus, RefreshCw } from "lucide-react";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_PLEASE_SELECT_A_TITLE_OPTION_OR_ENTER_A_ } from "@/lib/notify-messages";
-import { Button, Field, TextareaField } from "@/ui";
+import { Button, Field, TextareaField, Card } from "@/ui";
 
 interface TitleSelectorProps {
   titleOptions: string[];

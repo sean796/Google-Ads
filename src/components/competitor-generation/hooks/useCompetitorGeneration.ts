@@ -4,10 +4,10 @@ import { NOTIFY_OPENROUTER_IN_SETTINGS } from "@/lib/notify-messages";
 import { loadApiKey } from "@/lib/api";
 import type { CompetitorGridPlaceRow } from "@/lib/competitor-research/local-dominator-grid-parse";
 import type { WordPressSite } from "@/components/integrations/types";
-import { generateCompetitors } from "@/lib/competitor";
-import { buildCompetitorHarnessGroups } from "@/lib/competitor-analysis/competitor-comparison-harness-state";
-import { filterPlacesExcludingConnectedSite, selectCompetitorPlacesForRun } from "@/lib/competitor/filter-connected-site-competitors";
-import type { CompetitorWithRow } from "@/lib/competitor/types";
+import { generateCompetitors } from "@/lib/competitor-research";
+import { buildCompetitorHarnessGroups } from "@/lib/competitor-research/competitor-comparison-harness-state";
+import { filterPlacesExcludingConnectedSite, selectCompetitorPlacesForRun } from "@/lib/competitor-research/filter-connected-site-competitors";
+import type { CompetitorWithRow } from "@/lib/competitor-research/types";
 import { finalizeEntitySapRowsForAdGroups } from "@/lib/local-analysis/sap-entity-ad-groups";
 import type {
   CompetitorGenerationProgress,

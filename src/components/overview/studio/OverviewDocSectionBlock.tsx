@@ -421,7 +421,7 @@ export function OverviewDocSectionBlocks({
 
   return (
     <div className="flex w-full flex-col gap-6 text-base text-white">
-      {/* Quiet Single-Line Mastra Document Toolbar (Sitemap-Relative: Pages vs Posts vs SAP) */}
+      {/* Quiet Single-Line Pulse Engine Document Toolbar (Sitemap-Relative: Pages vs Posts vs SAP) */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-4">
         <div className="flex flex-wrap items-center gap-1.5">
           {!isPagesSource && !answerHtml ? (

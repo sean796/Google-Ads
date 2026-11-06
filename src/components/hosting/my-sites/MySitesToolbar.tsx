@@ -1,6 +1,6 @@
 import { Download, Filter, Tag, UserPlus } from "lucide-react";
-import { Button, Field, FilterRow } from "@/ui";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button, Field, FilterRow, Popover, PopoverContent, PopoverTrigger } from "@/ui";
+
 import type { HostedTag } from "@/lib/hosting-api";
 import { MySitesFilterPopover } from "./MySitesFilterPopover";
 import { activeFilterCount, type MySitesFilters } from "./my-sites-view-model";

@@ -5,7 +5,6 @@ import { applyRowOrder, buildBulkBaseRows } from '@/lib/bulk-processing-order';
 import type { BuildBulkBaseRowsFailureReason } from '@/lib/bulk-processing-order';
 import { notify, notifyHeaderError } from '@/lib/app-notifications';
 import { NOTIFY_LOCAL_EXPORT_GENERATING_FILES_ONLY_NO_WO, NOTIFY_SELECT_A_WORDPRESS_SITE_AND_SITEMAP_IN_T, notifyPostingToXWordpressSiteSNames } from "@/lib/notify-messages";
-import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
 import type { ScheduleOccupancy } from '@/lib/bulk-schedule-gap';
 import { buildWordPressPostingFromSelection, precomputeGapDatesBySlot, resolveDefaultWordPressSiteSelection } from '@/lib/build-wordpress-bulk-posting';
 import {
@@ -73,9 +72,6 @@ export function useBulkProcessing({
   startTime,
   useCsvPublishDates,
   wordpressDraftOnly = false,
-  apiKey,
-  openRouterApiKey,
-  selectedModel,
   bulkPostDestination,
   scheduleOccupancy = null,
   useGapScheduling = false,
@@ -87,7 +83,7 @@ export function useBulkProcessing({
   const handleStartProcessing = useCallback(async (promptRowsOverride?: CSVRow[]) => {
     const effectiveGeneratedRows = promptRowsOverride ?? generatedRows;
     const built = buildBulkBaseRows(inputMode, rows, effectiveGeneratedRows, selectedBlogIndices);
-    if (!built.ok) {
+    if (built.ok === false) {
       notifyHeaderError("Play failed", FAILURE_MESSAGES[built.reason]);
       notify.error(FAILURE_MESSAGES[built.reason]);
       return;
@@ -104,14 +100,8 @@ export function useBulkProcessing({
 
     const needsWordPress = batchNeedsWordPressUpload(orderedRows, bulkPostDestination);
 
-    try {
-      await resolveOpenRouterApiKeyForHarness();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Add an OpenRouter API key in Settings.";
-      notifyHeaderError("Play failed", msg);
-      return;
-    }
-
+    // Wave 0: no client key gate. The server call runs keyless and fails
+    // visibly there if the server key is not configured.
     setIsProcessing(true);
     setCurrentRow(0);
 
@@ -177,7 +167,7 @@ export function useBulkProcessing({
     }
 
     await processAllRows(orderedRows, postingForRun, orderedDisplayIndices);
-  }, [inputMode, rows, generatedRows, selectedBlogIndices, rowOrder, selectedWordPressSites, siteConfigs, scheduleFrequency, customInterval, dayOfWeek, startDateOption, customStartDate, startTime, wordpressDraftOnly, apiKey, openRouterApiKey, selectedModel, bulkPostDestination, scheduleOccupancy, useGapScheduling, refreshScheduleOccupancy, processAllRows, setIsProcessing, setCurrentRow]);
+  }, [inputMode, rows, generatedRows, selectedBlogIndices, rowOrder, selectedWordPressSites, siteConfigs, scheduleFrequency, customInterval, dayOfWeek, startDateOption, customStartDate, startTime, wordpressDraftOnly, bulkPostDestination, scheduleOccupancy, useGapScheduling, refreshScheduleOccupancy, processAllRows, setIsProcessing, setCurrentRow]);
 
   return {
     handleStartProcessing,

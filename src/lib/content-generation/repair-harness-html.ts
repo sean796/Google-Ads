@@ -75,7 +75,7 @@ export function removeBrPrefixedDuplicateParagraphs(html: string): string {
 
 /** Close or remove an unclosed trailing `<p>` tag. */
 export function repairUnclosedTrailingParagraph(html: string): string {
-  let s = html.trim();
+  const s = html.trim();
   const lower = s.toLowerCase();
   const lastOpenP = lower.lastIndexOf("<p");
   const lastCloseP = lower.lastIndexOf("</p>");

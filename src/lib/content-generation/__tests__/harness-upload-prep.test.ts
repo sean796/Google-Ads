@@ -15,12 +15,14 @@ beforeEach(() => {
 const BODY_AGENTS: AgentConfig[] = [
   {
     id: "section-1",
+    step: 1,
     title: "Sliding Glass Door Blinds: Your Options",
     description: "Options section",
     features: [],
   },
   {
     id: "section-2",
+    step: 2,
     title: "Exploring Styles for Sliding Doors",
     description: "Styles section",
     features: [],
@@ -29,6 +31,7 @@ const BODY_AGENTS: AgentConfig[] = [
 
 const OVERVIEW_AGENT: AgentConfig = {
   id: "ai-overview-summary",
+  step: 0,
   title: "Overview",
   description: "Overview",
   features: [],
@@ -91,9 +94,10 @@ Body two paragraph.
       markdownContent: markdown,
       blueprintAgents: [
         OVERVIEW_AGENT,
-        { id: "section-1", title: "What Are Smart Blinds?", description: "", features: [] },
+        { id: "section-1", step: 1, title: "What Are Smart Blinds?", description: "", features: [] },
         {
           id: "section-2",
+          step: 2,
           title: "Benefits of Smart Blinds for Your Home",
           description: "",
           features: [],
@@ -175,12 +179,14 @@ Contact section.
         OVERVIEW_AGENT,
         {
           id: "section-1",
+          step: 1,
           title: "Choosing the Right Solar Panels for Your Home",
           description: "",
           features: ["[ILLUSTRATIVE]: scenario", "[BLOCKQUOTE]: quote"],
         },
         {
           id: "section-2",
+          step: 2,
           title: "Ridgeline Solar: Your Partner",
           description: "",
           features: [],
@@ -212,7 +218,7 @@ Contact section.
       markdownContent: markdown,
       blueprintAgents: [
         OVERVIEW_AGENT,
-        { id: "section-1", title: "What We Offer", description: "", features: [] },
+        { id: "section-1", step: 1, title: "What We Offer", description: "", features: [] },
       ],
       siteId: "site-1",
       siteUrl: "https://example.com",
@@ -254,7 +260,7 @@ Body section with details.
       markdownContent: markdown,
       blueprintAgents: [
         OVERVIEW_AGENT,
-        { id: "section-1", title: "Cost Comparison", description: "", features: [] },
+        { id: "section-1", step: 1, title: "Cost Comparison", description: "", features: [] },
       ],
       onePassOptimize: true,
     });
@@ -287,8 +293,8 @@ Review [[LINK:Energy Efficiency|energy efficiency]] before you buy.
       markdownContent: markdown,
       blueprintAgents: [
         OVERVIEW_AGENT,
-        { id: "section-1", title: "Hunter Douglas Product Lines", description: "", features: [] },
-        { id: "section-2", title: "Energy Efficiency Features", description: "", features: [] },
+        { id: "section-1", step: 1, title: "Hunter Douglas Product Lines", description: "", features: [] },
+        { id: "section-2", step: 2, title: "Energy Efficiency Features", description: "", features: [] },
       ],
       siteId: "site-1",
       siteUrl: "https://blindmagic.com",

@@ -1,9 +1,10 @@
 import { useMemo } from "react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, Badge, Progress, ScrollArea, Alert, AlertDescription } from "@/ui";
+
+
+
+
+
 import { BarChart3, CheckCircle2, AlertCircle, Info } from "lucide-react";
 import { useKeywordDensity } from "@/hooks/use-keyword-density";
 import type { KeywordData } from "@/lib/keyword-types";

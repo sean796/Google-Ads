@@ -334,8 +334,8 @@ export function resolveTaskForAutomationExecute(
   project?: Pick<TaskProject, "keyword" | "sourceTemplateKeyword"> | null,
 ): TeamTask {
   if (isWorkflowRuntimeTask(task)) {
-    const kind =
-      (task.executionKind ?? "").trim() || resolveEffectiveExecutionKind(task, project);
+    const kind: TaskExecutionKind =
+      ((task.executionKind ?? "").trim() as TaskExecutionKind) || resolveEffectiveExecutionKind(task, project);
     return {
       ...task,
       executionKind: kind,

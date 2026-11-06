@@ -16,6 +16,7 @@ describe("bulk-generator push bindings", () => {
         mimeType: "application/json",
         status: "completed",
         timestamp: 1,
+        rowData: { keyword: "kw", title: "T" },
       },
     ];
     const binding = overviewBindingFromBulkWordpressProofFiles(files, "sap");
@@ -48,6 +49,7 @@ describe("bulk-generator push bindings", () => {
               mimeType: "application/json",
               status: "completed",
               timestamp: 1,
+              rowData: { keyword: "kw", title: "T" },
             },
           ],
         ],

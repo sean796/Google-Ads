@@ -15,6 +15,7 @@ import { applyWpEngineHostingDefaults } from "@/lib/wp-engine-install-defaults";
 import { applyGa4PropertyIdDefaults } from "@/lib/ga4-property-id-defaults";
 import { applySemrushProjectDefaults } from "@/lib/semrush-project-id-defaults";
 import { saveWordPressProperties } from "@/lib/manager-wordpress-properties-api";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import {
   isShutterSpotProperty,
   SHUTTER_SPOT_CANONICAL_NAME,
@@ -24,7 +25,6 @@ import {
   fetchClientSiteLogoUrl,
   resolveClientSiteOrigin,
 } from "@/lib/integrations/client-site-logo";
-import { DEFAULT_PROPERTIES_SEED_SITES } from "./default-properties-seed";
 import type { WordPressSite } from "./types";
 import { WORDPRESS_SITES_STORAGE_KEY } from "./types";
 
@@ -408,37 +408,15 @@ function applyShutterSpotDisplayNameMigration(site: WordPressSite): WordPressSit
   };
 }
 
-function findSeedSiteForEditorialMerge(site: WordPressSite): WordPressSite | undefined {
-  const byId = DEFAULT_PROPERTIES_SEED_SITES.find((s) => s.id === site.id);
-  if (byId) return byId;
-  const host = wordPressSiteHostKey(site.siteUrl);
-  if (host) {
-    const byHost = DEFAULT_PROPERTIES_SEED_SITES.find((s) => wordPressSiteHostKey(s.siteUrl) === host);
-    if (byHost) return byHost;
-  }
-  const norm = normalizeEditorialPropertyName(site.name);
-  if (!norm) return undefined;
-  return DEFAULT_PROPERTIES_SEED_SITES.find((s) => normalizeEditorialPropertyName(s.name) === norm);
-}
-
-/** Persist editorial tier for the 13 named clients (seed, then canonical name map). */
+/** Persist editorial tier from the site row itself, then the canonical name map. Wave 0 removed the bundled seed. */
 function applyEditorialContentPackageDefaults(site: WordPressSite): WordPressSite {
-  const seed = findSeedSiteForEditorialMerge(site);
   const fromName = editorialContentPackageTierForPropertyName(site.name);
-  const fromSeed =
-    seed?.editorialContentPackage?.trim() &&
-    isEditorialContentPackageTier(seed.editorialContentPackage.trim())
-      ? seed.editorialContentPackage.trim()
-      : undefined;
+  const storedRaw = site.editorialContentPackage?.trim();
   const stored =
-    site.editorialContentPackage?.trim() &&
-    isEditorialContentPackageTier(site.editorialContentPackage.trim())
-      ? site.editorialContentPackage.trim()
-      : undefined;
-  const tier = stored ?? fromSeed ?? fromName;
+    storedRaw && isEditorialContentPackageTier(storedRaw) ? storedRaw : undefined;
+  const tier = stored ?? fromName;
   const publishTime =
     site.editorialPublishTimeLocal?.trim() ||
-    seed?.editorialPublishTimeLocal?.trim() ||
     editorialPublishTimeLocalForPropertyName(site.name) ||
     undefined;
 
@@ -450,7 +428,7 @@ function applyEditorialContentPackageDefaults(site: WordPressSite): WordPressSit
   }
   if (publishTime) {
     next.editorialPublishTimeLocal = publishTime;
-  } else if (!stored && !fromSeed && !fromName) {
+  } else if (!stored && !fromName) {
     delete next.editorialPublishTimeLocal;
   }
   return next;
@@ -462,30 +440,6 @@ function isStalePhoenixArizonaLocation(site: WordPressSite): boolean {
   const host = wordPressSiteHostKey(site.siteUrl).toLowerCase();
   const isPhoenixCa = host.includes("phoenixpainting.ca") || normalizeEditorialPropertyName(site.name) === "phoenix painting";
   return isPhoenixCa && (first.city?.toLowerCase() === "pheonix" || first.state?.toLowerCase() === "arizona");
-}
-
-function applyPropertyKeywordAndLocationsDefaults(site: WordPressSite): WordPressSite {
-  const seed = findSeedSiteForEditorialMerge(site);
-  if (!seed) return site;
-  let next = site;
-  if (!next.primaryLocalKeyword?.trim() && seed.primaryLocalKeyword?.trim()) {
-    next = { ...next, primaryLocalKeyword: seed.primaryLocalKeyword.trim() };
-  }
-  const currentLocs = next.locations ?? next.napInfo?.locations ?? [];
-  const seedLocs = seed.locations ?? seed.napInfo?.locations ?? [];
-  if (
-    seedLocs.length > 0 &&
-    (currentLocs.length === 0 ||
-      isStalePhoenixArizonaLocation(next) ||
-      (currentLocs.length === 1 && seedLocs.length > 1 && currentLocs[0]?.city === seedLocs[0]?.city))
-  ) {
-    next = {
-      ...next,
-      locations: seedLocs,
-      napInfo: seed.napInfo ?? { ...(next.napInfo ?? { name: next.name }), locations: seedLocs },
-    };
-  }
-  return next;
 }
 
 function normalizeSiteEntry(site: WordPressSite): WordPressSite {
@@ -508,12 +462,10 @@ function normalizeSiteEntry(site: WordPressSite): WordPressSite {
     delete migratedSite.optimizationPackage;
   }
 
-  return applyPropertyKeywordAndLocationsDefaults(
-    applyEditorialContentPackageDefaults(
-      applySemrushProjectDefaults(
-        applyGa4PropertyIdDefaults(
-          applyWpEngineHostingDefaults(applyShutterSpotDisplayNameMigration(migratedSite)),
-        ),
+  return applyEditorialContentPackageDefaults(
+    applySemrushProjectDefaults(
+      applyGa4PropertyIdDefaults(
+        applyWpEngineHostingDefaults(applyShutterSpotDisplayNameMigration(migratedSite)),
       ),
     ),
   );
@@ -592,11 +544,10 @@ export function getStoredSites(): WordPressSite[] {
     }
   }
 
-  const seed = DEFAULT_PROPERTIES_SEED_SITES
-    .filter((s) => !isSiteTombstoned(s, tombstones))
-    .map(normalizeSiteEntry);
-  memorySitesStore = seed;
-  return seed;
+  // Wave 0: no bundled seed. A fresh profile with no server mirror gets an
+  // empty, visible site list until the mirror loads.
+  memorySitesStore = [];
+  return [];
 }
 
 export function saveSites(sites: WordPressSite[]): void {
@@ -674,6 +625,7 @@ export async function fetchWordPressSitesMirror(): Promise<WordPressSite[]> {
     const timer = setTimeout(() => ctrl.abort(), 8000);
     const res = await fetch(`${url}?_=${Date.now()}`, {
       credentials: "include",
+      headers: neoPulseApiHeaders(),
       cache: "no-store",
       signal: ctrl.signal,
     });
@@ -687,34 +639,9 @@ export async function fetchWordPressSitesMirror(): Promise<WordPressSite[]> {
       }
     }
   } catch {
-    // local /api unreachable, fallback to Render Hub
+    // Mirror unreachable: empty list, visible in the UI. No seed fallback.
   }
-
-  // Fallback 1: Production Render hub live mirror with strict timeout
-  try {
-    const hubUrl = "https://pulse-host-wp-hub.onrender.com/api/manager-wordpress-properties/load";
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 2500);
-    const res = await fetch(`${hubUrl}?_=${Date.now()}`, {
-      cache: "no-store",
-      signal: ctrl.signal,
-    });
-    clearTimeout(timer);
-    if (res.ok) {
-      const data = (await res.json().catch(() => ({}))) as { sites?: WordPressSite[] };
-      const rawSites = Array.isArray(data.sites) ? data.sites : [];
-      if (rawSites.length > 0) {
-        const tombstones = getDeletedSitesTombstones();
-        return rawSites.filter((s) => !isSiteTombstoned(s, tombstones));
-      }
-    }
-  } catch {
-    // continue to bundled seed
-  }
-
-  // Fallback 2: Bundled seed
-  const tombstones = getDeletedSitesTombstones();
-  return DEFAULT_PROPERTIES_SEED_SITES.filter((s) => !isSiteTombstoned(s, tombstones));
+  return [];
 }
 
 function findMirrorSiteRow(local: WordPressSite, serverSites: WordPressSite[]): WordPressSite | undefined {
@@ -853,14 +780,7 @@ export async function restoreSitesFromServerMirrorIfEmpty(): Promise<WordPressSi
     }
   }
 
-  // Pre-seed storage immediately so UI paints immediately with all 17 clients
   const tombstones = getDeletedSitesTombstones();
-  const seed = DEFAULT_PROPERTIES_SEED_SITES.filter((s) => !isSiteTombstoned(s, tombstones));
-  if (seed.length > 0) {
-    saveSites(seed);
-  }
-
-  // Then fetch mirror in background
   const mirror = await fetchWordPressSitesMirror();
   if (mirror.length > 0) {
     const filteredMirror = mirror.filter((s) => !isSiteTombstoned(s, tombstones));

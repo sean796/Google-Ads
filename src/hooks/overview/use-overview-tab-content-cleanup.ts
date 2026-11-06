@@ -25,6 +25,7 @@ import {
   finalizeAiseoCacheWriteForUpload,
 } from "@/lib/overview/overview-aiseo-cache-write";
 import type { AiseoAfterRowWriteFn } from "@/lib/overview/overview-aiseo-after-upload";
+import { harnessStepProgress } from "@/lib/overview/overview-harness-progress";
 
 type Args = Pick<
   OverviewTabBase,
@@ -122,12 +123,11 @@ export function useOverviewTabContentCleanup({
                 ...prev,
                 [batchKey]: {
                   ...current,
-                  currentStepProgress: {
-                    ...(current.currentStepProgress || {}),
+                  currentStepProgress: harnessStepProgress(current.currentStepProgress, {
                     step: "Clean Up",
                     progress: 5 + Math.round(((page - 1) / Math.max(pageCount, 1)) * 10),
                     message: `Clean Up page ${page}/${pageCount}: using cache…`,
-                  },
+                  }),
                 },
               };
             });
@@ -156,13 +156,12 @@ export function useOverviewTabContentCleanup({
       rows,
       bindings,
       resolveBindings,
-      sitemapSource,
       getInventoryMatchForUrl,
-      mergeInventoryContentForSource,
       bulkScopeUrlKeys,
       updateRow,
       makeSetters,
       rowsRef,
+      uploadAfterRowWrite,
       opt.setBulkOptimizationState,
       opt.setOptimizationProgress,
       opt.setIsOptimizingContent,

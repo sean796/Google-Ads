@@ -9,6 +9,54 @@ import {
   syncPostCreatorProofFromServerRun,
 } from "@/lib/agent-runs/agent-run-post-creator-proof";
 import type { BulkGeneratedFile } from "@/lib/bulk-file-manager";
+import type {
+  AgentRun,
+  AgentRunCheckpoint,
+  AgentRunStep,
+  AgentRunUploadedPost,
+} from "@/lib/agent-runs-types";
+
+function serverRun(input: {
+  id: number;
+  featuredImage?: boolean;
+  server: NonNullable<AgentRunCheckpoint["server"]>;
+  uploadedPosts?: AgentRunUploadedPost[];
+  steps?: AgentRunStep[];
+}): AgentRun {
+  return {
+    id: input.id,
+    teamId: 1,
+    createdBy: 1,
+    title: "Post creator",
+    recipeKey: "post_creator",
+    recipeTitle: "Post creator",
+    status: "running",
+    source: "task_manager",
+    taskId: 1,
+    taskTitle: "Post creator",
+    context: {},
+    plan: {
+      executionMode: "server",
+      clientRunContract: { siteId: "site-1", postCount: 1, featuredImage: input.featuredImage ?? false },
+    },
+    result: {
+      executionMode: "server",
+      checkpoint: { completedUrls: [], uploadedUrls: [], server: input.server },
+      ...(input.uploadedPosts ? { uploadedPosts: input.uploadedPosts } : {}),
+    },
+    errorMessage: "",
+    clientBatchKey: "",
+    startedAt: null,
+    finishedAt: null,
+    createdAt: "",
+    updatedAt: "",
+    steps: input.steps ?? [],
+  };
+}
+
+function serverStep(input: Pick<AgentRunStep, "stepKey" | "label" | "status"> & Partial<AgentRunStep>): AgentRunStep {
+  return { id: 1, stepIndex: 0, createdAt: "", ...input };
+}
 
 function stubFile(partial: Partial<BulkGeneratedFile> & Pick<BulkGeneratedFile, "id" | "fileName">): BulkGeneratedFile {
   return {
@@ -89,13 +137,21 @@ describe("agent-run-post-creator-proof", () => {
     const snapshot = getPostCreatorProofForRun({
       id: 55,
       teamId: 1,
+      createdBy: 1,
       title: "Create 3 scheduled blog posts — Advance Blinds",
       recipeKey: "post_creator",
+      recipeTitle: "Post creator",
       status: "running",
       source: "task_manager",
       taskId: 1,
+      taskTitle: "Post creator",
       context: {},
       plan: {},
+      result: null,
+      errorMessage: "",
+      clientBatchKey: "",
+      startedAt: null,
+      finishedAt: null,
       createdAt: "",
       updatedAt: "",
     });
@@ -141,22 +197,14 @@ describe("agent-run-post-creator-proof", () => {
 
   it("maps server artifacts to proof download slots", () => {
     clearPostCreatorProof(99);
-    const run = {
+    const run = serverRun({
       id: 99,
-      recipeKey: "post_creator",
-      plan: { executionMode: "server", clientRunContract: { postCount: 1, featuredImage: false } },
-      result: {
-        executionMode: "server",
-        checkpoint: {
-          server: {
-            rowIndex: 0,
-            checklistRows: [{ keyword: "motorized blinds", title: "Motorized Blinds Guide" }],
-          },
-        },
-        uploadedPosts: [{ url: "https://example.com/post", postId: 5266 }],
+      server: {
+        rowIndex: 0,
+        checklistRows: [{ keyword: "motorized blinds", title: "Motorized Blinds Guide" }],
       },
-      steps: [],
-    } as import("@/lib/agent-runs-types").AgentRun;
+      uploadedPosts: [{ url: "https://example.com/post", postId: 5266 }],
+    });
 
     syncPostCreatorProofFromServerRun(run, [
       {
@@ -183,28 +231,15 @@ describe("agent-run-post-creator-proof", () => {
 
   it("keeps keyword waiting until content bucket is ready even when keyword step is running", () => {
     clearPostCreatorProof(101);
-    const run = {
+    const run = serverRun({
       id: 101,
-      recipeKey: "post_creator",
-      plan: { executionMode: "server", clientRunContract: { postCount: 1, featuredImage: false } },
-      result: {
-        executionMode: "server",
-        checkpoint: {
-          server: {
-            rowIndex: 0,
-            intraPhase: "keyword",
-            checklistRows: [{ keyword: "smart blinds", title: "Smart Blinds" }],
-          },
-        },
+      server: {
+        rowIndex: 0,
+        intraPhase: "keyword",
+        checklistRows: [{ keyword: "smart blinds", title: "Smart Blinds" }],
       },
-      steps: [
-        {
-          stepKey: "post0keyword",
-          label: "Keyword research…",
-          status: "running",
-        },
-      ],
-    } as import("@/lib/agent-runs-types").AgentRun;
+      steps: [serverStep({ stepKey: "post0keyword", label: "Keyword research…", status: "running" })],
+    });
 
     syncPostCreatorProofFromServerRun(run, []);
 
@@ -215,16 +250,11 @@ describe("agent-run-post-creator-proof", () => {
 
   it("shows content bucket from run step payload before artifacts poll", () => {
     clearPostCreatorProof(102);
-    const run = {
+    const run = serverRun({
       id: 102,
-      recipeKey: "post_creator",
-      plan: { executionMode: "server", clientRunContract: { postCount: 1, featuredImage: false } },
-      result: {
-        executionMode: "server",
-        checkpoint: { server: { rowIndex: 0, intraPhase: "keyword", checklistRows: [{ keyword: "x" }] } },
-      },
+      server: { rowIndex: 0, intraPhase: "keyword", checklistRows: [{ keyword: "x" }] },
       steps: [
-        {
+        serverStep({
           stepKey: "content-bucket",
           label: "53 post URLs loaded",
           status: "done",
@@ -237,14 +267,14 @@ describe("agent-run-post-creator-proof", () => {
               },
             ],
           },
-        },
-        {
+        }),
+        serverStep({
           stepKey: "post0keyword",
           label: "Keyword research…",
           status: "running",
-        },
+        }),
       ],
-    } as import("@/lib/agent-runs-types").AgentRun;
+    });
 
     syncPostCreatorProofFromServerRun(run, []);
 
@@ -256,16 +286,10 @@ describe("agent-run-post-creator-proof", () => {
 
   it("surfaces server content-bucket artifact as green download in proof", () => {
     clearPostCreatorProof(100);
-    const run = {
+    const run = serverRun({
       id: 100,
-      recipeKey: "post_creator",
-      plan: { executionMode: "server", clientRunContract: { postCount: 1, featuredImage: false } },
-      result: {
-        executionMode: "server",
-        checkpoint: { server: { rowIndex: 0, checklistRows: [{ keyword: "smart blinds" }] } },
-      },
-      steps: [],
-    } as import("@/lib/agent-runs-types").AgentRun;
+      server: { rowIndex: 0, checklistRows: [{ keyword: "smart blinds" }] },
+    });
 
     syncPostCreatorProofFromServerRun(run, [
       {
@@ -284,28 +308,21 @@ describe("agent-run-post-creator-proof", () => {
 
   it("shows content generating while overview harness is running", () => {
     clearPostCreatorProof(62);
-    const run = {
+    const run = serverRun({
       id: 62,
-      recipeKey: "post_creator",
-      plan: { executionMode: "server", clientRunContract: { postCount: 1, featuredImage: false } },
-      result: {
-        executionMode: "server",
-        checkpoint: {
-          server: {
-            rowIndex: 0,
-            intraPhase: "content",
-            checklistRows: [{ keyword: "motorized blinds", title: "Motorized Blinds Guide" }],
-          },
-        },
+      server: {
+        rowIndex: 0,
+        intraPhase: "content",
+        checklistRows: [{ keyword: "motorized blinds", title: "Motorized Blinds Guide" }],
       },
       steps: [
-        {
+        serverStep({
           stepKey: "post0harnessoverview",
           label: "Writing Overview section…",
           status: "running",
-        },
+        }),
       ],
-    } as import("@/lib/agent-runs-types").AgentRun;
+    });
 
     syncPostCreatorProofFromServerRun(run, [
       {
@@ -322,22 +339,15 @@ describe("agent-run-post-creator-proof", () => {
 
   it("keeps content ready and shows image generating during awaiting_client_upload", () => {
     clearPostCreatorProof(103);
-    const run = {
+    const run = serverRun({
       id: 103,
-      recipeKey: "post_creator",
-      plan: { executionMode: "server", clientRunContract: { postCount: 1, featuredImage: true } },
-      result: {
-        executionMode: "server",
-        checkpoint: {
-          server: {
-            rowIndex: 0,
-            intraPhase: "awaiting_client_upload",
-            checklistRows: [{ keyword: "smart blinds", title: "Smart Blinds" }],
-          },
-        },
+      featuredImage: true,
+      server: {
+        rowIndex: 0,
+        intraPhase: "awaiting_client_upload",
+        checklistRows: [{ keyword: "smart blinds", title: "Smart Blinds" }],
       },
-      steps: [],
-    } as import("@/lib/agent-runs-types").AgentRun;
+    });
 
     syncPostCreatorProofFromServerRun(run, [
       {

@@ -15,6 +15,8 @@ function uploadState(urls: string[], steps = buildWpUploadBatchPipelineSteps(url
     runKind: "wpUpload",
     batchPipelineSteps: steps,
     currentStepProgress: {
+      stepId: "publish",
+      subProgress: 0.02,
       step: "Uploading to WordPress",
       progress: 2,
       message: "Uploading WordPress post 1/91…",

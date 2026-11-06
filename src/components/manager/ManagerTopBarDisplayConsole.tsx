@@ -6,13 +6,8 @@ import { useManagerErrorLog } from "@/contexts/manager-error-log-context";
 import { getAppNotificationState, subscribeAppNotifications } from "@/lib/app-notifications";
 import { useWordPressSites } from "@/hooks/use-wordpress-sites";
 import { useActiveWordPressSite } from "@/contexts/active-wordpress-site-context";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
+
 import { ManagerDisplayChipFace } from "@/components/manager/ManagerDisplayChipFace";
 import { SiteDisplayNameDialog } from "@/components/manager/SiteDisplayNameDialog";
 import {
@@ -38,7 +33,7 @@ import {
   refreshSitePrefetch,
 } from "@/lib/local-analysis/entity-site-warm-cache";
 import { htmlToMarkdown } from "@/lib/wordpress-converter";
-import { Button } from "@/ui";
+import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Tooltip, TooltipContent, TooltipTrigger } from "@/ui";
 
 const NAME_CHEVRON_PX = 28;
 
@@ -197,12 +192,13 @@ export function ManagerTopBarDisplayConsole({
         : null;
   const nameBandAlertClass = managerDisplayNameBandAlertClass(nameAlertKind);
 
+  const displayLabelsKey = displayLabels.join("|");
   useLayoutEffect(() => {
     const root = measureRef.current;
     if (!root) return;
     const nextWidth = chipMenuWidthPx(root, "site-label", "site-row");
     setSiteMenuWidthPx((prev) => (prev === nextWidth ? prev : nextWidth));
-  }, [displayLabels.join("|")]);
+  }, [displayLabelsKey]);
 
   const siteChipWidthPx = siteMenuWidthPx > 0 ? siteMenuWidthPx : 120;
   const consoleWidthPx = siteChipWidthPx;
@@ -269,7 +265,6 @@ export function ManagerTopBarDisplayConsole({
         ) : (
           <DropdownMenu open={siteMenuOpen} onOpenChange={setSiteMenuOpen}>
             <DropdownMenuTrigger asChild>
-              {/* eslint-disable-next-line no-restricted-syntax -- Pulse UI exception: bespoke composite menu trigger with two-part segmented layout */}
               <button
                 type="button"
                 style={siteMenuWidthStyle}

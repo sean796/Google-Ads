@@ -27,7 +27,7 @@ export function MobileAssistInventoryWarm(): null {
         setBulkInventorySessionSnapshot(activeSite.id, "posts", snapshot);
       })
       .catch(() => {});
-  }, [activeSite?.id, activeSite?.siteUrl, activeSite?.username, activeSite?.appPassword]);
+  }, [activeSite]);
 
   return null;
 }

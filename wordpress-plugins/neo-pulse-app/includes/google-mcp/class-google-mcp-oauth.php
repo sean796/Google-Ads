@@ -58,6 +58,26 @@ class Neo_Pulse_App_Google_Mcp_Oauth {
 		);
 	}
 
+	private static function mint_state(): string {
+		$user_id = Neo_Pulse_App_Auth_Session::user_id();
+		if ( $user_id === null || $user_id < 1 ) {
+			throw new RuntimeException( 'A logged-in user is required to connect Google Drive.' );
+		}
+		$state = wp_generate_password( 40, false, false );
+		set_transient( 'neo_pulse_app_mcp_state_' . $state, $user_id, 600 );
+		return $state;
+	}
+
+	private static function consume_state( string $state ): bool {
+		if ( $state === '' ) {
+			return false;
+		}
+		$key  = 'neo_pulse_app_mcp_state_' . $state;
+		$user = get_transient( $key );
+		delete_transient( $key );
+		return is_numeric( $user ) && (int) $user >= 1;
+	}
+
 	public static function authorize_redirect(): void {
 		if ( ! self::is_configured() ) {
 			Neo_Pulse_App_Api_Dispatcher::send_json(
@@ -87,6 +107,11 @@ class Neo_Pulse_App_Google_Mcp_Oauth {
 				$message = (string) $query['error_description'];
 			}
 			self::finish_oauth_flow( false, $message );
+			return;
+		}
+		$state = isset( $query['state'] ) ? trim( (string) $query['state'] ) : '';
+		if ( ! self::consume_state( $state ) ) {
+			self::finish_oauth_flow( false, 'Invalid or expired OAuth state. Start the connect flow again.' );
 			return;
 		}
 		$code = isset( $query['code'] ) ? trim( (string) $query['code'] ) : '';
@@ -135,6 +160,17 @@ class Neo_Pulse_App_Google_Mcp_Oauth {
 	 * @return array{statusCode:int,body:array<string,mixed>}
 	 */
 	public static function test_and_save( array $body ): array {
+		// Wave 0: same rule as GMB, Ads, GSC, and GA. On production, credentials
+		// persist in env and wp-config constants only; this route validates.
+		if ( self::is_production_save_blocked() ) {
+			return array(
+				'statusCode' => 403,
+				'body'       => array(
+					'success' => false,
+					'error'   => 'Test and save is only allowed locally. On production, set NEO_PULSE_APP_GMB_CLIENT_ID, NEO_PULSE_APP_GMB_CLIENT_SECRET, NEO_PULSE_APP_GMB_REDIRECT_URI, and NEO_PULSE_APP_FRONTEND_URL in wp-config or neo-pulse-app-secrets.php.',
+				),
+			);
+		}
 		$client_id     = isset( $body['clientId'] ) ? trim( (string) $body['clientId'] ) : '';
 		$client_secret = isset( $body['clientSecret'] ) ? trim( (string) $body['clientSecret'] ) : '';
 		if ( $client_id === '' || $client_secret === '' ) {
@@ -385,6 +421,10 @@ class Neo_Pulse_App_Google_Mcp_Oauth {
 		);
 	}
 
+	private static function is_production_save_blocked(): bool {
+		return defined( 'WP_ENVIRONMENT_TYPE' ) && WP_ENVIRONMENT_TYPE === 'production';
+	}
+
 	public static function get_auth_url(): string {
 		if ( ! self::is_configured() ) {
 			throw new RuntimeException( 'Google OAuth not configured.' );
@@ -398,6 +438,7 @@ class Neo_Pulse_App_Google_Mcp_Oauth {
 				'scope'         => self::DRIVE_SCOPES,
 				'access_type'   => 'offline',
 				'prompt'        => 'consent',
+				'state'         => self::mint_state(),
 			),
 			self::GOOGLE_AUTH_URL
 		);

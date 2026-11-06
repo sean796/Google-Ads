@@ -3,6 +3,7 @@ import type { OverviewRow } from "@/components/overview/overview-meta-row-types"
 import type { OverviewBinding } from "@/hooks/overview/use-overview-wordpress-binding";
 import type { WordPressSite } from "@/components/integrations/types";
 import { initOverviewWpUploadHarnessBatchState } from "@/lib/overview/overview-wp-upload-harness-run";
+import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 
 function testSite(): WordPressSite {
   return {
@@ -32,13 +33,13 @@ describe("initOverviewWpUploadHarnessBatchState", () => {
       "https://example.com/a/": { postId: 42, subtype: "post" },
     };
 
-    let batchState: Record<string, unknown> = {};
+    let batchState: Record<string, BulkOptimizationState> = {};
     initOverviewWpUploadHarnessBatchState({
       site: testSite(),
       rows,
       bindings,
       setBulkOptimizationState: (updater) => {
-        batchState = typeof updater === "function" ? (updater(batchState) as Record<string, unknown>) : updater;
+        batchState = typeof updater === "function" ? updater(batchState) : updater;
       },
       setOptimizationProgress: () => {},
       setIsOptimizingContent: () => {},

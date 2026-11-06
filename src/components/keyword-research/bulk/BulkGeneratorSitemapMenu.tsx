@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { getStoredSites, type WordPressSite } from "@/components/IntegrationsTab";
+import { getStoredSites } from "@/components/integrations/storage";
+import type { WordPressSite } from "@/components/integrations/types";
 import type { ConnectedSiteSummary } from "@/components/integrations/types";
 import type { WordPressPostDestination } from "@/lib/bulk-auto-generate";
 import {

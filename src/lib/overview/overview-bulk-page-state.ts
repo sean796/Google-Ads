@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
-import { mergeOptimizationProgress } from "@/hooks/content-optimization/optimization-helpers";
+import { harnessStepProgress, mergeOverviewHarnessProgress } from "@/lib/overview/overview-harness-progress";
+
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import {
   OVERVIEW_BULK_PAGE_SIZE,
@@ -60,18 +61,17 @@ export function setOverviewBulkHarnessPageState(params: OverviewBulkPageStatePar
         currentBulkPage: page,
         totalBulkPages: pageCount,
         currentStep: step,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step,
           message,
-        },
+        }),
       },
     };
   });
 
   if (setOptimizationProgress) {
     setOptimizationProgress((prev) =>
-      mergeOptimizationProgress(prev, siteId, {
+      mergeOverviewHarnessProgress(prev, siteId, {
         step,
         message,
       }),

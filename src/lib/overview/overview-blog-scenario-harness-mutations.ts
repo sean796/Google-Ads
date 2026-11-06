@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
+import { harnessStepProgress, mergeOverviewHarnessProgressSiteAndBatch } from "@/lib/overview/overview-harness-progress";
 import type { BulkHarnessSectionPayload } from "@/lib/bulk-auto-generate";
 import { reduceHarnessSectionList, type HarnessSectionListItem } from "@/lib/bulk/harness-sections-reducer";
 import {
@@ -10,7 +11,7 @@ import {
   generatedFilesForUrl,
   storageKeyForUrlGeneratedFiles,
 } from "@/lib/content-optimization/content-optimizer-bulk-generator-bindings";
-import { mergeHarnessProgressSiteAndBatch } from "@/hooks/content-optimization/optimization-helpers-a";
+
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import type { AiseoCacheWriteAccumulator } from "@/lib/overview/overview-aiseo-cache-write";
@@ -59,18 +60,17 @@ export function setScenarioHarnessMessage(
       ...prev,
       [setters.batchKey]: {
         ...current,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: STEP_LABEL,
           progress: pct,
           message,
-        },
+        }),
       },
     };
   });
   setters.setOptimizationProgress((prev) => {
     const next = { ...(prev as Record<string, unknown>) };
-    mergeHarnessProgressSiteAndBatch(next, setters.siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(next, setters.siteId, {
       step: STEP_LABEL,
       progress: pct,
       message,
@@ -119,19 +119,18 @@ export function applyScenarioHarnessPayload(
       [batchKey]: {
         ...nextBatch,
         currentProgress: latestProgress,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: STEP_LABEL,
           progress: latestProgress,
           message,
           harnessPlannedSectionCount: 1,
-        },
+        }),
       },
     };
   });
 
   setOptimizationProgress((prev) =>
-    mergeHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
       step: STEP_LABEL,
       progress: latestProgress,
       message,
@@ -215,12 +214,11 @@ export function finishScenarioRowHarness(
       [batchKey]: {
         ...nextBatch,
         currentProgress: progress,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: STEP_LABEL,
           progress,
           message: "Case scenario complete",
-        },
+        }),
       },
     };
   });

@@ -1,12 +1,11 @@
 import type { Dispatch, SetStateAction } from "react";
+import { harnessStepProgress, mergeOverviewHarnessProgress, mergeOverviewHarnessProgressSiteAndBatch } from "@/lib/overview/overview-harness-progress";
+import { normalizePageUrlKey } from "@/lib/sitemap-optimizer/normalize-page-url";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
-import {
-  mergeHarnessProgressSiteAndBatch,
-  setOptimizingState,
-} from "@/hooks/content-optimization/optimization-helpers-a";
-import { mergeOptimizationProgress } from "@/hooks/content-optimization/optimization-helpers";
+import { setOptimizingState } from "@/hooks/content-optimization/optimization-helpers-a";
+
 import { initOverviewBulkHarnessPagination, setOverviewBulkHarnessPageState } from "@/lib/overview/overview-bulk-page-state";
 import { mapOverviewAiCopyWithConcurrency } from "@/lib/overview/overview-ai-copy-concurrency";
 import { overviewBulkPageRanges } from "@/lib/overview/overview-bulk-page-size";
@@ -65,12 +64,9 @@ export function initOverviewContentCleanupBatchState(params: {
 
   const batchKey = `${site.id}-batch`;
   const urls = catalog.map((c) => c.url.trim()).filter(Boolean);
-  for (const url of urls) {
-  }
-
   setOptimizingState(setIsOptimizingContent, batchKey, true);
   setOptimizationProgress((prev) =>
-    mergeOptimizationProgress(prev as Record<string, unknown>, site.id, {
+    mergeOverviewHarnessProgress(prev as Record<string, unknown>, site.id, {
       step: "Clean Up",
       progress: 2,
       message: prepMessage,
@@ -90,13 +86,13 @@ export function initOverviewContentCleanupBatchState(params: {
       runKind: "contentCleanup",
       urlHarnessSections: {},
       urlGeneratedFiles: {},
-      currentStepProgress: {
+      currentStepProgress: harnessStepProgress(undefined, {
         step: "Clean Up",
         progress: 2,
         message: prepMessage,
         harnessSections: [],
         harnessPlannedSectionCount: null,
-      },
+      }),
     },
   }));
   initOverviewBulkHarnessPagination(batchKey, urls.length, setBulkOptimizationState);
@@ -113,7 +109,7 @@ export function finalizeOverviewContentCleanupBatch(
   setOptimizationProgress((prev) => {
     const next = { ...(prev as Record<string, unknown>) };
     delete next[batchKey];
-    mergeHarnessProgressSiteAndBatch(next, siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(next, siteId, {
       step: "Complete",
       progress: 100,
       message: "Clean Up finished",
@@ -135,18 +131,17 @@ function setCleanupMessage(
       ...prev,
       [setters.batchKey]: {
         ...current,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "Clean Up",
           progress: pct,
           message,
-        },
+        }),
       },
     };
   });
   setters.setOptimizationProgress((prev) => {
     const next = { ...(prev as Record<string, unknown>) };
-    mergeHarnessProgressSiteAndBatch(next, setters.siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(next, setters.siteId, {
       step: "Clean Up",
       progress: pct,
       message,
@@ -311,7 +306,7 @@ export async function runOverviewContentCleanupBatch(
         if (!source) {
           skipped += 1;
           markCleanupRowStatus(url, harnessSetters, "skipped");
-          updateRow(entry.index, { status: "idle", error: "No HTML body for Clean Up" });
+          updateRow(entry.index, { status: "idle" });
           return;
         }
 
@@ -327,7 +322,6 @@ export async function runOverviewContentCleanupBatch(
 
         updateRow(entry.index, overviewRowPatchWithoutBody({
           status: "idle",
-          error: undefined,
         }));
         cacheWrite.push(url, cleaned.html);
         writeCleanupRowFiles(url, harnessSetters, {
@@ -361,7 +355,7 @@ export async function runOverviewContentCleanupBatch(
         failed += 1;
         const msg = err instanceof Error ? err.message : String(err);
         markCleanupRowStatus(url, harnessSetters, "error");
-        updateRow(entry.index, { status: "error", error: msg });
+        updateRow(entry.index, { status: "error" });
       }
     },
     );

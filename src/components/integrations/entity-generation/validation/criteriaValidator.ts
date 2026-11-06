@@ -16,11 +16,15 @@ export async function validateEntityByCriteria(
 ): Promise<ValidationResult> {
   try {
     const result = await extractStructuredDataFromWikipedia(entity, criteria, openRouterApiKey);
+    const extracted = result.extractedData;
     return {
-      matches: result.matches || false,
-      confidence: result.confidence || 0,
-      extractedData: result.extractedData || {},
-      rankingValue: result.rankingValue
+      matches: Boolean(result.matches),
+      confidence: typeof result.confidence === "number" ? result.confidence : 0,
+      extractedData:
+        extracted && typeof extracted === "object" && !Array.isArray(extracted)
+          ? (extracted as Record<string, unknown>)
+          : {},
+      rankingValue: typeof result.rankingValue === "number" ? result.rankingValue : undefined
     };
   } catch (error) {
     console.warn(`[Entity Generation] Error validating entity "${entity}" by criteria:`, error);

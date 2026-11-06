@@ -7,17 +7,8 @@ import { TASK_RECURRENCE_LABELS } from "@/lib/tasks-types";
 import type { TeamMember } from "@/lib/teams-types";
 import { TaskSectionHeader } from "@/components/manager/tasks/TaskSectionHeader";
 import { AutomationTaskExecuteButton } from "@/components/manager/tasks/AutomationTaskExecuteButton";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button, Field } from "@/ui";
+
+import { Button, Field, AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/ui";
 
 export type TasksListViewProps = {
   sections: TaskSection[];
@@ -394,9 +385,6 @@ export function TasksListView({
                 t.status !== "done" && (section.id === 0 ? true : t.sectionId === section.id),
             );
             const draft = draftBySection[section.id] ?? "";
-            if (filterMode === "completed" && sectionTasks.length === 0) {
-              return null;
-            }
             return (
               <section
                 key={section.id}

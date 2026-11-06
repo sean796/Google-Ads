@@ -20,7 +20,7 @@ describe("buildLocalAnalysisMicroSnapshot", () => {
       total: 5,
     });
     expect(snap).toMatchObject({
-      label: "Suggest keywords",
+      label: "Clusters",
       completed: 2,
       total: 5,
       statusMessage: "Grepping Wiki for locations",

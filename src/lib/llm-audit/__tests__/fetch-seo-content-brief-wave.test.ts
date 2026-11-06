@@ -57,13 +57,13 @@ describe("fetch-seo-content-brief-wave", () => {
       stored_file: "test-serp.json",
     });
     vi.mocked(fetchLlmAuditParallel).mockResolvedValue({
-      keyword: "custom blinds",
+      siteUrl: "https://example.com",
       location: "Plum Coulee, MB",
       platforms: [
         {
           platform: "chat_gpt",
           label: "ChatGPT",
-          model: "o4-mini",
+          model_name: "o4-mini",
           status: "ok",
           responseText: "- Local fact one",
         },
@@ -85,7 +85,7 @@ describe("fetch-seo-content-brief-wave", () => {
     const inlineSerp = { tasks: [{ result: [{ items: [{ type: "organic", title: "Test" }] }] }] };
     vi.mocked(mcp_DataForSEO_serp_organic_live_advanced).mockResolvedValue(inlineSerp);
     vi.mocked(fetchLlmAuditParallel).mockResolvedValue({
-      keyword: "alberta tax brackets sherwood park",
+      siteUrl: "https://example.com",
       location: "Sherwood Park, AB",
       platforms: [],
     });
@@ -103,13 +103,13 @@ describe("fetch-seo-content-brief-wave", () => {
   it("fetchSeoContentBriefWave merges LLM audit when SERP dump is missing", async () => {
     vi.mocked(mcp_DataForSEO_serp_organic_live_advanced).mockResolvedValue({});
     vi.mocked(fetchLlmAuditParallel).mockResolvedValue({
-      keyword: "bare trust reporting sherwood park",
+      siteUrl: "https://example.com",
       location: "Sherwood Park, AB",
       platforms: [
         {
           platform: "chat_gpt",
           label: "ChatGPT",
-          model: "o4-mini",
+          model_name: "o4-mini",
           status: "ok",
           responseText: "- Local trust reporting note",
         },
@@ -129,12 +129,12 @@ describe("fetch-seo-content-brief-wave", () => {
   it("fetchSeoContentBriefWave continues with LLM audit when SERP dump is empty", async () => {
     vi.mocked(mcp_DataForSEO_serp_organic_live_advanced).mockResolvedValue({});
     vi.mocked(fetchLlmAuditParallel).mockResolvedValue({
-      keyword: "luxury camping",
+      siteUrl: "https://posh-outdoors.com",
       location: "",
       platforms: [
-        { platform: "chat_gpt", label: "ChatGPT", status: "ok", responseText: "x" },
-        { platform: "gemini", label: "Gemini", status: "ok", responseText: "x" },
-        { platform: "perplexity", label: "Perplexity", status: "ok", responseText: "x" },
+        { platform: "chat_gpt", label: "ChatGPT", model_name: "o4-mini", status: "ok", responseText: "x" },
+        { platform: "gemini", label: "Gemini", model_name: "gemini", status: "ok", responseText: "x" },
+        { platform: "perplexity", label: "Perplexity", model_name: "sonar", status: "ok", responseText: "x" },
       ],
     });
 

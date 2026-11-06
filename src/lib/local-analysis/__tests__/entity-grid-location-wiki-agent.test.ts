@@ -21,6 +21,7 @@ const sampleBucket: GridLocationBucket = {
 
 describe("pickNeighbourhoodEntitiesForCluster client context", () => {
   beforeEach(() => {
+    vi.stubGlobal("window", {});
     vi.stubGlobal(
       "fetch",
       vi.fn(async (_input: RequestInfo, init?: RequestInit) => {

@@ -17,7 +17,7 @@ import {
   formatSapChecklistExample,
   formatSapPageChecklistBlock,
 } from "@/lib/prompt-builders/sap-page-template";
-import { isCompetitorCsvKeyword } from "@/lib/competitor/competitor-csv-row";
+import { isCompetitorCsvKeyword } from "@/lib/competitor-research/competitor-csv-row";
 import {
   formatCompetitorComparisonChecklistBlock,
   formatCompetitorChecklistExample,

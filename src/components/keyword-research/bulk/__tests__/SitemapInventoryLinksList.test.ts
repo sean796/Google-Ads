@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hostedInventoryDownloads } from "@/components/keyword-research/bulk/SitemapInventoryLinksList";
+import { hostedInventoryDownloads } from "@/components/keyword-research/bulk/sitemap-inventory-downloads";
 import type { PromptBulkSitemapInventoryLink } from "@/lib/bulk/prompt-bulk-sitemap-inventory";
 
 describe("hostedInventoryDownloads", () => {

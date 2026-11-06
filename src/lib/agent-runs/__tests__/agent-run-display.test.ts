@@ -136,7 +136,20 @@ describe("agentRunCollapsedHint", () => {
       updatedAt: "",
     } as AgentRun;
     expect(
-      agentRunCollapsedHint(run, { progressLabel: "Done", progress: 1, stepLabel: "Done" }, 0),
+      agentRunCollapsedHint(
+        run,
+        {
+          isLive: false,
+          currentUrl: null,
+          postTitle: null,
+          progressLabel: "Done",
+          positionLabel: null,
+          percent: 100,
+          generatedFiles: [],
+          completedUrlFiles: [],
+        },
+        0,
+      ),
     ).toBe("GSC MoM report generated");
   });
 
@@ -154,7 +167,20 @@ describe("agentRunCollapsedHint", () => {
       updatedAt: "",
     } as AgentRun;
     expect(
-      agentRunCollapsedHint(run, { progressLabel: "Cancelled", progress: 0, stepLabel: "Cancelled" }, 0),
+      agentRunCollapsedHint(
+        run,
+        {
+          isLive: false,
+          currentUrl: null,
+          postTitle: null,
+          progressLabel: "Cancelled",
+          positionLabel: null,
+          percent: 0,
+          generatedFiles: [],
+          completedUrlFiles: [],
+        },
+        0,
+      ),
     ).toBe("");
   });
 

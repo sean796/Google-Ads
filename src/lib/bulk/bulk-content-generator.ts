@@ -6,7 +6,7 @@ import type { BulkProcessingOptions } from '../bulk-auto-generate';
 import { ensureBlogHarnessSummaryFirst } from '@/lib/bulk/blog-harness-summary-agent';
 import { buildFocusedArticlePurpose } from '@/lib/content-generation/article-length-policy';
 import { getBlogModel } from '@/lib/optimization-settings-storage';
-import type { AIDrivenACFContext } from '@/lib/prompt-builders/system-user';
+import type { AIDrivenACFContext } from '@/lib/content-generation/ai-driven-acf-reader';
 import { mergeOptimizerInstructions } from "@/lib/prompt-builders/system-user";
 import { resolveAgentsForBulk } from "./bulk-blueprint-agents";
 export { resolveAgentsForBulk } from "./bulk-blueprint-agents";
@@ -203,7 +203,7 @@ export async function addEntityLinksToContent(
   // Add entity Wikipedia link and local links if entity exists
   if (row.entity && row.entity.trim()) {
     try {
-      let localLinks: Array<{ text: string; url: string }> = [];
+      const localLinks: Array<{ text: string; url: string }> = [];
       let wikipediaUrl = row.wikipedia_url?.trim();
       let wikiPageTitle = row.wikipedia_title?.trim();
 

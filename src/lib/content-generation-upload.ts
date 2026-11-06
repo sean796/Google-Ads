@@ -28,6 +28,7 @@ import { readACFFieldsAgentically, hasExtraTextField, hasExtraImageField, type A
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { normalizeInternalUrl, extractInternalLinksFromContent } from "@/lib/wordpress-api/validate-internal-links";
 import { ensureWhatWeOfferTablePageLinks } from "@/lib/content-generation/what-we-offer-table-page-links";
+import type { ExtraTextInventoryLinkRow } from "@/lib/content-generation/extra-text-inventory-links";
 import { removeInvalidInternalLinks, deduplicateInternalLinksInHtml } from "@/lib/content-generation/content-sanitizer";
 import { resolveInternalLinkPlaceholdersInHtml } from "@/lib/content-generation/internal-link-placeholders";
 import { prepareHarnessContentForUpload } from "@/lib/content-generation/harness-upload-prep";
@@ -59,6 +60,18 @@ import {
   attachWordPressUploadProofToFileManager,
 } from "@/lib/overview/overview-wp-upload-harness-artifacts";
 import type { OverviewBulkSeoApiItem } from "@/lib/overview/overview-bulk-seo-payload";
+import type {
+  ResolvedTargetLike,
+  WpExistingPostLike,
+} from "@/hooks/content-optimization/use-optimization-state";
+import type { Dispatch, SetStateAction } from "react";
+import type { OptimizationProgressState } from "@/hooks/content-optimization/use-optimization-state";
+import type { generateBlueprintFromTemplate } from "@/lib/blog-template-builder";
+
+/** Blueprint as produced by generateBlueprintFromTemplate, plus pipeline-attached fields. */
+export type BlueprintResult = Awaited<
+  ReturnType<typeof generateBlueprintFromTemplate>
+> & { entity?: string; h2Outline?: string[]; origin?: string };
 import { restCollectionEndpointForSubtype } from "@/lib/overview/overview-bulk-seo-payload";
 
 /** WordPress REST API can return content/excerpt as { raw, rendered }. Normalize to string. */
@@ -91,8 +104,8 @@ export interface OptimizationContext {
   site: WordPressSite;
   url: string; // URL of the page being optimized
   updateMode: 'update' | 'draft';
-  existingPost: any;
-  resolved: any;
+  existingPost: WpExistingPostLike;
+  resolved: ResolvedTargetLike;
   existingTitle: string;
   existingContent: string;
   existingExcerpt: string;
@@ -107,7 +120,7 @@ export interface OptimizationContext {
   clusterKeywords?: string[];
   wordPressPosts?: Array<{ id: number; slug: string; title: string; excerpt: string; link: string; date_gmt: string }>;
   /** Entity SAP: pages bucket for What We Offer table links (title attributes). */
-  wordPressPagesForOfferTable?: Array<{ id: number; slug: string; title: string; excerpt: string; link: string; date_gmt: string; postType?: "post" | "page" }>;
+  wordPressPagesForOfferTable?: ExtraTextInventoryLinkRow[];
   wordPressRAGContext?: string; // WordPress content as RAG context for AI
   /** JSON string: real Google queries for Rank Math meta inspiration (aligned with Overview). */
   gscKeywordsContext?: string;
@@ -166,7 +179,7 @@ export function buildGscKeywordsContextJson(
 }
 
 export async function generateAndUploadContent(
-  blueprintResult: any,
+  blueprintResult: BlueprintResult,
   existingTitle: string,
   primaryKeyword: string,
   site: WordPressSite,
@@ -190,13 +203,15 @@ export async function generateAndUploadContent(
     contentOnlyUpload?: boolean;
     seoExtraTextFieldOnly?: boolean;
   },
-  acfFields?: Record<string, any>,
+  acfFields?: Record<string, unknown>,
   acfContext?: AIDrivenACFContext,
   /** Raw optimization progress setter for harness section list merges (functional updates). */
-  setOptimizationProgressRaw?: (fn: (prev: any) => any) => void,
+  setOptimizationProgressRaw?: Dispatch<
+    SetStateAction<Record<string, OptimizationProgressState>>
+  >,
   /** Bulk Details: status-only updates on url harness — no legacy site harness markdown. */
   contentPrepHarnessBridge?: ContentPrepHarnessBridge,
-): Promise<{ result: any; markdownContent: string; excerpt: string; changes?: { titleChanged?: boolean; metaChanged?: boolean; contentChanged?: boolean; title?: string; meta?: string } }> {
+): Promise<{ result: Awaited<ReturnType<typeof uploadToWordPress>>["result"]; markdownContent: string; excerpt: string; changes?: { titleChanged?: boolean; metaChanged?: boolean; contentChanged?: boolean; title?: string; meta?: string } }> {
   // Defaults when no options passed. Caller's optimizationOptions are respected so content can be updated.
   const DEFAULT_OPTIMIZATION_OPTIONS = {
     // Force content-only optimization by default.
@@ -273,7 +288,6 @@ export async function generateAndUploadContent(
   const uploadStartTime = Date.now();
 
   // Step 1: Generate optimized content (skip if content optimization is disabled)
-  let markdownContent: string;
   let htmlContent: string;
   let excerpt: string;
   let preservedMediaUrls: string[] = [];
@@ -310,7 +324,7 @@ export async function generateAndUploadContent(
         title: '',
         status: 'waiting' as const,
       }));
-      setOptimizationProgressRaw((prev: any) =>
+      setOptimizationProgressRaw((prev) =>
         mergeOptimizationProgress(prev, site.id, {
           stepId: "write",
           subProgress: 0,
@@ -360,7 +374,7 @@ export async function generateAndUploadContent(
                 ? "done"
                 : payload.phase === "start"
                   ? "start"
-                  : "generating";
+                  : "progress";
             markContentPrepHarnessSection(
               bridge.url,
               sectionIndex,
@@ -376,9 +390,8 @@ export async function generateAndUploadContent(
           }
         : setOptimizationProgressRaw
           ? (payload) => {
-              setOptimizationProgressRaw((prev: any) => {
-                const entry = prev[site.id] || {};
-                const nextSections = reduceHarnessSectionList(entry.harnessSections || [], payload);
+              setOptimizationProgressRaw((prev) => {
+                const nextSections = reduceHarnessSectionList(prev[site.id]?.harnessSections || [], payload);
                 return mergeHarnessProgressSiteAndBatch(prev, site.id, {
                   stepId: "write",
                   subProgress: harnessSubProgress("write", payload.sectionIndex, payload.totalSections, payload.phase),
@@ -391,7 +404,7 @@ export async function generateAndUploadContent(
           : undefined,
     });
 
-    markdownContent = contentResult.markdownContent;
+    const markdownContent = contentResult.markdownContent;
     htmlContent = contentResult.htmlContent;
     if (!contentOnlyUpload) {
       excerpt = contentResult.excerpt ?? "";
@@ -478,7 +491,7 @@ export async function generateAndUploadContent(
     htmlContent = ensureSemrushExternalLinksInHtml(htmlContent, context.semrushExternalUrls);
   }
 
-  const blueprintEntity = (blueprintResult as any)?.entity;
+  const blueprintEntity = blueprintResult?.entity;
   const entity = blueprintEntity && blueprintEntity !== 'N/A' ? blueprintEntity : undefined;
 
   let cleanedExistingTitle = existingTitle;
@@ -557,7 +570,7 @@ export async function generateAndUploadContent(
     markContentPrepHarnessSection(
       contentPrepHarnessBridge.url,
       wpUploadHarnessIndex,
-      phase,
+      phase === "error" ? "done" : phase,
       contentPrepHarnessBridge.setters,
       0,
       markdownSlice,
@@ -681,7 +694,7 @@ export async function generateAndUploadContent(
     if (shouldGenerateExtraText) {
       try {
         if (setOptimizationProgressRaw) {
-          setOptimizationProgressRaw((prev: any) =>
+          setOptimizationProgressRaw((prev) =>
             mergeHarnessProgressSiteAndBatch(prev, site.id, {
               stepId: "write",
               subProgress: 0.85,
@@ -711,9 +724,8 @@ export async function generateAndUploadContent(
           setProgress: legacyProgress("write"),
           onHarnessSection: setOptimizationProgressRaw
             ? (payload) => {
-                setOptimizationProgressRaw((prev: any) => {
-                  const entry = prev[site.id] || {};
-                  const nextSections = reduceHarnessSectionList(entry.harnessSections || [], payload);
+                setOptimizationProgressRaw((prev) => {
+                  const nextSections = reduceHarnessSectionList(prev[site.id]?.harnessSections || [], payload);
                   return mergeHarnessProgressSiteAndBatch(prev, site.id, {
                     stepId: "write",
                     subProgress: harnessSubProgress("write", payload.sectionIndex, payload.totalSections, payload.phase),
@@ -931,8 +943,8 @@ export async function generateAndUploadContent(
   // Skip when SEO extra-text-only or bulk content-only upload (inventory keyword untouched).
   if (!seoExtraTextFieldOnly && !contentOnlyUpload) {
     const blueprintOriginRaw =
-      blueprintResult && typeof (blueprintResult as { origin?: unknown }).origin === "string"
-        ? String((blueprintResult as { origin: string }).origin).trim()
+      blueprintResult && typeof blueprintResult.origin === "string"
+        ? blueprintResult.origin.trim()
         : "";
     await updateACFOriginField({
       postId,
@@ -943,7 +955,10 @@ export async function generateAndUploadContent(
       setProgress: legacyProgress("publish"),
       pageUrl: context.url,
       excerpt, // AI agent uses excerpt + title + slug to fill Origin (no manual extraction)
-      existingOrigin: context.existingPost?.acf?.origin ?? undefined,
+      existingOrigin:
+        typeof context.existingPost?.acf?.origin === "string"
+          ? context.existingPost.acf.origin
+          : undefined,
       preferredOrigin: blueprintOriginRaw.length > 0 ? blueprintOriginRaw : undefined,
     });
   }
@@ -981,10 +996,6 @@ export async function generateAndUploadContent(
   if (link) {
     if (!getMuteOptimizationToasts()) notify.info(notifyViewPostX(link), {
       duration: 5000,
-      action: {
-        label: 'Open',
-        onClick: () => window.open(link, '_blank'),
-      },
     });
   }
 
@@ -1021,7 +1032,7 @@ export async function generateAndUploadContent(
     markContentPrepHarnessSection(
       contentPrepHarnessBridge.url,
       implReportHarnessIndex,
-      phase,
+      phase === "error" ? "done" : phase,
       contentPrepHarnessBridge.setters,
       0,
       markdownSlice,

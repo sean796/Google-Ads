@@ -12,6 +12,7 @@ import type {
   SitePostInventoryResponse,
   SiteInventoryBulkResponse,
 } from './types';
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 /**
  * Get scheduled posts from WordPress REST API
@@ -60,9 +61,7 @@ export async function getScheduledPosts(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         username,
@@ -122,9 +121,7 @@ async function getPublishedPostsFromBackend(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         username,
@@ -196,7 +193,7 @@ async function fetchSiteInventory(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         siteUrl,
         username,
@@ -279,6 +276,8 @@ export async function getSiteInventoryBulk(
     maxRowsPerCollection?: number;
     /** When set, fetch only these WP post IDs (one request per collection; no full walk). */
     includeIds?: number[];
+    /** When true, include the raw ACF object on each row (context=edit). */
+    includeRawAcf?: boolean;
   },
 ): Promise<SiteInventoryBulkResponse> {
   const url = backendApiUrl("/wordpress/get-site-inventory-bulk");
@@ -289,7 +288,7 @@ export async function getSiteInventoryBulk(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         siteUrl,
         username,
@@ -297,6 +296,7 @@ export async function getSiteInventoryBulk(
         includeContent: Boolean(options?.includeContent),
         includePageHeading: Boolean(options?.includePageHeading),
         includeScheduled: Boolean(options?.includeScheduled),
+        includeRawAcf: Boolean(options?.includeRawAcf),
         inventorySizing: options?.inventorySizing,
         maxRowsPerCollection: options?.maxRowsPerCollection,
         ...(includeIds.length ? { includeIds } : {}),
@@ -353,9 +353,7 @@ export async function getPublishedServiceAreas(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         username,
@@ -417,9 +415,7 @@ async function getPublishedPagesFromBackend(
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         username,
@@ -503,9 +499,7 @@ export async function resolveWordPressUrls(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         username,
@@ -568,9 +562,7 @@ export async function getWordPressPostContent(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         username,

@@ -9,6 +9,7 @@ import { auditPlatformsForSave } from "@/lib/dfs-article-audit/dfs-article-audit
 import { findClientNode } from "@/lib/workflow/workflow-graph-utils";
 import { linearOrderedNodes } from "@/lib/workflow/workflow-graph-mutations";
 import { hasWorkflowPublishSchedule } from "@/lib/workflow/workflow-schedule-upstream";
+import type { TaskExecutionPayload, TaskRecurrenceRule } from "@/lib/tasks-types";
 import type {
   WorkflowActionConfig,
   WorkflowClientConfig,
@@ -60,6 +61,27 @@ export async function compileWorkflowTasks(
   for (const node of actionNodes(workflow)) {
     const config = node.config as WorkflowActionConfig & { compiledTaskId?: number };
     const isCalendarEntry = clientUsesCalendar && calendarEntryIds.has(node.id);
+    const recurrenceRule: TaskRecurrenceRule =
+      clientConfig.frequency === "once"
+        ? "none"
+        : clientConfig.frequency === "daily" ||
+            clientConfig.frequency === "weekly" ||
+            clientConfig.frequency === "yearly"
+          ? clientConfig.frequency
+          : "monthly";
+    const executionPayload: TaskExecutionPayload =
+      config.executionKind === "dfs_llm_article_audit"
+        ? {
+            targetBucket: "posts",
+            ...config.executionPayload,
+            auditPlatforms: auditPlatformsForSave(config.executionPayload?.auditPlatforms),
+          }
+        : config.executionKind === "chatgpt_website_audit"
+          ? {
+              targetBucket: "pages",
+              ...config.executionPayload,
+            }
+          : config.executionPayload;
     const payload = {
       keyword: `workflow_${workflow.id}_${node.id}`,
       title: config.title ?? node.label,
@@ -68,30 +90,11 @@ export async function compileWorkflowTasks(
         ? {
             dueDate: String(clientConfig.startDate ?? "").slice(0, 10),
             dueTime: String(clientConfig.time ?? "09:00").slice(0, 5),
-            recurrenceRule:
-              clientConfig.frequency === "once"
-                ? "none"
-                : clientConfig.frequency === "daily" ||
-                    clientConfig.frequency === "weekly" ||
-                    clientConfig.frequency === "yearly"
-                  ? clientConfig.frequency
-                  : "monthly",
+            recurrenceRule,
           }
         : {}),
       executionKind: config.executionKind,
-      executionPayload:
-        config.executionKind === "dfs_llm_article_audit"
-          ? {
-              targetBucket: "posts",
-              ...config.executionPayload,
-              auditPlatforms: auditPlatformsForSave(config.executionPayload?.auditPlatforms),
-            }
-          : config.executionKind === "chatgpt_website_audit"
-            ? {
-                targetBucket: "pages",
-                ...config.executionPayload,
-              }
-            : config.executionPayload,
+      executionPayload,
       wordpressSiteId: workflow.wordpressSiteId ?? undefined,
       assigneeIds,
     };

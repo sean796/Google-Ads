@@ -186,6 +186,26 @@ class Neo_Pulse_App_Gmb_Oauth {
 		);
 	}
 
+	private static function mint_state(): string {
+		$user_id = Neo_Pulse_App_Auth_Session::user_id();
+		if ( $user_id === null || $user_id < 1 ) {
+			throw new RuntimeException( 'A logged-in user is required to connect Google Business.' );
+		}
+		$state = wp_generate_password( 40, false, false );
+		set_transient( 'neo_pulse_app_gmb_state_' . $state, $user_id, 600 );
+		return $state;
+	}
+
+	private static function consume_state( string $state ): bool {
+		if ( $state === '' ) {
+			return false;
+		}
+		$key  = 'neo_pulse_app_gmb_state_' . $state;
+		$user = get_transient( $key );
+		delete_transient( $key );
+		return is_numeric( $user ) && (int) $user >= 1;
+	}
+
 	public static function authorize_redirect(): void {
 		if ( ! self::is_configured() ) {
 			Neo_Pulse_App_Api_Dispatcher::send_json(
@@ -208,6 +228,11 @@ class Neo_Pulse_App_Gmb_Oauth {
 		$frontend = self::frontend_url();
 		if ( ! self::is_configured() ) {
 			wp_redirect( $frontend . '?gmb=error&message=not_configured', 302 );
+			exit;
+		}
+		$state = isset( $query['state'] ) ? trim( (string) $query['state'] ) : '';
+		if ( ! self::consume_state( $state ) ) {
+			wp_redirect( $frontend . '?gmb=error&message=invalid_state', 302 );
 			exit;
 		}
 		$code = isset( $query['code'] ) ? trim( (string) $query['code'] ) : '';
@@ -336,6 +361,7 @@ class Neo_Pulse_App_Gmb_Oauth {
 				'scope'         => self::GMB_SCOPE,
 				'access_type'   => 'offline',
 				'prompt'        => 'consent',
+				'state'         => self::mint_state(),
 			),
 			self::GOOGLE_AUTH_URL
 		);

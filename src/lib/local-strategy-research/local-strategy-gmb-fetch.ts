@@ -1,3 +1,4 @@
+import { resolveMcpApiBase } from "@/lib/mcp-tools";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
 import { getGMBPullDateRanges } from "@/lib/gmb-date-helpers";
 import type { LocalStrategyGmbOauthWire } from "@/lib/local-strategy-research/local-strategy-report-wire";
@@ -74,7 +75,7 @@ export async function fetchLocalStrategyGmbDfsRaw(options: {
   if (!kw) return null;
 
   const base = (BACKEND_API_BASE || "").replace(/\/$/, "");
-  const url = `${base}/api/mcp/DataForSEO_business_data_google_my_business_info_live`;
+  const url = `${base}/DataForSEO_business_data_google_my_business_info_live`;
 
   const body: Record<string, string> = {
     keyword: kw,

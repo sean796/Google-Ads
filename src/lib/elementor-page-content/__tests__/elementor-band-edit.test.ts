@@ -41,7 +41,7 @@ describe("applyBodyHtmlToBand", () => {
   });
 
   it("appends a text-editor widget when the band has no body widget", () => {
-    const band = {
+    const band: Parameters<typeof applyBodyHtmlToBand>[0] = {
       elType: "container",
       elements: [
         {

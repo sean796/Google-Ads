@@ -103,6 +103,9 @@ describe("buildOverviewHarnessCatalogWithHtml", () => {
           id: 1,
           url,
           fields: {
+            title: "",
+            meta: "",
+            keyword: "",
             content: `<h2 id="answer">Answer</h2><div class="flo-faq"><h2 id="faq">FAQ</h2></div>`,
           },
         },

@@ -1,7 +1,6 @@
 import { appendAgentRunStep } from "@/lib/agent-runs/agent-run-step";
 import { AGENT_RUN_STEP_KEYS } from "@/lib/agent-runs/agent-run-step-keys";
 import { fetchAgentRun } from "@/lib/agent-runs-api";
-import type { AgentRunHarnessContext } from "@/lib/agent-runs/harness-registry";
 import { thenConfig } from "@/lib/workflow/workflow-then-utils";
 import type { ResolvedThenConfig } from "@/lib/workflow/workflow-then-aggregate";
 import type { WorkflowNode, WorkflowStepOutput } from "@/lib/workflow/workflow-types";
@@ -57,10 +56,10 @@ export function inferAutomationDeliveryStepKey(
 export function automationDeliveryStepKeyForThenPhase(
   node: WorkflowNode,
   thenPhase: string,
-  status: "running" | "error" = "running",
+  status: "running" | "done" | "error" = "running",
 ): string {
   if (node.kind === "then_google_drive") {
-    if (status === "error" || thenPhase === "resolve_folder" && status === "error") {
+    if (status === "error") {
       return AGENT_RUN_STEP_KEYS.automationGoogleDriveError;
     }
     if (thenPhase === "upload_complete") return AGENT_RUN_STEP_KEYS.automationGoogleDriveComplete;
@@ -131,9 +130,16 @@ export async function logAutomationDeliveryStep(args: {
   );
 }
 
+type AutomationDeliveryOnStep = (
+  label: string,
+  status?: "running" | "done" | "error",
+  resumePayload?: Record<string, unknown>,
+  stepKey?: string,
+) => void | Promise<void>;
+
 export function createAutomationDeliveryOnStep(
-  onStep: AgentRunHarnessContext["onStep"] | undefined,
-): NonNullable<AgentRunHarnessContext["onStep"]> {
+  onStep: AutomationDeliveryOnStep | undefined,
+): AutomationDeliveryOnStep {
   return async (label, status = "running", resumePayload, stepKey) => {
     const key = stepKey ?? inferAutomationDeliveryStepKey(label, status);
     await onStep?.(

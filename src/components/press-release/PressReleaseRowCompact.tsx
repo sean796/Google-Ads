@@ -41,7 +41,7 @@ export type PressReleaseRowCompactProps =
     };
 
 export function PressReleaseRowCompact(props: PressReleaseRowCompactProps) {
-  if (props.placeholder) {
+  if (props.placeholder === true) {
     const stripeIndex = props.stripeIndex ?? 0;
     return (
       <div

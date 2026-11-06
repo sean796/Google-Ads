@@ -22,7 +22,7 @@ export async function performExternalResearch(
   _keyword: string,
   _locationName: string,
   _languageCode: string,
-  _options: Record<string, any> = {}
+  _options: Record<string, unknown> = {}
 ): Promise<ExternalResearchResult> {
   return { keyword: _keyword, llmScrapeAnswer: '', checkedLinks: [], extractionLog: [] };
 }

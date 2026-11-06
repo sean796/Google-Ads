@@ -393,35 +393,6 @@ export const PULSE_AGENT_REGISTRY: readonly PulseRegisteredAgentEntry[] = [
     sourceModule: "src/lib/wikipedia/validate-wikipedia-place-page-openrouter.ts",
   },
 
-  // 11. Neo EMCP (Native NEO Pulse MCP Engine)
-  {
-    id: "emcp.audit.site-schema-doctor",
-    label: "Neo EMCP Site & Schema Doctor Agent",
-    category: "research",
-    domain: "emcp",
-    reason: "Analyzes neo-pulse/read audit findings, shared business details, and locations to plan dry-run-safe MCP remediation operations.",
-    useMasterInstructions: true,
-    sourceModule: "src/lib/emcp/neo-emcp-mastra-agents.ts",
-  },
-  {
-    id: "emcp.builder.elementor-architect",
-    label: "Neo Pulse Native Web Design & Stitched Content Architect Agent",
-    category: "blog",
-    domain: "emcp",
-    reason: "Plans native NEO Pulse stitched HTML page design, section rewrites, and SEO metadata updates without external page-builder dependencies.",
-    useMasterInstructions: true,
-    sourceModule: "src/lib/emcp/neo-emcp-mastra-agents.ts",
-  },
-  {
-    id: "emcp.ops.command-planner",
-    label: "Neo Pulse Native Multi-Tool Command Planner Agent",
-    category: "research",
-    domain: "emcp",
-    reason: "Translates natural-language blog posting, stitched web design, custom field, and SEO instructions into an ordered sequence of native NEO Pulse tool calls.",
-    useMasterInstructions: true,
-    sourceModule: "src/lib/emcp/neo-emcp-mastra-agents.ts",
-  },
-
   // 12. Forge Workflow & Automation Agents
   {
     id: "workflow.csv.proposed-questions",

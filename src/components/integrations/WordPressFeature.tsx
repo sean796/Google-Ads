@@ -5,6 +5,7 @@
   notifyExportedXSiteSToCsv,
 } from "@/lib/notify-messages";
 import React, { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { loadApiKey } from "@/lib/api";
 import { Plus, Upload, Download, RotateCcw } from "lucide-react";
 import { notify } from "@/lib/app-notifications";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,8 +38,7 @@ import {
   fetchAndPersistMissingClientLogos,
 } from "./storage";
 import { normalizeGbpLocationIdInput } from "@/lib/gbp-post/normalize-gbp-location-id";
-import { saveWordPressProperties, syncOpenRouterToWorkspace } from "@/lib/manager-wordpress-properties-api";
-import { loadApiKey } from "@/lib/api";
+import { saveWordPressProperties } from "@/lib/manager-wordpress-properties-api";
 import { extractNAPAndLinkGraph } from "@/lib/knowledge-graph-auto-trigger";
 import { buildWordPressSitesCsvForDownload } from "@/lib/export-wordpress-sites-csv";
 import { applyGbpPropertyWand, bulkApplyGmbSuggestedDisplayNames } from "@/lib/wordpress-site-display-name-from-dfs-gmb";
@@ -95,13 +95,6 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
   } = useWordPressSites();
 
   const { user } = useAuth();
-
-  useEffect(() => {
-    if (!user) return;
-    const key = loadApiKey()?.trim();
-    if (!key) return;
-    void syncOpenRouterToWorkspace({ openRouterApiKey: key });
-  }, [user]);
 
   const clientLogosBootstrappedRef = useRef(false);
   useEffect(() => {
@@ -378,12 +371,12 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
       setFormSemrushPositionTrackingProjectId(formData.semrushPositionTrackingProjectId ?? "");
       setFormSemrushPositionTrackingCampaignId(formData.semrushPositionTrackingCampaignId ?? "");
       setFormEditorialCountsPeriodStartYmd(formData.editorialCountsPeriodStartYmd ?? "");
-      setFormOptimizationPackage(formData.optimizationPackage ?? "");
-      setFormEditorialContentPackage(formData.editorialContentPackage ?? "");
-      setFormEditorialPublishTimeLocal(formData.editorialPublishTimeLocal ?? "");
+      setFormOptimizationPackage("");
+      setFormEditorialContentPackage("");
+      setFormEditorialPublishTimeLocal("");
       setFormBenchmarkCustomTag(formData.benchmarkCustomTag ?? "");
       setFormPrimaryLocalKeyword(formData.primaryLocalKeyword ?? "");
-      setFormClientLogoUrl(formData.clientLogoUrl ?? "");
+      setFormClientLogoUrl("");
       setFormClientLogoBoxTheme("black");
       setFormProfileTags(formData.profileTags ?? []);
       setFormServiceCity("");
@@ -459,7 +452,7 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
           const r = await applyGbpPropertyWand(saved, {
             openRouterApiKey: loadApiKey()?.trim() || undefined,
           });
-          if (!r.ok) notify.error(r.error);
+          if (r.ok === false) notify.error(r.error);
         })();
       }
     }
@@ -776,6 +769,8 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
       setEditorialSelectedMonthKey,
       isRefreshingAllQuarterCounts,
       isRefreshingAllOptimizationCounts,
+      refreshAllOptimizationCounts,
+      refreshAllQuarterCounts,
       handleExportAllSitesCsv,
       sites.length,
       handleAddSite,

@@ -74,6 +74,7 @@ const baseConfig = {
   postCount: 1,
   placement: "feed_1x1" as const,
   includeImage: false,
+  landingPageSource: "random" as const,
   defaultColorPalette: {},
   defaultVisualToolPalette: defaultPalette,
   defaultVisualToolMode: "fixed" as const,
@@ -85,6 +86,7 @@ const site: WordPressSite = {
   siteUrl: "https://example.com",
   username: "user",
   appPassword: "pass",
+  connectedAt: 0,
   enabled: true,
 };
 

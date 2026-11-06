@@ -13,5 +13,6 @@ export * from '../keyword-mcp-service';
 export * from '../keyword-selection-utils';
 export * from '../keyword-types';
 export * from '../gsc-keyword-analyzer';
+export type { GSCQuery } from '../gsc-keyword-analyzer';
 export * from '../gsc-query-clustering';
 export * from '../gsc-query-processor';

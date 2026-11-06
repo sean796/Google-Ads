@@ -19,7 +19,7 @@ describe("resolveBulkWordPressPostTitle", () => {
   });
 
   it("uses the OpenRouter wordpress_title as the post title", async () => {
-    mockCall.mockResolvedValue({
+    mockCall.mockResolvedValue({ raw: null,
       content: JSON.stringify({
         wordpress_title: "How To Choose Between Hunter Douglas And Alta Shades",
       }),
@@ -64,7 +64,7 @@ describe("resolveBulkWordPressPostTitle", () => {
   });
 
   it("fails when OpenRouter returns invalid JSON (single pass)", async () => {
-    mockCall.mockResolvedValue({ content: "{wordpress_title: Bad}" });
+    mockCall.mockResolvedValue({ raw: null, content: "{wordpress_title: Bad}" });
 
     await expect(
       resolveBulkWordPressPostTitle({
@@ -77,7 +77,7 @@ describe("resolveBulkWordPressPostTitle", () => {
   });
 
   it("fails when wordpress_title is empty (single pass)", async () => {
-    mockCall.mockResolvedValue({ content: JSON.stringify({ wordpress_title: "   " }) });
+    mockCall.mockResolvedValue({ raw: null, content: JSON.stringify({ wordpress_title: "   " }) });
 
     await expect(
       resolveBulkWordPressPostTitle({
@@ -92,7 +92,7 @@ describe("resolveBulkWordPressPostTitle", () => {
   it("returns the full OpenRouter title without truncating", async () => {
     const title =
       "What Alberta Physician Privatization Changes Mean For Clinics In 2026";
-    mockCall.mockResolvedValue({
+    mockCall.mockResolvedValue({ raw: null,
       content: JSON.stringify({ wordpress_title: title }),
     });
 

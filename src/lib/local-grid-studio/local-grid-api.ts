@@ -1,5 +1,5 @@
-import { dataForSeoRequestHeaders, withDataForSeoRequestAuth } from "@/lib/dataforseo-request-auth";
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { buildCanonicalBusinessKey } from "./local-grid-aggregator";
 import type {
   LocalGridBusinessIdentity,
@@ -24,8 +24,8 @@ export async function geocodeLocalGridAddress(params: {
   const res = await fetch(backendApiUrl("/organic-dashboard/local-grid/geocode-address"), {
     method: "POST",
     credentials: "include",
-    headers: dataForSeoRequestHeaders(),
-    body: JSON.stringify(withDataForSeoRequestAuth(params)),
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify((params)),
     signal: params.signal,
   });
 
@@ -78,9 +78,9 @@ export async function resolveLocalGridBusinessViaDfs(params: {
   const res = await fetch(backendApiUrl("/organic-dashboard/local-grid/resolve-business"), {
     method: "POST",
     credentials: "include",
-    headers: dataForSeoRequestHeaders(),
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(
-      withDataForSeoRequestAuth({
+      ({
         siteId: params.siteId,
         siteName: params.siteName,
         napName: params.napName,
@@ -142,9 +142,9 @@ export async function runLocalGridScanBatch(params: {
   const res = await fetch(backendApiUrl("/organic-dashboard/local-grid/scan-batch"), {
     method: "POST",
     credentials: "include",
-    headers: dataForSeoRequestHeaders(),
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(
-      withDataForSeoRequestAuth({
+      ({
         keyword: params.keyword,
         points: params.points,
         zoom: params.zoom ?? 14,
@@ -227,6 +227,7 @@ export async function fetchLocalGridHistory(siteId: string): Promise<LocalGridHi
   const res = await fetch(backendApiUrl(`/organic-dashboard/local-grid/history?${qs}`), {
     method: "GET",
     credentials: "include",
+    headers: neoPulseApiHeaders(),
   });
   const data = (await res.json()) as {
     ok?: boolean;
@@ -244,6 +245,7 @@ export async function fetchLocalGridScanById(
   const res = await fetch(backendApiUrl(`/organic-dashboard/local-grid/scan?${qs}`), {
     method: "GET",
     credentials: "include",
+    headers: neoPulseApiHeaders(),
   });
   const data = (await res.json()) as {
     ok?: boolean;
@@ -260,7 +262,7 @@ export async function saveLocalGridScanOnServer(
   const res = await fetch(backendApiUrl("/organic-dashboard/local-grid/save"), {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ siteId, scan }),
   });
   const data = (await res.json()) as {
@@ -276,6 +278,7 @@ export async function fetchLocalGridWorkspace(siteId?: string): Promise<unknown 
   const res = await fetch(backendApiUrl(`/organic-dashboard/local-grid/workspace${query}`), {
     method: "GET",
     credentials: "include",
+    headers: neoPulseApiHeaders(),
   });
   const data = (await res.json()) as { ok?: boolean; workspace?: unknown };
   if (!res.ok || !data.ok) return null;
@@ -289,7 +292,7 @@ export async function saveLocalGridWorkspace(
   const res = await fetch(backendApiUrl("/organic-dashboard/local-grid/workspace"), {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ workspace, siteId }),
   });
   const data = (await res.json()) as { ok?: boolean };
@@ -303,7 +306,7 @@ export async function deleteLocalGridScanOnServer(
   const res = await fetch(backendApiUrl("/organic-dashboard/local-grid/delete"), {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ siteId, scanId }),
   });
   const data = (await res.json()) as {

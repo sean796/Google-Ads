@@ -61,7 +61,7 @@ export async function runContentCalendarSocialBriefAgent(options: {
     model: options.model,
     system,
     user,
-    maxTokens: getCompetitorReportMaxOutputTokens(768),
+    maxTokens: Math.min(768, getCompetitorReportMaxOutputTokens(options.model)),
     temperature: 0.4,
     errorLabel: "Content social brief agent",
     signal: options.signal,

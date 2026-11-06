@@ -24,30 +24,59 @@ import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competit
 
 function mockBrief(liveLinks: string[]): SeoContentBriefV1 {
   return {
+    version: 1,
+    generatedAt: "2026-01-01T00:00:00.000Z",
     focusKeyword: "solar panels edmonton",
+    pageUrl: "https://example.com/solar-panels-edmonton/",
+    dataforseo: {
+      seedKeyword: null,
+      organic: [],
+      peopleAlsoAsk: [],
+      peopleAlsoSearchPhrases: [],
+      relatedSearches: [],
+      refinementChips: [],
+      popularProducts: [],
+    },
+    gsc: { pageUrl: "https://example.com/solar-panels-edmonton/", queries: [] },
+    semrush: {
+      urlOrganicKeywords: [],
+      phraseRelatedKeywords: [],
+      urlOrganicUrls: [],
+      phraseRelatedUrls: [],
+      phraseOrganicUrls: [],
+      externalSemrushUrls: [],
+    },
     llmAudit: {
+      siteUrl: "https://example.com",
+      location: "Edmonton",
       platforms: [
         {
-          platform: "chatgpt",
+          platform: "chat_gpt",
+          label: "ChatGPT",
+          model_name: "gpt-test",
           status: "ok",
           liveLinks,
           annotations: [],
         },
         {
           platform: "gemini",
+          label: "Gemini",
+          model_name: "gemini-test",
           status: "ok",
           liveLinks: liveLinks.slice(0, 1),
-          annotations: [{ url: "https://www.weather.gc.ca/", label: "weather" }],
+          annotations: [{ url: "https://www.weather.gc.ca/", title: "weather" }],
         },
         {
-          platform: "claude",
+          platform: "perplexity",
+          label: "Perplexity",
+          model_name: "perplexity-test",
           status: "error",
           liveLinks: ["https://ignored.example/"],
           annotations: [],
         },
       ],
     },
-  } as SeoContentBriefV1;
+  };
 }
 
 describe("collectLiveLinksFromBrief", () => {

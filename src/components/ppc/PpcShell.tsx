@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useWordPressSites } from "@/hooks/use-wordpress-sites";
 import { useWordPressOptimization } from "@/contexts/wordpress-optimization-context";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/ui";
+
 import { GoogleAdsCampaignWorkspace } from "@/components/ppc/google/GoogleAdsCampaignWorkspace";
 import {
   type PpcPlatformId,

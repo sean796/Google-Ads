@@ -1,7 +1,8 @@
 import React, { useMemo } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChevronRight } from "lucide-react";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/ui";
+
 import type { ForgeDashboardChartPoint } from "@/lib/pulse-forge/forge-dashboard-demo-data";
 import {
   FORGE_DASHBOARD_PANEL_SHELL_CLASS,

@@ -134,7 +134,7 @@ export async function importGbpAddressFromDfsForSite(
     localBusinessHint: options.localBusinessHint,
   });
   let content = blob;
-  let businessName =
+  const businessName =
     site.napInfo?.name?.trim() ||
     parseGmbDfsBusinessInfo(options.gmbJson)?.title?.trim() ||
     site.name.trim();

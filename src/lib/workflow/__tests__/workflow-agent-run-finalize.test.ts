@@ -22,9 +22,11 @@ vi.mock("@/lib/agent-runs/agent-runs-local-patch", () => ({
 const workflow: WorkflowDefinition = {
   id: 1,
   teamId: 1,
-  title: "GSC",
+  name: "GSC",
+  status: "draft",
   nodes: [],
   edges: [],
+  ragVariables: [],
 };
 
 function agentRun(overrides: Partial<AgentRun> = {}): AgentRun {
@@ -56,15 +58,15 @@ function agentRun(overrides: Partial<AgentRun> = {}): AgentRun {
 function outputs(partial: Partial<WorkflowStepOutput>[] = []): WorkflowStepOutput[] {
   return partial.map((row, index) => ({
     id: index + 1,
-    workflowId: 1,
-    workflowRunId: 10,
+    runId: 10,
     nodeId: row.nodeId ?? "agent",
+    variableKey: row.variableKey ?? "agent_1",
     scope: row.scope ?? "run",
+    label: row.label ?? "Agent",
+    textPreview: row.textPreview ?? "",
     agentRunId: row.agentRunId ?? 42,
-    preview: "",
     fileRefs: [],
     createdAt: "",
-    updatedAt: "",
     ...row,
   }));
 }
@@ -73,7 +75,7 @@ describe("finalizeWorkflowBoundAgentRunsOnFailure", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(fetchAgentRun).mockResolvedValue(agentRun());
-    vi.mocked(patchAgentRun).mockResolvedValue(agentRun({ status: "failed" }));
+    vi.mocked(patchAgentRun).mockResolvedValue({ ok: true, run: agentRun({ status: "failed" }) });
     vi.mocked(appendAgentRunStep).mockResolvedValue(undefined);
   });
 

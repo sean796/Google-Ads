@@ -1,3 +1,4 @@
+import { resolveMcpApiBase } from "@/lib/mcp-tools";
 import { useState, useCallback } from "react";
 import { notify } from "@/lib/app-notifications";
 import { BACKEND_CONNECTION_ERROR } from "@/lib/wordpress-api/connection";
@@ -23,11 +24,49 @@ import { formatKeyword } from "@/lib/keyword-formatter";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import type { ConnectedSiteSummary } from "@/components/integrations/types";
 import { getPublicSiteUrl } from "@/lib/wordpress-site-public-url";
-import {
-  dataForSeoRequestHeaders,
-  withDataForSeoRequestAuth,
-} from "@/lib/dataforseo-request-auth";
 import { analyzeBulkCsvKeyword } from "@/lib/bulk/bulk-csv-keyword-analyze";
+
+interface RawKeywordOverviewResponse {
+  status_code?: number | string;
+  error?: string;
+  details?: string | { status_message?: string };
+  keywordOverview?: RawKeywordOverviewResponse;
+  tasks?: Array<{
+    status_code?: number | string;
+    result?: Array<{
+      items?: Array<{ keyword_info?: unknown }>;
+      keyword_info?: unknown;
+    }>;
+  }>;
+  [key: string]: unknown;
+}
+
+interface KeywordSerpResponse {
+  error?: string;
+  status?: number;
+  tasks?: Array<{
+    result?: Array<{
+      items?: Array<{
+        type?: string;
+        question?: string;
+        title?: string;
+        text?: string;
+        items?: Array<{ type?: string; question?: string; title?: string; text?: string }>;
+        people_also_ask_items?: Array<{ question?: string; title?: string }>;
+      }>;
+    }>;
+  }>;
+  [key: string]: unknown;
+}
+
+interface PaaSampleItem {
+  type?: string;
+  question?: string;
+  hasItems?: boolean;
+  itemsCount?: number;
+  nested?: boolean;
+  sampleQuestion?: string;
+}
 
 function emptyKeywordAiAnalysis(primaryKeyword: string): KeywordAIAnalysis {
   const primary = primaryKeyword.trim();
@@ -76,11 +115,11 @@ export function useKeywordResearch({
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [isAnalyzingWithAI, setIsAnalyzingWithAI] = useState(false);
   const [currentResult, setCurrentResult] = useState<KeywordResearchResult | null>(null);
-  const [rawApiData, setRawApiData] = useState<any>(null);
+  const [rawApiData, setRawApiData] = useState<unknown>(null);
   const [aiAnalysis, setAiAnalysis] = useState<KeywordAIAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [keywordsVolumeData, setKeywordsVolumeData] = useState<Map<string, KeywordData>>(new Map());
-  const [paaRawResponse, setPaaRawResponse] = useState<any>(null);
+  const [paaRawResponse, setPaaRawResponse] = useState<unknown>(null);
   const [paaExtractionLog, setPaaExtractionLog] = useState<string[]>([]);
   const [paaAiRawResponse, setPaaAiRawResponse] = useState<string>('');
 
@@ -142,16 +181,15 @@ export function useKeywordResearch({
         }
 
         // Get RAW JSON from backend - EXACTLY as it appears in PowerShell
-        const MCP_API_BASE = import.meta.env.VITE_MCP_API_BASE || 
-          (import.meta.env.DEV ? 'http://localhost:3001/api/mcp' : '/api/mcp');
+        const MCP_API_BASE = resolveMcpApiBase();
         
         console.log('[Keyword Research] Fetching from:', `${MCP_API_BASE}/DataForSEO_dataforseo_labs_google_keyword_overview`);
         
         const response = await fetch(`${MCP_API_BASE}/DataForSEO_dataforseo_labs_google_keyword_overview`, {
           method: 'POST',
-          headers: dataForSeoRequestHeaders(),
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
-            withDataForSeoRequestAuth({
+            ({
               keywords: [primaryKeyword],
               location_name: options.location || "United States",
               language_code: options.language || "en",
@@ -163,7 +201,7 @@ export function useKeywordResearch({
         
         // Parse response body first to check for DataForSEO success codes
         const contentType = response.headers.get('content-type');
-        let rawData: any = null;
+        let rawData: RawKeywordOverviewResponse | null = null;
         
         try {
           if (contentType?.includes('application/json')) {
@@ -182,7 +220,7 @@ export function useKeywordResearch({
         }
         
         // Check if DataForSEO returned success (status_code 20000) even if HTTP status is not 200
-        const isDataForSEOSuccess = (statusCode: any): boolean => {
+        const isDataForSEOSuccess = (statusCode: number | string | undefined): boolean => {
           if (!statusCode) return false;
           return statusCode === 20000 || statusCode === '20000' || Number(statusCode) === 20000;
         };
@@ -229,8 +267,8 @@ export function useKeywordResearch({
         console.log('[Keyword Research] RAW DATA RECEIVED:', rawData);
         
         // Also fetch SERP data immediately to include in rawApiData
-        let serpData = null;
-        let localPaaRawResponse: any = null;
+        let serpData: KeywordSerpResponse | null = null;
+        let localPaaRawResponse: unknown = null;
         try {
           console.log('[Keyword Research] Fetching SERP data immediately...');
           
@@ -256,8 +294,8 @@ export function useKeywordResearch({
           
           const serpResponse = await fetch(`${MCP_API_BASE}/DataForSEO_serp_organic_live_advanced`, {
             method: 'POST',
-            headers: dataForSeoRequestHeaders(),
-            body: JSON.stringify(withDataForSeoRequestAuth(serpRequestPayload)),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify((serpRequestPayload)),
           });
           
           if (serpResponse.ok) {
@@ -273,7 +311,7 @@ export function useKeywordResearch({
             
             // Count PAA items in raw response
             let paaCount = 0;
-            const paaSampleItems: any[] = [];
+            const paaSampleItems: PaaSampleItem[] = [];
             
             if (serpData?.tasks && Array.isArray(serpData.tasks)) {
               for (const task of serpData.tasks) {
@@ -388,10 +426,8 @@ extractedKeywordData = transformKeywordData(resultItem);
                 break;
               }
             }
-          } else {
-}
-        } else {
-}
+          }
+        }
 // If we have keyword data and OpenRouter API key, trigger AI analysis with full SERP data
         if (extractedKeywordData && openRouterApiKey && openRouterApiKey.trim()) {
 setIsAnalyzingWithAI(true);
@@ -803,7 +839,7 @@ setCurrentResult(minimalResult);
         ? { ...analysisComplete, paaRawResponse: capturedPaaRawResponse ?? undefined }
         : null;
     },
-    [onKeywordsUpdate, openRouterApiKey, selectedModel, temperature, maxTokens, topP]
+    [onKeywordsUpdate, openRouterApiKey, selectedModel, temperature, maxTokens, topP, connectedSite, entity]
   );
 
   const regenerateKeywords = useCallback(
@@ -949,7 +985,7 @@ setCurrentResult(minimalResult);
         setIsAnalyzingWithAI(false);
       }
     },
-    [openRouterApiKey, selectedModel, temperature, maxTokens, topP]
+    [openRouterApiKey, selectedModel, temperature, maxTokens, topP, connectedSite, entity]
   );
 
   const clearResults = useCallback(() => {

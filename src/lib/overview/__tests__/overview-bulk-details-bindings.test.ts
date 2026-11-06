@@ -79,6 +79,10 @@ describe("resolveOverviewBulkPipelineTitles", () => {
         urlStatuses: { [url]: "optimizing" },
         currentStep: "Researching…",
         currentStepProgress: {
+          stepId: "load",
+          subProgress: 0,
+          step: "Researching…",
+          progress: 0,
           harnessPlannedSectionCount: 7,
           message: "Researching 1 page(s)…",
         },
@@ -103,7 +107,13 @@ describe("resolveOverviewBulkPipelineTitles", () => {
           currentIndex: 0,
           urlStatuses: {},
           currentStep: "prepInventory",
-          currentStepProgress: { message: "Initializing batch…" },
+          currentStepProgress: {
+            stepId: "prepInventory",
+            subProgress: 0,
+            step: "Prep inventory",
+            progress: 0,
+            message: "Initializing batch…",
+          },
         },
         [
           {
@@ -190,6 +200,8 @@ describe("buildOverviewBulkGeneratorDetailsProps", () => {
             { sectionIndex: 0, title: "Posts sitemap", status: "waiting" as const },
           ],
           currentStepProgress: {
+            stepId: "prepInventory",
+            subProgress: 0,
             step: "prepInventory",
             progress: 0,
             message: "Initializing batch…",
@@ -585,7 +597,7 @@ describe("buildOverviewMicroActionDetailsProps", () => {
 
   it("shows blog writing steps when Content is running, not a single Content dump", () => {
     const url = "https://example.com/2026-cra-mail-policy";
-    const overviewRows = [makeOverviewRow(url, "optimizing")];
+    const overviewRows = [makeOverviewRow(url)];
     const scopeKeys = overviewBulkScopeUrlKeysFromRows(overviewRows);
     const props = buildOverviewBulkGeneratorDetailsProps(
       {

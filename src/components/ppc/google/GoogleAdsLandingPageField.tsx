@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
-import { Popover, PopoverContent } from "@/components/ui/popover";
+
 import { PPC_DETAIL_INPUT_CLASS } from "@/components/ppc/google/google-ads-row-details-styles";
 import type { PpcWpPageContext } from "@/lib/ppc/google-ads-types";
 import { cn } from "@/lib/utils";
-import { Button, Field, RowButton } from "@/ui";
+import { Button, Field, RowButton, Popover, PopoverContent } from "@/ui";
 
 export type GoogleAdsLandingPageFieldProps = {
   value: string;

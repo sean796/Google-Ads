@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  blocking:
+    name: Blocking gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: No secrets in tracked files
+        run: npm run check:no-secrets:all
+      - name: No circular imports
+        run: npm run check:circular
+      - name: UI registry check
+        run: npm run ui:check
+      - name: Lint
+        run: npx eslint . --max-warnings 0
+      - name: Typecheck
+        run: npm run typecheck && npm run typecheck:node
+      - name: WordPress hub plugin tests
+        run: npm run test:neo-pulse-app
+      - name: Hosting API tests
+        run: npm run test:neo-host-api
+      - name: Production build
+        run: npm run build
+
+  ratchet:
+    name: Debt ratchet (report only)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Lint, typecheck, and test counts vs baseline
+        run: node scripts/check-gate-baseline.mjs
+
+  storybook:
+    name: Storybook build (report only)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build-storybook
+
+  evals:
+    name: Publishing output evals (report only)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Publishing output evals (link resolution, schema validity, templated answers)
+        run: npx vitest run src/lib/evals

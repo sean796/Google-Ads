@@ -6,6 +6,7 @@
 import type { WordPressSite, GSCPerformanceStats, GA4ReportData, GMBReportData } from "@/components/integrations/types";
 import type { EntityPagesData, HistoricalData } from "./gsc-report-generator";
 import { parseSitemap, getPublishedPosts, getPublishedPages } from "./wordpress-api";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 export interface ReportDiscoveryDateRanges {
   startDate: string;
@@ -74,7 +75,7 @@ export async function fetchReportDiscoveryData(
       onProgress?.("Fetching GA4 report data...");
       const gaResponse = await fetch(`${apiBase}/api/ga/report-data`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           propertyId: ga4PropertyId,
           startDate: dateRanges.startDate,
@@ -104,7 +105,7 @@ export async function fetchReportDiscoveryData(
       const gmbResponse = await fetch(`${apiBase}/api/gmb/performance`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           startDate: dateRanges.startDate,
           endDate: dateRanges.endDate,
@@ -145,7 +146,7 @@ export async function fetchReportDiscoveryData(
     onProgress?.("Fetching historical data...");
     const histResponse = await fetch(`${apiBase}/api/gsc/fetch-historical-stats`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ siteUrl: site.siteUrl }),
     });
     if (histResponse.ok) {
@@ -168,7 +169,7 @@ export async function fetchReportDiscoveryData(
 
       const entityResponse = await fetch(`${apiBase}/api/gsc/fetch-entity-pages-performance`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           siteUrl: site.siteUrl,
           entityPathPattern,
@@ -305,7 +306,7 @@ async function fetchGSCPerformanceStats(
 ): Promise<GSCPerformanceStats> {
   const response = await fetch(`${apiBase}/api/gsc/fetch-performance-stats`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       siteUrl,
       startDate: dateRanges.startDate,

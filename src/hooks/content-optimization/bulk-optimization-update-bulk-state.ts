@@ -3,9 +3,11 @@ import { stepLabel } from "@/lib/content-optimization/content-optimizer-run-prog
 import {
   buildWaitingContentOptimizeHarnessSections,
 } from "@/lib/overview/overview-content-optimize-pipeline";
+import type { ContentOptimizerStepId } from "@/lib/content-optimization/content-optimizer-run-progress";
+import type { HandleOptimizeMultipleContentParams } from "./bulk-optimization-params";
 
 export function updateBulkStateForPost(
-  setBulkOptimizationState: (prev: any) => any,
+  setBulkOptimizationState: HandleOptimizeMultipleContentParams["setBulkOptimizationState"],
   batchKey: string,
   url: string,
   index: number,
@@ -13,13 +15,13 @@ export function updateBulkStateForPost(
   totalPosts: number,
   status: "optimizing" | "completed" | "skipped" | "error",
 ): void {
-  setBulkOptimizationState((prev: any) => {
+  setBulkOptimizationState((prev) => {
     const current = prev[batchKey];
     if (!current) {
       return prev;
     }
 
-    const stepId = status === "completed" ? "done" : "load";
+    const stepId: ContentOptimizerStepId = status === "completed" ? "done" : "load";
     const subProgress = status === "completed" ? 1 : 0;
     const message =
       status === "completed"
@@ -56,6 +58,7 @@ export function updateBulkStateForPost(
           stepId,
           subProgress,
           step: stepLabel(stepId),
+          progress: subProgress * 100,
           ...(message ? { message } : {}),
         },
         urlStatuses: {

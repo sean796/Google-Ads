@@ -13,9 +13,10 @@ import {
   resolveAgentRunBatchKey,
 } from "@/lib/agent-runs/agent-run-batch-key";
 import {
-  buildAgentRunViewHash,
-  writeAgentRunViewHash,
+  buildAgentRunViewPath,
+  writeAgentRunViewPath,
 } from "@/lib/agent-runs/agent-run-optimizer-url";
+import { managerTabFromPathname } from "@/lib/manager-tab-routes";
 import {
   agentRunGeneratorSection,
   resolveAgentRunRecipeKey,
@@ -24,7 +25,6 @@ import type { BlogGeneratorSectionId } from "@/components/blog-generator/blog-ge
 import { writeStoredContentOptimizerSection } from "@/components/content-optimizer/content-optimizer-sections";
 import { writeStoredBlogGeneratorSection, readStoredBlogGeneratorSection } from "@/components/blog-generator/blog-generator-sections";
 
-const MANAGER_TAB_STORAGE_KEY = "neo-pulse-manager-tab";
 import { useActiveWordPressSite } from "@/contexts/active-wordpress-site-context";
 
 const SCOPE_STORAGE_KEY = "neo-pulse-agent-run-optimizer-scope";
@@ -46,7 +46,7 @@ type AgentRunOptimizerNavigation = {
   onGeneratorSectionChange: (section: string, options?: { keepAgentScope?: boolean }) => void;
 };
 
-let navigationHandlers: AgentRunOptimizerNavigation | null = null;
+export let navigationHandlers: AgentRunOptimizerNavigation | null = null;
 
 export function registerAgentRunOptimizerNavigation(
   handlers: AgentRunOptimizerNavigation | null,
@@ -61,11 +61,13 @@ export function requestManagerGeneratorNavigation(section: string): void {
   navigationHandlers.onGeneratorSectionChange(section);
 }
 
-function readStoredScope(): AgentRunOptimizerScope | null {
+export function readStoredScope(): AgentRunOptimizerScope | null {
   try {
     const raw = sessionStorage.getItem(SCOPE_STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as AgentRunOptimizerScope;
+    const parsed = JSON.parse(raw) as Omit<AgentRunOptimizerScope, "generatorSection"> & {
+      generatorSection?: string;
+    };
     if (
       typeof parsed.runId === "number" &&
       parsed.runId > 0 &&
@@ -93,7 +95,7 @@ function readStoredScope(): AgentRunOptimizerScope | null {
   return null;
 }
 
-function writeStoredScope(scope: AgentRunOptimizerScope | null): void {
+export function writeStoredScope(scope: AgentRunOptimizerScope | null): void {
   try {
     if (!scope) {
       sessionStorage.removeItem(SCOPE_STORAGE_KEY);
@@ -105,7 +107,7 @@ function writeStoredScope(scope: AgentRunOptimizerScope | null): void {
   }
 }
 
-function scopeFromRun(run: AgentRun): AgentRunOptimizerScope | null {
+export function scopeFromRun(run: AgentRun): AgentRunOptimizerScope | null {
   const siteId = agentRunSiteId(run);
   if (!siteId) return null;
   const batchKey = resolveAgentRunBatchKey(run, siteId);
@@ -128,95 +130,11 @@ type AgentRunOptimizerScopeContextValue = {
   agentRunOptimizerPath: (runId: number) => string;
 };
 
-const AgentRunOptimizerScopeContext = createContext<AgentRunOptimizerScopeContextValue | null>(
+export const AgentRunOptimizerScopeContext = createContext<AgentRunOptimizerScopeContextValue | null>(
   null,
 );
 
-export function AgentRunOptimizerScopeProvider({ children }: { children: ReactNode }) {
-  const { setActiveWordPressSiteId } = useActiveWordPressSite();
-  const [scope, setScope] = useState<AgentRunOptimizerScope | null>(() => readStoredScope());
 
-  const applyScope = useCallback(
-    (next: AgentRunOptimizerScope | null) => {
-      setScope(next);
-      writeStoredScope(next);
-      if (next) {
-        setActiveWordPressSiteId(next.siteId);
-        if (next.generatorSection === "opt") {
-          writeStoredContentOptimizerSection("content");
-        }
-        writeStoredBlogGeneratorSection(next.generatorSection);
-      }
-    },
-    [setActiveWordPressSiteId],
-  );
-
-  const clearAgentRunOptimizerScope = useCallback(() => {
-    applyScope(null);
-  }, [applyScope]);
-
-  const hydrateScopeFromRun = useCallback(
-    (run: AgentRun) => {
-      const next = scopeFromRun(run);
-      if (!next) return;
-      applyScope(next);
-    },
-    [applyScope],
-  );
-
-  const openAgentRunView = useCallback(
-    (run: AgentRun) => {
-      const next = scopeFromRun(run);
-      if (!next) return;
-      const section = next.generatorSection;
-      const alreadyScoped = scope?.runId === run.id;
-      let onGenerator = false;
-      let onSection = false;
-      try {
-        onGenerator = localStorage.getItem(MANAGER_TAB_STORAGE_KEY) === "generator";
-        onSection = readStoredBlogGeneratorSection() === section;
-      } catch {
-        /* ignore */
-      }
-      applyScope(next);
-      if (alreadyScoped && onGenerator && onSection) {
-        writeAgentRunViewHash(run.id, section);
-        return;
-      }
-      navigationHandlers?.onManagerTabChange("generator");
-      navigationHandlers?.onGeneratorSectionChange(section, { keepAgentScope: true });
-      writeAgentRunViewHash(run.id, section);
-    },
-    [applyScope, scope?.runId],
-  );
-
-  const agentRunOptimizerPath = useCallback(
-    (runId: number) => {
-      const section = scope?.runId === runId ? scope.generatorSection : "opt";
-      const base = typeof window !== "undefined" ? window.location.pathname : "/app/";
-      const search = typeof window !== "undefined" ? window.location.search : "";
-      return `${base}${search}#${buildAgentRunViewHash(runId, section)}`;
-    },
-    [scope],
-  );
-
-  const value = useMemo(
-    () => ({
-      scope,
-      openAgentRunOptimizer: openAgentRunView,
-      hydrateScopeFromRun,
-      clearAgentRunOptimizerScope,
-      agentRunOptimizerPath,
-    }),
-    [scope, openAgentRunView, hydrateScopeFromRun, clearAgentRunOptimizerScope, agentRunOptimizerPath],
-  );
-
-  return (
-    <AgentRunOptimizerScopeContext.Provider value={value}>
-      {children}
-    </AgentRunOptimizerScopeContext.Provider>
-  );
-}
 
 export function useAgentRunOptimizerScope(): AgentRunOptimizerScopeContextValue {
   const ctx = useContext(AgentRunOptimizerScopeContext);

@@ -95,9 +95,15 @@ export type PostCreatorExecutionPayload = {
   saveLocalArchive?: boolean;
   useUpstreamContext?: boolean;
   workflowContextBlock?: string;
+  sendAutomationEmail?: boolean;
+  automationEmailTo?: string;
+  saveToGoogleDrive?: boolean;
 };
 
 export type EntityPageCreatorExecutionPayload = PostCreatorExecutionPayload & {
+  businessName?: string;
+  keyword?: string;
+  targetBucket?: TaskExecutionTargetBucket;
   locationSource?: EntityPageLocationSource;
   gridInputSource?: EntityPageGridInputSource;
   entityAdGroupCount?: number;
@@ -134,6 +140,7 @@ export type TaskExecutionPayload = {
   gscCompareRanges?: GscCompareRanges;
   gscTrailingMonthCount?: number;
   gscReportStructure?: GscReportStructure;
+  adsReportStructure?: import("@/lib/ads-reporting/ads-reporting-types").AdsReportStructure;
   /** Base64 Local Dominator CSV for GSC report Local Insights section. */
   localDominatorCsvBase64?: string;
   /** Screenshot attachments for GSC report Local Insights section. */
@@ -340,7 +347,6 @@ export type TaskExecutionClientRunContract = {
   scheduleStartDay?: number;
   scheduleStartTime?: string;
   scheduleStaggerOptimized?: boolean;
-  useUpstreamContext?: boolean;
   workflowContextBlock?: string;
   resolvedPost?: {
     id: number;

@@ -37,6 +37,7 @@ describe("buildContentSheetRows wordpress", () => {
           clusterId: "family-1",
           label: "Integrated tax planning",
           intent: "merge",
+          confidence: "high",
           rationale: "",
           memberPostIds: ["1", "2", "3"],
         },

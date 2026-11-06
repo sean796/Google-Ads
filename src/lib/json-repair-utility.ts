@@ -82,7 +82,7 @@ export function tryFixMissingArrayCloseBeforeKey(
 ): { fixed: string; applied: boolean } {
   const re = new RegExp(`\\n\\s*},\\s*\\n\\s*\\"${key}\\"\\s*:`, "m");
   if (!re.test(text)) return { fixed: text, applied: false };
-  return { fixed: text.replace(re, `\n  ],\n  \"${key}\":`), applied: true };
+  return { fixed: text.replace(re, `\n  ],\n  "${key}":`), applied: true };
 }
 
 /**
@@ -373,7 +373,7 @@ export type ParseJsonWithRepairResult<T = unknown> = {
   parseError?: string;
 };
 
-export function parseJsonWithRepair<T = any>(
+export function parseJsonWithRepair<T = unknown>(
   text: string,
   options: ParseJsonWithRepairOptions<T> = {},
 ): ParseJsonWithRepairResult<T> {

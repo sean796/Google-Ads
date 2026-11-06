@@ -38,11 +38,11 @@ function parseRunOnFaqByQuestionMark(rawFaq: string): FaqEntry[] {
 
 function hasQaLabels(raw: string): boolean {
   const t = raw ?? "";
-  return /\bQ\s*[:\-]/i.test(t) && /\bA\s*[:\-]/i.test(t);
+  return /\bQ\s*[:-]/i.test(t) && /\bA\s*[:-]/i.test(t);
 }
 
 function stripLeadingQaLabel(text: string): string {
-  let t = (text ?? "").trim();
+  const t = (text ?? "").trim();
   if (t.length < 2) return t;
   const c0 = t.charAt(0).toUpperCase();
   const c1 = t.charAt(1);
@@ -60,13 +60,13 @@ export function parseQaLabeledBlocks(raw: string): FaqEntry[] {
   let work = (raw ?? "").replace(/\s+/g, " ").trim();
   if (!work) return [];
 
-  const firstA = work.search(/\bA\s*[:\-]\s*/i);
-  const firstQ = work.search(/\bQ\s*[:\-]\s*/i);
+  const firstA = work.search(/\bA\s*[:-]\s*/i);
+  const firstQ = work.search(/\bQ\s*[:-]\s*/i);
   if (firstA > 0 && (firstQ === -1 || firstA < firstQ)) {
     work = `Q: ${work}`;
   }
 
-  const re = /\b([QA])\s*[:\-]\s*/gi;
+  const re = /\b([QA])\s*[:-]\s*/gi;
   const indices: { role: "Q" | "A"; contentStart: number; start: number }[] = [];
   let match: RegExpExecArray | null;
   while ((match = re.exec(work)) !== null) {
@@ -117,14 +117,14 @@ function parseQaLabeledLines(raw: string): FaqEntry[] {
   let current: FaqEntry | null = null;
 
   for (const line of lines) {
-    if (/^Q[:\-]/i.test(line)) {
+    if (/^Q[:-]/i.test(line)) {
       if (current?.question.trim()) entries.push(current);
-      current = { question: line.replace(/^Q[:\-]\s*/i, "").trim(), answer: "" };
-    } else if (/^A[:\-]/i.test(line)) {
+      current = { question: line.replace(/^Q[:-]\s*/i, "").trim(), answer: "" };
+    } else if (/^A[:-]/i.test(line)) {
       if (!current) {
-        current = { question: "", answer: line.replace(/^A[:\-]\s*/i, "").trim() };
+        current = { question: "", answer: line.replace(/^A[:-]\s*/i, "").trim() };
       } else {
-        current.answer = line.replace(/^A[:\-]\s*/i, "").trim();
+        current.answer = line.replace(/^A[:-]\s*/i, "").trim();
       }
     } else if (current && current.question && !current.answer) {
       current.question = `${current.question} ${line}`.trim();
@@ -151,8 +151,8 @@ export function faqEntriesHaveBleed(entries: FaqEntry[]): boolean {
     const e = entries[i]!;
     const q = e.question.trim();
     const a = e.answer.trim();
-    if (/\bQ\s*[:\-]/i.test(q) && q.search(/\bQ\s*[:\-]/i) > 0) return true;
-    if (/\bQ\s*[:\-]/i.test(a)) return true;
+    if (/\bQ\s*[:-]/i.test(q) && q.search(/\bQ\s*[:-]/i) > 0) return true;
+    if (/\bQ\s*[:-]/i.test(a)) return true;
     const next = entries[i + 1];
     if (next) {
       const nq = next.question.trim();
@@ -178,7 +178,7 @@ export function repairFaqEntriesFromSchema(entries: FaqEntry[]): FaqEntry[] {
   const repaired = parseQaLabeledBlocks(flat);
   if (repaired.length >= 1) return repaired;
 
-  const withQ = flat.search(/\bQ\s*[:\-]/i) === 0 ? flat : `Q: ${flat}`;
+  const withQ = flat.search(/\bQ\s*[:-]/i) === 0 ? flat : `Q: ${flat}`;
   const again = parseQaLabeledBlocks(withQ);
   return again.length ? again : entries;
 }
@@ -267,7 +267,7 @@ export function parseFaqEntries(rawFaq?: string | null): FaqEntry[] {
 /** Plain FAQ blocks: question line, answer line(s), blank line between pairs. No Q:/A: prefixes. */
 function parsePlainFaqParagraphs(rawFaq: string): FaqEntry[] {
   const trimmed = rawFaq.trim();
-  if (!trimmed || /^Q[:\-]/im.test(trimmed)) return [];
+  if (!trimmed || /^Q[:-]/im.test(trimmed)) return [];
 
   const blocks = trimmed.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
   if (!blocks.length) return [];

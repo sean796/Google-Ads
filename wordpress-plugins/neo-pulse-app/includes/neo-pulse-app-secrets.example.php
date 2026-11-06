@@ -64,6 +64,26 @@ if ( ! defined( 'NEO_PULSE_APP_POST_CREATOR_WORKER_AUTH' ) ) {
 if ( ! defined( 'NEO_PULSE_APP_POST_CREATOR_API_BASE' ) ) {
 	define( 'NEO_PULSE_APP_POST_CREATOR_API_BASE', 'https://neodigital.ca' );
 }
+// Wave 0: OAuth refresh tokens, site credentials, and webhook secrets live
+// in env or constants only. Access tokens are minted at runtime.
+if ( ! defined( 'NEO_PULSE_APP_GMB_OAUTH_REFRESH_TOKEN' ) ) {
+	define( 'NEO_PULSE_APP_GMB_OAUTH_REFRESH_TOKEN', '' );
+}
+if ( ! defined( 'NEO_PULSE_APP_GOOGLE_ADS_OAUTH_REFRESH_TOKEN' ) ) {
+	define( 'NEO_PULSE_APP_GOOGLE_ADS_OAUTH_REFRESH_TOKEN', '' );
+}
+if ( ! defined( 'NEO_PULSE_APP_GOOGLE_MCP_OAUTH_REFRESH_TOKEN' ) ) {
+	define( 'NEO_PULSE_APP_GOOGLE_MCP_OAUTH_REFRESH_TOKEN', '' );
+}
+if ( ! defined( 'NEO_PULSE_APP_SITES_JSON' ) ) {
+	define( 'NEO_PULSE_APP_SITES_JSON', '' );
+}
+if ( ! defined( 'NEO_PULSE_APP_AGENTMAIL_SIGNING_SECRET' ) ) {
+	define( 'NEO_PULSE_APP_AGENTMAIL_SIGNING_SECRET', '' );
+}
+if ( ! defined( 'NEO_PULSE_APP_CHEKKIT_WEBHOOK_TOKEN' ) ) {
+	define( 'NEO_PULSE_APP_CHEKKIT_WEBHOOK_TOKEN', '' );
+}
 if ( ! defined( 'NEO_PULSE_APP_OLLAMA_BASE_URL' ) ) {
 	define( 'NEO_PULSE_APP_OLLAMA_BASE_URL', 'https://flowbie-prod-ollama.onrender.com' );
 }

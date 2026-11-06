@@ -1,7 +1,7 @@
 import type { WordPressSite } from "@/components/integrations/types";
 import { wordpressSiteDisplayName } from "@/lib/wordpress-site-display-name";
 import { buildLocationSummary } from "@/lib/pulse-assist/app-module-catalog";
-import { forgeContextFromHash } from "@/lib/pulse-assist/navigation";
+import { forgeContextFromPath } from "@/lib/pulse-assist/navigation";
 import {
   getMergedBulkInventorySessionSnapshot,
 } from "@/lib/wordpress-bulk-inventory-session-cache";
@@ -147,9 +147,9 @@ export function buildPropertiesContext(
 }
 
 export function buildPulseContext(
-  input: Omit<PulseAssistContextInput, "message" | "history" | "submode" | "targetScope">,
+  input: Omit<PulseAssistContextInput, "message" | "history" | "submode" | "targetScope" | "pageContentMode">,
 ): PulseContextPayload {
-  const forge = input.managerTab === "pulse-forge" ? forgeContextFromHash() : {};
+  const forge = input.managerTab === "pulse-forge" ? forgeContextFromPath() : {};
   const locationSummary = buildLocationSummary({
     managerTab: input.managerTab,
     dashboardCluster: input.dashboardCluster,

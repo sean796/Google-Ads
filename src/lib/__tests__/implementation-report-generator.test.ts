@@ -5,7 +5,7 @@ import {
   generateImplementationReport,
   parseImplementationReportReasoning,
 } from "@/lib/implementation-report-generator";
-import { linkPipelineSectionToGeneratedFile } from "@/components/shared/bulk-details-tile-sections";
+import { linkPipelineSectionToGeneratedFile } from "@/components/shared/bulk-details-tile-sections-helpers";
 
 const mockCallAgentCategory = vi.fn();
 

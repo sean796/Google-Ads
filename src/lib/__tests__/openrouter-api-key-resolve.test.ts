@@ -1,8 +1,8 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { loadApiKey, saveApiKey } from "@/lib/api";
 import {
+  getOpenRouterApiKeyForApp,
   resolveOpenRouterApiKeyForHarness,
-  resolveOpenRouterApiKeyFromSettingsPlugin,
 } from "@/lib/openrouter-api-key-resolve";
 
 vi.mock("@/lib/api", () => ({
@@ -10,7 +10,7 @@ vi.mock("@/lib/api", () => ({
   saveApiKey: vi.fn(),
 }));
 
-describe("resolveOpenRouterApiKeyForHarness", () => {
+describe("openrouter-api-key-resolve (Wave 0 keyless)", () => {
   beforeEach(() => {
     vi.mocked(loadApiKey).mockReturnValue("");
     vi.stubGlobal("fetch", vi.fn());
@@ -21,48 +21,17 @@ describe("resolveOpenRouterApiKeyForHarness", () => {
     vi.restoreAllMocks();
   });
 
-  it("uses the Settings plugin key and ignores Dashboard localStorage", async () => {
-    vi.mocked(loadApiKey).mockReturnValue("client-key");
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      json: async () => ({ ok: true, key: "plugin-key" }),
-    } as Response);
-    await expect(resolveOpenRouterApiKeyFromSettingsPlugin()).resolves.toBe("plugin-key");
-    expect(saveApiKey).not.toHaveBeenCalled();
-  });
-
-  it("throws when the Settings plugin key is empty", async () => {
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      json: async () => ({ ok: true, key: "" }),
-    } as Response);
-    await expect(resolveOpenRouterApiKeyFromSettingsPlugin()).rejects.toThrow(
-      "Add an OpenRouter API key in Settings.",
-    );
-  });
-
-  it("returns the client key when localStorage has one", async () => {
+  it("returns the local key when one is saved", async () => {
     vi.mocked(loadApiKey).mockReturnValue("client-key");
     await expect(resolveOpenRouterApiKeyForHarness()).resolves.toBe("client-key");
+    expect(getOpenRouterApiKeyForApp()).toBe("client-key");
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("uses the Settings server key when local is empty", async () => {
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      json: async () => ({ ok: true, key: "server-key" }),
-    } as Response);
-    await expect(resolveOpenRouterApiKeyForHarness()).resolves.toBe("server-key");
-    expect(saveApiKey).toHaveBeenCalledWith("server-key");
-  });
-
-  it("throws when neither client nor server key is available", async () => {
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      json: async () => ({ ok: true, key: "" }),
-    } as Response);
-    await expect(resolveOpenRouterApiKeyForHarness()).rejects.toThrow(
-      "Add an OpenRouter API key in Settings.",
-    );
+  it("returns empty string and never fetches or saves when no local key exists", async () => {
+    await expect(resolveOpenRouterApiKeyForHarness()).resolves.toBe("");
+    expect(getOpenRouterApiKeyForApp()).toBe("");
+    expect(fetch).not.toHaveBeenCalled();
+    expect(saveApiKey).not.toHaveBeenCalled();
   });
 });

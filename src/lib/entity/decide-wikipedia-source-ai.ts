@@ -97,7 +97,9 @@ No examples, no explanations, only the JSON.`,
           return { type, title };
         }
       }
-    } catch {}
+    } catch {
+      // Unparseable title fragment: fall through to the pattern match below.
+    }
     
     // Extract from patterns like "Category:Neighbourhoods_in_Edmonton" or "Neighbourhoods_in_Edmonton"
     const categoryMatch = raw.match(/(?:Category:)?([A-Z][a-zA-Z_]+(?:_in_[A-Z][a-zA-Z_]+)+)/i);
@@ -236,7 +238,9 @@ RULES:
           return { type, title };
         }
       }
-    } catch {}
+    } catch {
+      // Unparseable title fragment: fall through to the pattern match below.
+    }
     const categoryMatch = raw.match(/(?:Category:)?([A-Za-z][a-zA-Z0-9_]+(?:_in_[A-Za-z][a-zA-Z0-9_]+)+)/);
     if (categoryMatch?.[1]) {
       const title = categoryMatch[1].trim();

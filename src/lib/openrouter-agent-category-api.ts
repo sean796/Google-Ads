@@ -1,4 +1,5 @@
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
+import { GEMINI_FLASH_MODEL } from "@/lib/global-agent-models";
 import {
   appendMasterInstructionsToSystemPrompt,
   ensureMasterInstructionsInMemory,
@@ -71,7 +72,7 @@ export function resolveModelForAgentCategory(
       const vidModel = getVideoModel(siteId);
       // Video generation models cannot be used with /chat/completions; fallback to Gemini multimodal.
       if (isNonChatVideoGenerationModel(vidModel)) {
-        return "google/gemini-2.5-flash";
+        return GEMINI_FLASH_MODEL;
       }
       return vidModel;
     }

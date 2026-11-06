@@ -10,7 +10,7 @@ export function syncPpcCampaignRowsToCount(
   targetCount: number,
   adGroupCount: number,
 ): PpcCampaignRow[] {
-  let next = [...rows];
+  const next = [...rows];
 
   while (next.length < targetCount) {
     next.push(createIdlePpcCampaignRow(adGroupCount));

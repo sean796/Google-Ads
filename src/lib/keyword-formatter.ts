@@ -318,7 +318,7 @@ export function formatKeywords(keywords: string[]): string[] {
 /**
  * Formats keyword data objects, preserving the structure
  */
-export function formatKeywordData(keywordData: { keyword: string; [key: string]: any }): { keyword: string; [key: string]: any } {
+export function formatKeywordData<T extends { keyword: string }>(keywordData: T): T {
   return {
     ...keywordData,
     keyword: formatKeyword(keywordData.keyword),
@@ -328,7 +328,7 @@ export function formatKeywordData(keywordData: { keyword: string; [key: string]:
 /**
  * Formats an array of keyword data objects
  */
-export function formatKeywordDataArray(keywordDataArray: Array<{ keyword: string; [key: string]: any }>): Array<{ keyword: string; [key: string]: any }> {
+export function formatKeywordDataArray<T extends { keyword: string }>(keywordDataArray: T[]): T[] {
   return keywordDataArray.map(formatKeywordData);
 }
 

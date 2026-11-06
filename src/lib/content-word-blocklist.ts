@@ -2,11 +2,10 @@
  * Global forbidden-word blocklist.
  * OpenRouter system prompts: prepended once via appendUniversalContentRulesToSystemPrompt.
  * Saved artifacts: checklist header + blueprint forbiddenWordsPolicy once (never per-agent features).
- * Upload: scrubForbiddenWordsFromHtml before WordPress publish.
+ * Finished copy is never rewritten: assertNoForbiddenWordViolations stops the run with a visible error.
  */
 
 import { isFaqStyleHeadingTitle } from "@/lib/content-generation/faq-heading-policy";
-import { removeEmDashes } from "@/lib/content-generation/sanitizer/typography-rules";
 import { stripIllustrativeMarkersFromChecklistItem } from "@/lib/content-optimization/illustrative-h2";
 import { isLlmAuditAuthorityDumpChecklistItem } from "@/lib/content-optimization/harness-heading-titles";
 
@@ -212,7 +211,7 @@ const FORBIDDEN_HEADING_PREFIX_RE =
 
 /** Strips banned understand/navigate phrasing from H2/H3/agent titles. */
 export function sanitizeForbiddenHeadingTitle(title: string): string {
-  let t = title.trim();
+  const t = title.trim();
   if (!t) return title;
   if (/^overview$/i.test(t)) return t;
   if (isFaqStyleHeadingTitle(t)) return "";
@@ -407,20 +406,10 @@ export function listForbiddenWordViolations(
       `understand-forms exceed article limit (${prior + understandInSection} > ${UNDERSTAND_FORMS_ARTICLE_MAX})`,
     );
   }
+  if (/[\u2014\u2013]|&mdash;|&ndash;/i.test(html)) {
+    violations.push("em dash or en dash punctuation");
+  }
   return violations;
-}
-
-function stripForbiddenWordsFromText(text: string): string {
-  let out = text;
-  for (const phrase of GLOBAL_FORBIDDEN_PHRASES) {
-    const re = new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
-    out = out.replace(re, "");
-  }
-  for (const word of GLOBAL_FORBIDDEN_WORDS) {
-    const re = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi");
-    out = out.replace(re, "");
-  }
-  return out.replace(/\s{2,}/g, " ").replace(/\s+([.,;:])/g, "$1").trim();
 }
 
 function headingHasForbiddenWords(inner: string): boolean {
@@ -440,37 +429,18 @@ export function sectionHtmlHasForbiddenWords(
   return listForbiddenWordViolations(html, { priorUnderstandCount }).length > 0;
 }
 
-/** Deterministic scrub after LLM output: em/en dashes, then banned words/phrases. */
-export function scrubOverviewContentOutput(html: string): string {
-  if (!html.trim()) return html;
-  return scrubForbiddenWordsFromHtml(removeEmDashes(html));
-}
-
-/** Deterministic scrub of banned words/phrases before WordPress upload. */
-export function scrubForbiddenWordsFromHtml(html: string): string {
-  if (!html.trim()) return html;
-  let out = removeEmDashes(html);
-  out = out.replace(HEADING_TAG_RE, (_full, tag: string, attrs: string, inner: string) => {
-    const plain = inner.replace(/<[^>]+>/g, "").trim();
-    let fixed = sanitizeForbiddenHeadingTitle(plain);
-    fixed = stripForbiddenWordsFromText(fixed);
-    return `<${tag}${attrs}>${fixed}</${tag}>`;
-  });
-  for (const phrase of GLOBAL_FORBIDDEN_PHRASES) {
-    const re = new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
-    out = out.replace(re, "");
-  }
-  for (const word of GLOBAL_FORBIDDEN_WORDS) {
-    const re = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi");
-    out = out.replace(re, "");
-  }
-  let understandCount = 0;
-  out = out.replace(UNDERSTAND_FORMS_RE, (match) => {
-    understandCount += 1;
-    if (understandCount <= UNDERSTAND_FORMS_ARTICLE_MAX) return match;
-    return "";
-  });
-  return out.replace(/\s{2,}/g, " ").replace(/\s+([.,;:])/g, "$1");
+/**
+ * Validate-and-reject gate for finished copy. Throws a visible error listing the
+ * violations; callers must not catch-and-continue with rewritten or partial copy.
+ */
+export function assertNoForbiddenWordViolations(html: string, context = "Content"): void {
+  const violations = listForbiddenWordViolations(html);
+  if (violations.length === 0) return;
+  const shown = violations.slice(0, 6).join("; ");
+  const extra = violations.length > 6 ? ` (+${violations.length - 6} more)` : "";
+  throw new Error(
+    `${context} failed the word blocklist check: ${shown}${extra}. Regenerate without the banned words; finished copy is not rewritten automatically.`,
+  );
 }
 
 /** Alias: sanitize checklist lines only. */

@@ -1,16 +1,11 @@
 import React, { useEffect, useRef } from "react";
 import { Mic, MicOff, PhoneOff, Video, VideoOff } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+
 import { NeoPulseAvatar } from "@/components/chat/NeoPulseAvatar";
 import { ChatVideoTile } from "@/components/chat/calls/ChatVideoTile";
 import type { ChatCallPhase, ChatCallTranscriptLine } from "@/lib/chat-call-types";
 import { NEO_PULSE_BOT_DISPLAY_NAME } from "@/lib/chat-neo-pulse";
-import { Button } from "@/ui";
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "@/ui";
 
 export type ChatCallModalProps = {
   open: boolean;

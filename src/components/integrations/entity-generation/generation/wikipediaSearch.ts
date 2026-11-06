@@ -197,7 +197,7 @@ You MUST return a valid page title. Return ONLY the exact Wikipedia page title t
     selectionResponse.toLowerCase().includes(phrase)
   );
   
-  let titleMatch = selectionResponse.match(/"([^"]+)"/) || 
+  const titleMatch = selectionResponse.match(/"([^"]+)"/) || 
                   selectionResponse.match(/^([^\n]+)/) ||
                   selectionResponse.match(/List of [^\n]+/i);
   

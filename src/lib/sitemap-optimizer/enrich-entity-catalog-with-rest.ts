@@ -36,7 +36,7 @@ export function attachRestFieldsToEntitySitemapRows<T extends SitePostInventoryR
   }
 
   return sitemapUrls.map((url) => {
-    const stub = {
+    const stubRow: SiteInventoryBulkRow = {
       url,
       slug: urlPathTail(url),
       collection,
@@ -48,7 +48,8 @@ export function attachRestFieldsToEntitySitemapRows<T extends SitePostInventoryR
         excerpt: "",
       },
       date_gmt: "",
-    } as T;
+    };
+    const stub = stubRow as SitePostInventoryRow as T;
     const hit = byUrl.get(normalizeMatch(siteUrl, url));
     if (!hit) return stub;
     return {
@@ -124,7 +125,7 @@ export async function fetchEnrichedEntityOptimizerCatalog(
   | { ok: false; error: string }
 > {
   const catalog = await fetchEntityCatalogFromSitemap(site, collection);
-  if (!catalog.ok) return catalog;
+  if (catalog.ok === false) return catalog;
   const rows = await enrichEntityOptimizerCatalogWithRest(site, collection, catalog.rows);
   return { ok: true, rows, source: "sitemap" };
 }

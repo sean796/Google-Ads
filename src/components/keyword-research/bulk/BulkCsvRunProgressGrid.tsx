@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, Download } from "lucide-react";
 import { ImageThumbnail } from "@/components/OutputManager/ImageThumbnail";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
 import { BlogIdeaRowCompact } from "@/components/keyword-research/bulk/BlogIdeaRowCompact";
 import { BULK_CSV_ROW_ACTIVE_CLASS } from "@/components/keyword-research/bulk/BulkCsvRunRowCompact";
 import {
@@ -20,7 +20,7 @@ import { resolveRowSitemapType } from "@/lib/bulk/bulk-sitemap-mode";
 import { getStatusIcon, isImageWithPreview } from "@/components/keyword-research/bulk/bulk-utils";
 import { publishedLinkFromRowFiles } from "@/lib/sitemap-optimizer/sitemap-merge-bulk-state";
 import { cn } from "@/lib/utils";
-import { Button, SelectField } from "@/ui";
+import { Button, SelectField, Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui";
 
 export type BulkCsvRunProgressGridProps = {
   displayRows: CSVRow[];

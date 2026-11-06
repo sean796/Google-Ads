@@ -112,12 +112,13 @@ export const EntityDistanceDiscoverySection: React.FC<EntityDistanceDiscoverySec
 
   useEffect(() => {
     const ps = discovery?.primarySuggestion?.trim();
-    if (!ps || !pendingEntitySite) {
+    const siteId = pendingEntitySite?.id;
+    if (!ps || !siteId) {
       setPrimaryKey(null);
       return;
     }
     let cancelled = false;
-    normalizeStreetLocationKey(ps, pendingEntitySite.id).then((k) => {
+    normalizeStreetLocationKey(ps, siteId).then((k) => {
       if (!cancelled) setPrimaryKey(k);
     });
     return () => {
@@ -162,7 +163,7 @@ export const EntityDistanceDiscoverySection: React.FC<EntityDistanceDiscoverySec
       .then(async (disc) => {
         if (cancelled) return;
         setDiscovery(disc);
-        const nap = getPrimaryLocationLabel(pendingEntitySite);
+        const nap = napLabel;
         const jsonLdFirst = disc.primarySuggestion;
         const first = jsonLdFirst || nap;
         if (first) {
@@ -220,6 +221,7 @@ export const EntityDistanceDiscoverySection: React.FC<EntityDistanceDiscoverySec
     pendingEntitySite?.napInfo,
     pendingEntitySitemap,
     setDistanceOriginLabel,
+    napLabel,
   ]);
 
   useEffect(() => {

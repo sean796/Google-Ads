@@ -12,7 +12,24 @@ class Neo_Pulse_App_Google_Mcp_Tokens {
 	/**
 	 * @return array{access_token:string,refresh_token?:string,expiry_date?:int,email?:string}|null
 	 */
+	private static function env_refresh_token(): string {
+		if ( defined( 'NEO_PULSE_APP_GOOGLE_MCP_OAUTH_REFRESH_TOKEN' ) && NEO_PULSE_APP_GOOGLE_MCP_OAUTH_REFRESH_TOKEN !== '' ) {
+			return trim( (string) NEO_PULSE_APP_GOOGLE_MCP_OAUTH_REFRESH_TOKEN );
+		}
+		$env = getenv( 'NEO_PULSE_APP_GOOGLE_MCP_OAUTH_REFRESH_TOKEN' );
+		return is_string( $env ) ? trim( $env ) : '';
+	}
+
 	public static function get_tokens(): ?array {
+		$env_refresh = self::env_refresh_token();
+		if ( $env_refresh !== '' ) {
+			$cached = get_transient( 'neo_pulse_app_mcp_access' );
+			return array(
+				'access_token'  => is_string( $cached ) ? $cached : '',
+				'refresh_token' => $env_refresh,
+				'expiry_date'   => is_string( $cached ) && $cached !== '' ? (int) round( microtime( true ) * 1000 ) + 3600000 : 1,
+			);
+		}
 		$data = Neo_Pulse_App_Json_File_Store::read( Neo_Pulse_App_Data_Paths::google_mcp_tokens_path() );
 		if ( ! is_array( $data ) ) {
 			return null;
@@ -44,6 +61,12 @@ class Neo_Pulse_App_Google_Mcp_Tokens {
 		}
 		if ( is_array( $existing ) && ! empty( $existing['email'] ) ) {
 			$store['email'] = (string) $existing['email'];
+		}
+		if ( self::env_refresh_token() !== '' ) {
+			if ( $store['access_token'] !== '' ) {
+				set_transient( 'neo_pulse_app_mcp_access', $store['access_token'], 3000 );
+			}
+			return;
 		}
 		Neo_Pulse_App_Json_File_Store::write( Neo_Pulse_App_Data_Paths::google_mcp_tokens_path(), $store );
 	}

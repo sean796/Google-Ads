@@ -31,6 +31,7 @@ export async function fetchOrganicDashboardPerformancePack(args: {
   sitePublicUrl: string;
   showCompare: boolean;
   siteSemrushProjectDashboardUrl?: string;
+  googleAdsCustomerIdForReporting?: string;
   signal?: AbortSignal;
   queryClient?: QueryClient;
 }): Promise<OrganicDashboardPerformancePack> {
@@ -45,7 +46,7 @@ export async function fetchOrganicDashboardPerformancePack(args: {
   const viewModel = buildOrganicDashboardViewModel(bundle, {
     showCompare: args.showCompare,
     siteSemrushProjectDashboardUrl: args.siteSemrushProjectDashboardUrl,
-    googleAdsCustomerIdForReporting: resolveGoogleAdsCustomerIdForReporting(args.site),
+    googleAdsCustomerIdForReporting: args.googleAdsCustomerIdForReporting,
   });
   const snapshot = buildOrganicReportingHighlightsSnapshot(
     viewModel,
@@ -77,6 +78,7 @@ export async function fetchOrganicDashboardPerformancePackForSite(args: {
     sitePublicUrl: args.sitePublicUrl,
     showCompare: args.showCompare,
     siteSemrushProjectDashboardUrl: args.siteSemrushProjectDashboardUrl,
+    googleAdsCustomerIdForReporting: resolveGoogleAdsCustomerIdForReporting(args.site),
     signal: args.signal,
   });
 }

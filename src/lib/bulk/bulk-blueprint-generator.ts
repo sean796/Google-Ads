@@ -1,10 +1,10 @@
-import type { KeywordAIAnalysis } from '../keyword-types';
+import type { KeywordAIAnalysis, KeywordData } from '../keyword-types';
 import { filterOutFaqStyleHeadingTitles } from '../content-generation/faq-heading-policy';
 
 /**
  * Helper functions for auto-selection (extracted from KeywordResearchTab logic)
  */
-export function autoSelectKeywords(aiAnalysis: KeywordAIAnalysis, keywordsWithVolumeData: any[]): string[] {
+export function autoSelectKeywords(aiAnalysis: KeywordAIAnalysis, keywordsWithVolumeData: KeywordData[]): string[] {
   const selected: string[] = [];
   
   // Select primary keyword

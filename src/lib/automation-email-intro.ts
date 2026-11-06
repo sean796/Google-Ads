@@ -150,7 +150,10 @@ function maxTokensForKind(executionKind: TaskExecutionKind): number {
   return executionKind === "gsc_reporting" ? 2_000 : 900;
 }
 
-export const automationEmailIntroAgent = createPulseAgent({
+export const automationEmailIntroAgent = createPulseAgent<
+  z.infer<typeof AutomationEmailIntroInputSchema>,
+  AutomationEmailIntroResult
+>({
   id: "reporting.automation.email-intro",
   label: "Automation Email Intro & Meeting Notes Agent",
   category: "report",
@@ -159,7 +162,9 @@ export const automationEmailIntroAgent = createPulseAgent({
   temperature: 0.4,
   responseFormat: { type: "json_object" },
   inputSchema: AutomationEmailIntroInputSchema,
-  outputSchema: AutomationEmailIntroOutputSchema,
+  // zod's static output widens to all-optional under this repo's non-strict tsconfig; the schema still validates at runtime via parse().
+  outputSchema:
+    AutomationEmailIntroOutputSchema as z.ZodType<AutomationEmailIntroResult, z.ZodTypeDef, unknown>,
   buildSystemPrompt: (input) => buildIntroSystemPrompt(input.executionKind as TaskExecutionKind),
   buildUserPrompt: (input) => {
     const executionKind = input.executionKind as TaskExecutionKind;

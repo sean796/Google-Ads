@@ -113,8 +113,10 @@ export function useChatPoll({ teamId, activeChannelId, enabled }: UseChatPollOpt
     backgroundSeededRef.current.delete(activeChannelId);
   }, [activeChannelId]);
 
-  const messages =
-    activeChannelId != null ? (messagesByChannel[activeChannelId] ?? []) : [];
+  const messages = useMemo(
+    () => (activeChannelId != null ? (messagesByChannel[activeChannelId] ?? []) : []),
+    [activeChannelId, messagesByChannel],
+  );
 
   const notificationMessages = useMemo(() => {
     const merged = [...messages];
@@ -256,7 +258,7 @@ export function useChatPoll({ teamId, activeChannelId, enabled }: UseChatPollOpt
         // silent
       }
     }
-  }, [teamId, activeChannelId, channels, setChannelMessages, debouncedRefreshChannels]);
+  }, [teamId, activeChannelId, channels, debouncedRefreshChannels]);
 
   useEffect(() => {
     if (!enabled || !teamId) return;

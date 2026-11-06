@@ -10,6 +10,7 @@ import {
   typeHintFromCachedPost,
   type BulkOptimizerInventorySnapshot,
 } from "@/lib/wordpress-api/inventory-match";
+import type { LinkPoolPostRow } from "./bulk-optimization-do-prefetch";
 
 const BATCH_CHUNK = WORDPRESS_BULK_READ_CHUNK;
 
@@ -34,7 +35,7 @@ function extractSlugFromTargetUrl(siteUrl: string, targetUrl: string): string {
 export interface BulkPrefetchPostBatchArgs {
   site: WordPressSite;
   urls: string[];
-  wordPressPostsForRun: any[];
+  wordPressPostsForRun: LinkPoolPostRow[];
   bulkInventorySnapshot: BulkOptimizerInventorySnapshot | null;
   prefetchedPostPayloadByUrlIndex: Map<number, WpPostSnapshotFromAcfByUrl>;
   indexRange?: { start: number; end: number };
@@ -69,7 +70,7 @@ export async function prefetchBulkPostBodiesForUrls(
 
     const targetNorm = normalizeMatch(site.siteUrl, targetUrl);
     const cachedPost = wordPressPostsForRun.find(
-      (p: any) => p?.link && normalizeMatch(site.siteUrl, p.link) === targetNorm,
+      (p) => p?.link && normalizeMatch(site.siteUrl, p.link) === targetNorm,
     );
     const typeHint = typeHintFromCachedPost(cachedPost);
     const invHit = bulkInventorySnapshot

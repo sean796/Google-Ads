@@ -1,12 +1,10 @@
 import type { Dispatch, SetStateAction } from "react";
+import { harnessStepProgress, mergeOverviewHarnessProgress, mergeOverviewHarnessProgressSiteAndBatch } from "@/lib/overview/overview-harness-progress";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
-import {
-  mergeHarnessProgressSiteAndBatch,
-  setOptimizingState,
-} from "@/hooks/content-optimization/optimization-helpers-a";
-import { mergeOptimizationProgress } from "@/hooks/content-optimization/optimization-helpers";
+import { setOptimizingState } from "@/hooks/content-optimization/optimization-helpers-a";
+
 import { initOverviewBulkHarnessPagination, setOverviewBulkHarnessPageState } from "@/lib/overview/overview-bulk-page-state";
 import { mapOverviewAiCopyWithConcurrency } from "@/lib/overview/overview-ai-copy-concurrency";
 import { overviewBulkPageRanges } from "@/lib/overview/overview-bulk-page-size";
@@ -61,7 +59,7 @@ export type WikipediaLinkRowPatch = {
 };
 
 export type WikipediaLinkRowOutcome =
-  | { kind: "ok"; patch: WikipediaLinkRowPatch; markdown: string }
+  | { kind: "ok"; patch: WikipediaLinkRowPatch; summary: string; markdown: string }
   | { kind: "skipped"; summary: string; markdown: string };
 
 export function buildWikipediaLinkStubCatalog(
@@ -202,7 +200,7 @@ function setWikiHarnessMessage(
   const pct = progress ?? 5;
   setters.setOptimizationProgress((prev) => {
     const next = { ...(prev as Record<string, unknown>) };
-    mergeHarnessProgressSiteAndBatch(next, setters.siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(next, setters.siteId, {
       step: "Wikipedia link",
       progress: pct,
       message: "Wikipedia link",
@@ -216,12 +214,11 @@ function setWikiHarnessMessage(
       ...prev,
       [setters.batchKey]: {
         ...current,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "Wikipedia link",
           progress: pct,
           message: "Wikipedia link",
-        },
+        }),
       },
     };
   });
@@ -246,12 +243,9 @@ export function initOverviewWikipediaLinkHarnessBatchState(params: {
 
   const batchKey = `${site.id}-batch`;
   const urls = catalog.map((c) => c.url.trim()).filter(Boolean);
-  for (const url of urls) {
-  }
-
   setOptimizingState(setIsOptimizingContent, batchKey, true);
   setOptimizationProgress((prev) =>
-    mergeOptimizationProgress(prev as Record<string, unknown>, site.id, {
+    mergeOverviewHarnessProgress(prev as Record<string, unknown>, site.id, {
       step: "Wikipedia link",
       progress: 2,
       message: prepMessage,
@@ -271,13 +265,13 @@ export function initOverviewWikipediaLinkHarnessBatchState(params: {
       runKind: "aiWikipediaLink",
       urlHarnessSections: {},
       urlGeneratedFiles: {},
-      currentStepProgress: {
+      currentStepProgress: harnessStepProgress(undefined, {
         step: "Wikipedia link",
         progress: 2,
         message: prepMessage,
         harnessSections: [],
         harnessPlannedSectionCount: 1,
-      },
+      }),
     },
   }));
   initOverviewBulkHarnessPagination(batchKey, urls.length, setBulkOptimizationState);
@@ -294,7 +288,7 @@ export function finalizeOverviewWikipediaLinkHarnessBatch(
   setOptimizationProgress((prev) => {
     const next = { ...(prev as Record<string, unknown>) };
     delete next[batchKey];
-    mergeHarnessProgressSiteAndBatch(next, siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(next, siteId, {
       step: "Complete",
       progress: 100,
       message: "Wikipedia link batch finished",
@@ -465,6 +459,7 @@ export async function runWikipediaLinkForCatalogRow(params: {
 
   return {
     kind: "ok",
+    summary,
     markdown,
     patch: {
       postContentOptimized: applied.html,

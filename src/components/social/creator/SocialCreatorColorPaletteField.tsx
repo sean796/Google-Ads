@@ -21,42 +21,16 @@ export type SocialCreatorColorPaletteFieldProps = {
   onResetToWorkspace?: () => void;
 };
 
-export type MetaAdsColorColumnMode =
-  | "heading"
-  | "background"
-  | "accent"
-  | "primary"
-  | "reset"
-  | "empty";
+import {
+  patchMetaColorPalette,
+  type MetaAdsColorColumnMode,
+} from "@/components/social/creator/social-visual-color-palette";
 
 const COLOR_LABELS: Record<"background" | "accent" | "primary", string> = {
   background: "Background",
   accent: "Accent",
   primary: "Primary text",
 };
-
-export function metaVisualColorColumnMode(dataRowIndex: number): MetaAdsColorColumnMode {
-  if (dataRowIndex === 0) return "background";
-  if (dataRowIndex === 1) return "accent";
-  if (dataRowIndex === 2) return "primary";
-  if (dataRowIndex === 4) return "reset";
-  return "empty";
-}
-
-export function patchMetaColorPalette(
-  current: MetaAdColorPalette | undefined,
-  key: keyof MetaAdColorPalette,
-  color: string,
-): MetaAdColorPalette | undefined {
-  const next: MetaAdColorPalette = { ...current };
-  if (color.trim()) {
-    next[key] = color;
-  } else {
-    delete next[key];
-  }
-  if (!next.background && !next.accent && !next.primary) return undefined;
-  return next;
-}
 
 export function MetaAdsColorColumnCell({
   mode,

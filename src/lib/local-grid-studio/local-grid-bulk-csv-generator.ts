@@ -1,4 +1,5 @@
 import type { WordPressSite } from "@/components/integrations/types";
+import { appNavigate } from "@/lib/app-navigation";
 import { writeStoredBlogGeneratorSection } from "@/components/blog-generator/blog-generator-sections";
 import { runCompetitorGenerator } from "@/components/competitor-generation/generation/competitorGenerator";
 import { notify } from "@/lib/app-notifications";
@@ -76,7 +77,7 @@ export async function generateLocationsWikiRowsFromGrid(options: {
   }
 
   const processed = await processParsedLocalDominatorRows(parsed.rows);
-  if (!processed.ok) {
+  if (processed.ok === false) {
     throw new Error(processed.error);
   }
 
@@ -277,10 +278,8 @@ export async function generateBulkTemplateCsvFromLocalGrid(options: {
     throw new Error("Run a grid scan on the map first before generating bulk template CSVs.");
   }
 
+  // Wave 0: keyless. The server resolves its own key and fails visibly if unset.
   const apiKey = (await resolveOpenRouterApiKeyForHarness()).trim();
-  if (!apiKey) {
-    throw new Error("OpenRouter API key is required. Configure it in Dashboard -> API Keys.");
-  }
 
   const gridCsvText = serializeLocalGridScanToCsv(scan);
   const allRows: CSVRow[] = [];
@@ -334,6 +333,6 @@ export function openGeneratedCsvInBulkWorkspace(csvContent: string): void {
         detail: { csv: csvContent },
       }),
     );
-    window.location.hash = "generator/bulk-prompt";
+    appNavigate("/generator/bulk-prompt");
   }
 }

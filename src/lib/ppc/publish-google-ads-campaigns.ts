@@ -1,4 +1,5 @@
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import type { PpcCampaignRow } from "@/lib/ppc/google-ads-types";
 import { resolvePpcRowCampaignName } from "@/lib/ppc/google-ads-types";
 import {
@@ -25,7 +26,7 @@ export async function postGoogleAdsPublishCampaign(
   const res = await fetch(backendApiUrl("/google-ads/publish-campaign"), {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
   });
   const data = (await res.json().catch(() => ({}))) as {
@@ -44,7 +45,7 @@ export async function postGoogleAdsSyncCampaign(body: GoogleAdsSyncCampaignBody)
   const res = await fetch(backendApiUrl("/google-ads/sync-campaign"), {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
   });
   const data = (await res.json().catch(() => ({}))) as {

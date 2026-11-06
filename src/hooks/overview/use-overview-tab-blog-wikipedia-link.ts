@@ -23,6 +23,7 @@ import { cacheRowHtmlByIndex } from "@/lib/overview/overview-harness-page-catalo
 import type { OverviewInventoryUrlMatch } from "@/lib/overview/overview-row-scrape";
 import type { AiseoAfterRowWriteFn } from "@/lib/overview/overview-aiseo-after-upload";
 import { createAiseoCacheWriteAccumulator } from "@/lib/overview/overview-aiseo-cache-write";
+import { harnessStepProgress } from "@/lib/overview/overview-harness-progress";
 
 function fetchRowHtmlByIndex(
   site: WordPressSite,
@@ -125,7 +126,7 @@ export function useOverviewTabBlogWikipediaLink(args: Args) {
         };
       });
     },
-    [opt.setBulkOptimizationState],
+    [opt],
   );
 
   const runSingleWikipediaLinkRow = useCallback(
@@ -162,7 +163,7 @@ export function useOverviewTabBlogWikipediaLink(args: Args) {
           site,
           [index],
           localRows,
-          mergedBindings,
+          sitemapSource,
           getInventoryMatchForUrl,
         );
         if (rowHtmlByIndex[index]) {
@@ -250,11 +251,11 @@ export function useOverviewTabBlogWikipediaLink(args: Args) {
             runKind: "aiWikipediaLink",
             urlHarnessSections: {},
             urlGeneratedFiles: {},
-            currentStepProgress: {
+            currentStepProgress: harnessStepProgress(undefined, {
               step: "Wikipedia link",
               progress: 0,
               message: "No rows in scope",
-            },
+            }),
           },
         }));
         return;
@@ -302,7 +303,7 @@ export function useOverviewTabBlogWikipediaLink(args: Args) {
 
         const batchState = opt.bulkOptimizationState[batchKey];
         const urlEntities = batchState?.urlEntities;
-        const cacheWrite = createAiseoCacheWriteAccumulator();
+        const cacheWrite = createAiseoCacheWriteAccumulator(site);
 
         await runOverviewWikipediaLinkHarnessBatch({
           catalog,
@@ -335,13 +336,8 @@ export function useOverviewTabBlogWikipediaLink(args: Args) {
       apiKey,
       updateRow,
       makeHarnessSetters,
-      opt.setBulkOptimizationState,
-      opt.setOptimizationProgress,
-      opt.setIsOptimizingContent,
-      opt.bulkOptimizationState,
-      prefetchOverviewInventory,
-      mergeInventoryContentForSource,
-      markBatchUrlsError,
+      opt,
+      uploadAfterRowWrite,
     ],
   );
 

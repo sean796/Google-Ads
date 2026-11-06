@@ -165,7 +165,7 @@ function normalizeUrlForDedupe(url: string): string {
 export function deduplicateInternalLinksInMarkdown(content: string): string {
   if (!content) return content;
   const seen = new Set<string>();
-  const markdownLinkPattern = /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g;
+  const markdownLinkPattern = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
   return content.replace(markdownLinkPattern, (match, text: string, url: string) => {
     const key = normalizeUrlForDedupe(url);
     if (seen.has(key)) return text;
@@ -188,7 +188,7 @@ export function deduplicateInternalLinksInHtml(content: string): string {
     seen.add(key);
     return match;
   });
-  out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, (match, text: string, url: string) => {
+  out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, (match, text: string, url: string) => {
     const key = normalizeUrlForDedupe(url);
     if (seen.has(key)) return text;
     seen.add(key);
@@ -268,7 +268,9 @@ export function removeInvalidInternalLinks(content: string, wordPressPosts?: Arr
       validInternalLinks.add(`${u.protocol}//${hostNoWww}${pathWithSlash}`);
       validInternalLinks.add(`${u.protocol}//www.${hostNoWww}${pathPart}`);
       validInternalLinks.add(`${u.protocol}//www.${hostNoWww}${pathWithSlash}`);
-    } catch {}
+    } catch {
+      // Malformed post URL: skip its variants.
+    }
   };
   wordPressPosts.forEach(post => {
     if (post.link?.trim()) addUrlVariants(post.link);
@@ -286,7 +288,7 @@ export function removeInvalidInternalLinks(content: string, wordPressPosts?: Arr
   );
 
   // Pattern: markdown [text](url), HTML absolute href, HTML relative href="/path"
-  const linkPattern = /(\[([^\]]+)\]\((https?:\/\/[^\)]+)\)|<a[^>]*href=["'](https?:\/\/[^"']+)["'][^>]*>([^<]*)<\/a>|<a[^>]*href=["'](\/[^"']*)["'][^>]*>([^<]*)<\/a>)/gi;
+  const linkPattern = /(\[([^\]]+)\]\((https?:\/\/[^)]+)\)|<a[^>]*href=["'](https?:\/\/[^"']+)["'][^>]*>([^<]*)<\/a>|<a[^>]*href=["'](\/[^"']*)["'][^>]*>([^<]*)<\/a>)/gi;
 
   let sanitized = content;
   let removedCount = 0;
@@ -453,7 +455,7 @@ export function removeNonWikipediaExternalLinks(
 
   const allowedExternalNorms = expandAllowedExternalNorms(allowedExternalUrls ?? []);
 
-  const linkPattern = /(\[([^\]]+)\]\((https?:\/\/[^\)]+)\)|<a[^>]*href=["'](https?:\/\/[^"']+)["'][^>]*>([^<]*)<\/a>)/gi;
+  const linkPattern = /(\[([^\]]+)\]\((https?:\/\/[^)]+)\)|<a[^>]*href=["'](https?:\/\/[^"']+)["'][^>]*>([^<]*)<\/a>)/gi;
   let sanitized = content;
   let removedCount = 0;
   let keptExternalCount = 0;

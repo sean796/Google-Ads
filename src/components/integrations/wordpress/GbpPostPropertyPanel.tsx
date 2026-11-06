@@ -18,7 +18,7 @@ import {
 import { GbpPostClientRoster } from "@/components/gbp-post/GbpPostClientRoster";
 import type { GbpPublishPreview } from "@/components/gbp-post/GbpPostPublishPreview";
 import type { GbpSchedulerSectionState } from "@/lib/gbp-post/gbp-schedule-plan";
-import { defaultGbpSchedulerState } from "@/components/gbp-post/GbpPostSchedulerSection";
+import { defaultGbpSchedulerState } from "@/lib/gbp-post/gbp-schedule-plan";
 import { GbpPostWorkspaceHeader } from "@/components/gbp-post/GbpPostWorkspaceHeader";
 import {
   buildGbpPostBulkGeneratorDetailsProps,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { getResearchModel } from "@/lib/optimization-settings-storage";
+
 import { Copy, CheckCircle2 } from "lucide-react";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_CHECKLIST_COPIED_TO_CLIPBOARD, NOTIFY_FAILED_TO_COPY_CHECKLIST, NOTIFY_NO_CHECKLIST_TO_COPY, NOTIFY_PLEASE_SET_YOUR_OPENROUTER_API_KEY_IN_SE, NOTIFY_VIDEO_SCRIPT_CHECKLIST_GENERATED, notifyChecklistGenerationFailedX } from "@/lib/notify-messages";
@@ -8,7 +8,7 @@ import { streamChatCompletion } from "@/lib/api";
 import { buildVideoScriptChecklistSystemPrompt, buildVideoScriptChecklistUserPrompt, VideoScriptChecklistItem } from "@/lib/video-script-checklist-builder";
 import { parseMarkdownSections } from "@/lib/section-parser";
 import { VideoScriptGeneratorProps } from "./types";
-import { Button, SelectField, TextareaField } from "@/ui";
+import { Button, SelectField, TextareaField, Checkbox, RadioGroup, RadioGroupItem } from "@/ui";
 
 export const VideoScriptGenerator = ({
   apiKey = "",
@@ -237,11 +237,11 @@ export const VideoScriptGenerator = ({
         const numberedItems = checklistContent
           .split('\n')
           .map(line => line.trim())
-          .filter(line => /^\d+[\.\)]\s+/.test(line) || /^[-*]\s+/.test(line));
+          .filter(line => /^\d+[.)]\s+/.test(line) || /^[-*]\s+/.test(line));
         
         if (numberedItems.length > 0) {
           numberedItems.forEach(line => {
-            const text = line.replace(/^\d+[\.\)]\s+/, '').replace(/^[-*]\s+/, '').trim();
+            const text = line.replace(/^\d+[.)]\s+/, '').replace(/^[-*]\s+/, '').trim();
             if (text.length > 0) {
               simpleItems.push({
                 title: text.length > 60 ? text.substring(0, 60) + '...' : text,

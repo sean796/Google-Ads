@@ -47,7 +47,7 @@ describe("reduceHarnessSectionList", () => {
     expect(state.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("progress keeps generating and updates markdown", () => {
+  it("progress keeps generating and clears markdown", () => {
     let state = reduceHarnessSectionList([], startPayload(2, "Generate", 4));
     state = reduceHarnessSectionList(state, {
       rowIndex: 0,
@@ -58,7 +58,7 @@ describe("reduceHarnessSectionList", () => {
       markdownSlice: "Looking for image on city peers",
     });
     expect(state[2]?.status).toBe("generating");
-    expect(state[2]?.markdown).toBe("Looking for image on city peers");
+    expect(state[2]?.markdown).toBeUndefined();
     state = reduceHarnessSectionList(state, {
       rowIndex: 0,
       sectionIndex: 2,
@@ -68,6 +68,6 @@ describe("reduceHarnessSectionList", () => {
       markdownSlice: "Looking for image on city peers\nFound on Heritage",
     });
     expect(state[2]?.status).toBe("generating");
-    expect(state[2]?.markdown).toContain("Found on Heritage");
+    expect(state[2]?.markdown).toBeUndefined();
   });
 });

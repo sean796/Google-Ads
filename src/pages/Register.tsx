@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { FloatingLabelInput } from "@/components/ui/floating-label-input";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { AUTH_DISABLED } from "@/lib/auth-disabled";
 import { registerWithInvite, validateInviteToken } from "@/lib/teams-api";
@@ -9,7 +9,7 @@ import { Lock, Mail, User, UserPlus } from "lucide-react";
 import {
   NEO_PULSE_BRAND_LOCKUP_SRC,
 } from "@/lib/neo-pulse-branding-assets";
-import { Button } from "@/ui";
+import { Button, FloatingLabelInput } from "@/ui";
 
 async function bootstrapAccount(payload: {
   email: string;

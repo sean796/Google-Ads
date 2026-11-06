@@ -256,7 +256,12 @@ export async function sendAutomationEmailIfConfigured(args: {
   summaryText: string;
   attachments?: TaskArchiveFileInput[];
   runOk?: boolean;
-  onStep?: (label: string, status?: EmailStepStatus) => void | Promise<void>;
+  onStep?: (
+    label: string,
+    status?: EmailStepStatus,
+    resumePayload?: Record<string, unknown>,
+    stepKey?: string,
+  ) => void | Promise<void>;
 }): Promise<AutomationEmailDeliveryResult> {
   const reportStep = async (label: string, status: EmailStepStatus = "running") => {
     const stepKey = inferAutomationDeliveryStepKey(label, status);

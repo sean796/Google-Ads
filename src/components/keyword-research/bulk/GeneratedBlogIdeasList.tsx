@@ -14,16 +14,22 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea, Checkbox } from "@/ui";
+
+
 import type { CSVRow } from "@/lib/bulk-auto-generate";
-import { BlogIdeaRowCompact, BLOG_IDEA_ROW_SELECT_CHECKBOX_CLASS } from "@/components/keyword-research/bulk/BlogIdeaRowCompact";
+import { BlogIdeaRowCompact } from "@/components/keyword-research/bulk/BlogIdeaRowCompact";
+import { BLOG_IDEA_ROW_SELECT_CHECKBOX_CLASS } from "@/components/shared/workspace-checkbox-styles";
 import {
   CONTENT_OPTIMIZER_MULTI_SITE_ROW_STACK_CLASS,
   CONTENT_OPTIMIZER_MULTI_SITE_ROW_WRAPPER_CLASS,
   contentOptimizerRowStripeClass,
 } from "@/components/overview/overview-tab/overview-tab-content-constants";
 import { BULK_GENERATOR_ROW_GRID_MIN_CLASS } from "@/components/keyword-research/blog-generator-tab-classes";
+import {
+  padListWithPlaceholders,
+  type GeneratedBlogIdeaListItem as ListItem,
+} from "@/components/keyword-research/bulk/generated-blog-ideas-list-helpers";
 import { cn } from "@/lib/utils";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -56,33 +62,6 @@ interface GeneratedBlogIdeasListProps {
   directionsSiteName?: string;
   /** Pre-Ideas: show count-driven blog slots with optional keyword inputs. */
   slotMode?: boolean;
-}
-
-type ListItem = {
-  generatedIdx: number;
-  row: CSVRow;
-  slotIdx: number;
-  publishLabel?: string;
-  sortableId: string;
-  placeholder?: boolean;
-};
-
-/** Pad real rows with zebra placeholder stripes up to targetCount (Prompt workspace BG). */
-export function padListWithPlaceholders(items: ListItem[], targetCount: number): ListItem[] {
-  if (targetCount <= 0 || items.length >= targetCount) {
-    return items;
-  }
-  const padded = [...items];
-  for (let slotIdx = items.length; slotIdx < targetCount; slotIdx++) {
-    padded.push({
-      generatedIdx: -1,
-      row: {},
-      slotIdx,
-      sortableId: `placeholder-${slotIdx}`,
-      placeholder: true,
-    });
-  }
-  return padded;
 }
 
 function SortableBlogIdeaRow({
@@ -190,7 +169,7 @@ export function GeneratedBlogIdeasList({
         const isPad = rowIndex >= contentCount;
         return {
           generatedIdx: isPad ? -1 : rowIndex,
-          row: isPad ? {} : generatedRows[rowIndex]!,
+          row: isPad ? { keyword: "", title: "" } : generatedRows[rowIndex]!,
           slotIdx: rowIndex,
           sortableId: isPad ? `placeholder-${rowIndex}` : String(rowIndex),
           placeholder: isPad,
@@ -201,7 +180,7 @@ export function GeneratedBlogIdeasList({
     if (!hasGeneratedChecklist && placeholderCount > 0) {
       return Array.from({ length: placeholderCount }, (_, slotIdx) => ({
         generatedIdx: slotIdx,
-        row: {},
+        row: { keyword: "", title: "" },
         slotIdx,
         sortableId: `placeholder-${slotIdx}`,
         placeholder: true,

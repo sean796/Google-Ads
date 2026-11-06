@@ -23,6 +23,13 @@ describe("restoreSitesFromServerMirrorIfEmpty", () => {
       removeItem: (key: string) => {
         delete store[key];
       },
+      clear: () => {
+        store = {};
+      },
+      key: (index: number) => Object.keys(store)[index] ?? null,
+      get length() {
+        return Object.keys(store).length;
+      },
     } satisfies Storage);
     vi.stubGlobal(
       "fetch",

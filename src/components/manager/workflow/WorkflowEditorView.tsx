@@ -54,13 +54,12 @@ import type { WorkflowClientConfig } from "@/lib/workflow/workflow-types";
 import { WorkflowRightRail } from "@/components/manager/workflow/WorkflowRightRail";
 import { WorkflowStepColumn } from "@/components/manager/workflow/WorkflowStepColumn";
 import type { WordPressSiteOption } from "@/components/manager/tasks/NewProjectDialog";
-import type { PulseForgeRoute } from "@/lib/pulse-forge/pulse-forge-hash";
-import { setPulseForgeHash } from "@/lib/pulse-forge/pulse-forge-hash";
+import type { PulseForgeRoute } from "@/lib/pulse-forge/pulse-forge-route";
+import { setPulseForgeRoute } from "@/lib/pulse-forge/pulse-forge-route";
 import { resolveWorkflowStepForgeRoute } from "@/lib/workflow/workflow-step-navigation";
 import {
   contentGapStepTestRows,
   formatWorkflowStepTestSummary,
-  googleDriveStepTestRowsFromOutput,
   mergeContentGapStepTestRows,
   testCsvRowsWorkflowStep,
   testGoogleDriveWorkflowStep,
@@ -604,7 +603,7 @@ export function WorkflowEditorView({
     (node: WorkflowNode) => {
       if (!workflow?.id) return;
       const nextRoute = resolveWorkflowStepForgeRoute(node, workflow.id);
-      if (nextRoute) setPulseForgeHash(nextRoute);
+      if (nextRoute) setPulseForgeRoute(nextRoute);
     },
     [workflow?.id],
   );
@@ -656,7 +655,7 @@ export function WorkflowEditorView({
       }
 
       const validation = validateWorkflowForRun(ready);
-      if (!validation.ok) {
+      if (validation.ok === false) {
         patchOptimisticWorkflowAgentProgress(validation.error);
         setSaveError(validation.error);
         return;
@@ -842,31 +841,13 @@ export function WorkflowEditorView({
         const summary = dispatch.ok
           ? formatWorkflowStepTestSummary(stepOutput, agentRun?.result ?? null)
           : dispatch.error ?? "Step test failed.";
-        const driveRows =
-          node?.kind === "then_google_drive"
-            ? googleDriveStepTestRowsFromOutput(stepOutput, summary)
-            : [{ label: "Result", value: summary }];
-        const driveLink =
-          driveRows.find((row) => row.label === "Link")?.value?.trim() ||
-          driveRows.find((row) => row.label === "Upload")?.value?.trim() ||
-          "";
-        let stepOk = dispatch.ok;
-        if (node?.kind === "then_google_drive") {
-          if (!dispatch.ok) {
-            stepOk = false;
-          } else if (!driveLink) {
-            stepOk = false;
-          }
-        }
-        const resultSummary =
-          node?.kind === "then_google_drive" && dispatch.ok && !driveLink
-            ? "Step test finished without a Google Drive link."
-            : summary;
+        const stepOk = dispatch.ok;
+        const resultSummary = summary;
         setStepTestResult({
           nodeId,
           ok: stepOk,
           summary: resultSummary,
-          rows: driveRows.length > 0 ? driveRows : [{ label: "Result", value: resultSummary }],
+          rows: [{ label: "Result", value: resultSummary }],
         });
         if (!stepOk) {
           const message = dispatch.ok ? resultSummary : dispatch.error ?? "Step test failed.";

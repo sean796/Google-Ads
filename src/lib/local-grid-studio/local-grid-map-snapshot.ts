@@ -1,4 +1,5 @@
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 /** Bump when report snapshot framing changes so clients recapture once. */
 export const LOCAL_GRID_MAP_SNAPSHOT_CAPTURE_GENERATION = 5;
@@ -42,6 +43,7 @@ export async function localGridMapSnapshotExists(
   const res = await fetch(localGridMapSnapshotImageUrl(siteId, scanId), {
     method: "GET",
     credentials: "include",
+    headers: neoPulseApiHeaders(),
     signal,
   });
   return res.ok;
@@ -56,7 +58,7 @@ export async function uploadLocalGridMapSnapshot(
   const res = await fetch(backendApiUrl("/organic-dashboard/local-grid/map-image"), {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ siteId, scanId, imageDataUrl }),
     signal,
   });

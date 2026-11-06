@@ -44,7 +44,7 @@ describe("fetchLocalSeoStrategyFromGrid - single OpenRouter pass", () => {
             choices: [{ message: { content: JSON.stringify(block) } }],
           }),
         };
-      }) as typeof fetch,
+      }) as unknown as typeof fetch,
     );
 
     const result = await fetchLocalSeoStrategyFromGrid({
@@ -70,7 +70,7 @@ describe("fetchLocalSeoStrategyFromGrid - single OpenRouter pass", () => {
         ok: false,
         status: 500,
         json: async () => ({}),
-      })) as typeof fetch,
+      })) as unknown as typeof fetch,
     );
 
     const result = await fetchLocalSeoStrategyFromGrid({
@@ -138,7 +138,7 @@ describe("fetchLocalSeoStrategyFromGrid - single OpenRouter pass", () => {
         json: async () => ({
           choices: [{ message: { content: JSON.stringify(okBlock) } }],
         }),
-      })) as typeof fetch,
+      })) as unknown as typeof fetch,
     );
 
     await fetchLocalSeoStrategyFromGrid({

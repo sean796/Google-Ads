@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useBoxReady } from "@/components/ui/chart-box-ready";
+
 import type {
   OrganicChartPoint,
   OrganicDashboardPeriodLabels,
@@ -30,7 +30,7 @@ import {
   ORGANIC_SEMRUSH_TRAFFIC_COLOR,
 } from "@/components/organic-dashboard/organic-dashboard-styles";
 import { cn } from "@/lib/utils";
-import { Button, SwatchButton } from "@/ui";
+import { Button, SwatchButton, useBoxReady } from "@/ui";
 
 type SemrushChartSeries = "traffic" | "keywords" | "trafficCost";
 

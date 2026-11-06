@@ -92,7 +92,7 @@ export function MobileTasksScreen({
 
   const patchTaskInView = useCallback(
     (task: TeamTask) => {
-      setMyTasks((prev) => prev.map((item) => (item.id === task.id ? item : task)));
+      setMyTasks((prev) => prev.map((item) => (item.id === task.id ? task : item)));
     },
     [setMyTasks],
   );
@@ -129,7 +129,7 @@ export function MobileTasksScreen({
       setSaving(true);
       try {
         const updated = await updateTask(teamId, taskId, { status });
-        if (updated) patchTaskInView(updated);
+        if (updated.task) patchTaskInView(updated.task);
       } finally {
         setSaving(false);
       }
@@ -183,7 +183,7 @@ export function MobileTasksScreen({
           setSaving(true);
           void updateTask(teamId, selectedTask.id, patch)
             .then((updated) => {
-              if (updated) patchTaskInView(updated);
+              if (updated.task) patchTaskInView(updated.task);
             })
             .finally(() => setSaving(false));
         }}
@@ -201,7 +201,7 @@ export function MobileTasksScreen({
         }}
         onAddSubtask={(title) => {
           if (!teamId || !selectedTask) return;
-          void createSubtask(teamId, selectedTask.id, title).then(() => refreshTaskDetail());
+          void createSubtask(teamId, selectedTask.id, { title }).then(() => refreshTaskDetail());
         }}
         onToggleSubtask={(taskId, status) => {
           if (!teamId) return;

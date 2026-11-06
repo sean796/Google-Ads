@@ -65,7 +65,7 @@ function tryFixMissingArrayCloseBeforeKey(text: string, key: string): { fixed: s
   // Desired:       ... }\n  ],\n  "peopleAlsoAsk":
   const re = new RegExp(`\\n\\s*},\\s*\\n\\s*\\"${key}\\"\\s*:`, "m");
   if (!re.test(text)) return { fixed: text, applied: false };
-  return { fixed: text.replace(re, `\n  ],\n  \"${key}\":`), applied: true };
+  return { fixed: text.replace(re, `\n  ],\n  "${key}":`), applied: true };
 }
 
 function tryParseKeywordAnalysisJson(cleanedResponse: string): {
@@ -120,7 +120,7 @@ export interface AnalyzeKeywordWithAIOptions {
   minVolume?: number;
   location?: string; // Location for local optimization
   entity?: string; // Optional entity for content optimization
-  serpData?: any; // Full SERP JSON response to send to AI
+  serpData?: unknown; // Full SERP JSON response to send to AI
   connectedSite?: { name: string; siteUrl: string }; // Connected WordPress site (target topic)
   relatedGSCKeywords?: string[]; // Related GSC keywords to include in analysis
   siteUrl?: string; // Site URL for competitor filtering
@@ -128,7 +128,7 @@ export interface AnalyzeKeywordWithAIOptions {
   /** Pre-read AI-driven ACF context (use when already resolved). */
   acfContext?: AIDrivenACFContext;
   /** Raw ACF object from WordPress or CSV; will be interpreted agentically via AI-driven reader when acfContext not provided. */
-  acfFields?: Record<string, any>;
+  acfFields?: Record<string, unknown>;
 }
 
 /**
@@ -507,8 +507,24 @@ Return ONLY this JSON structure. NO markdown, NO explanations, NO code blocks.`;
  * Extract People Also Ask questions from SERP data using AI
  * Prints raw SERP data and raw AI response separately before processing
  */
+interface SerpTaskForPaa {
+  result?: Array<{ items?: unknown[] }>;
+}
+
+interface RawPaaQuestion {
+  question?: string;
+  title?: string;
+  text?: string;
+  answer?: string;
+  description?: string;
+  snippet?: string;
+  url?: string;
+  link?: string;
+  domain?: string;
+}
+
 export async function extractPeopleAlsoAskWithAI(
-  serpData: any,
+  serpData: unknown,
   options: {
     apiKey: string;
     model?: string;
@@ -517,12 +533,16 @@ export async function extractPeopleAlsoAskWithAI(
     topP?: number;
   }
 ): Promise<{ rawResponse: string; questions: PeopleAlsoAsk[] }> {
+  const serp: { serp_error?: unknown; tasks?: SerpTaskForPaa[] } =
+    serpData && typeof serpData === "object"
+      ? (serpData as { serp_error?: unknown; tasks?: SerpTaskForPaa[] })
+      : {};
   // If SERP data is absent, errored, or has zero tasks/items, immediately return empty in 0ms
   if (
     !serpData ||
-    serpData.serp_error ||
-    !Array.isArray(serpData.tasks) ||
-    serpData.tasks.length === 0
+    serp.serp_error ||
+    !Array.isArray(serp.tasks) ||
+    serp.tasks.length === 0
   ) {
     return { rawResponse: '', questions: [] };
   }
@@ -534,8 +554,8 @@ export async function extractPeopleAlsoAskWithAI(
   }
 
   // If no items exist in tasks, or no API key, move on immediately without calling LLM
-  const hasItems = serpData.tasks.some((t: any) =>
-    Array.isArray(t?.result) && t.result.some((r: any) => Array.isArray(r?.items) && r.items.length > 0)
+  const hasItems = serp.tasks?.some((t) =>
+    Array.isArray(t?.result) && t.result.some((r) => Array.isArray(r?.items) && r.items.length > 0)
   );
   if (!hasItems || !options.apiKey?.trim()) {
     return { rawResponse: '', questions: [] };
@@ -543,7 +563,7 @@ export async function extractPeopleAlsoAskWithAI(
 
   // 2. Single AI pass only if SERP had items but direct parser found 0 PAA
   const systemPrompt = `You are an expert at extracting "People Also Ask" questions from SERP JSON data. Return ONLY a JSON array with questions found. If none found, return []. No markdown, no explanations.`;
-  const itemsSample = serpData.tasks[0]?.result?.[0]?.items?.slice(0, 15) ?? serpData;
+  const itemsSample = serp.tasks?.[0]?.result?.[0]?.items?.slice(0, 15) ?? serpData;
   const userPrompt = `Extract People Also Ask questions from this SERP JSON:\n${JSON.stringify(itemsSample, null, 2)}\nReturn format: [{"question": "...", "answer": "...", "url": "..."}]`;
 
   let fullResponse = "";
@@ -570,14 +590,17 @@ export async function extractPeopleAlsoAskWithAI(
       cleanedResponse = cleanedResponse.replace(/^```\s*/, "").replace(/\s*```$/, "");
     }
 
-    const parsed = JSON.parse(cleanedResponse);
+    const parsed: unknown = JSON.parse(cleanedResponse);
     if (Array.isArray(parsed)) {
-      const questions = parsed.map((item: any) => ({
-        question: item.question || item.title || item.text || '',
-        answer: item.answer || item.description || item.snippet || undefined,
-        url: item.url || item.link || undefined,
-        domain: item.domain || (item.url ? new URL(item.url).hostname : undefined),
-      })).filter((item: PeopleAlsoAsk) => item.question && item.question.trim().length > 0);
+      const questions = parsed.map((item) => {
+        const raw = (item && typeof item === "object" ? item : {}) as RawPaaQuestion;
+        return {
+          question: raw.question || raw.title || raw.text || '',
+          answer: raw.answer || raw.description || raw.snippet || undefined,
+          url: raw.url || raw.link || undefined,
+          domain: raw.domain || (raw.url ? new URL(raw.url).hostname : undefined),
+        };
+      }).filter((item: PeopleAlsoAsk) => item.question && item.question.trim().length > 0);
       return { rawResponse: fullResponse, questions };
     }
     return { rawResponse: fullResponse, questions: [] };

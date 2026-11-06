@@ -38,6 +38,9 @@ describe("buildElementorSectionContext", () => {
     const context = buildElementorSectionContext(centeredHeroJson, "hero-band", {
       id: "hero-band",
       title: "Blind Magic",
+      hasHeadingWidget: true,
+      headingInBodyHtml: false,
+      headingHtml: "",
       depth: 0,
       bodyText: "Blind Magic is Edmonton’s premier provider of commercial blinds.",
       bodyHtml:
@@ -79,6 +82,9 @@ describe("buildElementorSectionContext", () => {
     const context = buildElementorSectionContext(leftJson, "body-band", {
       id: "body-band",
       title: "Services",
+      hasHeadingWidget: true,
+      headingInBodyHtml: false,
+      headingHtml: "",
       depth: 0,
       bodyText: "We serve many industries.",
       bodyHtml: "<p>We serve many industries.</p>",
@@ -116,6 +122,9 @@ describe("buildElementorSectionContext", () => {
     const context = buildElementorSectionContext(introJson, "intro-band", {
       id: "intro-band",
       title: "Promotions",
+      hasHeadingWidget: true,
+      headingInBodyHtml: false,
+      headingHtml: "",
       depth: 0,
       bodyText: longBody.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
       bodyHtml: longBody,
@@ -136,6 +145,9 @@ describe("validateBodyHtmlAgainstBlueprint", () => {
     const blueprint = buildElementorSectionContext(centeredHeroJson, "hero-band", {
       id: "hero-band",
       title: "Blind Magic",
+      hasHeadingWidget: true,
+      headingInBodyHtml: false,
+      headingHtml: "",
       depth: 0,
       bodyText: "Test",
       bodyHtml: "<p>Test</p>",

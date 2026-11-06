@@ -1,10 +1,16 @@
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import type { ChatPreferencesPatch, ChatUserPreferences } from "@/lib/chat-preferences-types";
 import { normalizeChatPreferences } from "@/lib/chat-preferences-types";
 
 function api(path: string, options?: RequestInit): Promise<Response> {
   const p = path.startsWith("/") ? path : `/${path}`;
-  return fetch(backendApiUrl(p), { ...options, credentials: "include", cache: "no-store" });
+  return fetch(backendApiUrl(p), {
+    ...options,
+    headers: neoPulseApiHeaders(options?.headers),
+    credentials: "include",
+    cache: "no-store",
+  });
 }
 
 export async function fetchChatPreferences(teamId: number): Promise<ChatUserPreferences | null> {

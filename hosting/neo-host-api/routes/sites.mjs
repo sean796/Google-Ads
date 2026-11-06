@@ -229,6 +229,7 @@ export async function handleSitesRoute(req, res, subpath, method, body, auth) {
   }
 
   if (action === "ops-agent") {
+    if (!requireWrite(res, auth)) return;
     const job = await createJob({
       siteId,
       jobType: "ops_agent",

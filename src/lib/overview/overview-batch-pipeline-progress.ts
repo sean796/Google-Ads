@@ -3,7 +3,7 @@ import type {
   MetaPipelineStepUi,
   PipelineStepStatus,
 } from "@/components/overview/overview-tab-constants";
-import { CONTENT_OPTIMIZER_BULK_PAGE_SIZE } from "@/lib/content-optimizer/content-optimizer-bulk-page-size";
+import { CONTENT_OPTIMIZER_BULK_PAGE_SIZE } from "@/lib/content-optimization/content-optimizer-bulk-page-size";
 
 /** Max items per Pulse request when uploading meta/ACF only (matches WP batch/v1 limit). */
 export const OVERVIEW_WP_API_META_BATCH_SIZE = 25;
@@ -120,7 +120,7 @@ export function buildWpUploadBatchPipelineSteps(
     }));
   }
   const total = totalOrChunkLengths as number;
-  const batchSize = OVERVIEW_WP_API_BATCH_SIZE;
+  const batchSize: number = OVERVIEW_WP_API_BATCH_SIZE;
   const batchCount = overviewWpApiBatchCount(total);
   return buildBatchPipelineSteps(batchCount, batchSize, total, (batchIndex, count, rowCount) => {
     if (batchSize === 1) {

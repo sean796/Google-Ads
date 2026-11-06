@@ -27,7 +27,7 @@ export type RecipeActionSubgraph = {
 };
 
 function uniqueRagKey(base: string, used: Set<string>): string {
-  let key = base.replace(/[^a-z0-9_]/gi, "_");
+  const key = base.replace(/[^a-z0-9_]/gi, "_");
   if (!used.has(key)) {
     used.add(key);
     return key;

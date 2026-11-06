@@ -6,9 +6,9 @@ import {
   META_FIELD_END_RAIL,
   META_FIELD_END_RAIL_BTN,
   META_FIELD_END_RAIL_CELL,
-} from "@/components/overview/MetaOptimizerPageRowDetails";
+} from "@/components/overview/meta-optimizer-row-constants";
 import { CONTENT_OPTIMIZER_ACTIVE_ROW_TEXT_CLASS } from "@/components/overview/overview-tab/overview-tab-content-constants";
-import type { BulkDetailsDownloadable } from "@/components/shared/bulk-details-tile-sections";
+import type { BulkDetailsDownloadable } from "@/components/shared/bulk-details-tile-sections-helpers";
 import { NOTIFY_CSV_DOWNLOADED } from "@/lib/notify-messages";
 import { notify } from "@/lib/app-notifications";
 import { cn } from "@/lib/utils";

@@ -46,7 +46,7 @@ export function downloadKeywordTargetsCsv(rows: KeywordTargetCsvRow[], filenameB
     return;
   }
   const csvContent = buildKeywordTargetsCsvContent(filtered);
-  const safeBase = filenameBase.replace(/[^\w\-]+/g, "-").slice(0, 80) || "keyword-targets";
+  const safeBase = filenameBase.replace(/[^\w-]+/g, "-").slice(0, 80) || "keyword-targets";
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -203,7 +203,7 @@ export function downloadLocalAnalysisBulkCsv(
     defaultSitemapType: options?.requireLinkedWikipedia ? "entity" : undefined,
   });
 
-  const safeBase = filenameBase.replace(/[^\w\-]+/g, "-").slice(0, 80) || "local-analysis";
+  const safeBase = filenameBase.replace(/[^\w-]+/g, "-").slice(0, 80) || "local-analysis";
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

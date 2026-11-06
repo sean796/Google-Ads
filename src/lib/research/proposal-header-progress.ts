@@ -1,4 +1,4 @@
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import {
   REPORT_PIPELINE_MICRO_TOTAL,
 } from "@/lib/competitor-research/competitor-report-openrouter-limits";

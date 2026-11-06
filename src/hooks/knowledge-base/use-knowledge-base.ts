@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { knowledgeBaseDetailsCanOpen } from "@/components/knowledge-base/KnowledgeBaseDetailsPanel";
+import { knowledgeBaseDetailsCanOpen } from "@/components/knowledge-base/knowledge-base-details-can-open";
 import { notify } from "@/lib/app-notifications";
 import {
   NOTIFY_A_SCRAPE_IS_ALREADY_RUNNING,
@@ -22,6 +22,7 @@ import {
 } from "@/lib/notify-messages";
 import { processCSVToChunks, processSingleFile } from "@/lib/file-processing";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import type {
   KnowledgeBaseSectionId,
   KnowledgeProfile,
@@ -319,7 +320,7 @@ export function useKnowledgeBase({
       const apiBase = BACKEND_API_BASE || "";
       const response = await fetch(`${apiBase}/api/site-scraper/scrape`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ url: trimmed, maxPages: scraperMaxPages }),
         signal: controller.signal,
       });
@@ -460,7 +461,7 @@ export function useKnowledgeBase({
       const apiBase = BACKEND_API_BASE || "";
       fetch(`${apiBase}/api/site-scraper/cancel`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       }).catch(() => {});
     } finally {
       setScraperRunning(false);

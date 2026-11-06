@@ -86,7 +86,7 @@ function walkTsFiles(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-describe("Universal Mastra-style Agent & Pipeline Contract", () => {
+describe("Universal Pulse Engine Agent & Pipeline Contract", () => {
   beforeEach(() => {
     const storage = createMemoryLocalStorage();
     vi.stubGlobal("window", { localStorage: storage });
@@ -289,8 +289,7 @@ describe("Universal Mastra-style Agent & Pipeline Contract", () => {
     ]);
   });
 
-  it("forbids hardcoded OpenRouter model IDs in feature files outside defaults and preset catalogs", () => {
-    const srcRoot = resolve("src");
+  it("forbids hardcoded OpenRouter model IDs in feature files outside defaults and preset catalogs", () => {    const srcRoot = resolve("src");
     const allowedRelativeFiles = new Set([
       "lib/optimization-settings-defaults.ts",
       "lib/global-agent-models.ts",
@@ -318,5 +317,43 @@ describe("Universal Mastra-style Agent & Pipeline Contract", () => {
     }
 
     expect(violations).toEqual([]);
+  });
+
+  it("PULSE_AGENT_REGISTRY is the source of truth: exact count, live source modules, createPulseAgent ids registered", () => {
+    expect(PULSE_AGENT_REGISTRY.length).toBe(47);
+
+    const srcRoot = resolve("src");
+    for (const entry of PULSE_AGENT_REGISTRY) {
+      expect(
+        statSync(join(resolve("."), entry.sourceModule)).isFile(),
+        `registry sourceModule missing on disk: ${entry.sourceModule}`,
+      ).toBe(true);
+    }
+
+    const registeredIds = new Set(PULSE_AGENT_REGISTRY.map((e) => e.id));
+    const createAgentIdRe = /createPulseAgent\(\{[\s\S]{0,160}?id:\s*"([^"]+)"/g;
+    const unregistered: string[] = [];
+    for (const file of walkTsFiles(srcRoot)) {
+      const content = readFileSync(file, "utf8");
+      for (const m of content.matchAll(createAgentIdRe)) {
+        if (!registeredIds.has(m[1])) {
+          unregistered.push(`${relative(srcRoot, file).replace(/\\/g, "/")}: ${m[1]}`);
+        }
+      }
+    }
+    expect(unregistered).toEqual([]);
+  });
+
+  it("docs agent catalog lists exactly the registered agents", () => {
+    const docsPath = resolve("docs/api/pulse-engine/agent-registry.md");
+    const docs = readFileSync(docsPath, "utf8");
+    const docIds = new Set(
+      [...docs.matchAll(/^\| `([^`]+)` \| `(?:aiseo|blog-generator|competitor-research|entity-sap|ppc-ads|reporting|sitemap-optimizer|video|wikipedia)` \|/gm)].map(
+        (m) => m[1],
+      ),
+    );
+    const registeredIds = new Set(PULSE_AGENT_REGISTRY.map((e) => e.id));
+    expect(docIds).toEqual(registeredIds);
+    expect(docs).toContain(`(${PULSE_AGENT_REGISTRY.length} Agents)`);
   });
 });

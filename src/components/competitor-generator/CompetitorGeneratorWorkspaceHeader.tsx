@@ -5,7 +5,7 @@ import { CompetitorContentDetailsPanel } from "@/components/competitor-generator
 import type { CompetitorContentDetailsPanelProps } from "@/components/competitor-generator/CompetitorContentDetailsPanel";
 import { CompetitorGeneratorToolbar } from "@/components/competitor-generator/CompetitorGeneratorToolbar";
 import type { CompetitorWorkspaceControls } from "@/components/competitor-generation/types";
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 
 export type CompetitorGeneratorWorkspaceHeaderProps = {
   activeSection: BlogGeneratorSectionId;

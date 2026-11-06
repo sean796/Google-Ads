@@ -446,6 +446,7 @@ describe("workflow-then-runner", () => {
     vi.mocked(fetchAgentRun).mockResolvedValueOnce({
       id: 99,
       teamId: 1,
+      createdBy: 1,
       steps: [],
       status: "done",
       recipeKey: "gsc_reporting",

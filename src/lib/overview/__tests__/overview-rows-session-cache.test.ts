@@ -45,7 +45,7 @@ function makeRow(index: number, withHeavyBody = true): OverviewRow {
   };
 }
 
-describe("overview-rows-session-cache slim localStorage + active row body", () => {
+describe("overview-rows-session-cache memory cache (no localStorage row persistence)", () => {
   let localMock: Storage;
   let sessionMock: Storage;
 
@@ -57,7 +57,7 @@ describe("overview-rows-session-cache slim localStorage + active row body", () =
     clearOverviewRowsSessionCache(SITE_ID);
   });
 
-  it("persists 100 slim rows to localStorage while keeping active row full body on cold read", () => {
+  it("keeps 100 rows in memory without writing slim rows to localStorage", () => {
     localMock.setItem(
       `neo-pulse-overview-studio-active-url-v1:${SITE_ID}`,
       "https://blindmagic.com/page-0/",
@@ -65,48 +65,26 @@ describe("overview-rows-session-cache slim localStorage + active row body", () =
     const rows = Array.from({ length: 100 }, (_, i) => makeRow(i, true));
     setOverviewRowsSessionCache(SITE_ID, "pages", rows);
 
-    // Simulate page reload: clear sessionStorage and module memory by reading after session clear
-    sessionMock.clear();
-    const rawList = localMock.getItem(`neo-pulse-overview-rows-local:v4:${SITE_ID}:pages`);
-    expect(rawList).toBeTruthy();
-    const parsedList = JSON.parse(rawList!) as OverviewRow[];
-    expect(parsedList).toHaveLength(100);
-    // Non-active rows in raw localStorage list have heavy body stripped
-    expect(parsedList[1].postContent).toBeUndefined();
-    expect(parsedList[1].elementorDataJson).toBeUndefined();
+    expect(localMock.getItem(`neo-pulse-overview-rows-local:v4:${SITE_ID}:pages`)).toBeNull();
+    expect(
+      localMock.getItem(`neo-pulse-overview-active-row-body:v1:${SITE_ID}:pages`),
+    ).toBeNull();
 
-    // Active row body key preserves full postContent + elementorDataJson
-    const rawActive = localMock.getItem(
-      `neo-pulse-overview-active-row-body:v1:${SITE_ID}:pages`,
-    );
-    expect(rawActive).toBeTruthy();
-    const parsedActive = JSON.parse(rawActive!) as OverviewRow;
-    expect(parsedActive.url).toBe("https://blindmagic.com/page-0/");
-    expect(parsedActive.postContent).toContain("xxxx");
-    expect(parsedActive.elementorDataJson).toBeTruthy();
+    const cached = getOverviewRowsSessionCache(SITE_ID, "pages");
+    expect(cached).toHaveLength(100);
+    expect(cached![0].postContent).toContain("xxxx");
+    expect(cached![0].elementorDataJson).toBeTruthy();
   });
 
-  it("restores all 100 rows plus active row body from localStorage when sessionStorage is empty", () => {
-    localMock.setItem(
-      `neo-pulse-overview-studio-active-url-v1:${SITE_ID}`,
-      "https://blindmagic.com/page-2/",
-    );
+  it("does not restore rows from localStorage when memory is empty", () => {
     const rows = Array.from({ length: 10 }, (_, i) => makeRow(i, true));
     setOverviewRowsSessionCache(SITE_ID, "pages", rows);
-
-    // Force read from localStorage by clearing memory via clear + re-seeding localStorage keys
-    const savedList = localMock.getItem(`neo-pulse-overview-rows-local:v4:${SITE_ID}:pages`)!;
-    const savedActive = localMock.getItem(
-      `neo-pulse-overview-active-row-body:v1:${SITE_ID}:pages`,
-    )!;
     clearOverviewRowsSessionCache(SITE_ID);
-    localMock.setItem(`neo-pulse-overview-rows-local:v4:${SITE_ID}:pages`, savedList);
-    localMock.setItem(`neo-pulse-overview-active-row-body:v1:${SITE_ID}:pages`, savedActive);
+    localMock.setItem(
+      `neo-pulse-overview-rows-local:v4:${SITE_ID}:pages`,
+      JSON.stringify(rows),
+    );
 
-    const restored = getOverviewRowsSessionCache(SITE_ID, "pages");
-    expect(restored).toHaveLength(10);
-    expect(restored![2].postContent).toContain("xxxx");
-    expect(restored![2].elementorDataJson).toBeTruthy();
-    expect(restored![1].title).toBe("Page 1");
+    expect(getOverviewRowsSessionCache(SITE_ID, "pages")).toBeNull();
   });
 });

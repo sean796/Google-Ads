@@ -416,11 +416,7 @@ export function buildGbpPostBulkGeneratorDetailsProps(options: {
       inventoryLinkBySiteId: options.inventoryLinkBySiteId,
     }),
     downloadFile: (file) => {
-      downloadManager.downloadFile({
-        name: file.fileName,
-        content: file.content,
-        mimeType: file.mimeType,
-      });
+      downloadManager.downloadFile(file);
     },
   };
 }

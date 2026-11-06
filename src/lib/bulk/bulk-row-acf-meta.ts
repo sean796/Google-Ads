@@ -4,7 +4,7 @@ import type { OptimizedMetaFields } from '@/lib/meta-field-optimizer';
 import {
   buildCompetitorFieldsValue,
   isCompetitorCsvKeyword,
-} from '@/lib/competitor/competitor-csv-row';
+} from '@/lib/competitor-research/competitor-csv-row';
 import { extractOriginFromSapTitle } from '@/lib/sap-origin-from-title';
 
 /** Populate ACF fields from DFS data for new posts (skipping GSC). */

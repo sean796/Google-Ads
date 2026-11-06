@@ -5,7 +5,11 @@
  */
 
 import { notify } from "@/lib/app-notifications";
-import { updateWordPressPost, createWordPressPost, uploadWordPressMedia, updateWordPressPostMeta } from "@/lib/wordpress-api";
+import { updateWordPressPost, createWordPressPost, uploadWordPressMedia, updateWordPressPostMeta, type WordPressPostCreateResult, type WordPressPostUpdateResult } from "@/lib/wordpress-api";
+import type {
+  ResolvedTargetLike,
+  WpExistingPostLike,
+} from "@/hooks/content-optimization/use-optimization-state";
 import { updateACFFields } from "@/lib/wordpress-acf-origin";
 import type { WordPressSite } from "@/components/integrations/types";
 import { extractEndpointFromEntitySitemapUrl } from "@/lib/entity-endpoint-extractor";
@@ -13,7 +17,6 @@ import { cleanTitleForNonEntity } from "@/lib/content-optimization-helpers";
 import { sanitizeContentForUpload, validateContentForUpload, truncateTitleForSEO } from "@/lib/content-generation/content-sanitizer";
 import { wrapHarnessH2AnchorsForWordPressBlocks } from "@/lib/content-generation/wordpress-harness-heading-anchors";
 import { loadApiKey } from "@/lib/api";
-import { getLocalFAQPhrase } from "@/lib/local-entity-phrases";
 import { markdownToHtml } from "@/lib/markdown-to-html";
 import { extraTextToUploadHtml } from "@/lib/content-generation/extra-text-heading-contract";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
@@ -113,308 +116,37 @@ Return ONLY the keyword phrase, nothing else. No quotes, no explanation.`,
   }
 }
 
-/**
- * AI-driven function to generate FAQ questions from blog content
- * Analyzes the content and generates 4 relevant questions focused on North America
- */
-export async function generateQuestionsFromContent(
-  blogContent: string,
-  primaryKeyword: string,
-  apiKey: string,
-  napLocations?: Array<{ city: string; state: string }>,
-  options?: { count?: number; avoidSimilarTo?: string[] }
-): Promise<string[]> {
-  const targetCount = Math.min(4, Math.max(1, options?.count ?? 4));
-  const avoid = new Set(
-    (options?.avoidSimilarTo ?? []).map((s) => s.trim().toLowerCase()).filter(Boolean)
-  );
-  try {
-    // Extract text content (remove HTML tags for better AI analysis)
-    const textContent = blogContent
-      .replace(/<[^>]*>/g, ' ') // Remove HTML tags
-      .replace(/\s+/g, ' ') // Normalize whitespace
-      .trim()
-      .substring(0, 8000); // Limit to 8000 chars for API efficiency
 
-    // Build location context from NAP data
-    let locationContext = '';
-    if (napLocations && napLocations.length > 0) {
-      const locationStrings = napLocations
-        .filter(loc => loc.city && loc.state)
-        .map(loc => `${loc.city}, ${loc.state}`)
-        .slice(0, 3); // Use up to 3 locations
-      if (locationStrings.length > 0) {
-        locationContext = `\n\nIMPORTANT: Focus questions on North American locations only. Use these realistic locations from our business: ${locationStrings.join(', ')}. DO NOT reference any locations outside of North America (no Australia, UK, Europe, Asia, etc.).`;
-      }
-    }
-
-    const response = await postOpenRouterAppChatFetch( {
-      method: "POST",
-      headers: openRouterWebAppHeaders(apiKey),
-      body: JSON.stringify({
-        model: getResearchModel(),
-        messages: [
-          {
-            role: "system",
-            content: `You are an SEO expert specializing in North American content. Generate exactly ${targetCount} relevant FAQ questions that readers would ask about the topic. Prefer buyer questions (worth it, process, when not) over definitional What is X restatements. CRITICAL: All questions must focus ONLY on North America (United States, Canada, Mexico). NEVER reference locations outside North America (no Australia, UK, Europe, Asia, etc.). Return ONLY a JSON array of ${targetCount} question strings, nothing else.`
-          },
-          {
-            role: "user",
-            content: `Analyze this blog content about "${primaryKeyword}" and generate ${targetCount} relevant FAQ questions focused on North America only:${locationContext}\n\n${textContent}\n\nReturn ONLY a JSON array of ${targetCount} strings. Questions must be distinct from these existing ones (do not repeat or trivially rephrase): ${avoid.size ? [...avoid].slice(0, 20).join(" | ") : "(none)"}\n\nCRITICAL: All questions must be relevant to North America only. No international references.`
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 500
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`AI API error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    const aiResponse = data.choices?.[0]?.message?.content?.trim() || '';
-    
-    // Parse JSON array from AI response
-    let questions: string[] = [];
-    try {
-      // Try to extract JSON array from response
-      const jsonMatch = aiResponse.match(/\[.*\]/s);
-      if (jsonMatch) {
-        questions = JSON.parse(jsonMatch[0]);
-      } else {
-        // Fallback: try parsing entire response
-        questions = JSON.parse(aiResponse);
-      }
-    } catch (parseError) {
-      // Fallback: split by lines and clean
-      questions = aiResponse
-        .split('\n')
-        .map(line => line.replace(/^[-*•]\s*/, '').replace(/^["']|["']$/g, '').trim())
-        .filter(q => q.length > 10 && q.endsWith('?'))
-        .slice(0, targetCount);
-    }
-
-    const distinct = questions.filter((q) => {
-      const t = q.trim().toLowerCase();
-      if (!t) return false;
-      for (const a of avoid) {
-        if (t === a || t.includes(a) || a.includes(t)) return false;
-      }
-      return true;
-    });
-    questions = distinct;
-
-    if (questions.length < targetCount) {
-      const fallbackQuestions = [
-        `What is ${primaryKeyword}?`,
-        `How does ${primaryKeyword} work?`,
-        `Why is ${primaryKeyword} important?`,
-        `Where can I find ${primaryKeyword}?`
-      ];
-      for (const fq of fallbackQuestions) {
-        if (questions.length >= targetCount) break;
-        const tl = fq.trim().toLowerCase();
-        if (![...avoid].some((a) => tl === a || tl.includes(a))) questions.push(fq);
-      }
-      questions = [...questions, ...fallbackQuestions].slice(0, targetCount);
-    }
-
-    console.log(`[FAQ Schema] AI generated ${questions.length} questions from blog content`);
-    return questions.slice(0, targetCount);
-  } catch (error) {
-    console.warn('[FAQ Schema] Failed to generate questions from content:', error);
-    const fallbackQuestions = [
-      `What is ${primaryKeyword}?`,
-      `How does ${primaryKeyword} work?`,
-      `Why is ${primaryKeyword} important?`,
-      `Where can I find ${primaryKeyword}?`
-    ];
-    return fallbackQuestions.slice(0, targetCount);
-  }
-}
 
 /**
- * Generates Google-compliant FAQ Schema JSON-LD from questions
- * ALWAYS generates schema - never returns empty string
- * Returns properly formatted JSON-LD string (ACF fields handle script tag wrapping)
- * Format: Valid JSON string that can be embedded in script tags
- * CRITICAL: All FAQs focus on North America only - uses NAP locations for realistic references
- */
-export function generateFAQSchema(
-  questions: string[],
-  primaryKeyword: string,
-  entity: string | undefined,
-  siteUrl: string,
-  napLocations?: Array<{ city: string; state: string }>
-): string {
-  // Filter out any questions that reference non-North American locations
-  const northAmericaOnlyQuestions = questions.filter(q => {
-    const lowerQ = q.toLowerCase();
-    // Block common international references
-    const blockedTerms = ['australia', 'uk', 'united kingdom', 'europe', 'asia', 'london', 'sydney', 'melbourne', 'brisbane', 'perth', 'adelaide', 'canberra', 'england', 'scotland', 'wales', 'ireland', 'new zealand', 'singapore', 'hong kong', 'tokyo', 'paris', 'berlin', 'rome', 'madrid'];
-    return !blockedTerms.some(term => lowerQ.includes(term));
-  });
-
-  // Take first 4 questions (always ensure we have questions)
-  let faqQuestions = northAmericaOnlyQuestions.slice(0, 4);
-  
-  // Ensure we have at least one question
-  if (faqQuestions.length === 0) {
-    // Fallback questions focused on North America
-    faqQuestions.push(
-      `What is ${primaryKeyword}?`,
-      `How does ${primaryKeyword} work?`,
-      `Why is ${primaryKeyword} important?`,
-      `Where can I find ${primaryKeyword} in North America?`
-    );
-  }
-  
-  // Get primary location from NAP data for answer context
-  let primaryLocation = '';
-  if (napLocations && napLocations.length > 0) {
-    const defaultLoc = napLocations.find(loc => loc.city && loc.state) || napLocations[0];
-    if (defaultLoc && defaultLoc.city && defaultLoc.state) {
-      primaryLocation = `${defaultLoc.city}, ${defaultLoc.state}`;
-    }
-  }
-  
-  // Use entity if available, otherwise use NAP location
-  const locationReference = entity || primaryLocation;
-  
-  // Generate FAQ schema structure per Google's FAQPage specification
-  // https://developers.google.com/search/docs/appearance/structured-data/faqpage
-  const faqItems = faqQuestions.slice(0, 4).map((question, index) => {
-    // Clean question text - trim and ensure it's a valid string
-    const cleanQuestion = String(question || '').trim();
-    if (!cleanQuestion) {
-      // Skip empty questions
-      return null;
-    }
-    
-    // Filter out any international references from the question itself
-    const lowerQuestion = cleanQuestion.toLowerCase();
-    const hasInternationalRef = ['australia', 'uk', 'united kingdom', 'europe', 'asia'].some(term => lowerQuestion.includes(term));
-    if (hasInternationalRef) {
-      console.warn(`[FAQ Schema] Filtered out question with international reference: ${cleanQuestion}`);
-      return null;
-    }
-    
-    // Generate answer text - use varied phrases for location reference to avoid repetition
-    let locationText: string;
-    if (locationReference) {
-      // Use varied FAQ phrases, rotating through different options for each question
-      const variedPhrase = getLocalFAQPhrase(locationReference, index);
-      locationText = ` ${variedPhrase}`;
-    } else {
-      locationText = ' in North America';
-    }
-    const answerText = `For expert guidance on ${cleanQuestion.toLowerCase()}, contact our team${locationText}. We specialize in ${primaryKeyword} and provide personalized solutions tailored to your needs.`;
-    
-    return {
-      "@type": "Question",
-      "name": cleanQuestion,
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": answerText
-      }
-    };
-  }).filter((item): item is NonNullable<typeof item> => item !== null); // Remove null items
-
-  // Ensure we have at least one valid FAQ item
-  if (faqItems.length === 0) {
-    faqItems.push({
-      "@type": "Question",
-      "name": `What is ${primaryKeyword}?`,
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": `Learn more about ${primaryKeyword} and how it can help you.`
-      }
-    });
-  }
-
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": faqItems
-  };
-
-  // Generate properly formatted JSON string
-  // JSON.stringify automatically handles escaping of special characters
-  let jsonString: string;
-  try {
-    // Use JSON.stringify which properly escapes all special characters
-    jsonString = JSON.stringify(faqSchema);
-    
-    // Validate the JSON is parseable
-    JSON.parse(jsonString);
-  } catch (error) {
-    console.error('[FAQ Schema] JSON stringify/parse error:', error);
-    // Fallback: create minimal valid schema with safe text
-    const safeKeyword = primaryKeyword.replace(/[^a-zA-Z0-9\s]/g, '').trim() || 'this topic';
-    jsonString = JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [{
-        "@type": "Question",
-        "name": `What is ${safeKeyword}?`,
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": `Learn more about ${safeKeyword} and how it can help you.`
-        }
-      }]
-    });
-  }
-  
-  // Wrap in script tags for Google-compliant JSON-LD embedding
-  // ACF fields can store this format, and WordPress themes will render it correctly
-  const fullSchema = `<script type="application/ld+json">${jsonString}</script>`;
-
-  console.log(`[FAQ Schema] Generated Google-compliant JSON-LD with ${faqItems.length} questions for "${primaryKeyword}"`);
-  return fullSchema;
-}
-
-/**
- * FAQ JSON-LD script from explicit Q/A pairs: keeps provided answers; fills empty answers with the same template as generateFAQSchema.
+ * FAQ JSON-LD script from explicit Q/A pairs. Only entries with a real stored
+ * answer are emitted. Returns "" when no entry has a real answer, so callers
+ * omit FAQPage schema instead of publishing invented answers.
  */
 export function buildFAQSchemaScriptFromEntries(
   entries: FaqEntry[],
-  primaryKeyword: string,
-  entity: string | undefined,
+  _primaryKeyword: string,
+  _entity: string | undefined,
   _siteUrl: string,
-  napLocations?: Array<{ city: string; state: string }>
+  _napLocations?: Array<{ city: string; state: string }>
 ): string {
-  let primaryLocation = "";
-  if (napLocations && napLocations.length > 0) {
-    const defaultLoc = napLocations.find((loc) => loc.city && loc.state) || napLocations[0];
-    if (defaultLoc && defaultLoc.city && defaultLoc.state) {
-      primaryLocation = `${defaultLoc.city}, ${defaultLoc.state}`;
-    }
-  }
-  const locationReference = entity || primaryLocation;
-  const faqItems = entries.map((entry, index) => {
-    const cleanQuestion = String(entry.question || "").trim();
-    if (!cleanQuestion) return null;
-    let answerText = String(entry.answer || "").trim();
-    if (!answerText) {
-      let locationText: string;
-      if (locationReference) {
-        const variedPhrase = getLocalFAQPhrase(locationReference, index);
-        locationText = ` ${variedPhrase}`;
-      } else {
-        locationText = " in North America";
-      }
-      answerText = `For expert guidance on ${cleanQuestion.toLowerCase()}, contact our team${locationText}. We specialize in ${primaryKeyword} and provide personalized solutions tailored to your needs.`;
-    }
-    return {
-      "@type": "Question",
-      name: cleanQuestion,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: answerText,
-      },
-    };
-  }).filter((item): item is NonNullable<typeof item> => item !== null);
+  const faqItems = entries
+    .map((entry) => {
+      const cleanQuestion = String(entry.question || "").trim();
+      const answerText = String(entry.answer || "").trim();
+      if (!cleanQuestion || !answerText) return null;
+      return {
+        "@type": "Question",
+        name: cleanQuestion,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: answerText,
+        },
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+
+  if (!faqItems.length) return "";
 
   const faqSchema = {
     "@context": "https://schema.org",
@@ -526,8 +258,8 @@ export interface WordPressUploaderOptions {
     site: WordPressSite;
     url: string;
     updateMode: 'update' | 'draft';
-    existingPost?: any;
-    resolved?: any;
+    existingPost?: WpExistingPostLike;
+    resolved?: ResolvedTargetLike;
     existingTitle: string;
     existingContent?: string;
     wordPressPosts?: Array<{ id: number; slug: string; title: string; excerpt: string; link: string; date_gmt: string }>;
@@ -535,7 +267,7 @@ export interface WordPressUploaderOptions {
     /** Bulk prefetch `getACFFieldsForPost` snapshot — upload skips repeat fetch when ids match. */
     acfFullPostSnapshot?: Record<string, unknown>;
   };
-  blueprintResult: any;
+  blueprintResult: { title?: string; purpose?: string };
   existingTitle: string;
   primaryKeyword: string;
   htmlContent: string;
@@ -563,7 +295,7 @@ export interface WordPressUploaderOptions {
 }
 
 export interface WordPressUploaderResult {
-  result: any;
+  result: WordPressPostCreateResult | WordPressPostUpdateResult;
   postId: number;
   link: string;
   finalTitle: string;
@@ -651,11 +383,11 @@ export async function uploadToWordPress(
 
   // Existing excerpt when we have no new meta string (e.g. empty generator output).
   const preservedExcerpt = (() => {
-    const raw = context.existingPost?.excerpt;
+    const raw: unknown = context.existingPost?.excerpt;
     if (raw == null) return '';
     if (typeof raw === 'string') return raw;
-    if (typeof raw === 'object' && 'rendered' in (raw as any) && typeof (raw as any).rendered === 'string') {
-      return (raw as any).rendered;
+    if (typeof raw === 'object' && 'rendered' in raw && typeof (raw as { rendered?: unknown }).rendered === 'string') {
+      return (raw as { rendered: string }).rendered;
     }
     return String(raw);
   })();
@@ -751,7 +483,7 @@ export async function uploadToWordPress(
   });
 
   
-  let result: any;
+  let result: WordPressPostCreateResult | WordPressPostUpdateResult;
   let finalTitle: string = '';
 
   // NOTE: We NO LONGER read existingOrigin from existing post
@@ -832,7 +564,7 @@ export async function uploadToWordPress(
         site.siteUrl,
         site.username,
         site.appPassword,
-        context.existingPost.id,
+        Number(context.existingPost.id),
         updateTitle,
         contentForUpdate, // Always optimized content – overwrite existing (posts and pages)
         excerptForRest,
@@ -877,7 +609,7 @@ export async function uploadToWordPress(
         });
       } else try {
         const postType = context.existingPost?.post_type || context.resolved?.subtype || 'post';
-        let fullPostForAcf = resolveFullPostForAcfUpdate(context.acfFullPostSnapshot, result.postId);
+        const fullPostForAcf = resolveFullPostForAcfUpdate(context.acfFullPostSnapshot, result.postId);
         if (!fullPostForAcf) {
           throw new Error(
             `Missing inventory ACF snapshot for post ${result.postId}. Reload inventory and retry.`,
@@ -947,10 +679,8 @@ export async function uploadToWordPress(
             step: 'Creating FAQ Schema...',
             progress: 93,
             message: bulkFaqMinimum4
-              ? 'Checking FAQ minimum (4)...'
-              : faqQuestions && faqQuestions.length > 0
-                ? `Generating FAQ schema with ${Math.min(faqQuestions.length, 4)} PAA questions...`
-                : 'Analyzing blog content to generate FAQ questions...',
+              ? 'Checking stored FAQ answers...'
+              : 'Building FAQ schema from stored answers...',
           });
 
           try {
@@ -961,73 +691,26 @@ export async function uploadToWordPress(
                 skipFaqWrites = true;
                 console.log('[WordPress Uploader] Bulk FAQ minimum: existing FAQ count >= 4; leaving ACF FAQ unchanged.');
               } else {
-                const need = 4 - existingEntries.length;
-                const openRouterApiKey = apiKey || loadApiKey();
-                let newQuestions: string[] = [];
-                if (need > 0 && openRouterApiKey?.trim()) {
-                  newQuestions = await generateQuestionsFromContent(
-                    htmlContent,
-                    primaryKeyword,
-                    openRouterApiKey,
-                    napLocations,
-                    {
-                      count: need,
-                      avoidSimilarTo: existingEntries.map((e) => e.question),
-                    }
-                  );
+                faqSchema = buildFAQSchemaScriptFromEntries(existingEntries, primaryKeyword, entity, site.siteUrl, napLocations);
+                if (faqSchema) {
+                  console.log(`[WordPress Uploader] Bulk FAQ: schema built from stored FAQ answers only; no answers invented to reach 4.`);
+                } else {
+                  setProgress({ step: 'Creating FAQ Schema...', progress: 93, message: 'FAQ schema omitted: no stored FAQ answers for this post.' });
+                  console.warn('[WordPress Uploader] FAQ schema omitted: no stored FAQ answers.');
                 }
-                if (need > 0 && newQuestions.length < need) {
-                  const pad = [
-                    `What is ${primaryKeyword}?`,
-                    `How does ${primaryKeyword} work?`,
-                    `Why is ${primaryKeyword} important?`,
-                    `Where can I find ${primaryKeyword} in North America?`,
-                  ];
-                  const avoidSet = new Set(existingEntries.map((e) => e.question.trim().toLowerCase()));
-                  for (const p of pad) {
-                    if (newQuestions.length >= need) break;
-                    const pl = p.trim().toLowerCase();
-                    if (!avoidSet.has(pl)) newQuestions.push(p);
-                  }
-                  newQuestions = newQuestions.slice(0, need);
-                }
-                const newEntries: FaqEntry[] = newQuestions.slice(0, need).map((q) => ({ question: q, answer: '' }));
-                const merged = [...existingEntries, ...newEntries].slice(0, 4);
-                faqSchema = buildFAQSchemaScriptFromEntries(merged, primaryKeyword, entity, site.siteUrl, napLocations);
-                console.log(`[WordPress Uploader] Bulk FAQ minimum: merged schema with ${merged.length} items.`);
               }
             } else if (generateFaqSchema) {
-              let questionsToUse = faqQuestions && faqQuestions.length > 0 ? faqQuestions : [];
-              if (questionsToUse.length === 0) {
-                const openRouterApiKey = apiKey || loadApiKey();
-                if (openRouterApiKey && openRouterApiKey.trim().length > 0) {
-                  console.log('[WordPress Uploader] No PAA questions - generating questions from blog content using AI...');
-                  questionsToUse = await generateQuestionsFromContent(htmlContent, primaryKeyword, openRouterApiKey, napLocations);
-                } else {
-                  console.warn('[WordPress Uploader] No API key available - using fallback questions');
-                  questionsToUse = [
-                    `What is ${primaryKeyword}?`,
-                    `How does ${primaryKeyword} work?`,
-                    `Why is ${primaryKeyword} important?`,
-                    `Where can I find ${primaryKeyword} in North America?`,
-                  ];
-                }
+              const storedEntries = parseFaqEntries(prefetchedFaqRaw);
+              faqSchema = buildFAQSchemaScriptFromEntries(storedEntries, primaryKeyword, entity, site.siteUrl, napLocations);
+              if (faqSchema) {
+                console.log(`[WordPress Uploader] FAQ schema built from ${storedEntries.length} stored FAQ answer(s)`);
+              } else {
+                setProgress({ step: 'Creating FAQ Schema...', progress: 93, message: 'FAQ schema omitted: no stored FAQ answers for this post.' });
+                console.warn('[WordPress Uploader] FAQ schema omitted: no stored FAQ answers.');
               }
-              faqSchema = generateFAQSchema(questionsToUse, primaryKeyword, entity, site.siteUrl, napLocations);
-              console.log(`[WordPress Uploader] FAQ Schema created successfully with ${questionsToUse.length} questions`);
             }
           } catch (faqError) {
             console.warn('[WordPress Uploader] Failed to generate FAQ schema:', faqError);
-            if (!bulkFaqMinimum4) {
-              const fallbackQuestions = [
-                `What is ${primaryKeyword}?`,
-                `How does ${primaryKeyword} work?`,
-                `Why is ${primaryKeyword} important?`,
-                `Where can I find ${primaryKeyword} in North America?`,
-              ];
-              faqSchema = generateFAQSchema(fallbackQuestions, primaryKeyword, entity, site.siteUrl, napLocations);
-              console.log('[WordPress Uploader] Using fallback FAQ schema');
-            }
           }
           }
         }
@@ -1192,14 +875,15 @@ export async function uploadToWordPress(
 setProgress({ step: 'Creating draft...', progress: 92, message: `Creating new draft: "${draftTitle}" in ${postTypeEndpoint} endpoint...` });
 
     // Extract author from existing post (preserve original author), or resolve via agentic author resolver for new posts
-    const existingAuthor = context.existingPost?.author || context.existingPost?.author_id;
-    let authorId: number | undefined = typeof existingAuthor === 'object' && existingAuthor.id
-      ? existingAuthor.id
-      : typeof existingAuthor === 'number'
-        ? existingAuthor
-        : typeof existingAuthor === 'string' && !isNaN(parseInt(existingAuthor))
-          ? parseInt(existingAuthor)
-          : undefined;
+    const existingAuthor: unknown = context.existingPost?.author || context.existingPost?.author_id;
+    let authorId: number | undefined =
+      existingAuthor && typeof existingAuthor === 'object' && typeof (existingAuthor as { id?: unknown }).id === 'number'
+        ? (existingAuthor as { id: number }).id
+        : typeof existingAuthor === 'number'
+          ? existingAuthor
+          : typeof existingAuthor === 'string' && !isNaN(parseInt(existingAuthor))
+            ? parseInt(existingAuthor)
+            : undefined;
 
     if (authorId === undefined) {
       try {
@@ -1268,7 +952,7 @@ result = await createWordPressPost(
         });
       } else try {
         const postType = context.resolved?.subtype || 'post';
-        let fullPostForAcfDraft = resolveFullPostForAcfUpdate(context.acfFullPostSnapshot, result.postId);
+        const fullPostForAcfDraft = resolveFullPostForAcfUpdate(context.acfFullPostSnapshot, result.postId);
         if (!fullPostForAcfDraft) {
           throw new Error(
             `Missing inventory ACF snapshot for draft ${result.postId}. Reload inventory and retry.`,
@@ -1334,7 +1018,7 @@ result = await createWordPressPost(
           setProgress({
             step: 'Creating FAQ Schema...',
             progress: 93,
-            message: bulkFaqMinimum4 ? 'Checking FAQ minimum (4)...' : 'Generating FAQ schema...',
+            message: bulkFaqMinimum4 ? 'Checking stored FAQ answers...' : 'Building FAQ schema from stored answers...',
           });
           try {
             if (bulkFaqMinimum4) {
@@ -1343,62 +1027,20 @@ result = await createWordPressPost(
                 faqSchemaDraft = '';
                 skipFaqWritesDraft = true;
               } else {
-                const need = 4 - existingEntries.length;
-                let newQuestions: string[] = [];
-                if (need > 0 && keyDraft.trim()) {
-                  newQuestions = await generateQuestionsFromContent(htmlContent, primaryKeyword, keyDraft, napLocationsDraft, {
-                    count: need,
-                    avoidSimilarTo: existingEntries.map((e) => e.question),
-                  });
+                faqSchemaDraft = buildFAQSchemaScriptFromEntries(existingEntries, primaryKeyword, entity, site.siteUrl, napLocationsDraft);
+                if (!faqSchemaDraft) {
+                  setProgress({ step: 'Creating FAQ Schema...', progress: 93, message: 'FAQ schema omitted: no stored FAQ answers for this post.' });
                 }
-                if (need > 0 && newQuestions.length < need) {
-                  const pad = [
-                    `What is ${primaryKeyword}?`,
-                    `How does ${primaryKeyword} work?`,
-                    `Why is ${primaryKeyword} important?`,
-                    `Where can I find ${primaryKeyword} in North America?`,
-                  ];
-                  const avoidSet = new Set(existingEntries.map((e) => e.question.trim().toLowerCase()));
-                  for (const p of pad) {
-                    if (newQuestions.length >= need) break;
-                    const pl = p.trim().toLowerCase();
-                    if (!avoidSet.has(pl)) newQuestions.push(p);
-                  }
-                  newQuestions = newQuestions.slice(0, need);
-                }
-                const newEntries: FaqEntry[] = newQuestions.slice(0, need).map((q) => ({ question: q, answer: '' }));
-                const merged = [...existingEntries, ...newEntries].slice(0, 4);
-                faqSchemaDraft = buildFAQSchemaScriptFromEntries(merged, primaryKeyword, entity, site.siteUrl, napLocationsDraft);
               }
             } else if (generateFaqSchema) {
-              let questionsToUse = faqQuestions?.length ? faqQuestions : [];
-              if (questionsToUse.length === 0 && keyDraft.trim()) {
-                questionsToUse = await generateQuestionsFromContent(
-                  htmlContent,
-                  primaryKeyword,
-                  keyDraft,
-                  napLocationsDraft
-                );
+              const storedEntries = parseFaqEntries(prefetchedFaqRaw);
+              faqSchemaDraft = buildFAQSchemaScriptFromEntries(storedEntries, primaryKeyword, entity, site.siteUrl, napLocationsDraft);
+              if (!faqSchemaDraft) {
+                setProgress({ step: 'Creating FAQ Schema...', progress: 93, message: 'FAQ schema omitted: no stored FAQ answers for this post.' });
               }
-              if (questionsToUse.length === 0) {
-                questionsToUse = [
-                  `What is ${primaryKeyword}?`,
-                  `How does ${primaryKeyword} work?`,
-                  `Why is ${primaryKeyword} important?`,
-                ];
-              }
-              faqSchemaDraft = generateFAQSchema(questionsToUse, primaryKeyword, entity, site.siteUrl, napLocationsDraft);
             }
           } catch {
-            if (!bulkFaqMinimum4) {
-              faqSchemaDraft = generateFAQSchema(
-                [`What is ${primaryKeyword}?`, `How does ${primaryKeyword} work?`],
-                primaryKeyword,
-                entity,
-                site.siteUrl,
-                napLocationsDraft
-              );
-            }
+            // FAQ schema omitted on failure; never invent answers.
           }
           }
         }

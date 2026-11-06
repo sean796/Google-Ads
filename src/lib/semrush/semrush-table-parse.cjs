@@ -79,7 +79,6 @@ function rowsFromSemrushCsvText(text) {
   const delimiter = guessCsvDelimiter(firstLine);
 
   try {
-    // eslint-disable-next-line import/no-extraneous-dependencies, global-require
     const Papa = require('papaparse');
     const parsed = Papa.parse(text, {
       header: true,

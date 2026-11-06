@@ -125,7 +125,6 @@ export function BulkCsvRunRowCompact({
           <AlertCircle
             className="h-4 w-4 shrink-0 text-ui-danger-hover"
             aria-label={rowErrorMessage?.trim() ? `Row failed: ${rowErrorMessage}` : "Row failed"}
-            title={rowErrorMessage?.trim() || "Row failed"}
           />
         ) : null}
         {canDownloadRow ? (

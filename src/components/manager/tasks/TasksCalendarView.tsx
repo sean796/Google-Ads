@@ -1,8 +1,8 @@
 import React, { useMemo } from "react";
-import { Calendar } from "@/components/ui/calendar";
+
 import { cn } from "@/lib/utils";
 import type { TeamTask } from "@/lib/tasks-types";
-import { RowButton } from "@/ui";
+import { RowButton, Calendar } from "@/ui";
 
 export type TasksCalendarViewProps = {
   tasks: TeamTask[];

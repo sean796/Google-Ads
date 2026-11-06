@@ -225,7 +225,7 @@ describe('buildBulkHarnessSectionUserPrompt', () => {
     expect(prompt).toContain('Stop after the bullet list');
   });
 
-  it('body section harness prompt uses 1-2 link placeholders', () => {
+  it('body section harness prompt uses at least 2 link placeholders', () => {
     const prompt = buildBulkHarnessSectionUserPrompt(
       'Article Title',
       'Focused guide (max 3200 words) about topic',
@@ -252,8 +252,8 @@ describe('buildBulkHarnessSectionUserPrompt', () => {
       'topic keyword',
       ['Overview', 'Alpha Topic', 'Beta Topic'],
     );
-    expect(prompt).toContain('at least 1 [[LINK:');
-    expect(prompt).not.toContain('3–5 [[LINK:');
+    expect(prompt).toContain('where a relevant internal page');
+    expect(prompt).not.toContain('at least 2 [[LINK:');
     expect(prompt).toContain('never {{LINK:');
   });
 
@@ -494,7 +494,7 @@ describe('press release harness linking (same as blogs)', () => {
       'press_release',
       'blinds',
     );
-    expect(prompt).toContain('at least 1 [[LINK:');
+    expect(prompt).toContain('where a relevant internal page');
     expect(prompt).toContain('No third-party external links');
     expect(prompt).toContain('NEVER link to competitors');
     expect(prompt).not.toContain('[anchor](exact-url)');

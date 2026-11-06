@@ -143,7 +143,8 @@ describe("buildSitemapMergePublishBulkGeneratorDetailsProps", () => {
     });
 
     expect(props?.displayRows.length).toBeGreaterThan(0);
-    expect(props?.harnessSections).toEqual([{ sectionIndex: 0, title: "Upload", status: "generating" }]);
+    expect(props?.harnessSections).toEqual([]);
+    expect(props?.harnessByRow?.size).toBe(0);
     expect(props?.entitySapRowDisplay).toBe(true);
   });
 });

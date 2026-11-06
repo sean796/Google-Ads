@@ -8,6 +8,8 @@ import {
   runOverviewWpUploadBatch,
 } from "@/lib/overview/overview-wp-upload-batch";
 import { overviewBulkScopeUrlKeysFromRows } from "@/lib/overview/overview-bulk-row-scope";
+import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
+import type { WpUploadHarnessSetters } from "@/lib/overview/overview-wp-upload-harness-run";
 import type { OverviewBulkSeoApiItem } from "@/lib/overview/overview-bulk-seo-payload";
 
 const bulkUpdateOverviewSeo = vi.fn();
@@ -72,17 +74,17 @@ describe("runOverviewWpUploadBatch", () => {
       async (_siteUrl, _user, _pass, items: OverviewBulkSeoApiItem[]) => mockBulkOk(items),
     );
 
-    let bulkState: Record<string, { urlGeneratedFiles?: Record<string, Array<{ name: string }>> }> = {};
-    const setBulkOptimizationState = vi.fn((updater: (prev: Record<string, unknown>) => unknown) => {
+    let bulkState: Record<string, BulkOptimizationState> = {};
+    const setBulkOptimizationState: WpUploadHarnessSetters["setBulkOptimizationState"] = (updater) => {
       if (typeof updater === "function") {
-        bulkState = updater(bulkState as Record<string, unknown>) as typeof bulkState;
+        bulkState = updater(bulkState);
       }
-    });
-    const setOptimizationProgress = vi.fn((updater: (prev: Record<string, unknown>) => unknown) => {
+    };
+    const setOptimizationProgress: WpUploadHarnessSetters["setOptimizationProgress"] = (updater) => {
       if (typeof updater === "function") {
         updater({});
       }
-    });
+    };
 
     const site = testSite();
     const batchKey = `${site.id}-batch`;
@@ -138,8 +140,10 @@ describe("runOverviewWpUploadBatch", () => {
         ? {
             row: {
               id: 10,
+              url: unchangedUrl,
               fields: {
                 title: "Unchanged Title",
+                meta: "",
                 excerpt: "Unchanged Meta",
                 keyword: "unchanged title",
               },

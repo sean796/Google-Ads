@@ -1,7 +1,8 @@
 import React from "react";
 import { useWordPressOptimization } from "@/contexts/wordpress-optimization-context";
 import { ContentOptimizationControls } from "@/components/integrations/wordpress/ContentOptimizationControls";
-import { OptimizationSettingsPanel, DEFAULT_SETTINGS } from "@/components/integrations/wordpress/OptimizationSettingsPanel";
+import { OptimizationSettingsPanel } from "@/components/integrations/wordpress/OptimizationSettingsPanel";
+import { DEFAULT_SETTINGS } from "@/lib/optimization-settings-defaults";
 import { OptimizationHistoryPanel } from "@/components/integrations/wordpress/OptimizationHistoryPanel";
 import { BulkOptimizationPanel } from "@/components/integrations/wordpress/BulkOptimizationPanel";
 import { GscPerformancePreviewRow } from "@/components/integrations/wordpress/GscPerformancePreviewRow";

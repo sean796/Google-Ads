@@ -9,6 +9,7 @@ import type {
   WordPressPostUpdateResult,
   WordPressPostDeleteResult
 } from './types';
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 /**
  * Create WordPress post
@@ -54,9 +55,7 @@ export async function createWordPressPost(
 try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         username,
@@ -128,7 +127,7 @@ export async function updateWordPressPost(
   title: string,
   content: string,
   excerpt?: string,
-  status?: 'draft' | 'publish',
+  status?: string,
   postType: string = 'post',
   featuredImageId?: number,
   categories?: number[],
@@ -141,9 +140,7 @@ export async function updateWordPressPost(
   try {
     const response = await fetch(url, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         username,
@@ -218,9 +215,7 @@ export async function deleteWordPressPost(
   try {
     const response = await fetch(url, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl,
         username,

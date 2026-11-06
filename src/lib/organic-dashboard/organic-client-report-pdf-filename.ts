@@ -1,4 +1,4 @@
-const INVALID_FILE_CHARS = /[<>:"/\\|?*\u0000-\u001f]/g;
+const INVALID_FILE_CHARS = /[<>:"/\\|?*\p{Cc}]/gu;
 
 /** Builds a safe PDF download name for the organic client report. */
 export function organicClientReportPdfFileName(siteName: string): string {

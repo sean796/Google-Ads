@@ -1,6 +1,6 @@
 import React from "react";
 import { Plus } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { TaskFormPanel } from "@/components/manager/tasks/TaskFormLayout";
 import {
   auditPlatformsFromPayload,
@@ -9,7 +9,7 @@ import {
   type DfsArticleAuditPlatform,
 } from "@/lib/dfs-article-audit/dfs-article-audit-types";
 import type { TaskExecutionPayload } from "@/lib/tasks-types";
-import { RowButton, Field } from "@/ui";
+import { RowButton, Field, Checkbox } from "@/ui";
 
 const QUESTION_FIELD_CLASS =
   "h-9 min-w-0 flex-1 rounded-none border-0 bg-black px-3 text-base text-white shadow-none outline-none ring-0 focus-visible:ring-0";

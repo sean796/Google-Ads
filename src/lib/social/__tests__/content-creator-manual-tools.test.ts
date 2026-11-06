@@ -4,14 +4,19 @@ import {
   assignContentCalendarLandingPages,
 } from "@/lib/social/content-creator-manual-tools";
 import { createIdleContentCalendarRow } from "@/lib/social/content-creator-types";
+import type { PpcWpPageContext } from "@/lib/ppc/google-ads-types";
+
+function page(url: string, title: string): PpcWpPageContext {
+  return { url, title, excerpt: "", metaDescription: "", keyword: "" };
+}
 
 describe("assignContentCalendarLandingPages", () => {
   it("round-robin assigns landing pages for pages source", () => {
     const rows = assignContentCalendarLandingPages(
       [createIdleContentCalendarRow(), createIdleContentCalendarRow()],
       [
-        { url: "https://example.com/a", title: "A" },
-        { url: "https://example.com/b", title: "B" },
+        page("https://example.com/a", "A"),
+        page("https://example.com/b", "B"),
       ],
       "pages",
     );
@@ -23,8 +28,8 @@ describe("assignContentCalendarLandingPages", () => {
     const rows = assignContentCalendarLandingPages(
       [createIdleContentCalendarRow()],
       [
-        { url: "https://example.com/a", title: "A" },
-        { url: "https://example.com/b", title: "B" },
+        page("https://example.com/a", "A"),
+        page("https://example.com/b", "B"),
       ],
       "random",
     );
@@ -37,7 +42,7 @@ describe("applyManualContentCalendarTools", () => {
     const rows = applyManualContentCalendarTools(
       [createIdleContentCalendarRow(), createIdleContentCalendarRow()],
       {
-        landingPages: [{ url: "https://example.com/blog/a", title: "A" }],
+        landingPages: [page("https://example.com/blog/a", "A")],
         landingPageSource: "posts",
       },
     );
@@ -56,7 +61,7 @@ describe("applyManualContentCalendarTools", () => {
         },
       ],
       {
-        landingPages: [{ url: "https://neodigital.ca/website-design/", title: "Website Design" }],
+        landingPages: [page("https://neodigital.ca/website-design/", "Website Design")],
         landingPageSource: "pages",
       },
     );

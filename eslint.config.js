@@ -5,6 +5,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 import {
   PULSE_UI_EXEMPT,
+  PULSE_UI_IMPORT_BAN,
   PULSE_UI_PAGE_FILES,
   PULSE_UI_PAGE_RULES,
   PULSE_UI_SPINNER_IMPORT,
@@ -38,6 +39,20 @@ export default tseslint.config(
       "no-restricted-syntax": ["error", ...PULSE_UI_SYNTAX_RULES],
       "no-restricted-imports": ["error", { paths: [PULSE_UI_SPINNER_IMPORT] }],
     },
+  },
+  {
+    // Vendor base (Radix primitives) keeps its own class strings; only the spinner ban applies.
+    files: ["src/ui/vendor/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": "off",
+      "no-restricted-imports": ["error", { paths: [PULSE_UI_SPINNER_IMPORT] }],
+    },
+  },
+  {
+    // App code imports controls from @/ui only; the vendor base stays inside src/ui.
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: PULSE_UI_EXEMPT,
+    rules: PULSE_UI_IMPORT_BAN,
   },
   {
     // Every other file in src builds from @/ui only. Bespoke controls need a documented per-line exception.

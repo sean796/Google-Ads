@@ -13,13 +13,12 @@ class Neo_Pulse_App_Agentmail_Webhook {
 	 * @param array<string,mixed> $body
 	 */
 	public static function handle( string $method, array $body, string $raw_body = '' ): void {
-		unset( $raw_body );
 		if ( $method !== 'POST' ) {
 			self::send_json( array( 'ok' => false, 'error' => 'Method not allowed' ), 405 );
 			return;
 		}
 
-		if ( ! self::verify_request() ) {
+		if ( ! self::verify_request( $raw_body ) ) {
 			self::send_json( array( 'ok' => false, 'error' => 'Unauthorized' ), 401 );
 			return;
 		}
@@ -102,10 +101,16 @@ class Neo_Pulse_App_Agentmail_Webhook {
 		);
 	}
 
-	private static function verify_request(): bool {
+	private static function verify_request( string $raw_body ): bool {
+		// Wave 0: fail closed. A signing secret (Svix) is verified when configured;
+		// otherwise the shared Bearer secret is required. Neither configured means reject.
+		$signing = class_exists( 'Neo_Pulse_App_Secrets' ) ? Neo_Pulse_App_Secrets::agentmail_signing_secret() : '';
+		if ( $signing !== '' ) {
+			return self::verify_svix( $signing, $raw_body );
+		}
 		$secret = class_exists( 'Neo_Pulse_App_Secrets' ) ? Neo_Pulse_App_Secrets::agentmail_webhook_secret() : '';
 		if ( $secret === '' ) {
-			return true;
+			return false;
 		}
 		$auth = isset( $_SERVER['HTTP_AUTHORIZATION'] ) ? (string) wp_unslash( $_SERVER['HTTP_AUTHORIZATION'] ) : '';
 		if ( $auth === '' && function_exists( 'getallheaders' ) ) {
@@ -121,6 +126,31 @@ class Neo_Pulse_App_Agentmail_Webhook {
 		}
 		if ( preg_match( '/^Bearer\s+(.+)$/i', $auth, $m ) ) {
 			return hash_equals( $secret, trim( $m[1] ) );
+		}
+		return false;
+	}
+
+	private static function verify_svix( string $signing_secret, string $raw_body ): bool {
+		$id        = isset( $_SERVER['HTTP_SVIX_ID'] ) ? (string) wp_unslash( $_SERVER['HTTP_SVIX_ID'] ) : '';
+		$timestamp = isset( $_SERVER['HTTP_SVIX_TIMESTAMP'] ) ? (string) wp_unslash( $_SERVER['HTTP_SVIX_TIMESTAMP'] ) : '';
+		$signature = isset( $_SERVER['HTTP_SVIX_SIGNATURE'] ) ? (string) wp_unslash( $_SERVER['HTTP_SVIX_SIGNATURE'] ) : '';
+		if ( $id === '' || $timestamp === '' || $signature === '' || $raw_body === '' ) {
+			return false;
+		}
+		if ( ! is_numeric( $timestamp ) || abs( time() - (int) $timestamp ) > 300 ) {
+			return false;
+		}
+		$key_b64 = str_starts_with( $signing_secret, 'whsec_' ) ? substr( $signing_secret, 6 ) : $signing_secret;
+		$key     = base64_decode( $key_b64, true );
+		if ( $key === false || $key === '' ) {
+			return false;
+		}
+		$expected = base64_encode( hash_hmac( 'sha256', $id . '.' . $timestamp . '.' . $raw_body, $key, true ) );
+		foreach ( explode( ' ', $signature ) as $part ) {
+			$pieces = explode( ',', trim( $part ), 2 );
+			if ( count( $pieces ) === 2 && $pieces[0] === 'v1' && hash_equals( $expected, $pieces[1] ) ) {
+				return true;
+			}
 		}
 		return false;
 	}

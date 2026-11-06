@@ -1,4 +1,5 @@
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { AdsReportingDateRanges } from "@/lib/ads-reporting/ads-reporting-types";
 import { resolveGoogleAdsCustomerIdForReportingAsync } from "@/lib/ads-reporting/ads-reporting-metrics";
@@ -396,7 +397,7 @@ export async function fetchAdsReportingBundle(
   const res = await fetch(backendApiUrl("/google-ads/fetch-reporting-bundle"), {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
   });
   const data = (await res.json().catch(() => ({}))) as AdsReportingBundle | { success?: false; error?: string };

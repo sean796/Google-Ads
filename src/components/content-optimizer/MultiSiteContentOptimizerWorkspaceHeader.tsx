@@ -12,17 +12,15 @@ import type { ContentOptimizerSectionId } from "@/components/content-optimizer/c
 import type { ContentOptimizerGeneratorChrome } from "@/components/content-optimizer/content-optimizer-generator-chrome";
 import { BlogGeneratorWorkspaceChrome } from "@/components/blog-generator/BlogGeneratorWorkspaceChrome";
 import { OverviewContentPaginationReserve } from "@/components/overview/overview-tab/OverviewContentChromeReserve";
-import {
-  MultiSiteContentDetailsPanel,
-  multiSiteContentDetailsCanOpen,
-} from "@/components/content-optimizer/MultiSiteContentDetailsPanel";
+import { MultiSiteContentDetailsPanel } from "@/components/content-optimizer/MultiSiteContentDetailsPanel";
+import { multiSiteContentDetailsCanOpen } from "@/components/content-optimizer/multi-site-content-details-can-open";
 import { UnifiedWorkspaceChrome } from "@/components/shared/UnifiedWorkspaceChrome";
 import { BULK_TOOLBAR_GROUP_DIVIDER } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import type { OptimizationProgressState } from "@/hooks/content-optimization/use-optimization-state";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { OptimizationFileManager } from "@/lib/optimization-file-manager";
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import { useOverviewSiteWarmDetails } from "@/hooks/overview/use-overview-site-warm-details";
 
 const DETAILS_PANEL_ID = "multi-site-batch-details-panel";
@@ -37,7 +35,10 @@ export type MultiSiteContentOptimizerWorkspaceHeaderProps = {
   progressSnapshot: MetaBulkMicroSnapshot | null;
   isProcessing: boolean;
   selectedSiteCount: number;
-  toolbarProps: React.ComponentProps<typeof MultiSiteContentOptimizerToolbar>;
+  toolbarProps: Omit<
+    React.ComponentProps<typeof MultiSiteContentOptimizerToolbar>,
+    "optimizeMode" | "onOptimizeModeChange"
+  >;
   batchBulkState: BulkOptimizationState | null | undefined;
   bulkRunBatchKey: string;
   batchSite?: WordPressSite | null;

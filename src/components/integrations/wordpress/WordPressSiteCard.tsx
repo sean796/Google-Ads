@@ -1,5 +1,6 @@
 import React from "react";
-import { Card } from "@/components/ui/card";
+import { Card } from "@/ui";
+
 import { type WordPressSite } from "../types";
 import { WordPressCardHeader } from "./WordPressCardHeader";
 import { WordPressCardStatus } from "./WordPressCardStatus";
@@ -150,7 +151,9 @@ export const WordPressSiteCard: React.FC<WordPressSiteCardProps> = ({
               displayViewportHeight={displayViewportHeight}
               hideSectionNav
               activeSectionId={activeSectionId}
-              onActiveSectionChange={setActiveSectionId}
+              onActiveSectionChange={(id) =>
+                setActiveSectionId(id as WordPressSiteAdminSectionId)
+              }
               flatContentPanel
               propertyTabContentShell
               fillParent

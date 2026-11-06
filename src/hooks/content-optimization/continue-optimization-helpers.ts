@@ -6,23 +6,26 @@ import { htmlToMarkdown } from "@/lib/wordpress-converter";
 import { type WordPressSite } from "@/components/integrations/types";
 import { updateOptimizationProgress } from "./optimization-helpers";
 import { selectRelevantPostsForBlog } from "@/lib/wordpress-post-selector";
+import type { ProgressSetter } from "./optimization-helpers-a";
+import type { ResolvedTargetLike } from "./use-optimization-state";
 
 export async function fetchWordPressContentForRAG(
   site: WordPressSite,
   siteId: string,
-  resolved: any,
+  resolved: ResolvedTargetLike | null | undefined,
   primaryKeyword: string,
   secondaryKeywords: string[],
   openRouterApiKey: string,
   researchModel: string,
-  setOptimizationProgress: (prev: any) => any
+  setOptimizationProgress: ProgressSetter
 ): Promise<{
   wordPressPosts: Array<{ id: number; slug: string; title: string; excerpt: string; link: string; date_gmt: string }>;
   wordPressRAGContext: string;
 }> {
-  updateOptimizationProgress(setOptimizationProgress, siteId, 'Fetching WordPress content via API...', 55, 'Fetching posts from WordPress API...');
+  updateOptimizationProgress(setOptimizationProgress, siteId, "load", 0.55, 'Fetching posts from WordPress API...');
 
   let wordPressPosts: Array<{ id: number; slug: string; title: string; excerpt: string; link: string; date_gmt: string }> = [];
+  let pagesMetadata: Array<{ id: number; slug: string; title: string; excerpt: string; link: string; date_gmt: string }> = [];
 
   try {
     // Detect if this is a page
@@ -30,25 +33,24 @@ export async function fetchWordPressContentForRAG(
                    resolved?.endpoint === 'pages';
     
     // ALWAYS fetch via API - NO CACHE
-    updateOptimizationProgress(setOptimizationProgress, siteId, 'Fetching WordPress content via API...', 55, isPage ? 'Loading posts and pages from WordPress REST API...' : 'Loading posts from WordPress REST API...');
+    updateOptimizationProgress(setOptimizationProgress, siteId, "load", 0.55, isPage ? 'Loading posts and pages from WordPress REST API...' : 'Loading posts from WordPress REST API...');
     if (!getMuteOptimizationToasts()) notify.info(isPage ? 'Fetching WordPress posts and pages via API...' : 'Fetching WordPress posts via API...', { duration: 2000 });
 
     // Fetch all published posts from WordPress API
     const publishedResult = await getPublishedPosts(site.siteUrl, site.username, site.appPassword, 200, 0);
     
     // If this is a page, also fetch pages
-    let pagesMetadata: Array<{ id: number; slug: string; title: string; excerpt: string; link: string; date_gmt: string }> = [];
     if (isPage) {
       try {
         const pagesResult = await getPublishedPages(site.siteUrl, site.username, site.appPassword, 200, 0);
         if (pagesResult.posts && pagesResult.posts.length > 0) {
-          pagesMetadata = pagesResult.posts.map((p: any) => ({
+          pagesMetadata = pagesResult.posts.map((p) => ({
             id: p.id,
             slug: p.slug || '',
-            title: (typeof p.title === 'object' && p.title?.rendered) ? p.title.rendered : (p.title || ''),
-            excerpt: ((typeof p.excerpt === 'object' && p.excerpt?.rendered) ? p.excerpt.rendered : (p.excerpt || '')).replace(/<[^>]+>/g, '').substring(0, 200),
+            title: p.title || '',
+            excerpt: (p.excerpt || '').replace(/<[^>]+>/g, '').substring(0, 200),
             link: p.link || p.slug || '',
-            date_gmt: p.date_gmt || (p as any).date || ''
+            date_gmt: p.date_gmt || ''
           })).filter(p => p.id && p.title && (p.link || p.slug));
           console.log(`[Optimize Content] Fetched ${pagesMetadata.length} pages for RAG context`);
         }
@@ -63,20 +65,20 @@ export async function fetchWordPressContentForRAG(
     }
 
     // Convert to metadata format
-    const allPostsMetadata = publishedResult.posts.map((p: any) => ({
+    const allPostsMetadata = (publishedResult.posts ?? []).map((p) => ({
       id: p.id,
       slug: p.slug || '',
-      title: (typeof p.title === 'object' && p.title?.rendered) ? p.title.rendered : (p.title || ''),
-      excerpt: ((typeof p.excerpt === 'object' && p.excerpt?.rendered) ? p.excerpt.rendered : (p.excerpt || '')).replace(/<[^>]+>/g, '').substring(0, 200),
+      title: p.title || '',
+      excerpt: (p.excerpt || '').replace(/<[^>]+>/g, '').substring(0, 200),
       link: p.link || p.slug || '',
-      date_gmt: p.date_gmt || (p as any).date || ''
+      date_gmt: p.date_gmt || ''
     })).filter(p => p.id && p.title && (p.link || p.slug));
     
     // Combine posts and pages metadata
     const allContentMetadata = [...allPostsMetadata, ...pagesMetadata];
 
     // Use AI to filter posts/pages by primary + secondary keywords
-    updateOptimizationProgress(setOptimizationProgress, siteId, 'Filtering content by keywords with AI...', 56, `Filtering ${allContentMetadata.length} items (${allPostsMetadata.length} posts${isPage ? `, ${pagesMetadata.length} pages` : ''}) by keywords: ${primaryKeyword}${secondaryKeywords.length > 0 ? ` + ${secondaryKeywords.length} secondary` : ''}...`);
+    updateOptimizationProgress(setOptimizationProgress, siteId, "load", 0.56, `Filtering ${allContentMetadata.length} items (${allPostsMetadata.length} posts${isPage ? `, ${pagesMetadata.length} pages` : ''}) by keywords: ${primaryKeyword}${secondaryKeywords.length > 0 ? ` + ${secondaryKeywords.length} secondary` : ''}...`);
     
     const combinedKeywords = [primaryKeyword, ...secondaryKeywords].filter(kw => kw && kw.trim().length > 0).join(', ');
     const blogTitle = `Content about ${primaryKeyword}`;
@@ -119,7 +121,7 @@ export async function fetchWordPressContentForRAG(
   let wordPressRAGContext = '';
   if (wordPressPosts.length > 0) {
     try {
-      updateOptimizationProgress(setOptimizationProgress, siteId, 'Fetching full content...', 58, `Loading content from ${wordPressPosts.length} selected items...`);
+      updateOptimizationProgress(setOptimizationProgress, siteId, "load", 0.58, `Loading content from ${wordPressPosts.length} selected items...`);
       if (!getMuteOptimizationToasts()) notify.info(notifyFetchingFullContentFromXSelectedIt(wordPressPosts.length), { duration: 2000 });
 
       const ragContent: string[] = [];
@@ -127,7 +129,7 @@ export async function fetchWordPressContentForRAG(
       for (let i = 0; i < wordPressPosts.length; i++) {
         const post = wordPressPosts[i];
         try {
-          updateOptimizationProgress(setOptimizationProgress, siteId, 'Fetching post content...', 58 + Math.floor((i / wordPressPosts.length) * 2), `Fetching ${i + 1}/${wordPressPosts.length}: ${post.title.substring(0, 40)}...`);
+          updateOptimizationProgress(setOptimizationProgress, siteId, "load", (58 + Math.floor((i / wordPressPosts.length) * 2)) / 100, `Fetching ${i + 1}/${wordPressPosts.length}: ${post.title.substring(0, 40)}...`);
 
           // Query WordPress API to discover post type - NO GUESSING
           // The API will try all post types systematically

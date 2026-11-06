@@ -47,6 +47,7 @@ function buildWorkflow(includeEmail = false): WorkflowDefinition {
     id: 1,
     teamId: 1,
     name: "GSC",
+    status: "draft",
     nodes: [trigger],
     edges: [],
     ragVariables: [],

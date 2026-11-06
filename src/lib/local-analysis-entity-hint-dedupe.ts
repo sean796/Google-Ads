@@ -25,7 +25,7 @@ const TOPIC_DISAMBIG_INNER = new Set([
 ]);
 
 function normalizeWord(raw: string): string {
-  let w = raw.toLowerCase();
+  const w = raw.toLowerCase();
   if (w.length > 4 && w.endsWith("ies")) return w.slice(0, -3) + "y";
   if (w.length > 3 && w.endsWith("es") && !w.endsWith("ses")) return w.slice(0, -2);
   if (w.length > 3 && w.endsWith("s") && !w.endsWith("ss")) return w.slice(0, -1);

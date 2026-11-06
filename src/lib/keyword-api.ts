@@ -1,10 +1,11 @@
+import { resolveMcpApiBase } from "@/lib/mcp-tools";
 import { notify } from "@/lib/app-notifications";
 import type {
   KeywordData,
-  KeywordResearchResult,
   KeywordAnalysisOptions,
 } from "./keyword-types";
 import { saveKeywordResearchToDB, getKeywordResearchFromDB } from "./keyword-db";
+import { classifyKeywordIntentWithAi } from "./keyword-intent-classify";
 import { loadDataForSEOApiKey } from "./api";
 import {
   callMCPKeywordOverview,
@@ -31,7 +32,7 @@ export function clearKeywordCache(): void {
 }
 
 interface CachedKeywordData {
-  data: KeywordData | KeywordResearchResult;
+  data: unknown;
   timestamp: number;
   keyword: string;
 }
@@ -82,7 +83,7 @@ function setCachedData<T>(keyword: string, data: T, cacheKey: string): void {
     // Add new entry
     filtered.push({
       keyword: keywordLower,
-      data: data as any,
+      data: data,
       timestamp: Date.now(),
     });
 
@@ -250,39 +251,13 @@ export async function classifySearchIntent(
       return results;
     }
 
-    // Use heuristic-based intent classification (no API call - search intent endpoint removed)
-    const heuristicResults = remainingKeywords
-      .filter(kw => kw && typeof kw === 'string' && kw.trim().length > 0)
-      .map(kw => {
-      const keywordLower = String(kw).toLowerCase().trim();
-      let intent: 'informational' | 'commercial' | 'transactional' | 'navigational' = 'informational';
-      let probability = 0.7; // Medium confidence for heuristics
-      
-      // Simple heuristics
-      if (keywordLower.includes('buy') || keywordLower.includes('price') || keywordLower.includes('cost') || 
-          keywordLower.includes('cheap') || keywordLower.includes('discount') || keywordLower.includes('deal') ||
-          keywordLower.includes('order') || keywordLower.includes('purchase') || keywordLower.includes('shop')) {
-        intent = 'transactional';
-        probability = 0.8;
-      } else if (keywordLower.includes('best') || keywordLower.includes('review') || keywordLower.includes('compare') ||
-                 keywordLower.includes('vs') || keywordLower.includes('alternative') || keywordLower.includes('top') ||
-                 keywordLower.includes('recommend')) {
-        intent = 'commercial';
-        probability = 0.75;
-      } else if (keywordLower.includes('how to') || keywordLower.includes('what is') || keywordLower.includes('guide') ||
-                 keywordLower.includes('tutorial') || keywordLower.includes('learn') || keywordLower.includes('explain')) {
-        intent = 'informational';
-        probability = 0.8;
-      } else if (keywordLower.includes('.com') || keywordLower.includes('website') || keywordLower.includes('login')) {
-        intent = 'navigational';
-        probability = 0.7;
-      }
-      
-      return { keyword: kw, intent, probability };
-    });
-    
-    // Return DB results + heuristic results
-    return [...results, ...heuristicResults];
+    const aiResults = await classifyKeywordIntentWithAi(
+      remainingKeywords.filter((kw) => kw && typeof kw === "string" && kw.trim().length > 0),
+    );
+    return [
+      ...results,
+      ...aiResults.map((r) => ({ keyword: r.keyword, intent: r.intent, probability: r.probability })),
+    ];
   } catch (error) {
     console.error("Error classifying search intent:", error);
     throw new Error(`Failed to classify search intent: ${error instanceof Error ? error.message : "Unknown error"}`);
@@ -293,22 +268,49 @@ export async function classifySearchIntent(
  * Extracts People Also Ask (PAA) data from SERP response
  * Handles multiple possible response structures from DataForSEO API
  */
-export function extractPeopleAlsoAsk(serpData: any): import("./keyword-types").PeopleAlsoAsk[] {
+interface PaaSerpItem {
+  type?: string;
+  question?: string;
+  title?: string;
+  text?: string;
+  answer?: string;
+  description?: string;
+  snippet?: string;
+  url?: string;
+  link?: string;
+  items?: PaaSerpItem[];
+  people_also_ask_items?: PaaSerpItem[];
+}
+
+interface PaaSerpResult {
+  items?: PaaSerpItem[];
+  people_also_ask?: PaaSerpItem[];
+}
+
+interface PaaSerpTask {
+  status_code?: number;
+  status_message?: string;
+  result?: PaaSerpResult | PaaSerpResult[];
+}
+
+export function extractPeopleAlsoAsk(serpData: unknown): import("./keyword-types").PeopleAlsoAsk[] {
   const paaItems: import("./keyword-types").PeopleAlsoAsk[] = [];
-  
+
   // Log full response structure for debugging if no items found
-  let hasLoggedStructure = false;
-  
-  if (!serpData?.tasks || !Array.isArray(serpData.tasks)) {
+  const hasLoggedStructure = false;
+  const serp: { tasks?: PaaSerpTask[] } =
+    serpData && typeof serpData === "object" ? (serpData as { tasks?: PaaSerpTask[] }) : {};
+
+  if (!serp.tasks || !Array.isArray(serp.tasks)) {
     console.warn('[PAA Extraction] No tasks array found in response:', {
       hasSerpData: !!serpData,
-      tasksType: typeof serpData?.tasks,
-      keys: serpData ? Object.keys(serpData) : []
+      tasksType: typeof serp.tasks,
+      keys: serpData && typeof serpData === "object" ? Object.keys(serpData) : []
     });
     return paaItems;
   }
-  
-  for (const task of serpData.tasks) {
+
+  for (const task of serp.tasks) {
     // Check task status
     if (task.status_code && task.status_code !== 20000) {
       console.warn('[PAA Extraction] Task has error status:', {
@@ -419,12 +421,16 @@ export function extractPeopleAlsoAsk(serpData: any): import("./keyword-types").P
   // Log structure for debugging if no items found (no warning - empty PAA is acceptable)
   if (paaItems.length === 0 && !hasLoggedStructure) {
     console.log('[PAA Extraction] No PAA items found (this is acceptable). Response structure:', {
-      hasTasks: !!serpData.tasks,
-      tasksLength: serpData.tasks?.length,
-      firstTaskKeys: serpData.tasks?.[0] ? Object.keys(serpData.tasks[0]) : [],
-      firstTaskResultType: typeof serpData.tasks?.[0]?.result,
-      firstTaskResultIsArray: Array.isArray(serpData.tasks?.[0]?.result),
-      sampleStructure: JSON.stringify(serpData.tasks?.[0]?.result?.[0] || {}, null, 2).substring(0, 500)
+      hasTasks: !!serp.tasks,
+      tasksLength: serp.tasks?.length,
+      firstTaskKeys: serp.tasks?.[0] ? Object.keys(serp.tasks[0]) : [],
+      firstTaskResultType: typeof serp.tasks?.[0]?.result,
+      firstTaskResultIsArray: Array.isArray(serp.tasks?.[0]?.result),
+      sampleStructure: JSON.stringify(
+        (Array.isArray(serp.tasks?.[0]?.result) ? serp.tasks[0].result[0] : {}) || {},
+        null,
+        2
+      ).substring(0, 500)
     });
   }
   
@@ -451,7 +457,7 @@ export async function fetchPeopleAlsoAsk(
   depth: number = 10
 ): Promise<{
   items: import("./keyword-types").PeopleAlsoAsk[];
-  rawResponse: any;
+  rawResponse: unknown;
   extractionLog: string[];
 }> {
   try {
@@ -459,8 +465,7 @@ export async function fetchPeopleAlsoAsk(
       console.warn("[KeywordAPI] DataForSEO disabled – skipping People Also Ask fetch for keyword:", keyword);
       return { items: [], rawResponse: null, extractionLog: ["[PAA Fetch] DataForSEO disabled"] };
     }
-    const MCP_API_BASE = import.meta.env.VITE_MCP_API_BASE || 
-      (import.meta.env.DEV ? 'http://localhost:3001/api/mcp' : '/api/mcp');
+    const MCP_API_BASE = resolveMcpApiBase();
     
     console.log('[People Also Ask] Fetching SERP data from:', `${MCP_API_BASE}/DataForSEO_serp_organic_live_advanced`);
     
@@ -652,14 +657,31 @@ export async function getKeywordOverview(
 /**
  * Helper to transform DataForSEO API responses to our KeywordData format
  */
-export function transformKeywordData(apiResponse: any): KeywordData {
-  const rawKeyword = apiResponse.keyword || apiResponse.keyword_info?.keyword || "";
+interface KeywordDataApiItem {
+  keyword?: string;
+  keyword_info?: {
+    keyword?: string;
+    keyword_difficulty?: number;
+    search_volume?: number;
+    cpc?: number;
+    competition_level?: string;
+  };
+  keyword_difficulty?: number;
+  search_volume?: number;
+  cpc?: number;
+  competition_level?: string;
+}
+
+export function transformKeywordData(apiResponse: unknown): KeywordData {
+  const data: KeywordDataApiItem =
+    apiResponse && typeof apiResponse === "object" ? (apiResponse as KeywordDataApiItem) : {};
+  const rawKeyword = data.keyword || data.keyword_info?.keyword || "";
   return {
     keyword: formatKeyword(rawKeyword),
-    difficulty: apiResponse.keyword_difficulty || apiResponse.keyword_info?.keyword_difficulty || 0,
-    searchVolume: apiResponse.search_volume || apiResponse.keyword_info?.search_volume || 0,
-    cpc: apiResponse.cpc || apiResponse.keyword_info?.cpc || 0,
-    competition: (apiResponse.competition_level || apiResponse.keyword_info?.competition_level || "LOW") as 'LOW' | 'MEDIUM' | 'HIGH',
+    difficulty: data.keyword_difficulty || data.keyword_info?.keyword_difficulty || 0,
+    searchVolume: data.search_volume || data.keyword_info?.search_volume || 0,
+    cpc: data.cpc || data.keyword_info?.cpc || 0,
+    competition: (data.competition_level || data.keyword_info?.competition_level || "LOW") as 'LOW' | 'MEDIUM' | 'HIGH',
     intent: 'informational' as const, // Will be set separately
     relatedKeywords: [],
     serpFeatures: []

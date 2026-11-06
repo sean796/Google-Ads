@@ -1,12 +1,13 @@
 import React, { useMemo } from "react";
-import { Calendar } from "@/components/ui/calendar";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
+
+
+
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, Clock, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui";
+import { Button, Calendar, Card, Badge, ScrollArea } from "@/ui";
+import type { DayProps } from "react-day-picker";
 
 interface Post {
   id: number;
@@ -191,8 +192,9 @@ export const PostCalendar: React.FC<PostCalendarProps> = ({ posts, sitemapUrl, o
   };
 
   // Custom day component to show post count
-  const DayContent = (props: any) => {
-    const { date, displayMonth, ...dayProps } = props;
+  const DayContent = (props: DayProps) => {
+    const { date, displayMonth: _displayMonth, ...restProps } = props;
+    const dayProps = restProps as React.ButtonHTMLAttributes<HTMLButtonElement>;
     const dateKey = format(date, 'yyyy-MM-dd');
     const dayPosts = postsByDate[dateKey] || [];
     const postCount = dayPosts.length;
@@ -224,7 +226,6 @@ export const PostCalendar: React.FC<PostCalendarProps> = ({ posts, sitemapUrl, o
     }) && !hasFuturePost; // Only if no future posts
 
     return (
-      // eslint-disable-next-line no-restricted-syntax -- Pulse UI exception: react-day-picker day cell needs its own button element and props
       <button
         {...dayProps}
         type="button"

@@ -8,14 +8,8 @@ import {
   RotateCcw,
   Upload,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
+
 import { MY_SITES_POPOVER } from "@/components/hosting/my-sites/my-sites-theme";
 import type { VideoBrief, VideoPlan, VideoRenderSnapshot } from "@/lib/video-generator/video-generator-types";
 import {
@@ -28,7 +22,7 @@ import {
   type VideoResolution,
 } from "@/lib/video-generator/video-model-defaults";
 import { cn } from "@/lib/utils";
-import { Button, FileInput, SelectField } from "@/ui";
+import { Button, FileInput, SelectField, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Popover, PopoverContent, PopoverTrigger } from "@/ui";
 
 type VideoWorkspaceFileMenuProps = {
   working: boolean;

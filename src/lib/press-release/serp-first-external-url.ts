@@ -1,5 +1,6 @@
 import { extractDataForSeoSerpBrief } from "@/lib/overview-seo-content-brief";
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { mcp_DataForSEO_serp_organic_live_advanced } from "@/lib/mcp-tools";
 
 /** Same URL shape as Overview / bulk SERP helper ([bulk-optimization-missing-seo-research.ts](b:/USE THIS/NEO Pulse/src/hooks/content-optimization/bulk-optimization-missing-seo-research.ts)). */
@@ -29,7 +30,7 @@ export async function fetchSerpRootForKeyword(keyword: string): Promise<unknown 
       null;
     if (!storedFile || typeof storedFile !== "string") return null;
 
-    const serpRes = await fetch(serpDumpFilenameUrl(storedFile));
+    const serpRes = await fetch(serpDumpFilenameUrl(storedFile), { headers: neoPulseApiHeaders() });
     if (!serpRes.ok) return null;
     return serpRes.json().catch(() => null);
   } catch {

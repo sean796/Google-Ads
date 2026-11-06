@@ -316,7 +316,30 @@ Return ONLY the JSON object following the exact schema. Validate it before sendi
     }
 
     // Parse JSON - NO REPAIR, NO FALLBACK - AI must get it right
-    const parsed = JSON.parse(cleanedResponse);
+    interface RawQueryCluster {
+      name?: string;
+      description?: string;
+      queries?: GSCQuery[];
+      characteristics?: Partial<QueryCluster["characteristics"]>;
+      recommendation?: Partial<QueryCluster["recommendation"]>;
+    }
+    const parsed = JSON.parse(cleanedResponse) as {
+      clusters?: RawQueryCluster[];
+      overallRecommendation?: {
+        topCluster?: string;
+        recommendedKeyword?: string;
+        reasoning?: string;
+        alternativeOptions?: Array<{ keyword: string; reason: string }>;
+      };
+      recommendedKeyword?: string;
+      reasoning?: string;
+      insights?: {
+        localPresence?: boolean;
+        intentDistribution?: Record<string, number>;
+        topPerformingCluster?: string;
+        opportunityClusters?: string[];
+      };
+    };
 
     // AI-FORWARD: Use AI's recommendation directly without validation or matching
     // If AI provides a recommendation, trust it completely
@@ -339,9 +362,9 @@ Return ONLY the JSON object following the exact schema. Validate it before sendi
     }
 
     // Build clusters array (handle missing or malformed clusters)
-    let clusters: any[] = [];
+    let clusters: QueryCluster[] = [];
     if (Array.isArray(parsed.clusters) && parsed.clusters.length > 0) {
-      clusters = parsed.clusters.map((cluster: any) => {
+      clusters = parsed.clusters.map((cluster) => {
         // Ensure cluster has required structure
         return {
           name: cluster.name || "Unnamed Cluster",
@@ -405,7 +428,7 @@ Return ONLY the JSON object following the exact schema. Validate it before sendi
     // Build final analysis with all fields guaranteed
     // AI-FORWARD: Use alternative options directly from AI without filtering
     const filteredAlternatives = Array.isArray(parsed.overallRecommendation?.alternativeOptions) 
-      ? parsed.overallRecommendation.alternativeOptions.filter((alt: any) => 
+      ? parsed.overallRecommendation.alternativeOptions.filter((alt) =>
           alt && alt.keyword && typeof alt.keyword === 'string'
         )
       : [];

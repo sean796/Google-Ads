@@ -1,7 +1,7 @@
 import React, { useMemo, useRef } from "react";
 import { ChevronDown } from "lucide-react";
-import { CheckField, RowButton } from "@/ui";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CheckField, RowButton, Popover, PopoverContent, PopoverTrigger } from "@/ui";
+
 import type { WordPressSiteOption } from "@/components/manager/tasks/NewProjectDialog";
 import { WorkflowInspectorGroup } from "@/components/manager/workflow/WorkflowInspectorLayout";
 import { workflowClientScope } from "@/lib/workflow/workflow-client-config";
@@ -26,7 +26,7 @@ export function WorkflowClientInspectorFields({
 }: WorkflowClientInspectorFieldsProps): React.ReactElement {
   const ignoreCloseRef = useRef(false);
   const legacyAll = workflowClientScope(config) === "all";
-  const siteIds = config.siteIds ?? [];
+  const siteIds = useMemo(() => config.siteIds ?? [], [config.siteIds]);
   const allSiteIds = useMemo(() => sites.map((site) => site.id), [sites]);
 
   const selectedIds = useMemo(() => {

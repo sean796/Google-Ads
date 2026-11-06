@@ -1,5 +1,8 @@
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
-import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
+import type {
+  BulkOptimizationState,
+  OptimizationProgressState,
+} from "@/hooks/content-optimization/use-optimization-state";
 import type { BulkHarnessSectionUi } from "@/hooks/use-bulk-auto-generate";
 import { normalizePageUrlKey } from "@/lib/sitemap-optimizer/normalize-page-url";
 import {
@@ -66,10 +69,11 @@ export function resolveSimpleAiseoBatchPipelineTitles(
 
 export { CONTENT_OPTIMIZE_PIPELINE_TITLES, isContentOptimizePipelineTitles };
 
-export type ResearchBatchSignals = Pick<
-  BulkOptimizationState,
-  "runKind" | "currentStep" | "currentStepProgress" | "urlHarnessSections"
->;
+export type ResearchBatchSignals = Partial<
+  Pick<BulkOptimizationState, "runKind" | "currentStep" | "urlHarnessSections">
+> & {
+  currentStepProgress?: Partial<OptimizationProgressState>;
+};
 
 function isResearchPipelineTitles(titles: readonly string[] | undefined): boolean {
   return isResearchHarnessPipelineTitles(titles);
@@ -139,7 +143,6 @@ export function isResearchBatchState(
   const planned = bulkState.currentStepProgress?.harnessPlannedSectionCount;
   if (planned === RESEARCH_HARNESS_TOTAL_SECTIONS) {
     return (
-      bulkState.runKind === "research" ||
       step.includes("Research") ||
       msg.includes("Research") ||
       urlHarnessSectionsIncludeResearch(bulkState.urlHarnessSections)

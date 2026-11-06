@@ -7,6 +7,7 @@ import { BACKEND_API_BASE } from './connection';
 import { getWordPressPostContent } from './posts';
 import { getACFFieldsForPost } from './acf-discovery';
 import type { WordPressSite } from '@/components/integrations/types';
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 export interface ScannedPost {
   id: number;
@@ -18,8 +19,8 @@ export interface ScannedPost {
   link: string;
   slug: string;
   status: string;
-  acfFields: Record<string, any>;
-  metaFields: Record<string, any>;
+  acfFields: Record<string, unknown>;
+  metaFields: Record<string, unknown>;
   taxonomies: Record<string, string[]>;
 }
 
@@ -47,9 +48,7 @@ export async function getAllPostTypes(site: WordPressSite): Promise<string[]> {
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         siteUrl: site.siteUrl,
         username: site.username,
@@ -114,9 +113,7 @@ async function getAllPosts(
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           siteUrl: site.siteUrl,
           username: site.username,
@@ -150,11 +147,17 @@ async function getAllPosts(
         break;
       }
 
-      allPosts.push(...posts.map((post: any) => ({
+      allPosts.push(...posts.map((post: {
+        id: number;
+        title?: string | { rendered?: string };
+        link?: string;
+        slug?: string;
+        status?: string;
+      }) => ({
         id: post.id,
         postType,
         postTypeEndpoint,
-        title: post.title?.rendered || post.title || '',
+        title: typeof post.title === 'string' ? post.title : post.title?.rendered || '',
         link: post.link || '',
         slug: post.slug || '',
         status: post.status || 'publish',
@@ -328,7 +331,7 @@ export async function scanWordPressSite(
           if (!postContent) continue;
 
           // Get ACF fields
-          let acfFields: Record<string, any> = {};
+          let acfFields: Record<string, unknown> = {};
           try {
             const acfResult = await getACFFieldsForPost(
               site,
@@ -345,27 +348,28 @@ export async function scanWordPressSite(
           }
 
           // Extract meta fields (if available in postContent)
-          const metaFields: Record<string, any> = {};
-          if (postContent.meta) {
-            Object.assign(metaFields, postContent.meta);
+          const metaFields: Record<string, unknown> = {};
+          const fullMeta = (postContent.fullData as { meta?: Record<string, unknown> } | undefined)?.meta;
+          if (fullMeta) {
+            Object.assign(metaFields, fullMeta);
           }
 
           // Extract taxonomies (if available)
           const taxonomies: Record<string, string[]> = {};
           if (postContent.categories) {
-            taxonomies.categories = postContent.categories.map((c: any) => c.name || String(c));
+            taxonomies.categories = postContent.categories.map((c) => String(c));
           }
           if (postContent.tags) {
-            taxonomies.tags = postContent.tags.map((t: any) => t.name || String(t));
+            taxonomies.tags = postContent.tags.map((t) => String(t));
           }
 
           scannedPosts.push({
             id: post.id,
             postType: post.postType,
             postTypeEndpoint: post.postTypeEndpoint,
-            title: postContent.title?.rendered || postContent.title || post.title,
-            content: postContent.content?.rendered || postContent.content || '',
-            excerpt: postContent.excerpt?.rendered || postContent.excerpt || '',
+            title: postContent.title || post.title,
+            content: postContent.content || '',
+            excerpt: postContent.excerpt || '',
             link: post.link,
             slug: post.slug,
             status: post.status,

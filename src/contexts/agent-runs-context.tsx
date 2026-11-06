@@ -76,11 +76,9 @@ import {
   advanceServerAgentRun,
   warmInventoryForServerPostCreatorRun,
 } from "@/lib/agent-runs/run-server-post-creator-upload";
-import type { TeamTask } from "@/lib/tasks-types";
+import type { TaskExecutionPayload, TeamTask } from "@/lib/tasks-types";
 import { rememberWorkflowAgentBinding } from "@/lib/workflow/workflow-agent-binding";
 import { resolveWorkflowActionPayload } from "@/lib/workflow/resolve-workflow-action-payload";
-import { wordpressSiteDisplayName } from "@/lib/wordpress-site-display-name";
-
 type StartRunOptions = {
   openSidebar?: boolean;
   workflowBinding?: {
@@ -479,7 +477,7 @@ export function AgentRunsContextProvider({
         return { ok: false, error: "Set a client on the project." };
       }
 
-      const executionPayload = options?.workflowBinding
+      const executionPayload: TaskExecutionPayload = options?.workflowBinding
         ? {
             targetBucket: "posts",
             ...(prepared.executionPayload ?? {}),
@@ -496,7 +494,7 @@ export function AgentRunsContextProvider({
           ? resolveWorkflowActionPayload(
               kind as "entity_page_creator" | "entity_generator" | "local_dominator_export",
               executionPayload,
-              { name: site ? wordpressSiteDisplayName(site) : undefined },
+              site,
               options.workflowBinding.workflowRunId,
             )
           : executionPayload;
@@ -672,8 +670,6 @@ export function AgentRunsContextProvider({
       activeWordPressSiteId,
       agentsSiteIds,
       refreshRuns,
-      setSidebarOpen,
-      setSidebarPanel,
       teamId,
       workflowDispatchCallbacks,
     ],

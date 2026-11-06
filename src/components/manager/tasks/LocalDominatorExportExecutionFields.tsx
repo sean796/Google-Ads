@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { Field } from "@/ui";
 import {
   TaskFormFieldGrid,
@@ -41,7 +41,7 @@ export function LocalDominatorExportExecutionFields({
   clientSiteName = "",
   onChange,
 }: LocalDominatorExportExecutionFieldsProps): React.ReactElement {
-  const payload = executionPayload ?? {};
+  const payload = useMemo(() => executionPayload ?? {}, [executionPayload]);
   const businessNameStored = String(payload.businessName ?? "").trim();
   const storedKeyword = normalizeLocalDominatorGridKeywordStored(payload.keyword);
   const keywordMode = keywordModeFromStored(storedKeyword);
@@ -51,9 +51,12 @@ export function LocalDominatorExportExecutionFields({
   const workflowClientBound = clientName.length > 0;
   const seededKeywordRef = useRef(false);
 
-  const patch = (partial: Partial<TaskExecutionPayload>) => {
-    onChange({ ...payload, ...partial });
-  };
+  const patch = useCallback(
+    (partial: Partial<TaskExecutionPayload>) => {
+      onChange({ ...payload, ...partial });
+    },
+    [onChange, payload],
+  );
 
   useEffect(() => {
     if (disabled || !workflowClientBound || !businessNameStored) return;
@@ -91,7 +94,7 @@ export function LocalDominatorExportExecutionFields({
           : LOCAL_DOMINATOR_GRID_KEYWORD_AUTO,
       });
     }
-  }, [businessNameStored, clientName, disabled, payload.keyword, workflowClientBound]);
+  }, [businessNameStored, clientName, disabled, patch, payload.keyword, workflowClientBound]);
 
   useEffect(() => {
     if (disabled || !workflowClientBound || seededKeywordRef.current) return;
@@ -100,7 +103,7 @@ export function LocalDominatorExportExecutionFields({
       seededKeywordRef.current = true;
       patch({ keyword: LOCAL_DOMINATOR_GRID_KEYWORD_PROPERTY });
     }
-  }, [disabled, payload.keyword, workflowClientBound]);
+  }, [disabled, patch, payload.keyword, workflowClientBound]);
 
   const fields = (
     <>

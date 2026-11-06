@@ -12,9 +12,11 @@ export type BulkGoogleMapsImageWarmupController = ReturnType<
 >;
 
 export function bulkSapGoogleMapsImageWarmupEnabled(
-  optimizationOptions?: Pick<
-    OptimizationOptions,
-    "inventorySitemapSource" | "hasEntity" | "optimizeFeaturedImage" | "featuredImageType"
+  optimizationOptions?: Partial<
+    Pick<
+      OptimizationOptions,
+      "inventorySitemapSource" | "hasEntity" | "optimizeFeaturedImage" | "featuredImageType"
+    >
   >,
 ): boolean {
   return (

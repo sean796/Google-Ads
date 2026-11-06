@@ -5,7 +5,7 @@ import {
   resolveDetailsPipelineSections,
   resolvePipelineSectionDownloadable,
   resolveSerpBriefDownloadable,
-} from "@/components/shared/bulk-details-tile-sections";
+} from "@/components/shared/bulk-details-tile-sections-helpers";
 import { RESEARCH_HARNESS_SECTION_TITLES } from "@/lib/overview/overview-research-harness-sections";
 import { buildContentOptimizePipelineTitles } from "@/lib/overview/overview-content-optimize-pipeline";
 

@@ -1,4 +1,4 @@
-import { generateCompetitors } from "@/lib/competitor";
+import { generateCompetitors } from "@/lib/competitor-research";
 import type { CompetitorGridPlaceRow } from "@/lib/competitor-research/local-dominator-grid-parse";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { GeneratedCompetitorRow } from "../types";

@@ -35,7 +35,11 @@ class Neo_Pulse_App_Webhook_Dispatcher {
 			exit;
 		}
 
-		Neo_Pulse_App_Chekkit_Webhook::handle( $method, $body );
+		$token = '';
+		if ( preg_match( '#^/webhook/chekkit/([^/]+)/?$#', $path, $m ) ) {
+			$token = rawurldecode( $m[1] );
+		}
+		Neo_Pulse_App_Chekkit_Webhook::handle( $method, $body, $token, is_string( $raw_body ) ? strlen( $raw_body ) : 0 );
 		exit;
 	}
 
@@ -43,6 +47,9 @@ class Neo_Pulse_App_Webhook_Dispatcher {
 		$uri  = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
 		$path = (string) parse_url( $uri, PHP_URL_PATH );
 		if ( $path === '/webhook' || $path === '/webhook/' ) {
+			return $path;
+		}
+		if ( preg_match( '#^/webhook/chekkit/[^/]+/?$#', $path ) ) {
 			return $path;
 		}
 		if ( $path === '/webhook/agentmail' || $path === '/webhook/agentmail/' ) {

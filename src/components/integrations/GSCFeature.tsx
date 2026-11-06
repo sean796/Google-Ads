@@ -1,13 +1,6 @@
 import React, { useState, useCallback } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
+
+
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_FAILED_TO_COPY_EMAIL_TO_CLIPBOARD, NOTIFY_FAILED_TO_COPY_LIST, NOTIFY_GSC_EMAIL_COPIED_TO_CLIPBOARD, NOTIFY_GSC_NO_PROPERTIES_RETURNED, NOTIFY_GSC_QUERIES_FETCHED_BUT_KEYWORD_ANALYSIS, NOTIFY_NO_ANALYSIS_RESULTS_GENERATED_PLEASE_CHE, NOTIFY_PROPERTY_LIST_COPIED_TO_CLIPBOARD, NOTIFY_TESTING_GSC_CONNECTION, notifyFetchedXGscQueriesAnalyzingXUnique, notifyFetchingGscQueriesForX, notifyGscConnectedXProperties, notifyGscQueriesAddedX, notifyKeywordAnalysisCompleteFoundMetrics, notifyNoGscQueriesFoundForXInTheSpecif, notifyRunningXAnalysisMethodS, notifySuccessfullyAnalyzedGscQueriesFromX } from "@/lib/notify-messages";
 import { TestTube, Copy, Check, Search } from "lucide-react";
@@ -22,38 +15,18 @@ import {
 import { type WordPressSite, KB_FILES_STORAGE_KEY, type StoredFile } from "./types";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
-import { Button } from "@/ui";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
+import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Checkbox } from "@/ui";
 
 export interface GSCFeatureRef {
   openDialog: (site: WordPressSite) => void;
   isFetchingGSC: string | null;
 }
 
-/** Placeholder until `/api/gsc/service-account-email` loads (server derives real email from credential JSON). */
-const GSC_EMAIL_FALLBACK = "neopulse@neopulse-505422.iam.gserviceaccount.com";
-
-export type GscServiceAccountIdentity = {
-  /** Service account email — must be added in Search Console for each property (matches server JWT). */
-  email: string;
-};
-
-const GSC_IDENTITY_FALLBACK: GscServiceAccountIdentity = {
-  email: GSC_EMAIL_FALLBACK,
-};
-
-export function useGscServiceAccountIdentity(): GscServiceAccountIdentity {
-  const [identity, setIdentity] = React.useState<GscServiceAccountIdentity>(GSC_IDENTITY_FALLBACK);
-  React.useEffect(() => {
-    fetch(`${BACKEND_API_BASE}/api/gsc/service-account-email`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: { email?: string } | null) => {
-        if (!data?.email?.trim()) return;
-        setIdentity({ email: data.email.trim() });
-      })
-      .catch(() => {});
-  }, []);
-  return identity;
-}
+import {
+  useGscServiceAccountIdentity,
+  type GscServiceAccountIdentity,
+} from "@/hooks/use-gsc-service-account-identity";
 
 /** Row from GET /api/gsc/test-connection `sites` array */
 type GscTestSiteRow = {
@@ -111,7 +84,8 @@ export const GSCConnectionCard: React.FC<{ identity: GscServiceAccountIdentity }
       console.log('[GSC Test] Calling API:', `${BACKEND_API_BASE}/api/gsc/test-connection`);
       const response = await fetch(`${BACKEND_API_BASE}/api/gsc/test-connection`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: "include",
+        headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       });
       if (!response.ok) {
         let errorData;
@@ -412,9 +386,10 @@ export const GSCFeature: React.FC<GSCFeatureProps> = ({ onRef, showConnectionCar
       
       const response = await fetch(`${BACKEND_API_BASE}/api/gsc/fetch-queries`, {
         method: 'POST',
-        headers: {
+        credentials: "include",
+        headers: neoPulseApiHeaders({
           'Content-Type': 'application/json',
-        },
+        }),
         body: JSON.stringify({
           siteUrl: site.siteUrl,
           startDate: startDateStr,
@@ -423,7 +398,7 @@ export const GSCFeature: React.FC<GSCFeatureProps> = ({ onRef, showConnectionCar
       });
 
       if (!response.ok) {
-        let errorData: { error?: string; message?: string; errorType?: string; details?: string; triedFormats?: string[]; serviceAccountEmail?: string; troubleshooting?: Record<string, string> };
+        let errorData: { error?: string; message?: string; errorType?: string; details?: string; triedFormats?: string[]; serviceAccountEmail?: string; troubleshooting?: Record<string, string>; originalSiteUrl?: string };
         try {
           errorData = await response.json();
         } catch (e) {
@@ -492,7 +467,7 @@ export const GSCFeature: React.FC<GSCFeatureProps> = ({ onRef, showConnectionCar
       notify.info(notifyFetchedXGscQueriesAnalyzingXUnique(data.queries.length, uniqueQueries.length));
       
       // Fetch keyword metrics for all unique queries
-      let keywordMetrics: Record<string, { searchVolume: number; difficulty: number; cpc: number; competition: string }> = {};
+      const keywordMetrics: Record<string, { searchVolume: number; difficulty: number; cpc: number; competition: string }> = {};
       
       try {
         const batchSize = 100; // Process in batches to avoid overwhelming the API

@@ -5,6 +5,7 @@ import type { BulkHarnessSectionPayload } from "@/lib/bulk-auto-generate";
 import { readGbpApiError } from "@/lib/gbp-post/gbp-api-error";
 
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 import { resolveGbpSitemapUrlForSite } from "@/lib/gbp-post/gbp-sitemap-source";
 
@@ -147,7 +148,7 @@ export async function runGbpPostCardPipeline(options: {
   const pickRes = await fetch(`${BACKEND_API_BASE}/api/gmb/pick-blog-post`, {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(pickBody),
   });
 

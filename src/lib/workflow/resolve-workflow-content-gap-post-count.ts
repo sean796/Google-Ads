@@ -1,4 +1,5 @@
 import { workflowClientVariableSuffix } from "@/lib/workflow/workflow-client-config";
+import type { TaskExecutionPayload } from "@/lib/tasks-types";
 import { linearOrderedNodes } from "@/lib/workflow/workflow-graph-mutations";
 import type {
   WorkflowActionConfig,

@@ -1,35 +1,30 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import ReactMarkdown from "react-markdown";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Card, ScrollArea } from "@/ui";
+
+
+
+import type { ReactNode } from "react";
+import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 
-const isChildrenArray = (children: any) =>
+const isChildrenArray = (children: ReactNode): children is ReactNode[] =>
   Array.isArray(children) && children.every((c) => typeof c === "object");
 
-const markdownComponents = {
-  table: ({ children, ...props }: any) => <Table {...props}>{children}</Table>,
-  thead: ({ children, ...props }: any) => (
+const markdownComponents: Components = {
+  table: ({ children, node, ...props }) => <Table {...props}>{children}</Table>,
+  thead: ({ children, node, ...props }) => (
     <TableHeader {...props}>{children}</TableHeader>
   ),
-  tbody: ({ children, ...props }: any) => (
+  tbody: ({ children, node, ...props }) => (
     <TableBody {...props}>{children}</TableBody>
   ),
-  tr: ({ children, ...props }: any) => (
+  tr: ({ children, node, ...props }) => (
     <TableRow {...props}>{children}</TableRow>
   ),
-  th: ({ children, ...props }: any) => (
+  th: ({ children, node, ...props }) => (
     <TableHead {...props}>{isChildrenArray(children) ? children[0] : children}</TableHead>
   ),
-  td: ({ children, ...props }: any) => (
+  td: ({ children, node, ...props }) => (
     <TableCell {...props}>{isChildrenArray(children) ? children[0] : children}</TableCell>
   ),
 };
@@ -55,7 +50,7 @@ export const GenerationPreview = ({ result }: GenerationPreviewProps) => {
         )}
         <div className="prose prose-invert max-w-none">
           <ReactMarkdown
-            components={markdownComponents as any}
+            components={markdownComponents}
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw]}
             skipHtml={false}

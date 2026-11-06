@@ -27,7 +27,7 @@ export function stripPlaceholderDomainLinks(content: string): string {
   if (!content) return content;
 
   const linkPattern =
-    /(\[([^\]]+)\]\((https?:\/\/[^\)]+)\)|<a[^>]*href=["'](https?:\/\/[^"']+)["'][^>]*>([^<]*)<\/a>)/gi;
+    /(\[([^\]]+)\]\((https?:\/\/[^)]+)\)|<a[^>]*href=["'](https?:\/\/[^"']+)["'][^>]*>([^<]*)<\/a>)/gi;
 
   return content.replace(linkPattern, (match, _full, markdownText, markdownUrl, htmlUrl, htmlText) => {
     const url = markdownUrl || htmlUrl;

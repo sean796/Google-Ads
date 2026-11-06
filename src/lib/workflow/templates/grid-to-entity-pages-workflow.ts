@@ -1,4 +1,5 @@
 import type { AutomationPlan } from "@/lib/automation-planner-types";
+import type { TaskExecutionPayload } from "@/lib/tasks-types";
 import { automationPlanToWorkflowGraph } from "@/lib/workflow/workflow-migrate-from-planner";
 import type { WorkflowDefinition } from "@/lib/workflow/workflow-types";
 
@@ -8,14 +9,14 @@ export const GRID_TO_ENTITY_TO_SAP_RECIPE_KEYWORD = "grid-to-entity-to-sap-month
 /** @deprecated Use GRID_TO_ENTITY_TO_SAP_RECIPE_KEYWORD */
 export const GRID_TO_ENTITY_PAGES_RECIPE_KEYWORD = GRID_TO_ENTITY_TO_SAP_RECIPE_KEYWORD;
 
-const LOCAL_GRID_EXPORT_PAYLOAD = {
+const LOCAL_GRID_EXPORT_PAYLOAD: TaskExecutionPayload = {
   businessName: "",
   keyword: "property",
   saveLocalArchive: true,
   saveToDisk: false,
 };
 
-const ENTITY_FROM_GRID_PAYLOAD = {
+const ENTITY_FROM_GRID_PAYLOAD: TaskExecutionPayload = {
   locationSource: "grid",
   gridInputSource: "workflow",
   entityUseEditorialPackage: true,
@@ -27,7 +28,7 @@ const ENTITY_FROM_GRID_PAYLOAD = {
   ragInputKeys: ["local_dominator_export_1"],
 };
 
-const SAP_FROM_ENTITY_PAYLOAD = {
+const SAP_FROM_ENTITY_PAYLOAD: TaskExecutionPayload = {
   entityUseEditorialPackage: true,
   entityCsvInputSource: "workflow",
   sitemapType: "entity",

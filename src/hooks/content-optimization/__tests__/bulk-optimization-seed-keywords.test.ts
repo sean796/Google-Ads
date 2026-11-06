@@ -9,7 +9,7 @@ describe("seedBulkUrlKeywordsFromCaches", () => {
       }),
     );
 
-    const prefetchedAcfFieldsCache = new Map<number, Record<string, any>>();
+    const prefetchedAcfFieldsCache = new Map<number, Record<string, unknown>>();
     prefetchedAcfFieldsCache.set(0, {
       keyword_focus: "Blind Upkeep Service Brooklands Winnipeg MB",
     });
@@ -36,7 +36,7 @@ describe("seedBulkUrlKeywordsFromCaches", () => {
       }),
     );
 
-    const prefetchedAcfFieldsCache = new Map<number, Record<string, any>>();
+    const prefetchedAcfFieldsCache = new Map<number, Record<string, unknown>>();
     prefetchedAcfFieldsCache.set(0, { keyword_focus: "house painter amisk" });
 
     seedBulkUrlKeywordsFromCaches({

@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
+import { harnessStepProgress } from "@/lib/overview/overview-harness-progress";
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import {
   buildAiseoElementJsonFile,
@@ -34,12 +35,11 @@ export function setKeywordHarnessMessage(
       ...prev,
       [setters.batchKey]: {
         ...current,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: setters.stepLabel,
           progress: pct,
           message,
-        },
+        }),
       },
     };
   });
@@ -63,11 +63,11 @@ export function markKeywordRowOptimizing(
         currentUrl: url,
         currentIndex: rowNum - 1,
         urlStatuses: { ...(current.urlStatuses || {}), [url]: "optimizing" },
-        currentStepProgress: {
+        currentStepProgress: harnessStepProgress(undefined, {
           step: setters.stepLabel,
           progress: pct,
           message: `${setters.stepLabel} ${rowNum}/${total}: ${label}`,
-        },
+        }),
       },
     };
   });
@@ -125,11 +125,10 @@ export function markKeywordRowError(
       [setters.batchKey]: {
         ...current,
         urlStatuses: { ...(current.urlStatuses || {}), [url]: "error" },
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: setters.stepLabel,
           message,
-        },
+        }),
       },
     };
   });

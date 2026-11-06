@@ -3,7 +3,7 @@ import {
   META_RESEARCH_SECTION_IDS,
   META_RESEARCH_SECTION_TITLES,
 } from "@/lib/ppc/meta-ad-research-sections";
-import type { MetaAdRow } from "@/lib/ppc/meta-ads-types";
+import type { MetaAdDeliverableRow, MetaAdRow } from "@/lib/ppc/meta-ads-types";
 import {
   resolveMetaRowAdName,
   resolveMetaRowFocusKeyword,
@@ -16,7 +16,7 @@ export type MetaAdDeliverableFile = {
 };
 
 function sectionMarkdown(
-  sections: MetaAdRow["researchSections"],
+  sections: MetaAdDeliverableRow["researchSections"],
   id: string,
 ): string {
   return sections?.find((section) => section.id === id && section.status === "done")?.markdown?.trim() ?? "";
@@ -29,7 +29,7 @@ function mergeMarkdown(parts: string[], title: string): string {
 }
 
 export function buildMetaAdDeliverableFiles(
-  row: MetaAdRow,
+  row: MetaAdDeliverableRow,
   slug = "meta-ad",
 ): MetaAdDeliverableFile[] {
   const files: MetaAdDeliverableFile[] = [];
@@ -116,6 +116,6 @@ export function buildMetaAdDeliverableFiles(
   return files;
 }
 
-export function metaAdRowDisplayName(row: MetaAdRow, rowIndex = 0): string {
+export function metaAdRowDisplayName(row: MetaAdDeliverableRow, rowIndex = 0): string {
   return resolveMetaRowAdName(row) || resolveMetaRowFocusKeyword(row) || `meta-ad-${rowIndex + 1}`;
 }

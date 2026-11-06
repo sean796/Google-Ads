@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Button, Field, Pill, SelectField } from "@/ui";
+
+
+import { Button, Field, Pill, SelectField, Calendar, Popover, PopoverContent, PopoverTrigger } from "@/ui";
 import {
   computeBulkScheduleStartPreset,
   type BulkScheduleStartPreset,
@@ -214,9 +214,9 @@ export function WordPressScheduleFields({
     if (value === "immediately") {
       setUseCsvPublishDates(false);
     } else if (value === "everyNDays") {
-      setCustomInterval((prev) => clampEveryNDays(prev));
+      setCustomInterval(clampEveryNDays(customInterval));
     } else if (value === "custom") {
-      setCustomInterval((prev) => clampTimesPerMonth(prev));
+      setCustomInterval(clampTimesPerMonth(customInterval));
     }
   };
 

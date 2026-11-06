@@ -14,6 +14,7 @@ const sampleSite: WordPressSite = {
   siteUrl: "https://example.com",
   username: "user",
   appPassword: "pass",
+  connectedAt: 0,
   gbpLocationId: "loc-1",
   enabled: true,
 };
@@ -24,6 +25,7 @@ const sampleSite2: WordPressSite = {
   siteUrl: "https://junk.example.com",
   username: "user",
   appPassword: "pass",
+  connectedAt: 0,
   gbpLocationId: "loc-2",
   enabled: true,
 };

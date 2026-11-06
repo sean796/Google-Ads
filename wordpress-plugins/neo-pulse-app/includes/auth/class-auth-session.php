@@ -25,7 +25,17 @@ class Neo_Pulse_App_Auth_Session {
 		if ( defined( 'AUTH_KEY' ) && AUTH_KEY !== '' ) {
 			return (string) AUTH_KEY;
 		}
-		return 'neo-pulse-app-session';
+		return '';
+	}
+
+	/**
+	 * WP REST permission callback: a valid app session (cookie or Bearer).
+	 *
+	 * @param mixed $request Unused.
+	 */
+	public static function rest_permission( $request ): bool {
+		unset( $request );
+		return self::require_user() !== null;
 	}
 
 	/**
@@ -118,7 +128,10 @@ class Neo_Pulse_App_Auth_Session {
 			self::COOKIE_NAME,
 			$value,
 			array(
-				'expires'  => 0,
+				// Persistent for the token lifetime (14 days, see encode_token):
+				// browser callers that send only the cookie must stay signed in
+				// across browser restarts, same as the stored Bearer token.
+				'expires'  => time() + DAY_IN_SECONDS * 14,
 				'path'     => '/',
 				'domain'   => '',
 				'secure'   => is_ssl(),

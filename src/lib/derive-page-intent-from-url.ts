@@ -1,4 +1,4 @@
-import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
+import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
 /**
  * FIRST step: Derive page intent from URL slug via AI.
  * Use this before GSC/prompt_modifier - URL is page-level, modifier is site-level.
@@ -52,9 +52,8 @@ RULES:
 - Return ONLY the keyword phrase. No quotes, no explanation.`;
 
   try {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const response = await postOpenRouterAppChatFetch({
       method: 'POST',
-      headers: openRouterWebAppHeaders(apiKey),
       body: JSON.stringify({
         model,
         messages: [{ role: 'user', content: prompt }],
@@ -91,9 +90,8 @@ ${sample}
 In one short phrase, what service or product category does this site focus on? Return only that phrase (e.g. "event structures", "window coverings", "HVAC services"). No location names, no explanation.`;
 
   try {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const response = await postOpenRouterAppChatFetch({
       method: 'POST',
-      headers: openRouterWebAppHeaders(apiKey),
       body: JSON.stringify({
         model,
         messages: [{ role: 'user', content: prompt }],

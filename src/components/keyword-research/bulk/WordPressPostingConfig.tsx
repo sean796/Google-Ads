@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import type { ScheduleOccupancy } from '@/lib/bulk-schedule-gap';
 import type { ScheduleFrequency } from '@/lib/wordpress-scheduler';
-import { getStoredSites, type WordPressSite } from '@/components/IntegrationsTab';
+import { getStoredSites } from "@/components/integrations/storage";
+import type { WordPressSite } from "@/components/integrations/types";
 import type { ConnectedSiteSummary } from '@/components/integrations/types';
 import { cn } from '@/lib/utils';
 import {
@@ -11,9 +12,9 @@ import {
   type WordPressPostDestination,
 } from '@/lib/bulk-auto-generate';
 import { WordPressScheduleFields } from './WordPressScheduleFields';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+
 import { defaultBulkSitemapMode, type BulkSitemapMode } from '@/lib/bulk/bulk-sitemap-mode';
-import { SelectField } from "@/ui";
+import { SelectField, RadioGroup, RadioGroupItem } from "@/ui";
 
 interface SiteConfig {
   sitemapType: BulkSitemapMode;
@@ -126,10 +127,9 @@ export function WordPressPostingConfig({
 
   useEffect(() => {
     if (!targetSite || isDisabled) return;
-    setSelectedWordPressSites((prev) => {
-      if (prev.has(targetSite.id)) return prev;
-      return new Set([targetSite.id]);
-    });
+    if (!selectedWordPressSites.has(targetSite.id)) {
+      setSelectedWordPressSites(new Set([targetSite.id]));
+    }
     setSiteConfigs((prev) => {
       if (prev[targetSite.id]) return prev;
       return {
@@ -139,7 +139,7 @@ export function WordPressPostingConfig({
         },
       };
     });
-  }, [targetSite, sapMode, isDisabled, setSelectedWordPressSites, setSiteConfigs]);
+  }, [targetSite, sapMode, isDisabled, setSelectedWordPressSites, setSiteConfigs, selectedWordPressSites]);
 
   const useGapScheduling =
     startDateOption === 'immediate' &&

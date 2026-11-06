@@ -12,12 +12,18 @@ import { clearSiteCache } from "@/lib/wordpress-site-cache";
 import { clearValidationCache } from "@/lib/cached-link-validation";
 import { clearRelevanceCache } from "@/lib/content-generation/ai-link-relevance-filter";
 import { resolveOptimizeFocusKeyword } from "@/lib/content-optimization/ensure-seo-research-brief-for-optimize";
+import type { Dispatch, SetStateAction } from "react";
+import type {
+  BulkOptimizationState,
+  OptimizationProgressState,
+} from "./use-optimization-state";
+import type { BooleanMapSetter } from "./bulk-optimization-params";
 
 export type ContinueOptimizationFn = (
   siteId: string,
   selectedKeyword: { query: string; clicks: number; impressions: number; ctr: number; position: number },
   clusterKeywords?: string[],
-  setIsKeywordSelectionOpen?: (prev: any) => any,
+  setIsKeywordSelectionOpen?: BooleanMapSetter,
   testMode?: boolean,
   secondaryKeywords?: string[],
   pendingOverride?: PendingOptimization,
@@ -27,17 +33,23 @@ interface ContinueOptimizationParams {
   siteId: string;
   selectedKeyword: { query: string; clicks: number; impressions: number; ctr: number; position: number };
   clusterKeywords?: string[];
-  setIsKeywordSelectionOpen?: (prev: any) => any;
+  setIsKeywordSelectionOpen?: BooleanMapSetter;
   testMode: boolean;
   secondaryKeywords?: string[];
   pendingOverride?: PendingOptimization;
   pendingOptimization: Record<string, PendingOptimization>;
   optimizationFileManagers: Record<string, OptimizationFileManager>;
-  setPendingOptimization: (prev: any) => any;
-  setOptimizationFileManagers: (prev: any) => any;
-  setOptimizationProgress: (prev: any) => any;
-  setIsOptimizingContent: (prev: any) => any;
-  setBulkOptimizationState: (prev: any) => any;
+  setPendingOptimization: Dispatch<SetStateAction<Record<string, PendingOptimization>>>;
+  setOptimizationFileManagers: Dispatch<
+    SetStateAction<Record<string, OptimizationFileManager>>
+  >;
+  setOptimizationProgress: Dispatch<
+    SetStateAction<Record<string, OptimizationProgressState>>
+  >;
+  setIsOptimizingContent: BooleanMapSetter;
+  setBulkOptimizationState: Dispatch<
+    SetStateAction<Record<string, BulkOptimizationState>>
+  >;
   urlEntities?: Record<string, string | "N/A">;
 }
 
@@ -109,7 +121,7 @@ export async function continueOptimizationWithKeyword(params: ContinueOptimizati
     optimizationOptions?.hasEntity === true ||
     optimizationOptions?.inventorySitemapSource === "sap";
   let extractedEntity: string | "N/A" = "N/A";
-  let finalTitle = pendingCleanedTitle || existingTitle || primaryKeyword;
+  const finalTitle = pendingCleanedTitle || existingTitle || primaryKeyword;
 
   if (isSapRun) {
     const sapEntity = resolveSapEntityForOptimize({
@@ -137,7 +149,7 @@ export async function continueOptimizationWithKeyword(params: ContinueOptimizati
   });
 
   if (setIsKeywordSelectionOpen) {
-    setIsKeywordSelectionOpen((prev: Record<string, boolean>) => ({ ...prev, [siteId]: false }));
+    setIsKeywordSelectionOpen((prev) => ({ ...prev, [siteId]: false }));
   }
 
   const optimizationStartTime = Date.now();
@@ -193,8 +205,8 @@ export async function continueOptimizationWithKeyword(params: ContinueOptimizati
       delete updated[siteId];
       return updated;
     });
-    setOptimizationProgress((prev: Record<string, unknown>) => {
-      const prevEntry = (prev[siteId] || {}) as Record<string, unknown>;
+    setOptimizationProgress((prev) => {
+      const prevEntry = prev[siteId];
       return {
         ...prev,
         [siteId]: {

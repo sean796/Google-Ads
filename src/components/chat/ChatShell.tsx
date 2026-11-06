@@ -1,10 +1,5 @@
 import React from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+
 import { SEO_WORKSPACE_TYPO_CLASS } from "@/components/seo/seo-workspace-layout";
 import { cn } from "@/lib/utils";
 import { CHAT_TEXT_MUTED, chatRootDataAttrs, chatThemedRootClass } from "@/components/chat/chat-theme";
@@ -18,7 +13,7 @@ import { useChatShellState } from "@/components/chat/layout/useChatShellState";
 import { ChatDefaultLayout } from "@/components/chat/layout/ChatDefaultLayout";
 import { ChatMinimalLayout } from "@/components/chat/layout/ChatMinimalLayout";
 import { channelTitle } from "@/components/chat/layout/chat-shell-utils";
-import { Button } from "@/ui";
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "@/ui";
 
 export function ChatShell(): React.ReactElement {
   const state = useChatShellState();

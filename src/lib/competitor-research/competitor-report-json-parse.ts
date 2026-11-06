@@ -37,7 +37,7 @@ function repairLlmJsonText(s: string): string {
  */
 export function extractFirstBalancedJsonValue(s: string): string | null {
   const t = s;
-  const start = t.search(/[\[{]/);
+  const start = t.search(/[[{]/);
   if (start < 0) return null;
   let depth = 0;
   let inString = false;

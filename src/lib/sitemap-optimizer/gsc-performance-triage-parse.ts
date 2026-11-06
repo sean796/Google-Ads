@@ -11,7 +11,6 @@ export type ParsedGscTriageDecision = {
 };
 
 const confidenceSchema = z.enum(["high", "medium", "low"]);
-const dispositionSchema = z.enum(["keep", "consolidate"]);
 
 function unwrapTriageRoot(raw: unknown): Record<string, unknown> {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
@@ -45,11 +44,6 @@ function normalizeDecision(raw: unknown, fallbackPostId?: string): ParsedGscTria
   const dispositionRaw = String(o.disposition ?? o.action ?? o.verdict ?? "").trim().toLowerCase();
   let disposition: GscPerformanceDisposition = "consolidate";
   if (dispositionRaw === "keep" || dispositionRaw === "preserve" || dispositionRaw === "skip") {
-    disposition = "keep";
-  } else if (
-    dispositionSchema.safeParse(dispositionRaw).success &&
-    dispositionRaw === "keep"
-  ) {
     disposition = "keep";
   }
 

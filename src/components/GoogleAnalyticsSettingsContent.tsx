@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ActionButton, FileInput, RowButton } from "@/ui";
+
+import { ActionButton, FileInput, RowButton, Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui";
 import { BarChart3, ChevronRight, Upload, CheckCircle } from "lucide-react";
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
 import { BACKEND_API_BASE as MCP_DERIVED_BACKEND } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 const BACKEND_API_BASE =
   (typeof import.meta.env.VITE_BACKEND_API_BASE === "string" ? import.meta.env.VITE_BACKEND_API_BASE : "").trim() ||
@@ -23,7 +24,7 @@ export function GoogleAnalyticsSettingsContent() {
   const fetchStatus = async () => {
     setLoadingStatus(true);
     try {
-      const res = await fetch(`${BACKEND_API_BASE}/api/ga/credentials-status`);
+      const res = await fetch(`${BACKEND_API_BASE}/api/ga/credentials-status`, { headers: neoPulseApiHeaders() });
       const data = await res.json().catch(() => ({}));
       setSavedEmail(data?.configured ? data?.client_email ?? "Saved" : null);
     } catch {
@@ -46,7 +47,7 @@ export function GoogleAnalyticsSettingsContent() {
       const text = await file.text();
       const response = await fetch(`${BACKEND_API_BASE}/api/ga/test-and-save`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ serviceAccountJson: text }),
       });
       const data = await response.json().catch(() => ({}));

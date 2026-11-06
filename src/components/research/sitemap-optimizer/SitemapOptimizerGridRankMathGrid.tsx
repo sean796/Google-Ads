@@ -1,16 +1,9 @@
 import { useMemo, useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+
 import { buildGridRankMathRedirectRows } from "@/lib/sitemap-optimizer/build-grid-rank-math-redirects";
 import { gridMemberSourceUrl } from "@/lib/sitemap-optimizer/grid-member-url";
 import type { SitemapOptimizerRunResult } from "@/lib/sitemap-optimizer/types";
-import { Button } from "@/ui";
+import { Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/ui";
 
 type Props = {
   result: SitemapOptimizerRunResult;

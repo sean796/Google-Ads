@@ -1,10 +1,6 @@
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+
+
+
 import {
   Search,
   TrendingUp,
@@ -15,19 +11,23 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { parseRawApiData } from "@/lib/keyword-api-parser";
-import { Button } from "@/ui";
+import { Button, Card, Badge, Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui";
 
 interface RawApiDataViewerProps {
-  rawApiData: any;
+  rawApiData: unknown;
 }
 
 export function RawApiDataViewer({ rawApiData }: RawApiDataViewerProps) {
-  if (!rawApiData || (!rawApiData.tasks && !rawApiData.keywordOverview)) {
+  const raw =
+    rawApiData && typeof rawApiData === "object"
+      ? (rawApiData as { tasks?: unknown; keywordOverview?: unknown; serpData?: unknown })
+      : null;
+  if (!raw || (!raw.tasks && !raw.keywordOverview)) {
     return null;
   }
 
   const results = parseRawApiData(rawApiData);
-  const apiData = rawApiData.keywordOverview || rawApiData;
+  const apiData = raw.keywordOverview || rawApiData;
 
   // If no results extracted, show raw data for debugging
   if (results.length === 0) {
@@ -161,7 +161,7 @@ export function RawApiDataViewer({ rawApiData }: RawApiDataViewerProps) {
               <div className="p-4 bg-muted/30 rounded-lg border border-border/50">
                 <h4 className="text-sm font-semibold mb-3 text-foreground">Monthly Search Trends</h4>
                 <div className="space-y-2">
-                  {info.monthly_searches.slice(-6).map((month: any, monthIdx: number) => (
+                  {info.monthly_searches.slice(-6).map((month, monthIdx: number) => (
                     <div key={monthIdx} className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">
                         {month.year}-{String(month.month).padStart(2, '0')}
@@ -192,18 +192,18 @@ export function RawApiDataViewer({ rawApiData }: RawApiDataViewerProps) {
             <div>
               <h4 className="text-sm font-semibold mb-2">Keyword Overview Data:</h4>
               <pre className="bg-muted p-4 rounded overflow-auto text-xs" style={{ maxHeight: '400px', whiteSpace: 'pre-wrap' }}>
-                {JSON.stringify(rawApiData.keywordOverview || rawApiData, null, 2)}
+                {JSON.stringify(raw.keywordOverview || rawApiData, null, 2)}
               </pre>
             </div>
             {/* SERP Data */}
-            {rawApiData.serpData && (
+            {raw.serpData ? (
               <div>
                 <h4 className="text-sm font-semibold mb-2">SERP Data:</h4>
                 <pre className="bg-muted p-4 rounded overflow-auto text-xs" style={{ maxHeight: '400px', whiteSpace: 'pre-wrap' }}>
-                  {JSON.stringify(rawApiData.serpData, null, 2)}
+                  {JSON.stringify(raw.serpData, null, 2)}
                 </pre>
               </div>
-            )}
+            ) : null}
           </Card>
         </CollapsibleContent>
       </Collapsible>

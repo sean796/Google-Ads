@@ -1,16 +1,8 @@
 import { type ReactNode } from "react";
 import { CircleHelp } from "lucide-react";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger, Tooltip, TooltipContent, TooltipTrigger } from "@/ui";
+
+
 import { cn } from "@/lib/utils";
 
 export type ReportTooltipIconProps = {

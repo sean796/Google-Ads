@@ -65,7 +65,7 @@ export type AutomationPlanRecipeMeta = Pick<
   "keyword" | "name" | "description" | "category" | "prerequisites"
 >;
 
-export type AutomationPlanTaskInput = TaskTemplateTaskDef & {
+export type AutomationPlanTaskInput = Omit<TaskTemplateTaskDef, "keyword" | "title"> & {
   keyword?: string;
   title?: string;
 };

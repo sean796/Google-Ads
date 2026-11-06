@@ -26,7 +26,6 @@ export async function generateOptimizedTitle(
     if (!openRouterApiKey || openRouterApiKey.trim().length === 0) {
       const fallbackTitle = truncateTitleForSEO(
         `${primaryKeyword} ${existingTitle}`.replace(/\s+/g, " ").trim(),
-        50
       );
       return fallbackTitle;
     }
@@ -102,11 +101,11 @@ Return ONLY the optimized title, nothing else. No quotes, no explanation.`
           // Entity page but AI omitted "near" - enforce it: [keyword] near [entity]
           const keywordOnly = primaryKeyword.replace(/\s+(in|near)\s+.*$/i, '').trim();
           cleanedTitle = `${keywordOnly} Near ${entity}`.replace(/\s+/g, ' ');
-          cleanedTitle = truncateTitleForSEO(cleanedTitle, 50);
+          cleanedTitle = truncateTitleForSEO(cleanedTitle);
         }
         
         // Enforce 50 character limit
-        cleanedTitle = truncateTitleForSEO(cleanedTitle, 50);
+        cleanedTitle = truncateTitleForSEO(cleanedTitle);
 
         if (cleanedTitle.length >= 10) {
           return cleanedTitle;
@@ -120,10 +119,9 @@ Return ONLY the optimized title, nothing else. No quotes, no explanation.`
   // Fallback: create keyword-based title
   if (entity && entity !== 'N/A') {
     const keywordOnly = primaryKeyword.replace(/\s+(in|near)\s+.*$/i, '').trim();
-    return truncateTitleForSEO(`${keywordOnly} Near ${entity}`, 50);
+    return truncateTitleForSEO(`${keywordOnly} Near ${entity}`);
   }
   return truncateTitleForSEO(
     `${primaryKeyword} ${existingTitle}`.replace(/\s+/g, " ").trim(),
-    50
   );
 }

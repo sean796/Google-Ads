@@ -438,7 +438,8 @@ export function llmAuditGuidanceFromBrief(brief: SeoContentBriefV1 | null): stri
   if (!platforms.length) return "";
   const blocks: string[] = [];
   for (const p of platforms) {
-    if (p.platform === "claude") continue;
+    const platform: string = p.platform;
+    if (platform === "claude") continue;
     if (p.status !== "ok" || !p.responseText?.trim()) continue;
     blocks.push(`## ${p.label}\n${p.responseText.trim()}`);
   }
@@ -465,7 +466,8 @@ export function llmAuditChecklistItemsFromBrief(brief: SeoContentBriefV1 | null)
   const items: string[] = [];
   const seen = new Set<string>();
   for (const p of platforms) {
-    if (p.platform === "claude") continue;
+    const platform: string = p.platform;
+    if (platform === "claude") continue;
     if (p.status !== "ok" || !p.responseText?.trim()) continue;
     for (const fact of splitLlmAuditResponseIntoFacts(p.responseText)) {
       const key = fact.toLowerCase();

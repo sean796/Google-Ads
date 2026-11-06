@@ -5,7 +5,14 @@ import {
   pickEntityGeneratorKeywordInventoryRows,
 } from "@/lib/local-analysis/entity-generator-keyword-inventory";
 
-const site = { id: "s1", siteUrl: "https://example.com", name: "Test" } as const;
+const site = {
+  id: "s1",
+  siteUrl: "https://example.com",
+  name: "Test",
+  username: "user",
+  appPassword: "pass",
+  connectedAt: 0,
+} as const;
 
 function row(collection: string, title: string): SiteInventoryBulkRow {
   return {

@@ -1,9 +1,11 @@
 import { useCallback } from "react";
+import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import type { MutableRefObject } from "react";
 import { flushSync } from "react-dom";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_ADD_A_FOCUS_KEYWORD_BEFORE_RUNNING_AI_AL, NOTIFY_ADD_FOCUS_KEYWORDS_BEFORE_RUNNING_AI_ALL, NOTIFY_A_BULK_CONTENT_RUN_IS_ALREADY_IN_PROGRES, NOTIFY_A_BULK_RUN_IS_ALREADY_IN_PROGRESS, NOTIFY_BACKEND_API_URL_IS_NOT_CONFIGURED_FOR_PR, NOTIFY_CONNECT_A_WORDPRESS_SITE_FIRST_IN_THE_IN, NOTIFY_NO_ROWS_HAVE_A_FOCUS_KEYWORD_RUN_KEYWORD, NOTIFY_NO_ROWS_HAVE_A_POST_ID_FROM_LOADED_INVEN, notifyFinishedResearchForXRowSDataforseo, notifyOptimizeAllSerpFinishedX, notifyResearchFailedForAllXRowSBriefJs, notifyResearchFinishedXXBriefJsonUpdated, notifyResearchRanOnXRowSButBriefJsonW, notifyStartingAiExtraTextForXUrlSUseT, notifyStartingBulkContentOptimizationForX } from "@/lib/notify-messages";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { isProductionBackendMisconfigured } from "@/lib/mcp-tools";
 import { runOverviewResearchBatch, resolveResearchBatchEligibleRows, type OverviewResearchRowResult } from "@/lib/overview/overview-research-batch";
 import { overviewDateModifierTodayIso } from "@/lib/overview/overview-bulk-seo-payload";
@@ -86,6 +88,7 @@ import { pathSlugToFocusHint } from "@/lib/overview/focus-keyword-path-hint";
 import { normalizeFocusKeywordPhrase } from "@/lib/seo-redirect-csv";
 import { clearOverviewStudioRevisions } from "@/lib/overview/studio-doc-revisions-store";
 import { runAutoSeoMetaAndFaqFinale } from "@/lib/overview/overview-auto-seo-meta-faq-finale";
+import { harnessStepProgress } from "@/lib/overview/overview-harness-progress";
 import { recordOverviewStudioRevision } from "@/lib/overview/record-overview-studio-revision";
 
 type WindowWithOptimizeRunId = Window & {
@@ -181,7 +184,7 @@ async function runResearchRefreshForRows(
     const row = getRows()[index];
     if (!row) continue;
     // Never skip: always run research (handler writes missing keywords first).
-    // eslint-disable-next-line no-await-in-loop
+     
     const patch = await handleDataForSeoResearch(index, { silent: true });
     if (patch) refreshed += 1;
   }
@@ -519,7 +522,7 @@ export function useOverviewTabResearchPipelines({
           try {
             const exportRes = await fetch(`${BACKEND_API_BASE}/api/gsc/export-overview-quick-wins`, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
               body: JSON.stringify({
                 siteUrl: site.siteUrl,
                 siteWideQueriesOnly: true,
@@ -568,7 +571,6 @@ export function useOverviewTabResearchPipelines({
       }
     },
     [
-      rows,
       rowsRef,
       site,
       gscQuickWinsFile,
@@ -582,7 +584,8 @@ export function useOverviewTabResearchPipelines({
       opt.setBulkOptimizationState,
       opt.setOptimizationProgress,
       opt.setIsOptimizingContent,
-      setBulkActionProgress,
+      opt.isOptimizingContent,
+      opt.setOptimizationFileManagers,
     ],
   );
 
@@ -672,12 +675,12 @@ export function useOverviewTabResearchPipelines({
             currentStep: stepTitle,
             currentProgress: pct,
             urlStatuses: baseStatuses,
-            currentStepProgress: {
+            currentStepProgress: harnessStepProgress(cur?.currentStepProgress, {
               step: `${stepNumber}/${totalSteps}`,
               progress: pct,
               message: stepTitle,
               harnessPlannedSectionCount: totalSteps,
-            },
+            }),
           },
         };
       });
@@ -915,19 +918,15 @@ export function useOverviewTabResearchPipelines({
     bulkScopeUrlKeysRef,
     rowsRef,
     displayRowsRef,
-    setExpandedPageUrl,
     site,
     opt,
-    setBulkActionProgress,
     sitemapSource,
-    ensureOverviewKeywordsForMissingRows,
     handleDataForSeoResearch,
     handleAiTitleRow,
     handleAiMetaRow,
     handleAiFaqRowAll,
     updateRow,
     uploadAfterRowWrite,
-    bindings,
     getInventoryMatchForUrl,
   ]);
 
@@ -1085,7 +1084,7 @@ export function useOverviewTabResearchPipelines({
           currentRow: i,
           statusMessage: "Image requirements",
         });
-        const keyword = (row.focusKeyword || row.keyword || inv?.row.fields?.focus_keyword || "").trim();
+        const keyword = (row.focusKeyword || inv?.row.fields?.keyword || "").trim();
         const featured = await runOverviewAiseoFeaturedImageRow({
           apiKey,
           siteId: site.id,
@@ -1427,6 +1426,7 @@ export function useOverviewTabResearchPipelines({
       bulkAiFaqSeedCount,
       runAiAllMetaBatchForCatalog,
       updateRow,
+      uploadAfterRowWrite,
       optimizeFaq,
       optimizeFaqQuestion,
       optimizeFaqAnswer,
@@ -1513,6 +1513,7 @@ export function useOverviewTabResearchPipelines({
     bulkAiFaqSeedCount,
     runAiAllMetaBatchForCatalog,
     updateRow,
+    uploadAfterRowWrite,
     getInventoryMatchForUrl,
     optimizeFaq,
     optimizeFaqQuestion,

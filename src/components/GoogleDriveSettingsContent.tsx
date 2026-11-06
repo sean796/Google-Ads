@@ -4,6 +4,7 @@ import { ActionButton, Button, Field } from "@/ui";
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
 import { NOTIFY_CLIENT_ID_SHOULD_BE_THE_FULL_VALUE_FROM_, NOTIFY_REDIRECT_URI_COPIED } from "@/lib/notify-messages";
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import {
   BUILTIN_ADVANCED_BLINDS_PRESET,
   listGoogleDriveFolderPresets,
@@ -108,7 +109,7 @@ export function GoogleDriveSettingsContent() {
       const response = await fetch(backendApiUrl("/google-mcp/test-and-save"), {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           clientId: clientId.trim(),
           clientSecret: clientSecret.trim(),
@@ -136,7 +137,7 @@ export function GoogleDriveSettingsContent() {
       const response = await fetch(backendApiUrl("/google-mcp/test"), {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           folderId: BUILTIN_ADVANCED_BLINDS_PRESET.folderId,
         }),

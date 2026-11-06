@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
+import { harnessStepProgress, mergeOverviewHarnessProgressSiteAndBatch } from "@/lib/overview/overview-harness-progress";
 import type { BulkHarnessSectionPayload } from "@/lib/bulk-auto-generate";
 import { reduceHarnessSectionList, type HarnessSectionListItem } from "@/lib/bulk/harness-sections-reducer";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
@@ -12,9 +13,7 @@ import {
   type MetaHarnessPrepSummaries,
 } from "@/lib/overview/overview-ai-all-meta-harness-sections";
 import { buildAiseoElementJsonFile } from "@/lib/overview/overview-aiseo-row-artifacts";
-import {
-  mergeHarnessProgressSiteAndBatch,
-} from "@/hooks/content-optimization/optimization-helpers-a";
+
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 
 type SetBulkState = Dispatch<SetStateAction<Record<string, BulkOptimizationState>>>;
@@ -106,19 +105,18 @@ export function applyMetaHarnessPayload(
       [batchKey]: {
         ...nextBatch,
         currentProgress: latestProgress,
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           step: "Generating meta...",
           progress: latestProgress,
           message,
           harnessPlannedSectionCount: payload.totalSections,
-        },
+        }),
       },
     };
   });
 
   setOptimizationProgress((prev) =>
-    mergeHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(prev as Record<string, unknown>, siteId, {
       step: "Generating meta...",
       progress: latestProgress,
       message,
@@ -193,12 +191,11 @@ export function finishMetaRowHarness(
         [batchKey]: {
           ...nextBatch,
           currentProgress: progress,
-          currentStepProgress: {
-            ...(current.currentStepProgress || {}),
+          currentStepProgress: harnessStepProgress(current.currentStepProgress, {
             step: "Generating meta...",
             progress,
             message: awaitFaqPairs ? "Meta complete; FAQ pairs…" : `Meta complete for ${url}`,
-          },
+          }),
         },
       };
     });

@@ -1,5 +1,5 @@
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
-import type { BulkDetailsDownloadable } from "@/components/shared/bulk-details-tile-sections";
+import type { BulkDetailsDownloadable } from "@/components/shared/bulk-details-tile-sections-helpers";
 import type { BulkGeneratedFile } from "@/lib/bulk-file-manager";
 import type { CSVRow } from "@/lib/bulk-auto-generate";
 import { normalizePageUrlKey } from "@/lib/sitemap-optimizer/normalize-page-url";

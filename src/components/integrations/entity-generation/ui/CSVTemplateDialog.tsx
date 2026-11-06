@@ -11,7 +11,7 @@ import { NOTIFY_FAILED_TO_COPY_TO_CLIPBOARD, NOTIFY_NO_ENTITIES_TO_GENERATE_CSV_
 import { generateAITitleSuggestion } from "../csv/titleSuggestion";
 import { generateCSVTemplate, replaceTemplateVariables } from "../csv/csvGenerator";
 import type { WordPressSite } from "../../types";
-import type { EntityWithCriteria } from "../../types";
+import type { EntityWithCriteria } from "../types";
 
 interface CSVTemplateDialogProps {
   open: boolean;

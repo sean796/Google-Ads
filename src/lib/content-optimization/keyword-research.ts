@@ -23,7 +23,7 @@ export async function performKeywordResearch(
   selectedKeyword: KeywordSelection,
   setProgress: (progress: { step: string; progress: number; message?: string }) => void,
   relatedGSCKeywords?: string[]
-): Promise<{ keywordData: KeywordData; paaResult: any; paaRawResponse: any; relatedGSCKeywords?: string[] }> {
+): Promise<{ keywordData: KeywordData; paaResult: Awaited<ReturnType<typeof fetchPeopleAlsoAsk>>; paaRawResponse: unknown; relatedGSCKeywords?: string[] }> {
   if (!primaryKeyword || typeof primaryKeyword !== "string" || !primaryKeyword.trim()) {
     throw new Error("Primary keyword is invalid or empty. Please select a valid keyword.");
   }
@@ -112,7 +112,7 @@ export async function performKeywordResearch(
 export async function performAIAnalysis(
   primaryKeywordData: KeywordData,
   site: WordPressSite,
-  paaRawResponse: any,
+  paaRawResponse: unknown,
   setProgress: (progress: { step: string; progress: number; message?: string }) => void,
   relatedGSCKeywords?: string[],
   model?: string

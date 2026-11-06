@@ -207,6 +207,8 @@ describe("gsc agent step log", () => {
       ],
       {
         checkpoint: {
+          completedUrls: [],
+          uploadedUrls: [],
           lastStepLabel: formatGscSectionCompleteLabel(0, 5, "Executive Summary"),
           lastStepAt: "2026-08-21T12:40:00.000Z",
           lastStepPayload: {

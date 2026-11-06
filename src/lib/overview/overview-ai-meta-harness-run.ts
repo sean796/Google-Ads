@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
+import { harnessStepProgress, mergeOverviewHarnessProgress, mergeOverviewHarnessProgressSiteAndBatch } from "@/lib/overview/overview-harness-progress";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import type { OverviewInventoryUrlMatch } from "@/lib/overview/overview-row-scrape";
@@ -15,11 +16,8 @@ import {
   initOverviewBulkHarnessPagination,
   setOverviewBulkHarnessPageState,
 } from "@/lib/overview/overview-bulk-page-state";
-import {
-  mergeHarnessProgressSiteAndBatch,
-  setOptimizingState,
-} from "@/hooks/content-optimization/optimization-helpers-a";
-import { mergeOptimizationProgress } from "@/hooks/content-optimization/optimization-helpers";
+import { setOptimizingState } from "@/hooks/content-optimization/optimization-helpers-a";
+
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import {
   markMetaRowDone,
@@ -84,7 +82,7 @@ export function initOverviewAiMetaHarnessBatchState(params: {
 
   setOptimizingState(setIsOptimizingContent, batchKey, true);
   setOptimizationProgress((prev) =>
-    mergeOptimizationProgress(prev as Record<string, unknown>, site.id, {
+    mergeOverviewHarnessProgress(prev as Record<string, unknown>, site.id, {
       step: "AI meta",
       progress: 2,
       message: prepMessage,
@@ -108,13 +106,13 @@ export function initOverviewAiMetaHarnessBatchState(params: {
       bulkPageSize: OVERVIEW_BULK_PAGE_SIZE,
       currentBulkPage: 1,
       totalBulkPages: Math.max(1, overviewBulkPageCount(urls.length)),
-      currentStepProgress: {
+      currentStepProgress: harnessStepProgress(undefined, {
         step: "AI meta",
         progress: 2,
         message: prepMessage,
         harnessSections: [],
         harnessPlannedSectionCount: null,
-      },
+      }),
     },
   }));
   initOverviewBulkHarnessPagination(batchKey, urls.length, setBulkOptimizationState);
@@ -131,7 +129,7 @@ export function finalizeOverviewAiMetaHarnessBatch(
   setOptimizationProgress((prev) => {
     const next = { ...(prev as Record<string, unknown>) };
     delete next[batchKey];
-    mergeHarnessProgressSiteAndBatch(next, siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(next, siteId, {
       step: "Complete",
       progress: 100,
       message: "AI meta batch finished",

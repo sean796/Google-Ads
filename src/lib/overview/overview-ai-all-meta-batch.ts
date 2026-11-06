@@ -246,7 +246,23 @@ export async function runOverviewAiAllMetaBatch(
     for (const catalogChunk of chunkCatalogRows(preparedRows, OVERVIEW_AI_ALL_META_BATCH_SIZE)) {
       if (isCancelled()) break;
 
-      const patchMap = await runAiAllMetaBatchForCatalog(catalogChunk.map((item) => item.runEntry));
+      let patchMap: Map<string, AiAllMetaRowPatch>;
+      try {
+        patchMap = await runAiAllMetaBatchForCatalog(catalogChunk.map((item) => item.runEntry));
+      } catch (err) {
+        // Batch agent failure (for example unparsable model JSON) fails every
+        // row in the chunk with the real error instead of an empty result.
+        const message = err instanceof Error ? err.message : "Meta batch agent failed";
+        for (const item of catalogChunk) {
+          failed += 1;
+          pushRowResult(
+            results,
+            { index: item.eligibleRow.index, url: item.eligibleRow.row.url.trim(), ok: false, error: message },
+            onRowComplete,
+          );
+        }
+        continue;
+      }
 
       for (const item of catalogChunk) {
         const { index, row } = item.eligibleRow;

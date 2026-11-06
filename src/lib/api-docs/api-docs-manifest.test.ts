@@ -18,7 +18,9 @@ const DISPATCHER_MARKERS = [
 ];
 
 describe("api docs manifest", () => {
-  it("loads articles for every manifest slug", async () => {
+  // Sequentially imports every docs/api markdown module; needs more than the
+  // default 5s when the full suite saturates CPU.
+  it("loads articles for every manifest slug", { timeout: 30_000 }, async () => {
     await loadAllApiDocArticles();
     const slugs = new Set(getAllApiDocSlugs());
     for (const section of apiDocsManifest.sections) {

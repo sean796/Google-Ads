@@ -49,6 +49,7 @@ describe("persistWorkflowDefinition after recipe insert", () => {
       id: 7,
       teamId: 1,
       name: "GSC Monthly MoM Report",
+      status: "draft",
       nodes: [
         createWorkflowNode("workflow_client", "Client"),
         schedule,

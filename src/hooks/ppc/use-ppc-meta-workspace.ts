@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { WordPressSite } from "@/components/integrations/types";
 import { useTeam } from "@/contexts/TeamContext";
-import { overviewGridPageSlice } from "@/components/overview/OverviewGridPagination";
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import { overviewGridPageSlice } from "@/components/overview/overview-grid-pagination-helpers";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import {
   clampMetaAdCount,
   createIdleMetaAdRow,
@@ -176,7 +176,7 @@ export function usePpcMetaWorkspace({ site, apiKey, selectedModel }: UsePpcMetaW
       revokePpcPageBucketHostedLink(pageBucketLinkRef.current);
       pageBucketLinkRef.current = null;
     };
-  }, [mergeNeoPulseLandingPages, site.id, site.siteUrl, site.username, site.appPassword, teamName]);
+  }, [mergeNeoPulseLandingPages, site, teamName]);
 
   useEffect(() => {
     writeMetaGenerateConfig(site.id, generateConfig);
@@ -446,7 +446,7 @@ export function usePpcMetaWorkspace({ site, apiKey, selectedModel }: UsePpcMetaW
         });
 
         for (const outcome of results) {
-          if (outcome.ok) {
+          if (outcome.ok === true) {
             const sourceRow = targetRows.find((row) => row.id === outcome.rowId);
             if (sourceRow) {
               applyGeneratedResult(outcome.rowId, sourceRow, outcome.result);
@@ -581,7 +581,6 @@ export function usePpcMetaWorkspace({ site, apiKey, selectedModel }: UsePpcMetaW
           return {
             ...row,
             focusKeyword: imported.focusKeyword,
-            adName: imported.adName ?? row.adName,
             contextSource: imported.contextSource ?? row.contextSource ?? "custom",
             contextUrl: imported.contextUrl ?? row.contextUrl,
             landingPageUrl: imported.landingPageUrl ?? row.landingPageUrl,

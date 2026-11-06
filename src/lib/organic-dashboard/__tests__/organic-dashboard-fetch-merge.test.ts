@@ -13,7 +13,7 @@ describe("mergeOrganicDashboardBundleParts", () => {
     const ga4Part: OrganicDashboardBundleResponse = {
       success: true,
       meta,
-      ga4: { success: true, propertyId: "123" },
+      ga4: { conversions: { current: 123, previous: 100, change: 23, changePercent: 23 } },
       gsc: { skipped: true, reason: "partial_request" },
       semrush: { skipped: true, reason: "partial_request" },
       sources: { ga4: "ok", gsc: "skipped", semrush: "skipped" },
@@ -30,7 +30,7 @@ describe("mergeOrganicDashboardBundleParts", () => {
 
     const merged = mergeOrganicDashboardBundleParts([ga4Part, gscPart]);
 
-    expect(merged.ga4).toEqual({ success: true, propertyId: "123" });
+    expect(merged.ga4).toEqual({ conversions: { current: 123, previous: 100, change: 23, changePercent: 23 } });
     expect(merged.gsc).toEqual({ success: true, property: "https://example.com/" });
     expect(merged.sources?.ga4).toBe("ok");
     expect(merged.sources?.gsc).toBe("ok");
@@ -45,7 +45,7 @@ describe("mergeOrganicDashboardBundleParts", () => {
     const monolithStub: OrganicDashboardBundleResponse = {
       success: true,
       meta,
-      ga4: { success: true, propertyId: "289673706" },
+      ga4: { conversions: { current: 289, previous: 200, change: 89, changePercent: 44.5 } },
       gsc: { success: true },
       semrush: { skipped: true, reason: "semrush_error" },
       sources: { ga4: "ok", gsc: "ok", semrush: "error" },

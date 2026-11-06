@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { WordPressSite } from "@/components/integrations/types";
 import { useTeam } from "@/contexts/TeamContext";
-import type { MetaBulkMicroSnapshot } from "@/components/overview/OverviewBulkMicroProgress";
+import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import {
   clampSocialPostCount,
   createIdleSocialCreatorRow,
@@ -356,6 +356,7 @@ export function useSocialCreatorWorkspace({ site, apiKey, selectedModel }: UseSo
       postCount: clampSocialPostCount(generateConfig.postCount),
       placement: generateConfig.placement,
       includeImage: generateConfig.includeImage,
+      landingPageSource: generateConfig.landingPageSource,
       defaultColorPalette: generateConfig.defaultColorPalette,
       defaultVisualToolPalette: generateConfig.defaultVisualToolPalette,
       defaultVisualToolMode: generateConfig.defaultVisualToolMode,
@@ -450,7 +451,7 @@ export function useSocialCreatorWorkspace({ site, apiKey, selectedModel }: UseSo
         });
 
         for (const outcome of results) {
-          if (outcome.ok) {
+          if (outcome.ok === true) {
             const sourceRow = targetRows.find((row) => row.id === outcome.rowId);
             if (sourceRow) {
               applyGeneratedResult(outcome.rowId, sourceRow, outcome.result);
@@ -502,6 +503,7 @@ export function useSocialCreatorWorkspace({ site, apiKey, selectedModel }: UseSo
         postCount: 1,
         placement: generateConfig.placement,
         includeImage: generateConfig.includeImage,
+        landingPageSource: generateConfig.landingPageSource,
         defaultColorPalette: generateConfig.defaultColorPalette,
         defaultVisualToolPalette: generateConfig.defaultVisualToolPalette,
         defaultVisualToolMode: generateConfig.defaultVisualToolMode,

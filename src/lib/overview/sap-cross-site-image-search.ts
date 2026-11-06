@@ -399,7 +399,6 @@ async function loadPeerSiteEntries(site: WordPressSite): Promise<SapPeerEntityEn
     if (fromWarm.length) {
       const withKw = fromWarm.filter((e) => Boolean(e.keyword?.trim())).length;
       // #region agent log
-      fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'kw-cache',hypothesisId:'C',location:'sap-cross-site-image-search.ts:loadPeerSiteEntries',message:'Peer entries from WARM site cache',data:{siteId:site.id,siteName:(site.name||site.siteUrl||'').slice(0,50),source:'warm-cache',warmRowCount:warmRows.length,entryCount:fromWarm.length,withKeyword:withKw,sampleKeyword:(fromWarm.find((e)=>e.keyword)?.keyword||'').slice(0,80)},timestamp:Date.now()})}).catch(()=>{});
       // #endregion
       return fromWarm;
     }
@@ -415,7 +414,6 @@ async function loadPeerSiteEntries(site: WordPressSite): Promise<SapPeerEntityEn
   }
   const withKw = out.filter((e) => Boolean(e.keyword?.trim())).length;
   // #region agent log
-  fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'kw-cache',hypothesisId:'C',location:'sap-cross-site-image-search.ts:loadPeerSiteEntries',message:'Peer entries from ENTITY SITEMAP fallthrough',data:{siteId:site.id,siteName:(site.name||site.siteUrl||'').slice(0,50),source:'entity-sitemap',warmRowCount:warmRows.length,entryCount:out.length,withKeyword:withKw,sampleKeyword:(out.find((e)=>e.keyword)?.keyword||'').slice(0,80),sitemapError:(meta.error||'').slice(0,120)},timestamp:Date.now()})}).catch(()=>{});
   // #endregion
   return out;
 }
@@ -435,20 +433,17 @@ async function loadPeerSiteEntriesCached(site: WordPressSite): Promise<SapPeerEn
   const cached = peerSiteEntriesCache.get(key);
   if (cached) {
     // #region agent log
-    fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'peer-cache',hypothesisId:'H',location:'sap-cross-site-image-search.ts:loadPeerSiteEntriesCached',message:'Peer inventory cache hit',data:{cacheHit:true,cacheMiss:false,siteId:site.id,siteName:(site.name||site.siteUrl||'').slice(0,40),entryCount:cached.length},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
     return cached;
   }
   const inflight = peerSiteEntriesInflight.get(key);
   if (inflight) return inflight;
   // #region agent log
-  fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'peer-cache',hypothesisId:'H',location:'sap-cross-site-image-search.ts:loadPeerSiteEntriesCached',message:'Peer inventory cache miss — loading',data:{cacheHit:false,cacheMiss:true,siteId:site.id,siteName:(site.name||site.siteUrl||'').slice(0,40)},timestamp:Date.now()})}).catch(()=>{});
   // #endregion
   const p = (async () => {
     const entries = await loadPeerSiteEntries(site);
     peerSiteEntriesCache.set(key, entries);
     // #region agent log
-    fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'peer-cache',hypothesisId:'H',location:'sap-cross-site-image-search.ts:loadPeerSiteEntriesCached',message:'Peer inventory loaded and cached',data:{cacheHit:false,cacheMiss:true,siteId:site.id,siteName:(site.name||site.siteUrl||'').slice(0,40),entryCount:entries.length},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
     return entries;
   })();
@@ -583,7 +578,6 @@ async function searchCachedSite(params: {
   });
   if (!ranked.length) {
     // #region agent log
-    fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'entity-hydrate',hypothesisId:'G',location:'sap-cross-site-image-search.ts:searchCachedSite',message:'No ranked entity matches for peer',data:{siteName:(site.name||site.siteUrl||'').slice(0,40),placeEntity:placeEntity.slice(0,120),entryCount:entries.length,rankedCount:0,hydrateTried:0,hydrateWithImage:0,hit:false},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
     return null;
   }
@@ -605,7 +599,6 @@ async function searchCachedSite(params: {
     if (!entry.imageUrl) continue;
     hydrateWithImage += 1;
     // #region agent log
-    fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'entity-hydrate',hypothesisId:'G',location:'sap-cross-site-image-search.ts:searchCachedSite',message:'Peer entity image hit after hydrate',data:{siteName:(site.name||site.siteUrl||'').slice(0,40),placeEntity:placeEntity.slice(0,120),rankedCount:ranked.length,hydrateTried,hydrateWithImage,remoteFetches,hit:true,hitPageUrl:(entry.pageUrl||'').slice(0,120),score},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
     return {
       imageUrl: entry.imageUrl,
@@ -617,7 +610,6 @@ async function searchCachedSite(params: {
     };
   }
   // #region agent log
-  fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'entity-hydrate',hypothesisId:'G',location:'sap-cross-site-image-search.ts:searchCachedSite',message:'Ranked entity matches but no body image',data:{siteName:(site.name||site.siteUrl||'').slice(0,40),placeEntity:placeEntity.slice(0,120),rankedCount:ranked.length,hydrateTried,hydrateWithImage,remoteFetches,hit:false},timestamp:Date.now()})}).catch(()=>{});
   // #endregion
   return null;
 }
@@ -770,7 +762,7 @@ export async function searchSapCrossSiteInContentImage(params: {
   model?: string;
   excludePageUrl?: string;
   /** Site receiving the new image — never searched for peer reuse. */
-  excludeSite?: Pick<WordPressSite, "id" | "siteUrl" | "productionSiteUrl">;
+  excludeSite?: Pick<WordPressSite, "id" | "siteUrl" | "productionSiteUrl" | "napInfo" | "name">;
   /** @deprecated prefer excludeSite */
   excludeSiteUrl?: string;
   /** Optional progress: peerIndex is 0-based among selected market peers. */
@@ -791,7 +783,6 @@ export async function searchSapCrossSiteInContentImage(params: {
   if (!placeEntityRaw) return empty;
   if (!params.apiKey?.trim()) {
     // #region agent log
-    fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'pre-fix',hypothesisId:'D',location:'sap-cross-site-image-search.ts:no-apikey',message:'Peer search aborted: missing apiKey',data:{placeEntity:placeEntityRaw.slice(0,120)},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
     return empty;
   }
@@ -806,7 +797,6 @@ export async function searchSapCrossSiteInContentImage(params: {
     sites = sites.filter((s) => !sameWordPressSiteUrl(s.siteUrl, excludeSiteUrl));
   }
   // #region agent log
-  fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'pre-fix',hypothesisId:'A',location:'sap-cross-site-image-search.ts:eligible',message:'Eligible peers after SAP gate',data:{placeEntity:placeEntityRaw.slice(0,120),incomingCount:incoming.length,eligibleCount:sites.length,eligibleNames:sites.slice(0,12).map((s)=>(s.name||s.siteUrl||'').slice(0,40)),droppedNoSitemap:incoming.filter((s)=>!s.entitySitemapUrl?.trim()).length,droppedNoCreds:incoming.filter((s)=>!s.username?.trim()||!s.appPassword?.trim()).length,hasApiKey:Boolean(params.apiKey?.trim())},timestamp:Date.now()})}).catch(()=>{});
   // #endregion
   if (!sites.length) return empty;
 
@@ -817,11 +807,9 @@ export async function searchSapCrossSiteInContentImage(params: {
     writeSite: excludeSite ?? null,
   });
   // #region agent log
-  fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'sitemap-city',hypothesisId:'A',location:'sap-cross-site-image-search.ts:market-city',message:'City from post entity for sitemap URL match',data:{placeEntity:placeEntityRaw.slice(0,120),marketCity,eligibleCount:sites.length},timestamp:Date.now()})}).catch(()=>{});
   // #endregion
   if (!marketCity) {
     // #region agent log
-    fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'sitemap-city',hypothesisId:'A',location:'sap-cross-site-image-search.ts:no-city',message:'No market city from place entity',data:{placeEntity:placeEntityRaw.slice(0,120)},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
     return empty;
   }
@@ -844,12 +832,10 @@ export async function searchSapCrossSiteInContentImage(params: {
         const entries = await loadPeerSiteEntriesCached(site);
         const urlMatch = peerInventoryFuzzyMatchesCity(marketCity, entries);
         // #region agent log
-        fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'parallel-plan',hypothesisId:'B',location:'sap-cross-site-image-search.ts:peer-url-match',message:'Peer inventory URL city fuzzy match',data:{marketCity,siteName:(site.name||site.siteUrl||'').slice(0,40),entryCount:entries.length,matched:urlMatch.matched,matchCount:urlMatch.matchCount,sampleUrl:(urlMatch.sampleUrl||'').slice(0,120)},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
         return { site, entries, matched: urlMatch.matched };
       } catch (err) {
         // #region agent log
-        fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'parallel-plan',hypothesisId:'C',location:'sap-cross-site-image-search.ts:peer-plan-error',message:'Peer inventory load threw during plan phase',data:{siteName:(site.name||site.siteUrl||'').slice(0,40),error:String(err instanceof Error?err.message:err).slice(0,160)},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
         return { site, entries: [] as SapPeerEntityEntry[], matched: false };
       }
@@ -861,7 +847,6 @@ export async function searchSapCrossSiteInContentImage(params: {
     .map((r) => ({ site: r.site, entries: r.entries }));
 
   // #region agent log
-  fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'parallel-plan',hypothesisId:'A',location:'sap-cross-site-image-search.ts:plan-ready',message:'Full city-matched peer list before image search',data:{placeEntity:placeEntityRaw.slice(0,120),marketCity,matchedPeerCount:matched.length,matchedNames:matched.slice(0,16).map((m)=>(m.site.name||m.site.siteUrl||'').slice(0,40))},timestamp:Date.now()})}).catch(()=>{});
   // #endregion
 
   if (!matched.length) {
@@ -896,7 +881,6 @@ export async function searchSapCrossSiteInContentImage(params: {
           Boolean(found) &&
           !(excludeSite && found && sameWordPressSiteUrl(found.sourceSiteUrl, excludeSite.siteUrl));
         // #region agent log
-        fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'parallel-plan',hypothesisId:'C',location:'sap-cross-site-image-search.ts:peer-attempt',message:'Matched peer image search',data:{peerIndex:i,matchedTotal:matched.length,siteName:(site.name||site.siteUrl||'').slice(0,40),entryCount:entries.length,hit:hitOk,hitPageUrl:(found?.sourcePageUrl||'').slice(0,120)},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
         return {
           index: i,
@@ -904,7 +888,6 @@ export async function searchSapCrossSiteInContentImage(params: {
         };
       } catch (err) {
         // #region agent log
-        fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'parallel-plan',hypothesisId:'C',location:'sap-cross-site-image-search.ts:peer-error',message:'Peer image search threw',data:{siteName:(site.name||site.siteUrl||'').slice(0,40),error:String(err instanceof Error?err.message:err).slice(0,160)},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
         return {
           index: i,
@@ -926,7 +909,6 @@ export async function searchSapCrossSiteInContentImage(params: {
   const peerCsvFiles: SapPeerLibraryCsvFile[] = [combinedCsv];
 
   // #region agent log
-  fetch('http://127.0.0.1:7781/ingest/50ee427b-23ed-4bec-99ab-67b267c19331',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8ae1ef'},body:JSON.stringify({sessionId:'8ae1ef',runId:'parallel-plan',hypothesisId:'A',location:'sap-cross-site-image-search.ts:done',message:'Sitemap-city peer walk finished',data:{placeEntity:placeEntityRaw.slice(0,120),marketCity,matchedPeerCount:matched.length,matchedNames:matched.slice(0,12).map((m)=>(m.site.name||m.site.siteUrl||'').slice(0,40)),peerCsvCount:peerCsvFiles.length,hit:Boolean(hit)},timestamp:Date.now()})}).catch(()=>{});
   // #endregion
 
   return { hit, peerCsvFiles };

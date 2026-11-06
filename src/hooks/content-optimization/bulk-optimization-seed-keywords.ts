@@ -1,13 +1,14 @@
-/**
+﻿/**
  * Sync bulk KEYWORD column from prefetch caches (after ensureBulk / ACF research).
  */
 import { readKeywordFocusFromAcfFields } from "@/lib/content-generation/ai-driven-acf-reader";
+import type { HandleOptimizeMultipleContentParams } from "./bulk-optimization-params";
 
 export function seedBulkUrlKeywordsFromCaches(opts: {
   urls: string[];
   batchKey: string;
-  prefetchedAcfFieldsCache: Map<number, Record<string, any>>;
-  setBulkOptimizationState: (fn: (prev: any) => any) => void;
+  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
+  setBulkOptimizationState: HandleOptimizeMultipleContentParams["setBulkOptimizationState"];
 }): void {
   const { urls, batchKey, prefetchedAcfFieldsCache, setBulkOptimizationState } = opts;
 
@@ -25,7 +26,7 @@ export function seedBulkUrlKeywordsFromCaches(opts: {
 
   if (Object.keys(urlKeywords).length === 0) return;
 
-  setBulkOptimizationState((prev: any) => {
+  setBulkOptimizationState((prev) => {
     const current = prev[batchKey];
     if (!current) return prev;
     return {

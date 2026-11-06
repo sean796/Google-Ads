@@ -32,7 +32,14 @@ function resolveSite(siteId: string, sites: WordPressSite[]): WordPressSite {
   throw new Error("WordPress site not found for this DFS article audit run.");
 }
 
-function focusKeywordFromContract(contract: TaskExecutionClientRunContract): string {
+/** Contract merged from executionPayload at run time; payload-only keyword/url fields may be present. */
+type DfsArticleAuditContract = TaskExecutionClientRunContract & {
+  focusKeyword?: string;
+  primaryKeyword?: string;
+  targetUrl?: string;
+};
+
+function focusKeywordFromContract(contract: DfsArticleAuditContract): string {
   const fromPayload =
     String(contract.focusKeyword ?? contract.keyword ?? contract.primaryKeyword ?? "").trim();
   if (fromPayload) return fromPayload;
@@ -49,7 +56,7 @@ function focusKeywordFromContract(contract: TaskExecutionClientRunContract): str
 export async function runDfsArticleAuditClientHarness(
   run: AgentRun,
   site: WordPressSite,
-  contract: TaskExecutionClientRunContract,
+  contract: DfsArticleAuditContract,
   executionId: number,
   ctx: AgentRunHarnessContext,
   batchKey: string,
@@ -192,24 +199,24 @@ export async function runDfsArticleAuditDirectHarness(
   }
   const site = resolveSite(siteId, getStoredSites());
   const plan = run.plan ?? {};
-  let contract = {
+  let contract: DfsArticleAuditContract = {
     ...(plan.executionPayload ?? {}),
     ...(plan.clientRunContract ?? {}),
     siteId,
     url: String(
       plan.clientRunContract?.url
       ?? plan.executionPayload?.targetUrl
-      ?? plan.executionPayload?.url
+      ?? (plan.executionPayload as { url?: string } | undefined)?.url
       ?? "",
     ).trim(),
-  } as TaskExecutionClientRunContract;
+  } as DfsArticleAuditContract;
   const articleUrl = String(contract.url ?? contract.targetUrl ?? "").trim();
   if (!articleUrl || articleUrl.toUpperCase() === "ALL") {
     const resolved = await resolveDfsArticleAuditWorkflowPayload(site, contract);
     contract = {
       ...contract,
       ...resolved,
-      url: String(resolved.targetUrl ?? resolved.url ?? "").trim(),
+      url: String(resolved.targetUrl ?? (resolved as { url?: string }).url ?? "").trim(),
     };
   }
   const executionId = Number(plan.taskExecutionId ?? 0);

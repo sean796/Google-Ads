@@ -19,22 +19,22 @@ import { OverviewContentSortControls } from "@/components/overview/overview-tab/
 import { CONTENT_PAGINATION_SLOT_CLASS } from "@/components/overview/overview-tab/OverviewContentChromeReserve";
 import { OVERVIEW_GRID_VISIBLE_ROW_COUNT } from "@/components/overview/overview-tab/overview-tab-content-constants";
 import { OverviewGridPagination } from "@/components/overview/OverviewGridPagination";
+import { BulkPostProgressLeading } from "@/components/overview/OverviewBulkMicroProgress";
 import {
-  BulkPostProgressLeading,
   resolveBulkPostTicker,
   type MetaBulkMicroSnapshot,
-} from "@/components/overview/OverviewBulkMicroProgress";
+} from "@/components/overview/overview-bulk-micro-progress-helpers";
 import { BULK_TOOLBAR_GROUP_DIVIDER } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
 import type { OverviewTabController } from "@/hooks/overview/use-overview-tab-controller";
 import { useOverviewSiteWarmDetails } from "@/hooks/overview/use-overview-site-warm-details";
 import type { useWordPressOptimization } from "@/contexts/wordpress-optimization-context";
 import type { MetaBulkActionKey, BulkProgressSlice } from "@/components/overview/overview-tab-constants";
+import { OverviewContentDetailsPanel } from "@/components/overview/overview-tab/OverviewContentDetailsPanel";
 import {
-  OverviewContentDetailsPanel,
   overviewContentDetailsCanOpen,
   isOverviewResearchWorkerActive,
   type OverviewSinglePageDetailsContext,
-} from "@/components/overview/overview-tab/OverviewContentDetailsPanel";
+} from "@/components/overview/overview-tab/overview-content-details-helpers";
 
 type Opt = ReturnType<typeof useWordPressOptimization>;
 

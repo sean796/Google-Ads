@@ -420,7 +420,10 @@ export function WorkflowRagSidebar({
     [runs],
   );
 
-  const clientSiteIds = useMemo(() => listWorkflowAvailableSiteIds(), [wpSites]);
+  const clientSiteIds = useMemo(() => {
+    void wpSites;
+    return listWorkflowAvailableSiteIds();
+  }, [wpSites]);
 
   const siteNameById = useMemo(() => {
     const map = new Map<string, string>();

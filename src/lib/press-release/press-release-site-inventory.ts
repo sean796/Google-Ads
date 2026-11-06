@@ -92,7 +92,7 @@ export async function fetchPressReleaseSiteInventory(site: WordPressSite): Promi
       url: row.url,
       acf: row.acf,
       fields: row.fields,
-      collection: row.collection,
+      collection: row.collection === "pages" ? "pages" : "posts",
     }));
 
     const inventoryJson = compactInventoryKeywordsForJson(bulk.rows ?? []);

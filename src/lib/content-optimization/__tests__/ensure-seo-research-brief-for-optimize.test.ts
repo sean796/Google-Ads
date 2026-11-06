@@ -16,6 +16,7 @@ const site = {
   siteUrl: "https://example.com",
   username: "u",
   appPassword: "p",
+  connectedAt: 0,
 };
 
 beforeEach(() => {

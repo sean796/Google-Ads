@@ -8,7 +8,7 @@ import {
   resolveWorkflowBoundAgentRunId,
 } from "@/lib/workflow/automation-delivery-log";
 
-const appendAgentRunStep = vi.fn(async () => {});
+const appendAgentRunStep = vi.fn(async (..._args: unknown[]) => {});
 
 vi.mock("@/lib/agent-runs/agent-run-step", () => ({
   appendAgentRunStep: (...args: unknown[]) => appendAgentRunStep(...args),

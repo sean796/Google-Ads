@@ -25,11 +25,15 @@ export function buildFullPostPayload(pieces: {
   pageUrl?: string;
 }): Record<string, unknown> {
   const { resolved, acfFields, existingTitle, existingContent, existingExcerpt, pageUrl } = pieces;
+  const wpRendered = (value: unknown): unknown =>
+    value && typeof value === "object" && "rendered" in value
+      ? (value as { rendered: unknown }).rendered
+      : value;
   const payload: Record<string, unknown> = {
     url: pageUrl ?? resolved?.link ?? null,
-    title: resolved?.title?.rendered ?? resolved?.title ?? existingTitle ?? null,
-    content: resolved?.content?.rendered ?? resolved?.content ?? existingContent ?? null,
-    excerpt: resolved?.excerpt?.rendered ?? resolved?.excerpt ?? existingExcerpt ?? null,
+    title: wpRendered(resolved?.title) ?? existingTitle ?? null,
+    content: wpRendered(resolved?.content) ?? existingContent ?? null,
+    excerpt: wpRendered(resolved?.excerpt) ?? existingExcerpt ?? null,
     acf: acfFields ?? (resolved?.acf ?? null),
     meta: resolved?.meta ?? null,
   };

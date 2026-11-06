@@ -7,6 +7,12 @@ import type { WordPressSite } from "@/components/integrations/types";
 import { interpretSemTaskList, type InterpretedSemTask } from "@/lib/sem-task-interpreter";
 import { SEM_FOCUS_CATEGORIES, deriveSuggestedFocusFromFileName, deriveFocusFromTask } from "@/lib/sem-categories";
 import { useWordPressOptimization } from "@/contexts/wordpress-optimization-context";
+import type {
+  BooleanMapSetter,
+  ClusterAnalysisSetter,
+  GscQueriesSetter,
+} from "@/hooks/content-optimization/bulk-optimization-params";
+import type { ImageType } from "@/lib/image-section-analyzer";
 
 export type SemTaskRow = InterpretedSemTask & {
   status: "pending" | "fixing" | "done" | "error";
@@ -23,13 +29,13 @@ type OnOptimizeContent = (
   site: WordPressSite,
   url: string,
   updateMode: "update" | "draft",
-  setGscQueriesForSelection: (prev: any) => any,
-  setIsKeywordSelectionOpen: (prev: any) => any,
-  setGscClusterAnalysis: (prev: any) => any,
-  setIsAnalyzingClusters: (prev: any) => any,
+  setGscQueriesForSelection: GscQueriesSetter,
+  setIsKeywordSelectionOpen: BooleanMapSetter,
+  setGscClusterAnalysis: ClusterAnalysisSetter,
+  setIsAnalyzingClusters: BooleanMapSetter,
   skipOnNoGSC: boolean,
   optimizationOptions?: { optimizeTitle?: boolean; optimizeMeta?: boolean; optimizeExcerpt?: boolean; optimizeContent?: boolean },
-  inContentImageRequest?: { imageType: string; userPrompt?: string },
+  inContentImageRequest?: { imageType: ImageType; userPrompt?: string },
   resolvedPost?: { id: number; subtype: string; link?: string; slug?: string; endpoint?: string },
   testMode?: boolean,
   semTaskContext?: { suggestedAction: string; checklist?: string[]; promptModifier?: string; focusCategories?: string[] }
@@ -40,10 +46,10 @@ interface SEMTaskListDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onOptimizeContent: OnOptimizeContent;
-  setGscQueriesForSelection: (prev: any) => any;
-  setIsKeywordSelectionOpen: (prev: any) => any;
-  setGscClusterAnalysis: (prev: any) => any;
-  setIsAnalyzingClusters: (prev: any) => any;
+  setGscQueriesForSelection: GscQueriesSetter;
+  setIsKeywordSelectionOpen: BooleanMapSetter;
+  setGscClusterAnalysis: ClusterAnalysisSetter;
+  setIsAnalyzingClusters: BooleanMapSetter;
 }
 
 const STATUS_CLASS: Record<SemTaskRow["status"], string> = {
@@ -156,7 +162,6 @@ export const SEMTaskListDialog: React.FC<SEMTaskListDialogProps> = ({
     });
   }, []);
 
-  const hasAtLeastOneCategory = focusCategories.length > 0;
   // When no focus selected, we derive focus from each task's suggestedAction/checklist (no double list)
 
   const handleFileUpload = useCallback(
@@ -212,7 +217,7 @@ export const SEMTaskListDialog: React.FC<SEMTaskListDialogProps> = ({
     } finally {
       setIsInterpreting(false);
     }
-  }, [rawList, site.siteUrl, focusCategories, promptModifier, hasAtLeastOneCategory]);
+  }, [rawList, site.siteUrl, focusCategories, promptModifier]);
 
   const runFixForTask = useCallback(
     async (task: SemTaskRow) => {
@@ -268,9 +273,17 @@ export const SEMTaskListDialog: React.FC<SEMTaskListDialogProps> = ({
         );
 
         // Use returned optimizationChanges from SEM fix path (avoids stale state in poll)
-        let changes: any = null;
+        let changes: {
+          titleChanged?: boolean;
+          metaChanged?: boolean;
+          contentChanged?: boolean;
+          postUpdated?: boolean;
+          title?: string;
+          meta?: string;
+          promptSent?: { system: string; user: string };
+        } | null = null;
         if (result != null && typeof result === "object" && "optimizationChanges" in result) {
-          changes = (result as { optimizationChanges: Record<string, unknown> }).optimizationChanges;
+          changes = (result as { optimizationChanges: NonNullable<typeof changes> }).optimizationChanges;
         }
         if (changes) {
           setChangesByUrl(prev => ({ ...prev, [task.url]: changes }));
@@ -323,7 +336,7 @@ export const SEMTaskListDialog: React.FC<SEMTaskListDialogProps> = ({
             return changes?.contentChanged === true;
           }
           // If we don't know, assume it was done if any change occurred
-          return changes?.titleChanged || changes?.metaChanged || changes?.contentChanged || false;
+          return Boolean(changes?.titleChanged || changes?.metaChanged || changes?.contentChanged);
         });
         
         setTasks((prev) =>
@@ -350,7 +363,7 @@ export const SEMTaskListDialog: React.FC<SEMTaskListDialogProps> = ({
         );
       }
     },
-    [site, promptModifier, onOptimizeContent, setGscQueriesForSelection, setIsKeywordSelectionOpen, setGscClusterAnalysis, setIsAnalyzingClusters]
+    [site, promptModifier, onOptimizeContent, setGscQueriesForSelection, setIsKeywordSelectionOpen, setGscClusterAnalysis, setIsAnalyzingClusters, changesByUrl, focusCategories, pendingOptimization]
   );
 
   const handleFixIt = useCallback(async () => {

@@ -1,4 +1,5 @@
 import { BACKEND_API_BASE, BACKEND_CONNECTION_ERROR } from './connection';
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 export type ChangeWordPressPostUrlResult = {
   ok: boolean;
@@ -25,7 +26,7 @@ export async function changeWordPressPostUrl(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         siteUrl,
         username,

@@ -1,12 +1,10 @@
 import type { Dispatch, SetStateAction } from "react";
+import { harnessStepProgress, mergeOverviewHarnessProgress, mergeOverviewHarnessProgressSiteAndBatch } from "@/lib/overview/overview-harness-progress";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
-import {
-  mergeHarnessProgressSiteAndBatch,
-  setOptimizingState,
-} from "@/hooks/content-optimization/optimization-helpers-a";
-import { mergeOptimizationProgress } from "@/hooks/content-optimization/optimization-helpers";
+import { setOptimizingState } from "@/hooks/content-optimization/optimization-helpers-a";
+
 import { ensureMasterInstructionsInMemory } from "@/lib/master-instructions-storage";
 import { initOverviewBulkHarnessPagination, setOverviewBulkHarnessPageState } from "@/lib/overview/overview-bulk-page-state";
 import { mapOverviewAiCopyWithConcurrency } from "@/lib/overview/overview-ai-copy-concurrency";
@@ -157,10 +155,9 @@ function resetRowHarnessSections(
           ...(current.urlHarnessSections || {}),
           [url]: sections,
         },
-        currentStepProgress: {
-          ...(current.currentStepProgress || {}),
+        currentStepProgress: harnessStepProgress(current.currentStepProgress, {
           harnessPlannedSectionCount: sections.length,
-        },
+        }),
       },
     };
   });
@@ -222,7 +219,7 @@ export function initOverviewLinksHarnessBatchState(params: {
 
   setOptimizingState(setIsOptimizingContent, batchKey, true);
   setOptimizationProgress((prev) =>
-    mergeOptimizationProgress(prev as Record<string, unknown>, site.id, {
+    mergeOverviewHarnessProgress(prev as Record<string, unknown>, site.id, {
       step: "Links",
       progress: 2,
       message: prepMessage,
@@ -242,13 +239,13 @@ export function initOverviewLinksHarnessBatchState(params: {
       runKind: "aiLinks",
       urlHarnessSections: {},
       urlGeneratedFiles: {},
-      currentStepProgress: {
+      currentStepProgress: harnessStepProgress(undefined, {
         step: "Links",
         progress: 2,
         message: prepMessage,
         harnessSections: [],
         harnessPlannedSectionCount: null,
-      },
+      }),
     },
   }));
   initOverviewBulkHarnessPagination(batchKey, urls.length, setBulkOptimizationState);
@@ -266,7 +263,7 @@ export function finalizeOverviewLinksHarnessBatch(
   setOptimizationProgress((prev) => {
     const next = { ...(prev as Record<string, unknown>) };
     delete next[batchKey];
-    mergeHarnessProgressSiteAndBatch(next, siteId, {
+    mergeOverviewHarnessProgressSiteAndBatch(next, siteId, {
       step: "Complete",
       progress: 100,
       message: "Links batch finished",
@@ -372,6 +369,7 @@ async function rewriteExistingLinks(
       continue;
     }
 
+    const usedDestinationUrls = usedDestinationUrlsFromHtml(out, siteUrl, row.url);
     const resolvedFromAnchor = userAnchor
       ? resolveUrlFromUserAnchor(userAnchor, row, siteUrl, usedDestinationUrls)
       : "";
@@ -401,7 +399,6 @@ async function rewriteExistingLinks(
     const articleLinks = articleLinksForIntent(out, siteUrl, row.url).map((entry, idx) =>
       idx === i && userAnchor ? { ...entry, anchor: userAnchor } : entry,
     );
-    const usedDestinationUrls = usedDestinationUrlsFromHtml(out, siteUrl, row.url);
 
     try {
       const intent = await runBlogLinksReplaceIntent(

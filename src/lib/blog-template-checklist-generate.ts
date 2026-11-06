@@ -23,7 +23,7 @@ import { truncateTitleForSEO } from "./content-generation/content-sanitizer";
 import {
   COMPETITOR_COMPARISON_PROSE_PROMPT_BLOCK,
   isCompetitorCsvKeyword,
-} from "@/lib/competitor/competitor-csv-row";
+} from "@/lib/competitor-research/competitor-csv-row";
 import type { CheckedExternalLink } from "./external-research";
 import { formatImportedDraftLinksForPrompt, type ImportedDraftLink } from "./bulk/blog-import-draft-links";
 import {
@@ -305,7 +305,7 @@ export async function generateChecklistFromSelections(
     userPrompt?: string;
     entity?: string; // Optional entity for content optimization
     entityAnalysis?: string; // AI analysis of the entity for context
-    serpData?: any; // Full SERP JSON response for context
+    serpData?: unknown; // Full SERP JSON response for context
     selectedPeopleAlsoAsk?: string[]; // Selected People Also Ask questions
     peopleAlsoAskItems?: PeopleAlsoAsk[]; // Full PAA items (question + url/answer) for linking
     selectedResearchLinks?: string[]; // Selected research links for external linking
@@ -425,36 +425,20 @@ export async function generateChecklistFromSelections(
   const primaryKeywordProper = toProperCase(checklistKeywordData.keyword);
   const selectedKeywordsProper = selectedKeywords.map(kw => toProperCase(kw));
 
-  const hasFirstPartyAiso = Boolean(options.firstPartyAuthorityBlock?.trim());
-  const aisoKeywordChecklistBlock = hasFirstPartyAiso
-    ? `\n${AISO_CHECKLIST_KEYWORD_RULE}\nWhen FIRST-PARTY AUTHORITY is present, AISO CHECKLIST KEYWORD replaces legacy exact-phrase density targets below.\n`
-    : "";
+  const aisoKeywordChecklistBlock = `\n${AISO_CHECKLIST_KEYWORD_RULE}\n`;
 
-  const keywordDensityChecklistItemLine = hasFirstPartyAiso
-    ? `- CRITICAL: Each checklist item must include **[FOCUS KEYWORD DENSITY]** (AISO semantic breadth — not ~1% exact-phrase density), **[EXACT PRIMARY PER H2]** (at most once per H2 body when natural; skip if prior section used exact phrase), and **[PARAGRAPH LENGTH]** (moderately short ~2-4 sentences). Natural conversational language — forbidden stuffing one paragraph with the exact SEO slug.`
-    : `- CRITICAL: Always add a note in each checklist item including **[FOCUS KEYWORD DENSITY]**, **[EXACT PRIMARY PER H2]**, and **[PARAGRAPH LENGTH]**: **minimum ~1.0%** focus keyword density across the **full article**; **exact** Primary Keyword **≥1× per H2** body; paragraphs **moderately short** (**~2–4 sentences**), **not** long walls of text, **not** all one-sentence choppiness. **Do not** aim for **~0.5%** when the target is **~1%** or higher. Also note: natural, conversational language - avoid stuffing **one** paragraph; **distribute** focus-keyword usage across intro, H2s, body, conclusion. Mix anchor text: 50% natural descriptive, 30% branded, 20% keyword-rich.`;
+  const keywordDensityChecklistItemLine = `- CRITICAL: Each checklist item must include **[FOCUS KEYWORD DENSITY]** (AISO semantic breadth, not exact-phrase density), **[EXACT PRIMARY PER H2]** (at most once per H2 body when natural; skip if prior section used exact phrase), and **[PARAGRAPH LENGTH]** (moderately short ~2-4 sentences). Natural conversational language; never stuff one paragraph with the exact SEO slug.`;
 
-  const checklistKeywordSpreadRules = hasFirstPartyAiso
-    ? `3. Distribute keywords naturally across sections using semantic variations; exact phrase sparingly per AISO CHECKLIST KEYWORD.
-4. **FOCUS KEYWORD DENSITY (AISO)**: State semantic breadth plus exact phrase in Answer and sparingly in body — not minimum ~1% exact-phrase stuffing.
-5. **EXACT PRIMARY PER H2 (AISO)**: At most once per H2 body when natural; skip when prior body section already used the exact phrase.`
-    : `3. Distribute keywords naturally across sections - semantic variations **and** enough exact/combination usage to hit **[FOCUS KEYWORD DENSITY] ~1%+** (not ~0.5%)
-4. **FOCUS KEYWORD DENSITY (NON-NEGOTIABLE IN CHECKLIST)**: Every checklist must explicitly require **minimum ~1.0%** focus keyword density (exact phrase + word-order combinations). Avoid **~0.5%** totals when the target is **~1%** or higher. Avoid stuffing one paragraph: **spread** mentions across the article. Mix anchor text types (descriptive, branded, keyword-rich).
-5. **EXACT PRIMARY PER H2 (NON-NEGOTIABLE)**: Every checklist item that defines an **H2** section must require the **exact** Primary Keyword string (**"${primaryKeywordProper}"** / same words and order as **Primary Keyword**) **at least once** in that section's body copy - **every** H2 including intro and conclusion. State it explicitly as **[EXACT PRIMARY PER H2]** in each such item.`;
+  const checklistKeywordSpreadRules = `3. Distribute keywords naturally across sections using semantic variations; exact phrase sparingly per AISO CHECKLIST KEYWORD.
+4. **FOCUS KEYWORD DENSITY (AISO)**: State semantic breadth plus exact phrase in Answer and sparingly in body, not exact-phrase stuffing.
+5. **EXACT PRIMARY PER H2 (AISO)**: At most once per H2 body when natural; skip when prior body section already used the exact phrase.`;
 
-  const checklistExactPrimaryStructureLine = hasFirstPartyAiso
-    ? `- **[EXACT PRIMARY PER H2] (AISO)**: At most once per H2 body when natural; skip when prior body section used exact phrase. Intro: at most one exact primary, not in sentence one.`
-    : `- **[EXACT PRIMARY PER H2]**: Every checklist item that creates an H2 section MUST state that the **exact** Primary Keyword (from Keyword Context) appears **once** in that section's body - not in every sentence. Intro: at most one exact primary, not required in sentence one.`;
+  const checklistExactPrimaryStructureLine = `- **[EXACT PRIMARY PER H2] (AISO)**: At most once per H2 body when natural; skip when prior body section used exact phrase. Intro: at most one exact primary, not in sentence one.`;
 
-  const checklistLinksKeywordBlock = hasFirstPartyAiso
-    ? `- **Include in the checklist**: **[FOCUS KEYWORD DENSITY] (AISO)**: semantic breadth over exact-phrase stuffing. **[EXACT PRIMARY PER H2] (AISO)**: at most once per H2 when natural. **[PARAGRAPH LENGTH]**: moderately short paragraphs (~2-4 sentences).
-- Prefer semantic variants for anchor text and body copy; exact phrase only where it reads naturally.`
-    : `- **Include in the checklist**: **[FOCUS KEYWORD DENSITY]**: **minimum ~1.0%** focus keyword density (exact + combinations); **not** **~0.5%** when the target is **~1%** or higher. **[EXACT PRIMARY PER H2]**: **exact** Primary Keyword phrase **once per H2** section body (minimum). **[PARAGRAPH LENGTH]**: **moderately short** paragraphs (**~2–4 sentences**); no long walls of text; not all single-sentence paragraphs.
-- Use semantic variations for flow, but spread exact/partial matches across the article so focus keyword density clears **~1%**
-- If one paragraph feels repetitive, **redistribute** focus-keyword usage to other sections instead of dropping below **~1%** overall`;
+  const checklistLinksKeywordBlock = `- **Include in the checklist**: **[FOCUS KEYWORD DENSITY] (AISO)**: semantic breadth over exact-phrase stuffing. **[EXACT PRIMARY PER H2] (AISO)**: at most once per H2 when natural. **[PARAGRAPH LENGTH]**: moderately short paragraphs (~2-4 sentences).
+- Prefer semantic variants for anchor text and body copy; exact phrase only where it reads naturally.`;
 
-  const keywordFocusDensityBlock = hasFirstPartyAiso
-    ? `FOCUS KEYWORD (AISO — overrides legacy density targets):
+  const keywordFocusDensityBlock = `FOCUS KEYWORD (AISO):
 - Prefer semantic variants across the article; exact phrase required in Answer plus up to ~4 natural body mentions total.
 - **[EXACT PRIMARY PER H2]**: At most once per H2 body when natural; skip when prior section used exact phrase.
 - **[FOCUS KEYWORD DENSITY]**: Semantic breadth over exact-phrase stuffing. Forbidden: exact phrase as sentence subject in consecutive paragraphs or every table row.
@@ -467,51 +451,6 @@ CRITICAL KEYWORD USAGE - NATURAL LANGUAGE PRIORITY (2026 SEO STANDARDS):
 - Use semantic variations (e.g. smart blinds vs traditional blinds, automated vs manual blinds, motorized window coverings).
 - Write as a human would speak; readability first, SEO second.
 - Anchor text variety: mix descriptive, branded, and keyword-rich anchors naturally.`
-    : `FOCUS KEYWORD DENSITY (EXPLICIT - THE CHECKLIST MUST STATE THIS IN PLAIN LANGUAGE):
-- Target **at least ~1.0%** focus keyword density for the primary phrase (plus word-order combinations), **not** staying near **~0.5%**.
-- Every generated checklist MUST include an explicit line such as: **[FOCUS KEYWORD DENSITY]**: Target **minimum ~1.0%** focus keyword density across the **full article** (exact phrase + word-order combinations). **Do not** ship content around **~0.5%** when the goal is **~1%** or higher.
-- Require **multiple** natural placements across **introduction, several H2 sections, body paragraphs, and conclusion** - spread usage, do not cram everything into one paragraph.
-- If density is still low despite many mentions, the checklist should say to **weave the exact focus phrase** and close combinations in a few more sections until **~1%** is met, without robotic repetition in one block.
-
-EXACT PRIMARY KEYWORD - ONCE PER EVERY H2 SECTION (NON-NEGOTIABLE - CHECKLIST MUST STATE THIS):
-- The **WRITING KEYWORD** string (from KEYWORD PUNCTUATION block — full Title Case, exact words and order) MUST appear **at least once in the body** of **every** section that is an **H2** main block: introduction (first H2), **each** selected H2 topic, conclusion (final H2), and any mandatory H2s (e.g. service-area **What We Offer**, **Next Steps**). **Never** in the H2 **heading title**.
-- Every generated checklist item for an H2 section MUST include an explicit line: **[EXACT PRIMARY PER H2]**: Include the **exact** primary keyword phrase **at least once** in this section's body copy (paragraphs and/or list/table text under that H2). **Not** only synonyms or partials - the **full exact phrase** must appear **somewhere** under that H2.
-- The exact phrase does **not** need to appear inside the H2 **heading title**; it **must** appear in the **content** under that H2 (including inside H3 subsections that belong to that H2).
-- Do **not** skip an H2: if one section lacks the exact phrase, the checklist is incomplete.
-
-READABILITY - PARAGRAPH LENGTH (CHECKLIST SHOULD STATE **[PARAGRAPH LENGTH]**):
-- Prefer **moderately short** paragraphs: typically **2–4 sentences** per paragraph on average. **Split** content when a paragraph would become a long wall of text (roughly **5+ sentences** or one dominant block) - this addresses SEO/readability feedback like “paragraph is long.”
-- **Do not** default to **only** one-sentence paragraphs (over-choppy); **do not** leave **overly long** single paragraphs. Balance scannability with natural flow.
-
-CRITICAL KEYWORD USAGE - NATURAL LANGUAGE PRIORITY (2026 SEO STANDARDS):
-- AVOID KEYWORD STUFFING: Never repeat the exact-match phrase in every sentence or stack it unnaturally. Modern search engines penalize repetitive, robotic-sounding content.
-- Use semantic variations **and** word-order combinations to reach **~1%** density:
-  * If primary keyword is "Wood Window Blinds Seagrove Beach", use variations like:
-    - "wood blinds" (often)
-    - "wood window treatments in Seagrove Beach" (varied)
-    - "wooden blinds for coastal homes" (natural alternative)
-    - "wood blinds in the Seagrove Beach area" (natural phrasing)
-  * Distribute **exact** and **partial** matches across the whole article so total focus-keyword presence meets **~1%** - do **not** rely on "1–2 exact uses only" if that leaves density at **~0.5%**
-  * Split multi-word keywords naturally across sentences where it reads well, but ensure components still appear often enough overall for density targets
-- Natural language patterns:
-  * Write as a human would speak, not as SEO software would generate
-  * Use conversational, engaging language that prioritizes reader experience
-  * If non-focus wording feels forced, rephrase; the **exact** Primary Keyword must still appear once per H2 per **[EXACT PRIMARY PER H2]** - place it where it reads naturally (often mid-sentence)
-  * Vary sentence structure - avoid repetitive patterns that make content feel formulaic
-- Anchor text variety (CRITICAL for modern SEO):
-  * Mix keyword-rich (20%), branded (30%), and natural descriptive (50%) anchor text
-  * Branded examples: "In The Shade's collection", "our showroom", "in-home measure appointment"
-  * Natural descriptive: "this guide to humidity-resistant blinds", "learn more about motorization", "explore your options"
-  * Avoid overusing exact keyword phrase as anchor text - this signals over-optimization
-- Keyword density guidance (for SEO):
-  * Target **at least ~1.0%** focus keyword density (exact phrase + word-order combinations). **Avoid** finishing around **~0.5%** when the target is **~1%** or higher.
-  * Prefer spreading exact and partial matches across sections over a single paragraph stuffed with repeats
-  * Use partial matches and semantic variations for readability, but **do not** use "variations only" as an excuse for **below ~1%** total focus-keyword score
-  * Focus on topical relevance **and** meeting the explicit density bar the checklist states
-- Content quality over keyword matching:
-  * Readability, user value, and natural flow matter - but the checklist must still **explicitly** require **~1%** focus keyword density, not **~0.5%**
-  * Content should sound like it was written by a human expert, not an SEO tool
-  * If a paragraph feels stuffed, **redistribute** mentions to other sections rather than dropping below **~1%** overall`;
 
   const keywordSection = `
 --- Keyword Context ---
@@ -581,7 +520,7 @@ ${resolvedH2Sections.map((h2, idx) => `${idx + 1}. ${h2}`).join("\n")}
     }
 
     // Create full PAA question objects and filter out international references
-    let allPaaQuestions = deduped
+    const allPaaQuestions = deduped
       .map((question) => {
         const match = paaItems.find(
           (p) => p?.question && p.question.toLowerCase().trim() === question.toLowerCase().trim()
@@ -755,7 +694,7 @@ CRITICAL LOCATION VARIATION REQUIREMENTS:
   * Use broader geographic terms in body content (most common)
   * Use exact location sparingly in conclusion (1 time maximum)
   * Example: Instead of "${entityName} home" repeatedly, use "local area home", "regional residence", "${entityName} properties" (varied)
-- Location density: Target 1-2% for exact location name, 3-5% for broader geographic variations
+- Location mentions: exact location name 2-3 times maximum in the entire article; prefer broader geographic and local references everywhere else. No percentage targets.
 
 **CRITICAL: PREVENT OVER-OPTIMIZATION**:
 - Remove 15-20% of primary keyword mentions and replace with semantic product/topic variants (tier names, room types, mount styles, material words)
@@ -931,27 +870,21 @@ ${options.semrushScatterContext}
    - **[ARTICLE LENGTH]**: Entire published article MUST NOT exceed ${ARTICLE_MAX_WORDS} words.
    - Mix content types: Include [TABLE] or [LIST] where appropriate for variety. For lists, suggest both bulleted lists (unordered) and numbered lists (ordered) depending on the content type - use numbered lists for step-by-step processes, rankings, or sequences, and bulleted lists for features, benefits, or general items. Block quotes: MAXIMUM 1-2 per entire blueprint — use [BLOCKQUOTE] for the one [ILLUSTRATIVE] hypothetical worked example (priority) or entity facts when no illustrative section. Put [DECISION] on exactly one item, [TRADEOFF] on exactly one item, [ILLUSTRATIVE] on exactly one item (must include [BLOCKQUOTE] for the hypothetical), and [RECOMMENDATION] on exactly one item. Prefer a decision-criteria table over a second catalog table.
    - ${semrushParts.hasSemrushExactMode
-      ? `**[LINK] + [EXTERNAL_SEMRUSH]**: MANDATORY for EVERY section. **${LINK_FEATURE_PLACEHOLDER}**. **[EXTERNAL_SEMRUSH]**: at least 1 outbound citation per section - exact href from SEMRUSH APPROVED EXTERNAL URLs and exact anchor from SEMRUSH APPROVED ANCHOR PHRASES in the system prompt. Spread citations across many sections (majority of H2 items); rotate different Semrush URLs.`
-      : `**[LINK]**: MANDATORY for EVERY section. **${LINK_FEATURE_PLACEHOLDER}**. ${INTERNAL_LINK_INTENT_ROUTING_RULE} Never end a sentence with a keyword or <a>. Never service-area URLs.`}
+      ? `**[LINK] + [EXTERNAL_SEMRUSH]**: Include **${LINK_FEATURE_PLACEHOLDER}** where a relevant internal page exists. **[EXTERNAL_SEMRUSH]**: cite an outbound source only where a claim needs one - exact href from SEMRUSH APPROVED EXTERNAL URLs and exact anchor from SEMRUSH APPROVED ANCHOR PHRASES in the system prompt. Rotate different Semrush URLs across sections.`
+      : `**[LINK]**: Include **${LINK_FEATURE_PLACEHOLDER}** where a relevant internal page exists. ${INTERNAL_LINK_INTENT_ROUTING_RULE} Never end a sentence with a keyword or <a>. Never service-area URLs.`}
    - ${keywordDensityChecklistItemLine}
    - CRITICAL: PREVENT UNNECESSARY SUBLISTS: Explicitly state in each checklist item: "Note: Do NOT create sublists, bullet lists, or 'Key Features' lists unless the [LIST] feature is explicitly specified in this checklist item. Write content in flowing paragraphs only. Only include lists when [LIST] is explicitly mentioned as a feature requirement."
 ${checklistKeywordSpreadRules}
-6. First and last H2: use outline titles exactly. ${hasFirstPartyAiso ? "**[EXACT PRIMARY PER H2] (AISO)** on both when natural." : "**[EXACT PRIMARY PER H2]** on both."} ${semrushParts.hasSemrushExactMode ? `${LINK_FEATURE_PLACEHOLDER}. [EXTERNAL_SEMRUSH]: at least 1 Semrush outbound citation where natural.` : `${LINK_FEATURE_PLACEHOLDER}.`}
+6. First and last H2: use outline titles exactly. "**[EXACT PRIMARY PER H2] (AISO)** on both when natural." ${semrushParts.hasSemrushExactMode ? `${LINK_FEATURE_PLACEHOLDER}. [EXTERNAL_SEMRUSH]: at least 1 Semrush outbound citation where natural.` : `${LINK_FEATURE_PLACEHOLDER}.`}
 7. Include [REAL-WORLD EXAMPLE] only when master instructions, existing page HTML, GBP, or audit blocks supply a real installer/process/climate fact. Forbidden: invented counts, fake testimonials. If those sources are empty, omit.
-8. **MANDATORY CONTENT STRUCTURE ELEMENTS (NON-NEGOTIABLE)** - Every blog MUST include ALL THREE of the following elements to break up text and improve readability:
-   - **AT LEAST 1 TABLE**: You MUST include [TABLE] in at least one section. Use for comparisons, features, specifications, or data. When comparing Pros/Cons or Manual vs Motorized: use an HTML table (<table><thead><tr><th>Pros</th><th>Cons</th></tr></thead><tbody>...</tbody></table>), NOT Pros/Cons sub-headings with bullet lists. NEVER markdown tables. ${TABLE_NO_LINK_ONLY_COLUMN_RULE}
-   - **AT LEAST 1 BULLETED LIST (Unordered)**: You MUST include [LIST]: Bulleted list in at least one section. Use for features, benefits, items, or options. Example: "[LIST]: Bulleted list of key benefits"
-   - **AT LEAST 1 NUMBERED LIST (Ordered)**: You MUST include [LIST]: Numbered list in at least one section. Use for step-by-step processes, rankings, or sequences. Example: "[LIST]: Numbered list of installation steps"
-   - These THREE elements are MANDATORY and non-negotiable. A blog without all three is INCOMPLETE.
-   - Distribute them across DIFFERENT sections for variety - do not put all three in one section.
-   - With only 5-7 sections total, one of each element type is sufficient; do not add extra sections just for structure.
-   - **VALIDATION**: Before submitting your checklist, verify that you have included at least 1 [TABLE], 1 [LIST]: Bulleted list, and 1 [LIST]: Numbered list across your sections.${semrushParts.hasSemrushExactMode ? " Also verify every checklist item includes both [LINK] (internal) and [EXTERNAL_SEMRUSH] (Semrush outbound)." : ""}`;
+8. **CONTENT STRUCTURE** - Use a table or a list only where the content genuinely calls for one (comparison data, specifications, step-by-step processes, feature sets). Do not add tables or lists to satisfy a quota. When comparing Pros/Cons or Manual vs Motorized: use an HTML table (<table><thead><tr><th>Pros</th><th>Cons</th></tr></thead><tbody>...</tbody></table>), NOT Pros/Cons sub-headings with bullet lists. NEVER markdown tables. ${TABLE_NO_LINK_ONLY_COLUMN_RULE}
+   - Articles with no natural comparison or process may have no table and no list. That is complete, not incomplete.`;
 
   const systemPrompt = `You are an expert blog content strategist and blueprint architect. Your role is to create a detailed, robust checklist for generating a blog template blueprint based on the provided selections.
 
 ${keywordSection}
 
-CRITICAL: Use natural, conversational language - avoid stuffing one paragraph. **Focus keyword**: ${hasFirstPartyAiso ? "When FIRST-PARTY AUTHORITY is present, follow **AISO CHECKLIST KEYWORD**: semantic breadth over exact-phrase density; exact phrase in Answer plus up to ~4 natural body mentions; at most once per H2 when prior section did not already use it." : "The checklist MUST explicitly require **minimum ~1.0%** focus keyword density (exact phrase + counted combinations), **not ~0.5%**. Distribute the focus keyword across intro, multiple H2s, body, and conclusion. Use semantic variations where they help readability, but do not leave total density below **~1%** just to avoid exact matches."} **[EXACT PRIMARY PER H2]**: ${hasFirstPartyAiso ? "At most once per H2 body when natural; skip when prior section used exact phrase." : "The checklist MUST require the **exact** Primary Keyword phrase **at least once in the body of every H2 section** (see Keyword Context above)."}
+CRITICAL: Use natural, conversational language - avoid stuffing one paragraph. **Focus keyword**: Follow **AISO CHECKLIST KEYWORD**: semantic breadth over exact-phrase density; exact phrase in Answer plus up to ~4 natural body mentions; at most once per H2 when prior section did not already use it. **[EXACT PRIMARY PER H2]**: At most once per H2 body when natural; skip when prior section used exact phrase.
 
 **FORBIDDEN BODY H2 HEADERS (NON-NEGOTIABLE)**: NEVER use FAQ-style section titles in the article body. FAQ is appended later as flo-faq with H2 id="faq". Forbidden titles include: "FAQ", "Frequently Asked Questions", "Answering Your Questions…", "Common Questions…", "Q&A", or any dedicated Question/Answer section H2. PAA questions are NOT standalone body sections.
 
@@ -987,7 +920,7 @@ ${checklistExactPrimaryStructureLine}
 **Links**:
 ${semrushParts.linksBulletExternal}
 - Distribute selected keywords across sections as anchor text
-- If no keywords: "[LINK]: 3–5 [[LINK:query|anchor]] placeholders per section (no raw https:// internal URLs)"
+- If no keywords: "[LINK]: [[LINK:query|anchor]] placeholders where a relevant internal target exists (no raw https:// internal URLs)"
 - Weave keywords elegantly into anchor text - integrate them naturally within sentence structure using semantic variations and natural syntax
 ${checklistLinksKeywordBlock}
 - **CRITICAL: Keep anchor text SHORT (2-5 words maximum)** - only link the key phrase, NOT entire sentences. Extract only the essential keyword phrase for linking
@@ -1051,7 +984,7 @@ ${
               `${i + 1}. ${h2} [STRUCTURE]: 1-2 paragraphs. **[EXACT PRIMARY PER H2]**. ${LINK_FEATURE_PLACEHOLDER}.`,
           )
           .join("\n")
-    : `1. ${resolvedH2Sections[0] || "First SERP outline section"} [STRUCTURE]: 2-3 paragraphs. [LIST]: components. Opener leads with a sourced fact, then the topic (not keyword-first, not "{keyword} offers", not a dictionary definition). **[FIRST-PARTY AUTHORITY]**. **[EXACT PRIMARY PER H2]**: exact Primary Keyword once later in the intro body. **[FOCUS KEYWORD DENSITY]**: ~1%+ across article. ${entityWikiUrl && entityName ? `[EXTERNAL_WIKI]: Link "${entityName}" to ${entityWikiUrl}. ` : ""}[LINK]: minimal in opener.
+    : `1. ${resolvedH2Sections[0] || "First SERP outline section"} [STRUCTURE]: 2-3 paragraphs. [LIST]: components. Opener leads with a sourced fact, then the topic (not keyword-first, not "{keyword} offers", not a dictionary definition). **[FIRST-PARTY AUTHORITY]**. **[EXACT PRIMARY PER H2]**: at most once in the intro body when natural. **[FOCUS KEYWORD DENSITY] (AISO)**: semantic breadth across the article. ${entityWikiUrl && entityName ? `[EXTERNAL_WIKI]: Link "${entityName}" to ${entityWikiUrl}. ` : ""}[LINK]: minimal in opener.
 2. ${resolvedH2Sections[1] || "Second SERP outline section"} [STRUCTURE]: 2-3 paragraphs. [TABLE] or [DECISION]: criteria. **[EXACT PRIMARY PER H2]**. ${LINK_FEATURE_PLACEHOLDER}.
 3. ${resolvedH2Sections[2] || "Third SERP outline section"} [STRUCTURE]: 1 intro paragraph, then scenario in body (not in the H2). [ILLUSTRATIVE]: labeled hypothetical worked example. [BLOCKQUOTE]: scenario in the quote, not in the heading. Short H2 (3-8 words). No links in H2 or H3. **[EXACT PRIMARY PER H2]**. ${LINK_FEATURE_PLACEHOLDER}.
 4. ${resolvedH2Sections[3] || "Fourth SERP outline section"} [STRUCTURE]: 1-2 paragraphs. [LIST]: numbered steps. **[EXACT PRIMARY PER H2]**. ${LINK_FEATURE_PLACEHOLDER}.
@@ -1072,7 +1005,7 @@ ${importedOutlineOverride}
 
 ${FORBIDDEN_H2_PLACEHOLDER_PROMPT_LINE}
 
-CRITICAL: Weave keywords elegantly into content using natural, human-like syntax. Keywords should flow organically within sentences. **Focus keyword**: ${hasFirstPartyAiso ? "When FIRST-PARTY AUTHORITY is present, follow **AISO CHECKLIST KEYWORD**: semantic breadth over exact-phrase density; exact phrase in Answer plus sparing body mentions; at most once per H2 when natural." : "The checklist MUST state **[FOCUS KEYWORD DENSITY]**: **minimum ~1.0%** focus keyword density (exact phrase + counted combinations), **not ~0.5%** - distribute across the article."} **EXACT PRIMARY PER H2**: ${hasFirstPartyAiso ? "At most once per H2 body when natural; skip when prior section used exact phrase." : "The checklist MUST state that the **exact** Primary Keyword phrase appears **once in the body of every H2** (not in every sentence)."} Intro: at most one exact primary, not required in sentence one; prefer [FIRST-PARTY AUTHORITY] in the opener.
+CRITICAL: Weave keywords elegantly into content using natural, human-like syntax. Keywords should flow organically within sentences. **Focus keyword**: Follow **AISO CHECKLIST KEYWORD**: semantic breadth over exact-phrase density; exact phrase in Answer plus sparing body mentions; at most once per H2 when natural. **EXACT PRIMARY PER H2**: At most once per H2 body when natural; skip when prior section used exact phrase. Intro: at most one exact primary, not required in sentence one; prefer [FIRST-PARTY AUTHORITY] in the opener.
 
 **PARAGRAPH LENGTH**: The checklist MUST state **[PARAGRAPH LENGTH]** - **moderately short** paragraphs (**~2–4 sentences** typical); **split** long blocks (avoid “paragraph is long” warnings); **do not** use only one-sentence paragraphs throughout (too choppy).
 
@@ -1101,24 +1034,19 @@ ${checklistStructureRequirements}`;
   
   // Always add link requirements (Semrush mode: internal + outbound; otherwise internal-only unless keywords branch adds detail)
   if (semrushParts.hasSemrushExactMode) {
-    userPrompt += `\n\n--- MANDATORY: INTERNAL + SEMRUSH OUTBOUND IN EVERY CHECKLIST ITEM (NON-NEGOTIABLE) ---
-- **EVERY numbered checklist item** must explicitly include BOTH: (1) "${LINK_FEATURE_PLACEHOLDER}", AND (2) "[EXTERNAL_SEMRUSH]" requiring at least one outbound citation drawn **only** from the numbered SEMRUSH APPROVED EXTERNAL URLs / ANCHOR PHRASES blocks in the system prompt.
+    userPrompt += `\n\n--- INTERNAL + SEMRUSH OUTBOUND LINKS ---
+- Include "${LINK_FEATURE_PLACEHOLDER}" in a checklist item where a relevant internal page exists, and "[EXTERNAL_SEMRUSH]" only where a claim needs an outbound citation, drawn **only** from the numbered SEMRUSH APPROVED EXTERNAL URLs / ANCHOR PHRASES blocks in the system prompt.
 - **ZERO HALLUCINATED EXTERNAL URLS**: Do NOT type any third-party https:// URL in the checklist unless it is a **verbatim copy** from the SEMRUSH APPROVED EXTERNAL URLs list. **FORBIDDEN**: invented URLs, "e.g." external links, competitor domains, or plausible-looking URLs not in the list. **ALLOWED**: paste URL(s) exactly from the list, OR write "use SEMRUSH approved URL #N with anchor phrase #N" with no URL string.
-- **Spread outbound links**: the majority of sections (at least half of H2 items, or 6+ items when the checklist is long) must mention [EXTERNAL_SEMRUSH]. Use **different Semrush list indices** across sections where possible.
-- **FORBIDDEN**: Checklist lines that only say "internal links" or "WordPress URLs only" without [EXTERNAL_SEMRUSH] when SEMRUSH data is in the system prompt.
-- **H3 SUBSECTIONS**: When a section uses H3s, at least one H3 block should still include an [EXTERNAL_SEMRUSH] citation where natural (same no-hallucination rule).
-- **VALIDATION**: Before submitting, count that every item has both [LINK] and [EXTERNAL_SEMRUSH] stated, and that **no third-party URL appears unless copied from the Semrush list**.${selectedKeywords.length > 0 ? `\n- Selected keywords for internal anchor text variety: ${selectedKeywords.join(", ")}` : ""}`;
+- Use **different Semrush list indices** across sections where possible.${selectedKeywords.length > 0 ? `\n- Selected keywords for internal anchor text variety: ${selectedKeywords.join(", ")}` : ""}`;
   } else if (selectedKeywords.length > 0) {
-    userPrompt += `\n\n--- MANDATORY: INTERNAL LINK REQUIREMENTS FOR ALL SECTIONS (NON-NEGOTIABLE) ---
-- Every H2 and H3 MUST include "${LINK_FEATURE_PLACEHOLDER}"
+    userPrompt += `\n\n--- INTERNAL LINKS ---
+- Include "${LINK_FEATURE_PLACEHOLDER}" where a relevant internal page exists
 - ${INTERNAL_LINK_INTENT_ROUTING_RULE} Never end a sentence with a keyword or <a>. Never service-area URLs.
-- Selected keywords for anchor text: ${selectedKeywords.join(", ")}
-- **VALIDATION**: every section states [LINK] with [[LINK:query|anchor]]`;
+- Selected keywords for anchor text: ${selectedKeywords.join(", ")}`;
   } else {
-    userPrompt += `\n\n--- MANDATORY: INTERNAL LINK REQUIREMENTS FOR ALL SECTIONS (NON-NEGOTIABLE) ---
-- Every H2 and H3 MUST include "${LINK_FEATURE_PLACEHOLDER}"
-- ${INTERNAL_LINK_INTENT_ROUTING_RULE} Never end a sentence with a keyword or <a>. Never service-area URLs.
-- **VALIDATION**: every section states [LINK] with [[LINK:query|anchor]]`;
+    userPrompt += `\n\n--- INTERNAL LINKS ---
+- Include "${LINK_FEATURE_PLACEHOLDER}" where a relevant internal page exists
+- ${INTERNAL_LINK_INTENT_ROUTING_RULE} Never end a sentence with a keyword or <a>. Never service-area URLs.`;
   }
   
   if (options.wordPressPagesForOfferTable?.length) {

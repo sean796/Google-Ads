@@ -226,7 +226,7 @@ export function extractDataForSeoSerpBrief(serpRoot: unknown): SeoContentBriefV1
   const task0 = Array.isArray(task) ? (task[0] as Record<string, unknown> | undefined) : undefined;
   if (!task0) return empty;
 
-  const seedKeyword = str(task0.data && typeof task0.data === "object" ? (task0.data as any).keyword : null);
+  const seedKeyword = str(task0.data && typeof task0.data === "object" ? (task0.data as { keyword?: unknown }).keyword : null);
   const results = task0.result;
   const firstResult = Array.isArray(results) ? (results[0] as Record<string, unknown> | undefined) : undefined;
   if (!firstResult) {
@@ -338,7 +338,7 @@ export function extractDataForSeoSerpBrief(serpRoot: unknown): SeoContentBriefV1
           if (!el || typeof el !== "object") continue;
           const e = el as Record<string, unknown>;
           if (e.type === "popular_products_element") {
-            const price = e.price && typeof e.price === "object" ? (e.price as any).displayed_price : undefined;
+            const price = e.price && typeof e.price === "object" ? (e.price as { displayed_price?: unknown }).displayed_price : undefined;
             popularProducts.push({
               title: str(e.title),
               seller: str(e.seller),
@@ -387,16 +387,16 @@ export function parseGscBriefFromContext(contextStr: string): { pageUrl: string;
     const j = JSON.parse(t) as Record<string, unknown>;
     const pageUrl = str(j.gsc_keywords_for_url) || "";
     if (Array.isArray(j.queries)) {
-      const q = j.queries.filter((x): x is string => typeof x === "string" && x.trim()).map((x) => x.trim());
+      const q = j.queries.filter((x): x is string => typeof x === "string" && x.trim().length > 0).map((x) => x.trim());
       return { pageUrl, queries: dedupeStrings(q) };
     }
     const rows = j.rows;
     if (Array.isArray(rows)) {
       const q: string[] = [];
       for (const r of rows) {
-        if (r && typeof r === "object" && typeof (r as any).query === "string") {
-          const qq = (r as any).query.trim();
-          if (qq) q.push(qq);
+        if (r && typeof r === "object") {
+          const query = (r as { query?: unknown }).query;
+          if (typeof query === "string" && query.trim()) q.push(query.trim());
         }
       }
       return { pageUrl, queries: dedupeStrings(q) };

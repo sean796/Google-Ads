@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildContentSheetRows } from "@/lib/sitemap-optimizer/build-content-sheet-rows";
 import { runSitemapOptimizerApprovePlan } from "@/lib/sitemap-optimizer/sitemap-optimizer-approve-plan";
-import type { SitemapOptimizerRunResult } from "@/lib/sitemap-optimizer/types";
+import type {
+  SitemapOptimizerClusterResult,
+  SitemapOptimizerMergeRecommendation,
+  SitemapOptimizerPostRow,
+  SitemapOptimizerRunResult,
+} from "@/lib/sitemap-optimizer/types";
 import type { WordPressSite } from "@/components/integrations/types";
 
 const trashMock = vi.fn();
@@ -11,59 +16,65 @@ vi.mock("@/lib/sitemap-optimizer/trash-merge-source-posts", () => ({
   trashMergeSourcePosts: (...args: unknown[]) => trashMock(...args),
 }));
 
-const sampleResultBase = {
-  rows: [
-    {
-      postId: "wp:1",
-      url: "https://example.com/blog/old-a/",
-      collection: "posts",
-      title: "Old A",
-      keyword: "old a",
-      meta: "",
-      contentSnippet: "",
-      gscQueries: [],
-      gscFetched: true,
-    },
-    {
-      postId: "wp:2",
-      url: "https://example.com/blog/old-b/",
-      collection: "posts",
-      title: "Old B",
-      keyword: "old b",
-      meta: "",
-      contentSnippet: "",
-      gscQueries: [],
-      gscFetched: true,
-    },
-  ],
-  clusters: {
-    clusters: [
-      {
-        clusterId: "c1",
-        label: "Group",
-        intent: "informational",
-        memberPostIds: ["wp:1", "wp:2"],
-        confidence: "high",
-        rationale: "",
-      },
-    ],
-    singletons: [] as string[],
+const sampleRows: SitemapOptimizerPostRow[] = [
+  {
+    postId: "wp:1",
+    url: "https://example.com/blog/old-a/",
+    collection: "posts",
+    title: "Old A",
+    keyword: "old a",
+    meta: "",
+    contentSnippet: "",
+    gscQueries: [],
+    gscFetched: true,
   },
-  merges: [
+  {
+    postId: "wp:2",
+    url: "https://example.com/blog/old-b/",
+    collection: "posts",
+    title: "Old B",
+    keyword: "old b",
+    meta: "",
+    contentSnippet: "",
+    gscQueries: [],
+    gscFetched: true,
+  },
+];
+
+const sampleClusters: SitemapOptimizerClusterResult = {
+  clusters: [
     {
       clusterId: "c1",
-      recommendedTitle: "New Merged Guide",
-      recommendedPrimaryKeyword: "merged guide",
-      recommendedMeta: "Meta for merged page.",
-      combinedOutline: ["Topic One"],
-      whatToKeepFromEach: [],
-      redirectOrCanonicalNote: "",
-      priority: "high",
+      label: "Group",
+      intent: "informational",
+      memberPostIds: ["wp:1", "wp:2"],
       confidence: "high",
       rationale: "",
-      lockedDestinationUrl: "https://example.com/blog/merged-guide/",
     },
   ],
+  singletons: [] as string[],
+};
+
+const sampleMerges: SitemapOptimizerMergeRecommendation[] = [
+  {
+    clusterId: "c1",
+    recommendedTitle: "New Merged Guide",
+    recommendedPrimaryKeyword: "merged guide",
+    recommendedMeta: "Meta for merged page.",
+    combinedOutline: ["Topic One"],
+    whatToKeepFromEach: [],
+    redirectOrCanonicalNote: "",
+    priority: "high",
+    confidence: "high",
+    rationale: "",
+    lockedDestinationUrl: "https://example.com/blog/merged-guide/",
+  },
+];
+
+const sampleResultBase = {
+  rows: sampleRows,
+  clusters: sampleClusters,
+  merges: sampleMerges,
   gscMissCount: 0,
   dateRange: { startDate: "2026-04-01", endDate: "2026-05-01" },
   analyzedAt: "2026-05-01T00:00:00.000Z",
@@ -84,6 +95,7 @@ const site: WordPressSite = {
   siteUrl: "https://example.com",
   username: "user",
   appPassword: "pass",
+  connectedAt: 0,
 };
 
 describe("runSitemapOptimizerApprovePlan", () => {

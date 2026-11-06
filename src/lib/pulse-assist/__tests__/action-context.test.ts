@@ -2,9 +2,22 @@ import { describe, expect, it } from "vitest";
 import { buildLocationSummary } from "@/lib/pulse-assist/app-module-catalog";
 import { buildPropertiesContext, buildTeamContext } from "@/lib/pulse-assist/context";
 import type { WordPressSite } from "@/components/integrations/types";
-import { forgeContextFromHash } from "@/lib/pulse-assist/navigation";
+import { forgeContextFromPath } from "@/lib/pulse-assist/navigation";
 import type { TeamSummary } from "@/lib/teams-types";
 import type { TaskProject } from "@/lib/tasks-types";
+
+function project(partial: Pick<TaskProject, "id" | "title" | "keyword" | "sortOrder">): TaskProject {
+  return {
+    teamId: 7,
+    status: "active",
+    createdAt: "2026-01-01",
+    updatedAt: "2026-01-01",
+    archivedAt: null,
+    payload: {},
+    description: "",
+    ...partial,
+  };
+}
 
 describe("buildTeamContext", () => {
   it("returns undefined without team", () => {
@@ -23,13 +36,14 @@ describe("buildTeamContext", () => {
       permissions: {},
       createdAt: "2026-01-01",
     };
-    const projects: TaskProject[] = Array.from({ length: 35 }, (_, i) => ({
-      id: i + 1,
-      title: `Project ${i + 1}`,
-      keyword: `project-${i + 1}`,
-      status: "active",
-      sortOrder: i,
-    }));
+    const projects: TaskProject[] = Array.from({ length: 35 }, (_, i) =>
+      project({
+        id: i + 1,
+        title: `Project ${i + 1}`,
+        keyword: `project-${i + 1}`,
+        sortOrder: i,
+      }),
+    );
 
     const ctx = buildTeamContext({
       team,
@@ -74,8 +88,8 @@ describe("buildTeamContext", () => {
       createdAt: "2026-01-01",
     };
     const projects: TaskProject[] = [
-      { id: 1, title: "dsfasdf", keyword: "", status: "active", sortOrder: 0 },
-      { id: 9, title: "Advance Blinds", keyword: "advance-blinds", status: "active", sortOrder: 1 },
+      project({ id: 1, title: "dsfasdf", keyword: "", sortOrder: 0 }),
+      project({ id: 9, title: "Advance Blinds", keyword: "advance-blinds", sortOrder: 1 }),
     ];
 
     const ctx = buildTeamContext({
@@ -109,8 +123,8 @@ describe("buildPropertiesContext", () => {
 });
 
 describe("buildPulseContext forge route", () => {
-  it("adds forge section and workflow id from the hash", () => {
-    const forge = forgeContextFromHash("#pulse-forge/workflows/12");
+  it("adds forge section and workflow id from the path", () => {
+    const forge = forgeContextFromPath("/pulse-forge/workflows/12");
     expect(forge.forgeSection).toBe("workflows");
     expect(forge.forgeWorkflowId).toBe(12);
     expect(buildLocationSummary({ managerTab: "pulse-forge", forgeSection: "workflows" })).toContain(

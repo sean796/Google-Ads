@@ -138,7 +138,7 @@ function sanitizeHighlightsForClientReport(
   options?: SectionExistenceFilterOptions,
 ): OrganicReportingHighlights {
   const cleanSummary = sanitizeExecutiveSummaryText(highlights.executiveSummary, options);
-  let cleanTakeaways = filterHighlightsTakeaways(highlights.keyTakeaways, options).map((line) =>
+  const cleanTakeaways = filterHighlightsTakeaways(highlights.keyTakeaways, options).map((line) =>
     normalizeClientReportText(line),
   );
   if (cleanTakeaways.length < 2) {

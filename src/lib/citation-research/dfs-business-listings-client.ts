@@ -2,6 +2,7 @@
  * DataForSEO Business Listings Search - client for the backend MCP proxy.
  */
 
+import { resolveMcpApiBase } from "@/lib/mcp-tools";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
 import { inferDataForSeoLocationNameFromWebsiteUrl } from "@/lib/local-strategy-research/local-strategy-gmb-fetch";
 import { normalizeCompetitorDomainKey } from "@/lib/competitor-research/competitor-domain-key";
@@ -139,7 +140,7 @@ export async function postBusinessListingsSearch(args: {
   signal?: AbortSignal;
 }): Promise<unknown> {
   const base = (BACKEND_API_BASE || "").replace(/\/$/, "");
-  const url = `${base}/api/mcp/DataForSEO_business_data_business_listings_search`;
+  const url = `${base}/DataForSEO_business_data_business_listings_search`;
   const body: Record<string, unknown> = {
     title: args.title.trim(),
     location_coordinate: args.locationCoordinate.trim(),

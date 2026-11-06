@@ -4,24 +4,14 @@
  * MCP tools are called through a backend API endpoint that interfaces with the MCP server
  */
 
-import {
-  dataForSeoRequestHeaders,
-  withDataForSeoRequestAuth,
-} from "@/lib/dataforseo-request-auth";
 import { BACKEND_CONNECTION_ERROR, resolveBackendApiBase } from "@/lib/wordpress-api/connection";
 import { NEO_PULSE_CA_DEPLOY } from "@/lib/neo-pulse-deploy";
 import { isViteDev, readViteEnv } from "@/lib/vite-env";
 
-// Backend API endpoint for MCP calls
-// In development, this should point to your backend server (e.g., http://localhost:3001/api/mcp)
-// In production, use your deployed backend URL
-// Default to localhost:3001 in development if VITE_MCP_API_BASE is not set
+// Backend API endpoint for MCP calls: always this app's own /api/mcp on the
+// PHP hub (same origin or the configured app backend). Server credentials only.
 export function resolveMcpApiBase(): string {
-  const backend = resolveBackendApiBase().replace(/\/+$/, "");
-  if (backend) return `${backend}/api/mcp`;
-  const configured = readViteEnv("VITE_MCP_API_BASE");
-  if (configured) return configured;
-  return isViteDev() ? "http://localhost:3001/api/mcp" : "/api/mcp";
+  return `${resolveBackendApiBase().replace(/\/+$/, "")}/api/mcp`;
 }
 
 const MAX_MCP_ATTEMPTS = 5;
@@ -123,8 +113,8 @@ async function callMCPToolOnce(toolName: string, params: unknown): Promise<unkno
 
   const response = await fetch(url, {
     method: "POST",
-    headers: dataForSeoRequestHeaders(),
-    body: JSON.stringify(withDataForSeoRequestAuth(params)),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify((params)),
   });
 
   if (!response.ok) {

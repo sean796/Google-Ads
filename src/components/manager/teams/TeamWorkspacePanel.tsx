@@ -8,7 +8,15 @@ import {
   DEFAULT_OWNER_JOB_TITLE,
   DEFAULT_TEAM_NAME,
 } from "@/lib/teams-types";
-import { collectManagerCloudSettingsSnapshot } from "@/lib/manager-cloud-settings-snapshot";
+import {
+  collectManagerCloudSettingsSnapshot,
+  NEO_PULSE_LLM_MAX_TOKENS_KEY,
+  NEO_PULSE_LLM_TEMPERATURE_KEY,
+  NEO_PULSE_LLM_TOP_P_KEY,
+  readStoredLlmModelForIndex,
+  readStoredLlmNumberForIndex,
+} from "@/lib/manager-cloud-settings-snapshot";
+import { DEFAULT_SETTINGS } from "@/lib/optimization-settings-defaults";
 import { useTeamPermission } from "@/hooks/use-team-permission";
 import { Button, Field } from "@/ui";
 
@@ -63,7 +71,15 @@ export function TeamWorkspacePanel() {
     if (!activeTeam) return;
     setImporting(true);
     try {
-      const snapshot = collectManagerCloudSettingsSnapshot({}, {});
+      const snapshot = collectManagerCloudSettingsSnapshot(
+        {},
+        {
+          selectedModel: readStoredLlmModelForIndex(DEFAULT_SETTINGS.model),
+          temperature: readStoredLlmNumberForIndex(NEO_PULSE_LLM_TEMPERATURE_KEY, 1.57),
+          maxTokens: readStoredLlmNumberForIndex(NEO_PULSE_LLM_MAX_TOKENS_KEY, 5000000),
+          topP: readStoredLlmNumberForIndex(NEO_PULSE_LLM_TOP_P_KEY, 0.9),
+        },
+      );
       const r = await importBrowserSnapshotToTeam(activeTeam.id, snapshot);
       if (!r.ok) {
         notify.error(r.error || "Import failed");
