@@ -15,7 +15,7 @@ await sftp.connect({
   password: cfg.password,
   readyTimeout: 30000,
 });
-const remote = "./wp-content/uploads/neo-pulse-data/wpengine-sftp-catalog.json";
+const remote = "../neo-pulse-data/wpengine-sftp-catalog.json";
 const buf = await sftp.get(remote);
 await sftp.end();
 const payload = JSON.parse(buf.toString("utf8"));

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Copy local neopulse.local workspace data (all clients) onto Render pulse-host-wp-hub.
- * Sources: local /api mirrors + wp-content/uploads/neo-pulse-data files.
+ * Sources: local /api mirrors + the local staging private data root files.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -81,7 +81,8 @@ async function apiJson(base, route, init) {
 }
 
 function readNeoPulseDataFile(wpRoot, name) {
-  const abs = path.join(wpRoot, "wp-content", "uploads", "neo-pulse-data", name);
+  // Local staging data root (wp-config NEO_PULSE_DATA_DIR points at /data/neo-pulse-data).
+  const abs = path.join(process.env.NEO_PULSE_DATA_DIR || path.join(path.dirname(wpRoot), "data", "php", "neo-pulse-data"), name);
   if (!fs.existsSync(abs)) return null;
   return fs.readFileSync(abs, "utf8");
 }

@@ -2,6 +2,7 @@ import { notify } from "@/lib/app-notifications";
 import { NOTIFY_COULD_NOT_SAVE_SITES_TO_LOCAL_STORAGE } from "@/lib/notify-messages";
 import { loadManagerSettingsFromCloud } from "@/lib/manager-cloud-settings-api";
 import { applyManagerCloudSnapshotToLocalStorage } from "@/lib/manager-cloud-settings-snapshot";
+import { hydrateRuntimeApiKeys } from "@/lib/api";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
 import {
   editorialContentPackageTierForPropertyName,
@@ -809,10 +810,26 @@ export async function hydrateManagerCloudSettingsIfEmpty(): Promise<boolean> {
   }
   const { snapshot } = await loadManagerSettingsFromCloud();
   if (!snapshot) return false;
+  hydrateRuntimeApiKeys(snapshot.keys);
   const keys = { ...snapshot.keys };
   delete keys[WORDPRESS_SITES_STORAGE_KEY];
   const result = applyManagerCloudSnapshotToLocalStorage({ ...snapshot, keys });
   return result.keyCount > 0 && !result.error;
+}
+
+let runtimeKeysHydration: Promise<void> | null = null;
+
+/** Hydrate in-memory API keys from the manager cloud snapshot (boot, both shells). */
+export function hydrateRuntimeApiKeysFromCloud(): Promise<void> {
+  if (!runtimeKeysHydration) {
+    runtimeKeysHydration = (async () => {
+      const { snapshot } = await loadManagerSettingsFromCloud();
+      if (snapshot) hydrateRuntimeApiKeys(snapshot.keys);
+    })().catch(() => {
+      runtimeKeysHydration = null;
+    });
+  }
+  return runtimeKeysHydration;
 }
 
 /** Boot hook for new domains (e.g. neodigital.ca/app). */

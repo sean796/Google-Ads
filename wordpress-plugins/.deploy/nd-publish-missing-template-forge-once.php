@@ -33,7 +33,7 @@ if ( $wp_load === '' ) {
 
 require_once $wp_load;
 
-$sites_path = WP_CONTENT_DIR . '/uploads/neo-pulse-data/sites.json';
+$sites_path = Neo_Pulse_App_Data_Paths::sites_path();
 $mirror     = is_readable( $sites_path ) ? json_decode( (string) file_get_contents( $sites_path ), true ) : null;
 $sites      = is_array( $mirror ) && isset( $mirror['sites'] ) && is_array( $mirror['sites'] ) ? $mirror['sites'] : array();
 if ( count( $sites ) === 0 ) {

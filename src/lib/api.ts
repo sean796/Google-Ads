@@ -29,19 +29,57 @@ const AGENTMAIL_INBOX_STORAGE_KEY = "agentmail-general-email";
 const SLACK_BOT_TOKEN_STORAGE_KEY = "slack-bot-token";
 const SLACK_GLOBAL_SETTINGS_STORAGE_KEY = "slack-global-settings";
 
-export const loadApiKey = () => {
-    // Wave 0: no baked env key in the bundle. Locally saved user key only.
-    if (typeof localStorage === "undefined") return "";
-    const stored = localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY) || "";
-    return stored.trim() ? stored : "";
+// Wave 1 (C5): API keys live server-side (server env first, then the manager
+// cloud snapshot). The browser keeps them in memory only, hydrated from the
+// cloud snapshot at boot; localStorage is never written for credentials, and
+// legacy stored copies are scrubbed on hydration.
+const CREDENTIAL_STORAGE_KEYS = [
+    OPENROUTER_API_KEY_STORAGE_KEY,
+    DATAFORSEO_API_KEY_STORAGE_KEY,
+    SEMRUSH_API_KEY_STORAGE_KEY,
+    AGENTMAIL_API_KEY_STORAGE_KEY,
+] as const;
+
+const runtimeApiKeys = {
+    openRouter: "",
+    dataForSeo: "",
+    semrush: "",
+    agentMail: "",
+    agentMailInbox: "",
 };
 
-export const saveApiKey = (key: string) => {
-    if (key) {
-        localStorage.setItem(OPENROUTER_API_KEY_STORAGE_KEY, key);
-    } else {
-        localStorage.removeItem(OPENROUTER_API_KEY_STORAGE_KEY);
+function scrubLegacyStoredApiKeys(): void {
+    try {
+        for (const k of CREDENTIAL_STORAGE_KEYS) localStorage.removeItem(k);
+    } catch {
+        /* storage unavailable */
     }
+}
+
+/** Hydrate in-memory API keys from the manager cloud snapshot keys record. */
+export function hydrateRuntimeApiKeys(keys: Record<string, unknown> | null | undefined): void {
+    if (keys && typeof keys === "object") {
+        const read = (name: string): string =>
+            typeof keys[name] === "string" ? (keys[name] as string).trim() : "";
+        const openRouter = read(OPENROUTER_API_KEY_STORAGE_KEY);
+        if (openRouter) runtimeApiKeys.openRouter = openRouter;
+        const dataForSeo = read(DATAFORSEO_API_KEY_STORAGE_KEY);
+        if (dataForSeo) runtimeApiKeys.dataForSeo = dataForSeo;
+        const semrush = read(SEMRUSH_API_KEY_STORAGE_KEY);
+        if (semrush) runtimeApiKeys.semrush = semrush;
+        const agentMail = read(AGENTMAIL_API_KEY_STORAGE_KEY);
+        if (agentMail) runtimeApiKeys.agentMail = agentMail;
+        const agentMailInbox = read(AGENTMAIL_INBOX_STORAGE_KEY);
+        if (agentMailInbox) runtimeApiKeys.agentMailInbox = agentMailInbox;
+    }
+    scrubLegacyStoredApiKeys();
+}
+
+export const loadApiKey = () => runtimeApiKeys.openRouter;
+
+export const saveApiKey = (key: string) => {
+    runtimeApiKeys.openRouter = key.trim();
+    scrubLegacyStoredApiKeys();
 };
 
 export const loadDataForSEOApiKey = () => {
@@ -50,16 +88,12 @@ export const loadDataForSEOApiKey = () => {
         ? (process.env.DATAFORSEO_API_KEY ?? process.env.DATAFORSEO_LOGIN)?.trim() ?? ""
         : "";
     if (envKey) return envKey;
-    if (typeof localStorage === "undefined") return "";
-    return localStorage.getItem(DATAFORSEO_API_KEY_STORAGE_KEY) || "";
+    return runtimeApiKeys.dataForSeo;
 };
 
 export const saveDataForSEOApiKey = (key: string) => {
-    if (key) {
-        localStorage.setItem(DATAFORSEO_API_KEY_STORAGE_KEY, key);
-    } else {
-        localStorage.removeItem(DATAFORSEO_API_KEY_STORAGE_KEY);
-    }
+    runtimeApiKeys.dataForSeo = key.trim();
+    scrubLegacyStoredApiKeys();
 };
 
 export const loadSemrushApiKey = () => {
@@ -68,8 +102,7 @@ export const loadSemrushApiKey = () => {
         ? (process.env.SEMRUSH_API_KEY ?? process.env.NEO_PULSE_APP_SEMRUSH_API_KEY)?.trim() ?? ""
         : "";
     if (envKey) return envKey;
-    if (typeof localStorage === "undefined") return "";
-    return localStorage.getItem(SEMRUSH_API_KEY_STORAGE_KEY) || "";
+    return runtimeApiKeys.semrush;
 };
 
 /** Browser calls omit MCP PAT so the server can use the configured Semrush API key. */
@@ -80,35 +113,21 @@ export const loadSemrushApiKeyForAppRequests = (): string => {
 };
 
 export const saveSemrushApiKey = (key: string) => {
-    if (key) {
-        localStorage.setItem(SEMRUSH_API_KEY_STORAGE_KEY, key);
-    } else {
-        localStorage.removeItem(SEMRUSH_API_KEY_STORAGE_KEY);
-    }
+    runtimeApiKeys.semrush = key.trim();
+    scrubLegacyStoredApiKeys();
 };
 
-export const loadAgentMailApiKey = () => {
-    return localStorage.getItem(AGENTMAIL_API_KEY_STORAGE_KEY) || "";
-};
+export const loadAgentMailApiKey = () => runtimeApiKeys.agentMail;
 
 export const saveAgentMailApiKey = (key: string) => {
-    if (key) {
-        localStorage.setItem(AGENTMAIL_API_KEY_STORAGE_KEY, key);
-    } else {
-        localStorage.removeItem(AGENTMAIL_API_KEY_STORAGE_KEY);
-    }
+    runtimeApiKeys.agentMail = key.trim();
+    scrubLegacyStoredApiKeys();
 };
 
-export const loadAgentMailInbox = () => {
-    return localStorage.getItem(AGENTMAIL_INBOX_STORAGE_KEY) || "";
-};
+export const loadAgentMailInbox = () => runtimeApiKeys.agentMailInbox;
 
 export const saveAgentMailInbox = (inbox: string) => {
-    if (inbox) {
-        localStorage.setItem(AGENTMAIL_INBOX_STORAGE_KEY, inbox);
-    } else {
-        localStorage.removeItem(AGENTMAIL_INBOX_STORAGE_KEY);
-    }
+    runtimeApiKeys.agentMailInbox = inbox.trim();
 };
 
 export interface SlackGlobalSettings {

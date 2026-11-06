@@ -1,6 +1,6 @@
 <?php
 /**
- * GMB OAuth token storage (uploads/neo-pulse-data/gmb-tokens.json).
+ * GMB OAuth token storage (private neo-pulse-data root, gmb-tokens.json).
  *
  * @package Neo_Pulse_App
  */

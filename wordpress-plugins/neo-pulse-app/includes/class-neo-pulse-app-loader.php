@@ -11,6 +11,7 @@ class Neo_Pulse_App_Loader {
 
 	public static function init(): void {
 		self::includes();
+		Neo_Pulse_App_Data_Migration::maybe_migrate();
 		Neo_Pulse_App_Gmb_Oauth::maybe_migrate_legacy_config();
 		Neo_Pulse_App_Api_Dispatcher::init();
 		Neo_Pulse_App_Webhook_Dispatcher::init();
@@ -73,6 +74,7 @@ class Neo_Pulse_App_Loader {
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/config/class-secrets-loader.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/config/class-openrouter-attribution.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/storage/class-neo-pulse-data-paths.php';
+		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/storage/class-neo-pulse-data-migration.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/storage/class-json-file-store.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/http/class-http-transient-retry.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/http/class-ssrf-guard.php';

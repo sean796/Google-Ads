@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Upload local wp-content/uploads/neo-pulse-data/gsc-service-account.json to pulse-host-wp-hub
+ * Upload the local staging gsc-service-account.json (private data root) to pulse-host-wp-hub
  * (same path and API contract as local GA credentials sync).
  */
 import fs from "node:fs";
@@ -25,7 +25,8 @@ async function main() {
   const wpRoot = loadLocalWpRoot();
   if (!wpRoot) throw new Error("scripts/local-wp-staging.config.json wpRoot missing");
 
-  const gscPath = path.join(wpRoot, "wp-content", "uploads", "neo-pulse-data", "gsc-service-account.json");
+  // Local staging data root (wp-config NEO_PULSE_DATA_DIR points at /data/neo-pulse-data).
+  const gscPath = path.join(process.env.NEO_PULSE_DATA_DIR || path.join(path.dirname(wpRoot), "data", "php", "neo-pulse-data"), "gsc-service-account.json");
   if (!fs.existsSync(gscPath)) {
     throw new Error(`Missing local GSC credentials file: ${gscPath}`);
   }

@@ -1,14 +1,13 @@
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import { loadHubSites } from "./deploy/lib/hub-sites.js";
 
 const dir = dirname(fileURLToPath(import.meta.url));
 const zipPath = join(dir, "neo-pulse-wp.zip");
 const zip = readFileSync(zipPath);
 
-const sites = JSON.parse(
-  await (await fetch("https://neodigital.ca/wp-content/uploads/neo-pulse-data/sites.json")).text()
-);
+const sites = await loadHubSites();
 const row = sites.sites.find((s) => (s.wpEngineDomain || "").includes("kwbllp"));
 const pass = String(row.appPassword).replace(/\s+/g, "");
 const auth = Buffer.from(`${row.username}:${pass}`).toString("base64");

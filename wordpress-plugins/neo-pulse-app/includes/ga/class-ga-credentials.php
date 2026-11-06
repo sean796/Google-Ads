@@ -1,6 +1,6 @@
 <?php
 /**
- * Google Analytics 4 service account credentials (uploads/neo-pulse-data/).
+ * Google Analytics 4 service account credentials (private neo-pulse-data root).
  *
  * @package Neo_Pulse_App
  */

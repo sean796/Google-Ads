@@ -101,7 +101,8 @@ const INVALID_OPENROUTER_KEY = "0df04520eb8c0146e19f925295a5559b058f399917db3db7
 function loadOpenRouterFromEmailWorkerKeys(local) {
   const wpRoot = String(local.wpRoot || "").trim();
   if (!wpRoot) return "";
-  const keysPath = path.join(wpRoot, "wp-content", "uploads", "neo-pulse-data", "email-worker-keys.json");
+  // Local staging data root (wp-config NEO_PULSE_DATA_DIR points at /data/neo-pulse-data).
+  const keysPath = path.join(process.env.NEO_PULSE_DATA_DIR || path.join(path.dirname(wpRoot), "data", "php", "neo-pulse-data"), "email-worker-keys.json");
   if (!fs.existsSync(keysPath)) return "";
   try {
     const data = JSON.parse(fs.readFileSync(keysPath, "utf8"));

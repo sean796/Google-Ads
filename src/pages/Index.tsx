@@ -6,6 +6,7 @@ import {
   saveApiKey,
   GenerationResult,
 } from "../lib/api";
+import { hydrateRuntimeApiKeysFromCloud } from "@/components/integrations/storage";
 import { useBlueprintManagement, BlueprintData } from "../hooks/use-blueprint-management";
 import { useFlowFreeformGeneration } from "../hooks/use-flow-freeform-generation";
 import { flowFreeformSectionsToAgents } from "@/lib/flow-freeform/flow-freeform-types";
@@ -123,6 +124,16 @@ const Index = () => {
     registerAppNavigate(navigate);
     return () => registerAppNavigate(null);
   }, [navigate]);
+
+  useEffect(() => {
+    let live = true;
+    void hydrateRuntimeApiKeysFromCloud().then(() => {
+      if (live) setApiKey(loadApiKey());
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
 
   const [managerDashboardCluster, setManagerDashboardCluster] = useState<ManagerSettingsClusterId>(() =>
     readStoredManagerSettingsCluster(),

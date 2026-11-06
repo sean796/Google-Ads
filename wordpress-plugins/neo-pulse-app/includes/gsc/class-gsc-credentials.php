@@ -1,6 +1,6 @@
 <?php
 /**
- * GSC service account credentials (uploads/neo-pulse-data/gsc-service-account.json).
+ * GSC service account credentials (private neo-pulse-data root, gsc-service-account.json).
  *
  * @package Neo_Pulse_App
  */

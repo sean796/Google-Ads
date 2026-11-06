@@ -1,8 +1,7 @@
 import { Client } from "ssh2";
+import { loadHubSites } from "./deploy/lib/hub-sites.js";
 
-const sites = JSON.parse(
-  await (await fetch("https://neodigital.ca/wp-content/uploads/neo-pulse-data/sites.json")).text()
-);
+const sites = await loadHubSites();
 const row = sites.sites.find((s) => (s.wpEngineDomain || "").includes("kwbllp"));
 
 const conn = new Client();

@@ -3,15 +3,13 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { buildPluginZip } from "./deploy/lib/build-zip.js";
 import { deployZip } from "./deploy/lib/deploy-zip.js";
+import { loadHubSites } from "./deploy/lib/hub-sites.js";
 
 const dir = dirname(fileURLToPath(import.meta.url));
 const zipPath = join(dir, "neo-pulse-wp.zip");
 const pluginDir = join(dir, "neo-pulse-wp");
 
-const sitesRes = await fetch(
-  "https://neodigital.ca/wp-content/uploads/neo-pulse-data/sites.json"
-);
-const sitesJson = await sitesRes.json();
+const sitesJson = await loadHubSites();
 const row = (sitesJson.sites || []).find(
   (s) => (s.wpEngineDomain || s.siteUrl || "").includes("kwbllp")
 );

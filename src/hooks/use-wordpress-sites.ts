@@ -10,6 +10,7 @@ import {
 } from "react";
 import {
   getStoredSites,
+  hydrateRuntimeApiKeysFromCloud,
   restoreOriginalPropertyNamesOnce,
   restoreSitesFromServerMirrorIfEmpty,
 } from "@/components/integrations/storage";
@@ -59,6 +60,7 @@ function useWordPressSitesState() {
     void restoreSitesFromServerMirrorIfEmpty().then((restored) => {
       if (restored.length > 0) setSites(restored);
     });
+    void hydrateRuntimeApiKeysFromCloud();
   }, []);
 
   const reloadSitesFromStorage = useCallback(() => {

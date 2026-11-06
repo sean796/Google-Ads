@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Mirror wp-content/uploads/neo-pulse-data from flowbie.ca (flowbietest) to neodigital.ca.
+ * Mirror the private neo-pulse-data root (above the web root) from flowbie.ca (flowbietest) to neodigital.ca.
  *
  *   node scripts/port-neo-pulse-data-to-neodigital.cjs          # dry-run list only
  *   node scripts/port-neo-pulse-data-to-neodigital.cjs --execute  # copy + backup dest
@@ -15,9 +15,9 @@ const csvPath = join(repoRoot, "wordpress-plugins/Customer List/SFTP Users_Clien
 const stagingDir = join(repoRoot, ".port-neo-pulse-data-staging");
 
 const execute = process.argv.includes("--execute");
-const destRel = "wp-content/uploads/neo-pulse-data";
+const destRel = "../neo-pulse-data";
 const sourceCandidates = [
-  "wp-content/uploads/neo-pulse-data",
+  "../neo-pulse-data",
   "wp-content/uploads/flowbie-data",
   "wp-content/flowbie-data",
   "wp-content/neo-pulse-data",

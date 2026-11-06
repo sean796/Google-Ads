@@ -1,6 +1,6 @@
 <?php
 /**
- * Uploads paths for neo-pulse-data JSON and dumps.
+ * Private data paths for neo-pulse-data JSON and dumps.
  *
  * @package Neo_Pulse_App
  */
@@ -9,9 +9,18 @@ defined( 'ABSPATH' ) || exit;
 
 class Neo_Pulse_App_Data_Paths {
 
+	/**
+	 * True when a failed migration pinned this request to the legacy uploads
+	 * folder. Set only by Neo_Pulse_App_Data_Migration, which also surfaces a
+	 * visible admin error; reads keep working from the old folder until the
+	 * host issue is fixed.
+	 *
+	 * @var bool
+	 */
+	private static $use_legacy_root = false;
+
 	public static function root(): string {
-		$upload = wp_upload_dir();
-		$dir    = trailingslashit( $upload['basedir'] ) . 'neo-pulse-data';
+		$dir = self::configured_root();
 		if ( ! is_dir( $dir ) ) {
 			wp_mkdir_p( $dir );
 			if ( ! file_exists( $dir . '/index.php' ) ) {
@@ -19,6 +28,37 @@ class Neo_Pulse_App_Data_Paths {
 			}
 		}
 		return $dir;
+	}
+
+	/**
+	 * The one root contract: NEO_PULSE_DATA_DIR (constant, then env) wins,
+	 * otherwise a sibling folder above the web root. Never the uploads dir.
+	 */
+	private static function configured_root(): string {
+		if ( self::$use_legacy_root ) {
+			return self::legacy_root();
+		}
+		if ( defined( 'NEO_PULSE_DATA_DIR' ) && is_string( NEO_PULSE_DATA_DIR ) && NEO_PULSE_DATA_DIR !== '' ) {
+			return rtrim( str_replace( '\\', '/', NEO_PULSE_DATA_DIR ), '/' );
+		}
+		$from_env = getenv( 'NEO_PULSE_DATA_DIR' );
+		if ( is_string( $from_env ) && $from_env !== '' ) {
+			return rtrim( str_replace( '\\', '/', $from_env ), '/' );
+		}
+		return rtrim( str_replace( '\\', '/', dirname( ABSPATH ) ), '/' ) . '/neo-pulse-data';
+	}
+
+	/**
+	 * Pre-migration home under the uploads dir. Migration source only; new
+	 * reads never resolve here (see configured_root()).
+	 */
+	public static function legacy_root(): string {
+		$upload = wp_upload_dir();
+		return rtrim( trailingslashit( $upload['basedir'] ), '/' ) . '/neo-pulse-data';
+	}
+
+	public static function use_legacy_root_for_request(): void {
+		self::$use_legacy_root = true;
 	}
 
 	public static function subdir( string $name ): string {

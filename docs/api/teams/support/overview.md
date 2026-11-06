@@ -20,7 +20,7 @@ Team-scoped **Support tickets** capture Pulse Assist issues with attached chat l
 
 ## Access
 
-Active team membership is required (same gate as Tasks). Tickets are stored per team in WordPress MySQL and chat logs are written under `wp-content/uploads/neo-pulse-data/support/teams/{teamId}/`.
+Active team membership is required (same gate as Tasks). Tickets are stored per team in WordPress MySQL and chat logs are written under the private neo-pulse-data root (`support/teams/{teamId}/`, above the web root).
 
 ## Create flow (Pulse Assist)
 

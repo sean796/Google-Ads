@@ -1,6 +1,6 @@
 <?php
 /**
- * Mirror NEO Pulse Integrations sites to uploads/neo-pulse-data/sites.json.
+ * Mirror NEO Pulse Integrations sites to the private neo-pulse-data root (sites.json).
  *
  * @package Neo_Pulse_App
  */

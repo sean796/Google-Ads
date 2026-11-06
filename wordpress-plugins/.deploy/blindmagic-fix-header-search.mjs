@@ -1,7 +1,7 @@
+import { loadHubSites } from "../deploy/lib/hub-sites.js";
+
 async function auth() {
-  const j = await fetch(
-    'https://neodigital.ca/wp-content/uploads/neo-pulse-data/sites.json'
-  ).then((r) => r.json());
+  const j = await loadHubSites();
   const row = (j.sites || []).find((s) =>
     (s.wpEngineDomain || s.siteUrl || '').includes('blindmagic')
   );

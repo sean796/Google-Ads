@@ -111,7 +111,8 @@ function loadLocalConfig() {
 function resolveEmailWorkerKeysPath() {
   const config = loadLocalConfig();
   if (config?.wpRoot) {
-    return path.join(config.wpRoot, "wp-content", "uploads", "neo-pulse-data", "email-worker-keys.json");
+    // Local staging data root (wp-config NEO_PULSE_DATA_DIR points at /data/neo-pulse-data).
+    return path.join(process.env.NEO_PULSE_DATA_DIR || path.join(path.dirname(config.wpRoot), "data", "php", "neo-pulse-data"), "email-worker-keys.json");
   }
   return "";
 }

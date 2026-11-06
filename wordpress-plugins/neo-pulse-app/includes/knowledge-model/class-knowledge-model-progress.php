@@ -1,6 +1,6 @@
 <?php
 /**
- * Knowledge model job progress (JSON files in uploads/neo-pulse-data).
+ * Knowledge model job progress (JSON files in the private neo-pulse-data root).
  *
  * @package Neo_Pulse_App
  */

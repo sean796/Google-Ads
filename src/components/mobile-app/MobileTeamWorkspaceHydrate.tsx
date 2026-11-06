@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
 import { applyManagerCloudSnapshotToLocalStorage } from "@/lib/manager-cloud-settings-snapshot";
 import { loadManagerSettingsFromCloud } from "@/lib/manager-cloud-settings-api";
+import { hydrateRuntimeApiKeys } from "@/lib/api";
 
 export function MobileTeamWorkspaceHydrate(): null {
   const { user } = useAuth();
@@ -15,6 +16,7 @@ export function MobileTeamWorkspaceHydrate(): null {
     let cancelled = false;
     void loadManagerSettingsFromCloud(teamId).then((result) => {
       if (cancelled || !result.ok || !result.snapshot) return;
+      hydrateRuntimeApiKeys(result.snapshot.keys);
       applyManagerCloudSnapshotToLocalStorage(result.snapshot);
     });
 

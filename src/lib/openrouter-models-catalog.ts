@@ -2,7 +2,10 @@ import {
   getOpenRouterModelsCatalog,
   type OpenRouterModelCatalogEntry,
 } from "@/lib/openrouter-app-api";
-import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
+import {
+  getOpenRouterApiKeyForApp,
+  resolveOpenRouterApiKeyForHarness,
+} from "@/lib/openrouter-api-key-resolve";
 import type { PipelineAgentKind } from "@/lib/agent-pipeline-cost-estimates";
 
 export type { OpenRouterModelCatalogEntry };
@@ -30,16 +33,9 @@ export function formatModelPriceHint(entry: OpenRouterModelCatalogEntry | undefi
   return null;
 }
 
-const OPENROUTER_API_KEY_STORAGE_KEY = "openrouter-api-key";
-
 export function readStoredOpenRouterApiKey(): string | undefined {
-  if (typeof window === "undefined") return undefined;
-  try {
-    const t = localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY)?.trim();
-    return t || undefined;
-  } catch {
-    return undefined;
-  }
+  const key = getOpenRouterApiKeyForApp().trim();
+  return key || undefined;
 }
 
 function entryMatchesIdOrName(

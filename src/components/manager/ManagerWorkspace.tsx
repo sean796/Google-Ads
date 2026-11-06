@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import type { WordPressSite } from "@/components/integrations/types";
 import { X } from "lucide-react";
 
@@ -25,7 +25,8 @@ import { VideoGeneratorTabContent } from "@/components/video-generator/VideoGene
 import { OrganicReportingEmbeddedPanel } from "@/components/organic-dashboard/OrganicReportingEmbeddedPanel";
 import { OrganicReportingLocalGridSection } from "@/components/organic-dashboard/local-grid/OrganicReportingLocalGridSection";
 import { ApiDocsTabContent } from "@/components/api-docs/ApiDocsTabContent";
-import { saveDataForSEOApiKey, saveSemrushApiKey, loadSemrushApiKey } from "@/lib/api";
+import { saveDataForSEOApiKey, saveSemrushApiKey, loadSemrushApiKey, loadDataForSEOApiKey } from "@/lib/api";
+import { hydrateRuntimeApiKeysFromCloud } from "@/components/integrations/storage";
 import type { GeneratorFreeFlowBindings } from "@/components/generator/generator-free-flow-bindings";
 import type { AssistNavigateTarget } from "@/lib/pulse-assist/types";
 import type { BlogGeneratorSectionId } from "@/components/blog-generator/blog-generator-sections";
@@ -141,13 +142,7 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
   onAssistNavigate,
   onGeneratorSectionChange,
 }) => {
-  const [dataForSEOApiKey, setDataForSEOApiKey] = useState<string>(() => {
-    try {
-      return localStorage.getItem("dataforseo-api-key") || "";
-    } catch {
-      return "";
-    }
-  });
+  const [dataForSEOApiKey, setDataForSEOApiKey] = useState<string>(() => loadDataForSEOApiKey());
   const [semrushApiKey, setSemrushApiKey] = useState<string>(() => {
     try {
       return loadSemrushApiKey();
@@ -155,6 +150,17 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
       return "";
     }
   });
+  useEffect(() => {
+    let live = true;
+    void hydrateRuntimeApiKeysFromCloud().then(() => {
+      if (!live) return;
+      setDataForSEOApiKey(loadDataForSEOApiKey());
+      setSemrushApiKey(loadSemrushApiKey());
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
   const embedded = variant === "embedded";
   const displayConsole = <ManagerTopBarDisplayConsole variant="embedded" />;
   const chatFullBleed =

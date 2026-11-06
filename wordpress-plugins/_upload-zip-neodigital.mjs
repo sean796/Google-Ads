@@ -1,14 +1,12 @@
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import { loadHubSites } from "./deploy/lib/hub-sites.js";
 
 const zipPath = join(dirname(fileURLToPath(import.meta.url)), "neo-pulse-wp.zip");
 const bytes = readFileSync(zipPath);
 
-const sitesRes = await fetch(
-  "https://neodigital.ca/wp-content/uploads/neo-pulse-data/sites.json"
-);
-const sitesJson = await sitesRes.json();
+const sitesJson = await loadHubSites();
 const row = (sitesJson.sites || []).find((s) =>
   (s.siteUrl || "").includes("neodigital.ca")
 );

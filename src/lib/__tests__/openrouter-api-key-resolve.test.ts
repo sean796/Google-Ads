@@ -21,14 +21,14 @@ describe("openrouter-api-key-resolve (Wave 0 keyless)", () => {
     vi.restoreAllMocks();
   });
 
-  it("returns the local key when one is saved", async () => {
+  it("returns the runtime key when one is set", async () => {
     vi.mocked(loadApiKey).mockReturnValue("client-key");
     await expect(resolveOpenRouterApiKeyForHarness()).resolves.toBe("client-key");
     expect(getOpenRouterApiKeyForApp()).toBe("client-key");
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("returns empty string and never fetches or saves when no local key exists", async () => {
+  it("returns empty string and never fetches or saves when no runtime key is set", async () => {
     await expect(resolveOpenRouterApiKeyForHarness()).resolves.toBe("");
     expect(getOpenRouterApiKeyForApp()).toBe("");
     expect(fetch).not.toHaveBeenCalled();

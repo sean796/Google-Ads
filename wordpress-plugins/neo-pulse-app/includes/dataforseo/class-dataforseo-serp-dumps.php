@@ -1,6 +1,6 @@
 <?php
 /**
- * SERP JSON dump read/write under uploads/neo-pulse-data/serp-dumps/.
+ * SERP JSON dump read/write under the private neo-pulse-data root (serp-dumps/).
  *
  * @package Neo_Pulse_App
  */
