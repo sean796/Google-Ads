@@ -36,9 +36,8 @@ jobs:
         run: npm run build
 
   ratchet:
-    name: Debt ratchet (report only)
+    name: Debt ratchet
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -50,9 +49,8 @@ jobs:
         run: node scripts/check-gate-baseline.mjs
 
   storybook:
-    name: Storybook build (report only)
+    name: Storybook build
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -63,9 +61,8 @@ jobs:
       - run: npm run build-storybook
 
   evals:
-    name: Publishing output evals (report only)
+    name: Publishing output evals
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
