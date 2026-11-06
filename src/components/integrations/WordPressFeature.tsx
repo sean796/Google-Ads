@@ -1,51 +1,26 @@
-﻿import {
-  NOTIFY_ALL_VISIBLE_SITE_NAMES_ALREADY_MATCHED_G,
-  NOTIFY_NO_SITES_TO_EXPORT,
-  NOTIFY_SIGN_IN_TO_SAVE_SETTINGS_TO_THE_CLOUD,
-  notifyExportedXSiteSToCsv,
-} from "@/lib/notify-messages";
-import React, { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import { loadApiKey } from "@/lib/api";
-import { Plus, Upload, Download, RotateCcw } from "lucide-react";
-import { notify } from "@/lib/app-notifications";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { PROPERTIES_SHELL } from "./wordpress/wordpress-properties-surfaces";
-import {
-  BULK_HEADER_SELECT_TRIGGER,
-  BULK_HEADER_TOOL_BTN,
-} from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
-import {
-  formatDashboardEditorialMonthShort,
-  getLocalCalendarMonthAfterBeforeForMonthKey,
-} from "@/lib/quarter-bounds";
 import { useWordPressSites } from "@/hooks/use-wordpress-sites";
 import { WordPressSiteList } from "./wordpress/WordPressSiteList";
 import { WordPressDialogs } from "./wordpress/WordPressDialogs";
 import { SitePropertyEditPanel } from "./wordpress/SitePropertyEditPanel";
 import { PropertyProfilePage } from "./wordpress/PropertyProfilePage";
-import type { WordPressSiteAdminSectionId } from "./wordpress/WordPressSiteAdminLayout";
-import type { PropertySettingsSubSectionId } from "./wordpress/property-settings-types";
 import { BulkImportClientsDialog } from "./wordpress/BulkImportClientsDialog";
 import { useQuarterEditorialCounts } from "@/hooks/use-quarter-editorial-counts";
-import { resolveEditorialContentPackageForSite } from "@/lib/editorial-content-package";
 import { useOptimizationActivityCounts } from "@/hooks/use-optimization-activity-counts";
-import { OPTIMIZATION_TILE_COUNTS_ENABLED } from "@/lib/wordpress-optimization-tile-counts";
 import type { WordPressSite } from "./types";
 import {
-  getStoredSites,
-  sortWordPressSitesByName,
-  mergeServerGbpLocationIdsIntoLocalSites,
   fetchAndPersistMissingClientLogos,
+  getStoredSites,
+  mergeServerGbpLocationIdsIntoLocalSites,
 } from "./storage";
-import { normalizeGbpLocationIdInput } from "@/lib/gbp-post/normalize-gbp-location-id";
-import { saveWordPressProperties } from "@/lib/manager-wordpress-properties-api";
-import { extractNAPAndLinkGraph } from "@/lib/knowledge-graph-auto-trigger";
-import { buildWordPressSitesCsvForDownload } from "@/lib/export-wordpress-sites-csv";
-import { applyGbpPropertyWand, bulkApplyGmbSuggestedDisplayNames } from "@/lib/wordpress-site-display-name-from-dfs-gmb";
 import { cn } from "@/lib/utils";
 import { useWordPressOptimization } from "@/contexts/wordpress-optimization-context";
 import { useRegisterPropertiesDashboardToolbar } from "@/components/manager/dashboard/PropertiesDashboardChromeContext";
-import { Button, SelectField } from "@/ui";
+import { useWordPressFeatureForm } from "./use-wordpress-feature-form";
+import { useWordPressFeatureActions } from "./use-wordpress-feature-actions";
+import { WordPressFeatureToolbarActions } from "./WordPressFeatureToolbarActions";
 
 interface WordPressFeatureProps {
   onEntityGeneration?: (site: WordPressSite, sitemapUrl: string) => void;
@@ -165,10 +140,6 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
     [credentialedSites, quarterStatsBySite],
   );
 
-  const sitesRef = useRef(sites);
-  sitesRef.current = sites;
-  const saveInFlightRef = useRef(false);
-  const sitesListFingerprintRef = useRef<string | null>(null);
 
   const { registerIntegrationSites } = useWordPressOptimization();
 
@@ -176,315 +147,54 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
     registerIntegrationSites(sites);
   }, [sites, registerIntegrationSites]);
 
-  // Dialog state
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [bulkImportDialogOpen, setBulkImportDialogOpen] = useState(false);
-  const [editingSite, setEditingSite] = useState<WordPressSite | null>(null);
-
-  // Form state
-  const [formName, setFormName] = useState("");
-  const [formSiteUrl, setFormSiteUrl] = useState("");
-  const [formProductionSiteUrl, setFormProductionSiteUrl] = useState("");
-  const [formUsername, setFormUsername] = useState("");
-  const [formAppPassword, setFormAppPassword] = useState("");
-  const [formGa4PropertyId, setFormGa4PropertyId] = useState("");
-  const [formGoogleAdsCustomerId, setFormGoogleAdsCustomerId] = useState("");
-  const [formGbpLocationId, setFormGbpLocationId] = useState("");
-  const [formSemrushSiteAuditProjectId, setFormSemrushSiteAuditProjectId] = useState("");
-  const [formSemrushPositionTrackingProjectId, setFormSemrushPositionTrackingProjectId] = useState("");
-  const [formSemrushPositionTrackingCampaignId, setFormSemrushPositionTrackingCampaignId] = useState("");
-  const [formEditorialCountsPeriodStartYmd, setFormEditorialCountsPeriodStartYmd] = useState("");
-  const [formOptimizationPackage, setFormOptimizationPackage] = useState("basic");
-  const [formEditorialContentPackage, setFormEditorialContentPackage] = useState("");
-  const [formEditorialPublishTimeLocal, setFormEditorialPublishTimeLocal] = useState("");
   const [editorialPackageFilter, setEditorialPackageFilter] = useState<
     "all" | "standard" | "lite" | "unassigned"
   >("all");
-  const [formBenchmarkCustomTag, setFormBenchmarkCustomTag] = useState("");
-  const [formPrimaryLocalKeyword, setFormPrimaryLocalKeyword] = useState("");
-  const [formClientLogoUrl, setFormClientLogoUrl] = useState("");
-  const [formClientLogoBoxTheme, setFormClientLogoBoxTheme] = useState<"black" | "white">("black");
-  const [formProfileTags, setFormProfileTags] = useState<string[]>([]);
-  const [formServiceCity, setFormServiceCity] = useState("");
-  const [formServiceState, setFormServiceState] = useState("");
-  const [formServiceCountry, setFormServiceCountry] = useState("");
-
-  // NAP + Link graph extraction state
-  const [isExtractingNAPAndGraph, setIsExtractingNAPAndGraph] = useState<Record<string, boolean>>({});
-  
-  /**
-   * Full property profile page (replaces the list while a property is open).
-   */
-  const [profileSiteId, setProfileSiteId] = useState<string | null>(null);
-  const [profileSectionId, setProfileSectionId] =
-    useState<WordPressSiteAdminSectionId>("overview");
-  const [settingsSubSectionId, setSettingsSubSectionId] =
-    useState<PropertySettingsSubSectionId>("profile");
-  
-  // Site search filter state
   const [siteSearchQuery, setSiteSearchQuery] = useState<string>('');
-  // Bulk delete selection
-  const [selectedSiteIds, setSelectedSiteIds] = useState<Set<string>>(new Set());
 
-  // Filter sites based on search query (must be before handleSelectAll which depends on it)
-  const filteredSites = useMemo(() => {
-    if (!siteSearchQuery.trim()) return sites;
-    const query = siteSearchQuery.toLowerCase();
-    return sites.filter(site => site.name.toLowerCase().includes(query));
-  }, [sites, siteSearchQuery]);
-
-  const tierFilteredSites = useMemo(() => {
-    if (editorialPackageFilter === "all") return filteredSites;
-    return filteredSites.filter((site) => {
-      const pkg = resolveEditorialContentPackageForSite(site);
-      if (editorialPackageFilter === "unassigned") return !pkg;
-      return pkg === editorialPackageFilter;
-    });
-  }, [filteredSites, editorialPackageFilter]);
-  
-  const handleSelectAll = useCallback((selected: boolean) => {
-    if (selected) {
-      setSelectedSiteIds(new Set(tierFilteredSites.map((s) => s.id)));
-    } else {
-      setSelectedSiteIds(new Set());
-    }
-  }, [tierFilteredSites]);
-
-  const handleDeleteSelected = useCallback(() => {
-    handleDeleteSitesBulk(Array.from(selectedSiteIds));
-    setSelectedSiteIds(new Set());
-  }, [handleDeleteSitesBulk, selectedSiteIds]);
-
-  const handleSiteSelectedChange = useCallback((siteId: string, selected: boolean) => {
-    setSelectedSiteIds((prev) => {
-      const next = new Set(prev);
-      if (selected) next.add(siteId);
-      else next.delete(siteId);
-      return next;
-    });
-  }, []);
-
-  const populateFormFromSite = useCallback(
-    (site: WordPressSite) => {
-      const formData = handleEditSiteInit(site);
-      setEditingSite(site);
-      setFormName(formData.name);
-      setFormSiteUrl(formData.siteUrl);
-      setFormProductionSiteUrl(formData.productionSiteUrl ?? "");
-      setFormUsername(formData.username);
-      setFormAppPassword(formData.appPassword);
-      setFormGa4PropertyId(formData.ga4PropertyId ?? "");
-      setFormGoogleAdsCustomerId(formData.googleAdsCustomerId ?? "");
-      setFormGbpLocationId(formData.gbpLocationId ?? "");
-      setFormSemrushSiteAuditProjectId(formData.semrushSiteAuditProjectId ?? "");
-      setFormSemrushPositionTrackingProjectId(formData.semrushPositionTrackingProjectId ?? "");
-      setFormSemrushPositionTrackingCampaignId(formData.semrushPositionTrackingCampaignId ?? "");
-      setFormEditorialCountsPeriodStartYmd(formData.editorialCountsPeriodStartYmd ?? "");
-      setFormOptimizationPackage(formData.optimizationPackage ?? "");
-      setFormEditorialContentPackage(formData.editorialContentPackage ?? "");
-      setFormEditorialPublishTimeLocal(formData.editorialPublishTimeLocal ?? "");
-      setFormBenchmarkCustomTag(formData.benchmarkCustomTag ?? "");
-      setFormPrimaryLocalKeyword(formData.primaryLocalKeyword ?? "");
-      setFormClientLogoUrl(formData.clientLogoUrl ?? "");
-      setFormClientLogoBoxTheme(site.clientLogoBoxTheme ?? "black");
-      setFormProfileTags(formData.profileTags ?? []);
-      setFormServiceCity(formData.serviceCity ?? "");
-      setFormServiceState(formData.serviceState ?? "");
-      setFormServiceCountry(formData.serviceCountry ?? "");
-    },
-    [handleEditSiteInit],
-  );
-
-  const openProfile = useCallback(
-    (siteId: string, sectionId?: WordPressSiteAdminSectionId) => {
-      const site = sites.find((s) => s.id === siteId);
-      if (!site) return;
-      setProfileSiteId(siteId);
-      setProfileSectionId(sectionId ?? "overview");
-      setSettingsSubSectionId("profile");
-      void (async () => {
-        await mergeServerGbpLocationIdsIntoLocalSites();
-        reloadSitesFromStorage();
-        let fresh = getStoredSites().find((s) => s.id === siteId) ?? site;
-        if (!fresh.clientLogoUrl?.trim()) {
-          await fetchAndPersistMissingClientLogos([fresh]);
-          reloadSitesFromStorage();
-          fresh = getStoredSites().find((s) => s.id === siteId) ?? fresh;
-        }
-        populateFormFromSite(fresh);
-      })();
-    },
-    [sites, reloadSitesFromStorage, populateFormFromSite],
-  );
-
-  const closeProfile = useCallback(() => {
-    setProfileSiteId(null);
-  }, []);
-
-  /** Close profile modal when the site was removed (e.g. deleted). */
-  useEffect(() => {
-    if (!profileSiteId) return;
-    const site = sites.find((s) => s.id === profileSiteId);
-    if (!site) {
-      setProfileSiteId(null);
-    }
-  }, [sites, profileSiteId]);
-
-  const lastProfileSyncedRef = useRef<string | null>(null);
-  useLayoutEffect(() => {
-    if (!profileSiteId) {
-      lastProfileSyncedRef.current = null;
-      return;
-    }
-    const site = sites.find((s) => s.id === profileSiteId);
-    if (!site) return;
-    const syncKey = `${profileSiteId}:${site.gbpLocationId ?? ""}:${site.ga4PropertyId ?? ""}:${site.googleAdsCustomerId ?? ""}:${site.clientLogoUrl ?? ""}:${site.clientLogoFetchedAt ?? ""}`;
-    if (lastProfileSyncedRef.current === syncKey) return;
-    lastProfileSyncedRef.current = syncKey;
-    populateFormFromSite(site);
-  }, [profileSiteId, sites, populateFormFromSite]);
-
-  /** Keep GBP field in sync when the site row gains an id (save or server hydrate) without clobbering in-progress edits. */
-  useEffect(() => {
-    if (!profileSiteId) return;
-    const gbp = sites.find((s) => s.id === profileSiteId)?.gbpLocationId?.trim();
-    if (!gbp) return;
-    setFormGbpLocationId((prev) => (prev.trim() ? prev : gbp));
-  }, [profileSiteId, sites]);
-
-  const profileSite = profileSiteId
-    ? sites.find((s) => s.id === profileSiteId) ?? null
-    : null;
-
-  const handleAddSite = useCallback(() => {
-    const formData = handleAddSiteInit();
-    setEditingSite(null);
-    setFormName(formData.name);
-    setFormSiteUrl(formData.siteUrl);
-    setFormProductionSiteUrl(formData.productionSiteUrl ?? "");
-    setFormUsername(formData.username);
-    setFormAppPassword(formData.appPassword);
-      setFormGa4PropertyId(formData.ga4PropertyId ?? "");
-      setFormGoogleAdsCustomerId(formData.googleAdsCustomerId ?? "");
-      setFormGbpLocationId(formData.gbpLocationId ?? "");
-      setFormSemrushSiteAuditProjectId(formData.semrushSiteAuditProjectId ?? "");
-      setFormSemrushPositionTrackingProjectId(formData.semrushPositionTrackingProjectId ?? "");
-      setFormSemrushPositionTrackingCampaignId(formData.semrushPositionTrackingCampaignId ?? "");
-      setFormEditorialCountsPeriodStartYmd(formData.editorialCountsPeriodStartYmd ?? "");
-      setFormOptimizationPackage("");
-      setFormEditorialContentPackage("");
-      setFormEditorialPublishTimeLocal("");
-      setFormBenchmarkCustomTag(formData.benchmarkCustomTag ?? "");
-      setFormPrimaryLocalKeyword(formData.primaryLocalKeyword ?? "");
-      setFormClientLogoUrl("");
-      setFormClientLogoBoxTheme("black");
-      setFormProfileTags(formData.profileTags ?? []);
-      setFormServiceCity("");
-    setFormServiceState("");
-    setFormServiceCountry("");
-    setIsDialogOpen(true);
-  }, [handleAddSiteInit]);
-
-  const handleEditSite = useCallback(
-    (site: WordPressSite) => {
-      populateFormFromSite(site);
-      setIsDialogOpen(true);
-    },
-    [populateFormFromSite],
-  );
-
-  const handleSaveSiteClick = useCallback(() => {
-    const activeEdit =
-      editingSite ??
-      (profileSiteId ? sites.find((s) => s.id === profileSiteId) ?? null : null);
-    const liveEdit = activeEdit
-      ? sites.find((s) => s.id === activeEdit.id) ?? activeEdit
-      : null;
-    const gbpForSave =
-      formGbpLocationId.trim() ||
-      liveEdit?.gbpLocationId?.trim() ||
-      normalizeGbpLocationIdInput(formGbpLocationId).trim();
-    const ga4ForSave =
-      formGa4PropertyId.trim() || liveEdit?.ga4PropertyId?.trim() || "";
-    const adsForSave =
-      formGoogleAdsCustomerId.trim() || liveEdit?.googleAdsCustomerId?.trim() || "";
-    const saved = handleSaveSite(
-      formName,
-      formSiteUrl,
-      formUsername,
-      formAppPassword,
-      liveEdit,
-      formProductionSiteUrl,
-      ga4ForSave,
-      gbpForSave,
-      formSemrushSiteAuditProjectId,
-      formSemrushPositionTrackingProjectId,
-      formSemrushPositionTrackingCampaignId,
-      formEditorialCountsPeriodStartYmd,
-      formOptimizationPackage,
-      formEditorialContentPackage,
-      formEditorialPublishTimeLocal,
-      formBenchmarkCustomTag,
-      formPrimaryLocalKeyword,
-      formClientLogoUrl,
-      formProfileTags,
-      formServiceCity,
-      formServiceState,
-      formServiceCountry,
-      adsForSave,
-      formClientLogoBoxTheme,
-    );
-    if (saved) {
-      setIsDialogOpen(false);
-      setProfileSiteId(saved.id);
-      setEditingSite(saved);
-      const gbp = saved.gbpLocationId?.trim() ?? gbpForSave;
-      setFormGbpLocationId(gbp);
-      if (saved.ga4PropertyId?.trim()) {
-        setFormGa4PropertyId(saved.ga4PropertyId.trim());
-      }
-      if (saved.googleAdsCustomerId?.trim()) {
-        setFormGoogleAdsCustomerId(saved.googleAdsCustomerId.trim());
-      }
-      lastProfileSyncedRef.current = `${saved.id}:${gbp}:${saved.ga4PropertyId ?? ""}:${saved.googleAdsCustomerId ?? ""}`;
-      if (!activeEdit) {
-        void (async () => {
-          const r = await applyGbpPropertyWand(saved, {
-            openRouterApiKey: loadApiKey()?.trim() || undefined,
-          });
-          if (r.ok === false) notify.error(r.error);
-        })();
-      }
-    }
-  }, [
-    formName,
-    formSiteUrl,
-    formProductionSiteUrl,
-    formUsername,
-    formAppPassword,
-    formGa4PropertyId,
-    formGoogleAdsCustomerId,
-    formGbpLocationId,
-    formSemrushSiteAuditProjectId,
-    formSemrushPositionTrackingProjectId,
-    formSemrushPositionTrackingCampaignId,
-      formEditorialCountsPeriodStartYmd,
-      formOptimizationPackage,
-      formEditorialContentPackage,
-      formEditorialPublishTimeLocal,
-      formBenchmarkCustomTag,
-      formPrimaryLocalKeyword,
-      formClientLogoUrl,
-      formClientLogoBoxTheme,
-    formProfileTags,
-    formServiceCity,
-    formServiceState,
-    formServiceCountry,
-    editingSite,
-    profileSiteId,
+  const {
+    isDialogOpen, setIsDialogOpen, editingSite,
+    formName, formSiteUrl, formProductionSiteUrl, formUsername, formAppPassword,
+    formGa4PropertyId, formGoogleAdsCustomerId, formGbpLocationId, formSemrushSiteAuditProjectId, formSemrushPositionTrackingProjectId,
+    formSemrushPositionTrackingCampaignId, formEditorialCountsPeriodStartYmd, formOptimizationPackage, formEditorialContentPackage, formEditorialPublishTimeLocal,
+    formBenchmarkCustomTag, formPrimaryLocalKeyword, formClientLogoUrl, formClientLogoBoxTheme,
+    formProfileTags, formServiceCity, formServiceState, formServiceCountry,
+    setFormName, setFormSiteUrl, setFormProductionSiteUrl, setFormUsername, setFormAppPassword,
+    setFormGa4PropertyId, setFormGoogleAdsCustomerId, setFormGbpLocationId, setFormSemrushSiteAuditProjectId, setFormSemrushPositionTrackingProjectId,
+    setFormSemrushPositionTrackingCampaignId, setFormEditorialCountsPeriodStartYmd, setFormOptimizationPackage, setFormEditorialContentPackage, setFormEditorialPublishTimeLocal,
+    setFormBenchmarkCustomTag, setFormPrimaryLocalKeyword, setFormClientLogoUrl, setFormClientLogoBoxTheme,
+    setFormProfileTags, setFormServiceCity, setFormServiceState, setFormServiceCountry,
+    profileSite, profileSiteId, profileSectionId,
+    setProfileSectionId, settingsSubSectionId, setSettingsSubSectionId,
+    selectedSiteIds, filteredSites, tierFilteredSites, handleSelectAll, handleDeleteSelected,
+    handleSiteSelectedChange, openProfile, closeProfile, handleAddSite, handleEditSite, handleSaveSiteClick,
+  } = useWordPressFeatureForm({
     sites,
+    editorialPackageFilter,
+    siteSearchQuery,
+    handleAddSiteInit,
+    handleEditSiteInit,
     handleSaveSite,
-  ]);
+    handleDeleteSitesBulk,
+    reloadSitesFromStorage,
+  });
+
+  const {
+    isExtractingNAPAndGraph,
+    handleExportAllSitesCsv,
+    handleExtractNAPAndLinkGraph,
+    isBulkGmbNamesBusy,
+    handleBulkApplyGmbDisplayNames,
+  } = useWordPressFeatureActions({
+    user,
+    sites,
+    filteredSites,
+    credentialedSiteCount,
+    quarterStatsAllLoaded,
+    quarterStatsFingerprint,
+    handlePatchSite,
+  });
 
   const profileSettingsPanel = profileSite ? (
     <SitePropertyEditPanel
@@ -547,139 +257,6 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
     />
   ) : null;
 
-  const performSaveProperties = useCallback(
-    async (options?: { silent?: boolean }): Promise<boolean> => {
-      const silent = Boolean(options?.silent);
-      if (saveInFlightRef.current) {
-        return false;
-      }
-      if (!user) {
-        if (!silent) notify.error(NOTIFY_SIGN_IN_TO_SAVE_SETTINGS_TO_THE_CLOUD);
-        return false;
-      }
-      saveInFlightRef.current = true;
-      try {
-        const sortedSites = sortWordPressSitesByName(sitesRef.current);
-        const r = await saveWordPressProperties(sortedSites);
-        if (!r.ok) {
-          notify.error(r.error || "Property save failed");
-          return false;
-        }
-        if (!silent) {
-          const n = r.count ?? sortedSites.length;
-          notify.success(
-            r.updatedAt
-              ? `Saved ${n} propert${n === 1 ? "y" : "ies"} to workspace (${new Date(r.updatedAt).toLocaleString()})`
-              : `Saved ${n} propert${n === 1 ? "y" : "ies"} to workspace`,
-          );
-        }
-        return true;
-      } finally {
-        saveInFlightRef.current = false;
-      }
-    },
-    [user],
-  );
-
-  const sitesListFingerprint = useMemo(
-    () => sites.map((s) => s.id).sort().join("|"),
-    [sites],
-  );
-
-  useEffect(() => {
-    if (!user) return;
-    if (sitesListFingerprintRef.current === null) {
-      sitesListFingerprintRef.current = sitesListFingerprint;
-      return;
-    }
-    if (sitesListFingerprintRef.current === sitesListFingerprint) return;
-    sitesListFingerprintRef.current = sitesListFingerprint;
-
-    const t = window.setTimeout(() => {
-      void performSaveProperties({ silent: true });
-    }, 500);
-    return () => window.clearTimeout(t);
-  }, [sitesListFingerprint, user, performSaveProperties]);
-
-  useEffect(() => {
-    if (!user) return;
-    if (credentialedSiteCount === 0) return;
-    if (!quarterStatsAllLoaded) return;
-
-    const t = window.setTimeout(() => {
-      void performSaveProperties({ silent: true });
-    }, 2500);
-    return () => window.clearTimeout(t);
-  }, [
-    quarterStatsFingerprint,
-    quarterStatsAllLoaded,
-    credentialedSiteCount,
-    user,
-    performSaveProperties,
-  ]);
-
-  const handleExportAllSitesCsv = useCallback(() => {
-    if (!sites.length) {
-      notify.error(NOTIFY_NO_SITES_TO_EXPORT);
-      return;
-    }
-    const csv = buildWordPressSitesCsvForDownload(sites);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `neo-pulse-wordpress-sites-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    notify.success(notifyExportedXSiteSToCsv(sites.length));
-  }, [sites]);
-
-  const handleExtractNAPAndLinkGraph = useCallback(async (site: WordPressSite) => {
-    setIsExtractingNAPAndGraph(prev => ({ ...prev, [site.id]: true }));
-    try {
-      await extractNAPAndLinkGraph(site);
-    } catch (error) {
-      console.error('[NAP & Link Graph] Error:', error);
-    } finally {
-      setIsExtractingNAPAndGraph(prev => { const updated = { ...prev }; delete updated[site.id]; return updated; });
-    }
-  }, []);
-
-  const [isBulkGmbNamesBusy, setIsBulkGmbNamesBusy] = useState(false);
-
-  const handleBulkApplyGmbDisplayNames = useCallback(async () => {
-    if (filteredSites.length === 0) return;
-    setIsBulkGmbNamesBusy(true);
-    try {
-      const stats = await bulkApplyGmbSuggestedDisplayNames(filteredSites, (id, name) => {
-        handlePatchSite(id, { name });
-      }, { openRouterApiKey: loadApiKey()?.trim() || undefined });
-      if (stats.updated > 0) {
-        notify.success(
-          stats.updated === 1
-            ? "Updated 1 site name from Google Business Profile."
-            : `Updated ${stats.updated} site names from Google Business Profile.`,
-        );
-      }
-      if (stats.failed > 0) {
-        notify.error(
-          stats.firstError
-            ? `${stats.failed} site(s) could not resolve a name. ${stats.firstError}`
-            : `${stats.failed} site(s) could not resolve a name.`,
-        );
-      }
-      if (stats.updated === 0 && stats.failed === 0 && stats.unchanged > 0) {
-        notify.info(NOTIFY_ALL_VISIBLE_SITE_NAMES_ALREADY_MATCHED_G);
-      }
-    } catch (e) {
-      notify.error(e instanceof Error ? e.message : "Bulk name update failed.");
-    } finally {
-      setIsBulkGmbNamesBusy(false);
-    }
-  }, [filteredSites, handlePatchSite]);
-
   const selectedCount = selectedSiteIds.size;
   const allSelected = tierFilteredSites.length > 0 && selectedCount === tierFilteredSites.length;
   const selectAllChecked: boolean | "indeterminate" =
@@ -687,79 +264,22 @@ export const WordPressFeature: React.FC<WordPressFeatureProps> = ({
 
   const trailingToolbarActions = useMemo(
     () => (
-      <>
-        <SelectField tone="data" placeholder="Editorial tier" value={editorialPackageFilter} onValueChange={(v) =>
-            setEditorialPackageFilter(v as "all" | "standard" | "lite" | "unassigned")
-          } options={[{ value: "all", label: "All tiers" }, { value: "standard", label: "Standard" }, { value: "lite", label: "Lite" }, { value: "unassigned", label: "Unassigned" }]} />
-        {editorialMonthOptions.length > 0 && editorialSelectedMonthKey ? (
-          <SelectField tone="data" placeholder="Month" value={editorialSelectedMonthKey} onValueChange={setEditorialSelectedMonthKey} options={editorialMonthOptions.map((opt) => ({ value: opt.key, label: opt.label }))} />
-        ) : null}
-        <Button
-          variant="quiet"
-          type="button"
-          disabled={
-            credentialedSiteCount === 0 ||
-            isRefreshingAllQuarterCounts ||
-            (OPTIMIZATION_TILE_COUNTS_ENABLED && isRefreshingAllOptimizationCounts)
-          }
-          onClick={() =>
-            void (OPTIMIZATION_TILE_COUNTS_ENABLED
-              ? Promise.all([refreshAllQuarterCounts(), refreshAllOptimizationCounts()])
-              : refreshAllQuarterCounts())
-          }
-          title={
-            OPTIMIZATION_TILE_COUNTS_ENABLED
-              ? "Refresh editorial and optimization counts for all properties"
-              : "Refresh editorial counts for all properties"
-          }
-          aria-label={
-            OPTIMIZATION_TILE_COUNTS_ENABLED
-              ? "Refresh editorial and optimization counts for all properties"
-              : "Refresh editorial counts for all properties"
-          }
-          aria-busy={
-            isRefreshingAllQuarterCounts ||
-            (OPTIMIZATION_TILE_COUNTS_ENABLED && isRefreshingAllOptimizationCounts)
-          }
-        >
-          <RotateCcw className="h-4 w-4 shrink-0" aria-hidden />
-          <span>
-            {isRefreshingAllQuarterCounts ||
-            (OPTIMIZATION_TILE_COUNTS_ENABLED && isRefreshingAllOptimizationCounts)
-              ? "Counting"
-              : "Counts"}
-          </span>
-        </Button>
-        <Button
-          variant="quiet"
-          type="button"
-          onClick={handleExportAllSitesCsv}
-          disabled={sites.length === 0}
-          title="Download all properties as a CSV spreadsheet (includes credentials - store securely)"
-          aria-label="Export all properties"
-        >
-          <Download className="h-4 w-4 shrink-0" aria-hidden />
-          all
-        </Button>
-        <Button
-          variant="quiet"
-          onClick={() => setBulkImportDialogOpen(true)}
-          title="Bulk import properties from CSV"
-          aria-label="Bulk import all properties"
-        >
-          <Upload className="h-4 w-4 shrink-0" aria-hidden />
-          all
-        </Button>
-        <Button
-          variant="run"
-          onClick={handleAddSite}
-          title="Add Site"
-          aria-label="Add Site"
-        >
-          <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          Add Site
-        </Button>
-      </>
+      <WordPressFeatureToolbarActions
+        editorialPackageFilter={editorialPackageFilter}
+        setEditorialPackageFilter={setEditorialPackageFilter}
+        editorialMonthOptions={editorialMonthOptions}
+        editorialSelectedMonthKey={editorialSelectedMonthKey}
+        setEditorialSelectedMonthKey={setEditorialSelectedMonthKey}
+        credentialedSiteCount={credentialedSiteCount}
+        isRefreshingAllQuarterCounts={isRefreshingAllQuarterCounts}
+        isRefreshingAllOptimizationCounts={isRefreshingAllOptimizationCounts}
+        refreshAllQuarterCounts={refreshAllQuarterCounts}
+        refreshAllOptimizationCounts={refreshAllOptimizationCounts}
+        handleExportAllSitesCsv={handleExportAllSitesCsv}
+        sitesCount={sites.length}
+        handleAddSite={handleAddSite}
+        setBulkImportDialogOpen={setBulkImportDialogOpen}
+      />
     ),
     [
       credentialedSiteCount,

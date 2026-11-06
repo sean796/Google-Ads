@@ -1,199 +1,52 @@
-import { notify } from "@/lib/app-notifications";
-import { NOTIFY_COULD_NOT_SAVE_SITES_TO_LOCAL_STORAGE } from "@/lib/notify-messages";
 import { loadManagerSettingsFromCloud } from "@/lib/manager-cloud-settings-api";
 import { applyManagerCloudSnapshotToLocalStorage } from "@/lib/manager-cloud-settings-snapshot";
 import { hydrateRuntimeApiKeys } from "@/lib/api";
-import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
-import {
-  editorialContentPackageTierForPropertyName,
-  editorialPublishTimeLocalForPropertyName,
-  isEditorialContentPackageTier,
-  normalizeEditorialPropertyName,
-} from "@/lib/editorial-content-package";
-import { isOptimizationPackageTier } from "@/lib/wordpress-optimization-package";
-import { wordPressSiteHostKey } from "@/lib/wordpress-site-host-key";
-import { applyWpEngineHostingDefaults } from "@/lib/wp-engine-install-defaults";
+import { saveWordPressProperties } from "@/lib/manager-wordpress-properties-api";
 import { applyGa4PropertyIdDefaults } from "@/lib/ga4-property-id-defaults";
 import { applySemrushProjectDefaults } from "@/lib/semrush-project-id-defaults";
-import { saveWordPressProperties } from "@/lib/manager-wordpress-properties-api";
-import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
-import {
-  isShutterSpotProperty,
-  SHUTTER_SPOT_CANONICAL_NAME,
-  SHUTTER_SPOT_GOOGLE_ADS_CUSTOMER_ID,
-} from "@/lib/shutter-spot-site";
+import { applyWpEngineHostingDefaults } from "@/lib/wp-engine-install-defaults";
+import { wordPressSiteHostKey } from "@/lib/wordpress-site-host-key";
 import {
   fetchClientSiteLogoUrl,
   resolveClientSiteOrigin,
 } from "@/lib/integrations/client-site-logo";
 import type { WordPressSite } from "./types";
 import { WORDPRESS_SITES_STORAGE_KEY } from "./types";
+import { getDeletedSitesTombstones, isSiteTombstoned } from "./storage-deleted-sites";
+import {
+  applyShutterSpotDisplayNameMigration,
+  isStalePhoenixArizonaLocation,
+  minimalSiteForLocalStorage,
+  normalizeSiteEntry,
+  restoreOriginalIntegrationsSiteName,
+  stripInlineClientLogoFromSite,
+} from "./storage-site-normalize";
+import { fetchWordPressSitesMirror, syncWordPressSitesToServer } from "./storage-server-sync";
 
-const ACTIVE_WP_SITE_STORAGE_KEY = "neo-pulse-active-wp-site-id";
-
-export const DELETED_WP_SITES_STORAGE_KEY = "neo-pulse-deleted-wp-sites-v1";
-
-export type DeletedSiteRecord = {
-  id?: string;
-  name?: string;
-  host?: string;
-};
-
-const INITIAL_PERMANENTLY_DELETED: DeletedSiteRecord[] = [
-  { name: "dr. rebecca", host: "drrebeccajane.ca" },
-  { name: "ridgeline solar", host: "ridgelinesolar.ca" },
-];
-
-export const PROTECTED_ACTIVE_CLIENT_NAMES = new Set([
-  "advance blinds",
-  "blind magic",
-  "blinds west",
-  "dm interiors",
-  "dm interiors & design",
-  "elite shutters & shadings",
-  "in the shade",
-  "interiors by laura",
-  "kwb",
-  "lindsey blinds",
-  "neo digital",
-  "phoenix painting",
-  "posh outdoors",
-  "shutter spot",
-  "superior blinds",
-  "superior blinds: home",
-  "superior tent rentals",
-  "tailored interiors",
-  "you junk it... i dump it",
-]);
-
-export function getDeletedSitesTombstones(): DeletedSiteRecord[] {
-  if (typeof localStorage === "undefined") return INITIAL_PERMANENTLY_DELETED;
-  try {
-    const raw = localStorage.getItem(DELETED_WP_SITES_STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(DELETED_WP_SITES_STORAGE_KEY, JSON.stringify(INITIAL_PERMANENTLY_DELETED));
-      return INITIAL_PERMANENTLY_DELETED;
-    }
-    const list = JSON.parse(raw) as DeletedSiteRecord[];
-    const merged: DeletedSiteRecord[] = [...INITIAL_PERMANENTLY_DELETED];
-    let needsClean = false;
-
-    for (const item of list) {
-      const name = item.name?.trim().toLowerCase();
-      const host = item.host?.trim().toLowerCase();
-      const id = item.id?.trim();
-
-      if (!name && !host && !id) {
-        needsClean = true;
-        continue;
-      }
-      if (name && PROTECTED_ACTIVE_CLIENT_NAMES.has(name)) {
-        needsClean = true;
-        continue;
-      }
-
-      if (!merged.some((m) => (id && m.id && m.id === id) || (name && m.name && m.name === name))) {
-        merged.push({
-          id: id || undefined,
-          name: name || undefined,
-          host: host || undefined,
-        });
-      }
-    }
-
-    if (needsClean) {
-      localStorage.setItem(DELETED_WP_SITES_STORAGE_KEY, JSON.stringify(merged));
-    }
-
-    return merged;
-  } catch {
-    return INITIAL_PERMANENTLY_DELETED;
-  }
-}
-
-export function recordDeletedSite(site: {
-  id?: string;
-  name?: string;
-  siteUrl?: string;
-  productionSiteUrl?: string;
-}): void {
-  if (typeof localStorage === "undefined") return;
-  try {
-    const name = site.name?.trim().toLowerCase();
-    if (name && PROTECTED_ACTIVE_CLIENT_NAMES.has(name)) return;
-
-    const tombstones = getDeletedSitesTombstones();
-    const host = wordPressSiteHostKey(site.productionSiteUrl || site.siteUrl || "");
-    const id = site.id?.trim();
-
-    if (!id && (!name || name.length < 3) && (!host || host.length < 4)) return;
-
-    if (!tombstones.some((t) => (id && t.id === id) || (name && t.name === name) || (host && t.host === host))) {
-      tombstones.push({
-        id: id || undefined,
-        name: name || undefined,
-        host: host || undefined,
-      });
-      localStorage.setItem(DELETED_WP_SITES_STORAGE_KEY, JSON.stringify(tombstones));
-    }
-  } catch (e) {
-    console.warn("[storage] Failed to record deleted site tombstone:", e);
-  }
-}
-
-export function isSiteTombstoned(
-  site: { id?: string; name?: string; siteUrl?: string; productionSiteUrl?: string },
-  tombstones?: DeletedSiteRecord[],
-): boolean {
-  const name = site.name?.trim().toLowerCase();
-  if (name && PROTECTED_ACTIVE_CLIENT_NAMES.has(name)) {
-    return false;
-  }
-
-  const records = tombstones ?? getDeletedSitesTombstones();
-  const id = site.id?.trim();
-  const host = wordPressSiteHostKey(site.productionSiteUrl || site.siteUrl || "").toLowerCase();
-
-  for (const t of records) {
-    const tId = t.id?.trim();
-    const tName = t.name?.trim().toLowerCase();
-    const tHost = t.host?.trim().toLowerCase();
-
-    if (id && tId && id === tId) return true;
-    if (name && tName && tName.length >= 3 && name === tName) return true;
-    if (host && tHost && tHost.length >= 4 && host === tHost) return true;
-  }
-  return false;
-}
+export {
+  DELETED_WP_SITES_STORAGE_KEY,
+  PROTECTED_ACTIVE_CLIENT_NAMES,
+  getDeletedSitesTombstones,
+  recordDeletedSite,
+  isSiteTombstoned,
+} from "./storage-deleted-sites";
+export type { DeletedSiteRecord } from "./storage-deleted-sites";
+export {
+  sortWordPressSitesByName,
+  clientLogoUrlForLocalStorage,
+  stripInlineClientLogoFromSite,
+  slimSiteForLocalStorage,
+  minimalSiteForLocalStorage,
+} from "./storage-site-normalize";
+export {
+  syncWordPressSitesToServer,
+  syncActiveWordPressSiteToServer,
+  fetchWordPressSitesMirror,
+} from "./storage-server-sync";
 
 /** One-time undo for header display-name edits that overwrote or shortened property names. */
 export const WP_SITES_RESTORE_ORIGINAL_NAMES_ONCE_KEY =
   "neo-pulse-wp-sites-restore-original-names-v1";
-
-function pickLongestTrimmedName(...candidates: string[]): string {
-  const trimmed = candidates.map((c) => c.trim()).filter(Boolean);
-  if (trimmed.length === 0) return "";
-  return trimmed.sort((a, b) => b.length - a.length)[0];
-}
-
-function restoreOriginalIntegrationsSiteName(
-  site: WordPressSite,
-  mirrorRow?: WordPressSite,
-): WordPressSite {
-  const nap = site.napInfo?.name?.trim() ?? "";
-  const mirrorName = mirrorRow?.name?.trim() ?? "";
-  const bestName = pickLongestTrimmedName(site.name, nap, mirrorName);
-
-  let next: WordPressSite =
-    bestName && bestName !== site.name.trim() ? { ...site, name: bestName } : { ...site };
-
-  if (next.menuDisplayName !== undefined) {
-    const { menuDisplayName: _menu, ...rest } = next;
-    next = rest as WordPressSite;
-  }
-
-  return next;
-}
 
 /** Node worker override for server post creator harness (no browser localStorage). */
 let serverHarnessSitesOverride: WordPressSite[] | null = null;
@@ -202,274 +55,6 @@ let memorySitesStore: WordPressSite[] | null = null;
 
 export function setServerHarnessSitesOverride(sites: WordPressSite[] | null): void {
   serverHarnessSitesOverride = sites;
-}
-
-/** Shallow-sorted copy for cloud backup; preserves each site `id` and does not mutate the live list order. */
-export function sortWordPressSitesByName(sites: WordPressSite[]): WordPressSite[] {
-  return [...sites].sort((a, b) =>
-    (a.name ?? "").localeCompare(b.name ?? "", undefined, { sensitivity: "base" }),
-  );
-}
-
-function readActiveSiteIdFromStorage(): string | null {
-  try {
-    return localStorage.getItem(ACTIVE_WP_SITE_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Writes the same WordPress credentials the app uses (Integrations) to server/data/neo-pulse-wordpress-sites.json
- * so the Flo email worker can use them without a manual file or CLI.
- */
-export async function syncWordPressSitesToServer(sites: WordPressSite[]): Promise<void> {
-  const base = (BACKEND_API_BASE || "").replace(/\/$/, "");
-  const path = "/api/integrations/sync-wordpress-sites";
-  const url = base ? `${base}${path}` : path;
-  const minimal = sites
-    .map((s) => ({
-      id: s.id,
-      name: s.name,
-      siteUrl: s.siteUrl,
-      username: s.username,
-      appPassword: s.appPassword,
-      gbpLocationId: s.gbpLocationId,
-      ga4PropertyId: s.ga4PropertyId,
-      googleAdsCustomerId: s.googleAdsCustomerId,
-      semrushSiteAuditProjectId: s.semrushSiteAuditProjectId,
-      semrushPositionTrackingProjectId: s.semrushPositionTrackingProjectId,
-      semrushPositionTrackingCampaignId: s.semrushPositionTrackingCampaignId,
-      wpEngineInstall: s.wpEngineInstall,
-      wpEngineAccountId: s.wpEngineAccountId,
-      optimizationPackage: s.optimizationPackage,
-      editorialContentPackage: s.editorialContentPackage,
-      editorialPublishTimeLocal: s.editorialPublishTimeLocal,
-      editorialCountsPeriodStartYmd: s.editorialCountsPeriodStartYmd,
-      entitySitemapUrl: s.entitySitemapUrl,
-      competitorEntitySitemapUrl: s.competitorEntitySitemapUrl,
-      manualEndpoint: s.manualEndpoint,
-    }))
-    .filter((s) => s.siteUrl?.trim() && s.username?.trim() && s.appPassword?.trim());
-  const activeSiteId = readActiveSiteIdFromStorage();
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ sites: minimal, activeSiteId }),
-    });
-    if (!res.ok) {
-      console.warn("[Integrations] Server sync failed:", res.status);
-    }
-  } catch (e) {
-    console.warn("[Integrations] Server sync error:", e);
-  }
-}
-
-/** Mirror dashboard active site id to server so boot warm targets the correct property. */
-export async function syncActiveWordPressSiteToServer(activeSiteId: string | null): Promise<void> {
-  const base = (BACKEND_API_BASE || "").replace(/\/$/, "");
-  const path = "/api/integrations/sync-active-wp-site";
-  const url = base ? `${base}${path}` : path;
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ activeSiteId }),
-    });
-    if (!res.ok) {
-      console.warn("[Integrations] Active site sync failed:", res.status);
-    }
-  } catch (e) {
-    console.warn("[Integrations] Active site sync error:", e);
-  }
-}
-
-/** Inline data URLs must not be persisted in browser storage (quota). Server holds uploaded logos. */
-export function clientLogoUrlForLocalStorage(url?: string): string | undefined {
-  const trimmed = url?.trim();
-  if (!trimmed || trimmed.startsWith("data:")) return undefined;
-  return trimmed;
-}
-
-export function stripInlineClientLogoFromSite(site: WordPressSite): WordPressSite {
-  const url = site.clientLogoUrl?.trim();
-  if (!url?.startsWith("data:")) return site;
-  return {
-    ...site,
-    clientLogoUrl: undefined,
-    clientLogoSource: undefined,
-    clientLogoFetchedAt: undefined,
-  };
-}
-
-/** Drop large sitemap payloads (urls, postMetadata) that can exceed localStorage quota. Keeps childSitemaps + endpoints. */
-export function slimSiteForLocalStorage(site: WordPressSite): WordPressSite {
-  let next = site;
-  if (site.sitemaps) {
-    const {
-      urls: _urls,
-      postMetadata: _postMetadata,
-      ...sitemapRest
-    } = site.sitemaps;
-    next = { ...site, sitemaps: sitemapRest };
-  }
-  const logoUrl = clientLogoUrlForLocalStorage(next.clientLogoUrl);
-  if (logoUrl === next.clientLogoUrl?.trim() || (!logoUrl && !next.clientLogoUrl?.trim())) {
-    return next;
-  }
-  return { ...next, clientLogoUrl: logoUrl };
-}
-
-/** Credentials + config only when slim payload still exceeds quota. */
-export function minimalSiteForLocalStorage(site: WordPressSite): WordPressSite {
-  const slim = slimSiteForLocalStorage(site);
-  return {
-    id: slim.id,
-    name: slim.name,
-    menuDisplayName: slim.menuDisplayName,
-    siteUrl: slim.siteUrl,
-    productionSiteUrl: slim.productionSiteUrl,
-    username: slim.username,
-    appPassword: slim.appPassword,
-    connectedAt: slim.connectedAt,
-    lastTested: slim.lastTested,
-    connectionStatus: slim.connectionStatus,
-    capabilities: slim.capabilities,
-    enabled: slim.enabled,
-    entitySitemapUrl: slim.entitySitemapUrl,
-    competitorEntitySitemapUrl: slim.competitorEntitySitemapUrl,
-    manualEndpoint: slim.manualEndpoint,
-    ga4PropertyId: slim.ga4PropertyId,
-    googleAdsCustomerId: slim.googleAdsCustomerId,
-    gbpLocationId: slim.gbpLocationId,
-    semrushSiteAuditProjectId: slim.semrushSiteAuditProjectId,
-    semrushPositionTrackingProjectId: slim.semrushPositionTrackingProjectId,
-    semrushPositionTrackingCampaignId: slim.semrushPositionTrackingCampaignId,
-    wpEngineInstall: slim.wpEngineInstall,
-    wpEngineAccountId: slim.wpEngineAccountId,
-    editorialCountsPeriodStartYmd: slim.editorialCountsPeriodStartYmd,
-    optimizationPackage: slim.optimizationPackage,
-    editorialContentPackage: slim.editorialContentPackage,
-    editorialPublishTimeLocal: slim.editorialPublishTimeLocal,
-    industryVertical: slim.industryVertical,
-    benchmarkCustomTag: slim.benchmarkCustomTag,
-    primaryLocalKeyword: slim.primaryLocalKeyword,
-    locations: slim.locations,
-    napInfo: slim.napInfo,
-    clientLogoUrl: clientLogoUrlForLocalStorage(slim.clientLogoUrl),
-    clientLogoSource: slim.clientLogoSource,
-    clientLogoFetchedAt: slim.clientLogoFetchedAt,
-    clientLogoBoxTheme: slim.clientLogoBoxTheme,
-    profileTags: slim.profileTags,
-    pluginAccessToken: slim.pluginAccessToken,
-    slackEnabledForProperty: slim.slackEnabledForProperty,
-    slackChannelId: slim.slackChannelId,
-    slackChannelName: slim.slackChannelName,
-    slackIncomingWebhookUrl: slim.slackIncomingWebhookUrl,
-    slackMentionSnippet: slim.slackMentionSnippet,
-    slackConnectionStatus: slim.slackConnectionStatus,
-    slackLastTestAt: slim.slackLastTestAt,
-    postBankEnabled: slim.postBankEnabled,
-    sitemaps: slim.sitemaps
-      ? {
-          mainSitemapUrl: slim.sitemaps.mainSitemapUrl,
-          detectedAt: slim.sitemaps.detectedAt,
-          type: slim.sitemaps.type,
-          disabledChildSitemapUrls: slim.sitemaps.disabledChildSitemapUrls,
-          childSitemaps: slim.sitemaps.childSitemaps,
-          endpoints: slim.sitemaps.endpoints,
-        }
-      : undefined,
-    scheduledPosts: slim.scheduledPosts,
-  };
-}
-
-function siteHostForLocalDefaults(site: WordPressSite): string {
-  try {
-    const raw = (site.productionSiteUrl || site.siteUrl || "").trim();
-    if (!raw) return "";
-    const url = raw.startsWith("http") ? raw : `https://${raw}`;
-    return new URL(url).hostname.replace(/^www\./i, "").toLowerCase();
-  } catch {
-    return "";
-  }
-}
-
-/** Integrations display name stays Shutter Spot (Google Ads MCC sub-account 745-406-1453). */
-function applyShutterSpotDisplayNameMigration(site: WordPressSite): WordPressSite {
-  if (!isShutterSpotProperty(site)) return site;
-  const ads = (site.googleAdsCustomerId ?? "").replace(/\D/g, "");
-  return {
-    ...site,
-    name: SHUTTER_SPOT_CANONICAL_NAME,
-    googleAdsCustomerId: ads.length === 10 ? site.googleAdsCustomerId : SHUTTER_SPOT_GOOGLE_ADS_CUSTOMER_ID,
-  };
-}
-
-/** Persist editorial tier from the site row itself, then the canonical name map. Wave 0 removed the bundled seed. */
-function applyEditorialContentPackageDefaults(site: WordPressSite): WordPressSite {
-  const fromName = editorialContentPackageTierForPropertyName(site.name);
-  const storedRaw = site.editorialContentPackage?.trim();
-  const stored =
-    storedRaw && isEditorialContentPackageTier(storedRaw) ? storedRaw : undefined;
-  const tier = stored ?? fromName;
-  const publishTime =
-    site.editorialPublishTimeLocal?.trim() ||
-    editorialPublishTimeLocalForPropertyName(site.name) ||
-    undefined;
-
-  const next = { ...site };
-  if (tier) {
-    next.editorialContentPackage = tier;
-  } else {
-    delete next.editorialContentPackage;
-  }
-  if (publishTime) {
-    next.editorialPublishTimeLocal = publishTime;
-  } else if (!stored && !fromName) {
-    delete next.editorialPublishTimeLocal;
-  }
-  return next;
-}
-
-function isStalePhoenixArizonaLocation(site: WordPressSite): boolean {
-  const first = site.locations?.[0] ?? site.napInfo?.locations?.[0];
-  if (!first) return false;
-  const host = wordPressSiteHostKey(site.siteUrl).toLowerCase();
-  const isPhoenixCa = host.includes("phoenixpainting.ca") || normalizeEditorialPropertyName(site.name) === "phoenix painting";
-  return isPhoenixCa && (first.city?.toLowerCase() === "pheonix" || first.state?.toLowerCase() === "arizona");
-}
-
-function normalizeSiteEntry(site: WordPressSite): WordPressSite {
-  const migratedSite = {
-    ...site,
-    enabled: site.enabled !== undefined ? site.enabled : true,
-  };
-
-  if (migratedSite.sitemaps?.mainSitemapUrl?.includes("/wp-sitemap.xml")) {
-    migratedSite.sitemaps.mainSitemapUrl = migratedSite.sitemaps.mainSitemapUrl.replace(
-      "/wp-sitemap.xml",
-      "/sitemap_index.xml",
-    );
-  }
-
-  const rawPkg = migratedSite.optimizationPackage?.trim();
-  if (rawPkg && isOptimizationPackageTier(rawPkg)) {
-    migratedSite.optimizationPackage = rawPkg;
-  } else {
-    delete migratedSite.optimizationPackage;
-  }
-
-  return applyEditorialContentPackageDefaults(
-    applySemrushProjectDefaults(
-      applyGa4PropertyIdDefaults(
-        applyWpEngineHostingDefaults(applyShutterSpotDisplayNameMigration(migratedSite)),
-      ),
-    ),
-  );
 }
 
 let legacyLocalStorageCachesPurged = false;
@@ -614,35 +199,6 @@ export async function restoreOriginalPropertyNamesOnce(): Promise<boolean> {
   localStorage.setItem(WP_SITES_RESTORE_ORIGINAL_NAMES_ONCE_KEY, "1");
   if (changed) saveSites(restored);
   return changed;
-}
-
-/** Load property mirror from WordPress (sites.json) or Render Hub fallback. */
-export async function fetchWordPressSitesMirror(): Promise<WordPressSite[]> {
-  const base = (BACKEND_API_BASE || "").replace(/\/$/, "");
-  const path = "/api/manager-wordpress-properties/load";
-  const url = base ? `${base}${path}` : path;
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 8000);
-    const res = await fetch(`${url}?_=${Date.now()}`, {
-      credentials: "include",
-      headers: neoPulseApiHeaders(),
-      cache: "no-store",
-      signal: ctrl.signal,
-    });
-    clearTimeout(timer);
-    if (res.ok) {
-      const data = (await res.json().catch(() => ({}))) as { sites?: WordPressSite[] };
-      const rawSites = Array.isArray(data.sites) ? data.sites : [];
-      if (rawSites.length > 0) {
-        const tombstones = getDeletedSitesTombstones();
-        return rawSites.filter((s) => !isSiteTombstoned(s, tombstones));
-      }
-    }
-  } catch {
-    // Mirror unreachable: empty list, visible in the UI. No seed fallback.
-  }
-  return [];
 }
 
 function findMirrorSiteRow(local: WordPressSite, serverSites: WordPressSite[]): WordPressSite | undefined {
@@ -847,4 +403,3 @@ export async function hydrateLocalAppStateFromServerIfEmpty(): Promise<{
 export function inferGa4PropertyIdFromSiteFields(site: WordPressSite): string {
   return site.ga4PropertyId?.trim() ?? "";
 }
-

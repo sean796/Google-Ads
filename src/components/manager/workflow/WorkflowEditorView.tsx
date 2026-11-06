@@ -1,149 +1,34 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { compileWorkflowTasks } from "@/lib/workflow/workflow-compile";
 import {
   fetchWorkflow,
-  fetchWorkflowRun,
-  fetchWorkflowStepOutputs,
-  publishWorkflow,
-  startWorkflowRun,
-  updateWorkflow,
 } from "@/lib/workflow/workflow-api";
-import { findAgentRunForWorkflowRun } from "@/lib/workflow/workflow-test-agent-run";
 import {
   newWorkflowDraftScopeKey,
   shouldApplyFetchedWorkflow,
   shouldInitializeNewWorkflowDraft,
   shouldShowWorkflowLoadSpinner,
 } from "@/lib/workflow/workflow-editor-load-guard";
-import { emptyWorkflowDraft, ensureWorkflowClientNode } from "@/lib/workflow/workflow-migrate-from-planner";
+import { ensureWorkflowClientNode } from "@/lib/workflow/workflow-migrate-from-planner";
 import {
   applyWorkflowLoadMigrations,
-  compileAndPersistWorkflowNodes,
   persistWorkflowDefinition,
 } from "@/lib/workflow/workflow-persist";
-import { defaultNodeLabel, mergeWorkflowNodeUpdate } from "@/lib/workflow/workflow-graph-utils";
-import {
-  createWorkflowActionAgentNode,
-  createWorkflowNode,
-  deleteNode,
-  duplicateNode,
-  insertNodeAfter,
-} from "@/lib/workflow/workflow-graph-mutations";
-import { workflowActionAgentPresetById } from "@/lib/workflow/workflow-action-agent-presets";
 import { syncAgentNodesForWorkflowClient } from "@/lib/workflow/workflow-client-agent-sync";
-import {
-  applyScheduleStampToUpstream,
-  syncAdjacentScheduleFromClient,
-} from "@/lib/workflow/workflow-schedule-upstream";
-import { validateWorkflowForRun, workflowHasActionAgent } from "@/lib/workflow/workflow-run-validation";
-import { mergeRecipeIntoWorkflow } from "@/lib/workflow/workflow-recipe-merge";
-
-import type { AutomationRecipeCatalogItem } from "@/lib/automation-recipes-types";
 import type {
   WorkflowDefinition,
-  WorkflowEdge,
-  WorkflowNode,
-  WorkflowNodeKind,
-  WorkflowRagVariable,
 } from "@/lib/workflow/workflow-types";
 import { WorkflowWorkspaceHeader } from "@/components/manager/workflow/WorkflowWorkspaceHeader";
 import { useAgentRunsContext } from "@/contexts/use-agent-runs-context";
 import { useActiveWordPressSite } from "@/contexts/active-wordpress-site-context";
-import { isWorkflowClientKind, isWorkflowScheduleKind, isWorkflowTriggerKind } from "@/lib/workflow/workflow-types";
-import type { WorkflowClientConfig } from "@/lib/workflow/workflow-types";
 import { WorkflowRightRail } from "@/components/manager/workflow/WorkflowRightRail";
 import { WorkflowStepColumn } from "@/components/manager/workflow/WorkflowStepColumn";
-import type { WordPressSiteOption } from "@/components/manager/tasks/NewProjectDialog";
-import type { PulseForgeRoute } from "@/lib/pulse-forge/pulse-forge-route";
-import { setPulseForgeRoute } from "@/lib/pulse-forge/pulse-forge-route";
-import { resolveWorkflowStepForgeRoute } from "@/lib/workflow/workflow-step-navigation";
-import {
-  contentGapStepTestRows,
-  formatWorkflowStepTestSummary,
-  mergeContentGapStepTestRows,
-  testCsvRowsWorkflowStep,
-  testGoogleDriveWorkflowStep,
-  type WorkflowStepTestResult,
-} from "@/lib/workflow/workflow-step-test";
-import { fetchAgentRun } from "@/lib/agent-runs-api";
-import { getStoredSites } from "@/components/integrations/storage";
-import { resolveContentGapCheckExecutionPayload } from "@/lib/content-gap/apply-editorial-package-content-gap-target";
-import { resolveContentGapCount } from "@/lib/content-gap/resolve-content-gap-count";
-import type { WorkflowActionConfig } from "@/lib/workflow/workflow-types";
-import { thenConfig } from "@/lib/workflow/workflow-then-utils";
+import type { WorkflowStepTestResult } from "@/lib/workflow/workflow-step-test";
 import { workflowClientSiteIds } from "@/components/manager/workflow/forge-workflow-styles";
 import { AGENT_RUNS_ALL_SITES_ID } from "@/lib/agent-runs/agent-runs-site-filter";
-
-async function testContentGapAgentNode(
-  workflow: WorkflowDefinition,
-  nodeId: string,
-): Promise<WorkflowStepTestResult> {
-  const node = workflow.nodes.find((item) => item.id === nodeId);
-  if (node?.kind !== "action_agent") {
-    return {
-      nodeId,
-      ok: false,
-      summary: "Content gap check step not found.",
-      rows: mergeContentGapStepTestRows([{ label: "Content", value: "Content gap check step not found." }]),
-    };
-  }
-  const config = node.config as WorkflowActionConfig;
-  if (config.executionKind !== "content_gap_check") {
-    return {
-      nodeId,
-      ok: false,
-      summary: "Step is not a content gap check.",
-      rows: mergeContentGapStepTestRows([{ label: "Content", value: "Step is not a content gap check." }]),
-    };
-  }
-
-  const clientNode = workflow.nodes.find((item) => item.kind === "workflow_client");
-  const siteId = (clientNode?.config as WorkflowClientConfig)?.siteIds?.[0]?.trim() ?? "";
-  if (!siteId) {
-    return {
-      nodeId,
-      ok: false,
-      summary: "Add a client site to the workflow before testing.",
-      rows: mergeContentGapStepTestRows([
-        { label: "Content", value: "Add a client site to the workflow before testing." },
-      ]),
-    };
-  }
-  const site = getStoredSites().find((item) => item.id === siteId);
-  if (!site) {
-    return {
-      nodeId,
-      ok: false,
-      summary: "WordPress site not found. Open Integrations and reconnect the site.",
-      rows: mergeContentGapStepTestRows([
-        { label: "Content", value: "WordPress site not found. Open Integrations and reconnect the site." },
-      ]),
-    };
-  }
-
-  const gap = await resolveContentGapCount(
-    site,
-    resolveContentGapCheckExecutionPayload(config.executionPayload, site),
-  );
-  return {
-    nodeId,
-    ok: true,
-    summary: gap.contextText,
-    rows: contentGapStepTestRows(gap),
-  };
-}
-
-export type WorkflowEditorViewProps = {
-  teamId: number;
-  workflowId: number | null;
-  sites: WordPressSiteOption[];
-  defaultSiteId?: string | null;
-  route: PulseForgeRoute;
-  onCreated: (workflowId: number) => void;
-  onCancel: () => void;
-  onNameChange?: (name: string) => void;
-  onSaveErrorChange?: (error: string | null) => void;
-};
+import type { WorkflowEditorViewProps } from "@/components/manager/workflow/workflow-editor-view-types";
+import { buildLocalDraft } from "@/components/manager/workflow/workflow-editor-view-helpers";
+import { useWorkflowEditorGraphHandlers } from "@/components/manager/workflow/use-workflow-editor-graph-handlers";
+import { useWorkflowEditorTestRunners } from "@/components/manager/workflow/use-workflow-editor-test-runners";
 
 export function WorkflowEditorView({
   teamId,
@@ -397,488 +282,59 @@ export function WorkflowEditorView({
     [markDirty, onNameChange, persist],
   );
 
-  const applyGraphUpdate = useCallback(
-    (
-      nodes: WorkflowNode[],
-      edges: WorkflowEdge[],
-      ragVariables?: WorkflowRagVariable[],
-      options?: { selectNodeId?: string | null; note?: string | null; compile?: boolean },
-    ) => {
-      markDirty();
-      setWorkflow((current) => {
-        if (!current) return current;
-        const nextRag = ragVariables ?? syncRagVariables(nodes, current.ragVariables);
-        const next = { ...current, nodes, edges, ragVariables: nextRag };
-        void persist(next, { compile: options?.compile });
-        return next;
-      });
-      if (options?.selectNodeId) setSelectedNodeId(options.selectNodeId);
-      if (options?.note !== undefined) setInspectorNote(options.note);
-    },
-    [markDirty, persist],
-  );
-
-  const handleNodeChange = useCallback(
-    (node: WorkflowNode) => {
-      markDirty();
-      setWorkflow((current) => {
-        if (!current) return current;
-        const isClientChange = isWorkflowClientKind(node.kind);
-
-        const nodes = current.nodes.map((item) =>
-          item.id === node.id ? mergeWorkflowNodeUpdate(item, node) : item,
-        );
-
-        const siteIds = isClientChange
-          ? ((node.config as WorkflowClientConfig).siteIds ?? [])
-          : null;
-
-        const ragVariables = syncRagVariables(nodes, current.ragVariables);
-        let next = {
-          ...current,
-          nodes,
-          ragVariables,
-          ...(siteIds != null ? { wordpressSiteId: siteIds[0] ?? null } : {}),
-        };
-        if (isWorkflowScheduleKind(node.kind)) {
-          next = applyScheduleStampToUpstream(next);
-        } else if (isClientChange) {
-          next = syncAdjacentScheduleFromClient(next);
-        }
-        void persist(next);
-        return next;
-      });
-    },
-    [markDirty, persist],
-  );
-
-  const handleClientsMenuOpenChange = useCallback(
-    (open: boolean) => {
-      setClientsMenuOpen(open);
-      if (open) return;
-
-      const current = workflowRef.current;
-      if (!current) return;
-      const client = current.nodes.find((item) => isWorkflowClientKind(item.kind));
-      const siteId =
-        ((client?.config as WorkflowClientConfig | undefined)?.siteIds ?? [])[0]?.trim() ?? "";
-      if (!siteId) return;
-
-      setActiveWordPressSiteId(siteId);
-      setAgentsSiteFilter(siteId);
-
-      setWorkflow((prev) => {
-        if (!prev) return prev;
-        const nodes = syncAgentNodesForWorkflowClient({
-          nodes: prev.nodes,
-          edges: prev.edges,
-        });
-        const next = {
-          ...prev,
-          nodes,
-          ragVariables: syncRagVariables(nodes, prev.ragVariables),
-        };
-        void persist(next);
-        return next;
-      });
-    },
-    [persist, setActiveWordPressSiteId, setAgentsSiteFilter],
-  );
-
-  useEffect(() => {
-    if (!clientsMenuOpen) return;
-    if (selectedNode && isWorkflowClientKind(selectedNode.kind)) return;
-    handleClientsMenuOpenChange(false);
-  }, [clientsMenuOpen, handleClientsMenuOpenChange, selectedNode]);
-
-  const handleAddStep = useCallback(
-    (kind: WorkflowNodeKind, afterNodeId: string | null) => {
-      if (!workflow) return;
-      if (isWorkflowTriggerKind(kind) && workflow.nodes.some((node) => isWorkflowTriggerKind(node.kind))) {
-        setInspectorNote("This workflow already has a trigger step.");
-        return;
-      }
-      const node = createWorkflowNode(kind, defaultNodeLabel(kind));
-      const graph = insertNodeAfter(workflow, afterNodeId, node);
-      applyGraphUpdate(graph.nodes, graph.edges, syncRagVariables(graph.nodes, workflow.ragVariables), {
-        selectNodeId: node.id,
-        note: null,
-        compile: false,
-      });
-    },
-    [applyGraphUpdate, workflow],
-  );
-
-  const handleAddActionAgentPreset = useCallback(
-    (presetId: string, afterNodeId: string | null) => {
-      if (!workflow) return;
-      const preset = workflowActionAgentPresetById(presetId);
-      if (!preset) return;
-      const node = createWorkflowActionAgentNode({
-        executionKind: preset.executionKind,
-        label: preset.label,
-        executionPayload: preset.buildPayload?.(),
-      });
-      const graph = insertNodeAfter(workflow, afterNodeId, node);
-      applyGraphUpdate(graph.nodes, graph.edges, syncRagVariables(graph.nodes, workflow.ragVariables), {
-        selectNodeId: node.id,
-        note: null,
-        compile: false,
-      });
-    },
-    [applyGraphUpdate, workflow],
-  );
-
-  const handleAddRecipe = useCallback(
-    (recipe: AutomationRecipeCatalogItem, afterNodeId: string | null) => {
-      if (!workflow) return;
-      try {
-        const merged = mergeRecipeIntoWorkflow(workflow, recipe, afterNodeId);
-        if (!merged.nodes.some((node) => node.kind === "action_agent")) {
-          setSaveError("Could not add agent to workflow.");
-          return;
-        }
-        applyGraphUpdate(merged.nodes, merged.edges, merged.ragVariables, {
-          selectNodeId: merged.insertedNodeIds[0] ?? null,
-          note: merged.triggerConflict ?? null,
-          compile: false,
-        });
-      } catch (err) {
-        setSaveError(err instanceof Error ? err.message : "Could not add agent to workflow.");
-      }
-    },
-    [applyGraphUpdate, workflow],
-  );
-
-  const handleDeleteNode = useCallback(
-    (nodeId: string) => {
-      if (!workflow) return;
-      const graph = deleteNode(workflow, nodeId);
-      if (!graph) return;
-      applyGraphUpdate(graph.nodes, graph.edges, undefined, {
-        selectNodeId: null,
-        note: null,
-        compile: false,
-      });
-    },
-    [applyGraphUpdate, workflow],
-  );
-
-  const handleDuplicateNode = useCallback(
-    (nodeId: string) => {
-      if (!workflow) return;
-      const graph = duplicateNode(workflow, nodeId);
-      if (!graph) return;
-      applyGraphUpdate(graph.nodes, graph.edges, undefined, {
-        selectNodeId: graph.newNodeId,
-        note: null,
-        compile: false,
-      });
-    },
-    [applyGraphUpdate, workflow],
-  );
-
-  const handleSave = useCallback(() => {
-    setWorkflow((current) => {
-      if (current) void persist(current);
-      return current;
-    });
-  }, [persist]);
-
-  const handlePublish = useCallback(async () => {
-    if (!workflow?.id) return;
-    setSaving(true);
-    const compiled = await compileWorkflowTasks(teamId, workflow);
-    await updateWorkflow(teamId, compiled.id, {
-      nodes: compiled.nodes,
-      edges: compiled.edges,
-      ragVariables: compiled.ragVariables,
-    });
-    const result = await publishWorkflow(teamId, compiled.id);
-    if (result.workflow) setWorkflow(result.workflow);
-    setSaving(false);
-  }, [teamId, workflow]);
-
-  const handleOpenStepDeepLink = useCallback(
-    (node: WorkflowNode) => {
-      if (!workflow?.id) return;
-      const nextRoute = resolveWorkflowStepForgeRoute(node, workflow.id);
-      if (nextRoute) setPulseForgeRoute(nextRoute);
-    },
-    [workflow?.id],
-  );
-
-  const persistWorkflowForRun = useCallback(
-    async (source: WorkflowDefinition): Promise<WorkflowDefinition | null> => {
-      const result = await persistWorkflowDefinition(teamId, source);
-      if (result.workflow) {
-        setWorkflow(result.workflow);
-        onNameChange?.(result.workflow.name);
-      }
-      if (result.created && result.workflow) {
-        clearDirty();
-        onCreated(result.workflow.id);
-      }
-      if (!result.ok || !result.workflow) {
-        setSaveError(result.error ?? "Could not save workflow before test run.");
-        return null;
-      }
-      clearDirty();
-      return result.workflow;
-    },
-    [clearDirty, onCreated, onNameChange, teamId],
-  );
-
-  const handleTestRun = useCallback(async () => {
-    if (!workflow) return;
-    setSaveError(null);
-    setInspectorNote(null);
-    setTestingRun(true);
-    const agentTitle =
-      workflow.nodes.find((node) => node.kind === "action_agent")?.label?.trim() || "Full AISEO";
-    if (workflowTestAgentsFilter) {
-      setAgentsSiteFilter(workflowTestAgentsFilter);
-    }
-    seedOptimisticWorkflowAgent(
-      agentTitle,
-      workflowTestSiteIds.length > 0 ? workflowTestSiteIds : workflowClientSiteId || undefined,
-    );
-    patchOptimisticWorkflowAgentProgress("Saving workflow…");
-
-    try {
-      const ready = await persistWorkflowForRun(workflow);
-      if (!ready?.id) {
-        const message = "Could not save workflow before test run.";
-        patchOptimisticWorkflowAgentProgress(message);
-        setSaveError(message);
-        return;
-      }
-
-      const validation = validateWorkflowForRun(ready);
-      if (validation.ok === false) {
-        patchOptimisticWorkflowAgentProgress(validation.error);
-        setSaveError(validation.error);
-        return;
-      }
-
-      const result = await startWorkflowRun(teamId, ready.id, { simulated: true });
-      if (!result.ok || !result.run?.id) {
-        const message = result.error ?? "Could not start workflow test run.";
-        patchOptimisticWorkflowAgentProgress(message);
-        setSaveError(message);
-        return;
-      }
-
-      const workflowRunId = result.run.id;
-      setFocusRagOnRunId(workflowRunId);
-      setActiveRunId(workflowRunId);
-
-      const testDispatchOptions = {
-        openAgentSidebar: true,
-        clientSiteId: workflowTestAgentsFilter,
-        skipSetupSteps: true,
-      };
-
-      patchOptimisticWorkflowAgentProgress("Page audit…");
-      const dispatch = await dispatchWorkflowRun(ready.id, workflowRunId, testDispatchOptions);
-      if (!dispatch.ok) {
-        const message = dispatch.error ?? "Workflow test failed.";
-        patchOptimisticWorkflowAgentProgress(message);
-        setSaveError(message);
-        return;
-      }
-
-      const agentRunId = await findAgentRunForWorkflowRun(teamId, ready.id, workflowRunId);
-      if (agentRunId) {
-        openSidebar(agentRunId);
-      } else if (workflowHasActionAgent(ready)) {
-        const run = await fetchWorkflowRun(teamId, ready.id, workflowRunId);
-        const message =
-          run?.errorMessage?.trim()
-          || dispatch.error
-          || "Workflow test started no agent run. Check the DFS LLM article audit step.";
-        setSaveError(message);
-        return;
-      }
-
-      await refreshRuns();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Workflow test failed.";
-      patchOptimisticWorkflowAgentProgress(message);
-      setSaveError(message);
-    } finally {
-      setTestingRun(false);
-    }
-  }, [
-    dispatchWorkflowRun,
-    openSidebar,
-    seedOptimisticWorkflowAgent,
-    patchOptimisticWorkflowAgentProgress,
-    persistWorkflowForRun,
-    refreshRuns,
-    setAgentsSiteFilter,
-    teamId,
+  const {
+    handleNodeChange,
+    handleClientsMenuOpenChange,
+    handleAddStep,
+    handleAddActionAgentPreset,
+    handleAddRecipe,
+    handleDeleteNode,
+    handleDuplicateNode,
+    handleSave,
+    handlePublish,
+    handleOpenStepDeepLink,
+  } = useWorkflowEditorGraphHandlers({
     workflow,
+    teamId,
+    selectedNode,
+    clientsMenuOpen,
+    workflowRef,
+    markDirty,
+    persist,
+    setWorkflow,
+    setSelectedNodeId,
+    setInspectorNote,
+    setSaveError,
+    setSaving,
+    setClientsMenuOpen,
+    setActiveWordPressSiteId,
+    setAgentsSiteFilter,
+  });
+
+  const { handleTestRun, handleTestStep } = useWorkflowEditorTestRunners({
+    workflow,
+    teamId,
     workflowClientSiteId,
     workflowTestAgentsFilter,
     workflowTestSiteIds,
-  ]);
-
-  const handleTestStep = useCallback(
-    async (nodeId: string) => {
-      if (!workflow) return;
-      setTestingStepId(nodeId);
-      setSaveError(null);
-      setInspectorNote(null);
-      setStepTestResult(null);
-
-      try {
-        const node = workflow.nodes.find((item) => item.id === nodeId);
-        if (node?.kind === "action_agent") {
-          const config = node.config as WorkflowActionConfig;
-          if (config.executionKind === "content_gap_check") {
-            setStepTestResult(await testContentGapAgentNode(workflow, nodeId));
-            return;
-          }
-          if (workflowTestAgentsFilter) {
-            setAgentsSiteFilter(workflowTestAgentsFilter);
-          }
-          seedOptimisticWorkflowAgent(
-            node.label?.trim() || "Full AISEO",
-            workflowTestSiteIds.length > 0 ? workflowTestSiteIds : workflowClientSiteId || undefined,
-          );
-        }
-
-        if (node?.kind === "csv_rows") {
-          const csvResult = testCsvRowsWorkflowStep(node);
-          setStepTestResult(csvResult);
-          if (!csvResult.ok) setSaveError(csvResult.summary);
-          return;
-        }
-
-        if (node?.kind === "then_google_drive") {
-          const sites = getStoredSites();
-          const site = sites.find((item) => item.id === workflowClientSiteId) ?? null;
-          const driveResult = await testGoogleDriveWorkflowStep({
-            workflow,
-            nodeId,
-            site,
-          });
-          setStepTestResult(driveResult);
-          if (driveResult.ok && driveResult.googleDriveTargetFolderId) {
-            const folderLabel =
-              driveResult.rows?.find((row) => row.label === "Folder")?.value?.trim() ?? "";
-            setWorkflow((current) => {
-              if (!current) return current;
-              return {
-                ...current,
-                nodes: current.nodes.map((item) => {
-                  if (item.id !== nodeId) return item;
-                  const config = thenConfig(item);
-                  return {
-                    ...item,
-                    config: {
-                      ...config,
-                      executionPayload: {
-                        ...(config.executionPayload ?? {}),
-                        saveToGoogleDrive: true,
-                        googleDriveTargetFolderId: driveResult.googleDriveTargetFolderId,
-                        googleDriveFolderLabel:
-                          folderLabel || config.executionPayload?.googleDriveFolderLabel,
-                      },
-                    },
-                  };
-                }),
-              };
-            });
-          }
-          if (!driveResult.ok) {
-            setSaveError(driveResult.summary);
-          }
-          return;
-        }
-
-        const ready = await persistWorkflowForRun(workflow);
-        if (!ready?.id) {
-          const message = "Could not save workflow before step test.";
-          setSaveError(message);
-          setStepTestResult({
-            nodeId,
-            ok: false,
-            summary: message,
-            rows: [{ label: "Result", value: message }],
-          });
-          return;
-        }
-
-        const result = await startWorkflowRun(teamId, ready.id, { simulated: true });
-        if (!result.ok || !result.run?.id) {
-          const message = result.error ?? "Could not start step test run.";
-          setSaveError(message);
-          setStepTestResult({
-            nodeId,
-            ok: false,
-            summary: message,
-            rows: [{ label: "Result", value: message }],
-          });
-          return;
-        }
-
-        const workflowRunId = result.run.id;
-        const dispatch = await dispatchWorkflowRun(ready.id, workflowRunId, {
-          openAgentSidebar: node?.kind === "action_agent",
-          stopAfterNodeId: nodeId,
-          clientSiteId: workflowTestAgentsFilter,
-        });
-
-        await refreshRuns();
-        const outputs = await fetchWorkflowStepOutputs(teamId, ready.id, workflowRunId);
-        const stepOutput = outputs.find((output) => output.nodeId === nodeId);
-        const agentRun = stepOutput?.agentRunId
-          ? await fetchAgentRun(teamId, stepOutput.agentRunId)
-          : null;
-
-        const summary = dispatch.ok
-          ? formatWorkflowStepTestSummary(stepOutput, agentRun?.result ?? null)
-          : dispatch.error ?? "Step test failed.";
-        const stepOk = dispatch.ok;
-        const resultSummary = summary;
-        setStepTestResult({
-          nodeId,
-          ok: stepOk,
-          summary: resultSummary,
-          rows: [{ label: "Result", value: resultSummary }],
-        });
-        if (!stepOk) {
-          const message = dispatch.ok ? resultSummary : dispatch.error ?? "Step test failed.";
-          setSaveError(message);
-        }
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Step test failed.";
-        setStepTestResult({
-          nodeId,
-          ok: false,
-          summary: message,
-          rows: [{ label: "Result", value: message }],
-        });
-        setSaveError(message);
-      } finally {
-        setTestingStepId(null);
-      }
-    },
-    [
-      dispatchWorkflowRun,
-      persistWorkflowForRun,
-      refreshRuns,
-      seedOptimisticWorkflowAgent,
-      setAgentsSiteFilter,
-      teamId,
-      workflow,
-      workflowClientSiteId,
-      workflowTestAgentsFilter,
-      workflowTestSiteIds,
-    ],
-  );
+    clearDirty,
+    onCreated,
+    onNameChange,
+    openSidebar,
+    seedOptimisticWorkflowAgent,
+    patchOptimisticWorkflowAgentProgress,
+    dispatchWorkflowRun,
+    refreshRuns,
+    setAgentsSiteFilter,
+    setWorkflow,
+    setSaveError,
+    setInspectorNote,
+    setTestingRun,
+    setFocusRagOnRunId,
+    setActiveRunId,
+    setTestingStepId,
+    setStepTestResult,
+  });
 
   if (loading) {
     return (
@@ -946,33 +402,4 @@ export function WorkflowEditorView({
       </div>
     </div>
   );
-}
-
-function buildLocalDraft(teamId: number, siteId?: string | null): WorkflowDefinition {
-  return {
-    id: 0,
-    ...emptyWorkflowDraft(teamId, siteId),
-  };
-}
-
-function syncRagVariables(nodes: WorkflowNode[], current: WorkflowRagVariable[]): WorkflowRagVariable[] {
-  const ragNodes = nodes.filter(
-    (node) => node.kind === "action_agent" || node.kind === "csv_rows",
-  );
-  return ragNodes.map((node) => {
-    const config = node.config as {
-      ragVariableKey?: string;
-      ragScope?: WorkflowRagVariable["scope"];
-      title?: string;
-    };
-    const defaultPrefix = node.kind === "csv_rows" ? `csv_${node.id}` : node.id;
-    const key = config.ragVariableKey?.trim() || defaultPrefix;
-    const existing = current.find((item) => item.nodeId === node.id);
-    return {
-      key,
-      nodeId: node.id,
-      scope: "run",
-      label: config.title ?? node.label ?? existing?.label ?? key,
-    };
-  });
 }

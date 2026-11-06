@@ -6,11 +6,6 @@
 import { loadApiKey } from "@/lib/api";
 import { generateImage } from "@/lib/image-api";
 import { applyAiGeneratedImageDisclaimer } from "@/lib/images/ai-generated-image-disclaimer";
-import {
-  openRouterVisionChatCompletion,
-  parseJsonObjectFromModelText,
-  type OpenRouterVisionContentPart,
-} from "@/lib/openrouter-vision-chat";
 import { getImageModel, getResearchModel } from "@/lib/optimization-settings-storage";
 import {
   buildInContentImageFigureHtml,
@@ -19,458 +14,46 @@ import {
   inContentImageTitleFromFocusKeyword,
   insertFigureAfterH2,
 } from "@/lib/overview/overview-blog-in-content-image-insert";
-import {
-  type GoogleImagesSerpItem,
-  resolveLocalImagePlaceEntity,
-} from "@/lib/overview/overview-local-image-dfs-normalize";
-import {
-  researchGoogleImageReferences,
-} from "@/lib/image-reference-research";
-import { analyzeBestSectionForImage } from "@/lib/image-section-analyzer";
-import {
-  htmlBodyToMarkdownH2Projection,
-  resolveForcedH2Section,
-} from "@/lib/in-content-image-generator";
-import { parseMarkdownSections } from "@/lib/section-parser";
+import { resolveLocalImagePlaceEntity } from "@/lib/overview/overview-local-image-dfs-normalize";
+import { researchGoogleImageReferences } from "@/lib/image-reference-research";
 import { uploadWordPressMedia } from "@/lib/wordpress-api";
-import { backendApiUrl } from "@/lib/wordpress-api/connection";
-import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import {
   isCurrentConnectedSite,
   searchSapCrossSiteInContentImage,
 } from "@/lib/overview/sap-cross-site-image-search";
-import { fetchWikipediaPageLeadImage } from "@/lib/wikipedia/mediawiki-pageimage";
 import type { WordPressSite } from "@/components/integrations/types";
-
-const PLACE_MATCH_MIN = 0.65;
-/** Skip only when the place is not recognizable (not an HD bar). */
-export const LOCAL_IMAGE_QUALITY_MIN = 0.25;
-/** Top N Google Images results sent to vision (not the full SERP). */
-export const LOCAL_IMAGE_CANDIDATE_LIMIT = 10;
-
-/** Vision brief for Google Images fallback: community over single-house listing. */
-export function buildLocalImageCommunityAcceptanceBrief(entity: string): string {
-  const place = (entity ?? "").trim() || "the place";
-  return [
-    `Prefer a community-scale view of "${place}" (neighbourhood streetscape, park, school, plaza, or public amenity).`,
-    `A single private house / MLS listing photo is a weak match unless nothing more community-focused is available.`,
-    `Do not reject houses as a category; rank community overview higher when both exist.`,
-  ].join(" ");
-}
-
-/** Forced Google Images targets when Wikipedia lead is unavailable. */
-export function buildLocalImageGoogleForcedTargets(entity: string) {
-  return [
-    {
-      kind: "place" as const,
-      query: entity,
-      role: "primary place",
-      acceptanceBrief: buildLocalImageCommunityAcceptanceBrief(entity),
-    },
-  ];
-}
-
-export function capGoogleImagesCandidates(
-  items: GoogleImagesSerpItem[],
-  limit: number = LOCAL_IMAGE_CANDIDATE_LIMIT,
-): GoogleImagesSerpItem[] {
-  return items.slice(0, Math.max(0, limit));
-}
-
-export type LocalImagePlacePick = {
-  chosenIndex: number;
-  why: string;
-  placeMatchConfidence: number;
-  /** Technical photo quality 0–1 (sharpness, resolution, compression). */
-  qualityScore: number;
-  visualDescription: string;
-};
-
-function normalizeUnitScore(raw: number): number {
-  let n = raw;
-  if (!Number.isFinite(n)) return NaN;
-  if (n > 1 && n <= 10) n = n / 10;
-  else if (n > 10) n = 1;
-  if (n < 0) n = 0;
-  return n;
-}
-
-export function parseLocalImagePlacePick(raw: Record<string, unknown>): LocalImagePlacePick {
-  const chosenIndex = Number(raw.chosenIndex);
-  let placeMatchConfidence = Number(raw.placeMatchConfidence);
-  let qualityScore = Number(raw.qualityScore);
-  const why = String(raw.why ?? "").trim();
-  const visualDescription = String(raw.visualDescription ?? "").trim();
-  if (!Number.isFinite(chosenIndex) || chosenIndex < 0) {
-    throw new Error("Vision pick missing chosenIndex");
-  }
-  if (!Number.isFinite(placeMatchConfidence)) {
-    throw new Error("Vision pick missing placeMatchConfidence");
-  }
-  placeMatchConfidence = normalizeUnitScore(placeMatchConfidence);
-  if (!Number.isFinite(qualityScore)) {
-    // Older/partial replies: assume decent if place match is strong.
-    qualityScore = placeMatchConfidence >= PLACE_MATCH_MIN ? 0.7 : 0.3;
-  } else {
-    qualityScore = normalizeUnitScore(qualityScore);
-  }
-  if (!Number.isFinite(qualityScore)) {
-    throw new Error("Vision pick missing qualityScore");
-  }
-  if (!visualDescription) {
-    throw new Error("Vision pick missing visualDescription");
-  }
-  return {
-    chosenIndex: Math.floor(chosenIndex),
-    why,
-    placeMatchConfidence,
-    qualityScore,
-    visualDescription,
-  };
-}
-
-/** Read a JSON number field from truncated model text (numeric scan only). */
-function readNumberFieldFromPartialJson(text: string, key: string): number | null {
-  const needle = `"${key}"`;
-  const i = text.indexOf(needle);
-  if (i < 0) return null;
-  let j = i + needle.length;
-  while (
-    j < text.length &&
-    (text[j] === " " || text[j] === ":" || text[j] === "\n" || text[j] === "\t" || text[j] === "\r")
-  ) {
-    j += 1;
-  }
-  let numStr = "";
-  if (text[j] === "-") {
-    numStr = "-";
-    j += 1;
-  }
-  while (j < text.length) {
-    const ch = text[j]!;
-    if ((ch >= "0" && ch <= "9") || ch === ".") {
-      numStr += ch;
-      j += 1;
-      continue;
-    }
-    break;
-  }
-  const n = Number(numStr);
-  return Number.isFinite(n) ? n : null;
-}
-
-/**
- * When vision truncates mid-JSON, recover chosenIndex (+ optional confidence).
- * Proven failure mode: incomplete object without closing brace.
- */
-export function recoverLocalImagePickFromPartialText(text: string): LocalImagePlacePick | null {
-  const chosenIndex = readNumberFieldFromPartialJson(text, "chosenIndex");
-  if (chosenIndex === null || chosenIndex < 0) return null;
-  let placeMatchConfidence = readNumberFieldFromPartialJson(text, "placeMatchConfidence");
-  if (placeMatchConfidence === null) placeMatchConfidence = 0.85;
-  placeMatchConfidence = normalizeUnitScore(placeMatchConfidence);
-  let qualityScore = readNumberFieldFromPartialJson(text, "qualityScore");
-  if (qualityScore === null) qualityScore = 0.7;
-  qualityScore = normalizeUnitScore(qualityScore);
-  return {
-    chosenIndex: Math.floor(chosenIndex),
-    why: "partial vision reply",
-    placeMatchConfidence,
-    qualityScore,
-    visualDescription: "Faithful replicate of the chosen reference photograph. Do not embellish or alter.",
-  };
-}
-
-export function assertPlaceMatchOrThrow(pick: LocalImagePlacePick): void {
-  if (pick.placeMatchConfidence < PLACE_MATCH_MIN) {
-    throw new Error(
-      `No Google Image confidently depicts this place (confidence ${pick.placeMatchConfidence}). Try a clearer entity name.`,
-    );
-  }
-}
-
-export function assertImageQualityOrThrow(pick: LocalImagePlacePick): void {
-  if (pick.qualityScore < LOCAL_IMAGE_QUALITY_MIN) {
-    throw new Error(
-      `Place image is not recognizable enough (quality ${pick.qualityScore}). Skipping.`,
-    );
-  }
-}
-
-/**
- * Geometric upscale / size gate via sharp on the server.
- * Does not invent detail — Lanczos resample only. Rejects tiny sources.
- */
-export async function prepareLocalImageDataUrl(dataUrl: string): Promise<{
-  dataUrl: string;
-  width: number;
-  height: number;
-  upscaled: boolean;
-}> {
-  const res = await fetch(backendApiUrl("/images/prepare-local-image"), {
-    method: "POST",
-    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ dataUrl }),
-  });
-  const data = (await res.json().catch(() => ({}))) as {
-    dataUrl?: string;
-    width?: number;
-    height?: number;
-    upscaled?: boolean;
-    error?: string;
-    rejectReason?: string;
-  };
-  if (!res.ok || typeof data.dataUrl !== "string" || !data.dataUrl.startsWith("data:image/")) {
-    const reason = (data.rejectReason || data.error || `prepare failed (${res.status})`).trim();
-    throw new Error(reason);
-  }
-  return {
-    dataUrl: data.dataUrl,
-    width: Number(data.width) || 0,
-    height: Number(data.height) || 0,
-    upscaled: Boolean(data.upscaled),
-  };
-}
-
-async function fetchGoogleImagesForEntity(
-  keyword: string,
-): Promise<GoogleImagesSerpItem[]> {
-  const res = await fetch(backendApiUrl("/dataforseo/google-images"), {
-    method: "POST",
-    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({
-      keyword,
-      location_name: "United States",
-      language_code: "en",
-      depth: LOCAL_IMAGE_CANDIDATE_LIMIT,
-    }),
-  });
-  const data = (await res.json().catch(() => ({}))) as {
-    items?: GoogleImagesSerpItem[];
-    error?: string;
-  };
-  if (!res.ok) {
-    throw new Error(data.error || `Google Images search failed (${res.status})`);
-  }
-  const items = capGoogleImagesCandidates(
-    Array.isArray(data.items) ? data.items : [],
-  );
-  if (!items.length) {
-    throw new Error(`No Google Images results for "${keyword}"`);
-  }
-  return items;
-}
-
-async function prefetchImageDataUrl(imageUrl: string, referer?: string): Promise<string | null> {
-  try {
-    const res = await fetch(backendApiUrl("/images/fetch-data-url"), {
-      method: "POST",
-      headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify({
-        url: imageUrl,
-        referer: (referer || "").trim() || "https://www.google.com/",
-      }),
-    });
-    const data = (await res.json().catch(() => ({}))) as {
-      dataUrl?: string;
-      error?: string;
-    };
-    if (!res.ok || typeof data.dataUrl !== "string" || !data.dataUrl.startsWith("data:image/")) {
-      return null;
-    }
-    return data.dataUrl;
-  } catch {
-    return null;
-  }
-}
-
-type LocalImageReference = {
-  dataUrl: string;
-  imageUrl: string;
-  sourceUrl?: string;
-  visualDescription: string;
-};
-
-/**
- * Short vision gate: Wikipedia lead must be a usable place photograph (not map/logo/diagram).
- */
-export async function isUsableWikipediaPlacePhotograph(params: {
-  apiKey: string;
-  model: string;
-  entity: string;
-  dataUrl: string;
-}): Promise<{ usable: boolean; visualDescription: string }> {
-  const rawText = await openRouterVisionChatCompletion({
-    apiKey: params.apiKey,
-    model: params.model,
-    messages: [
-      {
-        role: "system",
-        content:
-          "You judge whether an image is a usable outdoor or community photograph of a named place. Return only compact valid JSON.",
-      },
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: `Place entity: "${params.entity}"
-
-Is this a usable photograph of the place or community (streetscape, park, amenity, neighbourhood view)? Maps, logos, diagrams, flags, and abstract graphics are not usable.
-
-Return compact JSON only:
-{"usable":true,"visualDescription":"short scene notes under 80 chars"}`,
-          },
-          { type: "image_url", image_url: { url: params.dataUrl } },
-        ],
-      },
-    ],
-    temperature: 0,
-    maxTokens: 1024,
-  });
-  const parsed = parseJsonObjectFromModelText(rawText);
-  const usable = parsed.usable === true || parsed.usable === "true";
-  const visualDescription = String(parsed.visualDescription ?? "").trim() || "Wikipedia place photo";
-  return { usable, visualDescription };
-}
-
-async function tryWikipediaLocalImageReference(params: {
-  apiKey: string;
-  model: string;
-  entity: string;
-}): Promise<LocalImageReference | null> {
-  const lead = await fetchWikipediaPageLeadImage(params.entity);
-  if (!lead) return null;
-  const dataUrl = await prefetchImageDataUrl(lead.imageUrl, lead.pageUrl);
-  if (!dataUrl) return null;
-  const gate = await isUsableWikipediaPlacePhotograph({
-    apiKey: params.apiKey,
-    model: params.model,
-    entity: params.entity,
-    dataUrl,
-  });
-  if (!gate.usable) return null;
-  return {
-    dataUrl,
-    imageUrl: lead.imageUrl,
-    sourceUrl: lead.pageUrl,
-    visualDescription: gate.visualDescription,
-  };
-}
-
-async function pickBestPlaceImage(params: {
-  apiKey: string;
-  model: string;
-  entity: string;
-  candidates: GoogleImagesSerpItem[];
-}): Promise<{ pick: LocalImagePlacePick; item: GoogleImagesSerpItem; dataUrl: string }> {
-  const capped = capGoogleImagesCandidates(params.candidates);
-  const usable: Array<{ item: GoogleImagesSerpItem; dataUrl: string }> = [];
-  for (const item of capped) {
-    const dataUrl = await prefetchImageDataUrl(item.image_url, item.source_url);
-    if (dataUrl) usable.push({ item, dataUrl });
-  }
-  if (!usable.length) {
-    throw new Error("None of the top Google Images could be loaded for vision ranking");
-  }
-
-  const metaLines = usable
-    .map(
-      (c, i) =>
-        `[${i}] title=${JSON.stringify(c.item.title)} alt=${JSON.stringify(c.item.alt)} source=${JSON.stringify(c.item.source_url)} image=${JSON.stringify(c.item.image_url)}`,
-    )
-    .join("\n");
-
-  const parts: OpenRouterVisionContentPart[] = [
-    {
-      type: "text",
-      text: `Place entity (geographic only): "${params.entity}"
-
-Candidates:
-${metaLines}
-
-Pick the single best photo of THIS PLACE. Reject product shots, retail shops, Blind Magic, logos, maps, people.
-
-Also score recognizability (not HD). qualityScore = can you make out the place in the photo?
-- 0.7–1.0: clear enough to recognize the place
-- 0.25–0.7: soft or small but still recognizable — OK for local images
-- below 0.25: mush / unreadable / cannot make out the subject — we will skip
-
-Prefer clearer shots when available. Do not reject merely for being non-HD, compressed, or a bit soft.
-
-Return compact JSON only (keep why under 40 chars, visualDescription under 80 chars):
-{"chosenIndex":0,"why":"short","placeMatchConfidence":0.0,"qualityScore":0.0,"visualDescription":"short scene notes"}
-placeMatchConfidence and qualityScore are 0 to 1.`,
-    },
-  ];
-  for (let i = 0; i < usable.length; i += 1) {
-    parts.push({ type: "text", text: `Candidate image [${i}]:` });
-    parts.push({
-      type: "image_url",
-      image_url: { url: usable[i]!.dataUrl },
-    });
-  }
-
-  const rawText = await openRouterVisionChatCompletion({
-    apiKey: params.apiKey,
-    model: params.model,
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are a local place-photo analyst. Match the geographic place entity only. Score recognizability, not HD polish. Soft but readable local photos are fine. Return only compact valid JSON.",
-      },
-      { role: "user", content: parts },
-    ],
-    temperature: 0.2,
-    maxTokens: 4000,
-  });
-
-  let parsedObj: Record<string, unknown> = {};
-  let pick: LocalImagePlacePick;
-  try {
-    parsedObj = parseJsonObjectFromModelText(rawText);
-    pick = parseLocalImagePlacePick(parsedObj);
-  } catch (parseErr) {
-    const recovered = recoverLocalImagePickFromPartialText(rawText);
-    if (!recovered) throw parseErr;
-    pick = recovered;
-  }
-  assertPlaceMatchOrThrow(pick);
-  assertImageQualityOrThrow(pick);
-  if (pick.chosenIndex < 0 || pick.chosenIndex >= usable.length) {
-    throw new Error(`Vision chosenIndex ${pick.chosenIndex} out of range`);
-  }
-  const chosen = usable[pick.chosenIndex]!;
-  return { pick, item: chosen.item, dataUrl: chosen.dataUrl };
-}
-
-async function imageBase64FromGenerateResult(imageResult: {
-  imageBase64?: string;
-  imageUrl?: string;
-}): Promise<string> {
-  if (imageResult.imageBase64) {
-    const s = imageResult.imageBase64;
-    return s.includes(",") ? s.split(",")[1]! : s;
-  }
-  if (imageResult.imageUrl) {
-    const imageResponse = await fetch(imageResult.imageUrl);
-    const imageBlob = await imageResponse.blob();
-    const reader = new FileReader();
-    return new Promise<string>((resolve, reject) => {
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        const base64 = base64String.includes(",")
-          ? base64String.split(",")[1]!
-          : base64String;
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(imageBlob);
-    });
-  }
-  throw new Error("No image data available");
-}
+import { buildLocalImageGoogleForcedTargets } from "@/lib/overview/overview-blog-local-image-pick";
+import {
+  imageBase64FromGenerateResult,
+  prefetchImageDataUrl,
+  prepareLocalImageDataUrl,
+  tryWikipediaLocalImageReference,
+  type LocalImageReference,
+} from "@/lib/overview/overview-blog-local-image-reference";
+import {
+  base64FromDataUrl,
+  resolveSectionHeaderForLocalImage,
+} from "@/lib/overview/overview-blog-local-image-section";
+export {
+  LOCAL_IMAGE_CANDIDATE_LIMIT,
+  LOCAL_IMAGE_QUALITY_MIN,
+  assertImageQualityOrThrow,
+  assertPlaceMatchOrThrow,
+  buildLocalImageCommunityAcceptanceBrief,
+  buildLocalImageGoogleForcedTargets,
+  capGoogleImagesCandidates,
+  parseLocalImagePlacePick,
+  recoverLocalImagePickFromPartialText,
+} from "@/lib/overview/overview-blog-local-image-pick";
+export type { LocalImagePlacePick } from "@/lib/overview/overview-blog-local-image-pick";
+export {
+  isUsableWikipediaPlacePhotograph,
+  prepareLocalImageDataUrl,
+} from "@/lib/overview/overview-blog-local-image-reference";
+export {
+  isWeakLocalImageHeading,
+  pickEarlyLocalImageSectionHeader,
+} from "@/lib/overview/overview-blog-local-image-section";
 
 export type GenerateLocalInContentImageOptions = {
   html: string;
@@ -534,90 +117,6 @@ export type GenerateLocalInContentImageResult = {
   /** One CSV per same-city peer SAP library (for Details downloads). */
   peerCsvFiles?: Array<{ name: string; content: string; mimeType: string }>;
 };
-
-function base64FromDataUrl(dataUrl: string): string {
-  const i = dataUrl.indexOf(",");
-  if (i < 0) throw new Error("Invalid image data URL");
-  return dataUrl.slice(i + 1);
-}
-
-/** Skip CTA / chrome headings when auto-placing Local Image near the top of the body. */
-export function isWeakLocalImageHeading(header: string): boolean {
-  const h = (header ?? "").trim().toLowerCase();
-  if (!h) return true;
-  if (h === "overview") return true;
-  const weakPrefixes = [
-    "book a",
-    "book your",
-    "contact",
-    "hours",
-    "quick links",
-    "more areas",
-    "faq",
-    "frequently asked",
-  ];
-  for (const p of weakPrefixes) {
-    if (h === p || h.startsWith(p)) return true;
-  }
-  return false;
-}
-
-/**
- * Prefer the first strong body H2 after Overview (else first strong H2).
- * Local place photos are easy to miss when AI buries them mid-article.
- */
-export function pickEarlyLocalImageSectionHeader(
-  sections: Array<{ header: string }>,
-): string {
-  let seenOverview = false;
-  for (const s of sections) {
-    const h = (s.header ?? "").trim();
-    if (!h) continue;
-    if (h.toLowerCase() === "overview") {
-      seenOverview = true;
-      continue;
-    }
-    if (seenOverview && !isWeakLocalImageHeading(h)) return h;
-  }
-  for (const s of sections) {
-    const h = (s.header ?? "").trim();
-    if (h && !isWeakLocalImageHeading(h)) return h;
-  }
-  return (sections[0]?.header ?? "").trim();
-}
-
-async function resolveSectionHeaderForLocalImage(params: {
-  html: string;
-  entity: string;
-  focusKeyword: string;
-  flowTitle?: string;
-  forcedSectionHeader?: string;
-  apiKey: string;
-  researchModel: string;
-}): Promise<string> {
-  const markdownProjection = htmlBodyToMarkdownH2Projection(params.html);
-  if (!markdownProjection.includes("## ")) {
-    throw new Error("No H2 sections found in the content");
-  }
-  const sections = parseMarkdownSections(markdownProjection);
-  const forced = (params.forcedSectionHeader ?? "").trim();
-  if (forced) {
-    return resolveForcedH2Section(sections, forced).header;
-  }
-  const early = pickEarlyLocalImageSectionHeader(sections);
-  if (early) {
-    return early;
-  }
-  return analyzeBestSectionForImage(
-    markdownProjection,
-    "photo",
-    params.flowTitle || params.entity,
-    `Local place photography for ${params.entity}`,
-    undefined,
-    params.apiKey,
-    params.researchModel,
-  );
-}
 
 export async function generateLocalInContentImageFromHtml(
   options: GenerateLocalInContentImageOptions,

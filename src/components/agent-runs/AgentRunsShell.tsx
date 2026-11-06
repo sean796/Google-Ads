@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { readSidebarPanel, writeSidebarOpen, type SidebarPanel } from "@/lib/pulse-assist/storage";
-import { AgentRunsContextProvider } from "@/contexts/agent-runs-context";
+import { AgentRunsContextProvider } from "@/contexts/AgentRunsContextProvider";
 import { DetailsDockProvider } from "@/components/pulse-assist/details-dock";
 import { useDefaultAgentRunHarnesses } from "@/lib/agent-runs/use-default-agent-run-harnesses";
 
