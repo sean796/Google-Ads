@@ -7,22 +7,34 @@ import { fetchAdsReportingBundle } from "@/lib/ads-reporting/ads-reporting-fetch
 import { runAdsReportingPipeline } from "@/lib/ads-reporting/ads-reporting-pipeline";
 import { getAdsModel } from "@/lib/optimization-settings-storage";
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
+import { setSessionToken } from "@/lib/auth-device";
 
 const IN_THE_SHADE_CUSTOMER_ID = "3177712331";
 const REFERENCE = new Date("2026-10-05T18:00:00Z");
 
-async function resolveOpenRouterKeyForSmoke(): Promise<string> {
-  const res = await fetch(backendApiUrl("/integrations/resolved-openrouter-key"), {
-    credentials: "include",
-  });
-  if (!res.ok) return "";
-  const data = (await res.json()) as { key?: string };
-  return typeof data.key === "string" ? data.key.trim() : "";
-}
+// Live smoke test: runs only when hub credentials and an OpenRouter key are
+// provided via env (NEO_PULSE_SMOKE_EMAIL, NEO_PULSE_SMOKE_PASSWORD,
+// OPENROUTER_API_KEY). Without them it skips, so default suite runs stay
+// green; the hub key endpoint it used before was deleted on purpose (C3),
+// so the key now comes from the environment like every other secret.
+const SMOKE_EMAIL = (process.env.NEO_PULSE_SMOKE_EMAIL ?? "").trim();
+const SMOKE_PASSWORD = process.env.NEO_PULSE_SMOKE_PASSWORD ?? "";
+const SMOKE_OPENROUTER_KEY = (process.env.OPENROUTER_API_KEY ?? "").trim();
+const smokeConfigured = Boolean(SMOKE_EMAIL && SMOKE_PASSWORD && SMOKE_OPENROUTER_KEY);
 
-describe("In the Shade PPC reporting smoke", () => {
-  beforeAll(() => {
+describe.skipIf(!smokeConfigured)("In the Shade PPC reporting smoke", () => {
+  beforeAll(async () => {
     setPostCreatorWorkerApiBase(process.env.NEO_PULSE_SMOKE_API_BASE ?? "http://127.0.0.1:8080");
+    const res = await fetch(backendApiUrl("/auth/login"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: SMOKE_EMAIL, password: SMOKE_PASSWORD }),
+    });
+    const data = (await res.json().catch(() => ({}))) as { sessionToken?: string; error?: string };
+    if (!res.ok || !data.sessionToken) {
+      throw new Error(`Smoke login failed (${res.status}): ${data.error ?? "no session token"}`);
+    }
+    setSessionToken(data.sessionToken);
   });
 
   it(
@@ -39,13 +51,8 @@ describe("In the Shade PPC reporting smoke", () => {
       });
       expect(bundle.files.length).toBeGreaterThan(0);
 
-      const apiKey = await resolveOpenRouterKeyForSmoke();
-      if (!apiKey) {
-        throw new Error("OpenRouter key missing on local API (Settings).");
-      }
-
       const result = await runAdsReportingPipeline({
-        apiKey,
+        apiKey: SMOKE_OPENROUTER_KEY,
         model: getAdsModel("in-the-shade-smoke"),
         siteName: "In the Shade",
         siteUrl: "https://intheshadeflorida.com",

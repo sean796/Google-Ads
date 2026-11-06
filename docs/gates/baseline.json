@@ -6,14 +6,12 @@
     "When a gate reaches zero it leaves this baseline and becomes a plain blocking check.",
     "typecheck joins npm run build when tscApp total reaches zero (Wave 1 decision, Sean). Done 2026-11-05: tscApp and tscNode both reached zero, left this baseline, and now run as plain blocking checks in npm run build and the CI blocking job.",
     "eslint is report-only in CI until its counts reach zero; the ratchet job still fails on any increase. Done 2026-11-06: eslint errors and warnings both reached zero, left this baseline, and now run as a plain blocking check (npx eslint . --max-warnings 0) in the CI blocking job.",
-    "tests.failedFiles names the one remaining failure: in-the-shade-reporting-smoke is a live smoke test that calls the real hub API and needs live credentials, so it cannot pass in CI or local runs without them."
+    "tests gate is at zero: the in-the-shade live smoke test is opt-in via NEO_PULSE_SMOKE_EMAIL, NEO_PULSE_SMOKE_PASSWORD, and OPENROUTER_API_KEY and skips when unconfigured (verified passing against the local hub on 2026-11-06). Any future failing test exceeds this baseline."
   ],
   "gates": {
     "tests": {
-      "failedTests": 1,
-      "failedFiles": [
-        "src/lib/ads-reporting/__tests__/in-the-shade-reporting-smoke.test.ts"
-      ]
+      "failedTests": 0,
+      "failedFiles": []
     }
   }
 }
