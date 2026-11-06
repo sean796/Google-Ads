@@ -18,6 +18,114 @@ const isMobileApp = process.env.VITE_MOBILE_APP === "1";
 // Wave 0: the OpenRouter key is never inlined into the client bundle.
 // The server resolves its env key; the browser sends no key.
 
+// Semantic vendor chunks: large third-party libraries ship in their own
+// files so browsers cache them across deploys instead of re-downloading one
+// monolithic bundle. Only node_modules packages are grouped here; app code
+// stays in the entry chunk and tab components remain statically imported,
+// so chunking adds no lazy loading and no loading screens.
+function vendorChunkForModule(id: string): string | undefined {
+  const normalized = id.replace(/\\/g, "/");
+  const marker = "/node_modules/";
+  const markerIndex = normalized.lastIndexOf(marker);
+  if (markerIndex === -1) return undefined;
+  const rest = normalized.slice(markerIndex + marker.length);
+  const segments = rest.split("/");
+  const pkg = rest.startsWith("@") ? segments.slice(0, 2).join("/") : segments[0];
+
+  if (
+    pkg === "react" ||
+    pkg === "react-dom" ||
+    pkg === "scheduler" ||
+    pkg === "react-router-dom" ||
+    pkg === "@remix-run/router" ||
+    pkg === "@tanstack/react-query"
+  ) {
+    return "vendor-react";
+  }
+  if (pkg.startsWith("@radix-ui/")) return "vendor-radix";
+  if (pkg.startsWith("@tiptap/") || pkg.startsWith("prosemirror-")) return "vendor-tiptap";
+  if (
+    pkg === "recharts" ||
+    pkg === "reactflow" ||
+    pkg.startsWith("@reactflow/") ||
+    pkg === "d3" ||
+    pkg.startsWith("d3-")
+  ) {
+    return "vendor-charts-viz";
+  }
+  if (pkg === "leaflet" || pkg === "react-leaflet" || pkg === "@react-leaflet/core") {
+    return "vendor-maps";
+  }
+  if (
+    pkg === "pdfjs-dist" ||
+    pkg === "html2pdf.js" ||
+    pkg === "html2canvas" ||
+    pkg === "jspdf" ||
+    pkg === "mammoth" ||
+    pkg === "papaparse" ||
+    pkg === "fflate" ||
+    pkg === "adm-zip"
+  ) {
+    return "vendor-docs-pdf";
+  }
+  if (
+    pkg === "react-markdown" ||
+    pkg === "remark-gfm" ||
+    pkg === "rehype-raw" ||
+    pkg === "marked" ||
+    pkg === "unified" ||
+    pkg === "vfile" ||
+    pkg === "vfile-message" ||
+    pkg === "bail" ||
+    pkg === "trough" ||
+    pkg === "is-plain-obj" ||
+    pkg === "property-information" ||
+    pkg === "space-separated-tokens" ||
+    pkg === "comma-separated-tokens" ||
+    pkg === "decode-named-character-reference" ||
+    pkg === "stringify-entities" ||
+    pkg === "zwitch" ||
+    pkg === "longest-streak" ||
+    pkg === "ccount" ||
+    pkg === "trim-lines" ||
+    pkg.startsWith("micromark") ||
+    pkg.startsWith("mdast-util-") ||
+    pkg.startsWith("hast-util-") ||
+    pkg.startsWith("unist-util-") ||
+    pkg.startsWith("remark-") ||
+    pkg.startsWith("rehype-") ||
+    pkg.startsWith("character-entities")
+  ) {
+    return "vendor-markdown";
+  }
+  if (
+    pkg === "lucide-react" ||
+    pkg === "@dnd-kit/core" ||
+    pkg === "@dnd-kit/sortable" ||
+    pkg === "@dnd-kit/utilities" ||
+    pkg === "react-hook-form" ||
+    pkg === "@hookform/resolvers" ||
+    pkg === "zod" ||
+    pkg === "date-fns" ||
+    pkg === "react-day-picker" ||
+    pkg === "react-resizable-panels" ||
+    pkg === "embla-carousel-react" ||
+    pkg === "class-variance-authority" ||
+    pkg === "clsx" ||
+    pkg === "tailwind-merge" ||
+    pkg === "cmdk" ||
+    pkg === "vaul" ||
+    pkg === "input-otp" ||
+    pkg === "react-colorful" ||
+    pkg === "next-themes" ||
+    pkg === "uuid" ||
+    pkg === "p-limit"
+  ) {
+    return "vendor-ui-utils";
+  }
+  return undefined;
+}
+
 export default defineConfig(({ mode, command }) => {
   const isDevServer = command === "serve";
   const isDev = mode === "development";
@@ -48,6 +156,9 @@ export default defineConfig(({ mode, command }) => {
         input: isMobileApp
           ? { index: path.resolve(__dirname, "mobile.html") }
           : path.resolve(__dirname, "index.html"),
+        output: {
+          manualChunks: vendorChunkForModule,
+        },
       },
     },
     server: {

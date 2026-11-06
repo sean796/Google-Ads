@@ -22,7 +22,7 @@ import {
 } from "@/components/chat/chat-theme";
 import { channelTitle, threadBarLabel, typingLabel } from "@/components/chat/layout/chat-shell-utils";
 import { ChatHuddleSidebar } from "@/components/chat/calls/ChatHuddleSidebar";
-import type { ChatShellViewModel } from "@/components/chat/layout/useChatShellState";
+import type { ChatShellViewModel } from "@/components/chat/layout/chat-shell-types";
 import { Button, Field, ResizablePanel, ResizablePanelGroup } from "@/ui";
 
 type Props = {

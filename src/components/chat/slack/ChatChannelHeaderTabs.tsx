@@ -1,6 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import type { MinimalChannelTab } from "@/components/chat/layout/useChatShellState";
+import type { MinimalChannelTab } from "@/components/chat/layout/chat-shell-types";
 import { Button } from "@/ui";
 
 type Props = {

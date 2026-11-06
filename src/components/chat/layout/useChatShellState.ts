@@ -5,17 +5,8 @@ import { useTeam } from "@/contexts/TeamContext";
 import { useTeamPermission } from "@/hooks/use-team-permission";
 import { useChatPoll } from "@/components/chat/use-chat-poll";
 import { useChatNotificationAlerts } from "@/hooks/use-chat-notification-alerts";
-import {
-  deleteChatMessage,
-  editChatMessage,
-  patchChatChannel,
-  searchChatMessages,
-  fetchChatMentions,
-  fetchMentionUnreadCount,
-  markChatMentionRead,
-  sendChatMessage,
-} from "@/lib/chat-api";
-import type { ChatAlertItem, ChatAppearancePrefs, ChatUserPreferences } from "@/lib/chat-preferences-types";
+import { deleteChatMessage, editChatMessage, patchChatChannel, searchChatMessages, fetchChatMentions, fetchMentionUnreadCount, markChatMentionRead } from "@/lib/chat-api";
+import type { ChatAlertItem } from "@/lib/chat-preferences-types";
 import type { ChatMessage, ChatMentionInboxItem } from "@/lib/chat-types";
 import { extractMentionUserIds } from "@/lib/chat-mention-utils";
 import type { ChatComposerHandle } from "@/components/chat/thread/ChatComposer";
@@ -26,153 +17,10 @@ import { chatZoneProps } from "@/lib/chat-theme-palettes";
 import { useChatPreferences } from "@/hooks/use-chat-preferences";
 import { writeChatMessagePath } from "@/lib/chat-activity-log";
 import { transformChatHtml } from "@/lib/chat-ai-compose";
-import type { HuddleParticipantAvatar } from "@/components/chat/calls/ChatHuddleSidebar";
-import { useChatCall } from "@/hooks/use-chat-call";
-import { useChatCallTranscription } from "@/hooks/use-chat-call-transcription";
-import { useChatFloCallTranscription } from "@/hooks/use-chat-neo-pulse-call-transcription";
-import { useChatScreenShare } from "@/hooks/use-chat-screen-share";
-import { isNeoPulseBotMember, NEO_PULSE_BOT_DISPLAY_NAME } from "@/lib/chat-neo-pulse";
-import { fetchChatCallTranscript, fetchActiveHuddles, fetchIncomingChatCalls } from "@/lib/chat-call-api";
-import { summarizeChatCall } from "@/lib/chat-call-summary";
-import type { ActiveHuddleSummary, ChatCallTranscriptLine } from "@/lib/chat-call-types";
 import { readCachedActiveChannelId, readCachedMentionState, subscribeChatSessionCache, writeChatSessionCache } from "@/lib/chat-session-cache";
 import { toggleStarredChannelId } from "@/lib/chat-starred-channels";
-import { streamHasLiveAudio } from "@/components/chat/layout/chat-shell-utils";
-import type { CSSProperties } from "react";
-import type { ChatThemeId } from "@/lib/chat-preferences-types";
-
-export type MinimalChannelTab = "messages" | "files";
-
-export type ChatZoneVm = {
-  className: string;
-  style: CSSProperties;
-  "data-zone-theme": ChatThemeId;
-};
-
-export type ChatShellViewModel = {
-  ready: true;
-  teamId: number;
-  user: NonNullable<ReturnType<typeof useAuth>["user"]>;
-  isTeamAdmin: boolean;
-  canWrite: boolean;
-  appearance: ChatAppearancePrefs;
-  themePrefs: ChatUserPreferences;
-  layoutMode: "default" | "minimal";
-  leftZone: ChatZoneVm;
-  mainZone: ChatZoneVm;
-  rightZone: ChatZoneVm;
-  channels: ReturnType<typeof useChatPoll>["channels"];
-  messages: ChatMessage[];
-  liveDisplayMessages: ChatMessage[];
-  activeChannelId: number | null;
-  activeChannel: ReturnType<typeof useChatPoll>["channels"][number] | null;
-  threadRoot: ChatMessage | null;
-  highlightMessageId: number | null;
-  editingTopic: boolean;
-  topicDraft: string;
-  messageSearchQuery: string;
-  threadSearchQuery: string;
-  messageSearchActive: boolean;
-  mentions: ChatMentionInboxItem[];
-  mentionUnreadCount: number;
-  activeMentionMessageId: number | null;
-  alerts: ChatAlertItem[];
-  activeAlertId: string | null;
-  typingUsers: ReturnType<typeof useChatPoll>["typingUsers"];
-  sending: boolean;
-  isChannelHydrated: boolean;
-  userSentRef: ReturnType<typeof useChatPoll>["userSentRef"];
-  threadUnreadMap: Map<number, number>;
-  mentionMembers: { userId: number; displayName: string; email: string }[];
-  members: ReturnType<typeof useTeam>["members"];
-  sharedListEpoch: number;
-  activeHuddles: ActiveHuddleSummary[];
-  minimalChannelTab: MinimalChannelTab;
-  setMinimalChannelTab: (tab: MinimalChannelTab) => void;
-  starredChannelIds: number[];
-  toggleStarredChannel: (channelId: number) => void;
-  huddleSidebarOpen: boolean;
-  setHuddleSidebarOpen: (open: boolean | ((prev: boolean) => boolean)) => void;
-  inFloHuddle: boolean;
-  showHuddleButton: boolean;
-  channelActiveHuddle: ActiveHuddleSummary | null;
-  joinPopupOpen: boolean;
-  joinParticipantNames: string[];
-  huddleChannelLabel: string;
-  huddleRemoteLabel: string;
-  huddleParticipantAvatars: HuddleParticipantAvatar[];
-  huddleParticipantCount: number;
-  callPhase: ReturnType<typeof useChatCall>["phase"];
-  activeCall: ReturnType<typeof useChatCall>["call"];
-  incomingCall: ReturnType<typeof useChatCall>["incomingCall"];
-  incomingCallerName: string;
-  callRemoteName: string;
-  localStream: MediaStream | null;
-  remoteStream: MediaStream | null;
-  callMuted: boolean;
-  callCameraOff: boolean;
-  callError: string | null;
-  floCall: boolean;
-  floTranscriptLines: ChatCallTranscriptLine[];
-  micReady: boolean;
-  peerConnected: boolean;
-  presenting: boolean;
-  screenStream: MediaStream | null;
-  noiseCancellationStrength: number;
-  isFloDm: boolean;
-  canEditTopic: boolean;
-  personalizationOpen: boolean;
-  setPersonalizationOpen: (open: boolean) => void;
-  editTarget: ChatMessage | null;
-  editHtml: string;
-  editBusy: boolean;
-  setEditHtml: (html: string) => void;
-  setEditTarget: (message: ChatMessage | null) => void;
-  joinDismissedCallId: number | null;
-  setJoinDismissedCallId: (id: number | null) => void;
-  editEditorRef: React.RefObject<ChatRichEditorHandle | null>;
-  mainComposerRef: React.RefObject<ChatComposerHandle | null>;
-  threadComposerRef: React.RefObject<ChatComposerHandle | null>;
-  rightPanelRef: React.RefObject<ImperativePanelHandle | null>;
-  onSelectChannel: (channelId: number) => void;
-  upsertChannel: ReturnType<typeof useChatPoll>["upsertChannel"];
-  openThread: (message: ChatMessage) => void;
-  closeThread: () => void;
-  handleJumpToMessage: (messageId: number) => void;
-  handleOpenThreadFromBrowser: (threadRootId: number, messageId: number) => void;
-  handleOpenMention: (item: ChatMentionInboxItem) => void;
-  handleOpenAlert: (alert: ChatAlertItem) => void;
-  dismissAlert: (alertId: string) => void;
-  handleEdit: (message: ChatMessage) => void;
-  handleSaveEdit: () => Promise<void>;
-  handleDeleteMessage: (message: ChatMessage) => Promise<void>;
-  handleAiCorrect: (message: ChatMessage) => Promise<void>;
-  handleSend: (html: string, attachmentAssetIds: number[], parentMessageId?: number) => Promise<boolean>;
-  loadThread: ReturnType<typeof useChatPoll>["loadThread"];
-  markThreadRead: ReturnType<typeof useChatPoll>["markThreadRead"];
-  pingTyping: ReturnType<typeof useChatPoll>["pingTyping"];
-  saveTopic: () => Promise<void>;
-  setEditingTopic: (editing: boolean) => void;
-  setTopicDraft: (draft: string) => void;
-  setMessageSearchQuery: (query: string) => void;
-  setThreadSearchQuery: (query: string) => void;
-  setHighlightMessageId: (id: number | null) => void;
-  handleEnableDesktopAlerts: () => Promise<boolean>;
-  handleStartHuddle: () => Promise<void>;
-  handleJoinChannelHuddle: () => Promise<void>;
-  handleLeaveHuddle: () => Promise<void>;
-  togglePresent: () => void;
-  toggleMute: () => void;
-  toggleCamera: () => void;
-  hangUp: () => Promise<void>;
-  acceptIncoming: () => Promise<void>;
-  declineIncoming: () => Promise<void>;
-  dismissEnded: () => void;
-  handleNoiseCancellationStrengthChange: (value: number) => void;
-  setActiveChannelId: (id: number) => void;
-};
-
-export type ChatShellState = ChatShellViewModel | { ready: false };
+import { useChatShellCallsAndHuddles } from "@/components/chat/layout/use-chat-shell-calls-and-huddles";
+import type { ChatShellState, MinimalChannelTab } from "@/components/chat/layout/chat-shell-types";
 
 export function useChatShellState(): ChatShellState {
   const { user } = useAuth();
@@ -206,10 +54,6 @@ export function useChatShellState(): ChatShellState {
   const editEditorRef = useRef<ChatRichEditorHandle>(null);
   const mainComposerRef = useRef<ChatComposerHandle>(null);
   const threadComposerRef = useRef<ChatComposerHandle>(null);
-  const summaryPostedRef = useRef<number | null>(null);
-  const [activeHuddles, setActiveHuddles] = useState<ActiveHuddleSummary[]>([]);
-  const [joinDismissedCallId, setJoinDismissedCallId] = useState<number | null>(null);
-  const [huddleSidebarOpen, setHuddleSidebarOpen] = useState(false);
   const rightPanelRef = useRef<ImperativePanelHandle>(null);
 
   const {
@@ -249,14 +93,6 @@ export function useChatShellState(): ChatShellState {
     },
     [themePrefs.appearance.starredChannelIds, savePrefs],
   );
-
-  const [noiseCancellationStrength, setNoiseCancellationStrength] = useState(
-    () => prefs.behavior.noiseCancellationStrength ?? 75,
-  );
-
-  useEffect(() => {
-    setNoiseCancellationStrength(prefs.behavior.noiseCancellationStrength ?? 75);
-  }, [prefs.behavior.noiseCancellationStrength]);
 
   useEffect(() => {
     if (!teamId) return;
@@ -341,47 +177,11 @@ export function useChatShellState(): ChatShellState {
     [channels, activeChannelId],
   );
 
-  const floMember = useMemo(() => members.find(isNeoPulseBotMember) ?? null, [members]);
-  const floUserId = floMember?.userId ?? null;
-  const isFloDm =
-    activeChannel?.type === "dm" && floUserId != null && activeChannel.dmUserId === floUserId;
-
-  const {
-    call: activeCall,
-    phase: callPhase,
-    incomingCall,
-    setIncomingCall,
-    localStream,
-    remoteStream,
-    muted: callMuted,
-    cameraOff: callCameraOff,
-    error: callError,
-    callStartMs,
-    floCall,
-    isCaller,
-    startHuddle,
-    joinHuddle,
-    acceptIncoming,
-    declineIncoming,
-    hangUp,
-    toggleMute,
-    toggleCamera,
-    dismissEnded,
-    pcRef,
-    maybeSendOffer,
-    attachLocalTracks,
-  } = useChatCall({
-    teamId,
-    currentUserId: user?.id ?? 0,
-    floUserId,
-    noiseCancellationStrength,
+  const callsAndHuddles = useChatShellCallsAndHuddles({
+    teamId, user, members, channels, activeChannel, activeChannelId,
+    canWrite, prefs, savePrefs, refreshChannels,
   });
-
-  const incomingCallerName = useMemo(() => {
-    if (!incomingCall) return "";
-    const member = members.find((m) => m.userId === incomingCall.callerUserId);
-    return member?.displayName ?? "Team member";
-  }, [incomingCall, members]);
+  const { inFloHuddle, joinHuddle, openHuddleSidebar, ...callsVm } = callsAndHuddles;
 
   const { alerts, activeAlertId, openAlert, dismissAlert } = useChatNotificationAlerts({
     teamId,
@@ -392,97 +192,9 @@ export function useChatShellState(): ChatShellState {
     currentUserId: user?.id ?? null,
     enabled: Boolean(teamId),
     mentions,
-    incomingCall,
-    incomingCallerName,
+    incomingCall: callsAndHuddles.incomingCall,
+    incomingCallerName: callsAndHuddles.incomingCallerName,
   });
-
-  const callRemoteName = useMemo(() => {
-    if (activeChannel?.type === "dm") return activeChannel.name;
-    if (incomingCall) return incomingCallerName;
-    const ch = activeCall ? channels.find((c) => c.id === activeCall.channelId) : null;
-    return ch?.type === "dm" ? ch.name : "Team member";
-  }, [activeChannel, incomingCall, incomingCallerName, activeCall, channels]);
-
-  useChatCallTranscription({
-    teamId,
-    callId: activeCall?.id ?? null,
-    active: callPhase === "active" && !floCall,
-    muted: callMuted,
-    userId: user?.id ?? 0,
-    displayName: user?.displayName ?? user?.email ?? "You",
-    callStartMs,
-  });
-
-  const inFloHuddle = callPhase === "active" && activeCall?.isFloHuddle === true;
-  const huddleParticipantCount = activeCall?.participantCount ?? 1;
-  const micReady = streamHasLiveAudio(localStream);
-  const peerConnected = streamHasLiveAudio(remoteStream);
-
-  const { screenStream, presenting, startPresent, stopPresent } = useChatScreenShare({
-    pc: pcRef.current,
-    enabled: inFloHuddle && huddleParticipantCount > 1,
-    onRenegotiate: () => void maybeSendOffer(),
-  });
-
-  useEffect(() => {
-    if (!inFloHuddle || localStream) return;
-    void attachLocalTracks(true);
-  }, [inFloHuddle, localStream, attachLocalTracks]);
-
-  useEffect(() => {
-    if (callPhase === "ended" || callPhase === "idle") {
-      setHuddleSidebarOpen(false);
-    }
-  }, [callPhase]);
-
-  const showHuddleButton =
-    canWrite &&
-    callPhase === "idle" &&
-    activeChannel != null &&
-    (activeChannel.type !== "dm" || isFloDm);
-
-  const channelActiveHuddle = useMemo(
-    () => activeHuddles.find((h) => h.channelId === activeChannelId) ?? null,
-    [activeHuddles, activeChannelId],
-  );
-
-  const openHuddleSidebar = useCallback(() => {
-    setHuddleSidebarOpen(true);
-  }, []);
-
-  const handleStartHuddle = useCallback(async () => {
-    if (!activeChannelId) return;
-    const call = await startHuddle(activeChannelId);
-    if (call) {
-      openHuddleSidebar();
-    }
-  }, [activeChannelId, startHuddle, openHuddleSidebar]);
-
-  const handleJoinChannelHuddle = useCallback(async () => {
-    if (!channelActiveHuddle || !teamId) return;
-    const call = await joinHuddle(channelActiveHuddle.callId);
-    if (call) {
-      openHuddleSidebar();
-    }
-  }, [channelActiveHuddle, teamId, joinHuddle, openHuddleSidebar]);
-
-  const handleLeaveHuddle = useCallback(async () => {
-    await hangUp();
-    setHuddleSidebarOpen(false);
-  }, [hangUp]);
-
-  const togglePresent = useCallback(() => {
-    if (presenting) stopPresent();
-    else void startPresent();
-  }, [presenting, startPresent, stopPresent]);
-
-  const handleNoiseCancellationStrengthChange = useCallback(
-    (value: number) => {
-      setNoiseCancellationStrength(value);
-      void savePrefs({ behavior: { noiseCancellationStrength: value } });
-    },
-    [savePrefs],
-  );
 
   const huddleDeepLinkRef = useRef(false);
   useEffect(() => {
@@ -505,129 +217,6 @@ export function useChatShellState(): ChatShellState {
       window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
     })();
   }, [teamId, inFloHuddle, joinHuddle, openHuddleSidebar]);
-
-  useEffect(() => {
-    if (!teamId) {
-      setActiveHuddles([]);
-      return;
-    }
-    const poll = async () => {
-      const huddles = await fetchActiveHuddles(teamId);
-      setActiveHuddles(huddles);
-    };
-    void poll();
-  }, [teamId]);
-
-  const joinPopupOpen = Boolean(
-    channelActiveHuddle &&
-      !channelActiveHuddle.joinedByMe &&
-      joinDismissedCallId !== channelActiveHuddle.callId &&
-      callPhase === "idle",
-  );
-
-  const joinParticipantNames = useMemo(() => {
-    if (!channelActiveHuddle) return [];
-    return channelActiveHuddle.participantUserIds
-      .map((id) => members.find((m) => m.userId === id)?.displayName ?? "Member")
-      .filter(Boolean);
-  }, [channelActiveHuddle, members]);
-
-  const huddleChannelLabel = useMemo(() => {
-    const ch = activeCall ? channels.find((c) => c.id === activeCall.channelId) : activeChannel;
-    if (!ch) return "channel";
-    if (ch.type === "dm") return ch.name;
-    return ch.slug ? `#${ch.slug}` : ch.name;
-  }, [activeCall, channels, activeChannel]);
-
-  const huddleRemoteLabel = useMemo(() => {
-    if (!activeCall?.participantUserIds) return "Peer";
-    const floId = floUserId ?? 0;
-    for (const id of activeCall.participantUserIds) {
-      if (id === user?.id || id === floId) continue;
-      return members.find((m) => m.userId === id)?.displayName ?? "Peer";
-    }
-    return "Peer";
-  }, [activeCall?.participantUserIds, floUserId, members, user?.id]);
-
-  const huddleParticipantAvatars = useMemo((): HuddleParticipantAvatar[] => {
-    const ids = activeCall?.participantUserIds ?? (user?.id ? [user.id] : []);
-    const floId = floUserId ?? 0;
-    const seen = new Set<number>();
-    const out: HuddleParticipantAvatar[] = [];
-
-    const pushMember = (userId: number, isFlo = false) => {
-      if (seen.has(userId)) return;
-      seen.add(userId);
-      const isSelf = userId === user?.id;
-      const micActive = isSelf ? micReady && !callMuted : peerConnected;
-      if (isFlo) {
-        out.push({ userId, displayName: NEO_PULSE_BOT_DISPLAY_NAME, isFlo: true });
-        return;
-      }
-      const member = members.find((m) => m.userId === userId);
-      out.push({
-        userId,
-        displayName: member?.displayName ?? "Member",
-        avatarUrl: member?.avatarUrl ?? null,
-        micActive,
-      });
-    };
-
-    for (const id of ids) pushMember(id);
-    if (floId) pushMember(floId, true);
-    if (user?.id) pushMember(user.id);
-
-    return out;
-  }, [activeCall?.participantUserIds, floUserId, members, user?.id, micReady, callMuted, peerConnected]);
-
-  const { lines: floTranscriptLines } = useChatFloCallTranscription({
-    teamId,
-    callId: activeCall?.id ?? null,
-    active: callPhase === "active" && floCall && activeCall?.isFloHuddle !== true,
-    muted: callMuted,
-    displayName: user?.displayName ?? user?.email ?? "You",
-    callStartMs,
-    floCall,
-  });
-
-  useEffect(() => {
-    if (!teamId || callPhase !== "idle") return;
-    const poll = async () => {
-      const incoming = await fetchIncomingChatCalls(teamId);
-      if (incoming.length === 0) return;
-      const next = incoming[0]!;
-      if (!activeCall) {
-        setIncomingCall(next);
-      }
-    };
-    void poll();
-  }, [teamId, callPhase, activeCall, setIncomingCall]);
-
-  useEffect(() => {
-    if (!teamId || !activeCall || callPhase !== "ended" || !isCaller) return;
-    if (summaryPostedRef.current === activeCall.id) return;
-    summaryPostedRef.current = activeCall.id;
-
-    const run = async () => {
-      const channelId = activeCall.channelId;
-      const started = new Date(activeCall.startedAt).getTime();
-      const ended = activeCall.endedAt ? new Date(activeCall.endedAt).getTime() : Date.now();
-      const durationSec = Math.max(1, Math.round((ended - started) / 1000));
-      const transcript = await fetchChatCallTranscript(teamId, activeCall.id);
-      const callerMember = members.find((m) => m.userId === activeCall.callerUserId);
-      const calleeMember = members.find((m) => m.userId === activeCall.calleeUserId);
-      const names = [
-        callerMember?.displayName ?? "Caller",
-        calleeMember?.displayName ?? "Callee",
-      ];
-      const summary = await summarizeChatCall(transcript, names, durationSec);
-      if (summary.ok) {
-        await sendChatMessage(teamId, channelId, summary.bodyHtml);
-        await refreshChannels();
-      }
-    };
-    void run();
-  }, [teamId, activeCall, callPhase, isCaller, members, refreshChannels]);
 
   const mentionMembers = useMemo(
     () => members.map((m) => ({ userId: m.userId, displayName: m.displayName, email: m.email })),
@@ -879,125 +468,25 @@ export function useChatShellState(): ChatShellState {
   const rightZone = chatZoneProps(appearance.zoneThemes.right, appearance.accentPreset, "chat-zone-right");
 
   return {
-    ready: true,
-    teamId,
-    user,
-    isTeamAdmin,
-    canWrite,
-    appearance,
-    themePrefs,
-    layoutMode,
-    leftZone,
-    mainZone,
-    rightZone,
-    channels,
-    messages,
-    liveDisplayMessages,
-    activeChannelId,
-    activeChannel,
-    threadRoot,
-    highlightMessageId,
-    editingTopic,
-    topicDraft,
-    messageSearchQuery,
-    threadSearchQuery,
-    messageSearchActive,
-    mentions,
-    mentionUnreadCount,
-    activeMentionMessageId,
-    alerts,
-    activeAlertId,
-    typingUsers,
-    sending,
-    isChannelHydrated,
-    userSentRef,
-    threadUnreadMap,
-    mentionMembers,
-    members,
-    sharedListEpoch,
-    activeHuddles,
-    minimalChannelTab,
-    setMinimalChannelTab,
-    starredChannelIds: appearance.starredChannelIds,
-    toggleStarredChannel,
-    huddleSidebarOpen,
-    setHuddleSidebarOpen,
-    inFloHuddle,
-    showHuddleButton,
-    channelActiveHuddle,
-    joinPopupOpen,
-    joinParticipantNames,
-    huddleChannelLabel,
-    huddleRemoteLabel,
-    huddleParticipantAvatars,
-    huddleParticipantCount,
-    callPhase,
-    activeCall,
-    incomingCall,
-    incomingCallerName,
-    callRemoteName,
-    localStream,
-    remoteStream,
-    callMuted,
-    callCameraOff,
-    callError,
-    floCall,
-    floTranscriptLines,
-    micReady,
-    peerConnected,
-    presenting,
-    screenStream,
-    noiseCancellationStrength,
-    isFloDm,
-    canEditTopic,
-    personalizationOpen,
-    setPersonalizationOpen,
-    editTarget,
-    editHtml,
-    editBusy,
-    setEditHtml,
-    setEditTarget,
-    joinDismissedCallId,
-    setJoinDismissedCallId,
-    editEditorRef,
-    mainComposerRef,
-    threadComposerRef,
-    rightPanelRef,
-    onSelectChannel,
-    upsertChannel,
-    openThread,
-    closeThread,
-    handleJumpToMessage,
-    handleOpenThreadFromBrowser,
-    handleOpenMention,
-    handleOpenAlert,
-    dismissAlert,
-    handleEdit,
-    handleSaveEdit,
-    handleDeleteMessage,
-    handleAiCorrect,
-    handleSend,
-    loadThread,
-    markThreadRead,
-    pingTyping,
-    saveTopic,
-    setEditingTopic,
-    setTopicDraft,
-    setMessageSearchQuery,
-    setThreadSearchQuery,
-    setHighlightMessageId,
-    handleEnableDesktopAlerts,
-    handleStartHuddle,
-    handleJoinChannelHuddle,
-    handleLeaveHuddle,
-    togglePresent,
-    toggleMute,
-    toggleCamera,
-    hangUp,
-    acceptIncoming,
-    declineIncoming,
-    dismissEnded,
-    handleNoiseCancellationStrengthChange,
-    setActiveChannelId,
+    ready: true, teamId, user, isTeamAdmin, canWrite,
+    appearance, themePrefs, layoutMode, leftZone, mainZone, rightZone,
+    channels, messages, liveDisplayMessages, activeChannelId, activeChannel,
+    threadRoot, highlightMessageId, editingTopic, topicDraft,
+    messageSearchQuery, threadSearchQuery, messageSearchActive,
+    mentions, mentionUnreadCount, activeMentionMessageId, alerts, activeAlertId,
+    typingUsers, sending, isChannelHydrated, userSentRef,
+    threadUnreadMap, mentionMembers, members, sharedListEpoch,
+    ...callsVm, inFloHuddle,
+    minimalChannelTab, setMinimalChannelTab,
+    starredChannelIds: appearance.starredChannelIds, toggleStarredChannel, canEditTopic,
+    personalizationOpen, setPersonalizationOpen,
+    editTarget, editHtml, editBusy, setEditHtml, setEditTarget,
+    editEditorRef, mainComposerRef, threadComposerRef, rightPanelRef,
+    onSelectChannel, upsertChannel, openThread, closeThread,
+    handleJumpToMessage, handleOpenThreadFromBrowser, handleOpenMention, handleOpenAlert, dismissAlert,
+    handleEdit, handleSaveEdit, handleDeleteMessage, handleAiCorrect, handleSend,
+    loadThread, markThreadRead, pingTyping, saveTopic,
+    setEditingTopic, setTopicDraft, setMessageSearchQuery, setThreadSearchQuery, setHighlightMessageId,
+    handleEnableDesktopAlerts, setActiveChannelId,
   };
 }

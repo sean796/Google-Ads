@@ -1,10 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { OverviewStudioRevisionsPage } from "@/components/overview/studio/OverviewStudioRevisionsPage";
 import { OverviewStudioTabShell } from "@/components/overview/studio/OverviewStudioTabShell";
-import {
-  OverviewVisualDocCanvas,
-  type BulkGeneratorStudioAction,
-} from "@/components/overview/studio/OverviewVisualDocCanvas";
+import { OverviewVisualDocCanvas } from "@/components/overview/studio/OverviewVisualDocCanvas";
+import type { BulkGeneratorStudioAction } from "@/components/overview/studio/use-overview-studio-auto-seo";
 import type { BulkGeneratorWorkspaceBindings } from "@/components/keyword-research/bulk/bulk-generator-workspace-bindings";
 import { useOverviewTabController } from "@/hooks/overview/use-overview-tab-controller";
 import { useBulkGeneratorOverviewRowSync } from "@/hooks/bulk/use-bulk-generator-overview-row-sync";

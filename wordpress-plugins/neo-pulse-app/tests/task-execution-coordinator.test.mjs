@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -6,7 +6,16 @@ import { describe, expect, it } from "vitest";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 function readPhp(relativePath) {
-  return readFileSync(join(root, relativePath), "utf8");
+  const content = readFileSync(join(root, relativePath), "utf8");
+  if (relativePath !== "includes/tasks/class-tasks-store.php") {
+    return content;
+  }
+  const tasksDir = join(root, "includes/tasks");
+  const traitFiles = readdirSync(tasksDir)
+    .filter((name) => name.startsWith("trait-tasks-store-") && name.endsWith(".php"))
+    .sort();
+  const traits = traitFiles.map((name) => readFileSync(join(tasksDir, name), "utf8"));
+  return [content, ...traits].join("\n");
 }
 
 describe("task execution coordinator", () => {

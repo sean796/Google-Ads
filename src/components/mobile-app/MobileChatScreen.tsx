@@ -24,7 +24,7 @@ import { channelTitle, threadBarLabel } from "@/components/chat/layout/chat-shel
 import { fetchMentionUnreadCount } from "@/lib/chat-api";
 import type { ChatMessage } from "@/lib/chat-types";
 import type { ChatCallTranscriptLine } from "@/lib/chat-call-types";
-import type { ChatShellViewModel } from "@/components/chat/layout/useChatShellState";
+import type { ChatShellViewModel } from "@/components/chat/layout/chat-shell-types";
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "@/ui";
 
 type MobileChatScreenProps = {

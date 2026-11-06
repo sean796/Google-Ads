@@ -4,7 +4,8 @@ import { SavePropertyButton } from "./SavePropertyButton";
 import type { WordPressSite } from "../types";
 import { fetchWordPressSitesMirror } from "../storage";
 import { wordPressSiteHostKey } from "@/lib/wordpress-site-host-key";
-import { SitePropertyFormFields, type SitePropertyFormFieldsProps } from "./SitePropertyFormFields";
+import { SitePropertyFormFields } from "./SitePropertyFormFields";
+import type { SitePropertyFormFieldsProps } from "./site-property-form-chrome";
 import { WP_PANEL_SECTION_SHELL } from "./wordpress-panel-chrome";
 import type { PropertySettingsSubSectionId } from "./property-settings-types";
 

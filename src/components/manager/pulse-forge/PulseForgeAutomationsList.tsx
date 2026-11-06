@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import type { AgentRun } from "@/lib/agent-runs-types";
 import type { TaskProjectBundle } from "@/contexts/TeamContext";
-import type { TaskBuilderTab } from "@/components/manager/pulse-forge/TaskBuilderView";
+import type { TaskBuilderTab } from "@/components/manager/pulse-forge/use-task-builder-state";
 import { ForgeAutomationListTile } from "@/components/manager/pulse-forge/ForgeAutomationListTile";
 import { ForgeAutomationBulkSelectBar } from "@/components/manager/pulse-forge/ForgeAutomationBulkSelectBar";
 import { ForgeAutomationsFilterBar } from "@/components/manager/pulse-forge/ForgeAutomationsFilters";

@@ -2,10 +2,17 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const checklistSource = readFileSync(
-  join(process.cwd(), "src/lib/blog-template-checklist-generate.ts"),
-  "utf8",
-);
+// The checklist generator lives in blog-template-checklist-generate.ts plus
+// its paa-selector, context-sections, and prompt-assembly siblings; scan the
+// whole family so the doctrine assertions cover the assembled prompt.
+const checklistSource = [
+  "src/lib/blog-template-checklist-generate.ts",
+  "src/lib/blog-template-checklist-paa-selector.ts",
+  "src/lib/blog-template-checklist-context-sections.ts",
+  "src/lib/blog-template-checklist-prompt-assembly.ts",
+]
+  .map((path) => readFileSync(join(process.cwd(), path), "utf8"))
+  .join("\n");
 const blueprintSource = readFileSync(
   join(process.cwd(), "src/lib/blog-template-blueprint-generate.ts"),
   "utf8",

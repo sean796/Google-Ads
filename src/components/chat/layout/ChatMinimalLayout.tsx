@@ -21,7 +21,7 @@ import {
   CHAT_ICON_BTN_CLASS,
 } from "@/components/chat/chat-theme";
 import { channelTitle, threadBarLabel, typingLabel } from "@/components/chat/layout/chat-shell-utils";
-import type { ChatShellViewModel } from "@/components/chat/layout/useChatShellState";
+import type { ChatShellViewModel } from "@/components/chat/layout/chat-shell-types";
 import { ChatChannelHeaderTabs } from "@/components/chat/slack/ChatChannelHeaderTabs";
 import { Button, Field, ResizablePanel, ResizablePanelGroup } from "@/ui";
 

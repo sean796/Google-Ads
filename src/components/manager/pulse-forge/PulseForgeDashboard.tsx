@@ -6,7 +6,7 @@ import {
   primaryAutomationTask,
 } from "@/lib/pulse-forge/forge-dashboard-runs";
 import { isAgentRunTerminal } from "@/lib/agent-runs-types";
-import type { TaskBuilderTab } from "@/components/manager/pulse-forge/TaskBuilderView";
+import type { TaskBuilderTab } from "@/components/manager/pulse-forge/use-task-builder-state";
 import { ForgeDashboardRow } from "@/components/manager/pulse-forge/ForgeDashboardRow";
 import { ForgeDashboardHeroCard } from "@/components/manager/pulse-forge/ForgeDashboardHeroCard";
 import { ForgeDashboardPanel } from "@/components/manager/pulse-forge/ForgeDashboardPanel";
