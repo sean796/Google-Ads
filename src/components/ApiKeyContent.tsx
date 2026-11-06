@@ -21,6 +21,18 @@ export const ApiKeyContent: React.FC<ApiKeyContentProps> = ({
 }) => {
   const [localApiKey, setLocalApiKey] = useState(apiKey || loadApiKey());
 
+  // Register as you type: the runtime key store is what generation reads,
+  // so a typed key must land there immediately, not only on Save. Saving
+  // to the workspace backup (top of this panel) then persists it.
+  const handleChange = useCallback(
+    (next: string) => {
+      setLocalApiKey(next);
+      setApiKey(next);
+      saveRuntimeApiKey(next);
+    },
+    [setApiKey],
+  );
+
   const handleSave = useCallback(() => {
     if (localApiKey.trim()) {
       const trimmed = localApiKey.trim();
@@ -57,7 +69,7 @@ export const ApiKeyContent: React.FC<ApiKeyContentProps> = ({
           id="openrouter-apiKey"
           type="password"
           value={localApiKey}
-          onChange={(e) => setLocalApiKey(e.target.value)}
+          onChange={(e) => handleChange(e.target.value)}
           aria-label="OpenRouter API key"
           autoComplete="off"
         />
