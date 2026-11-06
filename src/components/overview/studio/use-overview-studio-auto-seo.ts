@@ -16,6 +16,7 @@ import { normalizeSectionProseHtml, prosePlainText } from "@/lib/elementor-page-
 import { runAutoSeoBlogBodyRewrite } from "@/lib/overview/overview-auto-seo-blog-rewrite";
 import { rewriteBlogPassageSection } from "@/lib/overview/overview-blog-passage-sections";
 import { normalizePageUrlKey } from "@/lib/sitemap-optimizer/normalize-page-url";
+import { logger } from "@/lib/logger";
 
 export const STUDIO_ACTION_STATES = ["Ideas", "Curating", "Generate", "Generating", "Approve", "Publish", "Publishing"] as const;
 
@@ -118,7 +119,7 @@ export function useOverviewStudioAutoSeo({
             if (idx < 0) return;
             latestRow = c.rowsRef.current[idx] ?? latestRow;
           } catch (err) {
-            console.warn("[Auto SEO] Research step warning:", err);
+            logger.warn("[Auto SEO] Research step warning:", err);
           }
         }
 
@@ -191,7 +192,7 @@ export function useOverviewStudioAutoSeo({
                 elementorSectionHeaders: [...workingHeaders],
               });
             } catch (err) {
-              console.warn(`[Auto SEO] Page section ${i + 1} warning:`, err);
+              logger.warn(`[Auto SEO] Page section ${i + 1} warning:`, err);
             }
           }
           setPassageStatus(null);

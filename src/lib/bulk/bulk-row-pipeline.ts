@@ -10,6 +10,7 @@ import { populateACFFieldsFromDFS } from '@/lib/bulk/bulk-row-acf-meta';
 import { isCompetitorCsvKeyword } from '@/lib/competitor-research/competitor-csv-row';
 import { buildSitesToPostFromPosting } from '@/lib/bulk/bulk-wordpress-link-prefetch';
 import { publishBulkRowToWordPressSites } from '@/lib/bulk/bulk-wordpress-publish-row';
+import { logger } from "@/lib/logger";
 import { runBulkRowResearchEnrichmentPhase } from './bulk-row-research-enrichment';
 import { runBulkRowChecklistAndBlueprintPhase } from './bulk-row-checklist-blueprint-phase';
 import { runBulkRowContentAndMediaPhase } from './bulk-row-content-media-phase';
@@ -309,7 +310,7 @@ export async function generateBlueprintAndContent(
           },
         });
       } catch (auditErr) {
-        console.warn('[Decision Agent] Bulk row content QA audit warning:', auditErr);
+        logger.warn('[Decision Agent] Bulk row content QA audit warning:', auditErr);
       }
     }
 

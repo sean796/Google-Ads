@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import type { WordPressSite } from '@/components/integrations/types';
 import { getPublishedServiceAreas } from './wordpress-api';
 import { getBulkGenerationWpInventoryIfReady } from './bulk/bulk-generation-wp-inventory';
@@ -20,19 +21,16 @@ export async function createSiteCache(
   // Check if cache already exists
   const existingCache = siteCache.get(siteId);
   if (existingCache) {
-    console.log(`[Site Cache] Using existing cache for site ${siteId} (${existingCache.posts.length} posts)`);
     return existingCache;
   }
 
   const bulkRows = getBulkGenerationWpInventoryIfReady(siteId);
   if (bulkRows?.length) {
     onProgress?.(`Using site inventory cache (${bulkRows.length} URLs)`, 100);
-    console.log(`[Site Cache] Seeded from bulk generation inventory for site ${siteId}: ${bulkRows.length} rows`);
     return seedSiteCacheFromBulkInventory(site, bulkRows);
   }
 
   onProgress?.('Scraping site for internal links...', 0);
-  console.log(`[Site Cache] Creating cache for site ${siteId} (postType: ${postType || 'all'})`);
 
   const allPosts: CachedPost[] = [];
   const normalizedUrl = site.siteUrl.replace(/\/$/, '');
@@ -82,7 +80,7 @@ export async function createSiteCache(
           }
         }
       } catch (error) {
-        console.warn('[Site Cache] Error fetching service-area posts:', error);
+        logger.warn('[Site Cache] Error fetching service-area posts:', error);
       }
 
       // 2. Then fetch regular posts
@@ -130,11 +128,10 @@ export async function createSiteCache(
 
     siteCache.set(siteId, cache);
     onProgress?.(`Cache created: ${uniquePosts.length} unique posts/pages`, 100);
-    console.log(`[Site Cache] Created cache for site ${siteId}: ${uniquePosts.length} posts`);
 
     return cache;
   } catch (error) {
-    console.error('[Site Cache] Error creating cache:', error);
+    logger.error('[Site Cache] Error creating cache:', error);
     throw error;
   }
 }

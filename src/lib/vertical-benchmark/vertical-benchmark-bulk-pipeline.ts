@@ -1,4 +1,5 @@
 import { notify } from "@/lib/app-notifications";
+import { logger } from "@/lib/logger";
 import { NOTIFY_NO_BULK_ROWS_FROM_POSTS_OR_GRID_ENTITY_S, NOTIFY_NO_BULK_ROWS_TO_EXPORT, NOTIFY_NO_CLIENTS_SELECTED_SELECT_AT_LEAST_ONE_, NOTIFY_NO_CLIENTS_WITH_SITE_CONTEXT_FOR_GRID_EN, NOTIFY_NO_ROWS_TO_DOWNLOAD, NOTIFY_OPENROUTER_API_KEY_REQUIRED_FOR_BULK_CSV, notifyGridEntityPackageStepFailedX, notifyNoBulkRowsToCurateX, notifyXClientSSkippedX } from "@/lib/notify-messages";
 import type { WordPressSite } from "@/components/integrations/types";
 import {
@@ -452,7 +453,7 @@ export async function runBenchmarkBulkTemplateDownload(options: {
       target_slug: slugRows[i]?.target_slug ?? row.target_slug,
     }));
   } catch (e) {
-    console.warn("[Vertical Benchmark] Slug/meta enrichment warning:", e);
+    logger.warn("[Vertical Benchmark] Slug/meta enrichment warning:", e);
   }
 
   pipelineSteps = patchStep(pipelineSteps, "gemini-final", {

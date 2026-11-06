@@ -6,6 +6,7 @@
 import { getScheduledPosts } from "@/lib/wordpress-api";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_CHECKING_SCHEDULED_POSTS_FOR_CONFLICTS } from "@/lib/notify-messages";
+import { logger } from "@/lib/logger";
 import type { WordPressSite } from "../../types";
 
 export interface ConflictCheckResult {
@@ -35,11 +36,10 @@ export async function fetchScheduledPostTitles(
     );
     if (scheduledResult.posts && scheduledResult.posts.length > 0) {
       const titles = scheduledResult.posts.map(post => post.title?.toLowerCase() || '');
-      console.log(`[Entity Generation] Checking against ${titles.length} scheduled posts`);
       return titles;
     }
   } catch (error) {
-    console.warn('[Entity Generation] Could not fetch scheduled posts for conflict checking:', error);
+    logger.warn('[Entity Generation] Could not fetch scheduled posts for conflict checking:', error);
   }
   return [];
 }
@@ -140,7 +140,6 @@ export function checkConflicts(
     return true;
   });
   
-  console.log(`[Entity Generation] After conflict filtering: ${nonConflictingEntities.length} entities remain (${conflictWithExistingCount} conflicted with existing, ${conflictWithPostsCount} conflicted with scheduled posts)`);
   
   return {
     nonConflictingEntities,

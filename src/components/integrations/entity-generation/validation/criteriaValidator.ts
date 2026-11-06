@@ -4,6 +4,7 @@
  */
 
 import { extractStructuredDataFromWikipedia } from "@/lib/wikipedia-api";
+import { logger } from "@/lib/logger";
 import type { ValidationResult } from "../types";
 
 /**
@@ -27,7 +28,7 @@ export async function validateEntityByCriteria(
       rankingValue: typeof result.rankingValue === "number" ? result.rankingValue : undefined
     };
   } catch (error) {
-    console.warn(`[Entity Generation] Error validating entity "${entity}" by criteria:`, error);
+    logger.warn(`[Entity Generation] Error validating entity "${entity}" by criteria:`, error);
     return {
       matches: false,
       confidence: 0,

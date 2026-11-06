@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { logger } from "@/lib/logger";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_BLUEPRINT_DELETED_SUCCESSFULLY, NOTIFY_BLUEPRINT_DOWNLOADED, NOTIFY_BLUEPRINT_LOADED_KB_FILES_MATCHED_FOR_RA, NOTIFY_FAILED_TO_PARSE_JSON_FILE, NOTIFY_INVALID_BLUEPRINT_FLOW_V2_JSON_REQUIRED_, NOTIFY_PLEASE_SELECT_A_VALID_JSON_FILE, NOTIFY_THIS_BLUEPRINT_USES_A_RETIRED_FORMAT_CRE, notifyBlueprintXSavedSuccessfully, notifyXAttachedFileSMissingUploadViaKb } from "@/lib/notify-messages";
 import { StoredFile } from "@/components/KnowledgeBaseTab";
@@ -45,7 +46,7 @@ export function getStoredBlueprints(): StoredBlueprint[] {
       return JSON.parse(stored) as StoredBlueprint[];
     }
   } catch (e) {
-    console.error("Failed to load blueprints from local storage:", e);
+    logger.error("Failed to load blueprints from local storage:", e);
   }
   return [];
 }
@@ -54,7 +55,7 @@ export function saveBlueprints(blueprints: StoredBlueprint[]): void {
   try {
     localStorage.setItem(BLUEPRINT_STORAGE_KEY, JSON.stringify(blueprints));
   } catch (e) {
-    console.error("Failed to save blueprints to local storage:", e);
+    logger.error("Failed to save blueprints to local storage:", e);
   }
 }
 
@@ -108,7 +109,7 @@ export function importAndSaveBlueprintFromFile(file: File): void {
       saveCurrentBlueprint(blueprintData, nodeCount);
     } catch (error) {
       notify.error(NOTIFY_FAILED_TO_PARSE_JSON_FILE);
-      console.error("Import error:", error);
+      logger.error("Import error:", error);
     }
   };
   reader.readAsText(file);
@@ -267,7 +268,7 @@ export function useBlueprintManagement({
         processImportedBlueprint(blueprint);
       } catch (error) {
         notify.error(NOTIFY_FAILED_TO_PARSE_JSON_FILE);
-        console.error("Import error:", error);
+        logger.error("Import error:", error);
       }
     };
     reader.readAsText(file);

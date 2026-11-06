@@ -2,6 +2,7 @@ import { summarizeContentWithAI, type SummarizationOptions } from "../content-su
 import type { WikipediaChunk, WikipediaFetchOptions } from "./types";
 import { getMediaWikiApiUrlWithQuery } from "./mediawiki-api-url";
 import { resolveModelForAgentCategory } from "@/lib/openrouter-agent-category-api";
+import { logger } from "@/lib/logger";
 
 const EXCLUDED_SECTIONS = [
   "References",
@@ -95,7 +96,7 @@ async function processWikipediaExtract(
             const result = await summarizeContentWithAI(introText, summarizationOptions);
             introText = result.summarizedContent;
           } catch (error) {
-            console.error(`[Wikipedia API] Error summarizing introduction:`, error);
+            logger.error(`[Wikipedia API] Error summarizing introduction:`, error);
           }
         }
 
@@ -153,7 +154,7 @@ async function processWikipediaExtract(
           const result = await summarizeContentWithAI(chunkText, summarizationOptions);
           finalChunkText = result.summarizedContent;
         } catch (error) {
-          console.error(`[Wikipedia API] Error summarizing chunk in section "${sectionTitle}":`, error);
+          logger.error(`[Wikipedia API] Error summarizing chunk in section "${sectionTitle}":`, error);
         }
       }
 
@@ -192,7 +193,7 @@ async function processWikipediaExtract(
             const result = await summarizeContentWithAI(chunkText, summarizationOptions);
             finalChunkText = result.summarizedContent;
           } catch (error) {
-            console.error(`[Wikipedia API] Error summarizing overview chunk:`, error);
+            logger.error(`[Wikipedia API] Error summarizing overview chunk:`, error);
           }
         }
 
@@ -224,7 +225,6 @@ export async function fetchWikipediaContent(
   }
 
   const entityName = entity.trim();
-  console.log("[Wikipedia API] Fetching content for entity:", entityName);
 
   const params = new URLSearchParams({
     action: "query",
@@ -240,7 +240,6 @@ export async function fetchWikipediaContent(
   });
 
   const apiUrl = getMediaWikiApiUrlWithQuery(params);
-  console.log("[Wikipedia API] Request URL:", apiUrl);
 
   let attempts = 0;
   let lastError: Error | null = null;
@@ -248,66 +247,50 @@ export async function fetchWikipediaContent(
   while (attempts < retries) {
     try {
       attempts++;
-      console.log(`[Wikipedia API] Starting fetch request (attempt ${attempts}/${retries})...`);
       const response = await fetch(apiUrl, {
         method: "GET",
         headers: { Accept: "application/json" },
         mode: "cors",
       });
 
-      console.log("[Wikipedia API] Response status:", response.status, response.statusText);
 
       if (!response.ok) {
         if (response.status >= 500 && attempts < retries) {
-          console.warn(`[Wikipedia API] Server error ${response.status}, retrying...`);
+          logger.warn(`[Wikipedia API] Server error ${response.status}, retrying...`);
           await new Promise((resolve) => setTimeout(resolve, 1000 * attempts));
           continue;
         }
 
         const errorText = await response.text().catch(() => "Unable to read error response");
-        console.error("[Wikipedia API] Error response body:", errorText);
+        logger.error("[Wikipedia API] Error response body:", errorText);
         throw new Error(
           `Wikipedia API HTTP error: ${response.status} ${response.statusText}. ${errorText.substring(0, 200)}`
         );
       }
 
       const contentType = response.headers.get("content-type");
-      console.log("[Wikipedia API] Content-Type:", contentType);
 
       if (!contentType || !contentType.includes("application/json")) {
         const text = await response.text();
-        console.error("[Wikipedia API] Non-JSON response:", text.substring(0, 500));
+        logger.error("[Wikipedia API] Non-JSON response:", text.substring(0, 500));
         throw new Error(`Expected JSON response but got: ${contentType}. Response: ${text.substring(0, 200)}`);
       }
 
       const data = await response.json();
-      console.log("[Wikipedia API] Response data structure:", {
-        hasQuery: !!data.query,
-        hasPages: !!data.query?.pages,
-        pagesLength: data.query?.pages?.length || 0,
-        keys: Object.keys(data),
-      });
 
       if (!data.query) {
-        console.error("[Wikipedia API] No query in response:", data);
+        logger.error("[Wikipedia API] No query in response:", data);
         throw new Error(
           `Invalid Wikipedia API response: missing 'query' field. Response keys: ${Object.keys(data).join(", ")}`
         );
       }
 
       if (!data.query.pages || data.query.pages.length === 0) {
-        console.error("[Wikipedia API] No pages in query:", data.query);
+        logger.error("[Wikipedia API] No pages in query:", data.query);
         throw new Error(`No Wikipedia page found for "${entityName}". Try a different search term.`);
       }
 
       const page = data.query.pages[0];
-      console.log("[Wikipedia API] Page data:", {
-        pageId: page.pageid,
-        title: page.title,
-        missing: page.missing,
-        hasExtract: !!page.extract,
-        extractLength: page.extract?.length || 0,
-      });
 
       if (page.missing) {
         throw new Error(
@@ -320,22 +303,19 @@ export async function fetchWikipediaContent(
       const revisionId = page.revisions?.[0]?.revid;
 
       const wikiUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/\s+/g, "_"))}`;
-      console.log("[Wikipedia API] Built Wikipedia URL:", wikiUrl);
 
       if (!extract) {
         throw new Error(`No content found for "${entityName}". The page exists but has no extractable content.`);
       }
 
-      console.log("[Wikipedia API] Processing extract, length:", extract.length);
       const chunks = await processWikipediaExtract(title, extract, wikiUrl, revisionId, options);
-      console.log("[Wikipedia API] Generated", chunks.length, "chunks");
 
       return chunks;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
 
       if (attempts < retries) {
-        console.warn(`[Wikipedia API] Fetch error (attempt ${attempts}/${retries}), retrying...`, {
+        logger.warn(`[Wikipedia API] Fetch error (attempt ${attempts}/${retries}), retrying...`, {
           error: lastError.message,
           entityName,
         });
@@ -349,7 +329,7 @@ export async function fetchWikipediaContent(
         continue;
       }
 
-      console.error("[Wikipedia API] Fetch error details:", {
+      logger.error("[Wikipedia API] Fetch error details:", {
         error: lastError,
         errorMessage: lastError.message,
         attempts,

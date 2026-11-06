@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { loadApiKey } from "@/lib/api";
 import { OptimizationFileManager } from "@/lib/optimization-file-manager";
 import { type WordPressSite } from "@/components/integrations/types";
@@ -245,7 +246,7 @@ async function runContinueOptimizationTryBodyInner(input: ContinueOptimizationTr
 
   const parsedBriefFromAcf = parseSeoResearchBrief(seoResearchRaw);
   if (!parsedBriefFromAcf) {
-    console.warn(`[Continue optimization] SERP research brief on ${url} is not valid research brief JSON — continuing with raw brief`);
+    logger.warn(`[Continue optimization] SERP research brief on ${url} is not valid research brief JSON — continuing with raw brief`);
   }
 
   const resolvedPrimaryKeyword =

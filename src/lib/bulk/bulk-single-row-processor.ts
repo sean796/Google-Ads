@@ -14,6 +14,7 @@ import { resolveBlogImportRowViaOpenRouter } from '@/lib/bulk/blog-import-openro
 import { fileFromStoredImportRow, processDirectBlogImportRow, rowHasDirectImportSource } from '@/lib/bulk/blog-import-direct';
 import { resolveRowPostDestination } from '@/lib/bulk-post-destination-normalize';
 import type { KeywordAnalysisOptions, KeywordAnalysisComplete } from '@/lib/keyword-types';
+import { logger } from "@/lib/logger";
 import type { Dispatch, SetStateAction } from 'react';
 
 export type BulkHarnessSectionUi = {
@@ -81,7 +82,7 @@ export function loadKnowledgeBaseFromStorage(): {
       activeKnowledgeBaseText,
     };
   } catch (error) {
-    console.error('Error loading knowledge base from storage:', error);
+    logger.error('Error loading knowledge base from storage:', error);
     return {
       knowledgeFiles: [],
       activeKnowledgeBaseText: '',

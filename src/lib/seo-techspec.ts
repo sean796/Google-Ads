@@ -3,6 +3,7 @@
  * Tech-spec prompt → OpenRouter → parse/merge → WordPress update. Pure logic only (no React, toast, setState).
  */
 
+import { logger } from "@/lib/logger";
 import { loadApiKey, streamChatCompletion } from "@/lib/api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { updateWordPressPost } from "@/lib/wordpress-api/crud";
@@ -161,7 +162,7 @@ export async function runSEO_techspec(params: RunSEO_techspecParams): Promise<SE
           postTypeEndpoint
         );
       } catch (acfErr) {
-        console.warn("[SEO_techspec] ACF update failed:", acfErr);
+        logger.warn("[SEO_techspec] ACF update failed:", acfErr);
       }
     }
 
@@ -185,7 +186,7 @@ export async function runSEO_techspec(params: RunSEO_techspecParams): Promise<SE
     };
   } catch (err) {
     const error = err instanceof Error ? err.message : "SEM fix failed.";
-    console.error("[SEO_techspec]", err);
+    logger.error("[SEO_techspec]", err);
     return { success: false, error };
   }
 }

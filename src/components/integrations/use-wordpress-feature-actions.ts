@@ -13,6 +13,7 @@ import { saveWordPressProperties } from "@/lib/manager-wordpress-properties-api"
 import { extractNAPAndLinkGraph } from "@/lib/knowledge-graph-auto-trigger";
 import { buildWordPressSitesCsvForDownload } from "@/lib/export-wordpress-sites-csv";
 import { bulkApplyGmbSuggestedDisplayNames } from "@/lib/wordpress-site-display-name-from-dfs-gmb";
+import { logger } from "@/lib/logger";
 import type { WordPressSite } from "./types";
 import { sortWordPressSitesByName } from "./storage";
 
@@ -136,7 +137,7 @@ export function useWordPressFeatureActions({
     try {
       await extractNAPAndLinkGraph(site);
     } catch (error) {
-      console.error('[NAP & Link Graph] Error:', error);
+      logger.error('[NAP & Link Graph] Error:', error);
     } finally {
       setIsExtractingNAPAndGraph(prev => { const updated = { ...prev }; delete updated[site.id]; return updated; });
     }

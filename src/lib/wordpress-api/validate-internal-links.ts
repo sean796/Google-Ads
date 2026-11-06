@@ -5,6 +5,7 @@
  */
 
 import { backendApiUrl } from './connection';
+import { logger } from "@/lib/logger";
 import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
 export type PostWithLink = { id: number; slug: string; title: string; excerpt: string; link: string; date_gmt: string };
@@ -147,7 +148,7 @@ export async function filterPostsToValidatedLinksOnly(
       body: JSON.stringify({ urls: fullUrls }),
     });
     if (!response.ok) {
-      console.warn('[validate-internal-links] Backend returned', response.status, '- no links allowed until validated');
+      logger.warn('[validate-internal-links] Backend returned', response.status, '- no links allowed until validated');
       return [];
     }
     const contentType = response.headers.get('Content-Type') ?? '';
@@ -175,7 +176,7 @@ export async function filterPostsToValidatedLinksOnly(
     }
     return filtered;
   } catch (err) {
-    console.warn('[validate-internal-links] Failed to validate links (backend down?):', err);
+    logger.warn('[validate-internal-links] Failed to validate links (backend down?):', err);
     return [];
   }
 }
@@ -268,14 +269,14 @@ function stripFailedLinksFromText(
   let out = content;
   out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/gi, (match, text: string, url: string) => {
     if (isFailed(url)) {
-      console.warn(`[validate-internal-links] Stripped invalid link: ${url}`);
+      logger.warn(`[validate-internal-links] Stripped invalid link: ${url}`);
       return text;
     }
     return match;
   });
   out = out.replace(/<a[^>]*href=["'](https?:\/\/[^"']+)["'][^>]*>([^<]*)<\/a>/gi, (match, url: string, text: string) => {
     if (isFailed(url)) {
-      console.warn(`[validate-internal-links] Stripped invalid link: ${url}`);
+      logger.warn(`[validate-internal-links] Stripped invalid link: ${url}`);
       return text;
     }
     return match;
@@ -287,7 +288,7 @@ function stripFailedLinksFromText(
       try {
         const full = new URL(path, base).href;
         if (isFailed(full)) {
-          console.warn(`[validate-internal-links] Stripped invalid link: ${full}`);
+          logger.warn(`[validate-internal-links] Stripped invalid link: ${full}`);
           return text;
         }
       } catch {
@@ -356,13 +357,13 @@ export async function validateAndStripInvalidLinksFromContent(
     if (failedUrls.size === 0) return { html: htmlContent || '', extra: extraContent };
 
     onProgress?.(`Stripping ${failedUrls.size} invalid link(s), proceeding with upload...`);
-    console.warn(`[validate-internal-links] Stripping ${failedUrls.size} invalid link(s) instead of blocking upload`);
+    logger.warn(`[validate-internal-links] Stripping ${failedUrls.size} invalid link(s) instead of blocking upload`);
 
     const html = stripFailedLinksFromText(htmlContent || '', failedUrls, siteBaseUrl);
     const extra = extraContent ? stripFailedLinksFromText(extraContent, failedUrls, siteBaseUrl) : undefined;
     return { html, extra };
   } catch (err) {
-    console.warn('[validate-internal-links] Validation failed, proceeding with original content:', err);
+    logger.warn('[validate-internal-links] Validation failed, proceeding with original content:', err);
     onResults?.([]);
     return { html: htmlContent || '', extra: extraContent };
   }

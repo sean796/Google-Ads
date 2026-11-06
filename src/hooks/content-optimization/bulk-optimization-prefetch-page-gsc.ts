@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { fetchGSCPagesPerformanceBatch } from "@/lib/wordpress-api/gsc";
 import type { GSCPagePerformanceResult } from "@/lib/wordpress-api/types";
 import { normalizePageUrlKey } from "@/lib/sitemap-optimizer/normalize-page-url";
@@ -51,7 +52,7 @@ export async function prefetchBulkPageGscForUrls(
     if (!res.success || !res.pages?.length) return new Map();
     return indexPageResults(res.pages);
   } catch (error) {
-    console.warn("[Bulk Optimization] Page GSC batch prefetch failed:", error);
+    logger.warn("[Bulk Optimization] Page GSC batch prefetch failed:", error);
     return new Map();
   }
 }

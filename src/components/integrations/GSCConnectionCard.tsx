@@ -9,6 +9,7 @@ import {
   useGscServiceAccountIdentity,
   type GscServiceAccountIdentity,
 } from "@/hooks/use-gsc-service-account-identity";
+import { logger } from "@/lib/logger";
 import type { GscTestSiteRow } from "./gsc-feature-types";
 
 /** Service account email, copy, and test connection - use on Settings or inside {@link GSCFeature}. */
@@ -57,7 +58,6 @@ export const GSCConnectionCard: React.FC<{ identity: GscServiceAccountIdentity }
     setIsTestingGSC(true);
     try {
       notify.info(NOTIFY_TESTING_GSC_CONNECTION);
-      console.log('[GSC Test] Calling API:', `${BACKEND_API_BASE}/api/gsc/test-connection`);
       const response = await fetch(`${BACKEND_API_BASE}/api/gsc/test-connection`, {
         method: 'GET',
         credentials: "include",
@@ -70,7 +70,7 @@ export const GSCConnectionCard: React.FC<{ identity: GscServiceAccountIdentity }
         } catch {
           errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
         }
-        console.error('[GSC Test] API Error Response:', errorData);
+        logger.error('[GSC Test] API Error Response:', errorData);
         let errorMessage = errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
         if (errorData.details) {
           errorMessage += `\n\nDetails: ${errorData.details}`;
@@ -89,7 +89,7 @@ export const GSCConnectionCard: React.FC<{ identity: GscServiceAccountIdentity }
         if (data.details) {
           errorMessage += `\n\nDetails: ${data.details}`;
         }
-        console.error('[GSC Test] API returned error:', data);
+        logger.error('[GSC Test] API returned error:', data);
         throw new Error(errorMessage);
       }
       const credentialsInUse = (data as { credentialsInUse?: string | null }).credentialsInUse ?? null;
@@ -126,9 +126,8 @@ export const GSCConnectionCard: React.FC<{ identity: GscServiceAccountIdentity }
             : "sites.list returned 0 rows. Verify the service account is added in Search Console.",
         });
       }
-      console.log('[GSC Test] Connection test successful:', data);
     } catch (error) {
-      console.error('[GSC Test] Error testing connection:', error);
+      logger.error('[GSC Test] Error testing connection:', error);
       let errorMessage = 'Failed to test GSC connection';
       let errorDetails = '';
       if (error instanceof Error) {
@@ -141,11 +140,11 @@ export const GSCConnectionCard: React.FC<{ identity: GscServiceAccountIdentity }
       } else if (typeof error === 'string') {
         errorMessage = error;
       }
-      if (errorDetails) console.error('[GSC Test] Error details:', errorDetails);
+      if (errorDetails) logger.error('[GSC Test] Error details:', errorDetails);
       const shortErr =
         errorMessage.length > 120 ? `${errorMessage.slice(0, 117)}...` : errorMessage;
       notify.error(shortErr, { duration: 10000 });
-      console.error('[GSC Test] Full error details:', { message: errorMessage, details: errorDetails, error });
+      logger.error('[GSC Test] Full error details:', { message: errorMessage, details: errorDetails, error });
     } finally {
       setIsTestingGSC(false);
     }

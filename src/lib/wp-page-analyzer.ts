@@ -3,6 +3,7 @@
  * Analyzes existing WordPress pages to extract patterns for title, URL, meta, and content style
  */
 
+import { logger } from "@/lib/logger";
 import { parseSitemap } from './wordpress-api';
 import type { WordPressSite } from '@/components/integrations/types';
 import { loadApiKey } from './api';
@@ -42,7 +43,6 @@ export async function analyzeWordPressPages(
   sampleSize: number = 20,
   onProgress?: (message: string, progress?: number) => void
 ): Promise<WPPageAnalysis> {
-  console.log(`[WP Page Analyzer] Analyzing ${postType} pages from ${sitemapUrl}...`);
   onProgress?.('📋 Parsing sitemap XML...', 5);
 
   // Parse sitemap to get URLs
@@ -59,7 +59,6 @@ export async function analyzeWordPressPages(
 
   // Sample URLs (take first N or random sample)
   const sampleUrls = parseResult.urls.slice(0, Math.min(sampleSize, parseResult.urls.length));
-  console.log(`[WP Page Analyzer] Analyzing ${sampleUrls.length} sample URLs`);
   onProgress?.(`🔍 Found ${sampleUrls.length} URLs to analyze`, 10);
 
   // Extract slugs from URLs
@@ -88,7 +87,7 @@ export async function analyzeWordPressPages(
       }
       onProgress?.(`⚡ Extracted slug ${i + 1}/${sampleUrls.length}: ${pathSegments[pathSegments.length - 1] || 'homepage'}`, 10 + (i / sampleUrls.length) * 10);
     } catch (error) {
-      console.warn(`[WP Page Analyzer] Invalid URL: ${url}`, error);
+      logger.warn(`[WP Page Analyzer] Invalid URL: ${url}`, error);
     }
   }
 
@@ -103,7 +102,6 @@ export async function analyzeWordPressPages(
     const cache = getSiteCache(site.id);
     
     if (cache && cache.posts.length > 0) {
-      console.log(`[WP Page Analyzer] Using cache with ${cache.posts.length} posts`);
       onProgress?.(`📡 Using cached posts (${cache.posts.length} available)...`, 25);
       
       // Filter cache by post type if specified
@@ -146,7 +144,7 @@ export async function analyzeWordPressPages(
             onProgress?.(`✅ Matched ${matchedPosts.length}/${sampleUrls.length}: "${matchedPost.title.substring(0, 40)}..."`, 30 + (matchedPosts.length / sampleUrls.length) * 20);
           }
         } catch (error) {
-          console.warn(`[WP Page Analyzer] Error matching URL ${sampleUrl}:`, error);
+          logger.warn(`[WP Page Analyzer] Error matching URL ${sampleUrl}:`, error);
         }
       }
       
@@ -161,12 +159,10 @@ export async function analyzeWordPressPages(
         }));
       }
       
-      console.log(`[WP Page Analyzer] Using ${posts.length} posts from cache for metadata analysis`);
     } else {
       throw new Error('Cache not available, falling back to API');
     }
   } catch (cacheError) {
-    console.log(`[WP Page Analyzer] Cache not available or error: ${cacheError}, falling back to API`);
     
     // Fallback to API
     const { getPublishedPosts } = await import('./wordpress-api');
@@ -211,7 +207,6 @@ export async function analyzeWordPressPages(
     }));
   }
 
-  console.log(`[WP Page Analyzer] Using ${posts.length} posts for metadata analysis (metadata only - no content fetched)`);
   onProgress?.(`📊 Analyzing ${posts.length} post metadata patterns...`, 55);
 
   // Analyze patterns (metadata only - no content analysis)
@@ -273,7 +268,7 @@ export async function analyzeWordPressPages(
         metaDescriptionPattern = await analyzeMetaDescriptionPattern(metaDescriptions, openRouterApiKey);
       }
     } catch (error) {
-      console.warn('[WP Page Analyzer] AI analysis failed, using fallback patterns', error);
+      logger.warn('[WP Page Analyzer] AI analysis failed, using fallback patterns', error);
     }
   }
 
@@ -325,7 +320,6 @@ export async function analyzeWordPressPages(
   }
 
   onProgress?.(`✅ Analysis complete! Found title pattern: ${titlePattern || 'none'}`, 95);
-  console.log('[WP Page Analyzer] Analysis complete (metadata-only):', analysis);
   return analysis;
 }
 
@@ -401,7 +395,7 @@ What is the common pattern or template?`;
     const pattern = data.choices?.[0]?.message?.content?.trim() || '';
     return pattern.replace(/["']/g, '').trim();
   } catch (error) {
-    console.error('[WP Page Analyzer] Error analyzing title pattern:', error);
+    logger.error('[WP Page Analyzer] Error analyzing title pattern:', error);
     return '';
   }
 }
@@ -450,7 +444,7 @@ What is the common pattern or template?`;
     const pattern = data.choices?.[0]?.message?.content?.trim() || '';
     return pattern.replace(/["']/g, '').trim();
   } catch (error) {
-    console.error('[WP Page Analyzer] Error analyzing meta description pattern:', error);
+    logger.error('[WP Page Analyzer] Error analyzing meta description pattern:', error);
     return '';
   }
 }

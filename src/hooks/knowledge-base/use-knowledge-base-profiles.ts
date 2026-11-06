@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { logger } from "@/lib/logger";
 import { notify } from "@/lib/app-notifications";
 import {
   NOTIFY_CONTENT_CLEARED,
@@ -28,7 +29,7 @@ export function useKnowledgeBaseProfiles({
       try {
         setProfiles(JSON.parse(storedProfiles) as KnowledgeProfile[]);
       } catch (e) {
-        console.error("Error loading profiles:", e);
+        logger.error("Error loading profiles:", e);
       }
     }
   }, [currentFiles]);

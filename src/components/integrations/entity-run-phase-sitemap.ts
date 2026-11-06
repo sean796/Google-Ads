@@ -3,6 +3,7 @@ import { notify } from "@/lib/app-notifications";
 import { NOTIFY_NO_URLS_FOUND_IN_SITEMAP, notifyFoundXUrlsAnalyzingWithAi, notifyParsingSitemapX } from "@/lib/notify-messages";
 import { parseSitemap } from "@/lib/wordpress-api";
 import type { EntityRunDeps } from "@/components/integrations/entity-run-ctx";
+import { logger } from "@/lib/logger";
 
 export async function runEntityPhaseSitemap(d: EntityRunDeps): Promise<boolean> {
   const { s, v, c } = d;
@@ -47,7 +48,7 @@ try {
   // Check if it's an HTML response instead of XML
   if (errorMessage.includes('HTML instead of XML') || (errorDetails && errorDetails.possibleReasons)) {
     const detailedError = `Sitemap URL returned HTML instead of XML:\n\n${c.entitySitemapUrl}\n\n${errorSuggestion || 'The sitemap may require authentication or the URL may be incorrect.'}`;
-    console.error('[Entity Generation] HTML response error:', {
+    logger.error('[Entity Generation] HTML response error:', {
       siteUrl: c.site.siteUrl,
       sitemapUrl: c.entitySitemapUrl,
       error: errorMessage,
@@ -65,7 +66,7 @@ try {
   // Check if it's an invalid sitemap format error
   if (errorMessage.includes('Invalid sitemap format') || errorMessage.includes('does not appear to be a valid sitemap')) {
     const detailedError = `Invalid sitemap format for ${c.entitySitemapUrl}:\n\n${errorMessage}\n\n${errorSuggestion || 'Please verify the sitemap URL is correct and accessible.'}`;
-    console.error('[Entity Generation] Invalid sitemap format:', {
+    logger.error('[Entity Generation] Invalid sitemap format:', {
       siteUrl: c.site.siteUrl,
       sitemapUrl: c.entitySitemapUrl,
       error: errorMessage,
@@ -83,7 +84,7 @@ try {
   // Check if it's an XML parsing error
   if (errorMessage.includes('Attribute without value') || errorMessage.includes('XML')) {
     const detailedError = `Sitemap parsing failed for ${c.entitySitemapUrl}:\n\n${errorMessage}\n\nThis usually means the sitemap XML has malformed attributes. Please check the sitemap file.`;
-    console.error('[Entity Generation] XML parsing error:', {
+    logger.error('[Entity Generation] XML parsing error:', {
       siteUrl: c.site.siteUrl,
       sitemapUrl: c.entitySitemapUrl,
       error: errorMessage,

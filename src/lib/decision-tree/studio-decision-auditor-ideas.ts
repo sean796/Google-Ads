@@ -6,6 +6,7 @@ import type {
   ScoreResult,
 } from './decision-tree-types';
 import type { CSVRow } from '@/lib/bulk/bulk-csv-parser';
+import { logger } from "@/lib/logger";
 
 export type AuditedCSVRow = CSVRow & { decision_audit_json?: string };
 
@@ -122,7 +123,7 @@ export async function auditBlogIdeasWithDecisionAgent(args: {
 
       auditedIdeas.push(updatedRow);
     } catch (e) {
-      console.warn('[DecisionAgent] Idea audit error for:', idea.title, e);
+      logger.warn('[DecisionAgent] Idea audit error for:', idea.title, e);
       auditedIdeas.push(idea);
     }
   }

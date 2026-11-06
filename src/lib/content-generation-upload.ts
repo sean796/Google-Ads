@@ -20,6 +20,7 @@ import { polishContentForWordPressUpload, toStringContent, type BlueprintResult,
 import { uploadContentToWordPressWithExtras } from "./content-generation/content-upload-wp-and-extras";
 import { completeContentUploadPostSyncAndReport } from "./content-generation/content-upload-post-sync-report";
 import type { uploadToWordPress } from "@/lib/content-generation/wordpress-uploader";
+import { logger } from "@/lib/logger";
 export { polishContentForWordPressUpload, toStringContent, dedupeTrimmedUrls, buildGscKeywordsContextJson, type BlueprintResult, type OptimizationContext, type ContentUploadPolishArgs } from "./content-generation/content-upload-polish-and-faq";
 export { uploadContentToWordPressWithExtras, type ContentUploadWpAndExtrasArgs } from "./content-generation/content-upload-wp-and-extras";
 export { completeContentUploadPostSyncAndReport, type ContentUploadPostSyncReportArgs } from "./content-generation/content-upload-post-sync-report";
@@ -101,19 +102,6 @@ export async function generateAndUploadContent(
   const writeExcerpt = shouldOptimizeExcerpt && !contentOnlyUpload;
   
   // Log optimization options for debugging
-  console.log('[Content Generation Upload] Optimization options:', {
-    optimizeContent: opts.optimizeContent,
-    shouldOptimizeContent,
-    optimizeTitle: opts.optimizeTitle,
-    shouldOptimizeTitle,
-    optimizeMeta: opts.optimizeMeta,
-    shouldOptimizeMeta,
-    optimizeExcerpt: opts.optimizeExcerpt,
-    shouldOptimizeExcerpt,
-    optimizeFeaturedImage: opts.optimizeFeaturedImage,
-    shouldOptimizeFeaturedImage,
-    rawOptions: optimizationOptions
-  });
 
   // Load API key once for use in content generation, in-content images, and featured images
   const openRouterApiKey = loadApiKey();
@@ -289,7 +277,7 @@ export async function generateAndUploadContent(
     // CRITICAL: Never silently upload when user asked for content optimization but we got no generated content
     const generatedTrimmed = (markdownContent || '').trim();
     if (context.updateMode === 'update' && !generatedTrimmed) {
-      console.error('[Content Generation Upload] Content optimization was enabled but no content was generated', {
+      logger.error('[Content Generation Upload] Content optimization was enabled but no content was generated', {
         generatedLength: generatedTrimmed.length,
         existingContentLength: toStringContent(context.existingContent).length,
       });

@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
+import { logger } from "@/lib/logger";
 import { NOTIFY_AI_TITLES_APPLY_TO_POSTS_ONLY_PAGES_BUCK, NOTIFY_BAD_URL, NOTIFY_FINISHED_FOCUS_KEYWORD_URL_PATHS, NOTIFY_NO_ROWS_TO_EXPORT, notifyExportedXRowSToCsv, notifyPostBodiesXOfXFilledReloadTheSit } from "@/lib/notify-messages";
 
 import { computeOverviewAiUrlSuggestion } from "@/lib/overview/overview-ai-url-suggest";
@@ -84,7 +85,6 @@ export function useOverviewTabAiTitleMetaUrlCsv({
           aiTitle: row.aiTitle || row.title,
         };
       }
-      console.log("[Auto SEO] Step: Optimizing SEO Title ->", row.url);
       updateRow(index, { status: "ai-title" });
       const inlineBody = (row.postContentOptimized || row.postContent || "").trim();
       let sentimentSource: string | undefined = inlineBody ? inlineBody.slice(0, 2000) : undefined;
@@ -111,12 +111,11 @@ export function useOverviewTabAiTitleMetaUrlCsv({
         },
       );
       if (!result) {
-        console.warn("[Auto SEO] SEO Title failed for", row.url);
+        logger.warn("[Auto SEO] SEO Title failed for", row.url);
         updateRow(index, { status: "error" });
         return null;
       }
       const cleaned = overviewTitlePrimarySegment(result);
-      console.log("[Auto SEO] SEO Title done ->", cleaned);
       updateRow(index, { title: cleaned, aiTitle: cleaned, status: "idle" });
       return { title: cleaned, aiTitle: cleaned };
     },
@@ -173,7 +172,6 @@ export function useOverviewTabAiTitleMetaUrlCsv({
     ): Promise<{ metaDescription: string; aiMeta: string } | null> => {
       const row = rowOverride ?? rows[index];
       if (!row) return null;
-      console.log("[Auto SEO] Step: Optimizing Meta Description ->", row.url);
       updateRow(index, { status: "ai-meta" });
       const base = row.metaDescription || row.aiMeta || "";
       const inlineBody = (row.postContentOptimized || row.postContent || "").trim();
@@ -223,11 +221,10 @@ export function useOverviewTabAiTitleMetaUrlCsv({
         },
       );
       if (!result) {
-        console.warn("[Auto SEO] Meta Description failed for", row.url);
+        logger.warn("[Auto SEO] Meta Description failed for", row.url);
         updateRow(index, { status: "error" });
         return null;
       }
-      console.log("[Auto SEO] Meta Description done ->", result);
       updateRow(index, { metaDescription: result, aiMeta: result, status: "idle" });
       return { metaDescription: result, aiMeta: result };
     },

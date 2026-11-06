@@ -1,4 +1,5 @@
 import { isLocalGridWikiConsoleTraceActive, localGridWikiConsoleLog, localGridWikiConsoleWarn } from "@/lib/local-grid-studio/local-grid-wiki-console-trace";
+import { logger } from "@/lib/logger";
 import { getMediaWikiApiUrlWithQuery } from "./mediawiki-api-url";
 
 /**
@@ -43,19 +44,19 @@ export async function checkWikipediaPageExists(
           await new Promise((resolve) => setTimeout(resolve, 1000 * attempts));
           continue;
         }
-        console.warn(`[Wikipedia API] HTTP error ${response.status} for "${entityName}"`);
+        logger.warn(`[Wikipedia API] HTTP error ${response.status} for "${entityName}"`);
         return { exists: false };
       }
 
       const data = await response.json();
 
       if (!data.query) {
-        console.warn(`[Wikipedia API] No query in response for "${entityName}"`);
+        logger.warn(`[Wikipedia API] No query in response for "${entityName}"`);
         return { exists: false };
       }
 
       if (!data.query.pages || data.query.pages.length === 0) {
-        console.warn(`[Wikipedia API] No pages in response for "${entityName}"`);
+        logger.warn(`[Wikipedia API] No pages in response for "${entityName}"`);
         return { exists: false };
       }
 
@@ -71,7 +72,7 @@ export async function checkWikipediaPageExists(
       return { exists: true, url, title };
     } catch (error) {
       if (attempts < retries) {
-        console.warn(
+        logger.warn(
           `[Wikipedia API] Error checking page existence for "${entityName}" (attempt ${attempts}/${retries}), retrying...`,
           error
         );
@@ -79,7 +80,7 @@ export async function checkWikipediaPageExists(
         continue;
       }
 
-      console.warn(`[Wikipedia API] Error checking page existence for "${entityName}":`, error);
+      logger.warn(`[Wikipedia API] Error checking page existence for "${entityName}":`, error);
       return { exists: false };
     }
   }
@@ -157,7 +158,7 @@ export async function searchWikipediaPages(query: string, limit: number = 50): P
         error,
       });
     } else {
-      console.warn(`[Wikipedia API] Error searching Wikipedia for "${query}":`, error);
+      logger.warn(`[Wikipedia API] Error searching Wikipedia for "${query}":`, error);
     }
   }
 

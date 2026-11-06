@@ -15,6 +15,7 @@ import {
   gscKeywordsForEntity,
 } from "@/lib/entity/entity-gsc-keywords";
 import type { ServiceAreaOrigin } from "@/lib/entity/radius-filter";
+import { logger } from "@/lib/logger";
 import type { WordPressSite } from "../../types";
 import type { EntityWithCriteria, CriteriaData, RadiusDistancePreset } from "../types";
 
@@ -125,7 +126,7 @@ export function useEntityGeneration(
         })
         .catch((e) => {
           if (ac.signal.aborted) return;
-          console.warn("[Entity Generation] Category suggestions failed:", e);
+          logger.warn("[Entity Generation] Category suggestions failed:", e);
           setWikiCategorySuggestions([]);
         })
         .finally(() => {
@@ -298,7 +299,7 @@ export function useEntityGeneration(
       notify.success(notifyGeneratedXEntities(result.entities.length));
       onEntityGenerated?.(storageKey, entitiesWithGsc, result.suggestedTitleFormat);
     } catch (error) {
-      console.error('[Entity Generation] Error generating entities:', error);
+      logger.error('[Entity Generation] Error generating entities:', error);
       
       const errorMessage = error instanceof Error ? error.message : String(error);
       notifyHeaderError("Entity generation failed", errorMessage);

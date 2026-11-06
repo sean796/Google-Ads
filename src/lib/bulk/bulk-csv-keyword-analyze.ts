@@ -20,6 +20,7 @@ import type {
 import { getPublicSiteUrl } from "@/lib/wordpress-site-public-url";
 import type { ConnectedSiteSummary } from "@/components/integrations/types";
 import { withDataForSeoLocationCode } from "@/lib/dataforseo-location-code";
+import { logger } from "@/lib/logger";
 
 function mcpApiBase(): string {
   return (
@@ -130,7 +131,7 @@ export async function analyzeBulkCsvKeyword(
 
   const [overviewRows, serpRaw] = await Promise.all([
     callMCPKeywordOverview([kw], location, language).catch((e) => {
-      console.warn("[Bulk CSV keyword analyze] DataForSEO overview failed:", e);
+      logger.warn("[Bulk CSV keyword analyze] DataForSEO overview failed:", e);
       return [] as KeywordData[];
     }),
     fetchSerpOrganicRaw(kw, options),
@@ -203,7 +204,7 @@ export async function analyzeBulkCsvKeyword(
     analysis = analysisResult;
     paaQuestions = paaResult.questions ?? [];
   } catch (e) {
-    console.warn("[Bulk CSV keyword analyze] OpenRouter keyword analysis failed:", e);
+    logger.warn("[Bulk CSV keyword analyze] OpenRouter keyword analysis failed:", e);
   }
 
   const finalAnalysis = analysis

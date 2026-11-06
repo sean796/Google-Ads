@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { loadApiKey, streamChatCompletion } from "@/lib/api";
 import { appendUniversalContentRulesToSystemPrompt } from "@/lib/content-word-blocklist";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
@@ -183,7 +184,7 @@ Return ONLY a JSON object with the optimized meta fields.`;
       aiResponse = result.content;
     }
   } catch (error) {
-    console.error('[Meta Field Optimizer] AI generation failed:', error);
+    logger.error('[Meta Field Optimizer] AI generation failed:', error);
     throw new Error(`AI meta field optimization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 
@@ -233,8 +234,8 @@ Return ONLY a JSON object with the optimized meta fields.`;
     }
   } catch (parseError) {
     // Non-fatal: we use fallback meta and continue. Downgrade to warn to avoid noisy console.error.
-    console.warn('[Meta Field Optimizer] Failed to parse AI response, using fallback meta:', parseError instanceof Error ? parseError.message : parseError);
-    console.warn('[Meta Field Optimizer] AI Response (first 1000 chars):', aiResponse.substring(0, 1000));
+    logger.warn('[Meta Field Optimizer] Failed to parse AI response, using fallback meta:', parseError instanceof Error ? parseError.message : parseError);
+    logger.warn('[Meta Field Optimizer] AI Response (first 1000 chars):', aiResponse.substring(0, 1000));
     
     // Fallback: create basic optimized meta fields (full post title — never mid-word cut)
     optimizedMeta = {
@@ -246,7 +247,7 @@ Return ONLY a JSON object with the optimized meta fields.`;
       rank_math_robots: existingMeta.rank_math_robots || ["index", "follow"],
     };
     
-    console.warn('[Meta Field Optimizer] Using fallback meta fields due to parse error');
+    logger.warn('[Meta Field Optimizer] Using fallback meta fields due to parse error');
   }
 
   // Keep a complete title string. Prefer full WordPress post title over a shortened SERP rewrite.

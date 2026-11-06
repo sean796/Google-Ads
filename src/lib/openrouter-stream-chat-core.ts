@@ -4,6 +4,7 @@
  * Posts to this app's /api/openrouter/chat-completion (server talks to OpenRouter).
  */
 
+import { logger } from "@/lib/logger";
 import {
   openRouterAppApiHeaders,
   openRouterChatCompletionUrl,
@@ -56,7 +57,7 @@ function processSseDataLine(
       onFinishReason?.(finishReason);
     }
   } catch (e) {
-    console.error("Error parsing streaming chunk:", e, { preview: data.slice(0, 120) });
+    logger.error("Error parsing streaming chunk:", e, { preview: data.slice(0, 120) });
   }
 }
 

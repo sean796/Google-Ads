@@ -10,6 +10,7 @@ import { generateSEOImageFilename } from "@/lib/image-filename-generator";
 import type { Dispatch, SetStateAction } from "react";
 import type { GenerationResult, Message } from "@/lib/api";
 import type { MarkdownSection } from "@/lib/section-parser";
+import { logger } from "@/lib/logger";
 
 interface ModificationPanelProps {
   activeTab: string;
@@ -187,7 +188,7 @@ export function ModificationPanel({
                 notify.success(NOTIFY_IMAGE_DOWNLOADED_SUCCESSFULLY);
               } catch (err) {
                 notify.error(NOTIFY_FAILED_TO_DOWNLOAD_IMAGE);
-                console.error("Download error:", err);
+                logger.error("Download error:", err);
               }
             }}
             onCopy={async () => {
@@ -196,7 +197,7 @@ export function ModificationPanel({
                 notify.success(NOTIFY_IMAGE_COPIED_TO_CLIPBOARD);
               } catch (err) {
                 notify.error(NOTIFY_FAILED_TO_COPY_IMAGE_TO_CLIPBOARD);
-                console.error("Copy error:", err);
+                logger.error("Copy error:", err);
               }
             }}
             availableSections={availableSectionsForInsertion}

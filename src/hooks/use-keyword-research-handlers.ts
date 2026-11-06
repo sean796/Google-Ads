@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { logger } from "@/lib/logger";
 import { NOTIFY_PLEASE_ENTER_A_PRIMARY_KEYWORD, NOTIFY_KEYWORD_RESEARCH_CLEARED, NOTIFY_ALL_CACHED_KEYWORD_DATA_CLEARED, NOTIFY_PLEASE_ENTER_A_KEYWORD_TO_ANALYZE, NOTIFY_CHECKING_KEYWORD_SERVER_STATUS, notifyFailedToCheckServerStatusX, notifyServerErrorX, NOTIFY_KEYWORD_SERVER_STARTED_SUCCESSFULLY, notifyAnalyzingKeywordX, notifyKeywordXAnalyzedSuccessfully, notifyAnalysisFailedX, notifyUnexpectedErrorX } from "@/lib/notify-messages";
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
 import { clearAllKeywordData, clearKeywordResearchCache } from "@/lib/keyword-db";
@@ -49,7 +50,7 @@ export function useKeywordResearchHandlers({
         forceRefresh: forceRefresh, // Force fresh data from API
       });
     } catch (err) {
-      console.error("Analysis error:", err);
+      logger.error("Analysis error:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to analyze keyword";
       notifyHeaderError("Keyword analysis failed", err);
       // Don't show stale data if analysis fails
@@ -93,7 +94,7 @@ export function useKeywordResearchHandlers({
           notify.info(message, { duration: 2000 });
         });
       } catch (serverCheckError) {
-        console.error('[Keyword Research] Error checking server status:', serverCheckError);
+        logger.error('[Keyword Research] Error checking server status:', serverCheckError);
         notify.error(notifyFailedToCheckServerStatusX(serverCheckError instanceof Error ? serverCheckError.message : 'Unknown error'));
         setIsAnalyzingKeyword(false);
         return;
@@ -115,7 +116,7 @@ export function useKeywordResearchHandlers({
       try {
         clearResults();
       } catch (clearError) {
-        console.warn('[Keyword Research] Error clearing results:', clearError);
+        logger.warn('[Keyword Research] Error clearing results:', clearError);
         // Continue anyway
       }
       
@@ -131,21 +132,21 @@ export function useKeywordResearchHandlers({
 
         notify.success(notifyKeywordXAnalyzedSuccessfully(primaryKeyword.trim()));
       } catch (analysisError) {
-        console.error("Keyword analysis error:", analysisError);
+        logger.error("Keyword analysis error:", analysisError);
         const errorMessage = analysisError instanceof Error ? analysisError.message : 'Unknown error';
         notify.error(notifyAnalysisFailedX(errorMessage));
         // Don't show stale data if analysis fails
         try {
           clearResults();
         } catch (clearError) {
-          console.warn('[Keyword Research] Error clearing results after analysis failure:', clearError);
+          logger.warn('[Keyword Research] Error clearing results after analysis failure:', clearError);
         }
         // Re-throw to be caught by outer catch
         throw analysisError;
       }
     } catch (error) {
       // Catch any unexpected errors
-      console.error("Unexpected error in keyword analysis:", error);
+      logger.error("Unexpected error in keyword analysis:", error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       notify.error(notifyUnexpectedErrorX(errorMessage));
       
@@ -153,13 +154,13 @@ export function useKeywordResearchHandlers({
       try {
         clearResults();
       } catch (clearError) {
-        console.warn('[Keyword Research] Error clearing results in error handler:', clearError);
+        logger.warn('[Keyword Research] Error clearing results in error handler:', clearError);
       }
       } finally {
       try {
         setIsAnalyzingKeyword(false);
       } catch (stateError) {
-        console.error('[Keyword Research] Error resetting analyzing state:', stateError);
+        logger.error('[Keyword Research] Error resetting analyzing state:', stateError);
       }
     }
   }, [primaryKeyword, location, language, forceRefresh, analyzeKeyword, clearResults, setIsAnalyzingKeyword, setBlueprintAnalysisResult]);

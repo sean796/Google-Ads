@@ -5,6 +5,7 @@
  */
 
 import { streamChatCompletion } from '@/lib/api';
+import { logger } from "@/lib/logger";
 import { getResearchModel } from '@/lib/optimization-settings-storage';
 import type { FullAcfPostContext } from './read-existing-origins-api';
 
@@ -102,7 +103,7 @@ Return a JSON array of ${batch.length} booleans (true=duplicate, false=not), in 
         },
       });
     } catch (err) {
-      console.warn('[Entity AI pool dedupe] AI call failed for batch, keeping batch:', err);
+      logger.warn('[Entity AI pool dedupe] AI call failed for batch, keeping batch:', err);
       kept.push(...batch);
       continue;
     }
@@ -118,7 +119,7 @@ Return a JSON array of ${batch.length} booleans (true=duplicate, false=not), in 
         isDuplicate = [];
       }
     } catch {
-      console.warn('[Entity AI pool dedupe] Failed to parse AI response, keeping batch');
+      logger.warn('[Entity AI pool dedupe] Failed to parse AI response, keeping batch');
     }
 
     for (let i = 0; i < batch.length; i++) {
@@ -226,7 +227,7 @@ Return a JSON array of ${candidatesToCheck.length} booleans (true=duplicate, fal
       },
     });
   } catch (err) {
-    console.warn('[Entity AI dedupe] AI call failed, skipping AI duplicate filter:', err);
+    logger.warn('[Entity AI dedupe] AI call failed, skipping AI duplicate filter:', err);
     onProgress?.('AI duplicate check skipped (API error).');
     return [...candidatesToCheck];
   }
@@ -242,7 +243,7 @@ Return a JSON array of ${candidatesToCheck.length} booleans (true=duplicate, fal
       isDuplicate = [];
     }
   } catch {
-    console.warn('[Entity AI dedupe] Failed to parse AI response, treating all as non-duplicate');
+    logger.warn('[Entity AI dedupe] Failed to parse AI response, treating all as non-duplicate');
   }
 
   const filtered = isDuplicate.length === candidatesToCheck.length

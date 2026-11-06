@@ -1,5 +1,6 @@
 import { isConnectedSiteBrandAsKeyword } from '@/lib/bulk/bulk-gsc-site-queries';
 import { isBlockedContentTopicPhrase } from '@/lib/content-topic-blocklist';
+import { logger } from "@/lib/logger";
 import { parseTitleTemplate } from '../title-template-parser';
 import type { CSVRow } from './bulk-csv-parser-rows';
 
@@ -265,10 +266,9 @@ export function parseBlogIdeasChecklist(
       if (generatedTitle && generatedTitle.trim()) {
         // Override the AI-generated title with template-generated title
         row.title = generatedTitle.trim();
-        console.log(`[Title Template] Row ${index + 1}: Applied template "${titleTemplate}" with variables:`, variables, '→ Result:', row.title);
       } else {
         // If template parsing fails, log warning but keep AI title as fallback
-        console.warn(`[Title Template] Failed to parse template for row ${index + 1}, keeping AI-generated title:`, row.title);
+        logger.warn(`[Title Template] Failed to parse template for row ${index + 1}, keeping AI-generated title:`, row.title);
       }
     });
   }

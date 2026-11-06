@@ -42,11 +42,5 @@ export function removeFeatureLabelArtifacts(content: string): string {
   sanitized = sanitized.replace(/\s{2,}/g, ' ');
   sanitized = sanitized.replace(/\s+\./g, '.');
 
-  if (removedCount > 0) {
-    console.log(
-      `[Content Sanitizer] Removed ${removedCount} feature-label artifact(s) ([LIST]:, [TABLE]:, etc.)`,
-    );
-  }
-
   return sanitized;
 }

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
 import { parseModelJson } from "@/lib/model-json";
 import type { HarnessSectionAnchorEntry } from "@/lib/bulk/harness-section-anchor-ids";
@@ -48,7 +49,7 @@ function normalizeScrollLinkBullet(
   const bulletLabel = got?.bulletLabel?.trim() || defaultBulletLabel(expected.displayTitle);
   let sentenceHtml = got?.sentenceHtml?.trim() || "";
   if (!sentenceHtml) {
-    console.warn(
+    logger.warn(
       `[Overview scroll links] missing sentenceHtml for "${expected.displayTitle}" (#${anchorId}) — skipping bullet`,
     );
     return null;
@@ -56,13 +57,13 @@ function normalizeScrollLinkBullet(
   sentenceHtml = sentenceHtml.replace(/href="#[^"']+"/gi, `href="#${anchorId}"`);
   sentenceHtml = rewaveAppendedOverviewHashLink(sentenceHtml, anchorId);
   if (!sentenceHtml.includes(`href="#${anchorId}"`)) {
-    console.warn(
+    logger.warn(
       `[Overview scroll links] sentenceHtml for "${expected.displayTitle}" missing href="#${anchorId}" — skipping bullet`,
     );
     return null;
   }
   if (/\bfits your seo plan\b/i.test(sentenceHtml.replace(/<[^>]+>/g, " "))) {
-    console.warn(
+    logger.warn(
       `[Overview scroll links] forbidden SEO stub phrasing in bullet for "${expected.displayTitle}" — skipping bullet`,
     );
     return null;
@@ -173,13 +174,13 @@ export function verifyOverviewHarnessScrollLinks(
   opts?: { allowWikipediaUrl?: string },
 ): void {
   if (anchorMap.length === 0) {
-    console.warn("[Overview scroll links] anchor map is empty");
+    logger.warn("[Overview scroll links] anchor map is empty");
     return;
   }
 
   const liCount = countListItems(html);
   if (liCount !== anchorMap.length) {
-    console.warn(
+    logger.warn(
       `[Overview scroll links] expected ${anchorMap.length} bullets, found ${liCount}`,
     );
   }
@@ -189,7 +190,7 @@ export function verifyOverviewHarnessScrollLinks(
   for (const id of expectedIds) {
     const matches = hashHrefs.filter((h) => h === id).length;
     if (matches !== 1) {
-      console.warn(
+      logger.warn(
         `[Overview scroll links] anchor #${id} should appear exactly once (found ${matches})`,
       );
     }
@@ -197,7 +198,7 @@ export function verifyOverviewHarnessScrollLinks(
 
   const badHrefs = collectNonHashHrefs(html, opts?.allowWikipediaUrl);
   if (badHrefs.length > 0) {
-    console.warn(
+    logger.warn(
       `[Overview scroll links] non-# href(s) present: ${badHrefs.slice(0, 3).join(", ")}`,
     );
   }
@@ -213,7 +214,7 @@ export function verifyOverviewHarnessScrollLinks(
     if (closeAt < 0) break;
     const inner = html.slice(openEnd + 1, closeAt);
     if (!liInnerStartsWithBold(inner)) {
-      console.warn("[Overview scroll links] bullet missing <strong>Label</strong>: prefix");
+      logger.warn("[Overview scroll links] bullet missing <strong>Label</strong>: prefix");
     }
     searchFrom = closeAt + 5;
   }
@@ -319,7 +320,7 @@ export async function applyOverviewHarnessScrollLinks(args: {
 }): Promise<string> {
   const { html, anchorMap, articleTitle, keyword, apiKey } = args;
   if (anchorMap.length === 0) {
-    console.warn("[Overview scroll links] cannot rebuild bullets without body H2 anchors — shipping as-is");
+    logger.warn("[Overview scroll links] cannot rebuild bullets without body H2 anchors — shipping as-is");
     return html;
   }
 
@@ -358,7 +359,7 @@ Return JSON with exactly ${anchorMap.length} bullets — one per anchor above, i
     .filter((b): b is OverviewHarnessScrollLinkBullet => b !== null);
 
   if (normalizedBullets.length === 0) {
-    console.warn("[Overview scroll links] scroll-link agent returned no usable bullets — shipping as-is");
+    logger.warn("[Overview scroll links] scroll-link agent returned no usable bullets — shipping as-is");
     return html;
   }
 

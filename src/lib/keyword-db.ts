@@ -1,4 +1,5 @@
 import type { KeywordData, KeywordResearchResult } from "./keyword-types";
+import { logger } from "@/lib/logger";
 
 const KEYWORD_DB_STORAGE_KEY = "keyword-research-db";
 
@@ -52,7 +53,7 @@ export function saveKeywordResearchToDB(
     
     return entryId;
   } catch (error) {
-    console.error("Error saving keyword research to DB:", error);
+    logger.error("Error saving keyword research to DB:", error);
     throw error;
   }
 }
@@ -74,7 +75,7 @@ export function getKeywordResearchFromDB(keyword: string): KeywordResearchResult
       searchIntent: entry.searchIntent,
     };
   } catch (error) {
-    console.error("Error getting keyword research from DB:", error);
+    logger.error("Error getting keyword research from DB:", error);
     return null;
   }
 }
@@ -94,7 +95,7 @@ export function getKeywordResearchByBlueprint(blueprintId: string): KeywordResea
       searchIntent: entry.searchIntent,
     }));
   } catch (error) {
-    console.error("Error getting keyword research by blueprint:", error);
+    logger.error("Error getting keyword research by blueprint:", error);
     return [];
   }
 }
@@ -115,7 +116,7 @@ export function deleteKeywordResearch(keyword: string): void {
     const filtered = db.filter(e => e.keyword.toLowerCase() !== keyword.toLowerCase());
     localStorage.setItem(KEYWORD_DB_STORAGE_KEY, JSON.stringify(filtered));
   } catch (error) {
-    console.error("Error deleting keyword research:", error);
+    logger.error("Error deleting keyword research:", error);
   }
 }
 
@@ -129,7 +130,7 @@ function getKeywordDatabase(): KeywordDatabaseEntry[] {
       return JSON.parse(stored) as KeywordDatabaseEntry[];
     }
   } catch (e) {
-    console.error("Failed to load keyword database:", e);
+    logger.error("Failed to load keyword database:", e);
   }
   return [];
 }
@@ -152,7 +153,7 @@ export function importKeywordResearch(jsonData: string): void {
       localStorage.setItem(KEYWORD_DB_STORAGE_KEY, JSON.stringify(data));
     }
   } catch (error) {
-    console.error("Error importing keyword research:", error);
+    logger.error("Error importing keyword research:", error);
     throw new Error("Invalid keyword research data format");
   }
 }
@@ -164,7 +165,7 @@ export function clearKeywordResearchDB(): void {
   try {
     localStorage.removeItem(KEYWORD_DB_STORAGE_KEY);
   } catch (error) {
-    console.error("Error clearing keyword research database:", error);
+    logger.error("Error clearing keyword research database:", error);
   }
 }
 
@@ -175,7 +176,7 @@ export function clearKeywordResearchCache(): void {
   try {
     localStorage.removeItem("keyword-research-cache");
   } catch (error) {
-    console.error("Error clearing keyword research cache:", error);
+    logger.error("Error clearing keyword research cache:", error);
   }
 }
 

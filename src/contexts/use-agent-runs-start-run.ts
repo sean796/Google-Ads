@@ -1,4 +1,5 @@
 import { useCallback, type Dispatch, type SetStateAction } from "react";
+import { logger } from "@/lib/logger";
 import {
   createAgentRun,
   fetchAgentRun,
@@ -94,7 +95,7 @@ export function useAgentRunsStartRun({
               patchRunInList(run.id, latest);
             })
             .catch((err) => {
-              console.error("[Agent runs] Server run advance failed:", err);
+              logger.error("[Agent runs] Server run advance failed:", err);
             });
         } else if (!agentRunIsServerExecution(run)) {
           if (!options?.workflowBinding) {

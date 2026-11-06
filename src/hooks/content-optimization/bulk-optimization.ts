@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_PLEASE_SELECT_AT_LEAST_ONE_POST_TO_OPTIM } from "@/lib/notify-messages";
 import { setOptimizingState, updateOptimizationProgress } from "./optimization-helpers";
@@ -353,7 +354,7 @@ export async function handleOptimizeMultipleContent(
     return { prepCompleted };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error("[Batch Optimization] Fatal error:", error);
+    logger.error("[Batch Optimization] Fatal error:", error);
     if (!muteToasts) notify.error(errorMessage, { duration: 12000 });
     if (muteToasts) {
       throw error instanceof Error ? error : new Error(errorMessage);

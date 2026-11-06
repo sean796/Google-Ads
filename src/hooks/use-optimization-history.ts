@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { logger } from "@/lib/logger";
 import type { OptimizationHistoryEntry } from "@/components/integrations/wordpress/OptimizationHistoryPanel";
 
 const HISTORY_STORAGE_KEY_PREFIX = "optimization_history_";
@@ -12,7 +13,7 @@ export function useOptimizationHistory(siteId: string) {
         try {
           return JSON.parse(stored);
         } catch (e) {
-          console.error('[OptimizationHistory] Failed to parse stored history:', e);
+          logger.error('[OptimizationHistory] Failed to parse stored history:', e);
         }
       }
     }

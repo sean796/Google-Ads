@@ -3,6 +3,7 @@
  * Interprets ACF prompt_modifier field instructions using AI to determine optimization actions
  */
 
+import { logger } from "@/lib/logger";
 import { loadApiKey, streamChatCompletion } from "@/lib/api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 
@@ -40,7 +41,7 @@ export async function interpretPromptModifier(
   const apiKey = loadApiKey();
   
   if (!apiKey || apiKey.trim().length === 0) {
-    console.warn('[Prompt Modifier Interpreter] No API key available - proceeding with full optimization and passing modifier text through');
+    logger.warn('[Prompt Modifier Interpreter] No API key available - proceeding with full optimization and passing modifier text through');
     return {
       shouldSkipOptimization: false,
       shouldAddImages: false,
@@ -110,7 +111,7 @@ Return ONLY valid JSON.`;
         throw new Error('No JSON found in response');
       }
     } catch (parseError) {
-      console.warn('[Prompt Modifier Interpreter] Failed to parse AI response as JSON, using fallback interpretation:', parseError);
+      logger.warn('[Prompt Modifier Interpreter] Failed to parse AI response as JSON, using fallback interpretation:', parseError);
       // Fallback: use simple keyword matching
       return interpretPromptModifierFallback(trimmedModifier);
     }
@@ -131,7 +132,7 @@ Return ONLY valid JSON.`;
     };
 
   } catch (error) {
-    console.warn('[Prompt Modifier Interpreter] Error interpreting modifier with AI, using fallback:', error);
+    logger.warn('[Prompt Modifier Interpreter] Error interpreting modifier with AI, using fallback:', error);
     // Fallback to simple keyword matching
     return interpretPromptModifierFallback(trimmedModifier);
   }

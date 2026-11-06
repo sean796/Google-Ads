@@ -1,4 +1,5 @@
 import { wordPressSiteHostKey } from "@/lib/wordpress-site-host-key";
+import { logger } from "@/lib/logger";
 
 export const DELETED_WP_SITES_STORAGE_KEY = "neo-pulse-deleted-wp-sites-v1";
 
@@ -106,7 +107,7 @@ export function recordDeletedSite(site: {
       localStorage.setItem(DELETED_WP_SITES_STORAGE_KEY, JSON.stringify(tombstones));
     }
   } catch (e) {
-    console.warn("[storage] Failed to record deleted site tombstone:", e);
+    logger.warn("[storage] Failed to record deleted site tombstone:", e);
   }
 }
 

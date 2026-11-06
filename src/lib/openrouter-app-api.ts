@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { promptTraceInputs, recordPromptTraceCall } from "@/lib/openrouter-prompt-trace";
 import {
   buildOpenRouterAppChatRequestBody,
@@ -105,16 +106,6 @@ export async function postOpenRouterAppChat(args: {
       finishReason,
       response,
     });
-  console.log(
-    `%c[OpenRouter API] 🚀 POST /openrouter/chat-completion`,
-    "color: #84bc00; font-weight: bold;",
-    {
-      model: effectiveModel,
-      maxTokens: args.maxTokens,
-      temperature: args.temperature,
-      payloadBytes: payloadStr.length,
-    },
-  );
   let response: Response | undefined;
   for (let attempt = 1; attempt <= 3; attempt++) {
     response = await fetch(openRouterChatCompletionUrl(), {
@@ -143,12 +134,6 @@ export async function postOpenRouterAppChat(args: {
     throw new Error("OpenRouter request failed");
   }
 
-  const elapsedSec = ((Date.now() - openRouterStart) / 1000).toFixed(1);
-  console.log(
-    `%c[OpenRouter API] 🏁 Response in ${elapsedSec}s (HTTP ${response.status})`,
-    response.ok ? "color: #84bc00; font-weight: bold;" : "color: #ff4444; font-weight: bold;",
-    { status: response.status },
-  );
 
   let data: {
     ok?: boolean;
@@ -180,7 +165,7 @@ export async function postOpenRouterAppChat(args: {
     const errorMsg =
       (typeof data.error === "string" ? data.error : data.error?.message) ||
       `OpenRouter error (${response.status})`;
-    console.error(
+    logger.error(
       `%c[OpenRouter API] ❌ Error (${response.status}):`,
       "color: #ff4444; font-weight: bold;",
       errorMsg,
@@ -285,7 +270,7 @@ export async function streamOpenRouterAppChat(args: {
       finishReason,
       response,
     });
-  const log = (event: string, data?: unknown) => console.log(`[video:openrouter-stream] ${event}`, data ?? "");
+  const log = (event: string, data?: unknown) => logger.debug(`[video:openrouter-stream] ${event}`, data ?? "");
   log("request sent", { model: args.model, maxTokens: args.maxTokens, messages: args.messages.length, reasoning: args.reasoning?.effort });
   const response = await fetch(openRouterChatCompletionUrl(), {
     method: "POST",
@@ -298,7 +283,7 @@ export async function streamOpenRouterAppChat(args: {
   log("response headers", { status: response.status, contentType: response.headers.get("content-type"), ms: Date.now() - startedAt });
   if (!response.ok || !response.body) {
     const text = (await response.text()).trim();
-    console.error("[video:openrouter-stream] request failed", { status: response.status, body: text.slice(0, 500) });
+    logger.error("[video:openrouter-stream] request failed", { status: response.status, body: text.slice(0, 500) });
     recordTrace(`error ${response.status}`, text);
     throw new Error(text || `OpenRouter error (${response.status})`);
   }
@@ -314,14 +299,14 @@ export async function streamOpenRouterAppChat(args: {
     try {
       json = JSON.parse(data);
     } catch (e) {
-      console.error("[video:openrouter-stream] unparseable line", data.slice(0, 300));
+      logger.error("[video:openrouter-stream] unparseable line", data.slice(0, 300));
       throw e;
     }
     if (!acc.servedModel && typeof json.model === "string" && json.model.trim()) {
       acc.servedModel = json.model;
     }
     if (json.error) {
-      console.error("[video:openrouter-stream] error event", json.error);
+      logger.error("[video:openrouter-stream] error event", json.error);
       throw new Error(json.error.message?.trim() || "OpenRouter stream error");
     }
     const choice = json.choices?.[0];

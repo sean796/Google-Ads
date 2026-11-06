@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import type { WpPostSnapshotFromAcfByUrl } from "@/lib/wordpress-api/fields-client";
 import {
   normalizeMatch,
@@ -237,7 +238,7 @@ export async function bulkOptimizationDoPrefetch(
     if (seoExtraOnly) {
       const stubId = Number(existingPost?.id);
       if (!existingPost || !Number.isFinite(stubId) || stubId <= 0) {
-        console.warn(
+        logger.warn(
           `[Bulk Optimization] SEO extra text prefetch skipped index ${urlIndex}: no bound post ID`,
           targetUrl,
         );
@@ -376,7 +377,7 @@ export async function bulkOptimizationDoPrefetch(
     });
     touchPrefetchHarness(setBulkOptimizationState, batchKey, targetUrl.trim(), urlIndex, "done");
   } catch (wpErr) {
-    console.warn(`[Bulk Optimization] Prefetch for index ${urlIndex} failed:`, wpErr);
+    logger.warn(`[Bulk Optimization] Prefetch for index ${urlIndex} failed:`, wpErr);
     throw wpErr instanceof Error ? wpErr : new Error(String(wpErr));
   }
 }

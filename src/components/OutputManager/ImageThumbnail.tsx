@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import * as React from "react";
 import { Image as ImageIcon } from "lucide-react";
 import { Dialog, DialogContent } from "@/ui";
+import { logger } from "@/lib/logger";
 
 
 interface ImageThumbnailProps {
@@ -31,7 +32,7 @@ export const ImageThumbnail = ({
   }, [src]);
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    console.error('ImageThumbnail load error:', {
+    logger.error('ImageThumbnail load error:', {
       srcPrefix: normalizedSrc?.substring(0, 100),
       hasSrc: !!normalizedSrc,
       srcLength: normalizedSrc?.length

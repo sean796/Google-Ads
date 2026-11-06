@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import type { ResearchLink } from "./keyword-types";
 
 /**
@@ -217,7 +218,7 @@ export function extractUrlsFromSerp(serpData: unknown): string[] {
             try {
               extractUrlsFromResultItem(resultItem, urls);
             } catch (itemError) {
-              console.warn('[Link Extractor] Error extracting from result item:', itemError);
+              logger.warn('[Link Extractor] Error extracting from result item:', itemError);
               continue;
             }
           }
@@ -227,12 +228,12 @@ export function extractUrlsFromSerp(serpData: unknown): string[] {
           try {
             extractUrlsFromResultItem(task.result, urls);
           } catch (itemError) {
-            console.warn('[Link Extractor] Error extracting from result object:', itemError);
+            logger.warn('[Link Extractor] Error extracting from result object:', itemError);
             continue;
           }
         }
       } catch (taskError) {
-        console.warn('[Link Extractor] Error processing task:', taskError);
+        logger.warn('[Link Extractor] Error processing task:', taskError);
         continue;
       }
     }
@@ -255,7 +256,7 @@ export function extractUrlsFromSerp(serpData: unknown): string[] {
     
     return uniqueUrls;
   } catch (error) {
-    console.error('[Link Extractor] Error in extractUrlsFromSerp:', error);
+    logger.error('[Link Extractor] Error in extractUrlsFromSerp:', error);
     return [];
   }
 }

@@ -1,6 +1,7 @@
 import { getMediaWikiApiUrlWithQuery } from "./mediawiki-api-url";
 import { checkWikipediaPageExists, searchWikipediaPages } from "./mediawiki-search";
 import { wikipediaArticleUrl } from "./wiki-urls";
+import { logger } from "@/lib/logger";
 
 export type WikipediaPageLeadImage = {
   title: string;
@@ -92,7 +93,7 @@ export async function fetchWikipediaPageImageUrl(
 
     return null;
   } catch (error) {
-    console.warn(`[Wikipedia API] Error fetching pageimage for "${t}":`, error);
+    logger.warn(`[Wikipedia API] Error fetching pageimage for "${t}":`, error);
     return null;
   }
 }

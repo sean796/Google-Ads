@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import { notify } from "@/lib/app-notifications";
+import { logger } from "@/lib/logger";
 import { notifyReshuffledXNewKeywordsXHeld } from "@/lib/notify-messages";
 import type {
   KeywordData,
@@ -118,18 +119,6 @@ export async function runRegenerateKeywords(
         };
         
         setAiAnalysis(mergedAnalysis);
-        console.log('[Keyword Research] Keywords reshuffled - held keywords preserved:', {
-          heldKeywords: selectedKeywords,
-          newVariations: newVariations.length,
-          newLongTail: newLongTail.length,
-          newSemantic: newSemantic.length,
-          totalAfterMerge: {
-            variations: mergedAnalysis.keywordSuggestions.variations.length,
-            longTail: mergedAnalysis.keywordSuggestions.longTail.length,
-            semantic: mergedAnalysis.keywordSuggestions.semantic.length,
-          }
-        });
-
         // Fetch search volume for both held keywords and new regenerated keywords
         const allKeywordsToFetch = [
           ...selectedKeywords, // Held keywords need volume data too
@@ -164,16 +153,15 @@ export async function runRegenerateKeywords(
               return volumeMap;
             });
             
-            console.log('[Keyword Research] Fetched search volume for', regeneratedKeywordsWithData.length, 'keywords (held + new)');
           } catch (error) {
-            console.warn("Error fetching search volume for regenerated keywords:", error);
+            logger.warn("Error fetching search volume for regenerated keywords:", error);
           }
         }
 
         notify.success(notifyReshuffledXNewKeywordsXHeld(newVariations.length + newLongTail.length + newSemantic.length, selectedKeywords.length));
         return { analysis: mergedAnalysis, keywordsWithData: regeneratedKeywordsWithData };
       } catch (error) {
-        console.error("Error regenerating keywords:", error);
+        logger.error("Error regenerating keywords:", error);
         throw error;
       } finally {
         setIsAnalyzingWithAI(false);

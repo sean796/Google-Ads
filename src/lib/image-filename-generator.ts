@@ -1,4 +1,5 @@
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
+import { logger } from "@/lib/logger";
 import { getMetaModel } from "./optimization-settings-storage";
 
 /**
@@ -93,7 +94,7 @@ Featured images should end with -featured when it fits.`;
 
     return `${filename}.png`;
   } catch (error) {
-    console.error("Error generating SEO filename:", error);
+    logger.error("Error generating SEO filename:", error);
     return filenameFromTitleFallback(sourceText, imageType);
   }
 }

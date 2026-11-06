@@ -168,12 +168,7 @@ export function useOverviewAiOptimize(options: UseOverviewAiOptions): UseOvervie
         { role: "user", content: userPrompt },
       ];
 
-      const startedAt = Date.now();
       const activeModel = resolveMetaModel();
-      console.log("[Auto SEO][OpenRouter Start]", {
-        model: activeModel,
-        maxTokens: maxTokensOverride ?? Math.min(maxTokens || 1024, 1500),
-      });
 
       let result = "";
       const completion = await streamChatCompletion({
@@ -193,12 +188,6 @@ export function useOverviewAiOptimize(options: UseOverviewAiOptions): UseOvervie
       const finalRaw = (result.trim() || completion?.content?.trim() || "").trim();
       assertNoForbiddenWordViolations(finalRaw, "Overview optimize output");
       const cleaned = finalRaw;
-      console.log("[Auto SEO][OpenRouter Done]", {
-        model: activeModel,
-        ms: Date.now() - startedAt,
-        chars: cleaned.length,
-        preview: cleaned.slice(0, 140),
-      });
       return cleaned;
     },
     [apiKey, resolveMetaModel, temperature, maxTokens, topP, wordPressSiteId],

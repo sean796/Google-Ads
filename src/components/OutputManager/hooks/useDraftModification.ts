@@ -16,6 +16,7 @@ import {
   mergeSectionsIntoMarkdown,
   validateSectionMerge,
 } from "@/lib/section-parser";
+import { logger } from "@/lib/logger";
 import { useModificationTimer } from "./useModificationTimer";
 
 interface UseDraftModificationProps {
@@ -164,7 +165,7 @@ export function useDraftModification({
         setHasGeneratedDraftChecklist(true);
       }
     } catch (error) {
-      console.error("Draft checklist generation error:", error);
+      logger.error("Draft checklist generation error:", error);
       notify.error(NOTIFY_FAILED_TO_GENERATE_CHECKLIST_PLEASE_TRY_);
       setDraftChatMessages(prev => prev.slice(0, -1));
     } finally {
@@ -266,7 +267,7 @@ export function useDraftModification({
           // Validate merge
           const validation = validateSectionMerge(allSections, mergedDraft);
           if (!validation.valid && validation.missing.length > 0) {
-            console.warn("Some sections may be missing after merge:", validation.missing);
+            logger.warn("Some sections may be missing after merge:", validation.missing);
           }
           
           // Final update with complete merged content
@@ -327,7 +328,7 @@ export function useDraftModification({
         throw new Error("No draft report content generated");
       }
     } catch (error) {
-      console.error("Draft report update error:", error);
+      logger.error("Draft report update error:", error);
       notify.error(NOTIFY_FAILED_TO_UPDATE_DRAFT_REPORT_PLEASE_TRY);
     } finally {
       setIsUpdatingDraft(false);

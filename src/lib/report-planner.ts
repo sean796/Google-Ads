@@ -3,6 +3,7 @@
  * AI-driven report section planning based on available data
  */
 
+import { logger } from "@/lib/logger";
 import { streamChatCompletion } from "./api";
 import { getResearchModel } from "./optimization-settings-storage";
 import type { ReportDiscoveryData } from "./report-discovery";
@@ -153,7 +154,7 @@ Only include sections that make sense. When entity sitemap exists, MUST include 
 
     return parsed;
   } catch (error) {
-    console.error("[Report Planner] AI planning failed:", error);
+    logger.error("[Report Planner] AI planning failed:", error);
     throw new Error(
       "Report plan could not be generated: the AI returned invalid JSON. Please try again. If it keeps failing, check your connection or try a different model."
     );

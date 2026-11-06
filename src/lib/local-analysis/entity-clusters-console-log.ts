@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+
 const LOG_PREFIX = "[Neo Pulse Clusters]";
 
 export type EntityClustersSurface = "locations" | "competitors";
@@ -30,15 +32,14 @@ export function logClustersButtonPress(
   snapshot: Record<string, unknown>,
 ): void {
   const safe = sanitizeForClustersLog(snapshot) as Record<string, unknown>;
-  console.group(`${LOG_PREFIX} ${surface} — Clusters button`);
-  console.log("timestamp", new Date().toISOString());
-  console.log("snapshot", safe);
+  logger.debug(`${LOG_PREFIX} ${surface} — Clusters button`);
+  logger.debug("timestamp", new Date().toISOString());
+  logger.debug("snapshot", safe);
   try {
-    console.log("snapshot_json", JSON.stringify(safe, null, 2));
+    logger.debug("snapshot_json", JSON.stringify(safe, null, 2));
   } catch {
-    console.log("snapshot_json", "[could not stringify]");
+    logger.debug("snapshot_json", "[could not stringify]");
   }
-  console.groupEnd();
 }
 
 /** Follow-up pipeline phases after the initial click log. */
@@ -49,13 +50,13 @@ export function logClustersPipeline(
 ): void {
   const safe = detail ? (sanitizeForClustersLog(detail) as Record<string, unknown>) : undefined;
   if (safe) {
-    console.log(`${LOG_PREFIX} ${surface} — ${phase}`, safe);
+    logger.debug(`${LOG_PREFIX} ${surface} — ${phase}`, safe);
     try {
-      console.log(`${LOG_PREFIX} ${surface} — ${phase} (json)`, JSON.stringify(safe, null, 2));
+      logger.debug(`${LOG_PREFIX} ${surface} — ${phase} (json)`, JSON.stringify(safe, null, 2));
     } catch {
       /* ignore */
     }
   } else {
-    console.log(`${LOG_PREFIX} ${surface} — ${phase}`);
+    logger.debug(`${LOG_PREFIX} ${surface} — ${phase}`);
   }
 }

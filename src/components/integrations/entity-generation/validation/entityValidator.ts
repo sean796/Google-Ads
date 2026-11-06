@@ -59,7 +59,6 @@ export function isValidEntity(entity: string): boolean {
   
   // Reject "List of ..." - these are Wikipedia list pages, not location entities
   if (entityLower.startsWith('list of ')) {
-    console.log(`[Entity Generation] ✗ Entity "${entity}" is a list page - REJECTED`);
     return false;
   }
 
@@ -72,7 +71,6 @@ export function isValidEntity(entity: string): boolean {
   // Check if entity is an allowed competitor
   for (const allowed of allowedCompetitors) {
     if (entityLower === allowed || entityLower.includes(allowed)) {
-      console.log(`[Entity Validation] ✓ Entity "${entity}" is an allowed competitor - ACCEPTED`);
       return true;
     }
   }
@@ -81,19 +79,16 @@ export function isValidEntity(entity: string): boolean {
   // Check for 4-digit years (1900-2099) - even if standalone or in any context
   const yearPattern = /^(19|20)\d{2}$/;
   if (yearPattern.test(entityLower)) {
-    console.log(`[Entity Validation] ✗ Entity "${entity}" is a year - REJECTED`);
     return false;
   }
   
   // AGGRESSIVE: Reject ANY entity that is ONLY a number (could be a year)
   if (/^\d+$/.test(entityLower)) {
-    console.log(`[Entity Validation] ✗ Entity "${entity}" is only a number - REJECTED`);
     return false;
   }
   
   // AGGRESSIVE: Reject entities that START or END with a 4-digit year
   if (/^(19|20)\d{2}/.test(entityLower) || /(19|20)\d{2}$/.test(entityLower)) {
-    console.log(`[Entity Validation] ✗ Entity "${entity}" starts or ends with a year - REJECTED`);
     return false;
   }
   
@@ -110,7 +105,6 @@ export function isValidEntity(entity: string): boolean {
   
   for (const pattern of datePatterns) {
     if (pattern.test(entityLower)) {
-      console.log(`[Entity Validation] ✗ Entity "${entity}" is a date - REJECTED`);
       return false;
     }
   }
@@ -123,7 +117,6 @@ export function isValidEntity(entity: string): boolean {
     const dateKeywords = ['year', 'date', 'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december', 'jan', 'feb', 'mar', 'apr', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
     const hasDateKeyword = dateKeywords.some(keyword => entityLower.includes(keyword));
     if (hasDateKeyword || /^\d{4}/.test(entityLower) || /\d{4}$/.test(entityLower)) {
-      console.log(`[Entity Validation] ✗ Entity "${entity}" contains a year/date - REJECTED`);
       return false;
     }
   }
@@ -146,7 +139,6 @@ export function isValidEntity(entity: string): boolean {
   
   for (const pattern of rejectedPatterns) {
     if (pattern.test(entityLower)) {
-      console.log(`[Entity Validation] ✗ Entity "${entity}" matches rejected pattern - REJECTED`);
       return false;
     }
   }
@@ -176,7 +168,6 @@ export function isValidEntity(entity: string): boolean {
   
   for (const pattern of personalEntityPatterns) {
     if (pattern.test(entityLower)) {
-      console.log(`[Entity Validation] ✗ Entity "${entity}" is a personal entity - REJECTED`);
       return false;
     }
   }
@@ -208,7 +199,6 @@ export function isValidEntity(entity: string): boolean {
     });
     
     if (matchesGenericTerm) {
-      console.log(`[Entity Validation] ✗ Entity "${entity}" is a personal/business generic entity - REJECTED`);
       return false;
     }
     
@@ -226,7 +216,6 @@ export function isValidEntity(entity: string): boolean {
       /\b(california|texas|florida|new york|ontario|alberta|british columbia|quebec|toronto|vancouver|edmonton|calgary|montreal|ottawa|winnipeg|halifax|victoria|regina|saskatoon|windsor|hamilton|kitchener|london|barrie|oshawa|sudbury|thunder bay|saint john|fredericton|charlottetown|whitehorse|yellowknife|iqaluit|new jersey|pennsylvania|illinois|ohio|michigan|georgia|north carolina|virginia|massachusetts|tennessee|indiana|arizona|missouri|maryland|wisconsin|colorado|minnesota|south carolina|alabama|louisiana|kentucky|oregon|oklahoma|connecticut|utah|iowa|nevada|arkansas|mississippi|kansas|new mexico|nebraska|west virginia|idaho|hawaii|new hampshire|maine|montana|rhode island|delaware|south dakota|north dakota|alaska|vermont|wyoming|district of columbia)\b/i.test(entity);
     
     if (!looksLikeGeographicLocation) {
-      console.log(`[Entity Validation] ✗ Entity "${entity}" starts with personal prefix but is NOT a clear geographic location - REJECTED (entities must be geolocations only)`);
       return false;
     }
   }
@@ -244,7 +233,6 @@ export function isValidEntity(entity: string): boolean {
   
   // First check: If entity is EXACTLY a business term (standalone), reject immediately
   if (businessPersonalTerms.includes(entityLower)) {
-    console.log(`[Entity Validation] ✗ Entity "${entity}" is a standalone business/workplace term - REJECTED (entities must be geolocations only)`);
     return false;
   }
   
@@ -262,7 +250,6 @@ export function isValidEntity(entity: string): boolean {
   });
   
   if (containsBusinessTerm) {
-    console.log(`[Entity Validation] ✗ Entity "${entity}" contains business/personal term but is NOT a geographic location - REJECTED (entities must be geolocations only)`);
     return false;
   }
   
@@ -311,7 +298,6 @@ export function isValidEntity(entity: string): boolean {
   // Check if entity exactly matches or starts with a generic phrase
   for (const phrase of genericPhrases) {
     if (entityLower === phrase || entityLower.startsWith(phrase + ' ')) {
-      console.log(`[Entity Validation] ✗ Entity "${entity}" is a generic phrase - REJECTED`);
       return false;
     }
   }

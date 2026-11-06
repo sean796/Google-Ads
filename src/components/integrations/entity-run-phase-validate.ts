@@ -8,6 +8,7 @@ import { checkConflicts } from "@/components/integrations/entity-generation/filt
 import { checkWikipediaPageExists } from "@/lib/wikipedia-api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import type { EntityRunDeps } from "@/components/integrations/entity-run-ctx";
+import { logger } from "@/lib/logger";
 
 export async function runEntityPhaseValidate(d: EntityRunDeps): Promise<boolean> {
   const { s, v, c } = d;
@@ -25,10 +26,9 @@ try {
   );
   if (scheduledResult.posts && scheduledResult.posts.length > 0) {
     scheduledPostTitles = scheduledResult.posts.map(post => post.title?.toLowerCase() || '');
-    console.log(`[Entity Generation] Checking against ${scheduledPostTitles.length} scheduled posts`);
   }
 } catch (error) {
-  console.warn('[Entity Generation] Could not fetch scheduled posts for conflict checking:', error);
+  logger.warn('[Entity Generation] Could not fetch scheduled posts for conflict checking:', error);
 }
 
 // Step 6: Filter out conflicts with existing entities (sitemap + Origin ACF); uses prefix/substring match so e.g. "Garden City" excludes "Garden City, Winnipeg"
@@ -37,7 +37,6 @@ const nonConflictingEntities = conflictResult.nonConflictingEntities;
 const conflictWithExistingCount = conflictResult.conflictStats.conflictWithExistingCount;
 const conflictWithPostsCount = conflictResult.conflictStats.conflictWithPostsCount;
 
-console.log(`[Entity Generation] After conflict filtering: ${nonConflictingEntities.length} entities remain (${conflictWithExistingCount} conflicted with existing, ${conflictWithPostsCount} conflicted with scheduled posts)`);
 
 // Step 6.5: Validate entities are NOT in sitemap (filter out existing ones)
 let sitemapFilteredCount = 0;
@@ -49,7 +48,6 @@ const entitiesNotInSitemap = nonConflictingEntities.filter(entity => {
   return notInSitemap;
 });
 
-console.log(`[Entity Generation] After sitemap validation: ${entitiesNotInSitemap.length} entities remain (${sitemapFilteredCount} filtered out as they exist in sitemap)`);
 
 if (entitiesNotInSitemap.length === 0) {
   notify.error(notifyAllEntitiesWereFilteredOutXConflic(conflictWithExistingCount, conflictWithPostsCount, sitemapFilteredCount));
@@ -73,11 +71,9 @@ if (entitiesNotInSitemap.length > c.count * selectionMultiplier) {
   // Randomly shuffle and select
   const shuffled = [...entitiesNotInSitemap].sort(() => Math.random() - 0.5);
   selectedEntities = shuffled.slice(0, c.count * selectionMultiplier);
-  console.log(`[Entity Generation] Selected ${selectedEntities.length} entities from ${entitiesNotInSitemap.length} available for Wikipedia validation`);
 } else {
   // Use all available entities
   selectedEntities = entitiesNotInSitemap;
-  console.log(`[Entity Generation] Using all ${selectedEntities.length} entities for Wikipedia validation`);
 }
 
 // Format entities (add city if needed)
@@ -141,7 +137,6 @@ while (c.entitiesWithWikipedia.length < c.count && c.retryCount < maxRetries) {
     
     // CRITICAL: Validate entity before processing (reject "Your Home" type entities, allow "hunter douglas")
     if (!v.isValidEntity(entity)) {
-      console.log(`[Entity Generation] ✗ Entity "${entity}" failed validation - REJECTED. Continuing search...`);
       continue; // Skip invalid entities
     }
     
@@ -193,11 +188,9 @@ while (c.entitiesWithWikipedia.length < c.count && c.retryCount < maxRetries) {
             
             // CRITICAL: ONLY include entities where matches === true (STRICT validation)
             if (validationResult.matches !== true) {
-              console.log(`[Entity Generation] ✗ Entity "${validatedEntity}" does NOT match criteria (matches: ${validationResult.matches}, confidence: ${validationResult.confidence}%) - REJECTED. Continuing search for matching entities...`);
               continue; // Skip this entity completely - will search for replacement
             }
             
-            console.log(`[Entity Generation] ✓ Entity "${validatedEntity}" MATCHES criteria (confidence: ${validationResult.confidence}%) - ACCEPTED [${c.entitiesWithWikipedia.length + 1}/${c.count}]`);
             
             // Only push to c.entitiesWithWikipedia if it matches
             c.entitiesWithWikipedia.push({
@@ -207,9 +200,8 @@ while (c.entitiesWithWikipedia.length < c.count && c.retryCount < maxRetries) {
               criteriaData
             });
           } catch (error) {
-            console.warn(`[Entity Generation] Error validating "${validatedEntity}" by criteria:`, error);
+            logger.warn(`[Entity Generation] Error validating "${validatedEntity}" by criteria:`, error);
             // If validation fails and we have criteria, skip it (don't include uncertain entities)
-            console.log(`[Entity Generation] ✗ Entity "${validatedEntity}" validation failed - REJECTED. Continuing search...`);
             continue; // Skip this entity
           }
         } else {
@@ -223,10 +215,9 @@ while (c.entitiesWithWikipedia.length < c.count && c.retryCount < maxRetries) {
         }
       } else {
         // Entity doesn't have Wikipedia page - skip it
-        console.log(`[Entity Generation] Entity "${entity}" has no Wikipedia page - skipping`);
       }
     } catch (error) {
-      console.warn(`[Entity Generation] Error checking Wikipedia for "${entity}":`, error);
+      logger.warn(`[Entity Generation] Error checking Wikipedia for "${entity}":`, error);
     }
   }
   
@@ -247,11 +238,10 @@ while (c.entitiesWithWikipedia.length < c.count && c.retryCount < maxRetries) {
     });
     
     if (remainingCandidates.length === 0) {
-      console.warn(`[Entity Generation] No more candidates available from initial pool. Found ${c.entitiesWithWikipedia.length}/${c.count} matching entities.`);
+      logger.warn(`[Entity Generation] No more candidates available from initial pool. Found ${c.entitiesWithWikipedia.length}/${c.count} matching entities.`);
       
       // If we haven't exhausted retries and we have Google entities, try getting more from Google
       if (c.retryCount < maxRetries && c.entitiesFromGoogle.length > 0 && c.promptModifier && c.researchQuestion) {
-        console.log(`[Entity Generation] Attempting to get more entities from Google search...`);
         
         // Try a different search query variant
         try {
@@ -287,7 +277,6 @@ Return ONLY the search question, nothing else.`;
 
           const altSearchQuestion = altSearchResponse.trim().replace(/^["']|["']$/g, '').trim();
           if (altSearchQuestion && altSearchQuestion.length > 10 && altSearchQuestion !== c.researchQuestion) {
-            console.log(`[Entity Generation] Trying alternative search: "${altSearchQuestion}"`);
             notify.info(NOTIFY_SEARCHING_FOR_MORE_ENTITIES_WITH_ALTERNA);
             
             // Search again with alternative query - use c.primaryCity which has the correct location from modifier
@@ -387,17 +376,16 @@ Return ONLY a JSON array of entity names from "${altSearchLocation}".`;
                     
                     if (newCandidates.length > 0) {
                       c.candidatePool.push(...newCandidates);
-                      console.log(`[Entity Generation] Added ${newCandidates.length} new candidates from alternative search`);
                     }
                   }
                 } catch (parseError) {
-                  console.warn('[Entity Generation] Failed to parse alternative extraction response');
+                  logger.warn('[Entity Generation] Failed to parse alternative extraction response');
                 }
               }
             }
           }
         } catch (error) {
-          console.warn('[Entity Generation] Error getting alternative search results:', error);
+          logger.warn('[Entity Generation] Error getting alternative search results:', error);
         }
         
         // If we still have no candidates after trying alternative search, break
@@ -408,7 +396,7 @@ Return ONLY a JSON array of entity names from "${altSearchLocation}".`;
         });
         
         if (stillRemaining.length === 0) {
-          console.warn(`[Entity Generation] Exhausted all candidate sources. Found ${c.entitiesWithWikipedia.length}/${c.count} matching entities.`);
+          logger.warn(`[Entity Generation] Exhausted all candidate sources. Found ${c.entitiesWithWikipedia.length}/${c.count} matching entities.`);
           break;
         }
         
@@ -440,7 +428,6 @@ Return ONLY a JSON array of entity names from "${altSearchLocation}".`;
         return entity;
       });
     
-    console.log(`[Entity Generation] Retry ${c.retryCount}: Validating ${currentBatch.length} more candidates to find ${c.count - c.entitiesWithWikipedia.length} more matching entities`);
   } else {
     // We got some matches, continue with remaining candidates
     const remainingInBatch = currentBatch.filter(e => {

@@ -44,9 +44,6 @@ export function forceConvertMarkdownLinks(content: string): string {
     });
     iterations++;
   }
-  if (iterations > 1 && out !== content) {
-    console.log(`[Content Sanitizer] forceConvertMarkdownLinks: ran ${iterations} pass(es)`);
-  }
   return out;
 }
 
@@ -265,13 +262,6 @@ export function convertAllMarkdownToHtml(content: string): string {
     stats.unorderedListItems +
     stats.orderedListItems +
     stats.tables;
-  if (total > 0) {
-    console.log(
-      `[Content Sanitizer] convertAllMarkdownToHtml: converted ${total} markdown pattern(s)`,
-      stats
-    );
-  }
-
   return out;
 }
 

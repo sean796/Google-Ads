@@ -2,6 +2,7 @@
  * Overview scroll-link rules: model writes contextual <ul>; code completes exact # hrefs only.
  */
 import type { HarnessSectionAnchorEntry } from "@/lib/bulk/harness-section-anchor-ids";
+import { logger } from "@/lib/logger";
 import { stripHtmlTagsForSentenceCheck } from "@/lib/bulk/harness-section-complete-sentences";
 import { ensureOverviewBulletBoldLabels } from "@/lib/overview/overview-bullet-bold-labels";
 import { findPhraseOutsideTags } from "@/lib/overview/overview-blog-links-extract";
@@ -281,7 +282,7 @@ function stripInternalLinksFromOverviewBulletBody(inner: string): string {
 function warnOverviewBulletScrollLink(body: string, anchor: OverviewAnchorTarget, index: number): void {
   const idPattern = anchor.id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   if (!new RegExp(`href\\s*=\\s*(["'])#${idPattern}\\1`, "i").test(body)) {
-    console.warn(
+    logger.warn(
       `[Overview scroll links] bullet ${index + 1} for "${anchor.label}" (#${anchor.id}) missing expected hash link — shipping model output as-is`,
     );
   }
@@ -298,7 +299,7 @@ function finalizeOverviewScrollLi(
   index: number,
 ): string {
   if (!existingInner?.trim()) {
-    console.warn(
+    logger.warn(
       `[Overview scroll links] bullet ${index + 1} for "${anchor.label}" (#${anchor.id}) is missing — skipping`,
     );
     return "";
@@ -308,7 +309,7 @@ function finalizeOverviewScrollLi(
   const passthrough = () => passthroughOverviewScrollLi(inner);
 
   if (overviewScrollLinkUsesBoilerplate(inner)) {
-    console.warn(
+    logger.warn(
       `[Overview scroll links] bullet ${index + 1} for "${anchor.label}" uses forbidden boilerplate — shipping as-is`,
     );
     return passthrough();
@@ -326,7 +327,7 @@ function finalizeOverviewScrollLi(
   let body = inner.replace(/^\s*<strong>[^<]*<\/strong>:?\s*/i, "").trim();
 
   if (overviewHashLinksAreCorrupted(body)) {
-    console.warn(
+    logger.warn(
       `[Overview scroll links] bullet ${index + 1} for "${anchor.label}" has corrupted anchor markup — shipping as-is`,
     );
     return passthrough();
@@ -372,7 +373,7 @@ export function completeOverviewScrollLinks(
   const { before, liInners, after } = splitOverviewUlParts(prepared);
 
   if (liInners.length < targets.length) {
-    console.warn(
+    logger.warn(
       `[Overview scroll links] expected ${targets.length} model-written bullets, found ${liInners.length} — processing available bullets only`,
     );
   }

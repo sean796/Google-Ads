@@ -3,6 +3,7 @@
  * Uses AI to analyze and select relevant WordPress posts for blog keywords
  */
 
+import { logger } from "@/lib/logger";
 import { streamChatCompletion } from './api';
 import { getResearchModel } from './optimization-settings-storage';
 import type { PublishedPostsResult } from './wordpress-api';
@@ -71,14 +72,12 @@ export async function selectRelevantPostsForBlog(
           excerpt: p.excerpt,
           link: p.link
         }));
-        console.log(`[WordPress Post Selector] Using ${postsToUse.length} posts from cache search for keyword: ${blogKeyword}`);
       } else {
         // Fallback to provided postsMetadata if cache not available
         postsToUse = postsMetadata || [];
-        console.log(`[WordPress Post Selector] Cache not available, using provided postsMetadata (${postsToUse.length} posts)`);
       }
     } catch (error) {
-      console.warn('[WordPress Post Selector] Error using cache, falling back to provided postsMetadata:', error);
+      logger.warn('[WordPress Post Selector] Error using cache, falling back to provided postsMetadata:', error);
       postsToUse = postsMetadata || [];
     }
   } else {
@@ -192,7 +191,7 @@ CRITICAL: You MUST select at least 1 post. If no posts are highly relevant, sele
       result = JSON.parse(jsonStr) as PostSelectionResult;
     } catch (parseError) {
       // If parsing fails, return empty - the fallback below will select the first post
-      console.warn('[WordPress Post Selector] JSON parse failed, will use fallback selection:', parseError);
+      logger.warn('[WordPress Post Selector] JSON parse failed, will use fallback selection:', parseError);
       result = {
         selectedPosts: [],
         reasoning: 'Failed to parse AI response - will use fallback'
@@ -237,7 +236,7 @@ CRITICAL: You MUST select at least 1 post. If no posts are highly relevant, sele
         relevanceScore: 50, // Neutral score for fallback
         reasoning: 'Selected as fallback to ensure blog idea has associated WordPress post for context',
       }];
-      console.warn(`[WordPress Post Selector] No posts selected for blog "${blogTitle}", using fallback: ${fallbackPost.title}`);
+      logger.warn(`[WordPress Post Selector] No posts selected for blog "${blogTitle}", using fallback: ${fallbackPost.title}`);
     }
 
     return {
@@ -245,8 +244,8 @@ CRITICAL: You MUST select at least 1 post. If no posts are highly relevant, sele
       reasoning: result.reasoning || 'Posts selected based on keyword and title relevance.',
     };
   } catch (error) {
-    console.error('[WordPress Post Selector] Error parsing AI response:', error);
-    console.error('[WordPress Post Selector] Raw response:', fullResponse);
+    logger.error('[WordPress Post Selector] Error parsing AI response:', error);
+    logger.error('[WordPress Post Selector] Raw response:', fullResponse);
     
     // Fallback: return empty selection with error message
     return {
@@ -283,7 +282,6 @@ export async function selectRelevantPostsForMultipleBlogs(
   for (let i = 0; i < blogData.length; i++) {
     const blog = blogData[i];
     try {
-      console.log(`[WordPress Post Selector] Selecting posts for blog #${i + 1}: "${blog.title}" (keyword: "${blog.keyword}")`);
       const selection = await selectRelevantPostsForBlog(
         blog.keyword,
         blog.title,
@@ -291,9 +289,8 @@ export async function selectRelevantPostsForMultipleBlogs(
         options
       );
       results.set(i, selection);
-      console.log(`[WordPress Post Selector] Selected ${selection.selectedPosts.length} posts for blog #${i + 1}`);
     } catch (error) {
-      console.error(`[WordPress Post Selector] Error selecting posts for blog #${i + 1}:`, error);
+      logger.error(`[WordPress Post Selector] Error selecting posts for blog #${i + 1}:`, error);
       // Continue with fallback - select at least 1 post
       // Note: postsMetadata is still used here for backward compatibility
       if (postsMetadata.length > 0) {
@@ -309,7 +306,6 @@ export async function selectRelevantPostsForMultipleBlogs(
           }],
           reasoning: `Error occurred during selection, using fallback post: ${fallbackPost.title}`,
         });
-        console.log(`[WordPress Post Selector] Using fallback post for blog #${i + 1}: ${fallbackPost.title}`);
       } else {
         // No posts available at all
         results.set(i, {

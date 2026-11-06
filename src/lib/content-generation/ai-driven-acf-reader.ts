@@ -5,6 +5,7 @@
  * No static field names or pattern matching - all read semantics go through this module.
  */
 
+import { logger } from "@/lib/logger";
 import { streamChatCompletion } from "@/lib/api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 
@@ -139,7 +140,7 @@ export async function readACFFieldsAgentically(
 
   const apiKey = options?.apiKey?.trim();
   if (!apiKey) {
-    console.warn("[AI-Driven ACF Reader] API key required for agentic read. Returning empty context.");
+    logger.warn("[AI-Driven ACF Reader] API key required for agentic read. Returning empty context.");
     return {};
   }
 
@@ -246,7 +247,7 @@ Map each field to the semantic roles and return the JSON object with string valu
     cache.set(key, { context, timestamp: Date.now() });
     return context;
   } catch (error) {
-    console.warn("[AI-Driven ACF Reader] AI read failed, returning empty context:", error);
+    logger.warn("[AI-Driven ACF Reader] AI read failed, returning empty context:", error);
     return {};
   }
 }

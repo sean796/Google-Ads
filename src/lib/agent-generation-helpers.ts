@@ -10,6 +10,7 @@ import {
 } from "./prompt-builders";
 import { StoredFile } from "@/components/KnowledgeBaseTab";
 import { AgentConfig } from "@/types/agent-config";
+import { logger } from "@/lib/logger";
 import { getReportFooterMarkdown } from "./report-footer";
 
 export interface GenerationContext {
@@ -103,7 +104,7 @@ export function handleGenerationError(
   errorMessage: string
 ): void {
   if ((error as Error).name !== 'Aborted') {
-    console.error("Generation error:", error);
+    logger.error("Generation error:", error);
     setGenerationResult((prev) => ({
       ...prev,
       final: errorMessage,

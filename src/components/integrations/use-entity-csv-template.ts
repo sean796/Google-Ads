@@ -5,6 +5,7 @@ import { NOTIFY_FAILED_TO_GENERATE_TITLE_SUGGESTION, NOTIFY_NO_ENTITIES_AVAILABL
 import { loadApiKey, streamChatCompletion } from "@/lib/api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import type { EntityGenerationState } from "@/components/integrations/use-entity-generation-state";
+import { logger } from "@/lib/logger";
 
 export function useEntityCsvTemplate(s: EntityGenerationState) {
   const {
@@ -108,7 +109,7 @@ Generate the best title template (must include "Near" and must NOT include "${si
       notify.error(NOTIFY_FAILED_TO_GENERATE_TITLE_SUGGESTION);
     }
   } catch (error) {
-    console.error('[Title Suggestion] Error:', error);
+    logger.error('[Title Suggestion] Error:', error);
     notify.error(notifyFailedToGenerateTitleSuggestionX(error instanceof Error ? error.message : 'Unknown error'));
   } finally {
     setIsGeneratingTitleSuggestion(false);

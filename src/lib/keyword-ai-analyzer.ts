@@ -10,6 +10,7 @@ import {
   tryParseKeywordAnalysisJson,
 } from "./keyword-ai-analyzer-json-repair";
 import { filterCompetitorKeywordsFromStrings } from "./keyword-ai-analyzer-competitor-filter";
+import { logger } from "@/lib/logger";
 
 export { extractPeopleAlsoAskWithAI } from "./keyword-ai-analyzer-paa";
 
@@ -73,9 +74,6 @@ export async function analyzeKeywordWithAI(
           apiKey,
           model
         );
-        if (beforeCount > filteredSelectedKeywords.length) {
-          console.log(`[Keyword AI Analyzer] COMPETITOR FILTER: Removed ${beforeCount - filteredSelectedKeywords.length} competitor keywords from selectedKeywords. ${filteredSelectedKeywords.length} service/product keywords remain.`);
-        }
       }
 
       if (filteredRelatedGSCKeywords.length > 0) {
@@ -87,17 +85,14 @@ export async function analyzeKeywordWithAI(
           apiKey,
           model
         );
-        if (beforeCount > filteredRelatedGSCKeywords.length) {
-          console.log(`[Keyword AI Analyzer] COMPETITOR FILTER: Removed ${beforeCount - filteredRelatedGSCKeywords.length} competitor keywords from relatedGSCKeywords. ${filteredRelatedGSCKeywords.length} service/product keywords remain.`);
-        }
       }
     } catch (error) {
-      console.warn('[Keyword AI Analyzer] Error filtering competitor keywords, continuing with non-English filtered keywords:', error);
+      logger.warn('[Keyword AI Analyzer] Error filtering competitor keywords, continuing with non-English filtered keywords:', error);
       // Continue with non-English filtered keywords if competitor filtering fails
     }
   } else {
     if (filteredSelectedKeywords.length > 0 || filteredRelatedGSCKeywords.length > 0) {
-      console.log('[Keyword AI Analyzer] Skipping competitor filtering - siteUrl or apiKey not available');
+      /* no site URL to filter against, keep keywords as is */
     }
   }
 
@@ -223,7 +218,7 @@ Return ONLY this JSON structure. NO markdown, NO explanations, NO code blocks.`;
 
     // Never throw for truncation – use whatever we got and repair if needed (max_tokens is already 1M; if model still hits limit, salvage)
     if (finishReason === 'length') {
-      console.warn(`[Keyword AI Analyzer] AI response hit length limit (${fullResponse.length} chars); salvaging partial response.`);
+      logger.warn(`[Keyword AI Analyzer] AI response hit length limit (${fullResponse.length} chars); salvaging partial response.`);
     }
 
     // Clean the response - remove markdown code blocks if present
@@ -245,7 +240,7 @@ Return ONLY this JSON structure. NO markdown, NO explanations, NO code blocks.`;
     // Parse JSON – use repair when truncated or incomplete so we never fail the flow
     const { parsed, usedRepair } = tryParseKeywordAnalysisJson(cleanedResponse);
     if (usedRepair && finishReason === 'length') {
-      console.warn('[Keyword AI Analyzer] Repaired truncated JSON and continued.');
+      logger.warn('[Keyword AI Analyzer] Repaired truncated JSON and continued.');
     }
 
     // Use ONLY AI-extracted data - no manual fallback
@@ -270,7 +265,7 @@ Return ONLY this JSON structure. NO markdown, NO explanations, NO code blocks.`;
 
     return analysis;
   } catch (error) {
-    console.warn("[Keyword AI Analyzer] Non-fatal keyword analysis fallback:", error);
+    logger.warn("[Keyword AI Analyzer] Non-fatal keyword analysis fallback:", error);
     
     // Return empty structure if parsing fails - no manual fallback
     return {

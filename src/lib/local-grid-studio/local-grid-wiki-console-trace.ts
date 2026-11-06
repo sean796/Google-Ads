@@ -1,4 +1,6 @@
-/** When active, Local Grid bulk wiki harvest logs MediaWiki + phase lines to the browser console. */
+/** When active, Local Grid bulk wiki harvest traces MediaWiki + phase lines. */
+
+import { logger } from "@/lib/logger";
 
 let traceDepth = 0;
 
@@ -9,18 +11,18 @@ export function isLocalGridWikiConsoleTraceActive(): boolean {
 export function localGridWikiConsoleLog(message: string, detail?: unknown): void {
   if (traceDepth <= 0) return;
   if (detail !== undefined) {
-    console.log(`[LocalGrid · Wiki] ${message}`, detail);
+    logger.debug(`[LocalGrid · Wiki] ${message}`, detail);
   } else {
-    console.log(`[LocalGrid · Wiki] ${message}`);
+    logger.debug(`[LocalGrid · Wiki] ${message}`);
   }
 }
 
 export function localGridWikiConsoleWarn(message: string, detail?: unknown): void {
   if (traceDepth <= 0) return;
   if (detail !== undefined) {
-    console.warn(`[LocalGrid · Wiki] ${message}`, detail);
+    logger.warn(`[LocalGrid · Wiki] ${message}`, detail);
   } else {
-    console.warn(`[LocalGrid · Wiki] ${message}`);
+    logger.warn(`[LocalGrid · Wiki] ${message}`);
   }
 }
 
@@ -32,7 +34,7 @@ export async function runWithLocalGridWikiConsoleTrace<T>(fn: () => Promise<T>):
   } finally {
     traceDepth -= 1;
     if (traceDepth === 0) {
-      console.log("[LocalGrid · Wiki] Console trace OFF");
+      logger.debug("[LocalGrid · Wiki] Console trace OFF");
     }
   }
 }

@@ -3,6 +3,7 @@
  * Filters entities by sitemap, criteria, and selects final entities
  */
 
+import { logger } from "@/lib/logger";
 import { validateEntityNotInSitemap } from "../validation/entityValidator";
 import type { EntityWithCriteria } from "../types";
 
@@ -28,7 +29,6 @@ export function filterEntitiesNotInSitemap(
     return notInSitemap;
   });
   
-  console.log(`[Entity Generation] After sitemap validation: ${entitiesNotInSitemap.length} entities remain (${sitemapFilteredCount} filtered out as they exist in sitemap)`);
   
   return {
     entitiesNotInSitemap,
@@ -50,11 +50,9 @@ export function selectEntitiesForValidation(
     // Randomly shuffle and select
     const shuffled = [...entities].sort(() => Math.random() - 0.5);
     const selected = shuffled.slice(0, count * selectionMultiplier);
-    console.log(`[Entity Generation] Selected ${selected.length} entities from ${entities.length} available for Wikipedia validation`);
     return selected;
   } else {
     // Use all available entities
-    console.log(`[Entity Generation] Using all ${entities.length} entities for Wikipedia validation`);
     return entities;
   }
 }
@@ -89,18 +87,17 @@ export function filterAndSortByCriteria(
     ? entitiesWithWikipedia.filter(e => {
         // STRICT: If criteria is specified, criteriaData must exist AND matches must be exactly true
         if (!e.criteriaData) {
-          console.warn(`[Entity Generation] Entity "${e.entity}" has no criteriaData but criteria was specified - EXCLUDING`);
+          logger.warn(`[Entity Generation] Entity "${e.entity}" has no criteriaData but criteria was specified - EXCLUDING`);
           return false;
         }
         if (e.criteriaData.matches !== true) {
-          console.warn(`[Entity Generation] Entity "${e.entity}" does not match (matches: ${e.criteriaData.matches}) - EXCLUDING`);
+          logger.warn(`[Entity Generation] Entity "${e.entity}" does not match (matches: ${e.criteriaData.matches}) - EXCLUDING`);
           return false;
         }
         return true; // Only explicit matches
       })
     : entitiesWithWikipedia;
   
-  console.log(`[Entity Generation] Found ${entitiesWithWikipedia.length} entities with Wikipedia pages${promptModifier ? `, ${entitiesMatchingCriteria.length} matching criteria "${promptModifier}"` : ''}`);
   
   // Sort by ranking value if criteria validation provided ranking
   if (promptModifier && entitiesMatchingCriteria.some(e => e.criteriaData?.rankingValue !== undefined)) {
@@ -109,7 +106,6 @@ export function filterAndSortByCriteria(
       const rankB = b.criteriaData?.rankingValue ?? 0;
       return rankB - rankA; // Sort descending (highest first)
     });
-    console.log(`[Entity Generation] Sorted entities by ranking value`);
   } else if (entitiesMatchingCriteria.length > count) {
     // If no ranking, sort by confidence (if available) or randomly
     entitiesMatchingCriteria.sort((a, b) => {

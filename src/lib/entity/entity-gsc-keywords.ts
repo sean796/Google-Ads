@@ -1,6 +1,7 @@
 import type { WordPressSite } from "@/components/integrations/types";
 import { fetchGSCPagesPerformanceBatch } from "@/lib/wordpress-api/gsc";
 import { parseSitemap } from "@/lib/wordpress-api/connection";
+import { logger } from "@/lib/logger";
 
 const DEFAULT_GSC_URL_SAMPLE = 40;
 const DEFAULT_KEYWORD_LIMIT = 24;
@@ -43,7 +44,7 @@ export async function fetchGscKeywordPoolForEntitySitemap(
     ranked.sort((a, b) => b.clicks - a.clicks);
     return ranked.slice(0, limit).map((r) => r.query);
   } catch (error) {
-    console.warn("[Entity Generation] GSC keyword fetch failed:", error);
+    logger.warn("[Entity Generation] GSC keyword fetch failed:", error);
     return [];
   }
 }

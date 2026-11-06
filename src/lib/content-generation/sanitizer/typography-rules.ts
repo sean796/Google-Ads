@@ -13,12 +13,6 @@ export function removeColons(content: string): string {
     return match;
   });
 
-  if (colonCount > 0) {
-    console.log(
-      `[Content Sanitizer] Removed ${colonCount} colon(s) from content (replaced with periods, preserved URLs)`,
-    );
-  }
-
   return sanitized;
 }
 
@@ -56,12 +50,6 @@ export function removeEmDashes(content: string): string {
   urlPlaceholders.forEach((url, index) => {
     sanitized = sanitized.replace(`__URL_PLACEHOLDER_${index}__`, url);
   });
-
-  if (emDashCount > 0 || enDashCount > 0) {
-    console.log(
-      `[Content Sanitizer] Removed ${emDashCount} em dash(es) and ${enDashCount} en dash(es) from content (preserved URLs)`,
-    );
-  }
 
   return sanitized;
 }

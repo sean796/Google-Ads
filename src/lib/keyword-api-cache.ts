@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+
 export const KEYWORD_CACHE_KEY = "keyword-research-cache";
 const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -12,7 +14,7 @@ export function clearKeywordCache(): void {
   try {
     localStorage.removeItem(KEYWORD_CACHE_KEY);
   } catch (error) {
-    console.error("Error clearing keyword cache:", error);
+    logger.error("Error clearing keyword cache:", error);
   }
 }
 
@@ -45,7 +47,7 @@ export function getCachedData<T>(keyword: string, cacheKey: string): T | null {
 
     return entry.data as T;
   } catch (e) {
-    console.error("Error reading cache:", e);
+    logger.error("Error reading cache:", e);
     return null;
   }
 }
@@ -54,7 +56,7 @@ export function getCachedData<T>(keyword: string, cacheKey: string): T | null {
 export function setCachedData<T>(keyword: string, data: T, cacheKey: string): void {
   try {
     if (!keyword || typeof keyword !== 'string' || keyword.trim().length === 0) {
-      console.warn('[Keyword API] Invalid keyword for cache:', keyword);
+      logger.warn('[Keyword API] Invalid keyword for cache:', keyword);
       return;
     }
     
@@ -96,6 +98,6 @@ export function setCachedData<T>(keyword: string, data: T, cacheKey: string): vo
       }
     }
   } catch (e) {
-    console.warn("[Keyword API] Cache write skipped (non-critical):", e);
+    logger.warn("[Keyword API] Cache write skipped (non-critical):", e);
   }
 }

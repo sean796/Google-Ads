@@ -23,6 +23,7 @@ import {
   QUARTER_EDITORIAL_POSTS_GOAL,
 } from "@/lib/quarter-editorial-gap";
 import { staggerPublishDatesAcrossQuarter, staggerPublishDatesAcrossRange } from "@/lib/quarter-bounds";
+import { logger } from "@/lib/logger";
 
 /** Single-phase quarter gap CSV: blog checklist rows only, or geo/entity landing rows only. */
 export type QuarterGapBulkTemplateMode = "posts" | "entities";
@@ -138,7 +139,7 @@ async function streamBulkIdeasChecklist(options: {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error("[Quarter gap] OpenRouter:", error);
+    logger.error("[Quarter gap] OpenRouter:", error);
     if (errorMessage.includes("400") || errorMessage.includes("Request too large")) {
       notify.error(
         "Request too large. Reduce knowledge base size in Settings or Knowledge base, then try again.",
@@ -292,10 +293,10 @@ export async function runQuarterGapBulkTemplateDownload(options: {
   ]);
 
   if (postsInv.error) {
-    console.error("[Quarter gap] Post inventory:", postsInv.error);
+    logger.error("[Quarter gap] Post inventory:", postsInv.error);
   }
   if (pagesInv.error) {
-    console.error("[Quarter gap] Page inventory:", pagesInv.error);
+    logger.error("[Quarter gap] Page inventory:", pagesInv.error);
   }
 
   const postRows = postsInv.posts ?? [];

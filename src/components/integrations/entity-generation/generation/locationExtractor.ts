@@ -3,6 +3,7 @@
  * Main orchestration for location extraction
  */
 
+import { logger } from "@/lib/logger";
 import type { WordPressSite } from "../../types";
 import type { LocationExtractionResult } from "../types";
 import { extractLocationFromUrls, determinePrimaryCity, extractLocationFromUrlsWithRegex, analyzeTitleFormat } from "./urlLocationExtractor";
@@ -25,14 +26,12 @@ export async function extractLocation(
   
   // If no city found, try regex extraction
   if (!primaryCity) {
-    console.log('[Entity Generation] No city found from simple patterns or site location, trying regex extraction from URLs...');
     primaryCity = extractLocationFromUrlsWithRegex(urls);
     
     if (primaryCity) {
-      console.log(`[Entity Generation] Regex extracted location from URLs: "${primaryCity}"`);
+      /* regex city found, AI lookup not needed */
     } else {
       // If regex didn't work, use AI
-      console.log('[Entity Generation] Regex patterns failed, using AI to extract location from URLs...');
       primaryCity = await extractLocationFromUrlsWithAI(urls, openRouterApiKey);
     }
   }
@@ -45,15 +44,14 @@ export async function extractLocation(
     // CRITICAL: If modifier specifies a location, use that instead of detected city - ABSOLUTE PRIORITY
     if (modifierLocation && modifierLocation !== 'none') {
       const originalCity = primaryCity;
-      console.log(`[Entity Generation] ✓ User specified location in modifier: "${modifierLocation}" - OVERRIDING detected city: "${originalCity}" (ABSOLUTE PRIORITY)`);
       primaryCity = modifierLocation;
     } else {
       // Check if modifier clearly mentions a location but we failed to extract it
       const hasLocationKeywords = /\b(calgary|edmonton|toronto|vancouver|montreal|ottawa|winnipeg|halifax|victoria|saskatoon|regina|new york|los angeles|chicago|houston|phoenix|philadelphia|san antonio|san diego|dallas)\b/i.test(promptModifier);
       if (hasLocationKeywords) {
-        console.warn(`[Entity Generation] WARNING: Modifier "${promptModifier}" appears to mention a location but extraction failed. Using sitemap-detected city: "${primaryCity}"`);
+        logger.warn(`[Entity Generation] WARNING: Modifier "${promptModifier}" appears to mention a location but extraction failed. Using sitemap-detected city: "${primaryCity}"`);
       } else {
-        console.log(`[Entity Generation] No location found in modifier: "${promptModifier}", using sitemap-detected city: "${primaryCity}"`);
+        /* no known location in modifier, keep detected city */
       }
     }
   }

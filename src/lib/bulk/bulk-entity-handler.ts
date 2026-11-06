@@ -4,6 +4,7 @@ import type { WordPressSite } from '@/components/integrations/types';
 import { extractEndpointFromEntitySitemapUrl } from '../entity-endpoint-extractor';
 import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
 import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
+import { logger } from "@/lib/logger";
 
 /**
  * Uses AI to analyze entity sitemap titles and extract service nickname
@@ -21,9 +22,7 @@ export async function generateEntityTitleFromSitemap(
 ): Promise<string> {
   try {
     // Extract entity endpoint from sitemap (entity sitemap pattern)
-    const entityEndpoint = extractEndpointFromEntitySitemapUrl(entitySitemapUrl);
     
-    console.log('[Entity Title] Using entity endpoint:', entityEndpoint);
 
     // Parse sitemap to get URLs
     const parseResult = await parseSitemap(
@@ -34,7 +33,7 @@ export async function generateEntityTitleFromSitemap(
     );
 
     if (!parseResult.urls || parseResult.urls.length === 0) {
-      console.warn('[Entity Title] No URLs found in entity sitemap');
+      logger.warn('[Entity Title] No URLs found in entity sitemap');
       return keyword ? `${keyword} Near ${entity}` : `Local Service Near ${entity}`;
     }
 
@@ -50,7 +49,7 @@ export async function generateEntityTitleFromSitemap(
     );
 
     if (!publishedResult.posts || publishedResult.posts.length === 0) {
-      console.warn('[Entity Title] No published posts found');
+      logger.warn('[Entity Title] No published posts found');
       return keyword ? `${keyword} Near ${entity}` : `Local Service Near ${entity}`;
     }
 
@@ -82,7 +81,7 @@ export async function generateEntityTitleFromSitemap(
     }
 
     if (titles.length === 0) {
-      console.warn('[Entity Title] No matching titles found');
+      logger.warn('[Entity Title] No matching titles found');
       return keyword ? `${keyword} Near ${entity}` : `Local Service Near ${entity}`;
     }
 
@@ -97,10 +96,9 @@ export async function generateEntityTitleFromSitemap(
     // Ensure "Near" is always present (double-check)
     const finalTitle = title.includes(' Near ') ? title : `${serviceName} Near ${entity}`;
     
-    console.log(`[Entity Title] Generated title: "${finalTitle}" (from ${titles.length} analyzed titles, service: "${serviceNickname || 'default'}")`);
     return finalTitle;
   } catch (error) {
-    console.error('[Entity Title] Error generating title from sitemap:', error);
+    logger.error('[Entity Title] Error generating title from sitemap:', error);
     // Fallback to simple pattern
     return keyword ? `${keyword} Near ${entity}` : `Local Service Near ${entity}`;
   }
@@ -183,7 +181,7 @@ What is the service nickname that appears in the majority of these titles? Retur
     
     return cleaned;
   } catch (error) {
-    console.error('[Entity Title] Error extracting service nickname:', error);
+    logger.error('[Entity Title] Error extracting service nickname:', error);
     return null;
   }
 }

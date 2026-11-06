@@ -12,6 +12,7 @@ import { type WordPressSite, KB_FILES_STORAGE_KEY, type StoredFile } from "./typ
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
 import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
+import { logger } from "@/lib/logger";
 
 export function useGscFetchQueries(gscEmail: string) {
   const [gscAnalysisDialogOpen, setGscAnalysisDialogOpen] = useState(false);
@@ -87,12 +88,6 @@ export function useGscFetchQueries(gscEmail: string) {
       const endDateStr = endDate.toISOString().split('T')[0];
       
       // Call backend API
-      console.log('[GSC] Calling API:', `${BACKEND_API_BASE}/api/gsc/fetch-queries`);
-      console.log('[GSC] Request:', {
-        siteUrl: site.siteUrl,
-        startDate: startDateStr,
-        endDate: endDateStr
-      });
       
       const response = await fetch(`${BACKEND_API_BASE}/api/gsc/fetch-queries`, {
         method: 'POST',
@@ -115,14 +110,10 @@ export function useGscFetchQueries(gscEmail: string) {
           errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
         }
 
-        console.error('[GSC] API Error Response:', errorData);
+        logger.error('[GSC] API Error Response:', errorData);
 
         // When the site is not in the service account's GSC list, build the ENTIRE message from gscEmail only (never use backend error text - it may contain wrong email from cached server)
         if (errorData.errorType === 'site_not_in_list') {
-          console.info(
-            '[GSC] Site not in service account property list - skipping fetch. Configure GSC in Settings if you need query export.',
-            { serviceAccountEmail: gscEmail, originalSiteUrl: errorData.originalSiteUrl },
-          );
           return;
         }
 
@@ -155,7 +146,7 @@ export function useGscFetchQueries(gscEmail: string) {
           errorMessage += `\n\nDetails: ${data.details}`;
         }
         
-        console.error('[GSC] API returned error:', data);
+        logger.error('[GSC] API returned error:', data);
         throw new Error(errorMessage);
       }
       
@@ -198,7 +189,7 @@ export function useGscFetchQueries(gscEmail: string) {
         
         notify.success(notifyKeywordAnalysisCompleteFoundMetrics(Object.keys(keywordMetrics).length));
       } catch (error) {
-        console.warn('[GSC] Error fetching keyword metrics:', error);
+        logger.warn('[GSC] Error fetching keyword metrics:', error);
         notify.warning(NOTIFY_GSC_QUERIES_FETCHED_BUT_KEYWORD_ANALYSIS);
       }
       
@@ -240,10 +231,7 @@ export function useGscFetchQueries(gscEmail: string) {
         }));
         
         // Log sample of positions for debugging
-        const samplePositions = gscQueries.slice(0, 10).map(q => q.position);
-        console.log(`[GSC] Sample positions from queries:`, samplePositions);
         
-        console.log(`[GSC] Running ${selectedMethods.length} analysis method(s) on ${gscQueries.length} total queries`);
         
         // Run analyses
         const analysisResults = await runAnalyses(
@@ -260,7 +248,6 @@ export function useGscFetchQueries(gscEmail: string) {
           }
         );
         
-        console.log(`[GSC] Analysis complete. Got ${analysisResults.length} result(s)`);
         
         if (analysisResults.length === 0) {
           notify.warning(NOTIFY_NO_ANALYSIS_RESULTS_GENERATED_PLEASE_CHE);
@@ -271,11 +258,10 @@ export function useGscFetchQueries(gscEmail: string) {
         // Create CSV files for each analysis result
         let totalAnalysisQueries = 0;
         for (const result of analysisResults) {
-          console.log(`[GSC] Processing ${result.methodLabel}: ${result.keywords.length} filtered queries (from ${gscQueries.length} total)`);
           
           // Analysis results should already be filtered by the analysis method
           if (result.keywords.length === 0) {
-            console.warn(`[GSC] Warning: ${result.methodLabel} returned 0 queries after filtering`);
+            logger.warn(`[GSC] Warning: ${result.methodLabel} returned 0 queries after filtering`);
             continue; // Skip creating file for empty results
           }
           
@@ -291,7 +277,6 @@ export function useGscFetchQueries(gscEmail: string) {
           });
           
           totalAnalysisQueries += analysisEnrichedQueries.length;
-          console.log(`[GSC Analysis] ${result.methodLabel}: ${analysisEnrichedQueries.length} queries after filtering`);
           
           const csvContent = convertQueriesToCSV(analysisEnrichedQueries);
           const fileName = `gsc-${result.method}-${sanitizedSiteName}-${timestamp}.csv`;
@@ -343,13 +328,12 @@ export function useGscFetchQueries(gscEmail: string) {
         const metricsMessage = metricsCount > 0 
           ? ` with keyword metrics for ${metricsCount} keywords` 
           : ' (keyword analysis unavailable)';
-        console.log(`[GSC] Added ${data.queries.length} queries from ${site.name}${metricsMessage}`);
         notify.success(notifyGscQueriesAddedX(data.queries.length));
       }
       // Analysis case success message is already shown above
       
     } catch (error) {
-      console.error('[GSC] Error fetching queries:', error);
+      logger.error('[GSC] Error fetching queries:', error);
       
       let errorMessage = 'Failed to fetch GSC queries';
       let errorDetails = '';
@@ -367,19 +351,19 @@ export function useGscFetchQueries(gscEmail: string) {
         
         // Log full error details for debugging
         if (error.stack) {
-          console.error('[GSC] Error stack:', error.stack);
+          logger.error('[GSC] Error stack:', error.stack);
         }
       } else if (typeof error === 'string') {
         errorMessage = error;
       }
       
-      if (errorDetails) console.error("[GSC] Error details:", errorDetails);
+      if (errorDetails) logger.error("[GSC] Error details:", errorDetails);
       const shortErr =
         errorMessage.length > 120 ? `${errorMessage.slice(0, 117)}...` : errorMessage;
       notify.error(shortErr, { duration: 10000 });
       
       // Also log to console with full details
-      console.error('[GSC] Full error details:', {
+      logger.error('[GSC] Full error details:', {
         message: errorMessage,
         details: errorDetails,
         error: error

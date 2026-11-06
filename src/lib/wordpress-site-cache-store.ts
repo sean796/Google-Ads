@@ -124,7 +124,6 @@ export function clearSiteCache(siteId: string): void {
   const cache = siteCache.get(siteId);
   if (cache) {
     siteCache.delete(siteId);
-    console.log(`[Site Cache] Cleared cache for site ${siteId} (${cache.posts.length} posts)`);
   }
 }
 
@@ -132,9 +131,7 @@ export function clearSiteCache(siteId: string): void {
  * Clears all caches
  */
 export function clearAllCaches(): void {
-  const count = siteCache.size;
   siteCache.clear();
-  console.log(`[Site Cache] Cleared all caches (${count} sites)`);
 }
 
 /**

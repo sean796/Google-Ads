@@ -89,10 +89,6 @@ export const SitePropertyFormFields: React.FC<SitePropertyFormFieldsProps> = ({
         notify.success(notifyMatchedSemrushProjectXXX(res.projectId, label, hint));
       } else {
         notify.error(res.error);
-        if (res.candidates?.length) {
-           
-          console.info("[Semrush] project candidates (no hostname match):", res.candidates);
-        }
       }
     } finally {
       setSemrushMatching(false);

@@ -5,6 +5,7 @@
  */
 
 import { BACKEND_API_BASE } from '@/lib/wordpress-api/connection';
+import { logger } from "@/lib/logger";
 import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { getACFFieldsForPost } from '@/lib/wordpress-api/acf-discovery';
 import type { WordPressSite } from '@/components/integrations/types';
@@ -239,7 +240,7 @@ export async function fetchExistingOriginsFromServiceAreas(
   try {
     posts = await fetchServiceAreaPosts(site, postTypeEndpoint, onProgress, 'publish', true);
   } catch (err) {
-    console.warn('[read-existing-origins-api] get-posts-list failed, skipping API step:', err);
+    logger.warn('[read-existing-origins-api] get-posts-list failed, skipping API step:', err);
     return [];
   }
 
@@ -351,7 +352,7 @@ export async function fetchFullAcfContextForServiceAreas(
   try {
     posts = await fetchServiceAreaPostsPublishAndFuture(site, postTypeEndpoint, onProgress, true);
   } catch (err) {
-    console.warn('[read-existing-origins-api] get-posts-list failed for full ACF context:', err);
+    logger.warn('[read-existing-origins-api] get-posts-list failed for full ACF context:', err);
     return [];
   }
 
@@ -391,7 +392,7 @@ export async function fetchOriginOnlyAcfContextForServiceAreas(
   try {
     posts = await fetchServiceAreaPostsPublishAndFuture(site, postTypeEndpoint, onProgress, true);
   } catch (err) {
-    console.warn('[read-existing-origins-api] get-posts-list failed for origin context:', err);
+    logger.warn('[read-existing-origins-api] get-posts-list failed for origin context:', err);
     return [];
   }
 

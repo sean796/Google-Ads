@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import { BlueprintData } from "./use-blueprint-management";
+import { logger } from "@/lib/logger";
 
 const DRAFT_AUTOSAVE_KEY = "neo-pulse-draft-autosave";
 const AUTOSAVE_INTERVAL = 30000; // 30 seconds
@@ -44,7 +45,7 @@ export function useAutosave({
       localStorage.setItem(DRAFT_AUTOSAVE_KEY, JSON.stringify(draftData));
       lastSaveRef.current = Date.now();
     } catch (error) {
-      console.error("Failed to save draft:", error);
+      logger.error("Failed to save draft:", error);
     }
   }, [enabled, generateBlueprint]);
 
@@ -109,7 +110,7 @@ export function loadDraft(): DraftData | null {
       return JSON.parse(stored) as DraftData;
     }
   } catch (error) {
-    console.error("Failed to load draft:", error);
+    logger.error("Failed to load draft:", error);
   }
   return null;
 }
@@ -118,7 +119,7 @@ export function clearDraft(): void {
   try {
     localStorage.removeItem(DRAFT_AUTOSAVE_KEY);
   } catch (error) {
-    console.error("Failed to clear draft:", error);
+    logger.error("Failed to clear draft:", error);
   }
 }
 

@@ -1,5 +1,6 @@
 import { streamChatCompletion } from "./api";
 import { getResearchModel } from "./optimization-settings-storage";
+import { logger } from "@/lib/logger";
 
 export interface GSCQuery {
   query: string;
@@ -403,7 +404,7 @@ ${parsed.insights || 'None provided'}`;
       insights: insights
     };
   } catch (error) {
-    console.error('[GSC AI Analysis] Error:', error);
+    logger.error('[GSC AI Analysis] Error:', error);
     throw new Error(`AI analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -457,7 +458,7 @@ export async function runAnalyses(
           break;
         case 'custom_ai_analysis':
           if (!aiOptions?.apiKey) {
-            console.warn('[GSC Analysis] Skipping AI analysis - no API key provided');
+            logger.warn('[GSC Analysis] Skipping AI analysis - no API key provided');
             continue;
           }
           result = await analyzeWithAI(
@@ -472,13 +473,13 @@ export async function runAnalyses(
           );
           break;
         default:
-          console.warn(`[GSC Analysis] Unknown analysis method: ${method}`);
+          logger.warn(`[GSC Analysis] Unknown analysis method: ${method}`);
           continue;
       }
 
       results.push(result);
     } catch (error) {
-      console.error(`[GSC Analysis] Error running ${method}:`, error);
+      logger.error(`[GSC Analysis] Error running ${method}:`, error);
       // Continue with other analyses even if one fails
     }
   }

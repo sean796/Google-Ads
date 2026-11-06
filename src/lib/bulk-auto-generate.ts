@@ -4,6 +4,7 @@ import {
   applyCsvPrimaryKeywordToResearch,
 } from '@/lib/bulk/bulk-csv-keyword-analyze';
 import { getResearchModel } from '@/lib/optimization-settings-storage';
+import { logger } from "@/lib/logger";
 import { BulkFileManager, type BulkGeneratedFile } from './bulk-file-manager';
 import type {
   KeywordAnalysisComplete,
@@ -92,7 +93,7 @@ export async function generateRowOutputs(
         const entityCheck = await checkWikipediaPageExists(row.entity.trim());
 
         if (!entityCheck.exists) {
-          console.warn(`[Bulk Generator] Entity "${row.entity}" does not exist on Wikipedia. Skipping Wikipedia content fetch.`);
+          logger.warn(`[Bulk Generator] Entity "${row.entity}" does not exist on Wikipedia. Skipping Wikipedia content fetch.`);
           options.onProgress?.(rowIndex, 0, `Entity "${row.entity}" not found on Wikipedia, skipping...`);
         } else {
           let wikipediaChunks: WikipediaChunk[] = [];
@@ -109,7 +110,7 @@ export async function generateRowOutputs(
               retries--;
 
               if (retries === 0) {
-                console.error(`[Bulk Generator] Failed to fetch Wikipedia content for "${row.entity}" after retries:`, lastError);
+                logger.error(`[Bulk Generator] Failed to fetch Wikipedia content for "${row.entity}" after retries:`, lastError);
                 options.onProgress?.(rowIndex, 0, `Failed to fetch Wikipedia content for "${row.entity}", continuing without it...`);
               } else {
                 const delay = 1000 * (4 - retries);
@@ -140,12 +141,12 @@ export async function generateRowOutputs(
             generatedFiles.push(wikipediaFile);
             options.onProgress?.(rowIndex, 0, `Wikipedia content fetched for "${row.entity}" (${wikipediaChunks.length} chunks)`);
           } else if (entityCheck.exists) {
-            console.warn(`[Bulk Generator] Wikipedia page exists for "${row.entity}" but no content chunks were extracted.`);
+            logger.warn(`[Bulk Generator] Wikipedia page exists for "${row.entity}" but no content chunks were extracted.`);
           }
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error(`[Bulk Generator] Error fetching Wikipedia content for "${row.entity}":`, errorMessage);
+        logger.error(`[Bulk Generator] Error fetching Wikipedia content for "${row.entity}":`, errorMessage);
         options.onProgress?.(rowIndex, 0, `Error fetching Wikipedia content for "${row.entity}", continuing without it...`);
       }
     } else if (hasCsvFilledWikipediaUrl(row)) {

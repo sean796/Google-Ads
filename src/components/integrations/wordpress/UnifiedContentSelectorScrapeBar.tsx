@@ -7,6 +7,7 @@ import { notify } from "@/lib/app-notifications";
 import { NOTIFY_FETCHING_DATA, NOTIFY_SITE_CREDENTIALS_NOT_AVAILABLE, notifyDownloadedXItemSAsJson } from "@/lib/notify-messages";
 import { getCyberpunkTextClasses } from "./cyberpunk-theme";
 import { Button } from "@/ui";
+import { logger } from "@/lib/logger";
 import type { UnifiedContentSelectorDefaultStyles } from "./UnifiedContentSelector-theme";
 
 export const UnifiedContentSelectorScrapeBar: React.FC<{
@@ -132,7 +133,7 @@ export const UnifiedContentSelectorScrapeBar: React.FC<{
                 URL.revokeObjectURL(url);
                 notify.success(notifyDownloadedXItemSAsJson(contentResult.posts.length));
               } catch (error) {
-                console.error('[UnifiedContentSelector] Error scraping:', error);
+                logger.error('[UnifiedContentSelector] Error scraping:', error);
                 notify.error(error instanceof Error ? error.message : 'Failed to scrape');
               }
             }}

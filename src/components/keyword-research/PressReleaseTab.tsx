@@ -9,6 +9,7 @@ import type { PressReleaseWorkspaceBindings } from "@/components/press-release/p
 import { getPublicSiteUrl } from "@/lib/wordpress-site-public-url";
 import { buildPortfolioBlockedHosts } from "@/lib/portfolio-link-blocklist";
 import { notify } from "@/lib/app-notifications";
+import { logger } from "@/lib/logger";
 import { NOTIFY_CONNECT_A_WORDPRESS_SITE_IN_PROPERTIES_F, NOTIFY_COULD_NOT_COPY_TO_CLIPBOARD, NOTIFY_ENTER_A_KEYWORD, NOTIFY_FETCHING_WORDPRESS_POST_INVENTORY, NOTIFY_MARKDOWN_COPIED, NOTIFY_NO_PUBLISHED_POSTS_OR_PAGES_IN_INVENTORY, NOTIFY_OPENROUTER_API_KEY_IS_REQUIRED, NOTIFY_PRESS_RELEASE_GENERATED } from "@/lib/notify-messages";
 import type { CSVRow, BulkProcessingOptions, BulkHarnessSectionPayload } from "@/lib/bulk-auto-generate";
 import type { KeywordData } from "@/lib/keyword-types";
@@ -264,19 +265,14 @@ export function PressReleaseTab({
 
       try {
         const { auditPressReleaseWithDecisionTree } = await import("@/lib/decision-tree/studio-decision-auditor");
-        const decisionState = await auditPressReleaseWithDecisionTree({
+        await auditPressReleaseWithDecisionTree({
           headline: blueprint.title,
           body: finalPrMarkdown,
           siteId: wordPressSite.id,
           apiKey: openRouterApiKey.trim(),
         });
-        console.log(
-          `%c[Decision Agent] 📰 Press Release QA complete: ${decisionState.terminalState}`,
-          "color: #84bc00; font-weight: bold;",
-          decisionState,
-        );
       } catch (auditErr) {
-        console.warn("[Decision Agent] Press release audit warning:", auditErr);
+        logger.warn("[Decision Agent] Press release audit warning:", auditErr);
       }
 
       notify.success(NOTIFY_PRESS_RELEASE_GENERATED);

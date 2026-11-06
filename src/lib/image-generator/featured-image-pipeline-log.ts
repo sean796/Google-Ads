@@ -1,13 +1,14 @@
+import { logger } from "@/lib/logger";
+
 const PREFIX = "[Featured Image Pipeline]";
 
 export function logFeaturedImagePipeline(
   message: string,
   details?: Record<string, unknown>,
 ): void {
-  if (typeof console === "undefined" || typeof console.log !== "function") return;
   if (details && Object.keys(details).length > 0) {
-    console.log(`${PREFIX} ${message}`, details);
+    logger.debug(`${PREFIX} ${message}`, details);
   } else {
-    console.log(`${PREFIX} ${message}`);
+    logger.debug(`${PREFIX} ${message}`);
   }
 }

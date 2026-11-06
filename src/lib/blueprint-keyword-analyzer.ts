@@ -10,6 +10,7 @@ import { callMCPKeywordOverview } from "./keyword-mcp-service";
 import type { KeywordData } from "./keyword-types";
 import { formatKeyword, formatKeywords } from "./keyword-formatter";
 import { flowFreeformSectionsToAgents } from "@/lib/flow-freeform/flow-freeform-types";
+import { logger } from "@/lib/logger";
 
 interface KeywordExtractionResult {
   primaryKeyword: string;
@@ -123,7 +124,7 @@ Return the JSON object with primaryKeyword${searchedKeyword ? `="${searchedKeywo
       reasoning: extractionResult.reasoning,
     };
   } catch (error) {
-    console.error('Error extracting keywords:', error);
+    logger.error('Error extracting keywords:', error);
     throw new Error(`Failed to extract keywords: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -225,7 +226,6 @@ export async function analyzeBlueprintKeywords(
   });
   
   const searchList = Array.from(keywordsToSearch);
-  console.log('[Blueprint Analyzer] Searching for keywords:', searchList);
 
   // Step 3: Fetch metrics for all keywords (batches of 10, 2 batches in flight to avoid rate limits)
   const batchSize = 10;
@@ -237,7 +237,7 @@ export async function analyzeBlueprintKeywords(
   const batchPromises = chunks.map((batch) =>
     limit(() =>
       callMCPKeywordOverview(batch, location, language).catch((error) => {
-        console.warn(`Failed to fetch metrics for batch:`, batch, error);
+        logger.warn(`Failed to fetch metrics for batch:`, batch, error);
         return [] as KeywordData[];
       })
     )
@@ -250,7 +250,6 @@ export async function analyzeBlueprintKeywords(
     kw.searchVolume > 0 || kw.difficulty > 0 || kw.cpc > 0
   );
 
-  console.log('[Blueprint Analyzer] Keywords with data:', keywordsWithData.length, 'out of', keywordMetrics.length);
 
   // Step 5: Match extracted keywords to metrics (prefer exact matches via Map, then partial)
   const kwMap = new Map<string, KeywordData>();

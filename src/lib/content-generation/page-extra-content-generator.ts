@@ -3,6 +3,7 @@
  * Staged HTML for seo_extra_text: harness section 0 = <h2>+intro, section 1 = <h3>+body
  */
 
+import { logger } from "@/lib/logger";
 import { streamChatCompletion } from "@/lib/api";
 import { appendUniversalContentRulesToSystemPrompt } from "@/lib/content-word-blocklist";
 import { generateImage } from "@/lib/image-api";
@@ -226,7 +227,7 @@ export async function generateExtraTextForPage(
     );
     let h2Title = extractFirstHeadingInnerText(h2Section, "h2") || h2Placeholder;
     if (!extraTextHeadingIncludesKeywordFocus(h2Title, primaryKeyword)) {
-      console.warn("[Page Extra Text Generator] H2 missing focus keyword, retrying section 1");
+      logger.warn("[Page Extra Text Generator] H2 missing focus keyword, retrying section 1");
       emitSection(0, h2Placeholder, "start");
       h2Section = finalizeExtraTextHtml(
         await runCompletion(
@@ -250,7 +251,7 @@ export async function generateExtraTextForPage(
     );
     let h3Title = extractFirstHeadingInnerText(h3Section, "h3") || h3Placeholder;
     if (!extraTextHeadingIncludesKeywordFocus(h3Title, primaryKeyword)) {
-      console.warn("[Page Extra Text Generator] H3 missing focus keyword, retrying section 2");
+      logger.warn("[Page Extra Text Generator] H3 missing focus keyword, retrying section 2");
       emitSection(1, h3Placeholder, "start");
       h3Section = finalizeExtraTextHtml(
         await runCompletion(
@@ -269,7 +270,7 @@ export async function generateExtraTextForPage(
       !extraTextHeadingContractOk(html) || !extraTextHeadingsIncludeKeywordFocus(html, primaryKeyword);
 
     if (needsFullRetry) {
-      console.warn("[Page Extra Text Generator] Contract or keyword-heading check failed, one full-block retry");
+      logger.warn("[Page Extra Text Generator] Contract or keyword-heading check failed, one full-block retry");
       emitSection(0, h2Title, "start");
       const retryRaw = await runCompletion(
         buildExtraTextFullSystemPrompt({ subjectLine, primaryKeyword, hasLinkInventory }),
@@ -298,7 +299,7 @@ export async function generateExtraTextForPage(
 
     return html;
   } catch (error) {
-    console.error("[Page Extra Text Generator] Error generating extra text:", error);
+    logger.error("[Page Extra Text Generator] Error generating extra text:", error);
     throw new Error(
       `Failed to generate extra text: ${error instanceof Error ? error.message : "Unknown error"}`,
     );
@@ -398,7 +399,7 @@ export async function generateExtraImageForPage(
       imageUrl: imageResult.imageUrl
     };
   } catch (error) {
-    console.error('[Page Extra Image Generator] Error generating extra image:', error);
+    logger.error('[Page Extra Image Generator] Error generating extra image:', error);
     throw new Error(`Failed to generate extra image: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

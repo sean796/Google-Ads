@@ -8,6 +8,7 @@ import { buildFocusedArticlePurpose } from '@/lib/content-generation/article-len
 import { getBlogModel } from '@/lib/optimization-settings-storage';
 import type { AIDrivenACFContext } from '@/lib/content-generation/ai-driven-acf-reader';
 import { mergeOptimizerInstructions } from "@/lib/prompt-builders/system-user";
+import { logger } from "@/lib/logger";
 import { resolveAgentsForBulk } from "./bulk-blueprint-agents";
 export { resolveAgentsForBulk } from "./bulk-blueprint-agents";
 export {
@@ -235,7 +236,7 @@ export async function addEntityLinksToContent(
           // First verify the entity page exists (use resolved title when Local analysis passed it)
           const entityCheck = await checkWikipediaPageExists(wikiPageTitle);
           if (!entityCheck.exists) {
-            console.warn(`[Bulk Generator] Entity "${wikiPageTitle}" does not exist on Wikipedia, skipping link extraction`);
+            logger.warn(`[Bulk Generator] Entity "${wikiPageTitle}" does not exist on Wikipedia, skipping link extraction`);
           } else {
             // Get links from the Wikipedia page for the entity (with retry)
             let linkedEntities: string[] = [];
@@ -250,7 +251,7 @@ export async function addEntityLinksToContent(
               } catch (error) {
                 retries--;
                 if (retries === 0) {
-                  console.warn(`[Bulk Generator] Failed to get links from Wikipedia after retries:`, error);
+                  logger.warn(`[Bulk Generator] Failed to get links from Wikipedia after retries:`, error);
                 } else {
                 // Wait before retry (exponential backoff)
                 await new Promise(resolve => setTimeout(resolve, 1000 * (4 - retries)));
@@ -289,7 +290,7 @@ export async function addEntityLinksToContent(
             }
           }
         } catch (error) {
-          console.warn('[Bulk Generator] Error extracting local links from Wikipedia:', error);
+          logger.warn('[Bulk Generator] Error extracting local links from Wikipedia:', error);
           // Continue without local links - don't fail the entire generation
         }
       }
@@ -351,7 +352,7 @@ export async function addEntityLinksToContent(
         onProgress?.(rowIndex, 0, `Added Wikipedia links for ${row.entity}${localLinks.length > 0 ? ` with ${localLinks.length} knowledge graph entity links` : ''}`);
       }
     } catch (error) {
-      console.error('Error adding Wikipedia links:', error);
+      logger.error('Error adding Wikipedia links:', error);
       onProgress?.(
         rowIndex,
         0,

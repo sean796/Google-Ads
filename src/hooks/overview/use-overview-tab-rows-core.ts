@@ -63,7 +63,6 @@ export function useOverviewTabRowsCore({
     if (typeof window !== "undefined") {
       (window as unknown as Record<string, unknown>).__OVERVIEW_FRAME_1__ = frame1;
     }
-    console.info("[OverviewStudioFrame1]", frame1);
     return initial;
   });
   const rowsRef = useRef(rows);

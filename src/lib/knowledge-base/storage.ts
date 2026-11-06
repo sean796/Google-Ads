@@ -1,4 +1,5 @@
 import { notify } from "@/lib/app-notifications";
+import { logger } from "@/lib/logger";
 import { NOTIFY_COULD_NOT_SAVE_FILES_TO_LOCAL_STORAGE } from "@/lib/notify-messages";
 import type { StoredFile } from "@/lib/knowledge-base/types";
 
@@ -11,7 +12,7 @@ export function saveFilesToLocalStorage(files: StoredFile[]): void {
   try {
     localStorage.setItem(KB_FILES_STORAGE_KEY, JSON.stringify(files));
   } catch (e) {
-    console.error("Error saving files to localStorage:", e);
+    logger.error("Error saving files to localStorage:", e);
     notify.error(NOTIFY_COULD_NOT_SAVE_FILES_TO_LOCAL_STORAGE);
   }
 }

@@ -1,5 +1,6 @@
 import { streamChatCompletion, type Message } from './api';
 import { getResearchModel } from "@/lib/optimization-settings-storage";
+import { logger } from "@/lib/logger";
 
 export interface KeywordExtractionResult {
   primaryKeywords: string[]; // One per blog idea
@@ -148,7 +149,7 @@ Extract exactly ${numberOfBlogs} primary keywords (one per blog idea) and 5-10 r
       reasoning: extractionResult.reasoning || 'Keywords extracted from knowledge base content',
     };
   } catch (error) {
-    console.error('[KB Keyword Extractor] Error extracting keywords:', error);
+    logger.error('[KB Keyword Extractor] Error extracting keywords:', error);
     throw new Error(`Failed to extract keywords from knowledge base: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

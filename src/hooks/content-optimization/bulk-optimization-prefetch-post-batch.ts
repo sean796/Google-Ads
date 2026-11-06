@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { getWordPressPostContent } from "@/lib/wordpress-api";
 import { WORDPRESS_BULK_READ_CHUNK } from "@/lib/wordpress-api/bulk-read-chunk";
 import type { WordPressSite } from "@/components/integrations/types";
@@ -112,7 +113,7 @@ export async function prefetchBulkPostBodiesForUrls(
         wpOpts,
       );
       if (postContentResult.error) {
-        console.warn("[Bulk prefetch batch] getWordPressPostContent (resolved) error:", postContentResult.error);
+        logger.warn("[Bulk prefetch batch] getWordPressPostContent (resolved) error:", postContentResult.error);
         continue;
       }
       const posts = postContentResult.posts || [];
@@ -136,7 +137,7 @@ export async function prefetchBulkPostBodiesForUrls(
         });
       }
     } catch (e) {
-      console.warn("[Bulk prefetch batch] resolved chunk failed:", e);
+      logger.warn("[Bulk prefetch batch] resolved chunk failed:", e);
     }
   }
 
@@ -154,7 +155,7 @@ export async function prefetchBulkPostBodiesForUrls(
         wpOpts,
       );
       if (postContentResult.error) {
-        console.warn("[Bulk prefetch batch] getWordPressPostContent (slugs) error:", postContentResult.error);
+        logger.warn("[Bulk prefetch batch] getWordPressPostContent (slugs) error:", postContentResult.error);
         continue;
       }
       const posts = postContentResult.posts || [];
@@ -178,7 +179,7 @@ export async function prefetchBulkPostBodiesForUrls(
         });
       }
     } catch (e) {
-      console.warn("[Bulk prefetch batch] slug chunk failed:", e);
+      logger.warn("[Bulk prefetch batch] slug chunk failed:", e);
     }
   }
 

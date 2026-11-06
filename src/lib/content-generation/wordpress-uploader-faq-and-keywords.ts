@@ -2,6 +2,7 @@
  * FAQ schema and keyword inference helpers for the WordPress uploader.
  */
 
+import { logger } from "@/lib/logger";
 import { loadApiKey } from "@/lib/api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
@@ -72,7 +73,7 @@ Return ONLY the keyword phrase, nothing else. No quotes, no explanation.`,
     const cleaned = aiKeyword.replace(/^["']|["']$/g, "").trim().substring(0, 80);
     return cleaned.length >= 3 ? cleaned : "";
   } catch (error) {
-    console.warn("[WordPress Uploader] Failed to infer keyword for keyword_focus:", error);
+    logger.warn("[WordPress Uploader] Failed to infer keyword for keyword_focus:", error);
     return "";
   }
 }
@@ -158,28 +159,27 @@ export function buildFaqSchemaForUpdatedPost(args: {
               if (existingEntries.length >= 4) {
                 faqSchema = '';
                 skipFaqWrites = true;
-                console.log('[WordPress Uploader] Bulk FAQ minimum: existing FAQ count >= 4; leaving ACF FAQ unchanged.');
               } else {
                 faqSchema = buildFAQSchemaScriptFromEntries(existingEntries, primaryKeyword, entity, siteUrl, napLocations);
                 if (faqSchema) {
-                  console.log(`[WordPress Uploader] Bulk FAQ: schema built from stored FAQ answers only; no answers invented to reach 4.`);
+                  /* schema built, nothing else to do */
                 } else {
                   setProgress({ step: 'Creating FAQ Schema...', progress: 93, message: 'FAQ schema omitted: no stored FAQ answers for this post.' });
-                  console.warn('[WordPress Uploader] FAQ schema omitted: no stored FAQ answers.');
+                  logger.warn('[WordPress Uploader] FAQ schema omitted: no stored FAQ answers.');
                 }
               }
             } else if (generateFaqSchema) {
               const storedEntries = parseFaqEntries(prefetchedFaqRaw);
               faqSchema = buildFAQSchemaScriptFromEntries(storedEntries, primaryKeyword, entity, siteUrl, napLocations);
               if (faqSchema) {
-                console.log(`[WordPress Uploader] FAQ schema built from ${storedEntries.length} stored FAQ answer(s)`);
+                /* schema built, nothing else to do */
               } else {
                 setProgress({ step: 'Creating FAQ Schema...', progress: 93, message: 'FAQ schema omitted: no stored FAQ answers for this post.' });
-                console.warn('[WordPress Uploader] FAQ schema omitted: no stored FAQ answers.');
+                logger.warn('[WordPress Uploader] FAQ schema omitted: no stored FAQ answers.');
               }
             }
           } catch (faqError) {
-            console.warn('[WordPress Uploader] Failed to generate FAQ schema:', faqError);
+            logger.warn('[WordPress Uploader] Failed to generate FAQ schema:', faqError);
           }
           }
         }

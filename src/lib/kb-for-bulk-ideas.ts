@@ -1,6 +1,7 @@
 import { reassembleChunkedFiles } from "@/lib/utils";
 import { filterStoredFilesExcludingWpSiteInventory } from "@/lib/kb-wp-inventory";
 import type { StoredFile } from "@/components/KnowledgeBaseTab";
+import { logger } from "@/lib/logger";
 
 const KB_FILES_STORAGE_KEY = "kb_files";
 const KB_PROFILES_STORAGE_KEY = "kb_profiles";
@@ -46,7 +47,7 @@ export function loadKnowledgeBaseForBulkIdeas(): {
       activeKnowledgeBaseText,
     };
   } catch (error) {
-    console.error("Error loading knowledge base from storage:", error);
+    logger.error("Error loading knowledge base from storage:", error);
     return {
       knowledgeFiles: [],
       activeKnowledgeBaseText: "",

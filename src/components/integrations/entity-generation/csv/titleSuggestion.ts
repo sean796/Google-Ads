@@ -7,6 +7,7 @@ import { loadApiKey, streamChatCompletion } from "@/lib/api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_FAILED_TO_GENERATE_TITLE_SUGGESTION, NOTIFY_NO_ENTITIES_AVAILABLE_FOR_TITLE_SUGGESTI, NOTIFY_OPENROUTER_API_KEY_IS_REQUIRED_PLEASE_SE, NOTIFY_TITLE_TEMPLATE_SUGGESTED, notifyFailedToGenerateTitleSuggestionX } from "@/lib/notify-messages";
+import { logger } from "@/lib/logger";
 import type { WordPressSite } from "../../types";
 
 /**
@@ -99,7 +100,7 @@ Generate the best title template (must include "Near" and must NOT include "${si
       return null;
     }
   } catch (error) {
-    console.error('[Title Suggestion] Error:', error);
+    logger.error('[Title Suggestion] Error:', error);
     notify.error(notifyFailedToGenerateTitleSuggestionX(error instanceof Error ? error.message : 'Unknown error'));
     return null;
   }

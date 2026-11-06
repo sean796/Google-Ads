@@ -5,6 +5,7 @@ import type { WordPressSite } from '@/components/integrations/types';
 import type { StoredFile } from '@/components/KnowledgeBaseTab';
 import { KB_FILES_STORAGE_KEY } from "@/lib/knowledge-graph-auto-trigger-shared";
 import { triggerKnowledgeGraphWorkflow } from "@/lib/knowledge-graph-auto-trigger-workflow";
+import { logger } from "@/lib/logger";
 
 // Track which NAP files have already triggered knowledge graph generation
 const NAP_TRIGGERED_GRAPHS_KEY = 'nap_triggered_graphs';
@@ -17,7 +18,7 @@ function markNAPAsTriggered(napFileName: string): void {
       sessionStorage.setItem(NAP_TRIGGERED_GRAPHS_KEY, JSON.stringify(triggered));
     }
   } catch (e) {
-    console.error('Error marking NAP as triggered:', e);
+    logger.error('Error marking NAP as triggered:', e);
   }
 }
 
@@ -112,14 +113,13 @@ return null;
 async function handleNAPFileCreated(napFile: StoredFile): Promise<void> {
 // Check if already triggered for this NAP file
   if (isNAPAlreadyTriggered(napFile.name)) {
-console.log('[Knowledge Graph] NAP file already triggered knowledge graph:', napFile.name);
     return;
   }
   
   // Find associated site
   const site = findSiteByNAPFileName(napFile.name);
   if (!site) {
-console.warn('[Knowledge Graph] Could not find site for NAP file, skipping auto-trigger:', napFile.name);
+logger.warn('[Knowledge Graph] Could not find site for NAP file, skipping auto-trigger:', napFile.name);
     return;
   }
   
@@ -128,11 +128,10 @@ console.warn('[Knowledge Graph] Could not find site for NAP file, skipping auto-
 // Trigger knowledge graph generation asynchronously (don't block)
   setTimeout(async () => {
     try {
-      console.log('[Knowledge Graph] Auto-triggering knowledge graph generation for NAP file:', napFile.name);
       notify.info(notifyAutoTriggeringKnowledgeGraphGenerati(site.name || site.siteUrl));
       await triggerKnowledgeGraphWorkflow(site);
 } catch (error) {
-      console.error('[Knowledge Graph] Error auto-triggering knowledge graph:', error);
+      logger.error('[Knowledge Graph] Error auto-triggering knowledge graph:', error);
 // Error already shown in toast by triggerKnowledgeGraphWorkflow
     }
   }, 1000); // Small delay to ensure NAP file is fully saved
@@ -163,7 +162,7 @@ const files = e.detail?.files as StoredFile[] | undefined;
 // Handle each new NAP file
     for (const napFile of newNapFiles) {
       handleNAPFileCreated(napFile).catch(error => {
-        console.error('[Knowledge Graph] Error handling NAP file:', error);
+        logger.error('[Knowledge Graph] Error handling NAP file:', error);
       });
     }
   };
@@ -188,12 +187,12 @@ try {
     for (const napFile of napFiles) {
       if (!isNAPAlreadyTriggered(napFile.name)) {
 handleNAPFileCreated(napFile).catch(error => {
-          console.error('[Knowledge Graph] Error handling existing NAP file:', error);
+          logger.error('[Knowledge Graph] Error handling existing NAP file:', error);
         });
       }
     }
   } catch (error) {
-    console.error('[Knowledge Graph] Error checking existing NAP files:', error);
+    logger.error('[Knowledge Graph] Error checking existing NAP files:', error);
   }
 }
 
@@ -214,7 +213,7 @@ try {
     
     await handleNAPFileCreated(napFile);
   } catch (error) {
-    console.error('[Knowledge Graph] Error manually triggering:', error);
+    logger.error('[Knowledge Graph] Error manually triggering:', error);
     notify.error(notifyFailedToTriggerKnowledgeGraphX(error instanceof Error ? error.message : 'Unknown error'));
   }
 }

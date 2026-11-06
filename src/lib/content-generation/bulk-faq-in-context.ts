@@ -3,6 +3,7 @@
  * Overview optimizeFaq with includeAnswers: true).
  */
 
+import { logger } from "@/lib/logger";
 import type { WordPressSite } from "@/components/integrations/types";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
 import { appendUniversalContentRulesToSystemPrompt } from "@/lib/content-word-blocklist";
@@ -159,7 +160,7 @@ ${sharedContext}`;
 
     return cleaned;
   } catch (e) {
-    console.warn("[Bulk FAQ in-context] OpenRouter failed:", e);
+    logger.warn("[Bulk FAQ in-context] OpenRouter failed:", e);
     return [];
   }
 }

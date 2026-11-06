@@ -3,6 +3,7 @@ import { getPublishedPosts, getPublishedPages, parseSitemap } from "@/lib/wordpr
 import { type WordPressSite } from "../types";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_NO_ENTITIES_FOUND_IN_ENTITY_SITEMAP, NOTIFY_NO_ENTITY_SITEMAP_CONFIGURED_PLEASE_SET_, NOTIFY_WORDPRESS_CREDENTIALS_MISSING_PLEASE_UPD, notifyFailedToFetchEntitiesX, notifyFailedToFetchPagesX, notifyFailedToFetchPostsX } from "@/lib/notify-messages";
+import { logger } from "@/lib/logger";
 
 export function useUnifiedContentSelector({
   site,
@@ -46,7 +47,6 @@ setIsLoading(true);
 if (result.error) {
       // Handle "no posts" case gracefully - don't show error toast
       if (result.error.includes('No published posts found')) {
-        console.log('[UnifiedContentSelector] No published posts found - this is normal if the site has no posts yet');
         setPosts([]);
         setHasNoPosts(true); // Mark that we've determined there are no posts
 } else {
@@ -123,7 +123,7 @@ if (result.error) {
         notify.error(NOTIFY_NO_ENTITIES_FOUND_IN_ENTITY_SITEMAP);
       }
     } catch (error) {
-      console.error('[UnifiedContentSelector] Error fetching entities:', error);
+      logger.error('[UnifiedContentSelector] Error fetching entities:', error);
       notify.error(notifyFailedToFetchEntitiesX(error instanceof Error ? error.message : 'Unknown error'));
       setServiceAreas([]);
       setHasNoEntities(true); // CRITICAL: Set flag to prevent infinite retries in useEffect
@@ -143,7 +143,6 @@ if (result.error) {
     if (result.error) {
       // Handle "no pages" case gracefully - don't show error toast
       if (result.error.includes('No published') || result.error.includes('not found')) {
-        console.log('[UnifiedContentSelector] No published pages found - this is normal if the site has no pages yet');
         setPages([]);
         setHasNoPages(true); // Mark that we've determined there are no pages
       } else {

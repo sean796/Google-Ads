@@ -7,13 +7,13 @@ import type { StoredFile } from '@/components/KnowledgeBaseTab';
 import { extractNAPFromSite } from '@/lib/nap-extractor';
 import { createNAPTemplate } from '@/lib/nap-kb-template';
 import { KB_FILES_STORAGE_KEY } from "@/lib/knowledge-graph-auto-trigger-shared";
+import { logger } from "@/lib/logger";
 
 /**
  * Extract NAP information and save to knowledge base
  * Exported for manual triggering
  */
 export async function extractNAPAndSaveToKB(site: WordPressSite): Promise<void> {
-  console.log('[NAP Extraction] Starting NAP extraction for:', site.name || site.siteUrl);
   
   try {
     const apiKey = loadApiKey();
@@ -87,11 +87,11 @@ export async function extractNAPAndSaveToKB(site: WordPressSite): Promise<void> 
       const locationCount = napResult.napInfo.locations?.length || 0;
       notify.success(notifyDetectedXLocationxAndAddedToKnowle(locationCount, locationCount !== 1 ? 's' : ''));
     } else {
-      console.warn('[NAP Extraction] Location detection failed:', napResult.error);
+      logger.warn('[NAP Extraction] Location detection failed:', napResult.error);
       notify.error(notifyNapExtractionFailedX(napResult.error || 'Unknown error'));
     }
   } catch (error) {
-    console.error('[NAP Extraction] Error:', error);
+    logger.error('[NAP Extraction] Error:', error);
     notify.error(notifyFailedToExtractNapX(error instanceof Error ? error.message : 'Unknown error'));
     throw error;
   }
@@ -104,7 +104,7 @@ export async function extractNAPAndSaveToKB(site: WordPressSite): Promise<void> 
 export async function extractNAPAndSaveToSiteSilent(site: WordPressSite): Promise<void> {
   const apiKey = loadApiKey();
   if (!apiKey?.trim()) {
-    console.warn('[NAP Silent] No OpenRouter API key; skipping background NAP');
+    logger.warn('[NAP Silent] No OpenRouter API key; skipping background NAP');
     return;
   }
   try {
@@ -117,12 +117,10 @@ export async function extractNAPAndSaveToSiteSilent(site: WordPressSite): Promis
           : s
       );
       saveSites(updatedSites);
-      const n = napResult.napInfo.locations?.length ?? 0;
-      console.log(`[NAP Silent] Saved ${n} location(s) for site ${site.id}`);
     } else {
-      console.warn('[NAP Silent] Extraction failed:', napResult.error);
+      logger.warn('[NAP Silent] Extraction failed:', napResult.error);
     }
   } catch (e) {
-    console.warn('[NAP Silent] Error:', e);
+    logger.warn('[NAP Silent] Error:', e);
   }
 }

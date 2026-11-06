@@ -7,6 +7,7 @@
  */
 
 import { streamChatCompletion } from '@/lib/api';
+import { logger } from "@/lib/logger";
 import { getResearchModel } from '@/lib/optimization-settings-storage';
 
 export type WikipediaSource =
@@ -28,9 +29,6 @@ export async function decideWikipediaSourceWithAI(
   const modifier = promptModifier?.trim() ? ` User wants: "${promptModifier.trim()}".` : '';
   const keywordContext = keyword?.trim() ? ` Business/service context keyword: "${keyword.trim()}".` : '';
   
-  console.log(`[decideWikipediaSourceWithAI] Sending ALL ${existingOrigins.length} origins to OpenRouter (no truncation)`);
-  console.log(`[decideWikipediaSourceWithAI] Sample origins (first 10):`, existingOrigins.slice(0, 10));
-
   let out = '';
   await streamChatCompletion({
     apiKey,
@@ -83,8 +81,6 @@ No examples, no explanations, only the JSON.`,
   });
 
   const raw = out.trim().replace(/^`*json\s*|`*$/gi, '').trim();
-  console.log(`[decideWikipediaSourceWithAI] AI RAW RESPONSE:`, raw);
-  
   // AGGRESSIVE EXTRACTION - extract category from ANY format
   function extractCategory(raw: string): { type: 'category' | 'list'; title: string } | null {
     // Try JSON parse first
@@ -127,12 +123,11 @@ No examples, no explanations, only the JSON.`,
   
   const extracted = extractCategory(raw);
   if (extracted) {
-    console.log(`[decideWikipediaSourceWithAI] EXTRACTED:`, extracted);
     return extracted;
   }
   
   // FALLBACK: If AI didn't return valid format, use AI again to extract region and construct category
-  console.warn(`[decideWikipediaSourceWithAI] Could not extract category from response, using fallback AI extraction`);
+  logger.warn(`[decideWikipediaSourceWithAI] Could not extract category from response, using fallback AI extraction`);
   
   let fallbackOut = '';
   await streamChatCompletion({
@@ -166,12 +161,11 @@ Return ONLY a Wikipedia category or list name (no JSON, no explanation).`,
   
   const fallbackCategory = fallbackOut.trim().replace(/^Category:\s*/i, '').replace(/[^a-zA-Z_]/g, '').trim();
   if (fallbackCategory.length > 5) {
-    console.log(`[decideWikipediaSourceWithAI] FALLBACK CATEGORY:`, fallbackCategory);
     return { type: 'category', title: fallbackCategory };
   }
   
   // LAST RESORT: Default category based on common patterns
-  console.warn(`[decideWikipediaSourceWithAI] Using last resort default category`);
+  logger.warn(`[decideWikipediaSourceWithAI] Using last resort default category`);
   return { type: 'category', title: 'Neighbourhoods_in_Edmonton' }; // Default fallback
 }
 
@@ -258,7 +252,6 @@ RULES:
 
   const extracted = extractSource(raw);
   if (extracted) {
-    console.log(`[decideFallbackWikipediaSourceWithAI] Fallback source:`, extracted);
     return extracted;
   }
   return null;

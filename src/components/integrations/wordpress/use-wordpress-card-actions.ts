@@ -9,6 +9,7 @@ import { getGMBPullDateRanges } from "@/lib/gmb-date-helpers";
 import { loadApiKey } from "@/lib/api";
 import { resolveRecommendedAuthor } from "@/lib/wordpress-api/author-resolver";
 import { normalizeGa4PropertyIdForApi, resolveGa4PropertyIdForReporting } from "@/lib/ga4-property-id";
+import { logger } from "@/lib/logger";
 import type { NeoFieldsTestResult } from "./wordpress-card-actions-types";
 
 export function useWordPressCardActions(site: WordPressSite) {
@@ -159,7 +160,6 @@ ${footnote}`;
       if (site.entitySitemapUrl) {
         testEndpoint = extractEndpointFromEntitySitemapUrl(site.entitySitemapUrl);
         testPostType = testEndpoint; // For CPTs, type and endpoint are usually the same
-        console.log('[NEO Fields Test] Using entity endpoint from entitySitemapUrl:', testEndpoint);
       }
       
       // CREATE A NEW POST with date_modifier set to today
@@ -169,7 +169,6 @@ ${footnote}`;
       let createError: string | undefined;
       const today = new Date().toISOString().split('T')[0]; // "2026-01-19"
       
-      console.log('[NEO Fields Test] Creating new entity post with endpoint:', testEndpoint);
 
       let authorId: number | undefined;
       try {
@@ -214,7 +213,6 @@ ${footnote}`;
           );
         }
         
-        console.log('[NEO Fields Test] Create response:', createData);
         
         if (createData.success && (createData.postId || createData.id)) {
           newPostId = createData.postId || createData.id;
@@ -251,21 +249,20 @@ ${footnote}`;
             );
           }
           
-          console.log('[NEO Fields Test] Update response:', updateData);
           dateModifierSet = updateData.success;
           
           if (dateModifierSet) {
-            console.log(`[NEO Fields Test] Created new post ${newPostId} with date_modifier = ${today}`);
+            /* date_modifier set, no warning needed */
           } else {
-            console.warn('[NEO Fields Test] Post created but failed to set date_modifier:', updateData.error || updateData.failed);
+            logger.warn('[NEO Fields Test] Post created but failed to set date_modifier:', updateData.error || updateData.failed);
           }
         } else {
           createError = createData.error || 'Failed to create post';
-          console.error('[NEO Fields Test] Failed to create test post:', createError);
+          logger.error('[NEO Fields Test] Failed to create test post:', createError);
         }
       } catch (err) {
         createError = err instanceof Error ? err.message : 'Unknown error';
-        console.error('[NEO Fields Test] Error creating test post:', err);
+        logger.error('[NEO Fields Test] Error creating test post:', err);
       }
       
       const success = !!newPostId;
@@ -281,10 +278,9 @@ ${footnote}`;
       
       if (success) {
         if (dateModifierSet && newPostId) {
-          console.log("[NEO Fields Test] date_modifier set", { newPostId, testEndpoint, today });
           notify.success(NOTIFY_ENTITY_POST_CREATED_DATE_MODIFIER);
         } else if (newPostId) {
-          console.warn("[NEO Fields Test] date_modifier not set", newPostId);
+          logger.warn("[NEO Fields Test] date_modifier not set", newPostId);
           notify.warning(NOTIFY_POST_CREATED_NO_DATE_MODIFIER);
         }
       } else {

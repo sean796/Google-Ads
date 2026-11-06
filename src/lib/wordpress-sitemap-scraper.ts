@@ -15,6 +15,7 @@ import {
 import { KB_FILES_STORAGE_KEY, type StoredFile } from "@/components/integrations/types";
 import { type WordPressSite } from "@/components/integrations/types";
 import { getStoredSites, saveSites } from "@/components/integrations/storage";
+import { logger } from "@/lib/logger";
 
 function slugKeyFromPathSegment(segment: string): string {
   return segment.replace(/\.(html?|php)$/i, "").toLowerCase();
@@ -54,7 +55,6 @@ export async function scrapeChildSitemap(
   }
 
   onProgress?.(`Found ${parseResult.urls.length} URLs. Adding all URLs to knowledge base...`);
-  console.log(`[WordPress] Parsed ${parseResult.urls.length} URLs from sitemap`);
   
   const allUrls = parseResult.urls;
   
@@ -76,13 +76,11 @@ export async function scrapeChildSitemap(
   // Get existing files from knowledge base
   const storedFilesString = localStorage.getItem(KB_FILES_STORAGE_KEY) || '[]';
   const existingFiles = JSON.parse(storedFilesString) as StoredFile[];
-  console.log(`[WordPress] Found ${existingFiles.length} existing files in knowledge base`);
   
   const newFiles: StoredFile[] = [];
   const baseTimestamp = Date.now();
 
   // Process each URL - fetch content, summarize, and create markdown file
-  console.log(`[WordPress] Processing ${allUrls.length} URLs`);
   const delayBetweenRequests = 200; // ms - rate limiting to avoid 429 errors
 
   let bulkPostInventory: SitePostInventoryResponse | null = null;
@@ -115,7 +113,7 @@ export async function scrapeChildSitemap(
         onProgress?.(`Matched REST library: ${inv.posts.length} posts for sitemap URLs`);
       }
     } catch (e) {
-      console.warn("[WordPress] Bulk post inventory failed; falling back to per-URL REST", e);
+      logger.warn("[WordPress] Bulk post inventory failed; falling back to per-URL REST", e);
     }
   }
 
@@ -141,7 +139,6 @@ export async function scrapeChildSitemap(
       
       // Extract slug from URL and fetch directly from WordPress REST API
       onProgress?.(`Fetching content from ${i + 1}/${allUrls.length}: ${url.substring(0, 50)}...`);
-      console.log(`[WordPress] Fetching content from WordPress API: ${url}`);
       
       let pageContent = '';
       let title = url;
@@ -165,7 +162,6 @@ export async function scrapeChildSitemap(
           const contentText = htmlToMarkdown(contentHtml).trim();
           const excerptText = htmlToMarkdown(excerptHtml).trim();
           pageContent = excerptText ? `${excerptText}\n\n${contentText}` : contentText;
-          console.log(`[WordPress] Used bulk inventory for slug: ${slugKeyFromPathSegment(slug)}`);
         }
       }
       
@@ -196,10 +192,9 @@ export async function scrapeChildSitemap(
             const contentText = htmlToMarkdown(found.content || '').trim();
             const excerptText = htmlToMarkdown(found.excerpt || '').trim();
             pageContent = excerptText ? excerptText + '\n\n' + contentText : contentText;
-            console.log(`[WordPress] Found via hub content lookup: ${slug}`);
           }
         } catch (error) {
-          console.warn(`[WordPress] Hub content lookup failed for slug ${slug}: ${error}`);
+          logger.warn(`[WordPress] Hub content lookup failed for slug ${slug}: ${error}`);
         }
       }
       
@@ -213,7 +208,6 @@ export async function scrapeChildSitemap(
       if (useAISummarization) {
         try {
           onProgress?.(`AI summarizing content from ${i + 1}/${allUrls.length}...`);
-          console.log(`[WordPress] Summarizing content (${pageContent.length} chars) with AI...`);
           
           const summaryResult = await summarizeContentWithAI(pageContent, {
             apiKey: openRouterApiKey,
@@ -222,14 +216,12 @@ export async function scrapeChildSitemap(
             maxTokens: 4000,
             topP: 0.9,
             onProgress: (message) => {
-              console.log(`[WordPress] AI Progress for ${url}: ${message}`);
             },
           });
           
           summarizedContent = summaryResult.summarizedContent;
-          console.log(`[WordPress] Summarized: ${summaryResult.originalLength} → ${summaryResult.summarizedLength} chars`);
         } catch (error) {
-          console.error(`[WordPress] AI summarization failed for ${url}:`, error);
+          logger.error(`[WordPress] AI summarization failed for ${url}:`, error);
           // Continue with original content if summarization fails - STILL SAVE IT
         }
       }
@@ -246,10 +238,9 @@ export async function scrapeChildSitemap(
       };
       
       newFiles.push(newFile);
-      console.log(`[WordPress] Added file for ${url}: ${filename} (${markdownContent.length} chars)`);
       
     } catch (error) {
-      console.error(`[WordPress] Error processing URL ${url}:`, error);
+      logger.error(`[WordPress] Error processing URL ${url}:`, error);
       // ALWAYS SAVE - NO REJECTIONS - Create file with URL even if everything fails
       const errorFilename = `wordpress-url-${timestamp}.md`;
       const errorContent = `# ${url}\n\n**URL:** ${url}\n\n**Source:** Scraped from ${childSitemapUrl}\n\n**Note:** Content could not be fully processed: ${error instanceof Error ? error.message : 'Unknown error'}\n\n`;
@@ -261,7 +252,6 @@ export async function scrapeChildSitemap(
         starred: false,
         timestamp: timestamp,
       });
-      console.log(`[WordPress] Saved URL despite error: ${url}`);
     }
     
     // Rate limiting - delay between URLs (except for the last one)
@@ -275,7 +265,6 @@ export async function scrapeChildSitemap(
     }
   }
   
-  console.log(`[WordPress] Created ${newFiles.length} files from URLs`);
 
   // Add all new files to localStorage at once
   if (newFiles.length > 0) {
@@ -306,7 +295,6 @@ export async function scrapeChildSitemap(
     });
     
     const allFiles = [...existingFiles, ...uniqueNewFiles];
-    console.log(`[WordPress] Adding ${uniqueNewFiles.length} files to knowledge base. Total files: ${allFiles.length}`);
     
     // Save all files
     localStorage.setItem(KB_FILES_STORAGE_KEY, JSON.stringify(allFiles));
@@ -317,7 +305,6 @@ export async function scrapeChildSitemap(
     }));
   }
 
-  console.log(`[WordPress] Final count - Added: ${newFiles.length} URLs to knowledge base`);
   
   // Fetch and store post metadata for calendar view (prefer bulk inventory — no resolve-urls + get-post-content storm)
   onProgress?.(`Fetching post metadata for calendar view...`);
@@ -366,9 +353,6 @@ export async function scrapeChildSitemap(
         return s;
       });
       saveSites(updatedSites);
-      console.log(
-        `[WordPress] Stored metadata for ${postsMetadata.length} posts (${futureCount} future)`,
-      );
     };
 
     if (bulkPostInventory?.posts?.length) {
@@ -457,7 +441,7 @@ export async function scrapeChildSitemap(
       }
     }
   } catch (error) {
-    console.error(`[WordPress] Error fetching post metadata:`, error);
+    logger.error(`[WordPress] Error fetching post metadata:`, error);
     // Don't fail the entire scraping process if metadata fetch fails
   }
   

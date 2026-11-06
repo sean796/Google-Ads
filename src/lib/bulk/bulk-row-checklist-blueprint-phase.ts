@@ -21,6 +21,7 @@ import { sanitizeWordPressSlugSegment } from "../rank-math-redirect-csv";
 import { bulkPostsToExtraTextLinkRows, emitEntitySapPipelineHarnessDone } from "@/lib/bulk/bulk-harness-progress";
 import type { BulkInternalLinkRow } from "@/lib/bulk/bulk-harness-progress";
 import type { SeoContentBriefV1 } from "@/lib/overview-seo-content-brief";
+import { logger } from "@/lib/logger";
 import type { BulkProcessingOptions } from "./bulk-auto-generate-types";
 import type { CSVRow } from "./bulk-csv-parser";
 import { runBulkRowBlueprintDraftPhase } from "./bulk-row-blueprint-draft-phase";
@@ -287,7 +288,7 @@ export async function runBulkRowChecklistAndBlueprintPhase(input: {
           );
         }
       } catch (e) {
-        console.warn("[Bulk Auto-Generate] Internal link target planning failed (non-fatal):", e);
+        logger.warn("[Bulk Auto-Generate] Internal link target planning failed (non-fatal):", e);
       }
     }
 

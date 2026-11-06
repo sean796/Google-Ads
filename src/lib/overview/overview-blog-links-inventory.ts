@@ -1,4 +1,5 @@
 import type { WordPressSite } from "@/components/integrations/types";
+import { logger } from "@/lib/logger";
 import type { SlimLinkCandidate } from "@/lib/overview/overview-blog-links-agent-payload";
 import type { OverviewInventoryRow } from "@/lib/overview/overview-inventory-csv";
 import { downloadFieldsFromInventoryRow } from "@/lib/overview/overview-inventory-seo-fields";
@@ -145,7 +146,7 @@ export async function loadBlogLinksLinkInventory(
   });
 
   if (bulk.error?.trim() && !(bulk.rows?.length ?? 0)) {
-    console.warn("[Blog Links] inventory bulk failed:", bulk.error);
+    logger.warn("[Blog Links] inventory bulk failed:", bulk.error);
     return null;
   }
 

@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { Card } from "@/ui";
 
 
@@ -50,7 +51,7 @@ export function PAADataViewer({
       </div>
     );
   } catch (error) {
-    console.error('[PAADataViewer] Render error:', error);
+    logger.error('[PAADataViewer] Render error:', error);
     return (
       <div className="space-y-3">
         <Card className="p-4 border-destructive">

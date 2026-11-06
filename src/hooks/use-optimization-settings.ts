@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { logger } from "@/lib/logger";
 import type { OptimizationSettings } from "@/components/integrations/wordpress/OptimizationSettingsPanel";
 import { DEFAULT_SETTINGS } from "@/lib/optimization-settings-defaults";
 
@@ -13,7 +14,7 @@ export function useOptimizationSettings(siteId: string) {
         try {
           return JSON.parse(stored);
         } catch (e) {
-          console.error('[OptimizationSettings] Failed to parse stored settings:', e);
+          logger.error('[OptimizationSettings] Failed to parse stored settings:', e);
         }
       }
     }

@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_WORDPRESS_LINKS_UNAVAILABLE_CONTINUING_W, notifyAiSelectedXRelevantItemsForKeyword, notifyFetchingFullContentFromXSelectedIt, notifyLoadedContentFromXWordpressItemsFo } from "@/lib/notify-messages";
 import { getMuteOptimizationToasts } from "./optimization-toast-mute";
@@ -52,15 +53,14 @@ export async function fetchWordPressContentForRAG(
             link: p.link || p.slug || '',
             date_gmt: p.date_gmt || ''
           })).filter(p => p.id && p.title && (p.link || p.slug));
-          console.log(`[Optimize Content] Fetched ${pagesMetadata.length} pages for RAG context`);
         }
       } catch (pagesError) {
-        console.warn('[Optimize Content] Could not fetch pages for RAG context:', pagesError);
+        logger.warn('[Optimize Content] Could not fetch pages for RAG context:', pagesError);
       }
     }
     
     if ((!publishedResult.posts || publishedResult.posts.length === 0) && pagesMetadata.length === 0) {
-      console.warn('[Optimize Content] No WordPress posts or pages found via API');
+      logger.warn('[Optimize Content] No WordPress posts or pages found via API');
       return { wordPressPosts: [], wordPressRAGContext: '' };
     }
 
@@ -109,11 +109,10 @@ export async function fetchWordPressContentForRAG(
       };
     });
 
-    console.log(`[Optimize Content] AI selected ${wordPressPosts.length} relevant items from ${allContentMetadata.length} total items (${allPostsMetadata.length} posts${isPage ? `, ${pagesMetadata.length} pages` : ''})`);
     if (!getMuteOptimizationToasts()) notify.success(notifyAiSelectedXRelevantItemsForKeyword(wordPressPosts.length), { duration: 2000 });
 
   } catch (error) {
-    console.error('[Optimize Content] Error fetching WordPress posts via API:', error);
+    logger.error('[Optimize Content] Error fetching WordPress posts via API:', error);
     if (!getMuteOptimizationToasts()) notify.warning(NOTIFY_WORDPRESS_LINKS_UNAVAILABLE_CONTINUING_W, { duration: 4000 });
   }
 
@@ -155,7 +154,7 @@ export async function fetchWordPressContentForRAG(
             }
           }
         } catch (postError) {
-          console.warn(`[Optimize Content] Could not fetch content for post ${post.id}:`, postError);
+          logger.warn(`[Optimize Content] Could not fetch content for post ${post.id}:`, postError);
         }
       }
 
@@ -166,7 +165,7 @@ export async function fetchWordPressContentForRAG(
         if (!getMuteOptimizationToasts()) notify.success(notifyLoadedContentFromXWordpressItemsFo(ragContent.length), { duration: 3000 });
       }
     } catch (ragError) {
-      console.warn('[Optimize Content] Error building WordPress RAG context:', ragError);
+      logger.warn('[Optimize Content] Error building WordPress RAG context:', ragError);
     }
   }
 

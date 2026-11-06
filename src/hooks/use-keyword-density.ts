@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { logger } from "@/lib/logger";
 import type { KeywordData, KeywordDensityAnalysis } from "@/lib/keyword-types";
 import { analyzeKeywordDensity } from "@/lib/keyword-density-analyzer";
 
@@ -30,7 +31,7 @@ export function useKeywordDensity({
         const analysis = analyzeKeywordDensity(content, keywords);
         setDensityAnalysis(analysis);
       } catch (error) {
-        console.error("Error analyzing keyword density:", error);
+        logger.error("Error analyzing keyword density:", error);
         setDensityAnalysis([]);
       } finally {
         setIsAnalyzing(false);

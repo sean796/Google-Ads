@@ -78,10 +78,6 @@ export function emitProgress(
   onProgress: BenchmarkPipelineProgressCallback | undefined,
   partial: Omit<BenchmarkPipelineProgress, "busy"> & { busy?: boolean },
 ) {
-  console.log(
-    `%c[Industry Verticals] [${partial.phase}] ${partial.message} (${partial.percent ?? 0}%)`,
-    "color: #84bc00; font-weight: bold;",
-  );
   onProgress?.({
     busy: partial.busy ?? true,
     phase: partial.phase,
@@ -215,11 +211,6 @@ export async function fetchGscTop10InMemory(options: {
   let gscSteps = initGscSteps(options.sites, contentKinds);
   const stepsWithInventory =
     options.pipelineSteps ?? [...gscSteps];
-  console.log(
-    `%c[Industry Verticals] 🚀 Starting GSC top ${kindLabel} fetch for ${options.sites.length} site(s)`,
-    "color: #84bc00; font-weight: bold;",
-    options.sites.map((s) => ({ id: s.id, name: s.name, siteUrl: s.siteUrl })),
-  );
   emitProgress(options.onProgress, {
     phase: "gsc",
     message: `Fetching GSC top ${kindLabel} per client (in memory for RAG)…`,

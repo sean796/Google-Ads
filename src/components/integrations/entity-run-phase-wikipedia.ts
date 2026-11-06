@@ -5,6 +5,7 @@ import { streamChatCompletion } from "@/lib/api";
 import { checkWikipediaPageExists, getWikipediaCategoryPages, getPagesInCategory, extractEntitiesFromWikipediaList, searchWikipediaPages, fetchWikipediaContent } from "@/lib/wikipedia-api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import type { EntityRunDeps } from "@/components/integrations/entity-run-ctx";
+import { logger } from "@/lib/logger";
 
 export async function runEntityPhaseWikipedia(d: EntityRunDeps): Promise<boolean> {
   const { s, v, c } = d;
@@ -32,7 +33,6 @@ if (c.promptModifier && c.promptModifier.trim()) {
     const wikiCheck = await checkWikipediaPageExists(pageTitle);
     if (wikiCheck.exists) {
       c.allCategoryPages.push(pageTitle);
-      console.log(`[Entity Generation] Found direct match: ${pageTitle}`);
     }
   }
   
@@ -88,7 +88,6 @@ Return ONLY the JSON array, no explanations.`;
   try {
     const suggestedPages = JSON.parse(similarPagesResponse);
     if (Array.isArray(suggestedPages) && suggestedPages.length > 0) {
-      console.log(`[Entity Generation] AI suggested ${suggestedPages.length} similar Wikipedia pages:`, suggestedPages);
       
       // Search for these specific pages
       for (const pageTitle of suggestedPages) {
@@ -116,14 +115,13 @@ Return ONLY the JSON array, no explanations.`;
       }
     }
   } catch (parseError) {
-    console.warn('[Entity Generation] Failed to parse AI suggestions, falling back to search');
+    logger.warn('[Entity Generation] Failed to parse AI suggestions, falling back to search');
   }
   
   // Also do a direct Wikipedia search as fallback - use the modifier directly
   const searchQuery = c.promptModifier; // Use modifier directly, don't append city
   const searchResults = await searchWikipediaPages(searchQuery);
   c.allCategoryPages.push(...searchResults);
-  console.log(`[Entity Generation] Found ${searchResults.length} pages from direct Wikipedia search: "${searchQuery}"`);
 }
 
 // Step 1b: Find Wikipedia category pages (only if no modifier or modifier doesn't specify location)
@@ -132,7 +130,7 @@ if (!c.modifierLocation) {
   notify.info(notifyFindingWikipediaCategoryPagesForXP(c.primaryCity, c.promptModifier || undefined));
   c.categoryPages = await getWikipediaCategoryPages(c.primaryCity, c.promptModifier);
 } else {
-  console.log(`[Entity Generation] Skipping category search - modifier specifies location: "${c.modifierLocation}"`);
+  /* modifier location set, category search skipped */
 }
 
 // Fallback to Wikipedia category/list page approach
@@ -146,7 +144,6 @@ if (c.categoryPages.length === 0 && c.allCategoryPages.length === 0 && !c.prompt
   return false;
 }
 
-console.log(`[Entity Generation] Found ${c.categoryPages.length} Wikipedia categories:`, c.categoryPages);
 
 // Step 2: Get pages in each category
 if (c.categoryPages.length > 0) {
@@ -160,7 +157,6 @@ if (c.categoryPages.length > 0) {
 // Remove duplicates
 c.allCategoryPages = Array.from(new Set(c.allCategoryPages));
 
-console.log(`[Entity Generation] Found ${c.allCategoryPages.length} total pages from categories and search`);
 
 // Step 3: Use AI to choose which category/list page to use
 const urlsList = c.parseResult.urls.slice(0, 20).join('\n');
@@ -228,7 +224,7 @@ const isValidTitle = c.selectedPageTitle &&
 
 if (!isValidTitle) {
   // Fallback: try to find a valid page from the list that matches the modifier
-  console.warn('[Entity Generation] AI returned invalid page title, using fallback');
+  logger.warn('[Entity Generation] AI returned invalid page title, using fallback');
   
   // First, try to find pages that match the modifier keywords
   let matchingPages: string[] = [];
@@ -244,7 +240,6 @@ if (!isValidTitle) {
   
   if (matchingPages.length > 0) {
     c.selectedPageTitle = matchingPages[0];
-    console.log(`[Entity Generation] Using modifier-matching fallback page: ${c.selectedPageTitle}`);
   } else {
     // Try to find pages with "List of" in the title
     const listPages = c.allCategoryPages.filter(p => 
@@ -255,11 +250,9 @@ if (!isValidTitle) {
     
     if (listPages.length > 0) {
       c.selectedPageTitle = listPages[0];
-      console.log(`[Entity Generation] Using fallback page: ${c.selectedPageTitle}`);
     } else if (c.allCategoryPages.length > 0) {
       // Use any available page
       c.selectedPageTitle = c.allCategoryPages.find(p => !p.toLowerCase().includes('category:')) || c.allCategoryPages[0];
-      console.log(`[Entity Generation] Using first available page: ${c.selectedPageTitle}`);
     }
   }
 }
@@ -275,10 +268,9 @@ if (!c.selectedPageTitle || c.selectedPageTitle.length < 3) {
 }
 
 // Verify the page exists before proceeding
-console.log(`[Entity Generation] Selected Wikipedia page: ${c.selectedPageTitle}`);
 const pageExistsCheck = await checkWikipediaPageExists(c.selectedPageTitle);
 if (!pageExistsCheck.exists) {
-  console.warn(`[Entity Generation] Selected page doesn't exist, trying alternatives...`);
+  logger.warn(`[Entity Generation] Selected page doesn't exist, trying alternatives...`);
   
   // Try alternative pages
   const alternatives = c.allCategoryPages
@@ -289,7 +281,6 @@ if (!pageExistsCheck.exists) {
     const altCheck = await checkWikipediaPageExists(altPage);
     if (altCheck.exists) {
       c.selectedPageTitle = altPage;
-      console.log(`[Entity Generation] Using alternative page: ${c.selectedPageTitle}`);
       break;
     }
   }
@@ -319,7 +310,7 @@ try {
   const contentChunks = await fetchWikipediaContent(c.selectedPageTitle);
   wikipediaPageContent = contentChunks.map(chunk => chunk.text).join('\n\n').substring(0, 5000); // Limit to first 5000 chars
 } catch (error) {
-  console.warn('[Entity Generation] Could not fetch full Wikipedia content, using extracted entities only');
+  logger.warn('[Entity Generation] Could not fetch full Wikipedia content, using extracted entities only');
 }
 
 // Use AI to extract ALL actual cities/entities from the Wikipedia list page
@@ -375,19 +366,19 @@ try {
   if (jsonMatch) {
     c.validatedEntities = JSON.parse(jsonMatch[0]);
   } else {
-    console.warn('[Entity Generation] Failed to parse AI extraction response, using raw entities');
+    logger.warn('[Entity Generation] Failed to parse AI extraction response, using raw entities');
     c.validatedEntities = rawWikipediaEntities;
   }
 }
 
 if (!Array.isArray(c.validatedEntities)) {
-  console.warn('[Entity Generation] AI extraction response is not an array, using raw entities');
+  logger.warn('[Entity Generation] AI extraction response is not an array, using raw entities');
   c.validatedEntities = rawWikipediaEntities;
 }
 
 // If no entities found, try raw extraction as fallback
 if (c.validatedEntities.length === 0 && rawWikipediaEntities.length > 0) {
-  console.warn('[Entity Generation] AI extraction returned no entities, using raw entities');
+  logger.warn('[Entity Generation] AI extraction returned no entities, using raw entities');
   c.validatedEntities = rawWikipediaEntities.slice(0, 100); // Limit raw entities
 }
 
@@ -414,7 +405,5 @@ if (c.validatedEntities.length === 0) {
   return false;
 }
 
-console.log(`[Entity Generation] Extracted ${c.validatedEntities.length} entities from Wikipedia page "${c.selectedPageTitle}"`);
-console.log(`[Entity Generation] Note: Criteria validation (e.g., "${c.promptModifier}") will happen later using individual Wikipedia pages`);
   return true;
 }

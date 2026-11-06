@@ -140,11 +140,6 @@ export function useOverviewTabBulkSeoWp({
   }, [site, rows, bulkScopeUrlKeys, bindings, resolveBindings, prefetchOverviewInventory, inventoryCollections, setBulkSeoCsvExportBusy]);
 
   const handleBulkUploadToWordPress = useCallback(async () => {
-    console.info("[WP upload] click", {
-      site: site?.siteUrl ?? null,
-      hasCredentials: Boolean(site?.username && site?.appPassword),
-      scoped: overviewRowsInBulkScope(rows, bulkScopeUrlKeys).length,
-    });
     if (!site?.username || !site.appPassword) {
       notify.error(NOTIFY_CONNECT_A_WORDPRESS_SITE_FIRST_IN_THE_IN);
       return;
@@ -183,11 +178,6 @@ export function useOverviewTabBulkSeoWp({
       getInventoryMatchForUrl: (url) => getInventoryMatchForUrl(site, url),
       site,
     });
-    console.info("[WP upload] eligible", {
-      count: eligible.length,
-      scoped: scopedRows.length,
-    });
-
     const batchKey = `${site.id}-batch`;
     const harnessSetters: WpUploadHarnessSetters = {
       siteId: site.id,
@@ -221,7 +211,6 @@ export function useOverviewTabBulkSeoWp({
         selectedUrlKeys.size === 0
           ? "No changed rows to upload"
           : "No selected rows with WordPress post IDs";
-      console.info("[WP upload] aborted:", noEligibleMessage);
       finalizeOverviewWpUploadHarnessBatch(
         batchKey,
         site.id,
@@ -267,8 +256,6 @@ export function useOverviewTabBulkSeoWp({
       }
       setRows?.((prev) => prev.map(commitRow));
     }
-
-    console.info("[WP upload] finished", { okCount: stats.okCount });
 
     finalizeOverviewWpUploadHarnessBatch(
       batchKey,

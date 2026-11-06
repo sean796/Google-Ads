@@ -5,7 +5,6 @@ export function logBlogLinksActivity(
   data: Record<string, string | number | boolean | null | undefined>,
 ): void {
   const payload = { event, ...data, ts: Date.now() };
-  console.log(`[BlogLinks] ${event}`, payload);
   const base = BACKEND_API_BASE?.trim();
   if (!base) return;
   fetch(`${base}/api/overview/blog-links-log`, {

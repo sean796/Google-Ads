@@ -2,6 +2,7 @@ import { isBlockedContentTopicPhrase } from "./content-topic-blocklist";
 import { isNonEnglishKeyword, filterAndRankQueriesWithAI } from "./gsc-query-processor";
 import { getResearchModel } from "./optimization-settings-storage";
 import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
+import { logger } from "@/lib/logger";
 
 export interface GSCQuery {
   query: string;
@@ -187,7 +188,7 @@ Select exactly ${numberOfBlogs} primary keywords and 3-5 related keywords for ea
 
           for (const selection of result.selectedKeywords.slice(0, numberOfBlogs)) {
             if (isNonEnglishKeyword(selection.primaryKeyword) || isBlockedContentTopicPhrase(selection.primaryKeyword)) {
-              console.warn(`[GSC Keyword Selector] AI selected blocked/non-English keyword "${selection.primaryKeyword}" - skipping`);
+              logger.warn(`[GSC Keyword Selector] AI selected blocked/non-English keyword "${selection.primaryKeyword}" - skipping`);
               continue;
             }
 
@@ -215,24 +216,22 @@ Select exactly ${numberOfBlogs} primary keywords and 3-5 related keywords for ea
           }
 
           if (selectedKeywords.length > 0) {
-            console.log(`[GSC Keyword Selector] Selected ${selectedKeywords.length} keyword sets from GSC data`);
             return selectedKeywords;
           }
         }
       }
     }
   } catch (error) {
-    console.warn('[GSC Keyword Selector] AI selection failed:', error);
+    logger.warn('[GSC Keyword Selector] AI selection failed:', error);
   }
   
   // Fallback: return top queries by impressions/clicks
   if (filteredQueries.length > 0) {
-    console.log('[GSC Keyword Selector] Using fallback (top queries by traffic)');
     // Extra safety: filter non-English from fallback queries
     const englishOnlyQueries = filteredQueries.filter(q => !isNonEnglishKeyword(q.query));
     
     if (englishOnlyQueries.length === 0) {
-      console.warn('[GSC Keyword Selector] All fallback queries were non-English');
+      logger.warn('[GSC Keyword Selector] All fallback queries were non-English');
       return [];
     }
     

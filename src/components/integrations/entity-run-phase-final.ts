@@ -2,6 +2,7 @@
 import { notify } from "@/lib/app-notifications";
 import { notifyFoundXXEntitiesMatchingCriteriaTri, notifyGeneratedXEntities } from "@/lib/notify-messages";
 import type { EntityRunDeps } from "@/components/integrations/entity-run-ctx";
+import { logger } from "@/lib/logger";
 
 export async function runEntityPhaseFinal(d: EntityRunDeps): Promise<boolean> {
   const { s, v, c } = d;
@@ -11,18 +12,17 @@ const entitiesMatchingCriteria = c.promptModifier
   ? c.entitiesWithWikipedia.filter(e => {
       // STRICT: If criteria is specified, criteriaData must exist AND matches must be exactly true
       if (!e.criteriaData) {
-        console.warn(`[Entity Generation] Entity "${e.entity}" has no criteriaData but criteria was specified - EXCLUDING`);
+        logger.warn(`[Entity Generation] Entity "${e.entity}" has no criteriaData but criteria was specified - EXCLUDING`);
         return false;
       }
       if (e.criteriaData.matches !== true) {
-        console.warn(`[Entity Generation] Entity "${e.entity}" does not match (matches: ${e.criteriaData.matches}) - EXCLUDING`);
+        logger.warn(`[Entity Generation] Entity "${e.entity}" does not match (matches: ${e.criteriaData.matches}) - EXCLUDING`);
         return false;
       }
       return true; // Only explicit matches
     })
   : c.entitiesWithWikipedia;
 
-console.log(`[Entity Generation] Found ${c.entitiesWithWikipedia.length} entities with Wikipedia pages${c.promptModifier ? `, ${entitiesMatchingCriteria.length} matching criteria "${c.promptModifier}"` : ''}`);
 
 // Sort by ranking value if criteria validation provided ranking
 if (c.promptModifier && entitiesMatchingCriteria.some(e => e.criteriaData?.rankingValue !== undefined)) {
@@ -31,7 +31,6 @@ if (c.promptModifier && entitiesMatchingCriteria.some(e => e.criteriaData?.ranki
     const rankB = b.criteriaData?.rankingValue ?? 0;
     return rankB - rankA; // Sort descending (highest first)
   });
-  console.log(`[Entity Generation] Sorted entities by ranking value`);
 } else if (entitiesMatchingCriteria.length > c.count) {
   // If no ranking, sort by confidence (if available) or randomly
   entitiesMatchingCriteria.sort((a, b) => {
@@ -61,8 +60,8 @@ if (finalEntities.length === 0) {
     errorMsg += `. Validated ${c.processedEntityNames.size} entities but none had Wikipedia pages.`;
   }
   
-  console.error(`[Entity Generation] ${errorMsg}`);
-  console.error(`[Entity Generation] Entities processed:`, Array.from(c.processedEntityNames).slice(0, 10));
+  logger.error(`[Entity Generation] ${errorMsg}`);
+  logger.error(`[Entity Generation] Entities processed:`, Array.from(c.processedEntityNames).slice(0, 10));
   notify.error(errorMsg);
   s.setIsGeneratingEntities(prev => {
     const updated = { ...prev };
@@ -74,10 +73,10 @@ if (finalEntities.length === 0) {
 
 // If we don't have enough matching entities after retries, show a warning but continue with what we have
 if (finalEntities.length < c.count && c.promptModifier) {
-  console.warn(`[Entity Generation] Only found ${finalEntities.length}/${c.count} entities matching criteria "${c.promptModifier}" after ${c.retryCount} retries. Continuing with available matches.`);
+  logger.warn(`[Entity Generation] Only found ${finalEntities.length}/${c.count} entities matching criteria "${c.promptModifier}" after ${c.retryCount} retries. Continuing with available matches.`);
   notify.error(notifyFoundXXEntitiesMatchingCriteriaTri(finalEntities.length, c.count, c.processedEntityNames.size));
 } else if (finalEntities.length === c.count) {
-  console.log(`[Entity Generation] Successfully found ${finalEntities.length}/${c.count} entities${c.promptModifier ? ` matching criteria "${c.promptModifier}"` : ''}${c.retryCount > 0 ? ` after ${c.retryCount} retries` : ''}`);
+  /* exact count found, no warning needed */
 }
 
 // Store generated entities (c.storageKey already defined earlier)

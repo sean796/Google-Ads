@@ -6,6 +6,7 @@ import { Button, Calendar, Card, Badge } from "@/ui";
 import type { DayProps } from "react-day-picker";
 import type { Post, PostCalendarProps } from "@/components/integrations/wordpress/post-calendar-types";
 import { PostCalendarPostList } from "@/components/integrations/wordpress/PostCalendarPostList";
+import { logger } from "@/lib/logger";
 
 export const PostCalendar: React.FC<PostCalendarProps> = ({ posts, sitemapUrl, onRefresh, isRefreshing = false }) => {
   // Reset selected date when posts change
@@ -32,7 +33,7 @@ export const PostCalendar: React.FC<PostCalendarProps> = ({ posts, sitemapUrl, o
         }
         grouped[dateKey].push(post);
       } catch (error) {
-        console.warn(`[PostCalendar] Invalid date for post ${post.id}: ${post.date_gmt}`);
+        logger.warn(`[PostCalendar] Invalid date for post ${post.id}: ${post.date_gmt}`);
       }
     });
     

@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { getBlogModel } from "@/lib/optimization-settings-storage";
 import { appendMasterInstructionsToSystemPrompt, ensureMasterInstructionsInMemory } from "@/lib/master-instructions-storage";
 import { postOpenRouterAppChat } from "@/lib/openrouter-app-api";
@@ -157,7 +158,6 @@ Write ONLY the meta description (120-150 characters). Output a single line of pl
     
     // Final aggressive cleanup - remove any remaining HTML-like patterns
     if (excerpt.includes('<') || excerpt.includes('&')) {
-      console.warn('[Content Generator] ⚠️ Meta description still contains HTML-like content, cleaning aggressively');
       excerpt = excerpt.replace(/[<>&]/g, '').trim();
     }
     
@@ -174,17 +174,15 @@ Write ONLY the meta description (120-150 characters). Output a single line of pl
     
     // CRITICAL: Final check - ensure NO HTML or content excerpt patterns
     if (excerpt.includes('<') || excerpt.includes('&') || excerpt.toLowerCase().includes('many residents') || excerpt.toLowerCase().startsWith('introduction')) {
-      console.warn('[Content Generator] Meta description contains HTML or content excerpt patterns, sanitizing:', excerpt);
       excerpt = excerpt.replace(/[<>&]/g, '').trim();
       if (excerpt.toLowerCase().startsWith('introduction')) {
         excerpt = excerpt.replace(/^introduction\s*/i, '').trim();
       }
     }
     
-    console.log(`[Content Generator] ✅ AI-generated FRESH agentic meta description (${excerpt.length} chars):`, excerpt);
     return excerpt;
   } catch (error) {
-    console.warn('[Content Generator] Failed to generate AI excerpt:', error);
+    logger.warn('[Content Generator] Failed to generate AI excerpt:', error);
     throw error;
   }
 }

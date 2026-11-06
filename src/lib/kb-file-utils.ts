@@ -1,4 +1,5 @@
 import type { StoredFile } from "@/components/KnowledgeBaseTab";
+import { logger } from "@/lib/logger";
 
 const KB_FILES_STORAGE_KEY = "kb_files";
 
@@ -54,9 +55,8 @@ export function updateKbFile(fileName: string, newContent: string, newSize?: num
       detail: { files } 
     }));
     
-    console.log(`[KB File Utils] Updated file: ${fileName}`);
   } catch (error) {
-    console.error(`[KB File Utils] Error updating file ${fileName}:`, error);
+    logger.error(`[KB File Utils] Error updating file ${fileName}:`, error);
     throw error;
   }
 }
@@ -94,10 +94,9 @@ export function createTempKbFile(entityName: string, statusMessage: string): str
       detail: { files } 
     }));
     
-    console.log(`[KB File Utils] Created temp file: ${fileName}`);
     return fileName;
   } catch (error) {
-    console.error(`[KB File Utils] Error creating temp file:`, error);
+    logger.error(`[KB File Utils] Error creating temp file:`, error);
     throw error;
   }
 }

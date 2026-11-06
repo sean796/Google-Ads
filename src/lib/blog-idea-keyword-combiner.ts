@@ -3,6 +3,7 @@ import { getResearchModel } from "@/lib/optimization-settings-storage";
 import type { SelectedKeywords } from './blog-idea-gsc-keyword-selector';
 import { isBlockedContentTopicPhrase } from './content-topic-blocklist';
 import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
+import { logger } from "@/lib/logger";
 
 export interface BlogIdeaKeywords {
   primaryKeyword: string;
@@ -40,7 +41,6 @@ export async function combineAndSelectKeywords(
 
   // If we have GSC keywords and enough for all blogs, prioritize them
   if (gscKeywords.length >= blogCount) {
-    console.log('[Keyword Combiner] Using GSC keywords (have enough for all blogs)');
     return gscKeywords.slice(0, blogCount).map(gsc => ({
       primaryKeyword: gsc.primaryKeyword,
       relatedKeywords: gsc.relatedKeywords.map(r => r.keyword).slice(0, 5),
@@ -51,7 +51,6 @@ export async function combineAndSelectKeywords(
   // If we only have KB keywords, use them
   if (!gscKeywords || gscKeywords.length === 0) {
     if (kbKeywords && kbKeywords.primaryKeywords.length >= blogCount) {
-      console.log('[Keyword Combiner] Using KB keywords only (no GSC data)');
       return kbKeywords.primaryKeywords.slice(0, blogCount).map((primary, idx) => ({
         primaryKeyword: primary,
         relatedKeywords: (kbKeywords.relatedKeywords[idx] || []).slice(0, 5),
@@ -62,7 +61,6 @@ export async function combineAndSelectKeywords(
 
   // Combine both sources and use AI to select best keywords
   if (kbKeywords && gscKeywords.length > 0) {
-    console.log('[Keyword Combiner] Combining KB and GSC keywords using AI');
     return await selectBestCombinedKeywords(kbKeywords, gscKeywords, blogCount, apiKey, {
       flowPurpose,
       entity,
@@ -265,18 +263,16 @@ Select exactly ${blogCount} primary keywords and 3-5 related keywords for each. 
           }
 
           if (validated.length > 0) {
-            console.log(`[Keyword Combiner] AI selected ${validated.length} keyword sets from combined sources`);
             return validated;
           }
         }
       }
     }
   } catch (error) {
-    console.warn('[Keyword Combiner] AI selection failed:', error);
+    logger.warn('[Keyword Combiner] AI selection failed:', error);
   }
 
   // Fallback: combine sources manually
-  console.log('[Keyword Combiner] Using fallback (manual combination)');
   const fallback: BlogIdeaKeywords[] = [];
   
   // Use GSC keywords first (they have traffic data)

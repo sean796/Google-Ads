@@ -16,6 +16,7 @@ import {
   mergeSectionsIntoMarkdown,
   validateSectionMerge,
 } from "@/lib/section-parser";
+import { logger } from "@/lib/logger";
 import { useModificationTimer } from "./useModificationTimer";
 
 interface UseFinalModificationProps {
@@ -160,7 +161,7 @@ export function useFinalModification({
         setHasGeneratedFinalChecklist(true);
       }
     } catch (error) {
-      console.error("Final checklist generation error:", error);
+      logger.error("Final checklist generation error:", error);
       notify.error(NOTIFY_FAILED_TO_GENERATE_CHECKLIST_PLEASE_TRY_);
       setFinalChatMessages(prev => prev.slice(0, -1));
     } finally {
@@ -260,7 +261,7 @@ export function useFinalModification({
           // Validate merge
           const validation = validateSectionMerge(allSections, mergedFinal);
           if (!validation.valid && validation.missing.length > 0) {
-            console.warn("Some sections may be missing after merge:", validation.missing);
+            logger.warn("Some sections may be missing after merge:", validation.missing);
           }
           
           // Final update with complete merged content
@@ -321,7 +322,7 @@ export function useFinalModification({
         throw new Error("No final report content generated");
       }
     } catch (error) {
-      console.error("Final report update error:", error);
+      logger.error("Final report update error:", error);
       notify.error(NOTIFY_FAILED_TO_UPDATE_FINAL_REPORT_PLEASE_TRY);
     } finally {
       setIsUpdatingFinal(false);

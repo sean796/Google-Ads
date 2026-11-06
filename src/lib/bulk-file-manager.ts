@@ -1,5 +1,6 @@
 import { sanitizeFileName } from './file-processing';
 import { buildBulkRunContentCsv } from './bulk-run-content-csv';
+import { logger } from "@/lib/logger";
 
 export interface BulkGeneratedFile {
   id: string;
@@ -143,7 +144,7 @@ export class BulkFileManager {
                 setTimeout(() => URL.revokeObjectURL(url), 1000);
               })
               .catch(err => {
-                console.error('Error downloading image:', err);
+                logger.error('Error downloading image:', err);
                 throw err;
               });
           }
@@ -158,7 +159,7 @@ export class BulkFileManager {
             const byteArray = new Uint8Array(byteNumbers);
             blob = new Blob([byteArray], { type: file.mimeType });
           } catch (e) {
-            console.error('Error converting base64 to blob:', e);
+            logger.error('Error converting base64 to blob:', e);
             throw new Error('Invalid image data format');
           }
         }
@@ -187,7 +188,7 @@ export class BulkFileManager {
       document.body.removeChild(link);
       setTimeout(() => URL.revokeObjectURL(url), 100);
     } catch (error) {
-      console.error('Error downloading file:', error);
+      logger.error('Error downloading file:', error);
       alert(`Failed to download ${file.fileName}. Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -239,7 +240,7 @@ export class BulkFileManager {
       document.body.removeChild(link);
       setTimeout(() => URL.revokeObjectURL(url), 500);
     } catch (e) {
-      console.error('downloadRunContentCsv failed:', e);
+      logger.error('downloadRunContentCsv failed:', e);
     }
   }
 

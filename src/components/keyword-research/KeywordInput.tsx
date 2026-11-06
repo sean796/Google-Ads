@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
+import { logger } from "@/lib/logger";
 import { NOTIFY_AI_ANALYZING_WIKIPEDIA_CONTENT_TO_SAVE_T, NOTIFY_FILE_UPLOAD_FUNCTIONALITY_NOT_AVAILABLE, NOTIFY_NO_CONTENT_FOUND_FOR_THIS_ENTITY, NOTIFY_PLEASE_ENTER_AN_ENTITY_NAME, notifyWikipediaContentSavedToKnowledgeBas, notifyWikipediaContentSavedToKnowledgeBas2 } from "@/lib/notify-messages";
 import { fetchWikipediaContent, generateWikipediaCSV, type WikipediaFetchOptions } from "@/lib/wikipedia-api";
 import { sanitizeFileName } from "@/lib/file-processing";
@@ -41,22 +42,19 @@ export function KeywordInput({
 
   const handleWikipediaFetch = async () => {
     const entityName = entity?.trim();
-    
-    console.log('[Wikipedia Button] Fetch triggered, entity:', entityName);
-    
+
     if (!entityName) {
-      console.warn('[Wikipedia Button] Empty entity name');
+      logger.warn('[Wikipedia Button] Empty entity name');
       notify.error(NOTIFY_PLEASE_ENTER_AN_ENTITY_NAME);
       return;
     }
 
     if (!onAddFile) {
-      console.error('[Wikipedia Button] onAddFile callback not available');
+      logger.error('[Wikipedia Button] onAddFile callback not available');
       notify.error(NOTIFY_FILE_UPLOAD_FUNCTIONALITY_NOT_AVAILABLE);
       return;
     }
 
-    console.log('[Wikipedia Button] Starting Wikipedia fetch...');
     setIsLoadingWikipedia(true);
 
     let tempFileName: string | null = null;
@@ -77,7 +75,6 @@ export function KeywordInput({
         summarizeWithAI: true,
         openRouterApiKey: openRouterApiKey,
         onSummarizeProgress: (message) => {
-          console.log(`[Wikipedia Button] AI Progress: ${message}`);
           // Update temp file with progress
           if (tempFileName) {
             const progressContent = `title,url,content
@@ -88,12 +85,10 @@ export function KeywordInput({
       } : undefined;
       
       // Fetch Wikipedia content
-      console.log('[Wikipedia Button] Calling fetchWikipediaContent...');
       const chunks = await fetchWikipediaContent(entityName, fetchOptions);
-      console.log('[Wikipedia Button] Received', chunks.length, 'chunks');
       
       if (chunks.length === 0) {
-        console.warn('[Wikipedia Button] No chunks returned');
+        logger.warn('[Wikipedia Button] No chunks returned');
         // Remove temp file if it exists
         if (tempFileName) {
           try {
@@ -103,7 +98,7 @@ export function KeywordInput({
             localStorage.setItem('kb_files', JSON.stringify(updatedFiles));
             window.dispatchEvent(new CustomEvent('kb-files-updated', { detail: { files: updatedFiles } }));
           } catch (e) {
-            console.error('Error removing temp file:', e);
+            logger.error('Error removing temp file:', e);
           }
         }
         notify.error(NOTIFY_NO_CONTENT_FOUND_FOR_THIS_ENTITY);
@@ -111,9 +106,7 @@ export function KeywordInput({
       }
 
       // Generate CSV
-      console.log('[Wikipedia Button] Generating CSV...');
       const csvContent = generateWikipediaCSV(chunks);
-      console.log('[Wikipedia Button] CSV generated, length:', csvContent.length, 'bytes');
 
       // Update temp file with final content if it exists, otherwise create new file
       if (tempFileName) {
@@ -146,10 +139,10 @@ export function KeywordInput({
           localStorage.setItem('kb_files', JSON.stringify(updatedFiles));
           window.dispatchEvent(new CustomEvent('kb-files-updated', { detail: { files: updatedFiles } }));
         } catch (e) {
-          console.error('[Wikipedia Button] Error removing temp file:', e);
+          logger.error('[Wikipedia Button] Error removing temp file:', e);
         }
       }
-      console.error("[Wikipedia Button] Error details:", {
+      logger.error("[Wikipedia Button] Error details:", {
         error,
         errorType: error instanceof Error ? error.constructor.name : typeof error,
         errorMessage: error instanceof Error ? error.message : String(error),
@@ -163,7 +156,6 @@ export function KeywordInput({
       
       notifyHeaderError("Keyword request failed", errorMessage);
     } finally {
-      console.log('[Wikipedia Button] Fetch complete, setting loading to false');
       setIsLoadingWikipedia(false);
     }
   };

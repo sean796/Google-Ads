@@ -1,4 +1,5 @@
 import { resolveMcpApiBase } from "@/lib/mcp-tools";
+import { logger } from "@/lib/logger";
 import { useState, useCallback } from "react";
 import { notify } from "@/lib/app-notifications";
 import { BACKEND_CONNECTION_ERROR } from "@/lib/wordpress-api/connection";
@@ -158,7 +159,6 @@ export function useKeywordResearch({
         // Get RAW JSON from backend - EXACTLY as it appears in PowerShell
         const MCP_API_BASE = resolveMcpApiBase();
         
-        console.log('[Keyword Research] Fetching from:', `${MCP_API_BASE}/DataForSEO_dataforseo_labs_google_keyword_overview`);
         
         const response = await fetch(`${MCP_API_BASE}/DataForSEO_dataforseo_labs_google_keyword_overview`, {
           method: 'POST',
@@ -172,7 +172,6 @@ export function useKeywordResearch({
           ),
         });
         
-        console.log('[Keyword Research] Response status:', response.status);
         
         // Parse response body first to check for DataForSEO success codes
         const contentType = response.headers.get('content-type');
@@ -190,7 +189,7 @@ export function useKeywordResearch({
             }
           }
         } catch (parseError) {
-          console.error('[Keyword Research] Failed to parse response:', parseError);
+          logger.error('[Keyword Research] Failed to parse response:', parseError);
           rawData = { error: 'Failed to parse response' };
         }
         
@@ -206,7 +205,6 @@ export function useKeywordResearch({
         
         // If DataForSEO says success (20000), treat it as success regardless of HTTP status
         if (isSuccess) {
-          console.log('[Keyword Research] DataForSEO success detected (status_code 20000), treating as success');
           // Continue processing the data
         } else if (!response.ok) {
           // Only treat as error if NOT a DataForSEO success
@@ -239,13 +237,11 @@ export function useKeywordResearch({
           
           throw new Error(errorMessage);
         }
-        console.log('[Keyword Research] RAW DATA RECEIVED:', rawData);
         
         // Also fetch SERP data immediately to include in rawApiData
         let serpData: KeywordSerpResponse | null = null;
         let localPaaRawResponse: unknown = null;
         try {
-          console.log('[Keyword Research] Fetching SERP data immediately...');
           
           // Default: omit people_also_ask_click_depth for faster upstream SERP (optional deep PAA via options.peopleAlsoAskClickDepth).
           const serpRequestPayload: Record<string, string | number> = {
@@ -258,14 +254,6 @@ export function useKeywordResearch({
             serpRequestPayload.people_also_ask_click_depth = options.peopleAlsoAskClickDepth;
           }
           
-          console.log('[SERP API] Request payload:', {
-            keyword: serpRequestPayload.keyword,
-            location_name: serpRequestPayload.location_name,
-            language_code: serpRequestPayload.language_code,
-            depth: serpRequestPayload.depth,
-            people_also_ask_click_depth: serpRequestPayload.people_also_ask_click_depth,
-          });
-          console.log('[SERP API] people_also_ask_click_depth parameter:', serpRequestPayload.people_also_ask_click_depth ?? "(omitted, faster SERP)");
           
           const serpResponse = await fetch(`${MCP_API_BASE}/DataForSEO_serp_organic_live_advanced`, {
             method: 'POST',
@@ -278,11 +266,8 @@ export function useKeywordResearch({
             localPaaRawResponse = serpData; // Store for PAA tab
             capturedPaaRawResponse = serpData;
             setPaaRawResponse(serpData); // Set immediately
-            console.log('[Keyword Research] SERP DATA RECEIVED:', serpData);
             
             // Step 1: SERP API Response Validation
-            console.log('[SERP API] Response status: 200 OK');
-            console.log('[SERP API] Validating PAA data in response...');
             
             // Count PAA items in raw response
             let paaCount = 0;
@@ -339,34 +324,23 @@ export function useKeywordResearch({
               }
             }
             
-            console.log(`[SERP API] Response received: ${paaCount} PAA items found in raw response`);
             if (paaSampleItems.length > 0) {
-              console.log('[SERP API] Sample PAA items:', paaSampleItems);
+              /* PAA samples present, no extra handling needed */
             } else {
-              console.log('[SERP API] No PAA items found in raw response structure (this is acceptable)');
-              console.log('[SERP API] Response structure:', {
-                hasTasks: !!serpData?.tasks,
-                tasksCount: serpData?.tasks?.length || 0,
-                firstTaskKeys: serpData?.tasks?.[0] ? Object.keys(serpData.tasks[0]) : [],
-                firstTaskResultType: typeof serpData?.tasks?.[0]?.result,
-                firstTaskResultIsArray: Array.isArray(serpData?.tasks?.[0]?.result),
-              });
+              /* no PAA samples, nothing to handle */
             }
             
             // Validate paaRawResponse state is set correctly
-            console.log('[SERP API] Validating state storage...');
-            console.log('[SERP API] localPaaRawResponse set:', !!localPaaRawResponse);
-            console.log('[SERP API] paaRawResponse state will be updated via setPaaRawResponse()');
           } else {
             const serpErrorText = await serpResponse.text();
-            console.error('[Keyword Research] SERP error response:', serpErrorText);
+            logger.error('[Keyword Research] SERP error response:', serpErrorText);
             serpData = { error: serpErrorText, status: serpResponse.status };
             localPaaRawResponse = serpData;
             capturedPaaRawResponse = serpData;
             setPaaRawResponse(serpData);
           }
         } catch (serpError) {
-          console.error('[Keyword Research] SERP fetch error:', serpError);
+          logger.error('[Keyword Research] SERP fetch error:', serpError);
           serpData = { error: serpError instanceof Error ? serpError.message : String(serpError) };
           localPaaRawResponse = serpData;
           capturedPaaRawResponse = serpData;
@@ -379,7 +353,6 @@ export function useKeywordResearch({
           serpData: serpData,
         };
         setRawApiData(combinedRawData);
-        console.log('[Keyword Research] State updated with combined raw data (keyword overview + SERP)');
         notify.success(NOTIFY_RAW_DATA_RECEIVED_KEYWORD_OVERVIEW_SERP);
 
         // Extract keyword data from raw API response (use keywordOverview if nested, otherwise use rawData directly)
@@ -411,7 +384,7 @@ extractedKeywordData = transformKeywordData(resultItem);
           setKeywordsVolumeData, setCurrentResult, onKeywordsUpdate,
         });
       } catch (err) {
-        console.error("Error fetching raw data:", err);
+        logger.error("Error fetching raw data:", err);
         const errorMessage =
           err instanceof Error ? err.message : "Failed to fetch data";
         if (strict) {

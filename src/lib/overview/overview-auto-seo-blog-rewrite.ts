@@ -1,4 +1,5 @@
 import type { WordPressSite } from "@/components/integrations/types";
+import { logger } from "@/lib/logger";
 import { headingTitleToHarnessAnchorId } from "@/lib/bulk/harness-section-anchor-ids";
 import {
   normalizeSectionProseHtml,
@@ -140,7 +141,6 @@ export async function runAutoSeoBlogBodyRewrite(
   if (hasAnswer && shouldContinue()) {
     stepCursor += 1;
     onStepProgress?.(stepCursor, totalBodySteps, "Answer");
-  console.log(`[Auto SEO] Step ${stepCursor}/${totalBodySteps}: Answer -> ${pageUrl}`);
     const answerMoneyPages = rankFuzzyMoneyPageLinksForAnswer({
       pool: sitemapLinkPool,
       articleTitle,
@@ -191,7 +191,7 @@ export async function runAutoSeoBlogBodyRewrite(
         commitCurrent();
       }
     } catch (err) {
-      console.warn("[Auto SEO] Answer section warning for", pageUrl, err);
+      logger.warn("[Auto SEO] Answer section warning for", pageUrl, err);
     }
   }
 
@@ -199,7 +199,6 @@ export async function runAutoSeoBlogBodyRewrite(
   if (hasOverview && shouldContinue()) {
     stepCursor += 1;
     onStepProgress?.(stepCursor, totalBodySteps, "Overview");
-  console.log(`[Auto SEO] Step ${stepCursor}/${totalBodySteps}: Overview -> ${pageUrl}`);
     try {
       if (workingSections.length > 0) {
         const apiKey = await resolveOpenRouterApiKeyForHarness();
@@ -247,7 +246,7 @@ export async function runAutoSeoBlogBodyRewrite(
         commitCurrent();
       }
     } catch (err) {
-      console.warn("[Auto SEO] Overview section warning for", pageUrl, err);
+      logger.warn("[Auto SEO] Overview section warning for", pageUrl, err);
     }
   }
 
@@ -273,7 +272,7 @@ export async function runAutoSeoBlogBodyRewrite(
       });
       commitCurrent();
     } catch (err) {
-      console.warn("[Auto SEO] Intro lead warning for", pageUrl, err);
+      logger.warn("[Auto SEO] Intro lead warning for", pageUrl, err);
     }
   }
 
@@ -288,9 +287,6 @@ export async function runAutoSeoBlogBodyRewrite(
       stepCursor,
       totalBodySteps,
       sec.title?.trim() || `Section ${sIdx + 1}`,
-    );
-    console.log(
-      `[Auto SEO] Step ${stepCursor}/${totalBodySteps}: H2 Section ${sIdx + 1}/${workingSections.length} "${sec.title}" -> ${pageUrl}`,
     );
     if (!sec.bodyHtml.trim()) continue;
 
@@ -351,7 +347,7 @@ export async function runAutoSeoBlogBodyRewrite(
       };
       commitCurrent();
     } catch (err) {
-      console.warn(
+      logger.warn(
         `[Auto SEO] Blog section ${sIdx + 1} (${sec.title}) warning for ${pageUrl}:`,
         err,
       );

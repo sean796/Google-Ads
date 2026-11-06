@@ -260,7 +260,6 @@ export async function runFaqPairsForRow(params: RunFaqPairsForRowParams): Promis
       : clampBulkAiFaqSeed(bulkAiFaqSeedCount);
   const totalSections = totalHarnessSectionsIn ?? pairCount;
 
-  console.log("[Auto SEO] Generating all FAQs in 1 pass ->", { url, pairCount });
   updateRow(rowIndex, { status: "ai-faq" });
   const briefSeed = row.seoResearch?.trim();
   const dfsContextSeed = briefSeed ? undefined : await deps.getDfsSerpContext(row);

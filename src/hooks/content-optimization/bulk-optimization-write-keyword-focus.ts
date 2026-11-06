@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import type { WordPressSite } from "@/components/integrations/types";
 import { updateWordPressAcfFields } from "@/lib/wordpress-api";
 import { WORDPRESS_BULK_READ_CHUNK } from "@/lib/wordpress-api/bulk-read-chunk";
@@ -72,13 +73,13 @@ export async function writeBulkResearchedKeywordFocusToWordPress(opts: {
         );
 
         if (!res.success) {
-          console.warn(
+          logger.warn(
             `[Bulk Optimization] keyword_focus write-back failed (index ${i}, post ${postId}):`,
             res.error,
           );
           if (!muteToasts) {
             const url = typeof pending.url === "string" ? pending.url : "";
-            console.warn(`[Bulk Optimization] Could not save keyword_focus for ${url || postId}`);
+            logger.warn(`[Bulk Optimization] Could not save keyword_focus for ${url || postId}`);
           }
         }
       }),

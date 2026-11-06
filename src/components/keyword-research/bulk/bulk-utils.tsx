@@ -1,5 +1,6 @@
 import { FileText, FileJson, FileSpreadsheet, Image as ImageIcon, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import type { BulkGeneratedFile } from '@/lib/bulk-file-manager';
+import { logger } from "@/lib/logger";
 import type { GSCQuery, AnalysisResult } from '@/lib/gsc-keyword-analyzer';
 
 /**
@@ -32,7 +33,7 @@ export const isImageWithPreview = (file: BulkGeneratedFile): boolean => {
   
   // Must have content
   if (!file.content || typeof file.content !== 'string' || file.content.length === 0) {
-    console.warn('ImageThumbnail: No content for image file', file.fileName);
+    logger.warn('ImageThumbnail: No content for image file', file.fileName);
     return false;
   }
   
@@ -49,7 +50,7 @@ export const isImageWithPreview = (file: BulkGeneratedFile): boolean => {
   const canPreview = isDataUrl || looksLikeBase64;
   
   if (!canPreview && isImageFile) {
-    console.warn('ImageThumbnail: Image file detected but content format invalid', {
+    logger.warn('ImageThumbnail: Image file detected but content format invalid', {
       fileName: file.fileName,
       mimeType: file.mimeType,
       contentLength: file.content.length,

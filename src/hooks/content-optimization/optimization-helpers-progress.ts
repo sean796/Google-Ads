@@ -311,5 +311,4 @@ export function clearOptimization(
   clearSiteCache(siteId);
   clearValidationCache(siteId);
   clearRelevanceCache(siteId);
-  console.log(`[Optimize Content] Cleared site cache for ${siteId} (manual clear)`);
 }

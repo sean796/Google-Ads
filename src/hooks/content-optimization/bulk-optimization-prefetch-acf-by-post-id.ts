@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { getFieldsForPostsBatch, restAcfFromFullPost, type WpPostSnapshotFromAcfByUrl } from "@/lib/wordpress-api/fields-client";
 import { WORDPRESS_BULK_READ_CHUNK } from "@/lib/wordpress-api/bulk-read-chunk";
 import {
@@ -232,7 +233,7 @@ export async function prefetchBulkAcfFieldsByPostIdForUrls(args: PrefetchBulkAcf
 
     const batch = await getFieldsForPostsBatch(site, items);
     if (batch.error) {
-      console.warn("[Bulk Optimization] getFieldsForPostsBatch:", batch.error);
+      logger.warn("[Bulk Optimization] getFieldsForPostsBatch:", batch.error);
       continue;
     }
 

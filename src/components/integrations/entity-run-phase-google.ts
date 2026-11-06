@@ -5,6 +5,7 @@ import { NOTIFY_DATAFORSEO_SEARCH_FAILED_FALLING_BACK_TO, notifySearchingGoogleF
 import { streamChatCompletion } from "@/lib/api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import type { EntityRunDeps } from "@/components/integrations/entity-run-ctx";
+import { logger } from "@/lib/logger";
 
 export async function runEntityPhaseGoogle(d: EntityRunDeps): Promise<boolean> {
   const { s, v, c } = d;
@@ -64,13 +65,11 @@ ${c.promptModifier.toLowerCase().includes('street') && c.primaryCity ? `Example 
     });
 
     c.researchQuestion = researchQuestionResponse.trim().replace(/^["']|["']$/g, '').trim();
-    console.log(`[Entity Generation] Generated research question: "${c.researchQuestion}"`);
 
     if (c.researchQuestion && c.researchQuestion.length > 10) {
       // Use DataForSEO to search Google with this question
       // Use the location from modifier (c.primaryCity has been updated above if modifier specified location)
       const searchLocationForQuery = c.primaryCity || "United States";
-      console.log(`[Entity Generation] Searching Google with location: "${searchLocationForQuery}" for question: "${c.researchQuestion}"`);
       
       notify.info(notifySearchingGoogleForX(c.researchQuestion));
       
@@ -88,7 +87,6 @@ ${c.promptModifier.toLowerCase().includes('street') && c.primaryCity ? `Example 
 
       if (serpResponse.ok) {
         const serpData = await serpResponse.json();
-        console.log('[Entity Generation] SERP data received:', serpData);
 
         // Extract organic results from SERP
         const organicResults: Array<{ title: string; description?: string; url?: string }> = [];
@@ -121,7 +119,6 @@ ${c.promptModifier.toLowerCase().includes('street') && c.primaryCity ? `Example 
           }
         }
 
-        console.log(`[Entity Generation] Found ${organicResults.length} organic search results`);
 
         if (organicResults.length > 0) {
           // Use AI to extract entities from SERP results
@@ -200,33 +197,29 @@ Example for "neighborhoods in Calgary": ["Beltline", "Kensington", "Inglewood"]`
                 .filter((e: string) => e && typeof e === 'string' && e.trim().length > 2)
                 .filter((e: string) => {
                   const isValid = isValidEntity(e.trim());
-                  if (!isValid) {
-                    console.log(`[Entity Generation] Filtered out invalid entity: "${e}"`);
-                  }
                   return isValid;
                 });
               
-              console.log(`[Entity Generation] Extracted ${c.entitiesFromGoogle.length} valid entities from Google search results (filtered from ${extracted.length} total)`);
             }
           } catch (parseError) {
-            console.warn('[Entity Generation] Failed to parse entity extraction response:', parseError);
+            logger.warn('[Entity Generation] Failed to parse entity extraction response:', parseError);
             // Try to extract JSON array from response
             const jsonMatch = entityExtractionResponse.match(/\[.*\]/s);
             if (jsonMatch) {
               try {
                 c.entitiesFromGoogle = JSON.parse(jsonMatch[0]);
               } catch (e) {
-                console.warn('[Entity Generation] Could not parse extracted JSON');
+                logger.warn('[Entity Generation] Could not parse extracted JSON');
               }
             }
           }
         }
       } else {
-        console.warn('[Entity Generation] SERP request failed:', await serpResponse.text());
+        logger.warn('[Entity Generation] SERP request failed:', await serpResponse.text());
       }
     }
   } catch (error) {
-    console.warn('[Entity Generation] Error using DataForSEO search:', error);
+    logger.warn('[Entity Generation] Error using DataForSEO search:', error);
     notify.error(NOTIFY_DATAFORSEO_SEARCH_FAILED_FALLING_BACK_TO);
   }
 }

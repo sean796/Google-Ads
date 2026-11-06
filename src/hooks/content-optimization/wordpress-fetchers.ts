@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { getPublishedPosts, getPublishedPages, parseSitemap } from "@/lib/wordpress-api";
 import { type WordPressSite } from "@/components/integrations/types";
 
@@ -37,7 +38,7 @@ export async function fetchAllPostsForSite(site: WordPressSite): Promise<string[
         hasMore = false;
       }
     } catch (error) {
-      console.error(`[WordPress fetch] Error fetching posts for site ${site.name}:`, error);
+      logger.error(`[WordPress fetch] Error fetching posts for site ${site.name}:`, error);
       hasMore = false;
     }
   }
@@ -110,14 +111,14 @@ export async function fetchAllServiceAreasForSite(site: WordPressSite): Promise<
             // For now, we'll rely on sitemap parsing
             hasMore = false;
           } catch (error) {
-            console.warn(`[WordPress fetch] Could not fetch service areas via API for ${site.name}`);
+            logger.warn(`[WordPress fetch] Could not fetch service areas via API for ${site.name}`);
             hasMore = false;
           }
         }
       }
     }
   } catch (error) {
-    console.error(`[WordPress fetch] Error fetching service areas for site ${site.name}:`, error);
+    logger.error(`[WordPress fetch] Error fetching service areas for site ${site.name}:`, error);
   }
 
   return urls;

@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import AppMobile from "./AppMobile.tsx";
 import "./index.css";
+import { logger } from "@/lib/logger";
 import "@/components/pulse-assist/pulse-assist-theme.css";
 import "@/components/agent-runs/agent-runs-theme.css";
 import "@/components/mobile-app/mobile-app-theme.css";
@@ -15,6 +16,6 @@ try {
   const root = createRoot(rootElement);
   root.render(<AppMobile />);
 } catch (error) {
-  console.error("[main-mobile.tsx] Failed to render AppMobile:", error);
+  logger.error("[main-mobile.tsx] Failed to render AppMobile:", error);
   throw error;
 }

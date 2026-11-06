@@ -190,13 +190,6 @@ export async function polishContentForWordPressUpload(args: ContentUploadPolishA
   let cleanedExistingTitle = existingTitle;
   if (!blueprintEntity || blueprintEntity === 'N/A') {
     cleanedExistingTitle = cleanTitleForNonEntity(existingTitle, blueprintEntity || 'N/A');
-    if (cleanedExistingTitle !== existingTitle) {
-      console.log('[Content Generation Upload] Cleaned existingTitle before upload:', {
-        original: existingTitle,
-        cleaned: cleanedExistingTitle,
-        entity: blueprintEntity || 'N/A'
-      });
-    }
   }
 
   let optimizeFaqBundle: PrecomputedAcfSeoBundle | null = null;

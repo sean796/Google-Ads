@@ -5,6 +5,7 @@
  * Results are cached per siteId + keyword so bulk runs skip repeated AI calls.
  */
 
+import { logger } from "@/lib/logger";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
 import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
@@ -85,7 +86,7 @@ export async function filterPostsByTopicalRelevance(
       }),
     });
     if (!res.ok) {
-      console.warn("[ai-link-relevance-filter] OpenRouter failed:", res.status, "- using all posts");
+      logger.warn("[ai-link-relevance-filter] OpenRouter failed:", res.status, "- using all posts");
       return posts;
     }
     const data = await res.json();
@@ -93,7 +94,7 @@ export async function filterPostsByTopicalRelevance(
     const jsonStr = raw.replace(/^```json?\s*|\s*```$/g, "").trim();
     const selectedUrls = JSON.parse(jsonStr) as string[];
     if (!Array.isArray(selectedUrls)) {
-      console.warn("[ai-link-relevance-filter] Response was not an array - using all posts");
+      logger.warn("[ai-link-relevance-filter] Response was not an array - using all posts");
       return posts;
     }
 
@@ -106,14 +107,14 @@ export async function filterPostsByTopicalRelevance(
     });
 
     if (filtered.length === 0) {
-      console.warn("[ai-link-relevance-filter] AI selected no posts - using all posts");
+      logger.warn("[ai-link-relevance-filter] AI selected no posts - using all posts");
       if (siteId) relevanceCache.get(siteId)?.set(key, posts);
       return posts;
     }
     if (siteId) relevanceCache.get(siteId)?.set(key, filtered);
     return filtered;
   } catch (err) {
-    console.warn("[ai-link-relevance-filter] Error:", err, "- using all posts");
+    logger.warn("[ai-link-relevance-filter] Error:", err, "- using all posts");
     return posts;
   }
 }

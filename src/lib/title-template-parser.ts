@@ -4,6 +4,7 @@
  * Parses title templates with variables like [Entity], [Keyword], etc.
  * and replaces them with actual values.
  */
+import { logger } from "@/lib/logger";
 
 /**
  * Extracts all variable names from a template string
@@ -87,7 +88,7 @@ export function parseTitleTemplate(
   // Validate template first
   const validation = validateTemplate(template);
   if (!validation.valid) {
-    console.warn('Invalid template:', validation.error);
+    logger.warn('Invalid template:', validation.error);
     return template; // Return original template if invalid
   }
 
@@ -101,7 +102,7 @@ export function parseTitleTemplate(
 
     // If variable is not provided, leave it as-is or use empty string
     if (value === undefined || value === null) {
-      console.warn(`Variable [${key}] not found in provided variables`);
+      logger.warn(`Variable [${key}] not found in provided variables`);
       return ''; // Remove the variable placeholder
     }
 

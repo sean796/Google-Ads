@@ -1,5 +1,6 @@
 import { resolveMcpApiBase } from "@/lib/mcp-tools";
 import { notify } from "@/lib/app-notifications";
+import { logger } from "@/lib/logger";
 import type {
   KeywordData,
   KeywordAnalysisOptions,
@@ -36,7 +37,7 @@ export async function analyzeKeywordDifficulty(
 ): Promise<KeywordData[]> {
   try {
     if (DISABLE_DATAFORSEO) {
-      console.warn("[KeywordAPI] DataForSEO disabled – analyzeKeywordDifficulty skipped.");
+      logger.warn("[KeywordAPI] DataForSEO disabled – analyzeKeywordDifficulty skipped.");
       return [];
     }
     // Check cache first
@@ -68,10 +69,10 @@ export async function analyzeKeywordDifficulty(
     
     // For now, return cached results
     // In production, this would make an API call to your backend which calls the MCP tool
-    console.warn("Keyword difficulty analysis requires backend MCP integration");
+    logger.warn("Keyword difficulty analysis requires backend MCP integration");
     return cachedResults;
   } catch (error) {
-    console.error("Error analyzing keyword difficulty:", error);
+    logger.error("Error analyzing keyword difficulty:", error);
     throw new Error(`Failed to analyze keyword difficulty: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
 }
@@ -92,7 +93,7 @@ export async function getSemanticKeywordSuggestions(
 ): Promise<KeywordData[]> {
   try {
     if (DISABLE_DATAFORSEO) {
-      console.warn("[KeywordAPI] DataForSEO disabled – semantic keyword suggestions skipped for seed:", seedKeyword);
+      logger.warn("[KeywordAPI] DataForSEO disabled – semantic keyword suggestions skipped for seed:", seedKeyword);
       return [];
     }
     const cacheKey = `semantic-${seedKeyword}`;
@@ -116,11 +117,11 @@ export async function getSemanticKeywordSuggestions(
       
       return mcpResults;
     } catch (mcpError) {
-      console.error("MCP semantic keywords call failed:", mcpError);
+      logger.error("MCP semantic keywords call failed:", mcpError);
       throw mcpError;
     }
   } catch (error) {
-    console.error("Error getting semantic keyword suggestions:", error);
+    logger.error("Error getting semantic keyword suggestions:", error);
     throw new Error(`Failed to get semantic keyword suggestions: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
 }
@@ -166,7 +167,7 @@ export async function classifySearchIntent(
       ...aiResults.map((r) => ({ keyword: r.keyword, intent: r.intent, probability: r.probability })),
     ];
   } catch (error) {
-    console.error("Error classifying search intent:", error);
+    logger.error("Error classifying search intent:", error);
     throw new Error(`Failed to classify search intent: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
 }
@@ -184,7 +185,7 @@ export async function getKeywordOverview(
 ): Promise<KeywordData[]> {
   try {
     if (DISABLE_DATAFORSEO) {
-      console.warn("[KeywordAPI] DataForSEO disabled – returning stub keyword data only.", { keywords });
+      logger.warn("[KeywordAPI] DataForSEO disabled – returning stub keyword data only.", { keywords });
       return keywords
         .filter((k) => k && typeof k === "string" && k.trim().length > 0)
         .map((k) => ({
@@ -262,11 +263,6 @@ export async function getKeywordOverview(
       try {
         const mcpResults = await callMCPKeywordOverview(remainingKeywords, location, language);
         
-        console.log('[KeywordAPI] MCP results received:', {
-          count: mcpResults.length,
-          keywords: mcpResults.map(r => r.keyword),
-          requested: remainingKeywords
-        });
         
         // Validate results - accept any result with a keyword
         // DataForSEO returns data even if search volume is 0, so accept all results with keywords
@@ -274,10 +270,6 @@ export async function getKeywordOverview(
           return result && result.keyword && result.keyword.trim().length > 0;
         });
         
-        console.log('[KeywordAPI] Valid results after filtering:', {
-          count: validResults.length,
-          keywords: validResults.map(r => r.keyword)
-        });
         
         if (validResults.length === 0) {
           return [...cachedResults, ...dbResults, ...mcpResults];
@@ -290,7 +282,7 @@ export async function getKeywordOverview(
 
         return [...cachedResults, ...dbResults, ...validResults];
       } catch (mcpError) {
-        console.error("MCP call failed:", mcpError);
+        logger.error("MCP call failed:", mcpError);
         // Don't return stale cache/DB data if MCP call fails - user should see the error
         // Only return cached/DB data if it's for the exact same keyword being requested
         const exactMatches = [...cachedResults, ...dbResults].filter(r => 
@@ -311,7 +303,7 @@ export async function getKeywordOverview(
 
     return [...cachedResults, ...dbResults];
   } catch (error) {
-    console.error("Error getting keyword overview:", error);
+    logger.error("Error getting keyword overview:", error);
     throw new Error(`Failed to get keyword overview: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
 }

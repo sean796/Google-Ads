@@ -2,6 +2,7 @@ import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { filterAndRankQueriesWithAI, isNonEnglishKeyword } from "@/lib/gsc-query-processor";
 import { stripBracketPlaceholders, stripLeadingP } from "@/lib/gsc-simple-keyword-recommendation";
 import { postOpenRouterAppChat } from "@/lib/openrouter-app-api";
+import { logger } from "@/lib/logger";
 
 /** One row for batched entity keyword generation (Bulk: up to 100 per OpenRouter call). */
 export type EntityKeywordBatchItem = { index: number; pageTitle: string; pageUrl: string };
@@ -116,7 +117,7 @@ ${lines}`,
       }
     }
   } catch (error) {
-    console.warn("[Local Keyword Batch] AI generation failed:", error);
+    logger.warn("[Local Keyword Batch] AI generation failed:", error);
   }
 
   fillFallbacks();
@@ -195,7 +196,7 @@ Return ONLY the keyword phrase, nothing else.`,
       return stripLeadingP(stripBracketPlaceholders(cleaned));
     }
   } catch (error) {
-    console.warn("[Local Keyword Generation] AI generation failed:", error);
+    logger.warn("[Local Keyword Generation] AI generation failed:", error);
   }
   return removeCompanyNameFromKeyword(pageTitle, companyName, pageTitle, pageUrl);
 }
@@ -276,7 +277,7 @@ Return the exact keyword phrase or 'NONE' if none are suitable.`,
       if (matchingQuery) return matchingQuery;
       return null;
   } catch (error) {
-    console.warn("[Entity Keyword Selection] AI selection failed:", error);
+    logger.warn("[Entity Keyword Selection] AI selection failed:", error);
   }
   return filteredQueries.length > 0 ? filteredQueries[0] : null;
 }

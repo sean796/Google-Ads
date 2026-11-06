@@ -17,6 +17,7 @@ import {
   slugHasSpecificTerms,
   type GSCQuery,
 } from "@/lib/gsc-simple-keyword-recommendation-helpers";
+import { logger } from "@/lib/logger";
 
 export {
   bestGSCQueryForInvalidKeyword,
@@ -247,12 +248,12 @@ Return the primary keyword on the first line, then up to 5 secondary keywords (o
       });
       if (intentMatching.length > 0) {
         intentMatching.sort((a, b) => (b.impressions || 0) - (a.impressions || 0));
-        console.warn('[Simple Keyword Recommendation] URL/title intent mismatch, replacing:', primaryKeyword, '->', intentMatching[0].query);
+        logger.warn('[Simple Keyword Recommendation] URL/title intent mismatch, replacing:', primaryKeyword, '->', intentMatching[0].query);
         primaryKeyword = intentMatching[0].query;
       } else if (options.pageUrl) {
         const derived = deriveKeywordFromUrlSlug(options.pageUrl);
         if (derived) {
-          console.warn('[Simple Keyword Recommendation] No GSC match for URL/title intent, using slug-derived:', derived);
+          logger.warn('[Simple Keyword Recommendation] No GSC match for URL/title intent, using slug-derived:', derived);
           primaryKeyword = derived;
         }
       }
@@ -272,7 +273,7 @@ Return the primary keyword on the first line, then up to 5 secondary keywords (o
       const replaced = bestGSCQueryForInvalidKeyword(primaryKeyword, queries, options.pageUrl);
       if (replaced !== primaryKeyword) {
         primaryKeyword = replaced;
-        if (primaryKeyword) console.warn('[Simple Keyword Recommendation] AI keyword not in GSC; using URL-best:', lines[0], '->', primaryKeyword);
+        if (primaryKeyword) logger.warn('[Simple Keyword Recommendation] AI keyword not in GSC; using URL-best:', lines[0], '->', primaryKeyword);
       }
     }
 
@@ -283,7 +284,7 @@ Return the primary keyword on the first line, then up to 5 secondary keywords (o
         const fallback = await firstNonBlocklistedAndNonCompetitorQuery(queries, options.companyName, options.apiKey, options.model);
         if (fallback) {
           primaryKeyword = fallback;
-          console.warn('[Simple Keyword Recommendation] Rejected competitor; using first AI-verified non-competitor GSC query:', primaryKeyword);
+          logger.warn('[Simple Keyword Recommendation] Rejected competitor; using first AI-verified non-competitor GSC query:', primaryKeyword);
         }
       }
     }
@@ -296,7 +297,7 @@ Return the primary keyword on the first line, then up to 5 secondary keywords (o
       secondaryKeywords
     };
   } catch (error) {
-    console.error('[Simple Keyword Recommendation] Error:', error);
+    logger.error('[Simple Keyword Recommendation] Error:', error);
     const src = (options.promptModifier ?? '').trim() || (options.metaDescription ?? '').trim();
     if (src) {
       const derived = deriveKeywordFromModifier(src);

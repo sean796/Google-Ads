@@ -4,6 +4,7 @@
  * Prefers explicit `preferredOrigin`, then hyperlocal tail from SAP title (`… in Place, City`), else AI extraction.
  */
 
+import { logger } from "@/lib/logger";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_CONTENT_SAVED_BUT_ORIGIN_FIELD_UPDATE_EN, notifyContentSavedButOriginFieldUpdateFa, notifyOriginFieldUpdatedX } from "@/lib/notify-messages";
 import { getMuteOptimizationToasts } from "@/hooks/content-optimization/optimization-toast-mute";
@@ -56,17 +57,14 @@ export async function updateACFOriginField(
 
   // Only update ACF Origin if entity sitemap URL is provided (indicates site supports entity-based content)
   if (!site.entitySitemapUrl) {
-    console.log('[ACF Origin] No entity sitemap URL provided, skipping ACF Origin update');
     return { success: true };
   }
 
   if (!postId) {
-    console.log('[ACF Origin] Missing postId, skipping ACF Origin update');
     return { success: true };
   }
 
   if (!finalTitle) {
-    console.log('[ACF Origin] No title provided, skipping ACF Origin update');
     return { success: true };
   }
 
@@ -77,12 +75,6 @@ export async function updateACFOriginField(
     // Use entityEndpoint directly for ACF update - NO normalization
     const postTypeEndpoint = entityEndpoint;
 
-    console.log('[ACF Origin] Using postTypeEndpoint for ACF update:', {
-      postTypeEndpoint,
-      existingPostEndpoint: existingPost?.postTypeEndpoint,
-      resolvedSubtype: resolved?.subtype,
-      title: finalTitle
-    });
 
     const preferredOrigin =
       preferredOriginOption?.trim() || extractOriginFromSapTitle(finalTitle);
@@ -115,22 +107,20 @@ export async function updateACFOriginField(
     );
 
     if (originResult.success && originResult.origin && originResult.origin.trim() && originResult.origin.trim() !== "N/A") {
-      console.log(`[Content Generation] Successfully updated ACF Origin field to "${originResult.origin}" for post ID ${postId}`);
       if (!getMuteOptimizationToasts()) notify.success(notifyOriginFieldUpdatedX(originResult.origin), { duration: 3000 });
       return { success: true, origin: originResult.origin };
     } else if (originResult.error) {
-      console.warn(`[Content Generation] Failed to update ACF Origin field: ${originResult.error}`);
+      logger.warn(`[Content Generation] Failed to update ACF Origin field: ${originResult.error}`);
       // Don't fail the whole process if origin update fails
       if (!getMuteOptimizationToasts()) notify.warning(notifyContentSavedButOriginFieldUpdateFa(originResult.error), { duration: 5000 });
       return { success: false };
     } else {
       // Could not extract origin or extracted "N/A" - this is a regular blog post
-      console.log(`[Content Generation] Could not extract valid origin from title: "${finalTitle}" - treating as regular blog post (N/A)`);
       // Don't fail - regular blog posts don't need origin fields
       return { success: true };
     }
   } catch (originError) {
-    console.error('[Content Generation] Error updating ACF Origin field:', originError);
+    logger.error('[Content Generation] Error updating ACF Origin field:', originError);
     // Don't fail the whole process if origin update fails
     if (!getMuteOptimizationToasts()) notify.warning(NOTIFY_CONTENT_SAVED_BUT_ORIGIN_FIELD_UPDATE_EN, { duration: 5000 });
     return { success: false };

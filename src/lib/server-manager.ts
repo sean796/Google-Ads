@@ -3,6 +3,7 @@
  * Frontend utility to interact with the server manager service
  * Manages on-demand startup of the keyword server
  */
+import { logger } from "@/lib/logger";
 
 // Server manager runs on port 3002, keyword server on 3001
 const SERVER_MANAGER_URL = import.meta.env.VITE_SERVER_MANAGER_BASE || 
@@ -80,7 +81,7 @@ export async function getServerStatus(): Promise<{
     const data = await response.json();
     return data.success ? data : null;
   } catch (error) {
-    console.error('[Server Manager] Error getting status:', error);
+    logger.error('[Server Manager] Error getting status:', error);
     return null;
   }
 }

@@ -3,6 +3,7 @@ import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
 import type { PeopleAlsoAsk } from "./keyword-types";
 import { getResearchModel } from "./optimization-settings-storage";
 import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
+import { logger } from "@/lib/logger";
 
 export interface BlogTemplateChecklistPaaOptions {
   selectedPeopleAlsoAsk?: string[];
@@ -121,7 +122,7 @@ DO NOT include explanations, numbering, or any other text. ONLY return the JSON 
       if (strict) {
         throw new Error(`[PAA Selection] AI analysis failed (${response.status})`);
       }
-      console.warn('[PAA Selection] AI analysis failed, using fallback selection');
+      logger.warn('[PAA Selection] AI analysis failed, using fallback selection');
       return allPaaQuestions.slice(0, 10);
     }
 
@@ -132,7 +133,7 @@ DO NOT include explanations, numbering, or any other text. ONLY return the JSON 
       if (strict) {
         throw new Error("[PAA Selection] No content in AI response");
       }
-      console.warn('[PAA Selection] No content in AI response, using fallback selection');
+      logger.warn('[PAA Selection] No content in AI response, using fallback selection');
       return allPaaQuestions.slice(0, 10);
     }
 
@@ -161,7 +162,7 @@ DO NOT include explanations, numbering, or any other text. ONLY return the JSON 
           ? parseError
           : new Error("[PAA Selection] Failed to parse AI response");
       }
-      console.warn('[PAA Selection] Failed to parse AI response, trying to extract array from text:', parseError);
+      logger.warn('[PAA Selection] Failed to parse AI response, trying to extract array from text:', parseError);
       // Fallback: try to extract JSON array from text
       const jsonMatch = content.match(/\[[\s\S]*?\]/);
       if (jsonMatch) {
@@ -171,14 +172,14 @@ DO NOT include explanations, numbering, or any other text. ONLY return the JSON 
           if (strict) {
             throw new Error("[PAA Selection] Could not parse extracted JSON from AI response");
           }
-          console.warn('[PAA Selection] Could not parse extracted JSON, using fallback selection');
+          logger.warn('[PAA Selection] Could not parse extracted JSON, using fallback selection');
           return allPaaQuestions.slice(0, 10);
         }
       } else {
         if (strict) {
           throw new Error("[PAA Selection] No JSON array found in AI response");
         }
-        console.warn('[PAA Selection] No JSON array found in response, using fallback selection');
+        logger.warn('[PAA Selection] No JSON array found in response, using fallback selection');
         return allPaaQuestions.slice(0, 10);
       }
     }
@@ -218,7 +219,7 @@ DO NOT include explanations, numbering, or any other text. ONLY return the JSON 
     return selectedPaaQuestions.slice(0, 10);
   } catch (error) {
     if (strict) throw error;
-    console.warn('[PAA Selection] Error during AI analysis, using fallback selection:', error);
+    logger.warn('[PAA Selection] Error during AI analysis, using fallback selection:', error);
     return allPaaQuestions.slice(0, 10);
   }
 }
@@ -280,7 +281,6 @@ export async function resolveBlogTemplateChecklistPaaQuestions(args: {
         const blockedTerms = ['australia', 'uk', 'united kingdom', 'europe', 'asia', 'london', 'sydney', 'melbourne', 'brisbane', 'perth', 'adelaide', 'canberra', 'england', 'scotland', 'wales', 'ireland', 'new zealand', 'singapore', 'hong kong', 'tokyo', 'paris', 'berlin', 'rome', 'madrid'];
         const hasInternationalRef = blockedTerms.some(term => lowerQuestion.includes(term));
         if (hasInternationalRef) {
-          console.log(`[PAA Filter] Filtered out question with international reference: ${paa.question}`);
           return false;
         }
         return true;

@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { loadApiKey } from "@/lib/api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
@@ -139,7 +140,7 @@ Return JSON array of { lineIndex, url, suggestedAction, rawLine, checklist } for
     }
     return tasks;
   } catch (e) {
-    console.warn("[SEM Task Interpreter] AI interpretation failed, using fallback:", e);
+    logger.warn("[SEM Task Interpreter] AI interpretation failed, using fallback:", e);
     return fallbackInterpret(lines);
   }
 }

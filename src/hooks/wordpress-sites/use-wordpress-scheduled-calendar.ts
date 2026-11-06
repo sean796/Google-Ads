@@ -1,4 +1,5 @@
 import { useCallback, type Dispatch, type SetStateAction } from "react";
+import { logger } from "@/lib/logger";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_COULD_NOT_RESOLVE_ANY_URLS_TO_WORDPRESS_, NOTIFY_NO_POSTS_FOUND, NOTIFY_NO_URLS_FOUND_IN_SITEMAP, NOTIFY_PLEASE_DETECT_SITEMAPS_FIRST, notifyFailedToFetchScheduledPostsX, notifyFoundXFuturePostxInSitemap, notifyLoadedXPostsWithDatesXFuture, notifyLoadingXPostsFromSitemap } from "@/lib/notify-messages";
 import { saveSites } from "@/components/integrations/storage";
@@ -183,7 +184,7 @@ export function useWordPressScheduledCalendar({ sites, setSites, setIsFetchingSc
         notify.error(NOTIFY_NO_POSTS_FOUND);
       }
     } catch (error) {
-      console.error('Error loading calendar posts:', error);
+      logger.error('Error loading calendar posts:', error);
       notify.error(error instanceof Error ? error.message : `Failed to load posts: ${childSitemapUrl}`);
     } finally {
       setIsLoadingCalendar(prev => {
@@ -251,7 +252,7 @@ export function useWordPressScheduledCalendar({ sites, setSites, setIsFetchingSc
         notify.error(result.error || "Failed to check future posts");
       }
     } catch (error) {
-      console.error('Error checking future posts:', error);
+      logger.error('Error checking future posts:', error);
       notify.error(error instanceof Error ? error.message : `Failed to check future posts: ${childSitemapUrl}`);
     } finally {
       setIsCheckingFuture(prev => {

@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 const STORAGE_KEY = "neo-pulse-image-prompt-shortcuts";
 
 export interface SavedPrompt {
@@ -27,7 +28,7 @@ export function getSavedPrompts(): SavedPrompt[] {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([DEFAULT_PROMPT]));
     return [DEFAULT_PROMPT];
   } catch (e) {
-    console.error("[image-prompt-shortcuts] Failed to parse stored prompts:", e);
+    logger.error("[image-prompt-shortcuts] Failed to parse stored prompts:", e);
   }
   return [DEFAULT_PROMPT];
 }
@@ -42,7 +43,7 @@ export function savePrompt(prompt: SavedPrompt): void {
       : [...prompts, prompt];
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   } catch (e) {
-    console.error("[image-prompt-shortcuts] Failed to save prompt:", e);
+    logger.error("[image-prompt-shortcuts] Failed to save prompt:", e);
   }
 }
 
@@ -52,6 +53,6 @@ export function deletePrompt(id: string): void {
     const prompts = getSavedPrompts().filter((p) => p.id !== id);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(prompts));
   } catch (e) {
-    console.error("[image-prompt-shortcuts] Failed to delete prompt:", e);
+    logger.error("[image-prompt-shortcuts] Failed to delete prompt:", e);
   }
 }

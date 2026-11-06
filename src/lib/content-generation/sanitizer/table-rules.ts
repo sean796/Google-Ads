@@ -76,8 +76,6 @@ export function removeEmptyTables(content: string): string {
         if (!hasValidDataRows && tableLines.length >= 2) {
           // Empty table (no data rows or only empty data rows) - remove it
           removedCount++;
-          const tablePreview = tableLines[0]?.substring(0, 60) || 'unknown';
-          console.log(`[Content Sanitizer] Removed empty table starting at line ${tableStartIndex + 1}: "${tablePreview}..." (had ${tableLines.length} lines, ${dataRows.length} data rows)`);
           // Don't add these lines to fixedLines
         } else {
           // Valid table with data - keep it
@@ -101,8 +99,6 @@ export function removeEmptyTables(content: string): string {
     if (!hasValidDataRows && tableLines.length >= 2) {
       // Empty table at end - remove it
       removedCount++;
-      const tablePreview = tableLines[0]?.substring(0, 60) || 'unknown';
-      console.log(`[Content Sanitizer] Removed empty table at end of content: "${tablePreview}..." (had ${tableLines.length} lines, ${dataRows.length} data rows)`);
     } else {
       // Valid table - keep it
       fixedLines.push(...tableLines);
@@ -110,10 +106,6 @@ export function removeEmptyTables(content: string): string {
   }
   
   fixed = fixedLines.join('\n');
-  
-  if (removedCount > 0) {
-    console.log(`[Content Sanitizer] Removed ${removedCount} empty table(s) (tables with headers but no valid data rows)`);
-  }
   
   return fixed;
 }
@@ -172,7 +164,6 @@ export function removeLinkColumnsFromTables(content: string): string {
           if (linkColumnKeywords.some(keyword => cellLower.includes(keyword))) {
             linkColumnIndex = j;
             fixedCount++;
-            console.log(`[Content Sanitizer] Detected link column "${headerCells[j]}" at index ${j} in table starting at line ${tableStartIndex + 1}`);
             break;
           }
         }
@@ -232,10 +223,6 @@ export function removeLinkColumnsFromTables(content: string): string {
   }
   
   fixed = fixedLines.join('\n');
-  
-  if (fixedCount > 0) {
-    console.log(`[Content Sanitizer] Removed ${fixedCount} link column(s) from table(s) - links should be integrated into content columns for better SEO`);
-  }
   
   return fixed;
 }
@@ -363,10 +350,6 @@ export function fixMalformedMarkdownTables(content: string): string {
   });
   
   fixed = fixedLines.join('\n');
-  
-  if (fixedCount > 0) {
-    console.log(`[Content Sanitizer] Fixed ${fixedCount} malformed markdown table row(s) (removed leading punctuation before pipes)`);
-  }
   
   return fixed;
 }

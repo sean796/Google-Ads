@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import { notify } from "@/lib/app-notifications";
+import { logger } from "@/lib/logger";
 import { NOTIFY_PAA_EXTRACTION_FAILED_CONTINUING_WITHOUT, notifyAiAnalysisCompletedXH2SectionsXCo, notifyKeywordDataReceivedButAiAnalysisFa } from "@/lib/notify-messages";
 import type {
   KeywordData,
@@ -86,11 +87,10 @@ export async function runLegacySequentialKeywordRunner(
 setIsAnalyzingWithAI(true);
           
           try {
-            console.log('[Keyword Research] Running AI analysis with full SERP data...');
             if (localPaaRawResponse) {
-              console.log('[Keyword Research] SERP data available, passing to AI for analysis');
+              /* SERP data present, passed to AI analysis below */
             } else {
-              console.warn('[Keyword Research] No SERP data available, AI will analyze without it');
+              logger.warn('[Keyword Research] No SERP data available, AI will analyze without it');
             }
 
             // Run AI analysis - pass the FULL SERP JSON to AI, let it extract everything
@@ -132,7 +132,7 @@ setIsAnalyzingWithAI(true);
                 };
               }
             } catch (analysisError) {
-              console.error('[Keyword Research] Error in AI analysis:', analysisError);
+              logger.error('[Keyword Research] Error in AI analysis:', analysisError);
               throw new Error(`AI analysis failed: ${analysisError instanceof Error ? analysisError.message : 'Unknown error'}`);
             }
             
@@ -141,7 +141,6 @@ setIsAnalyzingWithAI(true);
             let paaQuestions: PeopleAlsoAsk[] = [];
             if (localPaaRawResponse && openRouterApiKey && openRouterApiKey.trim()) {
               try {
-                console.log('[Keyword Research] Extracting People Also Ask questions in separate step...');
                 
                 const { extractPeopleAlsoAskWithAI } = await import('@/lib/keyword-ai-analyzer');
                 const paaResult = await extractPeopleAlsoAskWithAI(localPaaRawResponse, {
@@ -155,19 +154,15 @@ setIsAnalyzingWithAI(true);
                 paaAiRawResponseText = paaResult.rawResponse || '';
                 paaQuestions = paaResult.questions || [];
                 setPaaAiRawResponse(paaAiRawResponseText);
-                console.log('[Keyword Research] PAA extraction complete:', {
-                  rawResponseLength: paaAiRawResponseText.length,
-                  questionsFound: paaQuestions.length,
-                });
               } catch (paaError) {
-                console.error('[Keyword Research] Error extracting PAA questions:', paaError);
+                logger.error('[Keyword Research] Error extracting PAA questions:', paaError);
                 // Continue without PAA data - don't fail the whole operation
                 paaAiRawResponseText = '';
                 paaQuestions = [];
                 notify.warning(NOTIFY_PAA_EXTRACTION_FAILED_CONTINUING_WITHOUT);
               }
             } else {
-              console.warn('[Keyword Research] PAA extraction skipped:', {
+              logger.warn('[Keyword Research] PAA extraction skipped:', {
                 hasLocalPaaRawResponse: !!localPaaRawResponse,
                 hasOpenRouterApiKey: !!openRouterApiKey && openRouterApiKey.trim().length > 0,
               });
@@ -195,37 +190,28 @@ setIsAnalyzingWithAI(true);
             };
             
             // State transition logging: After merge, before setAiAnalysis
-            console.log('[Keyword Research] State transition: After merge, before setAiAnalysis');
-            console.log('[Keyword Research] finalAnalysis.peopleAlsoAsk:', finalAnalysis.peopleAlsoAsk.length, 'items');
-            console.log('[Keyword Research] finalAnalysis structure:', {
-              hasKeywordSuggestions: !!finalAnalysis.keywordSuggestions,
-              h2SuggestionsCount: finalAnalysis.h2Suggestions?.length || 0,
-              contentGapsCount: finalAnalysis.contentGaps?.length || 0,
-              peopleAlsoAskCount: finalAnalysis.peopleAlsoAsk?.length || 0,
-              researchLinksCount: finalAnalysis.researchLinks?.length || 0,
-            });
             
             // Validate structure before setting state
             try {
               // Ensure all arrays are actually arrays
               if (!Array.isArray(finalAnalysis.h2Suggestions)) {
-                console.warn('[Keyword Research] Invalid h2Suggestions, defaulting to empty array');
+                logger.warn('[Keyword Research] Invalid h2Suggestions, defaulting to empty array');
                 finalAnalysis.h2Suggestions = [];
               }
               if (!Array.isArray(finalAnalysis.contentGaps)) {
-                console.warn('[Keyword Research] Invalid contentGaps, defaulting to empty array');
+                logger.warn('[Keyword Research] Invalid contentGaps, defaulting to empty array');
                 finalAnalysis.contentGaps = [];
               }
               if (!Array.isArray(finalAnalysis.peopleAlsoAsk)) {
-                console.warn('[Keyword Research] Invalid peopleAlsoAsk, defaulting to empty array');
+                logger.warn('[Keyword Research] Invalid peopleAlsoAsk, defaulting to empty array');
                 finalAnalysis.peopleAlsoAsk = [];
               }
               if (!Array.isArray(finalAnalysis.researchLinks)) {
-                console.warn('[Keyword Research] Invalid researchLinks, defaulting to empty array');
+                logger.warn('[Keyword Research] Invalid researchLinks, defaulting to empty array');
                 finalAnalysis.researchLinks = [];
               }
               if (!finalAnalysis.keywordSuggestions || typeof finalAnalysis.keywordSuggestions !== 'object') {
-                console.warn('[Keyword Research] Invalid keywordSuggestions, defaulting to empty structure');
+                logger.warn('[Keyword Research] Invalid keywordSuggestions, defaulting to empty structure');
                 finalAnalysis.keywordSuggestions = {
                   primary: primaryKeyword || "",
                   variations: [],
@@ -235,7 +221,7 @@ setIsAnalyzingWithAI(true);
               }
 setAiAnalysis(finalAnalysis);
             } catch (stateError) {
-              console.error('[Keyword Research] Error setting AI analysis state:', stateError);
+              logger.error('[Keyword Research] Error setting AI analysis state:', stateError);
 // Set a safe default structure if state update fails
               try {
                 setAiAnalysis({
@@ -251,18 +237,11 @@ setAiAnalysis(finalAnalysis);
                   researchLinks: [],
                 });
               } catch (fallbackError) {
-                console.error('[Keyword Research] Failed to set fallback AI analysis:', fallbackError);
+                logger.error('[Keyword Research] Failed to set fallback AI analysis:', fallbackError);
               }
             }
             
             // State transition logging: After setAiAnalysis
-            console.log('[Keyword Research] State transition: After setAiAnalysis() call');
-            console.log('[Keyword Research] AI Analysis completed:', {
-              h2SuggestionsCount: finalAnalysis.h2Suggestions.length,
-              contentGapsCount: finalAnalysis.contentGaps.length,
-              researchLinksCount: finalAnalysis.researchLinks?.length || 0,
-              paaAiRawResponseLength: paaAiRawResponseText.length,
-            });
             
             // Show notification
             notify.success(notifyAiAnalysisCompletedXH2SectionsXCo(finalAnalysis.h2Suggestions.length, finalAnalysis.contentGaps.length, finalAnalysis.researchLinks?.length || 0));
@@ -281,7 +260,6 @@ setAiAnalysis(finalAnalysis);
                 ...(analysis.keywordSuggestions?.semantic || [])
               ].filter(Boolean);
               
-              console.log('[Keyword Research] Fetching search volume for AI-generated keywords:', allAiKeywords.length);
               
               // Fetch search volume for AI-generated keywords
               if (allAiKeywords.length > 0) {
@@ -292,9 +270,8 @@ setAiAnalysis(finalAnalysis);
                     options.language || "en"
                   );
                   aiGeneratedKeywordsWithData = aiKeywordData || [];
-                  console.log('[Keyword Research] Fetched search volume for', aiGeneratedKeywordsWithData.length, 'AI-generated keywords');
                 } catch (aiKwError) {
-                  console.warn("Error fetching search volume for AI-generated keywords:", aiKwError);
+                  logger.warn("Error fetching search volume for AI-generated keywords:", aiKwError);
                   // Continue without AI keyword data
                 }
               }
@@ -307,9 +284,8 @@ setAiAnalysis(finalAnalysis);
                   options.language || "en"
                 );
                 semanticKeywords = semanticData || [];
-                console.log('[Keyword Research] Fetched', semanticKeywords.length, 'semantic keywords from DataForSEO');
               } catch (semError) {
-                console.warn("Error fetching semantic keywords:", semError);
+                logger.warn("Error fetching semantic keywords:", semError);
                 // Continue without semantic keywords
               }
               
@@ -333,7 +309,7 @@ setAiAnalysis(finalAnalysis);
               setKeywordsVolumeData(volumeMap);
               
             } catch (error) {
-              console.warn("Error fetching keyword suggestions:", error);
+              logger.warn("Error fetching keyword suggestions:", error);
               // Continue without keyword suggestions
             } finally {
               setIsLoadingSuggestions(false);
@@ -359,7 +335,7 @@ setCurrentResult(keywordResult);
                 keywordsVolumeData: volumeKeywords,
               };
             } catch (resultError) {
-              console.error('[Keyword Research] Error setting keyword result:', resultError);
+              logger.error('[Keyword Research] Error setting keyword result:', resultError);
               // Still try to set basic result even if full result fails
               if (extractedKeywordData) {
                 const formattedPrimaryKeyword = formatKeyword(primaryKeyword);
@@ -376,7 +352,7 @@ setCurrentResult(keywordResult);
               }
             }
           } catch (aiError) {
-            console.error("Error in AI keyword analysis:", aiError);
+            logger.error("Error in AI keyword analysis:", aiError);
             const errorMessage = aiError instanceof Error ? aiError.message : 'Unknown error';
             if (strict) {
               throw aiError instanceof Error ? aiError : new Error(errorMessage);
@@ -405,7 +381,7 @@ setCurrentResult(keywordResult);
                   keywordsVolumeData: volumeKeywords,
                 };
               } catch (resultError) {
-                console.error('[Keyword Research] Error setting basic result after AI failure:', resultError);
+                logger.error('[Keyword Research] Error setting basic result after AI failure:', resultError);
               }
             }
           } finally {

@@ -9,6 +9,7 @@ import { clearValidationCache } from '@/lib/cached-link-validation';
 import { createSiteCache, seedSiteCacheFromBulkInventory } from '@/lib/wordpress-site-cache';
 import { normalizeInternalUrl } from '@/lib/wordpress-api/validate-internal-links';
 import { resolveUploadSitemapType } from '@/lib/bulk/bulk-sitemap-mode';
+import { logger } from "@/lib/logger";
 
 /** Validated link URLs per site (run-scoped). Filled on first upload to each site; cleared when run ends. */
 const preValidatedUrlsBySite = new Map<string, Set<string>>();
@@ -79,7 +80,7 @@ export function prefetchBulkWordPressLinkValidationForRun(
         );
         preValidatedUrlsBySite.set(site.id, set);
       } catch (err) {
-        console.warn('[Bulk Upload] Link validation prefetch failed for site:', site.name, err);
+        logger.warn('[Bulk Upload] Link validation prefetch failed for site:', site.name, err);
       }
     }),
   ).then(() => undefined);

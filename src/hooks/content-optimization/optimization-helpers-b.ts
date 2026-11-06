@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { getMuteOptimizationToasts } from "./optimization-toast-mute";
@@ -147,7 +148,7 @@ export function handleOptimizationError(
       };
     });
   } catch (stateError) {
-    console.error("[Optimization] Error updating error state:", stateError);
+    logger.error("[Optimization] Error updating error state:", stateError);
   }
 
   if (!getMuteOptimizationToasts()) {
@@ -237,7 +238,7 @@ export async function selectBestKeywordForEntity(
 
     return geminiSelectedKeyword;
   } catch (error) {
-    console.warn("[Entity Keyword Selection] Failed to use Gemini selection:", error);
+    logger.warn("[Entity Keyword Selection] Failed to use Gemini selection:", error);
     return null;
   }
 }

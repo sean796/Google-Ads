@@ -1,12 +1,16 @@
 /**
  * The one route for runtime diagnostics in the browser.
  *
- * Debug logging does not ship: `console.log`, `console.info`, and
- * `console.debug` are banned in app code (Wave 8 sweep). Warnings and
- * errors from failure paths go through here so they can be silenced or
- * forwarded in exactly one place.
+ * Direct `console.*` calls are banned in app code (Wave 8 sweep); every
+ * diagnostic flows through here so it can be silenced or forwarded in
+ * exactly one place. `debug` is for feature tracers (video stages, image
+ * pipeline, cluster runs): it maps to `console.debug`, which devtools
+ * hides unless verbose logging is on. Failures use `warn` and `error`.
  */
 export const logger = {
+  debug: (...args: unknown[]): void => {
+    console.debug(...args);
+  },
   warn: (...args: unknown[]): void => {
     console.warn(...args);
   },

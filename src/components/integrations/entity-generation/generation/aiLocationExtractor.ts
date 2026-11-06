@@ -6,6 +6,7 @@
 import { streamChatCompletion } from "@/lib/api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { notify } from "@/lib/app-notifications";
+import { logger } from "@/lib/logger";
 
 /**
  * Extracts location from URLs using AI
@@ -117,14 +118,13 @@ Return ONLY the location name or "none", nothing else.`;
         })
         .join(' ');
       
-      console.log(`[Entity Generation] AI extracted location from URLs: "${primaryCity}"`);
       return primaryCity;
     } else {
-      console.warn('[Entity Generation] AI could not extract location from URLs');
+      logger.warn('[Entity Generation] AI could not extract location from URLs');
       return null;
     }
   } catch (error) {
-    console.warn('[Entity Generation] Error extracting location from URLs with AI:', error);
+    logger.warn('[Entity Generation] Error extracting location from URLs with AI:', error);
     return null;
   }
 }
@@ -191,11 +191,10 @@ Return ONLY the location name (properly capitalized) or "none", nothing else.`;
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
       
-      console.log(`[Entity Generation] AI extracted location from modifier: "${modifierLocation}"`);
       return modifierLocation;
     }
   } catch (error) {
-    console.warn('[Entity Generation] Error extracting location from modifier with AI, trying regex fallback:', error);
+    logger.warn('[Entity Generation] Error extracting location from modifier with AI, trying regex fallback:', error);
     // Fallback to regex patterns
     return extractLocationFromModifierWithRegex(promptModifier);
   }
@@ -241,7 +240,6 @@ export function extractLocationFromModifierWithRegex(promptModifier: string): st
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
     }
-    console.log(`[Entity Generation] Regex extracted location from "in" pattern: "${modifierLocation}"`);
     return modifierLocation;
   } else {
     // Try direct location mentions - check for all US states, Canadian provinces, major cities
@@ -253,7 +251,6 @@ export function extractLocationFromModifierWithRegex(promptModifier: string): st
         .split(' ')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
-      console.log(`[Entity Generation] Regex extracted location from direct mention: "${modifierLocation}"`);
       return modifierLocation;
     } else {
       // Try city patterns as last resort
@@ -262,7 +259,6 @@ export function extractLocationFromModifierWithRegex(promptModifier: string): st
         if (match) {
           let modifierLocation = match[0];
           modifierLocation = modifierLocation.charAt(0).toUpperCase() + modifierLocation.slice(1).toLowerCase();
-          console.log(`[Entity Generation] Regex extracted city name: "${modifierLocation}"`);
           return modifierLocation;
         }
       }

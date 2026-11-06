@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import type { WordPressSite } from '@/components/integrations/types';
 import {
   getPublishedPosts,
@@ -60,7 +61,7 @@ export async function fetchAllPosts(
       }
     }
   } catch (error) {
-    console.warn('[Site Cache] Error fetching posts:', error);
+    logger.warn('[Site Cache] Error fetching posts:', error);
   }
 }
 
@@ -93,7 +94,7 @@ export async function fetchAllPages(
       onProgress?.(`Fetched ${pagesMetadata.length} pages...`, startProgress + progressRange);
     }
   } catch (error) {
-    console.warn('[Site Cache] Error fetching pages:', error);
+    logger.warn('[Site Cache] Error fetching pages:', error);
   }
 }
 
@@ -222,7 +223,7 @@ export async function fetchSitemapUrls(
               }
               return [];
             } catch (error) {
-              console.warn(`[Site Cache] Could not parse child sitemap ${childSitemapUrl}:`, error);
+              logger.warn(`[Site Cache] Could not parse child sitemap ${childSitemapUrl}:`, error);
               return [];
             }
           });
@@ -237,6 +238,6 @@ export async function fetchSitemapUrls(
       }
     }
   } catch (error) {
-    console.warn('[Site Cache] Error processing sitemap:', error);
+    logger.warn('[Site Cache] Error processing sitemap:', error);
   }
 }

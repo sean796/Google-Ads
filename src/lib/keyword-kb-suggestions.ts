@@ -1,6 +1,7 @@
 import { streamChatCompletion } from "./api";
 import { getResearchModel } from "./optimization-settings-storage";
 import { buildKBKeywordSuggestionPrompt } from "./prompt-builders-keyword";
+import { logger } from "@/lib/logger";
 
 export interface KBKeywordSuggestion {
   keyword: string;
@@ -89,7 +90,7 @@ Always respond with valid JSON in the exact format specified. Do not include mar
 
     return keywords;
   } catch (error) {
-    console.error("Error in KB keyword suggestion:", error);
+    logger.error("Error in KB keyword suggestion:", error);
     throw new Error(
       `Failed to suggest keywords: ${error instanceof Error ? error.message : "Unknown error"}`
     );

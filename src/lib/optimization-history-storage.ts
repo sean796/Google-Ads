@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import type { OptimizationHistoryEntry } from "@/components/integrations/wordpress/OptimizationHistoryPanel";
 
 const HISTORY_STORAGE_KEY_PREFIX = "optimization_history_";
@@ -11,7 +12,7 @@ export function getOptimizationHistory(siteId: string): OptimizationHistoryEntry
       return JSON.parse(stored);
     }
   } catch (e) {
-    console.error('[OptimizationHistory] Failed to parse stored history:', e);
+    logger.error('[OptimizationHistory] Failed to parse stored history:', e);
   }
   return [];
 }
@@ -23,7 +24,7 @@ export function addOptimizationHistoryEntry(siteId: string, entry: OptimizationH
     const updated = [entry, ...history].slice(0, MAX_HISTORY_ENTRIES);
     localStorage.setItem(`${HISTORY_STORAGE_KEY_PREFIX}${siteId}`, JSON.stringify(updated));
   } catch (e) {
-    console.error('[OptimizationHistory] Failed to add history entry:', e);
+    logger.error('[OptimizationHistory] Failed to add history entry:', e);
   }
 }
 
@@ -36,7 +37,7 @@ export function updateOptimizationHistoryEntry(siteId: string, entryId: string, 
     );
     localStorage.setItem(`${HISTORY_STORAGE_KEY_PREFIX}${siteId}`, JSON.stringify(updated));
   } catch (e) {
-    console.error('[OptimizationHistory] Failed to update history entry:', e);
+    logger.error('[OptimizationHistory] Failed to update history entry:', e);
   }
 }
 
@@ -45,7 +46,7 @@ export function clearOptimizationHistory(siteId: string): void {
   try {
     localStorage.removeItem(`${HISTORY_STORAGE_KEY_PREFIX}${siteId}`);
   } catch (e) {
-    console.error('[OptimizationHistory] Failed to clear history:', e);
+    logger.error('[OptimizationHistory] Failed to clear history:', e);
   }
 }
 

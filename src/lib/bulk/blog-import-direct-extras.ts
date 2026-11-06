@@ -37,6 +37,7 @@ import { buildBlogImportKeywordResearchStub } from "@/lib/bulk/blog-import-parse
 import { uploadWordPressMedia } from "@/lib/wordpress-api";
 import { updateOverviewSeoItem } from "@/lib/wordpress-api/meta";
 import { getPublicSiteUrl } from "@/lib/wordpress-site-public-url";
+import { logger } from "@/lib/logger";
 
 export type DirectAnalyzeKeywordFn = (
   keyword: string,
@@ -136,7 +137,7 @@ export async function runDirectKeywordResearch(args: {
       strict: false,
     });
   } catch (err) {
-    console.warn("[Direct import] DataForSEO keyword overview empty or failed, using row keyword:", err);
+    logger.warn("[Direct import] DataForSEO keyword overview empty or failed, using row keyword:", err);
     research = null;
   }
 

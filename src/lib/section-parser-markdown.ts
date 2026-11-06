@@ -5,6 +5,7 @@
  * - Markdown documents (plans, drafts, final reports) by headers
  * - Blueprint JSON structures by agent IDs
  */
+import { logger } from "@/lib/logger";
 
 export interface MarkdownSection {
   header: string;
@@ -251,18 +252,15 @@ export function insertContentIntoSection(
   const sections = parseMarkdownSections(markdown);
   const lines = markdown.split('\n');
   
-  console.log('Inserting content into section:', sectionHeader);
-  console.log('Available sections:', sections.map(s => s.header));
   
   // Find the target section (fuzzy match)
   const targetSection = findSectionsByHeader(sections, sectionHeader, true)[0];
   
   if (!targetSection) {
-    console.warn(`Section "${sectionHeader}" not found. Available sections:`, sections.map(s => s.header));
+    logger.warn(`Section "${sectionHeader}" not found. Available sections:`, sections.map(s => s.header));
     throw new Error(`Section "${sectionHeader}" not found. Available sections: ${sections.map(s => s.header).join(', ')}`);
   }
   
-  console.log('Found target section:', targetSection.header, 'at lines', targetSection.startLine, '-', targetSection.endLine);
   
   // Build new markdown
   const newLines: string[] = [];
@@ -277,7 +275,6 @@ export function insertContentIntoSection(
         newLines.push(''); // Add blank line
         newLines.push(content);
         newLines.push(''); // Add blank line after content
-        console.log('Inserted content at start of section');
       }
     }
     
@@ -286,12 +283,10 @@ export function insertContentIntoSection(
       // Insert content at the end of the section (after the last line)
       newLines.push(''); // Add blank line
       newLines.push(content);
-      console.log('Inserted content at end of section');
     }
   }
   
   const result = newLines.join('\n');
-  console.log('Insertion complete. Original length:', markdown.length, 'New length:', result.length);
   
   return result;
 }

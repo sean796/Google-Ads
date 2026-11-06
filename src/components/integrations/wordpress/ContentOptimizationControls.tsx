@@ -113,7 +113,7 @@ export const ContentOptimizationControls: React.FC<ContentOptimizationControlsPr
         );
         saveSites(updated);
         if (manualEndpoint.trim()) {
-          console.log(`[Content Optimization] Manual endpoint saved: ${manualEndpoint.trim()}`);
+          /* non-empty endpoint already persisted by saveSites */
         }
       }
     }, 500); // Debounce 500ms

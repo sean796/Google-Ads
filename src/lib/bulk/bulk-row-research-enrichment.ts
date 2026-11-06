@@ -30,6 +30,7 @@ import { getProductionModel, getResearchModel, getImageModel } from "../optimiza
 import type { KeywordData, KeywordAIAnalysis } from "../keyword-types";
 import { BulkFileManager, type BulkGeneratedFile } from "../bulk-file-manager";
 import { emitEntitySapPipelineHarnessDone } from "@/lib/bulk/bulk-harness-progress";
+import { logger } from "@/lib/logger";
 import type { ExternalLinkPair } from "../content-generation/external-link-placeholders";
 import type { LlmAuditAuthorityLinkLike } from "./modifier-external-links";
 
@@ -188,7 +189,7 @@ export async function runBulkRowResearchEnrichmentPhase(input: {
         persistModifierLinksFile(links);
         return links;
       } catch (e) {
-        console.warn("[Bulk Auto-Generate] Modifier external links research failed (non-fatal):", e);
+        logger.warn("[Bulk Auto-Generate] Modifier external links research failed (non-fatal):", e);
         return [];
       }
     };
@@ -282,7 +283,7 @@ export async function runBulkRowResearchEnrichmentPhase(input: {
           onProgress: (message) => options.onProgress?.(rowIndex, 0, message),
         },
       }).catch((e) => {
-        console.warn("[Bulk Auto-Generate] SERP + LLM wave failed (non-fatal):", e);
+        logger.warn("[Bulk Auto-Generate] SERP + LLM wave failed (non-fatal):", e);
         return { brief: fallbackSeoContentBrief({ waveKeyword, serpPageUrl, serpBaseUrl, serpLocation }), storedFile: null as string | null };
       });
       const [modifierLinks, wave] = await Promise.all([
@@ -319,7 +320,7 @@ export async function runBulkRowResearchEnrichmentPhase(input: {
         forceRefresh: options.forceFreshTopicFanout === true,
       });
     } catch (e) {
-      console.warn("[Bulk Auto-Generate] Topic research fan-out failed (non-fatal):", e);
+      logger.warn("[Bulk Auto-Generate] Topic research fan-out failed (non-fatal):", e);
     }
     firstPartyAuthorityBlock = firstPartyAuthorityBlockFromBrief(serpLlmBrief, swotText);
 
@@ -354,11 +355,11 @@ export async function runBulkRowResearchEnrichmentPhase(input: {
           };
           fileManager.addFile(failureFile);
           generatedFiles.push(failureFile);
-          console.warn("[Bulk] LLM audit authority classifier JSON failed; continuing row:", detail.error);
+          logger.warn("[Bulk] LLM audit authority classifier JSON failed; continuing row:", detail.error);
         },
       });
     } catch (e) {
-      console.warn("[Bulk Auto-Generate] Authority links classification failed (non-fatal):", e);
+      logger.warn("[Bulk Auto-Generate] Authority links classification failed (non-fatal):", e);
       llmAuditAuthorityLinks = [];
     }
     rowExplicitExternalPairs = buildRowExplicitExternalAllowlist({

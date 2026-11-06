@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { loadApiKey } from "@/lib/api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { extractGeographicEntityWithAI } from "@/lib/content-optimization-helpers";
@@ -121,19 +122,17 @@ IMPORTANT:
     const isPlaceholder = placeholderPatterns.some(pattern => pattern.test(cleanedOrigin));
     
     if (isPlaceholder) {
-      console.log(`[ACF Origin] Extracted value "${cleanedOrigin}" is a placeholder - treating as no entity (N/A)`);
       return "";
     }
 if (!cleanedOrigin) {
-      console.warn(`[ACF Origin] No origin entity extracted from title: "${title}"`);
+      logger.warn(`[ACF Origin] No origin entity extracted from title: "${title}"`);
       return "";
     }
 
     // Trust research model output (fully agentic - no blocklist validation)
-    console.log(`[ACF Origin] Extracted origin "${cleanedOrigin}" from title: "${title}"`);
     return cleanedOrigin;
   } catch (error) {
-    console.error(`[ACF Origin] Error analyzing title:`, error);
+    logger.error(`[ACF Origin] Error analyzing title:`, error);
     throw error;
   }
 }
@@ -195,10 +194,9 @@ RULES:
       .trim();
     if (/^n\/a$|^none$/i.test(origin) || !origin) return "";
     // Trust research model output (fully agentic - no blocklist validation)
-    console.log(`[ACF Origin] AI agent extracted origin from context: "${origin}"`);
     return origin;
   } catch (error) {
-    console.error(`[ACF Origin] Error in analyzeOriginFromContext:`, error);
+    logger.error(`[ACF Origin] Error in analyzeOriginFromContext:`, error);
     throw error;
   }
 }
@@ -389,7 +387,6 @@ export async function analyzeAndUpdateOriginField(
         postTypeEndpoint
       );
       if (result.success) {
-        console.log(`[ACF Origin] Applied preferred origin "${preferred}" for post ID ${postId}`);
         return { success: true, origin: preferred };
       }
       return { success: false, origin: preferred, error: result.error };
@@ -407,7 +404,6 @@ export async function analyzeAndUpdateOriginField(
       { siteUrl }
     );
     if (!origin || !origin.trim()) {
-      console.log(`[ACF Origin] No origin from post context - treating as regular blog post (N/A)`);
       return { success: true, origin: undefined };
     }
 
@@ -423,13 +419,12 @@ export async function analyzeAndUpdateOriginField(
     );
 
     if (result.success) {
-      console.log(`[ACF Origin] Successfully updated origin field to "${origin}" for post ID ${postId}`);
       return { success: true, origin };
     }
     return { success: false, origin, error: result.error };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`[ACF Origin] Error in analyzeAndUpdateOriginField:`, error);
+    logger.error(`[ACF Origin] Error in analyzeAndUpdateOriginField:`, error);
     return { success: false, error: errorMessage };
   }
 }

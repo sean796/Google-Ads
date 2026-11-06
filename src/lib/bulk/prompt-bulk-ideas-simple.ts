@@ -6,6 +6,7 @@ import type { PromptBulkKwConnectedSiteContext } from "@/lib/bulk/prompt-bulk-kw
 import { appendUniversalContentRulesToSystemPrompt } from "@/lib/content-word-blocklist";
 import { GLOBAL_BLOCKED_TOPIC_PROMPT_BLOCK } from "@/lib/content-topic-blocklist";
 import { BENCHMARK_SITE_INVENTORY_CANNIBALIZATION } from "@/lib/vertical-benchmark/vertical-benchmark-inventory-cannibal";
+import { logger } from "@/lib/logger";
 
 const PROMPT_IDEAS_GSC_IN_USER = 500;
 
@@ -116,7 +117,7 @@ function payloadFromResponse(
   const trimmed = content.trim();
   if (!trimmed) {
     if (import.meta.env.DEV) {
-      console.error("[prompt-bulk-ideas]", { finishReason, content });
+      logger.error("[prompt-bulk-ideas]", { finishReason, content });
     }
     throw new Error("Ideas agent returned empty content.");
   }
@@ -124,7 +125,7 @@ function payloadFromResponse(
     return JSON.parse(trimmed) as IdeasPayload;
   } catch {
     if (import.meta.env.DEV) {
-      console.error("[prompt-bulk-ideas]", { finishReason, content });
+      logger.error("[prompt-bulk-ideas]", { finishReason, content });
     }
     throw new Error("Ideas agent returned invalid JSON.");
   }

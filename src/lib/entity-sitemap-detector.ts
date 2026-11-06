@@ -4,6 +4,7 @@
  */
 
 import { parseSitemap } from './wordpress-api';
+import { logger } from "@/lib/logger";
 import type { WordPressSite } from '@/components/integrations/types';
 
 /**
@@ -15,16 +16,12 @@ import type { WordPressSite } from '@/components/integrations/types';
  */
 export async function detectEntitySitemap(site: WordPressSite): Promise<string | null> {
   if (!site.sitemaps?.childSitemaps || site.sitemaps.childSitemaps.length === 0) {
-    console.log('[Entity Sitemap Detector] No child sitemaps available');
     return null;
   }
 
   if (!site.username || !site.appPassword) {
-    console.log('[Entity Sitemap Detector] Missing credentials');
     return null;
   }
-
-  console.log(`[Entity Sitemap Detector] Analyzing ${site.sitemaps.childSitemaps.length} child sitemaps...`);
 
   // Score each sitemap based on entity indicators
   const sitemapScores: Array<{ url: string; score: number; reasons: string[] }> = [];
@@ -113,13 +110,12 @@ export async function detectEntitySitemap(site: WordPressSite): Promise<string |
         }
       }
     } catch (error) {
-      console.warn(`[Entity Sitemap Detector] Error parsing sitemap ${sitemapUrl}:`, error);
+      logger.warn(`[Entity Sitemap Detector] Error parsing sitemap ${sitemapUrl}:`, error);
       // Continue with other sitemaps
     }
 
     if (score > 0) {
       sitemapScores.push({ url: sitemapUrl, score, reasons });
-      console.log(`[Entity Sitemap Detector] ${sitemapUrl}: score=${score}, reasons=[${reasons.join(', ')}]`);
     }
   }
 
@@ -129,12 +125,10 @@ export async function detectEntitySitemap(site: WordPressSite): Promise<string |
     const bestMatch = sitemapScores[0];
     
     if (bestMatch.score >= 5) { // Minimum threshold
-      console.log(`[Entity Sitemap Detector] Detected entity sitemap: ${bestMatch.url} (score: ${bestMatch.score})`);
       return bestMatch.url;
     }
   }
 
-  console.log('[Entity Sitemap Detector] No entity sitemap detected');
   return null;
 }
 

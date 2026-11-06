@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 export type NotifyVariant = "success" | "error" | "info" | "warning" | "loading" | "default";
 
 /**
@@ -89,9 +90,6 @@ function notifyDisplayTitle(variant: NotifyVariant, main: string): string {
   const t = normalizeNotifyText(main) || main;
   if (variant === "error" || variant === "warning") return t;
   const short = shortNotifyTitle(t);
-  if (short !== t && t.length > short.length + 8) {
-    console.warn("[notify]", short, t);
-  }
   return short || t;
 }
 
@@ -303,6 +301,6 @@ export function notifyHeaderError(
 ): void {
   const desc = notifyErrorDetail(detail) ?? opts?.description;
   const title = desc && desc !== shortTitle ? `${shortTitle}: ${desc}` : shortTitle;
-  if (desc) console.error(shortTitle, desc);
+  if (desc) logger.error(shortTitle, desc);
   notify.error(title, { ...opts, duration: opts?.duration ?? 12000 });
 }

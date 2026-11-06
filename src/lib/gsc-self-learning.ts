@@ -6,6 +6,7 @@
 import { loadApiKey } from './api';
 import type { WordPressSite } from '@/components/integrations/types';
 import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
+import { logger } from "@/lib/logger";
 
 export interface GSCPerformanceRecommendation {
   recommendedKeywords: Array<{
@@ -33,7 +34,6 @@ export async function analyzeGSCPerformance(
   postType: 'post' | 'service-area',
   dateRangeDays: number = 90
 ): Promise<GSCPerformanceRecommendation> {
-  console.log(`[GSC Self-Learning] Analyzing GSC performance for ${postType} pages...`);
 
   const BACKEND_API_BASE = import.meta.env.VITE_MCP_API_BASE?.replace('/api/mcp', '') || 
     (import.meta.env.DEV ? 'http://localhost:3001' : '');
@@ -48,7 +48,6 @@ export async function analyzeGSCPerformance(
   const startDateStr = startDate.toISOString().split('T')[0];
   const endDateStr = endDate.toISOString().split('T')[0];
 
-  console.log(`[GSC Self-Learning] Fetching GSC queries from ${startDateStr} to ${endDateStr}`);
 
   try {
     // Use the existing working fetch-queries endpoint
@@ -65,14 +64,14 @@ export async function analyzeGSCPerformance(
 
     if (!queriesResponse.ok) {
       const errorText = await queriesResponse.text();
-      console.warn('[GSC Self-Learning] Could not fetch GSC queries:', errorText);
+      logger.warn('[GSC Self-Learning] Could not fetch GSC queries:', errorText);
       return createEmptyRecommendations();
     }
 
     const queriesData = await queriesResponse.json();
 
     if (!queriesData.success) {
-      console.warn('[GSC Self-Learning] No GSC data available:', queriesData.error);
+      logger.warn('[GSC Self-Learning] No GSC data available:', queriesData.error);
       return createEmptyRecommendations();
     }
 
@@ -81,11 +80,10 @@ export async function analyzeGSCPerformance(
     const queries = queriesData.queries || [];
     
     if (queries.length === 0) {
-      console.warn('[GSC Self-Learning] No queries in response');
+      logger.warn('[GSC Self-Learning] No queries in response');
       return createEmptyRecommendations();
     }
     
-    console.log(`[GSC Self-Learning] Analyzing ${queries.length} queries from GSC data`);
 
     // Analyze queries for opportunities
     const keywordOpportunities = analyzeKeywordOpportunities(queries);
@@ -100,10 +98,9 @@ export async function analyzeGSCPerformance(
       positionImprovements: positionImprovements.slice(0, 15), // Top 15 opportunities
     };
 
-    console.log('[GSC Self-Learning] Analysis complete:', recommendation);
     return recommendation;
   } catch (error) {
-    console.error('[GSC Self-Learning] Error analyzing GSC performance:', error);
+    logger.error('[GSC Self-Learning] Error analyzing GSC performance:', error);
     return createEmptyRecommendations();
   }
 }

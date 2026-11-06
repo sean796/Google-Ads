@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { INTERNAL_LINK_PLACEHOLDER_FEATURE_SUFFIX } from "@/lib/content-generation/internal-link-placeholders";
 import {
   findSectionsByHeader,
@@ -32,7 +33,7 @@ export function parseBlueprintAgents(blueprintJson: string): BlueprintAgent[] {
     }
     return [];
   } catch (error) {
-    console.error('Failed to parse blueprint JSON:', error);
+    logger.error('Failed to parse blueprint JSON:', error);
     return [];
   }
 }
@@ -205,7 +206,7 @@ export function validateAndEnforceLinkRequirement(agents: BlueprintAgent[]): Blu
     
     if (!hasLinkFeature) {
       const updatedFeatures = [...features, `[LINK]: ${INTERNAL_LINK_PLACEHOLDER_FEATURE_SUFFIX}`];
-      console.warn(`Agent "${agent.title || agent.id}" was missing mandatory [LINK] feature. Added automatically.`);
+      logger.warn(`Agent "${agent.title || agent.id}" was missing mandatory [LINK] feature. Added automatically.`);
       return {
         ...agent,
         features: updatedFeatures
@@ -277,7 +278,6 @@ export function mergeAgentsIntoBlueprint(
     
     // Step 2: Add new agents in the correct position based on step number
     if (newAgents.length > 0) {
-      console.log('Merging new agents:', newAgents.map(a => ({ id: a.id, step: a.step, title: a.title })));
       
       // Add new agents to the array
       updatedAgents.push(...newAgents);
@@ -300,7 +300,7 @@ export function mergeAgentsIntoBlueprint(
     blueprint.agents = validatedAgents;
     return JSON.stringify(blueprint, null, 2);
   } catch (error) {
-    console.error('Failed to merge agents into blueprint:', error);
+    logger.error('Failed to merge agents into blueprint:', error);
     return originalBlueprintJson;
   }
 }

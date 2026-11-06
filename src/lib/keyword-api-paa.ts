@@ -1,4 +1,5 @@
 import { resolveMcpApiBase } from "@/lib/mcp-tools";
+import { logger } from "@/lib/logger";
 import { DISABLE_DATAFORSEO } from "./keyword-api-cache";
 
 /**
@@ -39,7 +40,7 @@ export function extractPeopleAlsoAsk(serpData: unknown): import("./keyword-types
     serpData && typeof serpData === "object" ? (serpData as { tasks?: PaaSerpTask[] }) : {};
 
   if (!serp.tasks || !Array.isArray(serp.tasks)) {
-    console.warn('[PAA Extraction] No tasks array found in response:', {
+    logger.warn('[PAA Extraction] No tasks array found in response:', {
       hasSerpData: !!serpData,
       tasksType: typeof serp.tasks,
       keys: serpData && typeof serpData === "object" ? Object.keys(serpData) : []
@@ -50,7 +51,7 @@ export function extractPeopleAlsoAsk(serpData: unknown): import("./keyword-types
   for (const task of serp.tasks) {
     // Check task status
     if (task.status_code && task.status_code !== 20000) {
-      console.warn('[PAA Extraction] Task has error status:', {
+      logger.warn('[PAA Extraction] Task has error status:', {
         status_code: task.status_code,
         status_message: task.status_message
       });
@@ -156,21 +157,7 @@ export function extractPeopleAlsoAsk(serpData: unknown): import("./keyword-types
   }
   
   // Log structure for debugging if no items found (no warning - empty PAA is acceptable)
-  if (paaItems.length === 0 && !hasLoggedStructure) {
-    console.log('[PAA Extraction] No PAA items found (this is acceptable). Response structure:', {
-      hasTasks: !!serp.tasks,
-      tasksLength: serp.tasks?.length,
-      firstTaskKeys: serp.tasks?.[0] ? Object.keys(serp.tasks[0]) : [],
-      firstTaskResultType: typeof serp.tasks?.[0]?.result,
-      firstTaskResultIsArray: Array.isArray(serp.tasks?.[0]?.result),
-      sampleStructure: JSON.stringify(
-        (Array.isArray(serp.tasks?.[0]?.result) ? serp.tasks[0].result[0] : {}) || {},
-        null,
-        2
-      ).substring(0, 500)
-    });
-  }
-  
+
   // Remove duplicates based on question text
   const uniqueItems = paaItems.filter((item, index, self) => {
     if (!item || !item.question || typeof item.question !== 'string') return false;
@@ -199,12 +186,11 @@ export async function fetchPeopleAlsoAsk(
 }> {
   try {
     if (DISABLE_DATAFORSEO) {
-      console.warn("[KeywordAPI] DataForSEO disabled – skipping People Also Ask fetch for keyword:", keyword);
+      logger.warn("[KeywordAPI] DataForSEO disabled – skipping People Also Ask fetch for keyword:", keyword);
       return { items: [], rawResponse: null, extractionLog: ["[PAA Fetch] DataForSEO disabled"] };
     }
     const MCP_API_BASE = resolveMcpApiBase();
     
-    console.log('[People Also Ask] Fetching SERP data from:', `${MCP_API_BASE}/DataForSEO_serp_organic_live_advanced`);
     
     const response = await fetch(`${MCP_API_BASE}/DataForSEO_serp_organic_live_advanced`, {
       method: 'POST',
@@ -220,24 +206,21 @@ export async function fetchPeopleAlsoAsk(
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[People Also Ask] Error response:', errorText);
+      logger.error('[People Also Ask] Error response:', errorText);
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
     const serpData = await response.json();
-    console.log('[People Also Ask] SERP data received:', serpData);
     
     // Use the new dedicated extractor
     const { extractPeopleAlsoAskFromSerp } = await import('./paa-extractor');
     const extractionResult = extractPeopleAlsoAskFromSerp(serpData);
     
     // Log extraction details
-    console.log('[People Also Ask] Extraction log:', extractionResult.extractionLog);
-    console.log('[People Also Ask] Extracted', extractionResult.items.length, 'PAA items');
     
     return extractionResult;
   } catch (error) {
-    console.error("Error fetching People Also Ask:", error);
+    logger.error("Error fetching People Also Ask:", error);
     return {
       items: [],
       rawResponse: null,

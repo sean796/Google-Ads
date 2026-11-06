@@ -1,5 +1,6 @@
 import { streamChatCompletion } from "./api";
 import { resolveModelForAgentCategory } from "@/lib/openrouter-agent-category-api";
+import { logger } from "@/lib/logger";
 
 export interface SummarizationOptions {
   apiKey: string;
@@ -327,7 +328,7 @@ Create a content brief that:
       summarizedLength: summarizedContent.length,
     };
   } catch (error) {
-    console.error("[Content Summarizer] Error during AI summarization:", error);
+    logger.error("[Content Summarizer] Error during AI summarization:", error);
     // Fallback to original content on error
     return {
       summarizedContent: content,

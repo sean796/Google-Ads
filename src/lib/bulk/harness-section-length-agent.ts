@@ -2,6 +2,7 @@ import { z } from "zod";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
 import { parseModelJson } from "@/lib/model-json";
 import { getProductionModel } from "@/lib/optimization-settings-storage";
+import { logger } from "@/lib/logger";
 
 /** When false, harness uses one OpenRouter pass per section only — no length rewrite pass. */
 export const HARNESS_AI_LENGTH_RETRY = false;
@@ -113,15 +114,9 @@ Return JSON: {"compliant":boolean,"section_html":"..."}`;
 
     const html = parsed.section_html?.trim() ? parsed.section_html.trim() : args.sectionHtml;
 
-    if (parsed.compliant === false) {
-      console.info(
-        `[Bulk Harness] Section length agent rewrote "${args.sectionTitle}" for compliance`,
-      );
-    }
-
     return html;
   } catch (err) {
-    console.warn("[Bulk Harness] Section length agent failed (using draft):", err);
+    logger.warn("[Bulk Harness] Section length agent failed (using draft):", err);
     return args.sectionHtml;
   }
 }

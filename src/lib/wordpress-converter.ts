@@ -3,6 +3,7 @@
  * Converts WordPress HTML content to markdown format for knowledge base
  */
 
+import { logger } from "@/lib/logger";
 import type { WordPressPostContent } from './wordpress-api';
 import { sanitizeFileName } from './file-processing';
 import { summarizeContentWithAI, type SummarizationOptions } from './content-summarizer';
@@ -167,7 +168,7 @@ export async function convertWordPressPostToMarkdown(
         excerptMarkdown = excerptResult.summarizedContent;
       }
     } catch (error) {
-      console.error("[WordPress Converter] Error during AI summarization:", error);
+      logger.error("[WordPress Converter] Error during AI summarization:", error);
       // Fallback to original content on error
       options.onSummarizeProgress?.("AI summarization failed, using original content");
     }

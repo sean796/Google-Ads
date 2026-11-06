@@ -46,6 +46,7 @@ import {
   resolveBulkWordPressAuthor,
   resolveBulkWordPressSlug,
 } from '@/lib/bulk/bulk-wordpress-publish-artifacts';
+import { logger } from "@/lib/logger";
 
 export type BulkWordPressPublishContext = {
   options: BulkProcessingOptions;
@@ -131,7 +132,7 @@ export async function publishBulkRowToWordPressSites(
   if (sitesToPost.length === 0) {
         const msg =
           'WordPress upload skipped: posting was enabled but no target sites were resolved. Check Integrations (saved site + app password) and bulk WordPress settings.';
-        console.warn('[WordPress]', msg);
+        logger.warn('[WordPress]', msg);
         options.onError?.(rowIndex, new Error(msg));
         return { earlyExit: true };
       }
@@ -439,7 +440,7 @@ export async function publishBulkRowToWordPressSites(
         } catch (uploadError) {
           const errMsg =
             uploadError instanceof Error ? uploadError.message : String(uploadError);
-          console.error(`[WordPress] Upload failed for ${site.name}:`, uploadError);
+          logger.error(`[WordPress] Upload failed for ${site.name}:`, uploadError);
           options.onProgress?.(rowIndex, 0, `WordPress upload failed: ${errMsg}`);
           options.onError?.(
             rowIndex,

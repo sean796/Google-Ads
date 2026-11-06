@@ -27,6 +27,7 @@ import {
   isCompletionTruncatedByTokenLimit,
   stripTrailingCopyrightBoilerplate,
 } from '@/lib/bulk/bulk-markdown-content-harness-utils';
+import { logger } from "@/lib/logger";
 
 type PromptBuildersModule = typeof import("../prompt-builders");
 
@@ -167,7 +168,7 @@ export async function runPressReleaseHarnessContent(args: {
 
       const truncated = isCompletionTruncatedByTokenLimit(result.finishReason);
       if (truncated) {
-        console.warn(`[Bulk Harness] Section ${i + 1} may be truncated (finish_reason: ${result.finishReason})`);
+        logger.warn(`[Bulk Harness] Section ${i + 1} may be truncated (finish_reason: ${result.finishReason})`);
       }
 
       options.onHarnessSection?.({
@@ -184,10 +185,6 @@ export async function runPressReleaseHarnessContent(args: {
     }),
   );
 
-  const pressSummary = pressTokenTracker.summary();
-  console.info(
-    `[Bulk Harness] Token usage for row ${harnessRowIndex}: estimated ~${pressSummary.estimatedTokens}, actual ~${pressSummary.actualTokens} (prompt ~${pressSummary.promptTokens} + completion ~${pressSummary.completionTokens}) of budget ${pressSummary.totalBudget}`,
-  );
   const stitched = stitchHarnessSections(pieces);
   if (!stitched?.trim()) {
     return stripTrailingCopyrightBoilerplate(pieces.filter(Boolean).join("\n\n"));

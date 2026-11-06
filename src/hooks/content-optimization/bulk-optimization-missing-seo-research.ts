@@ -1,4 +1,5 @@
 import pLimit from "p-limit";
+import { logger } from "@/lib/logger";
 import { notify } from "@/lib/app-notifications";
 import { notifyFilledSeoResearchFromSerpForXUrl, notifySeoResearchErrorForX } from "@/lib/notify-messages";
 import {
@@ -68,7 +69,7 @@ export async function fetchDataForSeoSerpBriefJson(opts: {
     });
     return JSON.stringify(merged, null, 2);
   } catch (e) {
-    console.warn("[Bulk Optimization] fetchDataForSeoSerpBriefJson:", e);
+    logger.warn("[Bulk Optimization] fetchDataForSeoSerpBriefJson:", e);
     if (!muteToasts) notify.warning(notifySeoResearchErrorForX(k));
     throw e instanceof Error ? e : new Error(String(e));
   }

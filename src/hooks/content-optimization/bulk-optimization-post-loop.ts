@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { notify } from "@/lib/app-notifications";
 import { notifyBatchOptimizationCompleteProcessedX, notifyCompletedOptimizationForPostXOfX } from "@/lib/notify-messages";
 import { OptimizationFileManager } from "@/lib/optimization-file-manager";
@@ -179,7 +180,7 @@ export async function bulkOptimizationRunPostLoop(p: BulkPostLoopParams): Promis
 
     if (!prefetchedPendingCache.has(i)) {
       const msg = `Missing prefetch for target ${i + 1}; bulk prep should have loaded inventory first.`;
-      console.error(`[Batch Optimization] ${msg}`, url);
+      logger.error(`[Batch Optimization] ${msg}`, url);
       if (!muteToasts) notify.error(msg);
       recordBatchFailure(msg);
       setBulkOptimizationState((prev) => {
@@ -243,7 +244,7 @@ export async function bulkOptimizationRunPostLoop(p: BulkPostLoopParams): Promis
       }
 
       const msg = `Could not run bulk optimization for post ${currentPost}: missing WordPress/ACF prefetch.`;
-      console.error(`[Batch Optimization] ${msg}`, url);
+      logger.error(`[Batch Optimization] ${msg}`, url);
       if (!muteToasts) notify.error(msg);
       recordBatchFailure(msg);
       setBulkOptimizationState((prev) => {
@@ -261,7 +262,7 @@ export async function bulkOptimizationRunPostLoop(p: BulkPostLoopParams): Promis
       break;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      console.error(`[Batch Optimization] Error optimizing post ${currentPost} (${url}):`, error);
+      logger.error(`[Batch Optimization] Error optimizing post ${currentPost} (${url}):`, error);
       if (!muteToasts) notify.error(`Post ${currentPost} failed: ${errorMessage}`, { duration: 12000 });
       recordBatchFailure(errorMessage);
       setBulkOptimizationState((prev) => {

@@ -9,6 +9,7 @@ import { type WordPressSite } from "../types";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_FETCHING_POST_DATA, NOTIFY_SITE_CREDENTIALS_NOT_AVAILABLE, notifyDownloadedXPostSAsJson } from "@/lib/notify-messages";
 import { Button, Field, Popover, PopoverContent, PopoverTrigger, Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, Checkbox } from "@/ui";
+import { logger } from "@/lib/logger";
 
 interface PostSelectorProps {
   site: WordPressSite;
@@ -43,7 +44,6 @@ export const PostSelector: React.FC<PostSelectorProps> = ({
       if (result.error) {
         // Handle "no posts" case gracefully - don't show error toast
         if (result.error.includes('No published posts found')) {
-          console.log('[PostSelector] No published posts found - this is normal if the site has no posts yet');
           setPosts([]);
           return;
         }
@@ -54,7 +54,7 @@ export const PostSelector: React.FC<PostSelectorProps> = ({
       // Only log error, don't show toast - this is not critical
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       if (!errorMessage.includes('No published posts found')) {
-        console.warn('[PostSelector] Error fetching posts:', errorMessage);
+        logger.warn('[PostSelector] Error fetching posts:', errorMessage);
       }
       setPosts([]);
     } finally {
@@ -357,7 +357,6 @@ if (!site.username || !site.appPassword) {
                     // e.g., /page/about -> page-sitemap.xml -> 'pages'
                     // e.g., /service-area/denver -> service-area-sitemap.xml -> 'service-areas'
                     if (urlPath.includes(sitemapType.replace(/s$/, '')) || urlPath.includes(sitemapType)) {
-                      console.log(`[PostSelector Scrape] Matched URL to sitemap: ${url} -> ${sitemapUrl} -> endpoint: ${endpoint}`);
                       return endpoint;
                     }
                   }
@@ -366,7 +365,6 @@ if (!site.username || !site.appPassword) {
                   if (urlPath.includes('/page/') || urlPath.match(/^\/[^/]+$/)) {
                     // Check if it's NOT a post (posts usually have dates in path)
                     if (!urlPath.match(/\/\d{4}\/\d{2}\//)) {
-                      console.log(`[PostSelector Scrape] Hard rule: URL looks like a page, using 'pages' endpoint`);
                       return 'pages';
                     }
                   }
@@ -448,7 +446,7 @@ notify.error(contentResult.error || 'Failed to fetch post data');
 
                 notify.success(notifyDownloadedXPostSAsJson(contentResult.posts.length));
               } catch (error) {
-console.error('[PostSelector] Error scraping posts:', error);
+logger.error('[PostSelector] Error scraping posts:', error);
                 notify.error(error instanceof Error ? error.message : 'Failed to scrape posts');
               }
             }}

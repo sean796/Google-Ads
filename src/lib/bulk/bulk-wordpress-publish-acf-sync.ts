@@ -36,6 +36,7 @@ import { acfOriginAppliesForRow } from '@/lib/acf-origin-applies';
 import { acfCompetitorAppliesForRow } from '@/lib/acf-competitor-applies';
 import { addBulkSeoResearchArtifact } from '@/lib/bulk/bulk-wordpress-publish-artifacts';
 import type { BulkFileManager } from '@/lib/bulk-file-manager';
+import { logger } from "@/lib/logger";
 
 
 export async function appendEarlyBulkFaqTable(args: {
@@ -400,16 +401,13 @@ export async function syncBulkRowAcfForPost(args: {
                 );
                 if (pulseRes.ok) {
                   acfUpdatedList = Object.keys(acfWritePayload);
-                  console.log(
-                    `[Bulk Upload] NEO Pulse SEO synced [${acfUpdatedList.join(', ')}] post ${postResult.postId}`,
-                  );
                   options.onProgress?.(
                     rowIndex,
                     0,
                     `NEO Pulse saved: ${acfUpdatedList.join(', ')}`,
                   );
                 } else {
-                  console.warn(
+                  logger.warn(
                     `[Bulk Upload] NEO Pulse SEO sync failed for post ${postResult.postId}:`,
                     pulseRes.error,
                   );
@@ -434,7 +432,7 @@ export async function syncBulkRowAcfForPost(args: {
               });
             } catch (seoError) {
               const errMsg = seoError instanceof Error ? seoError.message : String(seoError);
-              console.warn(`[Bulk Upload] NEO Pulse SEO sync warning for post ${postResult.postId}:`, seoError);
+              logger.warn(`[Bulk Upload] NEO Pulse SEO sync warning for post ${postResult.postId}:`, seoError);
               options.onProgress?.(rowIndex, 0, `NEO Pulse SEO sync warning: ${errMsg}`);
             }
   return { acfUpdatedList, contentForUpload };

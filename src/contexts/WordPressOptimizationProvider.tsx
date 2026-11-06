@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { NOTIFY_FAILED_TO_CONTINUE_OPTIMIZATION_PLEASE_T, NOTIFY_KEYWORD_SELECTION_CANCELLED, NOTIFY_PLEASE_SELECT_A_POST_OR_ENTER_A_URL_TO_O } from "@/lib/notify-messages";
 import { notify } from "@/lib/app-notifications";
 import React, {
@@ -165,7 +166,7 @@ export function WordPressOptimizationProvider({ children }: { children: ReactNod
           runOpts.testMode === true,
         );
       } catch (error) {
-        console.error("[Optimize Content] Error:", error);
+        logger.error("[Optimize Content] Error:", error);
         notify.error(error instanceof Error ? error.message : "Failed to optimize content", { duration: 5000 });
         try {
           keyword.setIsAnalyzingClusters((prev: Record<string, boolean>) => ({ ...prev, [site.id]: false }));
@@ -234,7 +235,7 @@ export function WordPressOptimizationProvider({ children }: { children: ReactNod
           useSiteWarmCacheOnly,
         );
       } catch (error) {
-        console.error("[Batch Optimize] Error:", error);
+        logger.error("[Batch Optimize] Error:", error);
         notify.error(error instanceof Error ? error.message : "Failed to optimize multiple posts", { duration: 5000 });
       }
     },
@@ -264,7 +265,7 @@ export function WordPressOptimizationProvider({ children }: { children: ReactNod
           keyword.setIsKeywordSelectionOpen,
         );
       } catch (error) {
-        console.error("[Optimize] Error:", error);
+        logger.error("[Optimize] Error:", error);
         notify.error(error instanceof Error ? error.message : "Failed to continue optimization");
       }
     },
@@ -440,14 +441,14 @@ function KeywordSelectionPortals({
                   try {
                     onSelectCluster(site.id, clusterIdx);
                   } catch (e) {
-                    console.error("[KeywordPortals] select cluster:", e);
+                    logger.error("[KeywordPortals] select cluster:", e);
                   }
                 }}
                 onSelectKeyword={(keyword, clusterKeywords) => {
                   try {
                     onSelectKeyword(site.id, keyword, clusterKeywords);
                   } catch (e) {
-                    console.error("[KeywordPortals] select keyword:", e);
+                    logger.error("[KeywordPortals] select keyword:", e);
                     notify.error(NOTIFY_FAILED_TO_CONTINUE_OPTIMIZATION_PLEASE_T);
                   }
                 }}
@@ -455,14 +456,14 @@ function KeywordSelectionPortals({
                   try {
                     onCancelKeywordSelection(site.id);
                   } catch (e) {
-                    console.error("[KeywordPortals] cancel:", e);
+                    logger.error("[KeywordPortals] cancel:", e);
                   }
                 }}
               />
             </ErrorBoundary>
           );
         } catch (e) {
-          console.error("[KeywordPortals] site:", site.id, e);
+          logger.error("[KeywordPortals] site:", site.id, e);
           return null;
         }
       })}

@@ -15,6 +15,7 @@ import {
   searchWikipediaPages,
   fetchWikipediaContent,
 } from "@/lib/wikipedia-api";
+import { logger } from "@/lib/logger";
 
 /**
  * Finds Wikipedia list pages using AI
@@ -46,7 +47,6 @@ export async function findWikipediaListPages(
     const wikiCheck = await checkWikipediaPageExists(pageTitle);
     if (wikiCheck.exists) {
       allCategoryPages.push(pageTitle);
-      console.log(`[Entity Generation] Found direct match: ${pageTitle}`);
     }
   }
   
@@ -102,7 +102,6 @@ Return ONLY the JSON array, no explanations.`;
   try {
     const suggestedPages = JSON.parse(similarPagesResponse);
     if (Array.isArray(suggestedPages) && suggestedPages.length > 0) {
-      console.log(`[Entity Generation] AI suggested ${suggestedPages.length} similar Wikipedia pages:`, suggestedPages);
       
       for (const pageTitle of suggestedPages) {
         if (pageTitle.includes('[') && pageTitle.includes(']')) {
@@ -127,14 +126,13 @@ Return ONLY the JSON array, no explanations.`;
       }
     }
   } catch (parseError) {
-    console.warn('[Entity Generation] Failed to parse AI suggestions, falling back to search');
+    logger.warn('[Entity Generation] Failed to parse AI suggestions, falling back to search');
   }
   
   // Also do a direct Wikipedia search as fallback
   const searchQuery = promptModifier;
   const searchResults = await searchWikipediaPages(searchQuery);
   allCategoryPages.push(...searchResults);
-  console.log(`[Entity Generation] Found ${searchResults.length} pages from direct Wikipedia search: "${searchQuery}"`);
   
   return Array.from(new Set(allCategoryPages));
 }
@@ -283,7 +281,7 @@ export async function extractEntitiesFromWikipedia(
     const contentChunks = await fetchWikipediaContent(selectedPageTitle);
     wikipediaPageContent = contentChunks.map(chunk => chunk.text).join('\n\n').substring(0, 5000);
   } catch (error) {
-    console.warn('[Entity Generation] Could not fetch full Wikipedia content, using extracted entities only');
+    logger.warn('[Entity Generation] Could not fetch full Wikipedia content, using extracted entities only');
   }
 
   const entityExtractionPrompt = `I need to extract ALL actual cities/entities from this Wikipedia list page: "${selectedPageTitle}"
@@ -344,18 +342,18 @@ Example: ["Sacramento", "Los Angeles", "San Francisco", "San Diego", "Oakland"]`
     if (jsonMatch) {
       validatedEntities = JSON.parse(jsonMatch[0]);
     } else {
-      console.warn('[Entity Generation] Failed to parse AI extraction response, using raw entities');
+      logger.warn('[Entity Generation] Failed to parse AI extraction response, using raw entities');
       validatedEntities = rawWikipediaEntities;
     }
   }
   
   if (!Array.isArray(validatedEntities)) {
-    console.warn('[Entity Generation] AI extraction response is not an array, using raw entities');
+    logger.warn('[Entity Generation] AI extraction response is not an array, using raw entities');
     validatedEntities = rawWikipediaEntities;
   }
 
   if (validatedEntities.length === 0 && rawWikipediaEntities.length > 0) {
-    console.warn('[Entity Generation] AI extraction returned no entities, using raw entities');
+    logger.warn('[Entity Generation] AI extraction returned no entities, using raw entities');
     validatedEntities = rawWikipediaEntities.slice(0, 100);
   }
 
@@ -365,12 +363,8 @@ Example: ["Sacramento", "Los Angeles", "San Francisco", "San Diego", "Oakland"]`
     .filter((e: string) => e && typeof e === 'string' && e.trim().length > 2)
     .filter((e: string) => {
       const isValid = isValidEntity(e.trim());
-      if (!isValid) {
-        console.log(`[Entity Generation] Filtered out invalid entity from Wikipedia: "${e}"`);
-      }
       return isValid;
     });
 
-  console.log(`[Entity Generation] Filtered Wikipedia entities: ${filteredEntities.length} valid (from ${validatedEntities.length} total)`);
   return filteredEntities;
 }

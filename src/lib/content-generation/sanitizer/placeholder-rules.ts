@@ -88,9 +88,5 @@ export function sanitizePlaceholders(content: string): string {
   sanitized = sanitized.replace(/<div>\s*<\/div>/gi, '');
   sanitized = sanitized.replace(/<span>\s*<\/span>/gi, '');
 
-  if (removedCount > 0) {
-    console.log(`[Content Sanitizer] Removed ${removedCount} placeholder artifact(s) from content`);
-  }
-
   return sanitized.trim();
 }

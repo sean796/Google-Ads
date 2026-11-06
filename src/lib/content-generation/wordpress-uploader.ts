@@ -4,6 +4,7 @@
  * NO service-area conditionals, NO normalization
  */
 
+import { logger } from "@/lib/logger";
 import { createWordPressPost, updateWordPressPost, type WordPressPostCreateResult, type WordPressPostUpdateResult } from "@/lib/wordpress-api";
 import {
   prepareWordPressUploadContent,
@@ -69,12 +70,6 @@ export async function uploadToWordPress(
     // Use entityEndpoint directly - NO normalization
     const postTypeEndpoint = entityEndpoint;
 
-    console.log('[Optimize Content] Updating existing post:', {
-      id: context.existingPost.id,
-      postTypeEndpoint: postTypeEndpoint,
-      resolvedSubtype: context.resolved?.subtype,
-      existingPostEndpoint: context.existingPost?.postTypeEndpoint
-    });
 
     // Title optimization is disabled (content-only module).
     // Preserve the existing WordPress title without modification.
@@ -88,15 +83,6 @@ export async function uploadToWordPress(
     // WordPress "update" must not demote scheduled/pending/private/etc posts to plain "draft".
     const postStatus = context.existingPost?.status || 'publish';
 
-    console.log('[WordPress Uploader] Updating post:', {
-      postId: context.existingPost.id,
-      postStatus,
-      postTypeEndpoint,
-      originalSlug,
-      hasFeaturedImage: !!featuredImageId,
-      updateTitle,
-      existingPostStatus: context.existingPost?.status
-    });
 
     if (seoExtraTextFieldOnly) {
       const postId = Number(context.existingPost.id);
@@ -154,15 +140,6 @@ export async function uploadToWordPress(
       }
     }
 
-    console.log('[WordPress Uploader] Post update result:', {
-      success: result.success,
-      postId: result.postId,
-      link: result.link,
-      status: result.status,
-      error: result.error,
-      title: result.title,
-      expectedStatus: postStatus
-    });
 
     // After successful update, set ACF fields
     if (result.success && result.postId) {
@@ -189,21 +166,8 @@ export async function uploadToWordPress(
       entity,
       apiKey,
     });
-    console.log('[Optimize Content] Creating draft:', {
-      postTypeEndpoint: postTypeEndpoint,
-      resolvedSubtype: context.resolved?.subtype,
-      existingPostEndpoint: context.existingPost?.postTypeEndpoint,
-      slug: slug,
-      url: context.url
-    });
 setProgress({ step: 'Creating draft...', progress: 92, message: `Creating new draft: "${draftTitle}" in ${postTypeEndpoint} endpoint...` });
     const authorId = await resolveWordPressDraftAuthor({ context, site, postTypeEndpoint });
-    console.log('[WordPress Uploader] Creating post in DRAFT mode:', {
-      postTypeEndpoint,
-      slug,
-      hasFeaturedImage: !!featuredImageId,
-      draftTitle
-    });
 result = await createWordPressPost(
       site.siteUrl,
       site.username,
@@ -222,14 +186,6 @@ result = await createWordPressPost(
       authorId
     );
     
-    console.log('[WordPress Uploader] Post creation result (DRAFT mode):', {
-      success: result.success,
-      postId: result.postId,
-      link: result.link,
-      status: result.status,
-      error: result.error,
-      title: result.title
-    });
 
     // After successful draft creation, set ACF fields
     // After successful draft creation, set ACF fields
@@ -243,21 +199,12 @@ result = await createWordPressPost(
       });
     }
   }
-  console.log('[WordPress Uploader] Final result check:', {
-    success: result.success,
-    postId: result.postId,
-    link: result.link,
-    status: result.status,
-    error: result.error,
-    hasPostId: !!result.postId,
-    hasLink: !!result.link
-  });
   if (!result.success) {
     const details = (result as { details?: { code?: string; message?: string } }).details;
     if (details) {
-      console.error('[WordPress Uploader] ❌ WordPress REST response (403/error details):', details);
+      logger.error('[WordPress Uploader] ❌ WordPress REST response (403/error details):', details);
     }
-    console.error('[WordPress Uploader] ❌ Post creation FAILED:', {
+    logger.error('[WordPress Uploader] ❌ Post creation FAILED:', {
       error: result.error,
       postId: result.postId,
       link: result.link,
@@ -267,13 +214,6 @@ result = await createWordPressPost(
     throw new Error((result.error || 'Failed to save post') + wpHint);
   }
 
-  console.log('[WordPress Uploader] ✅ Post upload SUCCESSFUL:', {
-    postId: result.postId,
-    link: result.link,
-    status: result.status,
-    title: result.title,
-    finalTitle
-  });
 
   const postTypeForDateStamp =
     context.existingPost?.post_type || context.resolved?.subtype || "post";

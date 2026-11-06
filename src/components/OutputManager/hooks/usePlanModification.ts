@@ -16,6 +16,7 @@ import {
   mergeSectionsIntoMarkdown,
   validateSectionMerge,
 } from "@/lib/section-parser";
+import { logger } from "@/lib/logger";
 import { useModificationTimer } from "./useModificationTimer";
 
 interface UsePlanModificationProps {
@@ -160,7 +161,7 @@ export function usePlanModification({
         setHasGeneratedChecklist(true);
       }
     } catch (error) {
-      console.error("Checklist generation error:", error);
+      logger.error("Checklist generation error:", error);
       notify.error(NOTIFY_FAILED_TO_GENERATE_CHECKLIST_PLEASE_TRY_);
       setChatMessages(prev => prev.slice(0, -1));
     } finally {
@@ -260,7 +261,7 @@ export function usePlanModification({
           // Validate merge
           const validation = validateSectionMerge(allSections, mergedPlan);
           if (!validation.valid && validation.missing.length > 0) {
-            console.warn("Some sections may be missing after merge:", validation.missing);
+            logger.warn("Some sections may be missing after merge:", validation.missing);
             // Continue anyway, but log warning
           }
           
@@ -322,7 +323,7 @@ export function usePlanModification({
         throw new Error("No plan content generated");
       }
     } catch (error) {
-      console.error("Plan update error:", error);
+      logger.error("Plan update error:", error);
       notify.error(NOTIFY_FAILED_TO_UPDATE_PLAN_PLEASE_TRY_AGAIN);
     } finally {
       setIsUpdatingPlan(false);

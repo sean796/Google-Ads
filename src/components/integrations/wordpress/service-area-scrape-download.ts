@@ -3,6 +3,7 @@ import { extractEndpointFromEntitySitemapUrl } from "@/lib/entity-endpoint-extra
 import { type WordPressSite } from "../types";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_FETCHING_SERVICE_AREA_DATA, NOTIFY_SITE_CREDENTIALS_NOT_AVAILABLE, notifyDownloadedXServiceAreaSAsJson } from "@/lib/notify-messages";
+import { logger } from "@/lib/logger";
 
 export async function downloadServiceAreasAsJson({
   site,
@@ -55,7 +56,6 @@ if (!site.username || !site.appPassword) {
                     // e.g., /page/about -> page-sitemap.xml -> 'pages'
                     // e.g., /entity-slug/denver -> entity-slug-sitemap.xml -> 'entity-slugs'
                     if (urlPath.includes(sitemapType.replace(/s$/, '')) || urlPath.includes(sitemapType)) {
-                      console.log(`[ServiceAreaSelector Scrape] Matched URL to sitemap: ${url} -> ${sitemapUrl} -> endpoint: ${endpoint}`);
                       return endpoint;
                     }
                   }
@@ -64,7 +64,6 @@ if (!site.username || !site.appPassword) {
                   if (urlPath.includes('/page/') || urlPath.match(/^\/[^/]+$/)) {
                     // Check if it's NOT a post (posts usually have dates in path)
                     if (!urlPath.match(/\/\d{4}\/\d{2}\//)) {
-                      console.log(`[ServiceAreaSelector Scrape] Hard rule: URL looks like a page, using 'pages' endpoint`);
                       return 'pages';
                     }
                   }
@@ -146,7 +145,7 @@ notify.error(contentResult.error || 'Failed to fetch service area data');
 
                 notify.success(notifyDownloadedXServiceAreaSAsJson(contentResult.posts.length));
               } catch (error) {
-console.error('[ServiceAreaSelector] Error scraping service areas:', error);
+logger.error('[ServiceAreaSelector] Error scraping service areas:', error);
                 notify.error(error instanceof Error ? error.message : 'Failed to scrape service areas');
               }
 }

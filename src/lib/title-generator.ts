@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { streamChatCompletion } from "./api";
 import type { KeywordData } from "./keyword-types";
 import { getResearchModel } from "./optimization-settings-storage";
@@ -120,14 +121,6 @@ Do not include any explanations, markdown formatting, or additional text. Only t
       const filteredTitles = parsed.filter((title: unknown): title is string => typeof title === "string" && title.trim().length > 0);
       return filteredTitles.map((title) => {
         const truncated = truncateTitleForSEO(title);
-        if (title.length > 50) {
-          console.log('[Title Generator] Truncated title to 50 characters (Content Optimizer module requirement):', {
-            original: title,
-            truncated: truncated,
-            originalLength: title.length,
-            truncatedLength: truncated.length
-          });
-        }
         return truncated;
       });
     }
@@ -148,18 +141,10 @@ Do not include any explanations, markdown formatting, or additional text. Only t
     // CRITICAL: Enforce 50 character limit for Content Optimizer module (optimized content)
     return finalTitles.map((title: string) => {
       const truncated = truncateTitleForSEO(title);
-      if (title.length > 50) {
-        console.log('[Title Generator] Truncated fallback title to 50 characters (Content Optimizer module requirement):', {
-          original: title,
-          truncated: truncated,
-          originalLength: title.length,
-          truncatedLength: truncated.length
-        });
-      }
       return truncated;
     });
   } catch (error) {
-    console.error("Error generating title options:", error);
+    logger.error("Error generating title options:", error);
     // Fallback: return a simple title based on keyword (truncated to 50 chars)
     const fallbackTitles = [`Complete Guide to ${keywordData.keyword}`, `How to ${keywordData.keyword}`, `Everything You Need to Know About ${keywordData.keyword}`];
     return fallbackTitles.map(title => truncateTitleForSEO(title));

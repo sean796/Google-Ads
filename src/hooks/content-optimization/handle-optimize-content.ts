@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { notify } from "@/lib/app-notifications";
 import {
   NOTIFY_FAILED_TO_INITIALIZE_OPTIMIZATION_PLEASE,
@@ -81,7 +82,7 @@ export async function handleOptimizeContent(params: HandleOptimizeContentParams)
     });
     patchOptimizationProgress(setOptimizationProgress, site.id, { pageUrl: url.trim() });
   } catch (stateError) {
-    console.error("[Optimize Content] Error setting initial state:", stateError);
+    logger.error("[Optimize Content] Error setting initial state:", stateError);
     if (!getMuteOptimizationToasts()) notify.error(NOTIFY_FAILED_TO_INITIALIZE_OPTIMIZATION_PLEASE);
     return;
   }
@@ -177,7 +178,7 @@ export async function handleOptimizeContent(params: HandleOptimizeContentParams)
       const pagePerf = await fetchGSCPagePerformance(site.siteUrl, url);
       gscResult = gscResultFromPagePerformance(pagePerf);
     } catch (error) {
-      console.warn("[Optimize Content] Page GSC prefetch failed:", error);
+      logger.warn("[Optimize Content] Page GSC prefetch failed:", error);
     }
 
     const pendingEntry: PendingOptimization = {

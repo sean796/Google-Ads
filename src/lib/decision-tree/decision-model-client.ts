@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { postOpenRouterAppChat, type OpenRouterAppMessage } from '@/lib/openrouter-app-api';
 import { GEMINI_FLASH_LITE_MODEL } from "@/lib/global-agent-models";
 import { getDecisionModel } from '@/lib/optimization-settings-storage';
@@ -141,7 +142,7 @@ export async function evaluateDecisionBatch(
     });
     rawOutput = res.content || '';
   } catch (err) {
-    console.warn(`[DecisionModel] API call failed for model ${model}, trying high-availability fallback:`, err);
+    logger.warn(`[DecisionModel] API call failed for model ${model}, trying high-availability fallback:`, err);
     if (model !== GEMINI_FLASH_LITE_MODEL) {
       try {
         const fallbackRes = await postOpenRouterAppChat({
@@ -153,7 +154,7 @@ export async function evaluateDecisionBatch(
         });
         rawOutput = fallbackRes.content || '';
       } catch (fallbackErr) {
-        console.warn(`[DecisionModel] Fallback model also failed:`, fallbackErr);
+        logger.warn(`[DecisionModel] Fallback model also failed:`, fallbackErr);
       }
     }
   }

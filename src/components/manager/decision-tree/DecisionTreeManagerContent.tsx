@@ -19,6 +19,7 @@ import {
 } from '@/components/manager/dashboard/dashboard-panel-styles';
 import { runDecisionTreePipeline } from '@/lib/decision-tree/decision-tree-runner';
 import { DEFAULT_DECISION_THRESHOLDS } from '@/lib/decision-tree/decision-tree-defaults';
+import { logger } from "@/lib/logger";
 import type {
   DecisionTreeAuditEntry,
   DecisionTreeState,
@@ -70,7 +71,7 @@ The PureStride Compact features an ultra-quiet 2.5 HP brushless motor that stays
 
       setTerminalState(state.terminalState ?? null);
     } catch (err) {
-      console.error('Decision tree run error:', err);
+      logger.error('Decision tree run error:', err);
     } finally {
       setIsRunning(false);
     }

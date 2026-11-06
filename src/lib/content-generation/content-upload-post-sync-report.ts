@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_IMPLEMENTATION_REPORT_GENERATED, NOTIFY_CONTENT_OPTIMIZED_BUT_IMPLEMENTATION_REP, NOTIFY_POST_UPLOAD_COMPLETED_BUT_MAY_NOT_HAVE_B, notifyOptimizedXs, notifyViewPostX } from "@/lib/notify-messages";
 import { getMuteOptimizationToasts } from "@/hooks/content-optimization/optimization-toast-mute";
@@ -145,27 +146,17 @@ export async function completeContentUploadPostSyncAndReport(args: ContentUpload
     meta: metaChanged ? excerptClean : undefined,
   };
 
-  console.log('[Content Generation] Changes tracked:', {
-    ...changes,
-    comparison: {
-      title: { existing: existingTitle, final: finalTitle, changed: titleChanged },
-      meta: { existing: existingExcerptClean.substring(0, 50), final: excerptClean.substring(0, 50), changed: metaChanged },
-      content: { existingLength: toStringContent(context.existingContent).length, finalLength: markdownContent?.length, changed: contentChanged }
-    }
-  });
 
   // Show success notification with post details
   if (result.success && postId && link) {
     if (!getMuteOptimizationToasts()) {
-      console.log("[Content Generation] Post link:", link, postId, result.status);
       notify.success(
         context.updateMode === "update" ? `Post updated (${postId})` : `Post created (${postId})`,
         { duration: 8000 },
       );
     }
-    console.log(`[Content Generation] ✅ Post ${context.updateMode === 'update' ? 'updated' : 'created'}: ID ${postId}, Link: ${link}, Status: ${result.status}`);
   } else {
-    console.error('[Content Generation] ⚠️ Post upload completed but result indicates failure:', { success: result.success, postId, link, error: result.error });
+    logger.error('[Content Generation] ⚠️ Post upload completed but result indicates failure:', { success: result.success, postId, link, error: result.error });
     if (!getMuteOptimizationToasts()) notify.warning(NOTIFY_POST_UPLOAD_COMPLETED_BUT_MAY_NOT_HAVE_B, { duration: 8000 });
   }
 
@@ -195,7 +186,6 @@ export async function completeContentUploadPostSyncAndReport(args: ContentUpload
 
   // Step 5: Optimize meta fields (meta description is set in final step by uploadToWordPress, not here)
   if (shouldOptimizeMeta && !contentOnlyUpload) {
-    console.log('[Content Generation Upload] ✅ Meta optimization ENABLED - proceeding with meta field optimization');
     await optimizeMetaFields({
       postId,
       markdownContent,
@@ -211,11 +201,7 @@ export async function completeContentUploadPostSyncAndReport(args: ContentUpload
       gscKeywordsContext: context.gscKeywordsContext,
     });
   } else {
-    console.log('[Content Generation Upload] ⚠️ Meta optimization DISABLED - skipping meta field optimization', {
-      optimizeMeta: opts.optimizeMeta,
-      shouldOptimizeMeta,
-      reason: 'User unchecked Meta optimization option'
-    });
+    /* meta optimization not requested, nothing to do */
   }
 
   const uploadTime = Math.floor((Date.now() - uploadStartTime) / 1000);
@@ -283,7 +269,7 @@ export async function completeContentUploadPostSyncAndReport(args: ContentUpload
         originalContentMarkdown = htmlToMarkdown(originalContentMarkdown);
       }
     } catch (error) {
-      console.warn('[Content Generation] Could not convert original content to markdown for report:', error);
+      logger.warn('[Content Generation] Could not convert original content to markdown for report:', error);
     }
 
     const seoResearchForReport =
@@ -326,7 +312,7 @@ export async function completeContentUploadPostSyncAndReport(args: ContentUpload
     setProgress("done", 1, "Implementation report generated successfully!");
     if (!getMuteOptimizationToasts()) notify.success(NOTIFY_IMPLEMENTATION_REPORT_GENERATED, { duration: 3000 });
   } catch (error) {
-    console.error('[Content Generation] Error generating implementation report:', error);
+    logger.error('[Content Generation] Error generating implementation report:', error);
     markImplReportHarness("error");
     // Don't fail the whole process if report generation fails
     if (!getMuteOptimizationToasts()) notify.warning(NOTIFY_CONTENT_OPTIMIZED_BUT_IMPLEMENTATION_REP, { duration: 5000 });

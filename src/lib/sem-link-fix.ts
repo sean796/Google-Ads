@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { loadApiKey } from "@/lib/api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import {
@@ -186,7 +187,7 @@ export async function fixLinksOnPost(
         postTypeEndpoint
       );
     } catch (acfErr) {
-      console.warn("[sem-link-fix] ACF date update failed:", acfErr);
+      logger.warn("[sem-link-fix] ACF date update failed:", acfErr);
     }
 
     return { success: true, changeSummary: "Links fixed; verified." };

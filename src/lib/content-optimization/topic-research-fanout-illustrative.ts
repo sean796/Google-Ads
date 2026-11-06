@@ -16,6 +16,7 @@ import {
   formatResearchAsOfLabel,
 } from "@/lib/content-optimization/topic-research-fanout-queries";
 import { topicResearchFanoutMaxTokens } from "@/lib/content-optimization/topic-research-fanout-shared";
+import { logger } from "@/lib/logger";
 
 const ILLUSTRATIVE_EXTRACT_SCHEMA = {
   type: "object",
@@ -173,7 +174,7 @@ export async function extractIllustrativeExample(input: {
   const companyName = input.companyName.trim();
   const location = input.location.trim();
   if (!keyword || !companyName) {
-    console.warn("[Illustrative extract] missing keyword or company name; skipping persona extract");
+    logger.warn("[Illustrative extract] missing keyword or company name; skipping persona extract");
     return undefined;
   }
   const pageCtx =
@@ -236,12 +237,12 @@ export async function extractIllustrativeExample(input: {
   try {
     parsed = parseModelJson(content, IllustrativeExampleModelSchema, "illustrative example");
   } catch {
-    console.warn("[Illustrative extract] JSON parse failed; continuing without stored persona");
+    logger.warn("[Illustrative extract] JSON parse failed; continuing without stored persona");
     return undefined;
   }
   const normalized = normalizeIllustrativeExample(parsed, input.researchAsOf, input.illustrativeH2Title);
   if (!normalized) {
-    console.warn("[Illustrative extract] invalid persona shape; continuing without stored persona");
+    logger.warn("[Illustrative extract] invalid persona shape; continuing without stored persona");
     return undefined;
   }
   return normalized;

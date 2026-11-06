@@ -42,6 +42,7 @@ import {
   isCompletionTruncatedByTokenLimit,
 } from '@/lib/bulk/bulk-markdown-content-harness-utils';
 import type { createHarnessTokenBudgetTracker } from '@/lib/bulk/harness-section-max-tokens';
+import { logger } from "@/lib/logger";
 
 type PromptBuildersModule = typeof import("../prompt-builders");
 
@@ -144,7 +145,7 @@ export function createBlogHarnessSectionRuntime(args: {
           answerSectionHtml,
         });
       } catch (err) {
-        console.warn("[Harness] Illustrative persona extract failed; continuing article plan:", err);
+        logger.warn("[Harness] Illustrative persona extract failed; continuing article plan:", err);
         persona = undefined;
       }
     }
@@ -180,7 +181,7 @@ export function createBlogHarnessSectionRuntime(args: {
         ].join("\n"),
       ].join("\n\n");
       cachedOverviewPersonaTeaser = "";
-      console.warn("[Harness] Using illustrative planner fallback (no DFS/OpenRouter persona JSON)");
+      logger.warn("[Harness] Using illustrative planner fallback (no DFS/OpenRouter persona JSON)");
     }
   };
 
@@ -218,7 +219,7 @@ export function createBlogHarnessSectionRuntime(args: {
     if (agentHasIllustrativeFeature(agent)) {
       illustrativePersonaBlock = cachedIllustrativePersonaBlock ?? "";
       if (!illustrativePersonaBlock.trim()) {
-        console.warn("[Harness] [ILLUSTRATIVE] section running without persona block; using blueprint only");
+        logger.warn("[Harness] [ILLUSTRATIVE] section running without persona block; using blueprint only");
       }
     }
     const sectionLinkTargetsBlock =
@@ -335,7 +336,7 @@ export function createBlogHarnessSectionRuntime(args: {
       throw new Error(`Harness: section "${sectionLabel}" produced no HTML`);
     }
     if (!harnessSectionPreparedValid(prepared, { isIllustrative })) {
-      console.warn(`[Bulk Harness] Section "${sectionLabel}" did not strictly match illustrative sub-tags; keeping section HTML.`);
+      logger.warn(`[Bulk Harness] Section "${sectionLabel}" did not strictly match illustrative sub-tags; keeping section HTML.`);
     }
     // Publish gate: truncated or incomplete sections fail the row here,
     // before stitching and WordPress upload.

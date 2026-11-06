@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { TooltipProvider } from "@/ui";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -38,13 +39,13 @@ const queryClient = new QueryClient({
 // Global error handler for unhandled promise rejections
 if (typeof window !== 'undefined') {
   window.addEventListener('unhandledrejection', (event) => {
-    console.error('[Unhandled Promise Rejection]', event.reason);
+    logger.error('[Unhandled Promise Rejection]', event.reason);
     // Prevent default browser error handling
     event.preventDefault();
   });
 
   window.addEventListener('error', (event) => {
-    console.error('[Global Error]', event.error);
+    logger.error('[Global Error]', event.error);
   });
 }
 

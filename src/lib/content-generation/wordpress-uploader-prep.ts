@@ -2,6 +2,7 @@
  * Upload preparation helpers for the WordPress uploader.
  */
 
+import { logger } from "@/lib/logger";
 import type {
   ResolvedTargetLike,
   WpExistingPostLike,
@@ -165,7 +166,7 @@ export async function stampWordPressDateModifierAcf(
       postTypeEndpoint,
     );
     if (acfResult.success) return;
-    console.warn(
+    logger.warn(
       "[WordPress Uploader] date_modifier ACF stamp failed:",
       acfResult.error || acfResult.failed,
     );
@@ -179,7 +180,7 @@ export async function stampWordPressDateModifierAcf(
       dateFields,
     );
   } catch (err) {
-    console.warn("[WordPress Uploader] date_modifier stamp error:", err);
+    logger.warn("[WordPress Uploader] date_modifier stamp error:", err);
   }
 }
 
@@ -228,23 +229,8 @@ export function prepareWordPressUploadContent(args: {
   const excerptForRest =
     plainTextExcerpt?.trim() ? plainTextExcerpt.trim() : preservedExcerpt;
 
-  console.log('[WordPress Uploader] Excerpt being uploaded:', {
-    hasExcerpt: !!excerpt,
-    excerptLength: excerpt?.length || 0,
-    plainTextLength: plainTextExcerpt?.length || 0,
-    excerptPreview: excerptForRest?.substring(0, 100) || 'N/A',
-    hadHTML: excerpt !== plainTextExcerpt,
-    usingGeneratedMeta: !!plainTextExcerpt?.trim(),
-  });
   
   // DEBUG: Log faqQuestions to trace if they're being passed
-  console.log('[WordPress Uploader] FAQ Questions received:', {
-    hasFaqQuestions: !!faqQuestions,
-    faqQuestionsLength: faqQuestions?.length || 0,
-    faqQuestionsPreview: faqQuestions?.slice(0, 2) || [],
-    entity,
-    primaryKeyword
-  });
 
   // Use validated posts from context (already AI-filtered and HTTP-200 validated once per run in continue-optimization). Do NOT re-validate here to avoid "Validating 96 links" on every post.
   const postsForSanitizer = context.wordPressPosts ?? [];
@@ -255,16 +241,6 @@ export function prepareWordPressUploadContent(args: {
   
   // Validate content and log warnings (but don't block upload)
   const validation = validateContentForUpload(sanitizedHtmlContent);
-  if (validation.warnings.length > 0) {
-    console.warn('[WordPress Uploader] Content validation warnings:', validation.warnings);
-  }
-  
-  console.log('[WordPress Uploader] Content sanitization applied:', {
-    originalLength: htmlContent.length,
-    sanitizedLength: sanitizedHtmlContent.length,
-    bytesRemoved: htmlContent.length - sanitizedHtmlContent.length,
-    validationWarnings: validation.warnings.length
-  });
 
 // AGENTIC LOGIC: Use endpoint from RESOLVED post first (it tells us where the post actually exists)
   // Convert resolved.subtype to REST endpoint: 'post' -> 'posts', 'page' -> 'pages', others stay as-is
@@ -297,23 +273,6 @@ export function prepareWordPressUploadContent(args: {
   // Always use optimized content for update – overwrite existing. Never preserve old content for pages.
   const contentForUpdate = sanitizedHtmlContent;
   
-  console.log('[WordPress Uploader] Entity endpoint extracted (AGENTIC):', {
-    entitySitemapUrl: context.site.entitySitemapUrl,
-    resolvedSubtype: context.resolved?.subtype,
-    resolvedEndpoint,
-    extractedEndpoint: entityEndpoint,
-    fallbackFromExistingPost: context.existingPost?.postTypeEndpoint,
-    priority:
-      context.updateMode === 'update' && context.existingPost?.postTypeEndpoint
-        ? 'existingPost(updateFirst)'
-        : resolvedEndpoint
-          ? 'resolved'
-          : context.existingPost?.postTypeEndpoint
-            ? 'existingPost'
-            : entityEndpointFromSitemap
-              ? 'sitemap'
-              : 'default',
-  });
   return { plainTextExcerpt, excerptForRest, sanitizedHtmlContent, contentForUpdate, entityEndpoint, isPage };
 }
 
@@ -337,16 +296,14 @@ export async function resolveWordPressDraftSlug(args: {
           slug = pathSegments[pathSegments.length - 1];
           // Remove any file extensions
           slug = slug.replace(/\.(html?|php)$/i, '');
-          console.log(`[Optimize Content] Extracted slug from URL: "${slug}" (from: ${context.url})`);
         }
       } catch (error) {
-        console.warn(`[Optimize Content] Failed to parse URL for slug extraction: ${context.url}`, error);
+        logger.warn(`[Optimize Content] Failed to parse URL for slug extraction: ${context.url}`, error);
         // If URL parsing fails, try manual extraction
         const parts = context.url.replace(/\/$/, '').split('/');
         const lastPart = parts[parts.length - 1]?.replace(/\.(html?|php)$/i, '');
         if (lastPart && !lastPart.includes('http')) {
           slug = lastPart;
-          console.log(`[Optimize Content] Manually extracted slug: "${slug}"`);
         }
       }
     }
@@ -354,10 +311,8 @@ export async function resolveWordPressDraftSlug(args: {
     // If we couldn't extract a valid slug from URL, use the resolved slug or existing post slug
     if (!slug && context.resolved?.slug) {
       slug = context.resolved.slug;
-      console.log(`[Optimize Content] Using resolved slug: "${slug}"`);
     } else if (!slug && context.existingPost?.slug) {
       slug = context.existingPost.slug;
-      console.log(`[Optimize Content] Using existing post slug: "${slug}"`);
     }
 
     // For NEW posts only: use short SEO slug when no slug yet or slug is title-like (very long).
@@ -367,10 +322,9 @@ export async function resolveWordPressDraftSlug(args: {
         const seoSlug = await generateSEOSlug(draftTitle, primaryKeyword, entity, apiKey || loadApiKey());
         if (seoSlug && seoSlug.length >= 2) {
           slug = seoSlug;
-          console.log(`[Optimize Content] Using SEO slug for new post: "${slug}"`);
         }
       } catch (err) {
-        console.warn('[Optimize Content] SEO slug generation failed, using existing slug or title-derived:', err);
+        logger.warn('[Optimize Content] SEO slug generation failed, using existing slug or title-derived:', err);
       }
     }
   return slug;
@@ -403,7 +357,7 @@ export async function resolveWordPressDraftAuthor(args: {
         });
         if (resolved != null) authorId = resolved;
       } catch (err) {
-        console.warn('[WordPress Uploader] Author resolver failed, creating without explicit author:', err);
+        logger.warn('[WordPress Uploader] Author resolver failed, creating without explicit author:', err);
       }
     }
   return authorId;

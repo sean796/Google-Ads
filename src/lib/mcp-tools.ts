@@ -4,6 +4,7 @@
  * MCP tools are called through a backend API endpoint that interfaces with the MCP server
  */
 
+import { logger } from "@/lib/logger";
 import { BACKEND_CONNECTION_ERROR, resolveBackendApiBase } from "@/lib/wordpress-api/connection";
 import { NEO_PULSE_CA_DEPLOY } from "@/lib/neo-pulse-deploy";
 import { isViteDev, readViteEnv } from "@/lib/vite-env";
@@ -134,7 +135,7 @@ async function callMCPToolOnce(toolName: string, params: unknown): Promise<unkno
 
     const errorMessage = errorData?.error || errorData?.message || errorText;
     if (toolName === "DataForSEO_llm_responses_live") {
-      console.warn(`[MCP] DataForSEO_llm_responses_live HTTP ${response.status}; continuing with non-blocking skip`);
+      logger.warn(`[MCP] DataForSEO_llm_responses_live HTTP ${response.status}; continuing with non-blocking skip`);
       return { skipped: true, reason: "dfs_llm_unavailable", tasks: [] };
     }
 
@@ -192,7 +193,7 @@ async function callMCPTool(toolName: string, params: unknown): Promise<unknown> 
       const status = (err as Error & { status?: number }).status;
       if (attempt < MAX_MCP_ATTEMPTS && isTransientMcpError(err.message, status)) {
         const delayMs = mcpRetryDelayMs(err.message, attempt);
-        console.warn(
+        logger.warn(
           `[MCP] ${toolName} attempt ${attempt}/${MAX_MCP_ATTEMPTS} failed (${err.message}); retrying in ${delayMs}ms`,
         );
         await new Promise((resolve) => setTimeout(resolve, delayMs));

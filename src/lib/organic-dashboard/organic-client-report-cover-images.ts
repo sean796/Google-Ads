@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { fetchImageDataUrlViaApi } from "@/lib/proxy-fetch-text";
 import type { OrganicClientReportContent } from "@/lib/organic-dashboard/organic-client-report-content";
 
@@ -28,7 +29,7 @@ async function toDataUrlIfRemote(url: string): Promise<string> {
     }
     return trimmed;
   } catch (err) {
-    console.warn("Could not pre-fetch logo data URL for PDF capture, using original URL:", err);
+    logger.warn("Could not pre-fetch logo data URL for PDF capture, using original URL:", err);
     return trimmed;
   }
 }

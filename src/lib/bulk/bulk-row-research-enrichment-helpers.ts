@@ -40,10 +40,6 @@ export function mergePaaQuestionsIntoAiAnalysis(paaRawResponse: unknown, aiAnaly
           snippet: item.snippet || ''
         }))
         .filter((paa) => paa.question);
-      console.log('[Bulk Auto-Generate] Merged PAA questions into aiAnalysis:', {
-        paaItemsCount: paaItems.length,
-        aiAnalysisPAACount: aiAnalysis.peopleAlsoAsk.length
-      });
     }
   }
 }

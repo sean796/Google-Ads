@@ -2,6 +2,7 @@
  * ACF writing helpers for the WordPress uploader.
  */
 
+import { logger } from "@/lib/logger";
 import { uploadWordPressMedia, updateWordPressPostMeta } from "@/lib/wordpress-api";
 import { updateACFFields } from "@/lib/wordpress-acf-origin";
 import { extraTextToUploadHtml } from "@/lib/content-generation/extra-text-heading-contract";
@@ -132,12 +133,12 @@ export async function writeWordPressAcfForUpdatedPost(args: {
               postTypeEndpoint
             );
             if (acfExtraOnly.success) {
-              console.log("[WordPress Uploader] ACF extra text only updated:", acfExtraOnly.updated.join(", "));
+              /* extra text written, nothing else to do */
             } else {
-              console.warn("[WordPress Uploader] ACF extra text only update failed:", acfExtraOnly.error || acfExtraOnly.failed);
+              logger.warn("[WordPress Uploader] ACF extra text only update failed:", acfExtraOnly.error || acfExtraOnly.failed);
             }
           } else {
-            console.warn("[WordPress Uploader] seoExtraTextFieldOnly: empty extraTextContent, skipping ACF write.");
+            logger.warn("[WordPress Uploader] seoExtraTextFieldOnly: empty extraTextContent, skipping ACF write.");
           }
         } else {
         const todayDate = new Date().toISOString().split('T')[0];
@@ -217,7 +218,6 @@ export async function writeWordPressAcfForUpdatedPost(args: {
             acfObj[key] = faqSchema;
           }
         }
-        console.log('[WordPress Uploader] Force-overwritten critical ACF fields (date, keyword_focus, faq)');
 
         setProgress({ step: 'Updating ACF fields...', progress: 95, message: 'Writing to WordPress...' });
         const acfUpdateResult = await updateACFFields(
@@ -230,9 +230,9 @@ export async function writeWordPressAcfForUpdatedPost(args: {
           postTypeEndpoint
         );
         if (acfUpdateResult.success) {
-          console.log('[WordPress Uploader] ACF fields updated:', acfUpdateResult.updated.join(', '));
+          /* ACF updated, nothing else to do */
         } else {
-          console.warn('[WordPress Uploader] ACF update failed:', acfUpdateResult.error || acfUpdateResult.failed);
+          logger.warn('[WordPress Uploader] ACF update failed:', acfUpdateResult.error || acfUpdateResult.failed);
         }
 
         // Fallback: update critical fields via post meta so they persist even if ACF POST fails
@@ -250,7 +250,7 @@ export async function writeWordPressAcfForUpdatedPost(args: {
         }
         }
       } catch (acfError) {
-        console.warn(`[WordPress Uploader] Error updating ACF fields:`, acfError);
+        logger.warn(`[WordPress Uploader] Error updating ACF fields:`, acfError);
         // Don't fail the entire operation if ACF update fails
       }
 }
@@ -325,12 +325,12 @@ export async function writeWordPressAcfForDraftPost(args: {
               postTypeEndpoint
             );
             if (acfExtraOnly.success) {
-              console.log("[WordPress Uploader] DRAFT: ACF extra text only updated:", acfExtraOnly.updated.join(", "));
+              /* extra text written, nothing else to do */
             } else {
-              console.warn("[WordPress Uploader] DRAFT: ACF extra text only failed:", acfExtraOnly.error || acfExtraOnly.failed);
+              logger.warn("[WordPress Uploader] DRAFT: ACF extra text only failed:", acfExtraOnly.error || acfExtraOnly.failed);
             }
           } else {
-            console.warn("[WordPress Uploader] DRAFT seoExtraTextFieldOnly: empty extraTextContent, skipping ACF write.");
+            logger.warn("[WordPress Uploader] DRAFT seoExtraTextFieldOnly: empty extraTextContent, skipping ACF write.");
           }
         } else {
         const todayDate = new Date().toISOString().split('T')[0];
@@ -404,7 +404,6 @@ export async function writeWordPressAcfForDraftPost(args: {
             acfDraftObj[key] = faqSchemaDraft;
           }
         }
-        console.log('[WordPress Uploader] DRAFT: Force-overwritten critical ACF fields (date, keyword_focus, faq)');
 
         setProgress({ step: 'Updating ACF fields...', progress: 95, message: 'Writing to WordPress...' });
         const acfUpdateResult = await updateACFFields(
@@ -417,9 +416,9 @@ export async function writeWordPressAcfForDraftPost(args: {
           postTypeEndpoint
         );
         if (acfUpdateResult.success) {
-          console.log('[WordPress Uploader] DRAFT: ACF fields updated:', acfUpdateResult.updated.join(', '));
+          /* ACF updated, nothing else to do */
         } else {
-          console.warn('[WordPress Uploader] DRAFT: ACF update failed:', acfUpdateResult.error || acfUpdateResult.failed);
+          logger.warn('[WordPress Uploader] DRAFT: ACF update failed:', acfUpdateResult.error || acfUpdateResult.failed);
         }
 
         // Fallback: update critical fields via post meta so they persist even if ACF POST fails
@@ -439,7 +438,7 @@ export async function writeWordPressAcfForDraftPost(args: {
         }
         }
       } catch (acfError) {
-        console.warn(`[WordPress Uploader] DRAFT: Error updating ACF fields:`, acfError);
+        logger.warn(`[WordPress Uploader] DRAFT: Error updating ACF fields:`, acfError);
         // Don't fail the entire operation if ACF update fails
       }
 }

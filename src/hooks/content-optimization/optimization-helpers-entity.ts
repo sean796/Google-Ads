@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { type WordPressSite } from "@/components/integrations/types";
 import {
   extractGeographicEntityWithAI,
@@ -40,7 +41,7 @@ export async function extractEntityFromTitle(
     const origin = await extractGeographicEntityWithAI({ title }, apiKey, buildSiteContext(site));
     return origin && origin.trim() ? origin.trim() : "N/A";
   } catch (error) {
-    console.warn("[Entity Extraction] Error extracting from title:", error);
+    logger.warn("[Entity Extraction] Error extracting from title:", error);
     return "N/A";
   }
 }
@@ -55,7 +56,7 @@ export async function extractEntityFromUrl(
     const origin = await extractGeographicEntityWithAI({ url, title }, undefined, buildSiteContext(site));
     return origin && origin.trim() ? origin.trim() : "N/A";
   } catch (error) {
-    console.warn("[Entity Extraction] Error extracting from URL:", error);
+    logger.warn("[Entity Extraction] Error extracting from URL:", error);
     return "N/A";
   }
 }
@@ -78,7 +79,7 @@ export async function determineEntity(
     const origin = await extractGeographicEntityWithAI({ title, url }, apiKey, buildSiteContext(site));
     extractedEntity = origin && origin.trim() ? origin.trim() : "N/A";
   } catch (error) {
-    console.warn("[Entity Extraction] Error during extraction:", error);
+    logger.warn("[Entity Extraction] Error during extraction:", error);
     extractedEntity = "N/A";
   }
 

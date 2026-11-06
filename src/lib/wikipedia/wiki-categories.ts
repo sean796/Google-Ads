@@ -1,5 +1,6 @@
 import type { GetPagesInCategoryOptions } from "./types";
 import { getMediaWikiApiUrlWithQuery } from "./mediawiki-api-url";
+import { logger } from "@/lib/logger";
 
 /**
  * Wikipedia category discovery is AI-only (entity layer). No pattern matching, no search, no logs.
@@ -53,7 +54,7 @@ export async function searchWikipediaCategories(
           if (title.startsWith("Category:")) titles.push(title);
         }
       } catch (e) {
-        console.warn(`[Wikipedia API] Category search failed for "${srsearch}":`, e);
+        logger.warn(`[Wikipedia API] Category search failed for "${srsearch}":`, e);
       }
       return titles;
     })
@@ -122,7 +123,7 @@ export async function getPagesInCategory(
       if (allTitles.length >= limit) break;
       cmcontinue = data.continue?.cmcontinue;
     } catch (error) {
-      console.warn(`[Wikipedia API] Error getting pages in category "${categoryTitle}":`, error);
+      logger.warn(`[Wikipedia API] Error getting pages in category "${categoryTitle}":`, error);
       break;
     }
   } while (cmcontinue);
@@ -166,7 +167,7 @@ export async function getSubcategoriesInCategory(
       .map((m: { title: string }) => m.title as string)
       .slice(0, limit);
   } catch (error) {
-    console.warn(`[Wikipedia API] Error getting subcategories of "${categoryTitle}":`, error);
+    logger.warn(`[Wikipedia API] Error getting subcategories of "${categoryTitle}":`, error);
     return [];
   }
 }
@@ -181,12 +182,10 @@ export async function getPagesInCategoryDeep(
   const { limit = 500, pageOnly = true, subcategoryDepth = 1 } = options;
 
   const directPages = await getPagesInCategory(categoryTitle, { limit, pageOnly });
-  console.log(`[Wikipedia API] Deep fetch: ${directPages.length} direct pages from ${categoryTitle}`);
 
   if (subcategoryDepth <= 0) return directPages;
 
   const subcats = await getSubcategoriesInCategory(categoryTitle);
-  console.log(`[Wikipedia API] Deep fetch: ${subcats.length} subcategories in ${categoryTitle}`);
 
   const allPages = new Set(directPages);
   for (const subcat of subcats) {
@@ -195,7 +194,6 @@ export async function getPagesInCategoryDeep(
       limit: limit - allPages.size,
       pageOnly,
     });
-    console.log(`[Wikipedia API] Deep fetch: ${subPages.length} pages from subcategory ${subcat}`);
     for (const p of subPages) allPages.add(p);
   }
 

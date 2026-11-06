@@ -243,10 +243,6 @@ export async function generateMarkdownContentHarnessed(
     onUsage: options.onHarnessTokenUsage,
   });
   const logTokenBudgetSummary = () => {
-    const s = tokenBudgetTracker.summary();
-    console.info(
-      `[Bulk Harness] Token usage for row ${harnessRowIndex}: estimated ~${s.estimatedTokens}, actual ~${s.actualTokens} (prompt ~${s.promptTokens} + completion ~${s.completionTokens}) of budget ${s.totalBudget}`,
-    );
   };
 
   const harnessPrimaryKeyword =

@@ -5,6 +5,7 @@
  */
 
 import { backendApiUrl } from './connection';
+import { logger } from "@/lib/logger";
 import { streamChatCompletion } from '@/lib/api';
 import { getResearchModel } from '@/lib/optimization-settings-storage';
 import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
@@ -97,7 +98,7 @@ export async function getAuthorUsage(
       cache.set(cacheKey, { authors, timestamp: Date.now(), totalPostsScanned });
       return { authors, totalPostsScanned };
     } catch (error) {
-      console.warn('[Author Resolver] getAuthorUsage failed:', error);
+      logger.warn('[Author Resolver] getAuthorUsage failed:', error);
       return {
         authors: [],
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -225,13 +226,13 @@ Return the single author ID number most likely to be the right author for new co
         return { id: chosen.id, name: chosen.name || `User ${chosen.id}` };
       }
     } catch (llmErr) {
-      console.warn('[Author Resolver] LLM selection failed, using top by post count:', llmErr);
+      logger.warn('[Author Resolver] LLM selection failed, using top by post count:', llmErr);
     }
 
     const fallback = candidates[0];
     return { id: fallback.id, name: fallback.name || `User ${fallback.id}` };
   } catch (error) {
-    console.warn('[Author Resolver] resolveRecommendedAuthorWithDetails failed:', error);
+    logger.warn('[Author Resolver] resolveRecommendedAuthorWithDetails failed:', error);
     return undefined;
   }
 }

@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { buildMergedLinkPoolRows, buildWordPressPagesForLinkingFromInventory } from "@/lib/content-generation/extra-text-inventory-links";
 import { seedSiteCacheFromLinkablePosts } from "@/lib/wordpress-site-cache";
 import type { WordPressSite } from "@/components/integrations/types";
@@ -185,7 +186,7 @@ export async function runBulkInventoryPrep(args: BulkInventoryPrepArgs) {
 
     if (siteHasNeoPulseWp(site)) {
       void getSiteMirrorIndex(site).catch((e) => {
-        console.warn("[Bulk Optimization] NEO Pulse WP site index prefetch failed:", e);
+        logger.warn("[Bulk Optimization] NEO Pulse WP site index prefetch failed:", e);
       });
     }
     }

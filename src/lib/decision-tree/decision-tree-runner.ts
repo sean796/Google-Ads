@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { postOpenRouterAppChat, type OpenRouterAppMessage } from '@/lib/openrouter-app-api';
 import { getBlogModel } from '@/lib/optimization-settings-storage';
 import { resolveOpenRouterApiKeyForHarness } from '@/lib/openrouter-api-key-resolve';
@@ -106,7 +107,7 @@ ${args.draftText || '[EMPTY - WRITE INITIAL DRAFT]'}`;
     });
     return res.content?.trim() || args.draftText;
   } catch (err) {
-    console.error(`[GeminiAction] Execution error for action ${args.action}:`, err);
+    logger.error(`[GeminiAction] Execution error for action ${args.action}:`, err);
     return args.draftText;
   }
 }

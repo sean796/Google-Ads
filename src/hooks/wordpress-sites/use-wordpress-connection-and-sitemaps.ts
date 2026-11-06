@@ -1,4 +1,5 @@
 import { useCallback, type Dispatch, type SetStateAction } from "react";
+import { logger } from "@/lib/logger";
 import { notify } from "@/lib/app-notifications";
 import { notifyConnectionFailedX, notifyConnectionSuccessfulX, notifyDetectedXEndpointSX, notifyEntitySitemapAutoDetectedX, notifySitemapDetectedX } from "@/lib/notify-messages";
 import { clearSiteMirrorIndexCache } from "@/lib/wordpress-api/fields-client";
@@ -100,7 +101,7 @@ export function useWordPressConnectionAndSitemaps({ setSites, setIsTesting, setI
           // NEVER save wp-sitemap.xml - convert to sitemap_index.xml if detected
           let sitemapUrl = result.sitemapUrl!;
           if (sitemapUrl.includes('/wp-sitemap.xml')) {
-            console.warn('[WordPress] Rejecting wp-sitemap.xml, converting to sitemap_index.xml');
+            logger.warn('[WordPress] Rejecting wp-sitemap.xml, converting to sitemap_index.xml');
             sitemapUrl = sitemapUrl.replace('/wp-sitemap.xml', '/sitemap_index.xml');
           }
 
@@ -114,10 +115,9 @@ export function useWordPressConnectionAndSitemaps({ setSites, setIsTesting, setI
                 const endpoint = sitemapFilename.replace(/[-_]sitemap\.xml$/i, '');
                 if (endpoint && endpoint.length > 0) {
                   sitemapEndpoints[childSitemapUrl] = endpoint;
-                  console.log(`[WordPress] Detected endpoint for ${childSitemapUrl}: ${endpoint}`);
                 }
               } catch (error) {
-                console.warn(`[WordPress] Failed to extract endpoint from ${childSitemapUrl}:`, error);
+                logger.warn(`[WordPress] Failed to extract endpoint from ${childSitemapUrl}:`, error);
               }
             }
           }
@@ -158,7 +158,6 @@ export function useWordPressConnectionAndSitemaps({ setSites, setIsTesting, setI
           const endpointCount = Object.keys(sitemapEndpoints).length;
           if (endpointCount > 0) {
             const endpointsList = Object.values(sitemapEndpoints).join(', ');
-            console.log(`[WordPress] Detected ${endpointCount} endpoints: ${endpointsList}`);
             notify.info(notifyDetectedXEndpointSX(endpointCount, endpointsList));
           }
           
@@ -167,7 +166,6 @@ export function useWordPressConnectionAndSitemaps({ setSites, setIsTesting, setI
           let detectedEntitySitemapUrl: string | undefined;
           let detectedCompetitorEntitySitemapUrl: string | undefined;
           try {
-            console.log('[WordPress] Auto-detecting entity sitemap...');
             const detectedEntitySitemap = await detectEntitySitemap(updatedSite);
             if (detectedEntitySitemap) {
               detectedEntitySitemapUrl = detectedEntitySitemap;
@@ -186,11 +184,10 @@ export function useWordPressConnectionAndSitemaps({ setSites, setIsTesting, setI
                 saveSites(sitesWithEntity);
                 return sitesWithEntity;
               });
-              console.log(`[WordPress] Auto-detected entity sitemap: ${detectedEntitySitemap}`);
               notify.success(notifyEntitySitemapAutoDetectedX(detectedEntitySitemap.split('/').pop()));
             }
           } catch (error) {
-            console.warn('[WordPress] Error auto-detecting entity sitemap:', error);
+            logger.warn('[WordPress] Error auto-detecting entity sitemap:', error);
             // Don't fail the whole process if entity detection fails
           }
 
@@ -221,10 +218,9 @@ export function useWordPressConnectionAndSitemaps({ setSites, setIsTesting, setI
                 saveSites(next);
                 return next;
               });
-              console.log(`[WordPress] Auto-detected competitor sitemap: ${detectedCompetitor}`);
             }
           } catch (error) {
-            console.warn('[WordPress] Error auto-detecting competitor sitemap:', error);
+            logger.warn('[WordPress] Error auto-detecting competitor sitemap:', error);
           }
 
           const siteForSilentNap: WordPressSite = {
@@ -234,11 +230,6 @@ export function useWordPressConnectionAndSitemaps({ setSites, setIsTesting, setI
             competitorEntitySitemapUrl:
               detectedCompetitorEntitySitemapUrl ?? site.competitorEntitySitemapUrl,
           };
-          console.log('[NAP] Running silent NAP after sitemap detection', {
-            siteId: site.id,
-            hasMainSitemap: Boolean(siteForSilentNap.sitemaps?.mainSitemapUrl),
-            entitySitemapUrl: siteForSilentNap.entitySitemapUrl,
-          });
           void extractNAPAndSaveToSiteSilent(siteForSilentNap);
           
           // Auto-fetch scheduled posts after sitemap detection
@@ -256,7 +247,6 @@ export function useWordPressConnectionAndSitemaps({ setSites, setIsTesting, setI
               currentYear
             );
 
-            console.log('[WordPress] Scheduled posts result:', scheduledResult);
 
             if (!scheduledResult.error) {
               // Use functional update to ensure we have the latest state
@@ -280,9 +270,8 @@ export function useWordPressConnectionAndSitemaps({ setSites, setIsTesting, setI
               });
               
               if (scheduledResult.debug) {
-                console.log('[WordPress] Debug info:', scheduledResult.debug);
                 if (scheduledResult.debug.totalScheduledPosts > 0 && scheduledResult.count === 0) {
-                  console.warn(`[WordPress] Found ${scheduledResult.debug.totalScheduledPosts} scheduled posts total, but 0 for current month ${currentMonth + 1}/${currentYear}`);
+                  logger.warn(`[WordPress] Found ${scheduledResult.debug.totalScheduledPosts} scheduled posts total, but 0 for current month ${currentMonth + 1}/${currentYear}`);
                 }
               }
             } else {
@@ -308,7 +297,7 @@ export function useWordPressConnectionAndSitemaps({ setSites, setIsTesting, setI
             }
           } catch (scheduledError) {
             // Update with 0 count on error so UI shows we attempted to fetch
-            console.error('[WordPress] Error fetching scheduled posts:', scheduledError);
+            logger.error('[WordPress] Error fetching scheduled posts:', scheduledError);
             setSites(prevSites => {
               const now = new Date();
               const updatedWithScheduled = prevSites.map(s => {

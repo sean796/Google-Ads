@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, type Dispatch, type SetStateAction } from "react";
+import { logger } from "@/lib/logger";
 import { flushAllAgentRunCheckpointPatches } from "@/lib/agent-runs/agent-run-checkpoint";
 import { agentRunIsServerExecution } from "@/lib/agent-runs/agent-run-display";
 import {
@@ -80,7 +81,7 @@ export function useAgentRunsLifecycle({
             patchRunInList(run.id, latest);
           })
           .catch((err) => {
-            console.error("[Agent runs] Server run advance failed:", err);
+            logger.error("[Agent runs] Server run advance failed:", err);
           })
           .finally(() => {
             serverProcessInFlight.current.delete(run.id);

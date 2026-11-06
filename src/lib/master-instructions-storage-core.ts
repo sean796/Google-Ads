@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import {
   PROFILE_BRAND_NAMING_FILENAME,
   profileMasterRuleSourcesForSite,
@@ -227,7 +228,7 @@ export async function setMasterInstructions(siteId: string, data: MasterInstruct
     memoryBySite.delete(siteId);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error("[MasterInstructions] Failed to save:", e);
+    logger.error("[MasterInstructions] Failed to save:", e);
     throw new Error(msg || "Failed to save master instructions");
   }
 }

@@ -3,6 +3,7 @@
  * Fetches WordPress site context and GSC data for agentic report planning
  */
 
+import { logger } from "@/lib/logger";
 import type { WordPressSite, GSCPerformanceStats, GA4ReportData, GMBReportData } from "@/components/integrations/types";
 import type { EntityPagesData, HistoricalData } from "./gsc-report-generator";
 import { parseSitemap, getPublishedPosts, getPublishedPages } from "./wordpress-api";
@@ -270,7 +271,7 @@ async function fetchWordPressContext(
       ].filter(Boolean);
       sampleTitles.push(...allTitles);
     } catch (error) {
-      console.warn("[Report Discovery] WordPress fetch failed:", error);
+      logger.warn("[Report Discovery] WordPress fetch failed:", error);
     }
   }
 

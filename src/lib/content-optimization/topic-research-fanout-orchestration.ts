@@ -39,6 +39,7 @@ import {
   runFactualVerificationPass,
   serpRowFromDump,
 } from "@/lib/content-optimization/topic-research-fanout-verification";
+import { logger } from "@/lib/logger";
 
 const TopicResearchPlanModelSchema = z.object({
   researchQueries: z.array(z.string()).nullish(),
@@ -256,7 +257,7 @@ export async function runTopicResearchFanout(input: {
       swotText: input.swotText,
       pageExcerpt: input.pageExcerpt,
     }).catch((err) => {
-      console.warn("[Topic Research Fan-out] Planning topic questions failed (non-fatal):", err);
+      logger.warn("[Topic Research Fan-out] Planning topic questions failed (non-fatal):", err);
       return null;
     });
     if (plan) {
@@ -370,7 +371,7 @@ export async function runTopicResearchFanout(input: {
         };
       }
     } catch (e) {
-      console.warn("[Topic Research Fan-out] Factual verification failed (non-fatal):", e);
+      logger.warn("[Topic Research Fan-out] Factual verification failed (non-fatal):", e);
     }
   }
 

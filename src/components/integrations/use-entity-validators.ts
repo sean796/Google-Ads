@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 
 import { extractStructuredDataFromWikipedia } from "@/lib/wikipedia-api";
+import { logger } from "@/lib/logger";
 
 export function useEntityValidators() {
 
@@ -27,7 +28,7 @@ const validateEntityByCriteria = useCallback(async (
       rankingValue: typeof result.rankingValue === "number" ? result.rankingValue : undefined
     };
   } catch (error) {
-    console.warn(`[Entity Generation] Error validating entity "${entity}" by criteria:`, error);
+    logger.warn(`[Entity Generation] Error validating entity "${entity}" by criteria:`, error);
     return {
       matches: false,
       confidence: 0,
@@ -100,7 +101,6 @@ const isValidEntity = useCallback((entity: string): boolean => {
   // Check if entity is an allowed competitor
   for (const allowed of allowedCompetitors) {
     if (entityLower === allowed || entityLower.includes(allowed)) {
-      console.log(`[Entity Validation] ✓ Entity "${entity}" is an allowed competitor - ACCEPTED`);
       return true;
     }
   }
@@ -109,7 +109,6 @@ const isValidEntity = useCallback((entity: string): boolean => {
   // Check for 4-digit years (1900-2099)
   const yearPattern = /^(19|20)\d{2}$/;
   if (yearPattern.test(entityLower)) {
-    console.log(`[Entity Validation] ✗ Entity "${entity}" is a year - REJECTED`);
     return false;
   }
   
@@ -126,7 +125,6 @@ const isValidEntity = useCallback((entity: string): boolean => {
   
   for (const pattern of datePatterns) {
     if (pattern.test(entityLower)) {
-      console.log(`[Entity Validation] ✗ Entity "${entity}" is a date - REJECTED`);
       return false;
     }
   }
@@ -139,7 +137,6 @@ const isValidEntity = useCallback((entity: string): boolean => {
     const dateKeywords = ['year', 'date', 'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december', 'jan', 'feb', 'mar', 'apr', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
     const hasDateKeyword = dateKeywords.some(keyword => entityLower.includes(keyword));
     if (hasDateKeyword || /^\d{4}/.test(entityLower) || /\d{4}$/.test(entityLower)) {
-      console.log(`[Entity Validation] ✗ Entity "${entity}" contains a year/date - REJECTED`);
       return false;
     }
   }
@@ -162,7 +159,6 @@ const isValidEntity = useCallback((entity: string): boolean => {
   
   for (const pattern of rejectedPatterns) {
     if (pattern.test(entityLower)) {
-      console.log(`[Entity Validation] ✗ Entity "${entity}" matches rejected pattern - REJECTED`);
       return false;
     }
   }
@@ -192,7 +188,6 @@ const isValidEntity = useCallback((entity: string): boolean => {
   
   for (const pattern of personalEntityPatterns) {
     if (pattern.test(entityLower)) {
-      console.log(`[Entity Validation] ✗ Entity "${entity}" is a personal entity - REJECTED`);
       return false;
     }
   }
@@ -224,7 +219,6 @@ const isValidEntity = useCallback((entity: string): boolean => {
     });
     
     if (matchesGenericTerm) {
-      console.log(`[Entity Validation] ✗ Entity "${entity}" is a personal/business generic entity - REJECTED`);
       return false;
     }
     
@@ -236,7 +230,6 @@ const isValidEntity = useCallback((entity: string): boolean => {
                               /\b(street|st|avenue|ave|road|rd|drive|dr|boulevard|blvd|lane|ln|way|court|ct|place|pl)\b/i.test(entity); // Street types
     
     if (!looksLikeLocation) {
-      console.log(`[Entity Validation] ✗ Entity "${entity}" starts with personal possessive prefix but doesn't look like a geographic location - REJECTED`);
       return false;
     }
   }
@@ -279,7 +272,6 @@ const isValidEntity = useCallback((entity: string): boolean => {
   // Check if entity exactly matches or starts with a generic phrase
   for (const phrase of genericPhrases) {
     if (entityLower === phrase || entityLower.startsWith(phrase + ' ')) {
-      console.log(`[Entity Validation] ✗ Entity "${entity}" is a generic phrase - REJECTED`);
       return false;
     }
   }

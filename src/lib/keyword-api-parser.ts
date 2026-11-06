@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 export interface KeywordInfo {
   keyword?: string;
   search_volume?: number;
@@ -44,19 +45,12 @@ export function parseRawApiData(rawApiData: unknown): Array<{ keyword: string; i
     // Handle both old format (direct) and new format (nested)
   const apiData = raw.keywordOverview || raw;
   
-  console.log('[KeywordApiParser] Displaying data - apiData structure:', {
-    hasTasks: !!apiData?.tasks,
-    tasksLength: apiData?.tasks?.length,
-    tasksType: Array.isArray(apiData?.tasks),
-    apiDataKeys: apiData ? Object.keys(apiData) : []
-  });
   
   const task = apiData?.tasks?.[0];
   const results: Array<{ keyword: string; info: KeywordInfo }> = [];
 
   // Extract keyword data from result - check if task exists and has result
   if (task && Array.isArray(task.result)) {
-    console.log('[KeywordApiParser] Processing task.result, length:', task.result.length);
     task.result.forEach((resultItem) => {
       // Check if we have items array with keyword data
       if (resultItem.items && Array.isArray(resultItem.items) && resultItem.items.length > 0) {
@@ -78,14 +72,13 @@ export function parseRawApiData(rawApiData: unknown): Array<{ keyword: string; i
       }
     });
   } else {
-    console.warn('[KeywordApiParser] No task or task.result array found:', {
+    logger.warn('[KeywordApiParser] No task or task.result array found:', {
       hasTask: !!task,
       taskResultType: task?.result ? typeof task.result : 'undefined',
       taskResultIsArray: Array.isArray(task?.result)
     });
   }
   
-  console.log('[KeywordApiParser] Extracted results count:', results.length);
   
   return results;
 }

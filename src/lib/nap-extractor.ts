@@ -3,6 +3,7 @@
  * Finds contact pages and location sitemaps via WordPress API, then uses AI to extract locations
  */
 
+import { logger } from "@/lib/logger";
 import type { WordPressSite } from '@/components/integrations/types';
 import {
   fetchPageContentById,
@@ -23,7 +24,6 @@ export async function extractNAPFromSite(
   apiKey: string,
   onProgress?: (progress: NAPExtractionProgress) => void
 ): Promise<NAPExtractionResult> {
-  console.log('[NAP Extractor] Starting NAP extraction for:', site.name || site.siteUrl);
 
   try {
     onProgress?.({ step: 'finding_sources', progress: 0, message: 'Finding contact page and location sitemap...' });
@@ -39,7 +39,7 @@ export async function extractNAPFromSite(
     });
 
     if (contactPages.length === 0 && locationUrls.length === 0) {
-      console.warn('[NAP Extractor] No sources for extraction:', {
+      logger.warn('[NAP Extractor] No sources for extraction:', {
         hasMainSitemapUrl: Boolean(site.sitemaps?.mainSitemapUrl),
         hasEntitySitemapUrl: Boolean(site.entitySitemapUrl?.trim()),
         hint: 'Run Detect sitemaps in NEO Pulse, or ensure a published Contact page exists.',
@@ -112,14 +112,13 @@ export async function extractNAPFromSite(
 
     onProgress?.({ step: 'complete', progress: 100, message: `Successfully extracted ${napInfo.locations.length} location(s)` });
 
-    console.log('[NAP Extractor] Extraction completed:', napInfo);
 
     return {
       success: true,
       napInfo,
     };
   } catch (error) {
-    console.error('[NAP Extractor] Error:', error);
+    logger.error('[NAP Extractor] Error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error during NAP extraction',

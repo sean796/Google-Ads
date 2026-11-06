@@ -34,6 +34,7 @@ import type {
   ImageGeneratorInputProps,
   UseImageGeneratorResult,
 } from "@/components/generator/image/image-generator-types";
+import { logger } from "@/lib/logger";
 
 export function useImageGenerator({
   apiKey = "",
@@ -304,7 +305,7 @@ export function useImageGenerator({
       notify.success(NOTIFY_IMAGE_DOWNLOADED_SUCCESSFULLY);
     } catch (err) {
       notify.error(NOTIFY_FAILED_TO_DOWNLOAD_IMAGE);
-      console.error("Download error:", err);
+      logger.error("Download error:", err);
     }
   }, [
     apiKey,
@@ -327,7 +328,7 @@ export function useImageGenerator({
       notify.success(NOTIFY_IMAGE_COPIED_TO_CLIPBOARD);
     } catch (err) {
       notify.error(NOTIFY_FAILED_TO_COPY_IMAGE_TO_CLIPBOARD);
-      console.error("Copy error:", err);
+      logger.error("Copy error:", err);
     }
   }, [generatedImageBase64, generatedImageUrl]);
 

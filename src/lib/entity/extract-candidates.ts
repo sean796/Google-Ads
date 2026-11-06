@@ -4,6 +4,7 @@
  */
 
 import { streamChatCompletion } from '@/lib/api';
+import { logger } from "@/lib/logger";
 import { getResearchModel } from '@/lib/optimization-settings-storage';
 import { isValidEntity } from '@/components/integrations/entity-generation/validation/entityValidator';
 import { entityConflictsWithExisting } from '@/components/integrations/entity-generation/filtering/conflictChecker';
@@ -86,7 +87,7 @@ Example: ["Beltline", "Kensington", "Inglewood"]`;
     if (match) parsed = JSON.parse(match[0]);
     if (!Array.isArray(parsed)) parsed = [];
   } catch {
-    console.warn('[Entity] Failed to parse extraction response');
+    logger.warn('[Entity] Failed to parse extraction response');
     return [];
   }
   const seen = new Set<string>();

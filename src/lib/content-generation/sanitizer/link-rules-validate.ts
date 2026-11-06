@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { isMediaAssetUrl } from "@/lib/content-optimization/images-extract";
 
 /**
@@ -51,17 +52,6 @@ export function removeInvalidInternalLinks(content: string, wordPressPosts?: Arr
   wordPressPosts.forEach(post => {
     if (post.link?.trim()) addUrlVariants(post.link);
   });
-
-  const pageCount = wordPressPosts.filter(
-    (p) =>
-      (p as { postType?: string }).postType === "page" ||
-      (!(p as { postType?: string }).postType &&
-        !(String(p.link ?? "").toLowerCase().includes("/blog/"))),
-  ).length;
-  const postCount = wordPressPosts.length - pageCount;
-  console.log(
-    `[Link Sanitizer] Valid internal links: from WordPress API only (${validInternalLinks.size} variants from ${wordPressPosts.length} catalog items, ${pageCount} pages, ${postCount} posts)`,
-  );
 
   // Pattern: markdown [text](url), HTML absolute href, HTML relative href="/path"
   const linkPattern = /(\[([^\]]+)\]\((https?:\/\/[^)]+)\)|<a[^>]*href=["'](https?:\/\/[^"']+)["'][^>]*>([^<]*)<\/a>|<a[^>]*href=["'](\/[^"']*)["'][^>]*>([^<]*)<\/a>)/gi;
@@ -128,7 +118,7 @@ export function removeInvalidInternalLinks(content: string, wordPressPosts?: Arr
 
       if (!isValidInternalLink) {
         removedCount++;
-        console.warn(`[Link Sanitizer] REMOVED invalid internal link (not in WordPress posts): ${url}`);
+        logger.warn(`[Link Sanitizer] REMOVED invalid internal link (not in WordPress posts): ${url}`);
         // Remove the link but keep the text
         return anchorText;
       }
@@ -141,7 +131,7 @@ export function removeInvalidInternalLinks(content: string, wordPressPosts?: Arr
   });
   
   if (removedCount > 0) {
-    console.warn(`[Link Sanitizer] Removed ${removedCount} invalid internal link(s) (only links from WordPress posts are allowed)`);
+    logger.warn(`[Link Sanitizer] Removed ${removedCount} invalid internal link(s) (only links from WordPress posts are allowed)`);
   }
   
   return sanitized;
@@ -255,23 +245,20 @@ export function removeNonWikipediaExternalLinks(
       if (isWikipedia) {
         if (allowedNorm && normWiki(url) === allowedNorm) return match;
         removedCount++;
-        console.warn(`[Link Sanitizer] REMOVED non-entity Wikipedia link (only entity Wikipedia allowed): ${url}`);
+        logger.warn(`[Link Sanitizer] REMOVED non-entity Wikipedia link (only entity Wikipedia allowed): ${url}`);
         return markdownText || htmlText || '';
       }
 
       removedCount++;
-      console.warn(`[Link Sanitizer] REMOVED forbidden external link: ${url}`);
+      logger.warn(`[Link Sanitizer] REMOVED forbidden external link: ${url}`);
       return markdownText || htmlText || '';
     } catch {
       return match;
     }
   });
 
-  if (keptExternalCount > 0) {
-    console.log(`[Link Sanitizer] Kept ${keptExternalCount} allowlisted external link(s) (e.g. Semrush-approved)`);
-  }
   if (removedCount > 0) {
-    console.warn(`[Link Sanitizer] Removed ${removedCount} external link(s) (only connected site, entity Wikipedia, and pre-validated external links allowed)`);
+    logger.warn(`[Link Sanitizer] Removed ${removedCount} external link(s) (only connected site, entity Wikipedia, and pre-validated external links allowed)`);
   }
   return sanitized;
 }

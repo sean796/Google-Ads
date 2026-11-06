@@ -4,6 +4,7 @@
  */
 
 import { notify } from "@/lib/app-notifications";
+import { logger } from "@/lib/logger";
 import { NOTIFY_SELECTED_WIKIPEDIA_CATEGORIES_HAD_NO_PAG } from "@/lib/notify-messages";
 import { decideWikipediaSourceWithAI, decideFallbackWikipediaSourceWithAI, type WikipediaSource } from './decide-wikipedia-source-ai';
 import { getPagesInCategoryDeep, extractEntitiesFromWikipediaList } from '@/lib/wikipedia-api';
@@ -116,7 +117,6 @@ export async function runOriginsToWikiFlow(
       onProgress?.(`Loading pages from ${fullCategory} (with subcategories)...`);
       const fetchLimit = categoryFetchLimitForCount(count);
       const pageTitles = await getPagesInCategoryDeep(fullCategory, { limit: fetchLimit, pageOnly: true, subcategoryDepth: 1 });
-      console.log(`[Entity Generation] Category "${fullCategory}" returned ${pageTitles.length} pages (deep fetch)`);
       return pageTitles.map((title) => ({
         entity: title,
         wikipediaUrl: `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/\s+/g, '_'))}`,
@@ -144,7 +144,6 @@ export async function runOriginsToWikiFlow(
       for (const broadCat of broadCandidates) {
         if (pool.length > 0) break;
         const broadFull = broadCat.startsWith('Category:') ? broadCat : `Category:${broadCat}`;
-        console.log(`[Entity Generation] Source "${src.title}" returned 0 pages. Trying broader: ${broadFull}`);
         onProgress?.(`Source "${src.title}" empty. Trying broader category: ${broadFull}...`);
         const fetchLimit = categoryFetchLimitForCount(count);
         pool = (await getPagesInCategoryDeep(broadFull, { limit: fetchLimit, pageOnly: true, subcategoryDepth: 2 }))
@@ -152,9 +151,6 @@ export async function runOriginsToWikiFlow(
             entity: title,
             wikipediaUrl: `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/\s+/g, '_'))}`,
           }));
-        if (pool.length > 0) {
-          console.log(`[Entity Generation] Broader category "${broadFull}" returned ${pool.length} pages`);
-        }
       }
     }
     return pool;
@@ -244,7 +240,7 @@ export async function runOriginsToWikiFlow(
             }
           }
         } catch (e) {
-          console.warn('[Entity Generation] AI fallback after empty locked categories failed:', e);
+          logger.warn('[Entity Generation] AI fallback after empty locked categories failed:', e);
         }
       }
     } else {
@@ -255,7 +251,7 @@ export async function runOriginsToWikiFlow(
         const titleLower = source.title.toLowerCase();
         const nonLocationKeywords = ['window', 'treatment', 'business', 'product', 'service'];
         if (nonLocationKeywords.some((kw) => titleLower.includes(kw))) {
-          console.warn(
+          logger.warn(
             `[Entity Generation] AI picked non-location source "${source.title}", retrying with explicit location requirement...`
           );
           onProgress?.(`Retrying with explicit location requirement...`);
@@ -276,14 +272,14 @@ export async function runOriginsToWikiFlow(
     }
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error(`[Entity Generation] Failed to decide Wikipedia source:`, error);
+    logger.error(`[Entity Generation] Failed to decide Wikipedia source:`, error);
     onProgress?.(`Error finding Wikipedia source: ${errorMsg}`);
     throw new Error(`Failed to find Wikipedia source: ${errorMsg}`);
   }
 
   if (lockedList.length === 0 && !source) {
     const msg = `AI could not determine a LOCATION-BASED Wikipedia source from ${existingEntities.length} existing origin fields${promptModifier ? ` with modifier "${promptModifier}"` : ''}. Make sure your origin fields contain geographic locations (cities, neighborhoods, etc.).`;
-    console.warn(`[Entity Generation] ${msg}`);
+    logger.warn(`[Entity Generation] ${msg}`);
     onProgress?.(msg);
     return {
       entities: [],

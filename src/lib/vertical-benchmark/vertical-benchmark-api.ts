@@ -78,22 +78,12 @@ async function consumeExportNdjson(
           error?: string;
         };
         if (obj.type === "progress" && typeof obj.done === "number" && typeof obj.total === "number") {
-          console.log(
-            `%c[Industry Verticals] 📡 GSC progress ${obj.done}/${obj.total}`,
-            "color: #84bc00; font-weight: bold;",
-            { siteId: obj.siteId, done: obj.done, total: obj.total },
-          );
           onProgress(obj.done, obj.total, obj.siteId);
         } else if (obj.type === "done") {
           rows = obj.rows ?? [];
           extendedRows = obj.extendedRows ?? [];
           results = obj.results ?? [];
           dateRange = obj.dateRange;
-          console.log(
-            `%c[Industry Verticals] ✅ GSC stream complete (${rows.length} top rows, ${extendedRows.length} extended rows)`,
-            "color: #84bc00; font-weight: bold;",
-            { results, dateRange },
-          );
         }
       } catch {
         /* skip malformed ndjson line */

@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import type { ImageGenerationResponse } from "./image-api-types";
 
 /** Extracts an image result from the assorted OpenRouter response shapes. */
@@ -48,7 +49,7 @@ export function extractImageFromOpenRouterResponseData(
             const imageUrlObj = firstImage.image_url as { url?: string; image_url?: string; href?: string };
             imageUrl = imageUrlObj.url || imageUrlObj.image_url || imageUrlObj.href;
 if (!imageUrl || typeof imageUrl !== 'string') {
-              console.error('Could not extract URL from image_url object:', firstImage.image_url);
+              logger.error('Could not extract URL from image_url object:', firstImage.image_url);
               // Continue to next check
             } else {
 // CRITICAL FIX: If image_url is a data: URL, return it as base64 instead
@@ -59,7 +60,6 @@ return { imageBase64: imageUrl };
             }
           } else {
             // Not a string or object, skip
-            console.warn('firstImage.image_url is neither string nor object:', typeof firstImage.image_url);
           }
         }
         
@@ -73,7 +73,7 @@ return { imageBase64: imageUrl };
             const urlObj = firstImage.url as { url?: string; image_url?: string; href?: string };
             url = urlObj.url || urlObj.image_url || urlObj.href;
 if (!url || typeof url !== 'string') {
-              console.error('Could not extract URL from url object:', firstImage.url);
+              logger.error('Could not extract URL from url object:', firstImage.url);
               // Continue to next check
             } else {
 // CRITICAL FIX: If url is a data: URL, return it as base64 instead
@@ -84,7 +84,6 @@ return { imageBase64: url };
             }
           } else {
             // Not a string or object, skip
-            console.warn('firstImage.url is neither string nor object:', typeof firstImage.url);
           }
         }
         if (firstImage.b64_json) {
@@ -117,30 +116,17 @@ return { imageBase64: url };
     // Check message.content for image data
     if (data.choices && data.choices[0]?.message?.content) {
       const content = data.choices[0].message.content;
-console.log('=== CONTENT INSPECTION ===');
-      console.log('Content type:', typeof content);
-      console.log('Is array:', Array.isArray(content));
       if (Array.isArray(content)) {
-        console.log('Content array length:', content.length);
         if (content.length === 0) {
-          console.warn('Content array is empty');
+          /* empty content array, nothing to extract here */
         } else {
           content.forEach((part, index) => {
-            console.log(`Part ${index}:`, {
-              type: part.type,
-              keys: Object.keys(part),
-              hasText: !!part.text,
-              hasImageUrl: !!part.image_url,
-              hasImage: !!part.image,
-              fullPart: part
-            });
           });
         }
       } else if (typeof content === 'object' && content !== null) {
-        console.log('Content object keys:', Object.keys(content));
-        console.log('Full content object:', content);
+        /* object content is handled by the checks below */
       } else {
-        console.log('Content value (first 500 chars):', typeof content === 'string' ? content.substring(0, 500) : String(content).substring(0, 500));
+        /* other content types are handled by the checks below */
       }
       
       // Check if content is a URL string
@@ -217,60 +203,44 @@ if (parsedContent.url) return { imageUrl: parsedContent.url };
       // Check if content is an array of content parts (multimodal response)
       if (Array.isArray(content)) {
         // Handle empty array - might indicate error or different response format
-        if (content.length === 0) {
-          console.warn('Content array is empty, checking other locations...');
-        }
-        
         for (const part of content) {
           if (!part || typeof part !== 'object') continue;
           
-          console.log('Checking content part:', part.type, Object.keys(part));
           
           // Check for image type parts
           if (part.type === 'image') {
-            console.log('Found image part:', part);
             if (part.image?.url) {
-              console.log('Extracting image URL from part.image.url');
               return { imageUrl: part.image.url };
             }
             if (part.image?.image_url?.url) {
-              console.log('Extracting image URL from part.image.image_url.url');
               return { imageUrl: part.image.image_url.url };
             }
             if (part.image?.inlineData?.data) {
-              console.log('Extracting base64 from part.image.inlineData.data');
               return { imageBase64: `data:${part.image.inlineData.mimeType || 'image/png'};base64,${part.image.inlineData.data}` };
             }
             if (part.image?.base64) {
-              console.log('Extracting base64 from part.image.base64');
               return { imageBase64: `data:image/png;base64,${part.image.base64}` };
             }
             // Check if image is directly in part
             if (part.url) {
-              console.log('Extracting URL from part.url');
               return { imageUrl: part.url };
             }
             if (part.base64) {
-              console.log('Extracting base64 from part.base64');
               return { imageBase64: `data:image/png;base64,${part.base64}` };
             }
           }
           // OpenAI/DALL-E format
           if (part.type === 'image_url' && part.image_url?.url) {
-            console.log('Extracting image URL from OpenAI format');
             return { imageUrl: part.image_url.url };
           }
           // Generic checks for any URL or base64 fields
           if (part.url && typeof part.url === 'string') {
-            console.log('Extracting URL from part.url (generic)');
             return { imageUrl: part.url };
           }
           if (part.base64 && typeof part.base64 === 'string') {
-            console.log('Extracting base64 from part.base64 (generic)');
             return { imageBase64: `data:image/png;base64,${part.base64}` };
           }
           if (part.b64_json && typeof part.b64_json === 'string') {
-            console.log('Extracting base64 from part.b64_json');
             return { imageBase64: `data:image/png;base64,${part.b64_json}` };
           }
           // Check text parts for embedded image URLs or base64
@@ -278,13 +248,11 @@ if (parsedContent.url) return { imageUrl: parsedContent.url };
             // Check for base64 in text
             const base64Match = part.text.match(/data:image\/[^;]+;base64,([A-Za-z0-9+/=\s]+)/);
             if (base64Match) {
-              console.log('Extracting base64 from text content');
               return { imageBase64: base64Match[0].trim() };
             }
             // Check for URL in text (more flexible pattern)
             const urlMatch = part.text.match(/https?:\/\/[^\s)"']+\.(png|jpg|jpeg|webp|gif)(\?[^\s)"']*)?/i);
             if (urlMatch) {
-              console.log('Extracting URL from text content');
               return { imageUrl: urlMatch[0] };
             }
             // Check for JSON with URL in text
@@ -293,7 +261,6 @@ if (parsedContent.url) return { imageUrl: parsedContent.url };
               if (jsonMatch) {
                 const parsed = JSON.parse(jsonMatch[0]);
                 if (parsed.url && typeof parsed.url === 'string') {
-                  console.log('Extracting URL from JSON in text');
                   return { imageUrl: parsed.url };
                 }
               }
@@ -303,7 +270,6 @@ if (parsedContent.url) return { imageUrl: parsedContent.url };
           }
           // Check for any nested structure
           if (part.image_url && typeof part.image_url === 'string') {
-            console.log('Extracting image_url as string');
             return { imageUrl: part.image_url };
           }
         }
@@ -315,7 +281,6 @@ if (parsedContent.url) return { imageUrl: parsedContent.url };
       const message = data.choices[0].message;
 // Check if content is null or empty array - might need to check other fields
       if (!message.content || (Array.isArray(message.content) && message.content.length === 0)) {
-        console.log('Message content is empty/null, checking other message fields...');
         // Check for any direct image references in message
         if (message.refs && Array.isArray(message.refs)) {
           for (const ref of message.refs) {
@@ -399,7 +364,6 @@ return { imageUrl: part.url };
     }
 
     // Last resort: Deep search for any URL or base64 in the entire response
-    console.log('=== DEEP SEARCH FOR IMAGE DATA ===');
     const deepSearch = (obj: unknown, path: string = '', visited: Set<object> = new Set()): string | null => {
       // Prevent infinite loops with circular references
       if (!obj || typeof obj !== 'object') return null;
@@ -410,25 +374,20 @@ return { imageUrl: part.url };
       // Check for common image fields first
       if (typeof record.url === 'string') {
         if (record.url.startsWith('http') || record.url.startsWith('data:image') || record.url.match(/\.(png|jpg|jpeg|webp|gif)(\?|$)/i)) {
-          console.log(`Found URL at path: ${path}.url`);
           return record.url;
         }
       }
       if (typeof record.image_url === 'string') {
-        console.log(`Found image_url at path: ${path}.image_url`);
         return record.image_url;
       }
       if (typeof record.b64_json === 'string') {
-        console.log(`Found b64_json at path: ${path}.b64_json`);
         return `data:image/png;base64,${record.b64_json}`;
       }
       if (typeof record.base64 === 'string') {
-        console.log(`Found base64 at path: ${path}.base64`);
         return record.base64.startsWith('data:') ? record.base64 : `data:image/png;base64,${record.base64}`;
       }
       // Check for data field that might contain image
       if (typeof record.data === 'string' && (record.data.startsWith('data:image') || record.data.startsWith('http'))) {
-        console.log(`Found data field at path: ${path}.data`);
         return record.data;
       }
 
@@ -454,7 +413,6 @@ return { imageUrl: part.url };
     
     const foundImage = deepSearch(data);
     if (foundImage) {
-      console.log('Found image data via deep search:', foundImage.substring(0, 100));
       if (foundImage.startsWith('http') || foundImage.startsWith('https')) {
         return { imageUrl: foundImage };
       }

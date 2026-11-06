@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import type { NAPInfo, Location } from '@/components/integrations/types';
 import { streamChatCompletion } from './api';
 import { getResearchModel } from './optimization-settings-storage';
@@ -277,7 +278,7 @@ Extract every location mentioned. For locations without specific emails, use the
 
     return null;
   } catch (error) {
-    console.error('[NAP Extractor] AI extraction error:', error);
+    logger.error('[NAP Extractor] AI extraction error:', error);
     return null;
   }
 }

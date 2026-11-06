@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import type { OptimizationSettings } from "@/lib/optimization-settings-defaults";
 import { DEFAULT_SETTINGS } from "@/lib/optimization-settings-defaults";
 import { DEFAULT_IMAGE_MODEL } from "@/lib/image-model-defaults";
@@ -50,7 +51,7 @@ export function getOptimizationSettings(siteId: string): OptimizationSettings {
       return merged;
     }
   } catch (e) {
-    console.error("[OptimizationSettings] Failed to parse stored settings:", e);
+    logger.error("[OptimizationSettings] Failed to parse stored settings:", e);
   }
   return defaults;
 }
@@ -60,7 +61,7 @@ export function saveOptimizationSettings(siteId: string, settings: OptimizationS
   try {
     localStorage.setItem(`${SETTINGS_STORAGE_KEY_PREFIX}${siteId}`, JSON.stringify(settings));
   } catch (e) {
-    console.error("[OptimizationSettings] Failed to save settings:", e);
+    logger.error("[OptimizationSettings] Failed to save settings:", e);
   }
 }
 
@@ -72,7 +73,7 @@ export function getOptimizationMode(siteId: string): "quick" | "standard" | "ful
       return stored;
     }
   } catch (e) {
-    console.error("[OptimizationMode] Failed to parse stored mode:", e);
+    logger.error("[OptimizationMode] Failed to parse stored mode:", e);
   }
   return "standard";
 }
@@ -82,7 +83,7 @@ export function saveOptimizationMode(siteId: string, mode: "quick" | "standard" 
   try {
     localStorage.setItem(`${MODE_STORAGE_KEY_PREFIX}${siteId}`, mode);
   } catch (e) {
-    console.error("[OptimizationMode] Failed to save mode:", e);
+    logger.error("[OptimizationMode] Failed to save mode:", e);
   }
 }
 
@@ -197,7 +198,7 @@ export function setGlobalResearchModel(model: string): void {
   try {
     localStorage.setItem(GLOBAL_RESEARCH_MODEL_KEY, model);
   } catch (e) {
-    console.error("[ResearchModel] Failed to save global model:", e);
+    logger.error("[ResearchModel] Failed to save global model:", e);
   }
 }
 

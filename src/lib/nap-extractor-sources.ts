@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import type { WordPressSite, NAPInfo } from '@/components/integrations/types';
 import { parseSitemap, getWordPressPostContent, getSitePageInventory } from './wordpress-api';
 import { htmlToMarkdown } from './wordpress-converter';
@@ -96,12 +97,9 @@ export async function findLocationSitemap(
       );
       if (entityParse.urls?.length) {
         pushUniqueUrls(allUrls, seen, entityParse.urls, NAP_SITEMAP_URL_CAP);
-        console.log(
-          `[NAP Extractor] From entitySitemapUrl: ${Math.min(entityParse.urls.length, allUrls.length)} URL(s) (capped at ${NAP_SITEMAP_URL_CAP})`
-        );
       }
     } catch (error) {
-      console.warn('[NAP Extractor] Error parsing entitySitemapUrl:', site.entitySitemapUrl, error);
+      logger.warn('[NAP Extractor] Error parsing entitySitemapUrl:', site.entitySitemapUrl, error);
     }
   }
 
@@ -111,7 +109,7 @@ export async function findLocationSitemap(
 
   if (!site.sitemaps?.mainSitemapUrl) {
     if (allUrls.length === 0) {
-      console.warn(
+      logger.warn(
         '[NAP Extractor] No sitemap URLs for NAP: missing sitemaps.mainSitemapUrl and no usable entitySitemapUrl.'
       );
     }
@@ -130,9 +128,6 @@ export async function findLocationSitemap(
 
     if (parseResult.childSitemaps?.length) {
       const napSitemaps = parseResult.childSitemaps.filter(isNapRelevantChildSitemap);
-      console.log(
-        `[NAP Extractor] NAP-relevant child sitemaps: ${napSitemaps.length} of ${parseResult.childSitemaps.length}`
-      );
 
       for (const sitemapUrl of napSitemaps) {
         if (allUrls.length >= NAP_SITEMAP_URL_CAP) break;
@@ -147,12 +142,12 @@ export async function findLocationSitemap(
             pushUniqueUrls(allUrls, seen, childParse.urls, NAP_SITEMAP_URL_CAP);
           }
         } catch (error) {
-          console.warn(`[NAP Extractor] Error parsing child sitemap ${sitemapUrl}:`, error);
+          logger.warn(`[NAP Extractor] Error parsing child sitemap ${sitemapUrl}:`, error);
         }
       }
     }
   } catch (error) {
-    console.warn('[NAP Extractor] Error checking main sitemap index:', error);
+    logger.warn('[NAP Extractor] Error checking main sitemap index:', error);
   }
 
   return allUrls.slice(0, NAP_SITEMAP_URL_CAP);
@@ -242,10 +237,6 @@ export async function findContactPage(
   );
   for (const p of rankedLoc.slice(0, 2)) add(p);
 
-  console.log(
-    `[NAP Extractor] Contact-related pages found: ${foundPages.length}`,
-    foundPages.map((p) => p.slug).join(', ') || '(none)'
-  );
 
   return foundPages;
 }
@@ -279,7 +270,7 @@ export async function fetchPageContentById(
 
     return null;
   } catch (error) {
-    console.error(`[NAP Extractor] Error fetching page ${pageId}:`, error);
+    logger.error(`[NAP Extractor] Error fetching page ${pageId}:`, error);
     return null;
   }
 }
@@ -331,7 +322,7 @@ export async function fetchPageContentFromUrl(
 
     return null;
   } catch (error) {
-    console.error(`[NAP Extractor] Error fetching page ${url}:`, error);
+    logger.error(`[NAP Extractor] Error fetching page ${url}:`, error);
     return null;
   }
 }

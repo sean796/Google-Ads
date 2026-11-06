@@ -1,6 +1,7 @@
 import { streamChatCompletion } from "./api";
 import type { KeywordData } from "./keyword-types";
 import { getResearchModel } from "./optimization-settings-storage";
+import { logger } from "@/lib/logger";
 
 export interface KeywordCluster {
   id: string;
@@ -184,7 +185,7 @@ IMPORTANT:
 
     return clusters;
   } catch (error) {
-    console.error("Error in AI keyword clustering:", error);
+    logger.error("Error in AI keyword clustering:", error);
     
     // Fallback: return single cluster with all keywords
     return [

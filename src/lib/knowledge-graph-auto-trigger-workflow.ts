@@ -7,6 +7,7 @@ import type { WordPressSite } from '@/components/integrations/types';
 import { BACKEND_API_BASE } from '@/lib/wordpress-api/connection';
 import { saveGraphToKnowledgeBase } from "@/lib/knowledge-graph-auto-trigger-save";
 import { extractNAPAndSaveToKB } from "@/lib/knowledge-graph-auto-trigger-nap";
+import { logger } from "@/lib/logger";
 
 /**
  * Poll for graph completion and save to KB
@@ -73,7 +74,6 @@ async function pollForGraphCompletion(jobId: string, siteName: string): Promise<
           // Check if completed
           if (progress.status === 'completed' && progress.result) {
             clearInterval(pollInterval);
-            console.log('[Knowledge Graph] Graph generation completed, saving to KB...');
             // Dismiss the progress toast
             notify.dismiss(`knowledge-graph-progress-${siteName}`);
             notify.success(notifyKnowledgeGraphGeneratedForXSavingT(siteName));
@@ -111,7 +111,6 @@ async function pollForGraphCompletion(jobId: string, siteName: string): Promise<
  * Detects sitemaps, generates graph, and saves to KB
  */
 export async function triggerKnowledgeGraphWorkflow(site: WordPressSite): Promise<void> {
-  console.log('[Knowledge Graph] Starting workflow for:', site.name || site.siteUrl);
   
   try {
     notify.info(notifyStartingKnowledgeGraphWorkflowForX(site.name || site.siteUrl));
@@ -168,14 +167,13 @@ export async function triggerKnowledgeGraphWorkflow(site: WordPressSite): Promis
           throw new Error('No sitemaps found');
         }
       } catch (error) {
-        console.error('Error detecting sitemaps:', error);
+        logger.error('Error detecting sitemaps:', error);
         notify.error(NOTIFY_FAILED_TO_DETECT_SITEMAPS_PLEASE_DETECT_);
         throw error;
       }
     }
     
     // Step 2: Start knowledge graph generation
-    console.log('[Knowledge Graph] Starting auto-graph generation...');
     notify.info(NOTIFY_GENERATING_KNOWLEDGE_GRAPH_FROM_SITEMAPS);
     
     const response = await fetch(`${BACKEND_API_BASE}/api/knowledge-model/auto-graph`, {
@@ -202,15 +200,13 @@ export async function triggerKnowledgeGraphWorkflow(site: WordPressSite): Promis
       throw new Error('Invalid job ID returned from server. The backend may not be ready. Please try again.');
     }
     
-    console.log('[Knowledge Graph] Auto-graph started with jobId:', jobId);
     notify.success(NOTIFY_KNOWLEDGE_GRAPH_GENERATION_STARTED);
     
     // Step 3: Poll for completion and save to KB
     await pollForGraphCompletion(jobId, site.name || site.siteUrl);
     
-    console.log('[Knowledge Graph] Workflow completed successfully');
   } catch (error) {
-    console.error('[Knowledge Graph] Error in workflow:', error);
+    logger.error('[Knowledge Graph] Error in workflow:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     notify.error(notifyKnowledgeGraphWorkflowFailedX(errorMessage));
     throw error;
@@ -222,7 +218,6 @@ export async function triggerKnowledgeGraphWorkflow(site: WordPressSite): Promis
  * Combines NAP extraction and knowledge graph generation
  */
 export async function extractNAPAndLinkGraph(site: WordPressSite): Promise<void> {
-  console.log('[NAP & Link Graph] Starting extraction for:', site.name || site.siteUrl);
   
   try {
     notify.info(notifyStartingNapExtractionAndLinkGraphG(site.name || site.siteUrl));
@@ -235,7 +230,7 @@ export async function extractNAPAndLinkGraph(site: WordPressSite): Promise<void>
     
     notify.success(notifyNapExtractionAndLinkGraphGeneration(site.name || site.siteUrl));
   } catch (error) {
-    console.error('[NAP & Link Graph] Error:', error);
+    logger.error('[NAP & Link Graph] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     notify.error(notifyFailedX(errorMessage));
     throw error;

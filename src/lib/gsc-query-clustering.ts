@@ -1,6 +1,7 @@
 import { streamChatCompletion } from "./api";
 import { getResearchModel } from "./optimization-settings-storage";
 import { isNonEnglishKeyword } from "./gsc-query-processor";
+import { logger } from "@/lib/logger";
 
 export interface GSCQuery {
   query: string;
@@ -351,14 +352,12 @@ Return ONLY the JSON object following the exact schema. Validate it before sendi
       if (queriesToAnalyze.length > 0 && queriesToAnalyze[0]?.query && typeof queriesToAnalyze[0].query === 'string') {
         // Fallback: use top query by clicks/impressions only if AI didn't recommend anything
         recommendedKeyword = queriesToAnalyze[0].query;
-        console.log(`[GSC Clustering] No AI recommendation, using fallback: "${recommendedKeyword}"`);
       } else {
         // Fallback if no valid queries
         recommendedKeyword = '';
       }
     } else {
       // AI provided a recommendation - use it directly, no validation, no matching
-      console.log(`[GSC Clustering] Using AI-recommended keyword directly: "${recommendedKeyword}"`);
     }
 
     // Build clusters array (handle missing or malformed clusters)
@@ -455,7 +454,7 @@ Return ONLY the JSON object following the exact schema. Validate it before sendi
 
     return analysis;
   } catch (error) {
-    console.error('[GSC Clustering] Error analyzing queries:', error);
+    logger.error('[GSC Clustering] Error analyzing queries:', error);
     throw new Error(`Failed to cluster GSC queries: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

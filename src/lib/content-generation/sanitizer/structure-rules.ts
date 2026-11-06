@@ -44,10 +44,6 @@ export function enforceOneImagePerSection(html: string): string {
     return part;
   });
   
-  if (totalRemoved > 0) {
-    console.log(`[Content Sanitizer] Removed ${totalRemoved} extra image(s) to enforce 1 image per section rule`);
-  }
-  
   return processedParts.join('');
 }
 
@@ -96,7 +92,6 @@ export function removeForbiddenSections(content: string): string {
         skipSection = true;
         skipSectionLevel = level;
         removedCount++;
-        console.log(`[Content Sanitizer] Removing forbidden section: "${line.trim()}"`);
         continue; // Skip this heading line
       } else if (skipSection) {
         // We're in a forbidden section - check if we've reached a heading of same or higher level
@@ -126,10 +121,6 @@ export function removeForbiddenSections(content: string): string {
         fixedLines.push(line);
       }
     }
-  }
-  
-  if (removedCount > 0) {
-    console.log(`[Content Sanitizer] Removed ${removedCount} forbidden section(s) (e.g., "External Resources")`);
   }
   
   return fixedLines.join('\n');
@@ -169,7 +160,6 @@ export function removeDuplicateHeadings(content: string): string {
           previousHeading.text.toLowerCase() === text.toLowerCase()) {
         // This is a duplicate - skip it
         removedCount++;
-        console.log(`[Content Sanitizer] Removed duplicate heading: "${line.trim()}"`);
         continue; // Skip this line
       }
       
@@ -187,10 +177,6 @@ export function removeDuplicateHeadings(content: string): string {
   }
   
   fixed = fixedLines.join('\n');
-  
-  if (removedCount > 0) {
-    console.log(`[Content Sanitizer] Removed ${removedCount} duplicate heading(s)`);
-  }
   
   return fixed;
 }
@@ -247,7 +233,6 @@ export function removeArticleTitleLabels(content: string): string {
     for (const pattern of articleTitlePatterns) {
       if (pattern.test(line.trim())) {
         removedCount++;
-        console.log(`[Content Sanitizer] Removed "Article Title" label at line ${index + 1}: "${line.trim().substring(0, 50)}"`);
         return false; // Remove this line
       }
     }
@@ -255,10 +240,6 @@ export function removeArticleTitleLabels(content: string): string {
   });
   
   fixed = fixedLines.join('\n');
-  
-  if (removedCount > 0) {
-    console.log(`[Content Sanitizer] Removed ${removedCount} "Article Title" label(s)`);
-  }
   
   return fixed;
 }

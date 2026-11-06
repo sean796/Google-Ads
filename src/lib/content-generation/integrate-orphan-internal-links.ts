@@ -157,9 +157,5 @@ export function integrateOrphanInternalLinksInHtml(
     }
   }
 
-  if (integrated > 0 || dropped > 0) {
-    console.log(`[Orphan link integration] integrated ${integrated} / removed ${dropped}`);
-  }
-
   return assertNoUnresolvedPlaceholders(result);
 }

@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 /**
  * Converts image data (URL or base64) to a Blob
  */
@@ -23,7 +24,7 @@ export const imageDataToBlob = async (
     
     return null;
   } catch (error) {
-    console.error('Error converting image to blob:', error);
+    logger.error('Error converting image to blob:', error);
     return null;
   }
 };
@@ -51,7 +52,7 @@ export const downloadImage = async (
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   } catch (error) {
-    console.error('Error downloading image:', error);
+    logger.error('Error downloading image:', error);
     throw error;
   }
 };
@@ -77,7 +78,7 @@ export const copyImageToClipboard = async (
       throw new Error('Clipboard API not available');
     }
   } catch (error) {
-    console.error('Error copying image to clipboard:', error);
+    logger.error('Error copying image to clipboard:', error);
     throw error;
   }
 };

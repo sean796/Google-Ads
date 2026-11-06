@@ -3,6 +3,7 @@
  * title/description/focus into ACF only (no rank_math_* post meta writes).
  */
 
+import { logger } from "@/lib/logger";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_ACF_SEO_FIELDS_UPDATED, NOTIFY_CONTENT_SAVED_BUT_ACF_SEO_FIELD_UPDATE_F, NOTIFY_CONTENT_SAVED_BUT_ACF_SEO_OPTIMIZATION_E, NOTIFY_CONTENT_SAVED_BUT_ACF_SEO_STEP_SKIPPED_C, NOTIFY_GENERATING_SEO_FIELDS_FOR_ACF, NOTIFY_SEO_AI_RAN_BUT_NO_MATCHING_ACF_FIELDS_WE } from "@/lib/notify-messages";
 import { getMuteOptimizationToasts } from "@/hooks/content-optimization/optimization-toast-mute";
@@ -66,7 +67,6 @@ export async function applyMetaOptimizerToACF(
   } = options;
 
   if (!shouldApply) {
-    console.log("[Content Generation] ACF meta optimization skipped (optimizeMeta disabled)");
     return { success: true };
   }
 
@@ -95,7 +95,7 @@ export async function applyMetaOptimizerToACF(
 
     if (!metaResult.success) {
       const errorMsg = metaResult.error || "Unknown error";
-      console.warn(`[ACF Meta] Failed to fetch post for post ID ${postId}: ${errorMsg}`);
+      logger.warn(`[ACF Meta] Failed to fetch post for post ID ${postId}: ${errorMsg}`);
       if (!getMuteOptimizationToasts())
         notify.warning(NOTIFY_CONTENT_SAVED_BUT_ACF_SEO_STEP_SKIPPED_C, { duration: 5000 });
       return { success: false };
@@ -168,7 +168,7 @@ export async function applyMetaOptimizerToACF(
     );
 
     if (Object.keys(acfFields).length === 0) {
-      console.warn("[ACF Meta] No ACF field mapping matched - nothing to update");
+      logger.warn("[ACF Meta] No ACF field mapping matched - nothing to update");
       if (!getMuteOptimizationToasts())
         notify.warning(NOTIFY_SEO_AI_RAN_BUT_NO_MATCHING_ACF_FIELDS_WE, { duration: 5000 });
       return { success: false };
@@ -191,7 +191,6 @@ export async function applyMetaOptimizerToACF(
     );
 
     if (upd.success) {
-      console.log(`[ACF Meta] Updated ACF for post ${postId}:`, upd.updated);
       if (!getMuteOptimizationToasts()) notify.success(NOTIFY_ACF_SEO_FIELDS_UPDATED, { duration: 3000 });
 
       const name = OptimizationFileManager.generateFilename("acf-seo-optimization", primaryKeyword, "json");
@@ -214,12 +213,12 @@ export async function applyMetaOptimizerToACF(
       return { success: true };
     }
 
-    console.warn("[ACF Meta] updateACFFields failed:", upd.error, upd.failed);
+    logger.warn("[ACF Meta] updateACFFields failed:", upd.error, upd.failed);
     if (!getMuteOptimizationToasts())
       notify.warning(NOTIFY_CONTENT_SAVED_BUT_ACF_SEO_FIELD_UPDATE_F, { duration: 5000 });
     return { success: false };
   } catch (e) {
-    console.error("[ACF Meta] Error:", e);
+    logger.error("[ACF Meta] Error:", e);
     if (!getMuteOptimizationToasts())
       notify.warning(NOTIFY_CONTENT_SAVED_BUT_ACF_SEO_OPTIMIZATION_E, { duration: 5000 });
     return { success: false };

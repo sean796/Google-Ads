@@ -207,7 +207,6 @@ export async function generateOptimizedBlueprint(
   if (blueprintResult.title) {
     const cleaned = cleanTitleForNonEntity(blueprintResult.title, "N/A");
     if (cleaned !== blueprintResult.title) {
-      console.log("[Optimize Content] Cleaned location mentions from blueprint title:", { original: blueprintResult.title, cleaned });
       blueprintResult.title = cleaned;
     }
   }
@@ -215,12 +214,6 @@ export async function generateOptimizedBlueprint(
   if (blueprintResult.title) {
     const originalLength = blueprintResult.title.length;
     blueprintResult.title = truncateTitleForSEO(blueprintResult.title);
-    if (originalLength > 50) {
-      console.log("[Optimize Content] Truncated blueprint title to 50 characters (Content Optimizer module requirement):", {
-        originalLength,
-        truncatedLength: blueprintResult.title.length,
-      });
-    }
   }
 
   if (!getMuteOptimizationToasts()) notify.success(notifyBlueprintCreatedXSectionsStartingCo(blueprintResult.agents.length), { duration: 4000 });

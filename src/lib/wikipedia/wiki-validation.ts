@@ -1,5 +1,6 @@
 import type { ValidatedEntityResult } from "./types";
 import { getMediaWikiApiUrlWithQuery } from "./mediawiki-api-url";
+import { logger } from "@/lib/logger";
 
 const WIKI_BATCH_SIZE = 50;
 
@@ -66,7 +67,7 @@ export async function filterOrderedTitlesToExistingCanonical(orderedTitles: stri
         if (canon) out.push(canon);
       }
     } catch (err) {
-      console.warn("[Wikipedia API] filterOrderedTitlesToExistingCanonical:", err);
+      logger.warn("[Wikipedia API] filterOrderedTitlesToExistingCanonical:", err);
     }
   }
   return out;
@@ -123,7 +124,7 @@ export async function validateEntitiesExist(candidates: string[]): Promise<Valid
         }
       }
     } catch (err) {
-      console.warn("[Wikipedia API] Batch exists error:", err);
+      logger.warn("[Wikipedia API] Batch exists error:", err);
       for (const entity of batch) {
         results.push({ entity, exists: false });
       }

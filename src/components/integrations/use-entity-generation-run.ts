@@ -13,6 +13,7 @@ import { runEntityPhaseGoogle } from "@/components/integrations/entity-run-phase
 import { runEntityPhaseWikipedia } from "@/components/integrations/entity-run-phase-wikipedia";
 import { runEntityPhaseValidate } from "@/components/integrations/entity-run-phase-validate";
 import { runEntityPhaseFinal } from "@/components/integrations/entity-run-phase-final";
+import { logger } from "@/lib/logger";
 
 export function useEntityGenerationRun(s: EntityGenerationState, v: EntityValidators) {
   const handleGenerateEntities = useCallback(
@@ -25,7 +26,6 @@ export function useEntityGenerationRun(s: EntityGenerationState, v: EntityValida
         if (!(await runEntityPhaseTitle(d))) return;
         if (!(await runEntityPhaseGoogle(d))) return;
         if (c.entitiesFromGoogle.length > 0) {
-          console.log(`[Entity Generation] ✓ Using ${c.entitiesFromGoogle.length} entities from Google search - COMPLETELY SKIPPING Wikipedia category/search (we already have the data!)`);
           c.validatedEntities = c.entitiesFromGoogle;
           c.selectedPageTitle = `Google search results for "${c.promptModifier}"`;
         } else {
@@ -47,11 +47,11 @@ const errorDetails = {
   timestamp: new Date().toISOString()
 };
 
-console.error('[Entity Generation] Error generating entities:', errorDetails);
+logger.error('[Entity Generation] Error generating entities:', errorDetails);
 
 // Site-specific error handling for blindswest.ca
 if (c.site.siteUrl && c.site.siteUrl.includes('blindswest.ca')) {
-  console.warn('[Entity Generation] blindswest.ca specific error detected:', errorDetails);
+  logger.warn('[Entity Generation] blindswest.ca specific error detected:', errorDetails);
   
   // Check for common issues
   if (error instanceof Error) {

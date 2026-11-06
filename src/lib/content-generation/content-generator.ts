@@ -3,6 +3,7 @@
  * Handles markdown content generation, in-content images, and HTML conversion
  */
 
+import { logger } from "@/lib/logger";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_CONTENT_GENERATED, NOTIFY_GENERATING_CONTENT, NOTIFY_GENERATING_IN_CONTENT_IMAGE, NOTIFY_HTML_READY_TO_UPLOAD, NOTIFY_IMAGE_GENERATED_BUT_MAY_NOT_HAVE_BEEN_IN, NOTIFY_IN_CONTENT_IMAGE_WAS_NOT_PRESERVED_DURIN, notifyInContentImageGeneratedAndInserted, notifyInContentImageGenerationFailedXCon } from "@/lib/notify-messages";
 import { getMuteOptimizationToasts } from "@/hooks/content-optimization/optimization-toast-mute";
@@ -61,19 +62,16 @@ export async function generateOptimizedContent(
   if (hasEntityOverride === false) {
     // User explicitly disabled entity mode - treat as regular blog post
     entity = undefined;
-    console.log('[Content Generator] Entity mode manually DISABLED by user');
   } else if (hasEntityOverride === true) {
     // User explicitly enabled entity mode - use blueprint entity or extract from title
     entity = blueprintResult.entity && blueprintResult.entity !== "N/A" 
       ? blueprintResult.entity 
       : existingTitle || primaryKeyword; // Fallback to title/keyword as entity
-    console.log('[Content Generator] Entity mode manually ENABLED by user, entity:', entity);
   } else {
     // Auto-detect from blueprint
     entity = blueprintResult.entity && blueprintResult.entity !== "N/A" 
       ? blueprintResult.entity 
       : undefined;
-    console.log('[Content Generator] Entity mode AUTO-DETECTED:', entity ? `"${entity}"` : 'No entity');
   }
 
   // === CONTENT OPTIMIZER MODULE: CONTENT GENERATION SPECIFICATION ===
@@ -105,16 +103,6 @@ export async function generateOptimizedContent(
   //   - ${entity ? `Using ENTITY-BASED prompt: Local SEO optimization with location context` : 'Using REGULAR BLOG POST prompt: General informational content, no location targeting'}
   // === END CONTENT OPTIMIZER SPECIFICATION ===
 
-  console.log('[Content Generator] CONTENT OPTIMIZER MODULE - Content Generation Specification:', {
-    primaryKeyword,
-    blueprintTitle: blueprintResult.title || 'N/A',
-    existingTitle: existingTitle || 'N/A',
-    finalTitle: blueprintResult.title || existingTitle || primaryKeyword,
-    hasEntity: !!entity,
-    entity: entity || 'N/A (regular blog post)',
-    promptType: entity ? 'ENTITY-BASED (local SEO)' : 'REGULAR BLOG POST (general informational)',
-    blueprintHasEntity: !!blueprintResult.entity
-  });
 
   // Load API key
   const openRouterApiKey = loadApiKey();
@@ -143,16 +131,11 @@ export async function generateOptimizedContent(
   // CRITICAL: Only generate content if optimizeContent is explicitly enabled
   // Defensive check - log if content generation is being skipped
   if (!shouldOptimizeContent) {
-    console.log('[Content Generator] ⚠️ CONTENT GENERATION SKIPPED - shouldOptimizeContent is false', {
-      shouldOptimizeContent,
-      reason: 'User unchecked Content optimization option'
-    });
     // Return existing content without modification - this should never happen as the caller should check first
     // But we include it as a defensive measure
     markdownContent = context.existingContent || '';
   } else {
     void onContentChunk;
-    console.log('[Content Generator] ✅ Content generation ENABLED - proceeding with harness generation');
     if (!getMuteOptimizationToasts()) notify.info(NOTIFY_GENERATING_CONTENT);
     setProgress({ step: 'Generating optimized content...', progress: 80, message: 'Blueprint sections (harness)...' });
 
@@ -278,10 +261,6 @@ export async function generateOptimizedContent(
     const linkCount = isHtmlContent
       ? (markdownContent.match(linkPatternHtml) || []).length
       : (markdownContent.match(linkPatternMd) || []).length;
-    if (linkCount > 0) {
-      console.log(`[Content Generator] ✅ Content validation: Found ${linkCount} links (${isHtmlContent ? 'HTML' : 'markdown'})`);
-    }
-
     setProgress({
       step: 'Content generated',
       progress: 88,
@@ -314,13 +293,8 @@ export async function generateOptimizedContent(
         });
         insertedSectionHeader = imageResult.sectionHeader;
         markdownContent = imageResult.html;
-        console.log('[Content Generation] Inserted in-content figure (HTML path):', {
-          sectionHeader: imageResult.sectionHeader,
-          imageUrl: imageResult.imageUrl,
-          mediaId: imageResult.mediaId,
-        });
         if (!/<img[\s>]/i.test(markdownContent)) {
-          console.error('[Content Generation] WARNING: HTML figure insert missing <img>');
+          logger.error('[Content Generation] WARNING: HTML figure insert missing <img>');
           if (!getMuteOptimizationToasts()) notify.warning(NOTIFY_IMAGE_GENERATED_BUT_MAY_NOT_HAVE_BEEN_IN, { duration: 5000 });
         }
       } else {
@@ -336,13 +310,7 @@ export async function generateOptimizedContent(
         });
         insertedSectionHeader = imageResult.sectionHeader;
 
-        console.log('[Content Generation] Inserting in-content image:', {
-          sectionHeader: imageResult.sectionHeader,
-          markdownImage: imageResult.markdownImage,
-          imageUrl: imageResult.imageUrl
-        });
         
-        const markdownBeforeInsertion = markdownContent;
         markdownContent = insertContentIntoSection(
           markdownContent,
           imageResult.sectionHeader,
@@ -351,15 +319,9 @@ export async function generateOptimizedContent(
         );
 
         const imageInserted = markdownContent.includes(imageResult.markdownImage);
-        console.log('[Content Generation] Image insertion verification:', {
-          imageInserted,
-          markdownLengthBefore: markdownBeforeInsertion.length,
-          markdownLengthAfter: markdownContent.length,
-          markdownImagePreview: imageResult.markdownImage.substring(0, 100)
-        });
 
         if (!imageInserted) {
-          console.error('[Content Generation] WARNING: Image markdown not found in content after insertion!');
+          logger.error('[Content Generation] WARNING: Image markdown not found in content after insertion!');
           if (!getMuteOptimizationToasts()) notify.warning(NOTIFY_IMAGE_GENERATED_BUT_MAY_NOT_HAVE_BEEN_IN, { duration: 5000 });
         }
 
@@ -372,14 +334,13 @@ export async function generateOptimizedContent(
             markdownContent,
             'text/markdown'
           );
-          console.log('[Content Generation] Updated markdown file with inserted image');
         }
       }
 
       setProgress({ step: 'In-content image generated', progress: 87.5, message: `Image inserted into "${insertedSectionHeader}" section` });
       if (!getMuteOptimizationToasts()) notify.success(notifyInContentImageGeneratedAndInserted(insertedSectionHeader), { duration: 5000 });
     } catch (error) {
-      console.error('[Content Generation] Error generating in-content image:', error);
+      logger.error('[Content Generation] Error generating in-content image:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate in-content image';
       if (!getMuteOptimizationToasts()) notify.warning(notifyInContentImageGenerationFailedXCon(errorMessage), { duration: 7000 });
       // Continue without image - don't fail the entire process
@@ -391,11 +352,8 @@ export async function generateOptimizedContent(
     try {
       const originalMedia = await extractMediaFromContent(context.existingContent, openRouterApiKey);
       preservedMediaUrls = originalMedia.map((m) => m.url).filter(Boolean);
-      if (preservedMediaUrls.length > 0) {
-        console.log(`[Content Generation] ${preservedMediaUrls.length} original media URL(s) on sanitizer allowlist (harness embeds via [IMAGE] prompts)`);
-      }
     } catch (error) {
-      console.warn('[Content Generation] Could not read original media URLs for allowlist:', error);
+      logger.warn('[Content Generation] Could not read original media URLs for allowlist:', error);
     }
   }
 
@@ -409,13 +367,8 @@ export async function generateOptimizedContent(
   if (context.inContentImageRequest && shouldOptimizeContent) {
     const imageHtmlPattern = /<img[^>]+src=["']https?:\/\/[^"']+["'][^>]*>/i;
     const hasImageInHtml = imageHtmlPattern.test(htmlContent);
-    console.log('[Content Generation] Post-HTML conversion check:', {
-      hasImageInHtml,
-      htmlContentLength: htmlContent.length,
-      htmlPreview: htmlContent.substring(0, 1000)
-    });
     if (!hasImageInHtml) {
-      console.error('[Content Generation] ERROR: No image HTML found in content after conversion!');
+      logger.error('[Content Generation] ERROR: No image HTML found in content after conversion!');
       if (!getMuteOptimizationToasts()) notify.error(NOTIFY_IN_CONTENT_IMAGE_WAS_NOT_PRESERVED_DURIN, { duration: 7000 });
     }
   }
@@ -425,17 +378,14 @@ export async function generateOptimizedContent(
   if (!skipMeta) {
     setProgress({ step: 'Crafting elegant meta description...', progress: 85, message: 'Finalizing SEO meta description...' });
 
-    console.log('[Content Generator] 🔥 Awaiting meta description (started in parallel with content generation)');
     excerpt = await metaPromise;
 
-    console.log('[Content Generator] ✅ INDEPENDENT meta description generated (not from content):', excerpt.substring(0, 80) + '...');
 
     if (!excerpt || excerpt.length < 50) {
-      console.warn(`[Content Generator] Meta description missing or too short (${excerpt?.length || 0} chars), using keyword fallback`);
+      logger.warn(`[Content Generator] Meta description missing or too short (${excerpt?.length || 0} chars), using keyword fallback`);
       excerpt = `${primaryKeyword.trim()} | Learn more.`;
       if (excerpt.length > 160) excerpt = excerpt.substring(0, 157) + '...';
     }
-    console.log('[Content Generator] AI-generated meta description:', excerpt.length + ' chars');
     setProgress({ step: 'Crafting elegant meta description...', progress: 86, message: `Meta description generated (${excerpt.length} chars)` });
   }
 

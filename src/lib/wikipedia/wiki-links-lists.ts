@@ -1,4 +1,5 @@
 import { getMediaWikiApiUrlWithQuery } from "./mediawiki-api-url";
+import { logger } from "@/lib/logger";
 
 /**
  * Gets links from a Wikipedia page (for any page type - entity or list)
@@ -79,7 +80,7 @@ export async function getLinksFromWikipediaPage(
       plcontinue = linksData.continue?.plcontinue;
       if (allLinks.length >= limit) break;
     } catch (error) {
-      console.warn(`[Wikipedia API] Error getting links from "${pageTitleTrimmed}":`, error);
+      logger.warn(`[Wikipedia API] Error getting links from "${pageTitleTrimmed}":`, error);
       break;
     }
   } while (plcontinue);
@@ -131,14 +132,13 @@ export async function extractEntitiesFromWikipediaList(pageTitle: string): Promi
             });
 
           if (entities.length > 0) {
-            console.log(`[Wikipedia API] Extracted ${entities.length} entities from links`);
             return entities.slice(0, 200);
           }
         }
       }
     }
   } catch (error) {
-    console.warn(`[Wikipedia API] Error getting links from "${pageTitle}":`, error);
+    logger.warn(`[Wikipedia API] Error getting links from "${pageTitle}":`, error);
   }
 
   const params = new URLSearchParams({
@@ -172,11 +172,10 @@ export async function extractEntitiesFromWikipediaList(pageTitle: string): Promi
       const extract = page.extract || "";
 
       if (!extract) {
-        console.warn(`[Wikipedia API] No extract content for "${pageTitle}"`);
+        logger.warn(`[Wikipedia API] No extract content for "${pageTitle}"`);
         return [];
       }
 
-      console.log(`[Wikipedia API] Extracting from text content (${extract.length} chars)`);
 
       const lines = extract.split("\n");
       const entities: string[] = [];
@@ -223,11 +222,10 @@ export async function extractEntitiesFromWikipediaList(pageTitle: string): Promi
         }
       }
 
-      console.log(`[Wikipedia API] Extracted ${entities.length} entities from text content`);
       return entities.slice(0, 200);
     }
   } catch (error) {
-    console.warn(`[Wikipedia API] Error extracting entities from "${pageTitle}":`, error);
+    logger.warn(`[Wikipedia API] Error extracting entities from "${pageTitle}":`, error);
   }
 
   return [];

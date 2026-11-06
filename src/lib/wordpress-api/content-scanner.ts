@@ -4,6 +4,7 @@
  */
 
 import { BACKEND_API_BASE } from './connection';
+import { logger } from "@/lib/logger";
 import { getWordPressPostContent } from './posts';
 import { getACFFieldsForPost } from './acf-discovery';
 import type { WordPressSite } from '@/components/integrations/types';
@@ -136,7 +137,7 @@ async function getAllPosts(
       // Handle backend returning error in JSON body (404 case)
       if (data.error) {
                 // Post type doesn't exist or isn't accessible - skip it gracefully
-        console.warn(`Post type ${postType} not available: ${data.error}`);
+        logger.warn(`Post type ${postType} not available: ${data.error}`);
         return [];
       }
       
@@ -171,7 +172,7 @@ async function getAllPosts(
         page++;
       }
     } catch (error) {
-            console.error(`Error fetching ${postType} posts (page ${page}):`, error);
+            logger.error(`Error fetching ${postType} posts (page ${page}):`, error);
       hasMore = false;
     }
   }
@@ -344,7 +345,7 @@ export async function scanWordPressSite(
             }
           } catch (acfError) {
                         // ACF fields might not be available, continue without them
-            console.warn(`Could not fetch ACF fields for post ${post.id}:`, acfError);
+            logger.warn(`Could not fetch ACF fields for post ${post.id}:`, acfError);
           }
 
           // Extract meta fields (if available in postContent)
@@ -384,7 +385,7 @@ export async function scanWordPressSite(
             onProgress?.(`Processed ${totalScanned} posts...`, progress);
           }
         } catch (error) {
-          console.error(`Error processing post ${post.id}:`, error);
+          logger.error(`Error processing post ${post.id}:`, error);
           // Continue with next post
         }
       }

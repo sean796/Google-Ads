@@ -46,6 +46,7 @@ import {
   buildLocalGridEntityPipelineHarness,
 } from "@/lib/local-grid-studio/local-grid-entity-details-harness";
 import { readSitePrimaryLocalKeyword } from "@/lib/local-grid-studio/resolve-property-primary-local-keyword";
+import { logger } from "@/lib/logger";
 import { getLocalGridDefaultLocation } from "./local-grid-panel-helpers";
 
 export interface UseLocalGridEntityPrepDeps {
@@ -168,7 +169,7 @@ export function useLocalGridEntityPrep(deps: UseLocalGridEntityPrepDeps) {
     void loadSitePrep()
       .catch((e) => {
         if (!cancelled) {
-          console.error("[LocalGrid · site prep]", e);
+          logger.error("[LocalGrid · site prep]", e);
         }
       })
       .finally(() => {
@@ -413,7 +414,7 @@ export function useLocalGridEntityPrep(deps: UseLocalGridEntityPrepDeps) {
         );
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Bulk CSV generation failed.";
-        console.error("[LocalGrid · Bulk] generate failed", err);
+        logger.error("[LocalGrid · Bulk] generate failed", err);
         reportError(`Local Dominator · ${msg}`);
         notify.error(msg);
         setBulkCsvStatus(msg);

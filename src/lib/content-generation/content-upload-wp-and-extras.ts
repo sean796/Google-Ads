@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_FAILED_TO_GENERATE_EXTRA_IMAGE_CONTINUIN, NOTIFY_FAILED_TO_GENERATE_EXTRA_TEXT_CONTINUING } from "@/lib/notify-messages";
 import { getMuteOptimizationToasts } from "@/hooks/content-optimization/optimization-toast-mute";
@@ -247,9 +248,8 @@ export async function uploadContentToWordPressWithExtras(args: ContentUploadWpAn
               }
             : undefined,
         });
-        console.log('[Content Generation Upload] Extra text generated for page:', extraTextContent?.substring(0, 100));
       } catch (error) {
-        console.error('[Content Generation Upload] Failed to generate extra text:', error);
+        logger.error('[Content Generation Upload] Failed to generate extra text:', error);
         if (!getMuteOptimizationToasts()) notify.warning(NOTIFY_FAILED_TO_GENERATE_EXTRA_TEXT_CONTINUING, { duration: 3000 });
       }
     }
@@ -267,9 +267,8 @@ export async function uploadContentToWordPressWithExtras(args: ContentUploadWpAn
           siteId: site.id
         });
         extraImageBase64 = extraImageResult.imageBase64;
-        console.log('[Content Generation Upload] Extra image generated for page');
       } catch (error) {
-        console.error('[Content Generation Upload] Failed to generate extra image:', error);
+        logger.error('[Content Generation Upload] Failed to generate extra image:', error);
         if (!getMuteOptimizationToasts()) notify.warning(NOTIFY_FAILED_TO_GENERATE_EXTRA_IMAGE_CONTINUIN, { duration: 3000 });
       }
     }

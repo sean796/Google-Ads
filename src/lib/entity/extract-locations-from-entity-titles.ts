@@ -6,6 +6,7 @@
  */
 
 import { streamChatCompletion } from '@/lib/api';
+import { logger } from "@/lib/logger";
 import { getResearchModel } from '@/lib/optimization-settings-storage';
 
 /**
@@ -72,7 +73,7 @@ Return a JSON array of neighborhood/area names extracted from these titles. Extr
       },
     });
   } catch (err) {
-    console.warn('[Entity titles → locations] AI call failed:', err);
+    logger.warn('[Entity titles → locations] AI call failed:', err);
     onProgress?.('Location extraction from titles skipped (API error).');
     return [];
   }
@@ -90,7 +91,7 @@ Return a JSON array of neighborhood/area names extracted from these titles. Extr
       }
     }
   } catch {
-    console.warn('[Entity titles → locations] Failed to parse AI response');
+    logger.warn('[Entity titles → locations] Failed to parse AI response');
     return [];
   }
 

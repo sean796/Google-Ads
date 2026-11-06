@@ -5,6 +5,7 @@ import { useState, useCallback, useEffect } from "react";
 
 import { TrendingUp, CheckCircle2, Check, ChevronDown, ChevronRight, Maximize2, Minimize2, Sparkles } from "lucide-react";
 import { notify } from "@/lib/app-notifications";
+import { logger } from "@/lib/logger";
 import { NOTIFY_CLUSTERING_REMOVED, notifyDeselectedAllXKeywordsInX, notifyDeselectedAllXSemanticKeywords, notifySelectedAllXKeywordsInX, notifySelectedAllXSemanticKeywords } from "@/lib/notify-messages";
 import type { KeywordData } from "@/lib/keyword-types";
 import { clusterKeywordsWithAI, type KeywordCluster } from "@/lib/keyword-clustering";
@@ -58,7 +59,7 @@ export function SemanticKeywordsList({
       onClustersChange?.(newClusters);
       // Silent success - no toast for automatic clustering
     } catch (error) {
-      console.error("Error clustering keywords:", error);
+      logger.error("Error clustering keywords:", error);
       // Silently fail and show unclustered list
       setClusters(null);
     } finally {

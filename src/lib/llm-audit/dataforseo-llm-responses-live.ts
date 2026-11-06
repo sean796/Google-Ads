@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import type { LlmAuditPlatform } from "@/lib/llm-audit/llm-audit-dataforseo";
 import { mcp_DataForSEO_llm_responses_live } from "@/lib/mcp-tools";
 
@@ -130,7 +131,7 @@ export async function dataforseoLlmResponsesLive(
         return DFS_LLM_UNAVAILABLE_SKIP;
       }
       if (typeof obj.error === "string" && obj.error.trim() && !Array.isArray(obj.tasks)) {
-        console.warn(`[DFS LLM] LLM response contained task error: ${obj.error}; continuing without live facts`);
+        logger.warn(`[DFS LLM] LLM response contained task error: ${obj.error}; continuing without live facts`);
         return DFS_LLM_UNAVAILABLE_SKIP;
       }
     }
@@ -143,7 +144,7 @@ export async function dataforseoLlmResponsesLive(
       markDfsPaymentFailed();
       return DFS_LLM_PAYMENT_SKIP;
     }
-    console.warn(`[DFS LLM] MCP llm_responses_live failed (${status ?? message}); continuing without live facts`);
+    logger.warn(`[DFS LLM] MCP llm_responses_live failed (${status ?? message}); continuing without live facts`);
     return DFS_LLM_UNAVAILABLE_SKIP;
   }
 }

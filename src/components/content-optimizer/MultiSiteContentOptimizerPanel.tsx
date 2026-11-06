@@ -38,6 +38,7 @@ import {
 } from "@/components/content-optimizer/multi-site-content-optimizer-panel-types";
 import { useMultiSiteBatchProgress } from "@/components/content-optimizer/use-multi-site-batch-progress";
 import { MultiSiteOptimizerSiteRow } from "@/components/content-optimizer/MultiSiteOptimizerSiteRow";
+import { logger } from "@/lib/logger";
 
 export const MultiSiteContentOptimizerPanel: React.FC<MultiSiteContentOptimizerPanelProps> = ({
   optimizerSection,
@@ -284,7 +285,7 @@ export const MultiSiteContentOptimizerPanel: React.FC<MultiSiteContentOptimizerP
         markSiteSitemapOptimized(site.id, cfg.source, batchKey);
         return true;
       } catch (e) {
-        console.error(e);
+        logger.error(e);
         notify.error(e instanceof Error ? e.message : "Optimization failed");
         return false;
       } finally {

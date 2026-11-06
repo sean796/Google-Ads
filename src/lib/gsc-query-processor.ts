@@ -9,6 +9,7 @@ import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
 import { sortGscQueriesByStats } from "@/lib/bulk/bulk-gsc-site-queries";
 import type { GscSiteQueryRow } from "@/lib/competitor-research/types";
 import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
+import { logger } from "@/lib/logger";
 
 export type GscPageQueryRow = {
   query: string;
@@ -231,7 +232,7 @@ export async function processGSCQueriesAndAnalyze(
   }
   // SIMPLE: Get recommended keyword from AI (non-blocking)
   if (serviceFocusedQueries.length === 0) {
-    console.warn('[GSC Query Processor] No service-focused queries remaining after filtering.');
+    logger.warn('[GSC Query Processor] No service-focused queries remaining after filtering.');
     return [];
   }
 
@@ -257,7 +258,7 @@ export async function processGSCQueriesAndAnalyze(
         if (primaryKeyword && isBlocklistedPrimaryKeyword(primaryKeyword)) {
           const sourceText = (acfContext?.promptModifier || acfContext?.metaDescription || '').trim();
           const replaced = sourceText ? deriveKeywordFromModifier(sourceText).trim() : firstNonBlocklistedQuery(serviceFocusedQueries);
-          console.warn('[GSC Query Processor] Blocklisted keyword replaced before UI:', { from: primaryKeyword, to: replaced, hasSource: !!sourceText });
+          logger.warn('[GSC Query Processor] Blocklisted keyword replaced before UI:', { from: primaryKeyword, to: replaced, hasSource: !!sourceText });
           primaryKeyword = replaced;
         }
         // URL/TITLE INTENT GUARDRAIL: reject keyword with zero URL-slug/title overlap
@@ -274,7 +275,7 @@ export async function processGSCQueriesAndAnalyze(
         // Second line of defense: primary keyword MUST be from GSC (verbatim or phrase in a query). Never show invented phrases like "easy clean low".
         if (primaryKeyword && !isPrimaryKeywordFromGSC(primaryKeyword, serviceFocusedQueries)) {
           primaryKeyword = bestGSCQueryForInvalidKeyword(primaryKeyword, serviceFocusedQueries, url);
-          if (primaryKeyword) console.warn('[GSC Query Processor] Non-GSC keyword; using URL-best:', primaryKeyword);
+          if (primaryKeyword) logger.warn('[GSC Query Processor] Non-GSC keyword; using URL-best:', primaryKeyword);
         }
 
         // Create simple analysis object for compatibility (never use blocklisted phrase)
@@ -294,16 +295,15 @@ export async function processGSCQueriesAndAnalyze(
         if (onClusterAnalysisComplete) {
           onClusterAnalysisComplete(simpleAnalysis);
         }
-        console.log('[Optimize Content] Keyword recommendation:', keywordRecommendation.primaryKeyword, keywordRecommendation.secondaryKeywords.length > 0 ? `+ ${keywordRecommendation.secondaryKeywords.length} secondary keywords` : '');
         if (!getMuteOptimizationToasts()) notify.success(NOTIFY_KEYWORD_RECOMMENDATION_READY, { duration: 2000 });
       } catch (error) {
-        console.error('[Optimize Content] Error getting keyword recommendation:', error);
+        logger.error('[Optimize Content] Error getting keyword recommendation:', error);
         if (onClusterAnalysisError) {
           onClusterAnalysisError(error);
         }
       }
     }).catch((error) => {
-      console.error('[Optimize Content] Unexpected error in keyword recommendation:', error);
+      logger.error('[Optimize Content] Unexpected error in keyword recommendation:', error);
       if (onClusterAnalysisError) {
         onClusterAnalysisError(error);
       }

@@ -21,6 +21,7 @@ import { resolveRankMathFromKeywordResearch } from "@/lib/bulk/bulk-keyword-rese
 import { runFeaturedImage } from "@/lib/image-generator/run-featured-image";
 import { runImageChecklist } from "@/lib/image-generator/run-image-checklist";
 import type { ImageGeneratorOptions, ImageGeneratorRunContext } from "@/lib/image-generator/image-generator-options";
+import { logger } from "@/lib/logger";
 import type { LinkTargetsPlan } from "./bulk-generation-wp-inventory";
 import type { ExternalLinkPair } from "../content-generation/external-link-placeholders";
 import type { LlmAuditAuthorityLinkLike } from "./modifier-external-links";
@@ -271,7 +272,7 @@ export async function runBulkRowContentAndMediaPhase(input: {
         placeholderPostUrl: ph,
         onProgress: (msg) => options.onProgress?.(rowIndex, 0, msg),
       }).catch((e: unknown) => {
-        console.warn('[Bulk] Precomputed ACF/FAQ bundle failed:', e);
+        logger.warn('[Bulk] Precomputed ACF/FAQ bundle failed:', e);
         return null;
       });
     };
@@ -465,11 +466,11 @@ export async function runBulkRowContentAndMediaPhase(input: {
             if (!imageResult.error?.trim() && imageBase64) {
               await persistAiFeaturedImageResult({ imageBase64 }, imageChecklistForRun);
             } else {
-              console.warn('[Bulk Auto-Generate] Featured image generation skipped (non-fatal):', imageResult.error);
+              logger.warn('[Bulk Auto-Generate] Featured image generation skipped (non-fatal):', imageResult.error);
             }
           }
         } catch (imgErr) {
-          console.warn('[Bulk Auto-Generate] Featured image pipeline failed (non-fatal):', imgErr);
+          logger.warn('[Bulk Auto-Generate] Featured image pipeline failed (non-fatal):', imgErr);
         }
       }
     };
@@ -480,7 +481,7 @@ export async function runBulkRowContentAndMediaPhase(input: {
     try {
       await runImagePipeline();
     } catch (imgErr) {
-      console.warn('[Bulk Auto-Generate] Featured image pipeline failed (non-fatal):', imgErr);
+      logger.warn('[Bulk Auto-Generate] Featured image pipeline failed (non-fatal):', imgErr);
     }
 
     precomputedAcfSeoBundle = await scheduleFaqBundlePromise();

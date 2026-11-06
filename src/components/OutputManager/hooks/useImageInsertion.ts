@@ -3,6 +3,7 @@ import type { GenerationResult } from "@/lib/api";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_CANNOT_INSERT_IMAGE_FINAL_OUTPUT_NOT_AVA, NOTIFY_FAILED_TO_INSERT_IMAGE_INTO_SECTION, notifyImageInsertedIntoXSection, notifySectionXNotFoundPleaseCheckTheSec } from "@/lib/notify-messages";
 import { insertContentIntoSection } from "@/lib/section-parser";
+import { logger } from "@/lib/logger";
 
 interface UseImageInsertionProps {
   finalOutput: string;
@@ -25,17 +26,12 @@ export function useImageInsertion({ finalOutput, setGenerationResult }: UseImage
     }
     
     try {
-      console.log('Inserting image into section:', sectionHeader);
-      console.log('Image markdown:', imageMarkdown.substring(0, 100));
-      console.log('Current finalOutput length:', currentFinalOutput.length);
       
       const updatedOutput = insertContentIntoSection(currentFinalOutput, sectionHeader, imageMarkdown, 'end');
       
-      console.log('Updated output length:', updatedOutput.length);
-      console.log('Output changed:', updatedOutput !== currentFinalOutput);
       
       if (updatedOutput === currentFinalOutput) {
-        console.warn('No change detected - section may not have been found');
+        logger.warn('No change detected - section may not have been found');
         notify.error(notifySectionXNotFoundPleaseCheckTheSec(sectionHeader));
         return;
       }
@@ -47,7 +43,7 @@ export function useImageInsertion({ finalOutput, setGenerationResult }: UseImage
       
       notify.success(notifyImageInsertedIntoXSection(sectionHeader));
     } catch (error) {
-      console.error("Error inserting image:", error);
+      logger.error("Error inserting image:", error);
       notify.error(NOTIFY_FAILED_TO_INSERT_IMAGE_INTO_SECTION);
     }
   }, [setGenerationResult]);

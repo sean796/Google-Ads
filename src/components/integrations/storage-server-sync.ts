@@ -1,5 +1,6 @@
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
 import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
+import { logger } from "@/lib/logger";
 import type { WordPressSite } from "./types";
 import { getDeletedSitesTombstones, isSiteTombstoned } from "./storage-deleted-sites";
 
@@ -54,10 +55,10 @@ export async function syncWordPressSitesToServer(sites: WordPressSite[]): Promis
       body: JSON.stringify({ sites: minimal, activeSiteId }),
     });
     if (!res.ok) {
-      console.warn("[Integrations] Server sync failed:", res.status);
+      logger.warn("[Integrations] Server sync failed:", res.status);
     }
   } catch (e) {
-    console.warn("[Integrations] Server sync error:", e);
+    logger.warn("[Integrations] Server sync error:", e);
   }
 }
 
@@ -74,10 +75,10 @@ export async function syncActiveWordPressSiteToServer(activeSiteId: string | nul
       body: JSON.stringify({ activeSiteId }),
     });
     if (!res.ok) {
-      console.warn("[Integrations] Active site sync failed:", res.status);
+      logger.warn("[Integrations] Active site sync failed:", res.status);
     }
   } catch (e) {
-    console.warn("[Integrations] Active site sync error:", e);
+    logger.warn("[Integrations] Active site sync error:", e);
   }
 }
 

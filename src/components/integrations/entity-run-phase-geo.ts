@@ -4,6 +4,7 @@ import { NOTIFY_OPENROUTER_API_KEY_IS_REQUIRED_PLEASE_SE } from "@/lib/notify-me
 import { loadApiKey, streamChatCompletion } from "@/lib/api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import type { EntityRunDeps } from "@/components/integrations/entity-run-ctx";
+import { logger } from "@/lib/logger";
 
 export async function runEntityPhaseGeo(d: EntityRunDeps): Promise<boolean> {
   const { s, v, c } = d;
@@ -75,13 +76,10 @@ if (!c.primaryCity && c.site.locations && c.site.locations.length > 0) {
   const defaultLocation = c.site.locations.find(loc => loc.isDefault) || c.site.locations[0];
   if (defaultLocation.city && defaultLocation.state) {
     c.primaryCity = `${defaultLocation.city}, ${defaultLocation.state}`;
-    console.log(`[Entity Generation] Using site default location: "${c.primaryCity}"`);
   } else if (defaultLocation.city) {
     c.primaryCity = defaultLocation.city;
-    console.log(`[Entity Generation] Using site default city: "${c.primaryCity}"`);
   } else if (defaultLocation.state) {
     c.primaryCity = defaultLocation.state;
-    console.log(`[Entity Generation] Using site default state: "${c.primaryCity}"`);
   }
 }
 
@@ -100,7 +98,6 @@ if (!c.openRouterApiKey) {
 // Step -1: If no city found from simple pattern matching, try extracting from URLs using AI and regex
 // If still no location found, try extracting from URLs
 if (!c.primaryCity) {
-  console.log('[Entity Generation] No city found from simple patterns or site location, trying AI extraction from URLs...');
   
   // First try regex patterns to extract "Near [City], [State]" or "Near [City]" from URL slugs
   const urlLocationMatches: string[] = [];
@@ -170,10 +167,8 @@ if (!c.primaryCity) {
   // Use the first regex match if found
   if (urlLocationMatches.length > 0) {
     c.primaryCity = urlLocationMatches[0];
-    console.log(`[Entity Generation] Regex extracted location from URLs: "${c.primaryCity}"`);
   } else {
     // If regex didn't work, use AI to extract location from URL slugs
-    console.log('[Entity Generation] Regex patterns failed, using AI to extract location from URLs...');
     
     // Collect URL slugs for AI analysis
     const urlSlugsForAnalysis: string[] = [];
@@ -275,12 +270,11 @@ Return ONLY the location name or "none", nothing else.`;
             })
             .join(' ');
           
-          console.log(`[Entity Generation] AI extracted location from URLs: "${c.primaryCity}"`);
         } else {
-          console.warn('[Entity Generation] AI could not extract location from URLs');
+          logger.warn('[Entity Generation] AI could not extract location from URLs');
         }
       } catch (error) {
-        console.warn('[Entity Generation] Error extracting location from URLs with AI:', error);
+        logger.warn('[Entity Generation] Error extracting location from URLs with AI:', error);
       }
     }
   }
@@ -346,10 +340,9 @@ Return ONLY the location name (properly capitalized) or "none", nothing else.`;
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
       
-      console.log(`[Entity Generation] AI extracted location from modifier: "${c.modifierLocation}"`);
     }
   } catch (error) {
-    console.warn('[Entity Generation] Error extracting location from modifier with AI, trying regex fallback:', error);
+    logger.warn('[Entity Generation] Error extracting location from modifier with AI, trying regex fallback:', error);
     // Fallback to regex patterns - check for common city names first
     const cityPatterns = [
       /\bcalgary\b/i,
@@ -385,7 +378,6 @@ Return ONLY the location name (properly capitalized) or "none", nothing else.`;
           .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
           .join(' ');
       }
-      console.log(`[Entity Generation] Regex extracted location from "in" pattern: "${c.modifierLocation}"`);
     } else {
       // Try direct location mentions - check for all US states, Canadian provinces, major cities
       const allStatesAndProvinces = /(Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New\s+Hampshire|New\s+Jersey|New\s+Mexico|New\s+York|North\s+Carolina|North\s+Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode\s+Island|South\s+Carolina|South\s+Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West\s+Virginia|Wisconsin|Wyoming|Alberta|British\s+Columbia|Manitoba|New\s+Brunswick|Newfoundland|Nova\s+Scotia|Ontario|Prince\s+Edward\s+Island|Quebec|Saskatchewan|Calgary|Edmonton|Toronto|Vancouver|Montreal|Ottawa|Winnipeg|Halifax|Victoria|Saskatoon|Regina)/i;
@@ -396,7 +388,6 @@ Return ONLY the location name (properly capitalized) or "none", nothing else.`;
           .split(' ')
           .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
           .join(' ');
-        console.log(`[Entity Generation] Regex extracted location from direct mention: "${c.modifierLocation}"`);
       } else {
         // Try city patterns as last resort
         for (const pattern of cityPatterns) {
@@ -404,7 +395,6 @@ Return ONLY the location name (properly capitalized) or "none", nothing else.`;
           if (match) {
             c.modifierLocation = match[0];
             c.modifierLocation = c.modifierLocation.charAt(0).toUpperCase() + c.modifierLocation.slice(1).toLowerCase();
-            console.log(`[Entity Generation] Regex extracted city name: "${c.modifierLocation}"`);
             break;
           }
         }
@@ -415,15 +405,14 @@ Return ONLY the location name (properly capitalized) or "none", nothing else.`;
   // CRITICAL: If modifier specifies a location, use that instead of detected city - ABSOLUTE PRIORITY
   if (c.modifierLocation && c.modifierLocation !== 'none') {
     const originalCity = c.primaryCity;
-    console.log(`[Entity Generation] ✓ User specified location in modifier: "${c.modifierLocation}" - OVERRIDING detected city: "${originalCity}" (ABSOLUTE PRIORITY)`);
     c.primaryCity = c.modifierLocation;
   } else {
     // Check if modifier clearly mentions a location but we failed to extract it
     const hasLocationKeywords = /\b(calgary|edmonton|toronto|vancouver|montreal|ottawa|winnipeg|halifax|victoria|saskatoon|regina|new york|los angeles|chicago|houston|phoenix|philadelphia|san antonio|san diego|dallas)\b/i.test(c.promptModifier);
     if (hasLocationKeywords) {
-      console.warn(`[Entity Generation] WARNING: Modifier "${c.promptModifier}" appears to mention a location but extraction failed. Using sitemap-detected city: "${c.primaryCity}"`);
+      logger.warn(`[Entity Generation] WARNING: Modifier "${c.promptModifier}" appears to mention a location but extraction failed. Using sitemap-detected city: "${c.primaryCity}"`);
     } else {
-      console.log(`[Entity Generation] No location found in modifier: "${c.promptModifier}", using sitemap-detected city: "${c.primaryCity}"`);
+      /* no known location in modifier, keep detected city */
     }
   }
 }

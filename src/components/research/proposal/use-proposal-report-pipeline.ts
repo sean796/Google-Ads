@@ -13,6 +13,7 @@ import type { CSVRow } from "@/lib/bulk/bulk-csv-parser";
 import type { GridKeywordWeight, } from "@/lib/process-local-dominator-upload";
 import type { LocalDominatorRow } from "@/lib/local-dominator-csv";
 import { loadApiKey } from "@/lib/api";
+import { logger } from "@/lib/logger";
 import { DEFAULT_SETTINGS } from "@/lib/optimization-settings-defaults";
 import { getOptimizationSettings, getResearchModel } from "@/lib/optimization-settings-storage";
 import { getPrimaryCityStateLabel, resolvePrimaryLocationLabel } from "@/lib/primary-location-from-site";
@@ -323,18 +324,13 @@ export function useProposalReportPipeline(args: UseProposalReportPipelineArgs) {
       if (combined) {
         try {
           const { auditProposalWithDecisionAgent } = await import("@/lib/decision-tree/studio-decision-auditor");
-          const proposalAudit = await auditProposalWithDecisionAgent({
+          await auditProposalWithDecisionAgent({
             clientName: reportSiteName || "Client Proposal",
             proposalText: combined,
             siteId: reportSiteId,
           });
-          console.log(
-            `%c[Decision Agent] 📊 Proposal Strategy audited: ${proposalAudit.verdict} (Strategic Fit: ${(proposalAudit.strategicFitProbability * 100).toFixed(0)}%, Feasibility: ${proposalAudit.feasibilityScore}/3)`,
-            "color: #84bc00; font-weight: bold;",
-            proposalAudit,
-          );
         } catch (auditErr) {
-          console.warn("[Decision Agent] Proposal audit warning:", auditErr);
+          logger.warn("[Decision Agent] Proposal audit warning:", auditErr);
         }
       }
 

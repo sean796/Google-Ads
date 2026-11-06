@@ -2,6 +2,7 @@ import { z } from "zod";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
 import { parseModelJson } from "@/lib/model-json";
 import { getProductionModel } from "@/lib/optimization-settings-storage";
+import { logger } from "@/lib/logger";
 import type { ImportedBlogDraft, ImportedBlogSection } from "./blog-import-parser";
 import { parseImportedSectionsJson } from "./bulk-csv-parser";
 import type { CSVRow } from "./bulk-csv-parser";
@@ -135,7 +136,7 @@ export async function analyzeImportedBlogTone(args: {
         : [],
     };
   } catch (e) {
-    console.warn("[Blog Import] Tone analysis failed (non-fatal):", e);
+    logger.warn("[Blog Import] Tone analysis failed (non-fatal):", e);
     return null;
   }
 }

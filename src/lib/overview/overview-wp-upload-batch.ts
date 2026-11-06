@@ -253,12 +253,6 @@ async function uploadPreparedChunk(
   });
 
   const items = chunkPrepared.map(({ entry }) => entry.bundle.item);
-  const first = chunkPrepared[0];
-  console.info("[WP upload] POST", `${wpBatch}/${wpBatchCount}`, {
-    count: items.length,
-    postId: first?.entry.bundle.item.postId ?? null,
-    url: first?.url ?? "",
-  });
   applyWpUploadBatchProgress(harnessSetters, {
     done: wpBatch - 1,
     total: wpBatchCount,
@@ -405,12 +399,6 @@ export async function runOverviewWpUploadBatch(
       wpBatch,
       wpBatchCount,
     );
-    const row = outcome.results[0];
-    console.info("[WP upload]", `${wpBatch}/${wpBatchCount}`, {
-      count: chunk.length,
-      postId: row?.postId ?? null,
-      url: row?.url ?? chunk[0]?.url ?? "",
-    });
     results.push(...outcome.results);
     failures.push(...outcome.failures);
   }

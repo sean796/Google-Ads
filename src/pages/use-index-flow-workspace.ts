@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect, type Dispatch, type SetStateAction } from "react";
+import { logger } from "@/lib/logger";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_BLUEPRINT_RESET_SUCCESSFUL_READY_FOR_A_N, NOTIFY_DRAFT_IS_INVALID_OR_USES_A_RETIRED_FORMA, NOTIFY_DRAFT_RECOVERED_SUCCESSFULLY, NOTIFY_WORKSPACE_RESET_SUCCESSFUL_ALL_CACHE_CLE, notifyXAttachedFileSMissingUploadViaKb } from "@/lib/notify-messages";
 import { loadApiKey, type GenerationResult } from "../lib/api";
@@ -238,7 +239,7 @@ const loadKBFiles = () => {
         const storedFiles = JSON.parse(storedFilesString) as StoredFile[];
         setKnowledgeFiles(storedFiles);
 } catch (error) {
-        console.error('Error loading knowledge base files:', error);
+        logger.error('Error loading knowledge base files:', error);
 }
     };
 
@@ -262,7 +263,7 @@ const loadKBFiles = () => {
           const storedFiles = JSON.parse(e.newValue) as StoredFile[];
           setKnowledgeFiles(storedFiles);
         } catch (error) {
-          console.error('Error parsing files from storage event:', error);
+          logger.error('Error parsing files from storage event:', error);
         }
       }
     };

@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import type { MutableRefObject } from "react";
 import { flushSync } from "react-dom";
 import { notify } from "@/lib/app-notifications";
+import { logger } from "@/lib/logger";
 import { NOTIFY_CONNECT_A_WORDPRESS_SITE_FIRST_IN_THE_IN } from "@/lib/notify-messages";
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
@@ -224,7 +225,7 @@ export function useOverviewTabAutoSeoOptimizeAll({
                 resolvedHtml = sourceRes.html;
               }
             } catch (err) {
-              console.warn("[Auto SEO] Source HTML resolve warning for", url, err);
+              logger.warn("[Auto SEO] Source HTML resolve warning for", url, err);
             }
           }
 
@@ -263,7 +264,7 @@ export function useOverviewTabAutoSeoOptimizeAll({
               if (!isOptimizeAllRunCurrent(runId)) return;
               latestRow = rowsRef.current[idx] ?? latestRow;
             } catch (err) {
-              console.warn("[Auto SEO] Research step warning for", url, err);
+              logger.warn("[Auto SEO] Research step warning for", url, err);
             } finally {
               updateRow(idx, { status: "idle" });
             }
@@ -324,7 +325,7 @@ export function useOverviewTabAutoSeoOptimizeAll({
                 };
                 updateRow(idx, { elementorSectionHeaders: [...workingHeaders] });
               } catch (err) {
-                console.warn(
+                logger.warn(
                   `[Auto SEO] Page section ${sIdx + 1} warning for ${url}:`,
                   err,
                 );
@@ -391,12 +392,12 @@ export function useOverviewTabAutoSeoOptimizeAll({
                 url,
                 html: finalHtml,
               }).catch((err) => {
-                console.warn("[Auto SEO] Background WP upload warning for", url, err);
+                logger.warn("[Auto SEO] Background WP upload warning for", url, err);
               });
             }
           }
         } catch (postErr) {
-          console.warn("[Auto SEO] Article chain error for", url, postErr);
+          logger.warn("[Auto SEO] Article chain error for", url, postErr);
         } finally {
           updateRow(idx, { status: "idle" });
         }

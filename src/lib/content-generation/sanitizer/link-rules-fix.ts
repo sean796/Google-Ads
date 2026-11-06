@@ -16,7 +16,6 @@ export function fixMalformedLinks(content: string): string {
   const urlPattern1 = /\[URL:\s*(https?:\/\/[^\]]+)\]/gi;
   fixed = fixed.replace(urlPattern1, (match) => {
     removedCount++;
-    console.log(`[Content Sanitizer] Removed malformed link format [URL: ...]: "${match.substring(0, 60)}..." (links must be integrated contextually, not appended)`);
     return ''; // Remove entirely - links should be integrated by AI, not appended
   });
   
@@ -24,7 +23,6 @@ export function fixMalformedLinks(content: string): string {
   const urlPattern2 = /\[url:\s*(https?:\/\/[^\]]+)\]/gi;
   fixed = fixed.replace(urlPattern2, (match) => {
     removedCount++;
-    console.log(`[Content Sanitizer] Removed malformed link format [url: ...]: "${match.substring(0, 60)}..." (links must be integrated contextually, not appended)`);
     return ''; // Remove entirely
   });
   
@@ -34,7 +32,6 @@ export function fixMalformedLinks(content: string): string {
   const appendedLinkPattern = /\.\s+\[(?:URL|url):\s*(https?:\/\/[^\]]+)\]/gi;
   fixed = fixed.replace(appendedLinkPattern, (match) => {
     removedCount++;
-    console.log(`[Content Sanitizer] Removed appended link at end of sentence: "${match.substring(0, 60)}..." (links must be integrated contextually)`);
     return '.'; // Keep the period, remove the appended link
   });
   
@@ -44,7 +41,6 @@ export function fixMalformedLinks(content: string): string {
   const tableCellAppendedPattern = /\|\s*([^|]*?)\s*\[(?:URL|url):\s*(https?:\/\/[^\]]+)\]\s*\|/gi;
   fixed = fixed.replace(tableCellAppendedPattern, (match, cellContent) => {
     removedCount++;
-    console.log(`[Content Sanitizer] Removed appended link from table cell: "[URL: ...]" (links must be integrated into cell content, not appended)`);
     // Remove the [URL: ...] part, keep the cell content
     return `| ${cellContent.trim()} |`;
   });
@@ -54,7 +50,6 @@ export function fixMalformedLinks(content: string): string {
   const appendedLinkNoPeriodPattern = /([^\s])\s+\[(?:URL|url):\s*(https?:\/\/[^\]]+)\]/gi;
   fixed = fixed.replace(appendedLinkNoPeriodPattern, (match, beforeChar) => {
     removedCount++;
-    console.log(`[Content Sanitizer] Removed appended link: "[URL: ...]" (links must be integrated contextually, not appended)`);
     return beforeChar; // Keep the character before, remove the appended link
   });
   
@@ -62,10 +57,6 @@ export function fixMalformedLinks(content: string): string {
   fixed = fixed.replace(/\s{2,}/g, ' '); // Replace multiple spaces with single space
   fixed = fixed.replace(/\s+\./g, '.'); // Remove spaces before periods
   fixed = fixed.replace(/\|\s+\|/g, '| |'); // Fix empty table cells with extra spaces
-  
-  if (removedCount > 0) {
-    console.log(`[Content Sanitizer] Removed ${removedCount} malformed/appended link(s) - links must be integrated contextually into content, not appended as [URL: ...]`);
-  }
   
   return fixed;
 }
@@ -118,10 +109,6 @@ export function fixOrphanedListItems(content: string): string {
     fixCount++;
     return `<ul>${match}</ul>`;
   });
-
-  if (fixCount > 0) {
-    console.log(`[Content Sanitizer] fixOrphanedListItems: fixed ${fixCount} orphaned list issue(s)`);
-  }
 
   return fixed;
 }

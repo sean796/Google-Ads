@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { loadApiKey } from "@/lib/api";
 import {
   generateLocalKeywordForEntityPage,
@@ -61,7 +62,7 @@ Return ONLY the keyword phrase, nothing else. No quotes, no explanation.`,
       }
     }
   } catch (error) {
-    console.warn("[Keyword Extraction] Failed to extract keyword from title via AI, falling back:", error);
+    logger.warn("[Keyword Extraction] Failed to extract keyword from title via AI, falling back:", error);
   }
 
   const cleanTitle = title.replace(/<[^>]+>/g, "").trim();
@@ -107,7 +108,7 @@ export async function extractKeywordFromContent(
         }
       }
     } catch (error) {
-      console.warn("[Keyword Extraction] Failed to generate AI keyword, falling back:", error);
+      logger.warn("[Keyword Extraction] Failed to generate AI keyword, falling back:", error);
     }
   }
 
@@ -225,7 +226,7 @@ Return ONLY the keyword phrase, nothing else. No quotes, no explanation.`,
     const cleaned = aiKeyword.replace(/^["']|["']$/g, "").trim().substring(0, 80);
     return cleaned.length >= 3 ? cleaned : "";
   } catch (error) {
-    console.warn("[Keyword Inference] Failed to infer keyword from title/meta via AI:", error);
+    logger.warn("[Keyword Inference] Failed to infer keyword from title/meta via AI:", error);
     return "";
   }
 }

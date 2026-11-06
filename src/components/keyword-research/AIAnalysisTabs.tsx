@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
+import { logger } from "@/lib/logger";
 
 import { Sparkles } from "lucide-react";
 import { notify } from "@/lib/app-notifications";
@@ -131,7 +132,7 @@ export function AIAnalysisTabs({
 
       notify.success(notifyExtractedXPaaQuestions(result.questions.length));
     } catch (error) {
-      console.error("[AIAnalysisTabs] Error extracting PAA questions:", error);
+      logger.error("[AIAnalysisTabs] Error extracting PAA questions:", error);
       notify.error(notifyFailedToExtractPaaQuestionsX(error instanceof Error ? error.message : "Unknown error"));
     } finally {
       setIsExtractingPaa(false);

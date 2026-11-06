@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { logger } from "@/lib/logger";
 import { knowledgeBaseDetailsCanOpen } from "@/components/knowledge-base/knowledge-base-details-can-open";
 import { notify } from "@/lib/app-notifications";
 import {
@@ -74,7 +75,7 @@ export function useKnowledgeBase({
         setFiles(storedFiles);
         onFilesUpdate(storedFiles);
       } catch (error) {
-        console.error("Error loading files from localStorage:", error);
+        logger.error("Error loading files from localStorage:", error);
       }
     };
 
@@ -85,7 +86,7 @@ export function useKnowledgeBase({
           setFiles(newFiles);
           onFilesUpdate(newFiles);
         } catch (error) {
-          console.error("Error parsing files from storage event:", error);
+          logger.error("Error parsing files from storage event:", error);
         }
       }
     };
@@ -379,7 +380,7 @@ export function useKnowledgeBase({
       if (err instanceof Error && err.name === "AbortError") {
         notify.message(NOTIFY_SITE_SCRAPE_CANCELLED);
       } else {
-        console.error("Site scraper error:", err);
+        logger.error("Site scraper error:", err);
         notify.error(NOTIFY_SITE_SCRAPER_FAILED_SEE_CONSOLE_FOR_DETA);
       }
     } finally {

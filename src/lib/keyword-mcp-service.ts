@@ -4,6 +4,7 @@
  */
 
 import { resolveMcpApiBase } from "@/lib/mcp-tools";
+import { logger } from "@/lib/logger";
 import type { KeywordData, KeywordResearchResult } from "./keyword-types";
 import { loadDataForSEOApiKey } from "./api";
 import { withDataForSeoLocationCode } from "./dataforseo-location-code";
@@ -49,7 +50,6 @@ export async function callMCPKeywordOverview(
   }
 
   try {
-    console.log('[MCP Service] Calling keyword overview for:', { keywords: labsKeywords, locationName, languageCode });
     
     const { mcp_DataForSEO_dataforseo_labs_google_keyword_overview } = await import('@/lib/mcp-tools');
 
@@ -61,14 +61,12 @@ export async function callMCPKeywordOverview(
       }),
     );
     
-    console.log('[MCP Service] Raw result from API:', result);
 
     const transformed = transformMCPKeywordData(result);
-    console.log('[MCP Service] Transformed results:', transformed);
     return transformed;
   } catch (error) {
-    console.error("[MCP Service] Keyword overview error:", error);
-    console.error("[MCP Service] Error details:", {
+    logger.error("[MCP Service] Keyword overview error:", error);
+    logger.error("[MCP Service] Error details:", {
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
     });
@@ -104,7 +102,7 @@ export async function callMCPSemanticKeywords(
     );
     return transformMCPSemanticData(result);
   } catch (error) {
-    console.error("MCP semantic keywords error:", error);
+    logger.error("MCP semantic keywords error:", error);
     throw new Error(
       `Failed to get semantic keywords: ${error instanceof Error ? error.message : "Unknown error"}`
     );
@@ -158,28 +156,20 @@ function asMcpResponse(apiResponse: unknown): McpApiResponse {
 function transformMCPKeywordData(apiResponse: unknown): KeywordData[] {
   // Transform based on DataForSEO API response structure
   // Structure: tasks[].result[] where each result has { keyword, keyword_info }
-  console.log('[Transform] Raw API response:', JSON.stringify(apiResponse, null, 2));
   const response = asMcpResponse(apiResponse);
 
   if (!response.tasks || !Array.isArray(response.tasks)) {
-    console.warn('[Transform] No tasks array in response');
+    logger.warn('[Transform] No tasks array in response');
     return [];
   }
 
   const results: KeywordData[] = [];
 
   for (const task of response.tasks) {
-    console.log('[Transform] Processing task:', {
-      status_code: task.status_code,
-      status_message: task.status_message,
-      result_count: task.result_count,
-      has_result: !!task.result,
-      result_type: Array.isArray(task.result) ? 'array' : typeof task.result
-    });
     
     // Check for errors first
     if (task.status_code && task.status_code !== 20000) {
-      console.error('[Transform] Task error:', {
+      logger.error('[Transform] Task error:', {
         status_code: task.status_code,
         status_message: task.status_message
       });
@@ -190,13 +180,6 @@ function transformMCPKeywordData(apiResponse: unknown): KeywordData[] {
       // DataForSEO keyword_overview returns: tasks[].result[] 
       // Each result item can have: { keyword, keyword_info } OR { items: [...] }
       for (const resultItem of task.result) {
-        console.log('[Transform] Processing result item:', {
-          has_keyword: !!resultItem.keyword,
-          has_keyword_info: !!resultItem.keyword_info,
-          has_items: !!resultItem.items,
-          items_count: resultItem.items_count,
-          item_keys: Object.keys(resultItem)
-        });
         
         // Check if result has items array (when items_count > 0)
         if (resultItem.items && Array.isArray(resultItem.items) && resultItem.items.length > 0) {
@@ -232,7 +215,6 @@ function transformMCPKeywordData(apiResponse: unknown): KeywordData[] {
             serpFeatures: [],
           };
           
-          console.log('[Transform] Created keyword data:', keywordData);
           results.push(keywordData);
         } 
         else if (resultItem.items_count === 0 || resultItem.items === null) {
@@ -240,7 +222,7 @@ function transformMCPKeywordData(apiResponse: unknown): KeywordData[] {
         }
         else if (resultItem.keyword) {
           // Fallback: if we have keyword but no keyword_info, create minimal entry
-          console.warn('[Transform] Item has keyword but no keyword_info:', resultItem.keyword);
+          logger.warn('[Transform] Item has keyword but no keyword_info:', resultItem.keyword);
           results.push({
             keyword: resultItem.keyword,
             difficulty: 0,
@@ -255,7 +237,6 @@ function transformMCPKeywordData(apiResponse: unknown): KeywordData[] {
       }
     } else if (task.result && typeof task.result === 'object' && !Array.isArray(task.result)) {
       // Handle case where result is a single object, not an array
-      console.log('[Transform] Result is single object, not array');
       const resultItem = task.result;
       
       if (resultItem.keyword_info) {
@@ -290,7 +271,7 @@ function transformMCPSemanticData(apiResponse: unknown): KeywordData[] {
 
   for (const task of response.tasks) {
     if (task.status_code && task.status_code !== 20000) {
-      console.error('[Transform Semantic] Task error:', {
+      logger.error('[Transform Semantic] Task error:', {
         status_code: task.status_code,
         status_message: task.status_message
       });
@@ -353,7 +334,6 @@ function transformMCPSemanticData(apiResponse: unknown): KeywordData[] {
     }
   }
 
-  console.log('[Transform Semantic] Extracted', results.length, 'keyword results');
   return results;
 }
 
@@ -433,7 +413,6 @@ export async function callPageIntersection(
   const MCP_API_BASE = resolveMcpApiBase();
   
   try {
-    console.log('[Page Intersection] Calling API with:', { pages, location, language, intersectionMode });
     
     const response = await fetch(`${MCP_API_BASE}/DataForSEO_dataforseo_labs_google_page_intersection`, {
       method: 'POST',
@@ -448,16 +427,15 @@ export async function callPageIntersection(
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[Page Intersection] API error response:', errorText);
+      logger.error('[Page Intersection] API error response:', errorText);
       throw new Error(`Page intersection API error: ${response.status} - ${errorText}`);
     }
     
     const result = await response.json();
-    console.log('[Page Intersection] API response received');
     
     return result;
   } catch (error) {
-    console.error('[Page Intersection] Error:', error);
+    logger.error('[Page Intersection] Error:', error);
     throw new Error(
       `Failed to get page intersection data: ${error instanceof Error ? error.message : 'Unknown error'}`
     );

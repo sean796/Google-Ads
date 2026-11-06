@@ -112,13 +112,10 @@ export function determinePrimaryCity(
     const defaultLocation = site.locations.find(loc => loc.isDefault) || site.locations[0];
     if (defaultLocation.city && defaultLocation.state) {
       primaryCity = `${defaultLocation.city}, ${defaultLocation.state}`;
-      console.log(`[Entity Generation] Using site default location: "${primaryCity}"`);
     } else if (defaultLocation.city) {
       primaryCity = defaultLocation.city;
-      console.log(`[Entity Generation] Using site default city: "${primaryCity}"`);
     } else if (defaultLocation.state) {
       primaryCity = defaultLocation.state;
-      console.log(`[Entity Generation] Using site default state: "${primaryCity}"`);
     }
   }
 

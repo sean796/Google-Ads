@@ -3,6 +3,7 @@
  * Handles featured image generation, upload, and management
  */
 
+import { logger } from "@/lib/logger";
 import { notify } from "@/lib/app-notifications";
 import { buildImagePrompt } from "@/lib/image-prompt-builder";
 import { NOTIFY_FEATURED_IMAGE_GENERATED_BUT_UPLOAD_FAIL, NOTIFY_GOOGLE_MAPS_FEATURED_IMAGE_GENERATED_BUT, notifyFeaturedImageGeneratedAndUploadedId, notifyGoogleMapsFeaturedImageGeneratedAnd, notifyGoogleMapsFeaturedImageGenerationFa, notifyKeepingExistingFeaturedImageIdX } from "@/lib/notify-messages";
@@ -87,10 +88,9 @@ export async function handleFeaturedImage(
               typeof (existingFeaturedMedia as { id?: unknown }).id === 'number'
             ? (existingFeaturedMedia as { id: number }).id
             : undefined;
-      console.log('[Optimize Content] Keeping existing featured image:', featuredImageId);
       if (featuredImageId && !getMuteOptimizationToasts()) notify.info(notifyKeepingExistingFeaturedImageIdX(featuredImageId), { duration: 3000 });
     } else {
-      console.log('[Optimize Content] No existing featured image found');
+      /* no existing featured image to keep */
     }
   } else if (shouldOptimizeFeaturedImage && (markdownContent || existingContent)) {
     // Check if Google Maps image is requested and entity is available
@@ -138,14 +138,13 @@ export async function handleFeaturedImage(
         
         if (uploadResult.success && uploadResult.mediaId) {
           featuredImageId = uploadResult.mediaId;
-          console.log('[Optimize Content] Google Maps featured image uploaded successfully:', featuredImageId);
           if (!getMuteOptimizationToasts()) notify.success(notifyGoogleMapsFeaturedImageGeneratedAnd(featuredImageId), { duration: 3000 });
         } else {
-          console.warn('[Optimize Content] Failed to upload Google Maps featured image:', uploadResult.error);
+          logger.warn('[Optimize Content] Failed to upload Google Maps featured image:', uploadResult.error);
           if (!getMuteOptimizationToasts()) notify.warning(NOTIFY_GOOGLE_MAPS_FEATURED_IMAGE_GENERATED_BUT, { duration: 5000 });
         }
       } catch (error) {
-        console.error('[Optimize Content] Error generating/uploading Google Maps featured image:', error);
+        logger.error('[Optimize Content] Error generating/uploading Google Maps featured image:', error);
         if (!getMuteOptimizationToasts()) notify.error(notifyGoogleMapsFeaturedImageGenerationFa(error instanceof Error ? error.message : 'Unknown error'), { duration: 5000 });
       }
     }
@@ -333,14 +332,13 @@ export async function handleFeaturedImage(
       
       if (uploadResult.success && uploadResult.mediaId) {
         featuredImageId = uploadResult.mediaId;
-        console.log('[Optimize Content] Featured image uploaded successfully:', featuredImageId);
         if (!getMuteOptimizationToasts()) notify.success(notifyFeaturedImageGeneratedAndUploadedId(featuredImageId), { duration: 3000 });
       } else {
-        console.warn('[Optimize Content] Failed to upload featured image:', uploadResult.error);
+        logger.warn('[Optimize Content] Failed to upload featured image:', uploadResult.error);
         if (!getMuteOptimizationToasts()) notify.warning(NOTIFY_FEATURED_IMAGE_GENERATED_BUT_UPLOAD_FAIL, { duration: 5000 });
       }
     } catch (error) {
-      console.error('[Optimize Content] Error generating/uploading featured image:', error);
+      logger.error('[Optimize Content] Error generating/uploading featured image:', error);
     }
     }
   }

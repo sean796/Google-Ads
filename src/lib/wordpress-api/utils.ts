@@ -4,6 +4,7 @@
  */
 
 import { BACKEND_CONNECTION_ERROR, backendApiUrl } from './connection';
+import { logger } from "@/lib/logger";
 import type {
   GenerateEntitiesResult,
   CheckFuturePostsResult
@@ -80,7 +81,7 @@ Return ONLY a JSON array of location names. Example format:
       },
     });
   } catch (streamError) {
-    console.error('[generateEntities] streamGeneration failed:', streamError);
+    logger.error('[generateEntities] streamGeneration failed:', streamError);
     throw new Error(`AI generation failed: ${streamError instanceof Error ? streamError.message : 'Unknown error'}`);
   }
   
@@ -107,7 +108,7 @@ Return ONLY a JSON array of location names. Example format:
         .slice(0, count);
     }
   } catch (parseError) {
-    console.warn('[generateEntities] Failed to parse AI response:', parseError);
+    logger.warn('[generateEntities] Failed to parse AI response:', parseError);
     throw new Error(`Failed to parse generated entities: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
   }
 

@@ -1,5 +1,6 @@
 import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
 import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
+import { logger } from "@/lib/logger";
 
 /**
  * Filters competitor keywords from a string array using AI (similar to Content Optimizer logic)
@@ -32,12 +33,11 @@ export async function filterCompetitorKeywordsFromStrings(
       const filtered = await filterBatchOfKeywordStrings(batch, siteUrl, companyName, apiKey, model);
       validKeywords.push(...filtered);
     } catch (error) {
-      console.warn('[Keyword AI Analyzer] Error filtering competitor keywords batch:', error);
+      logger.warn('[Keyword AI Analyzer] Error filtering competitor keywords batch:', error);
       // Fail-safe: skip this batch
     }
   }
 
-  console.log(`[Keyword AI Analyzer] Filtered ${keywords.length - validKeywords.length} competitor keywords. ${validKeywords.length} product/service keywords remaining.`);
   return validKeywords;
 }
 
@@ -81,7 +81,7 @@ Return JSON array of keyword numbers to KEEP: [1, 3, 5]`;
     }
     return keywords;
   } catch (error) {
-    console.warn('[Keyword AI Analyzer] Error filtering keywords:', error);
+    logger.warn('[Keyword AI Analyzer] Error filtering keywords:', error);
     return keywords;
   }
 }
@@ -114,7 +114,7 @@ async function checkIfServiceKeywordString(
     const content = data.choices?.[0]?.message?.content?.trim().toLowerCase() || '';
     return content.includes('true');
   } catch (error) {
-    console.warn('[Keyword AI Analyzer] Error checking single keyword:', error);
+    logger.warn('[Keyword AI Analyzer] Error checking single keyword:', error);
     return true;
   }
 }

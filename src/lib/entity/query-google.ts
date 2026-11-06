@@ -4,6 +4,7 @@
  */
 
 import { resolveMcpApiBase } from "@/lib/mcp-tools";
+import { logger } from "@/lib/logger";
 import { streamChatCompletion } from '@/lib/api';
 import { getResearchModel } from '@/lib/optimization-settings-storage';
 
@@ -181,7 +182,7 @@ export async function fetchSerpOrganic(
     }),
   });
   if (!res.ok) {
-    console.warn('[Entity] SERP request failed:', await res.text());
+    logger.warn('[Entity] SERP request failed:', await res.text());
     return [];
   }
   const data = await res.json();

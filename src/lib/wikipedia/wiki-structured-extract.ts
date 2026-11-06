@@ -1,5 +1,6 @@
 import { getResearchModel } from "../optimization-settings-storage";
 import { fetchWikipediaContent } from "./wiki-fetch-content";
+import { logger } from "@/lib/logger";
 
 /**
  * Extracts structured data from Wikipedia content using AI based on criteria
@@ -82,7 +83,7 @@ Return ONLY valid JSON, no explanations.`;
       const extractedData = JSON.parse(extractionResponse) as Record<string, unknown>;
       return extractedData;
     } catch (parseError) {
-      console.warn(`[Wikipedia API] Failed to parse extraction response for "${entity}":`, parseError);
+      logger.warn(`[Wikipedia API] Failed to parse extraction response for "${entity}":`, parseError);
       return {
         matches: false,
         confidence: 0,
@@ -91,7 +92,7 @@ Return ONLY valid JSON, no explanations.`;
       };
     }
   } catch (error) {
-    console.warn(`[Wikipedia API] Error extracting structured data for "${entity}":`, error);
+    logger.warn(`[Wikipedia API] Error extracting structured data for "${entity}":`, error);
     return {
       matches: false,
       confidence: 0,

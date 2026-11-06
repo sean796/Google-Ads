@@ -9,6 +9,7 @@ import type { KeywordData, KeywordAIAnalysis } from "@/lib/keyword-types";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import type { WordPressSite } from "@/components/integrations/types";
 import { postOpenRouterAppChat } from "@/lib/openrouter-app-api";
+import { logger } from "@/lib/logger";
 
 export interface KeywordSelection {
   query: string;
@@ -44,7 +45,7 @@ export async function performKeywordResearch(
     getKeywordOverview(keywordsToResearch, "United States", "en", true).catch((e) => {
       const msg = e instanceof Error ? e.message : String(e);
       const isTimeout = msg.includes("timeout") || msg.includes("ECONNABORTED");
-      console.warn("[Optimize Content] DataForSEO keyword overview failed, using GSC-only data:", isTimeout ? "timeout" : msg);
+      logger.warn("[Optimize Content] DataForSEO keyword overview failed, using GSC-only data:", isTimeout ? "timeout" : msg);
       if (!getMuteOptimizationToasts())
         notify.info(NOTIFY_USING_GSC_ONLY);
       return [] as KeywordData[];
@@ -170,7 +171,7 @@ Return a concise analysis (2-3 sentences) of trade-relevant local conditions: ho
     });
     return content.trim();
   } catch (error) {
-    console.error("[Entity Analysis] Error analyzing entity:", error);
+    logger.error("[Entity Analysis] Error analyzing entity:", error);
     return "";
   }
 }

@@ -7,6 +7,7 @@ import { createTempKbFile, updateKbFile } from '@/lib/kb-file-utils';
 import type { StoredFile } from '@/components/KnowledgeBaseTab';
 import { resolveModelForAgentCategory } from '@/lib/openrouter-agent-category-api';
 import { KB_FILES_STORAGE_KEY } from "@/lib/knowledge-graph-auto-trigger-shared";
+import { logger } from "@/lib/logger";
 
 const SAVED_GRAPHS_KEY = 'kg_saved_graphs'; // Track saved graphs to prevent duplicates
 
@@ -20,7 +21,7 @@ function markGraphAsSaved(siteId: string, generatedAt: string): void {
       sessionStorage.setItem(SAVED_GRAPHS_KEY, JSON.stringify(saved));
     }
   } catch (e) {
-    console.error('Error marking graph as saved:', e);
+    logger.error('Error marking graph as saved:', e);
   }
 }
 
@@ -86,7 +87,7 @@ Provide a concise summary that preserves all critical information while minimizi
     
     return summarizedText.trim();
   } catch (error) {
-    console.error('[Knowledge Graph] Error summarizing with AI:', error);
+    logger.error('[Knowledge Graph] Error summarizing with AI:', error);
     throw error;
   }
 }
@@ -104,7 +105,6 @@ export async function saveGraphToKnowledgeBase(graphData: KnowledgeGraph): Promi
     const siteId = graphJSON.metadata.site_id || 'unknown';
     const generatedAt = graphJSON.metadata.generated_at || '';
     if (isGraphAlreadySaved(siteId, generatedAt)) {
-      console.log('[Knowledge Graph] Graph already saved, skipping duplicate');
       return;
     }
     
@@ -163,7 +163,7 @@ export async function saveGraphToKnowledgeBase(graphData: KnowledgeGraph): Promi
         
         notify.success(notifyKnowledgeGraphSummarizedXkbXkb(Math.round(jsonString.length / 1024), Math.round(finalSize / 1024)));
       } catch (error) {
-        console.error('[Knowledge Graph] AI summarization failed, using original JSON:', error);
+        logger.error('[Knowledge Graph] AI summarization failed, using original JSON:', error);
         notify.warning(NOTIFY_AI_SUMMARIZATION_FAILED_SAVING_ORIGINAL_);
         // Continue with original content
         // Remove temp file if it exists
@@ -212,7 +212,7 @@ export async function saveGraphToKnowledgeBase(graphData: KnowledgeGraph): Promi
     
     notify.success(notifyKnowledgeGraphSavedToKnowledgeBase(sizeText));
   } catch (error) {
-    console.error('Error saving graph to knowledge base:', error);
+    logger.error('Error saving graph to knowledge base:', error);
     notify.error(notifyFailedToSaveGraphToKnowledgeBaseX(error instanceof Error ? error.message : 'Unknown error'));
     throw error;
   }

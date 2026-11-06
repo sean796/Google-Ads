@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { loadApiKey } from "@/lib/api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { appendMasterInstructionsToSystemPrompt, ensureMasterInstructionsInMemory } from "@/lib/master-instructions-storage";
@@ -113,7 +114,7 @@ Return ONLY the optimized title, nothing else. No quotes, no explanation.`
       }
     }
   } catch (error) {
-    console.warn('[Title Optimizer] Failed to generate optimized title via AI, using fallback:', error);
+    logger.warn('[Title Optimizer] Failed to generate optimized title via AI, using fallback:', error);
   }
   
   // Fallback: create keyword-based title

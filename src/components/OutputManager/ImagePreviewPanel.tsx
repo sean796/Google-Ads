@@ -5,6 +5,7 @@ import { NOTIFY_FAILED_TO_PREPARE_IMAGE_FOR_INSERTION, NOTIFY_INSERT_IMAGE_FUNCT
 import { downloadImage, copyImageToClipboard } from "./image-utils";
 import { MarkdownSection } from "@/lib/section-parser";
 import { Button, SelectField } from "@/ui";
+import { logger } from "@/lib/logger";
 
 interface ImagePreviewPanelProps {
   generatedImageUrl: string | null;
@@ -76,7 +77,7 @@ export const ImagePreviewPanel = ({
       // Create blob URL
       return URL.createObjectURL(blob);
     } catch (error) {
-      console.error('Error converting to blob URL:', error);
+      logger.error('Error converting to blob URL:', error);
       return null;
     }
   };
@@ -136,7 +137,7 @@ export const ImagePreviewPanel = ({
       onInsertImage(selectedInsertSection, imageMarkdown);
       notify.dismiss(loadingToast);
     } catch (error) {
-      console.error('Error formatting image:', error);
+      logger.error('Error formatting image:', error);
       notify.error(NOTIFY_FAILED_TO_PREPARE_IMAGE_FOR_INSERTION);
       notify.dismiss(loadingToast);
     }
@@ -208,10 +209,9 @@ export const ImagePreviewPanel = ({
             alt="Generated featured image"
             className="w-full h-full object-contain max-h-full"
             onError={(e) => {
-              console.error('Image load error:', e);
+              logger.error('Image load error:', e);
             }}
             onLoad={() => {
-              console.log('Image loaded successfully');
             }}
             crossOrigin="anonymous"
           />

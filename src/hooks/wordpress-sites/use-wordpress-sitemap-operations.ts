@@ -1,4 +1,5 @@
 import { useCallback, type Dispatch, type SetStateAction } from "react";
+import { logger } from "@/lib/logger";
 import { notify, notifyHeaderError } from "@/lib/app-notifications";
 import { NOTIFY_ALREADY_IN_LIST, NOTIFY_CLEAR_ENTITY_SITEMAP_IN_THE_SITEMAP_MENU, NOTIFY_ENTITY_SITEMAP_CLEARED, NOTIFY_INDEXING_SITEMAP, NOTIFY_PLEASE_DETECT_SITEMAPS_FIRST_BEFORE_SCRA, NOTIFY_SITEMAP_ADDED, NOTIFY_SITEMAP_EXCLUDED_FOR_THIS_PROPERTY, NOTIFY_SITEMAP_INCLUDED_FOR_THIS_PROPERTY, notifyEntitySitemapSetToX, notifyIndexingDoneXIndexedXErr } from "@/lib/notify-messages";
 import { getStoredSites, saveSites } from "@/components/integrations/storage";
@@ -39,7 +40,7 @@ export function useWordPressSitemapOperations({ sites, setSites, setIsScrapingSi
       });
       setSites(getStoredSites());
     } catch (error) {
-      console.error('Error scraping child sitemap:', error);
+      logger.error('Error scraping child sitemap:', error);
       notify.error(error instanceof Error ? error.message : `Failed to scrape sitemap: ${childSitemapUrl}`);
     } finally {
       setIsScrapingSitemap(prev => {
@@ -90,7 +91,7 @@ export function useWordPressSitemapOperations({ sites, setSites, setIsScrapingSi
         );
       }
     } catch (error) {
-      console.error('Error indexing sitemap:', error);
+      logger.error('Error indexing sitemap:', error);
       notify.dismiss(progressToastId);
       
       const errorMessage = error instanceof Error ? error.message : `Failed to index sitemap: ${sitemapUrl}`;

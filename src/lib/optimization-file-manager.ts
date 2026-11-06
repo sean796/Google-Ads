@@ -2,6 +2,7 @@
  * File manager for optimization files
  * Stores and manages files generated during content optimization process
  */
+import { logger } from "@/lib/logger";
 
 export interface OptimizationFile {
   name: string;
@@ -91,7 +92,7 @@ const byteCharacters = atob(base64String);
             const byteArray = new Uint8Array(byteNumbers);
             blob = new Blob([byteArray], { type: file.mimeType });
           } catch (err) {
-console.error('Error processing data URL image:', err);
+logger.error('Error processing data URL image:', err);
             alert(`Failed to download ${file.name}. Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
             return;
           }
@@ -108,7 +109,7 @@ console.error('Error processing data URL image:', err);
             const byteArray = new Uint8Array(byteNumbers);
             blob = new Blob([byteArray], { type: file.mimeType });
           } catch (err) {
-            console.error('Error processing base64 image:', err);
+            logger.error('Error processing base64 image:', err);
             alert(`Failed to download ${file.name}. Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
             return;
           }
@@ -127,7 +128,7 @@ console.error('Error processing data URL image:', err);
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error downloading file:', error);
+      logger.error('Error downloading file:', error);
       alert(`Failed to download ${file.name}. Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }

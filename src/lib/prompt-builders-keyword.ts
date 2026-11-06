@@ -26,13 +26,6 @@ export const buildKeywordAnalysisPrompt = (
   const filteredSelectedKeywords = selectedKeywords?.filter(kw => !isNonEnglishKeyword(kw)) || [];
   const filteredRelatedGSCKeywords = relatedGSCKeywords?.filter(kw => !isNonEnglishKeyword(kw)) || [];
   
-  if (selectedKeywords && filteredSelectedKeywords.length < selectedKeywords.length) {
-    console.log(`[Prompt Builder] Filtered ${selectedKeywords.length - filteredSelectedKeywords.length} non-English keywords from selectedKeywords`);
-  }
-  if (relatedGSCKeywords && filteredRelatedGSCKeywords.length < relatedGSCKeywords.length) {
-    console.log(`[Prompt Builder] Filtered ${relatedGSCKeywords.length - filteredRelatedGSCKeywords.length} non-English keywords from relatedGSCKeywords`);
-  }
-  
   const selectedContext = filteredSelectedKeywords && filteredSelectedKeywords.length > 0
     ? `
 --- HELD KEYWORDS (Keep these - user is "holding" them like cards) ---

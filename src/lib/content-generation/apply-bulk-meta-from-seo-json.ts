@@ -4,6 +4,7 @@
  * is content-optimizer parity in bulk-auto-generate. Rank Math post meta is written in bulk-auto-generate.
  */
 
+import { logger } from "@/lib/logger";
 import { ensureExactKeywordInMetaDescription } from "@/lib/content-generation/rank-math-exact-keyword";
 import type { OptimizedMetaFields } from "@/lib/meta-field-optimizer";
 import type { WordPressSite } from "@/components/integrations/types";
@@ -89,7 +90,7 @@ export async function applyBulkSeoMetaToAcf(
   );
 
   if (Object.keys(acfFields).length === 0) {
-    console.warn("[Bulk ACF Meta] No mapped ACF fields to update (keyword/meta/title).");
+    logger.warn("[Bulk ACF Meta] No mapped ACF fields to update (keyword/meta/title).");
     return { success: false };
   }
 
@@ -125,6 +126,6 @@ export async function applyBulkSeoMetaToAcf(
     return { success: true };
   }
 
-  console.warn("[Bulk ACF Meta] updateACFFields failed:", upd.error, upd.failed);
+  logger.warn("[Bulk ACF Meta] updateACFFields failed:", upd.error, upd.failed);
   return { success: false };
 }

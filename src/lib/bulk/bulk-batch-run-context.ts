@@ -19,6 +19,7 @@ import { loadDataForSEOApiKey } from '@/lib/api';
 import { setRuntimeDataForSeoApiKey } from '@/lib/integration-api-keys-runtime';
 import type { Dispatch, SetStateAction } from 'react';
 import type { BulkHarnessSectionUi } from '@/lib/bulk/bulk-single-row-processor';
+import { logger } from "@/lib/logger";
 
 export interface BulkBatchRunContext {
   apiKey?: string;
@@ -202,7 +203,7 @@ export async function runBulkBatchRows(
             notifyLoadedXLinkableUrlsFromSiteInvento(allLinkables.length, uniqueKeywords.size),
           );
         } catch (error) {
-          console.error('[WordPress] Inventory fetch error:', error);
+          logger.error('[WordPress] Inventory fetch error:', error);
           notify.warning(
             notifyWordpressFetchFailedX(error instanceof Error ? error.message : 'Unknown error'),
           );
@@ -249,7 +250,7 @@ export async function runBulkBatchRows(
             notify.success(notifyRowXXCompletedXFilesGenerated(i + 1, csvRows.length, files.length));
           },
           onError: (_rowIndex, error) => {
-            console.warn(`Row ${i + 1} step error (row may still complete):`, error.message);
+            logger.warn(`Row ${i + 1} step error (row may still complete):`, error.message);
           },
         };
 
@@ -266,7 +267,7 @@ export async function runBulkBatchRows(
           setFailedRowMessages((prev) => ({ ...prev, [i]: msg }));
           recordRunStatus(`Failed: ${msg}`);
           notify.error(notifyRowXFailedX(i + 1, msg));
-          console.error(`Error processing row ${i + 1}:`, error);
+          logger.error(`Error processing row ${i + 1}:`, error);
         }
       };
 
