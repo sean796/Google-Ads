@@ -21,6 +21,8 @@ import {
   importedDraftLinkUrls,
 } from "@/lib/bulk/blog-import-draft-links";
 import { markdownToHtml, generateExcerpt } from "@/lib/markdown-to-html";
+import { inferKeywordFromTitle } from "@/lib/bulk/blog-import-parser";
+import { sanitizeWordPressSlugSegment, slugifyFocusKeywordToRelativePath } from "@/lib/rank-math-redirect-csv";
 import { createWordPressPost } from "@/lib/wordpress-api";
 import { resolveEntityEndpointForRow } from "@/lib/competitor-research/competitor-entity-sitemap";
 import { acfCompetitorAppliesForRow } from "@/lib/acf-competitor-applies";
@@ -118,6 +120,70 @@ function importRowLinkFields(html?: string, markdown?: string): Pick<CSVRow, "im
   };
 }
 
+function stripTagsToPlain(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function inferTitleFromDirectSource(html?: string, markdown?: string): string {
+  if (html?.trim()) {
+    const h1 = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+    if (h1?.[1]) {
+      const t = stripTagsToPlain(h1[1]).slice(0, 200);
+      if (t) return t;
+    }
+  }
+  if (markdown?.trim()) {
+    const m = markdown.match(/^\s*#\s+(.+)$/m);
+    if (m?.[1]) return m[1].trim().slice(0, 200);
+  }
+  return "";
+}
+
+export async function buildRawImportCsvRowFromFile(
+  file: File,
+  form: BlogImportFormState,
+  destination: WordPressPostDestination,
+): Promise<CSVRow> {
+  const source = await readDirectImportSource(file);
+  const html = source.html?.trim();
+  const markdown = source.markdown?.trim();
+  const titleFromFile = inferTitleFromDirectSource(html, markdown);
+  const baseName = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim();
+  const title = (form.titleOverride?.trim() || titleFromFile || baseName || "Imported content").slice(0, 500);
+  const keywordRaw = form.focusKeyword?.trim() || inferKeywordFromTitle(title);
+  const keyword = keywordRaw.slice(0, 200);
+  const slugSeg =
+    (slugifyFocusKeywordToRelativePath(keyword) ?? slugifyFocusKeywordToRelativePath(title) ?? "").replace(
+      /\/+$/g,
+      "",
+    ) || sanitizeWordPressSlugSegment(title) || undefined;
+  const target_slug = slugSeg;
+  const bodyText = html ? stripTagsToPlain(html) : markdown ?? "";
+  const meta_description = generateExcerpt(bodyText || title, 155);
+  const linkFields = importRowLinkFields(html, markdown);
+
+  return {
+    keyword,
+    keyword_focus: keyword,
+    title,
+    meta_description,
+    featuredImage: form.featuredImageMode,
+    imported_html: html,
+    imported_markdown: markdown,
+    import_file_name: file.name,
+    post_destination: destination,
+    target_slug,
+    import_raw: true,
+    ...(form.entity.trim() ? { entity: form.entity.trim() } : {}),
+    ...linkFields,
+  };
+}
+
 export async function buildImportCsvRowFromFile(
   file: File,
   form: BlogImportFormState,
@@ -142,6 +208,7 @@ export async function buildImportCsvRowFromFile(
     import_file_name: file.name,
     post_destination: destination,
     target_slug: meta.slug,
+    import_raw: false,
     ...(form.entity.trim() ? { entity: form.entity.trim() } : {}),
     ...linkFields,
   };
@@ -155,10 +222,6 @@ export async function processDirectBlogImportRow(args: {
   analyzeKeyword: DirectAnalyzeKeywordFn;
 }): Promise<BulkGeneratedFile[]> {
   const { rowIndex, row, options, fileManager } = args;
-  const apiKey = (options.openRouterApiKey || loadApiKey()).trim();
-  if (!apiKey) {
-    throw new Error("OpenRouter API key is required for Direct import meta");
-  }
   const sourceFile = fileFromStoredImportRow(row);
   if (!sourceFile) {
     throw new Error("Direct import row has no stored file");
@@ -170,29 +233,56 @@ export async function processDirectBlogImportRow(args: {
     featuredImageMode,
     entity: row.entity ?? "",
   };
-  options.onProgress?.(rowIndex, 0, "OpenRouter meta...");
-  const meta = await extractDirectImportMetaViaOpenRouter(
-    sourceFile,
-    form,
-    apiKey,
-    options.selectedModel,
-  );
-  const publishRow: CSVRow = {
-    ...row,
-    title: meta.title,
-    keyword: meta.keyword,
-    keyword_focus: meta.keyword,
-    meta_description: meta.meta_description,
-    target_slug: meta.slug,
-    featuredImage: featuredImageMode,
-  };
+  const apiKey = (options.openRouterApiKey || loadApiKey()).trim();
+  let publishRow: CSVRow;
+  if (row.import_raw) {
+    const title = row.title.trim();
+    const keyword = (row.keyword_focus || row.keyword).trim();
+    if (!title || !keyword) {
+      throw new Error("Raw import row is missing title or keyword");
+    }
+    publishRow = {
+      ...row,
+      title,
+      keyword,
+      keyword_focus: keyword,
+      featuredImage: featuredImageMode,
+    };
+  } else {
+    if (!apiKey) {
+      throw new Error("OpenRouter API key is required for Direct import meta");
+    }
+    options.onProgress?.(rowIndex, 0, "OpenRouter meta...");
+    const meta = await extractDirectImportMetaViaOpenRouter(
+      sourceFile,
+      form,
+      apiKey,
+      options.selectedModel,
+    );
+    publishRow = {
+      ...row,
+      title: meta.title,
+      keyword: meta.keyword,
+      keyword_focus: meta.keyword,
+      meta_description: meta.meta_description,
+      target_slug: meta.slug,
+      featuredImage: featuredImageMode,
+    };
+  }
+
+  const title = publishRow.title.trim();
+  const keyword = (publishRow.keyword_focus || publishRow.keyword).trim();
+  let slug = (publishRow.target_slug ?? "").trim();
+  if (!slug) {
+    const fromKw = slugifyFocusKeywordToRelativePath(keyword) ?? slugifyFocusKeywordToRelativePath(title);
+    const seg = (fromKw ?? "").replace(/\/+$/g, "").trim();
+    slug = seg || sanitizeWordPressSlugSegment(title) || sanitizeWordPressSlugSegment(keyword) || "import";
+  }
+  publishRow = { ...publishRow, target_slug: slug };
 
   options.onProgress?.(rowIndex, 0, "Preparing body...");
   const formattedHtml = formatDirectImportHtml(publishRow);
   const excerpt = excerptFromDirectSource(publishRow, formattedHtml);
-  const title = publishRow.title.trim();
-  const slug = publishRow.target_slug!.trim();
-  const keyword = (publishRow.keyword_focus || publishRow.keyword).trim();
 
   const posting = options.wordPressPosting;
   const sitesToPost = posting?.enabled ? buildSitesToPostFromPosting(posting) : [];
@@ -203,15 +293,21 @@ export async function processDirectBlogImportRow(args: {
 
   let featuredImage: { imageBase64: string; filename: string } | undefined;
   if (featuredImageMode !== "n" && sitesToPost.length > 0) {
-    options.onProgress?.(rowIndex, 0, "Featured image...");
-    featuredImage = await generateDirectFeaturedImagePayload({
-      mode: featuredImageMode,
-      title,
-      bodyHtml: formattedHtml,
-      entity: publishRow.entity,
-      apiKey,
-      model: options.selectedModel,
-    });
+    if (!apiKey) {
+      if (!row.import_raw) {
+        throw new Error("OpenRouter API key is required for featured image");
+      }
+    } else {
+      options.onProgress?.(rowIndex, 0, "Featured image...");
+      featuredImage = await generateDirectFeaturedImagePayload({
+        mode: featuredImageMode,
+        title,
+        bodyHtml: formattedHtml,
+        entity: publishRow.entity,
+        apiKey,
+        model: options.selectedModel,
+      });
+    }
   }
 
   const timestamp = Date.now();

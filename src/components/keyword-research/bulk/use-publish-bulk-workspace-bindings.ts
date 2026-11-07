@@ -212,10 +212,23 @@ export function usePublishBulkWorkspaceBindings(
       csvFileName: csvFile?.name ?? null,
       csvLoading: csvParsing,
       csvEnrichingTitlesUrls: Boolean(isCsvEnriching),
-      onPickCsvFile: async (file: File) => {
+      onPickCsvFile: async (file: File, importRaw?: boolean) => {
         setCsvFile(file);
         setCsvParsing(true);
         try {
+          if (importRaw) {
+            const staticRows = await parseCsvStatic(file);
+            const withRaw = staticRows.map((r) => ({ ...r, import_raw: true }));
+            if (withRaw.length > 0) {
+              const quick = applyCsvSitemapInference(withRaw);
+              setRows(quick);
+              setGeneratedRows(quick);
+              setHasGeneratedChecklist(true);
+              setSelectedBlogIndices(allRowIndicesSet(quick.length));
+              setTotalRows(quick.length);
+            }
+            return;
+          }
           const staticRows = await parseCsvStatic(file);
           if (staticRows.length > 0) {
             const quick = applyCsvSitemapInference(staticRows);
@@ -228,15 +241,17 @@ export function usePublishBulkWorkspaceBindings(
         } finally {
           setCsvParsing(false);
         }
-        void loadCSV(file).then((parsed) => {
-          if (parsed.length === 0) return;
-          const normalized = applyCsvSitemapInference(parsed);
-          setRows(normalized);
-          setGeneratedRows(normalized);
-          setHasGeneratedChecklist(true);
-          setSelectedBlogIndices(allRowIndicesSet(normalized.length));
-          setTotalRows(normalized.length);
-        });
+        if (!importRaw) {
+          void loadCSV(file).then((parsed) => {
+            if (parsed.length === 0) return;
+            const normalized = applyCsvSitemapInference(parsed);
+            setRows(normalized);
+            setGeneratedRows(normalized);
+            setHasGeneratedChecklist(true);
+            setSelectedBlogIndices(allRowIndicesSet(normalized.length));
+            setTotalRows(normalized.length);
+          });
+        }
       },
       onLoadImportRows: (imported: CSVRow[]) => {
         if (imported.length === 0) return;

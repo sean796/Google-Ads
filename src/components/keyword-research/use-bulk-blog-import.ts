@@ -5,7 +5,11 @@ import type { StudioEditorModeId } from "@/components/keyword-research/bulk/stud
 import type { CSVRow } from "@/lib/bulk-auto-generate";
 import { type WordPressPostDestination } from "@/lib/bulk-auto-generate";
 import { isBlogImportFileAccepted } from "@/lib/bulk/blog-import-parser";
-import { buildImportCsvRowFromFile } from "@/lib/bulk/blog-import-direct";
+import {
+  buildImportCsvRowFromFile,
+  buildRawImportCsvRowFromFile,
+} from "@/lib/bulk/blog-import-direct";
+import { readImportStudioRawToggle } from "@/lib/bulk/import-studio-prefs";
 import { notify } from "@/lib/app-notifications";
 import { notifyLoadedCsvX } from "@/lib/notify-messages";
 import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
@@ -61,7 +65,12 @@ export function useBulkBlogImport({
     async (files: File[]) => {
       if (files.length === 0 || !bulkBindings) return;
       const dest: WordPressPostDestination = bulkBindings.bulkPostDestination ?? "wordpress";
+      const importRaw = readImportStudioRawToggle();
       const apiKey = (await resolveOpenRouterApiKeyForHarness()).trim();
+      if (!importRaw && !apiKey) {
+        notify.error("OpenRouter API key is required for import meta unless Raw is on");
+        return;
+      }
       setIsParsingImport(true);
       try {
         const accepted = files.filter((file) => isBlogImportFileAccepted(file));
@@ -86,20 +95,26 @@ export function useBulkBlogImport({
         const next: CSVRow[] = [];
         for (const file of accepted) {
           try {
-            const importedRow: CSVRow & { decision_audit_json?: string } =
-              await buildImportCsvRowFromFile(file, form, dest, apiKey, selectedModel);
-            try {
-              const { auditImportDraftWithDecisionTree } = await import("@/lib/decision-tree/studio-decision-auditor");
-              const draftBody = importedRow.imported_markdown || importedRow.imported_html || "";
-              const decisionState = await auditImportDraftWithDecisionTree({
-                title: importedRow.title,
-                keyword: importedRow.keyword,
-                content: draftBody,
-                apiKey,
-              });
-              importedRow.decision_audit_json = JSON.stringify(decisionState);
-            } catch (auditErr) {
-              console.warn("[Decision Agent] Import draft audit error:", auditErr);
+            let importedRow: CSVRow & { decision_audit_json?: string };
+            if (importRaw) {
+              importedRow = await buildRawImportCsvRowFromFile(file, form, dest);
+            } else {
+              importedRow = await buildImportCsvRowFromFile(file, form, dest, apiKey, selectedModel);
+            }
+            if (!importRaw) {
+              try {
+                const { auditImportDraftWithDecisionTree } = await import("@/lib/decision-tree/studio-decision-auditor");
+                const draftBody = importedRow.imported_markdown || importedRow.imported_html || "";
+                const decisionState = await auditImportDraftWithDecisionTree({
+                  title: importedRow.title,
+                  keyword: importedRow.keyword,
+                  content: draftBody,
+                  apiKey,
+                });
+                importedRow.decision_audit_json = JSON.stringify(decisionState);
+              } catch (auditErr) {
+                console.warn("[Decision Agent] Import draft audit error:", auditErr);
+              }
             }
             next.push(importedRow);
           } catch (error) {
@@ -137,11 +152,11 @@ export function useBulkBlogImport({
   }, [bulkBindings]);
 
   const handleCsvPick = useCallback(
-    async (file: File | null) => {
+    async (file: File | null, importRaw = false) => {
       if (!file || !bulkBindings) return;
       try {
         setImportedFileName(null);
-        await bulkBindings.onPickCsvFile(file);
+        await bulkBindings.onPickCsvFile(file, importRaw);
         notify.success(notifyLoadedCsvX(file.name));
       } catch (error) {
         notify.error(error instanceof Error ? error.message : "Failed to load CSV");

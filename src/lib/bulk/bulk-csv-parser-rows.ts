@@ -71,6 +71,10 @@ export interface CSVRow {
   ad_group_label?: string;
   /** First row in an entity ad group vs additional keywords. */
   entity_group_role?: "seed" | "member";
+  /**
+   * When true, file content was stored without OpenRouter meta extraction; publish uses title/keyword/slug from the row as-is.
+   */
+  import_raw?: boolean;
 }
 
 

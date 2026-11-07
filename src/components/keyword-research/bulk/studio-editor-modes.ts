@@ -14,7 +14,7 @@ export type StudioEditorModeOption = {
 export const STUDIO_EDITOR_MODE_OPTIONS: readonly StudioEditorModeOption[] = [
   { id: "prompt", label: "Blog Ideas Studio" },
   { id: "vertical-benchmarks", label: "Industry Verticals Studio" },
-  { id: "csv", label: "Bulk CSV Studio" },
+  { id: "csv", label: "Import Studio" },
   { id: "press-release", label: "Press Release Studio" },
 ] as const;
 

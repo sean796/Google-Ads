@@ -113,9 +113,9 @@ export function BulkGeneratorOverviewTabBody({
           Boolean(bindings.connectedSite) && !bindings.promptSiteContextReady
         }
         csvFileName={bulkGeneratorDock.csvFileName}
-        onPickCsvFile={(file) => {
+        onPickCsvFile={(file, importRaw) => {
           setShowingStudioModeScreen(false);
-          bulkGeneratorDock.onPickCsvFile?.(file);
+          bulkGeneratorDock.onPickCsvFile?.(file, importRaw);
         }}
         csvParsing={bulkGeneratorDock.csvLoading}
         csvEnrichingTitlesUrls={bulkGeneratorDock.csvEnrichingTitlesUrls}

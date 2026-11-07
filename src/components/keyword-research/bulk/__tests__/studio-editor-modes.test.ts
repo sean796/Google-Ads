@@ -9,12 +9,8 @@ import {
 describe("studio-editor-modes", () => {
   it("lists all 4 separate studio modes and excludes citation and backlinking", () => {
     const ids = STUDIO_EDITOR_MODE_OPTIONS.map((o) => o.id);
-    expect(ids).toEqual([
-      "prompt",
-      "vertical-benchmarks",
-      "csv",
-      "press-release",
-    ]);
+    expect(ids).toEqual(["prompt", "vertical-benchmarks", "csv", "press-release"]);
+    expect(STUDIO_EDITOR_MODE_OPTIONS.find((o) => o.id === "csv")?.label).toBe("Import Studio");
     for (const id of ids) {
       expect(isStudioEditorModeId(id)).toBe(true);
     }

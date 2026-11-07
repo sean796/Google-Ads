@@ -11,7 +11,7 @@ export type OverviewSitemapLeftDockBulkGeneratorDock = {
   importParsing?: boolean;
   importedFileName?: string | null;
   csvFileName?: string | null;
-  onPickCsvFile?: (file: File | null) => void;
+  onPickCsvFile?: (file: File | null, importRaw?: boolean) => void;
   onPickImportFiles?: (files: File[]) => void;
   promptSelection?: boolean;
   selectedBlogIndices: Set<number>;

@@ -62,7 +62,7 @@ export type BulkGeneratorWorkspaceBindings = {
   csvLoading?: boolean;
   /** OpenRouter title + URL slug agents running after CSV parse. */
   csvEnrichingTitlesUrls?: boolean;
-  onPickCsvFile: (file: File) => Promise<void>;
+  onPickCsvFile: (file: File, importRaw?: boolean) => Promise<void>;
   onLoadImportRows?: (rows: CSVRow[]) => void;
   onClearCsv: () => void;
   onClearPrompt: () => void;

@@ -9,7 +9,11 @@ import {
   BULK_AUTO_GENERATE_TEMPLATE_FILENAME,
   BULK_AUTO_GENERATE_TEMPLATE_HREF,
 } from "@/lib/bulk/bulk-auto-generate-template-columns";
-import { BLOG_IMPORT_FILE_ACCEPT } from "@/lib/bulk/blog-import-parser";
+import { BLOG_IMPORT_FILE_ACCEPT, isBlogImportFileAccepted } from "@/lib/bulk/blog-import-parser";
+import {
+  IMPORT_STUDIO_RAW_STORAGE_KEY,
+  readImportStudioRawToggle,
+} from "@/lib/bulk/import-studio-prefs";
 import { notify } from "@/lib/app-notifications";
 import {
   NOTIFY_COULD_NOT_COPY_TO_CLIPBOARD,
@@ -20,7 +24,7 @@ import {
   type VerticalBenchmarkStudioComposeProps,
 } from "@/components/vertical-benchmark/VerticalBenchmarkStudioComposeSection";
 import { cn } from "@/lib/utils";
-import { Button, Field, TextareaField } from "@/ui";
+import { Button, Field, SwitchField, TextareaField } from "@/ui";
 
 function sanitizePrFilename(s: string): string {
   return s.replace(/[^a-z0-9._-]+/gi, "_").slice(0, 60) || "press-release";
@@ -48,7 +52,7 @@ export type BulkPromptComposePanelProps = {
   hasGeneratedChecklist: boolean;
   promptSiteContextBlocked?: boolean;
   csvFileName?: string | null;
-  onPickCsvFile?: (file: File | null) => void;
+  onPickCsvFile?: (file: File | null, importRaw?: boolean) => void;
   csvParsing?: boolean;
   csvEnrichingTitlesUrls?: boolean;
   importParsing?: boolean;
@@ -98,6 +102,7 @@ export function BulkPromptComposePanel({
 }: BulkPromptComposePanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [importRaw, setImportRaw] = useState(readImportStudioRawToggle);
   const fileZoneBusy = workspaceBusy || csvParsing || importParsing;
 
   const routeFiles = useCallback(
@@ -105,15 +110,22 @@ export function BulkPromptComposePanel({
       if (files.length === 0) return;
       const isCsv = (file: File) => file.name.toLowerCase().endsWith(".csv") || file.type === "text/csv";
       const csvFiles = files.filter(isCsv);
-      const drafts = files.filter((file) => !isCsv(file));
+      const drafts = files.filter((file) => !isCsv(file) && isBlogImportFileAccepted(file));
+      const other = files.filter((f) => !isCsv(f) && !isBlogImportFileAccepted(f));
+      if (other.length > 0) {
+        notify.error("Unsupported file type. Use CSV, DOCX, MD, HTML, or TXT");
+      }
+      if (csvFiles.length > 0 && drafts.length > 0) {
+        notify.error("Import one kind at a time: CSV or document files");
+        return;
+      }
       if (csvFiles.length > 0) {
-        if (drafts.length > 0) notify.error("Draft files skipped. Import a CSV or draft files, not both");
-        onPickCsvFile?.(csvFiles[0]);
+        onPickCsvFile?.(csvFiles[0], importRaw);
         return;
       }
       onPickImportFiles?.(drafts);
     },
-    [onPickCsvFile, onPickImportFiles],
+    [importRaw, onPickCsvFile, onPickImportFiles],
   );
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-y-auto overscroll-y-contain bg-black px-4 py-6 sm:px-8">
@@ -172,6 +184,20 @@ export function BulkPromptComposePanel({
         {/* MODE 2: Bulk CSV + Import Drafts Studio */}
         {studioMode === "csv" ? (
           <section className="flex flex-col gap-3">
+            <SwitchField
+              label="Raw"
+              title="Skip AI title and meta extraction for imports. Upload file content straight through."
+              checked={importRaw}
+              disabled={fileZoneBusy}
+              onCheckedChange={(v) => {
+                setImportRaw(v);
+                try {
+                  sessionStorage.setItem(IMPORT_STUDIO_RAW_STORAGE_KEY, v ? "1" : "0");
+                } catch {
+                  /* ignore */
+                }
+              }}
+            />
             <div
               role="button"
               tabIndex={0}
@@ -220,7 +246,7 @@ export function BulkPromptComposePanel({
                       ? "Reading CSV"
                       : importParsing
                         ? "Parsing draft articles"
-                        : "Drop CSV or draft files here or click to browse"}
+                        : "Drop CSV, DOCX, MD, or other draft files here or click to browse"}
                 </span>
                 {importedFileName || csvFileName ? (
                   <span className="text-base text-muted-foreground">{importedFileName || csvFileName}</span>
@@ -232,7 +258,7 @@ export function BulkPromptComposePanel({
               ref={fileInputRef}
               type="file"
               multiple
-              accept={`.csv,text/csv,${BLOG_IMPORT_FILE_ACCEPT}`}
+              accept={`.csv,.txt,text/csv,text/plain,${BLOG_IMPORT_FILE_ACCEPT}`}
               className="hidden"
               tabIndex={-1}
               aria-hidden="true"

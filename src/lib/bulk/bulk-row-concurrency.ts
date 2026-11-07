@@ -1,6 +1,6 @@
 import pLimit from "p-limit";
 
-/** Rows generated at once in Bulk CSV Studio. One: each row finishes before the next starts, so the active row moves in order. */
+/** Rows generated at once in Import Studio. One: each row finishes before the next starts, so the active row moves in order. */
 export const BULK_STUDIO_ROW_CONCURRENCY = 1;
 
 export const BULK_PROCESSING_CANCELLED_MESSAGE = "Processing cancelled";
