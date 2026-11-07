@@ -349,6 +349,12 @@ class Neo_Pulse_App_Api_Dispatcher {
 			return;
 		}
 
+		if ( 0 === strpos( $route, 'changelog/' ) || $route === 'changelog' ) {
+			$changelog_route = $route === 'changelog' ? '' : substr( $route, 10 );
+			Neo_Pulse_App_Changelog_Route_Handlers::dispatch_http( $changelog_route, $method, $body );
+			return;
+		}
+
 		if ( 0 === strpos( $route, 'auth/' ) ) {
 			Neo_Pulse_App_Auth_Route_Handlers::dispatch( substr( $route, 5 ), $method, $body );
 			return;

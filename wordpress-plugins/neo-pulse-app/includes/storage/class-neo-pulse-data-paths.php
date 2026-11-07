@@ -135,6 +135,10 @@ class Neo_Pulse_App_Data_Paths {
 		return self::root() . '/agent-library.json';
 	}
 
+	public static function changelog_path(): string {
+		return self::root() . '/changelog.json';
+	}
+
 	public static function active_site_path(): string {
 		return self::root() . '/active-site-id.json';
 	}

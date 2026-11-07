@@ -318,6 +318,7 @@ class Neo_Pulse_App_Loader {
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/seo/class-seo-http.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/seo/class-seo-route-handlers.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/agent-library/class-agent-library-route-handlers.php';
+		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/changelog/class-changelog-route-handlers.php';
 
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/vertical-benchmark/class-vertical-benchmark-taxonomy.php';
 		require_once NEO_PULSE_APP_PLUGIN_DIR . 'includes/vertical-benchmark/class-vertical-benchmark-client-tag.php';
