@@ -10,6 +10,12 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
+  // Wait for the session restore before deciding, or every cold load of a
+  // deep link bounces to /login and loses the target path.
+  if (loading) {
+    return null;
+  }
+
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }

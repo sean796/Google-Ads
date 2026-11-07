@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +14,14 @@ import { Button, Checkbox, FloatingLabelInput } from "@/ui";
 export default function Login() {
   const { user, loading, login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  // ProtectedRoute sends deep-link visitors here with their target in
+  // state.from; send them back there after sign-in instead of home.
+  const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;
+  const returnTo =
+    from?.pathname && from.pathname !== "/login" && from.pathname !== "/register"
+      ? `${from.pathname}${from.search ?? ""}`
+      : "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberDevice, setRememberDevice] = useState(true);
@@ -31,11 +39,11 @@ export default function Login() {
 
   useEffect(() => {
     if (AUTH_DISABLED) {
-      navigate("/", { replace: true });
+      navigate(returnTo, { replace: true });
       return;
     }
-    if (!loading && user) navigate("/", { replace: true });
-  }, [user, loading, navigate]);
+    if (!loading && user) navigate(returnTo, { replace: true });
+  }, [user, loading, navigate, returnTo]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,7 +52,7 @@ export default function Login() {
     try {
       const result = await login(email.trim(), password, rememberDevice);
       if (result.ok) {
-        navigate("/", { replace: true });
+        navigate(returnTo, { replace: true });
       } else {
         setError(result.error || "Invalid credentials");
       }
