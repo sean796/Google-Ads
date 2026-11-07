@@ -10,6 +10,7 @@ export type ChangelogWorkspaceHeaderProps = {
   newestEntryDate: string | null;
   sourceStatus: ChangelogSourceStatus | null;
   generating: boolean;
+  loading: boolean;
   onGenerate: () => void;
   onRefresh: () => void;
 };
@@ -19,6 +20,7 @@ export function ChangelogWorkspaceHeader({
   newestEntryDate,
   sourceStatus,
   generating,
+  loading,
   onGenerate,
   onRefresh,
 }: ChangelogWorkspaceHeaderProps) {
@@ -46,11 +48,11 @@ export function ChangelogWorkspaceHeader({
             <button
               type="button"
               onClick={onRefresh}
-              disabled={generating}
+              disabled={generating || loading}
               className={cn(BULK_HEADER_TOOL_BTN, "inline-flex items-center gap-1.5")}
               aria-label="Refresh changelog archive"
             >
-              <RotateCw className={cn("h-4 w-4", generating && "animate-pulse")} aria-hidden />
+              <RotateCw className={cn("h-4 w-4", loading && "animate-pulse")} aria-hidden />
               Refresh
             </button>
             <Button variant="run" type="button" onClick={onGenerate} disabled={generating}>

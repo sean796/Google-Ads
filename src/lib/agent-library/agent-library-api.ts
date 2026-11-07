@@ -67,7 +67,14 @@ export interface UnifiedAgentLibraryEntry {
   useMasterInstructions?: boolean;
   useWordBlacklist?: boolean;
   origin: "slack-hub" | "pulse-mastra";
+  /** In-app screen this entry opens from the library (Open action), when it has one. */
+  appPath?: string;
 }
+
+/** Library entries that act as app launchers: agent id to in-app route. */
+const AGENT_APP_PATHS: Record<string, string> = {
+  "reporting.changelog.app-update-log": "/changelog",
+};
 
 export const DEFAULT_HUB_AGENTS: HubAgentDefinitionItem[] = [
   {
@@ -158,6 +165,7 @@ export function buildUnifiedAgentLibraryEntries(
       useMasterInstructions: entry.useMasterInstructions,
       useWordBlacklist: entry.useWordBlacklist,
       origin: "pulse-mastra",
+      appPath: AGENT_APP_PATHS[entry.id],
     }),
   );
 

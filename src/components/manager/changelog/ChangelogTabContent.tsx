@@ -134,7 +134,8 @@ export function ChangelogTabContent(): React.ReactElement {
           due={due}
           newestEntryDate={newestEntryDate}
           sourceStatus={archive?.source ?? null}
-          generating={generating || loading}
+          generating={generating}
+          loading={loading}
           onGenerate={() => void handleGenerate()}
           onRefresh={() => void loadArchive()}
         />

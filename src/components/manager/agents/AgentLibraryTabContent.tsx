@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowUpRight } from "lucide-react";
 import { DEEPSEEK_FLASH_MODEL } from "@/lib/global-agent-models";
 import { useActiveWordPressSite } from "@/contexts/active-wordpress-site-context";
 import { Input, Switch } from "@/ui";
@@ -43,6 +45,7 @@ const DOMAIN_BADGE_LABELS: Record<Exclude<AgentLibraryDomainFilter, "all">, stri
 };
 
 export function AgentLibraryTabContent(): React.ReactElement {
+  const navigate = useNavigate();
   const { activeWordPressSiteId } = useActiveWordPressSite();
   const [activeSection, setActiveSection] = useState<AgentLibrarySection>("library");
   const [searchQuery, setSearchQuery] = useState("");
@@ -263,7 +266,20 @@ export function AgentLibraryTabContent(): React.ReactElement {
 
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-1 font-mono text-base text-muted-foreground">
                   <span className="truncate">id: {agent.id}</span>
-                  <span className="truncate text-white/80">{agent.resolvedModel}</span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    <span className="truncate text-white/80">{agent.resolvedModel}</span>
+                    {agent.appPath ? (
+                      <button
+                        type="button"
+                        onClick={() => navigate(agent.appPath!)}
+                        className="inline-flex items-center gap-1 bg-black px-2 py-0.5 font-sans text-base text-primary hover:bg-zinc-800"
+                        aria-label={`Open ${agent.label}`}
+                      >
+                        Open
+                        <ArrowUpRight className="h-4 w-4" aria-hidden />
+                      </button>
+                    ) : null}
+                  </span>
                 </div>
               </article>
             ))}
