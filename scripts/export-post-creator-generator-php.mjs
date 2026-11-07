@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
-const systemUserPath = path.join(root, "src/lib/prompt-builders/system-user.ts");
+const harnessPromptPath = path.join(root, "src/lib/prompt-builders/harness-section-user-prompt.ts");
 const exportedOut = path.join(
   root,
   "wordpress-plugins/neo-pulse-app/includes/agent-runs/prompts/post-creator-exported-prompts.php",
@@ -22,12 +22,12 @@ const snapshotOut = path.join(
   "wordpress-plugins/neo-pulse-app/includes/agent-runs/prompts/.generator-prompt-snapshot.json",
 );
 
-const src = fs.readFileSync(systemUserPath, "utf8");
+const src = fs.readFileSync(harnessPromptPath, "utf8");
 
 function extractConst(name) {
   const re = new RegExp(`const ${name} = \`([\\s\\S]*?)\`;`, "m");
   const m = src.match(re);
-  if (!m) throw new Error(`Missing ${name} in system-user.ts`);
+  if (!m) throw new Error(`Missing ${name} in harness-section-user-prompt.ts`);
   return m[1];
 }
 
