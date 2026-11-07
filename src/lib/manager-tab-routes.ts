@@ -30,6 +30,7 @@ const TAB_IDS = [
   "local-dominator",
   "pulse-host",
   "agent-library",
+  "changelog",
   "image-generator",
   "video-generator",
 ] as const;

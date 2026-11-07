@@ -8,10 +8,10 @@ import {
 } from "@/lib/manager-tab-routes";
 
 describe("manager tab routes (Wave 4)", () => {
-  it("registers all 23 manager tabs with a unique segment each", () => {
-    expect(MANAGER_TAB_ROUTES).toHaveLength(23);
+  it("registers all 24 manager tabs with a unique segment each", () => {
+    expect(MANAGER_TAB_ROUTES).toHaveLength(24);
     const segments = MANAGER_TAB_ROUTES.map((r) => r.segment);
-    expect(new Set(segments).size).toBe(23);
+    expect(new Set(segments).size).toBe(24);
     for (const route of MANAGER_TAB_ROUTES) {
       expect(isManagerTabId(route.id)).toBe(true);
       expect(managerTabFromPathname(`/${route.segment}`)).toBe(route.id);

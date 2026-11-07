@@ -12,6 +12,7 @@ import { SupportTabContent } from "@/components/manager/support/SupportTabConten
 import { SitemapOptimizerResearchTab } from "@/components/research/sitemap-optimizer/SitemapOptimizerResearchTab";
 import { PulseHostTabContent } from "@/components/hosting/PulseHostTabContent";
 import { AgentLibraryTabContent } from "@/components/manager/agents/AgentLibraryTabContent";
+import { ChangelogTabContent } from "@/components/manager/changelog/ChangelogTabContent";
 import { ImageStudioTabContent } from "@/components/video-generator/ImageStudioTabContent";
 import { VideoGeneratorTabContent } from "@/components/video-generator/VideoGeneratorTabContent";
 import { OrganicReportingEmbeddedPanel } from "@/components/organic-dashboard/OrganicReportingEmbeddedPanel";
@@ -342,6 +343,13 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
           className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}
         >
           {managerTab === "agent-library" ? <AgentLibraryTabContent /> : null}
+        </TabsContent>
+
+        <TabsContent
+          value="changelog"
+          className={cn(embeddedTabPanelTopClass, "data-[state=inactive]:hidden", embeddedTabPanelStretch)}
+        >
+          {managerTab === "changelog" ? <ChangelogTabContent /> : null}
         </TabsContent>
 
         <TabsContent

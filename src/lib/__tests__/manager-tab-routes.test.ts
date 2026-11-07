@@ -8,9 +8,15 @@ import {
 } from "@/lib/manager-tab-routes";
 
 describe("manager tab routes", () => {
-  it("registers 23 unique tabs", () => {
-    expect(MANAGER_TAB_ROUTES).toHaveLength(23);
-    expect(new Set(MANAGER_TAB_ROUTES.map((r) => r.id)).size).toBe(23);
+  it("registers 24 unique tabs", () => {
+    expect(MANAGER_TAB_ROUTES).toHaveLength(24);
+    expect(new Set(MANAGER_TAB_ROUTES.map((r) => r.id)).size).toBe(24);
+  });
+
+  it("routes the changelog tab at /changelog", () => {
+    expect(managerTabPath("changelog")).toBe("/changelog");
+    expect(managerTabFromPathname("/changelog")).toBe("changelog");
+    expect(isManagerTabId("changelog")).toBe(true);
   });
 
   it("round-trips every tab id through its path (except vertical-benchmarks)", () => {

@@ -138,6 +138,12 @@ export const MANAGER_NAV_SECTIONS: ManagerNavSection[] = [
         description: "NEO Pulse agent registry, Slack hub agents, and category model routing",
         icon: Bot,
       },
+      {
+        value: "changelog",
+        label: "Changelog",
+        description: "App update archive written by the research agent from git commits",
+        icon: ScrollText,
+      },
     ],
   },
   {
