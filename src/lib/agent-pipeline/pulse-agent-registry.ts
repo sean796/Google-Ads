@@ -426,6 +426,15 @@ export const PULSE_AGENT_REGISTRY: readonly PulseRegisteredAgentEntry[] = [
     reason: "Selects the matching client and purpose Google Drive destination folder from multiple candidate folders.",
     sourceModule: "src/lib/google-drive/disambiguate-drive-folder.ts",
   },
+  {
+    id: "reporting.changelog.app-update-log",
+    label: "App Changelog Writer",
+    category: "research",
+    domain: "reporting",
+    reason:
+      "Turns git commits since the last archived entry into one plain-language changelog entry for the Neo Pulse web app, grouped into themes with highlights.",
+    sourceModule: "src/lib/changelog/changelog-agent.ts",
+  },
 ] as const;
 
 export function getPulseAgentById(id: string): PulseRegisteredAgentEntry | undefined {

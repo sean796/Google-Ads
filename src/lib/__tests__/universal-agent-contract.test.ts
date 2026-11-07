@@ -320,7 +320,7 @@ describe("Universal Pulse Engine Agent & Pipeline Contract", () => {
   });
 
   it("PULSE_AGENT_REGISTRY is the source of truth: exact count, live source modules, createPulseAgent ids registered", () => {
-    expect(PULSE_AGENT_REGISTRY.length).toBe(47);
+    expect(PULSE_AGENT_REGISTRY.length).toBe(48);
 
     const srcRoot = resolve("src");
     for (const entry of PULSE_AGENT_REGISTRY) {
