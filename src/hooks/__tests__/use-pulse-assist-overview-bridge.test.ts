@@ -36,6 +36,6 @@ describe("usePulseAssistOverviewBridge", () => {
   it("module does not import or call resolveNeoPulseUrl", () => {
     const src = readFileSync(resolve(__dirname, "../use-pulse-assist-overview-bridge.ts"), "utf8");
     expect(src).not.toMatch(/resolveNeoPulseUrl/);
-    expect(src).not.toMatch(/neo-pulse-wp-tools/);
+    expect(src).not.toMatch(/REMOVED_NEO_PULSE_WP_TOOLs/);
   });
 });

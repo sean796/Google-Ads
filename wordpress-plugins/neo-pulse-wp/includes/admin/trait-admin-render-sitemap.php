@@ -1,6 +1,6 @@
 <?php
 /**
- * Sitemap wp-admin settings page (Rank Math–inspired layout).
+ * Sitemap wp-admin settings page (NEO Pulse redirect–inspired layout).
  *
  * @package Neo_Pulse_Wp
  */

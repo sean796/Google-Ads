@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
-  isGridRankMathExportCsv,
-  parseGridRankMathExportCsv,
-} from "@/lib/sitemap-optimizer/parse-grid-rank-math-export-csv";
+  isGridRedirectCsvExportCsv,
+  parseGridRedirectCsvExportCsv,
+} from "@/lib/sitemap-optimizer/parse-grid-redirect-export-csv";
 
-describe("parseGridRankMathExportCsv", () => {
+describe("parseGridRedirectCsvExportCsv", () => {
   it("detects grid export headers", () => {
     expect(
-      isGridRankMathExportCsv([
+      isGridRedirectCsvExportCsv([
         "group",
         "upload_row",
         "topic_tag",
@@ -19,7 +19,7 @@ describe("parseGridRankMathExportCsv", () => {
         "source",
       ]),
     ).toBe(true);
-    expect(isGridRankMathExportCsv(["source", "destination"])).toBe(false);
+    expect(isGridRedirectCsvExportCsv(["source", "destination"])).toBe(false);
   });
 
   it("parses one row per old_url/new_url pair", () => {
@@ -28,7 +28,7 @@ describe("parseGridRankMathExportCsv", () => {
       '1,10,tax,,Canadian Business,https://www.example.com/old-a/,https://www.example.com/blog/canadian-business/,1,blog/old-a/,exact,blog/canadian-business/,301,,active,',
       '2,11,tax,,Charitable,https://www.example.com/old-b/,https://www.example.com/blog/charitable/,2,blog/old-b/,exact,blog/charitable/,301,,active,',
     ].join("\n");
-    const parsed = parseGridRankMathExportCsv(csv);
+    const parsed = parseGridRedirectCsvExportCsv(csv);
     expect(parsed.error).toBeUndefined();
     expect(parsed.rows).toHaveLength(2);
     expect(parsed.rows[0]?.redirectFromUrl).toContain("old-a");

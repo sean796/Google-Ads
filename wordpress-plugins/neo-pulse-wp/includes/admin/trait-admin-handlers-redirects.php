@@ -13,7 +13,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Redirects {
 	const ACTION_DELETE_REDIRECT   = 'neo_pulse_wp_delete_redirect';
 	const ACTION_BULK_REDIRECTS    = 'neo_pulse_wp_bulk_redirects';
 	const ACTION_IMPORT_REDIRECTS  = 'neo_pulse_wp_import_redirects';
-	const ACTION_IMPORT_REDIRECTS_RANK_MATH_DB = 'neo_pulse_wp_import_redirects_rank_math_db';
+	const ACTION_IMPORT_REDIRECTS_RANK_MATH_DB = 'neo_pulse_wp_import_redirects_neo_pulse_seo_db';
 	const ACTION_EXPORT_REDIRECTS  = 'neo_pulse_wp_export_redirects';
 	const ACTION_SAVE_REDIRECT_SETTINGS = 'neo_pulse_wp_save_redirect_settings';
 	const ACTION_REDIRECT_ROW           = 'neo_pulse_wp_redirect_row';
@@ -250,7 +250,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Redirects {
 		}
 
 		$csv      = Neo_Pulse_Wp_Redirects_Csv::build( $export );
-		$filename = 'neo-pulse-rank-math-redirects-' . gmdate( 'Y-m-d' ) . '.csv';
+		$filename = 'neo-pulse-pulse-redirect-redirects-' . gmdate( 'Y-m-d' ) . '.csv';
 
 		nocache_headers();
 		header( 'Content-Type: text/csv; charset=utf-8' );
@@ -285,16 +285,16 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Redirects {
 		self::redirect_to_redirects( 'settings' );
 	}
 
-	public static function handle_import_redirects_rank_math_db(): void {
+	public static function handle_import_redirects_neo_pulse_seo_db(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to manage redirects.', 'neo-pulse-wp' ) );
 		}
-		check_admin_referer( self::ACTION_IMPORT_REDIRECTS_RANK_MATH_DB, 'neo_pulse_wp_import_redirects_rank_math_db_nonce' );
+		check_admin_referer( self::ACTION_IMPORT_REDIRECTS_RANK_MATH_DB, 'neo_pulse_wp_import_redirects_neo_pulse_seo_db_nonce' );
 		// Started from the SEO switch-over checklist: go back there, with the message.
 		$back_to_seo = isset( $_POST['neo_pulse_wp_back'] ) && 'seo' === sanitize_key( wp_unslash( (string) $_POST['neo_pulse_wp_back'] ) );
 
 		require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/super-migrate/interface-neo-pulse-wp-migrate-adapter.php';
-		require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/super-migrate/adapters/class-neo-pulse-wp-migrate-source-rank-math.php';
+		require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/super-migrate/adapters/class-neo-pulse-wp-migrate-source-pulse-redirect.php';
 		$result = Neo_Pulse_Wp_Migrate_Source_Rank_Math::import_redirects_from_database();
 
 		if ( empty( $result['ok'] ) ) {
@@ -302,10 +302,10 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Redirects {
 				array(
 					'kind'    => 'redirects',
 					'success' => false,
-					'message' => isset( $result['error'] ) ? (string) $result['error'] : __( 'Rank Math redirect import failed.', 'neo-pulse-wp' ),
+					'message' => isset( $result['error'] ) ? (string) $result['error'] : __( 'NEO Pulse redirect redirect import failed.', 'neo-pulse-wp' ),
 				)
 			);
-			self::redirect_after_rank_math_import( $back_to_seo );
+			self::redirect_after_neo_pulse_seo_import( $back_to_seo );
 		}
 
 		$stats = isset( $result['stats'] ) && is_array( $result['stats'] ) ? $result['stats'] : array();
@@ -315,21 +315,21 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Redirects {
 				'success' => true,
 				'message' => sprintf(
 					/* translators: 1: added count, 2: already present count, 3: failed count */
-					__( 'Rank Math import complete: %1$d added, %2$d already in NEO Pulse, %3$d could not be imported.', 'neo-pulse-wp' ),
+					__( 'NEO Pulse redirect import complete: %1$d added, %2$d already in NEO Pulse, %3$d could not be imported.', 'neo-pulse-wp' ),
 					(int) ( $stats['added'] ?? 0 ),
 					(int) ( $stats['existing'] ?? 0 ),
 					(int) ( $stats['errors'] ?? 0 ) + max( 0, (int) ( $stats['skipped'] ?? 0 ) - (int) ( $stats['existing'] ?? 0 ) )
 				),
 			)
 		);
-		self::redirect_after_rank_math_import( $back_to_seo );
+		self::redirect_after_neo_pulse_seo_import( $back_to_seo );
 	}
 
 	/**
-	 * After a Rank Math redirect import: back to the redirect list, or to the SEO switch-over
+	 * After a NEO Pulse redirect redirect import: back to the redirect list, or to the SEO switch-over
 	 * checklist when the import was started there (the flash is re-labelled so that page shows it).
 	 */
-	private static function redirect_after_rank_math_import( bool $back_to_seo ): void {
+	private static function redirect_after_neo_pulse_seo_import( bool $back_to_seo ): void {
 		if ( $back_to_seo ) {
 			$key   = 'neo_pulse_wp_flash_' . get_current_user_id();
 			$flash = get_transient( $key );
@@ -343,18 +343,18 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Redirects {
 	}
 
 	/**
-	 * Counts are per source pattern (a Rank Math rule can have several), so a
+	 * Counts are per source pattern (a NEO Pulse redirect rule can have several), so a
 	 * site imported before multi-source support shows the missing patterns as
 	 * pending and the import button reappears.
 	 *
 	 * @return array{available: bool, count: int, plugin_active: bool, pending_count: int, imported_count: int}
 	 */
-	public static function rank_math_database_import_status(): array {
+	public static function neo_pulse_seo_database_import_status(): array {
 		require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/super-migrate/interface-neo-pulse-wp-migrate-adapter.php';
-		require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/super-migrate/adapters/class-neo-pulse-wp-migrate-source-rank-math.php';
+		require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/super-migrate/adapters/class-neo-pulse-wp-migrate-source-pulse-redirect.php';
 
-		$plugin_active = Neo_Pulse_Wp_Migrate_Source_Rank_Math::is_rank_math_plugin_active();
-		$counts        = Neo_Pulse_Wp_Migrate_Source_Rank_Math::is_rank_math_present()
+		$plugin_active = Neo_Pulse_Wp_Migrate_Source_Rank_Math::is_neo_pulse_seo_plugin_active();
+		$counts        = Neo_Pulse_Wp_Migrate_Source_Rank_Math::is_neo_pulse_seo_present()
 			? Neo_Pulse_Wp_Migrate_Source_Rank_Math::redirect_source_counts()
 			: array(
 				'total'   => 0,

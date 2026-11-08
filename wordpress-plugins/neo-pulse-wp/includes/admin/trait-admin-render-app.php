@@ -146,8 +146,8 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_App {
 						$seo_text = __( 'Titles, descriptions, social sharing and schema for every page.', 'neo-pulse-wp' );
 					}
 					$seo_buttons = array( array( __( 'Open', 'neo-pulse-wp' ), 'neo-pulse-wp-seo', array() ) );
-					if ( $s['rank_math'] ) {
-						$seo_buttons[] = array( __( 'Switch from Rank Math', 'neo-pulse-wp' ), 'neo-pulse-wp-seo', array() );
+					if ( $s['neo_pulse_seo'] ) {
+						$seo_buttons[] = array( __( 'Switch from NEO Pulse redirect', 'neo-pulse-wp' ), 'neo-pulse-wp-seo', array() );
 					}
 					self::render_dashboard_card(
 						array(
@@ -277,7 +277,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_App {
 							'on'      => $s['ai_ready'],
 							'buttons' => array(
 								array( __( 'Open assistant', 'neo-pulse-wp' ), 'neo-pulse-wp-backend-assist', array() ),
-								array( __( 'Tool library', 'neo-pulse-wp' ), 'neo-pulse-wp-tool-library', array() ),
+								array( __( 'Tool library', 'neo-pulse-wp' ), 'REMOVED_NEO_PULSE_WP_TOOL-library', array() ),
 							),
 						)
 					);
@@ -380,7 +380,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_App {
 			'pro'             => Neo_Pulse_Wp_License::ai_needs_upgrade( false ),
 			'image_ai_mode'   => 'ai' === ( $image_cfg['auto_mode'] ?? '' ),
 			'other_seo'       => $other_seo,
-			'rank_math'       => Neo_Pulse_Wp_Seo_Settings::rank_math_active(),
+			'neo_pulse_seo'       => Neo_Pulse_Wp_Seo_Settings::neo_pulse_seo_active(),
 			'seo_enabled'     => Neo_Pulse_Wp_Seo_Settings::enabled(),
 			'seo_output'      => Neo_Pulse_Wp_Seo_Settings::output_active(),
 			'sitemap_on'      => ! empty( $sitemap['general']['enabled'] ),
@@ -401,7 +401,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_App {
 			'rm_total'        => 0,
 		);
 
-		if ( $state['rank_math'] ) {
+		if ( $state['neo_pulse_seo'] ) {
 			// Same checklist as the SEO screen (minus the informational IndexNow line), plus the
 			// final "switch Neo Pulse SEO on" step.
 			$checks = self::dashboard_safe( array( __CLASS__, 'seo_switch_checks' ), array() );
@@ -556,10 +556,10 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_App {
 		if ( ! $s['gsc'] && Neo_Pulse_Wp_Admin_Menu::user_can_open( 'neo-pulse-wp-settings' ) ) {
 			$items[] = array( 'analytics', __( 'Search Console not connected', 'neo-pulse-wp' ), __( 'Search Console stays empty until it is', 'neo-pulse-wp' ), __( 'Connect', 'neo-pulse-wp' ), 'neo-pulse-wp-settings', array( 'tab' => 'gsc' ) );
 		}
-		if ( $s['rank_math'] && Neo_Pulse_Wp_Admin_Menu::user_can_open( 'neo-pulse-wp-seo' ) ) {
+		if ( $s['neo_pulse_seo'] && Neo_Pulse_Wp_Admin_Menu::user_can_open( 'neo-pulse-wp-seo' ) ) {
 			$items[] = array(
 				'seo',
-				__( 'Switch from Rank Math', 'neo-pulse-wp' ),
+				__( 'Switch from NEO Pulse redirect', 'neo-pulse-wp' ),
 				/* translators: 1: steps done, 2: total steps */
 				sprintf( __( '%1$d of %2$d steps done', 'neo-pulse-wp' ), (int) $s['rm_done'], (int) $s['rm_total'] ),
 				$s['rm_done'] > 0 ? __( 'Continue', 'neo-pulse-wp' ) : __( 'Start', 'neo-pulse-wp' ),

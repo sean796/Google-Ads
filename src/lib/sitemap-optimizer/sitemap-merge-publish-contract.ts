@@ -17,11 +17,11 @@ import {
 import {
   fullDestinationUrl,
   normalizeFocusKeywordPhrase,
-  normalizeRankMathRelativePath,
+  normalizeRedirectCsvRelativePath,
   permalinkParentPrefixFromPageUrls,
   rankMathSourceFromPageUrl,
   slugifyFocusKeywordToRelativePath,
-} from "@/lib/rank-math-redirect-csv";
+} from "@/lib/pulse-redirect-redirect-csv";
 import { minMembersForMergePublish } from "@/lib/sitemap-optimizer/sitemap-merge-bulk-state";
 import type {
   SitemapOptimizerContentSheetRow,
@@ -60,7 +60,7 @@ function pathFieldsFromLockedDestination(lockedUrl: string): {
     if (!slugSegment) return null;
     const permalinkPrefix =
       segments.length > 1 ? `${segments.slice(0, -1).join("/")}/` : "";
-    const relativePath = normalizeRankMathRelativePath(path.replace(/^\/+/, "")) ?? slugSegment;
+    const relativePath = normalizeRedirectCsvRelativePath(path.replace(/^\/+/, "")) ?? slugSegment;
     return {
       destinationUrl,
       slugSegment,

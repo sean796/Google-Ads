@@ -6,8 +6,7 @@ export const KB_FILES_STORAGE_KEY = 'kb_files';
 export interface WordPressSiteCapabilities {
   hasNeoPulseWp: boolean;
   neoPulseWpVersion?: string;
-  fieldsBackend: 'acf_native' | 'neo_pulse_fields' | 'none';
-  acfRestObjectPresent: boolean;
+  fieldsBackend: "neo_pulse_fields" | "none";
 }
 
 export interface WordPressSite {
@@ -68,7 +67,7 @@ export interface WordPressSite {
     fetchedAt: number;
   };
   entitySitemapUrl?: string;
-  /** Rank Math child sitemap for competitor comparison CPT (e.g. competitor-sitemap.xml). */
+  /** NEO Pulse redirect child sitemap for competitor comparison CPT (e.g. competitor-sitemap.xml). */
   competitorEntitySitemapUrl?: string;
   manualEndpoint?: string; // Manually declared endpoint (authoritative, no mutation)
   locations?: Location[];

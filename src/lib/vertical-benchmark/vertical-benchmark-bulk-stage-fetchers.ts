@@ -158,7 +158,7 @@ export async function fetchMergedInventory(
   const collections = benchmarkCurateInventoryCollections(site, contentKinds);
   const bulk = await getSiteInventoryBulk(site.siteUrl, user, pass, {
     includeContent: false,
-    includeRawAcf: false,
+    includeRawPostFields: false,
     includeScheduled: true,
     inventorySizing: "auto",
     collections,

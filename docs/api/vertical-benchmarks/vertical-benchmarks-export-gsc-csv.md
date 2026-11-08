@@ -5,7 +5,7 @@ section: Vertical Benchmarks
 method: POST
 path: /api/vertical-benchmarks/export-gsc-csv
 auth: open
-order: 2460
+order: 2490
 ---
 
 POST `/api/vertical-benchmarks/export-gsc-csv`.

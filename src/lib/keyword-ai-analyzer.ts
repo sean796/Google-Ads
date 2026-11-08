@@ -3,8 +3,8 @@ import type { KeywordData, KeywordAIAnalysis, PeopleAlsoAsk } from "./keyword-ty
 import { buildKeywordAnalysisPrompt } from "./prompt-builders-keyword";
 import { formatKeyword, formatKeywords } from "./keyword-formatter";
 import { getResearchModel } from "./optimization-settings-storage";
-import { readACFFieldsAgentically } from "./content-generation/ai-driven-acf-reader";
-import type { AIDrivenACFContext } from "./content-generation/ai-driven-acf-reader";
+import { readACFFieldsAgentically } from "./content-generation/ai-driven-post-fields-reader";
+import type { AIDrivenACFContext } from "./content-generation/ai-driven-post-fields-reader";
 import {
   RESEARCH_MODEL_MAX_TOKENS,
   tryParseKeywordAnalysisJson,

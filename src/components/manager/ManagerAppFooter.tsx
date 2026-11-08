@@ -10,10 +10,8 @@ import { Button } from "@/ui";
 
 /** In-app shortcuts; inner wrapper adds horizontal gutter so the footer never sits flush to the column edge. */
 const FOOTER_APP_LINKS: { value: string; label: string }[] = [
-  { value: "chat", label: "Chat" },
   { value: "dashboard", label: "Dashboard" },
-  { value: "generator", label: "Generator" },
-  { value: "research", label: "Research" },
+  { value: "changelog", label: "Changelog" },
   { value: "api", label: "API" },
 ];
 

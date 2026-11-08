@@ -92,7 +92,7 @@ final class Neo_Pulse_Wp_Mcp_Write {
 					),
 				),
 				'set-page-faqs'           => array(
-					'description' => 'Replace a page or post FAQ schema (rank_math_schema_FAQPage). Pass an empty faqs list to clear it. Supports dry_run and expected_version.',
+					'description' => 'Replace a page or post FAQ schema (neo_pulse_seo_schema_FAQPage). Pass an empty faqs list to clear it. Supports dry_run and expected_version.',
 					'arguments'   => array(
 						'post_id'          => 'integer (required unless url is given)',
 						'url'              => 'string (optional URL)',
@@ -102,7 +102,7 @@ final class Neo_Pulse_Wp_Mcp_Write {
 					),
 				),
 				'clear-page-video-schemas' => array(
-					'description' => 'Remove all rank_math_schema_VideoObject meta rows on a post (legacy Rank Math / autodetect VideoObject). Page schema type off prevents Neo Pulse from re-adding. Supports dry_run and expected_version.',
+					'description' => 'Remove all neo_pulse_seo_schema_VideoObject meta rows on a post (legacy NEO Pulse redirect / autodetect VideoObject). Page schema type off prevents Neo Pulse from re-adding. Supports dry_run and expected_version.',
 					'arguments'   => array(
 						'post_id'          => 'integer (required unless url is given)',
 						'url'              => 'string (optional URL)',

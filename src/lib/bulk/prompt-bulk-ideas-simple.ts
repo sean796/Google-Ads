@@ -204,9 +204,6 @@ export async function generateSimplePromptIdeas(args: {
 }): Promise<CSVRow[]> {
   const count = Math.max(1, Math.min(50, Math.floor(args.count) || 1));
   const apiKey = args.apiKey.trim();
-  if (!apiKey) {
-    throw new Error("OpenRouter API key is required.");
-  }
 
   const slots = Array.from({ length: count }, (_, i) => ({
     keyword: args.slotKeywords?.[i]?.trim() || "",

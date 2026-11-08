@@ -171,7 +171,6 @@ class Neo_Pulse_App_Wp_Connection {
 			'neoPulseWp'           => $neo_pulse_ok,
 			'neoPulseWpVersion'    => $version,
 			'fieldsBackend'        => $neo_pulse_ok ? 'neo_pulse_fields' : 'none',
-			'acfRestObjectPresent' => true,
 			'postTypes'            => $types,
 			'restRoot'             => $normalized_url . '/wp-json/',
 		);

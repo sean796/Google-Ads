@@ -59,8 +59,8 @@ export {
   type ChangeWordPressPostUrlResult,
 } from './wordpress-api/change-post-url';
 
-// Simple helper to call the backend ACF multi-field updater from the frontend.
-export async function updateWordPressAcfFields(
+// Multi-field updater via neo-pulse-app /api/wordpress/update-post-fields.
+export async function updateWordPressPostFields(
   siteUrl: string,
   username: string,
   appPassword: string,
@@ -70,7 +70,7 @@ export async function updateWordPressAcfFields(
   fields: Record<string, unknown>,
 ): Promise<{ success: boolean; error?: string }> {
   const { BACKEND_API_BASE } = await import('./wordpress-api/connection');
-  const url = `${BACKEND_API_BASE}/api/wordpress/update-acf-fields`;
+  const url = `${BACKEND_API_BASE}/api/wordpress/update-post-fields`;
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -87,7 +87,7 @@ export async function updateWordPressAcfFields(
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok || !data.success) {
-      return { success: false, error: data.error || response.statusText || 'ACF update failed' };
+      return { success: false, error: data.error || response.statusText || 'Post fields update failed' };
     }
     return { success: true };
   } catch (e: unknown) {
@@ -127,18 +127,7 @@ export {
   type ResolvedAuthorForDisplay
 } from './wordpress-api/author-resolver';
 
-// NEO Pulse WP tools + unified fields client (ACF / NEO Pulse Fields)
-export {
-  executeNeoPulseWpTool,
-  listNeoPulseWpTools,
-  getNeoPulseSiteIndex,
-  searchNeoPulseSiteIndex,
-  getNeoPulseFields,
-  resolveNeoPulseUrl,
-  getNeoPulsePostContent,
-  siteHasNeoPulseWp,
-  NEO_PULSE_WP_TOOL_CATALOG,
-} from './wordpress-api/neo-pulse-wp-tools';
+export { siteHasNeoPulseWp } from './wordpress-api/post-fields-site-capabilities';
 
 export {
   discoverFieldGroups,
@@ -149,7 +138,12 @@ export {
   clearSiteMirrorIndexCache,
   resolvePostUrlViaMirror,
   mergeMirrorIndexIntoInventoryKeyword,
-  restAcfFromFullPost,
+  restPostFieldsFromFullPost,
   siteUsesNeoPulseFieldsBackend,
-  siteSupportsSeoExtraTextAcf,
+  siteSupportsSeoExtraTextField,
 } from './wordpress-api/fields-client';
+
+export {
+  getFlowAssistChatSettings,
+  updateFlowAssistChatSettings,
+} from './wordpress-api/chat-flow-assist-settings';

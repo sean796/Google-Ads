@@ -1,4 +1,4 @@
-import { buildGridPublishContracts } from "@/lib/sitemap-optimizer/build-grid-rank-math-redirects";
+import { buildGridPublishContracts } from "@/lib/sitemap-optimizer/build-grid-pulse-redirect-redirects";
 import {
   buildMergeGroupNumbersForGridResult,
   mergeGroupNumberForDestination,

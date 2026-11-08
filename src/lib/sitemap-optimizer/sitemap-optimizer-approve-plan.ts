@@ -1,6 +1,6 @@
 import type { WordPressSite } from "@/components/integrations/types";
 import {
-  buildSitemapOptimizerAllRankMathRedirectCsv,
+  buildSitemapOptimizerAllRedirectCsvRedirectCsv,
   buildSitemapOptimizerContentUploadCsv,
 } from "@/lib/sitemap-optimizer/sitemap-optimizer-download-csv";
 import {
@@ -64,11 +64,11 @@ export async function runSitemapOptimizerApprovePlan(
     phase: "redirects",
     completed: 0,
     total: 1,
-    detail: "Building Rank Math redirect CSV",
+    detail: "Building NEO Pulse redirect redirect CSV",
   });
 
   const { csv: redirectCsv, rowCount: redirectRowCount } =
-    buildSitemapOptimizerAllRankMathRedirectCsv(result, publishAt);
+    buildSitemapOptimizerAllRedirectCsvRedirectCsv(result, publishAt);
 
   if (result.merges.length > 0 && redirectRowCount === 0) {
     throw new Error(
@@ -79,7 +79,7 @@ export async function runSitemapOptimizerApprovePlan(
   if (redirectRowCount > 0) {
     triggerRedirectDownload(
       redirectCsv,
-      `sitemap-merge-rank-math-redirects-${dateStamp()}.csv`,
+      `sitemap-merge-pulse-redirect-redirects-${dateStamp()}.csv`,
     );
   }
 

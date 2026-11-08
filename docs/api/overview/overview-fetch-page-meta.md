@@ -5,7 +5,7 @@ section: Overview
 method: POST
 path: /api/overview/fetch-page-meta
 auth: open
-order: 910
+order: 920
 ---
 
 POST `/api/overview/fetch-page-meta`.

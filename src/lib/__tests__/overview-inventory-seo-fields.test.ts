@@ -51,7 +51,7 @@ describe("overview-inventory-seo-fields", () => {
     expect(d.focusKeyword).toBe("what is national seo");
   });
 
-  it("infers from the current title when Rank Math still has the old slug keyword", () => {
+  it("infers from the current title when NEO Pulse redirect still has the old slug keyword", () => {
     const d = downloadFieldsFromInventoryRow({
       ...base,
       acf: { keyword_focus: "elementor experts" },

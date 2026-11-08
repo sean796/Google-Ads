@@ -1,5 +1,5 @@
 import type { WordPressSite } from "@/components/integrations/types";
-import type { WpPostSnapshotFromAcfByUrl } from "@/lib/wordpress-api/fields-client";
+import type { WpPostSnapshotFromFieldsByUrl } from "@/lib/wordpress-api/fields-client";
 import {
   existingPostFromInventoryRow,
   lookupInventoryRowWithSource,
@@ -8,11 +8,11 @@ import {
   type BulkOptimizerInventorySnapshot,
   typeHintFromCachedPost,
 } from "@/lib/wordpress-api/inventory-match";
-import { mergeSeoResearchFromAcfIntoContext } from "@/lib/content-generation/ai-driven-acf-reader";
+import { mergeSeoResearchFromAcfIntoContext } from "@/lib/content-generation/ai-driven-post-fields-reader";
 import type { HandleOptimizeMultipleContentParams } from "./bulk-optimization-params";
 import type { LinkPoolPostRow } from "./bulk-optimization-do-prefetch";
 import { DEATH_STAR_NO_GSC, bulkOptimizationWpStr } from "./bulk-optimization-constants";
-import { inventoryRowToAcfKeywordFields } from "./bulk-optimization-grep-acf";
+import { inventoryRowToAcfKeywordFields } from "./bulk-optimization-grep-fields";
 import type { SitePostInventoryRow } from "@/lib/wordpress-api/types";
 import { resolveSapEntityForOptimize } from "./continue-optimization-entity-helpers";
 
@@ -38,8 +38,8 @@ export type SeedAllBulkPrefetchFromInventoryParams = {
   inContentImageRequest: HandleOptimizeMultipleContentParams["inContentImageRequest"];
   wordPressPostsForRun: LinkPoolPostRow[];
   isAcfKeywordMode: boolean;
-  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
-  prefetchedPostPayloadByUrlIndex: Map<number, WpPostSnapshotFromAcfByUrl>;
+  prefetchedPostFieldsCache: Map<number, Record<string, unknown>>;
+  prefetchedPostPayloadByUrlIndex: Map<number, WpPostSnapshotFromFieldsByUrl>;
   prefetchedAcfFullPostByUrlIndex: Map<number, Record<string, unknown>>;
   prefetchedPendingCache: Map<
     number,
@@ -76,7 +76,7 @@ export type SeedBulkPrefetchFromInventoryResult = {
 
 function postSnapshotFromInventory(
   invHit: NonNullable<ReturnType<typeof lookupInventoryRowWithSource>>,
-): WpPostSnapshotFromAcfByUrl {
+): WpPostSnapshotFromFieldsByUrl {
   const existing = existingPostFromInventoryRow(invHit);
   const postTypeEndpoint = String(existing.postTypeEndpoint || "posts");
   const postTypeSubtype =
@@ -111,7 +111,7 @@ export function seedAllBulkPrefetchCachesFromInventory(
     optimizationOptions,
     inContentImageRequest,
     wordPressPostsForRun,
-    prefetchedAcfFieldsCache,
+    prefetchedPostFieldsCache,
     prefetchedPostPayloadByUrlIndex,
     prefetchedAcfFullPostByUrlIndex,
     prefetchedPendingCache,
@@ -192,7 +192,7 @@ export function seedAllBulkPrefetchCachesFromInventory(
       }
     }
 
-    prefetchedAcfFieldsCache.set(urlIndex, acfFields);
+    prefetchedPostFieldsCache.set(urlIndex, acfFields);
     if (primaryKeyword) {
       urlKeywords[targetUrl] = primaryKeyword;
     }

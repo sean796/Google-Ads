@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
 interface Neo_Pulse_Wp_Migrate_Adapter {
 
 	/**
-	 * Unique adapter id (e.g. acf, rank_math).
+	 * Unique adapter id (e.g. acf, neo_pulse_seo).
 	 */
 	public function get_id(): string;
 

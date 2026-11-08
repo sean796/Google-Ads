@@ -1,17 +1,17 @@
 import {
-  buildRankMathRedirectCsv,
-  normalizeRankMathRelativePath,
+  buildRedirectCsvRedirectCsv,
+  normalizeRedirectCsvRelativePath,
   rankMathSourceFromPageUrl,
-} from "@/lib/rank-math-redirect-csv";
+} from "@/lib/pulse-redirect-redirect-csv";
 import { buildContentSheetRows } from "@/lib/sitemap-optimizer/build-content-sheet-rows";
 import { contentSheetPrimaryUrl } from "@/lib/sitemap-optimizer/content-sheet-source-url";
 import {
-  buildGridRankMathRedirectRows,
-  buildRedirectMapFamilyRankMathCsv,
+  buildGridRedirectCsvRedirectRows,
+  buildRedirectMapFamilyRedirectCsvCsv,
   buildRedirectMapFamilyRows,
   buildRedirectMapFamilyWideCsv,
   isRedirectMapRun,
-} from "@/lib/sitemap-optimizer/build-grid-rank-math-redirects";
+} from "@/lib/sitemap-optimizer/build-grid-pulse-redirect-redirects";
 import {
   buildMergePublishContracts,
   redirectRowsFromContracts,
@@ -44,20 +44,20 @@ export function buildSitemapOptimizerContentUploadCsv(
   return buildContentSheetBulkTemplateCsv(result, publishDateGmt);
 }
 
-export function buildSitemapOptimizerRankMathRedirectCsv(
+export function buildSitemapOptimizerRedirectCsvRedirectCsv(
   result: SitemapOptimizerRunResult,
   publishDateGmt?: string,
 ): { csv: string; rowCount: number } {
   const contracts = buildMergePublishContracts(result, publishDateGmt);
   const redirectRows = redirectRowsFromContracts(contracts, result);
   return {
-    csv: buildRankMathRedirectCsv(redirectRows),
+    csv: buildRedirectCsvRedirectCsv(redirectRows),
     rowCount: redirectRows.length,
   };
 }
 
 function rankMathDestinationValue(fullDestinationUrl: string): string {
-  const rel = normalizeRankMathRelativePath(fullDestinationUrl);
+  const rel = normalizeRedirectCsvRelativePath(fullDestinationUrl);
   return rel ?? fullDestinationUrl.trim();
 }
 
@@ -79,15 +79,15 @@ function sheetMapsForResult(result: SitemapOptimizerRunResult) {
   return { sheet, byPostId, byClusterId };
 }
 
-/** Every inventory URL → optimized Rank Math destination (grid + WordPress). */
-export function buildSitemapOptimizerAllRankMathRedirectCsv(
+/** Every inventory URL → optimized NEO Pulse redirect destination (grid + WordPress). */
+export function buildSitemapOptimizerAllRedirectCsvRedirectCsv(
   result: SitemapOptimizerRunResult,
   publishDateGmt?: string,
 ): { csv: string; rowCount: number } {
   if (isRedirectMapRun(result)) {
     const rows = buildRedirectMapFamilyRows(result);
     return {
-      csv: buildRedirectMapFamilyRankMathCsv(result),
+      csv: buildRedirectMapFamilyRedirectCsvCsv(result),
       rowCount: rows.length,
     };
   }
@@ -96,17 +96,17 @@ export function buildSitemapOptimizerAllRankMathRedirectCsv(
     if (isRedirectMapRun(result)) {
       const familyRows = buildRedirectMapFamilyRows(result);
       return {
-        csv: buildRedirectMapFamilyRankMathCsv(result),
+        csv: buildRedirectMapFamilyRedirectCsvCsv(result),
         rowCount: familyRows.length,
       };
     }
-    const rows = buildGridRankMathRedirectRows(result);
+    const rows = buildGridRedirectCsvRedirectRows(result);
     const redirectRows = rows.map((r) => ({
       source: r.source,
       destination: rankMathDestinationValue(r.destinationUrl),
     }));
     return {
-      csv: buildRankMathRedirectCsv(redirectRows),
+      csv: buildRedirectCsvRedirectCsv(redirectRows),
       rowCount: redirectRows.length,
     };
   }
@@ -121,7 +121,7 @@ export function buildSitemapOptimizerAllRankMathRedirectCsv(
 
 
   return {
-    csv: buildRankMathRedirectCsv(redirectRows),
+    csv: buildRedirectCsvRedirectCsv(redirectRows),
     rowCount: redirectRows.length,
   };
 }
@@ -139,7 +139,7 @@ export type OutboundRedirectInventoryRow = {
   destinationUrl: string;
 };
 
-/** Inventory rows that receive an outbound Rank Math redirect (same rules as redirect CSV export). */
+/** Inventory rows that receive an outbound NEO Pulse redirect redirect (same rules as redirect CSV export). */
 export function outboundRedirectInventoryRows(
   result: SitemapOptimizerRunResult,
   publishDateGmt?: string,

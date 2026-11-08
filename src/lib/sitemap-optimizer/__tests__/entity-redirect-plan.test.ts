@@ -5,7 +5,7 @@ import {
 } from "@/lib/sitemap-optimizer/build-entity-state-from-redirect-plan";
 import { ensureEntityCompressCoverage } from "@/lib/sitemap-optimizer/entity-compress-coverage";
 import { fillFamilyStrategyFromPillar } from "@/lib/sitemap-optimizer/entity-transform-families-agent";
-import { redirectPlanRankMathPairs } from "@/lib/sitemap-optimizer/entity-redirect-plan-agent";
+import { redirectPlanRedirectCsvPairs } from "@/lib/sitemap-optimizer/entity-redirect-plan-agent";
 import { entityRedirectGroupingKey } from "@/lib/sitemap-optimizer/entity-redirect-grouping-key";
 import type { EntityRedirectPlan } from "@/lib/sitemap-optimizer/entity-redirect-plan-parse";
 import type { SitemapOptimizerPostRow } from "@/lib/sitemap-optimizer/types";
@@ -57,7 +57,7 @@ function aiFamily(
 }
 
 describe("entity redirect plan", () => {
-  it("builds Rank Math pairs from AI plan families", () => {
+  it("builds NEO Pulse redirect pairs from AI plan families", () => {
     const rows = Array.from({ length: 6 }, (_, i) =>
       row(`p${i}`, `https://example.com/service-area/griesbach-blinds-${i + 1}/`, {
         gscPageClicks: i,
@@ -71,7 +71,7 @@ describe("entity redirect plan", () => {
     };
     const rowById = new Map(rows.map((r) => [r.postId, r]));
     const { merges } = entityStateFromRedirectPlan(plan, rowById);
-    const pairs = redirectPlanRankMathPairs(plan, rowById);
+    const pairs = redirectPlanRedirectCsvPairs(plan, rowById);
 
     expect(merges).toHaveLength(2);
     expect(merges[0]?.recommendedPrimaryKeyword).toBe("custom blinds");

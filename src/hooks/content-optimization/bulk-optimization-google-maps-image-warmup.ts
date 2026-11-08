@@ -30,17 +30,17 @@ export function bulkSapGoogleMapsImageWarmupEnabled(
 export type CreateBulkGoogleMapsImageWarmupParams = {
   urls: string[];
   skipUrlSet: Set<string>;
-  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
+  prefetchedPostFieldsCache: Map<number, Record<string, unknown>>;
   prefetchedPendingCache: Map<number, { pending: Record<string, unknown>; primaryKeyword: string }>;
 };
 
 function entityLabelForIndex(
   index: number,
   urls: string[],
-  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>,
+  prefetchedPostFieldsCache: Map<number, Record<string, unknown>>,
   prefetchedPendingCache: Map<number, { pending: Record<string, unknown>; primaryKeyword: string }>,
 ): string | null {
-  const acf = prefetchedAcfFieldsCache.get(index) ?? {};
+  const acf = prefetchedPostFieldsCache.get(index) ?? {};
   for (const key of ["origin", "service_area", "service_area_name", "location", "entity"]) {
     const v = String(acf[key] ?? "").trim();
     if (v && v !== "N/A") return v;
@@ -65,7 +65,7 @@ function entityLabelForIndex(
 }
 
 export function createBulkGoogleMapsImageWarmupController(params: CreateBulkGoogleMapsImageWarmupParams) {
-  const { urls, skipUrlSet, prefetchedAcfFieldsCache, prefetchedPendingCache } = params;
+  const { urls, skipUrlSet, prefetchedPostFieldsCache, prefetchedPendingCache } = params;
 
   const readyEntities = new Set<string>();
   const inFlight = new Map<number, Promise<boolean>>();
@@ -73,7 +73,7 @@ export function createBulkGoogleMapsImageWarmupController(params: CreateBulkGoog
   const isIndexReady = (index: number): boolean => {
     if (index < 0 || index >= urls.length) return false;
     if (skipUrlSet.has(urls[index]!)) return true;
-    const entity = entityLabelForIndex(index, urls, prefetchedAcfFieldsCache, prefetchedPendingCache);
+    const entity = entityLabelForIndex(index, urls, prefetchedPostFieldsCache, prefetchedPendingCache);
     if (!entity) return false;
     if (readyEntities.has(entity.trim().toLowerCase())) return true;
     return Boolean(peekGoogleMapsImageCache(entity));
@@ -87,7 +87,7 @@ export function createBulkGoogleMapsImageWarmupController(params: CreateBulkGoog
     const existing = inFlight.get(index);
     if (existing) return existing;
 
-    const entity = entityLabelForIndex(index, urls, prefetchedAcfFieldsCache, prefetchedPendingCache);
+    const entity = entityLabelForIndex(index, urls, prefetchedPostFieldsCache, prefetchedPendingCache);
     if (!entity) return Promise.resolve(false);
 
     const promise = fetchGoogleMapsImageForEntity(entity)

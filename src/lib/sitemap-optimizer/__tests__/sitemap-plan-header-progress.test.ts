@@ -30,7 +30,7 @@ describe("sitemapPlanHeaderProgressFromState", () => {
     ).toBeNull();
   });
 
-  it("prefers Rank Math import over analyze", () => {
+  it("prefers NEO Pulse redirect import over analyze", () => {
     const p = sitemapPlanHeaderProgressFromState({
       rankMathImportRunning: true,
       rankMathProgress: analyzeProgress({ detail: "Importing plan…" }),

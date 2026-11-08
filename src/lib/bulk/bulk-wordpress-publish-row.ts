@@ -6,13 +6,14 @@ import type { CSVRow } from '@/lib/bulk/bulk-csv-parser';
 import type { BulkProcessingOptions } from '@/lib/bulk/bulk-auto-generate-types';
 import { BulkFileManager, type BulkGeneratedFile } from '@/lib/bulk-file-manager';
 import type { KeywordData } from '@/lib/keyword-types';
-import type { PrecomputedAcfSeoBundle } from '@/lib/content-generation/bulk-acf-seo-bundle';
+import type { PrecomputedAcfSeoBundle } from '@/lib/content-generation/bulk-post-fields-seo-bundle';
 import type { IntelligentKeywordResearchMergeResult } from '@/lib/bulk/intelligent-keyword-research-merge';
 import type { SemrushBulkEnrichmentResult } from '@/lib/wordpress-api/semrush';
 import type { AgentConfig } from '@/types/agent-config';
 import type { ExternalLinkPair } from '@/lib/content-generation/external-link-placeholders';
 import { buildSitesToPostFromPosting, getBulkPreValidatedUrlsForSite } from '@/lib/bulk/bulk-wordpress-link-prefetch';
-import { resolveRankMathFromKeywordResearch } from '@/lib/bulk/bulk-keyword-research-artifacts';
+import { resolveRedirectCsvFromKeywordResearch } from '@/lib/bulk/bulk-keyword-research-artifacts';
+import { isGeneratedContentHtml } from '@/lib/content-generation/content-format';
 import { prepareHarnessContentForUpload } from '@/lib/content-generation/harness-upload-prep';
 import { sanitizeContentForUpload } from '@/lib/content-generation/content-sanitizer';
 import { ensureWhatWeOfferTablePageLinks } from '@/lib/content-generation/what-we-offer-table-page-links';
@@ -38,7 +39,7 @@ import {
 import {
   appendEarlyBulkFaqTable,
   syncBulkRowAcfForPost,
-} from '@/lib/bulk/bulk-wordpress-publish-acf-sync';
+} from '@/lib/bulk/bulk-wordpress-publish-fields-sync';
 import {
   addBulkWordPressFailureArtifacts,
   addBulkWordPressPostArtifacts,
@@ -156,22 +157,31 @@ export async function publishBulkRowToWordPressSites(
         const slugEarly = buildSapSlugFromKeywordEntity(kw, ent);
         if (slugEarly) uploadPageUrl = `${uploadBaseUrl}/${slugEarly}`;
       }
-      options.onProgress?.(rowIndex, 0, 'Quality control: checking HTML...');
-      options.onProgress?.(rowIndex, 0, 'Preparing harness content for upload...');
-      let htmlContent = await prepareHarnessContentForUpload({
-        markdownContent,
-        blueprintAgents: blueprintResult.agents,
-        wordPressPosts: postsForInternalLinks,
-        postsForInternalLinks,
-        siteId: firstSite?.id,
-        siteUrl: firstSite?.siteUrl,
-        currentPageUrl: uploadPageUrl || undefined,
-        externalUrlPairs: rowExplicitExternalPairs,
-        apiKey: options.openRouterApiKey || loadApiKey(),
-        keyword: bulkPrimaryKwResolved,
-        articleTitle: bulkResolvedPostTitle,
-        model: pipelineBlogModel,
-      });
+      const alreadyPreparedHtml =
+        isGeneratedContentHtml(markdownContent) &&
+        !markdownContent.includes("[[LINK:") &&
+        !markdownContent.includes("[[EXTERNAL:");
+      let htmlContent: string;
+      if (alreadyPreparedHtml) {
+        htmlContent = markdownContent;
+      } else {
+        options.onProgress?.(rowIndex, 0, 'Quality control: checking HTML...');
+        options.onProgress?.(rowIndex, 0, 'Preparing harness content for upload...');
+        htmlContent = await prepareHarnessContentForUpload({
+          markdownContent,
+          blueprintAgents: blueprintResult.agents,
+          wordPressPosts: postsForInternalLinks,
+          postsForInternalLinks,
+          siteId: firstSite?.id,
+          siteUrl: firstSite?.siteUrl,
+          currentPageUrl: uploadPageUrl || undefined,
+          externalUrlPairs: rowExplicitExternalPairs,
+          apiKey: options.openRouterApiKey || loadApiKey(),
+          keyword: bulkPrimaryKwResolved,
+          articleTitle: bulkResolvedPostTitle,
+          model: pipelineBlogModel,
+        });
+      }
       if (options.wordPressPagesForOfferTable?.length && firstSite?.siteUrl) {
         htmlContent = ensureWhatWeOfferTablePageLinks(
           htmlContent,
@@ -180,7 +190,7 @@ export async function publishBulkRowToWordPressSites(
           firstSite.siteUrl,
         );
       }
-      const rankMeta = resolveRankMathFromKeywordResearch(keywordData);
+      const rankMeta = resolveRedirectCsvFromKeywordResearch(keywordData);
       // Prefer CSV meta when filled; then generator meta; then research / body
       const csvMeta = enrichedRow.meta_description?.trim() || "";
       const excerpt =

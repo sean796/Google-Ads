@@ -2,7 +2,7 @@
 
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import { patchRowForNewFocusKeyword } from "@/components/overview/overview-meta-row-patches";
-import { normalizeFocusKeywordPhrase } from "@/lib/rank-math-redirect-csv";
+import { normalizeFocusKeywordPhrase } from "@/lib/pulse-redirect-redirect-csv";
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_URL_COPIED_TO_CLIPBOARD } from "@/lib/notify-messages";
 import { Wand2, RefreshCw, Upload as UploadIcon, FileDown, Copy, CheckCircle2, ChevronUp } from "lucide-react";
@@ -155,7 +155,7 @@ export function MetaRowTopZone({ s }: { s: MetaRowDetailsCtx }) {
           <Button
             type="button"
             disabled={shellOnly || !redirectRow}
-            title="Download Rank Math redirect CSV for this URL change"
+            title="Download NEO Pulse redirect redirect CSV for this URL change"
             onClick={() => {
               if (!redirectRow) return;
               downloadOverviewRedirectCsv([redirectRow], overviewRedirectCsvFilename(row));

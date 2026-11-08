@@ -25,7 +25,7 @@ export interface BulkPostLoopParams {
   muteToasts: boolean;
   isAcfKeywordMode: boolean;
   prefetchedPendingCache: Map<number, { pending: Record<string, unknown>; primaryKeyword: string }>;
-  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
+  prefetchedPostFieldsCache: Map<number, Record<string, unknown>>;
   pendingOptimizationData: Record<string, PendingOptimization>;
   wordPressPostsForRun?: Array<Record<string, unknown>>;
   wordPressPagesForOfferTable?: Array<{
@@ -45,8 +45,8 @@ export interface BulkPostLoopParams {
   onBulkUrlComplete?: HandleOptimizeMultipleContentParams["onBulkUrlComplete"];
   serpWarmup: BulkSerpWarmupController;
   googleMapsImageWarmup?: BulkGoogleMapsImageWarmupController | null;
-  prefetchArgs: Omit<BulkDoPrefetchArgs, "prefetchedAcfFieldsCache" | "prefetchedPendingCache" | "setBulkOptimizationState"> & {
-    prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
+  prefetchArgs: Omit<BulkDoPrefetchArgs, "prefetchedPostFieldsCache" | "prefetchedPendingCache" | "setBulkOptimizationState"> & {
+    prefetchedPostFieldsCache: Map<number, Record<string, unknown>>;
     prefetchedPendingCache: Map<number, { pending: Record<string, unknown>; primaryKeyword: string }>;
     setBulkOptimizationState: HandleOptimizeMultipleContentParams["setBulkOptimizationState"];
   };
@@ -80,7 +80,7 @@ export async function bulkOptimizationRunPostLoop(p: BulkPostLoopParams): Promis
     site,
     muteToasts,
     prefetchedPendingCache,
-    prefetchedAcfFieldsCache,
+    prefetchedPostFieldsCache,
     pendingOptimizationData,
     wordPressPostsForRun,
     wordPressPagesForOfferTable,

@@ -529,7 +529,7 @@ Neo_Pulse_Wp_Mcp::write(
 update_option( 'options_ci_company_name', 'Old Stale Brand' );
 update_post_meta(
 	101,
-	'rank_math_schema_FAQPage',
+	'neo_pulse_seo_schema_FAQPage',
 	array(
 		'@type'      => 'FAQPage',
 		'mainEntity' => array(

@@ -33,7 +33,7 @@ import {
 } from '@/lib/content-optimization/page-local-context';
 import { parseSeoResearchBrief } from '@/lib/content-optimization/seo-research-brief-for-optimize';
 import { resolveSiteLocationLabel } from '@/lib/llm-audit/resolve-site-location-label';
-import type { AIDrivenACFContext } from "@/lib/content-generation/ai-driven-acf-reader";
+import type { AIDrivenACFContext } from "@/lib/content-generation/ai-driven-post-fields-reader";
 import { formatLinkTargetsPlanForSection } from "@/lib/bulk/bulk-generation-wp-inventory";
 import { buildFocusedArticlePurpose } from '@/lib/content-generation/article-length-policy';
 import type { HarnessPromptEnv } from '@/lib/bulk/bulk-markdown-content-harness-types';
@@ -177,6 +177,7 @@ export function createBlogHarnessSectionRuntime(args: {
           `target H2: ${illustrativeTitle} (exact — use this checklist title verbatim in <h2>)`,
           `Connected business: ${companyName}`,
           "Write the [ILLUSTRATIVE] section from the Answer section and blueprint. One named local homeowner scenario, blockquote story, then site-first recommendation from the connected business. Do not stop the article; complete the full section.",
+          "Output shape (HTML tags required): <h2>{target H2}</h2> then <p>{general intro, no persona name}</p> then <blockquote><p>{personaName} {scenario story}</p></blockquote> then <h3>Recommendation: {short pick title}</h3> then <p>{site-first recommendation opening with the connected business name}</p>. The h3 reads exactly \"Recommendation: {short pick title}\" (colon required, never the title alone, never a period after Recommendation).",
           "--- END ILLUSTRATIVE EXAMPLE ---",
         ].join("\n"),
       ].join("\n\n");

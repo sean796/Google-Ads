@@ -20,17 +20,17 @@ vi.mock("@/lib/wordpress-api", async (importOriginal) => {
   };
 });
 
-vi.mock("@/lib/wordpress-api/acf-discovery", () => ({
+vi.mock("@/lib/wordpress-api/post-fields-discovery", () => ({
   discoverACFFieldMapping: vi.fn(async () => ({})),
-  getACFFieldsForPost: vi.fn(async () => ({ success: true, fields: {} })),
-  resolveAcfFieldsForMapping: vi.fn(async (_site: unknown, existing: Record<string, unknown>) => existing),
+  getPostFieldsForPost: vi.fn(async () => ({ success: true, fields: {} })),
+  resolvePostFieldsForMapping: vi.fn(async (_site: unknown, existing: Record<string, unknown>) => existing),
 }));
 
 vi.mock("@/lib/content-generation/harness-upload-prep", () => ({
   prepareHarnessContentForUpload: vi.fn(async ({ markdownContent }: { markdownContent: string }) => markdownContent),
 }));
 
-vi.mock("@/lib/content-generation/bulk-acf-seo-bundle", () => ({
+vi.mock("@/lib/content-generation/bulk-post-fields-seo-bundle", () => ({
   buildPostMarkdownAcfSeoFaqBundle: vi.fn(async () => ({
     seoResearchJson: "{}",
     faqEntries: [],
@@ -42,10 +42,10 @@ vi.mock("@/lib/content-generation/bulk-acf-seo-bundle", () => ({
 
 vi.mock("@/lib/content-generation/apply-bulk-meta-from-seo-json", () => ({
   buildOptimizedMetaFromKeywordResearch: vi.fn(() => ({
-    rank_math_title: "t",
-    rank_math_description: "d",
-    rank_math_focus_keyword: "k",
-    rank_math_canonical_url: "https://example.com/blog/test/",
+    neo_pulse_seo_title: "t",
+    neo_pulse_seo_description: "d",
+    neo_pulse_seo_focus_keyword: "k",
+    neo_pulse_seo_canonical_url: "https://example.com/blog/test/",
   })),
 }));
 
@@ -67,7 +67,7 @@ vi.mock("@/lib/wordpress-api/meta", () => ({
   updateOverviewSeoItem: vi.fn(async () => ({ ok: true, postId: 99 })),
 }));
 
-vi.mock("@/lib/content-generation/acf-field-mapper", () => ({
+vi.mock("@/lib/content-generation/post-field-mapper", () => ({
   NEO_PULSE_DEFAULT_FIELD_MAPPING: {
     dateModifier: "date_modifier",
     faq: "faq",
@@ -90,7 +90,7 @@ vi.mock("@/lib/content-generation/acf-field-mapper", () => ({
   })),
 }));
 
-vi.mock("@/lib/content-generation/apply-meta-acf-payload", () => ({
+vi.mock("@/lib/content-generation/apply-meta-fields-payload", () => ({
   buildAcfPayload: vi.fn(() => ({})),
 }));
 

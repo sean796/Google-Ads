@@ -5,7 +5,7 @@ section: WordPress
 method: POST
 path: /api/wordpress/get-site-post-inventory
 auth: open
-order: 2920
+order: 3010
 ---
 
 POST `/api/wordpress/get-site-post-inventory`.

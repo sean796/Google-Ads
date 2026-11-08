@@ -14,8 +14,8 @@ export interface ChangelogEntry {
   rangeTo: string;
   commitCount: number;
   title: string;
-  summary: string;
-  highlights: string[];
+  summary?: string;
+  highlights?: string[];
   sections: ChangelogSection[];
   createdAt?: string;
 }

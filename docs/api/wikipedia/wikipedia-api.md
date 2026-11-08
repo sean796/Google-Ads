@@ -5,7 +5,7 @@ section: Wikipedia
 method: GET
 path: /api/wikipedia/api
 auth: open
-order: 2480
+order: 2510
 ---
 
 GET `/api/wikipedia/api`.

@@ -3,7 +3,7 @@ import {
   applyContentYearPolicy,
   editorialDestinationWithContentYear,
 } from "@/lib/sitemap-optimizer/apply-content-year-policy";
-import { buildRedirectMapFamilyRows } from "@/lib/sitemap-optimizer/build-grid-rank-math-redirects";
+import { buildRedirectMapFamilyRows } from "@/lib/sitemap-optimizer/build-grid-pulse-redirect-redirects";
 import { normalizeMergeDestinations } from "@/lib/sitemap-optimizer/blog-destination-policy";
 import { refreshYearsInUrl } from "@/lib/sitemap-optimizer/grid-title-year";
 import type { SitemapOptimizerPostRow } from "@/lib/sitemap-optimizer/types";
@@ -54,7 +54,7 @@ describe("normalizeMergeDestinations with content year", () => {
 });
 
 describe("redirect export destination years", () => {
-  it("uses 2026 destinations in Rank Math redirect rows", () => {
+  it("uses 2026 destinations in NEO Pulse redirect redirect rows", () => {
     const dest2023 = "https://www.kwbllp.com/blog/canada-2023-budget/";
     const row: SitemapOptimizerPostRow = {
       postId: "wp:1",

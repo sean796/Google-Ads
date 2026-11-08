@@ -1,12 +1,12 @@
 import type { WordPressSite } from "@/components/integrations/types";
 import type { generateBlueprintFromTemplate } from "@/lib/blog-template-builder";
-import type { AIDrivenACFContext } from "./ai-driven-acf-reader";
+import type { AIDrivenACFContext } from "./ai-driven-post-fields-reader";
 import type { RunProgressReporter } from "@/lib/content-optimization/content-optimizer-run-progress";
 import type { ImageType } from "@/lib/image-section-analyzer";
 import { cleanTitleForNonEntity } from "@/lib/content-optimization/title-cleaning";
 import { mergeExternalLinkPairs, parseExternalSemrushPairsFromAgents, parseLlmAuditAuthorityPairsFromAgents } from "./external-link-placeholders";
 import { prepareHarnessContentForUpload } from "./harness-upload-prep";
-import { applyOptimizeFaqToHarnessHtml, type PrecomputedAcfSeoBundle } from "./bulk-acf-seo-bundle";
+import { applyOptimizeFaqToHarnessHtml, type PrecomputedAcfSeoBundle } from "./bulk-post-fields-seo-bundle";
 import { deduplicateInternalLinksInHtml, removeInvalidInternalLinks } from "./content-sanitizer";
 import { ensureWhatWeOfferTablePageLinks } from "./what-we-offer-table-page-links";
 import { ensureSemrushExternalLinksInHtml } from "./ensure-semrush-external-links";
@@ -66,7 +66,7 @@ export interface OptimizationContext {
   /** Entity SAP: pages bucket for What We Offer table links (title attributes). */
   wordPressPagesForOfferTable?: ExtraTextInventoryLinkRow[];
   wordPressRAGContext?: string; // WordPress content as RAG context for AI
-  /** JSON string: real Google queries for Rank Math meta inspiration (aligned with Overview). */
+  /** JSON string: real Google queries for NEO Pulse redirect meta inspiration (aligned with Overview). */
   gscKeywordsContext?: string;
   /** JSON string: Semrush url_organic + phrase_related keyword lists (bulk content run). */
   semrushKeywordsContext?: string;
@@ -96,7 +96,7 @@ export interface OptimizationContext {
   };
   inContentImageRequest?: { imageType: ImageType; userPrompt?: string }; // Optional in-content image generation request
   selectedPeopleAlsoAsk?: string[]; // PAA questions for FAQ schema generation
-  /** From prefetch `getACFFieldsForPost` — lets upload skip a second ACF read when ids match. */
+  /** From prefetch `getPostFieldsForPost` — lets upload skip a second ACF read when ids match. */
   acfFullPostSnapshot?: Record<string, unknown>;
   /** Merged LLM audit facts for harness sections (from seo_research or live fetch). */
   llmAuditSummary?: string;

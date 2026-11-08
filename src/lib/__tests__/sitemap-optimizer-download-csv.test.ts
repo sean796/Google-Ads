@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildMergeContentModifier,
   buildSitemapOptimizerContentUploadCsv,
-  buildSitemapOptimizerRankMathRedirectCsv,
+  buildSitemapOptimizerRedirectCsvRedirectCsv,
   resolveMergeDestinationUrl,
 } from "@/lib/sitemap-optimizer/sitemap-optimizer-download-csv";
 import { buildSitemapOptimizerContentSheetCsv } from "@/lib/sitemap-optimizer/sitemap-optimizer-export";
@@ -100,7 +100,7 @@ describe("sitemap-optimizer-download-csv", () => {
   });
 
   it("rank math csv redirects old urls to new slug under same parent path", () => {
-    const { csv, rowCount } = buildSitemapOptimizerRankMathRedirectCsv(sampleResult);
+    const { csv, rowCount } = buildSitemapOptimizerRedirectCsvRedirectCsv(sampleResult);
     expect(rowCount).toBe(2);
     expect(csv).toContain("blog/old-a/");
     expect(csv).toContain("https://example.com/blog/merged-guide/");

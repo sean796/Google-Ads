@@ -5,7 +5,7 @@ import {
   normalizeFocusKeywordPhrase,
   permalinkParentPrefixFromPageUrl,
   slugifyFocusKeywordToRelativePath,
-} from "@/lib/rank-math-redirect-csv";
+} from "@/lib/pulse-redirect-redirect-csv";
 
 /** AISEO: shorten slug segment only; keep member permalink folders (including /YYYY/MM/DD/). */
 export const GRID_DESTINATION_MAX_SLUG_WORDS = 5;

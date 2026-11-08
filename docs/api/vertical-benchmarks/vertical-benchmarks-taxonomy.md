@@ -5,7 +5,7 @@ section: Vertical Benchmarks
 method: GET
 path: /api/vertical-benchmarks/taxonomy
 auth: open
-order: 2470
+order: 2500
 ---
 
 GET `/api/vertical-benchmarks/taxonomy`.

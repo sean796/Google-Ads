@@ -108,7 +108,7 @@ export async function handleOptimizeMultipleContent(
     pendingOptimizationData,
     bulkContextRef,
     prefetchedPendingCache,
-    prefetchedAcfFieldsCache,
+    prefetchedPostFieldsCache,
     prefetchedPostPayloadByUrlIndex,
     prefetchedAcfFullPostByUrlIndex,
     setPendingOptimization,
@@ -170,7 +170,7 @@ export async function handleOptimizeMultipleContent(
       inContentImageRequest,
       isAcfKeywordMode,
       prefilledOverviewTargets,
-      prefetchedAcfFieldsCache,
+      prefetchedPostFieldsCache,
       prefetchedPostPayloadByUrlIndex,
       prefetchedAcfFullPostByUrlIndex,
       prefetchedPendingCache,
@@ -251,7 +251,7 @@ export async function handleOptimizeMultipleContent(
   seedBulkUrlKeywordsFromCaches({
     urls,
     batchKey,
-    prefetchedAcfFieldsCache,
+    prefetchedPostFieldsCache,
     setBulkOptimizationState,
   });
 
@@ -290,7 +290,7 @@ export async function handleOptimizeMultipleContent(
     batchKey,
     skipUrlSet,
     muteToasts,
-    prefetchedAcfFieldsCache,
+    prefetchedPostFieldsCache,
     prefetchedPendingCache,
     setBulkOptimizationState,
     harnessSetters: serpHarnessSetters,
@@ -301,7 +301,7 @@ export async function handleOptimizeMultipleContent(
     ? createBulkGoogleMapsImageWarmupController({
         urls,
         skipUrlSet,
-        prefetchedAcfFieldsCache,
+        prefetchedPostFieldsCache,
         prefetchedPendingCache,
       })
     : null;
@@ -330,7 +330,7 @@ export async function handleOptimizeMultipleContent(
         muteToasts,
         isAcfKeywordMode,
         prefetchedPendingCache,
-        prefetchedAcfFieldsCache,
+        prefetchedPostFieldsCache,
         pendingOptimizationData,
         optimizationFileManagers,
         bulkContinueOptimizationRef,
@@ -345,7 +345,7 @@ export async function handleOptimizeMultipleContent(
         wordPressPagesForOfferTable,
         prefetchArgs: {
           ...prefetchArgsBase,
-          prefetchedAcfFieldsCache,
+          prefetchedPostFieldsCache,
           prefetchedPendingCache,
           setBulkOptimizationState,
         },

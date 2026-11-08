@@ -177,7 +177,7 @@ export type SitemapOptimizerMergeRecommendation = {
   priority: "high" | "medium" | "low";
   confidence: "high" | "medium" | "low";
   rationale: string;
-  /** Rank Math import: exact new post URL from redirect sheet. */
+  /** NEO Pulse redirect import: exact new post URL from redirect sheet. */
   lockedDestinationUrl?: string;
   /** Entity SAP export: bulk CSV entity column (hyperlocal place, city). */
   sapEntity?: string;
@@ -244,13 +244,13 @@ export type SitemapOptimizerRunResult = {
   gridMaxUrlsPerPost?: 1 | 2 | 3 | 4 | 5;
   /** @deprecated Use gridMaxUrlsPerPost */
   gridTargetPostCount?: 1 | 2 | 3 | 4 | 5;
-  /** Grid run skipped OpenRouter blog briefs (Rank Math redirects only). */
-  gridRankMathOnly?: boolean;
+  /** Grid run skipped OpenRouter blog briefs (NEO Pulse redirect redirects only). */
+  gridRedirectCsvOnly?: boolean;
   /** Redirect-map topic compression. Forced to none when gridMaxUrlsPerPost is 1; Basic = directly related when max ≥ 2. */
   gridCompression?: GridCompressionLevel;
   /** When set, destination URLs are normalized to /blog/{slug}/. */
   blogDestination?: BlogDestinationPolicy;
-  /** User uploaded a Rank Math / traffic redirect CSV (not full-inventory-only GSC). */
+  /** User uploaded a NEO Pulse redirect / traffic redirect CSV (not full-inventory-only GSC). */
   redirectMapUpload?: boolean;
   /** Entity-only run: service-area compression (1-URL families allowed). */
   entityPrimary?: boolean;

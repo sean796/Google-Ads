@@ -52,7 +52,7 @@ describe("BulkPromptComposePanel Universal Layout", () => {
 
     // Slot 2: Primary surface with universal min-height
     expect(html).toMatch(/min-h-\[(5|7\.5)rem\]/);
-    expect(html).toContain("Drop CSV or draft files here or click to browse");
+    expect(html).toContain("Drop CSV, DOCX, MD, or other draft files here or click to browse");
 
     // Slot 3: Secondary grid with template download and draft fields
     expect(html).toContain("Focus keyword (optional)");

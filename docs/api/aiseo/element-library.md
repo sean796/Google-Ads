@@ -58,7 +58,7 @@ Complete library of every **AISEO** element and pipeline in NEO Pulse (`src/lib/
 
 ### Keywords — Content (`runKind: "contentKw"`)
 - **Pipeline Agent:** `Meta agent` (`getMetaModel(siteId)`)
-- **Reason:** Derives a 2-5 word short-tail, intent-focused primary SEO keyword (`keyword_focus` in ACF and Rank Math) from the URL path hint, page title, meta description, and research brief without brand names.
+- **Reason:** Derives a 2-5 word short-tail, intent-focused primary SEO keyword (`keyword_focus` in ACF and NEO Pulse redirect) from the URL path hint, page title, meta description, and research brief without brand names.
 - **Details Drawer Slots:** `AI keywords (content)` (`focus-keyword.json`) -> `Post content` (`content-{slug}.html`) -> `WordPress upload` (`wordpress.json`).
 
 ### Keywords — Entity / SAP (`runKind: "entityKw"`)
@@ -87,7 +87,7 @@ Complete library of every **AISEO** element and pipeline in NEO Pulse (`src/lib/
 
 ### URLs (`runKind: "aiUrl"`)
 - **Pipeline Agent:** Deterministic (`computeOverviewAiUrlSuggestion`)
-- **Reason:** Suggests a clean, keyword-aligned URL path segment and generates a Rank Math 301 redirect CSV row when the current permalink slug does not match the focus keyword.
+- **Reason:** Suggests a clean, keyword-aligned URL path segment and generates a NEO Pulse redirect 301 redirect CSV row when the current permalink slug does not match the focus keyword.
 - **Details Drawer Slots:** `AI URL paths` (`ai-url.json`) -> `Post content` (`content-{slug}.html`) -> `WordPress upload` (`wordpress.json`).
 
 ### FAQs (`runKind: "aiFaq"`)

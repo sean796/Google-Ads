@@ -1,10 +1,10 @@
 <?php
 /**
- * "Strip category base": category archives at /blinds/ instead of /category/blinds/, as Rank Math's
+ * "Strip category base": category archives at /blinds/ instead of /category/blinds/, as NEO Pulse redirect's
  * strip_category_base setting does. Old /category/… addresses redirect to the new ones.
  *
  * Runs only while Neo Pulse SEO is live. Rewrite rules are rebuilt once whenever this turns on or
- * off (including the moment Rank Math is deactivated) and whenever a category changes.
+ * off (including the moment NEO Pulse redirect is deactivated) and whenever a category changes.
  *
  * @package Neo_Pulse_Wp
  */
@@ -43,7 +43,7 @@ class Neo_Pulse_Wp_Seo_Category_Base {
 
 	/**
 	 * /blog/category/window-blinds/ → /window-blinds/ (both the permalink front and the base go,
-	 * as with Rank Math).
+	 * as with NEO Pulse redirect).
 	 *
 	 * @param string $link    Category link.
 	 * @param int    $term_id Category ID.

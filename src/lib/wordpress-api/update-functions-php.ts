@@ -16,7 +16,7 @@ const SYSTEM_PROMPT =
   'You are a senior WordPress/PHP engineer updating Hello Elementor Child functions.php for NEO Pulse SEO sites. '
   + 'MERGE strategy: start from the source file and output a complete merged PHP file. '
   + 'Keep ALL valid site-specific code from the source (Google Maps shortcodes, custom hooks, capability filters, '
-  + 'site-specific constants, WP Engine cache, Rank Math sync). '
+  + 'site-specific constants, WP Engine cache, NEO Pulse redirect sync). '
   + 'Upgrade only FAQ/schema helpers, inject_custom_acf_schemas, acf/format_value hide filters, '
   + 'REST update_callback (update_field + update_post_meta for scalars), and sync_acf_metadata_to_post. '
   + 'Remove broken raw FAQ echo only. Use faq field only (no seo_faq). '

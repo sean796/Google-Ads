@@ -5,7 +5,7 @@ import {
   ensureExactKeywordInSeoTitle,
   ensureExactKeywordInMetaDescription,
   focusKeywordRepresentedInSeoTitle,
-} from '../content-generation/rank-math-exact-keyword';
+} from "../content-generation/pulse-seo-exact-keyword";
 
 describe('truncatePreservingMandatorySubstring', () => {
   it('keeps needle verbatim when shortening from the left', () => {

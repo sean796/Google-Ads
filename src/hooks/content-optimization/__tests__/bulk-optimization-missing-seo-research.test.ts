@@ -37,14 +37,14 @@ describe("fillMissingBulkSeoResearchFromSerp", () => {
 
     const n = 10;
     const urls = Array.from({ length: n }, (_, i) => `https://example.com/p${i}/`);
-    const prefetchedAcfFieldsCache = new Map<number, Record<string, unknown>>();
+    const prefetchedPostFieldsCache = new Map<number, Record<string, unknown>>();
     const prefetchedPendingCache = new Map<
       number,
       { pending: Record<string, unknown>; primaryKeyword: string }
     >();
 
     for (let i = 0; i < n; i++) {
-      prefetchedAcfFieldsCache.set(i, { keyword_focus: `kw-${i}` });
+      prefetchedPostFieldsCache.set(i, { keyword_focus: `kw-${i}` });
     }
 
     await fillMissingBulkSeoResearchFromSerp({
@@ -53,7 +53,7 @@ describe("fillMissingBulkSeoResearchFromSerp", () => {
       isAcfKeywordMode: true,
       seoExtraTextFieldOnly: false,
       muteToasts: true,
-      prefetchedAcfFieldsCache,
+      prefetchedPostFieldsCache,
       prefetchedPendingCache,
       setBulkOptimizationState: vi.fn((fn) => fn({ bk: { urlSerpResearchReady: {} } })),
       fetchBrief,
@@ -67,9 +67,9 @@ describe("fillMissingBulkSeoResearchFromSerp", () => {
     const fetchBrief = vi.fn().mockResolvedValue('{"ok":true}');
 
     const urls = ["https://example.com/a/", "https://example.com/b/"];
-    const prefetchedAcfFieldsCache = new Map<number, Record<string, unknown>>();
-    prefetchedAcfFieldsCache.set(0, { keyword_focus: "k0", seo_research: '{"brief":true}' });
-    prefetchedAcfFieldsCache.set(1, { keyword_focus: "k1" });
+    const prefetchedPostFieldsCache = new Map<number, Record<string, unknown>>();
+    prefetchedPostFieldsCache.set(0, { keyword_focus: "k0", seo_research: '{"brief":true}' });
+    prefetchedPostFieldsCache.set(1, { keyword_focus: "k1" });
 
     await fillMissingBulkSeoResearchFromSerp({
       urls,
@@ -77,7 +77,7 @@ describe("fillMissingBulkSeoResearchFromSerp", () => {
       isAcfKeywordMode: true,
       seoExtraTextFieldOnly: false,
       muteToasts: true,
-      prefetchedAcfFieldsCache,
+      prefetchedPostFieldsCache,
       prefetchedPendingCache: new Map(),
       setBulkOptimizationState: vi.fn((fn) => fn({ bk: { urlSerpResearchReady: {} } })),
       fetchBrief,

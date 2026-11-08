@@ -5,7 +5,7 @@ section: Google Search Console
 method: POST
 path: /api/gsc/index-sitemap-urls
 auth: open
-order: 430
+order: 440
 ---
 
 POST `/api/gsc/index-sitemap-urls`.

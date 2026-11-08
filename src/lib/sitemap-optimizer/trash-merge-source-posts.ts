@@ -2,7 +2,7 @@ import type { WordPressSite } from "@/components/integrations/types";
 import { resolveWordPressUrls } from "@/lib/wordpress-api";
 import type { ResolvedUrl } from "@/lib/wordpress-api/types";
 import { trashWordPressPost } from "@/lib/wordpress-api/crud";
-import { isRedirectMapRun } from "@/lib/sitemap-optimizer/build-grid-rank-math-redirects";
+import { isRedirectMapRun } from "@/lib/sitemap-optimizer/build-grid-pulse-redirect-redirects";
 import { contentSheetRowsForExport } from "@/lib/sitemap-optimizer/content-sheet-bulk-export";
 import { outboundRedirectInventoryRows } from "@/lib/sitemap-optimizer/sitemap-optimizer-download-csv";
 import {

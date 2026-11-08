@@ -129,17 +129,11 @@ class Neo_Pulse_Wp_Overview_Seo_Bulk {
 			return new \WP_Error( 'neo-pulse_forbidden', __( 'You do not have permission to edit this post.', 'neo-pulse-wp' ) );
 		}
 
-		$meta = isset( $raw['meta'] ) && is_array( $raw['meta'] ) ? $raw['meta'] : array();
-		$acf  = isset( $raw['acf'] ) && is_array( $raw['acf'] ) ? $raw['acf'] : array();
+		$meta   = isset( $raw['meta'] ) && is_array( $raw['meta'] ) ? $raw['meta'] : array();
+		$fields = isset( $raw['fields'] ) && is_array( $raw['fields'] ) ? $raw['fields'] : array();
 
-		/*
-		 * Allow-list: only the three Rank Math meta keys and the ACF keys in $acf_map
-		 * may be written. Anything else is skipped so callers cannot write arbitrary
-		 * post meta (e.g. _wp_page_template, _edit_lock, other plugins' keys); the item
-		 * only fails when nothing allowed was sent.
-		 */
-		$meta_keys = array( 'rank_math_title', 'rank_math_description', 'rank_math_focus_keyword' );
-		$acf_map   = array(
+		$meta_keys = array( 'neo_pulse_seo_title', 'neo_pulse_seo_description', 'neo_pulse_seo_focus_keyword' );
+		$field_map = array(
 			'keyword_focus'     => array( 'keyword_focus' ),
 			'keyword_focu'      => array( 'keyword_focus' ),
 			'faq'               => array( 'faq', 'seo_faq' ),
@@ -156,13 +150,13 @@ class Neo_Pulse_Wp_Overview_Seo_Bulk {
 				unset( $meta[ $key ] );
 			}
 		}
-		foreach ( array_keys( $acf ) as $key ) {
-			if ( ! is_string( $key ) || ! isset( $acf_map[ $key ] ) ) {
-				$rejected[] = 'acf.' . (string) $key;
-				unset( $acf[ $key ] );
+		foreach ( array_keys( $fields ) as $key ) {
+			if ( ! is_string( $key ) || ! isset( $field_map[ $key ] ) ) {
+				$rejected[] = 'fields.' . (string) $key;
+				unset( $fields[ $key ] );
 			}
 		}
-		if ( $rejected !== array() && $meta === array() && $acf === array() ) {
+		if ( $rejected !== array() && $meta === array() && $fields === array() ) {
 			return new \WP_Error(
 				'neo-pulse_unsupported_keys',
 				sprintf(
@@ -175,16 +169,16 @@ class Neo_Pulse_Wp_Overview_Seo_Bulk {
 
 		$did = false;
 
-		if ( isset( $meta['rank_math_title'] ) && is_string( $meta['rank_math_title'] ) ) {
-			$title = trim( $meta['rank_math_title'] );
+		if ( isset( $meta['neo_pulse_seo_title'] ) && is_string( $meta['neo_pulse_seo_title'] ) ) {
+			$title = trim( $meta['neo_pulse_seo_title'] );
 			if ( $title !== '' ) {
 				Neo_Pulse_Wp_Ai_Apply::write_title( $post_id, Neo_Pulse_Wp_Ai_Seo_Limits::normalize_title( $title ) );
 				$did = true;
 			}
 		}
 
-		if ( isset( $meta['rank_math_description'] ) && is_string( $meta['rank_math_description'] ) ) {
-			$desc = trim( $meta['rank_math_description'] );
+		if ( isset( $meta['neo_pulse_seo_description'] ) && is_string( $meta['neo_pulse_seo_description'] ) ) {
+			$desc = trim( $meta['neo_pulse_seo_description'] );
 			if ( $desc !== '' ) {
 				$focus = Neo_Pulse_Wp_Ai_Context::read_focus_keyword( $post_id );
 				Neo_Pulse_Wp_Ai_Apply::write_excerpt(
@@ -195,15 +189,15 @@ class Neo_Pulse_Wp_Overview_Seo_Bulk {
 			}
 		}
 
-		if ( isset( $meta['rank_math_focus_keyword'] ) && is_string( $meta['rank_math_focus_keyword'] ) ) {
-			$kw = trim( $meta['rank_math_focus_keyword'] );
+		if ( isset( $meta['neo_pulse_seo_focus_keyword'] ) && is_string( $meta['neo_pulse_seo_focus_keyword'] ) ) {
+			$kw = trim( $meta['neo_pulse_seo_focus_keyword'] );
 			if ( $kw !== '' ) {
 				Neo_Pulse_Wp_Ai_Apply::write_focus_keyword( $post_id, $kw );
 				$did = true;
 			}
 		}
 
-		foreach ( $acf as $key => $value ) {
+		foreach ( $fields as $key => $value ) {
 			if ( $value === null || $value === '' || ! is_scalar( $value ) ) {
 				continue;
 			}
@@ -211,8 +205,8 @@ class Neo_Pulse_Wp_Overview_Seo_Bulk {
 			if ( $text === '' ) {
 				continue;
 			}
-			foreach ( $acf_map[ $key ] as $target ) {
-				Neo_Pulse_Wp_Ai_Apply::write_acf_or_meta( $post_id, $target, $text );
+			foreach ( $field_map[ $key ] as $target ) {
+				Neo_Pulse_Wp_Ai_Apply::write_post_field_or_meta( $post_id, $target, $text );
 			}
 			$did = true;
 		}

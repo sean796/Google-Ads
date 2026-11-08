@@ -148,31 +148,31 @@ class Neo_Pulse_App_Wp_Route_Handlers {
 				return Neo_Pulse_App_Wp_Meta::get_post_meta( $body );
 			case 'update-post-meta':
 				return Neo_Pulse_App_Wp_Meta::update_post_meta( $body );
-			case 'update-acf-field':
-				return Neo_Pulse_App_Wp_Meta::update_acf_field( $body );
+			case 'update-post-field':
+				return Neo_Pulse_App_Wp_Meta::update_post_field( $body );
 
 			case 'update-overview-seo-item':
 				return Neo_Pulse_App_Wp_Bulk_Overview_Seo::update_overview_seo_item( $body );
 			case 'bulk-update-overview-seo':
 				return Neo_Pulse_App_Wp_Bulk_Overview_Seo::bulk_update_overview_seo( $body );
 
-			case 'get-acf-fields':
-				return Neo_Pulse_App_Wp_Acf_Protocol::get_acf_fields( $body );
-			case 'get-acf-fields-batch':
-				return Neo_Pulse_App_Wp_Acf_Protocol::get_acf_fields_batch( $body );
-			case 'get-acf-fields-by-url':
-				return Neo_Pulse_App_Wp_Acf_Protocol::get_acf_fields_by_url( $body );
-			case 'get-acf-fields-by-url-batch':
-				return Neo_Pulse_App_Wp_Acf_Protocol::get_acf_fields_by_url_batch( $body );
-			case 'discover-acf-field-groups':
-				return Neo_Pulse_App_Wp_Acf_Protocol::discover_acf_field_groups( $body );
-			case 'update-acf-fields':
-				return Neo_Pulse_App_Wp_Acf_Protocol::update_acf_fields( $body );
+			case 'get-post-fields':
+				return Neo_Pulse_App_Wp_Post_Fields::get_post_fields( $body );
+			case 'get-post-fields-batch':
+				return Neo_Pulse_App_Wp_Post_Fields::get_post_fields_batch( $body );
+			case 'get-post-fields-by-url':
+				return Neo_Pulse_App_Wp_Post_Fields::get_post_fields_by_url( $body );
+			case 'get-post-fields-by-url-batch':
+				return Neo_Pulse_App_Wp_Post_Fields::get_post_fields_by_url_batch( $body );
+			case 'discover-post-field-keys':
+				return Neo_Pulse_App_Wp_Post_Fields::discover_post_field_keys( $body );
+			case 'update-post-fields':
+				return Neo_Pulse_App_Wp_Post_Fields::update_post_fields( $body );
 
-			case 'neo-pulse-wp-tool':
-				return Neo_Pulse_App_Wp_NeoPulse_Tools::neo_pulse_wp_tool( $body );
-			case 'neo-pulse-wp-tools-list':
-				return Neo_Pulse_App_Wp_NeoPulse_Tools::neo_pulse_wp_tools_list( $body );
+			case 'flow-assist-chat-settings-get':
+				return Neo_Pulse_App_Wp_Flow_Assist_Chat_Settings::get( $body );
+			case 'flow-assist-chat-settings-update':
+				return Neo_Pulse_App_Wp_Flow_Assist_Chat_Settings::update( $body );
 
 			case 'pulse-assist-stream':
 				if ( $method !== 'POST' ) {

@@ -1,9 +1,9 @@
 <?php
 /**
  * IndexNow: tells Bing, Yandex, Seznam and other IndexNow engines when a page is published,
- * updated or removed, as Rank Math's Instant Indexing did.
+ * updated or removed, as NEO Pulse redirect's Instant Indexing did.
  *
- * Uses Rank Math's key and post types when the site had them. Runs only while Neo Pulse SEO is
+ * Uses NEO Pulse redirect's key and post types when the site had them. Runs only while Neo Pulse SEO is
  * live, never on staging or non-public sites, and sends in the background (WP-Cron) so saving a
  * post is never slowed down.
  *
@@ -16,7 +16,7 @@ class Neo_Pulse_Wp_Seo_Indexnow {
 
 	const OPTION     = 'neo_pulse_wp_indexnow';
 	const LOG        = 'neo_pulse_wp_indexnow_log';
-	const RM_OPTION  = 'rank-math-options-instant-indexing';
+	const RM_OPTION  = 'pulse-redirect-options-instant-indexing';
 	const ENDPOINT   = 'https://api.indexnow.org/indexnow';
 	const CRON_HOOK  = 'neo_pulse_wp_indexnow_send';
 	const LOG_SIZE   = 50;
@@ -43,7 +43,7 @@ class Neo_Pulse_Wp_Seo_Indexnow {
 	}
 
 	/**
-	 * Own settings, created once from Rank Math's (key, post types, whether the module was on).
+	 * Own settings, created once from NEO Pulse redirect's (key, post types, whether the module was on).
 	 *
 	 * @return array{key: string, post_types: array<int, string>, enabled: bool}
 	 */
@@ -60,7 +60,7 @@ class Neo_Pulse_Wp_Seo_Indexnow {
 			$own = array(
 				'key'        => self::valid_key( $key ) ? $key : str_replace( '-', '', wp_generate_uuid4() ),
 				'post_types' => isset( $rm['bing_post_types'] ) ? (array) $rm['bing_post_types'] : array( 'post', 'page' ),
-				'enabled'    => self::rank_math_module_on(),
+				'enabled'    => self::neo_pulse_seo_module_on(),
 			);
 			// Autoloaded: the key is checked on front-end requests.
 			update_option( self::OPTION, $own, true );
@@ -74,10 +74,10 @@ class Neo_Pulse_Wp_Seo_Indexnow {
 	}
 
 	/**
-	 * On unless the site ran Rank Math with its Instant Indexing module switched off.
+	 * On unless the site ran NEO Pulse redirect with its Instant Indexing module switched off.
 	 */
-	private static function rank_math_module_on(): bool {
-		$modules = get_option( 'rank_math_modules', null );
+	private static function neo_pulse_seo_module_on(): bool {
+		$modules = get_option( 'neo_pulse_seo_modules', null );
 		return ! is_array( $modules ) || in_array( 'instant-indexing', $modules, true );
 	}
 
@@ -90,7 +90,7 @@ class Neo_Pulse_Wp_Seo_Indexnow {
 
 	/**
 	 * Where search engines check the key. WP Engine's nginx answers missing .txt files itself, so a
-	 * key file that only WordPress knows about is never found (that is why Rank Math's submissions
+	 * key file that only WordPress knows about is never found (that is why NEO Pulse redirect's submissions
 	 * on WP Engine sites came back "403 Forbidden"). A real file in the site root works everywhere;
 	 * if it cannot be written, WordPress answers the key at an address without an extension.
 	 */

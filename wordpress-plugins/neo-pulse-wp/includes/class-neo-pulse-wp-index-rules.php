@@ -125,7 +125,7 @@ class Neo_Pulse_Wp_Index_Rules {
 	}
 
 	/**
-	 * Whether NEO Pulse SEO is live or another SEO plugin (Rank Math, Yoast…) is active.
+	 * Whether NEO Pulse SEO is live or another SEO plugin (NEO Pulse redirect, Yoast…) is active.
 	 */
 	public static function seo_handled_elsewhere(): bool {
 		if ( ! class_exists( 'Neo_Pulse_Wp_Seo_Settings', false ) ) {
@@ -135,9 +135,9 @@ class Neo_Pulse_Wp_Index_Rules {
 	}
 
 	/**
-	 * Attachment pages go to the post they belong to. When the site ran Rank Math, its "Redirect
+	 * Attachment pages go to the post they belong to. When the site ran NEO Pulse redirect, its "Redirect
 	 * Attachments" setting decides: off leaves attachment pages alone; on sends orphans to its
-	 * "Redirect Orphan Attachments" address. Without Rank Math settings: parent, else the file.
+	 * "Redirect Orphan Attachments" address. Without NEO Pulse redirect settings: parent, else the file.
 	 */
 	public static function redirect_attachment_pages(): void {
 		// Other SEO plugins have their own attachment redirect setting.

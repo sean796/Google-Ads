@@ -203,16 +203,16 @@ class Neo_Pulse_App_Wp_Bulk_Overview_Seo {
 		$pulse_items = array();
 		foreach ( $to_run as $item ) {
 			$meta = array();
-			$acf  = Neo_Pulse_App_Wp_Overview_Seo_Item::direct_acf_from_client( isset( $item['acf'] ) ? $item['acf'] : array() );
+			$acf  = Neo_Pulse_App_Wp_Overview_Seo_Item::direct_post_fields_from_client( isset( $item['acf'] ) ? $item['acf'] : array() );
 
 			if ( ! empty( $item['postTitle'] ) && is_string( $item['postTitle'] ) && trim( $item['postTitle'] ) !== '' ) {
-				$meta['rank_math_title'] = Neo_Pulse_App_Wp_Overview_Seo_Item::aligned_title( trim( $item['postTitle'] ), $acf );
+				$meta['neo_pulse_seo_title'] = Neo_Pulse_App_Wp_Overview_Seo_Item::aligned_title( trim( $item['postTitle'] ), $acf );
 			}
 			if ( ! empty( $item['postExcerpt'] ) && is_string( $item['postExcerpt'] ) && trim( $item['postExcerpt'] ) !== '' ) {
-				$meta['rank_math_description'] = trim( $item['postExcerpt'] );
+				$meta['neo_pulse_seo_description'] = trim( $item['postExcerpt'] );
 			}
 			if ( ! empty( $acf['keyword_focus'] ) ) {
-				$meta['rank_math_focus_keyword'] = $acf['keyword_focus'];
+				$meta['neo_pulse_seo_focus_keyword'] = $acf['keyword_focus'];
 			}
 
 			$allowed_acf = array();

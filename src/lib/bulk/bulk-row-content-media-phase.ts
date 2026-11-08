@@ -1,5 +1,5 @@
-import { buildPostMarkdownAcfSeoFaqBundle } from "@/lib/content-generation/bulk-acf-seo-bundle";
-import type { PrecomputedAcfSeoBundle } from "@/lib/content-generation/bulk-acf-seo-bundle";
+import { buildPostMarkdownAcfSeoFaqBundle } from "@/lib/content-generation/bulk-post-fields-seo-bundle";
+import type { PrecomputedAcfSeoBundle } from "@/lib/content-generation/bulk-post-fields-seo-bundle";
 import { generateMarkdownContentHarnessed, addEntityLinksToContent } from "./bulk-content-generator";
 import type { HarnessPromptEnv } from "./bulk-content-generator";
 import { prepareHarnessContentForUpload } from "@/lib/content-generation/harness-upload-prep";
@@ -17,7 +17,7 @@ import { loadApiKey } from "../api";
 import type { BulkProcessingOptions } from "./bulk-auto-generate-types";
 import type { CSVRow } from "./bulk-csv-parser";
 import { buildSitesToPostFromPosting } from "@/lib/bulk/bulk-wordpress-link-prefetch";
-import { resolveRankMathFromKeywordResearch } from "@/lib/bulk/bulk-keyword-research-artifacts";
+import { resolveRedirectCsvFromKeywordResearch } from "@/lib/bulk/bulk-keyword-research-artifacts";
 import { runFeaturedImage } from "@/lib/image-generator/run-featured-image";
 import { runImageChecklist } from "@/lib/image-generator/run-image-checklist";
 import type { ImageGeneratorOptions, ImageGeneratorRunContext } from "@/lib/image-generator/image-generator-options";
@@ -35,87 +35,37 @@ export type BulkRowContentMediaPhaseResult = {
 };
 
 export async function runBulkRowContentAndMediaPhase(input: {
-  rowIndex: number;
-  row: CSVRow;
-  enrichedRow: CSVRow;
-  keywordData: KeywordData;
-  options: BulkProcessingOptions;
-  bulkOptions: BulkProcessingOptions;
-  fileManager: BulkFileManager;
-  timestamp: number;
-  generatedFiles: BulkGeneratedFile[];
+  rowIndex: number; row: CSVRow; enrichedRow: CSVRow; keywordData: KeywordData;
+  options: BulkProcessingOptions; bulkOptions: BulkProcessingOptions;
+  fileManager: BulkFileManager; timestamp: number; generatedFiles: BulkGeneratedFile[];
   connectedSite?: { name: string; siteUrl: string; id?: string };
   postsForInternalLinks: Array<{ id: number; slug: string; title: string; excerpt: string; link: string; date_gmt: string }>;
   knowledgeFiles: Array<{ name: string; content: string }>;
-  activeKnowledgeBaseText: string;
-  rowExplicitExternalPairs: ExternalLinkPair[];
-  pipelineBlogModel: string;
-  pipelineResearchModel: string;
-  pipelineImageModel: string;
+  activeKnowledgeBaseText: string; rowExplicitExternalPairs: ExternalLinkPair[];
+  pipelineBlogModel: string; pipelineResearchModel: string; pipelineImageModel: string;
   serpSite: import("@/components/integrations/types").WordPressSite | undefined;
-  serpLlmBriefJson: string;
-  llmAuditSummaryPrompt: string;
-  dfsArticleAuditBlock: string;
-  firstPartyAuthorityBlock: string;
-  llmAuditAuthorityLinks: LlmAuditAuthorityLinkLike[];
-  semrushKeywordsContext?: string;
-  semrushScatterContext?: string;
-  rowExternalUrlsForSanitize: string[];
-  semrushCitationForAcf: string | null;
+  serpLlmBriefJson: string; llmAuditSummaryPrompt: string; dfsArticleAuditBlock: string;
+  firstPartyAuthorityBlock: string; llmAuditAuthorityLinks: LlmAuditAuthorityLinkLike[];
+  semrushKeywordsContext?: string; semrushScatterContext?: string;
+  rowExternalUrlsForSanitize: string[]; semrushCitationForAcf: string | null;
   intelligentMergeForAcf: IntelligentKeywordResearchMergeResult | null;
   semrushSnapshotForAcf?: SemrushBulkEnrichmentResult;
   draft: BulkRowChecklistBlueprintPhaseResult;
 }): Promise<BulkRowContentMediaPhaseResult> {
   const {
-    rowIndex,
-    row,
-    enrichedRow,
-    keywordData,
-    options,
-    bulkOptions,
-    fileManager,
-    timestamp,
-    generatedFiles,
-    connectedSite,
-    postsForInternalLinks,
-    knowledgeFiles,
-    activeKnowledgeBaseText,
-    rowExplicitExternalPairs,
-    pipelineBlogModel,
-    pipelineResearchModel,
-    pipelineImageModel,
-    serpSite,
-    serpLlmBriefJson,
-    llmAuditSummaryPrompt,
-    dfsArticleAuditBlock,
-    firstPartyAuthorityBlock,
-    llmAuditAuthorityLinks,
-    semrushKeywordsContext,
-    semrushScatterContext,
-    rowExternalUrlsForSanitize,
-    semrushCitationForAcf,
-    intelligentMergeForAcf,
-    semrushSnapshotForAcf,
-    draft,
+    rowIndex, row, enrichedRow, keywordData, options, bulkOptions, fileManager, timestamp,
+    generatedFiles, connectedSite, postsForInternalLinks, knowledgeFiles, activeKnowledgeBaseText,
+    rowExplicitExternalPairs, pipelineBlogModel, pipelineResearchModel, pipelineImageModel,
+    serpSite, serpLlmBriefJson, llmAuditSummaryPrompt, dfsArticleAuditBlock,
+    firstPartyAuthorityBlock, llmAuditAuthorityLinks, semrushKeywordsContext,
+    semrushScatterContext, rowExternalUrlsForSanitize, draft,
   } = input;
 
   const {
-    checklistResult,
-    checklist,
-    linkTargetsPlan,
-    flowPurposeStr,
-    outlineTextForImage,
-    entityForImage,
-    useGoogleMaps,
-    useAiImagePath,
-    preBlogSeoSkeleton,
-    blueprintResult,
-    precomputedImageChecklist,
-    precomputedMetaDescription,
-    flowTitleForBlueprint,
-    flowPurposeResolved,
-    bulkPrimaryKwResolved,
-    bulkResolvedPostTitle,
+    checklistResult, linkTargetsPlan, outlineTextForImage, entityForImage,
+    useGoogleMaps, useAiImagePath, preBlogSeoSkeleton, blueprintResult,
+    precomputedImageChecklist, precomputedMetaDescription, flowTitleForBlueprint,
+    flowPurposeResolved, bulkPrimaryKwResolved, bulkResolvedPostTitle,
   } = draft;
 
     const siteBundleList = buildSitesToPostFromPosting(options.wordPressPosting, enrichedRow.entity);
@@ -248,7 +198,7 @@ export async function runBulkRowContentAndMediaPhase(input: {
       if (!options.wordPressPosting?.enabled || !primarySiteForAcf || !markdownContent?.trim() || !ph) {
         return Promise.resolve(null);
       }
-      const rankMeta = resolveRankMathFromKeywordResearch(keywordData);
+      const rankMeta = resolveRedirectCsvFromKeywordResearch(keywordData);
       const csvMeta = enrichedRow.meta_description?.trim() || "";
       const excerpt =
         csvMeta ||
@@ -285,6 +235,7 @@ export async function runBulkRowContentAndMediaPhase(input: {
     const persistAiFeaturedImageResult = async (
       imageResult: { imageBase64: string },
       imageChecklistUsed: ImageChecklistItem[],
+      pregeneratedImageFileName?: string,
     ) => {
       let imageBase64 = imageResult.imageBase64;
       const mimeType = 'image/png';
@@ -292,12 +243,14 @@ export async function runBulkRowContentAndMediaPhase(input: {
         imageBase64 = imageBase64.split(',')[1];
       }
 
-      const imageFileName = await generateSEOImageFilename(
-        flowTitleForBlueprint,
-        options.openRouterApiKey,
-        pipelineResearchModel,
-        'featured',
-      );
+      const imageFileName =
+        pregeneratedImageFileName ||
+        (await generateSEOImageFilename(
+          flowTitleForBlueprint,
+          options.openRouterApiKey,
+          pipelineResearchModel,
+          'featured',
+        ));
 
       const fileNameWithoutExt = imageFileName.replace(/\.(png|jpg|jpeg)$/i, '');
       const extension = 'png';
@@ -400,7 +353,7 @@ export async function runBulkRowContentAndMediaPhase(input: {
     options.onProgress?.(
       rowIndex,
       0,
-      useAiImagePath ? 'Blog content, then featured image...' : 'Generating blog content...',
+      useAiImagePath ? 'Generating blog content + featured image (parallel)...' : 'Generating blog content...',
     );
 
     const bulkFeaturedImageOptions: ImageGeneratorOptions = {
@@ -449,22 +402,37 @@ export async function runBulkRowContentAndMediaPhase(input: {
       if (useAiImagePath) {
         try {
           options.onProgress?.(rowIndex, 0, 'Image Generator: checklist + featured image...');
-          const imageChecklistForRun = await runImageChecklist(
-            bulkFeaturedImageOptions,
-            bulkFeaturedImageContext,
-          );
+          const imageChecklistForRun =
+            Array.isArray(precomputedImageChecklist) && precomputedImageChecklist.length > 0
+              ? precomputedImageChecklist
+              : await runImageChecklist(
+                  bulkFeaturedImageOptions,
+                  bulkFeaturedImageContext,
+                );
           if (imageChecklistForRun.length > 0) {
-            const imageResult = await runFeaturedImage(
-              bulkFeaturedImageOptions,
-              bulkFeaturedImageContext,
-              imageChecklistForRun,
-            );
+            const [imageResult, pregeneratedImageFileName] = await Promise.all([
+              runFeaturedImage(
+                bulkFeaturedImageOptions,
+                bulkFeaturedImageContext,
+                imageChecklistForRun,
+              ),
+              generateSEOImageFilename(
+                flowTitleForBlueprint,
+                options.openRouterApiKey,
+                pipelineResearchModel,
+                'featured',
+              ).catch(() => undefined),
+            ]);
             const imageBase64 =
               imageResult.previewUrl?.trim() ||
               imageResult.imageBase64?.trim() ||
               imageResult.imageUrl?.trim();
             if (!imageResult.error?.trim() && imageBase64) {
-              await persistAiFeaturedImageResult({ imageBase64 }, imageChecklistForRun);
+              await persistAiFeaturedImageResult(
+                { imageBase64 },
+                imageChecklistForRun,
+                pregeneratedImageFileName,
+              );
             } else {
               logger.warn('[Bulk Auto-Generate] Featured image generation skipped (non-fatal):', imageResult.error);
             }
@@ -475,16 +443,20 @@ export async function runBulkRowContentAndMediaPhase(input: {
       }
     };
 
+    let markdownContent = "";
+    const runContentAndFaqTask = async (): Promise<void> => {
+      markdownContent = await runMarkdownPipeline();
+      precomputedAcfSeoBundle = await scheduleFaqBundlePromise();
+    };
+
     // Markdown failure fails the row visibly (caller records Failed). No
     // templated substitute content is generated or uploaded.
-    const markdownContent = await runMarkdownPipeline();
-    try {
-      await runImagePipeline();
-    } catch (imgErr) {
-      logger.warn('[Bulk Auto-Generate] Featured image pipeline failed (non-fatal):', imgErr);
-    }
-
-    precomputedAcfSeoBundle = await scheduleFaqBundlePromise();
+    await Promise.all([
+      runContentAndFaqTask(),
+      runImagePipeline().catch((imgErr) => {
+        logger.warn('[Bulk Auto-Generate] Featured image pipeline failed (non-fatal):', imgErr);
+      }),
+    ]);
 
   return { markdownContent, precomputedAcfSeoBundle };
 }

@@ -2,21 +2,21 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { writeBulkResearchedKeywordFocusToWordPress } from "../bulk-optimization-write-keyword-focus";
 import type { WordPressSite } from "@/components/integrations/types";
 
-const updateWordPressAcfFields = vi.fn();
+const updateWordPressPostFields = vi.fn();
 
 vi.mock("@/lib/wordpress-api", () => ({
-  updateWordPressAcfFields: (...args: unknown[]) => updateWordPressAcfFields(...args),
+  updateWordPressPostFields: (...args: unknown[]) => updateWordPressPostFields(...args),
 }));
 
 describe("writeBulkResearchedKeywordFocusToWordPress", () => {
   beforeEach(() => {
-    updateWordPressAcfFields.mockReset();
-    updateWordPressAcfFields.mockResolvedValue({ success: true });
+    updateWordPressPostFields.mockReset();
+    updateWordPressPostFields.mockResolvedValue({ success: true });
   });
 
   it("writes keyword_focus for researched indices with valid post id", async () => {
-    const prefetchedAcfFieldsCache = new Map<number, Record<string, unknown>>();
-    prefetchedAcfFieldsCache.set(0, { keyword_focus: "researched kw" });
+    const prefetchedPostFieldsCache = new Map<number, Record<string, unknown>>();
+    prefetchedPostFieldsCache.set(0, { keyword_focus: "researched kw" });
 
     const prefetchedPendingCache = new Map<
       number,
@@ -39,12 +39,12 @@ describe("writeBulkResearchedKeywordFocusToWordPress", () => {
       } as unknown as WordPressSite,
       researchedIndices: [0],
       prefetchedPendingCache,
-      prefetchedAcfFieldsCache,
+      prefetchedPostFieldsCache,
       muteToasts: true,
     });
 
-    expect(updateWordPressAcfFields).toHaveBeenCalledTimes(1);
-    expect(updateWordPressAcfFields).toHaveBeenCalledWith(
+    expect(updateWordPressPostFields).toHaveBeenCalledTimes(1);
+    expect(updateWordPressPostFields).toHaveBeenCalledWith(
       "https://example.com",
       "u",
       "p",
@@ -56,8 +56,8 @@ describe("writeBulkResearchedKeywordFocusToWordPress", () => {
   });
 
   it("skips write when post id is missing", async () => {
-    const prefetchedAcfFieldsCache = new Map<number, Record<string, unknown>>();
-    prefetchedAcfFieldsCache.set(0, { keyword_focus: "kw" });
+    const prefetchedPostFieldsCache = new Map<number, Record<string, unknown>>();
+    prefetchedPostFieldsCache.set(0, { keyword_focus: "kw" });
 
     const prefetchedPendingCache = new Map<
       number,
@@ -77,9 +77,9 @@ describe("writeBulkResearchedKeywordFocusToWordPress", () => {
       } as unknown as WordPressSite,
       researchedIndices: [0],
       prefetchedPendingCache,
-      prefetchedAcfFieldsCache,
+      prefetchedPostFieldsCache,
     });
 
-    expect(updateWordPressAcfFields).not.toHaveBeenCalled();
+    expect(updateWordPressPostFields).not.toHaveBeenCalled();
   });
 });

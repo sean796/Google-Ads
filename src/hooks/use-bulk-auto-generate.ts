@@ -16,6 +16,7 @@ import { loadDataForSEOApiKey } from '@/lib/api';
 import { setRuntimeDataForSeoApiKey } from '@/lib/integration-api-keys-runtime';
 import { processBulkSingleRow, type BulkHarnessSectionUi } from '@/lib/bulk/bulk-single-row-processor';
 import { runBulkBatchRows } from '@/lib/bulk/bulk-batch-run-context';
+import { logBulkRunStep } from '@/lib/bulk/bulk-run-step-log';
 export { loadKnowledgeBaseFromStorage, processBulkSingleRow, type BulkSingleRowProcessorDeps, type BulkHarnessSectionUi } from '@/lib/bulk/bulk-single-row-processor';
 export { runBulkBatchRows, type BulkBatchRunContext } from '@/lib/bulk/bulk-batch-run-context';
 
@@ -105,10 +106,14 @@ export function useBulkAutoGenerate({
     const trimmed = message.trim();
     if (!trimmed) return;
     setProcessingStepLog((prev) => (prev[prev.length - 1] === trimmed ? prev : [...prev, trimmed]));
+    logBulkRunStep(trimmed);
   }, []);
 
   const recordRunStatus = useCallback((message: string) => {
-    setStatus(message);
+    const trimmed = message.trim();
+    if (!trimmed) return;
+    setStatus(trimmed);
+    logBulkRunStep(trimmed);
   }, []);
 
   /** Rows run in parallel: each row keeps its own harness sections; the drawer shows the row that updated last. */
@@ -314,11 +319,10 @@ isAnalyzingRef.current = isAnalyzing;
    * Cancel processing
    */
   const cancelProcessing = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      setIsProcessing(false);
-      recordRunStatus('Cancelled');
-    }
+    abortControllerRef.current?.abort();
+    processingInFlightRef.current = false;
+    setIsProcessing(false);
+    recordRunStatus('Cancelled');
   }, [recordRunStatus]);
 
   /**

@@ -31,7 +31,7 @@ describe("manager tab routes (Wave 4)", () => {
   it("maps legacy hashes to their routes", () => {
     expect(legacyHashToPath("")).toBe("/dashboard");
     expect(legacyHashToPath("#settings")).toBe("/dashboard");
-    expect(legacyHashToPath("#neo-emcp")).toBe("/dashboard");
+    expect(legacyHashToPath("#neo-emcp-legacy")).toBe("/dashboard");
     expect(legacyHashToPath("#local-grid")).toBe("/local-dominator");
     expect(legacyHashToPath("#generator/bulk-prompt")).toBe("/generator/bulk-prompt");
     expect(legacyHashToPath("#generator/opt/agent-run/42")).toBe("/generator/opt/agent-run/42");

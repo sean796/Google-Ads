@@ -196,7 +196,7 @@ function buildPlanLiveMessage(input: SitemapPlanDetailsPanelProps): string | und
   }
   if (input.rankMathImportSummary) {
     parts.push(
-      `Rank Math: ${input.rankMathImportSummary.destinationCount} destination(s)`,
+      `NEO Pulse redirect: ${input.rankMathImportSummary.destinationCount} destination(s)`,
     );
   }
   return parts.filter(Boolean).join(" · ") || undefined;

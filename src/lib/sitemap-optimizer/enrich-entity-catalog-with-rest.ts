@@ -101,7 +101,7 @@ export async function enrichEntityOptimizerCatalogWithRest(
   try {
     const bulk = await getSiteInventoryBulk(site.siteUrl, site.username, site.appPassword, {
       includeContent: false,
-      includeRawAcf: true,
+      includeRawPostFields: true,
       collections: [coll],
     });
     const restRows = (bulk.rows ?? []) as SiteInventoryBulkRow[];

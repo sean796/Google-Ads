@@ -8,16 +8,14 @@ import {
 } from "@/lib/notify-messages";
 import { useAuth } from "@/contexts/AuthContext";
 import { DASHBOARD_SETTINGS_GROUP_CLASS } from "@/components/manager/dashboard/dashboard-panel-styles";
-import {
-  collectManagerCloudSettingsSnapshot,
-  applyManagerCloudSnapshotToLocalStorage,
-} from "@/lib/manager-cloud-settings-snapshot";
+import { applyManagerCloudSnapshotToLocalStorage } from "@/lib/manager-cloud-settings-snapshot";
+import { hydrateRuntimeApiKeys } from "@/lib/api";
 import {
   getManagerCloudSettingsStatus,
   loadManagerSettingsFromCloud,
-  saveManagerSettingsToCloud,
 } from "@/lib/manager-cloud-settings-api";
 import { loadAgentMailApiKey, loadAgentMailInbox } from "@/lib/api";
+import { saveManagerWorkspaceBackup } from "@/lib/manager-workspace-backup";
 import { Button } from "@/ui";
 
 export type ManagerCloudSettingsCardProps = {
@@ -60,17 +58,20 @@ export function ManagerCloudSettingsCard({
     }
     setSaving(true);
     try {
-      const snapshot = collectManagerCloudSettingsSnapshot(
+      const r = await saveManagerWorkspaceBackup(
         {
-          "openrouter-api-key": apiKey,
-          "dataforseo-api-key": dataForSEOApiKey,
-          "semrush-api-key": semrushApiKey,
-          "agentmail-api-key": loadAgentMailApiKey(),
-          "agentmail-general-email": loadAgentMailInbox(),
+          apiKey,
+          dataForSEOApiKey,
+          semrushApiKey,
+          agentMailApiKey: loadAgentMailApiKey(),
+          agentMailInbox: loadAgentMailInbox(),
+          selectedModel,
+          temperature,
+          maxTokens,
+          topP,
         },
-        { selectedModel, temperature, maxTokens, topP },
+        activeTeam?.id,
       );
-      const r = await saveManagerSettingsToCloud(snapshot, activeTeam?.id);
       if (!r.ok) {
         notify.error(r.error || "Workspace save failed");
         return;
@@ -100,6 +101,7 @@ export function ManagerCloudSettingsCard({
         notify.error(r.error || "No workspace backup found");
         return;
       }
+      hydrateRuntimeApiKeys(r.snapshot.keys);
       const applied = applyManagerCloudSnapshotToLocalStorage(r.snapshot);
       if (applied.error) {
         notify.error(applied.error);

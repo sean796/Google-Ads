@@ -148,15 +148,15 @@ class Neo_Pulse_Wp_Ai_Apply {
 				self::write_focus_keyword( $post_id, $value );
 				return array( 'focus_keyword' );
 			case 'seo_research':
-				self::write_acf_or_meta( $post_id, 'seo_research', $value );
+				self::write_post_field_or_meta( $post_id, 'seo_research', $value );
 				self::maybe_sync_post_title_from_seo_research( $post_id, $value );
 				return array( 'seo_research' );
 			case 'faq':
 				$key = Neo_Pulse_Wp_Ai_Context::resolve_write_key( $post_id, array( 'faq', 'seo_faq' ) );
-				self::write_acf_or_meta( $post_id, $key, $value );
+				self::write_post_field_or_meta( $post_id, $key, $value );
 				return array( 'faq' );
 			case 'page_url':
-				self::write_acf_or_meta( $post_id, 'page_url', $value );
+				self::write_post_field_or_meta( $post_id, 'page_url', $value );
 				return array( 'page_url' );
 			case 'date_modifier':
 				self::write_date_modifier( $post_id, $value );
@@ -173,14 +173,14 @@ class Neo_Pulse_Wp_Ai_Apply {
 				'post_title' => $value,
 			)
 		);
-		update_post_meta( $post_id, 'rank_math_title', $value );
+		update_post_meta( $post_id, 'neo_pulse_seo_title', $value );
 	}
 
 	/**
 	 * @return array<int,string>
 	 */
 	public static function write_seo_title_only( int $post_id, string $value ): array {
-		update_post_meta( $post_id, 'rank_math_title', $value );
+		update_post_meta( $post_id, 'neo_pulse_seo_title', $value );
 		return array( 'title' );
 	}
 
@@ -191,16 +191,16 @@ class Neo_Pulse_Wp_Ai_Apply {
 				'post_excerpt' => $value,
 			)
 		);
-		update_post_meta( $post_id, 'rank_math_description', $value );
+		update_post_meta( $post_id, 'neo_pulse_seo_description', $value );
 	}
 
 	public static function write_focus_keyword( int $post_id, string $value ): void {
-		update_post_meta( $post_id, 'rank_math_focus_keyword', $value );
+		update_post_meta( $post_id, 'neo_pulse_seo_focus_keyword', $value );
 		update_post_meta( $post_id, '_neo_pulse_focus_keyword', $value );
-		self::write_acf_or_meta( $post_id, 'keyword_focus', $value );
+		self::write_post_field_or_meta( $post_id, 'keyword_focus', $value );
 	}
 
-	public static function write_acf_or_meta( int $post_id, string $key, string $value ): void {
+	public static function write_post_field_or_meta( int $post_id, string $key, string $value ): void {
 		if ( function_exists( 'update_field' ) ) {
 			update_field( $key, $value, $post_id );
 		}
@@ -220,7 +220,7 @@ class Neo_Pulse_Wp_Ai_Apply {
 			$ts = strtotime( $value );
 			$value = $ts ? gmdate( 'Y-m-d', $ts ) : gmdate( 'Y-m-d' );
 		}
-		self::write_acf_or_meta( $post_id, 'date_modifier', $value );
+		self::write_post_field_or_meta( $post_id, 'date_modifier', $value );
 	}
 
 	/**
@@ -228,7 +228,7 @@ class Neo_Pulse_Wp_Ai_Apply {
 	 */
 	public static function maybe_sync_post_title_from_seo_research( int $post_id, string $research_json = '' ): void {
 		if ( $research_json === '' ) {
-			$research_json = Neo_Pulse_Wp_Ai_Context::read_acf_or_meta( $post_id, array( 'seo_research' ) );
+			$research_json = Neo_Pulse_Wp_Ai_Context::read_post_field_or_meta( $post_id, array( 'seo_research' ) );
 		}
 		$decoded = json_decode( $research_json, true );
 		if ( ! is_array( $decoded ) ) {

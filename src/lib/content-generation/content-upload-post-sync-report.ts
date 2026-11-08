@@ -8,15 +8,15 @@ import type { WordPressSite } from "@/components/integrations/types";
 import type { OptimizationFileManager } from "@/lib/optimization-file-manager";
 import { uploadToWordPress } from "./wordpress-uploader";
 import { optimizeMetaFields } from "./meta-optimizer";
-import { updateACFOriginField } from "./acf-origin-updater";
+import { updateACFOriginField } from "./post-fields-origin-updater";
 import { restCollectionEndpointForSubtype } from "@/lib/overview/overview-bulk-seo-payload";
 import { rowUrlMatchesWordPressSite } from "@/lib/overview/overview-aiseo-after-upload";
 import { attachWordPressUploadProofToFileManager } from "@/lib/overview/overview-wp-upload-harness-artifacts";
 import type { OverviewBulkSeoApiItem } from "@/lib/overview/overview-bulk-seo-payload";
 import { markContentPrepHarnessSection, type ContentPrepHarnessBridge, pipelineIndexForHarnessTitle } from "@/lib/overview/overview-content-prep-harness-run";
 import type { RunProgressReporter, ContentOptimizerStepId } from "@/lib/content-optimization/content-optimizer-run-progress";
-import type { AIDrivenACFContext } from "./ai-driven-acf-reader";
-import type { PrecomputedAcfSeoBundle } from "./bulk-acf-seo-bundle";
+import type { AIDrivenACFContext } from "./ai-driven-post-fields-reader";
+import type { PrecomputedAcfSeoBundle } from "./bulk-post-fields-seo-bundle";
 import { toStringContent, type BlueprintResult, type OptimizationContext } from "./content-upload-polish-and-faq";
 
 export interface ContentUploadPostSyncReportArgs {

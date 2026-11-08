@@ -3,15 +3,15 @@ import { getResearchModel } from "@/lib/optimization-settings-storage";
 import type { BulkProcessingOptions } from "@/lib/bulk-auto-generate";
 import {
   addKeywordResearchSnapshotToBulkFiles,
-  resolveRankMathFromKeywordResearch,
+  resolveRedirectCsvFromKeywordResearch,
 } from "@/lib/bulk-auto-generate";
 import type { CSVRow } from "@/lib/bulk/bulk-csv-parser";
 import { htmlTextFingerprint } from "@/lib/bulk/blog-import-format-blocks";
 import { generateFeaturedImage, generateImageChecklist } from "@/lib/bulk/bulk-image-generator";
 import { BulkFileManager, type BulkGeneratedFile } from "@/lib/bulk-file-manager";
 import { fetchGoogleMapsImageForEntity } from "@/lib/content-generation/google-maps-image-api";
-import { NEO_PULSE_DEFAULT_FIELD_MAPPING } from "@/lib/content-generation/acf-field-mapper";
-import { buildAcfPayload } from "@/lib/content-generation/apply-meta-acf-payload";
+import { NEO_PULSE_DEFAULT_FIELD_MAPPING } from "@/lib/content-generation/post-field-mapper";
+import { buildAcfPayload } from "@/lib/content-generation/apply-meta-fields-payload";
 import { buildOptimizedMetaFromKeywordResearch } from "@/lib/content-generation/apply-bulk-meta-from-seo-json";
 import {
   buildPostMarkdownAcfSeoFaqBundle,
@@ -19,7 +19,7 @@ import {
   patchPostLinkInSeoResearchJson,
   resolveFaqEntriesForVisibleTable,
   type PrecomputedAcfSeoBundle,
-} from "@/lib/content-generation/bulk-acf-seo-bundle";
+} from "@/lib/content-generation/bulk-post-fields-seo-bundle";
 import { generateSEOImageFilename } from "@/lib/image-filename-generator";
 import type { KeywordAIAnalysis, KeywordAnalysisComplete, KeywordAnalysisOptions, KeywordData } from "@/lib/keyword-types";
 import {
@@ -190,7 +190,7 @@ export async function appendDirectFaqAndSchema(args: {
   model?: string;
   onProgress?: (message: string) => void;
 }): Promise<{ html: string; bundle: PrecomputedAcfSeoBundle }> {
-  const rankMeta = resolveRankMathFromKeywordResearch(args.keywordData);
+  const rankMeta = resolveRedirectCsvFromKeywordResearch(args.keywordData);
   let parsed: unknown;
   try {
     parsed = JSON.parse(args.seoResearchBrief) as unknown;
@@ -302,7 +302,7 @@ export async function uploadDirectFeaturedMedia(args: {
   return { mediaId: media.mediaId, url };
 }
 
-/** Direct import: post body unchanged; write keyword, SEO title, meta description, and Rank Math only. */
+/** Direct import: post body unchanged; write keyword, SEO title, meta description, and NEO Pulse redirect only. */
 export async function writeDirectImportMetaOnly(args: {
   site: WordPressSite;
   postId: number;
@@ -364,7 +364,7 @@ export async function writeDirectImportMetaOnly(args: {
   return acfWrite;
 }
 
-export async function writeDirectSeoAcfAndRankMath(args: {
+export async function writeDirectSeoAcfAndRedirectCsv(args: {
   site: WordPressSite;
   postId: number;
   postTypeForAcf: string;
@@ -378,7 +378,7 @@ export async function writeDirectSeoAcfAndRankMath(args: {
   baseAcf: Record<string, string>;
   apiKey: string;
 }): Promise<Record<string, string>> {
-  const rankMeta = resolveRankMathFromKeywordResearch(args.keywordData);
+  const rankMeta = resolveRedirectCsvFromKeywordResearch(args.keywordData);
   const seoResearchJson = patchPostLinkInSeoResearchJson(
     args.bundle.seoResearchJson,
     args.postLink,

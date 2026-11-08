@@ -5,7 +5,7 @@ section: Google Search Console
 method: POST
 path: /api/gsc/report-date-range
 auth: open
-order: 480
+order: 490
 ---
 
 POST `/api/gsc/report-date-range`.

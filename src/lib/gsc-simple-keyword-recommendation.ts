@@ -46,7 +46,7 @@ export interface SimpleKeywordRecommendationOptions {
   companyName?: string;
   /** SOURCE OF TRUTH: When provided, primary keyword MUST align with this (from ACF prompt_modifier / seo_prompt_modifier). */
   promptModifier?: string;
-  /** Optional: meta description for context (e.g. rank_math_description). */
+  /** Optional: meta description for context (e.g. neo_pulse_seo_description). */
   metaDescription?: string;
 }
 

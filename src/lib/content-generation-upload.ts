@@ -7,7 +7,7 @@ import type { WordPressSite } from "@/components/integrations/types";
 import { getStoredSites } from "@/components/integrations/storage";
 import { buildPortfolioBlockedHosts } from "@/lib/portfolio-link-blocklist";
 import { generateOptimizedContent } from "@/lib/content-generation/content-generator";
-import { readACFFieldsAgentically, type AIDrivenACFContext } from "@/lib/content-generation/ai-driven-acf-reader";
+import { readACFFieldsAgentically, type AIDrivenACFContext } from "@/lib/content-generation/ai-driven-post-fields-reader";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { reduceHarnessSectionList } from "@/lib/bulk/harness-sections-reducer";
 import { mergeHarnessProgressSiteAndBatch, mergeOptimizationProgress } from "@/hooks/content-optimization/optimization-helpers";
@@ -62,7 +62,7 @@ export async function generateAndUploadContent(
   // Defaults when no options passed. Caller's optimizationOptions are respected so content can be updated.
   const DEFAULT_OPTIMIZATION_OPTIONS = {
     // Force content-only optimization by default.
-    // Title + RankMath meta fields must never be generated or overwritten.
+    // Title + RedirectCsv meta fields must never be generated or overwritten.
     optimizeTitle: false,
     optimizeMeta: false,
     optimizeExcerpt: false,

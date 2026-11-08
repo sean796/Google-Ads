@@ -32,7 +32,7 @@ import {
   sanitizeHarnessArticleTitle,
 } from "@/lib/overview/overview-content-optimize-pipeline";
 import { extractChecklistItemTitle } from "@/lib/checklist-item-title";
-import type { AIDrivenACFContext } from "@/lib/content-generation/ai-driven-acf-reader";
+import type { AIDrivenACFContext } from "@/lib/content-generation/ai-driven-post-fields-reader";
 import { extractH2Titles } from "@/lib/content-optimization/optimize-output-verification";
 import { mergeOptimizerInstructions } from "@/lib/prompt-builders/system-user";
 import { isAgentRunBatchKey } from "@/lib/agent-runs/agent-run-batch-key";

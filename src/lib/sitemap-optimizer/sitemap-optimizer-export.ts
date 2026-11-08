@@ -88,6 +88,6 @@ export function rowByPostIdMap(rows: SitemapOptimizerPostRow[]): Map<string, Sit
 }
 
 export {
-  buildSitemapOptimizerContentSheetRankMathCsv,
-  buildSitemapOptimizerContentSheetRankMathWideCsv,
-} from "@/lib/sitemap-optimizer/build-content-sheet-rank-math";
+  buildSitemapOptimizerContentSheetRedirectCsvCsv,
+  buildSitemapOptimizerContentSheetRedirectCsvWideCsv,
+} from "@/lib/sitemap-optimizer/build-content-sheet-pulse-redirects";

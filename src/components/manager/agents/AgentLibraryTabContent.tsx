@@ -41,7 +41,6 @@ const DOMAIN_BADGE_LABELS: Record<Exclude<AgentLibraryDomainFilter, "all">, stri
   "ppc-ads": "PPC & Ads",
   video: "Video",
   wikipedia: "Wikipedia",
-  emcp: "Neo MCP",
 };
 
 export function AgentLibraryTabContent(): React.ReactElement {

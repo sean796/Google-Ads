@@ -102,9 +102,7 @@ export function useBulkProcessing({
 
     // Wave 0: no client key gate. The server call runs keyless and fails
     // visibly there if the server key is not configured.
-    setIsProcessing(true);
-    setCurrentRow(0);
-
+    // isProcessing is set inside runBulkBatchRows (avoid stuck UI if the run no-ops).
     let occupancyForRun = scheduleOccupancy;
     if (useGapScheduling && refreshScheduleOccupancy) {
       occupancyForRun = (await refreshScheduleOccupancy()) ?? occupancyForRun;
@@ -167,7 +165,7 @@ export function useBulkProcessing({
     }
 
     await processAllRows(orderedRows, postingForRun, orderedDisplayIndices);
-  }, [inputMode, rows, generatedRows, selectedBlogIndices, rowOrder, selectedWordPressSites, siteConfigs, scheduleFrequency, customInterval, dayOfWeek, startDateOption, customStartDate, startTime, wordpressDraftOnly, bulkPostDestination, scheduleOccupancy, useGapScheduling, refreshScheduleOccupancy, processAllRows, setIsProcessing, setCurrentRow]);
+  }, [inputMode, rows, generatedRows, selectedBlogIndices, rowOrder, selectedWordPressSites, siteConfigs, scheduleFrequency, customInterval, dayOfWeek, startDateOption, customStartDate, startTime, wordpressDraftOnly, bulkPostDestination, scheduleOccupancy, useGapScheduling, refreshScheduleOccupancy, processAllRows, setIsProcessing]);
 
   return {
     handleStartProcessing,

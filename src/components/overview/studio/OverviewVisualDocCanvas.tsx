@@ -19,12 +19,6 @@ import { useOverviewStudioAutoSeo, STUDIO_ACTION_STATES, type OverviewVisualDocC
 import { cn } from "@/lib/utils";
 import { ActionButton, Button } from "@/ui";
 
-function htmlHasVisibleContent(html: string | undefined): boolean {
-  if (!html?.trim()) return false;
-  const body = new DOMParser().parseFromString(html, "text/html").body;
-  return Boolean(body.textContent?.trim()) || body.querySelector("img,video,iframe") !== null;
-}
-
 export function OverviewVisualDocCanvas({
   ctrl: c,
   row,
@@ -45,6 +39,11 @@ export function OverviewVisualDocCanvas({
   studioEditorMode,
   onStudioEditorModeChange,
   bulkTitleUrlOptimizing = false,
+  bulkSplashStatusText,
+  bulkSplashStatusVisual,
+  composeSplashVisible = false,
+  composeSplashStatusText,
+  composeSplashStatusVisual,
 }: OverviewVisualDocCanvasProps) {
   const isBulkGeneratorStudio = Boolean(bulkGeneratorStudioActions || studioEditorMode);
   const siteWarm = useOverviewSiteWarmDetails(c.site ?? undefined);
@@ -145,13 +144,19 @@ export function OverviewVisualDocCanvas({
   const bandBusy =
     isBulkGeneratorStudio ? bulkWorkspaceBusy || busy || bulkTitleUrlOptimizing : busy;
 
+  const rowPipelineActive = Boolean(
+    row?.status &&
+      row.status !== "idle" &&
+      row.status !== "error" &&
+      row.status !== "uploading",
+  );
+
   const bulkContentSplashVisible =
     isBulkGeneratorStudio &&
     !studioBody &&
     hasRow &&
-    !htmlHasVisibleContent(row?.postContentOptimized) &&
-    !htmlHasVisibleContent(row?.postContent) &&
-    row?.status !== "error";
+    row?.status !== "error" &&
+    (bulkWorkspaceBusy || busy || rowPipelineActive);
 
   // Sync the active row's SERP & Meta inspector into the existing right-hand Pulse Engine sidebar
   useEffect(() => {
@@ -341,7 +346,14 @@ export function OverviewVisualDocCanvas({
       />
 
       {studioBody ? (
-        <div className="min-h-0 flex-1 overflow-hidden">{studioBody}</div>
+        <div className="relative min-h-0 flex-1 overflow-hidden">
+          {studioBody}
+          <ContentOptimizerSplashOverlay
+            visible={composeSplashVisible}
+            statusText={composeSplashStatusText}
+            statusVisual={composeSplashStatusVisual}
+          />
+        </div>
       ) : !hasRow || !row ? (
         showStudioEmptyPrompt ? (
           <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-hidden bg-black p-8 text-center text-base text-muted-foreground">
@@ -357,7 +369,11 @@ export function OverviewVisualDocCanvas({
         )
       ) : (
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-black">
-        <ContentOptimizerSplashOverlay visible={bulkContentSplashVisible} />
+        <ContentOptimizerSplashOverlay
+          visible={bulkContentSplashVisible}
+          statusText={bulkSplashStatusText}
+          statusVisual={bulkSplashStatusVisual}
+        />
         <div
           className={cn(
             "min-h-0 flex-1 overflow-y-auto overscroll-y-contain bg-black px-4 py-6 sm:px-8",

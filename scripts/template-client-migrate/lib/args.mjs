@@ -53,7 +53,7 @@ export async function collectArgs(env, argv, ask) {
   try {
     const templateSiteUrl = await need("template", "TEMPLATE_SITE_URL", "Template site URL: ");
     const clientSiteUrl = await need("client", "CLIENT_SITE_URL", "New client site URL: ");
-    const emcpUrl = await need("emcp", "EMCP_URL", "EMCP URL: ");
+    const emcpUrl = await need("REMOVED_emcp", "EMCP_URL", "EMCP URL: ");
     const sftpHost = await optional("sftp-host", "WPE_SFTP_HOST", "SFTP host (blank to skip apply): ");
     const sftpUser = await optional("sftp-user", "WPE_SFTP_USER", "SFTP user: ");
     const sftpPort = await optional("sftp-port", "WPE_SFTP_PORT", "SFTP port [2222]: ");

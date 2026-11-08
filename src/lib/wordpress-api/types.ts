@@ -134,7 +134,7 @@ export interface SitePostInventoryRow {
   url: string;
   /** WP featured_media attachment id when the post has a featured image. */
   featuredMediaId?: number;
-  /** Raw ACF object when fetched with includeRawAcf (context=edit). */
+  /** Raw ACF object when fetched with includeRawPostFields (context=edit). */
   acf?: Record<string, unknown>;
   fields: {
     title: string;

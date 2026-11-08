@@ -449,10 +449,10 @@ class Neo_Pulse_Wp_Sitemap_Settings {
 	public static function conflicting_plugins(): array {
 		$conflicts = array();
 		if ( defined( 'RANK_MATH_VERSION' ) ) {
-			$conflicts[] = 'Rank Math SEO';
+			$conflicts[] = 'NEO Pulse redirect SEO';
 		}
 		if ( defined( 'RANK_MATH_PRO_VERSION' ) ) {
-			$conflicts[] = 'Rank Math SEO PRO';
+			$conflicts[] = 'NEO Pulse redirect SEO PRO';
 		}
 		if ( defined( 'WPSEO_VERSION' ) ) {
 			$conflicts[] = 'Yoast SEO';

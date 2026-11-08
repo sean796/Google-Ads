@@ -1,9 +1,9 @@
 <?php
 /**
- * Breadcrumb trail, built the way Rank Math builds it and using its settings
+ * Breadcrumb trail, built the way NEO Pulse redirect builds it and using its settings
  * (breadcrumbs, breadcrumbs_home, breadcrumbs_home_label, breadcrumbs_separator, …).
  *
- * Used for the BreadcrumbList node in the schema graph and the [rank_math_breadcrumb] shortcode.
+ * Used for the BreadcrumbList node in the schema graph and the [neo_pulse_seo_breadcrumb] shortcode.
  *
  * @package Neo_Pulse_Wp
  */
@@ -44,7 +44,7 @@ class Neo_Pulse_Wp_Seo_Breadcrumbs {
 					return array();
 				}
 				$items = array_merge( $items, self::singular_parents( $post ) );
-				$label = trim( (string) get_post_meta( $post->ID, 'rank_math_breadcrumb_title', true ) );
+				$label = trim( (string) get_post_meta( $post->ID, 'neo_pulse_seo_breadcrumb_title', true ) );
 				$items[] = array(
 					'name' => $label !== '' ? $label : Neo_Pulse_Wp_Seo_Vars::decode( get_the_title( $post ) ),
 					'url'  => (string) get_permalink( $post ),
@@ -186,7 +186,7 @@ class Neo_Pulse_Wp_Seo_Breadcrumbs {
 	 * @return array{name: string, url: string}
 	 */
 	private static function term_item( WP_Term $term ): array {
-		$label = trim( (string) get_term_meta( $term->term_id, 'rank_math_breadcrumb_title', true ) );
+		$label = trim( (string) get_term_meta( $term->term_id, 'neo_pulse_seo_breadcrumb_title', true ) );
 		$link  = get_term_link( $term );
 		return array(
 			'name' => $label !== '' ? $label : Neo_Pulse_Wp_Seo_Vars::decode( $term->name ),
@@ -195,7 +195,7 @@ class Neo_Pulse_Wp_Seo_Breadcrumbs {
 	}
 
 	/**
-	 * BreadcrumbList node, in the same shape Rank Math prints.
+	 * BreadcrumbList node, in the same shape NEO Pulse redirect prints.
 	 *
 	 * @param array<int, array{name: string, url: string}> $trail Trail.
 	 * @return array<string, mixed>
@@ -225,7 +225,7 @@ class Neo_Pulse_Wp_Seo_Breadcrumbs {
 	}
 
 	/**
-	 * [rank_math_breadcrumb] once Rank Math is gone.
+	 * [neo_pulse_seo_breadcrumb] once NEO Pulse redirect is gone.
 	 */
 	public static function shortcode(): string {
 		if ( ! self::enabled() || ! class_exists( 'Neo_Pulse_Wp_Seo_Head', false ) ) {
@@ -245,7 +245,7 @@ class Neo_Pulse_Wp_Seo_Breadcrumbs {
 				? '<a href="' . esc_url( $item['url'] ) . '">' . esc_html( $item['name'] ) . '</a>'
 				: '<span class="last">' . esc_html( $item['name'] ) . '</span>';
 		}
-		return '<nav aria-label="' . esc_attr__( 'Breadcrumbs', 'neo-pulse-wp' ) . '" class="rank-math-breadcrumb"><p>'
+		return '<nav aria-label="' . esc_attr__( 'Breadcrumbs', 'neo-pulse-wp' ) . '" class="pulse-redirect-breadcrumb"><p>'
 			. implode( '<span class="separator"> ' . esc_html( html_entity_decode( $sep, ENT_QUOTES, 'UTF-8' ) ) . ' </span>', $parts )
 			. '</p></nav>';
 	}

@@ -5,7 +5,7 @@ section: Teams
 method: POST
 path: /api/teams/{teamId}/tasks/trigger-pending/({id})/ack
 auth: session-team
-order: 2410
+order: 2440
 ---
 
 POST `/api/teams/{teamId}/tasks/trigger-pending/({id})/ack`.

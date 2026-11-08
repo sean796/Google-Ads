@@ -3,7 +3,7 @@
  * AI-driven DFS search query generation and SERP fetch.
  */
 
-import { resolveMcpApiBase } from "@/lib/mcp-tools";
+import { mcpPostInit, resolveMcpApiBase } from "@/lib/mcp-tools";
 import { logger } from "@/lib/logger";
 import { streamChatCompletion } from '@/lib/api';
 import { getResearchModel } from '@/lib/optimization-settings-storage';
@@ -170,17 +170,16 @@ export async function fetchSerpOrganic(
   languageCode: string = 'en',
   depth: number = 20
 ): Promise<SerpOrganicItem[]> {
-  const res = await fetch(`${MCP_API_BASE}/DataForSEO_serp_organic_live_advanced`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+  const res = await fetch(
+    `${MCP_API_BASE}/DataForSEO_serp_organic_live_advanced`,
+    mcpPostInit({
       keyword,
       location_name: locationName,
       language_code: languageCode,
       depth,
       people_also_ask_click_depth: 2,
     }),
-  });
+  );
   if (!res.ok) {
     logger.warn('[Entity] SERP request failed:', await res.text());
     return [];

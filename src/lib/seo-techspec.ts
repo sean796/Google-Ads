@@ -7,7 +7,7 @@ import { logger } from "@/lib/logger";
 import { loadApiKey, streamChatCompletion } from "@/lib/api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import { updateWordPressPost } from "@/lib/wordpress-api/crud";
-import { updateACFFields } from "@/lib/wordpress-acf-origin";
+import { updateACFFields } from "@/lib/wordpress-post-fields-origin";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { WpExistingPostLike } from "@/hooks/content-optimization/use-optimization-state";
 

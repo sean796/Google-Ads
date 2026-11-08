@@ -7,7 +7,7 @@ import {
   permalinkParentPrefixFromPageUrls,
   suggestedPathFromFocusKeywordForMetaOptimizer,
   slugifyFocusKeywordToRelativePath,
-} from "../rank-math-redirect-csv";
+} from "../pulse-redirect-redirect-csv";
 
 describe("normalizeFocusKeywordPhrase", () => {
   it("turns slug hyphens into spaces and trims junk", () => {

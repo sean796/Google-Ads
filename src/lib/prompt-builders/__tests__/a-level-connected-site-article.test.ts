@@ -133,6 +133,15 @@ describe("ILLUSTRATIVE_PERSONA_OUTPUT_SHAPE", () => {
     expect(ILLUSTRATIVE_PERSONA_OUTPUT_SHAPE).toContain("[[LINK:service-area page title|short place]]");
     expect(ILLUSTRATIVE_PERSONA_OUTPUT_SHAPE).toContain("location cite");
   });
+
+  it("states one Recommendation h3 contract in every format", () => {
+    expect(ILLUSTRATIVE_PERSONA_OUTPUT_SHAPE).toContain("<h3>Recommendation: {specific pick title");
+    expect(ILLUSTRATIVE_PERSONA_OUTPUT_SHAPE).toContain("### Recommendation: {specific pick title");
+    expect(ILLUSTRATIVE_PERSONA_OUTPUT_SHAPE).not.toContain("### Recommendation.");
+    expect(ILLUSTRATIVE_SCENARIO_PERSONA_RULE).toContain('"Recommendation: {short pick title}"');
+    expect(ILLUSTRATIVE_SCENARIO_PERSONA_RULE).not.toContain("short pick title only");
+    expect(ILLUSTRATIVE_BLOCKQUOTE_RULE).toContain('"Recommendation: {short pick title}"');
+  });
 });
 
 describe("ILLUSTRATIVE_BLOCKQUOTE_RULE", () => {

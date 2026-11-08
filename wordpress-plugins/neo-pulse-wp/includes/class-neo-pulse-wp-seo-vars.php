@@ -2,7 +2,7 @@
 /**
  * Template variables used in SEO titles, descriptions and schema (%title%, %sep%, %sitename%, …).
  *
- * Same variable names as Rank Math, so templates and per-post values written by Rank Math keep
+ * Same variable names as NEO Pulse redirect, so templates and per-post values written by NEO Pulse redirect keep
  * working. Unknown variables are removed rather than printed.
  *
  * @package Neo_Pulse_Wp
@@ -164,7 +164,7 @@ class Neo_Pulse_Wp_Seo_Vars {
 				if ( ! $post ) {
 					return '';
 				}
-				$kw = (string) get_post_meta( $post->ID, 'rank_math_focus_keyword', true );
+				$kw = (string) get_post_meta( $post->ID, 'neo_pulse_seo_focus_keyword', true );
 				if ( $name === 'focuskw' ) {
 					$parts = explode( ',', $kw );
 					return trim( (string) $parts[0] );
@@ -306,7 +306,7 @@ class Neo_Pulse_Wp_Seo_Vars {
 	}
 
 	/**
-	 * @param string $format PHP date format; Rank Math writes "Y-m-dTH:i:sP" meaning ISO 8601.
+	 * @param string $format PHP date format; NEO Pulse redirect writes "Y-m-dTH:i:sP" meaning ISO 8601.
 	 */
 	public static function post_date( WP_Post $post, string $format, bool $modified ): string {
 		if ( $format === '' ) {
@@ -351,14 +351,14 @@ class Neo_Pulse_Wp_Seo_Vars {
 	}
 
 	/**
-	 * Primary term for the post type's primary taxonomy (Rank Math's rank_math_primary_{tax}).
+	 * Primary term for the post type's primary taxonomy (NEO Pulse redirect's neo_pulse_seo_primary_{tax}).
 	 */
 	public static function primary_term( WP_Post $post ): ?WP_Term {
 		$taxonomy = (string) Neo_Pulse_Wp_Seo_Settings::get( 'pt_' . $post->post_type . '_primary_taxonomy', $post->post_type === 'post' ? 'category' : '' );
 		if ( $taxonomy === '' || $taxonomy === 'off' || ! taxonomy_exists( $taxonomy ) ) {
 			return null;
 		}
-		$primary = (int) get_post_meta( $post->ID, 'rank_math_primary_' . $taxonomy, true );
+		$primary = (int) get_post_meta( $post->ID, 'neo_pulse_seo_primary_' . $taxonomy, true );
 		if ( $primary > 0 ) {
 			$term = get_term( $primary, $taxonomy );
 			if ( $term instanceof WP_Term ) {

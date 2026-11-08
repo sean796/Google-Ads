@@ -1,14 +1,14 @@
 ---
 title: "Discover Acf Field Groups"
-slug: wordpress/discover-acf-field-groups
+slug: wordpress/discover-post-field-keys
 section: WordPress
 method: POST
-path: /api/wordpress/discover-acf-field-groups
+path: /api/wordpress/discover-post-field-keys
 auth: open
 order: 2620
 ---
 
-POST `/api/wordpress/discover-acf-field-groups`.
+POST `/api/wordpress/discover-post-field-keys`.
 
 Runs the discover acf field groups action in the WordPress API from a JSON request body.
 
@@ -34,13 +34,13 @@ Runs the discover acf field groups action in the WordPress API from a JSON reque
 ## Example
 
 ```bash
-curl -X POST "https://neodigital.ca/api/wordpress/discover-acf-field-groups" \
+curl -X POST "https://neodigital.ca/api/wordpress/discover-post-field-keys" \
   -H "Content-Type: application/json" \
   -d '{}'
 ```
 
 ```javascript
-const res = await fetch(`/api/wordpress/discover-acf-field-groups`, {
+const res = await fetch(`/api/wordpress/discover-post-field-keys`, {
   method: "POST",
   credentials: "include",
   headers: { "Content-Type": "application/json" },

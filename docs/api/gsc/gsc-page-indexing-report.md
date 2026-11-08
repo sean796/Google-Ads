@@ -5,7 +5,7 @@ section: Google Search Console
 method: POST
 path: /api/gsc/page-indexing-report
 auth: open
-order: 440
+order: 450
 ---
 
 POST `/api/gsc/page-indexing-report`.

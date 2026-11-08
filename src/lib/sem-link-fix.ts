@@ -6,7 +6,7 @@ import {
   getWordPressPostContent,
   updateWordPressPost,
 } from "@/lib/wordpress-api";
-import { updateACFFields } from "@/lib/wordpress-acf-origin";
+import { updateACFFields } from "@/lib/wordpress-post-fields-origin";
 import type { WordPressSite } from "@/components/integrations/types";
 import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
 

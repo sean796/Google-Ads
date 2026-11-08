@@ -240,11 +240,11 @@ Return ONLY a JSON object with the optimized meta fields.`;
     // Fallback: create basic optimized meta fields (full post title — never mid-word cut)
     optimizedMeta = {
       ...existingMeta, // Preserve existing fields (including Elementor, etc.)
-      rank_math_title: postTitle.trim() || primaryKeyword,
-      rank_math_description: limitedMetaDescription || postTitle,
-      rank_math_focus_keyword: primaryKeyword,
-      rank_math_canonical_url: postLink || siteUrl,
-      rank_math_robots: existingMeta.rank_math_robots || ["index", "follow"],
+      neo_pulse_seo_title: postTitle.trim() || primaryKeyword,
+      neo_pulse_seo_description: limitedMetaDescription || postTitle,
+      neo_pulse_seo_focus_keyword: primaryKeyword,
+      neo_pulse_seo_canonical_url: postLink || siteUrl,
+      neo_pulse_seo_robots: existingMeta.neo_pulse_seo_robots || ["index", "follow"],
     };
     
     logger.warn('[Meta Field Optimizer] Using fallback meta fields due to parse error');
@@ -253,18 +253,18 @@ Return ONLY a JSON object with the optimized meta fields.`;
   // Keep a complete title string. Prefer full WordPress post title over a shortened SERP rewrite.
   const fullPostTitle = postTitle.trim();
   if (fullPostTitle) {
-    optimizedMeta.rank_math_title = fullPostTitle;
-  } else if (optimizedMeta.rank_math_title) {
-    optimizedMeta.rank_math_title = String(optimizedMeta.rank_math_title).trim();
+    optimizedMeta.neo_pulse_seo_title = fullPostTitle;
+  } else if (optimizedMeta.neo_pulse_seo_title) {
+    optimizedMeta.neo_pulse_seo_title = String(optimizedMeta.neo_pulse_seo_title).trim();
   }
 
   // Ensure focus keyword is set
-  if (!optimizedMeta.rank_math_focus_keyword) {
-    optimizedMeta.rank_math_focus_keyword = primaryKeyword;
+  if (!optimizedMeta.neo_pulse_seo_focus_keyword) {
+    optimizedMeta.neo_pulse_seo_focus_keyword = primaryKeyword;
   }
 // Ensure canonical URL is set
-  if (!optimizedMeta.rank_math_canonical_url && postLink) {
-    optimizedMeta.rank_math_canonical_url = postLink;
+  if (!optimizedMeta.neo_pulse_seo_canonical_url && postLink) {
+    optimizedMeta.neo_pulse_seo_canonical_url = postLink;
   }
 
   // Merge with existing meta to preserve all fields
@@ -275,7 +275,7 @@ Return ONLY a JSON object with the optimized meta fields.`;
 
   // CRITICAL: Always ensure focus keyword is set
   // Set it after merge to override any existing value with the primary keyword
-  finalMeta.rank_math_focus_keyword = primaryKeyword;
+  finalMeta.neo_pulse_seo_focus_keyword = primaryKeyword;
 
   // ACF Keyword Focus: write via post meta so it persists when ACF REST write does not
   // Many sites store ACF keyword_focus in wp_postmeta; including it here ensures it gets saved

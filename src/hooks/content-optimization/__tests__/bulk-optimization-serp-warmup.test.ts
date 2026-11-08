@@ -42,7 +42,7 @@ describe("createBulkSerpWarmupController", () => {
       batchKey: "site-batch",
       skipUrlSet,
       muteToasts: true,
-      prefetchedAcfFieldsCache: acf,
+      prefetchedPostFieldsCache: acf,
       prefetchedPendingCache: pending,
       setBulkOptimizationState: (action) => {
         if (typeof action === "function") {
@@ -87,7 +87,7 @@ describe("createBulkSerpWarmupController", () => {
       batchKey: "site-batch",
       skipUrlSet,
       muteToasts: true,
-      prefetchedAcfFieldsCache: acf,
+      prefetchedPostFieldsCache: acf,
       prefetchedPendingCache: pending,
       setBulkOptimizationState: (action) => {
         if (typeof action === "function") action({ "site-batch": emptyBatch() });
@@ -111,7 +111,7 @@ describe("createBulkSerpWarmupController", () => {
       batchKey: "site-batch",
       skipUrlSet,
       muteToasts: true,
-      prefetchedAcfFieldsCache: acf,
+      prefetchedPostFieldsCache: acf,
       prefetchedPendingCache: pending,
       setBulkOptimizationState: (action) => {
         if (typeof action === "function") action({ "site-batch": emptyBatch() });
@@ -135,7 +135,7 @@ describe("createBulkSerpWarmupController", () => {
       batchKey: "site-batch",
       skipUrlSet,
       muteToasts: true,
-      prefetchedAcfFieldsCache: acf,
+      prefetchedPostFieldsCache: acf,
       prefetchedPendingCache: pending,
       setBulkOptimizationState: (action) => {
         if (typeof action === "function") action({ "site-batch": emptyBatch() });

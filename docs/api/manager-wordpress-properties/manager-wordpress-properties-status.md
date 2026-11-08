@@ -5,12 +5,12 @@ section: Manager WordPress Properties
 method: GET
 path: /api/manager-wordpress-properties/status
 auth: open
-order: 710
+order: 740
 ---
 
 GET `/api/manager-wordpress-properties/status`.
 
-Merge one API key into workspace manager settings (server-side Semrush, DataForSEO, etc.).
+Remove secret material from a manager snapshot (public or unauthenticated responses only).
 
 ## Request
 

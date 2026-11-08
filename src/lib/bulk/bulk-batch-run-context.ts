@@ -1,5 +1,5 @@
 import { notify } from "@/lib/app-notifications";
-import { NOTIFY_INTERNAL_ERROR_ROW_INDEX_MAPPING_DOES_NO, NOTIFY_INVALID_TARGET_SITE_EXAMPLE_COM_IS_NOT_A, NOTIFY_LOADING_WORDPRESS_SITE_INVENTORY_ONE_REQ, NOTIFY_PROCESSING_CANCELLED_BY_USER, notifyBulkProcessingCompleteXFilesGenerat, notifyBulkProcessingFailedX, notifyLoadedXLinkableUrlsFromSiteInvento, notifyRowXFailedX, notifyRowXXCompletedXFilesGenerated, notifyWordpressFetchFailedX, notifyWordpressSiteNotFoundX } from "@/lib/notify-messages";
+import { NOTIFY_A_BULK_RUN_IS_ALREADY_IN_PROGRESS, NOTIFY_INTERNAL_ERROR_ROW_INDEX_MAPPING_DOES_NO, NOTIFY_INVALID_TARGET_SITE_EXAMPLE_COM_IS_NOT_A, NOTIFY_LOADING_WORDPRESS_SITE_INVENTORY_ONE_REQ, NOTIFY_PROCESSING_CANCELLED_BY_USER, notifyBulkProcessingCompleteXFilesGenerat, notifyBulkProcessingFailedX, notifyLoadedXLinkableUrlsFromSiteInvento, notifyRowXFailedX, notifyRowXXCompletedXFilesGenerated, notifyWordpressFetchFailedX, notifyWordpressSiteNotFoundX } from "@/lib/notify-messages";
 import { buildSitesToPostFromPosting, prefetchBulkWordPressLinkValidationForRun, clearBulkUploadValidationCache, type CSVRow, type BulkProcessingOptions, type WordPressPostingOptions, type WordPressPostDestination } from '@/lib/bulk-auto-generate';
 import { BULK_PROCESSING_CANCELLED_MESSAGE, runBulkRowsInParallel } from '@/lib/bulk/bulk-row-concurrency';
 import { BulkFileManager, type BulkGeneratedFile } from '@/lib/bulk-file-manager';
@@ -20,6 +20,7 @@ import { setRuntimeDataForSeoApiKey } from '@/lib/integration-api-keys-runtime';
 import type { Dispatch, SetStateAction } from 'react';
 import type { BulkHarnessSectionUi } from '@/lib/bulk/bulk-single-row-processor';
 import { logger } from "@/lib/logger";
+import { logBulkRunStep } from "@/lib/bulk/bulk-run-step-log";
 
 export interface BulkBatchRunContext {
   apiKey?: string;
@@ -63,9 +64,12 @@ export async function runBulkBatchRows(
 ): Promise<void> {
   const { apiKey, selectedModel, temperature, maxTokens, topP, flowPurpose, featuredImageType, fileManager, processRow, connectedSite, wordPressPosting, siteConfigs, selectedWordPressSites, blogImportSourceFile, blogImportForm, bulkPostDestination, recordRunStatus, appendProcessingStep, processingInFlightRef, abortControllerRef, harnessRowSectionsRef, setIsProcessing, setCurrentRow, setTotalRows, setRows, setHarnessSections, setHarnessPlannedSectionCount, setHarnessByRow, setProcessingStepLog, setFailedRowIndices, setFailedRowMessages } = context;
     if (processingInFlightRef.current) {
+      logger.warn("[Bulk] post generation skipped: previous batch still marked in-flight");
+      setIsProcessing(false);
+      notify.error(NOTIFY_A_BULK_RUN_IS_ALREADY_IN_PROGRESS);
       return;
     }
-    processingInFlightRef.current = true;
+
     const effectiveOpenRouterKey = (await resolveOpenRouterApiKeyForHarness()).trim();
 
     const effectiveDataForSeoKey = apiKey?.trim() || loadDataForSEOApiKey()?.trim() || "";
@@ -74,12 +78,13 @@ export async function runBulkBatchRows(
     const displayIndices =
       rowDisplayIndices ?? csvRows.map((_, idx) => idx);
     if (displayIndices.length !== csvRows.length) {
-      processingInFlightRef.current = false;
       notify.error(NOTIFY_INTERNAL_ERROR_ROW_INDEX_MAPPING_DOES_NO);
       return;
     }
 
+    processingInFlightRef.current = true;
     setIsProcessing(true);
+    logBulkRunStep("post generation started", { rows: csvRows.length });
     recordRunStatus("Creating posts...");
     setRows(csvRows);
     setCurrentRow(0);
@@ -175,7 +180,12 @@ export async function runBulkBatchRows(
     if (postingForLoop?.enabled) {
       const sitesToPost = buildSitesToPostFromPosting(postingForLoop);
       if (sitesToPost.length > 0) {
-        linkPrefetchPromise = prefetchBulkWordPressLinkValidationForRun(sitesToPost);
+        logBulkRunStep("WordPress link validation prefetch started", {
+          sites: sitesToPost.length,
+        });
+        linkPrefetchPromise = prefetchBulkWordPressLinkValidationForRun(sitesToPost).then(() => {
+          logBulkRunStep("WordPress link validation prefetch finished");
+        });
       }
     }
 
@@ -184,10 +194,14 @@ export async function runBulkBatchRows(
 
       if (wordPressSiteForRun?.username && wordPressSiteForRun.appPassword) {
         try {
+          logBulkRunStep("WordPress site inventory load started", {
+            siteUrl: wordPressSiteForRun.siteUrl,
+          });
           notify.info(NOTIFY_LOADING_WORDPRESS_SITE_INVENTORY_ONE_REQ);
-          const inv = await ensureBulkGenerationWpInventory(wordPressSiteForRun, (msg) =>
-            notify.info(msg),
-          );
+          const inv = await ensureBulkGenerationWpInventory(wordPressSiteForRun, (msg) => {
+            logBulkRunStep(msg);
+            notify.info(msg);
+          });
           if (inv.error?.trim()) {
             notify.warning(inv.error.trim());
           }
@@ -199,18 +213,36 @@ export async function runBulkBatchRows(
           for (const keyword of uniqueKeywords) {
             wordPressPostsByKeyword.set(keyword, allLinkables);
           }
+          logBulkRunStep("WordPress site inventory load finished", {
+            linkables: allLinkables.length,
+            keywords: uniqueKeywords.size,
+          });
           notify.success(
             notifyLoadedXLinkableUrlsFromSiteInvento(allLinkables.length, uniqueKeywords.size),
           );
         } catch (error) {
           logger.error('[WordPress] Inventory fetch error:', error);
+          logBulkRunStep("WordPress site inventory load failed", {
+            error: error instanceof Error ? error.message : String(error),
+          });
           notify.warning(
             notifyWordpressFetchFailedX(error instanceof Error ? error.message : 'Unknown error'),
           );
         }
+      } else {
+        logBulkRunStep("WordPress site inventory skipped", {
+          hasSite: Boolean(wordPressSiteForRun),
+          hasCredentials: Boolean(
+            wordPressSiteForRun?.username && wordPressSiteForRun?.appPassword,
+          ),
+        });
       }
 
       const runRow = async (i: number): Promise<void> => {
+        logBulkRunStep(`row ${i + 1}/${csvRows.length} pipeline started`, {
+          keyword: csvRows[i]?.keyword,
+          title: csvRows[i]?.title,
+        });
         setCurrentRow(i);
 
         const rowSitemapType = resolveRowSitemapType(
@@ -272,9 +304,11 @@ export async function runBulkBatchRows(
       };
 
       let endedTrace: PromptTrace | null = null;
+      logBulkRunStep("parallel row runner starting", { rowCount: csvRows.length });
       beginPromptTrace(`Bulk run, ${csvRows.length} row${csvRows.length === 1 ? '' : 's'} in parallel`);
       try {
         await runBulkRowsInParallel({ rowCount: csvRows.length, signal: controller.signal, runRow });
+        logBulkRunStep("parallel row runner finished");
       } finally {
         const trace = endPromptTrace();
         endedTrace = trace;

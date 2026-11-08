@@ -2,8 +2,8 @@ import { applyBlogDestinationPolicy } from "@/lib/sitemap-optimizer/blog-destina
 import type { BlogDestinationPolicy } from "@/lib/sitemap-optimizer/blog-destination-policy";
 import {
   fullDestinationUrl,
-  normalizeRankMathRelativePath,
-} from "@/lib/rank-math-redirect-csv";
+  normalizeRedirectCsvRelativePath,
+} from "@/lib/pulse-redirect-redirect-csv";
 import {
   optimizeGridDestinationForAiseo,
   shortAiseoSlugFromKeyword,
@@ -33,7 +33,7 @@ export function resolveGridLockedDestinationUrl(
 
   const base = members[0]?.url?.trim();
   if (!base) return null;
-  const rel = normalizeRankMathRelativePath(trimmed);
+  const rel = normalizeRedirectCsvRelativePath(trimmed);
   if (!rel) return null;
   const built = fullDestinationUrl(base, rel);
   return built ? applyBlogDestinationPolicy(built, blogDestination) : null;

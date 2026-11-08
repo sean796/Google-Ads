@@ -306,62 +306,75 @@ export async function runBulkRowResearchEnrichmentPhase(input: {
     const pageExcerptFromImport = importedSections
       ?.map((s) => `${s.h2}\n${s.body}`)
       .join("\n\n");
-    try {
-      serpLlmBrief = await runTopicResearchFanout({
-        brief: serpLlmBrief,
-        keyword: serpKeyword,
-        title: enrichedRow.title,
-        companyName,
-        location: serpLocation || undefined,
-        site: serpSite,
-        swotText,
-        pageExcerpt: pageExcerptFromImport || enrichedRow.imported_preamble_html?.trim(),
-        onProgress: (message) => options.onProgress?.(rowIndex, 0, message),
-        forceRefresh: options.forceFreshTopicFanout === true,
-      });
-    } catch (e) {
-      logger.warn("[Bulk Auto-Generate] Topic research fan-out failed (non-fatal):", e);
-    }
-    firstPartyAuthorityBlock = firstPartyAuthorityBlockFromBrief(serpLlmBrief, swotText);
 
-    options.onProgress?.(rowIndex, 0, "Classifying LLM audit authority links…");
-    try {
-      llmAuditAuthorityLinks = await resolveLlmAuditAuthorityLinksForChecklist({
-        brief: serpLlmBrief,
-        siteUrl: serpSite?.siteUrl ?? connectedSite?.siteUrl,
-        companyName,
-        location: serpLocation || undefined,
-        siteId: serpSite?.id ?? connectedSite?.id,
-        onClassifierJsonFailure: (detail) => {
-          const artifactBody = JSON.stringify(
-            {
-              error: detail.error,
-              repairSteps: detail.repairSteps,
-              rawLlmOutput: detail.rawText,
-            },
-            null,
-            2,
-          );
-          const failureFile: BulkGeneratedFile = {
-            id: BulkFileManager.createFileId(rowIndex, "llm-audit-classifier-raw", timestamp),
-            rowIndex,
-            // BulkFileManager.generateFileName has no llm_audit_classifier_raw case; it falls through to this default name.
-            fileName: `file-${timestamp}.txt`,
-            content: artifactBody,
-            mimeType: "application/json",
-            status: "error",
-            timestamp,
-            rowData: enrichedRow,
-          };
-          fileManager.addFile(failureFile);
-          generatedFiles.push(failureFile);
-          logger.warn("[Bulk] LLM audit authority classifier JSON failed; continuing row:", detail.error);
-        },
-      });
-    } catch (e) {
-      logger.warn("[Bulk Auto-Generate] Authority links classification failed (non-fatal):", e);
-      llmAuditAuthorityLinks = [];
-    }
+    const runTopicFanoutTask = async () => {
+      try {
+        return await runTopicResearchFanout({
+          brief: serpLlmBrief,
+          keyword: serpKeyword,
+          title: enrichedRow.title,
+          companyName,
+          location: serpLocation || undefined,
+          site: serpSite,
+          swotText,
+          pageExcerpt: pageExcerptFromImport || enrichedRow.imported_preamble_html?.trim(),
+          onProgress: (message) => options.onProgress?.(rowIndex, 0, message),
+          forceRefresh: options.forceFreshTopicFanout === true,
+        });
+      } catch (e) {
+        logger.warn("[Bulk Auto-Generate] Topic research fan-out failed (non-fatal):", e);
+        return serpLlmBrief;
+      }
+    };
+
+    const runAuthorityClassifyTask = async () => {
+      options.onProgress?.(rowIndex, 0, "Classifying LLM audit authority links…");
+      try {
+        return await resolveLlmAuditAuthorityLinksForChecklist({
+          brief: serpLlmBrief,
+          siteUrl: serpSite?.siteUrl ?? connectedSite?.siteUrl,
+          companyName,
+          location: serpLocation || undefined,
+          siteId: serpSite?.id ?? connectedSite?.id,
+          onClassifierJsonFailure: (detail) => {
+            const artifactBody = JSON.stringify(
+              {
+                error: detail.error,
+                repairSteps: detail.repairSteps,
+                rawLlmOutput: detail.rawText,
+              },
+              null,
+              2,
+            );
+            const failureFile: BulkGeneratedFile = {
+              id: BulkFileManager.createFileId(rowIndex, "llm-audit-classifier-raw", timestamp),
+              rowIndex,
+              // BulkFileManager.generateFileName has no llm_audit_classifier_raw case; it falls through to this default name.
+              fileName: `file-${timestamp}.txt`,
+              content: artifactBody,
+              mimeType: "application/json",
+              status: "error",
+              timestamp,
+              rowData: enrichedRow,
+            };
+            fileManager.addFile(failureFile);
+            generatedFiles.push(failureFile);
+            logger.warn("[Bulk] LLM audit authority classifier JSON failed; continuing row:", detail.error);
+          },
+        });
+      } catch (e) {
+        logger.warn("[Bulk Auto-Generate] Authority links classification failed (non-fatal):", e);
+        return [] as LlmAuditAuthorityLinkLike[];
+      }
+    };
+
+    const [fanoutBrief, classifiedAuthorityLinks] = await Promise.all([
+      runTopicFanoutTask(),
+      runAuthorityClassifyTask(),
+    ]);
+    serpLlmBrief = fanoutBrief;
+    llmAuditAuthorityLinks = classifiedAuthorityLinks;
+    firstPartyAuthorityBlock = firstPartyAuthorityBlockFromBrief(serpLlmBrief, swotText);
     rowExplicitExternalPairs = buildRowExplicitExternalAllowlist({
       modifierExternalLinks,
       importedDraftLinks,

@@ -88,7 +88,7 @@ add_filter( 'acf/format_value/name=faq', 'hello_elementor_child_hide_schema_fiel
 add_filter( 'acf/format_value/name=seo_research', 'hello_elementor_child_hide_schema_fields_on_frontend', 10, 3 );
 
 /**
- * 2. Rank Math & ACF Synchronization + Date Modifier
+ * 2. NEO Pulse redirect & ACF Synchronization + Date Modifier
  */
 function sync_acf_metadata_to_post( $post_id ) {
 	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
@@ -102,7 +102,7 @@ function sync_acf_metadata_to_post( $post_id ) {
 		return;
 	}
 
-	if ( class_exists( 'RankMath' ) ) {
+	if ( class_exists( 'RedirectCsv' ) ) {
 		$focus_keyword = get_field( 'focus', $post_id, false );
 		if ( ! $focus_keyword ) {
 			$focus_keyword = get_field( 'keyword_focus', $post_id, false );
@@ -112,7 +112,7 @@ function sync_acf_metadata_to_post( $post_id ) {
 		}
 
 		if ( $focus_keyword ) {
-			update_post_meta( $post_id, 'rank_math_focus_keyword', strtolower( trim( (string) $focus_keyword ) ) );
+			update_post_meta( $post_id, 'neo_pulse_seo_focus_keyword', strtolower( trim( (string) $focus_keyword ) ) );
 		}
 	}
 

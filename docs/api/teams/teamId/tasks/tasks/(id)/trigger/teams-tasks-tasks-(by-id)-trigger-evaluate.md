@@ -5,7 +5,7 @@ section: Teams
 method: POST
 path: /api/teams/{teamId}/tasks/tasks/({id})/trigger/evaluate
 auth: session-team
-order: 2330
+order: 2360
 ---
 
 POST `/api/teams/{teamId}/tasks/tasks/({id})/trigger/evaluate`.

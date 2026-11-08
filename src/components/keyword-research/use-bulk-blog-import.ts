@@ -11,6 +11,7 @@ import {
 } from "@/lib/bulk/blog-import-direct";
 import { readImportStudioRawToggle } from "@/lib/bulk/import-studio-prefs";
 import { notify } from "@/lib/app-notifications";
+import { logger } from "@/lib/logger";
 import { notifyLoadedCsvX } from "@/lib/notify-messages";
 import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
 import type { useVerticalBenchmarkController } from "@/hooks/vertical-benchmark/use-vertical-benchmark-controller";
@@ -113,7 +114,7 @@ export function useBulkBlogImport({
                 });
                 importedRow.decision_audit_json = JSON.stringify(decisionState);
               } catch (auditErr) {
-                console.warn("[Decision Agent] Import draft audit error:", auditErr);
+                logger.warn("[Decision Agent] Import draft audit error:", auditErr);
               }
             }
             next.push(importedRow);

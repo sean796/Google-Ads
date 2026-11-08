@@ -12,7 +12,7 @@ export const SITEMAP_OPTIMIZER_UPLOAD_GSC_CSV_LABEL = "GSC CSV";
 export const SITEMAP_OPTIMIZER_ANALYZE_LABEL = "Analyze";
 export const SITEMAP_OPTIMIZER_REANALYZE_LABEL = "Re-analyze";
 export const SITEMAP_OPTIMIZER_ANALYZE_GRID_LABEL = "Grid";
-export const SITEMAP_OPTIMIZER_UPLOAD_RANK_MATH_LABEL = "Rank Math plan";
+export const SITEMAP_OPTIMIZER_UPLOAD_RANK_MATH_LABEL = "NEO Pulse redirect plan";
 export const SITEMAP_OPTIMIZER_REDIRECT_MAP_TEMPLATE_LABEL = "Redirect map template";
 
 export const SITEMAP_OPTIMIZER_CLUSTER_COMPRESSION = "Compression";

@@ -23,7 +23,7 @@ export interface OptimizationOptions {
    * field. No main body, no meta, no other ACF (keyword, FAQ, date, etc.).
    */
   seoExtraTextFieldOnly?: boolean;
-  /** When true, skip Rank Math focus keyword / FAQ writes during WP REST upload (bulk Content Optimizer / content-only). */
+  /** When true, skip NEO Pulse redirect focus keyword / FAQ writes during WP REST upload (bulk Content Optimizer / content-only). */
   contentOnlyUpload?: boolean;
   /** Overview sitemap bucket that loaded inventory (posts | pages | sap). */
   inventorySitemapSource?: "posts" | "pages" | "sap";

@@ -62,8 +62,8 @@ class Neo_Pulse_App_Overview_Meta_Ai {
 		$text_content  = ( false !== strpos( $content_html, '<' ) && false !== strpos( $content_html, '>' ) ) ? self::strip_html( $content_html ) : $content_html;
 		$limited       = substr( $text_content, 0, 5000 );
 
-		$raw_desc = ! empty( $existing_meta['rank_math_description'] ) && is_string( $existing_meta['rank_math_description'] )
-			? trim( $existing_meta['rank_math_description'] )
+		$raw_desc = ! empty( $existing_meta['neo_pulse_seo_description'] ) && is_string( $existing_meta['neo_pulse_seo_description'] )
+			? trim( $existing_meta['neo_pulse_seo_description'] )
 			: substr( self::strip_html( (string) ( $meta_payload['excerpt'] ?? '' ) ), 0, 300 );
 		$limited_meta_description = $raw_desc ? substr( preg_replace( '/\s+/', ' ', wp_strip_all_tags( $raw_desc ) ), 0, 300 ) : '';
 
@@ -92,30 +92,30 @@ class Neo_Pulse_App_Overview_Meta_Ai {
 		$ai    = self::openrouter_chat( $api_key, $model, $system_prompt, $user_prompt );
 
 		$optimized = self::parse_json_object( $ai );
-		if ( ! empty( $optimized['rank_math_title'] ) && strlen( (string) $optimized['rank_math_title'] ) > 60 ) {
-			$optimized['rank_math_title'] = substr( trim( (string) $optimized['rank_math_title'] ), 0, 60 );
+		if ( ! empty( $optimized['neo_pulse_seo_title'] ) && strlen( (string) $optimized['neo_pulse_seo_title'] ) > 60 ) {
+			$optimized['neo_pulse_seo_title'] = substr( trim( (string) $optimized['neo_pulse_seo_title'] ), 0, 60 );
 		}
-		$desc = (string) ( $optimized['rank_math_description'] ?? '' );
+		$desc = (string) ( $optimized['neo_pulse_seo_description'] ?? '' );
 		if ( $desc && $primary_keyword && false === stripos( $desc, $primary_keyword ) ) {
-			$optimized['rank_math_description'] = trim( $desc ) . ' Learn more about ' . $primary_keyword . '.';
+			$optimized['neo_pulse_seo_description'] = trim( $desc ) . ' Learn more about ' . $primary_keyword . '.';
 		}
-		if ( empty( $optimized['rank_math_focus_keyword'] ) ) {
-			$optimized['rank_math_focus_keyword'] = $primary_keyword;
+		if ( empty( $optimized['neo_pulse_seo_focus_keyword'] ) ) {
+			$optimized['neo_pulse_seo_focus_keyword'] = $primary_keyword;
 		}
-		if ( empty( $optimized['rank_math_canonical_url'] ) && $post_link ) {
-			$optimized['rank_math_canonical_url'] = $post_link;
+		if ( empty( $optimized['neo_pulse_seo_canonical_url'] ) && $post_link ) {
+			$optimized['neo_pulse_seo_canonical_url'] = $post_link;
 		}
 
 		$final_meta = array_merge( $existing_meta, $optimized );
-		$final_meta['rank_math_focus_keyword'] = $primary_keyword;
+		$final_meta['neo_pulse_seo_focus_keyword'] = $primary_keyword;
 		if ( trim( $primary_keyword ) !== '' ) {
 			$final_meta['keyword_focus'] = trim( $primary_keyword );
 		}
 
-		$prop_title = trim( (string) ( $optimized['rank_math_title'] ?? '' ) );
-		$prop_desc  = trim( (string) ( $optimized['rank_math_description'] ?? '' ) );
-		$live_t     = trim( (string) ( $existing_meta['rank_math_title'] ?? $post_title ) );
-		$live_d     = trim( (string) ( $existing_meta['rank_math_description'] ?? $limited_meta_description ) );
+		$prop_title = trim( (string) ( $optimized['neo_pulse_seo_title'] ?? '' ) );
+		$prop_desc  = trim( (string) ( $optimized['neo_pulse_seo_description'] ?? '' ) );
+		$live_t     = trim( (string) ( $existing_meta['neo_pulse_seo_title'] ?? $post_title ) );
+		$live_d     = trim( (string) ( $existing_meta['neo_pulse_seo_description'] ?? $limited_meta_description ) );
 		$norm       = static function ( $s ) {
 			return strtolower( preg_replace( '/\s+/', ' ', trim( (string) $s ) ) );
 		};
@@ -132,13 +132,13 @@ class Neo_Pulse_App_Overview_Meta_Ai {
 					'post_id'                   => $resolved['id'],
 					'post_type'                 => $post_type,
 					'title'                     => $post_title,
-					'rank_math_title_before'    => $existing_meta['rank_math_title'] ?? null,
-					'rank_math_description_before' => $existing_meta['rank_math_description'] ?? null,
+					'neo_pulse_seo_title_before'    => $existing_meta['neo_pulse_seo_title'] ?? null,
+					'neo_pulse_seo_description_before' => $existing_meta['neo_pulse_seo_description'] ?? null,
 				),
-				'proposed_rank_math'          => array(
-					'rank_math_title'       => $final_meta['rank_math_title'] ?? null,
-					'rank_math_description' => $final_meta['rank_math_description'] ?? null,
-					'rank_math_focus_keyword' => $final_meta['rank_math_focus_keyword'] ?? null,
+				'proposed_neo_pulse_seo'          => array(
+					'neo_pulse_seo_title'       => $final_meta['neo_pulse_seo_title'] ?? null,
+					'neo_pulse_seo_description' => $final_meta['neo_pulse_seo_description'] ?? null,
+					'neo_pulse_seo_focus_keyword' => $final_meta['neo_pulse_seo_focus_keyword'] ?? null,
 				),
 				'similarity_note'             => $title_similar && $desc_similar
 					? 'Proposed SEO title and meta are very close to what is already stored - page may already be well tuned.'

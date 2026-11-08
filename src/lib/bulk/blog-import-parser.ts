@@ -373,7 +373,7 @@ export function buildPromptModifierFromImport(draft: ImportedBlogDraft): string 
     draft.links?.length ?
       `\n\nMANDATORY SOURCE LINKS (preserve exact URL and anchor text in final copy):\n${draft.links.map((l) => `- [${l.anchorText}](${l.url})${l.h2 ? ` (${l.h2})` : ""}`).join("\n")}`
     : "";
-  return `SOURCE DRAFT (blog import) — preserve factual claims, key data, and every hyperlink from the source draft; rewrite for SEO, Rank Math density, internal links, and harness quality. Do not change H2 heading text.
+  return `SOURCE DRAFT (blog import) — preserve factual claims, key data, and every hyperlink from the source draft; rewrite for SEO, NEO Pulse redirect density, internal links, and harness quality. Do not change H2 heading text.
 
 Match the source author's tone and sophistication (tone analysis runs at processing start). Do not dumb down vocabulary or shift to generic SEO-blog voice.
 

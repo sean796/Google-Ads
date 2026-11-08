@@ -1,5 +1,5 @@
 import type { SeoContentBriefV1 } from "@/lib/overview-seo-content-brief";
-import { slugifyFocusKeywordToRelativePath } from "@/lib/rank-math-redirect-csv";
+import { slugifyFocusKeywordToRelativePath } from "@/lib/pulse-redirect-redirect-csv";
 import type { WorkflowStepOutput, WorkflowStepOutputFileRef } from "@/lib/workflow/workflow-types";
 import { fetchAppApiText } from "@/lib/proxy-fetch-text";
 

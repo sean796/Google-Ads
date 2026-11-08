@@ -6,7 +6,7 @@ import type { BulkProcessingOptions } from '../bulk-auto-generate';
 import { ensureBlogHarnessSummaryFirst } from '@/lib/bulk/blog-harness-summary-agent';
 import { buildFocusedArticlePurpose } from '@/lib/content-generation/article-length-policy';
 import { getBlogModel } from '@/lib/optimization-settings-storage';
-import type { AIDrivenACFContext } from '@/lib/content-generation/ai-driven-acf-reader';
+import type { AIDrivenACFContext } from '@/lib/content-generation/ai-driven-post-fields-reader';
 import { mergeOptimizerInstructions } from "@/lib/prompt-builders/system-user";
 import { logger } from "@/lib/logger";
 import { resolveAgentsForBulk } from "./bulk-blueprint-agents";

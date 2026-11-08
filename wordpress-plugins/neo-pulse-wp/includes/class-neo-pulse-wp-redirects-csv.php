@@ -1,6 +1,6 @@
 <?php
 /**
- * Rank Math redirect CSV import/export (ported from NEO Pulse app).
+ * NEO Pulse redirect redirect CSV import/export (ported from NEO Pulse app).
  *
  * @package Neo_Pulse_Wp
  */
@@ -157,8 +157,8 @@ class Neo_Pulse_Wp_Redirects_Csv {
 				continue;
 			}
 
-			$source_raw = self::pick_column( $row, array( 'source', 'rank_math_source', 'old_url' ) );
-			$dest_raw   = self::pick_column( $row, array( 'destination', 'rank_math_destination', 'new_url' ) );
+			$source_raw = self::pick_column( $row, array( 'source', 'neo_pulse_seo_source', 'old_url' ) );
+			$dest_raw   = self::pick_column( $row, array( 'destination', 'neo_pulse_seo_destination', 'new_url' ) );
 			$type       = (int) self::pick_column( $row, array( 'type' ) );
 			if ( ! in_array( $type, Neo_Pulse_Wp_Redirects::STATUS_CODES, true ) ) {
 				$type = 301;

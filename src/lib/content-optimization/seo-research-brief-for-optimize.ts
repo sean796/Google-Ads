@@ -6,7 +6,7 @@ import type { GscSiteQueryRow } from "@/lib/competitor-research/types";
 import {
   mergeSeoResearchFromAcfIntoContext,
   type AIDrivenACFContext,
-} from "@/lib/content-generation/ai-driven-acf-reader";
+} from "@/lib/content-generation/ai-driven-post-fields-reader";
 
 export type PageGscQueryRow = {
   query: string;

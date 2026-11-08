@@ -1,6 +1,6 @@
 import type { KeywordData } from "./keyword-types";
 import { isNonEnglishKeyword } from "./gsc-query-processor";
-import type { AIDrivenACFContext } from "./content-generation/ai-driven-acf-reader";
+import type { AIDrivenACFContext } from "./content-generation/ai-driven-post-fields-reader";
 import { ARTICLE_MAX_WORDS } from "@/lib/content-generation/article-length-policy";
 
 /**

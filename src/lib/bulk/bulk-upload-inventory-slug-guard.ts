@@ -1,6 +1,6 @@
 import type { WordPressSite } from "@/components/integrations/types";
 import type { SiteInventoryBulkRow } from "@/lib/wordpress-api/types";
-import { sanitizeWordPressSlugSegment } from "@/lib/rank-math-redirect-csv";
+import { sanitizeWordPressSlugSegment } from "@/lib/pulse-redirect-redirect-csv";
 import { isWordPressNumberedSlugDuplicate } from "@/lib/sitemap-optimizer/wordpress-numbered-slug-duplicate";
 import { urlPathTail } from "@/lib/sitemap-optimizer/build-cluster-catalog-payload";
 import {

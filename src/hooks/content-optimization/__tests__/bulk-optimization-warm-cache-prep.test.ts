@@ -18,7 +18,7 @@ vi.mock("../bulk-optimization-prefetch-page-gsc", () => ({
   pageGscQueryStringsFromPending: vi.fn(() => []),
 }));
 
-vi.mock("../bulk-optimization-prefetch-acf-by-post-id", () => ({
+vi.mock("../bulk-optimization-prefetch-fields-by-post-id", () => ({
   prefetchBulkAcfFieldsByPostIdForUrls: (...args: unknown[]) => prefetchAcfMock(...args),
 }));
 

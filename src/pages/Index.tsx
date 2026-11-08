@@ -41,13 +41,13 @@ const Index = () => {
 
   useEffect(() => {
     let live = true;
-    void hydrateRuntimeApiKeysFromCloud().then(() => {
+    void hydrateRuntimeApiKeysFromCloud(teamId).then(() => {
       if (live) setApiKey(loadApiKey());
     });
     return () => {
       live = false;
     };
-  }, []);
+  }, [teamId]);
 
   const {
     managerDashboardCluster,

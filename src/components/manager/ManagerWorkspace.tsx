@@ -78,10 +78,11 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
   onGeneratorSectionChange,
 }) => {
   const { dataForSEOApiKey, setDataForSEOApiKey, semrushApiKey, setSemrushApiKey } =
-    useManagerWorkspaceApiKeys();
+    useManagerWorkspaceApiKeys(setApiKey);
   const embedded = variant === "embedded";
   const displayConsole = <ManagerTopBarDisplayConsole variant="embedded" />;
-  const chatFullBleed =
+  /** Tabs that own the full-bleed studio layout (no 10% side inset). */
+  const fullBleedTab =
     embedded &&
     (managerTab === "chat" ||
       managerTab === "tasks" ||
@@ -91,6 +92,7 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
       managerTab === "generator" ||
       managerTab === "local-dominator" ||
       managerTab === "organic-reporting" ||
+      managerTab === "changelog" ||
       managerTab === "api");
   /** Radix tabpanel must participate in flex-1 chain when embedded; parent-only selectors are unreliable. */
   const embeddedTabPanelStretch = embedded ? "flex h-full min-h-0 flex-1 flex-col overflow-hidden" : undefined;
@@ -166,7 +168,7 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
         <div
           className={cn(
             "h-0 min-h-0 w-full max-h-full flex-1",
-            embedded && !chatFullBleed && "px-[10%]",
+            embedded && !fullBleedTab && "px-[10%]",
             /* Embedded tabs (non-Free Flow): column flex keeps each visible tabpanel at intrinsic height so scrollHeight matches content */
             embedded &&
               cn(
@@ -182,6 +184,7 @@ export const ManagerWorkspace: React.FC<ManagerWorkspaceProps> = ({
                   managerTab === "video-generator" ||
                   managerTab === "api" ||
                   managerTab === "local-dominator" ||
+                  managerTab === "changelog" ||
                   managerTab === "organic-reporting"
                   ? "overflow-y-hidden"
                   : "neo-pulse-embedded-tab-scroller overflow-y-auto",

@@ -3,10 +3,10 @@ import { applyGridOutputPolicies } from "@/lib/sitemap-optimizer/grid-output-pol
 import { buildDeterministicGridBriefs } from "@/lib/sitemap-optimizer/grid-deterministic-brief";
 import { clusterRedirectMapForOneToOne } from "@/lib/sitemap-optimizer/grid-prefilled-group-cluster";
 import {
-  buildRedirectMapFamilyRankMathCsv,
+  buildRedirectMapFamilyRedirectCsvCsv,
   buildRedirectMapFamilyRows,
   buildRedirectMapFamilyWideCsv,
-} from "@/lib/sitemap-optimizer/build-grid-rank-math-redirects";
+} from "@/lib/sitemap-optimizer/build-grid-pulse-redirect-redirects";
 import { buildSitemapOptimizerContentSheetCsv } from "@/lib/sitemap-optimizer/sitemap-optimizer-export";
 import type { SitemapOptimizerPostRow } from "@/lib/sitemap-optimizer/types";
 
@@ -102,7 +102,7 @@ describe("wordpress redirect map output policies", () => {
     expect(wide).toContain("family_id");
     expect(wide.split("\n").length).toBe(3);
 
-    const rankMath = buildRedirectMapFamilyRankMathCsv(result);
+    const rankMath = buildRedirectMapFamilyRedirectCsvCsv(result);
     expect(rankMath).toContain("family_id");
     expect(rankMath).toContain("blog/auto-repair-business/");
     expect(rankMath.split("\n").filter((l) => l.includes("auto-repair-business")).length).toBe(2);

@@ -1,6 +1,6 @@
 import { injectImportedLinksIntoChecklist } from "./blog-import-draft-links";
 import { loadApiKey } from "@/lib/api";
-import { buildPreBlogSeoResearchSkeleton } from "@/lib/content-generation/bulk-acf-seo-bundle";
+import { buildPreBlogSeoResearchSkeleton } from "@/lib/content-generation/bulk-post-fields-seo-bundle";
 import type { ImportedDraftLink } from "./blog-import-draft-links";
 import { injectEntityWikipediaIntoChecklist } from "./entity-wikipedia-prompt";
 import {
@@ -17,7 +17,7 @@ import { generateChecklistFromSelections, generateBlueprintFromTemplate } from "
 import type { ImageChecklistItem } from "../image-checklist-builder";
 import type { KeywordData } from "../keyword-types";
 import { BulkFileManager, type BulkGeneratedFile } from "../bulk-file-manager";
-import { sanitizeWordPressSlugSegment } from "../rank-math-redirect-csv";
+import { sanitizeWordPressSlugSegment } from "../pulse-redirect-redirect-csv";
 import { bulkPostsToExtraTextLinkRows, emitEntitySapPipelineHarnessDone } from "@/lib/bulk/bulk-harness-progress";
 import type { BulkInternalLinkRow } from "@/lib/bulk/bulk-harness-progress";
 import type { SeoContentBriefV1 } from "@/lib/overview-seo-content-brief";
@@ -228,7 +228,6 @@ export async function runBulkRowChecklistAndBlueprintPhase(input: {
     emitEntitySapPipelineHarnessDone(options, rowIndex, enrichedRow, "Checklist");
     options.onProgress?.(rowIndex, 0, 'Blog checklist ready');
 
-    let linkTargetsPlan: LinkTargetsPlan | undefined;
     const linkSiteId = serpSite?.id ?? connectedSite?.id;
     const linkApiKey = options.openRouterApiKey || loadApiKey();
     let linkPoolSource: BulkInternalLinkRow[] = postsForInternalLinks;
@@ -241,12 +240,16 @@ export async function runBulkRowChecklistAndBlueprintPhase(input: {
     const bodyTitlesForLinkPlan = checklistResult.h2Outline?.length
       ? checklistResult.h2Outline
       : selectedH2Sections;
-    if (
-      linkSiteId &&
-      linkApiKey?.trim() &&
-      linkPoolSource.length > 0 &&
-      bodyTitlesForLinkPlan.length > 0
-    ) {
+
+    const runLinkTargetsTask = async (): Promise<LinkTargetsPlan | undefined> => {
+      if (
+        !linkSiteId ||
+        !linkApiKey?.trim() ||
+        linkPoolSource.length === 0 ||
+        bodyTitlesForLinkPlan.length === 0
+      ) {
+        return undefined;
+      }
       options.onProgress?.(rowIndex, 0, "Planning internal link targets...");
       try {
         const linkOptFileManager = new OptimizationFileManager();
@@ -254,7 +257,7 @@ export async function runBulkRowChecklistAndBlueprintPhase(input: {
           sanitizeWordPressSlugSegment(enrichedRow.target_slug ?? "") ||
           sanitizeWordPressSlugSegment(keywordData.keyword) ||
           "article";
-        linkTargetsPlan = await runContentLinkTargetsHarness({
+        const plan = await runContentLinkTargetsHarness({
           apiKey: linkApiKey,
           siteId: linkSiteId,
           primaryKeyword: prosePrimaryKeyword,
@@ -287,41 +290,47 @@ export async function runBulkRowChecklistAndBlueprintPhase(input: {
             checklistResult.h2Outline ?? [],
           );
         }
+        return plan;
       } catch (e) {
         logger.warn("[Bulk Auto-Generate] Internal link target planning failed (non-fatal):", e);
+        return undefined;
       }
-    }
+    };
 
-    const blueprintDraft = await runBulkRowBlueprintDraftPhase({
-      rowIndex,
-      row,
-      enrichedRow,
-      keywordData,
-      options,
-      fileManager,
-      timestamp,
-      generatedFiles,
-      connectedSite,
-      checklistResult,
-      pipelineChecklist,
-      importedDraftLinks,
-      modifierExternalLinks,
-      rowExplicitExternalPairs,
-      prefilledRowContract,
-      pipelineResearchModel,
-      pipelineBlogModel,
-      pipelineSiteId,
-      entityForLocalTemplate,
-      entityWikiUrl,
-      entityWikiTitle,
-      llmAuditSummaryPrompt,
-      dfsArticleAuditBlock,
-      firstPartyAuthorityBlock,
-      llmAuditAuthorityLinks,
-      serpLlmBrief,
-      semrushKeywordsContext,
-      semrushScatterContext,
-    });
+    const [resolvedLinkTargetsPlan, blueprintDraft] = await Promise.all([
+      runLinkTargetsTask(),
+      runBulkRowBlueprintDraftPhase({
+        rowIndex,
+        row,
+        enrichedRow,
+        keywordData,
+        options,
+        fileManager,
+        timestamp,
+        generatedFiles,
+        connectedSite,
+        checklistResult,
+        pipelineChecklist,
+        importedDraftLinks,
+        modifierExternalLinks,
+        rowExplicitExternalPairs,
+        prefilledRowContract,
+        pipelineResearchModel,
+        pipelineBlogModel,
+        pipelineSiteId,
+        entityForLocalTemplate,
+        entityWikiUrl,
+        entityWikiTitle,
+        llmAuditSummaryPrompt,
+        dfsArticleAuditBlock,
+        firstPartyAuthorityBlock,
+        llmAuditAuthorityLinks,
+        serpLlmBrief,
+        semrushKeywordsContext,
+        semrushScatterContext,
+      }),
+    ]);
+    const linkTargetsPlan = resolvedLinkTargetsPlan;
     enrichedRow = blueprintDraft.enrichedRow;
 
   return {

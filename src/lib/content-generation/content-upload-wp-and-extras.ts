@@ -10,7 +10,7 @@ import { uploadToWordPress } from "./wordpress-uploader";
 import { updateWordPressPost } from "@/lib/wordpress-api";
 import { generateExtraTextForPage, generateExtraImageForPage } from "./page-extra-content-generator";
 import { EXTRA_TEXT_HARNESS_TOTAL_SECTIONS } from "./page-extra-content-generator-prompts";
-import { hasExtraTextField, hasExtraImageField, type AIDrivenACFContext } from "./ai-driven-acf-reader";
+import { hasExtraTextField, hasExtraImageField, type AIDrivenACFContext } from "./ai-driven-post-fields-reader";
 import { removeInvalidInternalLinks, deduplicateInternalLinksInHtml } from "./content-sanitizer";
 import { resolveInternalLinkPlaceholdersInHtml } from "./internal-link-placeholders";
 import { reduceHarnessSectionList } from "@/lib/bulk/harness-sections-reducer";
@@ -18,7 +18,7 @@ import { mergeHarnessProgressSiteAndBatch, progressWithGeneratedFiles } from "@/
 import type { RunProgressReporter, ContentOptimizerStepId } from "@/lib/content-optimization/content-optimizer-run-progress";
 import { harnessSubProgress } from "@/lib/content-optimization/content-optimizer-run-progress";
 import { markContentPrepHarnessSection, type ContentPrepHarnessBridge, pipelineIndexForHarnessTitle } from "@/lib/overview/overview-content-prep-harness-run";
-import type { PrecomputedAcfSeoBundle } from "./bulk-acf-seo-bundle";
+import type { PrecomputedAcfSeoBundle } from "./bulk-post-fields-seo-bundle";
 import type { Dispatch, SetStateAction } from "react";
 import type { OptimizationProgressState } from "@/hooks/content-optimization/use-optimization-state";
 import { toStringContent, type BlueprintResult, type OptimizationContext } from "./content-upload-polish-and-faq";

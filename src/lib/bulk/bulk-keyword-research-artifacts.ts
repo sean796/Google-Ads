@@ -18,25 +18,25 @@ export function buildBulkSelectedKeywordArtifactPayload(
 }
 
 /**
- * GSC / merged research often attach rank_math_* and focus_keyword on keywordData (see DFS export JSON).
+ * GSC / merged research often attach neo_pulse_seo_* and focus_keyword on keywordData (see DFS export JSON).
  */
-export function resolveRankMathFromKeywordResearch(keywordData: KeywordData): {
+export function resolveRedirectCsvFromKeywordResearch(keywordData: KeywordData): {
   seoTitle: string | undefined;
   metaDescription: string | undefined;
   focusKeyword: string | undefined;
 } {
   const ext: KeywordData & {
-    rank_math_title?: unknown;
-    rank_math_description?: unknown;
-    rank_math_focus_keyword?: unknown;
+    neo_pulse_seo_title?: unknown;
+    neo_pulse_seo_description?: unknown;
+    neo_pulse_seo_focus_keyword?: unknown;
     focus_keyword?: unknown;
   } = keywordData;
   const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
   return {
-    seoTitle: str(ext.rank_math_title) || undefined,
-    metaDescription: str(ext.rank_math_description) || undefined,
+    seoTitle: str(ext.neo_pulse_seo_title) || undefined,
+    metaDescription: str(ext.neo_pulse_seo_description) || undefined,
     focusKeyword:
-      str(ext.rank_math_focus_keyword) || str(ext.focus_keyword) || undefined,
+      str(ext.neo_pulse_seo_focus_keyword) || str(ext.focus_keyword) || undefined,
   };
 }
 

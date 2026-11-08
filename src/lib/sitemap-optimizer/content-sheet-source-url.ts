@@ -47,7 +47,7 @@ export function resolveContentSheetLegacySourceUrl(row: SitemapOptimizerPostRow)
   return legacy || undefined;
 }
 
-/** Planned Rank Math destination (new_url from CSV when present). */
+/** Planned NEO Pulse redirect destination (new_url from CSV when present). */
 export function resolveContentSheetDestinationUrl(args: {
   row: SitemapOptimizerPostRow;
   merge?: SitemapOptimizerMergeRecommendation;

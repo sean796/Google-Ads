@@ -210,7 +210,7 @@ HTML:
 <blockquote><p>{personaName} + scenarioNarrative — 2-3 sentences: the specific stuck moment, ONE choice from the Answer, why they are stuck. Weave scenarioQuestion here as a normal sentence when assigned. Weave the place name inside this sentence as [[LINK:service-area page title|short place]] when CITY INTERNAL LINK is listed. Forbidden: a location cite as the first child of the blockquote; forbidden "{place} —" or "{place} -" before the scenario sentence; forbidden copying situationHook from the intro.}</p></blockquote>
 <h3>Recommendation: {specific pick title that matches Answer, short}</h3>
 <p>MANDATORY SITE-FIRST: {Connected business name} would recommend / recommends … (2 sentences max: the quote and why it resolves their decision). Forbidden: opening with personaName should, they should, or a generic a-business-should.</p>
-Markdown — same shape: ## {this section's checklist title}, summary paragraph, blockquote, ### Recommendation.
+Markdown — same shape: ## {this section's checklist title}, summary paragraph, blockquote, ### Recommendation: {specific pick title that matches Answer, short}, then the same mandatory SITE-FIRST paragraph.
 ${ILLUSTRATIVE_ONE_PERSONA_FORBIDDEN}
 Forbidden: "A realistic local situation" or "A realistic local scenario" as the H2; a full scenario question as H2 or H3; Scenario as an H3 heading; any link inside H2 or H3; demonstrating that products exist without a decision; a vertical Answer does not discuss; checklist-dumping every article topic; keyword+location slug in the H2; ending after Recommendation h3 with no p.`;
 
@@ -221,7 +221,7 @@ export const ILLUSTRATIVE_SCENARIO_PERSONA_RULE = `**ILLUSTRATIVE PERSONA + SITE
 3. **Decision matching Answer (mandatory)**: Blockquote + recommendation show ONE decision from Keyword + Answer — not a product catalog and not a different vertical.
 4. **Short H2, scenario in body**: H2 is a short topic title (3-8 words), like other body H2s. Intro <p> sets general context (situationHook). Blockquote carries personaName + scenarioNarrative. Put scenarioQuestion in the blockquote only. Forbidden: persona names in the intro p; scenarioQuestion in the intro p; scenarioQuestion as H2 or H3; Scenario as an H3 heading.
 5. **Compact, non-redundant**: Intro 1-2 sentences (general setup only); blockquote 2-3 sentences (named persona only); recommendation p 2 sentences max. Intro and blockquote must not say the same thing.
-6. **Titled recommendation h3 + mandatory paragraph**: Recommendation h3 is a short pick title only. Forbidden: stopping after Recommendation h3 with no <p>. Forbidden: links in H2 or H3.
+6. **Titled recommendation h3 + mandatory paragraph**: The recommendation h3 reads exactly "Recommendation: {short pick title}" (the word Recommendation, a colon, then the short pick title). Forbidden: the pick title alone as h3, "Recommendation" with a period or no colon, stopping after the Recommendation h3 with no <p>. Forbidden: links in H2 or H3.
 7. **Site-first recommendation**: Recommendation <p> opens with the connected business name as the grammatical subject ("{Business} would recommend…"). Forbidden: persona-first advice ("{persona} should…").
 8. **Answer ceiling**: Economic numbers must not exceed Answer qualification.
 9. **One block only**: Forbidden: a second Recommendation pair in this H2.
@@ -229,7 +229,7 @@ ${ILLUSTRATIVE_PERSONA_OUTPUT_SHAPE}`;
 
 /** Body [ILLUSTRATIVE] H2: mandatory persona scenario + site recommendation (prompt-level; no HTML injectors). */
 export const ILLUSTRATIVE_BLOCKQUOTE_RULE = `**ILLUSTRATIVE SCENARIO (NON-NEGOTIABLE)**:
-1. Exactly one body H2 carries [ILLUSTRATIVE]: short H2 + intro p + blockquote + h3 titled Recommendation + **mandatory recommendation p (2-3 sentences)**. Forbidden: ending after Recommendation h3 with no following <p>. Forbidden: Scenario as an H3.
+1. Exactly one body H2 carries [ILLUSTRATIVE]: short H2 + intro p + blockquote + an h3 that reads exactly "Recommendation: {short pick title}" + **mandatory recommendation p (2-3 sentences)**. Forbidden: ending after Recommendation h3 with no following <p>. Forbidden: Scenario as an H3.
 2. Ground to Answer: the persona decision must match Answer topic; economic numbers and payback framing must not exceed Answer qualification. When ANSWER GROUNDING block is present, treat Answer text as the topic contract and the ceiling.
 3. **ILLUSTRATIVE EXAMPLE block is mandatory**: Copy its structured fields with minimal edit: situationHook → intro p (general context, no persona name), scenarioQuestion + scenarioNarrative → blockquote (personaName inside quote only; never a heading), recommendationTitle → Recommendation h3, recommendationParagraph → following p. Intro and blockquote must not repeat each other. Forbidden to invent or rename the persona. ${ILLUSTRATIVE_ONE_PERSONA_FORBIDDEN}
 4. Overview announces the example; the full persona scenario lives only in the [ILLUSTRATIVE] body section. No other body section may output Recommendation h3 blocks or ILLUSTRATIVE EXAMPLE text.`;

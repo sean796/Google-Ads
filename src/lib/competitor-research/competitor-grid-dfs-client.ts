@@ -1,4 +1,4 @@
-import { resolveMcpApiBase } from "@/lib/mcp-tools";
+import { mcpPostInit, resolveMcpApiBase } from "@/lib/mcp-tools";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
 import { normalizeCompetitorHostname } from "@/lib/competitor-research/filter-connected-site-competitors";
 
@@ -61,11 +61,7 @@ async function fetchGridCompetitorGmbJsonFromDataForSEO(options: {
     body.location_name = "United States";
   }
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  const res = await fetch(url, mcpPostInit(body));
 
   const j = (await res.json()) as { error?: string; tasks?: unknown[] };
   if (!res.ok) {

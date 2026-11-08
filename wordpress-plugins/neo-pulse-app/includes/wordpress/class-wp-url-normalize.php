@@ -251,22 +251,19 @@ class Neo_Pulse_App_Wp_Url_Normalize {
 	 * @param array<string,mixed>|object|null $post Post payload.
 	 * @return array<string,mixed>|null
 	 */
-	public static function rest_acf_from_post( $post ) {
+	public static function rest_post_fields_from_post( $post ) {
 		if ( ! is_array( $post ) ) {
 			return null;
 		}
-		$has_acf    = array_key_exists( 'acf', $post );
-		$has_plugin = array_key_exists( 'neo_pulse_fields', $post );
-		if ( ! $has_acf && ! $has_plugin ) {
+		if ( ! array_key_exists( 'neo_pulse_fields', $post ) ) {
 			return null;
 		}
-		$acf    = ( $has_acf && is_array( $post['acf'] ) ) ? $post['acf'] : array();
-		$plugin = ( $has_plugin && is_array( $post['neo_pulse_fields'] ) ) ? $post['neo_pulse_fields'] : array();
-		return self::merge_rest_field_objects( $acf, $plugin );
+		$plugin = is_array( $post['neo_pulse_fields'] ) ? $post['neo_pulse_fields'] : array();
+		return $plugin !== array() ? $plugin : null;
 	}
 
 	/**
-	 * Plugin fields win when they have a non-empty value (Rank Math / NEO Pulse over stale ACF).
+	 * Plugin fields win when they have a non-empty value (NEO Pulse redirect / NEO Pulse over stale ACF).
 	 *
 	 * @param array<string,mixed> $acf    Native ACF object.
 	 * @param array<string,mixed> $plugin neo_pulse_fields object.

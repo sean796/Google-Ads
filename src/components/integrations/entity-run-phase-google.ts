@@ -1,4 +1,4 @@
-import { resolveMcpApiBase } from "@/lib/mcp-tools";
+import { mcpPostInit, resolveMcpApiBase } from "@/lib/mcp-tools";
 
 import { notify } from "@/lib/app-notifications";
 import { NOTIFY_DATAFORSEO_SEARCH_FAILED_FALLING_BACK_TO, notifySearchingGoogleForX, notifyUsingDataforseoToSearchGoogleForEn } from "@/lib/notify-messages";
@@ -73,17 +73,16 @@ ${c.promptModifier.toLowerCase().includes('street') && c.primaryCity ? `Example 
       
       notify.info(notifySearchingGoogleForX(c.researchQuestion));
       
-      const serpResponse = await fetch(`${c.mcpApiBase}/DataForSEO_serp_organic_live_advanced`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const serpResponse = await fetch(
+        `${c.mcpApiBase}/DataForSEO_serp_organic_live_advanced`,
+        mcpPostInit({
           keyword: c.researchQuestion,
-          location_name: searchLocationForQuery, // Use the location from modifier (e.g., "Wisconsin" for "streets in wisconsin")
+          location_name: searchLocationForQuery,
           language_code: "en",
-          depth: 20, // Get more results
-          people_also_ask_click_depth: 4, // Get maximum PAA questions (4 clicks deep)
+          depth: 20,
+          people_also_ask_click_depth: 4,
         }),
-      });
+      );
 
       if (serpResponse.ok) {
         const serpData = await serpResponse.json();

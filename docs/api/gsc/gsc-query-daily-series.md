@@ -5,7 +5,7 @@ section: Google Search Console
 method: POST
 path: /api/gsc/query-daily-series
 auth: open
-order: 450
+order: 460
 ---
 
 POST `/api/gsc/query-daily-series`.

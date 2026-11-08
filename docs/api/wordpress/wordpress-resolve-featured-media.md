@@ -5,7 +5,7 @@ section: WordPress
 method: POST
 path: /api/wordpress/resolve-featured-media
 auth: open
-order: 3140
+order: 3210
 ---
 
 POST `/api/wordpress/resolve-featured-media`.

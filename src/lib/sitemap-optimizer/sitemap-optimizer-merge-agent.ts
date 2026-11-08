@@ -80,7 +80,7 @@ function memberPayload(
 
 const MERGE_IMPORT_SYSTEM_APPEND = `
 
-Rank Math redirect import:
+NEO Pulse redirect redirect import:
 - lockedDestinationUrl is the final canonical URL for the new consolidated post. Do not suggest a different URL or slug.
 - Align recommendedPrimaryKeyword and recommendedTitle with the destination URL slug when sensible.
 - whatToKeepFromEach must include every member URL listed in the payload.`;
@@ -96,7 +96,7 @@ async function mergeOneCluster(
 ): Promise<SitemapOptimizerMergeRecommendation | null> {
   const members = resolvedMemberRows(cluster, rowById);
   const userPayload: Record<string, unknown> = {
-    task: lockedDestinationUrl ? "recommend_merged_post_from_rankmath_import" : "recommend_merged_post",
+    task: lockedDestinationUrl ? "recommend_merged_post_from_redirectcsv_import" : "recommend_merged_post",
     cluster: {
       clusterId: cluster.clusterId,
       label: cluster.label,

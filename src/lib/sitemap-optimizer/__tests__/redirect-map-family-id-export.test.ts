@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSitemapOptimizerAllRankMathRedirectCsv } from "@/lib/sitemap-optimizer/sitemap-optimizer-download-csv";
+import { buildSitemapOptimizerAllRedirectCsvRedirectCsv } from "@/lib/sitemap-optimizer/sitemap-optimizer-download-csv";
 import { buildDeterministicGridBriefs } from "@/lib/sitemap-optimizer/grid-deterministic-brief";
 import { applyGridOutputPolicies } from "@/lib/sitemap-optimizer/grid-output-policies";
 import { clusterRedirectMapForFamilies } from "@/lib/sitemap-optimizer/grid-prefilled-group-cluster";
@@ -89,7 +89,7 @@ describe("redirect map family_id export (WordPress + full inventory)", () => {
       blogDestination: { forceBlogPermalink: true, parentPrefix: "blog" },
     };
 
-    const { csv, rowCount } = buildSitemapOptimizerAllRankMathRedirectCsv(result);
+    const { csv, rowCount } = buildSitemapOptimizerAllRedirectCsvRedirectCsv(result);
     expect(rowCount).toBe(2);
     expect(csv.split("\n")[0]).toContain("family_id");
     expect(csv).toContain("canadian-interest-rates-2026");

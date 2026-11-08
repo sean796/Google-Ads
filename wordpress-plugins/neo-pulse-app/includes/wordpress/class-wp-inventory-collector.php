@@ -207,7 +207,7 @@ class Neo_Pulse_App_Wp_Inventory_Collector {
 		if ( $link === '' ) {
 			return null;
 		}
-		$acf    = Neo_Pulse_App_Wp_Url_Normalize::rest_acf_from_post( $post );
+		$acf    = Neo_Pulse_App_Wp_Url_Normalize::rest_post_fields_from_post( $post );
 		$acf    = is_array( $acf ) ? $acf : array();
 		$title  = trim( wp_strip_all_tags( Neo_Pulse_App_Wp_Url_Normalize::rendered_text( $post['title'] ?? '' ) ) );
 		$fields = array(
@@ -265,7 +265,7 @@ class Neo_Pulse_App_Wp_Inventory_Collector {
 	 * @return string
 	 */
 	private static function keyword_from_acf( $acf ) {
-		foreach ( array( 'keyword_focus', 'rank_math_focus_keyword', 'focus_keyword' ) as $key ) {
+		foreach ( array( 'keyword_focus', 'neo_pulse_seo_focus_keyword', 'focus_keyword' ) as $key ) {
 			if ( empty( $acf[ $key ] ) || ! is_string( $acf[ $key ] ) ) {
 				continue;
 			}
@@ -282,7 +282,7 @@ class Neo_Pulse_App_Wp_Inventory_Collector {
 	}
 
 	/**
-	 * Blog posts: drop leftover Rank Math / ACF keywords that describe a different title.
+	 * Blog posts: drop leftover NEO Pulse redirect / ACF keywords that describe a different title.
 	 *
 	 * @param string $keyword Stored keyword.
 	 * @param string $title   Post title.

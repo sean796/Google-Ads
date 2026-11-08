@@ -1,4 +1,4 @@
-import { resolveMcpApiBase } from "@/lib/mcp-tools";
+import { mcpPostInit, resolveMcpApiBase } from "@/lib/mcp-tools";
 import { logger } from "@/lib/logger";
 import { useState, useCallback } from "react";
 import { notify } from "@/lib/app-notifications";
@@ -160,17 +160,14 @@ export function useKeywordResearch({
         const MCP_API_BASE = resolveMcpApiBase();
         
         
-        const response = await fetch(`${MCP_API_BASE}/DataForSEO_dataforseo_labs_google_keyword_overview`, {
-          method: 'POST',
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(
-            ({
-              keywords: [primaryKeyword],
-              location_name: options.location || "United States",
-              language_code: options.language || "en",
-            }),
-          ),
-        });
+        const response = await fetch(
+          `${MCP_API_BASE}/DataForSEO_dataforseo_labs_google_keyword_overview`,
+          mcpPostInit({
+            keywords: [primaryKeyword],
+            location_name: options.location || "United States",
+            language_code: options.language || "en",
+          }),
+        );
         
         
         // Parse response body first to check for DataForSEO success codes
@@ -255,11 +252,10 @@ export function useKeywordResearch({
           }
           
           
-          const serpResponse = await fetch(`${MCP_API_BASE}/DataForSEO_serp_organic_live_advanced`, {
-            method: 'POST',
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify((serpRequestPayload)),
-          });
+          const serpResponse = await fetch(
+            `${MCP_API_BASE}/DataForSEO_serp_organic_live_advanced`,
+            mcpPostInit(serpRequestPayload),
+          );
           
           if (serpResponse.ok) {
             serpData = await serpResponse.json();

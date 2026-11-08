@@ -37,10 +37,10 @@ class Neo_Pulse_Wp_Ai_Meta {
 		}
 		$limited_content = substr( $text_content, 0, 5000 );
 
-		$existing_meta = self::load_rank_math_meta( $post_id );
+		$existing_meta = self::load_neo_pulse_seo_meta( $post_id );
 		$raw_desc      = '';
-		if ( ! empty( $existing_meta['rank_math_description'] ) ) {
-			$raw_desc = trim( (string) $existing_meta['rank_math_description'] );
+		if ( ! empty( $existing_meta['neo_pulse_seo_description'] ) ) {
+			$raw_desc = trim( (string) $existing_meta['neo_pulse_seo_description'] );
 		}
 		if ( $raw_desc === '' ) {
 			$raw_desc = self::strip_html( (string) $post->post_excerpt );
@@ -69,7 +69,7 @@ class Neo_Pulse_Wp_Ai_Meta {
 			$existing_for_prompt[ $k ] = $v;
 		}
 
-		$seo_brief = Neo_Pulse_Wp_Ai_Context::read_acf_or_meta( $post_id, array( 'seo_research' ) );
+		$seo_brief = Neo_Pulse_Wp_Ai_Context::read_post_field_or_meta( $post_id, array( 'seo_research' ) );
 		$seo_brief = $seo_brief !== '' ? substr( $seo_brief, 0, 4000 ) : '';
 
 		$system_prompt = self::build_system_prompt( $is_page, $seo_brief !== '' );
@@ -95,24 +95,24 @@ class Neo_Pulse_Wp_Ai_Meta {
 			return $optimized;
 		}
 
-		if ( ! empty( $optimized['rank_math_title'] ) ) {
-			$optimized['rank_math_title'] = Neo_Pulse_Wp_Ai_Seo_Limits::normalize_title( (string) $optimized['rank_math_title'] );
+		if ( ! empty( $optimized['neo_pulse_seo_title'] ) ) {
+			$optimized['neo_pulse_seo_title'] = Neo_Pulse_Wp_Ai_Seo_Limits::normalize_title( (string) $optimized['neo_pulse_seo_title'] );
 		}
 
-		$desc = isset( $optimized['rank_math_description'] ) ? (string) $optimized['rank_math_description'] : '';
+		$desc = isset( $optimized['neo_pulse_seo_description'] ) ? (string) $optimized['neo_pulse_seo_description'] : '';
 		if ( $desc !== '' ) {
-			$optimized['rank_math_description'] = Neo_Pulse_Wp_Ai_Seo_Limits::normalize_description( $desc, $primary_keyword );
+			$optimized['neo_pulse_seo_description'] = Neo_Pulse_Wp_Ai_Seo_Limits::normalize_description( $desc, $primary_keyword );
 		}
 
-		if ( empty( $optimized['rank_math_focus_keyword'] ) ) {
-			$optimized['rank_math_focus_keyword'] = $primary_keyword;
+		if ( empty( $optimized['neo_pulse_seo_focus_keyword'] ) ) {
+			$optimized['neo_pulse_seo_focus_keyword'] = $primary_keyword;
 		}
-		if ( empty( $optimized['rank_math_canonical_url'] ) && $post_link !== '' ) {
-			$optimized['rank_math_canonical_url'] = $post_link;
+		if ( empty( $optimized['neo_pulse_seo_canonical_url'] ) && $post_link !== '' ) {
+			$optimized['neo_pulse_seo_canonical_url'] = $post_link;
 		}
 
 		$final = array_merge( $existing_meta, $optimized );
-		$final['rank_math_focus_keyword'] = $primary_keyword;
+		$final['neo_pulse_seo_focus_keyword'] = $primary_keyword;
 		if ( trim( $primary_keyword ) !== '' ) {
 			$final['keyword_focus'] = trim( $primary_keyword );
 		}
@@ -133,11 +133,11 @@ class Neo_Pulse_Wp_Ai_Meta {
 		}
 		$om = isset( $result['optimizedMeta'] ) && is_array( $result['optimizedMeta'] ) ? $result['optimizedMeta'] : array();
 		if ( $field === 'title' ) {
-			$value = isset( $om['rank_math_title'] ) ? trim( (string) $om['rank_math_title'] ) : '';
+			$value = isset( $om['neo_pulse_seo_title'] ) ? trim( (string) $om['neo_pulse_seo_title'] ) : '';
 		} elseif ( $field === 'focus_keyword' ) {
-			$value = isset( $om['rank_math_focus_keyword'] ) ? trim( (string) $om['rank_math_focus_keyword'] ) : '';
+			$value = isset( $om['neo_pulse_seo_focus_keyword'] ) ? trim( (string) $om['neo_pulse_seo_focus_keyword'] ) : '';
 		} else {
-			$value = isset( $om['rank_math_description'] ) ? trim( (string) $om['rank_math_description'] ) : '';
+			$value = isset( $om['neo_pulse_seo_description'] ) ? trim( (string) $om['neo_pulse_seo_description'] ) : '';
 		}
 		if ( $value === '' ) {
 			return new WP_Error(
@@ -195,18 +195,18 @@ class Neo_Pulse_Wp_Ai_Meta {
 	/**
 	 * @return array<string,mixed>
 	 */
-	private static function load_rank_math_meta( int $post_id ): array {
+	private static function load_neo_pulse_seo_meta( int $post_id ): array {
 		$keys = array(
-			'rank_math_title',
-			'rank_math_description',
-			'rank_math_focus_keyword',
-			'rank_math_canonical_url',
-			'rank_math_robots',
-			'rank_math_facebook_title',
-			'rank_math_facebook_description',
-			'rank_math_twitter_title',
-			'rank_math_twitter_description',
-			'rank_math_twitter_card_type',
+			'neo_pulse_seo_title',
+			'neo_pulse_seo_description',
+			'neo_pulse_seo_focus_keyword',
+			'neo_pulse_seo_canonical_url',
+			'neo_pulse_seo_robots',
+			'neo_pulse_seo_facebook_title',
+			'neo_pulse_seo_facebook_description',
+			'neo_pulse_seo_twitter_title',
+			'neo_pulse_seo_twitter_description',
+			'neo_pulse_seo_twitter_card_type',
 		);
 		$meta = array();
 		foreach ( $keys as $key ) {
@@ -220,28 +220,28 @@ class Neo_Pulse_Wp_Ai_Meta {
 
 	private static function build_system_prompt( bool $is_page, bool $has_brief ): string {
 		$brief_note = $has_brief
-			? "\nSEO CONTENT BRIEF (from ACF seo_research when present): included in the user message. Use it as a signal for intent and angles when writing rank_math_title, rank_math_description, and social fields. Do NOT paste raw brief into outputs verbatim.\n"
+			? "\nSEO CONTENT BRIEF (from ACF seo_research when present): included in the user message. Use it as a signal for intent and angles when writing neo_pulse_seo_title, neo_pulse_seo_description, and social fields. Do NOT paste raw brief into outputs verbatim.\n"
 			: '';
 
-		return 'You are an expert SEO specialist specializing in WordPress meta field optimization, particularly RankMath SEO fields. Your task is to analyze post content and generate optimized meta fields that improve search engine visibility and click-through rates.
+		return 'You are an expert SEO specialist specializing in WordPress meta field optimization, particularly RedirectCsv SEO fields. Your task is to analyze post content and generate optimized meta fields that improve search engine visibility and click-through rates.
 
 CRITICAL REQUIREMENTS:
-1. SEO Title (rank_math_title): Must be 50-60 characters, include primary keyword naturally near the BEGINNING (first few words), be compelling and click-worthy. Do NOT prepend site name, business name, or brand.
-2. Meta Description (rank_math_description): MUST include the Focus Keyword (primary keyword) clearly - Rank Math requires it.' . ( $is_page
+1. SEO Title (neo_pulse_seo_title): Must be 50-60 characters, include primary keyword naturally near the BEGINNING (first few words), be compelling and click-worthy. Do NOT prepend site name, business name, or brand.
+2. Meta Description (neo_pulse_seo_description): MUST include the Focus Keyword (primary keyword) clearly - NEO Pulse redirect requires it.' . ( $is_page
 			? ' You may reference the post title at the start, but shorten it if needed so the full description NEVER exceeds 160 characters.'
 			: ' Do NOT include the post title in the description. Start with a direct question hook or compelling benefit statement, then include a clear value proposition.' ) . '
-3. Focus Keyword (rank_math_focus_keyword): Use the exact primary keyword provided
-4. Canonical URL (rank_math_canonical_url): Use the post link if provided, otherwise construct from site URL and title
-5. Robots Meta (rank_math_robots): Preserve existing value or use ["index", "follow"] if not present
+3. Focus Keyword (neo_pulse_seo_focus_keyword): Use the exact primary keyword provided
+4. Canonical URL (neo_pulse_seo_canonical_url): Use the post link if provided, otherwise construct from site URL and title
+5. Robots Meta (neo_pulse_seo_robots): Preserve existing value or use ["index", "follow"] if not present
 6. Social Meta Fields: Optimize Facebook and Twitter titles/descriptions (can be longer than SEO title/description)
-7. Preserve ALL other existing meta fields - only optimize RankMath and common SEO fields
+7. Preserve ALL other existing meta fields - only optimize RedirectCsv and common SEO fields
 8. Never invent patient/customer testimonials, review quotes, star ratings, or fake attributions in meta fields.
 ' . $brief_note . '
 Return ONLY a valid JSON object matching the structure of existing meta fields.
 
 Character limits are HARD MAXIMUMS — never exceed them:
-- SEO Title (rank_math_title): MAXIMUM 60 characters (target 50-55). Count characters before returning.
-- Meta Description (rank_math_description): MAXIMUM 160 characters, MINIMUM 150 characters (target range: 150-160). Count characters before returning. If the post title is long, summarize or shorten it — do NOT copy the full title verbatim when that would exceed 160 characters.
+- SEO Title (neo_pulse_seo_title): MAXIMUM 60 characters (target 50-55). Count characters before returning.
+- Meta Description (neo_pulse_seo_description): MAXIMUM 160 characters, MINIMUM 150 characters (target range: 150-160). Count characters before returning. If the post title is long, summarize or shorten it — do NOT copy the full title verbatim when that would exceed 160 characters.
 - Social titles can be up to 70 characters
 - Social descriptions can be up to 200 characters';
 	}
@@ -261,7 +261,7 @@ Character limits are HARD MAXIMUMS — never exceed them:
 		bool $is_page
 	): string {
 		$brief_block = $seo_brief !== ''
-			? "\nSEO CONTENT BRIEF (ACF seo_research - parse for themes; do not copy into Rank Math JSON values verbatim)\n{$seo_brief}\n"
+			? "\nSEO CONTENT BRIEF (ACF seo_research - parse for themes; do not copy into NEO Pulse redirect JSON values verbatim)\n{$seo_brief}\n"
 			: '';
 
 		return "Analyze this WordPress post and generate optimized meta fields:
@@ -277,18 +277,18 @@ EXISTING META FIELDS (heavy/Elementor fields excluded; those are preserved autom
 " . wp_json_encode( $existing_for_prompt, JSON_PRETTY_PRINT ) . "
 
 Generate optimized meta fields. Focus on:
-1. rank_math_title - SEO title (MAX 60 chars — never exceed 60, keyword near the start, compelling)
-2. rank_math_description - Meta description (150-160 chars — never below 150 or above 160). CRITICAL: Must clearly include the Focus Keyword \"{$primary_keyword}\" somewhere in the description - Rank Math requires it." . ( $is_page
+1. neo_pulse_seo_title - SEO title (MAX 60 chars — never exceed 60, keyword near the start, compelling)
+2. neo_pulse_seo_description - Meta description (150-160 chars — never below 150 or above 160). CRITICAL: Must clearly include the Focus Keyword \"{$primary_keyword}\" somewhere in the description - NEO Pulse redirect requires it." . ( $is_page
 			? ' You may reference the post title at the start, but shorten it if needed to stay within 160 characters total.'
 			: ' Do NOT include the post title in the description. Start with a question hook or benefit statement.' ) . " Make it a strong value proposition with a subtle call to action. Count characters before returning JSON.
-3. rank_math_focus_keyword - Primary focus keyword (exact match: \"{$primary_keyword}\")
-4. rank_math_canonical_url - Canonical URL (use post link if provided)
-5. rank_math_robots - Robots directives (preserve existing or use [\"index\", \"follow\"])
-6. rank_math_facebook_title - Facebook OG title (can be up to 70 chars)
-7. rank_math_facebook_description - Facebook OG description (can be up to 200 chars)
-8. rank_math_twitter_title - Twitter title (can be up to 70 chars)
-9. rank_math_twitter_description - Twitter description (can be up to 200 chars)
-10. rank_math_twitter_card_type - Twitter card type (preserve existing or use \"summary_large_image\")
+3. neo_pulse_seo_focus_keyword - Primary focus keyword (exact match: \"{$primary_keyword}\")
+4. neo_pulse_seo_canonical_url - Canonical URL (use post link if provided)
+5. neo_pulse_seo_robots - Robots directives (preserve existing or use [\"index\", \"follow\"])
+6. neo_pulse_seo_facebook_title - Facebook OG title (can be up to 70 chars)
+7. neo_pulse_seo_facebook_description - Facebook OG description (can be up to 200 chars)
+8. neo_pulse_seo_twitter_title - Twitter title (can be up to 70 chars)
+9. neo_pulse_seo_twitter_description - Twitter description (can be up to 200 chars)
+10. neo_pulse_seo_twitter_card_type - Twitter card type (preserve existing or use \"summary_large_image\")
 
 Return ONLY a JSON object with the optimized meta fields.";
 	}

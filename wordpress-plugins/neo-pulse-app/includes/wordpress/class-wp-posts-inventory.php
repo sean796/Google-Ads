@@ -328,7 +328,7 @@ class Neo_Pulse_App_Wp_Posts_Inventory {
 			(string) $body['appPassword'],
 			$collection,
 			! empty( $body['includeContent'] ),
-			! empty( $body['includeRawAcf'] ),
+			! empty( $body['includeRawPostFields'] ),
 			false,
 			'publish',
 			null,
@@ -340,7 +340,7 @@ class Neo_Pulse_App_Wp_Posts_Inventory {
 		}
 		$rows = $result['rows'];
 		if ( ! empty( $body['includeScheduled'] ) && $collection === 'posts' ) {
-			$future = Neo_Pulse_App_Wp_Inventory_Collector::collect( $normalized, (string) $body['username'], (string) $body['appPassword'], 'posts', ! empty( $body['includeContent'] ), ! empty( $body['includeRawAcf'] ), false, 'future', null, null );
+			$future = Neo_Pulse_App_Wp_Inventory_Collector::collect( $normalized, (string) $body['username'], (string) $body['appPassword'], 'posts', ! empty( $body['includeContent'] ), ! empty( $body['includeRawPostFields'] ), false, 'future', null, null );
 			if ( ! empty( $future['ok'] ) ) {
 				$rows = Neo_Pulse_App_Wp_Inventory_Collector::merge_rows_by_id( $rows, $future['rows'] );
 			}
@@ -393,7 +393,7 @@ class Neo_Pulse_App_Wp_Posts_Inventory {
 				(string) $body['appPassword'],
 				$rest,
 				! empty( $body['includeContent'] ),
-				! empty( $body['includeRawAcf'] ),
+				! empty( $body['includeRawPostFields'] ),
 				! empty( $body['includePageHeading'] ),
 				'publish',
 				$include_ids ? $include_ids : null,
@@ -415,7 +415,7 @@ class Neo_Pulse_App_Wp_Posts_Inventory {
 				$rows[]            = $row;
 			}
 			if ( ! empty( $body['includeScheduled'] ) && ! $include_ids ) {
-				$future = Neo_Pulse_App_Wp_Inventory_Collector::collect( $normalized, (string) $body['username'], (string) $body['appPassword'], $rest, ! empty( $body['includeContent'] ), ! empty( $body['includeRawAcf'] ), ! empty( $body['includePageHeading'] ), 'future', null, null );
+				$future = Neo_Pulse_App_Wp_Inventory_Collector::collect( $normalized, (string) $body['username'], (string) $body['appPassword'], $rest, ! empty( $body['includeContent'] ), ! empty( $body['includeRawPostFields'] ), ! empty( $body['includePageHeading'] ), 'future', null, null );
 				if ( empty( $future['ok'] ) ) {
 					$errors[ $coll . '_future' ] = $future['error'];
 				} else {
@@ -459,7 +459,7 @@ class Neo_Pulse_App_Wp_Posts_Inventory {
 			: Neo_Pulse_App_Wp_Url_Normalize::get_rest_endpoint( $post_type );
 		$page       = isset( $body['page'] ) ? (int) $body['page'] : 1;
 		$per_page   = isset( $body['perPage'] ) ? min( 100, (int) $body['perPage'] ) : 100;
-		$include_acf = ! empty( $body['includeAcf'] );
+		$include_acf = ! empty( $body['includePostFields'] );
 		$warm       = Neo_Pulse_App_Wp_Rest_Client::warm_origin_session( $normalized );
 		$params     = array(
 			'per_page' => $per_page,
@@ -515,7 +515,7 @@ class Neo_Pulse_App_Wp_Posts_Inventory {
 				'post_type' => (string) ( $post['post_type'] ?? $post_type ),
 			);
 			if ( $include_acf ) {
-				$acf       = Neo_Pulse_App_Wp_Url_Normalize::rest_acf_from_post( $post );
+				$acf       = Neo_Pulse_App_Wp_Url_Normalize::rest_post_fields_from_post( $post );
 				$row['acf'] = is_array( $acf ) ? $acf : array();
 			}
 			$posts[] = $row;

@@ -1,7 +1,7 @@
 import type { OptimizationFileManager } from "@/lib/optimization-file-manager";
 import type { ImageType } from "@/lib/image-section-analyzer";
 import type { WordPressSite } from "@/components/integrations/types";
-import type { AIDrivenACFContext } from "@/lib/content-generation/ai-driven-acf-reader";
+import type { AIDrivenACFContext } from "@/lib/content-generation/ai-driven-post-fields-reader";
 import type { BulkHarnessSectionPayload } from "@/lib/bulk-auto-generate";
 import type { AgentConfig } from "@/types/agent-config";
 import type { FlowFreeformSectionPlan } from "@/lib/flow-freeform/flow-freeform-types";

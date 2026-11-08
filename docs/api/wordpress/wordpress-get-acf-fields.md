@@ -1,14 +1,14 @@
 ---
 title: "Get Acf Fields"
-slug: wordpress/get-acf-fields
+slug: wordpress/get-post-fields
 section: WordPress
 method: POST
-path: /api/wordpress/get-acf-fields
+path: /api/wordpress/get-post-fields
 auth: open
 order: 2640
 ---
 
-POST `/api/wordpress/get-acf-fields`.
+POST `/api/wordpress/get-post-fields`.
 
 Runs the get acf fields action in the WordPress API from a JSON request body.
 
@@ -34,13 +34,13 @@ Runs the get acf fields action in the WordPress API from a JSON request body.
 ## Example
 
 ```bash
-curl -X POST "https://neodigital.ca/api/wordpress/get-acf-fields" \
+curl -X POST "https://neodigital.ca/api/wordpress/get-post-fields" \
   -H "Content-Type: application/json" \
   -d '{}'
 ```
 
 ```javascript
-const res = await fetch(`/api/wordpress/get-acf-fields`, {
+const res = await fetch(`/api/wordpress/get-post-fields`, {
   method: "POST",
   credentials: "include",
   headers: { "Content-Type": "application/json" },

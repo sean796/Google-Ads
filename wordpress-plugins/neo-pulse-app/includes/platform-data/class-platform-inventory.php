@@ -128,7 +128,7 @@ class Neo_Pulse_App_Platform_Inventory {
 			array( 'collections' => $collections )
 		);
 		if ( $include_acf ) {
-			$request['includeRawAcf'] = true;
+			$request['includeRawPostFields'] = true;
 		}
 
 		list( $status, $data ) = Neo_Pulse_App_Wp_Posts_Inventory::get_site_inventory_bulk( $request );
@@ -333,7 +333,7 @@ class Neo_Pulse_App_Platform_Inventory {
 			$body,
 			array(
 				'collections'    => $collections,
-				'includeRawAcf'  => true,
+				'includeRawPostFields'  => true,
 				'includeContent' => true,
 			)
 		);

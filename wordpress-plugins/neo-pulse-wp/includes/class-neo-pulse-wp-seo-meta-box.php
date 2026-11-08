@@ -2,8 +2,8 @@
 /**
  * "SEO" box on the post edit screen, shown once no other SEO plugin is active.
  *
- * Edits the same fields Rank Math used (rank_math_title, rank_math_description,
- * rank_math_focus_keyword, rank_math_robots, rank_math_canonical_url, rank_math_primary_{tax}),
+ * Edits the same fields NEO Pulse redirect used (neo_pulse_seo_title, neo_pulse_seo_description,
+ * neo_pulse_seo_focus_keyword, neo_pulse_seo_robots, neo_pulse_seo_canonical_url, neo_pulse_seo_primary_{tax}),
  * so nothing is lost moving either way.
  *
  * @package Neo_Pulse_Wp
@@ -39,17 +39,17 @@ class Neo_Pulse_Wp_Seo_Meta_Box {
 	public static function render( WP_Post $post ): void {
 		wp_nonce_field( self::NONCE, self::NONCE );
 		$S         = 'Neo_Pulse_Wp_Seo_Settings';
-		$title     = (string) get_post_meta( $post->ID, 'rank_math_title', true );
-		$desc      = (string) get_post_meta( $post->ID, 'rank_math_description', true );
-		$keyword   = (string) get_post_meta( $post->ID, 'rank_math_focus_keyword', true );
-		$canonical = (string) get_post_meta( $post->ID, 'rank_math_canonical_url', true );
-		$robots    = $S::robots_list( get_post_meta( $post->ID, 'rank_math_robots', true ) );
+		$title     = (string) get_post_meta( $post->ID, 'neo_pulse_seo_title', true );
+		$desc      = (string) get_post_meta( $post->ID, 'neo_pulse_seo_description', true );
+		$keyword   = (string) get_post_meta( $post->ID, 'neo_pulse_seo_focus_keyword', true );
+		$canonical = (string) get_post_meta( $post->ID, 'neo_pulse_seo_canonical_url', true );
+		$robots    = $S::robots_list( get_post_meta( $post->ID, 'neo_pulse_seo_robots', true ) );
 		// Show what the page really gets: its own setting, else the post type / site default.
 		$effective = Neo_Pulse_Wp_Seo_Head::effective_post_robots( $robots, $post->post_type );
 		$inherited = ! array_intersect( $robots, array( 'index', 'noindex', 'follow', 'nofollow' ) );
 		$taxonomy  = (string) $S::get( 'pt_' . $post->post_type . '_primary_taxonomy', 'post' === $post->post_type ? 'category' : '' );
 		$terms     = ( $taxonomy !== '' && $taxonomy !== 'off' && taxonomy_exists( $taxonomy ) ) ? get_the_terms( $post, $taxonomy ) : array();
-		$primary   = $taxonomy !== '' ? (int) get_post_meta( $post->ID, 'rank_math_primary_' . $taxonomy, true ) : 0;
+		$primary   = $taxonomy !== '' ? (int) get_post_meta( $post->ID, 'neo_pulse_seo_primary_' . $taxonomy, true ) : 0;
 		?>
 		<style>
 			#neo_pulse_wp_seo .npwp-seo-mb p { margin: 0 0 12px; }
@@ -117,10 +117,10 @@ class Neo_Pulse_Wp_Seo_Meta_Box {
 		$in = wp_unslash( $_POST['npwp_seo'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitised per field.
 
 		$fields = array(
-			'rank_math_title'         => Neo_Pulse_Wp_Seo_Settings::clean_input( $in['title'] ?? '' ),
-			'rank_math_description'   => Neo_Pulse_Wp_Seo_Settings::clean_input( $in['description'] ?? '' ),
-			'rank_math_focus_keyword' => Neo_Pulse_Wp_Seo_Settings::clean_input( $in['keyword'] ?? '' ),
-			'rank_math_canonical_url' => esc_url_raw( (string) ( $in['canonical'] ?? '' ) ),
+			'neo_pulse_seo_title'         => Neo_Pulse_Wp_Seo_Settings::clean_input( $in['title'] ?? '' ),
+			'neo_pulse_seo_description'   => Neo_Pulse_Wp_Seo_Settings::clean_input( $in['description'] ?? '' ),
+			'neo_pulse_seo_focus_keyword' => Neo_Pulse_Wp_Seo_Settings::clean_input( $in['keyword'] ?? '' ),
+			'neo_pulse_seo_canonical_url' => esc_url_raw( (string) ( $in['canonical'] ?? '' ) ),
 		);
 		foreach ( $fields as $key => $value ) {
 			if ( $value === '' ) {
@@ -130,7 +130,7 @@ class Neo_Pulse_Wp_Seo_Meta_Box {
 			}
 		}
 
-		$before   = Neo_Pulse_Wp_Seo_Settings::robots_list( get_post_meta( $post_id, 'rank_math_robots', true ) );
+		$before   = Neo_Pulse_Wp_Seo_Settings::robots_list( get_post_meta( $post_id, 'neo_pulse_seo_robots', true ) );
 		$extras   = array_values( array_diff( $before, array( 'index', 'noindex', 'follow', 'nofollow' ) ) );
 		$type     = (string) get_post_type( $post_id );
 		$explicit = $extras !== $before; // index/noindex/follow/nofollow stored on the post itself.
@@ -151,18 +151,18 @@ class Neo_Pulse_Wp_Seo_Meta_Box {
 			}
 		}
 		if ( $robots === array() ) {
-			delete_post_meta( $post_id, 'rank_math_robots' );
+			delete_post_meta( $post_id, 'neo_pulse_seo_robots' );
 		} elseif ( $robots !== $before ) {
-			update_post_meta( $post_id, 'rank_math_robots', $robots );
+			update_post_meta( $post_id, 'neo_pulse_seo_robots', $robots );
 		}
 
 		$tax = sanitize_key( (string) ( $in['primary_tax'] ?? '' ) );
 		if ( $tax !== '' && taxonomy_exists( $tax ) && isset( $in['primary'] ) ) {
 			$primary = absint( $in['primary'] );
 			if ( $primary > 0 ) {
-				update_post_meta( $post_id, 'rank_math_primary_' . $tax, $primary );
+				update_post_meta( $post_id, 'neo_pulse_seo_primary_' . $tax, $primary );
 			} else {
-				delete_post_meta( $post_id, 'rank_math_primary_' . $tax );
+				delete_post_meta( $post_id, 'neo_pulse_seo_primary_' . $tax );
 			}
 		}
 	}

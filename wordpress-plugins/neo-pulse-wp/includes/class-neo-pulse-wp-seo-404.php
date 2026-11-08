@@ -2,7 +2,7 @@
 /**
  * 404 log: records addresses that returned "page not found" so they can be redirected.
  *
- * Runs while Neo Pulse SEO is live (Rank Math keeps its own log while it is active). One row per
+ * Runs while Neo Pulse SEO is live (NEO Pulse redirect keeps its own log while it is active). One row per
  * address with a hit counter, capped at 1,000 rows.
  *
  * @package Neo_Pulse_Wp

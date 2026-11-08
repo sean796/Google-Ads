@@ -1,14 +1,14 @@
 ---
 title: "Update Acf Fields"
-slug: wordpress/update-acf-fields
+slug: wordpress/update-post-fields
 section: WordPress
 method: POST
-path: /api/wordpress/update-acf-fields
+path: /api/wordpress/update-post-fields
 auth: open
 order: 3220
 ---
 
-POST `/api/wordpress/update-acf-fields`.
+POST `/api/wordpress/update-post-fields`.
 
 Runs the update acf fields action in the WordPress API from a JSON request body.
 
@@ -34,13 +34,13 @@ Runs the update acf fields action in the WordPress API from a JSON request body.
 ## Example
 
 ```bash
-curl -X POST "https://neodigital.ca/api/wordpress/update-acf-fields" \
+curl -X POST "https://neodigital.ca/api/wordpress/update-post-fields" \
   -H "Content-Type: application/json" \
   -d '{}'
 ```
 
 ```javascript
-const res = await fetch(`/api/wordpress/update-acf-fields`, {
+const res = await fetch(`/api/wordpress/update-post-fields`, {
   method: "POST",
   credentials: "include",
   headers: { "Content-Type": "application/json" },

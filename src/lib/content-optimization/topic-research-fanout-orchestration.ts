@@ -261,27 +261,7 @@ export async function runTopicResearchFanout(input: {
       return null;
     });
     if (plan) {
-      input.onProgress?.("Fan-out SERP");
-      const serpByQuery = isDfsPaymentLatched()
-        ? plan.researchQueries.map((query) => ({ query, organicTop: [], organicTitles: [], paa: [] }))
-        : await Promise.all(
-            plan.researchQueries.map(async (query) => {
-              if (isDfsPaymentLatched()) {
-                return { query, organicTop: [], organicTitles: [], paa: [] };
-              }
-              try {
-                const { serpDumpJson } = await fetchSerpOrganicForQuery({
-                  keyword: query,
-                  location,
-                  site: input.site,
-                });
-                return serpRowFromDump(query, serpDumpJson);
-              } catch {
-                return { query, organicTop: [], organicTitles: [], paa: [] };
-              }
-            }),
-          );
-      input.onProgress?.("ChatGPT company facts");
+      input.onProgress?.("Fan-out SERP + ChatGPT company facts");
       const authorityTopics = [
         ...plan.namedPrograms.map((program) => ({
           query: attachLocationToQfoQuery(program, location),
@@ -301,18 +281,39 @@ export async function runTopicResearchFanout(input: {
         seenAuthority.add(key);
         return true;
       });
-      const chatGptByQuery = await Promise.all(
-        uniqueAuthority.map(async ({ query, topic, namedProgram }) => {
-          const result = await fetchChatGptCompanyAuthority({
-            companyName: input.companyName,
-            location,
-            topic,
-            namedProgram,
-            siteUrl,
-          }).catch(() => null);
-          return { query, responseText: result?.responseText ?? "" };
-        }),
-      );
+      const [serpByQuery, chatGptByQuery] = await Promise.all([
+        isDfsPaymentLatched()
+          ? Promise.resolve(plan.researchQueries.map((query) => ({ query, organicTop: [], organicTitles: [], paa: [] })))
+          : Promise.all(
+              plan.researchQueries.map(async (query) => {
+                if (isDfsPaymentLatched()) {
+                  return { query, organicTop: [], organicTitles: [], paa: [] };
+                }
+                try {
+                  const { serpDumpJson } = await fetchSerpOrganicForQuery({
+                    keyword: query,
+                    location,
+                    site: input.site,
+                  });
+                  return serpRowFromDump(query, serpDumpJson);
+                } catch {
+                  return { query, organicTop: [], organicTitles: [], paa: [] };
+                }
+              }),
+            ),
+        Promise.all(
+          uniqueAuthority.map(async ({ query, topic, namedProgram }) => {
+            const result = await fetchChatGptCompanyAuthority({
+              companyName: input.companyName,
+              location,
+              topic,
+              namedProgram,
+              siteUrl,
+            }).catch(() => null);
+            return { query, responseText: result?.responseText ?? "" };
+          }),
+        ),
+      ]);
       fanout = {
         queries: plan.researchQueries,
         namedPrograms: plan.namedPrograms,
@@ -348,10 +349,17 @@ export async function runTopicResearchFanout(input: {
 
   const researchAsOf =
     fanout?.researchAsOf ?? formatResearchAsOfLabel(new Date());
-  if (fanout && !fanout.verifiedFacts && cityTokenFromLocation(location) && !isDfsPaymentLatched()) {
+  if (!fanout) {
+    return input.brief;
+  }
+
+  const runVerificationTask = async () => {
+    if (fanout?.verifiedFacts || !cityTokenFromLocation(location) || isDfsPaymentLatched()) {
+      return null;
+    }
     input.onProgress?.("Factual verification");
     try {
-      const verification = await runFactualVerificationPass({
+      return await runFactualVerificationPass({
         keyword: input.keyword,
         title: input.title,
         location,
@@ -361,22 +369,31 @@ export async function runTopicResearchFanout(input: {
         siteId: input.site?.id,
         onProgress: input.onProgress,
       });
-      if (verification.factualVerificationQueries.length) {
-        fanout = {
-          ...fanout,
-          researchAsOf,
-          factualVerificationQueries: verification.factualVerificationQueries,
-          verifiedFacts: verification.verifiedFacts,
-          serpByQuery: [...(fanout.serpByQuery ?? []), ...verification.verificationSerpRows],
-        };
-      }
     } catch (e) {
       logger.warn("[Topic Research Fan-out] Factual verification failed (non-fatal):", e);
+      return null;
     }
-  }
+  };
 
-  if (!fanout) {
-    return input.brief;
+  const [verification, claims] = await Promise.all([
+    runVerificationTask(),
+    extractFirstPartyClaims({
+      chatGptTexts: (fanout.chatGptByQuery ?? []).map((r) => r.responseText),
+      swotText: input.swotText,
+      companyContext: companyContextFromSite(input.site),
+      siteUrl,
+      location,
+    }).catch(() => [] as FirstPartyClaim[]),
+  ]);
+
+  if (verification?.factualVerificationQueries.length) {
+    fanout = {
+      ...fanout,
+      researchAsOf,
+      factualVerificationQueries: verification.factualVerificationQueries,
+      verifiedFacts: verification.verifiedFacts,
+      serpByQuery: [...(fanout.serpByQuery ?? []), ...verification.verificationSerpRows],
+    };
   }
 
   const addedVerifiedFacts =
@@ -388,12 +405,5 @@ export async function runTopicResearchFanout(input: {
     return input.brief;
   }
 
-  const claims = await extractFirstPartyClaims({
-    chatGptTexts: (fanout.chatGptByQuery ?? []).map((r) => r.responseText),
-    swotText: input.swotText,
-    companyContext: companyContextFromSite(input.site),
-    siteUrl,
-    location,
-  }).catch(() => []);
   return mergeFanoutIntoBrief(input.brief, fanout, claims);
 }

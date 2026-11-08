@@ -5,7 +5,7 @@ section: WordPress
 method: POST
 path: /api/wordpress/create-post
 auth: open
-order: 2560
+order: 2590
 ---
 
 POST `/api/wordpress/create-post`.

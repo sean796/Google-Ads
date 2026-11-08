@@ -7,7 +7,7 @@ import type { CSVRow } from '@/lib/bulk/bulk-csv-parser';
 import type { BulkProcessingOptions } from '@/lib/bulk/bulk-auto-generate-types';
 import { BulkFileManager, type BulkGeneratedFile } from '@/lib/bulk-file-manager';
 import { loadApiKey } from '@/lib/api';
-import { sanitizeWordPressSlugSegment } from '@/lib/rank-math-redirect-csv';
+import { sanitizeWordPressSlugSegment } from '@/lib/pulse-redirect-redirect-csv';
 import { buildSapSlugFromKeywordEntity } from '@/lib/sap-slug-from-keyword-entity';
 import {
   formatWordPressDate,

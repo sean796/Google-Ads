@@ -1,4 +1,4 @@
-import { resolveMcpApiBase } from "@/lib/mcp-tools";
+import { mcpPostInit } from "@/lib/mcp-tools";
 import type { Location, WordPressSite } from "@/components/integrations/types";
 import { extractCompetitorDiscoverySerpRows } from "@/lib/backlink-research/serp-write-for-us";
 import {
@@ -122,17 +122,18 @@ async function fetchGoogleOrganicSerpJson(args: {
 }): Promise<unknown> {
   const base = (BACKEND_API_BASE || "").replace(/\/$/, "");
   const url = `${base}/DataForSEO_serp_organic_live_advanced`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      keyword: args.keyword.trim(),
-      location_name: args.locationName.trim(),
-      language_code: "en",
-      depth: args.depth,
-    }),
-    signal: args.signal,
-  });
+  const res = await fetch(
+    url,
+    mcpPostInit(
+      {
+        keyword: args.keyword.trim(),
+        location_name: args.locationName.trim(),
+        language_code: "en",
+        depth: args.depth,
+      },
+      { signal: args.signal },
+    ),
+  );
   const j = (await res.json()) as { error?: string; tasks?: Array<{ status_code?: number; status_message?: string }> };
   if (!res.ok) {
     throw new Error(j.error || `DataForSEO Google Search request failed (${res.status})`);

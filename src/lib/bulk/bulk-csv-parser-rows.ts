@@ -59,7 +59,7 @@ export interface CSVRow {
   publish_date_gmt?: string;
   /** Locked post slug segment (Sitemap merge approve); skips AI slug generation when set. */
   target_slug?: string;
-  /** Full canonical URL for Rank Math (Sitemap merge approve). */
+  /** Full canonical URL for NEO Pulse redirect (Sitemap merge approve). */
   destination_url?: string;
   /** Peer exemplar URL (vertical benchmark CSV); not sent to WordPress on publish. */
   source_exemplar_url?: string;

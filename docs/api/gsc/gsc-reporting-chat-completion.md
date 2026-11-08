@@ -5,7 +5,7 @@ section: Google Search Console
 method: POST
 path: /api/gsc/reporting-chat-completion
 auth: open
-order: 490
+order: 500
 ---
 
 POST `/api/gsc/reporting-chat-completion`.

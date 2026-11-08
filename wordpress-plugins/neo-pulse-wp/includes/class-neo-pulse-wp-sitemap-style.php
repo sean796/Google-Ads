@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 class Neo_Pulse_Wp_Sitemap_Style {
 
-	// Its own address (not Rank Math's /main-sitemap.xsl, which browsers and caches may still hold),
+	// Its own address (not NEO Pulse redirect's /main-sitemap.xsl, which browsers and caches may still hold),
 	// with the plugin version so an update is never shown with an old copy.
 	const PATH = 'sitemap-style.xsl';
 
@@ -31,7 +31,7 @@ class Neo_Pulse_Wp_Sitemap_Style {
 	 */
 	public static function add_to( string $xml ): string {
 		$pi = '<?xml-stylesheet type="text/xsl" href="' . esc_url( self::url() ) . '"?>';
-		// Rank Math's stylesheet line, if a cached sitemap still carries one, is replaced.
+		// NEO Pulse redirect's stylesheet line, if a cached sitemap still carries one, is replaced.
 		$xml = (string) preg_replace( '/<\?xml-stylesheet[^>]*\?>\s*/', '', $xml );
 		if ( preg_match( '/^<\?xml[^>]*\?>/', $xml, $m ) ) {
 			return $m[0] . "\n" . $pi . substr( $xml, strlen( $m[0] ) );

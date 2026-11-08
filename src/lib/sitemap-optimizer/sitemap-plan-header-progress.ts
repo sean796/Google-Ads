@@ -8,7 +8,7 @@ import { sitemapOptimizerOverallPct } from "@/lib/sitemap-optimizer/progress-dis
 import type { SitemapOptimizerProgress } from "@/lib/sitemap-optimizer/types";
 
 export const SITEMAP_ANALYZE_LABEL = "Sitemap analyze";
-export const SITEMAP_RANK_MATH_LABEL = "Rank Math import";
+export const SITEMAP_RANK_MATH_LABEL = "NEO Pulse redirect import";
 export const SITEMAP_APPROVE_LABEL = "Approve plan";
 
 export type SitemapPlanHeaderProgress = {

@@ -281,6 +281,76 @@ trait Neo_Pulse_Wp_Chat_Trait_Access_And_Rest {
 				'permission_callback' => array( __CLASS__, 'can_access_site_inventory' ),
 			)
 		);
+
+		register_rest_route(
+			self::REST_NAMESPACE,
+			'/chat/settings',
+			array(
+				array(
+					'methods'             => 'GET',
+					'callback'            => array( __CLASS__, 'rest_chat_settings_get' ),
+					'permission_callback' => array( __CLASS__, 'can_manage_chat_settings' ),
+				),
+				array(
+					'methods'             => 'POST',
+					'callback'            => array( __CLASS__, 'rest_chat_settings_update' ),
+					'permission_callback' => array( __CLASS__, 'can_manage_chat_settings' ),
+				),
+			)
+		);
+	}
+
+	/**
+	 * @return bool
+	 */
+	public static function can_manage_chat_settings(): bool {
+		return is_user_logged_in() && current_user_can( 'manage_options' );
+	}
+
+	/**
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public static function rest_chat_settings_get( WP_REST_Request $request ): WP_REST_Response {
+		unset( $request );
+		$settings = self::get_settings();
+		return new WP_REST_Response(
+			array(
+				'enabled'        => ! empty( $settings['enabled'] ),
+				'logged_in_only' => ! empty( $settings['logged_in_only'] ),
+			),
+			200
+		);
+	}
+
+	/**
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function rest_chat_settings_update( WP_REST_Request $request ) {
+		$params = $request->get_json_params();
+		if ( ! is_array( $params ) ) {
+			$params = array();
+		}
+		$patch = array();
+		if ( array_key_exists( 'enabled', $params ) ) {
+			$patch['enabled'] = ! empty( $params['enabled'] );
+		}
+		if ( array_key_exists( 'logged_in_only', $params ) ) {
+			$patch['logged_in_only'] = ! empty( $params['logged_in_only'] );
+		}
+		if ( $patch === array() ) {
+			return new WP_Error( 'neo_pulse_chat_settings', __( 'No settings to update.', 'neo-pulse-wp' ), array( 'status' => 400 ) );
+		}
+		self::save_settings( $patch );
+		$settings = self::get_settings();
+		return new WP_REST_Response(
+			array(
+				'enabled'        => ! empty( $settings['enabled'] ),
+				'logged_in_only' => ! empty( $settings['logged_in_only'] ),
+			),
+			200
+		);
 	}
 
 	/**

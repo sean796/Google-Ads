@@ -1,7 +1,13 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { BulkSplashVisual } from "@/components/overview/studio/BulkSplashVisual";
+import type { BulkSplashVisualKind } from "@/lib/bulk/bulk-splash-status-agent";
 
 export type ContentOptimizerSplashOverlayProps = {
   visible: boolean;
+  /** AI status line shown in place of LOADING (bulk generation splash only). */
+  statusText?: string;
+  /** Placeholder graphic paired with the AI status line. */
+  statusVisual?: BulkSplashVisualKind;
 };
 
 /**
@@ -10,12 +16,31 @@ export type ContentOptimizerSplashOverlayProps = {
  */
 export function ContentOptimizerSplashOverlay({
   visible,
+  statusText,
+  statusVisual,
 }: ContentOptimizerSplashOverlayProps) {
-  if (!visible) return null;
+  const [mounted, setMounted] = useState(visible);
+  const [faded, setFaded] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      setMounted(true);
+      setFaded(false);
+      return;
+    }
+    if (!mounted) return;
+    setFaded(true);
+    const t = setTimeout(() => setMounted(false), 550);
+    return () => clearTimeout(t);
+  }, [visible, mounted]);
+
+  if (!mounted) return null;
 
   return (
     <div
-      className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black select-none"
+      className={`absolute inset-0 z-10 flex flex-col items-center justify-center bg-black select-none transition-opacity duration-500 ${
+        faded ? "pointer-events-none opacity-0" : "opacity-100"
+      }`}
       role="status"
       aria-live="polite"
       aria-label="Loading Content Optimizer"
@@ -32,6 +57,14 @@ export function ContentOptimizerSplashOverlay({
             opacity: 1;
             filter: drop-shadow(0 0 28px rgba(132, 189, 0, 0.45));
           }
+        }
+        @keyframes neoPulseStatusShimmer {
+          0% { background-position: 200% center; }
+          100% { background-position: -200% center; }
+        }
+        @keyframes neoPulseStatusBreathe {
+          0%, 100% { transform: scale(0.98); opacity: 0.9; }
+          50% { transform: scale(1.02); opacity: 1; }
         }
         @keyframes neoPulseRingBreathe {
           0%, 100% {
@@ -101,9 +134,33 @@ export function ContentOptimizerSplashOverlay({
           </svg>
         </div>
 
-        <span className="text-base font-medium uppercase tracking-[0.42em] text-white/80">
-          LOADING
-        </span>
+        {statusText?.trim() && statusVisual ? (
+          <BulkSplashVisual kind={statusVisual} />
+        ) : null}
+
+        {statusText?.trim() ? (
+          <div className="flex h-14 w-full max-w-lg items-center justify-center px-4">
+            <p
+              className="line-clamp-2 text-center text-xl font-semibold"
+              style={{
+                backgroundImage:
+                  "linear-gradient(100deg, rgb(228 228 231) 40%, rgb(255 255 255) 50%, rgb(228 228 231) 60%)",
+                backgroundSize: "200% 100%",
+                WebkitBackgroundClip: "text",
+                backgroundClip: "text",
+                color: "transparent",
+                animation:
+                  "neoPulseStatusShimmer 2.2s linear infinite, neoPulseStatusBreathe 2.2s ease-in-out infinite",
+              }}
+            >
+              {statusText.trim()}
+            </p>
+          </div>
+        ) : (
+          <span className="text-base font-medium uppercase tracking-[0.42em] text-white/80">
+            LOADING
+          </span>
+        )}
       </div>
     </div>
   );

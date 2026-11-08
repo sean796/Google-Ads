@@ -27,12 +27,11 @@ export function ApiKeyCopyButton({
   return (
     <Button
       type="button"
+      size="icon"
+      icon={Copy}
       onClick={() => void handleCopy()}
       aria-label={ariaLabel}
       title={ariaLabel}
-    >
-      <Copy className="h-4 w-4 shrink-0" aria-hidden />
-      Copy
-    </Button>
+    />
   );
 }

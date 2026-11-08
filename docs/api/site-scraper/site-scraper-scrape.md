@@ -5,7 +5,7 @@ section: Site Scraper
 method: POST
 path: /api/site-scraper/scrape
 auth: open
-order: 1110
+order: 1140
 ---
 
 POST `/api/site-scraper/scrape`.

@@ -50,7 +50,7 @@ function buildGridRunResult(args: {
     gscUploadRowCount: args.gscPagesUpload.length,
     runMode: "grid_csv",
     gridMaxUrlsPerPost: args.maxUrlsPerPost,
-    gridRankMathOnly: true,
+    gridRedirectCsvOnly: true,
     gridCompression: args.gridCompression,
   };
 }

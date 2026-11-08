@@ -30,7 +30,7 @@ class Neo_Pulse_Wp_Ai_Body {
 		if ( ! self::body_openrouter_configured() ) {
 			$reasons[] = __( 'Body optimizer requires an OpenRouter API key in wp-config, environment, or NEO Pulse WP → Settings. Cloud-only sync is not used for body harness.', 'neo-pulse-wp' );
 		}
-		$brief = Neo_Pulse_Wp_Ai_Context::read_acf_or_meta( $post_id, array( 'seo_research' ) );
+		$brief = Neo_Pulse_Wp_Ai_Context::read_post_field_or_meta( $post_id, array( 'seo_research' ) );
 		if ( trim( $brief ) === '' || self::is_empty_json_brief( $brief ) ) {
 			$reasons[] = __( 'Run SEO research first or paste a research brief before using the body optimizer.', 'neo-pulse-wp' );
 		}

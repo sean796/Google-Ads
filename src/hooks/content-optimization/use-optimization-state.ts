@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { OptimizationFileManager, type OptimizationFile } from "@/lib/optimization-file-manager";
 import type { WordPressSite } from "@/components/integrations/types";
-import type { AIDrivenACFContext } from "@/lib/content-generation/ai-driven-acf-reader";
+import type { AIDrivenACFContext } from "@/lib/content-generation/ai-driven-post-fields-reader";
 import type { LinkCheckResult } from "@/lib/wordpress-api/validate-internal-links";
 import type { SemrushClusterScatterPlan } from "@/lib/semrush-cluster-scatter";
 import type { HarnessSectionListItem } from "@/lib/bulk/harness-sections-reducer";
@@ -112,7 +112,7 @@ export interface PendingOptimization {
   extractedEntity?: string | 'N/A'; // Extracted entity or 'N/A' if no entity
   acfFields?: Record<string, unknown>; // Raw ACF for write path
   acfContext?: AIDrivenACFContext; // AI-driven semantic ACF context for prompt/read (no static key names)
-  /** Full REST post object from prefetch `getACFFieldsForPost` — skips repeat fetch during upload when post id matches. */
+  /** Full REST post object from prefetch `getPostFieldsForPost` — skips repeat fetch during upload when post id matches. */
   acfFullPostSnapshot?: Record<string, unknown>;
   focusCategories?: string[]; // Focus categories for selective optimization (SEM task list)
   semTaskContext?: { suggestedAction: string; checklist?: string[]; promptModifier?: string; focusCategories?: string[] }; // Full SEM task context

@@ -49,6 +49,10 @@ type BulkGeneratorOverviewTabBodyProps = {
   setInFlightAutoSeoUrl: Dispatch<SetStateAction<string | null>>;
   showingStudioModeScreen: boolean;
   ideationMode: boolean;
+  bulkSplashStatusText?: string;
+  bulkSplashStatusVisual?: import("@/lib/bulk/bulk-splash-status-agent").BulkSplashVisualKind;
+  ideasSplashStatusText?: string;
+  ideasSplashStatusVisual?: import("@/lib/bulk/bulk-splash-status-agent").BulkSplashVisualKind;
   bulkGeneratorStudioActions: BulkGeneratorStudioAction | undefined;
   promptLogFile: { name: string; content: string; mimeType: string } | null;
   handleSelectStudioEditorMode: (nextMode: StudioEditorModeId) => void;
@@ -83,6 +87,10 @@ export function BulkGeneratorOverviewTabBody({
   setInFlightAutoSeoUrl,
   showingStudioModeScreen,
   ideationMode,
+  bulkSplashStatusText,
+  bulkSplashStatusVisual,
+  ideasSplashStatusText,
+  ideasSplashStatusVisual,
   bulkGeneratorStudioActions,
   promptLogFile,
   handleSelectStudioEditorMode,
@@ -184,6 +192,15 @@ export function BulkGeneratorOverviewTabBody({
             studioEditorMode={studioEditorMode}
             onStudioEditorModeChange={handleSelectStudioEditorMode}
             bulkTitleUrlOptimizing={Boolean(bulkGeneratorDock.csvEnrichingTitlesUrls)}
+            bulkSplashStatusText={bulkSplashStatusText}
+            bulkSplashStatusVisual={bulkSplashStatusVisual}
+            composeSplashVisible={
+              showModeComposeScreen &&
+              studioEditorMode === "prompt" &&
+              bindings.isGeneratingChecklist
+            }
+            composeSplashStatusText={ideasSplashStatusText}
+            composeSplashStatusVisual={ideasSplashStatusVisual}
           />
         )
       }

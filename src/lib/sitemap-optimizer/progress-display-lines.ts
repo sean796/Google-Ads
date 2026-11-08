@@ -301,7 +301,7 @@ export function sitemapOptimizerProgressLines(progress: SitemapOptimizerProgress
     if (blogsTotal != null) {
       lines.push(`Groups ${blogsCompleted ?? 0} / ${blogsTotal}`);
     }
-    return lines.length > 0 ? lines : ["Rank Math targets"];
+    return lines.length > 0 ? lines : ["NEO Pulse redirect targets"];
   }
   if (phase === "merge" && total > 0) {
     return progress.entityPrimary

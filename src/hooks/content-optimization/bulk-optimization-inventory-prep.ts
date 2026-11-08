@@ -7,7 +7,7 @@ import {
   assertBulkInventorySnapshotReady,
   seedAllBulkPrefetchCachesFromInventory,
 } from "./bulk-optimization-seed-from-inventory";
-import { prefetchBulkAcfFieldsByPostIdForUrls } from "./bulk-optimization-prefetch-acf-by-post-id";
+import { prefetchBulkAcfFieldsByPostIdForUrls } from "./bulk-optimization-prefetch-fields-by-post-id";
 import {
   applyPageGscToPendingCache,
   prefetchBulkPageGscForUrls,
@@ -35,8 +35,8 @@ export type BulkInventoryPrepArgs = {
   inContentImageRequest: HandleOptimizeMultipleContentParams["inContentImageRequest"];
   isAcfKeywordMode: boolean;
   prefilledOverviewTargets: NonNullable<HandleOptimizeMultipleContentParams["prefilledOverviewTargets"]>;
-  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
-  prefetchedPostPayloadByUrlIndex: Map<number, import("@/lib/wordpress-api/fields-client").WpPostSnapshotFromAcfByUrl>;
+  prefetchedPostFieldsCache: Map<number, Record<string, unknown>>;
+  prefetchedPostPayloadByUrlIndex: Map<number, import("@/lib/wordpress-api/fields-client").WpPostSnapshotFromFieldsByUrl>;
   prefetchedAcfFullPostByUrlIndex: Map<number, Record<string, unknown>>;
   prefetchedPendingCache: Map<number, { pending: Record<string, unknown>; primaryKeyword: string }>;
   setBulkOptimizationState: HandleOptimizeMultipleContentParams["setBulkOptimizationState"];
@@ -71,7 +71,7 @@ export async function runBulkInventoryPrep(args: BulkInventoryPrepArgs) {
     inContentImageRequest,
     isAcfKeywordMode,
     prefilledOverviewTargets,
-    prefetchedAcfFieldsCache,
+    prefetchedPostFieldsCache,
     prefetchedPostPayloadByUrlIndex,
     prefetchedAcfFullPostByUrlIndex,
     prefetchedPendingCache,
@@ -163,7 +163,7 @@ export async function runBulkInventoryPrep(args: BulkInventoryPrepArgs) {
       const sapSnapshot = await ensureSapInventoryForHarness(
         site,
         (msg) => setBulkStep("prepInventory", msg, 0.7, { batchSectionIndex: 2 }),
-        { includeContent: false, includeRawAcf: false },
+        { includeContent: false, includeRawPostFields: false },
       );
       markBatchPrepHarnessSectionDone(2, sapSnapshot, "entity");
     }
@@ -201,7 +201,7 @@ export async function runBulkInventoryPrep(args: BulkInventoryPrepArgs) {
       inContentImageRequest,
       wordPressPostsForRun,
       isAcfKeywordMode,
-      prefetchedAcfFieldsCache,
+      prefetchedPostFieldsCache,
       prefetchedPostPayloadByUrlIndex,
       prefetchedAcfFullPostByUrlIndex,
       prefetchedPendingCache,
@@ -218,7 +218,7 @@ export async function runBulkInventoryPrep(args: BulkInventoryPrepArgs) {
         urls,
         wordPressPostsForRun,
         bulkInventorySnapshot,
-        prefetchedAcfFieldsCache,
+        prefetchedPostFieldsCache,
         prefetchedPostPayloadByUrlIndex,
         prefetchedAcfFullPostByUrlIndex,
         prefetchedPendingCache,
@@ -232,7 +232,7 @@ export async function runBulkInventoryPrep(args: BulkInventoryPrepArgs) {
     seedOverviewSeoResearchFromPrefilledTargets({
       urls,
       prefilledOverviewTargets,
-      prefetchedAcfFieldsCache,
+      prefetchedPostFieldsCache,
       prefetchedPendingCache,
       batchKey,
       setBulkOptimizationState,

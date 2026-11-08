@@ -77,7 +77,7 @@ export async function fetchPressReleaseSiteInventory(site: WordPressSite): Promi
 
   try {
     const bulk = await getSiteInventoryBulk(site.siteUrl, site.username, site.appPassword, {
-      includeRawAcf: true,
+      includeRawPostFields: true,
       collections: ["posts", "pages"],
     });
 

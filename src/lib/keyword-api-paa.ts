@@ -1,4 +1,4 @@
-import { resolveMcpApiBase } from "@/lib/mcp-tools";
+import { mcpPostInit, resolveMcpApiBase } from "@/lib/mcp-tools";
 import { logger } from "@/lib/logger";
 import { DISABLE_DATAFORSEO } from "./keyword-api-cache";
 
@@ -192,17 +192,16 @@ export async function fetchPeopleAlsoAsk(
     const MCP_API_BASE = resolveMcpApiBase();
     
     
-    const response = await fetch(`${MCP_API_BASE}/DataForSEO_serp_organic_live_advanced`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const response = await fetch(
+      `${MCP_API_BASE}/DataForSEO_serp_organic_live_advanced`,
+      mcpPostInit({
         keyword: keyword,
         location_name: location,
-        language_code: language, // ✅ Correct: using language_code, NOT language_name
+        language_code: language,
         depth: depth,
-        people_also_ask_click_depth: 4, // Get more PAA items (max 4 clicks for deeper results)
+        people_also_ask_click_depth: 4,
       }),
-    });
+    );
     
     if (!response.ok) {
       const errorText = await response.text();

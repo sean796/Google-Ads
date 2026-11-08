@@ -5,7 +5,7 @@ section: Semrush
 method: POST
 path: /api/semrush/competitor-research
 auth: open
-order: 990
+order: 1020
 ---
 
 POST `/api/semrush/competitor-research`.

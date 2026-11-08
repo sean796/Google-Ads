@@ -3,7 +3,7 @@
  * This service calls MCP tools directly for keyword research
  */
 
-import { resolveMcpApiBase } from "@/lib/mcp-tools";
+import { mcpPostInit, resolveMcpApiBase } from "@/lib/mcp-tools";
 import { logger } from "@/lib/logger";
 import type { KeywordData, KeywordResearchResult } from "./keyword-types";
 import { loadDataForSEOApiKey } from "./api";
@@ -414,16 +414,15 @@ export async function callPageIntersection(
   
   try {
     
-    const response = await fetch(`${MCP_API_BASE}/DataForSEO_dataforseo_labs_google_page_intersection`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const response = await fetch(
+      `${MCP_API_BASE}/DataForSEO_dataforseo_labs_google_page_intersection`,
+      mcpPostInit({
         pages: pages,
         location_name: location,
         language_code: language,
         intersection_mode: intersectionMode,
       }),
-    });
+    );
     
     if (!response.ok) {
       const errorText = await response.text();

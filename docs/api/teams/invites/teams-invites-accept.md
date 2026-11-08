@@ -5,7 +5,7 @@ section: Teams
 method: GET
 path: /api/teams/invites/accept
 auth: public
-order: 2440
+order: 2470
 ---
 
 GET `/api/teams/invites/accept`.

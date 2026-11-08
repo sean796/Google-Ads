@@ -30,7 +30,7 @@ describe("createBulkGoogleMapsImageWarmupController", () => {
     const controller = createBulkGoogleMapsImageWarmupController({
       urls,
       skipUrlSet,
-      prefetchedAcfFieldsCache: acf,
+      prefetchedPostFieldsCache: acf,
       prefetchedPendingCache: pending,
     });
 

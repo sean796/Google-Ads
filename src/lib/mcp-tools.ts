@@ -5,6 +5,7 @@
  */
 
 import { logger } from "@/lib/logger";
+import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import { BACKEND_CONNECTION_ERROR, resolveBackendApiBase } from "@/lib/wordpress-api/connection";
 import { NEO_PULSE_CA_DEPLOY } from "@/lib/neo-pulse-deploy";
 import { isViteDev, readViteEnv } from "@/lib/vite-env";
@@ -20,6 +21,17 @@ const MCP_RETRY_DELAY_MS = 2000;
 
 export function resolveMcpToolUrl(toolName: string): string {
   return `${resolveMcpApiBase().replace(/\/$/, "")}/${toolName}`;
+}
+
+/** POST /api/mcp/* with session auth (server applies DataForSEO credentials). */
+export function mcpPostInit(body: unknown, extra?: Pick<RequestInit, "signal">): RequestInit {
+  return {
+    method: "POST",
+    credentials: "include",
+    headers: neoPulseApiHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(body),
+    ...extra,
+  };
 }
 
 /** True when production build has no absolute API URL (Render static will hit wrong host). */
@@ -112,11 +124,7 @@ async function callMCPToolOnce(toolName: string, params: unknown): Promise<unkno
 
   const url = resolveMcpToolUrl(toolName);
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify((params)),
-  });
+  const response = await fetch(url, mcpPostInit(params));
 
   if (!response.ok) {
     let errorText = "";

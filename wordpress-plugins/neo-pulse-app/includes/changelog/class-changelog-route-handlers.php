@@ -39,12 +39,14 @@ class Neo_Pulse_App_Changelog_Route_Handlers {
 		}
 
 		if ( $subpath === 'source' && $method === 'GET' ) {
-			$state = self::read_state();
+			$state     = self::read_state();
+			$uncovered = self::uncovered_commits( $state );
+			$commits   = $uncovered !== array() ? $uncovered : self::entry_commits( $state, self::newest_entry( $state ) );
 			Neo_Pulse_App_Api_Dispatcher::send_json(
 				array(
-					'ok'              => true,
-					'coveredThrough'  => self::covered_through( $state ),
-					'commits'         => self::uncovered_commits( $state ),
+					'ok'             => true,
+					'coveredThrough' => self::covered_through( $state ),
+					'commits'        => $commits,
 				)
 			);
 			return;
@@ -184,6 +186,51 @@ class Neo_Pulse_App_Changelog_Route_Handlers {
 			if ( $covered === null || strcmp( (string) $commit['date'], $covered ) > 0 ) {
 				$out[] = $commit;
 			}
+		}
+		usort(
+			$out,
+			static function ( $a, $b ) {
+				return strcmp( (string) $a['date'], (string) $b['date'] );
+			}
+		);
+		return $out;
+	}
+
+	/**
+	 * @param array{entries: array<int,array<string,mixed>>, commits: array<int,array<string,mixed>>} $state Stored state.
+	 * @return array<string,mixed>|null
+	 */
+	private static function newest_entry( array $state ): ?array {
+		$newest = null;
+		foreach ( $state['entries'] as $entry ) {
+			if ( $newest === null || strcmp( (string) ( $entry['date'] ?? '' ), (string) ( $newest['date'] ?? '' ) ) > 0 ) {
+				$newest = $entry;
+			}
+		}
+		return $newest;
+	}
+
+	/**
+	 * Commits falling inside a saved entry's date range (or all stored
+	 * commits when no entry exists yet), oldest first, used when
+	 * regenerating an existing entry with 0 uncovered commits waiting.
+	 *
+	 * @param array{entries: array<int,array<string,mixed>>, commits: array<int,array<string,mixed>>} $state Stored state.
+	 * @param array<string,mixed>|null                                                                $entry Entry to match.
+	 * @return array<int,array<string,mixed>>
+	 */
+	private static function entry_commits( array $state, ?array $entry ): array {
+		$from = is_array( $entry ) && isset( $entry['rangeFrom'] ) && is_string( $entry['rangeFrom'] ) ? $entry['rangeFrom'] : '';
+		$to   = is_array( $entry ) && isset( $entry['rangeTo'] ) && is_string( $entry['rangeTo'] ) ? $entry['rangeTo'] : '';
+		$out  = array();
+		foreach ( $state['commits'] as $commit ) {
+			$date = (string) $commit['date'];
+			if ( ( $from === '' || strcmp( $date, $from ) >= 0 ) && ( $to === '' || strcmp( $date, $to ) <= 0 ) ) {
+				$out[] = $commit;
+			}
+		}
+		if ( $out === array() ) {
+			$out = $state['commits'];
 		}
 		usort(
 			$out,

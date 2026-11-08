@@ -5,7 +5,7 @@ import {
 } from "@/lib/local-analysis/entity-sap-row-keyword-fill";
 import { resolveEntitySapTitleFromTemplate } from "@/lib/local-analysis/entity-sap-title-agent";
 import { filterSapInventoryRows } from "@/lib/local-analysis/entity-generator-keyword-inventory";
-import { sanitizeWordPressSlugSegment } from "@/lib/rank-math-redirect-csv";
+import { sanitizeWordPressSlugSegment } from "@/lib/pulse-redirect-redirect-csv";
 import { buildSapSlugFromKeywordEntity } from "@/lib/sap-slug-from-keyword-entity";
 import type { SiteInventoryBulkRow } from "@/lib/wordpress-api/types";
 import { isOffensiveGscQuery } from "@/lib/gsc-offensive-word-blocklist";

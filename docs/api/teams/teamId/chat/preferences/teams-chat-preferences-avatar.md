@@ -5,7 +5,7 @@ section: Teams
 method: POST
 path: /api/teams/{teamId}/chat/preferences/avatar
 auth: team-rbac-communication
-order: 1610
+order: 1640
 ---
 
 POST `/api/teams/{teamId}/chat/preferences/avatar`.

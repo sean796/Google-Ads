@@ -3,7 +3,7 @@
  * neodigital.ca leftovers: a few hard-coded old-URL redirects.
  *
  * The head output this class used to print (title override, meta description,
- * Open Graph / Twitter tags, JSON-LD) ran on top of Rank Math and duplicated
+ * Open Graph / Twitter tags, JSON-LD) ran on top of NEO Pulse redirect and duplicated
  * it. It is gone: once Pulse SEO output is on, Neo_Pulse_Wp_Seo_Head prints
  * all of that for every site.
  *

@@ -116,7 +116,7 @@ export function seedSeoExtraTextCachesFromOverviewTargets(
   prefilledOverviewTargets: Record<string, PrefilledOverviewTarget>,
   prefilledUrlKeywords: Record<string, string>,
   prefetchedPendingCache: Map<number, { pending: Record<string, unknown>; primaryKeyword: string }>,
-  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>,
+  prefetchedPostFieldsCache: Map<number, Record<string, unknown>>,
 ): void {
   for (let i = 0; i < urls.length; i++) {
     const url = urls[i]?.trim();
@@ -129,7 +129,7 @@ export function seedSeoExtraTextCachesFromOverviewTargets(
     const postTypeEndpoint =
       target.postTypeEndpoint?.trim() || restCollectionEndpointForSubtype(postType);
 
-    prefetchedAcfFieldsCache.set(i, { keyword_focus: keyword });
+    prefetchedPostFieldsCache.set(i, { keyword_focus: keyword });
     prefetchedPendingCache.set(i, {
       primaryKeyword: keyword,
       pending: {

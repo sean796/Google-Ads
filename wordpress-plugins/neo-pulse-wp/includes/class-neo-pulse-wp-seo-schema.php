@@ -3,7 +3,7 @@
  * JSON-LD graph: organisation or person, website, web page, breadcrumbs, author, the page's rich
  * snippet and FAQs from Elementor accordions marked for FAQ schema.
  *
- * Schema stored on posts by Rank Math (rank_math_schema_* meta) is output as-is, with its
+ * Schema stored on posts by NEO Pulse redirect (neo_pulse_seo_schema_* meta) is output as-is, with its
  * template variables filled in. Posts without stored schema get the post type's default
  * (Article / BlogPosting) from the settings.
  *
@@ -125,7 +125,7 @@ class Neo_Pulse_Wp_Seo_Schema {
 				$webpage['primaryImageOfPage'] = array( '@id' => $primary_image['url'] );
 			}
 		}
-		// Breadcrumbs (when switched on in Rank Math's settings) and FAQs (ACF fields or accordions) follow the page.
+		// Breadcrumbs (when switched on in NEO Pulse redirect's settings) and FAQs (ACF fields or accordions) follow the page.
 		$extras = array();
 		if ( class_exists( 'Neo_Pulse_Wp_Seo_Breadcrumbs', false ) && Neo_Pulse_Wp_Seo_Breadcrumbs::enabled() ) {
 			$crumbs = Neo_Pulse_Wp_Seo_Breadcrumbs::schema_node( Neo_Pulse_Wp_Seo_Breadcrumbs::trail( $ctx ), $url );
@@ -441,7 +441,7 @@ class Neo_Pulse_Wp_Seo_Schema {
 			}
 			return Neo_Pulse_Wp_Seo_Head::image_info( 0, $src );
 		}
-		// Like Rank Math: with no featured image and no image in the content, the site's default
+		// Like NEO Pulse redirect: with no featured image and no image in the content, the site's default
 		// sharing image (a Media Library image) becomes the page's primary image.
 		if ( ! empty( $image['default'] ) && (int) ( $image['id'] ?? 0 ) > 0 && (string) $image['url'] !== '' ) {
 			return $image;
@@ -482,7 +482,7 @@ class Neo_Pulse_Wp_Seo_Schema {
 	}
 
 	/**
-	 * Schema saved on the post (rank_math_schema_* meta), primary first.
+	 * Schema saved on the post (neo_pulse_seo_schema_* meta), primary first.
 	 *
 	 * @param array<string, mixed> $ctx Context.
 	 * @return array<int, array<string, mixed>>
@@ -495,7 +495,7 @@ class Neo_Pulse_Wp_Seo_Schema {
 		$primary = array();
 		$others  = array();
 		foreach ( $all as $key => $values ) {
-			if ( strpos( (string) $key, 'rank_math_schema_' ) !== 0 || ! is_array( $values ) ) {
+			if ( strpos( (string) $key, 'neo_pulse_seo_schema_' ) !== 0 || ! is_array( $values ) ) {
 				continue;
 			}
 			foreach ( $values as $value ) {
@@ -523,7 +523,7 @@ class Neo_Pulse_Wp_Seo_Schema {
 		$all   = get_post_meta( $post->ID );
 		$found = false;
 		foreach ( is_array( $all ) ? $all : array() as $key => $values ) {
-			if ( strpos( (string) $key, 'rank_math_schema_' ) !== 0 ) {
+			if ( strpos( (string) $key, 'neo_pulse_seo_schema_' ) !== 0 ) {
 				continue;
 			}
 			foreach ( (array) $values as $value ) {
@@ -546,7 +546,7 @@ class Neo_Pulse_Wp_Seo_Schema {
 	public static function default_snippet( WP_Post $post, array $ctx ): array {
 		$S  = 'Neo_Pulse_Wp_Seo_Settings';
 		$pt = $post->post_type;
-		if ( 'article' !== (string) $S::get( 'pt_' . $pt . '_default_rich_snippet', '' ) || 'off' === (string) get_post_meta( $post->ID, 'rank_math_rich_snippet', true ) ) {
+		if ( 'article' !== (string) $S::get( 'pt_' . $pt . '_default_rich_snippet', '' ) || 'off' === (string) get_post_meta( $post->ID, 'neo_pulse_seo_rich_snippet', true ) ) {
 			return array();
 		}
 		$type    = (string) $S::get( 'pt_' . $pt . '_default_article_type', 'Article' );

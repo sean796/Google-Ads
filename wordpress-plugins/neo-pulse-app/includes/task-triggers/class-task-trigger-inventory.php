@@ -24,7 +24,7 @@ class Neo_Pulse_App_Task_Trigger_Inventory {
 			'appPassword'    => (string) $auth['appPassword'],
 			'collections'    => $collections,
 			'includeContent' => false,
-			'includeRawAcf'  => false,
+			'includeRawPostFields'  => false,
 		);
 		list( $status, $data ) = Neo_Pulse_App_Wp_Posts_Inventory::get_site_inventory_bulk( $body );
 		if ( $status < 200 || $status >= 300 || ! is_array( $data ) ) {

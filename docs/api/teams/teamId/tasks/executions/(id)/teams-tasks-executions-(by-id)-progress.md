@@ -5,7 +5,7 @@ section: Teams
 method: PATCH
 path: /api/teams/{teamId}/tasks/executions/({id})/progress
 auth: session-team
-order: 1880
+order: 1910
 ---
 
 PATCH `/api/teams/{teamId}/tasks/executions/({id})/progress`.

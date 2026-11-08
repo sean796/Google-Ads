@@ -132,7 +132,7 @@ class Neo_Pulse_Wp_Admin {
 		add_action( 'admin_post_' . self::ACTION_DELETE_REDIRECT, array( __CLASS__, 'handle_delete_redirect' ) );
 		add_action( 'admin_post_' . self::ACTION_BULK_REDIRECTS, array( __CLASS__, 'handle_bulk_redirects' ) );
 		add_action( 'admin_post_' . self::ACTION_IMPORT_REDIRECTS, array( __CLASS__, 'handle_import_redirects' ) );
-		add_action( 'admin_post_' . self::ACTION_IMPORT_REDIRECTS_RANK_MATH_DB, array( __CLASS__, 'handle_import_redirects_rank_math_db' ) );
+		add_action( 'admin_post_' . self::ACTION_IMPORT_REDIRECTS_RANK_MATH_DB, array( __CLASS__, 'handle_import_redirects_neo_pulse_seo_db' ) );
 		add_action( 'admin_post_' . self::ACTION_EXPORT_REDIRECTS, array( __CLASS__, 'handle_export_redirects' ) );
 		add_action( 'admin_post_' . self::ACTION_SAVE_REDIRECT_SETTINGS, array( __CLASS__, 'handle_save_redirect_settings' ) );
 		add_action( 'admin_post_' . self::ACTION_REDIRECT_ROW, array( __CLASS__, 'handle_redirect_row_action' ) );

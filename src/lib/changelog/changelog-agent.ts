@@ -20,18 +20,14 @@ export const changelogCommitSchema = z.object({
 export type ChangelogCommit = z.infer<typeof changelogCommitSchema>;
 
 export const changelogDraftSchema = z.object({
-  title: z.string().min(1).max(300),
-  summary: z.string().min(1).max(4000),
-  highlights: z.array(z.string().min(1)).min(1).max(10),
-  sections: z
-    .array(
-      z.object({
-        heading: z.string().min(1).max(120),
-        items: z.array(z.string().min(1)).min(1).max(12),
-      }),
-    )
-    .min(1)
-    .max(6),
+  title: z.string().min(1),
+  highlights: z.array(z.string().min(1)).default([]),
+  sections: z.array(
+    z.object({
+      heading: z.string().min(1),
+      items: z.array(z.string().min(1)),
+    }),
+  ),
 });
 
 export type ChangelogDraft = z.infer<typeof changelogDraftSchema>;
@@ -43,21 +39,23 @@ const changelogInputSchema = z.object({
 
 export type ChangelogAgentInput = z.infer<typeof changelogInputSchema>;
 
-const SYSTEM = `You write one changelog entry for the Neo Pulse web app, for a non-technical reader (the agency owner).
+const SYSTEM = `You write one changelog entry for the Neo Pulse web app, for the agency owner.
 
 Grounding rules (non-negotiable):
 - The commit pack in the user message is the ONLY source of facts. Never name a feature, fix, file, screen, or improvement that is not supported by a commit subject, body, or file list in the pack.
-- Never invent dates, counts, or version numbers. If the pack is thin, write a shorter entry; do not pad it.
-- Group related commits into themes. Use only these section headings, and only when the pack supports them: "New", "Improved", "Fixed", "Behind the scenes".
-- Write plain, warm, concrete language. Say what changed for the person using the app, not how the code works. Avoid file names and developer jargon unless a commit is purely technical, in which case put it under "Behind the scenes" in one plain sentence.
+- Never invent dates, counts, or version numbers.
+- Do NOT write an intro paragraph or summary.
+- Include a "highlights" array with 5 to 8 brief, punchy one-sentence bullets covering the biggest wins.
+- Group commits into themes using only these section headings, and only when the pack supports them: "New", "Improved", "Fixed", "Behind the scenes".
+- Include MANY bullets per section (8 to 20 items per section when the commit pack is large) so every meaningful update across the pack is covered.
+- Keep each bullet BRIEF and direct: 1 concise sentence naming what changed and where it applies in the app. No fluff, no raw file paths.
 - Never use the em dash character. Use commas, periods, or parentheses instead.
 
-Output (JSON only, no markdown fences):
+Output (JSON only, no markdown fences, no commentary before or after):
 {
   "title": "Short entry title naming the main theme (max 12 words)",
-  "summary": "Two or three sentences covering the whole period",
-  "highlights": ["The 3 to 6 most important changes, one short sentence each"],
-  "sections": [{ "heading": "New", "items": ["One change per item, one sentence each"] }]
+  "highlights": ["One brief sentence per highlight"],
+  "sections": [{ "heading": "New", "items": ["One brief, specific sentence per update"] }]
 }`;
 
 function buildUserPrompt(input: ChangelogAgentInput): string {
@@ -86,9 +84,15 @@ export const appChangelogWriterAgent = createPulseAgent<ChangelogAgentInput, Cha
   inputSchema: changelogInputSchema,
   outputSchema: changelogDraftSchema,
   temperature: 0.3,
-  maxTokens: 4096,
+  maxTokens: 8192,
   buildSystemPrompt: () => SYSTEM,
   buildUserPrompt: (input) => buildUserPrompt(input),
+  parseOutput: (rawContent) => {
+    const start = rawContent.indexOf("{");
+    const end = rawContent.lastIndexOf("}");
+    const jsonSlice = start >= 0 && end > start ? rawContent.slice(start, end + 1) : rawContent;
+    return JSON.parse(jsonSlice) as ChangelogDraft;
+  },
 });
 
 /**
@@ -107,7 +111,6 @@ export function buildChangelogEntry(
   rangeTo: string;
   commitCount: number;
   title: string;
-  summary: string;
   highlights: string[];
   sections: { heading: string; items: string[] }[];
 } {
@@ -120,8 +123,7 @@ export function buildChangelogEntry(
     rangeTo,
     commitCount: commits.length,
     title: draft.title,
-    summary: draft.summary,
-    highlights: [...draft.highlights],
+    highlights: [...(draft.highlights ?? [])],
     sections: draft.sections.map((section) => ({
       heading: section.heading,
       items: [...section.items],

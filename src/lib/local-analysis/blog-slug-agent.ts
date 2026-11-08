@@ -2,7 +2,7 @@ import type { CSVRow } from "@/lib/bulk/bulk-csv-parser";
 import { getCompetitorReportMaxOutputTokens } from "@/lib/competitor-research/competitor-report-openrouter-limits";
 import { openRouterWebAppHeaders } from "@/lib/openrouter-attribution";
 import { postOpenRouterAppChatFetch } from "@/lib/openrouter-app-api";
-import { sanitizeWordPressSlugSegment } from "@/lib/rank-math-redirect-csv";
+import { sanitizeWordPressSlugSegment } from "@/lib/pulse-redirect-redirect-csv";
 import {
   appendMasterInstructionsToSystemPrompt,
   buildSapMasterRulesWorkflowPrefix,

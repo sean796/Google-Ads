@@ -43,7 +43,6 @@ const DOMAIN_OPTIONS: { value: AgentLibraryDomainFilter; label: string }[] = [
   { value: "ppc-ads", label: "PPC & Ads" },
   { value: "video", label: "Video Studio" },
   { value: "wikipedia", label: "Wikipedia & Graph" },
-  { value: "emcp", label: "Neo MCP Engine" },
 ];
 
 const CATEGORY_OPTIONS: { value: AgentLibraryCategoryFilter; label: string }[] = [

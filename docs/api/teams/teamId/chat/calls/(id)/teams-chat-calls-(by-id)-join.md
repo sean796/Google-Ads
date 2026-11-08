@@ -5,7 +5,7 @@ section: Teams
 method: POST
 path: /api/teams/{teamId}/chat/calls/({id})/join
 auth: team-rbac-communication
-order: 1230
+order: 1260
 ---
 
 POST `/api/teams/{teamId}/chat/calls/({id})/join`.

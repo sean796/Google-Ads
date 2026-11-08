@@ -1,6 +1,6 @@
 import { logger } from "@/lib/logger";
 import type { WordPressSite } from "@/components/integrations/types";
-import { updateWordPressAcfFields } from "@/lib/wordpress-api";
+import { updateWordPressPostFields } from "@/lib/wordpress-api";
 import { WORDPRESS_BULK_READ_CHUNK } from "@/lib/wordpress-api/bulk-read-chunk";
 
 type PendingPostRef = { id?: unknown; postTypeSubtype?: unknown; postTypeEndpoint?: unknown };
@@ -38,10 +38,10 @@ export async function writeBulkResearchedKeywordFocusToWordPress(opts: {
     number,
     { pending: Record<string, unknown>; primaryKeyword: string }
   >;
-  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
+  prefetchedPostFieldsCache: Map<number, Record<string, unknown>>;
   muteToasts?: boolean;
 }): Promise<void> {
-  const { site, researchedIndices, prefetchedPendingCache, prefetchedAcfFieldsCache, muteToasts } =
+  const { site, researchedIndices, prefetchedPendingCache, prefetchedPostFieldsCache, muteToasts } =
     opts;
 
   if (!site.username || !site.appPassword || researchedIndices.length === 0) return;
@@ -52,7 +52,7 @@ export async function writeBulkResearchedKeywordFocusToWordPress(opts: {
     const slice = unique.slice(c, c + WORDPRESS_BULK_READ_CHUNK);
     await Promise.all(
       slice.map(async (i) => {
-        const kw = String(prefetchedAcfFieldsCache.get(i)?.["keyword_focus"] ?? "").trim();
+        const kw = String(prefetchedPostFieldsCache.get(i)?.["keyword_focus"] ?? "").trim();
         if (!kw) return;
 
         const pend = prefetchedPendingCache.get(i);
@@ -62,7 +62,7 @@ export async function writeBulkResearchedKeywordFocusToWordPress(opts: {
         const postId = postIdFromPending(pending);
         if (!postId) return;
 
-        const res = await updateWordPressAcfFields(
+        const res = await updateWordPressPostFields(
           site.siteUrl,
           site.username!,
           site.appPassword!,

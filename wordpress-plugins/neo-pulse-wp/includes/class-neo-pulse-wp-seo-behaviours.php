@@ -1,8 +1,8 @@
 <?php
 /**
- * Site-wide SEO behaviours Rank Math handled, kept when Neo Pulse takes over: external links in a
- * new tab, disabled date/author archives, and Rank Math shortcodes that would otherwise print as
- * raw text once Rank Math is gone.
+ * Site-wide SEO behaviours NEO Pulse redirect handled, kept when Neo Pulse takes over: external links in a
+ * new tab, disabled date/author archives, and NEO Pulse redirect shortcodes that would otherwise print as
+ * raw text once NEO Pulse redirect is gone.
  *
  * Only runs while Neo Pulse SEO is live. Attachment pages already redirect (Index Rules).
  *
@@ -24,13 +24,13 @@ class Neo_Pulse_Wp_Seo_Behaviours {
 		if ( $S::is_on( 'disable_date_archives' ) || $S::is_on( 'disable_author_archives' ) ) {
 			add_action( 'template_redirect', array( __CLASS__, 'redirect_disabled_archives' ), 2 );
 		}
-		if ( ! shortcode_exists( 'rank_math_html_sitemap' ) ) {
-			add_shortcode( 'rank_math_html_sitemap', array( __CLASS__, 'shortcode_html_sitemap' ) );
+		if ( ! shortcode_exists( 'neo_pulse_seo_html_sitemap' ) ) {
+			add_shortcode( 'neo_pulse_seo_html_sitemap', array( __CLASS__, 'shortcode_html_sitemap' ) );
 		}
-		if ( ! shortcode_exists( 'rank_math_breadcrumb' ) ) {
-			add_shortcode( 'rank_math_breadcrumb', array( 'Neo_Pulse_Wp_Seo_Breadcrumbs', 'shortcode' ) );
+		if ( ! shortcode_exists( 'neo_pulse_seo_breadcrumb' ) ) {
+			add_shortcode( 'neo_pulse_seo_breadcrumb', array( 'Neo_Pulse_Wp_Seo_Breadcrumbs', 'shortcode' ) );
 		}
-		foreach ( array( 'rank_math_contact_info', 'rank_math_rich_snippet' ) as $tag ) {
+		foreach ( array( 'neo_pulse_seo_contact_info', 'neo_pulse_seo_rich_snippet' ) as $tag ) {
 			if ( ! shortcode_exists( $tag ) ) {
 				add_shortcode( $tag, '__return_empty_string' );
 			}
@@ -100,7 +100,7 @@ class Neo_Pulse_Wp_Seo_Behaviours {
 	}
 
 	/**
-	 * Rank Math's HTML sitemap shortcode, answered by the Neo Pulse HTML sitemap.
+	 * NEO Pulse redirect's HTML sitemap shortcode, answered by the Neo Pulse HTML sitemap.
 	 *
 	 * @param mixed $atts Attributes.
 	 */

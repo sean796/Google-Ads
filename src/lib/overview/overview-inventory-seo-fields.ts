@@ -1,6 +1,6 @@
 import type { SitePostInventoryRow } from "@/lib/wordpress-api/types";
 import type { DownloadedSeoFields } from "@/hooks/overview/use-overview-download";
-import { getSeoResearchFromAcf } from "@/lib/content-generation/ai-driven-acf-reader";
+import { getSeoResearchFromPostFields } from "@/lib/content-generation/ai-driven-post-fields-reader";
 import { inventoryRowHasUsableBodyContent } from "@/lib/wordpress-api/inventory-match";
 import { focusKeywordFromWordPressSources } from "@/lib/overview/focus-keyword-from-wp-sources";
 
@@ -36,7 +36,7 @@ export function overviewExcerptMetaLine(row: SitePostInventoryRow): string {
 }
 
 /**
- * Map a REST inventory row (includeRawAcf) to the same shape as get-post-meta download,
+ * Map a REST inventory row (includeRawPostFields) to the same shape as get-post-meta download,
  * so Overview scrape can skip per-row /get-post-meta when prefetch already loaded this post.
  *
  * Meta description is the WordPress excerpt only.
@@ -46,7 +46,7 @@ export function downloadFieldsFromInventoryRow(row: SitePostInventoryRow): Downl
   const str = (k: string) => (typeof acf[k] === "string" ? (acf[k] as string) : "");
   const acfFaq = str("faq");
   const acfDate = str("date_modifier") || str("seo_date_modifier");
-  const acfSeoResearch = getSeoResearchFromAcf(acf).trim();
+  const postFieldsSeoResearch = getSeoResearchFromPostFields(acf).trim();
   const collection =
     "collection" in row && typeof (row as { collection?: unknown }).collection === "string"
       ? (row as { collection: string }).collection
@@ -74,7 +74,7 @@ export function downloadFieldsFromInventoryRow(row: SitePostInventoryRow): Downl
     focusKeyword,
     faq: acfFaq.trim(),
     dateModifier: acfDate.trim() || undefined,
-    seoResearch: acfSeoResearch || undefined,
+    seoResearch: postFieldsSeoResearch || undefined,
   };
 }
 

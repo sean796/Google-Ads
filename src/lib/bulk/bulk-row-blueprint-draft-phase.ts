@@ -23,17 +23,17 @@ import { emitEntitySapPipelineHarnessDone } from "@/lib/bulk/bulk-harness-progre
 import {
   buildPreBlogSeoResearchSkeleton,
   mergeBlueprintIntoPreBlogSkeleton,
-} from "@/lib/content-generation/bulk-acf-seo-bundle";
+} from "@/lib/content-generation/bulk-post-fields-seo-bundle";
 import { generateMetaDescription } from "@/lib/content-generation/content-generator";
 import { resolveBulkWordPressPostTitle } from "@/lib/bulk/bulk-post-title-agent";
 import { loadApiKey } from "../api";
 import { mergeSeoBriefIntoBulkSkeleton } from "@/lib/llm-audit/fetch-merged-seo-content-brief";
 import type { SeoContentBriefV1 } from "@/lib/overview-seo-content-brief";
-import { acfOriginAppliesForSitemapType } from "@/lib/acf-origin-applies";
+import { postFieldsOriginAppliesForSitemapType } from "@/lib/post-fields-origin-applies";
 import type { BulkProcessingOptions } from "./bulk-auto-generate-types";
 import type { CSVRow } from "./bulk-csv-parser";
 import { resolveBulkPrimaryKeyword } from "./bulk-primary-keyword";
-import { resolveRankMathFromKeywordResearch } from "@/lib/bulk/bulk-keyword-research-artifacts";
+import { resolveRedirectCsvFromKeywordResearch } from "@/lib/bulk/bulk-keyword-research-artifacts";
 import type { ExternalLinkPair } from "../content-generation/external-link-placeholders";
 import type { LlmAuditAuthorityLinkLike } from "./modifier-external-links";
 
@@ -145,7 +145,7 @@ export async function runBulkRowBlueprintDraftPhase(input: {
     topP: options.topP || 0.9,
   };
 
-  const sequentialDraft = Boolean(useGoogleMaps || options.sequentialHarnessSections);
+  const sequentialDraft = Boolean(options.sequentialHarnessSections);
   options.onProgress?.(
     rowIndex,
     0,
@@ -298,7 +298,7 @@ export async function runBulkRowBlueprintDraftPhase(input: {
         date_modifier: enrichedRow.date_modifier,
         prompt_modifier: enrichedRow.prompt_modifier,
         service_area_fields: enrichedRow.service_area_fields,
-        ...(acfOriginAppliesForSitemapType(enrichedRow.sitemap_type) && enrichedRow.origin
+        ...(postFieldsOriginAppliesForSitemapType(enrichedRow.sitemap_type) && enrichedRow.origin
           ? { origin: enrichedRow.origin }
           : {}),
       },
@@ -323,7 +323,7 @@ export async function runBulkRowBlueprintDraftPhase(input: {
   const flowPurposeResolved = blueprintResult.purpose || flowPurposeStr;
 
   const bulkPrimaryKwResolved = resolveBulkPrimaryKeyword(row, enrichedRow, keywordData, blueprintResult.title);
-  const rankMetaForTitle = resolveRankMathFromKeywordResearch(keywordData);
+  const rankMetaForTitle = resolveRedirectCsvFromKeywordResearch(keywordData);
   let bulkResolvedPostTitle: string;
   if (options.optimizePreserveTitle?.trim()) {
     bulkResolvedPostTitle = options.optimizePreserveTitle.trim();

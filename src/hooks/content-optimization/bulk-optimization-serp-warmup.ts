@@ -4,7 +4,7 @@ import {
   indexHasStoredSeoResearchBrief,
 } from "./bulk-optimization-missing-seo-research";
 import { pageGscQueryStringsFromPending } from "./bulk-optimization-prefetch-page-gsc";
-import { readKeywordFocusFromAcfFields } from "@/lib/content-generation/ai-driven-acf-reader";
+import { readKeywordFocusFromAcfFields } from "@/lib/content-generation/ai-driven-post-fields-reader";
 import type { HandleOptimizeMultipleContentParams } from "./bulk-optimization-params";
 import {
   markContentPrepHarnessSection,
@@ -23,7 +23,7 @@ export type CreateBulkSerpWarmupParams = {
   batchKey: string;
   skipUrlSet: Set<string>;
   muteToasts: boolean;
-  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
+  prefetchedPostFieldsCache: Map<number, Record<string, unknown>>;
   prefetchedPendingCache: Map<number, { pending: Record<string, unknown>; primaryKeyword: string }>;
   setBulkOptimizationState: HandleOptimizeMultipleContentParams["setBulkOptimizationState"];
   harnessSetters?: ContentPrepHarnessSetters;
@@ -48,7 +48,7 @@ export function createBulkSerpWarmupController(params: CreateBulkSerpWarmupParam
     batchKey,
     skipUrlSet,
     muteToasts,
-    prefetchedAcfFieldsCache,
+    prefetchedPostFieldsCache,
     prefetchedPendingCache,
     setBulkOptimizationState,
     harnessSetters,
@@ -59,7 +59,7 @@ export function createBulkSerpWarmupController(params: CreateBulkSerpWarmupParam
 
   const keywordFor = (index: number): string | null => {
     const acfKw = readKeywordFocusFromAcfFields(
-      prefetchedAcfFieldsCache.get(index) as Record<string, unknown> | undefined,
+      prefetchedPostFieldsCache.get(index) as Record<string, unknown> | undefined,
     );
     return acfKw.trim() || null;
   };
@@ -133,7 +133,7 @@ export function createBulkSerpWarmupController(params: CreateBulkSerpWarmupParam
   const warmIndex = (index: number): Promise<boolean> => {
     if (index < 0 || index >= urls.length) return Promise.resolve(false);
     if (skipUrlSet.has(urls[index]!)) return Promise.resolve(false);
-    if (indexHasStoredSeoResearchBrief(index, prefetchedAcfFieldsCache, prefetchedPendingCache)) {
+    if (indexHasStoredSeoResearchBrief(index, prefetchedPostFieldsCache, prefetchedPendingCache)) {
       markUrlSerpReady(index, "existing");
       return Promise.resolve(true);
     }
@@ -164,7 +164,7 @@ export function createBulkSerpWarmupController(params: CreateBulkSerpWarmupParam
         gscQueries: pageGscQueryStringsFromPending(prefetchedPendingCache.get(index)?.pending),
       });
       if (bulkCancelled(batchKey, setBulkOptimizationState)) return false;
-      applyBriefToCaches(index, brief, prefetchedAcfFieldsCache, prefetchedPendingCache);
+      applyBriefToCaches(index, brief, prefetchedPostFieldsCache, prefetchedPendingCache);
       markUrlSerpReady(index, "filled");
       return true;
     })().catch((err) => {
@@ -213,7 +213,7 @@ export function createBulkSerpWarmupController(params: CreateBulkSerpWarmupParam
   const seedReadyFromAcf = (): void => {
     for (let i = 0; i < urls.length; i++) {
       if (skipUrlSet.has(urls[i]!)) continue;
-      if (indexHasStoredSeoResearchBrief(i, prefetchedAcfFieldsCache, prefetchedPendingCache)) {
+      if (indexHasStoredSeoResearchBrief(i, prefetchedPostFieldsCache, prefetchedPendingCache)) {
         markUrlSerpReady(i, "existing");
       }
     }

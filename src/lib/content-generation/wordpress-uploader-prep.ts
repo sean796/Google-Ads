@@ -15,7 +15,7 @@ import { loadApiKey } from "@/lib/api";
 import { generateSEOSlug } from "@/lib/seo-slug-generator";
 import { resolveRecommendedAuthor } from "@/lib/wordpress-api/author-resolver";
 import { updateWordPressPostMeta, type WordPressPostCreateResult, type WordPressPostUpdateResult } from "@/lib/wordpress-api";
-import { updateACFFields } from "@/lib/wordpress-acf-origin";
+import { updateACFFields } from "@/lib/wordpress-post-fields-origin";
 
 export interface WordPressUploaderOptions {
   context: {
@@ -28,7 +28,7 @@ export interface WordPressUploaderOptions {
     existingContent?: string;
     wordPressPosts?: Array<{ id: number; slug: string; title: string; excerpt: string; link: string; date_gmt: string }>;
     optimizationOptions?: { stagingSite?: boolean };
-    /** Bulk prefetch `getACFFieldsForPost` snapshot — upload skips repeat fetch when ids match. */
+    /** Bulk prefetch `getPostFieldsForPost` snapshot — upload skips repeat fetch when ids match. */
     acfFullPostSnapshot?: Record<string, unknown>;
   };
   blueprintResult: { title?: string; purpose?: string };

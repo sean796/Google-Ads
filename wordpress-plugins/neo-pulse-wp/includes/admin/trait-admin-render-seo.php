@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO Settings page: switch-over from Rank Math, side-by-side check, and the settings form.
+ * SEO Settings page: switch-over from NEO Pulse redirect, side-by-side check, and the settings form.
  *
  * @package Neo_Pulse_Wp
  */
@@ -17,7 +17,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Seo {
 		?>
 		<h2 class="neo-pulse-wp-panel-content__title"><?php esc_html_e( 'SEO Settings', 'neo-pulse-wp' ); ?></h2>
 		<p class="description npwp-seo__lead">
-			<?php esc_html_e( 'Page titles, meta descriptions, robots, canonical links, social sharing tags and schema. Neo Pulse reads the titles, descriptions and schema already saved on your pages by Rank Math, so nothing needs re-entering.', 'neo-pulse-wp' ); ?>
+			<?php esc_html_e( 'Page titles, meta descriptions, robots, canonical links, social sharing tags and schema. Neo Pulse reads the titles, descriptions and schema already saved on your pages by NEO Pulse redirect, so nothing needs re-entering.', 'neo-pulse-wp' ); ?>
 		</p>
 		<?php
 		self::render_seo_switch_panel();
@@ -71,7 +71,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Seo {
 	}
 
 	/**
-	 * The switch-over checklist shown on the SEO screen. The dashboard's "Switch from Rank Math"
+	 * The switch-over checklist shown on the SEO screen. The dashboard's "Switch from NEO Pulse redirect"
 	 * to-do counts its steps from the same list.
 	 *
 	 * @return array<int, array{0: bool, 1: string, 2: string, 3?: bool}> [ done, text, key, needs attention ]
@@ -87,25 +87,25 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Seo {
 				$S::has_own(),
 				$S::has_own() && ! empty( $raw['imported_at'] )
 					/* translators: %s: date */
-					? sprintf( __( 'Rank Math settings copied into Neo Pulse (%s).', 'neo-pulse-wp' ), wp_date( get_option( 'date_format' ), (int) $raw['imported_at'] ) )
-					: ( $S::has_own() ? __( 'Settings saved in Neo Pulse.', 'neo-pulse-wp' ) : __( 'Rank Math settings are being read live. Copy them before removing Rank Math.', 'neo-pulse-wp' ) ),
+					? sprintf( __( 'NEO Pulse redirect settings copied into Neo Pulse (%s).', 'neo-pulse-wp' ), wp_date( get_option( 'date_format' ), (int) $raw['imported_at'] ) )
+					: ( $S::has_own() ? __( 'Settings saved in Neo Pulse.', 'neo-pulse-wp' ) : __( 'NEO Pulse redirect settings are being read live. Copy them before removing NEO Pulse redirect.', 'neo-pulse-wp' ) ),
 				'import',
 			);
-			$redirects = self::rank_math_database_import_status();
+			$redirects = self::neo_pulse_seo_database_import_status();
 			$total     = (int) $redirects['imported_count'] + (int) $redirects['pending_count'];
 			$checks[]  = array(
 				(int) $redirects['pending_count'] === 0,
 				(int) $redirects['pending_count'] === 0
 					? ( $total > 0
 						/* translators: %d: number of redirects */
-						? sprintf( _n( 'Redirects: the Rank Math redirect is in Neo Pulse.', 'Redirects: all %d Rank Math redirects are in Neo Pulse.', $total, 'neo-pulse-wp' ), $total )
-						: __( 'Redirects: Rank Math has no redirects to bring across.', 'neo-pulse-wp' ) )
+						? sprintf( _n( 'Redirects: the NEO Pulse redirect redirect is in Neo Pulse.', 'Redirects: all %d NEO Pulse redirect redirects are in Neo Pulse.', $total, 'neo-pulse-wp' ), $total )
+						: __( 'Redirects: NEO Pulse redirect has no redirects to bring across.', 'neo-pulse-wp' ) )
 					/* translators: %d: number of redirects */
-					: sprintf( _n( 'Redirects: %d Rank Math redirect still needs importing. Rank Math stops redirecting once it is deactivated.', 'Redirects: %d Rank Math redirects still need importing. Rank Math stops redirecting once it is deactivated.', (int) $redirects['pending_count'], 'neo-pulse-wp' ), (int) $redirects['pending_count'] ),
+					: sprintf( _n( 'Redirects: %d NEO Pulse redirect redirect still needs importing. NEO Pulse redirect stops redirecting once it is deactivated.', 'Redirects: %d NEO Pulse redirect redirects still need importing. NEO Pulse redirect stops redirecting once it is deactivated.', (int) $redirects['pending_count'], 'neo-pulse-wp' ), (int) $redirects['pending_count'] ),
 				'redirects',
 			);
 		}
-		// Scripts from Header Footer Code Manager. Not tied to Rank Math, but it is part of the same move
+		// Scripts from Header Footer Code Manager. Not tied to NEO Pulse redirect, but it is part of the same move
 		// and easy to forget when this page is the only one being worked through.
 		$hfcm = self::hfcm_database_import_status();
 		if ( ! empty( $hfcm['available'] ) || ! empty( $hfcm['items'] ) ) {
@@ -124,24 +124,24 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Seo {
 		$checks[] = array(
 			! empty( $sitemap['general']['enabled'] ),
 			! empty( $sitemap['general']['enabled'] )
-				? __( 'Sitemap: Neo Pulse serves sitemap_index.xml once Rank Math is off (same address).', 'neo-pulse-wp' )
+				? __( 'Sitemap: Neo Pulse serves sitemap_index.xml once NEO Pulse redirect is off (same address).', 'neo-pulse-wp' )
 				: __( 'Sitemap: switched off in Neo Pulse. Turn it on so search engines keep a sitemap.', 'neo-pulse-wp' ),
 			'sitemap',
 		);
-		$ga = Neo_Pulse_Wp_Seo_Takeover::rank_math_ga();
+		$ga = Neo_Pulse_Wp_Seo_Takeover::neo_pulse_seo_ga();
 		if ( $ga['install'] && $ga['measurement_id'] !== '' ) {
 			$moved    = Neo_Pulse_Wp_Seo_Takeover::ga_row() || Neo_Pulse_Wp_Seo_Takeover::existing_tags( $ga['measurement_id'] )['same_id'] !== '';
 			$checks[] = array(
 				$moved,
 				$moved
 					/* translators: %s: GA measurement ID */
-					? sprintf( __( 'Google Analytics: %s is in Script Manager and keeps running once Rank Math is off.', 'neo-pulse-wp' ), $ga['measurement_id'] )
+					? sprintf( __( 'Google Analytics: %s is in Script Manager and keeps running once NEO Pulse redirect is off.', 'neo-pulse-wp' ), $ga['measurement_id'] )
 					/* translators: %s: GA measurement ID */
-					: sprintf( __( 'Google Analytics: Rank Math adds %s today. Copy settings to move the tag to Script Manager, or tracking stops when Rank Math is deactivated.', 'neo-pulse-wp' ), $ga['measurement_id'] ),
+					: sprintf( __( 'Google Analytics: NEO Pulse redirect adds %s today. Copy settings to move the tag to Script Manager, or tracking stops when NEO Pulse redirect is deactivated.', 'neo-pulse-wp' ), $ga['measurement_id'] ),
 				'ga',
 			);
 		}
-		$verify = Neo_Pulse_Wp_Seo_Takeover::rank_math_verify();
+		$verify = Neo_Pulse_Wp_Seo_Takeover::neo_pulse_seo_verify();
 		if ( $verify !== array() ) {
 			$missing  = Neo_Pulse_Wp_Seo_Takeover::verify_missing();
 			$names    = array_map( array( 'Neo_Pulse_Wp_Seo_Takeover', 'verify_label' ), array_keys( $missing ? $missing : $verify ) );
@@ -150,9 +150,9 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Seo {
 				$missing === array(),
 				$missing === array()
 					/* translators: %s: services, e.g. "Google Search Console and Bing" */
-					? sprintf( _n( 'Site verification: the %s verification tag is in Script Manager and keeps the site verified once Rank Math is off.', 'Site verification: the %s verification tags are in Script Manager and keep the site verified once Rank Math is off.', count( $names ), 'neo-pulse-wp' ), $services )
+					? sprintf( _n( 'Site verification: the %s verification tag is in Script Manager and keeps the site verified once NEO Pulse redirect is off.', 'Site verification: the %s verification tags are in Script Manager and keep the site verified once NEO Pulse redirect is off.', count( $names ), 'neo-pulse-wp' ), $services )
 					/* translators: %s: services, e.g. "Google Search Console and Bing" */
-					: sprintf( _n( 'Site verification: Rank Math adds the %s verification tag today. Move it to Script Manager, or the site can lose its verification when Rank Math is deactivated.', 'Site verification: Rank Math adds the %s verification tags today. Move them to Script Manager, or the site can lose its verification when Rank Math is deactivated.', count( $names ), 'neo-pulse-wp' ), $services ),
+					: sprintf( _n( 'Site verification: NEO Pulse redirect adds the %s verification tag today. Move it to Script Manager, or the site can lose its verification when NEO Pulse redirect is deactivated.', 'Site verification: NEO Pulse redirect adds the %s verification tags today. Move them to Script Manager, or the site can lose its verification when NEO Pulse redirect is deactivated.', count( $names ), 'neo-pulse-wp' ), $services ),
 				'verify',
 			);
 		}
@@ -162,7 +162,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Seo {
 			$indexnow
 				/* translators: 1: date, 2: HTTP status */
 				? sprintf( __( 'IndexNow: last sent %1$s (answer %2$s).', 'neo-pulse-wp' ), wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) $indexnow['time'] ), (string) ( $indexnow['status'] ?: __( 'no answer', 'neo-pulse-wp' ) ) )
-				: __( 'IndexNow: search engines are told about new and updated pages once Neo Pulse SEO is live (using Rank Math\'s key when it had one).', 'neo-pulse-wp' ),
+				: __( 'IndexNow: search engines are told about new and updated pages once Neo Pulse SEO is live (using NEO Pulse redirect\'s key when it had one).', 'neo-pulse-wp' ),
 			'indexnow',
 		);
 		$last       = Neo_Pulse_Wp_Seo_Compare::last_summary();
@@ -223,7 +223,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Seo {
 		$S      = 'Neo_Pulse_Wp_Seo_Settings';
 		$status = self::seo_status();
 		$checks = self::seo_switch_checks();
-		// Every step done while Rank Math still prints the tags: say so plainly.
+		// Every step done while NEO Pulse redirect still prints the tags: say so plainly.
 		$all_ok = ! in_array( false, array_map( static function ( $check ) { return (bool) $check[0]; }, $checks ), true );
 		if ( 'off' === $status[0] && $S::other_seo_plugin() !== '' && $all_ok ) {
 			$status = self::ready_status( $S::other_seo_plugin() );
@@ -244,13 +244,13 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Seo {
 							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="npwp-seo__inline-form">
 								<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_SEO_IMPORT ); ?>" />
 								<?php wp_nonce_field( self::ACTION_SEO_IMPORT, 'neo_pulse_wp_seo_nonce' ); ?>
-								<button type="submit" class="button"><?php echo $S::has_own() ? esc_html__( 'Copy again', 'neo-pulse-wp' ) : esc_html__( 'Copy settings from Rank Math', 'neo-pulse-wp' ); ?></button>
+								<button type="submit" class="button"><?php echo $S::has_own() ? esc_html__( 'Copy again', 'neo-pulse-wp' ) : esc_html__( 'Copy settings from NEO Pulse redirect', 'neo-pulse-wp' ); ?></button>
 							</form>
 						<?php elseif ( 'redirects' === $check[2] && ! $check[0] ) : ?>
 							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="npwp-seo__inline-form">
 								<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_IMPORT_REDIRECTS_RANK_MATH_DB ); ?>" />
 								<input type="hidden" name="neo_pulse_wp_back" value="seo" />
-								<?php wp_nonce_field( self::ACTION_IMPORT_REDIRECTS_RANK_MATH_DB, 'neo_pulse_wp_import_redirects_rank_math_db_nonce' ); ?>
+								<?php wp_nonce_field( self::ACTION_IMPORT_REDIRECTS_RANK_MATH_DB, 'neo_pulse_wp_import_redirects_neo_pulse_seo_db_nonce' ); ?>
 								<button type="submit" class="button"><?php esc_html_e( 'Import redirects', 'neo-pulse-wp' ); ?></button>
 							</form>
 						<?php elseif ( 'scripts' === $check[2] && ! $check[0] ) : ?>
@@ -341,7 +341,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Seo {
 					<p class="description">
 						<?php
 						if ( current_user_can( 'activate_plugins' ) && count( $other_files ) > 1 ) {
-							/* translators: %s: plugin names, e.g. "Rank Math SEO and Rank Math SEO PRO" */
+							/* translators: %s: plugin names, e.g. "NEO Pulse redirect SEO and NEO Pulse redirect SEO PRO" */
 							echo esc_html( sprintf( __( 'The one-click switch deactivates %s together.', 'neo-pulse-wp' ), $other_names ) ) . ' ';
 						}
 						if ( $left > 0 && ! $only_diffs && current_user_can( 'activate_plugins' ) ) {
@@ -680,7 +680,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_Seo {
 							<td>
 								<select name="<?php echo esc_attr( $base . '[schema]' ); ?>">
 									<?php if ( $other !== '' ) : ?>
-										<option value="keep" selected><?php echo esc_html( ucfirst( $other ) . ' ' . __( '(from Rank Math)', 'neo-pulse-wp' ) ); ?></option>
+										<option value="keep" selected><?php echo esc_html( ucfirst( $other ) . ' ' . __( '(from NEO Pulse redirect)', 'neo-pulse-wp' ) ); ?></option>
 									<?php endif; ?>
 									<option value=""><?php esc_html_e( 'None', 'neo-pulse-wp' ); ?></option>
 									<?php foreach ( array( 'Article', 'BlogPosting', 'NewsArticle' ) as $option ) : ?>

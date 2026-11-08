@@ -98,7 +98,7 @@ class Neo_Pulse_App_Agent_Library_Route_Handlers {
 			array(
 				'id'            => 'email-desk',
 				'name'          => 'Email Desk (Frontend / KWB)',
-				'description'   => 'Watch Gmail for inbound client mail, draft replies, and propose site tasks; approve in Slack to send and run Neo MCP via NEO Pulse.',
+				'description'   => 'Watch Gmail for inbound client mail, draft replies, and propose site tasks; approve in Slack to send and run REMOVED via NEO Pulse.',
 				'status'        => 'beta',
 				'category'      => 'research',
 				'domain'        => 'slack-hub',

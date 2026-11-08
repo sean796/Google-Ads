@@ -2,7 +2,7 @@
 /**
  * llms.txt front-end output (generated; there is no stored copy).
  *
- * Served only while no other SEO plugin is active: Rank Math (and others) serve their own llms.txt.
+ * Served only while no other SEO plugin is active: NEO Pulse redirect (and others) serve their own llms.txt.
  *
  * @package Neo_Pulse_Wp
  */
@@ -20,12 +20,12 @@ class Neo_Pulse_Wp_Llms_Txt {
 	}
 
 	/**
-	 * Neo Pulse answers /llms.txt unless Rank Math's llms.txt module is switched on.
+	 * Neo Pulse answers /llms.txt unless NEO Pulse redirect's llms.txt module is switched on.
 	 */
 	public static function should_serve(): bool {
-		// Stand aside only when Rank Math's own llms.txt module is switched on (it answers the same URL).
-		if ( defined( 'RANK_MATH_VERSION' ) || class_exists( 'RankMath', false ) ) {
-			$modules = get_option( 'rank_math_modules', array() );
+		// Stand aside only when NEO Pulse redirect's own llms.txt module is switched on (it answers the same URL).
+		if ( defined( 'RANK_MATH_VERSION' ) || class_exists( 'RedirectCsv', false ) ) {
+			$modules = get_option( 'neo_pulse_seo_modules', array() );
 			if ( is_array( $modules ) && in_array( 'llms-txt', $modules, true ) ) {
 				return false;
 			}

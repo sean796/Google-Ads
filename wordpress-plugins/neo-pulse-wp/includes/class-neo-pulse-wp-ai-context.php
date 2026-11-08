@@ -32,9 +32,9 @@ class Neo_Pulse_Wp_Ai_Context {
 			'title'        => get_the_title( $post ),
 			'excerpt'      => self::read_excerpt( $post ),
 			'focusKeyword' => self::read_focus_keyword( $post_id ),
-			'faq'          => self::read_acf_or_meta( $post_id, array( 'faq', 'seo_faq' ) ),
-			'seoResearch'  => self::read_acf_or_meta( $post_id, array( 'seo_research' ) ),
-			'pageUrl'      => self::read_acf_or_meta( $post_id, array( 'page_url' ) ),
+			'faq'          => self::read_post_field_or_meta( $post_id, array( 'faq', 'seo_faq' ) ),
+			'seoResearch'  => self::read_post_field_or_meta( $post_id, array( 'seo_research' ) ),
+			'pageUrl'      => self::read_post_field_or_meta( $post_id, array( 'page_url' ) ),
 			'url'          => is_string( $url ) ? $url : '',
 		);
 	}
@@ -45,7 +45,7 @@ class Neo_Pulse_Wp_Ai_Context {
 	}
 
 	public static function read_seo_title( int $post_id ): string {
-		$rm = get_post_meta( $post_id, 'rank_math_title', true );
+		$rm = get_post_meta( $post_id, 'neo_pulse_seo_title', true );
 		if ( is_string( $rm ) && trim( $rm ) !== '' ) {
 			return trim( $rm );
 		}
@@ -54,7 +54,7 @@ class Neo_Pulse_Wp_Ai_Context {
 	}
 
 	public static function read_meta_description( int $post_id ): string {
-		$rm = get_post_meta( $post_id, 'rank_math_description', true );
+		$rm = get_post_meta( $post_id, 'neo_pulse_seo_description', true );
 		if ( is_string( $rm ) && trim( $rm ) !== '' ) {
 			return trim( $rm );
 		}
@@ -66,7 +66,7 @@ class Neo_Pulse_Wp_Ai_Context {
 	 * @return array<string,string>
 	 */
 	public static function meta_hub_values( int $post_id ): array {
-		$page_url = self::read_acf_or_meta( $post_id, array( 'page_url' ) );
+		$page_url = self::read_post_field_or_meta( $post_id, array( 'page_url' ) );
 		if ( $page_url === '' ) {
 			$link = get_permalink( $post_id );
 			$page_url = is_string( $link ) ? $link : '';
@@ -76,17 +76,17 @@ class Neo_Pulse_Wp_Ai_Context {
 			'seoTitle'        => self::read_seo_title( $post_id ),
 			'metaDescription' => self::read_meta_description( $post_id ),
 			'focusKeyword'    => self::read_focus_keyword( $post_id ),
-			'seoResearch'     => self::read_acf_or_meta( $post_id, array( 'seo_research' ) ),
-			'faq'             => self::read_acf_or_meta( $post_id, array( 'faq', 'seo_faq' ) ),
+			'seoResearch'     => self::read_post_field_or_meta( $post_id, array( 'seo_research' ) ),
+			'faq'             => self::read_post_field_or_meta( $post_id, array( 'faq', 'seo_faq' ) ),
 			'pageUrl'         => $page_url,
 		);
 	}
 
 	public static function read_focus_keyword( int $post_id ): string {
 		$candidates = array(
-			self::primary_focus_phrase( get_post_meta( $post_id, 'rank_math_focus_keyword', true ) ),
+			self::primary_focus_phrase( get_post_meta( $post_id, 'neo_pulse_seo_focus_keyword', true ) ),
 			self::primary_focus_phrase( get_post_meta( $post_id, '_neo_pulse_focus_keyword', true ) ),
-			self::read_acf_or_meta( $post_id, array( 'keyword_focus' ) ),
+			self::read_post_field_or_meta( $post_id, array( 'keyword_focus' ) ),
 		);
 		$post  = get_post( $post_id );
 		$title = $post instanceof WP_Post ? trim( (string) $post->post_title ) : '';
@@ -161,7 +161,7 @@ class Neo_Pulse_Wp_Ai_Context {
 	}
 
 	/**
-	 * Rank Math stores "primary, secondary". Use the primary phrase only.
+	 * NEO Pulse redirect stores "primary, secondary". Use the primary phrase only.
 	 *
 	 * @param mixed $raw Meta value.
 	 */
@@ -183,7 +183,7 @@ class Neo_Pulse_Wp_Ai_Context {
 	/**
 	 * @param array<int,string> $keys
 	 */
-	public static function read_acf_or_meta( int $post_id, array $keys ): string {
+	public static function read_post_field_or_meta( int $post_id, array $keys ): string {
 		foreach ( $keys as $key ) {
 			if ( function_exists( 'get_field' ) ) {
 				$acf = get_field( $key, $post_id, false );
@@ -212,11 +212,11 @@ class Neo_Pulse_Wp_Ai_Context {
 			case 'focus_keyword':
 				return self::read_focus_keyword( $post_id );
 			case 'seo_research':
-				return self::read_acf_or_meta( $post_id, array( 'seo_research' ) );
+				return self::read_post_field_or_meta( $post_id, array( 'seo_research' ) );
 			case 'faq':
-				return self::read_acf_or_meta( $post_id, array( 'faq', 'seo_faq' ) );
+				return self::read_post_field_or_meta( $post_id, array( 'faq', 'seo_faq' ) );
 			case 'page_url':
-				$val = self::read_acf_or_meta( $post_id, array( 'page_url' ) );
+				$val = self::read_post_field_or_meta( $post_id, array( 'page_url' ) );
 				if ( $val !== '' ) {
 					return $val;
 				}

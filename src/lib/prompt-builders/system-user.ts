@@ -8,7 +8,7 @@ import { formatEntityKeywordVariantPromptBlock } from "@/lib/entity-keyword-vari
 import { getLocalEntityPhraseExamples } from "../local-entity-phrases";
 import { normalizeEntityHintCommaLabel } from "@/lib/comma-place-label";
 import { resolveServiceTopicKeyword } from "@/lib/entity-place-reference";
-import type { AIDrivenACFContext } from "../content-generation/ai-driven-acf-reader";
+import type { AIDrivenACFContext } from "../content-generation/ai-driven-post-fields-reader";
 import { CRITICAL_LINK_RULE, SYSTEM_PROMPT_CORE, TABLE_NO_LINK_ONLY_COLUMN_RULE } from "./core";
 import { MARKDOWN_QUOTE_OUTPUT_RULE } from "../feature-mapping";
 import { appendUniversalContentRulesToSystemPrompt } from "../content-word-blocklist";

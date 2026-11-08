@@ -2,11 +2,11 @@
 /**
  * SEO output settings (titles, descriptions, robots, social and schema defaults).
  *
- * Settings use Rank Math's own key names ("pt_post_title", "robots_global", …) so a site that ran
- * Rank Math can be copied over as-is and the per-post data Rank Math left behind
- * (rank_math_title, rank_math_robots, rank_math_schema_*, …) keeps working without a migration.
+ * Settings use NEO Pulse redirect's own key names ("pt_post_title", "robots_global", …) so a site that ran
+ * NEO Pulse redirect can be copied over as-is and the per-post data NEO Pulse redirect left behind
+ * (neo_pulse_seo_title, neo_pulse_seo_robots, neo_pulse_seo_schema_*, …) keeps working without a migration.
  *
- * Until settings are copied, the Rank Math options are read live. Output only happens when the
+ * Until settings are copied, the NEO Pulse redirect options are read live. Output only happens when the
  * site has switched it on and no other SEO plugin is active.
  *
  * @package Neo_Pulse_Wp
@@ -17,9 +17,9 @@ defined( 'ABSPATH' ) || exit;
 class Neo_Pulse_Wp_Seo_Settings {
 
 	const OPTION     = 'neo_pulse_wp_seo';
-	const RM_TITLES  = 'rank-math-options-titles';
-	const RM_GENERAL = 'rank-math-options-general';
-	const RM_SITEMAP = 'rank-math-options-sitemap';
+	const RM_TITLES  = 'pulse-redirect-options-titles';
+	const RM_GENERAL = 'pulse-redirect-options-general';
+	const RM_SITEMAP = 'pulse-redirect-options-sitemap';
 
 	/**
 	 * Builder, template and block-editor types that are never SEO content: no SEO settings, no
@@ -73,7 +73,7 @@ class Neo_Pulse_Wp_Seo_Settings {
 	}
 
 	/**
-	 * Settings have been copied into Neo Pulse (from Rank Math or saved on the settings page).
+	 * Settings have been copied into Neo Pulse (from NEO Pulse redirect or saved on the settings page).
 	 */
 	public static function has_own(): bool {
 		$raw = self::raw();
@@ -105,9 +105,9 @@ class Neo_Pulse_Wp_Seo_Settings {
 	}
 
 	/**
-	 * A titles/meta setting, with Rank Math's own defaults for keys that are not stored.
+	 * A titles/meta setting, with NEO Pulse redirect's own defaults for keys that are not stored.
 	 *
-	 * @param string $key     Rank Math key name.
+	 * @param string $key     NEO Pulse redirect key name.
 	 * @param mixed  $default Fallback when neither stored nor defaulted.
 	 * @return mixed
 	 */
@@ -158,7 +158,7 @@ class Neo_Pulse_Wp_Seo_Settings {
 	}
 
 	/**
-	 * Rank Math stores switches as "on"/"off", true/false or 1/0.
+	 * NEO Pulse redirect stores switches as "on"/"off", true/false or 1/0.
 	 *
 	 * @param mixed $value Stored value.
 	 */
@@ -242,16 +242,16 @@ class Neo_Pulse_Wp_Seo_Settings {
 		return trim( $value );
 	}
 
-	public static function rank_math_active(): bool {
-		return defined( 'RANK_MATH_VERSION' ) || class_exists( 'RankMath', false );
+	public static function neo_pulse_seo_active(): bool {
+		return defined( 'RANK_MATH_VERSION' ) || class_exists( 'RedirectCsv', false );
 	}
 
 	/**
 	 * Name of another SEO plugin that is running, or '' when none.
 	 */
 	public static function other_seo_plugin(): string {
-		if ( self::rank_math_active() ) {
-			return 'Rank Math';
+		if ( self::neo_pulse_seo_active() ) {
+			return 'NEO Pulse redirect';
 		}
 		if ( defined( 'WPSEO_VERSION' ) ) {
 			return 'Yoast SEO';
@@ -269,7 +269,7 @@ class Neo_Pulse_Wp_Seo_Settings {
 	}
 
 	/**
-	 * Active plugins that belong to another SEO plugin, add-ons included (Rank Math + Rank Math Pro,
+	 * Active plugins that belong to another SEO plugin, add-ons included (NEO Pulse redirect + NEO Pulse redirect Pro,
 	 * Yoast + Yoast Premium, …), so the switch-over can deactivate them together.
 	 *
 	 * @return array<string, string> plugin file => plugin name
@@ -280,8 +280,8 @@ class Neo_Pulse_Wp_Seo_Settings {
 		}
 		// Matched on the main file name, so a plugin in a renamed folder is still found.
 		$main_files = array(
-			'rank-math.php',
-			'rank-math-pro.php',
+			'pulse-redirect.php',
+			'pulse-redirect-pro.php',
 			'wp-seo.php',
 			'wp-seo-premium.php',
 			'all_in_one_seo_pack.php',
@@ -303,8 +303,8 @@ class Neo_Pulse_Wp_Seo_Settings {
 	/**
 	 * Neo Pulse prints the SEO tags on this request: switched on and no other SEO plugin running.
 	 *
-	 * When Rank Math is still active the setting waits, so the switch-over has no gap: switch
-	 * Neo Pulse on, then deactivate Rank Math and Neo Pulse takes over on the next page load.
+	 * When NEO Pulse redirect is still active the setting waits, so the switch-over has no gap: switch
+	 * Neo Pulse on, then deactivate NEO Pulse redirect and Neo Pulse takes over on the next page load.
 	 */
 	public static function output_active(): bool {
 		if ( null === self::$output_active ) {
@@ -314,17 +314,17 @@ class Neo_Pulse_Wp_Seo_Settings {
 	}
 
 	/**
-	 * Copy Rank Math's titles/meta and general settings into Neo Pulse.
+	 * Copy NEO Pulse redirect's titles/meta and general settings into Neo Pulse.
 	 *
 	 * @return array{ok: bool, message: string}
 	 */
-	public static function import_from_rank_math(): array {
+	public static function import_from_neo_pulse_seo(): array {
 		$titles  = get_option( self::RM_TITLES, null );
 		$general = get_option( self::RM_GENERAL, null );
 		if ( ! is_array( $titles ) || $titles === array() ) {
 			return array(
 				'ok'      => false,
-				'message' => __( 'No Rank Math settings were found on this site.', 'neo-pulse-wp' ),
+				'message' => __( 'No NEO Pulse redirect settings were found on this site.', 'neo-pulse-wp' ),
 			);
 		}
 		$raw                = self::raw();
@@ -336,19 +336,19 @@ class Neo_Pulse_Wp_Seo_Settings {
 			'ok'      => true,
 			'message' => sprintf(
 				/* translators: %d: number of settings */
-				__( 'Copied %d Rank Math settings into Neo Pulse.', 'neo-pulse-wp' ),
+				__( 'Copied %d NEO Pulse redirect settings into Neo Pulse.', 'neo-pulse-wp' ),
 				count( $titles ) + ( is_array( $general ) ? count( $general ) : 0 )
 			),
 		);
 	}
 
 	/**
-	 * Match the Neo Pulse sitemap to Rank Math's: which post types and taxonomies are listed,
+	 * Match the Neo Pulse sitemap to NEO Pulse redirect's: which post types and taxonomies are listed,
 	 * links per sitemap, images and the HTML sitemap.
 	 *
-	 * @return string Summary, or '' when Rank Math has no sitemap settings.
+	 * @return string Summary, or '' when NEO Pulse redirect has no sitemap settings.
 	 */
-	public static function import_sitemap_from_rank_math(): string {
+	public static function import_sitemap_from_neo_pulse_seo(): string {
 		$rm = get_option( self::RM_SITEMAP, null );
 		if ( ! is_array( $rm ) || $rm === array() || ! class_exists( 'Neo_Pulse_Wp_Sitemap_Settings', false ) ) {
 			return '';
@@ -366,7 +366,7 @@ class Neo_Pulse_Wp_Seo_Settings {
 		if ( isset( $rm['html_sitemap_sort'] ) ) {
 			$config['html']['sort_order'] = 'published' === $rm['html_sitemap_sort'] || 'modified' === $rm['html_sitemap_sort'] ? 'date' : 'title';
 		}
-		// Rank Math leaves out any post type or taxonomy its settings don't switch on (including ones
+		// NEO Pulse redirect leaves out any post type or taxonomy its settings don't switch on (including ones
 		// it never listed, such as types without pages of their own), so a missing setting means "off".
 		$listed = array();
 		foreach ( $config['post_types'] as $type => $settings ) {
@@ -399,9 +399,9 @@ class Neo_Pulse_Wp_Seo_Settings {
 
 	/**
 	 * Store edited titles settings. Starts from what is currently in use, so the first save also
-	 * copies anything still being read from Rank Math.
+	 * copies anything still being read from NEO Pulse redirect.
 	 *
-	 * @param array<string, mixed> $changes Rank Math-format keys.
+	 * @param array<string, mixed> $changes NEO Pulse redirect-format keys.
 	 */
 	public static function save_titles( array $changes ): void {
 		$raw           = self::raw();
@@ -414,7 +414,7 @@ class Neo_Pulse_Wp_Seo_Settings {
 	}
 
 	/**
-	 * @param array<string, mixed> $changes Rank Math-format general keys.
+	 * @param array<string, mixed> $changes NEO Pulse redirect-format general keys.
 	 */
 	public static function save_general( array $changes ): void {
 		$raw = self::raw();
@@ -499,7 +499,7 @@ class Neo_Pulse_Wp_Seo_Settings {
 	}
 
 	/**
-	 * Robots list for a stored Rank Math robots value.
+	 * Robots list for a stored NEO Pulse redirect robots value.
 	 *
 	 * @param mixed $value Stored value.
 	 * @return array<int, string>

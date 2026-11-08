@@ -1,13 +1,13 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { bulkOptimizationDoPrefetch } from "../bulk-optimization-do-prefetch";
-import type { WpPostSnapshotFromAcfByUrl } from "@/lib/wordpress-api/fields-client";
+import type { WpPostSnapshotFromFieldsByUrl } from "@/lib/wordpress-api/fields-client";
 import type { SitePostInventoryRow } from "@/lib/wordpress-api/types";
 import type { WordPressSite } from "@/components/integrations/types";
 import {
   buildInventoryLookupMaps,
   existingPostFromInventoryRow,
 } from "@/lib/wordpress-api/inventory-match";
-import * as acfReader from "@/lib/content-generation/ai-driven-acf-reader";
+import * as acfReader from "@/lib/content-generation/ai-driven-post-fields-reader";
 
 const getWordPressPostContent = vi.fn();
 const getFieldsForPost = vi.fn();
@@ -37,7 +37,7 @@ describe("bulkOptimizationDoPrefetch", () => {
   });
 
   it("does not call getWordPressPostContent when post snapshot exists from grep (inventory miss)", async () => {
-    const snapshot: WpPostSnapshotFromAcfByUrl = {
+    const snapshot: WpPostSnapshotFromFieldsByUrl = {
       id: 42,
       slug: "svc-area",
       title: "T",
@@ -50,11 +50,11 @@ describe("bulkOptimizationDoPrefetch", () => {
       postTypeSubtype: "post",
     };
 
-    const prefetchedPostPayloadByUrlIndex = new Map<number, WpPostSnapshotFromAcfByUrl>();
+    const prefetchedPostPayloadByUrlIndex = new Map<number, WpPostSnapshotFromFieldsByUrl>();
     prefetchedPostPayloadByUrlIndex.set(0, snapshot);
 
-    const prefetchedAcfFieldsCache = new Map<number, Record<string, unknown>>();
-    prefetchedAcfFieldsCache.set(0, {
+    const prefetchedPostFieldsCache = new Map<number, Record<string, unknown>>();
+    prefetchedPostFieldsCache.set(0, {
       keyword_focus: "test keyword",
       seo_research: '{"ok":true}',
     });
@@ -79,7 +79,7 @@ describe("bulkOptimizationDoPrefetch", () => {
       inContentImageRequest: undefined,
       wordPressPostsForRun: [],
       siteServiceContext: null,
-      prefetchedAcfFieldsCache,
+      prefetchedPostFieldsCache,
       prefetchedPostPayloadByUrlIndex,
       prefetchedPendingCache,
       setBulkOptimizationState: vi.fn(),
@@ -129,7 +129,7 @@ describe("bulkOptimizationDoPrefetch", () => {
       inContentImageRequest: undefined,
       wordPressPostsForRun: [],
       siteServiceContext: null,
-      prefetchedAcfFieldsCache: new Map([
+      prefetchedPostFieldsCache: new Map([
         [
           0,
           {
@@ -189,7 +189,7 @@ describe("bulkOptimizationDoPrefetch", () => {
       inContentImageRequest: undefined,
       wordPressPostsForRun: [],
       siteServiceContext: null,
-      prefetchedAcfFieldsCache: new Map([[0, { keyword_focus: "house painter amisk" }]]),
+      prefetchedPostFieldsCache: new Map([[0, { keyword_focus: "house painter amisk" }]]),
       prefetchedPostPayloadByUrlIndex: new Map(),
       prefetchedPendingCache,
       setBulkOptimizationState: vi.fn(),
@@ -230,7 +230,7 @@ describe("bulkOptimizationDoPrefetch", () => {
       number,
       { pending: Record<string, unknown>; primaryKeyword: string }
     >();
-    const prefetchedAcfFieldsCache = new Map<number, Record<string, unknown>>([
+    const prefetchedPostFieldsCache = new Map<number, Record<string, unknown>>([
       [0, { keyword_focus: "k", seo_research: "{}" }],
     ]);
     const prefetchedAcfFullPostByUrlIndex = new Map<number, Record<string, unknown>>([
@@ -252,7 +252,7 @@ describe("bulkOptimizationDoPrefetch", () => {
       inContentImageRequest: undefined,
       wordPressPostsForRun: [],
       siteServiceContext: null,
-      prefetchedAcfFieldsCache,
+      prefetchedPostFieldsCache,
       prefetchedPostPayloadByUrlIndex: new Map(),
       prefetchedAcfFullPostByUrlIndex,
       prefetchedPendingCache,
@@ -267,7 +267,7 @@ describe("bulkOptimizationDoPrefetch", () => {
   });
 
   it("rethrows prefetch errors without seeding stub pending row", async () => {
-    const snapshot: WpPostSnapshotFromAcfByUrl = {
+    const snapshot: WpPostSnapshotFromFieldsByUrl = {
       id: 42,
       slug: "svc-area",
       title: "T",
@@ -280,11 +280,11 @@ describe("bulkOptimizationDoPrefetch", () => {
       postTypeSubtype: "post",
     };
 
-    const prefetchedPostPayloadByUrlIndex = new Map<number, WpPostSnapshotFromAcfByUrl>();
+    const prefetchedPostPayloadByUrlIndex = new Map<number, WpPostSnapshotFromFieldsByUrl>();
     prefetchedPostPayloadByUrlIndex.set(0, snapshot);
 
-    const prefetchedAcfFieldsCache = new Map<number, Record<string, unknown>>();
-    prefetchedAcfFieldsCache.set(0, {
+    const prefetchedPostFieldsCache = new Map<number, Record<string, unknown>>();
+    prefetchedPostFieldsCache.set(0, {
       keyword_focus: "test keyword",
       seo_research: '{"ok":true}',
     });
@@ -314,7 +314,7 @@ describe("bulkOptimizationDoPrefetch", () => {
         inContentImageRequest: undefined,
         wordPressPostsForRun: [],
         siteServiceContext: null,
-        prefetchedAcfFieldsCache,
+        prefetchedPostFieldsCache,
         prefetchedPostPayloadByUrlIndex,
         prefetchedPendingCache,
         setBulkOptimizationState: vi.fn(),

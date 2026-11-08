@@ -51,7 +51,7 @@ final class Neo_Pulse_Wp_Plan {
 			'neo-pulse-wp-chat'           => array(),
 			'neo-pulse-wp-chat-logs'      => array(),
 			'neo-pulse-wp-backend-assist' => array(),
-			'neo-pulse-wp-tool-library'   => array(),
+			'REMOVED_NEO_PULSE_WP_TOOL-library'   => array(),
 			'neo-pulse-wp-settings'       => array( 'openrouter', 'dataforseo' ),
 		);
 	}

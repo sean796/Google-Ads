@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import pLimit from "p-limit";
 import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
@@ -50,6 +51,16 @@ export interface OverviewVisualDocCanvasProps {
   onStudioEditorModeChange?: (mode: StudioEditorModeId) => void;
   /** CSV title + URL slug agents in flight (hide raw keyword paths in header). */
   bulkTitleUrlOptimizing?: boolean;
+  /** AI status line for the bulk generation splash (replaces LOADING when set). */
+  bulkSplashStatusText?: string;
+  /** Placeholder graphic kind paired with the bulk generation status line. */
+  bulkSplashStatusVisual?: import("@/lib/bulk/bulk-splash-status-agent").BulkSplashVisualKind;
+  /** Show the splash over the compose (studioBody) area, used while generating blog ideas. */
+  composeSplashVisible?: boolean;
+  /** AI status line for the compose-area splash. */
+  composeSplashStatusText?: string;
+  /** Placeholder graphic kind paired with the compose-area status line. */
+  composeSplashStatusVisual?: import("@/lib/bulk/bulk-splash-status-agent").BulkSplashVisualKind;
 }
 
 type Args = {
@@ -143,57 +154,69 @@ export function useOverviewStudioAutoSeo({
           );
           const siblingTitles = headers.map((s) => s.title);
           const workingHeaders = [...headers];
+          const elLimit = pLimit(6);
 
-          for (let i = 0; i < workingHeaders.length; i += 1) {
-            const sec = workingHeaders[i]!;
-            const secBody = (sec.bodyHtml || sec.bodyText || "").trim();
-            if (!secBody) continue;
-            setPassageStatus({
-              label: `Section ${i + 1}/${workingHeaders.length}: ${sec.title || `Section ${i + 1}`}`,
-              current: i + 1,
-              total: workingHeaders.length,
+          const sectionResults = await Promise.all(
+            workingHeaders.map((sec, i) =>
+              elLimit(async () => {
+                const secBody = (sec.bodyHtml || sec.bodyText || "").trim();
+                if (!secBody) return null;
+                setPassageStatus({
+                  label: `Section ${i + 1}/${workingHeaders.length}: ${sec.title || `Section ${i + 1}`}`,
+                  current: i + 1,
+                  total: workingHeaders.length,
+                });
+                const elBefore = secBody;
+                try {
+                  const rewritten = await rewriteBlogPassageSection({
+                    mode: "copy",
+                    section: {
+                      id: sec.id || `sec-${i}`,
+                      index: i,
+                      h2OpenTag: "<h2>",
+                      title: sec.title,
+                      bodyHtml: secBody,
+                    },
+                    siblingTitles: siblingTitles.filter((_, idx) => idx !== i),
+                    articleTitle: latestRow.aiTitle?.trim() || latestRow.title || "",
+                    focusKeyword: latestRow.focusKeyword?.trim() || "",
+                    seoResearchBrief: latestRow.seoResearch,
+                    siteId: c.site?.id,
+                    siteUrl: c.site?.siteUrl,
+                    pageUrl: latestRow.url,
+                    businessName: c.site?.name,
+                  });
+                  const normalizedHtml = normalizeSectionProseHtml(rewritten.bodyHtml);
+                  return { i, sec, elBefore, normalizedHtml };
+                } catch (err) {
+                  logger.warn(`[Auto SEO] Page section ${i + 1} warning:`, err);
+                  return null;
+                }
+              }),
+            ),
+          );
+
+          for (const res of sectionResults) {
+            if (!res) continue;
+            const { i, sec, elBefore, normalizedHtml } = res;
+            recordOverviewStudioRevision({
+              pageUrl: targetUrl,
+              stepLabel: sec.title?.trim() || `Section ${i + 1}`,
+              sectionTitle: sec.title?.trim() || undefined,
+              beforeHtml: elBefore,
+              afterHtml: normalizedHtml,
             });
-            const elBefore = secBody;
-            try {
-              const rewritten = await rewriteBlogPassageSection({
-                mode: "copy",
-                section: {
-                  id: sec.id || `sec-${i}`,
-                  index: i,
-                  h2OpenTag: "<h2>",
-                  title: sec.title,
-                  bodyHtml: secBody,
-                },
-                siblingTitles: siblingTitles.filter((_, idx) => idx !== i),
-                articleTitle: latestRow.aiTitle?.trim() || latestRow.title || "",
-                focusKeyword: latestRow.focusKeyword?.trim() || "",
-                seoResearchBrief: latestRow.seoResearch,
-                siteId: c.site?.id,
-                siteUrl: c.site?.siteUrl,
-                pageUrl: latestRow.url,
-                businessName: c.site?.name,
-              });
-              const normalizedHtml = normalizeSectionProseHtml(rewritten.bodyHtml);
-              recordOverviewStudioRevision({
-                pageUrl: targetUrl,
-                stepLabel: sec.title?.trim() || `Section ${i + 1}`,
-                sectionTitle: sec.title?.trim() || undefined,
-                beforeHtml: elBefore,
-                afterHtml: normalizedHtml,
-              });
-              workingHeaders[i] = {
-                ...sec,
-                bodyHtml: normalizedHtml,
-                bodyText: prosePlainText(normalizedHtml),
-              };
-              idx = resolveTargetIndex();
-              if (idx < 0) return;
-              c.updateRow(idx, {
-                elementorSectionHeaders: [...workingHeaders],
-              });
-            } catch (err) {
-              logger.warn(`[Auto SEO] Page section ${i + 1} warning:`, err);
-            }
+            workingHeaders[i] = {
+              ...sec,
+              bodyHtml: normalizedHtml,
+              bodyText: prosePlainText(normalizedHtml),
+            };
+          }
+          idx = resolveTargetIndex();
+          if (idx >= 0) {
+            c.updateRow(idx, {
+              elementorSectionHeaders: [...workingHeaders],
+            });
           }
           setPassageStatus(null);
         } else {

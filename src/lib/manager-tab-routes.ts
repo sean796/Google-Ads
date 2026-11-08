@@ -69,7 +69,7 @@ export function managerTabPath(tabId: string, generatorSection?: string): string
 export function legacyHashToPath(rawHash: string): string | null {
   const body = rawHash.replace(/^#/, "").trim();
   if (body.startsWith("register")) return null;
-  if (body === "" || body === "settings" || body === "dashboard" || body === "neo-emcp") {
+  if (body === "" || body === "settings" || body === "dashboard" || body === "neo-emcp-legacy") {
     return "/dashboard";
   }
   if (body === "local-grid" || body === "local-dominator") return "/local-dominator";

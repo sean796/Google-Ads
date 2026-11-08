@@ -3,7 +3,7 @@ import { buildBlacklistRagBlock, FORBIDDEN_WORDS_USER_PROMPT_REMINDER } from "..
 import { buildKeywordPunctuationPromptBlock, resolveWritingKeyword } from "./keyword-canonical-punctuation";
 import { formatDfsArticleAuditHarnessPromptBlockFromText } from "@/lib/dfs-article-audit/format-dfs-article-audit-harness";
 import type { ExternalLinkPair } from "@/lib/content-generation/external-link-placeholders";
-import type { AIDrivenACFContext } from "../content-generation/ai-driven-acf-reader";
+import type { AIDrivenACFContext } from "../content-generation/ai-driven-post-fields-reader";
 import { formatLlmAuditHarnessPromptBlock } from "@/lib/llm-audit/llm-audit-dataforseo";
 import { formatEntityKeywordVariantPromptBlock } from "@/lib/entity-keyword-variant-phrases";
 import { normalizeEntityHintCommaLabel } from "@/lib/comma-place-label";

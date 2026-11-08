@@ -1,3 +1,4 @@
+import pLimit from "p-limit";
 import type { WordPressSite } from "@/components/integrations/types";
 import { logger } from "@/lib/logger";
 import { headingTitleToHarnessAnchorId } from "@/lib/bulk/harness-section-anchor-ids";
@@ -250,49 +251,11 @@ export async function runAutoSeoBlogBodyRewrite(
     }
   }
 
-  // 3. Introduction lead (if present before first H2)
-  if (leadingHtml.trim() && shouldContinue()) {
-    stepCursor += 1;
-    onStepProgress?.(stepCursor, totalBodySteps, "Introduction");
-    const introBefore = leadingHtml;
-    try {
-      leadingHtml = await rewriteBlogLeadSectionBlock(leadingHtml, {
-        ...passageRewriteCtx,
-        siblingTitles: workingSections.map((s) => s.title),
-      });
-      if (!shouldContinue()) {
-        return { ...commitCurrent(), trailingFaq };
-      }
-      recordOverviewStudioRevision({
-        pageUrl,
-        stepLabel: "Introduction",
-        runId: revisionRunId,
-        beforeHtml: introBefore,
-        afterHtml: leadingHtml,
-      });
-      commitCurrent();
-    } catch (err) {
-      logger.warn("[Auto SEO] Intro lead warning for", pageUrl, err);
-    }
-  }
-
-  // 4. Every H2 section in document order (top to bottom)
-  for (let sIdx = 0; sIdx < workingSections.length; sIdx += 1) {
-    if (!shouldContinue()) {
-      return { ...commitCurrent(), trailingFaq };
-    }
-    const sec = workingSections[sIdx]!;
-    stepCursor += 1;
-    onStepProgress?.(
-      stepCursor,
-      totalBodySteps,
-      sec.title?.trim() || `Section ${sIdx + 1}`,
-    );
-    if (!sec.bodyHtml.trim()) continue;
-
-    const oldAnchorId = sec.id || headingTitleToHarnessAnchorId(sec.title);
-    const beforeSectionHtml = `${sec.h2OpenTag.trim() || "<h2>"}${sec.title.trim()}</h2>\n${sec.bodyHtml.trim()}`;
-    const sectionLinkCandidates = rankFuzzySitemapLinksForSection({
+  // 3. Introduction lead + 4. Every H2 section in parallel (bounded concurrency, deterministic stitch)
+  const passageLimit = pLimit(6);
+  const preassignedSectionCandidates = workingSections.map((sec) => {
+    if (!sec.bodyHtml.trim()) return [];
+    const candidates = rankFuzzySitemapLinksForSection({
       pool: sitemapLinkPool,
       sectionTitle: sec.title,
       sectionBodyHtml: sec.bodyHtml,
@@ -302,56 +265,119 @@ export async function runAutoSeoBlogBodyRewrite(
       usedUrls: usedLinkUrlKeys,
       limit: 8,
     });
-    try {
-      const rewritten = await rewriteBlogPassageSection({
-        mode: "both",
-        section: sec,
-        siblingTitles: workingSections
-          .filter((_, i) => i !== sIdx)
-          .map((s) => s.title),
-        ...passageRewriteCtx,
-        sitemapLinkCandidates: sectionLinkCandidates,
-      });
-      if (!shouldContinue()) {
-        return { ...commitCurrent(), trailingFaq };
-      }
-      const nextTitle = (rewritten.title || sec.title).trim();
-      const nextBody = normalizeSectionProseHtml(rewritten.bodyHtml);
-      recordUsedLinksFromHtml(nextBody);
-      const nextH2OpenTag = buildH2OpenTagForTitle(nextTitle);
-      const nextId = headingTitleToHarnessAnchorId(nextTitle);
-      const afterSectionHtml = `${nextH2OpenTag}${nextTitle}</h2>\n${nextBody}`;
-
-      if (ovHtml && oldAnchorId && nextId && oldAnchorId !== nextId) {
-        ovHtml = ovHtml
-          .split(`href="#${oldAnchorId}"`)
-          .join(`href="#${nextId}"`)
-          .split(`href='#${oldAnchorId}'`)
-          .join(`href='#${nextId}'`);
-      }
-
-      recordOverviewStudioRevision({
-        pageUrl,
-        stepLabel: nextTitle || `Section ${sIdx + 1}`,
-        sectionTitle: nextTitle || undefined,
-        runId: revisionRunId,
-        beforeHtml: beforeSectionHtml,
-        afterHtml: afterSectionHtml,
-      });
-      workingSections[sIdx] = {
-        ...sec,
-        id: nextId,
-        h2OpenTag: nextH2OpenTag,
-        title: nextTitle,
-        bodyHtml: nextBody,
-      };
-      commitCurrent();
-    } catch (err) {
-      logger.warn(
-        `[Auto SEO] Blog section ${sIdx + 1} (${sec.title}) warning for ${pageUrl}:`,
-        err,
-      );
+    const topHref = candidates[0]?.url;
+    if (topHref && !topHref.startsWith("#")) {
+      const k = normalizePageUrlKey(topHref);
+      if (k) usedLinkUrlKeys.add(k);
     }
+    return candidates;
+  });
+
+  const introBefore = leadingHtml;
+  const hasIntroStep = Boolean(leadingHtml.trim());
+  const introTask = hasIntroStep
+    ? passageLimit(async () => {
+        if (!shouldContinue()) return null;
+        stepCursor += 1;
+        onStepProgress?.(stepCursor, totalBodySteps, "Introduction");
+        try {
+          return await rewriteBlogLeadSectionBlock(introBefore, {
+            ...passageRewriteCtx,
+            siblingTitles: workingSections.map((s) => s.title),
+          });
+        } catch (err) {
+          logger.warn("[Auto SEO] Intro lead warning for", pageUrl, err);
+          return null;
+        }
+      })
+    : Promise.resolve(null);
+
+  const sectionTasks = workingSections.map((sec, sIdx) =>
+    passageLimit(async () => {
+      if (!shouldContinue()) return null;
+      stepCursor += 1;
+      onStepProgress?.(
+        stepCursor,
+        totalBodySteps,
+        sec.title?.trim() || `Section ${sIdx + 1}`,
+      );
+      if (!sec.bodyHtml.trim()) return null;
+      try {
+        const rewritten = await rewriteBlogPassageSection({
+          mode: "both",
+          section: sec,
+          siblingTitles: workingSections
+            .filter((_, i) => i !== sIdx)
+            .map((s) => s.title),
+          ...passageRewriteCtx,
+          sitemapLinkCandidates: preassignedSectionCandidates[sIdx] ?? [],
+        });
+        return { sIdx, sec, rewritten };
+      } catch (err) {
+        logger.warn(
+          `[Auto SEO] Blog section ${sIdx + 1} (${sec.title}) warning for ${pageUrl}:`,
+          err,
+        );
+        return null;
+      }
+    }),
+  );
+
+  const [rewrittenIntro, ...rewrittenSectionResults] = await Promise.all([
+    introTask,
+    ...sectionTasks,
+  ]);
+
+  if (!shouldContinue()) {
+    return { ...commitCurrent(), trailingFaq };
+  }
+
+  if (rewrittenIntro != null) {
+    leadingHtml = rewrittenIntro;
+    recordOverviewStudioRevision({
+      pageUrl,
+      stepLabel: "Introduction",
+      runId: revisionRunId,
+      beforeHtml: introBefore,
+      afterHtml: leadingHtml,
+    });
+  }
+
+  for (const res of rewrittenSectionResults) {
+    if (!res) continue;
+    const { sIdx, sec, rewritten } = res;
+    const oldAnchorId = sec.id || headingTitleToHarnessAnchorId(sec.title);
+    const beforeSectionHtml = `${sec.h2OpenTag.trim() || "<h2>"}${sec.title.trim()}</h2>\n${sec.bodyHtml.trim()}`;
+    const nextTitle = (rewritten.title || sec.title).trim();
+    const nextBody = normalizeSectionProseHtml(rewritten.bodyHtml);
+    recordUsedLinksFromHtml(nextBody);
+    const nextH2OpenTag = buildH2OpenTagForTitle(nextTitle);
+    const nextId = headingTitleToHarnessAnchorId(nextTitle);
+    const afterSectionHtml = `${nextH2OpenTag}${nextTitle}</h2>\n${nextBody}`;
+
+    if (ovHtml && oldAnchorId && nextId && oldAnchorId !== nextId) {
+      ovHtml = ovHtml
+        .split(`href="#${oldAnchorId}"`)
+        .join(`href="#${nextId}"`)
+        .split(`href='#${oldAnchorId}'`)
+        .join(`href='#${nextId}'`);
+    }
+
+    recordOverviewStudioRevision({
+      pageUrl,
+      stepLabel: nextTitle || `Section ${sIdx + 1}`,
+      sectionTitle: nextTitle || undefined,
+      runId: revisionRunId,
+      beforeHtml: beforeSectionHtml,
+      afterHtml: afterSectionHtml,
+    });
+    workingSections[sIdx] = {
+      ...sec,
+      id: nextId,
+      h2OpenTag: nextH2OpenTag,
+      title: nextTitle,
+      bodyHtml: nextBody,
+    };
   }
 
   return { ...commitCurrent(), trailingFaq };

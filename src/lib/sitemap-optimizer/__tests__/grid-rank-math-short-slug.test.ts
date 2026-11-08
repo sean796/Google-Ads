@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildGridRankMathRedirectRows } from "@/lib/sitemap-optimizer/build-grid-rank-math-redirects";
+import { buildGridRedirectCsvRedirectRows } from "@/lib/sitemap-optimizer/build-grid-pulse-redirect-redirects";
 import { GRID_DESTINATION_MAX_SLUG_CHARS } from "@/lib/sitemap-optimizer/grid-destination-aiseo-policy";
 import type { SitemapOptimizerRunResult } from "@/lib/sitemap-optimizer/types";
 
@@ -8,7 +8,7 @@ function slugLen(url: string): number {
   return seg.length;
 }
 
-describe("buildGridRankMathRedirectRows short destinations", () => {
+describe("buildGridRedirectCsvRedirectRows short destinations", () => {
   it("uses shortened blog slug for shared family destination", () => {
     const dest =
       "https://www.kwbllp.com/blog/profit-improvement-strategies-for-auto-repair-businesses/";
@@ -81,7 +81,7 @@ describe("buildGridRankMathRedirectRows short destinations", () => {
       gridMaxUrlsPerPost: 5,
     } satisfies SitemapOptimizerRunResult;
 
-    const rows = buildGridRankMathRedirectRows(result);
+    const rows = buildGridRedirectCsvRedirectRows(result);
     expect(rows.length).toBe(2);
     const destinations = new Set(rows.map((r) => r.destinationUrl));
     expect(destinations.size).toBe(1);

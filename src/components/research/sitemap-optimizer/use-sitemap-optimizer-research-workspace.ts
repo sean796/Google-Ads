@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useManagerSeedWorkspace } from "@/contexts/manager-seed-workspace-context";
 import { useSitemapOptimizerApprovePlan } from "@/hooks/research/use-sitemap-optimizer-approve-plan";
-import { useSitemapOptimizerRankMathImport } from "@/hooks/research/use-sitemap-optimizer-rankmath-import";
+import { useSitemapOptimizerRedirectCsvImport } from "@/hooks/research/use-sitemap-optimizer-redirect-csv-import";
 import { useSitemapOptimizerRun } from "@/hooks/research/use-sitemap-optimizer-run";
 import { buildSitemapOptimizerCollectionOptions } from "@/lib/sitemap-optimizer/collection-options";
 import { getFullHistorySitemapOptimizerGscDateRange } from "@/lib/sitemap-optimizer/gsc-date-range";
@@ -34,7 +34,7 @@ import { useSitemapOptimizerResearchActions } from "@/components/research/sitema
 export function useSitemapOptimizerResearchWorkspace() {
   const { mode: workspaceMode, connectedSite: site } = useManagerSeedWorkspace();
   const { phase, progress, result, error, running, run, cancel, setResult } = useSitemapOptimizerRun();
-  const rankMathImport = useSitemapOptimizerRankMathImport();
+  const rankMathImport = useSitemapOptimizerRedirectCsvImport();
   const { approving, progress: approveProgress, approve } = useSitemapOptimizerApprovePlan();
   const [workspaceSubMode, setWorkspaceSubMode] = useState<SitemapOptimizerWorkspaceMode>(
     () => readStoredSitemapOptimizerSection(),
@@ -118,7 +118,7 @@ export function useSitemapOptimizerResearchWorkspace() {
     handleApprovePlan,
     handleGscFile,
     handleDownloadRedirectMapTemplate,
-    handleRankMathFile,
+    handleRedirectCsvFile,
   } = useSitemapOptimizerResearchActions({
     site,
     workspaceMode,
@@ -235,7 +235,7 @@ export function useSitemapOptimizerResearchWorkspace() {
   const showGscCsvUpload =
     showSetupToolbar &&
     (isGridHarness || gscAnalyzeMode === "csv" || !site);
-  const showRankMathUpload = showSetupToolbar && siteReady && !isGridHarness;
+  const showRedirectCsvUpload = showSetupToolbar && siteReady && !isGridHarness;
   const showToolbarOptions =
     (showSetupToolbar || showResultToolbar) && (siteReady || isGridHarness || !site);
 
@@ -250,7 +250,7 @@ export function useSitemapOptimizerResearchWorkspace() {
     showResultToolbar,
     showAnalyzeAction,
     showGscCsvUpload,
-    showRankMathUpload,
+    showRedirectCsvUpload,
     inPublishWorkspace,
     isGridHarness,
     isGridFlow,
@@ -277,7 +277,7 @@ export function useSitemapOptimizerResearchWorkspace() {
     replacementSheet,
     handleDownloadRedirectMapTemplate,
     handleGscFile,
-    handleRankMathFile,
+    handleRedirectCsvFile,
     handleAnalyze,
     handleApprovePlan,
     handleDownloadRedirects,

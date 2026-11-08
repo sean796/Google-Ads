@@ -17,7 +17,7 @@ class Neo_Pulse_App_Wp_Overview_Seo_Item {
 	 */
 	public static function build_core_put_body( $item ) {
 		$put = array();
-		$acf = self::direct_acf_from_client( isset( $item['acf'] ) ? $item['acf'] : array() );
+		$acf = self::direct_post_fields_from_client( isset( $item['acf'] ) ? $item['acf'] : array() );
 		if ( ! empty( $item['postTitle'] ) && is_string( $item['postTitle'] ) && trim( $item['postTitle'] ) !== '' ) {
 			$title = self::aligned_title( trim( $item['postTitle'] ), $acf );
 			$put['title'] = Neo_Pulse_App_Wp_Url_Normalize::clean_placeholders_and_markdown( $title );
@@ -38,15 +38,15 @@ class Neo_Pulse_App_Wp_Overview_Seo_Item {
 	 * @param array<string,mixed> $item Item.
 	 * @return bool
 	 */
-	public static function has_acf_payload( $item ) {
-		return count( self::direct_acf_from_client( isset( $item['acf'] ) ? $item['acf'] : array() ) ) > 0;
+	public static function has_post_fields_payload( $item ) {
+		return count( self::direct_post_fields_from_client( isset( $item['acf'] ) ? $item['acf'] : array() ) ) > 0;
 	}
 
 	/**
 	 * @param mixed $acf Client ACF map.
 	 * @return array<string,string>
 	 */
-	public static function direct_acf_from_client( $acf ) {
+	public static function direct_post_fields_from_client( $acf ) {
 		$out = array();
 		if ( ! is_array( $acf ) ) {
 			return $out;
@@ -74,7 +74,7 @@ class Neo_Pulse_App_Wp_Overview_Seo_Item {
 		if ( ! is_array( $body ) ) {
 			$body = array();
 		}
-		$acf = self::direct_acf_from_client( isset( $item['acf'] ) ? $item['acf'] : ( isset( $item['neo_pulse_fields'] ) ? $item['neo_pulse_fields'] : array() ) );
+		$acf = self::direct_post_fields_from_client( isset( $item['acf'] ) ? $item['acf'] : ( isset( $item['neo_pulse_fields'] ) ? $item['neo_pulse_fields'] : array() ) );
 		if ( $acf ) {
 			$body['neo_pulse_fields'] = $acf;
 		}
@@ -154,11 +154,11 @@ class Neo_Pulse_App_Wp_Overview_Seo_Item {
 	 * @return array{ok:bool,error?:string,httpStatus?:int|null,skipped?:bool}
 	 */
 	public static function write_acf_via_post( $normalized, $username, $app_password, $item ) {
-		$acf_payload = self::direct_acf_from_client( isset( $item['acf'] ) ? $item['acf'] : array() );
+		$acf_payload = self::direct_post_fields_from_client( isset( $item['acf'] ) ? $item['acf'] : array() );
 		if ( ! $acf_payload ) {
 			return array( 'ok' => true, 'skipped' => true );
 		}
-		$pulse_sync = Neo_Pulse_App_Wp_Acf_Protocol::write_via_pulse_overview_bulk(
+		$pulse_sync = Neo_Pulse_App_Wp_Post_Fields::write_via_pulse_overview_bulk(
 			$normalized,
 			$username,
 			$app_password,
@@ -208,7 +208,7 @@ class Neo_Pulse_App_Wp_Overview_Seo_Item {
 		if ( empty( $core_row['ok'] ) ) {
 			return $core_row;
 		}
-		if ( ! self::has_acf_payload( $item ) ) {
+		if ( ! self::has_post_fields_payload( $item ) ) {
 			return $core_row;
 		}
 		$acf_result = self::write_acf_via_post( $normalized, $username, $app_password, $item );

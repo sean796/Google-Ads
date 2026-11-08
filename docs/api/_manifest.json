@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-16T01:51:40.073Z",
-  "routeCount": 330,
+  "generatedAt": "2026-11-08T13:58:41.712Z",
+  "routeCount": 337,
   "sections": [
     {
       "id": "getting-started",
@@ -492,12 +492,20 @@
           "order": 10
         },
         {
+          "slug": "gsc/credentials-status",
+          "title": "Credentials Status",
+          "method": "GET",
+          "path": "/api/gsc/credentials-status",
+          "auth": "open",
+          "order": 20
+        },
+        {
           "slug": "gsc/export-overview-quick-wins",
           "title": "Export Overview Quick Wins",
           "method": "POST",
           "path": "/api/gsc/export-overview-quick-wins",
           "auth": "open",
-          "order": 20
+          "order": 30
         },
         {
           "slug": "gsc/fetch-entity-pages-performance",
@@ -505,7 +513,7 @@
           "method": "POST",
           "path": "/api/gsc/fetch-entity-pages-performance",
           "auth": "open",
-          "order": 30
+          "order": 40
         },
         {
           "slug": "gsc/fetch-historical-stats",
@@ -513,7 +521,7 @@
           "method": "POST",
           "path": "/api/gsc/fetch-historical-stats",
           "auth": "open",
-          "order": 40
+          "order": 50
         },
         {
           "slug": "gsc/fetch-page-performance",
@@ -521,7 +529,7 @@
           "method": "POST",
           "path": "/api/gsc/fetch-page-performance",
           "auth": "open",
-          "order": 50
+          "order": 60
         },
         {
           "slug": "gsc/fetch-pages-performance",
@@ -529,7 +537,7 @@
           "method": "POST",
           "path": "/api/gsc/fetch-pages-performance",
           "auth": "open",
-          "order": 60
+          "order": 70
         },
         {
           "slug": "gsc/fetch-performance-stats",
@@ -537,7 +545,7 @@
           "method": "POST",
           "path": "/api/gsc/fetch-performance-stats",
           "auth": "open",
-          "order": 70
+          "order": 80
         },
         {
           "slug": "gsc/fetch-queries",
@@ -545,7 +553,7 @@
           "method": "POST",
           "path": "/api/gsc/fetch-queries",
           "auth": "open",
-          "order": 80
+          "order": 90
         },
         {
           "slug": "gsc/fetch-reporting-bundle",
@@ -553,7 +561,7 @@
           "method": "POST",
           "path": "/api/gsc/fetch-reporting-bundle",
           "auth": "open",
-          "order": 90
+          "order": 100
         },
         {
           "slug": "gsc/fetch-site-pages-performance",
@@ -561,7 +569,7 @@
           "method": "POST",
           "path": "/api/gsc/fetch-site-pages-performance",
           "auth": "open",
-          "order": 100
+          "order": 110
         },
         {
           "slug": "gsc/index-sitemap-urls",
@@ -569,7 +577,7 @@
           "method": "POST",
           "path": "/api/gsc/index-sitemap-urls",
           "auth": "open",
-          "order": 110
+          "order": 120
         },
         {
           "slug": "gsc/page-indexing-report",
@@ -577,7 +585,7 @@
           "method": "POST",
           "path": "/api/gsc/page-indexing-report",
           "auth": "open",
-          "order": 120
+          "order": 130
         },
         {
           "slug": "gsc/query-daily-series",
@@ -585,7 +593,7 @@
           "method": "POST",
           "path": "/api/gsc/query-daily-series",
           "auth": "open",
-          "order": 130
+          "order": 140
         },
         {
           "slug": "gsc/quick-wins-context",
@@ -593,7 +601,7 @@
           "method": "POST",
           "path": "/api/gsc/quick-wins-context",
           "auth": "open",
-          "order": 140
+          "order": 150
         },
         {
           "slug": "gsc/quick-wins-csv/filename",
@@ -601,7 +609,7 @@
           "method": "GET",
           "path": "/api/gsc/quick-wins-csv/{filename}",
           "auth": "open",
-          "order": 150
+          "order": 160
         },
         {
           "slug": "gsc/report-date-range",
@@ -609,7 +617,7 @@
           "method": "POST",
           "path": "/api/gsc/report-date-range",
           "auth": "open",
-          "order": 160
+          "order": 170
         },
         {
           "slug": "gsc/reporting-chat-completion",
@@ -617,7 +625,7 @@
           "method": "POST",
           "path": "/api/gsc/reporting-chat-completion",
           "auth": "open",
-          "order": 170
+          "order": 180
         },
         {
           "slug": "gsc/request-url-indexing",
@@ -625,7 +633,7 @@
           "method": "POST",
           "path": "/api/gsc/request-url-indexing",
           "auth": "open",
-          "order": 180
+          "order": 190
         },
         {
           "slug": "gsc/service-account-email",
@@ -633,7 +641,15 @@
           "method": "GET",
           "path": "/api/gsc/service-account-email",
           "auth": "open",
-          "order": 190
+          "order": 200
+        },
+        {
+          "slug": "gsc/test-and-save",
+          "title": "Test And Save",
+          "method": "POST",
+          "path": "/api/gsc/test-and-save",
+          "auth": "open",
+          "order": 210
         },
         {
           "slug": "gsc/test-connection",
@@ -641,7 +657,7 @@
           "method": "GET",
           "path": "/api/gsc/test-connection",
           "auth": "open",
-          "order": 200
+          "order": 220
         },
         {
           "slug": "gsc/top-pages",
@@ -649,7 +665,7 @@
           "method": "POST",
           "path": "/api/gsc/top-pages",
           "auth": "open",
-          "order": 210
+          "order": 230
         },
         {
           "slug": "gsc/url-inventory",
@@ -657,7 +673,7 @@
           "method": "POST",
           "path": "/api/gsc/url-inventory",
           "auth": "open",
-          "order": 220
+          "order": 240
         }
       ]
     },
@@ -693,26 +709,26 @@
           "order": 5
         },
         {
-          "slug": "integrations/resolved-openrouter-key",
-          "title": "Resolved Openrouter Key",
-          "method": "GET",
-          "path": "/api/integrations/resolved-openrouter-key",
+          "slug": "integrations/hub-data-export",
+          "title": "Hub Data Export",
+          "method": "POST",
+          "path": "/api/integrations/hub-data-export",
           "auth": "open",
           "order": 10
+        },
+        {
+          "slug": "integrations/hub-data-import",
+          "title": "Hub Data Import",
+          "method": "POST",
+          "path": "/api/integrations/hub-data-import",
+          "auth": "open",
+          "order": 20
         },
         {
           "slug": "integrations/sync-active-wp-site",
           "title": "Sync Active Wp Site",
           "method": "POST",
           "path": "/api/integrations/sync-active-wp-site",
-          "auth": "open",
-          "order": 20
-        },
-        {
-          "slug": "integrations/sync-email-worker-keys",
-          "title": "Sync Email Worker Keys",
-          "method": "POST",
-          "path": "/api/integrations/sync-email-worker-keys",
           "auth": "open",
           "order": 30
         },
@@ -807,12 +823,20 @@
       "label": "Manager WordPress Properties",
       "items": [
         {
+          "slug": "manager-wordpress-properties/client-logo/upload",
+          "title": "Upload",
+          "method": "POST",
+          "path": "/api/manager-wordpress-properties/client-logo/upload",
+          "auth": "open",
+          "order": 10
+        },
+        {
           "slug": "manager-wordpress-properties/load",
           "title": "Load",
           "method": "GET",
           "path": "/api/manager-wordpress-properties/load",
           "auth": "open",
-          "order": 10
+          "order": 20
         },
         {
           "slug": "manager-wordpress-properties/save",
@@ -820,7 +844,7 @@
           "method": "POST",
           "path": "/api/manager-wordpress-properties/save",
           "auth": "open",
-          "order": 20
+          "order": 30
         },
         {
           "slug": "manager-wordpress-properties/status",
@@ -828,23 +852,7 @@
           "method": "GET",
           "path": "/api/manager-wordpress-properties/status",
           "auth": "open",
-          "order": 30
-        },
-        {
-          "slug": "manager-wordpress-properties/sync-openrouter",
-          "title": "Sync Openrouter",
-          "method": "POST",
-          "path": "/api/manager-wordpress-properties/sync-openrouter",
-          "auth": "open",
           "order": 40
-        },
-        {
-          "slug": "manager-wordpress-properties/sync-semrush",
-          "title": "Sync Semrush",
-          "method": "POST",
-          "path": "/api/manager-wordpress-properties/sync-semrush",
-          "auth": "open",
-          "order": 50
         }
       ]
     },
@@ -1025,6 +1033,22 @@
           "path": "/api/overview/seo-brief/{filename}",
           "auth": "open",
           "order": 50
+        },
+        {
+          "slug": "overview/studio-snapshot",
+          "title": "Studio Snapshot",
+          "method": "GET",
+          "path": "/api/overview/studio-snapshot",
+          "auth": "open",
+          "order": 60
+        },
+        {
+          "slug": "overview/studio-snapshot",
+          "title": "Studio Snapshot",
+          "method": "POST",
+          "path": "/api/overview/studio-snapshot",
+          "auth": "open",
+          "order": 70
         }
       ]
     },
@@ -2413,498 +2437,498 @@
           "order": 120
         },
         {
-          "slug": "wordpress/discover-acf-field-groups",
-          "title": "Discover Acf Field Groups",
+          "slug": "wordpress/discover-post-field-keys",
+          "title": "Discover Post Field Keys",
           "method": "GET",
-          "path": "/api/wordpress/discover-acf-field-groups",
+          "path": "/api/wordpress/discover-post-field-keys",
           "auth": "open",
           "order": 130
         },
         {
-          "slug": "wordpress/discover-acf-field-groups",
-          "title": "Discover Acf Field Groups",
+          "slug": "wordpress/discover-post-field-keys",
+          "title": "Discover Post Field Keys",
           "method": "POST",
-          "path": "/api/wordpress/discover-acf-field-groups",
+          "path": "/api/wordpress/discover-post-field-keys",
           "auth": "open",
           "order": 140
         },
         {
-          "slug": "wordpress/get-acf-fields",
-          "title": "Get Acf Fields",
+          "slug": "wordpress/flow-assist-chat-settings-get",
+          "title": "Flow Assist Chat Settings Get",
           "method": "GET",
-          "path": "/api/wordpress/get-acf-fields",
+          "path": "/api/wordpress/flow-assist-chat-settings-get",
           "auth": "open",
           "order": 150
         },
         {
-          "slug": "wordpress/get-acf-fields",
-          "title": "Get Acf Fields",
+          "slug": "wordpress/flow-assist-chat-settings-get",
+          "title": "Flow Assist Chat Settings Get",
           "method": "POST",
-          "path": "/api/wordpress/get-acf-fields",
+          "path": "/api/wordpress/flow-assist-chat-settings-get",
           "auth": "open",
           "order": 160
         },
         {
-          "slug": "wordpress/get-acf-fields-batch",
-          "title": "Get Acf Fields Batch",
+          "slug": "wordpress/flow-assist-chat-settings-update",
+          "title": "Flow Assist Chat Settings Update",
           "method": "GET",
-          "path": "/api/wordpress/get-acf-fields-batch",
+          "path": "/api/wordpress/flow-assist-chat-settings-update",
           "auth": "open",
           "order": 170
         },
         {
-          "slug": "wordpress/get-acf-fields-batch",
-          "title": "Get Acf Fields Batch",
+          "slug": "wordpress/flow-assist-chat-settings-update",
+          "title": "Flow Assist Chat Settings Update",
           "method": "POST",
-          "path": "/api/wordpress/get-acf-fields-batch",
+          "path": "/api/wordpress/flow-assist-chat-settings-update",
           "auth": "open",
           "order": 180
         },
         {
-          "slug": "wordpress/get-acf-fields-by-url",
-          "title": "Get Acf Fields By Url",
+          "slug": "wordpress/get-author-usage",
+          "title": "Get Author Usage",
           "method": "GET",
-          "path": "/api/wordpress/get-acf-fields-by-url",
+          "path": "/api/wordpress/get-author-usage",
           "auth": "open",
           "order": 190
         },
         {
-          "slug": "wordpress/get-acf-fields-by-url",
-          "title": "Get Acf Fields By Url",
+          "slug": "wordpress/get-author-usage",
+          "title": "Get Author Usage",
           "method": "POST",
-          "path": "/api/wordpress/get-acf-fields-by-url",
+          "path": "/api/wordpress/get-author-usage",
           "auth": "open",
           "order": 200
         },
         {
-          "slug": "wordpress/get-acf-fields-by-url-batch",
-          "title": "Get Acf Fields By Url Batch",
+          "slug": "wordpress/get-optimization-activity-counts",
+          "title": "Get Optimization Activity Counts",
           "method": "GET",
-          "path": "/api/wordpress/get-acf-fields-by-url-batch",
+          "path": "/api/wordpress/get-optimization-activity-counts",
           "auth": "open",
           "order": 210
         },
         {
-          "slug": "wordpress/get-acf-fields-by-url-batch",
-          "title": "Get Acf Fields By Url Batch",
+          "slug": "wordpress/get-optimization-activity-counts",
+          "title": "Get Optimization Activity Counts",
           "method": "POST",
-          "path": "/api/wordpress/get-acf-fields-by-url-batch",
+          "path": "/api/wordpress/get-optimization-activity-counts",
           "auth": "open",
           "order": 220
         },
         {
-          "slug": "wordpress/get-author-usage",
-          "title": "Get Author Usage",
+          "slug": "wordpress/get-post-content",
+          "title": "Get Post Content",
           "method": "GET",
-          "path": "/api/wordpress/get-author-usage",
+          "path": "/api/wordpress/get-post-content",
           "auth": "open",
           "order": 230
         },
         {
-          "slug": "wordpress/get-author-usage",
-          "title": "Get Author Usage",
+          "slug": "wordpress/get-post-content",
+          "title": "Get Post Content",
           "method": "POST",
-          "path": "/api/wordpress/get-author-usage",
+          "path": "/api/wordpress/get-post-content",
           "auth": "open",
           "order": 240
         },
         {
-          "slug": "wordpress/get-optimization-activity-counts",
-          "title": "Get Optimization Activity Counts",
+          "slug": "wordpress/get-post-fields",
+          "title": "Get Post Fields",
           "method": "GET",
-          "path": "/api/wordpress/get-optimization-activity-counts",
+          "path": "/api/wordpress/get-post-fields",
           "auth": "open",
           "order": 250
         },
         {
-          "slug": "wordpress/get-optimization-activity-counts",
-          "title": "Get Optimization Activity Counts",
+          "slug": "wordpress/get-post-fields",
+          "title": "Get Post Fields",
           "method": "POST",
-          "path": "/api/wordpress/get-optimization-activity-counts",
+          "path": "/api/wordpress/get-post-fields",
           "auth": "open",
           "order": 260
         },
         {
-          "slug": "wordpress/get-post-content",
-          "title": "Get Post Content",
+          "slug": "wordpress/get-post-fields-batch",
+          "title": "Get Post Fields Batch",
           "method": "GET",
-          "path": "/api/wordpress/get-post-content",
+          "path": "/api/wordpress/get-post-fields-batch",
           "auth": "open",
           "order": 270
         },
         {
-          "slug": "wordpress/get-post-content",
-          "title": "Get Post Content",
+          "slug": "wordpress/get-post-fields-batch",
+          "title": "Get Post Fields Batch",
           "method": "POST",
-          "path": "/api/wordpress/get-post-content",
+          "path": "/api/wordpress/get-post-fields-batch",
           "auth": "open",
           "order": 280
         },
         {
-          "slug": "wordpress/get-post-meta",
-          "title": "Get Post Meta",
+          "slug": "wordpress/get-post-fields-by-url",
+          "title": "Get Post Fields By Url",
           "method": "GET",
-          "path": "/api/wordpress/get-post-meta",
+          "path": "/api/wordpress/get-post-fields-by-url",
           "auth": "open",
           "order": 290
         },
         {
+          "slug": "wordpress/get-post-fields-by-url",
+          "title": "Get Post Fields By Url",
+          "method": "POST",
+          "path": "/api/wordpress/get-post-fields-by-url",
+          "auth": "open",
+          "order": 300
+        },
+        {
+          "slug": "wordpress/get-post-fields-by-url-batch",
+          "title": "Get Post Fields By Url Batch",
+          "method": "GET",
+          "path": "/api/wordpress/get-post-fields-by-url-batch",
+          "auth": "open",
+          "order": 310
+        },
+        {
+          "slug": "wordpress/get-post-fields-by-url-batch",
+          "title": "Get Post Fields By Url Batch",
+          "method": "POST",
+          "path": "/api/wordpress/get-post-fields-by-url-batch",
+          "auth": "open",
+          "order": 320
+        },
+        {
+          "slug": "wordpress/get-post-meta",
+          "title": "Get Post Meta",
+          "method": "GET",
+          "path": "/api/wordpress/get-post-meta",
+          "auth": "open",
+          "order": 330
+        },
+        {
           "slug": "wordpress/get-post-meta",
           "title": "Get Post Meta",
           "method": "POST",
           "path": "/api/wordpress/get-post-meta",
           "auth": "open",
-          "order": 300
-        },
-        {
-          "slug": "wordpress/get-post-types",
-          "title": "Get Post Types",
-          "method": "GET",
-          "path": "/api/wordpress/get-post-types",
-          "auth": "open",
-          "order": 310
-        },
-        {
-          "slug": "wordpress/get-post-types",
-          "title": "Get Post Types",
-          "method": "POST",
-          "path": "/api/wordpress/get-post-types",
-          "auth": "open",
-          "order": 320
-        },
-        {
-          "slug": "wordpress/get-posts-list",
-          "title": "Get Posts List",
-          "method": "GET",
-          "path": "/api/wordpress/get-posts-list",
-          "auth": "open",
-          "order": 330
-        },
-        {
-          "slug": "wordpress/get-posts-list",
-          "title": "Get Posts List",
-          "method": "POST",
-          "path": "/api/wordpress/get-posts-list",
-          "auth": "open",
           "order": 340
         },
         {
-          "slug": "wordpress/get-published-posts",
-          "title": "Get Published Posts",
+          "slug": "wordpress/get-post-types",
+          "title": "Get Post Types",
           "method": "GET",
-          "path": "/api/wordpress/get-published-posts",
+          "path": "/api/wordpress/get-post-types",
           "auth": "open",
           "order": 350
         },
         {
+          "slug": "wordpress/get-post-types",
+          "title": "Get Post Types",
+          "method": "POST",
+          "path": "/api/wordpress/get-post-types",
+          "auth": "open",
+          "order": 360
+        },
+        {
+          "slug": "wordpress/get-posts-list",
+          "title": "Get Posts List",
+          "method": "GET",
+          "path": "/api/wordpress/get-posts-list",
+          "auth": "open",
+          "order": 370
+        },
+        {
+          "slug": "wordpress/get-posts-list",
+          "title": "Get Posts List",
+          "method": "POST",
+          "path": "/api/wordpress/get-posts-list",
+          "auth": "open",
+          "order": 380
+        },
+        {
+          "slug": "wordpress/get-published-posts",
+          "title": "Get Published Posts",
+          "method": "GET",
+          "path": "/api/wordpress/get-published-posts",
+          "auth": "open",
+          "order": 390
+        },
+        {
           "slug": "wordpress/get-published-posts",
           "title": "Get Published Posts",
           "method": "POST",
           "path": "/api/wordpress/get-published-posts",
           "auth": "open",
-          "order": 360
-        },
-        {
-          "slug": "wordpress/get-quarter-editorial-counts",
-          "title": "Get Quarter Editorial Counts",
-          "method": "GET",
-          "path": "/api/wordpress/get-quarter-editorial-counts",
-          "auth": "open",
-          "order": 370
-        },
-        {
-          "slug": "wordpress/get-quarter-editorial-counts",
-          "title": "Get Quarter Editorial Counts",
-          "method": "POST",
-          "path": "/api/wordpress/get-quarter-editorial-counts",
-          "auth": "open",
-          "order": 380
-        },
-        {
-          "slug": "wordpress/get-scheduled-posts",
-          "title": "Get Scheduled Posts",
-          "method": "GET",
-          "path": "/api/wordpress/get-scheduled-posts",
-          "auth": "open",
-          "order": 390
-        },
-        {
-          "slug": "wordpress/get-scheduled-posts",
-          "title": "Get Scheduled Posts",
-          "method": "POST",
-          "path": "/api/wordpress/get-scheduled-posts",
-          "auth": "open",
           "order": 400
         },
         {
-          "slug": "wordpress/get-site-inventory-bulk",
-          "title": "Get Site Inventory Bulk",
+          "slug": "wordpress/get-quarter-editorial-counts",
+          "title": "Get Quarter Editorial Counts",
           "method": "GET",
-          "path": "/api/wordpress/get-site-inventory-bulk",
+          "path": "/api/wordpress/get-quarter-editorial-counts",
           "auth": "open",
           "order": 410
         },
         {
+          "slug": "wordpress/get-quarter-editorial-counts",
+          "title": "Get Quarter Editorial Counts",
+          "method": "POST",
+          "path": "/api/wordpress/get-quarter-editorial-counts",
+          "auth": "open",
+          "order": 420
+        },
+        {
+          "slug": "wordpress/get-scheduled-entity-posts",
+          "title": "Get Scheduled Entity Posts",
+          "method": "GET",
+          "path": "/api/wordpress/get-scheduled-entity-posts",
+          "auth": "open",
+          "order": 430
+        },
+        {
+          "slug": "wordpress/get-scheduled-entity-posts",
+          "title": "Get Scheduled Entity Posts",
+          "method": "POST",
+          "path": "/api/wordpress/get-scheduled-entity-posts",
+          "auth": "open",
+          "order": 440
+        },
+        {
+          "slug": "wordpress/get-scheduled-posts",
+          "title": "Get Scheduled Posts",
+          "method": "GET",
+          "path": "/api/wordpress/get-scheduled-posts",
+          "auth": "open",
+          "order": 450
+        },
+        {
+          "slug": "wordpress/get-scheduled-posts",
+          "title": "Get Scheduled Posts",
+          "method": "POST",
+          "path": "/api/wordpress/get-scheduled-posts",
+          "auth": "open",
+          "order": 460
+        },
+        {
+          "slug": "wordpress/get-site-inventory-bulk",
+          "title": "Get Site Inventory Bulk",
+          "method": "GET",
+          "path": "/api/wordpress/get-site-inventory-bulk",
+          "auth": "open",
+          "order": 470
+        },
+        {
           "slug": "wordpress/get-site-inventory-bulk",
           "title": "Get Site Inventory Bulk",
           "method": "POST",
           "path": "/api/wordpress/get-site-inventory-bulk",
           "auth": "open",
-          "order": 420
-        },
-        {
-          "slug": "wordpress/get-site-post-inventory",
-          "title": "Get Site Post Inventory",
-          "method": "GET",
-          "path": "/api/wordpress/get-site-post-inventory",
-          "auth": "open",
-          "order": 430
-        },
-        {
-          "slug": "wordpress/get-site-post-inventory",
-          "title": "Get Site Post Inventory",
-          "method": "POST",
-          "path": "/api/wordpress/get-site-post-inventory",
-          "auth": "open",
-          "order": 440
-        },
-        {
-          "slug": "wordpress/list-media",
-          "title": "List Media",
-          "method": "GET",
-          "path": "/api/wordpress/list-media",
-          "auth": "open",
-          "order": 450
-        },
-        {
-          "slug": "wordpress/list-media",
-          "title": "List Media",
-          "method": "POST",
-          "path": "/api/wordpress/list-media",
-          "auth": "open",
-          "order": 460
-        },
-        {
-          "slug": "wordpress/neo-pulse-wp-tool",
-          "title": "Neo Pulse Wp Tool",
-          "method": "GET",
-          "path": "/api/wordpress/neo-pulse-wp-tool",
-          "auth": "open",
-          "order": 470
-        },
-        {
-          "slug": "wordpress/neo-pulse-wp-tool",
-          "title": "Neo Pulse Wp Tool",
-          "method": "POST",
-          "path": "/api/wordpress/neo-pulse-wp-tool",
-          "auth": "open",
           "order": 480
         },
         {
-          "slug": "wordpress/neo-pulse-wp-tools-list",
-          "title": "Neo Pulse Wp Tools List",
+          "slug": "wordpress/get-site-post-inventory",
+          "title": "Get Site Post Inventory",
           "method": "GET",
-          "path": "/api/wordpress/neo-pulse-wp-tools-list",
+          "path": "/api/wordpress/get-site-post-inventory",
           "auth": "open",
           "order": 490
         },
         {
-          "slug": "wordpress/neo-pulse-wp-tools-list",
-          "title": "Neo Pulse Wp Tools List",
+          "slug": "wordpress/get-site-post-inventory",
+          "title": "Get Site Post Inventory",
           "method": "POST",
-          "path": "/api/wordpress/neo-pulse-wp-tools-list",
+          "path": "/api/wordpress/get-site-post-inventory",
           "auth": "open",
           "order": 500
         },
         {
-          "slug": "wordpress/parse-sitemap",
-          "title": "Parse Sitemap",
+          "slug": "wordpress/list-media",
+          "title": "List Media",
           "method": "GET",
-          "path": "/api/wordpress/parse-sitemap",
+          "path": "/api/wordpress/list-media",
           "auth": "open",
           "order": 510
         },
         {
+          "slug": "wordpress/list-media",
+          "title": "List Media",
+          "method": "POST",
+          "path": "/api/wordpress/list-media",
+          "auth": "open",
+          "order": 520
+        },
+        {
+          "slug": "wordpress/parse-sitemap",
+          "title": "Parse Sitemap",
+          "method": "GET",
+          "path": "/api/wordpress/parse-sitemap",
+          "auth": "open",
+          "order": 530
+        },
+        {
           "slug": "wordpress/parse-sitemap",
           "title": "Parse Sitemap",
           "method": "POST",
           "path": "/api/wordpress/parse-sitemap",
           "auth": "open",
-          "order": 520
-        },
-        {
-          "slug": "wordpress/pulse-assist",
-          "title": "Pulse Assist",
-          "method": "GET",
-          "path": "/api/wordpress/pulse-assist",
-          "auth": "open",
-          "order": 530
-        },
-        {
-          "slug": "wordpress/pulse-assist",
-          "title": "Pulse Assist",
-          "method": "POST",
-          "path": "/api/wordpress/pulse-assist",
-          "auth": "open",
           "order": 540
         },
         {
-          "slug": "wordpress/pulse-assist-site-inventory",
-          "title": "Pulse Assist Site Inventory",
+          "slug": "wordpress/pulse-assist",
+          "title": "Pulse Assist",
           "method": "GET",
-          "path": "/api/wordpress/pulse-assist-site-inventory",
+          "path": "/api/wordpress/pulse-assist",
           "auth": "open",
           "order": 550
         },
         {
+          "slug": "wordpress/pulse-assist",
+          "title": "Pulse Assist",
+          "method": "POST",
+          "path": "/api/wordpress/pulse-assist",
+          "auth": "open",
+          "order": 560
+        },
+        {
+          "slug": "wordpress/pulse-assist-site-inventory",
+          "title": "Pulse Assist Site Inventory",
+          "method": "GET",
+          "path": "/api/wordpress/pulse-assist-site-inventory",
+          "auth": "open",
+          "order": 570
+        },
+        {
           "slug": "wordpress/pulse-assist-site-inventory",
           "title": "Pulse Assist Site Inventory",
           "method": "POST",
           "path": "/api/wordpress/pulse-assist-site-inventory",
           "auth": "open",
-          "order": 560
-        },
-        {
-          "slug": "wordpress/pulse-assist-step",
-          "title": "Pulse Assist Step",
-          "method": "GET",
-          "path": "/api/wordpress/pulse-assist-step",
-          "auth": "open",
-          "order": 570
-        },
-        {
-          "slug": "wordpress/pulse-assist-step",
-          "title": "Pulse Assist Step",
-          "method": "POST",
-          "path": "/api/wordpress/pulse-assist-step",
-          "auth": "open",
           "order": 580
         },
         {
-          "slug": "wordpress/pulse-assist-stream",
-          "title": "Pulse Assist Stream",
+          "slug": "wordpress/pulse-assist-step",
+          "title": "Pulse Assist Step",
           "method": "GET",
-          "path": "/api/wordpress/pulse-assist-stream",
+          "path": "/api/wordpress/pulse-assist-step",
           "auth": "open",
           "order": 590
         },
         {
+          "slug": "wordpress/pulse-assist-step",
+          "title": "Pulse Assist Step",
+          "method": "POST",
+          "path": "/api/wordpress/pulse-assist-step",
+          "auth": "open",
+          "order": 600
+        },
+        {
+          "slug": "wordpress/pulse-assist-stream",
+          "title": "Pulse Assist Stream",
+          "method": "GET",
+          "path": "/api/wordpress/pulse-assist-stream",
+          "auth": "open",
+          "order": 610
+        },
+        {
           "slug": "wordpress/pulse-assist-stream",
           "title": "Pulse Assist Stream",
           "method": "POST",
           "path": "/api/wordpress/pulse-assist-stream",
           "auth": "open",
-          "order": 600
-        },
-        {
-          "slug": "wordpress/pulse-assist-undo",
-          "title": "Pulse Assist Undo",
-          "method": "GET",
-          "path": "/api/wordpress/pulse-assist-undo",
-          "auth": "open",
-          "order": 610
-        },
-        {
-          "slug": "wordpress/pulse-assist-undo",
-          "title": "Pulse Assist Undo",
-          "method": "POST",
-          "path": "/api/wordpress/pulse-assist-undo",
-          "auth": "open",
           "order": 620
         },
         {
-          "slug": "wordpress/pulse-assist-workflow-status",
-          "title": "Pulse Assist Workflow Status",
+          "slug": "wordpress/pulse-assist-undo",
+          "title": "Pulse Assist Undo",
           "method": "GET",
-          "path": "/api/wordpress/pulse-assist-workflow-status",
+          "path": "/api/wordpress/pulse-assist-undo",
           "auth": "open",
           "order": 630
         },
         {
+          "slug": "wordpress/pulse-assist-undo",
+          "title": "Pulse Assist Undo",
+          "method": "POST",
+          "path": "/api/wordpress/pulse-assist-undo",
+          "auth": "open",
+          "order": 640
+        },
+        {
+          "slug": "wordpress/pulse-assist-workflow-status",
+          "title": "Pulse Assist Workflow Status",
+          "method": "GET",
+          "path": "/api/wordpress/pulse-assist-workflow-status",
+          "auth": "open",
+          "order": 650
+        },
+        {
           "slug": "wordpress/pulse-assist-workflow-status",
           "title": "Pulse Assist Workflow Status",
           "method": "POST",
           "path": "/api/wordpress/pulse-assist-workflow-status",
           "auth": "open",
-          "order": 640
-        },
-        {
-          "slug": "wordpress/resolve-featured-media",
-          "title": "Resolve Featured Media",
-          "method": "GET",
-          "path": "/api/wordpress/resolve-featured-media",
-          "auth": "open",
-          "order": 650
-        },
-        {
-          "slug": "wordpress/resolve-featured-media",
-          "title": "Resolve Featured Media",
-          "method": "POST",
-          "path": "/api/wordpress/resolve-featured-media",
-          "auth": "open",
           "order": 660
         },
         {
-          "slug": "wordpress/resolve-urls",
-          "title": "Resolve Urls",
+          "slug": "wordpress/reschedule-post-date",
+          "title": "Reschedule Post Date",
           "method": "GET",
-          "path": "/api/wordpress/resolve-urls",
+          "path": "/api/wordpress/reschedule-post-date",
           "auth": "open",
           "order": 670
         },
         {
+          "slug": "wordpress/reschedule-post-date",
+          "title": "Reschedule Post Date",
+          "method": "POST",
+          "path": "/api/wordpress/reschedule-post-date",
+          "auth": "open",
+          "order": 680
+        },
+        {
+          "slug": "wordpress/resolve-featured-media",
+          "title": "Resolve Featured Media",
+          "method": "GET",
+          "path": "/api/wordpress/resolve-featured-media",
+          "auth": "open",
+          "order": 690
+        },
+        {
+          "slug": "wordpress/resolve-featured-media",
+          "title": "Resolve Featured Media",
+          "method": "POST",
+          "path": "/api/wordpress/resolve-featured-media",
+          "auth": "open",
+          "order": 700
+        },
+        {
+          "slug": "wordpress/resolve-urls",
+          "title": "Resolve Urls",
+          "method": "GET",
+          "path": "/api/wordpress/resolve-urls",
+          "auth": "open",
+          "order": 710
+        },
+        {
           "slug": "wordpress/resolve-urls",
           "title": "Resolve Urls",
           "method": "POST",
           "path": "/api/wordpress/resolve-urls",
           "auth": "open",
-          "order": 680
-        },
-        {
-          "slug": "wordpress/test-connection",
-          "title": "Test Connection",
-          "method": "GET",
-          "path": "/api/wordpress/test-connection",
-          "auth": "open",
-          "order": 690
-        },
-        {
-          "slug": "wordpress/test-connection",
-          "title": "Test Connection",
-          "method": "POST",
-          "path": "/api/wordpress/test-connection",
-          "auth": "open",
-          "order": 700
-        },
-        {
-          "slug": "wordpress/update-acf-field",
-          "title": "Update Acf Field",
-          "method": "GET",
-          "path": "/api/wordpress/update-acf-field",
-          "auth": "open",
-          "order": 710
-        },
-        {
-          "slug": "wordpress/update-acf-field",
-          "title": "Update Acf Field",
-          "method": "POST",
-          "path": "/api/wordpress/update-acf-field",
-          "auth": "open",
           "order": 720
         },
         {
-          "slug": "wordpress/update-acf-fields",
-          "title": "Update Acf Fields",
+          "slug": "wordpress/test-connection",
+          "title": "Test Connection",
           "method": "GET",
-          "path": "/api/wordpress/update-acf-fields",
+          "path": "/api/wordpress/test-connection",
           "auth": "open",
           "order": 730
         },
         {
-          "slug": "wordpress/update-acf-fields",
-          "title": "Update Acf Fields",
+          "slug": "wordpress/test-connection",
+          "title": "Test Connection",
           "method": "POST",
-          "path": "/api/wordpress/update-acf-fields",
+          "path": "/api/wordpress/test-connection",
           "auth": "open",
           "order": 740
         },
@@ -2941,20 +2965,52 @@
           "order": 780
         },
         {
-          "slug": "wordpress/update-post-meta",
-          "title": "Update Post Meta",
+          "slug": "wordpress/update-post-field",
+          "title": "Update Post Field",
           "method": "GET",
-          "path": "/api/wordpress/update-post-meta",
+          "path": "/api/wordpress/update-post-field",
           "auth": "open",
           "order": 790
         },
         {
+          "slug": "wordpress/update-post-field",
+          "title": "Update Post Field",
+          "method": "POST",
+          "path": "/api/wordpress/update-post-field",
+          "auth": "open",
+          "order": 800
+        },
+        {
+          "slug": "wordpress/update-post-fields",
+          "title": "Update Post Fields",
+          "method": "GET",
+          "path": "/api/wordpress/update-post-fields",
+          "auth": "open",
+          "order": 810
+        },
+        {
+          "slug": "wordpress/update-post-fields",
+          "title": "Update Post Fields",
+          "method": "POST",
+          "path": "/api/wordpress/update-post-fields",
+          "auth": "open",
+          "order": 820
+        },
+        {
+          "slug": "wordpress/update-post-meta",
+          "title": "Update Post Meta",
+          "method": "GET",
+          "path": "/api/wordpress/update-post-meta",
+          "auth": "open",
+          "order": 830
+        },
+        {
           "slug": "wordpress/update-post-meta",
           "title": "Update Post Meta",
           "method": "POST",
           "path": "/api/wordpress/update-post-meta",
           "auth": "open",
-          "order": 800
+          "order": 840
         },
         {
           "slug": "wordpress/upload-media",
@@ -2962,7 +3018,7 @@
           "method": "GET",
           "path": "/api/wordpress/upload-media",
           "auth": "open",
-          "order": 810
+          "order": 850
         },
         {
           "slug": "wordpress/upload-media",
@@ -2970,7 +3026,7 @@
           "method": "POST",
           "path": "/api/wordpress/upload-media",
           "auth": "open",
-          "order": 820
+          "order": 860
         }
       ]
     }

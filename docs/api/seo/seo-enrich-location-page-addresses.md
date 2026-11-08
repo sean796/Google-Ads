@@ -5,7 +5,7 @@ section: SEO
 method: POST
 path: /api/seo/enrich-location-page-addresses
 auth: open
-order: 1060
+order: 1090
 ---
 
 POST `/api/seo/enrich-location-page-addresses`.

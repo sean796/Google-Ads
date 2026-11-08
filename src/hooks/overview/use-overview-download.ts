@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import type { WordPressSite } from "@/components/integrations/types";
 import { getWordPressPostMeta } from "@/lib/wordpress-api";
-import { getSeoResearchFromAcf } from "@/lib/content-generation/ai-driven-acf-reader";
+import { getSeoResearchFromPostFields } from "@/lib/content-generation/ai-driven-post-fields-reader";
 import { focusKeywordFromWordPressSources } from "@/lib/overview/focus-keyword-from-wp-sources";
 import type { OverviewBinding } from "./use-overview-wordpress-binding";
 
@@ -71,8 +71,8 @@ export function useOverviewDownloadFromSite(): UseOverviewDownloadResult {
 
         let schemaJson = "";
         const schemaField =
-          meta["rank_math_rich_snippet"] ||
-          meta["rank_math_schema"] ||
+          meta["neo_pulse_seo_rich_snippet"] ||
+          meta["neo_pulse_seo_schema"] ||
           meta["schema"] ||
           meta["_schema"] ||
           null;
@@ -105,7 +105,7 @@ export function useOverviewDownloadFromSite(): UseOverviewDownloadResult {
             ? acf["seo_date_modifier"]
             : "";
 
-        const acfSeoResearch = getSeoResearchFromAcf(acf).trim();
+        const postFieldsSeoResearch = getSeoResearchFromPostFields(acf).trim();
 
         return {
           title: postTitle || undefined,
@@ -114,7 +114,7 @@ export function useOverviewDownloadFromSite(): UseOverviewDownloadResult {
           focusKeyword: focusKeyword || undefined,
           faq: acfFaq,
           dateModifier: acfDate || undefined,
-          seoResearch: acfSeoResearch || undefined,
+          seoResearch: postFieldsSeoResearch || undefined,
         };
       } catch (err) {
         const msg =

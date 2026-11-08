@@ -9,15 +9,15 @@ describe("seedBulkUrlKeywordsFromCaches", () => {
       }),
     );
 
-    const prefetchedAcfFieldsCache = new Map<number, Record<string, unknown>>();
-    prefetchedAcfFieldsCache.set(0, {
+    const prefetchedPostFieldsCache = new Map<number, Record<string, unknown>>();
+    prefetchedPostFieldsCache.set(0, {
       keyword_focus: "Blind Upkeep Service Brooklands Winnipeg MB",
     });
 
     seedBulkUrlKeywordsFromCaches({
       urls: ["https://example.com/a/"],
       batchKey: "site-batch",
-      prefetchedAcfFieldsCache,
+      prefetchedPostFieldsCache,
       setBulkOptimizationState,
     });
 
@@ -36,13 +36,13 @@ describe("seedBulkUrlKeywordsFromCaches", () => {
       }),
     );
 
-    const prefetchedAcfFieldsCache = new Map<number, Record<string, unknown>>();
-    prefetchedAcfFieldsCache.set(0, { keyword_focus: "house painter amisk" });
+    const prefetchedPostFieldsCache = new Map<number, Record<string, unknown>>();
+    prefetchedPostFieldsCache.set(0, { keyword_focus: "house painter amisk" });
 
     seedBulkUrlKeywordsFromCaches({
       urls: ["https://example.com/a/", "https://example.com/b/"],
       batchKey: "site-batch",
-      prefetchedAcfFieldsCache,
+      prefetchedPostFieldsCache,
       setBulkOptimizationState,
     });
 

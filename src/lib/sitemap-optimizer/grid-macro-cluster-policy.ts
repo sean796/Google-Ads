@@ -1,4 +1,4 @@
-/** Max CSV URLs grouped into one new post + one Rank Math destination. */
+/** Max CSV URLs grouped into one new post + one NEO Pulse redirect destination. */
 export type GridMaxUrlsPerPost = 1 | 2 | 3 | 4 | 5;
 
 /** @deprecated Use GridMaxUrlsPerPost */
@@ -21,7 +21,7 @@ Grid CSV harness (new post ideas, not WordPress merges):
 export function gridMaxSizeClusterSystemPreamble(maxUrlsPerPost: GridMaxUrlsPerPost): string {
   return `You are a senior SEO strategist planning **new cluster-optimized blog posts** from a GSC URL grid.
 
-Your job: group URLs into clusters of **up to ${maxUrlsPerPost} URLs each**. Each cluster becomes one new post and one Rank Math redirect target.
+Your job: group URLs into clusters of **up to ${maxUrlsPerPost} URLs each**. Each cluster becomes one new post and one NEO Pulse redirect redirect target.
 
 ${gridMaxSizeClusterSystemRules(maxUrlsPerPost)}
 

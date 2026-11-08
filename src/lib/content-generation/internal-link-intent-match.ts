@@ -1,7 +1,10 @@
+import pLimit from "p-limit";
 import { callOpenRouterChatCompletion } from "@/lib/competitor-research/competitor-report-openrouter";
 import { blogPlayLinkInventoryLabel } from "@/lib/bulk/bulk-generation-wp-inventory";
 import { INTERNAL_LINK_INTENT_ROUTING_RULE } from "@/lib/content-generation/internal-link-routing-rules";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
+
+export const LINK_INTENT_MATCH_CONCURRENCY = 8;
 
 export type InternalLinkCatalogItem = {
   title: string;
@@ -114,24 +117,33 @@ export async function matchInternalLinkQueriesToCatalog(args: {
   const usedUrls = new Set<string>();
   const out = new Map<string, string>();
 
-  for (const q of queries) {
-    let numbers: number[] = [];
-    if (apiKey) {
-      const { content } = await callOpenRouterChatCompletion({
-        apiKey,
-        model: getResearchModel(args.siteId),
-        system: SUGGEST_LINK_SYSTEM,
-        user:
-          `Highlighted text: "${q.query.trim()}"\n` +
-          (q.bucket ? `Allowed bucket: [${q.bucket}]. Rank only [${q.bucket}] rows.\n` : "") +
-          `Must return 1 to 5 inventory numbers from the allowed bucket. Never return 0.\n\n` +
-          `Available pages:\n${list}`,
-        maxTokens: 1024,
-        temperature: 0,
-        signal: args.signal,
-      });
-      numbers = parseSuggestLinkNumbers(content);
-    }
+  const limit = pLimit(LINK_INTENT_MATCH_CONCURRENCY);
+  const model = getResearchModel(args.siteId);
+  const numbersByQueryIndex = await Promise.all(
+    queries.map((q) =>
+      limit(async (): Promise<number[]> => {
+        if (!apiKey) return [];
+        const { content } = await callOpenRouterChatCompletion({
+          apiKey,
+          model,
+          system: SUGGEST_LINK_SYSTEM,
+          user:
+            `Highlighted text: "${q.query.trim()}"\n` +
+            (q.bucket ? `Allowed bucket: [${q.bucket}]. Rank only [${q.bucket}] rows.\n` : "") +
+            `Must return 1 to 5 inventory numbers from the allowed bucket. Never return 0.\n\n` +
+            `Available pages:\n${list}`,
+          maxTokens: 1024,
+          temperature: 0,
+          signal: args.signal,
+        });
+        return parseSuggestLinkNumbers(content);
+      }),
+    ),
+  );
+
+  for (let i = 0; i < queries.length; i += 1) {
+    const q = queries[i]!;
+    const numbers = numbersByQueryIndex[i] ?? [];
     const urls = pickSuggestLinkUrls(numbers, args.catalog, usedUrls, picksPerQuery);
     urls.forEach((url, pickIndex) => {
       const key = pickIndex === 0 ? q.id : `${q.id}~${pickIndex + 1}`;

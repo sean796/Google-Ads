@@ -2,7 +2,7 @@
 /**
  * Redirect storage, matching, and front-end execution.
  *
- * Matching modes follow Rank Math's comparison types: exact, contains, start,
+ * Matching modes follow NEO Pulse redirect's comparison types: exact, contains, start,
  * end and regex. Exact rows are stored normalised (lowercase, trailing slash,
  * no leading slash, optional "?query") and looked up with one indexed query;
  * every other active row is loaded once into a transient that is cleared on
@@ -26,7 +26,7 @@ class Neo_Pulse_Wp_Redirects {
 	/** Transient holding all active non-exact rows. */
 	const NON_EXACT_CACHE_KEY = 'neo_pulse_wp_redirects_non_exact';
 
-	/** Supported matching modes (same names as Rank Math comparisons). */
+	/** Supported matching modes (same names as NEO Pulse redirect comparisons). */
 	const MATCH_TYPES = array( 'exact', 'contains', 'start', 'end', 'regex' );
 
 	/** Supported HTTP status codes. */

@@ -5,7 +5,7 @@ section: DataForSEO MCP
 method: POST
 path: /api/mcp/DataForSEO_on_page_lighthouse
 auth: open
-order: 840
+order: 850
 ---
 
 POST `/api/mcp/DataForSEO_on_page_lighthouse`.

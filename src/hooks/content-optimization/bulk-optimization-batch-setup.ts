@@ -7,7 +7,7 @@ import type { Dispatch, SetStateAction } from "react";
 import type { GSCQuery } from "@/lib/gsc-query-clustering";
 import type { BooleanMapSetter, HandleOptimizeMultipleContentParams } from "./bulk-optimization-params";
 import type { PendingOptimization } from "./use-optimization-state";
-import type { WpPostSnapshotFromAcfByUrl } from "@/lib/wordpress-api/fields-client";
+import type { WpPostSnapshotFromFieldsByUrl } from "@/lib/wordpress-api/fields-client";
 import type { WordPressSite } from "@/components/integrations/types";
 import {
   CONTENT_OPTIMIZER_BULK_PAGE_SIZE,
@@ -95,8 +95,8 @@ export function setupBulkOptimizationBatch(args: BulkOptimizationBatchSetupArgs)
     number,
     { pending: Record<string, unknown>; primaryKeyword: string }
   >();
-  const prefetchedAcfFieldsCache = new Map<number, Record<string, unknown>>();
-  const prefetchedPostPayloadByUrlIndex = new Map<number, WpPostSnapshotFromAcfByUrl>();
+  const prefetchedPostFieldsCache = new Map<number, Record<string, unknown>>();
+  const prefetchedPostPayloadByUrlIndex = new Map<number, WpPostSnapshotFromFieldsByUrl>();
   const prefetchedAcfFullPostByUrlIndex = new Map<number, Record<string, unknown>>();
   const setPendingOptimization: Dispatch<
     SetStateAction<Record<string, PendingOptimization>>
@@ -257,7 +257,7 @@ export function setupBulkOptimizationBatch(args: BulkOptimizationBatchSetupArgs)
     pendingOptimizationData,
     bulkContextRef,
     prefetchedPendingCache,
-    prefetchedAcfFieldsCache,
+    prefetchedPostFieldsCache,
     prefetchedPostPayloadByUrlIndex,
     prefetchedAcfFullPostByUrlIndex,
     setPendingOptimization,

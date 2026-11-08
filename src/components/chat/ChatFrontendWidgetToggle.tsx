@@ -3,7 +3,10 @@ import { Globe, UserCheck } from "lucide-react";
 import { getStoredSites } from "@/components/integrations/storage";
 import type { WordPressSite } from "@/components/integrations/types";
 import { CHAT_ICON_BTN_CLASS } from "@/components/chat/chat-theme";
-import { executeNeoPulseWpTool } from "@/lib/wordpress-api/neo-pulse-wp-tools";
+import {
+  getFlowAssistChatSettings,
+  updateFlowAssistChatSettings,
+} from "@/lib/wordpress-api/chat-flow-assist-settings";
 import { cn } from "@/lib/utils";
 import { Button } from "@/ui";
 
@@ -46,7 +49,7 @@ export function ChatFrontendWidgetToggle({ disabled = false }: ChatFrontendWidge
     }
     setLoading(true);
     try {
-      const result = await executeNeoPulseWpTool(site, "wp_chat_settings_get");
+      const result = await getFlowAssistChatSettings(site);
       const enabled = result.enabled === true;
       const loggedInOnly = result.logged_in_only === true;
       setActive(enabled && loggedInOnly);
@@ -66,7 +69,7 @@ export function ChatFrontendWidgetToggle({ disabled = false }: ChatFrontendWidge
     const next = !active;
     setSaving(true);
     try {
-      await executeNeoPulseWpTool(site, "wp_chat_settings_update", {
+      await updateFlowAssistChatSettings(site, {
         enabled: next,
         logged_in_only: next,
       });

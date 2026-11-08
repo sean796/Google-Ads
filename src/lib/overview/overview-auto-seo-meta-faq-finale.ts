@@ -53,49 +53,54 @@ export async function runAutoSeoMetaAndFaqFinale(args: {
     onStepStart,
   } = args;
 
-  // 1. SEO Title & Meta Description (one by one)
+  // 1. SEO Title & Meta Description (in parallel)
   onStepStart?.("SEO Title & Meta Description");
-  let row = getRow();
-  if (row && !overviewTitleOptimizationExcluded(row)) {
-    const titleBefore = (row.aiTitle || row.title || "").trim();
-    try {
-      await handleAiTitleRow(rowIndex, row, { skipOptimizeTitleLoading: true });
-      row = getRow() ?? row;
-      const titleAfter = (row.aiTitle || row.title || "").trim();
-      recordOverviewStudioTextRevision({
-        pageUrl,
-        stepLabel: "SEO Title",
-        runId: revisionRunId,
-        beforeText: titleBefore,
-        afterText: titleAfter,
-      });
-    } catch (err) {
-      logger.warn("[Auto SEO] Title step warning for", pageUrl, err);
-    }
-  }
+  const initialRow = getRow();
+  if (initialRow) {
+    const titleBefore = (initialRow.aiTitle || initialRow.title || "").trim();
+    const metaBefore = (initialRow.aiMeta || initialRow.metaDescription || "").trim();
 
-  row = getRow() ?? row;
-  if (row) {
-    const metaBefore = (row.aiMeta || row.metaDescription || "").trim();
-    try {
-      await handleAiMetaRow(rowIndex, row, { skipOptimizeMetaLoading: true });
-      row = getRow() ?? row;
-      const metaAfter = (row.aiMeta || row.metaDescription || "").trim();
-      recordOverviewStudioTextRevision({
-        pageUrl,
-        stepLabel: "Meta Description",
-        runId: revisionRunId,
-        beforeText: metaBefore,
-        afterText: metaAfter,
-      });
-    } catch (err) {
-      logger.warn("[Auto SEO] Meta step warning for", pageUrl, err);
-    }
+    const runTitleTask = async () => {
+      if (overviewTitleOptimizationExcluded(initialRow)) return;
+      try {
+        await handleAiTitleRow(rowIndex, initialRow, { skipOptimizeTitleLoading: true });
+        const updatedRow = getRow() ?? initialRow;
+        const titleAfter = (updatedRow.aiTitle || updatedRow.title || "").trim();
+        recordOverviewStudioTextRevision({
+          pageUrl,
+          stepLabel: "SEO Title",
+          runId: revisionRunId,
+          beforeText: titleBefore,
+          afterText: titleAfter,
+        });
+      } catch (err) {
+        logger.warn("[Auto SEO] Title step warning for", pageUrl, err);
+      }
+    };
+
+    const runMetaTask = async () => {
+      try {
+        await handleAiMetaRow(rowIndex, initialRow, { skipOptimizeMetaLoading: true });
+        const updatedRow = getRow() ?? initialRow;
+        const metaAfter = (updatedRow.aiMeta || updatedRow.metaDescription || "").trim();
+        recordOverviewStudioTextRevision({
+          pageUrl,
+          stepLabel: "Meta Description",
+          runId: revisionRunId,
+          beforeText: metaBefore,
+          afterText: metaAfter,
+        });
+      } catch (err) {
+        logger.warn("[Auto SEO] Meta step warning for", pageUrl, err);
+      }
+    };
+
+    await Promise.all([runTitleTask(), runMetaTask()]);
   }
 
   // 2. FAQs (runs after Title & Meta finish)
   onStepStart?.("FAQs");
-  row = getRow() ?? row;
+  const row = getRow() ?? initialRow;
   if (row) {
     const faqBefore =
       row.faq?.trim() ||

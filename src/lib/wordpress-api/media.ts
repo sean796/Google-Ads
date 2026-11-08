@@ -16,7 +16,7 @@ import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
  * @param imageBase64 - Base64 encoded image data (with or without data URL prefix)
  * @param filename - Optional filename for the image
  * @param title - Optional title for the media
- * @param alt - Optional alt text for the image (Rank Math: use Focus Keyword in alt)
+ * @param alt - Optional alt text for the image (NEO Pulse redirect: use Focus Keyword in alt)
  *
  * @returns Promise resolving to WordPressMediaUploadResult with media ID and URL
  * 

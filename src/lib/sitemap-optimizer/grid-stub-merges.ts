@@ -6,7 +6,7 @@ import type {
   SitemapOptimizerPostRow,
 } from "@/lib/sitemap-optimizer/types";
 
-/** Deterministic merge rows for Rank Math (no OpenRouter content briefs). */
+/** Deterministic merge rows for NEO Pulse redirect (no OpenRouter content briefs). */
 export function buildGridStubMerges(
   clusters: SitemapOptimizerClusterResult,
   rows: SitemapOptimizerPostRow[],
@@ -32,10 +32,10 @@ export function buildGridStubMerges(
         title: row.title,
         bullets: [],
       })),
-      redirectOrCanonicalNote: "Rank Math redirect to proposed slug.",
+      redirectOrCanonicalNote: "NEO Pulse redirect redirect to proposed slug.",
       priority: "medium",
       confidence: "medium",
-      rationale: "Grid Rank Math only (cluster label + URL slug, no full brief).",
+      rationale: "Grid NEO Pulse redirect only (cluster label + URL slug, no full brief).",
     };
   });
 }

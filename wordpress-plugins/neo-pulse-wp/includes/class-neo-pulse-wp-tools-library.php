@@ -142,7 +142,7 @@ class Neo_Pulse_Wp_Tools_Library {
 					'title'          => __( 'Post title (required).', 'neo-pulse-wp' ),
 					'status'         => __( 'draft, publish, or private.', 'neo-pulse-wp' ),
 					'post_type'      => __( 'Custom post type slug.', 'neo-pulse-wp' ),
-					'focus_keyword'  => __( 'Rank Math focus keyword.', 'neo-pulse-wp' ),
+					'focus_keyword'  => __( 'NEO Pulse redirect focus keyword.', 'neo-pulse-wp' ),
 					'categories'     => __( 'Array of category names.', 'neo-pulse-wp' ),
 				),
 			),
@@ -196,7 +196,7 @@ class Neo_Pulse_Wp_Tools_Library {
 				),
 			),
 			'wp_ai_apply_field'          => array(
-				'summary' => __( 'Applies a previewed wand value to Rank Math meta, title, excerpt, or ACF / post meta fields. Counts toward optimization usage.', 'neo-pulse-wp' ),
+				'summary' => __( 'Applies a previewed wand value to NEO Pulse redirect meta, title, excerpt, or ACF / post meta fields. Counts toward optimization usage.', 'neo-pulse-wp' ),
 				'params'  => array(
 					'post_id' => __( 'Required.', 'neo-pulse-wp' ),
 					'field'   => __( 'title, focus_keyword, excerpt, seo_research, faq, page_url.', 'neo-pulse-wp' ),

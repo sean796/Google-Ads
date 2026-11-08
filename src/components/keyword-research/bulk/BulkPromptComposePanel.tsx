@@ -159,7 +159,7 @@ export function BulkPromptComposePanel({
                 </div>
                 <Field
                   type="number"
-                  min={0}
+                  min={1}
                   step={1}
                   value={numberOfBlogs || ""}
                   onChange={(e) => {

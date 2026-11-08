@@ -1,11 +1,11 @@
 import Papa from "papaparse";
 import { BULK_AUTO_GENERATE_TEMPLATE_COLUMNS } from "@/lib/bulk/bulk-auto-generate-template-columns";
-import { normalizeFocusKeywordPhrase } from "@/lib/rank-math-redirect-csv";
+import { normalizeFocusKeywordPhrase } from "@/lib/pulse-redirect-redirect-csv";
 import {
   buildContentSheetRows,
   replacementContentSheetRows,
 } from "@/lib/sitemap-optimizer/build-content-sheet-rows";
-import { isRedirectMapRun } from "@/lib/sitemap-optimizer/build-grid-rank-math-redirects";
+import { isRedirectMapRun } from "@/lib/sitemap-optimizer/build-grid-pulse-redirect-redirects";
 import { contentSheetPrimaryUrl } from "@/lib/sitemap-optimizer/content-sheet-source-url";
 import { isEntityCompressionRunResult } from "@/lib/sitemap-optimizer/sitemap-merge-bulk-state";
 import { buildMergePublishContracts } from "@/lib/sitemap-optimizer/sitemap-merge-publish-contract";

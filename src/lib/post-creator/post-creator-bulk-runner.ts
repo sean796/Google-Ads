@@ -382,7 +382,6 @@ export async function runPostCreatorBulkRows(args: {
     workflowSerpResearch,
     workflowDfsArticleAudit,
     skipWikipediaLookup: true,
-    sequentialHarnessSections: true,
     postCreatorPhase,
     onProgress: (rowIndex, _total, status) => {
       if (!status?.trim()) return;

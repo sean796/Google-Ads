@@ -2,7 +2,7 @@ import type { WordPressSite } from "@/components/integrations/types";
 import {
   mergeSeoResearchFromAcfIntoContext,
   type AIDrivenACFContext,
-} from "@/lib/content-generation/ai-driven-acf-reader";
+} from "@/lib/content-generation/ai-driven-post-fields-reader";
 import { fetchMergedSeoContentBriefLive } from "@/lib/llm-audit/fetch-merged-seo-content-brief";
 import { humanizeSlugFromUrl } from "@/hooks/content-optimization/bulk-optimization-constants";
 import {

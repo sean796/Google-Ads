@@ -82,7 +82,7 @@ function titleFromKeyword(keyword: string): string {
   return base.length <= 60 ? base : `${base.slice(0, 57).trim()}...`;
 }
 
-/** Deterministic Rank Math brief when the model omits or rejects a cluster. */
+/** Deterministic NEO Pulse redirect brief when the model omits or rejects a cluster. */
 export function buildDeterministicGridBrief(
   cluster: SitemapOptimizerCluster,
   rowById: Map<string, SitemapOptimizerPostRow>,

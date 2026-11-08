@@ -14,8 +14,8 @@ import {
   lookupInventoryRowWithSource,
   snapshotHasInventoryEntries,
 } from "@/lib/wordpress-api/inventory-match";
-import { readKeywordFocusFromAcfFields } from "@/lib/content-generation/ai-driven-acf-reader";
-import { readKeywordFromInventoryRow } from "./bulk-optimization-grep-acf";
+import { readKeywordFocusFromAcfFields } from "@/lib/content-generation/ai-driven-post-fields-reader";
+import { readKeywordFromInventoryRow } from "./bulk-optimization-grep-fields";
 import {
   getBulkInventorySessionSnapshot,
   getMergedBulkInventorySessionSnapshot,

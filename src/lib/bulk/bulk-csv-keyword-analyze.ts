@@ -1,4 +1,4 @@
-import { resolveMcpApiBase } from "@/lib/mcp-tools";
+import { mcpPostInit, resolveMcpApiBase } from "@/lib/mcp-tools";
 import {
   analyzeKeywordWithAI,
   extractPeopleAlsoAskWithAI,
@@ -21,6 +21,7 @@ import { getPublicSiteUrl } from "@/lib/wordpress-site-public-url";
 import type { ConnectedSiteSummary } from "@/components/integrations/types";
 import { withDataForSeoLocationCode } from "@/lib/dataforseo-location-code";
 import { logger } from "@/lib/logger";
+import { logBulkRunStep } from "@/lib/bulk/bulk-run-step-log";
 
 function mcpApiBase(): string {
   return (
@@ -43,10 +44,15 @@ async function fetchSerpOrganicRaw(
     serpRequestPayload.people_also_ask_click_depth = options.peopleAlsoAskClickDepth;
   }
 
-  const serpResponse = await fetch(`${mcpApiBase()}/DataForSEO_serp_organic_live_advanced`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify((serpRequestPayload)),
+  const serpUrl = `${mcpApiBase()}/DataForSEO_serp_organic_live_advanced`;
+  logBulkRunStep("DataForSEO SERP request", {
+    keyword: primaryKeyword.trim(),
+    location: serpRequestPayload.location_name,
+  });
+  const serpResponse = await fetch(serpUrl, mcpPostInit(serpRequestPayload));
+  logBulkRunStep("DataForSEO SERP response", {
+    status: serpResponse.status,
+    ok: serpResponse.ok,
   });
 
   if (serpResponse.ok) {
@@ -129,6 +135,8 @@ export async function analyzeBulkCsvKeyword(
   const language = options.language || "en";
   const labsKeyword = keywordsForLabsOverview([kw])[0] ?? kw.toLowerCase();
 
+  logBulkRunStep("keyword research phase started", { keyword: kw, location, language });
+
   const [overviewRows, serpRaw] = await Promise.all([
     callMCPKeywordOverview([kw], location, language).catch((e) => {
       logger.warn("[Bulk CSV keyword analyze] DataForSEO overview failed:", e);
@@ -155,8 +163,14 @@ export async function analyzeBulkCsvKeyword(
         serpFeatures: [],
       };
 
+  logBulkRunStep("keyword research DataForSEO legs finished", {
+    overviewRows: overviewRows.length,
+    serpError: Boolean(serpRaw && typeof serpRaw === "object" && "error" in (serpRaw as object)),
+  });
+
   const orKey = openRouterApiKey?.trim() ?? "";
   if (!orKey) {
+    logBulkRunStep("keyword research skipping OpenRouter (no API key)");
     const keywordResult: KeywordResearchResult = {
       primaryKeyword: formattedPrimaryKeyword,
       keywordData: keywordDataForPipeline,
@@ -189,6 +203,7 @@ export async function analyzeBulkCsvKeyword(
   let analysis: Awaited<ReturnType<typeof analyzeKeywordWithAI>> | null = null;
   let paaQuestions: PeopleAlsoAsk[] = [];
   try {
+    logBulkRunStep("OpenRouter keyword analysis started", { model: selectedModel });
     const [analysisResult, paaResult] = await Promise.all([
       analyzeKeywordWithAI(keywordDataForPipeline, undefined, aiOpts),
       serpRaw

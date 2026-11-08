@@ -13,7 +13,7 @@ export type MetaPageApiPingResult = {
   plainTextContent: string;
   charCount: number;
   /** ACF `seo_research` from WordPress (`context=edit` meta fetch). */
-  acfSeoResearch?: string;
+  postFieldsSeoResearch?: string;
   error?: string;
 };
 
@@ -48,7 +48,7 @@ export function buildMetaPagePingFromOverviewRow(row: OverviewRow): MetaPageApiP
   const title = (row.title || "").trim();
   const rawContent = (row.postContent || "").trim();
   const plain = stripHtmlForKeywordContext(rawContent);
-  const acfSeoResearch = (row.seoResearch || "").trim() || undefined;
+  const postFieldsSeoResearch = (row.seoResearch || "").trim() || undefined;
 
   return {
     ok: true,
@@ -58,7 +58,7 @@ export function buildMetaPagePingFromOverviewRow(row: OverviewRow): MetaPageApiP
     title,
     plainTextContent: plain,
     charCount: plain.length,
-    ...(acfSeoResearch ? { acfSeoResearch } : {}),
+    ...(postFieldsSeoResearch ? { postFieldsSeoResearch } : {}),
   };
 }
 
@@ -71,7 +71,7 @@ export function formatPageApiPingArtifact(result: MetaPageApiPingResult): string
     title: result.title || "(none)",
     plainTextCharCount: result.charCount,
     plainTextContent: result.plainTextContent || "(empty)",
-    acfSeoResearch: result.acfSeoResearch?.trim() || "(none on row ACF)",
+    postFieldsSeoResearch: result.postFieldsSeoResearch?.trim() || "(none on row ACF)",
     ...(result.error ? { error: result.error } : {}),
   };
   return "```json\n" + JSON.stringify(doc, null, 2) + "\n```";
@@ -164,7 +164,7 @@ export async function pingOverviewPageForMeta(
     const rawContent = (post.content || post.fullData?.content?.raw || "").trim();
     const plain = stripHtmlForKeywordContext(rawContent);
 
-    let acfSeoResearch = acfStringField(
+    let postFieldsSeoResearch = acfStringField(
       post.fullData?.acf && typeof post.fullData.acf === "object"
         ? (post.fullData.acf as Record<string, unknown>)
         : post.fullData?.neo_pulse_fields && typeof post.fullData.neo_pulse_fields === "object"
@@ -173,7 +173,7 @@ export async function pingOverviewPageForMeta(
       "seo_research",
     );
 
-    if (!acfSeoResearch && resolvedPostId) {
+    if (!postFieldsSeoResearch && resolvedPostId) {
       try {
         const metaResult = await getWordPressPostMeta(
           site.siteUrl,
@@ -184,7 +184,7 @@ export async function pingOverviewPageForMeta(
           post.postTypeEndpoint,
         );
         if (metaResult.success) {
-          acfSeoResearch = acfStringField(
+          postFieldsSeoResearch = acfStringField(
             metaResult.acf && typeof metaResult.acf === "object"
               ? (metaResult.acf as Record<string, unknown>)
               : undefined,
@@ -204,7 +204,7 @@ export async function pingOverviewPageForMeta(
       title,
       plainTextContent: plain,
       charCount: plain.length,
-      ...(acfSeoResearch ? { acfSeoResearch } : {}),
+      ...(postFieldsSeoResearch ? { postFieldsSeoResearch } : {}),
     };
   } catch (err) {
     return {

@@ -60,17 +60,22 @@ function scrubLegacyStoredApiKeys(): void {
 export function hydrateRuntimeApiKeys(keys: Record<string, unknown> | null | undefined): void {
     if (keys && typeof keys === "object") {
         const read = (name: string): string =>
-            typeof keys[name] === "string" ? (keys[name] as string).trim() : "";
-        const openRouter = read(OPENROUTER_API_KEY_STORAGE_KEY);
-        if (openRouter) runtimeApiKeys.openRouter = openRouter;
-        const dataForSeo = read(DATAFORSEO_API_KEY_STORAGE_KEY);
-        if (dataForSeo) runtimeApiKeys.dataForSeo = dataForSeo;
-        const semrush = read(SEMRUSH_API_KEY_STORAGE_KEY);
-        if (semrush) runtimeApiKeys.semrush = semrush;
-        const agentMail = read(AGENTMAIL_API_KEY_STORAGE_KEY);
-        if (agentMail) runtimeApiKeys.agentMail = agentMail;
-        const agentMailInbox = read(AGENTMAIL_INBOX_STORAGE_KEY);
-        if (agentMailInbox) runtimeApiKeys.agentMailInbox = agentMailInbox;
+            typeof keys[name] === "string" ? (keys[name] as string) : "";
+        if (Object.prototype.hasOwnProperty.call(keys, OPENROUTER_API_KEY_STORAGE_KEY)) {
+            runtimeApiKeys.openRouter = read(OPENROUTER_API_KEY_STORAGE_KEY);
+        }
+        if (Object.prototype.hasOwnProperty.call(keys, DATAFORSEO_API_KEY_STORAGE_KEY)) {
+            runtimeApiKeys.dataForSeo = read(DATAFORSEO_API_KEY_STORAGE_KEY);
+        }
+        if (Object.prototype.hasOwnProperty.call(keys, SEMRUSH_API_KEY_STORAGE_KEY)) {
+            runtimeApiKeys.semrush = read(SEMRUSH_API_KEY_STORAGE_KEY);
+        }
+        if (Object.prototype.hasOwnProperty.call(keys, AGENTMAIL_API_KEY_STORAGE_KEY)) {
+            runtimeApiKeys.agentMail = read(AGENTMAIL_API_KEY_STORAGE_KEY);
+        }
+        if (Object.prototype.hasOwnProperty.call(keys, AGENTMAIL_INBOX_STORAGE_KEY)) {
+            runtimeApiKeys.agentMailInbox = read(AGENTMAIL_INBOX_STORAGE_KEY);
+        }
     }
     scrubLegacyStoredApiKeys();
 }
@@ -78,7 +83,7 @@ export function hydrateRuntimeApiKeys(keys: Record<string, unknown> | null | und
 export const loadApiKey = () => runtimeApiKeys.openRouter;
 
 export const saveApiKey = (key: string) => {
-    runtimeApiKeys.openRouter = key.trim();
+    runtimeApiKeys.openRouter = key;
     scrubLegacyStoredApiKeys();
 };
 
@@ -92,7 +97,7 @@ export const loadDataForSEOApiKey = () => {
 };
 
 export const saveDataForSEOApiKey = (key: string) => {
-    runtimeApiKeys.dataForSeo = key.trim();
+    runtimeApiKeys.dataForSeo = key;
     scrubLegacyStoredApiKeys();
 };
 
@@ -113,21 +118,21 @@ export const loadSemrushApiKeyForAppRequests = (): string => {
 };
 
 export const saveSemrushApiKey = (key: string) => {
-    runtimeApiKeys.semrush = key.trim();
+    runtimeApiKeys.semrush = key;
     scrubLegacyStoredApiKeys();
 };
 
 export const loadAgentMailApiKey = () => runtimeApiKeys.agentMail;
 
 export const saveAgentMailApiKey = (key: string) => {
-    runtimeApiKeys.agentMail = key.trim();
+    runtimeApiKeys.agentMail = key;
     scrubLegacyStoredApiKeys();
 };
 
 export const loadAgentMailInbox = () => runtimeApiKeys.agentMailInbox;
 
 export const saveAgentMailInbox = (inbox: string) => {
-    runtimeApiKeys.agentMailInbox = inbox.trim();
+    runtimeApiKeys.agentMailInbox = inbox;
 };
 
 export interface SlackGlobalSettings {

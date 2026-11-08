@@ -1,90 +1,82 @@
-import { useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ApiKeyCopyButton } from "@/components/ApiKeyCopyButton";
-import { notify } from "@/lib/app-notifications";
-import {
-  NOTIFY_AGENTMAIL_API_KEY_CLEARED,
-  NOTIFY_AGENTMAIL_API_KEY_SAVED,
-} from "@/lib/notify-messages";
+import { WorkspaceApiKeyRow } from "@/components/WorkspaceApiKeyRow";
 import {
   loadAgentMailApiKey,
   loadAgentMailInbox,
   saveAgentMailApiKey,
   saveAgentMailInbox,
 } from "@/lib/api";
-import { DASHBOARD_SETTINGS_FIELD_CLASS } from "@/components/manager/dashboard/dashboard-panel-styles";
-import { Button, Field } from "@/ui";
-
-const INPUT_CLASS = `${DASHBOARD_SETTINGS_FIELD_CLASS} min-w-0 flex-1 h-12`;
+import { Field } from "@/ui";
 
 export function AgentMailApiKeyContent() {
-  const [localApiKey, setLocalApiKey] = useState(() => loadAgentMailApiKey());
-  const [localInbox, setLocalInbox] = useState(() => loadAgentMailInbox());
+  const [inbox, setInbox] = useState(() => loadAgentMailInbox());
+  const [apiKey, setApiKey] = useState(() => loadAgentMailApiKey());
 
-  const handleSave = useCallback(() => {
-    const apiKey = localApiKey.trim();
-    const inbox = localInbox.trim().toLowerCase();
+  useEffect(() => {
+    const sync = () => {
+      setApiKey(loadAgentMailApiKey());
+      setInbox(loadAgentMailInbox());
+    };
+    sync();
+    window.addEventListener("neo-pulse-runtime-keys-hydrated", sync);
+    return () => window.removeEventListener("neo-pulse-runtime-keys-hydrated", sync);
+  }, []);
 
-    if (apiKey && inbox) {
-      saveAgentMailApiKey(apiKey);
-      saveAgentMailInbox(inbox);
-      notify.success(NOTIFY_AGENTMAIL_API_KEY_SAVED);
-      return;
-    }
+  const handleKeyChange = useCallback((next: string) => {
+    setApiKey(next);
+    saveAgentMailApiKey(next);
+  }, []);
 
-    saveAgentMailApiKey("");
-    saveAgentMailInbox("");
-    notify.warning(NOTIFY_AGENTMAIL_API_KEY_CLEARED);
-  }, [localApiKey, localInbox]);
+  const handleInboxChange = useCallback((next: string) => {
+    setInbox(next);
+    saveAgentMailInbox(next);
+  }, []);
 
   return (
-    <div className="space-y-2">
-      <p className="font-semibold text-white">AgentMail</p>
-      <p className="text-base text-white">
-        Automation and team email delivery. Keys from{" "}
-        <a
-          href="https://agentmail.io"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-primary underline-offset-2 hover:underline"
-        >
-          agentmail.io
-        </a>
-        . Saved locally in this browser.
-      </p>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <Field
-          placeholder="AgentMail API key"
-          id="agentmail-apiKey"
-          type="password"
-          value={localApiKey}
-          onChange={(e) => setLocalApiKey(e.target.value)}
-          aria-label="AgentMail API key"
-          autoComplete="off"
-        />
+    <div className="space-y-4">
+      <WorkspaceApiKeyRow
+        id="agentmail-apiKey"
+        title="AgentMail"
+        description={
+          <>
+            Automation and team email delivery. Keys from{" "}
+            <a
+              href="https://agentmail.io"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline-offset-2 hover:underline"
+            >
+              agentmail.io
+            </a>
+            .
+          </>
+        }
+        value={apiKey}
+        placeholder="AgentMail API key"
+        onChange={handleKeyChange}
+        copyEmptyMessage="Enter an AgentMail API key to copy."
+        copyAriaLabel="Copy AgentMail API key"
+      />
+
+      <div className="flex items-center gap-2">
+        <div className="min-w-0 max-w-md flex-1">
+          <Field
+            id="agentmail-inbox"
+            type="email"
+            size="url"
+            value={inbox}
+            onChange={(e) => handleInboxChange(e.target.value)}
+            aria-label="AgentMail inbox email"
+            autoComplete="off"
+            placeholder="neo-pulse@agentmail.to"
+          />
+        </div>
         <ApiKeyCopyButton
-          value={localApiKey}
-          emptyMessage="Enter an AgentMail API key to copy."
-          aria-label="Copy AgentMail API key"
-        />
-      </div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <Field
-          id="agentmail-inbox"
-          type="email"
-          value={localInbox}
-          onChange={(e) => setLocalInbox(e.target.value)}
-          aria-label="AgentMail inbox email"
-          autoComplete="off"
-          placeholder="neo-pulse@agentmail.to"
-        />
-        <ApiKeyCopyButton
-          value={localInbox}
-          emptyMessage="Enter an AgentMail inbox email to copy."
+          value={inbox}
+          emptyMessage="Enter an AgentMail inbox to copy."
           aria-label="Copy AgentMail inbox email"
         />
-        <Button variant="run" type="button" onClick={handleSave}>
-          Save
-        </Button>
       </div>
     </div>
   );

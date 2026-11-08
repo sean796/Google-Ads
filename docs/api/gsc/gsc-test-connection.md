@@ -5,7 +5,7 @@ section: Google Search Console
 method: GET
 path: /api/gsc/test-connection
 auth: open
-order: 520
+order: 540
 ---
 
 GET `/api/gsc/test-connection`.

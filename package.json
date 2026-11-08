@@ -52,6 +52,7 @@
     "check:no-secrets": "node scripts/check-no-secrets.mjs",
     "check:no-secrets:all": "node scripts/check-no-secrets.mjs --all-tracked",
     "check:circular": "node scripts/check-circular-imports.mjs",
+    "check:forbidden-wp-refs": "node scripts/ci/forbidden-wp-refs.mjs",
     "build:neo-pulse-wp-zip": "node scripts/build-neo-pulse-wp-zip.mjs",
     "setup:google-maps-image": "node scripts/setup-google-maps-image.cjs",
     "entity-maps-puppeteer": "node scripts/entity-maps-puppeteer.mjs",

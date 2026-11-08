@@ -202,7 +202,7 @@ export async function runOverviewAiAllMetaBatch(
 
         const pingResult = buildMetaPagePingFromOverviewRow(row);
         const seoResearchBrief =
-          resolveMetaHarnessSeoResearchBrief(entry.seoResearchBrief, pingResult.acfSeoResearch) ??
+          resolveMetaHarnessSeoResearchBrief(entry.seoResearchBrief, pingResult.postFieldsSeoResearch) ??
           entry.seoResearchBrief;
         const runEntry = { ...entry, seoResearchBrief };
         const prep: MetaHarnessPrepSummaries = {

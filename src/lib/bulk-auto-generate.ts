@@ -5,6 +5,7 @@ import {
 } from '@/lib/bulk/bulk-csv-keyword-analyze';
 import { getResearchModel } from '@/lib/optimization-settings-storage';
 import { logger } from "@/lib/logger";
+import { logBulkRunStep } from "@/lib/bulk/bulk-run-step-log";
 import { BulkFileManager, type BulkGeneratedFile } from './bulk-file-manager';
 import type {
   KeywordAnalysisComplete,
@@ -22,7 +23,7 @@ export {
 } from '@/lib/bulk/bulk-wordpress-link-prefetch';
 export {
   buildBulkSelectedKeywordArtifactPayload,
-  resolveRankMathFromKeywordResearch,
+  resolveRedirectCsvFromKeywordResearch,
 } from '@/lib/bulk/bulk-keyword-research-artifacts';
 
 export { emitEntitySapPipelineHarnessDone } from '@/lib/bulk/bulk-harness-progress';
@@ -79,83 +80,92 @@ export async function generateRowOutputs(
   const timestamp = Date.now();
   const generatedFiles: BulkGeneratedFile[] = [];
 
+  logBulkRunStep("generateRowOutputs started", {
+    rowIndex,
+    keyword: row.keyword,
+    entity: row.entity,
+  });
+
   try {
-    if (
-      !options.skipWikipediaLookup
-      && row.entity
-      && row.entity.trim()
-      && !hasCsvFilledWikipediaUrl(row)
-    ) {
-      options.onProgress?.(rowIndex, 0, `Fetching Wikipedia content for "${row.entity}"...`);
+    const runWikipediaLookup = async (): Promise<void> => {
+      if (
+        !options.skipWikipediaLookup
+        && row.entity
+        && row.entity.trim()
+        && !hasCsvFilledWikipediaUrl(row)
+      ) {
+        options.onProgress?.(rowIndex, 0, `Fetching Wikipedia content for "${row.entity}"...`);
 
-      try {
-        const { checkWikipediaPageExists } = await import('./wikipedia-api');
-        const entityCheck = await checkWikipediaPageExists(row.entity.trim());
+        try {
+          const { checkWikipediaPageExists } = await import('./wikipedia-api');
+          const entityCheck = await checkWikipediaPageExists(row.entity.trim());
 
-        if (!entityCheck.exists) {
-          logger.warn(`[Bulk Generator] Entity "${row.entity}" does not exist on Wikipedia. Skipping Wikipedia content fetch.`);
-          options.onProgress?.(rowIndex, 0, `Entity "${row.entity}" not found on Wikipedia, skipping...`);
-        } else {
-          let wikipediaChunks: WikipediaChunk[] = [];
-          let retries = 3;
-          let lastError: Error | null = null;
+          if (!entityCheck.exists) {
+            logger.warn(`[Bulk Generator] Entity "${row.entity}" does not exist on Wikipedia. Skipping Wikipedia content fetch.`);
+            options.onProgress?.(rowIndex, 0, `Entity "${row.entity}" not found on Wikipedia, skipping...`);
+          } else {
+            let wikipediaChunks: WikipediaChunk[] = [];
+            let retries = 3;
+            let lastError: Error | null = null;
 
-          while (retries > 0) {
-            try {
-              const { fetchWikipediaContent } = await import('./wikipedia-api');
-              wikipediaChunks = await fetchWikipediaContent(row.entity.trim());
-              break;
-            } catch (error) {
-              lastError = error instanceof Error ? error : new Error(String(error));
-              retries--;
+            while (retries > 0) {
+              try {
+                const { fetchWikipediaContent } = await import('./wikipedia-api');
+                wikipediaChunks = await fetchWikipediaContent(row.entity.trim());
+                break;
+              } catch (error) {
+                lastError = error instanceof Error ? error : new Error(String(error));
+                retries--;
 
-              if (retries === 0) {
-                logger.error(`[Bulk Generator] Failed to fetch Wikipedia content for "${row.entity}" after retries:`, lastError);
-                options.onProgress?.(rowIndex, 0, `Failed to fetch Wikipedia content for "${row.entity}", continuing without it...`);
-              } else {
-                const delay = 1000 * (4 - retries);
-                options.onProgress?.(rowIndex, 0, `Retrying Wikipedia fetch for "${row.entity}" (${4 - retries}/3)...`);
-                await new Promise((resolve) => setTimeout(resolve, delay));
+                if (retries === 0) {
+                  logger.error(`[Bulk Generator] Failed to fetch Wikipedia content for "${row.entity}" after retries:`, lastError);
+                  options.onProgress?.(rowIndex, 0, `Failed to fetch Wikipedia content for "${row.entity}", continuing without it...`);
+                } else {
+                  const delay = 1000 * (4 - retries);
+                  options.onProgress?.(rowIndex, 0, `Retrying Wikipedia fetch for "${row.entity}" (${4 - retries}/3)...`);
+                  await new Promise((resolve) => setTimeout(resolve, delay));
+                }
               }
             }
+
+            if (wikipediaChunks.length > 0) {
+              const { generateWikipediaCSV } = await import('./wikipedia-api');
+              const wikipediaCSV = generateWikipediaCSV(wikipediaChunks);
+              const wikipediaFileName = BulkFileManager.generateFileName(row, 'wikipedia', timestamp);
+              const wikipediaFileId = BulkFileManager.createFileId(rowIndex, 'wikipedia', timestamp);
+
+              const wikipediaFile: BulkGeneratedFile = {
+                id: wikipediaFileId,
+                rowIndex,
+                fileName: wikipediaFileName,
+                content: wikipediaCSV,
+                mimeType: 'text/csv',
+                status: 'completed',
+                timestamp,
+                rowData: row,
+              };
+
+              fileManager.addFile(wikipediaFile);
+              generatedFiles.push(wikipediaFile);
+              options.onProgress?.(rowIndex, 0, `Wikipedia content fetched for "${row.entity}" (${wikipediaChunks.length} chunks)`);
+            } else if (entityCheck.exists) {
+              logger.warn(`[Bulk Generator] Wikipedia page exists for "${row.entity}" but no content chunks were extracted.`);
+            }
           }
-
-          if (wikipediaChunks.length > 0) {
-            const { generateWikipediaCSV } = await import('./wikipedia-api');
-            const wikipediaCSV = generateWikipediaCSV(wikipediaChunks);
-            const wikipediaFileName = BulkFileManager.generateFileName(row, 'wikipedia', timestamp);
-            const wikipediaFileId = BulkFileManager.createFileId(rowIndex, 'wikipedia', timestamp);
-
-            const wikipediaFile: BulkGeneratedFile = {
-              id: wikipediaFileId,
-              rowIndex,
-              fileName: wikipediaFileName,
-              content: wikipediaCSV,
-              mimeType: 'text/csv',
-              status: 'completed',
-              timestamp,
-              rowData: row,
-            };
-
-            fileManager.addFile(wikipediaFile);
-            generatedFiles.push(wikipediaFile);
-            options.onProgress?.(rowIndex, 0, `Wikipedia content fetched for "${row.entity}" (${wikipediaChunks.length} chunks)`);
-          } else if (entityCheck.exists) {
-            logger.warn(`[Bulk Generator] Wikipedia page exists for "${row.entity}" but no content chunks were extracted.`);
-          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          logger.error(`[Bulk Generator] Error fetching Wikipedia content for "${row.entity}":`, errorMessage);
+          options.onProgress?.(rowIndex, 0, `Error fetching Wikipedia content for "${row.entity}", continuing without it...`);
         }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        logger.error(`[Bulk Generator] Error fetching Wikipedia content for "${row.entity}":`, errorMessage);
-        options.onProgress?.(rowIndex, 0, `Error fetching Wikipedia content for "${row.entity}", continuing without it...`);
+      } else if (hasCsvFilledWikipediaUrl(row)) {
+        options.onProgress?.(rowIndex, 0, `Using CSV wikipedia_url; skipping Wikipedia KB fetch`);
       }
-    } else if (hasCsvFilledWikipediaUrl(row)) {
-      options.onProgress?.(rowIndex, 0, `Using CSV wikipedia_url; skipping Wikipedia KB fetch`);
-    }
+    };
 
     const skipKeywordResearch = Boolean(options.openRouterOnly);
 
     if (skipKeywordResearch) {
+      await runWikipediaLookup();
       options.onProgress?.(rowIndex, 0, 'OpenRouter generation...');
       return { files: generatedFiles, research: null };
     }
@@ -166,20 +176,24 @@ export async function generateRowOutputs(
     }
 
     options.onProgress?.(rowIndex, 0, 'Running keyword research...');
+    logBulkRunStep("calling analyzeBulkCsvKeyword", { keyword: csvKeyword });
     void analyzeKeywordFn;
-    let research = await analyzeBulkCsvKeyword({
-      primaryKeyword: csvKeyword,
-      options: {
-        location: bulkRowSerpLocationName(row),
-        language: 'en',
-      },
-      openRouterApiKey: options.openRouterApiKey,
-      selectedModel: options.selectedModel?.trim() || getResearchModel(),
-      temperature: options.temperature,
-      maxTokens: options.maxTokens,
-      topP: options.topP,
-    });
-    research = applyCsvPrimaryKeywordToResearch(research, csvKeyword);
+    const [, rawResearch] = await Promise.all([
+      runWikipediaLookup(),
+      analyzeBulkCsvKeyword({
+        primaryKeyword: csvKeyword,
+        options: {
+          location: bulkRowSerpLocationName(row),
+          language: 'en',
+        },
+        openRouterApiKey: options.openRouterApiKey,
+        selectedModel: options.selectedModel?.trim() || getResearchModel(),
+        temperature: options.temperature,
+        maxTokens: options.maxTokens,
+        topP: options.topP,
+      }),
+    ]);
+    const research = applyCsvPrimaryKeywordToResearch(rawResearch, csvKeyword);
 
     return { files: generatedFiles, research };
   } catch (error) {

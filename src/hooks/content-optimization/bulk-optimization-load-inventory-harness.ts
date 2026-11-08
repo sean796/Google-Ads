@@ -122,7 +122,7 @@ export async function ensurePostsPagesInventoryForLinking(
 export async function ensureSapInventoryForHarness(
   site: WordPressSite,
   onProgress?: (message: string) => void,
-  _options?: { includeContent?: boolean; includeRawAcf?: boolean },
+  _options?: { includeContent?: boolean; includeRawPostFields?: boolean },
 ): Promise<BulkOptimizerInventorySnapshot> {
   if (!site.username?.trim() || !site.appPassword?.trim() || !site.siteUrl?.trim()) {
     throw new Error(

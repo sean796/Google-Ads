@@ -83,7 +83,7 @@ Exposed via neo-pulse-wp MCP tools registry:
 | `wp_assist_workflow_status` | Workflow status GET |
 | `wp_assist_workflow_step` | Workflow step POST |
 
-Source: `class-neo-pulse-wp-tools-handlers.php`
+Source: `class-REMOVED_NEO_PULSE_WP_TOOLs-handlers.php`
 
 ## Card payload fields (stream done)
 

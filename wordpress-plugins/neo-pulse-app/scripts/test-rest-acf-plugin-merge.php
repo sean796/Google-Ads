@@ -32,14 +32,14 @@ if ( ( $keep_acf['keyword_focus'] ?? '' ) !== 'from acf' ) {
 	exit( 1 );
 }
 
-$from_plugin_only = Neo_Pulse_App_Wp_Url_Normalize::rest_acf_from_post(
+$from_plugin_only = Neo_Pulse_App_Wp_Url_Normalize::rest_post_fields_from_post(
 	array(
 		'acf'               => array( 'keyword_focus' => 'elementor experts' ),
 		'neo_pulse_fields'  => array( 'keyword_focus' => 'national seo strategy' ),
 	)
 );
 if ( ( $from_plugin_only['keyword_focus'] ?? '' ) !== 'national seo strategy' ) {
-	fwrite( STDERR, "rest_acf_from_post should prefer neo_pulse_fields\n" );
+	fwrite( STDERR, "rest_post_fields_from_post should prefer neo_pulse_fields\n" );
 	exit( 1 );
 }
 

@@ -3,10 +3,10 @@ import { logger } from "@/lib/logger";
 import { notify } from "@/lib/app-notifications";
 import { notifyFilledSeoResearchFromSerpForXUrl, notifySeoResearchErrorForX } from "@/lib/notify-messages";
 import {
-  getSeoResearchFromAcf,
+  getSeoResearchFromPostFields,
   mergeSeoResearchFromAcfIntoContext,
   type AIDrivenACFContext,
-} from "@/lib/content-generation/ai-driven-acf-reader";
+} from "@/lib/content-generation/ai-driven-post-fields-reader";
 import { fetchMergedSeoContentBriefLive } from "@/lib/llm-audit/fetch-merged-seo-content-brief";
 import type { WordPressSite } from "@/components/integrations/types";
 import { pageGscQueryStringsFromPending } from "./bulk-optimization-prefetch-page-gsc";
@@ -28,8 +28,8 @@ const BULK_SERP_RESEARCH_PROGRESS_EVERY = 5;
  * True when ACF already has usable `seo_research`.
  * Empty strings, `{}`, `[]`, and JSON objects/arrays with no entries are not substantive.
  */
-export function hasSubstantiveSeoResearch(acfRow: Record<string, unknown> | undefined): boolean {
-  const raw = getSeoResearchFromAcf(acfRow).trim();
+export function hasSubstantiveSeoResearch(postFieldsRow: Record<string, unknown> | undefined): boolean {
+  const raw = getSeoResearchFromPostFields(postFieldsRow).trim();
   if (!raw) return false;
   try {
     const j = JSON.parse(raw) as unknown;
@@ -89,13 +89,13 @@ function bulkCancelled(batchKey: string, setBulkOptimizationState: BulkStateSett
 export function seedBulkUrlSerpResearchReadyFromAcfCache(opts: {
   urls: string[];
   batchKey: string;
-  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
+  prefetchedPostFieldsCache: Map<number, Record<string, unknown>>;
   setBulkOptimizationState: BulkStateSetter;
 }): void {
-  const { urls, batchKey, prefetchedAcfFieldsCache, setBulkOptimizationState } = opts;
+  const { urls, batchKey, prefetchedPostFieldsCache, setBulkOptimizationState } = opts;
   const next: Record<string, boolean> = {};
   for (let i = 0; i < urls.length; i++) {
-    const row = prefetchedAcfFieldsCache.get(i) ?? {};
+    const row = prefetchedPostFieldsCache.get(i) ?? {};
     if (hasSubstantiveSeoResearch(row)) next[urls[i]] = true;
   }
   setBulkOptimizationState((prev) => {
@@ -114,12 +114,12 @@ export function seedBulkUrlSerpResearchReadyFromAcfCache(opts: {
 export function applyBriefToCaches(
   i: number,
   brief: string,
-  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>,
+  prefetchedPostFieldsCache: Map<number, Record<string, unknown>>,
   prefetchedPendingCache: Map<number, { pending: Record<string, unknown>; primaryKeyword: string }>,
 ): void {
-  const prevRow = prefetchedAcfFieldsCache.get(i) ?? {};
+  const prevRow = prefetchedPostFieldsCache.get(i) ?? {};
   const mergedRow = { ...prevRow, seo_research: brief };
-  prefetchedAcfFieldsCache.set(i, mergedRow);
+  prefetchedPostFieldsCache.set(i, mergedRow);
 
   const pend = prefetchedPendingCache.get(i);
   if (pend?.pending) {
@@ -138,7 +138,7 @@ export function applyBriefToCaches(
 export function seedOverviewSeoResearchFromPrefilledTargets(opts: {
   urls: string[];
   prefilledOverviewTargets?: Record<string, PrefilledOverviewTarget>;
-  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
+  prefetchedPostFieldsCache: Map<number, Record<string, unknown>>;
   prefetchedPendingCache: Map<number, { pending: Record<string, unknown>; primaryKeyword: string }>;
   batchKey: string;
   setBulkOptimizationState: BulkStateSetter;
@@ -146,7 +146,7 @@ export function seedOverviewSeoResearchFromPrefilledTargets(opts: {
   const {
     urls,
     prefilledOverviewTargets,
-    prefetchedAcfFieldsCache,
+    prefetchedPostFieldsCache,
     prefetchedPendingCache,
     batchKey,
     setBulkOptimizationState,
@@ -159,9 +159,9 @@ export function seedOverviewSeoResearchFromPrefilledTargets(opts: {
     if (!url) continue;
     const brief = prefilledOverviewTargets[url]?.seoResearch?.trim();
     if (!brief || !hasSubstantiveSeoResearchBrief(brief)) continue;
-    const acfBrief = getSeoResearchFromAcf(prefetchedAcfFieldsCache.get(i)).trim();
-    if (hasSubstantiveSeoResearchBrief(acfBrief)) continue;
-    applyBriefToCaches(i, brief, prefetchedAcfFieldsCache, prefetchedPendingCache);
+    const postFieldsBrief = getSeoResearchFromPostFields(prefetchedPostFieldsCache.get(i)).trim();
+    if (hasSubstantiveSeoResearchBrief(postFieldsBrief)) continue;
+    applyBriefToCaches(i, brief, prefetchedPostFieldsCache, prefetchedPendingCache);
     urlSerpReady[url] = true;
   }
 
@@ -185,12 +185,12 @@ export function seedOverviewSeoResearchFromPrefilledTargets(opts: {
 
 export function indexHasStoredSeoResearchBrief(
   index: number,
-  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>,
+  prefetchedPostFieldsCache: Map<number, Record<string, unknown>>,
   prefetchedPendingCache: Map<number, { pending: Record<string, unknown>; primaryKeyword: string }>,
 ): boolean {
-  const acfRow = prefetchedAcfFieldsCache.get(index) ?? {};
-  const acfBrief = getSeoResearchFromAcf(acfRow).trim();
-  if (hasSubstantiveSeoResearchBrief(acfBrief)) return true;
+  const postFieldsRow = prefetchedPostFieldsCache.get(index) ?? {};
+  const postFieldsBrief = getSeoResearchFromPostFields(postFieldsRow).trim();
+  if (hasSubstantiveSeoResearchBrief(postFieldsBrief)) return true;
   const ctx = prefetchedPendingCache.get(index)?.pending?.acfContext as { seoResearch?: string } | undefined;
   return hasSubstantiveSeoResearchBrief(ctx?.seoResearch);
 }
@@ -205,7 +205,7 @@ export async function fillMissingBulkSeoResearchFromSerp(opts: {
   isAcfKeywordMode: boolean;
   seoExtraTextFieldOnly: boolean;
   muteToasts: boolean;
-  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
+  prefetchedPostFieldsCache: Map<number, Record<string, unknown>>;
   prefetchedPendingCache: Map<number, { pending: Record<string, unknown>; primaryKeyword: string }>;
   setBulkOptimizationState: BulkStateSetter;
   /** Process only indices in [start, end). */
@@ -224,7 +224,7 @@ export async function fillMissingBulkSeoResearchFromSerp(opts: {
     isAcfKeywordMode,
     seoExtraTextFieldOnly,
     muteToasts,
-    prefetchedAcfFieldsCache,
+    prefetchedPostFieldsCache,
     prefetchedPendingCache,
     setBulkOptimizationState,
     fetchBrief = fetchDataForSeoSerpBriefJson,
@@ -242,7 +242,7 @@ export async function fillMissingBulkSeoResearchFromSerp(opts: {
   for (let i = rangeStart; i < rangeEnd; i++) {
     const url = urls[i];
     if (!url) continue;
-    const acfCachedKw = String(prefetchedAcfFieldsCache.get(i)?.["keyword_focus"] ?? "").trim();
+    const acfCachedKw = String(prefetchedPostFieldsCache.get(i)?.["keyword_focus"] ?? "").trim();
     const cachedPrimaryKeyword = acfCachedKw;
     if (!cachedPrimaryKeyword) {
       // Never skip: keyword will be derived by SERP warmup from URL when warmIndex runs.
@@ -312,7 +312,7 @@ export async function fillMissingBulkSeoResearchFromSerp(opts: {
 
         if (bulkCancelled(batchKey, setBulkOptimizationState)) return;
 
-        applyBriefToCaches(job.index, brief, prefetchedAcfFieldsCache, prefetchedPendingCache);
+        applyBriefToCaches(job.index, brief, prefetchedPostFieldsCache, prefetchedPendingCache);
         filled += 1;
         pendingUrlReady[job.url] = true;
 

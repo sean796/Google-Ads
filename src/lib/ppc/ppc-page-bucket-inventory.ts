@@ -77,7 +77,7 @@ export async function loadPpcPageBucketContext(site: WordPressSite): Promise<Ppc
   }
 
   const bulk = await getSiteInventoryBulk(site.siteUrl, username, appPassword, {
-    includeRawAcf: true,
+    includeRawPostFields: true,
     includeScheduled: true,
     collections: ppcPageBucketCollections(site),
   });

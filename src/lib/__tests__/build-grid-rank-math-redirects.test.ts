@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   buildGridPublishContracts,
-  buildGridRankMathExportCsv,
-  buildGridRankMathRedirectRows,
-} from "@/lib/sitemap-optimizer/build-grid-rank-math-redirects";
+  buildGridRedirectCsvExportCsv,
+  buildGridRedirectCsvRedirectRows,
+} from "@/lib/sitemap-optimizer/build-grid-pulse-redirect-redirects";
 import type {
   SitemapOptimizerClusterResult,
   SitemapOptimizerMergeRecommendation,
@@ -41,7 +41,7 @@ function makeGridResult(
   };
 }
 
-describe("build-grid-rank-math-redirects", () => {
+describe("build-grid-pulse-redirect-redirects", () => {
   it("emits one redirect per row and at most K unique destinations", () => {
     const rows = [
       gridRow(0, "https://example.com/old-a/"),
@@ -99,7 +99,7 @@ describe("build-grid-rank-math-redirects", () => {
     const contracts = buildGridPublishContracts(result);
     expect(contracts).toHaveLength(2);
 
-    const redirects = buildGridRankMathRedirectRows(result);
+    const redirects = buildGridRedirectCsvRedirectRows(result);
     expect(redirects).toHaveLength(3);
     const uniqueDest = new Set(redirects.map((r) => r.destinationUrl));
     expect(uniqueDest.size).toBeLessThanOrEqual(3);
@@ -165,7 +165,7 @@ describe("build-grid-rank-math-redirects", () => {
         rationale: "",
       },
     ];
-    const redirects = buildGridRankMathRedirectRows(makeGridResult(rows, clusters, merges));
+    const redirects = buildGridRedirectCsvRedirectRows(makeGridResult(rows, clusters, merges));
     expect(redirects).toHaveLength(2);
     expect(redirects[0]!.destinationUrl).toBe(redirects[1]!.destinationUrl);
     expect(redirects[0]!.mergeGroupId).toBe(redirects[1]!.mergeGroupId);
@@ -232,13 +232,13 @@ describe("build-grid-rank-math-redirects", () => {
     ];
     const result = makeGridResult(rows, clusters, merges);
     result.gridMaxUrlsPerPost = 1;
-    const redirects = buildGridRankMathRedirectRows(result);
+    const redirects = buildGridRedirectCsvRedirectRows(result);
     expect(redirects).toHaveLength(2);
     expect(redirects[0]!.mergeGroupId).toBe(1);
     expect(redirects[1]!.mergeGroupId).toBe(2);
   });
 
-  it("export CSV includes group and upload_row before Rank Math columns", () => {
+  it("export CSV includes group and upload_row before NEO Pulse redirect columns", () => {
     const rows = [gridRow(0, "https://example.com/old-a/"), gridRow(1, "https://example.com/old-b/")];
     rows[0].uploadRowIndex = 10;
     rows[1].uploadRowIndex = 11;
@@ -269,7 +269,7 @@ describe("build-grid-rank-math-redirects", () => {
         rationale: "",
       },
     ];
-    const csv = buildGridRankMathExportCsv(makeGridResult(rows, clusters, merges));
+    const csv = buildGridRedirectCsvExportCsv(makeGridResult(rows, clusters, merges));
     const [header, line1] = csv.split("\n");
     expect(header.startsWith("group,upload_row,topic_tag,geo_tag,tag_label,old_url,new_url,")).toBe(
       true,

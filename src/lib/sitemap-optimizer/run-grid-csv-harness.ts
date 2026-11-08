@@ -256,7 +256,7 @@ export async function runGridCsvHarness(args: {
     analyzedAt,
     gscUploadRowCount: uploadCount,
     runMode: "grid_csv",
-    gridRankMathOnly: false,
+    gridRedirectCsvOnly: false,
     blogDestination,
     redirectMapUpload: gscPagesUpload.some((r) => Boolean(r.redirectFromUrl?.trim())),
   };

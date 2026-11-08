@@ -6,11 +6,12 @@ import { IntelligentKeywordResearchMergeResult } from './intelligent-keyword-res
 import { BulkProcessingOptions, PrefetchedBulkKeywordResearch } from './bulk-auto-generate-types';
 import type { CSVRow } from './bulk-csv-parser';
 import { keepBlogPlayLinkTargets } from './bulk-generation-wp-inventory';
-import { populateACFFieldsFromDFS } from '@/lib/bulk/bulk-row-acf-meta';
+import { populateACFFieldsFromDFS } from '@/lib/bulk/bulk-row-post-fields-meta';
 import { isCompetitorCsvKeyword } from '@/lib/competitor-research/competitor-csv-row';
 import { buildSitesToPostFromPosting } from '@/lib/bulk/bulk-wordpress-link-prefetch';
 import { publishBulkRowToWordPressSites } from '@/lib/bulk/bulk-wordpress-publish-row';
 import { logger } from "@/lib/logger";
+import { logBulkRunStep } from "@/lib/bulk/bulk-run-step-log";
 import { runBulkRowResearchEnrichmentPhase } from './bulk-row-research-enrichment';
 import { runBulkRowChecklistAndBlueprintPhase } from './bulk-row-checklist-blueprint-phase';
 import { runBulkRowContentAndMediaPhase } from './bulk-row-content-media-phase';
@@ -103,6 +104,11 @@ export async function generateBlueprintAndContent(
   wordPressPosts?: Array<{ id: number; slug: string; title: string; excerpt: string; link: string; date_gmt: string }>,
   prefetchedResearch?: PrefetchedBulkKeywordResearch | null
 ): Promise<BulkGeneratedFile[]> {
+  logBulkRunStep("blueprint and content phase started", {
+    rowIndex,
+    keyword: row.keyword,
+    title: row.title,
+  });
   const timestamp = Date.now();
   const generatedFiles: BulkGeneratedFile[] = [];
   let semrushKeywordsContext: string | undefined;
@@ -282,8 +288,9 @@ export async function generateBlueprintAndContent(
       draft: draftPhase,
     });
 
-    // Run Decision Model (Liquid d1.1) QA pass on the generated blog post
-    if (markdownContent) {
+    // Run Decision Model (Liquid d1.1) QA pass on the generated blog post concurrently with WordPress publish
+    const runDecisionAuditTask = async (): Promise<void> => {
+      if (!markdownContent) return;
       try {
         const { auditBulkRowContentWithDecisionTree } = await import('@/lib/decision-tree/studio-decision-auditor');
         const decisionAudit = await auditBulkRowContentWithDecisionTree({
@@ -312,10 +319,11 @@ export async function generateBlueprintAndContent(
       } catch (auditErr) {
         logger.warn('[Decision Agent] Bulk row content QA audit warning:', auditErr);
       }
-    }
+    };
 
-    if (options.wordPressPosting?.enabled && markdownContent) {
-      const wpPublish = await publishBulkRowToWordPressSites({
+    const runWordPressPublishTask = async (): Promise<void> => {
+      if (!options.wordPressPosting?.enabled || !markdownContent) return;
+      await publishBulkRowToWordPressSites({
         options,
         rowIndex,
         row,
@@ -343,10 +351,9 @@ export async function generateBlueprintAndContent(
         semrushScatterContext,
         rowExternalUrlsForSanitize,
       });
-      if (wpPublish.earlyExit) {
-        return generatedFiles;
-      }
-    }
+    };
+
+    await Promise.all([runDecisionAuditTask(), runWordPressPublishTask()]);
     return generatedFiles;
   } catch (error) {
     if (error instanceof Error) throw error;

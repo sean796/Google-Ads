@@ -374,17 +374,31 @@ export async function hydrateManagerCloudSettingsIfEmpty(): Promise<boolean> {
 }
 
 let runtimeKeysHydration: Promise<void> | null = null;
+let runtimeKeysHydrationScope = "";
 
-/** Hydrate in-memory API keys from the manager cloud snapshot (boot, both shells). */
-export function hydrateRuntimeApiKeysFromCloud(): Promise<void> {
-  if (!runtimeKeysHydration) {
-    runtimeKeysHydration = (async () => {
-      const { snapshot } = await loadManagerSettingsFromCloud();
-      if (snapshot) hydrateRuntimeApiKeys(snapshot.keys);
-    })().catch(() => {
-      runtimeKeysHydration = null;
-    });
+function workspaceHydrationScope(teamId?: number | null): string {
+  return teamId == null ? "manager" : `team:${teamId}`;
+}
+
+/** Hydrate in-memory API keys from workspace storage (same team scope as save). */
+export function hydrateRuntimeApiKeysFromCloud(teamId?: number | null): Promise<void> {
+  const scope = workspaceHydrationScope(teamId);
+  if (runtimeKeysHydration && runtimeKeysHydrationScope === scope) {
+    return runtimeKeysHydration;
   }
+  runtimeKeysHydrationScope = scope;
+  runtimeKeysHydration = (async () => {
+    const { snapshot } = await loadManagerSettingsFromCloud(teamId);
+    if (snapshot) hydrateRuntimeApiKeys(snapshot.keys);
+    try {
+      window.dispatchEvent(new CustomEvent("neo-pulse-runtime-keys-hydrated"));
+    } catch {
+      /* non-browser */
+    }
+  })().catch(() => {
+    runtimeKeysHydration = null;
+    runtimeKeysHydrationScope = "";
+  });
   return runtimeKeysHydration;
 }
 

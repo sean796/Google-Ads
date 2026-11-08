@@ -21,7 +21,6 @@ const COMMITS: ChangelogCommit[] = [
 
 const VALID_DRAFT = {
   title: "Export button and a login fix",
-  summary: "Two changes shipped this period.",
   highlights: ["Export button added", "Login loop fixed"],
   sections: [{ heading: "Fixed", items: ["Login loop fixed"] }],
 };
@@ -59,7 +58,7 @@ describe("app changelog writer agent", () => {
     ).rejects.toThrow();
 
     callAgentCategoryOpenRouterChat.mockResolvedValue({
-      content: JSON.stringify({ ...VALID_DRAFT, highlights: [] }),
+      content: JSON.stringify({ ...VALID_DRAFT, title: "" }),
     });
     await expect(
       appChangelogWriterAgent.run({ commits: COMMITS, coveredThrough: null }, {}),

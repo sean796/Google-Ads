@@ -65,7 +65,7 @@ function isBlogCollection(collection?: string | null): boolean {
 /**
  * Focus keyword for one WordPress item.
  * Blog posts: keep a stored keyword only when it describes this title; otherwise infer from the title.
- * Pages and CPT: first non-empty stored value (Rank Math, plugin, ACF).
+ * Pages and CPT: first non-empty stored value (NEO Pulse redirect, plugin, ACF).
  */
 export function focusKeywordFromWordPressSources(args: {
   acf?: Record<string, unknown> | null;
@@ -86,9 +86,9 @@ export function focusKeywordFromWordPressSources(args: {
   ];
 
   const secondaryStoredKeywords = [
-    sourceString(meta.rank_math_focus_keyword),
+    sourceString(meta.neo_pulse_seo_focus_keyword),
     sourceString(meta._neo_pulse_focus_keyword),
-    sourceString(acf.rank_math_focus_keyword),
+    sourceString(acf.neo_pulse_seo_focus_keyword),
     (args.fieldsKeyword ?? "").trim(),
   ];
 

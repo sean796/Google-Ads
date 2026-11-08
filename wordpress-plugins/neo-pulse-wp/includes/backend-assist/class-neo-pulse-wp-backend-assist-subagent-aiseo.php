@@ -140,7 +140,7 @@ class Neo_Pulse_Wp_Backend_Assist_Subagent_Aiseo {
 
 		$constraints = Neo_Pulse_Wp_Backend_Assist_Pipeline_Content_Prep::extract_meta_copy_constraints( $message );
 		$is_page     = ! empty( $ctx['is_page'] );
-		$system      = 'You are an expert SEO specialist writing ONE Rank Math SEO title for a WordPress '
+		$system      = 'You are an expert SEO specialist writing ONE NEO Pulse redirect SEO title for a WordPress '
 			. ( $is_page ? 'page' : 'blog post' ) . ".\n"
 			. "Output ONLY valid JSON: {\"seoTitle\":\"...\"}\n\n"
 			. "RULES:\n"

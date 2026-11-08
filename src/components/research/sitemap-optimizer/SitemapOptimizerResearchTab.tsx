@@ -1,7 +1,7 @@
 import { GitMerge } from "lucide-react";
 import { SitemapUrlOptimizerPanel } from "@/components/research/sitemap-optimizer/SitemapUrlOptimizerPanel";
 import { SitemapOptimizerContentSheetGrid } from "@/components/research/sitemap-optimizer/SitemapOptimizerContentSheetGrid";
-import { SitemapOptimizerGridRankMathGrid } from "@/components/research/sitemap-optimizer/SitemapOptimizerGridRankMathGrid";
+import { SitemapOptimizerGridRedirectCsvGrid } from "@/components/research/sitemap-optimizer/SitemapOptimizerGridRedirectCsvGrid";
 import { SitemapMergePublishWorkspace } from "@/components/research/sitemap-optimizer/SitemapMergePublishWorkspace";
 import { SitemapOptimizerUnifiedHeader } from "@/components/research/sitemap-optimizer/SitemapOptimizerUnifiedHeader";
 import {
@@ -26,7 +26,7 @@ export function SitemapOptimizerResearchTab() {
     showResultToolbar,
     showAnalyzeAction,
     showGscCsvUpload,
-    showRankMathUpload,
+    showRedirectCsvUpload,
     inPublishWorkspace,
     isGridHarness,
     isGridFlow,
@@ -53,7 +53,7 @@ export function SitemapOptimizerResearchTab() {
     replacementSheet,
     handleDownloadRedirectMapTemplate,
     handleGscFile,
-    handleRankMathFile,
+    handleRedirectCsvFile,
     handleAnalyze,
     handleApprovePlan,
     handleDownloadRedirects,
@@ -97,7 +97,7 @@ export function SitemapOptimizerResearchTab() {
           showResultToolbar,
           showAnalyzeAction,
           showGscCsvUpload,
-          showRankMathUpload,
+          showRedirectCsvUpload,
           inPublishWorkspace,
           isGridHarness,
           isGridFlow,
@@ -118,7 +118,7 @@ export function SitemapOptimizerResearchTab() {
           resultContentSheetCount: replacementSheet.length,
           onDownloadRedirectMapTemplate: handleDownloadRedirectMapTemplate,
           onGscFile: handleGscFile,
-          onRankMathFile: handleRankMathFile,
+          onRedirectCsvFile: handleRedirectCsvFile,
           onClearGscUpload: () => {
             setGscPagesUpload(null);
             setGscFileName(null);
@@ -211,7 +211,7 @@ export function SitemapOptimizerResearchTab() {
                   </div>
                   <div className="min-h-0 flex-1">
                     {gridResultTab === "redirects" ? (
-                      <SitemapOptimizerGridRankMathGrid result={result} />
+                      <SitemapOptimizerGridRedirectCsvGrid result={result} />
                     ) : (
                       <SitemapOptimizerContentSheetGrid
                         sheet={replacementSheet}

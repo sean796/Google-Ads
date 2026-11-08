@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { buildSitemapOptimizerAllRankMathRedirectCsv } from "@/lib/sitemap-optimizer/sitemap-optimizer-download-csv";
+import { buildSitemapOptimizerAllRedirectCsvRedirectCsv } from "@/lib/sitemap-optimizer/sitemap-optimizer-download-csv";
 import type { SitemapOptimizerRunResult } from "@/lib/sitemap-optimizer/types";
 
-describe("buildSitemapOptimizerAllRankMathRedirectCsv", () => {
+describe("buildSitemapOptimizerAllRedirectCsvRedirectCsv", () => {
   it("exports redirects for every merge member when content sheet has one row per cluster", () => {
     const legacyA =
       "https://www.kwbllp.com/2024/10/02/profit-improvement-strategies-for-auto-repair-businesses/";
@@ -86,7 +86,7 @@ describe("buildSitemapOptimizerAllRankMathRedirectCsv", () => {
       blogDestination: { forceBlogPermalink: true, parentPrefix: "blog" },
     } satisfies SitemapOptimizerRunResult;
 
-    const { csv, rowCount } = buildSitemapOptimizerAllRankMathRedirectCsv(result);
+    const { csv, rowCount } = buildSitemapOptimizerAllRedirectCsvRedirectCsv(result);
     expect(rowCount).toBe(2);
     expect(csv).toContain("source");
     expect(csv).toContain("blog/profit-improvement-strategies");

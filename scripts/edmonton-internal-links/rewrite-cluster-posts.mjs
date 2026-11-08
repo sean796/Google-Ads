@@ -125,8 +125,8 @@ foreach ( $updates as $row ) {
     'post_excerpt' => $row['excerpt'],
     'post_content' => $row['html'],
   ) );
-  update_post_meta( $id, 'rank_math_title', $row['title'] . ' | Neo Digital' );
-  update_post_meta( $id, 'rank_math_description', $row['excerpt'] );
+  update_post_meta( $id, 'neo_pulse_seo_title', $row['title'] . ' | Neo Digital' );
+  update_post_meta( $id, 'neo_pulse_seo_description', $row['excerpt'] );
   $out[] = array( 'id' => $id, 'ok' => true, 'title' => $row['title'] );
 }
 if ( class_exists( 'Neo_Pulse_Wp_Cache_Flush' ) ) {

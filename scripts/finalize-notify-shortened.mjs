@@ -117,7 +117,7 @@ const MANUAL = {
   NOTIFY_NO_REDIRECTS_TO_EXPORT_LEGACY_URLS_ALREA: "No redirects to export",
   NOTIFY_NO_REPLACEMENT_CONTENT_TO_EXPORT_RUN_ANA: "No content to export, run analyze",
   NOTIFY_AI_TITLES_APPLY_TO_POSTS_ONLY_PAGES_BUCK: "AI titles for posts only",
-  NOTIFY_NO_RANK_MATH_REDIRECT_ROWS_TO_EXPORT_RUN: "No Rank Math redirects to export",
+  NOTIFY_NO_RANK_MATH_REDIRECT_ROWS_TO_EXPORT_RUN: "No NEO Pulse redirect redirects to export",
   NOTIFY_NO_WORDPRESS_BODY_FOR_THIS_URL_KEYWORD_U: "No WP body for URL",
   NOTIFY_BACKEND_API_URL_IS_NOT_CONFIGURED_FOR_PR: "Backend API URL not configured",
   NOTIFY_NO_ROWS_HAVE_A_FOCUS_KEYWORD_RUN_KEYWORD: "No focus keywords on rows",

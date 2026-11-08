@@ -1,6 +1,7 @@
 import { backendApiUrl } from "@/lib/wordpress-api/connection";
 import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 import type { ManagerCloudSnapshotV1 } from "@/lib/manager-cloud-settings-snapshot";
+import { WORKSPACE_CREDENTIAL_STORAGE_KEYS } from "@/lib/manager-cloud-settings-snapshot";
 import { loadTeamWorkspace, saveTeamWorkspace } from "@/lib/teams-api";
 import { AUTH_DISABLED } from "@/lib/auth-disabled";
 
@@ -26,14 +27,19 @@ export async function getManagerCloudSettingsStatus(): Promise<ManagerCloudSetti
   }
 }
 
-export async function saveManagerSettingsToCloud(
-  snapshot: ManagerCloudSnapshotV1,
-  teamId?: number | null,
-): Promise<{ ok: boolean; error?: string; code?: string; updatedAt?: string }> {
-  if (!AUTH_DISABLED && teamId) {
-    const r = await saveTeamWorkspace(teamId, snapshot);
-    return { ok: r.ok, error: r.error, updatedAt: r.updatedAt };
+function credentialKeysFromSnapshot(snapshot: ManagerCloudSnapshotV1 | null | undefined): Record<string, string> {
+  if (!snapshot?.keys || typeof snapshot.keys !== "object") return {};
+  const out: Record<string, string> = {};
+  for (const k of WORKSPACE_CREDENTIAL_STORAGE_KEYS) {
+    const v = snapshot.keys[k];
+    if (typeof v === "string") out[k] = v;
   }
+  return out;
+}
+
+async function saveManagerSettingsFile(
+  snapshot: ManagerCloudSnapshotV1,
+): Promise<{ ok: boolean; error?: string; code?: string; updatedAt?: string }> {
   try {
     const res = await fetch(url("/save"), {
       method: "POST",
@@ -56,17 +62,13 @@ export async function saveManagerSettingsToCloud(
   }
 }
 
-export async function loadManagerSettingsFromCloud(teamId?: number | null): Promise<{
+async function loadManagerSettingsFile(): Promise<{
   ok: boolean;
   snapshot: ManagerCloudSnapshotV1 | null;
   updatedAt?: string | null;
   error?: string;
   code?: string;
 }> {
-  if (!AUTH_DISABLED && teamId) {
-    const r = await loadTeamWorkspace(teamId);
-    return { ok: r.ok, snapshot: r.snapshot, updatedAt: r.updatedAt };
-  }
   try {
     const res = await fetch(url("/load"), { credentials: "include", headers: neoPulseApiHeaders() });
     const data = (await res.json().catch(() => ({}))) as {
@@ -87,4 +89,44 @@ export async function loadManagerSettingsFromCloud(teamId?: number | null): Prom
   } catch (e) {
     return { ok: false, snapshot: null, error: e instanceof Error ? e.message : String(e) };
   }
+}
+
+export async function saveManagerSettingsToCloud(
+  snapshot: ManagerCloudSnapshotV1,
+  teamId?: number | null,
+): Promise<{ ok: boolean; error?: string; code?: string; updatedAt?: string }> {
+  const primary = await saveManagerSettingsFile(snapshot);
+  if (!primary.ok) return primary;
+  if (!AUTH_DISABLED && teamId) {
+    const team = await saveTeamWorkspace(teamId, snapshot);
+    if (!team.ok) {
+      return { ok: false, error: team.error, updatedAt: primary.updatedAt };
+    }
+  }
+  return primary;
+}
+
+export async function loadManagerSettingsFromCloud(teamId?: number | null): Promise<{
+  ok: boolean;
+  snapshot: ManagerCloudSnapshotV1 | null;
+  updatedAt?: string | null;
+  error?: string;
+  code?: string;
+}> {
+  const manager = await loadManagerSettingsFile();
+  if (!AUTH_DISABLED && teamId) {
+    const team = await loadTeamWorkspace(teamId);
+    if (team.snapshot?.keys) {
+      const credentialKeys = credentialKeysFromSnapshot(manager.snapshot);
+      return {
+        ok: true,
+        snapshot: {
+          ...team.snapshot,
+          keys: { ...team.snapshot.keys, ...credentialKeys },
+        },
+        updatedAt: team.updatedAt ?? manager.updatedAt,
+      };
+    }
+  }
+  return manager;
 }

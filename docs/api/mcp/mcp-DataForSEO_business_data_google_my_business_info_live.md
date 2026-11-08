@@ -5,7 +5,7 @@ section: DataForSEO MCP
 method: POST
 path: /api/mcp/DataForSEO_business_data_google_my_business_info_live
 auth: open
-order: 750
+order: 760
 ---
 
 POST `/api/mcp/DataForSEO_business_data_google_my_business_info_live`.

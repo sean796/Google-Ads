@@ -11,28 +11,28 @@ describe("focusKeywordFromWordPressSources", () => {
     expect(
       focusKeywordFromWordPressSources({
         acf: { keyword_focus: "elementor experts" },
-        meta: { rank_math_focus_keyword: "what is national seo" },
+        meta: { neo_pulse_seo_focus_keyword: "what is national seo" },
         title: "What Is National SEO And How It Works",
         collection: "posts",
       }),
     ).toBe("what is national seo");
   });
 
-  it("drops a leftover Rank Math keyword from an old slug", () => {
+  it("drops a leftover NEO Pulse redirect keyword from an old slug", () => {
     expect(
       focusKeywordFromWordPressSources({
-        meta: { rank_math_focus_keyword: "elementor experts" },
+        meta: { neo_pulse_seo_focus_keyword: "elementor experts" },
         title: "What Is National SEO And How Does It Work?",
         collection: "posts",
       }),
     ).toBe("what is national seo and how does it work");
   });
 
-  it("prefers ACF keyword_focus over stale Rank Math when both describe the post", () => {
+  it("prefers ACF keyword_focus over stale NEO Pulse redirect when both describe the post", () => {
     expect(
       focusKeywordFromWordPressSources({
         acf: { keyword_focus: "CRA tax payments changes" },
-        meta: { rank_math_focus_keyword: "canadian tax payments" },
+        meta: { neo_pulse_seo_focus_keyword: "canadian tax payments" },
         title: "Upcoming Changes to Canadian Tax Payments: What Businesses Need to Know",
         collection: "posts",
       }),

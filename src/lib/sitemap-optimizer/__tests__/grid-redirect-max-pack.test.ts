@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { applyGridOutputPolicies } from "@/lib/sitemap-optimizer/grid-output-policies";
 import { buildDeterministicGridBriefs } from "@/lib/sitemap-optimizer/grid-deterministic-brief";
 import { clusterRedirectMapForFamilies } from "@/lib/sitemap-optimizer/grid-prefilled-group-cluster";
-import { buildRedirectMapFamilyRows } from "@/lib/sitemap-optimizer/build-grid-rank-math-redirects";
+import { buildRedirectMapFamilyRows } from "@/lib/sitemap-optimizer/build-grid-pulse-redirect-redirects";
 import { normalizeGridDestinationKey } from "@/lib/sitemap-optimizer/grid-merge-group-ids";
 import {
   countRedirectSourcesPerDestination,

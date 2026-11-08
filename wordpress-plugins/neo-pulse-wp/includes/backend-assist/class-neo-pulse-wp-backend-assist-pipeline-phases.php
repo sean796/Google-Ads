@@ -306,7 +306,7 @@ GRADE;
 SAVE POST META RULES (mandatory):
 - Confirm which fields were saved using RESULT saved[] and values.
 - Include edit_url and view_url from RESULT as links.
-- Never give manual Yoast or Rank Math click-path instructions when the tool succeeded.
+- Never give manual Yoast or NEO Pulse redirect click-path instructions when the tool succeeded.
 - If focusKeyword was inferred, state the keyword chosen and why.
 - Saved meta must be in-context SEO copy, never placeholder or field-label filler.
 META;

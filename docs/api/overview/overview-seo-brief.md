@@ -5,7 +5,7 @@ section: Overview
 method: POST
 path: /api/overview/seo-brief
 auth: open
-order: 930
+order: 940
 ---
 
 POST `/api/overview/seo-brief`.

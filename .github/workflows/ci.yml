@@ -22,6 +22,8 @@ jobs:
         run: npm run check:no-secrets:all
       - name: No circular imports
         run: npm run check:circular
+      - name: No forbidden WordPress legacy refs
+        run: npm run check:forbidden-wp-refs
       - name: UI registry check
         run: npm run ui:check
       - name: Lint

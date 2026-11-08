@@ -477,7 +477,7 @@ export function rowsHavePrefilledGridTags(rows: readonly SitemapOptimizerPostRow
 }
 
 /**
- * Rank Math / redirect-map uploads: one content plan per destination (CSV group or shared new_url),
+ * NEO Pulse redirect / redirect-map uploads: one content plan per destination (CSV group or shared new_url),
  * not one plan per source row when many old URLs share the same new_url.
  */
 export function clusterRedirectMapByDestination(

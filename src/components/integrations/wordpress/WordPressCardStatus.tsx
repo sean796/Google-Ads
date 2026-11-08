@@ -44,7 +44,6 @@ export const WordPressCardStatus: React.FC<WordPressCardStatusProps> = ({
       }
       return `NEO Pulse WP${ver}`;
     }
-    if (cap.fieldsBackend === "acf_native") return "ACF Pro";
     if (cap.fieldsBackend === "neo_pulse_fields") return "NEO Pulse Fields";
     return null;
   };

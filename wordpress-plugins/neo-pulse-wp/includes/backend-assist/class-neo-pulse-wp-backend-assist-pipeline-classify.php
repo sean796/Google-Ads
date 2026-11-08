@@ -56,7 +56,7 @@ REQUIRED PARAMS:
 
 POST FIELD TARGET (mandatory — pick the correct tool):
 - Change WordPress post title / rename / add pipe | / tweak headline → update_post with post_id only. Omit title in params; planning reads post context and outputs the full new post_title. NOT save_post_meta. NOT add_content.
-- SEO title / meta title / Rank Math title → save_post_meta with seoTitle only. NOT update_post.
+- SEO title / meta title / NEO Pulse redirect title → save_post_meta with seoTitle only. NOT update_post.
 - Focus keyword → save_post_meta with focusKeyword.
 - Meta description → save_post_meta with metaDescription.
 - Date modifier / "set the date today" / update optimization date → save_post_meta with dateModifier set to today (ACF date_modifier field). NOT update_post.
@@ -80,7 +80,7 @@ POST FIELD TARGET (mandatory — pick the correct tool):
 - Informal copy requests on the current post (title tweaks, action phrases, meta wording) → correct write tool with post_id set, but leave title/seoTitle/metaDescription/content values empty when they require interpretation from the post body. The planning phase reads full post context and generates reader-facing copy.
 
 TITLE DISAMBIGUATION:
-- In wp-admin post editor, "title" means WordPress post_title via update_post unless user says SEO title, meta title, or Rank Math title.
+- In wp-admin post editor, "title" means WordPress post_title via update_post unless user says SEO title, meta title, or NEO Pulse redirect title.
 - Title suffixes, pipe separators, and rewrites are planned from full post context, not literal user jargon.
 
 CORRECTION / UNDO:

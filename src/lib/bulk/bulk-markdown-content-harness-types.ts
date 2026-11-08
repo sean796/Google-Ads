@@ -1,5 +1,5 @@
 import type { WordPressSite } from '@/components/integrations/types';
-import type { AIDrivenACFContext } from "@/lib/content-generation/ai-driven-acf-reader";
+import type { AIDrivenACFContext } from "@/lib/content-generation/ai-driven-post-fields-reader";
 
 /** Extra prompt wiring for WordPress content optimizer (RAG page URL, GSC, shared ACF context). */
 export type HarnessPromptEnv = {

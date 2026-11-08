@@ -6,14 +6,12 @@ import type { BulkGeneratorStudioAction } from "@/components/overview/studio/use
 import type { BulkGeneratorWorkspaceBindings } from "@/components/keyword-research/bulk/bulk-generator-workspace-bindings";
 import { useOverviewTabController } from "@/hooks/overview/use-overview-tab-controller";
 import { useBulkGeneratorOverviewRowSync } from "@/hooks/bulk/use-bulk-generator-overview-row-sync";
+import { useBulkSplashAiStatus } from "@/hooks/bulk/use-bulk-splash-ai-status";
 import { usePulseAssistOverviewBridge } from "@/hooks/use-pulse-assist-overview-bridge";
 import type { BulkGeneratorOverviewTabContentProps } from "@/components/keyword-research/bulk/bulk-generator-overview-tab-content-types";
 import { BulkGeneratorOverviewTabBody } from "@/components/keyword-research/bulk/BulkGeneratorOverviewTabBody";
 import { setStudioDocRevisionsViewBridge } from "@/lib/overview/studio-doc-revisions-view-bridge";
-import {
-  pickLatestRowContentHtml,
-  type BulkGeneratorStudioVariant,
-} from "@/lib/bulk/bulk-generator-studio-rows";
+import type { BulkGeneratorStudioVariant } from "@/lib/bulk/bulk-generator-studio-rows";
 import type { CSVRow } from "@/lib/bulk-auto-generate";
 import { PROMPT_LOG_FILE_TYPE } from "@/lib/openrouter-prompt-trace";
 import type { WordPressSite } from "@/components/integrations/types";
@@ -309,6 +307,24 @@ export function BulkGeneratorOverviewTabContent({
 
   const bulkWorkspaceBusy = workspaceBusy || bindings.isProcessing;
 
+  const runningBulkRow =
+    bindings.rows[bindings.currentRow] ?? bindings.displayRows[bindings.currentRow];
+  const bulkSplashStatus = useBulkSplashAiStatus({
+    active: bindings.isProcessing,
+    latestStep: bindings.processingStepLog.at(-1) ?? bindings.status ?? "",
+    articleTitle: runningBulkRow?.title || expandedPageTitle || activeRow?.title || undefined,
+    keyword: runningBulkRow?.keyword || undefined,
+    siteName: site?.name || undefined,
+  });
+
+  const ideasSplashStatus = useBulkSplashAiStatus({
+    active: bindings.isGeneratingChecklist,
+    latestStep: bindings.checklistPhase || "Generating blog ideas",
+    articleTitle: bindings.generalIntent || undefined,
+    keyword: bindings.generalIntent || undefined,
+    siteName: site?.name || undefined,
+  });
+
   const canGenerateContent = useMemo(() => {
     if (bulkWorkspaceBusy) return false;
     if (studioEditorMode === "press-release") return false;
@@ -326,7 +342,7 @@ export function BulkGeneratorOverviewTabContent({
 
   const activeRowPublishable =
     activeRowIndex >= 0 &&
-    Boolean(pickLatestRowContentHtml(bindings.filesByRow.get(activeRowIndex)).trim());
+    Boolean((activeRow?.postContentOptimized || activeRow?.postContent || "").trim());
 
   const promptLogFile = useMemo(() => {
     if (activeRowIndex < 0) return null;
@@ -437,6 +453,10 @@ export function BulkGeneratorOverviewTabContent({
       setInFlightAutoSeoUrl={setInFlightAutoSeoUrl}
       showingStudioModeScreen={showingStudioModeScreen}
       ideationMode={ideationMode}
+      bulkSplashStatusText={bulkSplashStatus.status}
+      bulkSplashStatusVisual={bulkSplashStatus.visual}
+      ideasSplashStatusText={ideasSplashStatus.status}
+      ideasSplashStatusVisual={ideasSplashStatus.visual}
       bulkGeneratorStudioActions={bulkGeneratorStudioActions}
       promptLogFile={promptLogFile}
       handleSelectStudioEditorMode={handleSelectStudioEditorMode}

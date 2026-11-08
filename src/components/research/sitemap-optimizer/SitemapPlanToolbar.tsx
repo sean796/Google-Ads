@@ -18,7 +18,7 @@ export type SitemapPlanToolbarProps = {
   showResultToolbar: boolean;
   showAnalyzeAction: boolean;
   showGscCsvUpload: boolean;
-  showRankMathUpload: boolean;
+  showRedirectCsvUpload: boolean;
   inPublishWorkspace: boolean;
   isGridHarness: boolean;
   isGridFlow: boolean;
@@ -39,7 +39,7 @@ export type SitemapPlanToolbarProps = {
   resultContentSheetCount: number;
   onDownloadRedirectMapTemplate: () => void;
   onGscFile: (file: File) => void | Promise<void>;
-  onRankMathFile: (file: File) => void | Promise<void>;
+  onRedirectCsvFile: (file: File) => void | Promise<void>;
   onClearGscUpload: () => void;
   onAnalyze: () => void | Promise<void>;
   onCancel: () => void;
@@ -76,7 +76,7 @@ export function SitemapPlanToolbar(props: SitemapPlanToolbarProps) {
         disabled={props.busy || props.workspaceMode === "temp" || !props.siteConnected}
         onChange={(e) => {
           const file = e.target.files?.[0];
-          if (file) void props.onRankMathFile(file);
+          if (file) void props.onRedirectCsvFile(file);
           e.target.value = "";
         }}
       />
@@ -94,13 +94,13 @@ export function SitemapPlanToolbar(props: SitemapPlanToolbarProps) {
               {SITEMAP_OPTIMIZER_UPLOAD_GSC_CSV_LABEL}
             </Button>
           ) : null}
-          {props.showRankMathUpload ? (
+          {props.showRedirectCsvUpload ? (
             <Button
               variant="tool"
               icon={Upload}
               disabled={props.busy || props.rankMathImportRunning}
-              aria-label="Upload Rank Math plan"
-              title="Upload Rank Math plan"
+              aria-label="Upload NEO Pulse redirect plan"
+              title="Upload NEO Pulse redirect plan"
               onClick={() => rankMathFileRef.current?.click()}
             >
               {SITEMAP_OPTIMIZER_UPLOAD_RANK_MATH_LABEL}

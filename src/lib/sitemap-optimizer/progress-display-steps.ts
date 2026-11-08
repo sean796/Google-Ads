@@ -29,7 +29,7 @@ export const SITEMAP_OPTIMIZER_STEPS_GRID: { id: SitemapOptimizerStepId; label: 
   { id: "ingest_csv", label: "Ingest grid CSV" },
   { id: "gsc_triage", label: "GSC performance triage" },
   { id: "clustering", label: "Cluster underperformers" },
-  { id: "merge", label: "Rank Math targets" },
+  { id: "merge", label: "NEO Pulse redirect targets" },
 ];
 
 /** @deprecated Use stepsForRunMode */

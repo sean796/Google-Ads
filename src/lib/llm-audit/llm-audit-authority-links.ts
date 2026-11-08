@@ -290,13 +290,22 @@ export async function classifyLlmAuditAuthorityLinksOpenRouter(input: {
   const merged: LlmAuditAuthorityLink[] = [];
   const seen = new Set<string>();
 
+  const batches: string[][] = [];
   for (let i = 0; i < urls.length; i += LLM_AUDIT_AUTHORITY_CLASSIFY_BATCH_SIZE) {
-    const batch = urls.slice(i, i + LLM_AUDIT_AUTHORITY_CLASSIFY_BATCH_SIZE);
-    const classified = await classifyLlmAuditAuthorityLinkBatchOpenRouter({
-      ...input,
-      urls: batch,
-      onClassifierJsonFailure: input.onClassifierJsonFailure,
-    });
+    batches.push(urls.slice(i, i + LLM_AUDIT_AUTHORITY_CLASSIFY_BATCH_SIZE));
+  }
+
+  const classifiedBatches = await Promise.all(
+    batches.map((batch) =>
+      classifyLlmAuditAuthorityLinkBatchOpenRouter({
+        ...input,
+        urls: batch,
+        onClassifierJsonFailure: input.onClassifierJsonFailure,
+      }),
+    ),
+  );
+
+  for (const classified of classifiedBatches) {
     for (const link of classified) {
       const key = link.url.trim().toLowerCase();
       if (seen.has(key)) continue;

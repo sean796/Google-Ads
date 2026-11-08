@@ -22,7 +22,7 @@ vi.mock("@/lib/overview/overview-ai-all-meta-page-ping", () => ({
     title: row.title || "Title",
     plainTextContent: row.postContent || "body",
     charCount: 4,
-    acfSeoResearch: row.seoResearch,
+    postFieldsSeoResearch: row.seoResearch,
   })),
   pingOverviewPageForMeta: vi.fn(),
   formatPageApiPingArtifact: vi.fn(() => "ping artifact"),
@@ -150,6 +150,6 @@ describe("runOverviewAiAllMetaBatch pagination", () => {
     const ping = buildMetaPagePingFromOverviewRow(row);
     expect(ping.endpoint).toContain("Session inventory");
     expect(ping.plainTextContent).toContain("Hello world");
-    expect(ping.acfSeoResearch).toBe('{"intent":"info"}');
+    expect(ping.postFieldsSeoResearch).toBe('{"intent":"info"}');
   });
 });

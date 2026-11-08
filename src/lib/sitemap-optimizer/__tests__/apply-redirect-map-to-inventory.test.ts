@@ -40,7 +40,7 @@ describe("applyRedirectMapToInventory", () => {
     expect(rows[0]?.gridRedirectFromUrl).toContain("integrated-financial-and-tax-planning");
   });
 
-  it("matches Rank Math relative source paths to full WordPress inventory URLs", () => {
+  it("matches NEO Pulse redirect relative source paths to full WordPress inventory URLs", () => {
     const inventory: SitemapOptimizerPostRow[] = [
       {
         postId: "wp:93",

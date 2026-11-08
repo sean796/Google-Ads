@@ -1,16 +1,16 @@
 ﻿/**
  * Sync bulk KEYWORD column from prefetch caches (after ensureBulk / ACF research).
  */
-import { readKeywordFocusFromAcfFields } from "@/lib/content-generation/ai-driven-acf-reader";
+import { readKeywordFocusFromAcfFields } from "@/lib/content-generation/ai-driven-post-fields-reader";
 import type { HandleOptimizeMultipleContentParams } from "./bulk-optimization-params";
 
 export function seedBulkUrlKeywordsFromCaches(opts: {
   urls: string[];
   batchKey: string;
-  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
+  prefetchedPostFieldsCache: Map<number, Record<string, unknown>>;
   setBulkOptimizationState: HandleOptimizeMultipleContentParams["setBulkOptimizationState"];
 }): void {
-  const { urls, batchKey, prefetchedAcfFieldsCache, setBulkOptimizationState } = opts;
+  const { urls, batchKey, prefetchedPostFieldsCache, setBulkOptimizationState } = opts;
 
   const urlKeywords: Record<string, string> = {};
 
@@ -18,7 +18,7 @@ export function seedBulkUrlKeywordsFromCaches(opts: {
     const url = urls[i];
     if (!url) continue;
     const acfKw = readKeywordFocusFromAcfFields(
-      prefetchedAcfFieldsCache.get(i) as Record<string, unknown> | undefined,
+      prefetchedPostFieldsCache.get(i) as Record<string, unknown> | undefined,
     );
     const kw = acfKw.trim();
     if (kw) urlKeywords[url] = kw;

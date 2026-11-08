@@ -335,7 +335,7 @@ const drawScenes = useCallback(
     }
     return { framesById, promptsById };
   },
-  [runEnvironment, runFrame, runPassthroughFrame, writePrompt, brief.referenceVideo.durationSeconds, brief.referenceVideo.serverId, references, runRef, setBusy, setEnvironmentHarnessDataUrl, setFrames],
+  [runEnvironment, runFrame, runPassthroughFrame, writePrompt, brief.referenceVideo, references, runRef, setBusy, setEnvironmentHarnessDataUrl, setFrames],
 );
 
   return {

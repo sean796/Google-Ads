@@ -18,8 +18,8 @@ class Neo_Pulse_Wp_Robots_Txt {
 	public static function get_content(): string {
 		$raw = get_option( self::OPTION_KEY, null );
 		if ( null === $raw ) {
-			// Never edited in Neo Pulse: keep serving the robots.txt the site set in Rank Math, if any.
-			return class_exists( 'Neo_Pulse_Wp_Seo_Takeover', false ) ? self::sanitize_content( Neo_Pulse_Wp_Seo_Takeover::rank_math_robots_txt() ) : '';
+			// Never edited in Neo Pulse: keep serving the robots.txt the site set in NEO Pulse redirect, if any.
+			return class_exists( 'Neo_Pulse_Wp_Seo_Takeover', false ) ? self::sanitize_content( Neo_Pulse_Wp_Seo_Takeover::neo_pulse_seo_robots_txt() ) : '';
 		}
 		if ( is_string( $raw ) ) {
 			return self::sanitize_content( $raw );
@@ -92,13 +92,13 @@ class Neo_Pulse_Wp_Robots_Txt {
 		$own     = null !== get_option( self::OPTION_KEY, null );
 		$content = self::get_content();
 		if ( $content === '' || ( ! $own && ! $public ) ) {
-			// Nothing saved, or a site set to "Discourage search engines" still on Rank Math's text.
+			// Nothing saved, or a site set to "Discourage search engines" still on NEO Pulse redirect's text.
 			return self::default_content( $public );
 		}
 		if ( ! $public ) {
 			return $content;
 		}
-		// Rank Math's text is served as written (any AI crawler rules kept); only the sitemap is added.
+		// NEO Pulse redirect's text is served as written (any AI crawler rules kept); only the sitemap is added.
 		return $own ? self::with_sitemap_line( self::with_ai_bot_allows( $content ) ) : self::with_sitemap_line( $content );
 	}
 

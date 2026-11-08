@@ -1,12 +1,12 @@
 /**
- * Meta Optimizer - persists SEO AI output to ACF only (see apply-meta-optimizer-to-acf.ts).
+ * Meta Optimizer - persists SEO AI output to ACF only (see apply-meta-optimizer-to-fields.ts).
  */
 
 import {
   applyMetaOptimizerToACF,
   type ApplyMetaOptimizerToAcfOptions,
   type ApplyMetaOptimizerToAcfResult,
-} from "@/lib/content-generation/apply-meta-optimizer-to-acf";
+} from "@/lib/content-generation/apply-meta-optimizer-to-fields";
 import type { WordPressSite } from "@/components/integrations/types";
 import { OptimizationFileManager } from "@/lib/optimization-file-manager";
 import type { WpExistingPostLike } from "@/hooks/content-optimization/use-optimization-state";
@@ -24,7 +24,7 @@ export interface MetaOptimizerOptions {
   setProgress: (progress: { step: string; progress: number; message?: string }) => void;
   shouldOptimizeMeta: boolean;
   gscKeywordsContext?: string;
-  /** Merged seo_research JSON - same as apply-meta-optimizer-to-acf priorSeoResearchJson. */
+  /** Merged seo_research JSON - same as apply-meta-optimizer-to-fields priorSeoResearchJson. */
   priorSeoResearchJson?: string;
 }
 

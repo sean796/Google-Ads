@@ -5,7 +5,7 @@ import {
 } from "@/lib/sitemap-optimizer/company-content-policy";
 import {
   buildRedirectMapFamilyRows,
-} from "@/lib/sitemap-optimizer/build-grid-rank-math-redirects";
+} from "@/lib/sitemap-optimizer/build-grid-pulse-redirect-redirects";
 import { COMPANY_TAG_LABEL, COMPANY_TOPIC_TAG } from "@/lib/sitemap-optimizer/grid-company-news";
 import { brandTokensFromSiteUrl } from "@/lib/sitemap-optimizer/site-brand-tokens";
 import type { SitemapOptimizerPostRow } from "@/lib/sitemap-optimizer/types";

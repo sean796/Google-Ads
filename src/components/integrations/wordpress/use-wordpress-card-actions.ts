@@ -219,7 +219,7 @@ ${footnote}`;
           postUrl = createData.link || createData.url;
           
           // Now set the date_modifier field on the new post
-          const updateResponse = await fetch(`${BACKEND_API_BASE}/api/wordpress/update-acf-fields`, {
+          const updateResponse = await fetch(`${BACKEND_API_BASE}/api/wordpress/update-post-fields`, {
             method: 'POST',
             headers: neoPulseApiHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({

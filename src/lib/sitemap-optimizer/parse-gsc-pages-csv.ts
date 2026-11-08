@@ -1,9 +1,9 @@
 import Papa from "papaparse";
 import { parseGscCtr, parseNumber } from "@/lib/gsc-export-csv-parse";
 import {
-  normalizeRankMathRelativePath,
+  normalizeRedirectCsvRelativePath,
   rankMathSourceFromPageUrl,
-} from "@/lib/rank-math-redirect-csv";
+} from "@/lib/pulse-redirect-redirect-csv";
 import { blogDestinationWasNormalized, ensureBlogDestinationUrl } from "@/lib/sitemap-optimizer/blog-destination-url";
 import { normalizePageUrlKey } from "@/lib/sitemap-optimizer/normalize-page-url";
 
@@ -90,8 +90,8 @@ function isActiveStatus(row: Record<string, unknown>): boolean {
   return status.toLowerCase() === "active";
 }
 
-/** Rank Math export: id, source, matching, destination, … */
-function isRankMathNativeRedirectCsv(headers: string[]): boolean {
+/** NEO Pulse redirect export: id, source, matching, destination, … */
+function isRedirectCsvNativeRedirectCsv(headers: string[]): boolean {
   const keys = new Set(headers.map((h) => normalizeHeaderKey(h)));
   return keys.has("source") && keys.has("destination") && !keys.has("old_url") && !keys.has("new_url");
 }
@@ -108,22 +108,22 @@ function resolveRedirectSourceHeader(headers: string[]): string | null {
 }
 
 function isRedirectGridCsv(headers: string[]): boolean {
-  if (isRankMathNativeRedirectCsv(headers)) return true;
+  if (isRedirectCsvNativeRedirectCsv(headers)) return true;
   return hasNewUrlColumn(headers) && resolveRedirectSourceHeader(headers) != null;
 }
 
-/** Store legacy source path for inventory matching (relative Rank Math path or full URL). */
+/** Store legacy source path for inventory matching (relative NEO Pulse redirect path or full URL). */
 function normalizeRedirectLegacySource(raw: string): string {
   const trimmed = raw.trim();
   if (!trimmed) return "";
-  const rel = normalizeRankMathRelativePath(trimmed);
+  const rel = normalizeRedirectCsvRelativePath(trimmed);
   if (rel) return rel;
   const fromFull = rankMathSourceFromPageUrl(trimmed);
   if (fromFull) return fromFull;
   return trimmed;
 }
 
-function parseRankMathNativeRedirectRows(
+function parseRedirectCsvNativeRedirectRows(
   data: Record<string, unknown>[],
   headers: string[],
 ): { rows: GscParsedPageRow[]; blogDestinationsNormalized: number } {
@@ -271,8 +271,8 @@ export function parseGscPagesCsv(csvText: string): {
   const headers = parsed.meta.fields ?? [];
 
   if (isRedirectGridCsv(headers)) {
-    const { rows: redirectRows, blogDestinationsNormalized } = isRankMathNativeRedirectCsv(headers)
-      ? parseRankMathNativeRedirectRows(parsed.data, headers)
+    const { rows: redirectRows, blogDestinationsNormalized } = isRedirectCsvNativeRedirectCsv(headers)
+      ? parseRedirectCsvNativeRedirectRows(parsed.data, headers)
       : parseRedirectGridRows(parsed.data, headers);
     if (redirectRows.length === 0) {
       return { rows: [], error: "No valid redirect source/destination rows found in redirect CSV." };

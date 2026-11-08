@@ -123,7 +123,7 @@ describe("buildOverviewWordPressUploadFailuresCsv", () => {
       {
         postId: 12,
         url: "https://example.com/bad/",
-        error: "Rank Math meta rejected",
+        error: "NEO Pulse redirect meta rejected",
         mergeError: "acf.faq invalid JSON",
       },
     ]);
@@ -131,7 +131,7 @@ describe("buildOverviewWordPressUploadFailuresCsv", () => {
     expect(csv).toContain("post_id,url,error,merge_error");
     expect(csv).toContain("12");
     expect(csv).toContain("https://example.com/bad/");
-    expect(csv).toContain("Rank Math meta rejected");
+    expect(csv).toContain("NEO Pulse redirect meta rejected");
     expect(csv).toContain("acf.faq invalid JSON");
   });
 });

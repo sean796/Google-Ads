@@ -7,7 +7,7 @@
 import { BACKEND_API_BASE } from '@/lib/wordpress-api/connection';
 import { logger } from "@/lib/logger";
 import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
-import { getACFFieldsForPost } from '@/lib/wordpress-api/acf-discovery';
+import { getPostFieldsForPost } from '@/lib/wordpress-api/post-fields-discovery';
 import type { WordPressSite } from '@/components/integrations/types';
 
 const MAX_SERVICE_AREAS = 500;
@@ -65,20 +65,20 @@ export interface ServiceAreaPost {
   title: string;
   slug: string;
   status?: 'publish' | 'future';
-  /** Present when fetched with includeAcf (bulk list). */
+  /** Present when fetched with includePostFields (bulk list). */
   acf?: Record<string, unknown>;
 }
 
 /**
  * Fetch all service area posts via get-posts-list (paginated).
- * Set includeAcf to pull ACF in the same list calls (minimal WordPress requests).
+ * Set includePostFields to pull ACF in the same list calls (minimal WordPress requests).
  */
 async function fetchServiceAreaPosts(
   site: WordPressSite,
   postTypeEndpoint: string,
   onProgress?: (message: string) => void,
   status: 'publish' | 'future' = 'publish',
-  includeAcf = false
+  includePostFields = false
 ): Promise<ServiceAreaPost[]> {
   const url = `${BACKEND_API_BASE}/api/wordpress/get-posts-list`;
   const posts: ServiceAreaPost[] = [];
@@ -98,7 +98,7 @@ async function fetchServiceAreaPosts(
         perPage: PER_PAGE,
         page,
         status,
-        ...(includeAcf ? { includeAcf: true } : {}),
+        ...(includePostFields ? { includePostFields: true } : {}),
       }),
     });
 
@@ -132,7 +132,7 @@ async function fetchServiceAreaPosts(
         slug: post.slug ?? `post-${post.id}`,
         status,
       };
-      if (includeAcf && post.acf != null && typeof post.acf === 'object') {
+      if (includePostFields && post.acf != null && typeof post.acf === 'object') {
         row.acf = post.acf as Record<string, unknown>;
       }
       posts.push(row);
@@ -159,12 +159,12 @@ async function fetchServiceAreaPostsPublishAndFuture(
   site: WordPressSite,
   postTypeEndpoint: string,
   onProgress?: (message: string) => void,
-  includeAcf = false
+  includePostFields = false
 ): Promise<ServiceAreaPost[]> {
   onProgress?.('Fetching published and scheduled service areas...');
   const [publishPosts, futurePosts] = await Promise.all([
-    fetchServiceAreaPosts(site, postTypeEndpoint, onProgress, 'publish', includeAcf),
-    fetchServiceAreaPosts(site, postTypeEndpoint, onProgress, 'future', includeAcf),
+    fetchServiceAreaPosts(site, postTypeEndpoint, onProgress, 'publish', includePostFields),
+    fetchServiceAreaPosts(site, postTypeEndpoint, onProgress, 'future', includePostFields),
   ]);
   const byId = new Map<number, ServiceAreaPost>();
   for (const p of publishPosts) {
@@ -203,7 +203,7 @@ async function fillAcfPerPostForIndices(
     const results = await Promise.all(
       slice.map((idx) => {
         const post = posts[idx];
-        return getACFFieldsForPost(site, post.id, 'service-area', postTypeEndpoint).then((r) => ({
+        return getPostFieldsForPost(site, post.id, 'service-area', postTypeEndpoint).then((r) => ({
           idx,
           r,
         }));

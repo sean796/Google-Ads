@@ -9,6 +9,7 @@ import { checkWikipediaPageExists } from "@/lib/wikipedia-api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
 import type { EntityRunDeps } from "@/components/integrations/entity-run-ctx";
 import { logger } from "@/lib/logger";
+import { mcpPostInit } from "@/lib/mcp-tools";
 
 export async function runEntityPhaseValidate(d: EntityRunDeps): Promise<boolean> {
   const { s, v, c } = d;
@@ -281,17 +282,16 @@ Return ONLY the search question, nothing else.`;
             
             // Search again with alternative query - use c.primaryCity which has the correct location from modifier
             const altSearchLocation = c.primaryCity || "United States";
-            const altSerpResponse = await fetch(`${c.mcpApiBase}/DataForSEO_serp_organic_live_advanced`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
+            const altSerpResponse = await fetch(
+              `${c.mcpApiBase}/DataForSEO_serp_organic_live_advanced`,
+              mcpPostInit({
                 keyword: altSearchQuestion,
                 location_name: altSearchLocation,
                 language_code: "en",
                 depth: 20,
-                people_also_ask_click_depth: 4, // Get maximum PAA questions (4 clicks deep)
+                people_also_ask_click_depth: 4,
               }),
-            });
+            );
 
             if (altSerpResponse.ok) {
               const altSerpData = await altSerpResponse.json();

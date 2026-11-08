@@ -21,7 +21,7 @@ import {
 import {
   createHarnessTokenBudgetTracker,
 } from '@/lib/bulk/harness-section-max-tokens';
-import type { AIDrivenACFContext } from "@/lib/content-generation/ai-driven-acf-reader";
+import type { AIDrivenACFContext } from "@/lib/content-generation/ai-driven-post-fields-reader";
 import type { HarnessPromptEnv } from '@/lib/bulk/bulk-markdown-content-harness-types';
 import {
   isCompletionTruncatedByTokenLimit,

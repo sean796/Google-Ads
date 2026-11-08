@@ -51,7 +51,7 @@ export function entityMergesFromRedirectPlan(
       combinedOutline: complete.combinedOutline!,
       whatToKeepFromEach: complete.whatToKeepFromEach!,
       lockedDestinationUrl: resolveEntityRedirectDestinationUrl(pillar),
-      redirectOrCanonicalNote: "Rank Math 301: legacy service-area URLs to pillar destination.",
+      redirectOrCanonicalNote: "NEO Pulse redirect 301: legacy service-area URLs to pillar destination.",
       priority: complete.sourcePostIds.length >= 3 ? "high" : "medium",
       confidence: "high",
       rationale: complete.rationale.trim(),

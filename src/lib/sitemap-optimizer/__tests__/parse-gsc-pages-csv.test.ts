@@ -114,7 +114,7 @@ describe("parseGscPagesCsv", () => {
     expect(parsed.blogDestinationsNormalized).toBe(1);
   });
 
-  it("parses Rank Math native source,destination redirect CSV", () => {
+  it("parses NEO Pulse redirect native source,destination redirect CSV", () => {
     const csv = [
       "id,source,matching,destination,type,category,status,ignore",
       "93,2024/04/01/canadian-interest-rates-q2-2024/,exact,blog/canadian-interest-rates-q2-2026/,301,,active,",

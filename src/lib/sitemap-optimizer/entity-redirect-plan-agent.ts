@@ -19,7 +19,7 @@ export async function runEntityRedirectPlanAgent(
   return runEntityTransformFamiliesAgent(compressPlan, consolidateRows, apiKey, options);
 }
 
-export function redirectPlanRankMathPairs(
+export function redirectPlanRedirectCsvPairs(
   plan: EntityRedirectPlan,
   rowById: Map<string, SitemapOptimizerPostRow>,
 ): Array<{ sourceUrl: string; destinationUrl: string; familyId: string }> {

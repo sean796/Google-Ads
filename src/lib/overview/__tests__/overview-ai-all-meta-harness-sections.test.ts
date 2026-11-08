@@ -65,7 +65,7 @@ describe("metaHarnessGeneratedFiles", () => {
         title: "Cellular Shades",
         plainTextContent: "We sell shades.",
         charCount: 15,
-        acfSeoResearch: baseRow.seoResearchBrief,
+        postFieldsSeoResearch: baseRow.seoResearchBrief,
       },
       seoResearchBrief: baseRow.seoResearchBrief,
     });

@@ -18,7 +18,7 @@ import {
 import { insertContentIntoSection } from "@/lib/section-parser";
 import { getProductionModel, getResearchModel } from "@/lib/optimization-settings-storage";
 import { extractMediaFromContent } from "@/lib/content-optimization-helpers";
-import { readACFFieldsAgentically } from "@/lib/content-generation/ai-driven-acf-reader";
+import { readACFFieldsAgentically } from "@/lib/content-generation/ai-driven-post-fields-reader";
 import { buildFocusedArticlePurpose } from "@/lib/content-generation/article-length-policy";
 import { isGeneratedContentHtml } from "@/lib/content-generation/content-format";
 import { llmAuditSummaryFromSeoResearchBrief } from "@/lib/content-optimization/seo-research-brief-for-optimize";
@@ -193,7 +193,6 @@ export async function generateOptimizedContent(
       topP: 0.9,
       useEntitySitemapTemplate: !!entity,
       portfolioBlockedHosts: context.portfolioBlockedHosts,
-      sequentialHarnessSections: true,
       onHarnessSection: onHarnessSection
         ? (payload) => {
             onHarnessSection(payload);

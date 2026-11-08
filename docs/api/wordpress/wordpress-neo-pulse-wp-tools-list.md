@@ -1,14 +1,14 @@
 ---
 title: "Neo Pulse Wp Tools List"
-slug: wordpress/neo-pulse-wp-tools-list
+slug: wordpress/REMOVED_NEO_PULSE_WP_TOOLS_LIST
 section: WordPress
 method: POST
-path: /api/wordpress/neo-pulse-wp-tools-list
+path: /api/wordpress/REMOVED_NEO_PULSE_WP_TOOLS_LIST
 auth: open
 order: 2980
 ---
 
-POST `/api/wordpress/neo-pulse-wp-tools-list`.
+POST `/api/wordpress/REMOVED_NEO_PULSE_WP_TOOLS_LIST`.
 
 Runs the neo pulse wp tools list action in the WordPress API from a JSON request body.
 
@@ -34,13 +34,13 @@ Runs the neo pulse wp tools list action in the WordPress API from a JSON request
 ## Example
 
 ```bash
-curl -X POST "https://neodigital.ca/api/wordpress/neo-pulse-wp-tools-list" \
+curl -X POST "https://neodigital.ca/api/wordpress/REMOVED_NEO_PULSE_WP_TOOLS_LIST" \
   -H "Content-Type: application/json" \
   -d '{}'
 ```
 
 ```javascript
-const res = await fetch(`/api/wordpress/neo-pulse-wp-tools-list`, {
+const res = await fetch(`/api/wordpress/REMOVED_NEO_PULSE_WP_TOOLS_LIST`, {
   method: "POST",
   credentials: "include",
   headers: { "Content-Type": "application/json" },

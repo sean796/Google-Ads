@@ -22,10 +22,10 @@ import {
 } from "@/lib/bulk/blog-import-draft-links";
 import { markdownToHtml, generateExcerpt } from "@/lib/markdown-to-html";
 import { inferKeywordFromTitle } from "@/lib/bulk/blog-import-parser";
-import { sanitizeWordPressSlugSegment, slugifyFocusKeywordToRelativePath } from "@/lib/rank-math-redirect-csv";
+import { sanitizeWordPressSlugSegment, slugifyFocusKeywordToRelativePath } from "@/lib/pulse-redirect-redirect-csv";
 import { createWordPressPost } from "@/lib/wordpress-api";
 import { resolveEntityEndpointForRow } from "@/lib/competitor-research/competitor-entity-sitemap";
-import { acfCompetitorAppliesForRow } from "@/lib/acf-competitor-applies";
+import { acfCompetitorAppliesForRow } from "@/lib/post-fields-competitor-applies";
 import { loadApiKey } from "@/lib/api";
 import {
   formatWordPressDate,

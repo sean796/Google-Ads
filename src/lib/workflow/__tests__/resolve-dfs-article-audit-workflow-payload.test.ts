@@ -5,8 +5,8 @@ vi.mock("@/lib/task-execution-resolve-bucket-urls", () => ({
   resolveTaskExecutionBucketUrls: vi.fn(async () => ["https://example.com/post-1/"]),
 }));
 
-vi.mock("@/lib/wordpress-api/acf-discovery", () => ({
-  getACFFieldsForUrl: vi.fn(async () => ({ fields: { keyword_focus: "test keyword" } })),
+vi.mock("@/lib/wordpress-api/post-fields-discovery", () => ({
+  getPostFieldsForUrl: vi.fn(async () => ({ fields: { keyword_focus: "test keyword" } })),
 }));
 
 describe("resolveDfsArticleAuditWorkflowPayload", () => {

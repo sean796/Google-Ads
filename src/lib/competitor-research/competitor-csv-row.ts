@@ -34,7 +34,7 @@ export function buildCompetitorFieldsValue(competitorName: string, focusKeyword:
 export const COMPETITOR_COMPARISON_PROSE_PROMPT_BLOCK = `COMPETITOR COMPARISON ROW (READER-FACING COPY — MANDATORY):
 - The CSV keyword cell looks like "competitor - Business Name". That prefix is for bulk research routing only.
 - NEVER write "competitor -", "Competitor –", "Competitor:", "choosing a competitor", or similar in titles, headings, intros, tables, or body copy.
-- Primary SEO phrase for the article (exact primary per H2, Rank Math focus): the competitor business name from keyword_focus / entity — write that name normally, not the "competitor - …" label.
+- Primary SEO phrase for the article (exact primary per H2, NEO Pulse redirect focus): the competitor business name from keyword_focus / entity — write that name normally, not the "competitor - …" label.
 - Service or product category context (e.g. blinds, window coverings) comes from the row modifier and title, not from the Clusters search keyword field.
 - The connected site (your client) is the host brand; entity is the other local business you compare against by name.
 - NEVER label the connected site as a competitor.

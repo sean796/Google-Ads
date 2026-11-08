@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { buildContentSheetRows } from "@/lib/sitemap-optimizer/build-content-sheet-rows";
 import {
-  buildSitemapOptimizerContentSheetRankMathCsv,
-  buildSitemapOptimizerContentSheetRankMathWideCsv,
-} from "@/lib/sitemap-optimizer/build-content-sheet-rank-math";
+  buildSitemapOptimizerContentSheetRedirectCsvCsv,
+  buildSitemapOptimizerContentSheetRedirectCsvWideCsv,
+} from "@/lib/sitemap-optimizer/build-content-sheet-pulse-redirects";
 import type { SitemapOptimizerRunResult } from "@/lib/sitemap-optimizer/types";
 
 const base: Omit<SitemapOptimizerRunResult, "contentSheet"> = {
@@ -27,7 +27,7 @@ const base: Omit<SitemapOptimizerRunResult, "contentSheet"> = {
   analyzedAt: "2026-05-01T00:00:00.000Z",
 };
 
-describe("build-content-sheet-rank-math", () => {
+describe("build-content-sheet-pulse-redirect", () => {
   it("exports rank math row per content sheet entry", () => {
     const proposals = [
       {
@@ -47,11 +47,11 @@ describe("build-content-sheet-rank-math", () => {
       standaloneProposals: proposals,
     });
     const result: SitemapOptimizerRunResult = { ...base, contentSheet };
-    const { csv, rowCount } = buildSitemapOptimizerContentSheetRankMathCsv(result);
+    const { csv, rowCount } = buildSitemapOptimizerContentSheetRedirectCsvCsv(result);
     expect(rowCount).toBe(1);
     expect(csv).toContain("blog/old-post/");
     expect(csv).toContain("destination");
-    const wide = buildSitemapOptimizerContentSheetRankMathWideCsv(result);
+    const wide = buildSitemapOptimizerContentSheetRedirectCsvWideCsv(result);
     expect(wide).toContain("old_url");
     expect(wide).toContain("proposed_title");
     expect(wide).toContain("Better Post Title");

@@ -44,25 +44,25 @@ foreach ( $ids as $id ) {
 	}
 	$path    = (string) wp_parse_url( (string) get_permalink( $id ), PHP_URL_PATH );
 	$slug    = (string) $post->post_name;
-	$rm      = trim( (string) get_post_meta( $id, 'rank_math_title', true ) );
+	$rm      = trim( (string) get_post_meta( $id, 'neo_pulse_seo_title', true ) );
 	$current = $rm !== '' ? $rm : (string) $post->post_title;
 	if ( class_exists( 'Neo_Pulse_Wp_Frontend_Seo' ) ) {
 		$clean = Neo_Pulse_Wp_Frontend_Seo::clean_title_suffix( $current );
 		if ( $rm !== '' && $clean !== $rm ) {
-			update_post_meta( $id, 'rank_math_title', $clean );
+			update_post_meta( $id, 'neo_pulse_seo_title', $clean );
 			$current = $clean;
 			$out['cleaned']++;
 		}
 		if ( strpos( $path, '/blog/' ) === 0 && ! Neo_Pulse_Wp_Frontend_Seo::title_matches_slug( $current, $slug ) ) {
 			$want = Neo_Pulse_Wp_Frontend_Seo::title_from_slug( $slug );
 			if ( $want !== '' ) {
-				update_post_meta( $id, 'rank_math_title', $want . ' | Neo Digital' );
+				update_post_meta( $id, 'neo_pulse_seo_title', $want . ' | Neo Digital' );
 				$current = $want;
 				$out['titles']++;
 			}
 		}
 	}
-	$desc = trim( (string) get_post_meta( $id, 'rank_math_description', true ) );
+	$desc = trim( (string) get_post_meta( $id, 'neo_pulse_seo_description', true ) );
 	if ( $desc === '' ) {
 		$label = preg_replace( '/\s*[|–-]\s*Neo Digital\s*$/u', '', $current );
 		$label = is_string( $label ) && $label !== '' ? $label : $slug;
@@ -70,7 +70,7 @@ foreach ( $ids as $id ) {
 		if ( strlen( $next ) > 155 ) {
 			$next = rtrim( substr( $next, 0, 152 ) ) . '...';
 		}
-		update_post_meta( $id, 'rank_math_description', $next );
+		update_post_meta( $id, 'neo_pulse_seo_description', $next );
 		$out['descs']++;
 	}
 }

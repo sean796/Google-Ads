@@ -3,8 +3,8 @@
  * FAQ schema for a page. One FAQPage per page, combining:
  *  1. the ACF "faq" / "seo_faq" fields written by the SEO team's content system (Flowbie): repeater
  *     rows, plain question/answer text, "Q:/A:" text, or ready-made FAQPage JSON-LD;
- *  2. Elementor accordions that have Rank Math's "Add FAQ Schema" switch on
- *     (rank_math_add_faq_schema = yes on Accordion, Toggle and Nested Accordion widgets);
+ *  2. Elementor accordions that have NEO Pulse redirect's "Add FAQ Schema" switch on
+ *     (neo_pulse_seo_add_faq_schema = yes on Accordion, Toggle and Nested Accordion widgets);
  *  3. NEO Pulse FAQ widgets with "Enable schema" on (their own items or the field they show).
  *
  * Client child themes print the ACF FAQ themselves (function inject_custom_acf_schemas, together
@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
 
 class Neo_Pulse_Wp_Seo_Faq {
 
-	const FLAG        = 'rank_math_add_faq_schema';
+	const FLAG        = 'neo_pulse_seo_add_faq_schema';
 	const FIELDS      = array( 'faq', 'seo_faq' );
 	const DATE_FIELDS = array( 'date_modifier', 'seo_date_modifier' );
 	const THEME_HOOK  = 'inject_custom_acf_schemas';
@@ -43,13 +43,13 @@ class Neo_Pulse_Wp_Seo_Faq {
 	}
 
 	/**
-	 * Questions and answers for a page: stored Rank Math FAQ schema wins (it is printed as is);
+	 * Questions and answers for a page: stored NEO Pulse redirect FAQ schema wins (it is printed as is);
 	 * otherwise the ACF fields, flagged Elementor accordions and FAQ widgets, without repeats.
 	 *
 	 * @return array<int, array{q: string, a: string}>
 	 */
 	public static function for_post( int $post_id ): array {
-		if ( metadata_exists( 'post', $post_id, 'rank_math_schema_FAQPage' ) ) {
+		if ( metadata_exists( 'post', $post_id, 'neo_pulse_seo_schema_FAQPage' ) ) {
 			return array();
 		}
 		$out  = array();

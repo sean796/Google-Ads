@@ -116,8 +116,8 @@ export function useOverviewUploadToSite(): UseOverviewUploadResult {
           );
           if (cur.success) {
             const m = (cur.meta && typeof cur.meta === "object" ? cur.meta : {}) as Record<string, unknown>;
-            const rmTitle = typeof m.rank_math_title === "string" ? m.rank_math_title.trim() : "";
-            const rmDesc = typeof m.rank_math_description === "string" ? m.rank_math_description.trim() : "";
+            const rmTitle = typeof m.neo_pulse_seo_title === "string" ? m.neo_pulse_seo_title.trim() : "";
+            const rmDesc = typeof m.neo_pulse_seo_description === "string" ? m.neo_pulse_seo_description.trim() : "";
             const wpTitle = plainRenderedText(cur.title);
             const excerptPlain = plainRenderedText(cur.excerpt);
             if (!(srcTitle ?? "").trim() && !(srcAiTitle ?? "").trim()) {

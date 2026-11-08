@@ -1,8 +1,8 @@
 <?php
 /**
- * The pieces of a Rank Math site that live outside the SEO tags, carried over at switch-over:
+ * The pieces of a NEO Pulse redirect site that live outside the SEO tags, carried over at switch-over:
  * the Google Analytics tag, robots.txt text, the "send 404s home" setting, and a guard that stops
- * Rank Math deleting its data on uninstall (Neo Pulse keeps reading Rank Math's per-post fields).
+ * NEO Pulse redirect deleting its data on uninstall (Neo Pulse keeps reading NEO Pulse redirect's per-post fields).
  *
  * @package Neo_Pulse_Wp
  */
@@ -11,7 +11,7 @@ defined( 'ABSPATH' ) || exit;
 
 class Neo_Pulse_Wp_Seo_Takeover {
 
-	const RM_ANALYTICS = 'rank_math_google_analytic_options';
+	const RM_ANALYTICS = 'neo_pulse_seo_google_analytic_options';
 	const GA_ID_OPTION = 'neo_pulse_wp_ga_script_id';
 	const GA_NAME      = 'Google Analytics (GA4)';
 
@@ -19,7 +19,7 @@ class Neo_Pulse_Wp_Seo_Takeover {
 	const VERIFY_NAME      = 'Site verification tags';
 
 	/**
-	 * Rank Math's webmaster-tools fields and the meta tag each one prints.
+	 * NEO Pulse redirect's webmaster-tools fields and the meta tag each one prints.
 	 */
 	const VERIFY_TAGS = array(
 		'google_verify'    => 'google-site-verification',
@@ -31,15 +31,15 @@ class Neo_Pulse_Wp_Seo_Takeover {
 	);
 
 	public static function init(): void {
-		// Titles, descriptions, focus keywords, schema and redirect history are stored in Rank Math's
-		// fields, which Neo Pulse reads. Several client themes tell Rank Math to wipe them on uninstall.
-		add_filter( 'rank_math_clear_data_on_uninstall', '__return_false', PHP_INT_MAX );
+		// Titles, descriptions, focus keywords, schema and redirect history are stored in NEO Pulse redirect's
+		// fields, which Neo Pulse reads. Several client themes tell NEO Pulse redirect to wipe them on uninstall.
+		add_filter( 'neo_pulse_seo_clear_data_on_uninstall', '__return_false', PHP_INT_MAX );
 		add_filter( 'neo_pulse_wp_script_manager_render_code', array( __CLASS__, 'filter_ga_row' ), 5, 2 );
 		add_filter( 'neo_pulse_wp_script_manager_render_code', array( __CLASS__, 'filter_verify_row' ), 5, 2 );
 	}
 
 	/**
-	 * Everything carried over on "Copy settings from Rank Math".
+	 * Everything carried over on "Copy settings from NEO Pulse redirect".
 	 *
 	 * @return array<int, string> Summary lines.
 	 */
@@ -54,10 +54,10 @@ class Neo_Pulse_Wp_Seo_Takeover {
 	}
 
 	/**
-	 * Whether a Rank Math module was switched on (settings stay stored after a module is turned off).
+	 * Whether a NEO Pulse redirect module was switched on (settings stay stored after a module is turned off).
 	 */
-	public static function rank_math_module( string $module ): bool {
-		$modules = get_option( 'rank_math_modules', null );
+	public static function neo_pulse_seo_module( string $module ): bool {
+		$modules = get_option( 'neo_pulse_seo_modules', null );
 		return is_array( $modules ) && in_array( $module, $modules, true );
 	}
 
@@ -66,13 +66,13 @@ class Neo_Pulse_Wp_Seo_Takeover {
 	/**
 	 * @return array{measurement_id: string, install: bool, anonymize: bool, exclude_logged_in: bool}
 	 */
-	public static function rank_math_ga(): array {
+	public static function neo_pulse_seo_ga(): array {
 		$raw = get_option( self::RM_ANALYTICS, array() );
 		$raw = is_array( $raw ) ? $raw : array();
 		$id  = strtoupper( trim( (string) ( $raw['measurement_id'] ?? '' ) ) );
 		return array(
 			'measurement_id'    => preg_match( '/^G-[A-Z0-9]{4,20}$/', $id ) ? $id : '',
-			'install'           => self::rank_math_module( 'analytics' ) && Neo_Pulse_Wp_Seo_Settings::on( $raw['install_code'] ?? '' ),
+			'install'           => self::neo_pulse_seo_module( 'analytics' ) && Neo_Pulse_Wp_Seo_Settings::on( $raw['install_code'] ?? '' ),
 			'anonymize'         => Neo_Pulse_Wp_Seo_Settings::on( $raw['anonymize_ip'] ?? '' ),
 			'exclude_logged_in' => Neo_Pulse_Wp_Seo_Settings::on( $raw['exclude_loggedin'] ?? '' ),
 		);
@@ -141,7 +141,7 @@ class Neo_Pulse_Wp_Seo_Takeover {
 	}
 
 	public static function import_ga(): string {
-		$ga = self::rank_math_ga();
+		$ga = self::neo_pulse_seo_ga();
 		if ( ! $ga['install'] || $ga['measurement_id'] === '' ) {
 			return '';
 		}
@@ -175,7 +175,7 @@ class Neo_Pulse_Wp_Seo_Takeover {
 		}
 		update_option( self::GA_ID_OPTION, (int) $result['id'], false );
 		/* translators: %s: GA measurement ID */
-		$line = sprintf( __( 'Google Analytics: %s is in Script Manager and takes over from Rank Math when it is deactivated.', 'neo-pulse-wp' ), $ga['measurement_id'] );
+		$line = sprintf( __( 'Google Analytics: %s is in Script Manager and takes over from NEO Pulse redirect when it is deactivated.', 'neo-pulse-wp' ), $ga['measurement_id'] );
 		if ( $existing['gtm'] !== array() ) {
 			/* translators: %s: script names */
 			$line .= ' ' . sprintf( __( 'Check %s: a Tag Manager container that also sends to this property would count visits twice.', 'neo-pulse-wp' ), '"' . implode( '", "', $existing['gtm'] ) . '"' );
@@ -184,7 +184,7 @@ class Neo_Pulse_Wp_Seo_Takeover {
 	}
 
 	/**
-	 * While Rank Math is still adding the GA tag itself, the Script Manager copy stays quiet.
+	 * While NEO Pulse redirect is still adding the GA tag itself, the Script Manager copy stays quiet.
 	 *
 	 * @param string $code Script code.
 	 * @param object $row  Script row.
@@ -193,7 +193,7 @@ class Neo_Pulse_Wp_Seo_Takeover {
 		if ( ! is_object( $row ) || (int) $row->id !== (int) get_option( self::GA_ID_OPTION, 0 ) ) {
 			return $code;
 		}
-		if ( Neo_Pulse_Wp_Seo_Settings::rank_math_active() && self::rank_math_ga()['install'] ) {
+		if ( Neo_Pulse_Wp_Seo_Settings::neo_pulse_seo_active() && self::neo_pulse_seo_ga()['install'] ) {
 			return '';
 		}
 		return $code;
@@ -202,11 +202,11 @@ class Neo_Pulse_Wp_Seo_Takeover {
 	// ── Site verification (Search Console, Bing, Pinterest…) ────────────────
 
 	/**
-	 * Verification codes saved in Rank Math → General → Webmaster Tools.
+	 * Verification codes saved in NEO Pulse redirect → General → Webmaster Tools.
 	 *
 	 * @return array<string, string> meta name => code
 	 */
-	public static function rank_math_verify(): array {
+	public static function neo_pulse_seo_verify(): array {
 		$general = get_option( Neo_Pulse_Wp_Seo_Settings::RM_GENERAL, array() );
 		$general = is_array( $general ) ? $general : array();
 		$out     = array();
@@ -238,13 +238,13 @@ class Neo_Pulse_Wp_Seo_Takeover {
 	}
 
 	/**
-	 * Rank Math verification codes that no switched-on Script Manager script prints yet.
-	 * The verification row itself counts, even while Rank Math keeps it quiet.
+	 * NEO Pulse redirect verification codes that no switched-on Script Manager script prints yet.
+	 * The verification row itself counts, even while NEO Pulse redirect keeps it quiet.
 	 *
 	 * @return array<string, string> meta name => code
 	 */
 	public static function verify_missing(): array {
-		$codes = self::rank_math_verify();
+		$codes = self::neo_pulse_seo_verify();
 		if ( $codes === array() ) {
 			return array();
 		}
@@ -267,13 +267,13 @@ class Neo_Pulse_Wp_Seo_Takeover {
 	}
 
 	public static function import_verify(): string {
-		$codes = self::rank_math_verify();
+		$codes = self::neo_pulse_seo_verify();
 		if ( $codes === array() ) {
 			return '';
 		}
 		$missing = self::verify_missing();
 		if ( $missing === array() ) {
-			return __( 'Site verification: the verification tags Rank Math adds are already in Script Manager.', 'neo-pulse-wp' );
+			return __( 'Site verification: the verification tags NEO Pulse redirect adds are already in Script Manager.', 'neo-pulse-wp' );
 		}
 
 		$existing = self::verify_row();
@@ -308,8 +308,8 @@ class Neo_Pulse_Wp_Seo_Takeover {
 		return sprintf(
 			/* translators: %s: services, e.g. "Google Search Console and Bing" */
 			_n(
-				'Site verification: the %s verification tag is in Script Manager and takes over from Rank Math when it is deactivated, so the site stays verified.',
-				'Site verification: the %s verification tags are in Script Manager and take over from Rank Math when it is deactivated, so the site stays verified.',
+				'Site verification: the %s verification tag is in Script Manager and takes over from NEO Pulse redirect when it is deactivated, so the site stays verified.',
+				'Site verification: the %s verification tags are in Script Manager and take over from NEO Pulse redirect when it is deactivated, so the site stays verified.',
 				count( $names ),
 				'neo-pulse-wp'
 			),
@@ -333,7 +333,7 @@ class Neo_Pulse_Wp_Seo_Takeover {
 	}
 
 	/**
-	 * While Rank Math is still printing the verification tags itself, the Script Manager copy stays quiet.
+	 * While NEO Pulse redirect is still printing the verification tags itself, the Script Manager copy stays quiet.
 	 *
 	 * @param string $code Script code.
 	 * @param object $row  Script row.
@@ -342,7 +342,7 @@ class Neo_Pulse_Wp_Seo_Takeover {
 		if ( ! is_object( $row ) || (int) $row->id !== (int) get_option( self::VERIFY_ID_OPTION, 0 ) ) {
 			return $code;
 		}
-		if ( Neo_Pulse_Wp_Seo_Settings::rank_math_active() ) {
+		if ( Neo_Pulse_Wp_Seo_Settings::neo_pulse_seo_active() ) {
 			return '';
 		}
 		return $code;
@@ -350,34 +350,34 @@ class Neo_Pulse_Wp_Seo_Takeover {
 
 	// ── robots.txt ──────────────────────────────────────────────────────────
 
-	public static function rank_math_robots_txt(): string {
+	public static function neo_pulse_seo_robots_txt(): string {
 		$general = get_option( Neo_Pulse_Wp_Seo_Settings::RM_GENERAL, array() );
 		return is_array( $general ) ? trim( (string) ( $general['robots_txt_content'] ?? '' ) ) : '';
 	}
 
 	public static function import_robots_txt(): string {
-		$text = self::rank_math_robots_txt();
+		$text = self::neo_pulse_seo_robots_txt();
 		if ( $text === '' ) {
 			return '';
 		}
 		if ( get_option( Neo_Pulse_Wp_Robots_Txt::OPTION_KEY, null ) !== null ) {
-			return __( 'robots.txt: Neo Pulse already has its own robots.txt, so Rank Math\'s was not copied.', 'neo-pulse-wp' );
+			return __( 'robots.txt: Neo Pulse already has its own robots.txt, so NEO Pulse redirect\'s was not copied.', 'neo-pulse-wp' );
 		}
 		Neo_Pulse_Wp_Robots_Txt::save_content( $text );
-		return __( 'robots.txt: Rank Math\'s robots.txt copied into Neo Pulse.', 'neo-pulse-wp' );
+		return __( 'robots.txt: NEO Pulse redirect\'s robots.txt copied into Neo Pulse.', 'neo-pulse-wp' );
 	}
 
 	// ── 404 fallback ───────────────────────────────────────────────────────
 
 	public static function import_404_fallback(): string {
 		$general = get_option( Neo_Pulse_Wp_Seo_Settings::RM_GENERAL, array() );
-		if ( ! is_array( $general ) || ! self::rank_math_module( 'redirections' ) ) {
+		if ( ! is_array( $general ) || ! self::neo_pulse_seo_module( 'redirections' ) ) {
 			return '';
 		}
 		$fallback = (string) ( $general['redirections_fallback'] ?? '' );
 		if ( 'custom' === $fallback ) {
 			/* translators: %s: address */
-			return sprintf( __( 'Redirects: Rank Math sent pages that are not found to %s. Neo Pulse can send them to the homepage (Redirects → Settings) or leave them as normal 404 pages.', 'neo-pulse-wp' ), (string) ( $general['redirections_custom_url'] ?? '' ) );
+			return sprintf( __( 'Redirects: NEO Pulse redirect sent pages that are not found to %s. Neo Pulse can send them to the homepage (Redirects → Settings) or leave them as normal 404 pages.', 'neo-pulse-wp' ), (string) ( $general['redirections_custom_url'] ?? '' ) );
 		}
 		if ( 'homepage' !== $fallback ) {
 			return '';
@@ -390,6 +390,6 @@ class Neo_Pulse_Wp_Seo_Takeover {
 		$settings['fallback_home_enabled'] = true;
 		$settings['fallback_home_type']    = in_array( $code, array( 301, 302 ), true ) ? $code : 301;
 		Neo_Pulse_Wp_Redirects::save_settings( $settings );
-		return __( 'Redirects: pages that are not found go to the homepage, as they did with Rank Math.', 'neo-pulse-wp' );
+		return __( 'Redirects: pages that are not found go to the homepage, as they did with NEO Pulse redirect.', 'neo-pulse-wp' );
 	}
 }

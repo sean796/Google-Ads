@@ -1,6 +1,6 @@
 <?php
 /**
- * Redirects list table (Rank Math–style).
+ * Redirects list table (NEO Pulse redirect–style).
  *
  * @package Neo_Pulse_Wp
  */

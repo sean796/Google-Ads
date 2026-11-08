@@ -5,7 +5,7 @@ section: Knowledge Model
 method: GET
 path: /api/knowledge-model/graph/([a-zA-Z0-9-]+)
 auth: open
-order: 640
+order: 660
 ---
 
 GET `/api/knowledge-model/graph/([a-zA-Z0-9-]+)`.

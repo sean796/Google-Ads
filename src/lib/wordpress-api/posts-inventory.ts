@@ -115,7 +115,7 @@ export async function getSiteInventoryBulk(
     /** When set, fetch only these WP post IDs (one request per collection; no full walk). */
     includeIds?: number[];
     /** When true, include the raw ACF object on each row (context=edit). */
-    includeRawAcf?: boolean;
+    includeRawPostFields?: boolean;
   },
 ): Promise<SiteInventoryBulkResponse> {
   const url = backendApiUrl("/wordpress/get-site-inventory-bulk");
@@ -134,7 +134,7 @@ export async function getSiteInventoryBulk(
         includeContent: Boolean(options?.includeContent),
         includePageHeading: Boolean(options?.includePageHeading),
         includeScheduled: Boolean(options?.includeScheduled),
-        includeRawAcf: Boolean(options?.includeRawAcf),
+        includeRawPostFields: Boolean(options?.includeRawPostFields),
         inventorySizing: options?.inventorySizing,
         maxRowsPerCollection: options?.maxRowsPerCollection,
         ...(includeIds.length ? { includeIds } : {}),

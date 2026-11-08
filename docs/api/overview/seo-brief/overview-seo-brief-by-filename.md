@@ -5,7 +5,7 @@ section: Overview
 method: GET
 path: /api/overview/seo-brief/{filename}
 auth: open
-order: 940
+order: 950
 ---
 
 GET `/api/overview/seo-brief/{filename}`.

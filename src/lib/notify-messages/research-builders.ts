@@ -205,12 +205,12 @@ export function notifyLoadedXContentPlanSFromRedirectEx(resResultContentsheetLen
   return `Loaded ${resResultContentsheetLength} content plan(s) from redirect export.`;
 }
 
-export function notifyRankMathPlanX(planSummary: string | number): string {
-  return `Rank Math plan: ${planSummary}`;
+export function notifyRedirectCsvPlanX(planSummary: string | number): string {
+  return `NEO Pulse redirect plan: ${planSummary}`;
 }
 
 export function notifyDownloadedXRedirectRowSForRankMat(redirectrowsLength: string | number): string {
-  return `Downloaded ${redirectrowsLength} redirect row(s) for Rank Math import.`;
+  return `Downloaded ${redirectrowsLength} redirect row(s) for NEO Pulse redirect import.`;
 }
 
 export function notifyExportedXRowSToCsv(rowsLength: string | number): string {

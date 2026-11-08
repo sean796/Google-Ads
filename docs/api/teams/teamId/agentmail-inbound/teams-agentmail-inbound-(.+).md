@@ -5,7 +5,7 @@ section: Teams
 method: GET
 path: /api/teams/{teamId}/agentmail-inbound/(.+)
 auth: session-team
-order: 1170
+order: 1200
 ---
 
 GET `/api/teams/{teamId}/agentmail-inbound/(.+)`.

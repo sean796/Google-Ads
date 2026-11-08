@@ -1,10 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  SEO_WORKSPACE_BODY_SCROLL_CLASS,
-  SEO_WORKSPACE_HEADER_CLASS,
-  SEO_WORKSPACE_SHELL_CLASS,
-  SEO_WORKSPACE_TYPO_CLASS,
-} from "@/components/seo/seo-workspace-layout";
+import { ScrollText } from "lucide-react";
+import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui";
+import { BULK_HEADER_SELECT_TRIGGER } from "@/components/keyword-research/bulk/bulk-workspace-header-styles";
+import { SEO_WORKSPACE_TYPO_CLASS } from "@/components/seo/seo-workspace-layout";
 import {
   fetchChangelogArchive,
   fetchUncoveredCommits,
@@ -18,7 +16,6 @@ import {
 } from "@/lib/changelog/changelog-agent";
 import { loadApiKey } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { ChangelogWorkspaceHeader } from "./ChangelogWorkspaceHeader";
 
 const DUE_AFTER_DAYS = 7;
 
@@ -36,25 +33,32 @@ function monthLabel(monthKey: string): string {
   return date.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
 }
 
+/** "Nov 7, 2026" from an ISO date (YYYY-MM-DD). */
+function formatDate(iso: string): string {
+  const date = new Date(`${iso}T00:00:00Z`);
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 export function ChangelogTabContent(): React.ReactElement {
   const [archive, setArchive] = useState<ChangelogArchivePayload | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<ChangelogEntry | null>(null);
+  const [monthFilter, setMonthFilter] = useState<string>("all");
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const loadArchive = useCallback(async () => {
     setLoading(true);
-    setErrorMessage(null);
     try {
       const payload = await fetchChangelogArchive();
       setArchive(payload);
       setSelectedId((prev) => prev ?? payload.entries[0]?.id ?? null);
-    } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : "Could not load the changelog archive.");
+    } catch {
+      /* ignore */
     } finally {
       setLoading(false);
     }
@@ -68,162 +72,160 @@ export function ChangelogTabContent(): React.ReactElement {
   const newestEntryDate = entries[0]?.date ?? null;
   const due = newestEntryDate === null || daysBetween(newestEntryDate, todayIso()) >= DUE_AFTER_DAYS;
 
-  const monthGroups = useMemo(() => {
-    const groups = new Map<string, ChangelogEntry[]>();
+  const months = useMemo(() => {
+    const seen = new Set<string>();
     for (const entry of entries) {
-      const key = entry.date.slice(0, 7);
-      const list = groups.get(key) ?? [];
-      list.push(entry);
-      groups.set(key, list);
+      seen.add(entry.date.slice(0, 7));
     }
-    return [...groups.entries()];
+    return [...seen];
   }, [entries]);
 
+  const filteredEntries = useMemo(
+    () => (monthFilter === "all" ? entries : entries.filter((e) => e.date.slice(0, 7) === monthFilter)),
+    [entries, monthFilter],
+  );
+
   const selectedEntry = useMemo(
-    () => entries.find((e) => e.id === selectedId) ?? entries[0] ?? null,
-    [entries, selectedId],
+    () => filteredEntries.find((e) => e.id === selectedId) ?? filteredEntries[0] ?? null,
+    [filteredEntries, selectedId],
   );
 
   const handleGenerate = useCallback(async () => {
     setGenerating(true);
-    setErrorMessage(null);
-    setNotice(null);
     try {
       const feed = await fetchUncoveredCommits();
-      if (feed.commits.length === 0) {
-        setNotice(
-          "No new commits to cover yet. Run the changelog source script to send the latest git commits, then generate.",
-        );
-        return;
-      }
+      if (feed.commits.length === 0) return;
       const modelDraft = await appChangelogWriterAgent.run(
         { commits: feed.commits, coveredThrough: feed.coveredThrough },
         { apiKey: loadApiKey() },
       );
-      setDraft(buildChangelogEntry(modelDraft, feed.commits, todayIso()));
-    } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : "Generation failed.");
+      const nextEntry = buildChangelogEntry(modelDraft, feed.commits, todayIso());
+      const payload = await saveChangelogEntry(nextEntry);
+      setArchive(payload);
+      setSelectedId(nextEntry.id);
+    } catch {
+      /* ignore */
     } finally {
       setGenerating(false);
     }
   }, []);
 
-  const handleSaveDraft = useCallback(async () => {
-    if (!draft) return;
-    setSaving(true);
-    setErrorMessage(null);
-    try {
-      const payload = await saveChangelogEntry(draft);
-      setArchive(payload);
-      setSelectedId(draft.id);
-      setDraft(null);
-      setNotice("Entry saved to the archive.");
-    } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : "Save failed.");
-    } finally {
-      setSaving(false);
-    }
-  }, [draft]);
-
-  const shownEntry = draft ?? selectedEntry;
+  const shownEntry = selectedEntry;
+  const sourceStatus = archive?.source ?? null;
+  const sourceLine = sourceStatus
+    ? `${sourceStatus.uncoveredCount} commit${sourceStatus.uncoveredCount === 1 ? "" : "s"} waiting`
+    : "Loading archive...";
 
   return (
-    <div className={cn(SEO_WORKSPACE_SHELL_CLASS, SEO_WORKSPACE_TYPO_CLASS)}>
-      <div className={SEO_WORKSPACE_HEADER_CLASS}>
-        <ChangelogWorkspaceHeader
-          due={due}
-          newestEntryDate={newestEntryDate}
-          sourceStatus={archive?.source ?? null}
-          generating={generating}
-          loading={loading}
-          onGenerate={() => void handleGenerate()}
-          onRefresh={() => void loadArchive()}
-        />
-      </div>
-
-      <div className={cn(SEO_WORKSPACE_BODY_SCROLL_CLASS, "flex flex-col gap-3 pb-4")}>
-        {errorMessage ? (
-          <div className="bg-zinc-900 px-4 py-2.5 text-base text-red-400">{errorMessage}</div>
-        ) : null}
-        {notice ? (
-          <div className="bg-zinc-900 px-4 py-2.5 text-base text-muted-foreground">{notice}</div>
-        ) : null}
-
-        <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row">
-          <aside className="flex w-full shrink-0 flex-col gap-4 lg:w-80" aria-label="Changelog archive by month">
-            {monthGroups.length === 0 ? (
-              <p className="bg-zinc-950 p-4 text-base text-muted-foreground">
+    <div
+      className={cn(
+        SEO_WORKSPACE_TYPO_CLASS,
+        "flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-background",
+      )}
+    >
+      <div className="relative flex h-full min-h-0 w-full flex-1 flex-row overflow-hidden bg-black">
+        <aside
+          aria-label="Changelog archive by month"
+          className="relative flex h-full min-h-0 w-[21rem] shrink-0 flex-col border-r border-white/10 bg-black font-sans text-base text-white"
+        >
+          <div className="flex h-11 shrink-0 items-center border-b border-white/10 bg-black px-3">
+            <Select value={monthFilter} onValueChange={setMonthFilter}>
+              <SelectTrigger
+                aria-label="Filter archive by month"
+                className={cn(BULK_HEADER_SELECT_TRIGGER, "w-full")}
+              >
+                <SelectValue placeholder="All months" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All months</SelectItem>
+                {months.map((month) => (
+                  <SelectItem key={month} value={month}>
+                    {monthLabel(month)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {filteredEntries.length === 0 ? (
+              <p className="px-3 py-3 text-base text-muted-foreground">
                 No changelog entries yet. Generate the first entry once commits have been sent with
                 the source script.
               </p>
             ) : (
-              monthGroups.map(([month, monthEntries]) => (
-                <div key={month} className="flex flex-col gap-1.5">
-                  <p className="px-1 text-base font-semibold text-white">{monthLabel(month)}</p>
-                  {monthEntries.map((entry) => (
-                    <button
-                      key={entry.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedId(entry.id);
-                        setDraft(null);
-                      }}
-                      className={cn(
-                        "flex flex-col gap-0.5 px-3 py-2 text-left",
-                        shownEntry?.id === entry.id && !draft ? "bg-zinc-800" : "bg-zinc-950 hover:bg-zinc-900",
-                      )}
-                    >
-                      <span className="text-base tabular-nums text-muted-foreground">{entry.date}</span>
-                      <span className="text-base font-medium text-white">{entry.title}</span>
-                      <span className="text-base tabular-nums text-muted-foreground">
-                        {entry.rangeFrom} to {entry.rangeTo} · {entry.commitCount} commits
-                      </span>
-                    </button>
-                  ))}
-                </div>
+              filteredEntries.map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  onClick={() => setSelectedId(entry.id)}
+                  className={cn(
+                    "flex w-full flex-col gap-0.5 px-3 py-2.5 text-left",
+                    shownEntry?.id === entry.id
+                      ? "border-l-2 border-primary bg-ui-field"
+                      : "bg-black hover:bg-ui-field/50",
+                  )}
+                >
+                  <span className="text-base tabular-nums text-muted-foreground">
+                    {formatDate(entry.date)}
+                  </span>
+                  <span className="text-base font-medium text-white">{entry.title}</span>
+                </button>
               ))
             )}
-          </aside>
+          </div>
+        </aside>
 
-          <main className="min-w-0 flex-1 bg-zinc-950 p-5" aria-label="Changelog entry">
-            {draft ? (
-              <div className="mb-4 flex flex-wrap items-center gap-3 bg-zinc-900 px-4 py-3">
-                <span className="text-base font-semibold text-amber-300">Draft, not saved yet</span>
-                <span className="text-base text-muted-foreground">
-                  Read it over, then save it to the archive or discard it.
-                </span>
-                <div className="ml-auto flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setDraft(null)}
-                    disabled={saving}
-                    className="bg-zinc-800 px-4 py-2 text-base text-white hover:bg-zinc-700"
-                  >
-                    Discard
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleSaveDraft()}
-                    disabled={saving}
-                    className="bg-primary px-4 py-2 text-base font-medium text-primary-foreground hover:bg-primary/90"
-                  >
-                    {saving ? "Saving..." : "Save to archive"}
-                  </button>
-                </div>
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-black">
+          <header
+            className="relative z-30 flex w-full shrink-0 flex-col bg-black font-sans text-white"
+            aria-label="Changelog header"
+          >
+            <div className="flex h-11 w-full min-w-0 shrink-0 items-center gap-2 overflow-x-auto border-b border-white/10 bg-black px-3">
+              <div className="inline-flex h-8 w-[14.5rem] min-w-[14.5rem] max-w-[14.5rem] shrink-0 items-center gap-2 rounded-none border border-white/10 bg-ui-field px-2.5 font-semibold text-white">
+                <ScrollText className="h-4 w-4 shrink-0" aria-hidden />
+                Changelog
               </div>
-            ) : null}
+              <div className="h-5 w-px shrink-0 bg-white/15" aria-hidden="true" />
+              <div className="inline-flex h-8 w-[20rem] min-w-[20rem] max-w-[20rem] shrink-0 items-center justify-between rounded-none border border-white/10 bg-ui-field px-2.5 text-foreground">
+                <span className="min-w-0 flex-1 truncate text-left font-mono text-base">
+                  {sourceLine}
+                </span>
+              </div>
+            </div>
+            <div className="flex h-10 min-h-10 w-full min-w-0 shrink-0 items-center justify-between border-b border-white/10 bg-ui-field/95 px-3">
+              <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+                {due ? (
+                  <span className="shrink-0 bg-amber-400/15 px-2.5 py-1 text-base text-amber-300">
+                    New entry due
+                  </span>
+                ) : null}
+              </div>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Button
+                  variant="run"
+                  type="button"
+                  onClick={() => void handleGenerate()}
+                  disabled={generating || loading}
+                >
+                  <span className="inline-block w-[5rem] text-center">
+                    {generating ? "Writing" : "Generate"}
+                  </span>
+                </Button>
+              </div>
+            </div>
+          </header>
 
+          <main className="min-h-0 flex-1 overflow-y-auto" aria-label="Changelog entry">
+            <div className="mx-auto flex w-full max-w-4xl flex-col bg-black px-6 py-7 sm:px-10 sm:py-9">
             {shownEntry ? (
               <article className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1">
                   <h3 className="text-base font-semibold text-white">{shownEntry.title}</h3>
                   <p className="text-base tabular-nums text-muted-foreground">
-                    {shownEntry.date} · covers {shownEntry.rangeFrom} to {shownEntry.rangeTo} ·{" "}
-                    {shownEntry.commitCount} commits
+                    {formatDate(shownEntry.date)} · {shownEntry.commitCount} commits
                   </p>
                 </div>
-                <p className="text-base text-zinc-200">{shownEntry.summary}</p>
-                {shownEntry.highlights.length > 0 ? (
+                {shownEntry.highlights && shownEntry.highlights.length > 0 ? (
                   <div className="flex flex-col gap-1.5">
                     <p className="text-base font-semibold text-white">Highlights</p>
                     <ul className="flex list-disc flex-col gap-1 pl-5 text-base text-zinc-200">
@@ -249,6 +251,7 @@ export function ChangelogTabContent(): React.ReactElement {
                 Nothing to read yet. When commits are waiting, Generate entry writes the first one.
               </p>
             )}
+            </div>
           </main>
         </div>
       </div>

@@ -317,7 +317,7 @@ trait Neo_Pulse_Wp_Redirects_Trait_Storage {
 	}
 
 	/**
-	 * Count non-trash redirects in a category (e.g. imported from Rank Math).
+	 * Count non-trash redirects in a category (e.g. imported from NEO Pulse redirect).
 	 */
 	public static function count_by_category( string $category ): int {
 		global $wpdb;

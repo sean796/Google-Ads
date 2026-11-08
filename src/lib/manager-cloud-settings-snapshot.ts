@@ -103,17 +103,19 @@ export function collectManagerCloudSettingsSnapshot(
 }
 
 /**
- * Write snapshot keys back to localStorage, except credential keys: API keys
- * live server-side and are hydrated into memory via hydrateRuntimeApiKeys,
- * never planted in localStorage (Wave 1, C5). Callers may
+ * Write snapshot keys back to localStorage, except credential keys (hydrated
+ * into memory via hydrateRuntimeApiKeys, not localStorage). Callers may
  * `location.reload()` so React state matches.
  */
-const CREDENTIAL_SNAPSHOT_KEYS = new Set([
+export const WORKSPACE_CREDENTIAL_STORAGE_KEYS = [
   "openrouter-api-key",
   "dataforseo-api-key",
   "semrush-api-key",
   "agentmail-api-key",
-]);
+  "agentmail-general-email",
+] as const;
+
+const CREDENTIAL_SNAPSHOT_KEYS = new Set<string>(WORKSPACE_CREDENTIAL_STORAGE_KEYS);
 
 export function applyManagerCloudSnapshotToLocalStorage(snapshot: unknown): { keyCount: number; error?: string } {
   if (!snapshot || typeof snapshot !== "object") {

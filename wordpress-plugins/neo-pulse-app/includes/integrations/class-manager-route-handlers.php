@@ -19,7 +19,7 @@ class Neo_Pulse_App_Manager_Route_Handlers {
 	);
 
 	/**
-	 * Remove secret material from a manager snapshot before it is stored or returned.
+	 * Remove secret material from a manager snapshot (public or unauthenticated responses only).
 	 *
 	 * @param mixed $snapshot
 	 * @return mixed
@@ -65,7 +65,7 @@ class Neo_Pulse_App_Manager_Route_Handlers {
 		}
 
 		if ( $subpath === 'save' && $method === 'POST' ) {
-			$snapshot = isset( $body['snapshot'] ) ? self::strip_snapshot_secrets( $body['snapshot'] ) : null;
+			$snapshot = isset( $body['snapshot'] ) ? $body['snapshot'] : null;
 			$updated  = gmdate( 'c' );
 			Neo_Pulse_App_Json_File_Store::write(
 				$path,
@@ -84,10 +84,11 @@ class Neo_Pulse_App_Manager_Route_Handlers {
 				Neo_Pulse_App_Api_Dispatcher::send_json( array( 'ok' => true, 'snapshot' => null, 'updatedAt' => null ) );
 				return;
 			}
+			// Authenticated route: return stored keys so Dashboard fields repopulate after refresh.
 			Neo_Pulse_App_Api_Dispatcher::send_json(
 				array(
 					'ok'        => true,
-					'snapshot'  => self::strip_snapshot_secrets( $data['snapshot'] ?? null ),
+					'snapshot'  => $data['snapshot'] ?? null,
 					'updatedAt' => $data['updatedAt'] ?? null,
 				)
 			);

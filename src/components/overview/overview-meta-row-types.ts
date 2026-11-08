@@ -47,7 +47,7 @@ export interface OverviewRow {
   wpDateGmt?: string;
   schemaJson?: string;
   aiSuggestedPath?: string;
-  /** Live URL before a verified slug change (for Rank Math redirect CSV). */
+  /** Live URL before a verified slug change (for NEO Pulse redirect redirect CSV). */
   slugRedirectSourceUrl?: string;
   /** Content audit JSON `{neoPulseContentAuditV1:{issues:[{title,rationale,rationaleAspects,...,htmlReference,...}]}}` or legacy markdown bullets */
   contentAnalyzeBulletsMarkdown?: string;

@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import type { MutableRefObject } from "react";
 import { flushSync } from "react-dom";
+import pLimit from "p-limit";
 import { notify } from "@/lib/app-notifications";
 import { logger } from "@/lib/logger";
 import { NOTIFY_CONNECT_A_WORDPRESS_SITE_FIRST_IN_THE_IN } from "@/lib/notify-messages";
@@ -270,67 +271,78 @@ export function useOverviewTabAutoSeoOptimizeAll({
             }
           }
 
-          // Content sections (1 by 1 in document order)
+          // Content sections (parallel with bounded concurrency, committed in document order)
           if (isPages) {
             const siblingTitles = pageHeaders.map((s) => s.title);
             const workingHeaders = [...pageHeaders];
-            for (let sIdx = 0; sIdx < workingHeaders.length; sIdx += 1) {
-              if (!isOptimizeAllRunCurrent(runId)) return;
-              const sec = workingHeaders[sIdx]!;
-              const secBody = (sec.bodyHtml || sec.bodyText || "").trim();
-              const stepNum = 2 + sIdx;
-              setStepTelemetry(
-                url,
-                pos,
-                stepNum,
-                totalSteps,
-                sec.title?.trim() || `Section ${sIdx + 1}`,
-              );
-              if (!secBody) continue;
+            const elLimit = pLimit(6);
+            const sectionResults = await Promise.all(
+              workingHeaders.map((sec, sIdx) =>
+                elLimit(async () => {
+                  if (!isOptimizeAllRunCurrent(runId)) return null;
+                  const secBody = (sec.bodyHtml || sec.bodyText || "").trim();
+                  const stepNum = 2 + sIdx;
+                  setStepTelemetry(
+                    url,
+                    pos,
+                    stepNum,
+                    totalSteps,
+                    sec.title?.trim() || `Section ${sIdx + 1}`,
+                  );
+                  if (!secBody) return null;
 
-              const elBodyBefore = secBody;
-              try {
-                const rewritten = await rewriteBlogPassageSection({
-                  mode: "copy",
-                  section: {
-                    id: sec.id || `sec-${sIdx}`,
-                    index: sIdx,
-                    h2OpenTag: "<h2>",
-                    title: sec.title,
-                    bodyHtml: secBody,
-                  },
-                  siblingTitles: siblingTitles.filter((_, i) => i !== sIdx),
-                  articleTitle: latestRow.aiTitle?.trim() || latestRow.title || "",
-                  focusKeyword: latestRow.focusKeyword?.trim() || "",
-                  seoResearchBrief: latestRow.seoResearch,
-                  siteId: site.id,
-                  siteUrl: site.siteUrl,
-                  pageUrl: url,
-                  businessName: site.name,
-                });
-                if (!isOptimizeAllRunCurrent(runId)) return;
-                const normalizedHtml = normalizeSectionProseHtml(rewritten.bodyHtml);
-                recordOverviewStudioRevision({
-                  pageUrl: url,
-                  stepLabel: sec.title?.trim() || `Section ${sIdx + 1}`,
-                  sectionTitle: sec.title?.trim() || undefined,
-                  runId: revisionRunId,
-                  beforeHtml: elBodyBefore,
-                  afterHtml: normalizedHtml,
-                });
-                workingHeaders[sIdx] = {
-                  ...sec,
-                  bodyHtml: normalizedHtml,
-                  bodyText: prosePlainText(normalizedHtml),
-                };
-                updateRow(idx, { elementorSectionHeaders: [...workingHeaders] });
-              } catch (err) {
-                logger.warn(
-                  `[Auto SEO] Page section ${sIdx + 1} warning for ${url}:`,
-                  err,
-                );
-              }
+                  const elBodyBefore = secBody;
+                  try {
+                    const rewritten = await rewriteBlogPassageSection({
+                      mode: "copy",
+                      section: {
+                        id: sec.id || `sec-${sIdx}`,
+                        index: sIdx,
+                        h2OpenTag: "<h2>",
+                        title: sec.title,
+                        bodyHtml: secBody,
+                      },
+                      siblingTitles: siblingTitles.filter((_, i) => i !== sIdx),
+                      articleTitle: latestRow.aiTitle?.trim() || latestRow.title || "",
+                      focusKeyword: latestRow.focusKeyword?.trim() || "",
+                      seoResearchBrief: latestRow.seoResearch,
+                      siteId: site.id,
+                      siteUrl: site.siteUrl,
+                      pageUrl: url,
+                      businessName: site.name,
+                    });
+                    if (!isOptimizeAllRunCurrent(runId)) return null;
+                    const normalizedHtml = normalizeSectionProseHtml(rewritten.bodyHtml);
+                    return { sIdx, sec, elBodyBefore, normalizedHtml };
+                  } catch (err) {
+                    logger.warn(
+                      `[Auto SEO] Page section ${sIdx + 1} warning for ${url}:`,
+                      err,
+                    );
+                    return null;
+                  }
+                }),
+              ),
+            );
+            if (!isOptimizeAllRunCurrent(runId)) return;
+            for (const res of sectionResults) {
+              if (!res) continue;
+              const { sIdx, sec, elBodyBefore, normalizedHtml } = res;
+              recordOverviewStudioRevision({
+                pageUrl: url,
+                stepLabel: sec.title?.trim() || `Section ${sIdx + 1}`,
+                sectionTitle: sec.title?.trim() || undefined,
+                runId: revisionRunId,
+                beforeHtml: elBodyBefore,
+                afterHtml: normalizedHtml,
+              });
+              workingHeaders[sIdx] = {
+                ...sec,
+                bodyHtml: normalizedHtml,
+                bodyText: prosePlainText(normalizedHtml),
+              };
             }
+            updateRow(idx, { elementorSectionHeaders: [...workingHeaders] });
           } else {
             await runAutoSeoBlogBodyRewrite({
               sourceHtml: resolvedHtml,

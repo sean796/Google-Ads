@@ -1,5 +1,5 @@
 import type { SitePostInventoryRow } from "@/lib/wordpress-api/types";
-import { getSeoResearchFromAcf } from "@/lib/content-generation/ai-driven-acf-reader";
+import { getSeoResearchFromPostFields } from "@/lib/content-generation/ai-driven-post-fields-reader";
 
 const DEFAULT_RAG_MAX_PLAIN_CHARS = 4500;
 
@@ -30,7 +30,7 @@ export function buildInventoryPostRagContext(
   if (title) parts.push(`Page title (H1 on site): ${title}`);
 
   const rankKw = String(row.fields?.keyword ?? "").trim();
-  if (rankKw) parts.push(`Rank Math focus keyword: ${rankKw}`);
+  if (rankKw) parts.push(`NEO Pulse redirect focus keyword: ${rankKw}`);
 
   const url = String(row.url ?? "").trim();
   if (url) parts.push(`URL: ${url}`);
@@ -54,7 +54,7 @@ export function buildInventoryPostRagContext(
   if (acf) {
     const kf = String(acf["keyword_focus"] ?? "").trim();
     if (kf) parts.push(`ACF keyword_focus: ${kf}`);
-    const seoResearch = getSeoResearchFromAcf(acf).trim();
+    const seoResearch = getSeoResearchFromPostFields(acf).trim();
     if (seoResearch) {
       parts.push(`ACF seo_research (brief):\n${plainFromHtml(seoResearch, 1200)}`);
     }

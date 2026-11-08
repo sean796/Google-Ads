@@ -6,7 +6,7 @@ You are updating **Hello Elementor Child** `functions.php` for NEO Pulse-managed
 
 **Start from the source file.** The output must be a **complete merged file**, not a diff.
 
-1. **Keep everything from the source** that is still valid: Google Maps shortcodes (`neo_render_directions_map`, `directions_*`), custom hooks, filters, site-specific constants, WP Engine cache, Rank Math sync, REST blocks, and any other blocks not listed below.
+1. **Keep everything from the source** that is still valid: Google Maps shortcodes (`neo_render_directions_map`, `directions_*`), custom hooks, filters, site-specific constants, WP Engine cache, NEO Pulse redirect sync, REST blocks, and any other blocks not listed below.
 2. **Upgrade in place** using the canonical reference pattern: FAQ/schema helpers, `inject_custom_acf_schemas`, frontend hide filters, REST `update_callback`, and `sync_acf_metadata_to_post` field reads.
 3. **Remove only** broken raw FAQ echo logic (`echo $faq`, `echo $faq_snippet` without JSON-LD wrapper).
 4. **Do not** replace the whole file with the canonical template alone. Canonical is the **pattern to apply**, not a blind overwrite.
@@ -21,7 +21,7 @@ NEO Pulse writes FAQ to ACF field **`faq` only** (plain question/answer blocks).
 ## Never do
 
 - `echo $faq`, `echo $faq_snippet`, or any raw FAQ field output without JSON-LD wrapping.
-- Remove or break existing site-specific code (Google Maps shortcodes, Rank Math sync, REST API blocks, WP Engine cache purge, custom `user_has_cap` filters) unless it is duplicate broken FAQ echo code.
+- Remove or break existing site-specific code (Google Maps shortcodes, NEO Pulse redirect sync, REST API blocks, WP Engine cache purge, custom `user_has_cap` filters) unless it is duplicate broken FAQ echo code.
 - Add alternate LLM providers or non-OpenRouter paths.
 - Fall back to echoing raw FAQ when parsing fails.
 - Reintroduce `seo_faq` field names, filters, or fallbacks.
@@ -59,7 +59,7 @@ Register `acf/format_value` filters for **`faq`** and **`seo_research`** returni
 - Read `date_modifier` with fallback `seo_date_modifier` via `get_schema_field()`.
 - Output WebPage JSON-LD with `dateModified` ISO 8601 in wp_head.
 
-### 5. Rank Math sync (if present)
+### 5. NEO Pulse redirect sync (if present)
 
 - Keep `sync_acf_metadata_to_post` on `acf/save_post` priority 25.
 - Use `get_field( $name, $post_id, false )` with explicit `$post_id` (never `get_schema_field()` inside this hook).

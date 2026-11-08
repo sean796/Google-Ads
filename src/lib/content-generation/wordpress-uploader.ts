@@ -17,7 +17,7 @@ import {
 import {
   writeWordPressAcfForDraftPost,
   writeWordPressAcfForUpdatedPost,
-} from "@/lib/content-generation/wordpress-uploader-acf-writer";
+} from "@/lib/content-generation/wordpress-uploader-fields-writer";
 
 export { buildFAQSchemaScriptFromEntries } from "@/lib/content-generation/wordpress-uploader-faq-and-keywords";
 export type {

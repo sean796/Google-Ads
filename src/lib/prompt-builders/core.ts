@@ -312,7 +312,7 @@ ${illustrativeHarnessContract}
     const harnessScopeNote =
       contentKind !== "press_release"
         ? hasIllustrativeFeature
-          ? `\n**SECTION SCOPE**: Keep this section within the harness word budget (full article max ${ARTICLE_MAX_WORDS} words). ### only for the short Recommendation label. Forbidden: Scenario as ###. No extra topics beyond this section block.`
+          ? `\n**SECTION SCOPE**: Keep this section within the harness word budget (full article max ${ARTICLE_MAX_WORDS} words). ### only for "### Recommendation: {short pick title}". Forbidden: Scenario as ###. No extra topics beyond this section block.`
           : `\n**SECTION SCOPE**: Keep this section within the harness word budget (full article max ${ARTICLE_MAX_WORDS} words). No ### unless h3Enabled; no extra topics beyond this section block.`
         : "";
     const harnessKeywordNote =
@@ -356,7 +356,7 @@ ${illustrativeHarnessContract}
     const harnessScopeNote =
       contentKind !== "press_release"
         ? hasIllustrativeFeature
-          ? `\n**SECTION SCOPE**: Keep this section within the harness word budget (full article max ${ARTICLE_MAX_WORDS} words). <h3> only for the short Recommendation label. Forbidden: Scenario as <h3>. No extra topics beyond this section block.`
+          ? `\n**SECTION SCOPE**: Keep this section within the harness word budget (full article max ${ARTICLE_MAX_WORDS} words). <h3> only for "<h3>Recommendation: {short pick title}</h3>". Forbidden: Scenario as <h3>. No extra topics beyond this section block.`
           : `\n**SECTION SCOPE**: Keep this section within the harness word budget (full article max ${ARTICLE_MAX_WORDS} words). No H3 unless h3Enabled; no extra topics beyond this section block.`
         : "";
     const harnessKeywordNote =

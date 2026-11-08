@@ -5,7 +5,7 @@ section: Teams
 method: GET
 path: /api/teams/{teamId}/tasks/pulse-assigned
 auth: session-team
-order: 2100
+order: 2130
 ---
 
 GET `/api/teams/{teamId}/tasks/pulse-assigned`.

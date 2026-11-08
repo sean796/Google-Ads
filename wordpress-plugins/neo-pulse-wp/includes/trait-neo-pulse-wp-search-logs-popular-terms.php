@@ -309,7 +309,7 @@ trait Neo_Pulse_Wp_Search_Logs_Trait_Popular_Terms {
 						continue;
 					}
 
-					$keyword = Neo_Pulse_Wp_Ai_Context::read_acf_or_meta( $post->ID, array( 'keyword_focus' ) );
+					$keyword = Neo_Pulse_Wp_Ai_Context::read_post_field_or_meta( $post->ID, array( 'keyword_focus' ) );
 					$keyword = trim( $keyword );
 					if ( $keyword === '' ) {
 						continue;
@@ -338,7 +338,7 @@ trait Neo_Pulse_Wp_Search_Logs_Trait_Popular_Terms {
 	 * @param int $post_id Post ID.
 	 */
 	private static function is_sitemap_noindex( int $post_id ): bool {
-		$rm = get_post_meta( $post_id, 'rank_math_robots', true );
+		$rm = get_post_meta( $post_id, 'neo_pulse_seo_robots', true );
 		if ( is_array( $rm ) && in_array( 'noindex', $rm, true ) ) {
 			return true;
 		}

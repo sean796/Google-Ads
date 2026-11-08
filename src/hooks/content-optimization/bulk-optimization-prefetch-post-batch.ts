@@ -2,7 +2,7 @@ import { logger } from "@/lib/logger";
 import { getWordPressPostContent } from "@/lib/wordpress-api";
 import { WORDPRESS_BULK_READ_CHUNK } from "@/lib/wordpress-api/bulk-read-chunk";
 import type { WordPressSite } from "@/components/integrations/types";
-import type { WpPostSnapshotFromAcfByUrl } from "@/lib/wordpress-api/acf-discovery";
+import type { WpPostSnapshotFromFieldsByUrl } from "@/lib/wordpress-api/post-fields-discovery";
 import {
   normalizeMatch,
   lookupInventoryRowWithSource,
@@ -38,7 +38,7 @@ export interface BulkPrefetchPostBatchArgs {
   urls: string[];
   wordPressPostsForRun: LinkPoolPostRow[];
   bulkInventorySnapshot: BulkOptimizerInventorySnapshot | null;
-  prefetchedPostPayloadByUrlIndex: Map<number, WpPostSnapshotFromAcfByUrl>;
+  prefetchedPostPayloadByUrlIndex: Map<number, WpPostSnapshotFromFieldsByUrl>;
   indexRange?: { start: number; end: number };
 }
 

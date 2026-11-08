@@ -6,7 +6,7 @@ import {
   URL_OPTIMIZER_RESOLVE_CHUNK_SIZE,
 } from "@/lib/url-optimizer/constants";
 import type { UrlOptimizerContentRow, UrlOptimizerInputRow } from "@/lib/url-optimizer/types";
-import { normalizeFocusKeywordPhrase } from "@/lib/rank-math-redirect-csv";
+import { normalizeFocusKeywordPhrase } from "@/lib/pulse-redirect-redirect-csv";
 import { getPublicSiteUrl } from "@/lib/wordpress-site-public-url";
 import { getWordPressPostContent, resolveWordPressUrls } from "@/lib/wordpress-api/posts";
 import type { ResolvedUrl, WordPressPostContent } from "@/lib/wordpress-api/types";
@@ -24,7 +24,7 @@ function focusKeywordFromPost(post: WordPressPostContent): string | undefined {
   if (!full || typeof full !== "object") return undefined;
   const meta = (full as { meta?: Record<string, unknown> }).meta;
   if (meta && typeof meta === "object") {
-    const rm = meta.rank_math_focus_keyword ?? meta._rank_math_focus_keyword;
+    const rm = meta.neo_pulse_seo_focus_keyword ?? meta._neo_pulse_seo_focus_keyword;
     if (typeof rm === "string" && rm.trim()) {
       return normalizeFocusKeywordPhrase(rm) || undefined;
     }
@@ -51,7 +51,7 @@ function metaFromPost(post: WordPressPostContent): string {
     }
     const meta = (full as { meta?: Record<string, unknown> }).meta;
     if (meta && typeof meta === "object") {
-      const rm = meta.rank_math_description ?? meta._rank_math_description;
+      const rm = meta.neo_pulse_seo_description ?? meta._neo_pulse_seo_description;
       if (typeof rm === "string" && rm.trim()) return rm.trim();
     }
   }

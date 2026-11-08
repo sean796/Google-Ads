@@ -13,7 +13,7 @@ export type TemporalCannibalizationExemptResult = {
   exemptPostIds: Set<string>;
 };
 
-const TEMPORAL_CLUSTER_SYSTEM = `You are a senior SEO strategist reviewing a Rank Math redirect CSV.
+const TEMPORAL_CLUSTER_SYSTEM = `You are a senior SEO strategist reviewing a NEO Pulse redirect redirect CSV.
 
 Your ONLY job: find **time-sliced URL series** that must merge into **one live pillar post** to avoid keyword cannibalization — even when the CSV assigns different new_url destinations per row.
 

@@ -6,7 +6,7 @@
 import { BACKEND_API_BASE } from './connection';
 import { logger } from "@/lib/logger";
 import { getWordPressPostContent } from './posts';
-import { getACFFieldsForPost } from './acf-discovery';
+import { getPostFieldsForPost } from './post-fields-discovery';
 import type { WordPressSite } from '@/components/integrations/types';
 import { neoPulseApiHeaders } from "@/lib/neo-pulse-api-headers";
 
@@ -334,7 +334,7 @@ export async function scanWordPressSite(
           // Get ACF fields
           let acfFields: Record<string, unknown> = {};
           try {
-            const acfResult = await getACFFieldsForPost(
+            const acfResult = await getPostFieldsForPost(
               site,
               post.id,
               post.postType,

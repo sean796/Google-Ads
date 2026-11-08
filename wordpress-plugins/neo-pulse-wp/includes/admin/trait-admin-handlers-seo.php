@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO Settings admin_post handlers: save, copy from Rank Math, switch on/off.
+ * SEO Settings admin_post handlers: save, copy from NEO Pulse redirect, switch on/off.
  *
  * @package Neo_Pulse_Wp
  */
@@ -56,7 +56,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Seo {
 
 	/**
 	 * One click: switch Neo Pulse SEO on and deactivate the other SEO plugin (and its add-ons, e.g.
-	 * Rank Math and Rank Math Pro). Only allowed once every switch-over step is ticked, so nothing
+	 * NEO Pulse redirect and NEO Pulse redirect Pro). Only allowed once every switch-over step is ticked, so nothing
 	 * (redirects, scripts, verification tags…) is lost when the old plugin goes quiet.
 	 */
 	public static function handle_seo_switch(): void {
@@ -91,7 +91,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Seo {
 
 		Neo_Pulse_Wp_Seo_Settings::set_enabled( true );
 		if ( $files !== array() ) {
-			// Add-ons first (Rank Math Pro before Rank Math), as Plugins → Deactivate would.
+			// Add-ons first (NEO Pulse redirect Pro before NEO Pulse redirect), as Plugins → Deactivate would.
 			deactivate_plugins( array_reverse( array_keys( $files ) ) );
 		}
 		Neo_Pulse_Wp_Cache_Flush::purge_html_caches();
@@ -105,7 +105,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Seo {
 		$off   = array_values( array_diff_key( $files, array_flip( $still ) ) );
 		$parts = array();
 		if ( $off !== array() ) {
-			/* translators: %s: plugin names, e.g. "Rank Math SEO and Rank Math SEO PRO" */
+			/* translators: %s: plugin names, e.g. "NEO Pulse redirect SEO and NEO Pulse redirect SEO PRO" */
 			$parts[] = sprintf( _n( 'Neo Pulse SEO is live and %s has been deactivated (not deleted). Reactivating it in Plugins hands control straight back.', 'Neo Pulse SEO is live and %s have been deactivated (not deleted). Reactivating them in Plugins hands control straight back.', count( $off ), 'neo-pulse-wp' ), wp_sprintf( '%l', $off ) );
 		} else {
 			$parts[] = __( 'Neo Pulse SEO is switched on.', 'neo-pulse-wp' );
@@ -129,7 +129,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Seo {
 	}
 
 	/**
-	 * Move only Rank Math's site verification tags into Script Manager, without re-copying the
+	 * Move only NEO Pulse redirect's site verification tags into Script Manager, without re-copying the
 	 * SEO settings (which would overwrite anything changed in Neo Pulse since the first copy).
 	 */
 	public static function handle_seo_verify(): void {
@@ -140,7 +140,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Seo {
 			array(
 				'kind'    => 'seo',
 				'success' => $ok,
-				'message' => $line !== '' ? $line : __( 'Rank Math has no site verification tags to move.', 'neo-pulse-wp' ),
+				'message' => $line !== '' ? $line : __( 'NEO Pulse redirect has no site verification tags to move.', 'neo-pulse-wp' ),
 			)
 		);
 		self::redirect_to_seo( 'npwp-seo-switch' );
@@ -148,8 +148,8 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Seo {
 
 	public static function handle_seo_import(): void {
 		self::seo_guard( self::ACTION_SEO_IMPORT );
-		$result  = Neo_Pulse_Wp_Seo_Settings::import_from_rank_math();
-		$sitemap = Neo_Pulse_Wp_Seo_Settings::import_sitemap_from_rank_math();
+		$result  = Neo_Pulse_Wp_Seo_Settings::import_from_neo_pulse_seo();
+		$sitemap = Neo_Pulse_Wp_Seo_Settings::import_sitemap_from_neo_pulse_seo();
 		$message = $result['message'];
 		if ( $result['ok'] && $sitemap !== '' ) {
 			$message .= ' ' . $sitemap;
@@ -235,7 +235,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Handlers_Seo {
 			$changes['local_address'] = $address;
 		}
 		if ( array_key_exists( 'phone', $in ) ) {
-			// Only the first number is on the form; keep any others copied from Rank Math.
+			// Only the first number is on the form; keep any others copied from NEO Pulse redirect.
 			$phone  = $text( $in['phone'] );
 			$phones = Neo_Pulse_Wp_Seo_Settings::get( 'phone_numbers', array() );
 			$phones = is_array( $phones ) ? array_values( $phones ) : array();

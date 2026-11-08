@@ -1,4 +1,4 @@
-import { getSeoResearchFromAcf } from "@/lib/content-generation/ai-driven-acf-reader";
+import { getSeoResearchFromPostFields } from "@/lib/content-generation/ai-driven-post-fields-reader";
 import { SITEMAP_OPTIMIZER_CONTENT_SNIPPET_MAX } from "@/lib/sitemap-optimizer/constants";
 import type {
   SitemapOptimizerCatalogEntry,
@@ -33,7 +33,7 @@ export function postIdFromInventoryRow(row: {
 }
 
 export function seoResearchFromAcf(acf: Record<string, unknown> | undefined): string | undefined {
-  const raw = getSeoResearchFromAcf(acf);
+  const raw = getSeoResearchFromPostFields(acf);
   return raw.trim() || undefined;
 }
 

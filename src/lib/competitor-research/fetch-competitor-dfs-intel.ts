@@ -1,4 +1,4 @@
-import { resolveMcpApiBase } from "@/lib/mcp-tools";
+import { mcpPostInit } from "@/lib/mcp-tools";
 import { BACKEND_API_BASE } from "@/lib/wordpress-api/connection";
 import { extractOrganicRowsFromSerpJson } from "@/lib/backlink-research/serp-write-for-us";
 import {
@@ -81,12 +81,7 @@ async function fetchSerpOrganicJson(args: {
     body.location_name = args.locationName.trim();
   }
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    signal: args.signal,
-  });
+  const res = await fetch(url, mcpPostInit(body, { signal: args.signal }));
   if (!res.ok) return null;
   return res.json();
 }
@@ -111,12 +106,7 @@ async function fetchSerpAiOverviewJson(args: {
     return null;
   }
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    signal: args.signal,
-  });
+  const res = await fetch(url, mcpPostInit(body, { signal: args.signal }));
   if (!res.ok) return null;
   return res.json();
 }

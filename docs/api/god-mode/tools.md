@@ -55,7 +55,7 @@ Composer pill **SEO blocks** (default) vs **Elementor** sets `page_content_mode`
 | --- | --- |
 | focusKeyword | Focus keyword |
 | metaDescription | Meta description |
-| seoTitle | SEO title (Rank Math / meta title) |
+| seoTitle | SEO title (NEO Pulse redirect / meta title) |
 | faq | FAQ schema JSON (ACF only, not body) |
 | seoResearch | SeoContentBriefV1 JSON |
 | dateModifier | ACF date_modifier (YYYY-MM-DD) |

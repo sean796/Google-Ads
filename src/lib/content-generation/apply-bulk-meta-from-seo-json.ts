@@ -1,19 +1,19 @@
 /**
  * Bulk prompt generator **fallback**: map deterministic optimizedMeta (from keyword research JSON)
  * into ACF fields - no LLM. Used when AI meta (`generateOptimizedMetaFields`) fails; primary path
- * is content-optimizer parity in bulk-auto-generate. Rank Math post meta is written in bulk-auto-generate.
+ * is content-optimizer parity in bulk-auto-generate. NEO Pulse redirect post meta is written in bulk-auto-generate.
  */
 
 import { logger } from "@/lib/logger";
-import { ensureExactKeywordInMetaDescription } from "@/lib/content-generation/rank-math-exact-keyword";
+import { ensureExactKeywordInMetaDescription } from "@/lib/content-generation/pulse-seo-exact-keyword";
 import type { OptimizedMetaFields } from "@/lib/meta-field-optimizer";
 import type { WordPressSite } from "@/components/integrations/types";
-import type { ACFFieldMapping } from "@/lib/content-generation/acf-field-mapper";
-import { buildAcfPayload } from "@/lib/content-generation/apply-meta-acf-payload";
-import { updateACFFields } from "@/lib/wordpress-acf-origin";
+import type { ACFFieldMapping } from "@/lib/content-generation/post-field-mapper";
+import { buildAcfPayload } from "@/lib/content-generation/apply-meta-fields-payload";
+import { updateACFFields } from "@/lib/wordpress-post-fields-origin";
 import { OptimizationFileManager } from "@/lib/optimization-file-manager";
 
-/** Same canonical values as `updateWordPressPostMeta` rank_math_* in bulk upload. */
+/** Same canonical values as `updateWordPressPostMeta` neo_pulse_seo_* in bulk upload. */
 export function buildOptimizedMetaFromKeywordResearch(
   rankMeta: { seoTitle?: string; metaDescription?: string; focusKeyword?: string },
   postTitle: string,
@@ -31,11 +31,11 @@ export function buildOptimizedMetaFromKeywordResearch(
   const kw = exactKw;
   const baseUrl = String(siteUrl || "").replace(/\/$/, "");
   return {
-    rank_math_title: title,
-    rank_math_description: desc,
-    rank_math_focus_keyword: kw,
-    rank_math_canonical_url: postLink || baseUrl,
-    rank_math_robots: ["index", "follow"],
+    neo_pulse_seo_title: title,
+    neo_pulse_seo_description: desc,
+    neo_pulse_seo_focus_keyword: kw,
+    neo_pulse_seo_canonical_url: postLink || baseUrl,
+    neo_pulse_seo_robots: ["index", "follow"],
     keyword_focus: kw,
   };
 }

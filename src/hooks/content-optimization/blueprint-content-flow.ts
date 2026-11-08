@@ -1,5 +1,5 @@
 import { notify } from "@/lib/app-notifications";
-import type { AIDrivenACFContext } from "@/lib/content-generation/ai-driven-acf-reader";
+import type { AIDrivenACFContext } from "@/lib/content-generation/ai-driven-post-fields-reader";
 import { NOTIFY_USING_TEST_BLUEPRINT_DATA } from "@/lib/notify-messages";
 import {
   enforceForbiddenWordsOnBlueprint,

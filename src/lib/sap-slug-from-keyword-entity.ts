@@ -1,4 +1,4 @@
-import { sanitizeWordPressSlugSegment } from "@/lib/rank-math-redirect-csv";
+import { sanitizeWordPressSlugSegment } from "@/lib/pulse-redirect-redirect-csv";
 import { stripApostrophesForSlug } from "@/lib/slug-word-normalize";
 import type { CSVRow } from "@/lib/bulk/bulk-csv-parser";
 import {

@@ -4,7 +4,7 @@ import { normalizePageUrlKey } from "@/lib/sitemap-optimizer/normalize-page-url"
 import {
   fullDestinationUrl,
   normalizeFocusKeywordPhrase,
-} from "@/lib/rank-math-redirect-csv";
+} from "@/lib/pulse-redirect-redirect-csv";
 import { URL_OPTIMIZER_BLOG_PATH } from "@/lib/url-optimizer/constants";
 
 export function buildOptimizedUrl(oldUrl: string, keyword: string, title: string): string | null {

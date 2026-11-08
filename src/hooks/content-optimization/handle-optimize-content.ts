@@ -19,7 +19,7 @@ import {
 } from "./optimization-helpers";
 import type { PendingOptimization } from "./use-optimization-state";
 import { getFieldsForPost } from "@/lib/wordpress-api/fields-client";
-import { mergeSeoResearchFromAcfIntoContext } from "@/lib/content-generation/ai-driven-acf-reader";
+import { mergeSeoResearchFromAcfIntoContext } from "@/lib/content-generation/ai-driven-post-fields-reader";
 import {
   mergeStoredSeoResearchBriefIntoContext,
 } from "@/lib/content-optimization/seo-research-brief-for-optimize";

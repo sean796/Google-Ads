@@ -5,7 +5,7 @@ section: DataForSEO MCP
 method: POST
 path: /api/mcp/DataForSEO_dataforseo_labs_google_competitors_domain
 auth: open
-order: 760
+order: 770
 ---
 
 POST `/api/mcp/DataForSEO_dataforseo_labs_google_competitors_domain`.

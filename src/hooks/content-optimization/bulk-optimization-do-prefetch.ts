@@ -1,5 +1,5 @@
 import { logger } from "@/lib/logger";
-import type { WpPostSnapshotFromAcfByUrl } from "@/lib/wordpress-api/fields-client";
+import type { WpPostSnapshotFromFieldsByUrl } from "@/lib/wordpress-api/fields-client";
 import {
   normalizeMatch,
   lookupInventoryRowWithSource,
@@ -10,7 +10,7 @@ import {
 } from "@/lib/wordpress-api/inventory-match";
 import { loadApiKey } from "@/lib/api";
 import { getResearchModel } from "@/lib/optimization-settings-storage";
-import { mergeSeoResearchFromAcfIntoContext, type AIDrivenACFContext } from "@/lib/content-generation/ai-driven-acf-reader";
+import { mergeSeoResearchFromAcfIntoContext, type AIDrivenACFContext } from "@/lib/content-generation/ai-driven-post-fields-reader";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { HandleOptimizeMultipleContentParams } from "./bulk-optimization-params";
 import {
@@ -56,9 +56,9 @@ export interface BulkDoPrefetchArgs {
   inContentImageRequest: HandleOptimizeMultipleContentParams["inContentImageRequest"];
   wordPressPostsForRun: LinkPoolPostRow[];
   siteServiceContext: string | null;
-  prefetchedAcfFieldsCache: Map<number, Record<string, unknown>>;
-  /** From grep get-acf-fields-by-url `postSnapshot` — skips redundant get-post-content. */
-  prefetchedPostPayloadByUrlIndex: Map<number, WpPostSnapshotFromAcfByUrl>;
+  prefetchedPostFieldsCache: Map<number, Record<string, unknown>>;
+  /** From grep get-post-fields-by-url `postSnapshot` — skips redundant get-post-content. */
+  prefetchedPostPayloadByUrlIndex: Map<number, WpPostSnapshotFromFieldsByUrl>;
   prefetchedExistingPostByUrlIndex?: Map<number, Record<string, unknown>>;
   prefetchedPendingCache: Map<
     number,
@@ -167,7 +167,7 @@ export async function bulkOptimizationDoPrefetch(
     inContentImageRequest,
     wordPressPostsForRun,
     siteServiceContext,
-    prefetchedAcfFieldsCache,
+    prefetchedPostFieldsCache,
     prefetchedPostPayloadByUrlIndex,
     prefetchedExistingPostByUrlIndex,
     prefetchedPendingCache,
@@ -247,12 +247,12 @@ export async function bulkOptimizationDoPrefetch(
     }
 
     if (
-      !prefetchedAcfFieldsCache.has(urlIndex) &&
+      !prefetchedPostFieldsCache.has(urlIndex) &&
       invRow?.acf &&
       typeof invRow.acf === "object" &&
       Object.keys(invRow.acf).length > 0
     ) {
-      prefetchedAcfFieldsCache.set(urlIndex, invRow.acf as Record<string, unknown>);
+      prefetchedPostFieldsCache.set(urlIndex, invRow.acf as Record<string, unknown>);
     }
 
     const existingTitle = wpStr(existingPost.title) || "";
@@ -260,7 +260,7 @@ export async function bulkOptimizationDoPrefetch(
     const existingExcerpt = wpStr(existingPost.excerpt) || "";
 
     const acfKeywordEarly = String(
-      (prefetchedAcfFieldsCache.get(urlIndex) ?? {})["keyword_focus"] ?? "",
+      (prefetchedPostFieldsCache.get(urlIndex) ?? {})["keyword_focus"] ?? "",
     ).trim();
 
     const postTypeEndpoint =
@@ -273,7 +273,7 @@ export async function bulkOptimizationDoPrefetch(
     const isSapBulkRun = optimizationOptions?.inventorySitemapSource === "sap";
     const pendingHasEntity = isSapBulkRun;
 
-    const cachedAcfFields = prefetchedAcfFieldsCache.get(urlIndex);
+    const cachedAcfFields = prefetchedPostFieldsCache.get(urlIndex);
     const acfFields: Record<string, unknown> = cachedAcfFields ? { ...cachedAcfFields } : {};
     let acfFullPostSnapshot: Record<string, unknown> | undefined;
     let acfContext: AIDrivenACFContext | undefined;

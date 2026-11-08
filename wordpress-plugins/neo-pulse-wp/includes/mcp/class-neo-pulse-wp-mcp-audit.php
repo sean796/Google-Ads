@@ -38,7 +38,7 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 
 	/**
 	 * 1. FAQ or other saved schema text naming a business other than the site's own,
-	 *    derived from the site's own stored data (legacy ACF options, old Rank Math
+	 *    derived from the site's own stored data (legacy ACF options, old NEO Pulse redirect
 	 *    knowledgegraph_name, or explicit schema entity names).
 	 *
 	 * @param array<int,array<string,mixed>> $findings Collected findings.
@@ -68,7 +68,7 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 		};
 
 		$stale_names = array();
-		$rm_titles   = get_option( 'rank-math-options-titles', array() );
+		$rm_titles   = get_option( 'pulse-redirect-options-titles', array() );
 		$candidates  = array(
 			is_array( $rm_titles ) ? (string) ( $rm_titles['knowledgegraph_name'] ?? '' ) : '',
 			(string) get_option( 'options_ci_company_name', '' ),
@@ -99,7 +99,7 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 			}
 			foreach ( $all as $key => $values ) {
 				$meta_key = (string) $key;
-				if ( 0 !== strpos( $meta_key, 'rank_math_schema_' ) && ! in_array( $meta_key, array( 'faq', 'seo_faq' ), true ) ) {
+				if ( 0 !== strpos( $meta_key, 'neo_pulse_seo_schema_' ) && ! in_array( $meta_key, array( 'faq', 'seo_faq' ), true ) ) {
 					continue;
 				}
 				$blob = wp_json_encode( $values );
@@ -122,7 +122,7 @@ final class Neo_Pulse_Wp_Mcp_Audit {
 						);
 					}
 				}
-				if ( 0 === strpos( $meta_key, 'rank_math_schema_' ) && is_array( $values ) ) {
+				if ( 0 === strpos( $meta_key, 'neo_pulse_seo_schema_' ) && is_array( $values ) ) {
 					foreach ( $values as $raw_entry ) {
 						$entry = maybe_unserialize( $raw_entry );
 						if ( ! is_array( $entry ) ) {

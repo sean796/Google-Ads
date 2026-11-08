@@ -2,8 +2,8 @@
 /**
  * Front-end SEO tags: title, meta description, robots, canonical, Open Graph, Twitter, JSON-LD.
  *
- * Replaces Rank Math's front-end output once the site switches it on (Neo Pulse → SEO Settings)
- * and no other SEO plugin is active. Reads the same per-post data Rank Math stored.
+ * Replaces NEO Pulse redirect's front-end output once the site switches it on (Neo Pulse → SEO Settings)
+ * and no other SEO plugin is active. Reads the same per-post data NEO Pulse redirect stored.
  *
  * @package Neo_Pulse_Wp
  */
@@ -36,13 +36,13 @@ class Neo_Pulse_Wp_Seo_Head {
 	}
 
 	/**
-	 * Rank Math switched off or on while Neo Pulse SEO is enabled: cached pages still carry the
+	 * NEO Pulse redirect switched off or on while Neo Pulse SEO is enabled: cached pages still carry the
 	 * old tags, so clear the page caches (NitroPack, WP Engine).
 	 *
 	 * @param mixed $plugin Plugin file.
 	 */
 	public static function purge_on_handover( $plugin ): void {
-		if ( ! is_string( $plugin ) || strpos( $plugin, 'seo-by-rank-math' ) === false || ! Neo_Pulse_Wp_Seo_Settings::enabled() ) {
+		if ( ! is_string( $plugin ) || strpos( $plugin, 'seo-by-pulse-redirect' ) === false || ! Neo_Pulse_Wp_Seo_Settings::enabled() ) {
 			return;
 		}
 		if ( class_exists( 'Neo_Pulse_Wp_Cache_Flush', false ) ) {
@@ -165,7 +165,7 @@ class Neo_Pulse_Wp_Seo_Head {
 			case 'singular':
 			case 'posts_page':
 				if ( $post instanceof WP_Post ) {
-					$tpl = trim( (string) get_post_meta( $post->ID, 'rank_math_title', true ) );
+					$tpl = trim( (string) get_post_meta( $post->ID, 'neo_pulse_seo_title', true ) );
 					if ( $tpl === '' ) {
 						$tpl = (string) $S::get( 'pt_' . $post->post_type . '_title' );
 					}
@@ -173,13 +173,13 @@ class Neo_Pulse_Wp_Seo_Head {
 				break;
 			case 'term':
 				$term = $ctx['term'];
-				$tpl  = trim( (string) get_term_meta( $term->term_id, 'rank_math_title', true ) );
+				$tpl  = trim( (string) get_term_meta( $term->term_id, 'neo_pulse_seo_title', true ) );
 				if ( $tpl === '' ) {
 					$tpl = (string) $S::get( 'tax_' . $term->taxonomy . '_title' );
 				}
 				break;
 			case 'author':
-				$tpl = trim( (string) get_user_meta( $ctx['user']->ID, 'rank_math_title', true ) );
+				$tpl = trim( (string) get_user_meta( $ctx['user']->ID, 'neo_pulse_seo_title', true ) );
 				if ( $tpl === '' ) {
 					$tpl = (string) $S::get( 'author_archive_title' );
 				}
@@ -218,7 +218,7 @@ class Neo_Pulse_Wp_Seo_Head {
 			case 'singular':
 			case 'posts_page':
 				if ( $post instanceof WP_Post ) {
-					$tpl = trim( (string) get_post_meta( $post->ID, 'rank_math_description', true ) );
+					$tpl = trim( (string) get_post_meta( $post->ID, 'neo_pulse_seo_description', true ) );
 					if ( $tpl === '' ) {
 						$tpl = (string) $S::get( 'pt_' . $post->post_type . '_description' );
 					}
@@ -226,13 +226,13 @@ class Neo_Pulse_Wp_Seo_Head {
 				break;
 			case 'term':
 				$term = $ctx['term'];
-				$tpl  = trim( (string) get_term_meta( $term->term_id, 'rank_math_description', true ) );
+				$tpl  = trim( (string) get_term_meta( $term->term_id, 'neo_pulse_seo_description', true ) );
 				if ( $tpl === '' ) {
 					$tpl = (string) $S::get( 'tax_' . $term->taxonomy . '_description' );
 				}
 				break;
 			case 'author':
-				$tpl = trim( (string) get_user_meta( $ctx['user']->ID, 'rank_math_description', true ) );
+				$tpl = trim( (string) get_user_meta( $ctx['user']->ID, 'neo_pulse_seo_description', true ) );
 				if ( $tpl === '' ) {
 					$tpl = (string) $S::get( 'author_archive_description' );
 				}
@@ -262,8 +262,8 @@ class Neo_Pulse_Wp_Seo_Head {
 			case 'posts_page':
 				if ( $post instanceof WP_Post ) {
 					$pt     = $post->post_type;
-					$robots = $S::robots_list( get_post_meta( $post->ID, 'rank_math_robots', true ) );
-					$adv    = get_post_meta( $post->ID, 'rank_math_advanced_robots', true );
+					$robots = $S::robots_list( get_post_meta( $post->ID, 'neo_pulse_seo_robots', true ) );
+					$adv    = get_post_meta( $post->ID, 'neo_pulse_seo_advanced_robots', true );
 					if ( is_array( $adv ) && $adv !== array() ) {
 						$advanced = $adv;
 					}
@@ -295,7 +295,7 @@ class Neo_Pulse_Wp_Seo_Head {
 				break;
 			case 'term':
 				$term   = $ctx['term'];
-				$robots = $S::robots_list( get_term_meta( $term->term_id, 'rank_math_robots', true ) );
+				$robots = $S::robots_list( get_term_meta( $term->term_id, 'neo_pulse_seo_robots', true ) );
 				if ( $robots === array() && $S::is_on( 'tax_' . $term->taxonomy . '_custom_robots' ) ) {
 					$robots   = $S::robots_list( $S::get( 'tax_' . $term->taxonomy . '_robots', array() ) );
 					$advanced = $S::get( 'tax_' . $term->taxonomy . '_advanced_robots', null );
@@ -305,7 +305,7 @@ class Neo_Pulse_Wp_Seo_Head {
 				}
 				break;
 			case 'author':
-				$robots = $S::robots_list( get_user_meta( $ctx['user']->ID, 'rank_math_robots', true ) );
+				$robots = $S::robots_list( get_user_meta( $ctx['user']->ID, 'neo_pulse_seo_robots', true ) );
 				if ( $robots === array() && $S::is_on( 'author_custom_robots' ) ) {
 					$robots   = $S::robots_list( $S::get( 'author_robots', array() ) );
 					$advanced = $S::get( 'author_advanced_robots', null );
@@ -369,14 +369,14 @@ class Neo_Pulse_Wp_Seo_Head {
 				break;
 			case 'search':
 				// Used for og:url and the schema; the canonical tag itself is left out while search
-				// results are noindex (as Rank Math does).
+				// results are noindex (as NEO Pulse redirect does).
 				$base = get_search_link( (string) $ctx['search'] );
 				break;
 			case 'singular':
 				if ( ! $post instanceof WP_Post ) {
 					return '';
 				}
-				$custom = trim( (string) get_post_meta( $post->ID, 'rank_math_canonical_url', true ) );
+				$custom = trim( (string) get_post_meta( $post->ID, 'neo_pulse_seo_canonical_url', true ) );
 				if ( $custom !== '' ) {
 					return $custom;
 				}
@@ -401,7 +401,7 @@ class Neo_Pulse_Wp_Seo_Head {
 				$base = is_string( $link ) ? $link : '';
 				break;
 			case 'term':
-				$custom = trim( (string) get_term_meta( $ctx['term']->term_id, 'rank_math_canonical_url', true ) );
+				$custom = trim( (string) get_term_meta( $ctx['term']->term_id, 'neo_pulse_seo_canonical_url', true ) );
 				if ( $custom !== '' ) {
 					return $custom;
 				}
@@ -446,20 +446,20 @@ class Neo_Pulse_Wp_Seo_Head {
 		$id   = 0;
 		$url  = '';
 		if ( $post instanceof WP_Post && 'singular' === $ctx['kind'] ) {
-			$id  = (int) get_post_meta( $post->ID, 'rank_math_facebook_image_id', true );
-			$url = $id > 0 ? '' : trim( (string) get_post_meta( $post->ID, 'rank_math_facebook_image', true ) );
+			$id  = (int) get_post_meta( $post->ID, 'neo_pulse_seo_facebook_image_id', true );
+			$url = $id > 0 ? '' : trim( (string) get_post_meta( $post->ID, 'neo_pulse_seo_facebook_image', true ) );
 			if ( $id < 1 && $url === '' ) {
 				$id = (int) get_post_thumbnail_id( $post );
 			}
 			if ( $id < 1 && $url === '' ) {
-				$cache = get_post_meta( $post->ID, 'rank_math_og_content_image', true );
+				$cache = get_post_meta( $post->ID, 'neo_pulse_seo_og_content_image', true );
 				if ( is_array( $cache ) && ! empty( $cache['images'] ) && is_array( $cache['images'] ) ) {
 					$id = (int) reset( $cache['images'] );
 				}
 			}
 		} elseif ( 'term' === $ctx['kind'] ) {
-			$id  = (int) get_term_meta( $ctx['term']->term_id, 'rank_math_facebook_image_id', true );
-			$url = $id > 0 ? '' : trim( (string) get_term_meta( $ctx['term']->term_id, 'rank_math_facebook_image', true ) );
+			$id  = (int) get_term_meta( $ctx['term']->term_id, 'neo_pulse_seo_facebook_image_id', true );
+			$url = $id > 0 ? '' : trim( (string) get_term_meta( $ctx['term']->term_id, 'neo_pulse_seo_facebook_image', true ) );
 		}
 		$default = false;
 		if ( $id < 1 && $url === '' ) {
@@ -520,14 +520,14 @@ class Neo_Pulse_Wp_Seo_Head {
 		$og_title = $title;
 		$og_desc  = $description;
 		if ( $singular ) {
-			$fb_title = trim( (string) get_post_meta( $post->ID, 'rank_math_facebook_title', true ) );
-			$fb_desc  = trim( (string) get_post_meta( $post->ID, 'rank_math_facebook_description', true ) );
+			$fb_title = trim( (string) get_post_meta( $post->ID, 'neo_pulse_seo_facebook_title', true ) );
+			$fb_desc  = trim( (string) get_post_meta( $post->ID, 'neo_pulse_seo_facebook_description', true ) );
 			$og_title = $fb_title !== '' ? Neo_Pulse_Wp_Seo_Vars::replace( $fb_title, $ctx ) : $title;
 			$og_desc  = $fb_desc !== '' ? Neo_Pulse_Wp_Seo_Vars::replace( $fb_desc, $ctx, 'text' ) : $description;
 		}
 
 		$rows[] = array( 'property', 'og:locale', (string) get_locale() );
-		// Rank Math's rule: website for the homepage and blog page, profile for authors, article otherwise.
+		// NEO Pulse redirect's rule: website for the homepage and blog page, profile for authors, article otherwise.
 		if ( ! empty( $ctx['front'] ) || in_array( $ctx['kind'], array( 'home', 'posts_page' ), true ) ) {
 			$og_type = 'website';
 		} elseif ( 'author' === $ctx['kind'] ) {
@@ -585,11 +585,11 @@ class Neo_Pulse_Wp_Seo_Head {
 		$tw_desc  = $og_desc;
 		$tw_image = $image['url'];
 		$card     = (string) $S::get( 'twitter_card_type', 'summary_large_image' );
-		if ( $singular && 'off' === (string) get_post_meta( $post->ID, 'rank_math_twitter_use_facebook', true ) ) {
-			$t = trim( (string) get_post_meta( $post->ID, 'rank_math_twitter_title', true ) );
-			$d = trim( (string) get_post_meta( $post->ID, 'rank_math_twitter_description', true ) );
-			$i = trim( (string) get_post_meta( $post->ID, 'rank_math_twitter_image', true ) );
-			$c = trim( (string) get_post_meta( $post->ID, 'rank_math_twitter_card_type', true ) );
+		if ( $singular && 'off' === (string) get_post_meta( $post->ID, 'neo_pulse_seo_twitter_use_facebook', true ) ) {
+			$t = trim( (string) get_post_meta( $post->ID, 'neo_pulse_seo_twitter_title', true ) );
+			$d = trim( (string) get_post_meta( $post->ID, 'neo_pulse_seo_twitter_description', true ) );
+			$i = trim( (string) get_post_meta( $post->ID, 'neo_pulse_seo_twitter_image', true ) );
+			$c = trim( (string) get_post_meta( $post->ID, 'neo_pulse_seo_twitter_card_type', true ) );
 			$tw_title = $t !== '' ? Neo_Pulse_Wp_Seo_Vars::replace( $t, $ctx ) : $tw_title;
 			$tw_desc  = $d !== '' ? Neo_Pulse_Wp_Seo_Vars::replace( $d, $ctx, 'text' ) : $tw_desc;
 			$tw_image = $i !== '' ? $i : $tw_image;
@@ -638,7 +638,7 @@ class Neo_Pulse_Wp_Seo_Head {
 	 * Robots a post ends up with from its own list, else the post type default, else the site
 	 * default (the singular rules of robots(), without pagination).
 	 *
-	 * @param array<int, string> $post_robots Stored rank_math_robots list.
+	 * @param array<int, string> $post_robots Stored neo_pulse_seo_robots list.
 	 * @return array<int, string>
 	 */
 	public static function effective_post_robots( array $post_robots, string $post_type ): array {
@@ -677,7 +677,7 @@ class Neo_Pulse_Wp_Seo_Head {
 		if ( ! $post instanceof WP_Post || 'publish' !== $post->post_status || '' !== (string) $post->post_password ) {
 			return false;
 		}
-		$own = Neo_Pulse_Wp_Seo_Settings::robots_list( get_post_meta( $post->ID, 'rank_math_robots', true ) );
+		$own = Neo_Pulse_Wp_Seo_Settings::robots_list( get_post_meta( $post->ID, 'neo_pulse_seo_robots', true ) );
 		if ( in_array( 'noindex', self::effective_post_robots( $own, (string) $post->post_type ), true ) ) {
 			return false;
 		}
@@ -688,7 +688,7 @@ class Neo_Pulse_Wp_Seo_Head {
 		if ( ! is_string( $link ) || $link === '' ) {
 			return false;
 		}
-		$canonical = trim( (string) get_post_meta( $post->ID, 'rank_math_canonical_url', true ) );
+		$canonical = trim( (string) get_post_meta( $post->ID, 'neo_pulse_seo_canonical_url', true ) );
 		if ( $canonical !== '' && ! self::same_url( $canonical, $link ) ) {
 			return false;
 		}
@@ -714,7 +714,7 @@ class Neo_Pulse_Wp_Seo_Head {
 			return false;
 		}
 		$S      = 'Neo_Pulse_Wp_Seo_Settings';
-		$robots = $S::robots_list( get_term_meta( $term->term_id, 'rank_math_robots', true ) );
+		$robots = $S::robots_list( get_term_meta( $term->term_id, 'neo_pulse_seo_robots', true ) );
 		if ( $robots === array() && $S::is_on( 'tax_' . $term->taxonomy . '_custom_robots' ) ) {
 			$robots = $S::robots_list( $S::get( 'tax_' . $term->taxonomy . '_robots', array() ) );
 		}
@@ -731,7 +731,7 @@ class Neo_Pulse_Wp_Seo_Head {
 		if ( ! is_string( $link ) || $link === '' ) {
 			return false;
 		}
-		$canonical = trim( (string) get_term_meta( $term->term_id, 'rank_math_canonical_url', true ) );
+		$canonical = trim( (string) get_term_meta( $term->term_id, 'neo_pulse_seo_canonical_url', true ) );
 		return $canonical === '' || self::same_url( $canonical, $link );
 	}
 

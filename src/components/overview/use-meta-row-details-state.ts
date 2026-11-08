@@ -2,7 +2,7 @@ import React from "react";
 
 
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
-import { fullDestinationUrl, suggestedPathFromFocusKeywordForMetaOptimizer } from "@/lib/rank-math-redirect-csv";
+import { fullDestinationUrl, suggestedPathFromFocusKeywordForMetaOptimizer } from "@/lib/pulse-redirect-redirect-csv";
 import { parseFaqEntries } from "@/lib/faq-entries";
 import { extractH2TextsFromHtml } from "@/lib/overview/overview-blog-headers-extract";
 import { normalizeSectionProseHtml, prosePlainText } from "@/lib/elementor-page-content/extract-text-editor-prose";

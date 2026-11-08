@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
 trait Neo_Pulse_Wp_Mcp_Write_Trait_Page_Schema {
 
 	/**
-	 * `set-page-faqs`: replace or clear `rank_math_schema_FAQPage` on a post.
+	 * `set-page-faqs`: replace or clear `neo_pulse_seo_schema_FAQPage` on a post.
 	 *
 	 * @param array<string,mixed> $args Arguments.
 	 * @return array<string,mixed>|WP_Error
@@ -56,7 +56,7 @@ trait Neo_Pulse_Wp_Mcp_Write_Trait_Page_Schema {
 			);
 		}
 
-		$before_val = get_post_meta( $post->ID, 'rank_math_schema_FAQPage', true );
+		$before_val = get_post_meta( $post->ID, 'neo_pulse_seo_schema_FAQPage', true );
 		$after_val  = array() === $entities
 			? null
 			: array(
@@ -86,14 +86,14 @@ trait Neo_Pulse_Wp_Mcp_Write_Trait_Page_Schema {
 			array(
 				'kind'    => 'post_meta',
 				'post_id' => (int) $post->ID,
-				'meta'    => array( 'rank_math_schema_FAQPage' => $before_val ),
+				'meta'    => array( 'neo_pulse_seo_schema_FAQPage' => $before_val ),
 			)
 		);
 
 		if ( null === $after_val ) {
-			delete_post_meta( $post->ID, 'rank_math_schema_FAQPage' );
+			delete_post_meta( $post->ID, 'neo_pulse_seo_schema_FAQPage' );
 		} else {
-			update_post_meta( $post->ID, 'rank_math_schema_FAQPage', $after_val );
+			update_post_meta( $post->ID, 'neo_pulse_seo_schema_FAQPage', $after_val );
 		}
 
 		if ( Neo_Pulse_Wp_Seo_Settings::output_active() && class_exists( 'Neo_Pulse_Wp_Cache_Flush' ) ) {
@@ -111,7 +111,7 @@ trait Neo_Pulse_Wp_Mcp_Write_Trait_Page_Schema {
 	}
 
 	/**
-	 * `clear-page-video-schemas`: delete all `rank_math_schema_VideoObject` post meta on a post.
+	 * `clear-page-video-schemas`: delete all `neo_pulse_seo_schema_VideoObject` post meta on a post.
 	 *
 	 * @param array<string,mixed> $args Arguments.
 	 * @return array<string,mixed>|WP_Error
@@ -136,7 +136,7 @@ trait Neo_Pulse_Wp_Mcp_Write_Trait_Page_Schema {
 
 		$meta_key = class_exists( 'Neo_Pulse_Wp_Seo_Video', false )
 			? Neo_Pulse_Wp_Seo_Video::META
-			: 'rank_math_schema_VideoObject';
+			: 'neo_pulse_seo_schema_VideoObject';
 		$before   = get_post_meta( $post->ID, $meta_key, false );
 		if ( ! is_array( $before ) ) {
 			$before = array();
@@ -210,19 +210,19 @@ trait Neo_Pulse_Wp_Mcp_Write_Trait_Page_Schema {
 		}
 
 		$before_meta = array(
-			'rank_math_rich_snippet'   => get_post_meta( $post->ID, 'rank_math_rich_snippet', true ),
-			'rank_math_schema_Article' => get_post_meta( $post->ID, 'rank_math_schema_Article', true ),
+			'neo_pulse_seo_rich_snippet'   => get_post_meta( $post->ID, 'neo_pulse_seo_rich_snippet', true ),
+			'neo_pulse_seo_schema_Article' => get_post_meta( $post->ID, 'neo_pulse_seo_schema_Article', true ),
 		);
 
 		$after_meta = array(
-			'rank_math_rich_snippet'   => '',
-			'rank_math_schema_Article' => '',
+			'neo_pulse_seo_rich_snippet'   => '',
+			'neo_pulse_seo_schema_Article' => '',
 		);
 		if ( 'off' === $type || 'WebPage' === $type ) {
-			$after_meta['rank_math_rich_snippet'] = 'off';
+			$after_meta['neo_pulse_seo_rich_snippet'] = 'off';
 		} elseif ( in_array( $type, array( 'Article', 'BlogPosting', 'NewsArticle' ), true ) ) {
-			$after_meta['rank_math_rich_snippet']   = 'article';
-			$after_meta['rank_math_schema_Article'] = array(
+			$after_meta['neo_pulse_seo_rich_snippet']   = 'article';
+			$after_meta['neo_pulse_seo_schema_Article'] = array(
 				'@type'          => $type,
 				'metadata'       => array(
 					'title'     => 'Article',

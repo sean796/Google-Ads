@@ -97,7 +97,7 @@ export const BulkAutoGeneratePanel: React.FC<BulkAutoGeneratePanelProps> = ({
   );
   
   // Blog generation settings
-  const [numberOfBlogs, setNumberOfBlogs] = useState<number>(0);
+  const [numberOfBlogs, setNumberOfBlogs] = useState<number>(1);
   const [optionalPrompt, setOptionalPrompt] = useState<string>('');
   const [generalIntent, setGeneralIntent] = useState<string>('');
   const [checklistPhase, setChecklistPhase] = useState("");

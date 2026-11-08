@@ -3,15 +3,15 @@ import type { AgentConfig } from "@/types/agent-config";
 import type { CSVRow } from "@/lib/bulk/bulk-csv-parser";
 import type { BulkGenerationLinkable } from "@/lib/bulk/bulk-generation-wp-inventory";
 import { resolveOpenRouterApiKeyForHarness } from "@/lib/openrouter-api-key-resolve";
-import { resolveRankMathFromKeywordResearch } from "@/lib/bulk-auto-generate";
+import { resolveRedirectCsvFromKeywordResearch } from "@/lib/bulk-auto-generate";
 import {
   buildPostMarkdownAcfSeoFaqBundle,
   patchPostLinkInSeoResearchJson,
   resolveFaqEntriesForVisibleTable,
-} from "@/lib/content-generation/bulk-acf-seo-bundle";
+} from "@/lib/content-generation/bulk-post-fields-seo-bundle";
 import { buildOptimizedMetaFromKeywordResearch } from "@/lib/content-generation/apply-bulk-meta-from-seo-json";
-import { NEO_PULSE_DEFAULT_FIELD_MAPPING } from "@/lib/content-generation/acf-field-mapper";
-import { buildAcfPayload } from "@/lib/content-generation/apply-meta-acf-payload";
+import { NEO_PULSE_DEFAULT_FIELD_MAPPING } from "@/lib/content-generation/post-field-mapper";
+import { buildAcfPayload } from "@/lib/content-generation/apply-meta-fields-payload";
 import { sanitizeContentForUpload } from "@/lib/content-generation/content-sanitizer";
 import { prepareHarnessContentForUpload } from "@/lib/content-generation/harness-upload-prep";
 import type { KeywordData } from "@/lib/keyword-types";
@@ -111,7 +111,7 @@ export async function uploadPostCreatorRowToWordPress(
   }
 
   const keywordData = stubKeywordData(primaryKw, keywordResearch ?? undefined);
-  const rankMeta = resolveRankMathFromKeywordResearch(keywordData);
+  const rankMeta = resolveRedirectCsvFromKeywordResearch(keywordData);
   const excerpt =
     row.meta_description?.trim() ||
     rankMeta.metaDescription ||

@@ -1,6 +1,6 @@
 <?php
 /**
- * Side-by-side check of the SEO tags the site prints now (usually Rank Math) against what
+ * Side-by-side check of the SEO tags the site prints now (usually NEO Pulse redirect) against what
  * Neo Pulse would print, page by page, before switching over.
  *
  * Neo Pulse's version comes from a preview request: the page URL with a short-lived secret token,
@@ -175,7 +175,7 @@ class Neo_Pulse_Wp_Seo_Compare {
 				$added = self::schema_added( $a, $b );
 				if ( null !== $added ) {
 					// Neo Pulse prints everything the live page has, plus more (site-wide entities on pages
-					// where Rank Math's schema is off, FAQs from ACF fields, breadcrumbs). Not a problem.
+					// where NEO Pulse redirect's schema is off, FAQs from ACF fields, breadcrumbs). Not a problem.
 					$same     = true;
 					$expected = true;
 					/* translators: %s: schema types */
@@ -347,7 +347,7 @@ class Neo_Pulse_Wp_Seo_Compare {
 	}
 
 	/**
-	 * Sorted list of schema @types in SEO-plugin JSON-LD (Rank Math, Yoast or Neo Pulse blocks).
+	 * Sorted list of schema @types in SEO-plugin JSON-LD (NEO Pulse redirect, Yoast or Neo Pulse blocks).
 	 */
 	public static function schema_types( string $head ): string {
 		if ( ! preg_match_all( '#<script[^>]+application/ld\+json[^>]*>(.*?)</script>#is', $head, $m, PREG_SET_ORDER ) ) {
@@ -356,7 +356,7 @@ class Neo_Pulse_Wp_Seo_Compare {
 		$types = array();
 		foreach ( $m as $match ) {
 			$open = substr( $match[0], 0, (int) strpos( $match[0], '>' ) );
-			if ( ! preg_match( '/rank-math|yoast|neo-pulse-seo-schema|aioseo/i', $open ) ) {
+			if ( ! preg_match( '/pulse-redirect|yoast|neo-pulse-seo-schema|aioseo/i', $open ) ) {
 				continue;
 			}
 			$data = json_decode( html_entity_decode( $match[1], ENT_NOQUOTES, 'UTF-8' ), true );

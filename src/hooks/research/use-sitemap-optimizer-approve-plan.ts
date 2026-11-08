@@ -34,7 +34,7 @@ export function useSitemapOptimizerApprovePlan() {
         phase: "redirects",
         completed: 0,
         total: 1,
-        detail: "Building Rank Math redirect CSV",
+        detail: "Building NEO Pulse redirect redirect CSV",
       });
 
       try {

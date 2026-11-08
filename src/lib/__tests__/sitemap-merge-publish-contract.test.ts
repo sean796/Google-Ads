@@ -76,7 +76,7 @@ const sampleResult: SitemapOptimizerRunResult = {
 describe("sitemap-merge-publish-contract", () => {
   const publishAt = "2026-05-20T12:00:00.000Z";
 
-  it("uses lockedDestinationUrl from Rank Math import when set on the content sheet", () => {
+  it("uses lockedDestinationUrl from NEO Pulse redirect import when set on the content sheet", () => {
     const locked = "https://example.com/blog/sheet-destination/";
     const result: SitemapOptimizerRunResult = {
       ...sampleResult,

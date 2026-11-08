@@ -16,7 +16,7 @@ class Neo_Pulse_App_Api_Route_Registry {
 		return array(
 			array( 'method' => 'POST', 'path' => 'wordpress/test-connection' ),
 			array( 'method' => 'POST', 'path' => 'wordpress/bulk-update-overview-seo' ),
-			array( 'method' => 'POST', 'path' => 'wordpress/discover-acf-field-groups' ),
+			array( 'method' => 'POST', 'path' => 'wordpress/discover-post-field-keys' ),
 			array( 'method' => 'POST', 'path' => 'gsc/fetch-reporting-bundle' ),
 			array( 'method' => 'POST', 'path' => 'organic-dashboard/fetch' ),
 			array( 'method' => 'POST', 'path' => 'organic-dashboard/fetch-part' ),

@@ -12,8 +12,8 @@ describe("buildOptimizedMetaFromKeywordResearch entity SAP titles", () => {
       "https://example.com/plum-coulee/",
       "https://example.com",
     );
-    expect(meta.rank_math_title).toBe(postTitle);
-    expect(meta.rank_math_title).not.toContain(":");
+    expect(meta.neo_pulse_seo_title).toBe(postTitle);
+    expect(meta.neo_pulse_seo_title).not.toContain(":");
   });
 
   it("does not stitch the keyword onto the title agent headline", () => {
@@ -29,7 +29,7 @@ describe("buildOptimizedMetaFromKeywordResearch entity SAP titles", () => {
       "https://example.com/mediterra/",
       "https://example.com",
     );
-    expect(meta.rank_math_title).toBe(postTitle);
-    expect(meta.rank_math_title).not.toContain(":");
+    expect(meta.neo_pulse_seo_title).toBe(postTitle);
+    expect(meta.neo_pulse_seo_title).not.toContain(":");
   });
 });

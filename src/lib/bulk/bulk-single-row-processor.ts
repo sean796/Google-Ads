@@ -15,6 +15,7 @@ import { fileFromStoredImportRow, processDirectBlogImportRow, rowHasDirectImport
 import { resolveRowPostDestination } from '@/lib/bulk-post-destination-normalize';
 import type { KeywordAnalysisOptions, KeywordAnalysisComplete } from '@/lib/keyword-types';
 import { logger } from "@/lib/logger";
+import { logBulkRunStep } from "@/lib/bulk/bulk-run-step-log";
 import type { Dispatch, SetStateAction } from 'react';
 
 export type BulkHarnessSectionUi = {
@@ -98,6 +99,12 @@ export async function processBulkSingleRow(
 ): Promise<BulkGeneratedFile[]> {
   const { fileManager, analyzeKeyword, paaRawResponse, clearResults, connectedSite, selectedModel, setRows, updateRowHarness, setHarnessPlannedSectionCount, setFilesTick } = deps;
     const allFiles: BulkGeneratedFile[] = [];
+
+    logBulkRunStep("processBulkSingleRow entered", {
+      rowIndex,
+      keyword: row.keyword,
+      title: row.title,
+    });
 
     try {
       clearResults();

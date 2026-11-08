@@ -5,7 +5,7 @@ section: WordPress
 method: POST
 path: /api/wordpress/pulse-assist-stream
 auth: open
-order: 3080
+order: 3130
 ---
 
 POST `/api/wordpress/pulse-assist-stream`.

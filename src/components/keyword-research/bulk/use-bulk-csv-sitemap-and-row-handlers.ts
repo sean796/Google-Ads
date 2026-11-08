@@ -359,13 +359,14 @@ export function useBulkCsvSitemapAndRowHandlers(
   const handleNumberOfBlogsChange = useCallback(
     (value: number) => {
       const { setNumberOfBlogs, setSelectedBlogIndices } = argsRef.current;
-      setNumberOfBlogs(value);
+      const nextCount = Math.max(1, Math.floor(value) || 1);
+      setNumberOfBlogs(nextCount);
       if (hasGeneratedChecklist) {
-        setGeneratedRows((prev) => (prev.length > value ? prev.slice(0, value) : prev));
+        setGeneratedRows((prev) => (prev.length > nextCount ? prev.slice(0, nextCount) : prev));
         setSelectedBlogIndices((prev) => {
           const next = new Set<number>();
           for (const i of prev) {
-            if (i < value) next.add(i);
+            if (i < nextCount) next.add(i);
           }
           return next;
         });

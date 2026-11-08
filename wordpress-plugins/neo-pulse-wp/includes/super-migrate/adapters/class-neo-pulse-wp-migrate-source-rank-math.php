@@ -1,6 +1,6 @@
 <?php
 /**
- * Rank Math → NEO Pulse Redirects + SEO meta adapter.
+ * NEO Pulse redirect → NEO Pulse Redirects + SEO meta adapter.
  *
  * @package Neo_Pulse_Wp
  */
@@ -13,7 +13,7 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 	const BATCH_META      = 50;
 
 	public function get_id(): string {
-		return 'rank_math';
+		return 'neo_pulse_seo';
 	}
 
 	public function get_macro_group(): string {
@@ -21,18 +21,18 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 	}
 
 	public function get_label(): string {
-		return __( 'Rank Math SEO', 'neo-pulse-wp' );
+		return __( 'NEO Pulse redirect SEO', 'neo-pulse-wp' );
 	}
 
 	public function is_available(): bool {
-		return self::is_rank_math_present();
+		return self::is_neo_pulse_seo_present();
 	}
 
 	/**
 	 * @return array<string, mixed>
 	 */
 	public function detect(): array {
-		$active = self::is_rank_math_present();
+		$active = self::is_neo_pulse_seo_present();
 		$info   = array(
 			'active'  => $active,
 			'version' => defined( 'RANK_MATH_VERSION' ) ? RANK_MATH_VERSION : '',
@@ -55,15 +55,15 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 			if ( self::redirections_table_exists() ) {
 				$count = (int) ( $this->detect()['redirect_count'] ?? 0 );
 				$steps[] = array(
-					'id'    => 'rank_math_crawl_redirects',
-					'label' => __( 'Crawl Rank Math redirects', 'neo-pulse-wp' ),
+					'id'    => 'neo_pulse_seo_crawl_redirects',
+					'label' => __( 'Crawl NEO Pulse redirect redirects', 'neo-pulse-wp' ),
 					'total' => max( 1, (int) ceil( max( 1, $count ) / self::BATCH_REDIRECTS ) ),
 				);
 			}
 			$steps[] = array(
-				'id'    => 'rank_math_crawl_meta',
-				'label' => __( 'Crawl Rank Math post meta', 'neo-pulse-wp' ),
-				'total' => max( 1, (int) ceil( $this->count_rank_math_meta_rows() / self::BATCH_META ) ),
+				'id'    => 'neo_pulse_seo_crawl_meta',
+				'label' => __( 'Crawl NEO Pulse redirect post meta', 'neo-pulse-wp' ),
+				'total' => max( 1, (int) ceil( $this->count_neo_pulse_seo_meta_rows() / self::BATCH_META ) ),
 			);
 			return $steps;
 		}
@@ -72,13 +72,13 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 			$meta_batches     = max( 1, (int) ceil( count( $this->get_sheet_meta_posts() ) / self::BATCH_META ) );
 			$steps            = array(
 				array(
-					'id'    => 'rank_math_apply_redirects',
+					'id'    => 'neo_pulse_seo_apply_redirects',
 					'label' => __( 'Import redirects into NEO Pulse', 'neo-pulse-wp' ),
 					'total' => $redirect_batches,
 				),
 				array(
-					'id'    => 'rank_math_apply_meta',
-					'label' => __( 'Apply Rank Math SEO meta to posts', 'neo-pulse-wp' ),
+					'id'    => 'neo_pulse_seo_apply_meta',
+					'label' => __( 'Apply NEO Pulse redirect SEO meta to posts', 'neo-pulse-wp' ),
 					'total' => $meta_batches,
 				),
 			);
@@ -96,25 +96,25 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 		$offset = (int) ( $context['batch_offset'] ?? 0 );
 
 		switch ( $step_id ) {
-			case 'rank_math_crawl_redirects':
+			case 'neo_pulse_seo_crawl_redirects':
 				return $this->crawl_redirects_batch( $sheet, $offset );
-			case 'rank_math_crawl_meta':
+			case 'neo_pulse_seo_crawl_meta':
 				return $this->crawl_meta_batch( $sheet, $offset );
-			case 'rank_math_apply_redirects':
+			case 'neo_pulse_seo_apply_redirects':
 				return $this->apply_redirects_batch( $sheet, $offset, $dry );
-			case 'rank_math_apply_meta':
+			case 'neo_pulse_seo_apply_meta':
 				return $this->apply_meta_batch( $sheet, $offset, $dry );
 		}
 
 		return array(
 			'ok'    => false,
-			'error' => __( 'Unknown Rank Math import step.', 'neo-pulse-wp' ),
+			'error' => __( 'Unknown NEO Pulse redirect import step.', 'neo-pulse-wp' ),
 		);
 	}
 
 	private static function redirections_table(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'rank_math_redirections';
+		return $wpdb->prefix . 'neo_pulse_seo_redirections';
 	}
 
 	private static function redirections_table_exists(): bool {
@@ -132,7 +132,7 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 			return array(
 				'ok'      => true,
 				'done'    => true,
-				'message' => __( 'Rank Math redirections table not found.', 'neo-pulse-wp' ),
+				'message' => __( 'NEO Pulse redirect redirections table not found.', 'neo-pulse-wp' ),
 			);
 		}
 
@@ -152,7 +152,7 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 			return array(
 				'ok'      => true,
 				'done'    => true,
-				'message' => __( 'Rank Math redirect crawl complete.', 'neo-pulse-wp' ),
+				'message' => __( 'NEO Pulse redirect redirect crawl complete.', 'neo-pulse-wp' ),
 			);
 		}
 
@@ -161,7 +161,7 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 		}
 
 		foreach ( $rows as $row ) {
-			foreach ( self::expand_rank_math_row( $row ) as $expanded ) {
+			foreach ( self::expand_neo_pulse_seo_row( $row ) as $expanded ) {
 				$sheet['sheets']['redirects'][] = $expanded;
 			}
 		}
@@ -171,7 +171,7 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 			'done'    => count( $rows ) < self::BATCH_REDIRECTS,
 			'message' => sprintf(
 				/* translators: %d: row count */
-				__( 'Crawled %d Rank Math redirect(s).', 'neo-pulse-wp' ),
+				__( 'Crawled %d NEO Pulse redirect redirect(s).', 'neo-pulse-wp' ),
 				count( $rows )
 			),
 			'stats'   => array( 'processed' => count( $rows ) ),
@@ -188,7 +188,7 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta} WHERE meta_key LIKE %s ORDER BY post_id ASC LIMIT %d OFFSET %d",
-				$wpdb->esc_like( 'rank_math_' ) . '%',
+				$wpdb->esc_like( 'neo_pulse_seo_' ) . '%',
 				self::BATCH_META,
 				$offset
 			)
@@ -198,7 +198,7 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 			return array(
 				'ok'      => true,
 				'done'    => true,
-				'message' => __( 'Rank Math meta crawl complete.', 'neo-pulse-wp' ),
+				'message' => __( 'NEO Pulse redirect meta crawl complete.', 'neo-pulse-wp' ),
 			);
 		}
 
@@ -227,7 +227,7 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 			'done'    => count( $rows ) < self::BATCH_META,
 			'message' => sprintf(
 				/* translators: %d: meta row count */
-				__( 'Crawled %d Rank Math meta row(s).', 'neo-pulse-wp' ),
+				__( 'Crawled %d NEO Pulse redirect meta row(s).', 'neo-pulse-wp' ),
 				count( $rows )
 			),
 			'stats'   => array( 'processed' => count( $rows ) ),
@@ -249,7 +249,7 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 					'done'    => true,
 					'message' => sprintf(
 						/* translators: 1: added, 2: updated, 3: skipped */
-						__( 'Imported Rank Math redirects: %1$d added, %2$d updated, %3$d skipped.', 'neo-pulse-wp' ),
+						__( 'Imported NEO Pulse redirect redirects: %1$d added, %2$d updated, %3$d skipped.', 'neo-pulse-wp' ),
 						(int) ( $stats['added'] ?? 0 ),
 						(int) ( $stats['updated'] ?? 0 ),
 						(int) ( $stats['skipped'] ?? 0 )
@@ -329,7 +329,7 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 			return array(
 				'ok'      => true,
 				'done'    => true,
-				'message' => __( 'No Rank Math meta to apply.', 'neo-pulse-wp' ),
+				'message' => __( 'No NEO Pulse redirect meta to apply.', 'neo-pulse-wp' ),
 			);
 		}
 
@@ -353,8 +353,8 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 			foreach ( $row['meta'] as $key => $value ) {
 				update_post_meta( $post_id, (string) $key, $value );
 			}
-			if ( ! empty( $row['meta']['rank_math_focus_keyword'] ) ) {
-				update_post_meta( $post_id, 'keyword_focus', (string) $row['meta']['rank_math_focus_keyword'] );
+			if ( ! empty( $row['meta']['neo_pulse_seo_focus_keyword'] ) ) {
+				update_post_meta( $post_id, 'keyword_focus', (string) $row['meta']['neo_pulse_seo_focus_keyword'] );
 			}
 			++$updated;
 		}
@@ -378,12 +378,12 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 	}
 
 	/**
-	 * Every source pattern of a Rank Math rule (the `sources` column is a
+	 * Every source pattern of a NEO Pulse redirect rule (the `sources` column is a
 	 * serialized list of pattern / comparison / ignore entries).
 	 *
 	 * @return array<int, array{pattern: string, matching: string, ignore: int}>
 	 */
-	public static function parse_rank_math_sources( string $sources_raw ): array {
+	public static function parse_neo_pulse_seo_sources( string $sources_raw ): array {
 		$sources_raw = trim( $sources_raw );
 		if ( $sources_raw === '' ) {
 			return array();
@@ -413,12 +413,12 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 	}
 
 	/**
-	 * One NEO Pulse row per source pattern of a Rank Math rule.
+	 * One NEO Pulse row per source pattern of a NEO Pulse redirect rule.
 	 *
-	 * @param object $row Rank Math DB row (id, sources, url_to, header_code, status).
+	 * @param object $row NEO Pulse redirect DB row (id, sources, url_to, header_code, status).
 	 * @return array<int, array<string, mixed>>
 	 */
-	public static function expand_rank_math_row( $row ): array {
+	public static function expand_neo_pulse_seo_row( $row ): array {
 		$type    = isset( $row->header_code ) ? (int) $row->header_code : 301;
 		$is_gone = in_array( $type, Neo_Pulse_Wp_Redirects::GONE_CODES, true );
 		$dest    = isset( $row->url_to ) ? trim( (string) $row->url_to ) : '';
@@ -426,7 +426,7 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 			return array();
 		}
 		$out = array();
-		foreach ( self::parse_rank_math_sources( isset( $row->sources ) ? (string) $row->sources : '' ) as $src ) {
+		foreach ( self::parse_neo_pulse_seo_sources( isset( $row->sources ) ? (string) $row->sources : '' ) as $src ) {
 			$out[] = array(
 				'source'        => $src['pattern'],
 				'matching'      => $src['matching'],
@@ -434,8 +434,8 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 				'destination'   => $dest,
 				'type'          => $type,
 				'status'        => 'active',
-				'category'      => __( 'Rank Math', 'neo-pulse-wp' ),
-				'_rank_math_id' => isset( $row->id ) ? (int) $row->id : 0,
+				'category'      => __( 'NEO Pulse redirect', 'neo-pulse-wp' ),
+				'_neo_pulse_seo_id' => isset( $row->id ) ? (int) $row->id : 0,
 			);
 		}
 		return $out;
@@ -461,59 +461,59 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 			: array();
 	}
 
-	private function count_rank_math_meta_rows(): int {
+	private function count_neo_pulse_seo_meta_rows(): int {
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return max( 1, (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key LIKE %s",
-				$wpdb->esc_like( 'rank_math_' ) . '%'
+				$wpdb->esc_like( 'neo_pulse_seo_' ) . '%'
 			)
 		) );
 	}
 
 	/**
-	 * Whether Rank Math SEO (free) is active.
+	 * Whether NEO Pulse redirect SEO (free) is active.
 	 */
-	public static function is_rank_math_free_active(): bool {
+	public static function is_neo_pulse_seo_free_active(): bool {
 		if ( ! function_exists( 'is_plugin_active' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
-		return is_plugin_active( 'seo-by-rank-math/rank-math.php' );
+		return is_plugin_active( 'seo-by-pulse-redirect/pulse-redirect.php' );
 	}
 
 	/**
-	 * Whether Rank Math SEO PRO is active (separate plugin from free Rank Math).
+	 * Whether NEO Pulse redirect SEO PRO is active (separate plugin from free NEO Pulse redirect).
 	 */
-	public static function is_rank_math_pro_active(): bool {
+	public static function is_neo_pulse_seo_pro_active(): bool {
 		if ( defined( 'RANK_MATH_PRO_VERSION' ) ) {
 			return true;
 		}
 		if ( ! function_exists( 'is_plugin_active' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
-		return is_plugin_active( 'seo-by-rank-math-pro/rank-math-pro.php' );
+		return is_plugin_active( 'seo-by-pulse-redirect-pro/pulse-redirect-pro.php' );
 	}
 
 	/**
-	 * Whether Rank Math (free or Pro) is active.
+	 * Whether NEO Pulse redirect (free or Pro) is active.
 	 */
-	public static function is_rank_math_plugin_active(): bool {
-		return self::is_rank_math_free_active() || self::is_rank_math_pro_active();
+	public static function is_neo_pulse_seo_plugin_active(): bool {
+		return self::is_neo_pulse_seo_free_active() || self::is_neo_pulse_seo_pro_active();
 	}
 
 	/**
-	 * Rank Math is present when the plugin is active or the redirections table exists.
+	 * NEO Pulse redirect is present when the plugin is active or the redirections table exists.
 	 */
-	public static function is_rank_math_present(): bool {
-		return self::is_rank_math_plugin_active()
+	public static function is_neo_pulse_seo_present(): bool {
+		return self::is_neo_pulse_seo_plugin_active()
 			|| self::redirections_table_exists();
 	}
 
 	/**
-	 * Active redirect count in Rank Math table, or null when table is missing.
+	 * Active redirect count in NEO Pulse redirect table, or null when table is missing.
 	 */
-	public static function rank_math_redirect_count(): ?int {
+	public static function neo_pulse_seo_redirect_count(): ?int {
 		if ( ! self::redirections_table_exists() ) {
 			return null;
 		}
@@ -548,7 +548,7 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 
 		$rows = array();
 		foreach ( $db_rows as $row ) {
-			foreach ( self::expand_rank_math_row( $row ) as $expanded ) {
+			foreach ( self::expand_neo_pulse_seo_row( $row ) as $expanded ) {
 				$rows[] = $expanded;
 			}
 		}
@@ -557,7 +557,7 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 	}
 
 	/**
-	 * Source patterns in Rank Math and how many are not in NEO Pulse yet.
+	 * Source patterns in NEO Pulse redirect and how many are not in NEO Pulse yet.
 	 *
 	 * @return array{total: int, pending: int}
 	 */
@@ -585,7 +585,7 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 	}
 
 	/**
-	 * One-click import of all active Rank Math redirects into NEO Pulse Redirects.
+	 * One-click import of all active NEO Pulse redirect redirects into NEO Pulse Redirects.
 	 *
 	 * Every source pattern of a rule becomes its own row (same destination and
 	 * type, comparison and ignore-case kept). Sources already stored are left
@@ -594,10 +594,10 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 	 * @return array{ok: bool, error?: string, stats?: array<string, int>, imported?: int}
 	 */
 	public static function import_redirects_from_database(): array {
-		if ( ! self::is_rank_math_present() ) {
+		if ( ! self::is_neo_pulse_seo_present() ) {
 			return array(
 				'ok'    => false,
-				'error' => __( 'Rank Math redirections table not found. Is Rank Math SEO installed?', 'neo-pulse-wp' ),
+				'error' => __( 'NEO Pulse redirect redirections table not found. Is NEO Pulse redirect SEO installed?', 'neo-pulse-wp' ),
 			);
 		}
 
@@ -605,9 +605,9 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 		if ( empty( $rows ) ) {
 			return array(
 				'ok'    => false,
-				'error' => self::is_rank_math_plugin_active()
-					? __( 'No active Rank Math redirects found to import.', 'neo-pulse-wp' )
-					: __( 'No Rank Math redirects found in the database.', 'neo-pulse-wp' ),
+				'error' => self::is_neo_pulse_seo_plugin_active()
+					? __( 'No active NEO Pulse redirect redirects found to import.', 'neo-pulse-wp' )
+					: __( 'No NEO Pulse redirect redirects found in the database.', 'neo-pulse-wp' ),
 			);
 		}
 
@@ -619,16 +619,16 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 			'ok'       => $ok,
 			'stats'    => $stats,
 			'imported' => (int) $stats['added'],
-			'error'    => $ok ? '' : __( 'Rank Math redirects could not be imported.', 'neo-pulse-wp' ),
+			'error'    => $ok ? '' : __( 'NEO Pulse redirect redirects could not be imported.', 'neo-pulse-wp' ),
 		);
 	}
 
 	/** @alias import_redirects_from_database — expanded to redirects and meta. */
 	public static function import_all_from_database(): array {
-		if ( ! self::is_rank_math_present() ) {
+		if ( ! self::is_neo_pulse_seo_present() ) {
 			return array(
 				'ok'    => false,
-				'error' => __( 'Rank Math data not found in the database.', 'neo-pulse-wp' ),
+				'error' => __( 'NEO Pulse redirect data not found in the database.', 'neo-pulse-wp' ),
 			);
 		}
 
@@ -644,7 +644,7 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 
 		$meta_offset = 0;
 		do {
-			$crawl = $adapter->run_step( 'rank_math_crawl_meta', 'crawl', $sheet, array( 'batch_offset' => $meta_offset ) );
+			$crawl = $adapter->run_step( 'neo_pulse_seo_crawl_meta', 'crawl', $sheet, array( 'batch_offset' => $meta_offset ) );
 			if ( empty( $crawl['ok'] ) ) {
 				break;
 			}
@@ -653,7 +653,7 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 
 		$apply_offset = 0;
 		do {
-			$apply_meta = $adapter->run_step( 'rank_math_apply_meta', 'apply', $sheet, array( 'batch_offset' => $apply_offset ) );
+			$apply_meta = $adapter->run_step( 'neo_pulse_seo_apply_meta', 'apply', $sheet, array( 'batch_offset' => $apply_offset ) );
 			if ( empty( $apply_meta['ok'] ) ) {
 				break;
 			}
@@ -670,11 +670,11 @@ class Neo_Pulse_Wp_Migrate_Source_Rank_Math implements Neo_Pulse_Wp_Migrate_Adap
 			'imported' => (int) ( $redirect_result['imported'] ?? 0 ),
 			'message'  => sprintf(
 				/* translators: 1: redirects added, 2: meta updated */
-				__( 'Rank Math import: %1$d redirect(s) added, %2$d post meta updated.', 'neo-pulse-wp' ),
+				__( 'NEO Pulse redirect import: %1$d redirect(s) added, %2$d post meta updated.', 'neo-pulse-wp' ),
 				(int) ( $stats['added'] ?? 0 ),
 				(int) ( $stats['meta_updated'] ?? 0 )
 			),
-			'error'    => $redirect_ok ? '' : (string) ( $redirect_result['error'] ?? __( 'Rank Math import found nothing to migrate.', 'neo-pulse-wp' ) ),
+			'error'    => $redirect_ok ? '' : (string) ( $redirect_result['error'] ?? __( 'NEO Pulse redirect import found nothing to migrate.', 'neo-pulse-wp' ) ),
 		);
 	}
 }

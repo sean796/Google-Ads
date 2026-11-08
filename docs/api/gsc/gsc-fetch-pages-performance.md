@@ -5,7 +5,7 @@ section: Google Search Console
 method: POST
 path: /api/gsc/fetch-pages-performance
 auth: open
-order: 380
+order: 390
 ---
 
 POST `/api/gsc/fetch-pages-performance`.

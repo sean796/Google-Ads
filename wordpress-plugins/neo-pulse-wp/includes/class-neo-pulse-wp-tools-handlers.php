@@ -452,14 +452,14 @@ class Neo_Pulse_Wp_Tools_Handlers {
 		if ( $apply && ! empty( $result['optimizedMeta'] ) && is_array( $result['optimizedMeta'] ) ) {
 			$om = $result['optimizedMeta'];
 			$fields = array();
-			if ( ! empty( $om['rank_math_title'] ) ) {
-				$fields['seoTitle'] = (string) $om['rank_math_title'];
+			if ( ! empty( $om['neo_pulse_seo_title'] ) ) {
+				$fields['seoTitle'] = (string) $om['neo_pulse_seo_title'];
 			}
-			if ( ! empty( $om['rank_math_description'] ) ) {
-				$fields['metaDescription'] = (string) $om['rank_math_description'];
+			if ( ! empty( $om['neo_pulse_seo_description'] ) ) {
+				$fields['metaDescription'] = (string) $om['neo_pulse_seo_description'];
 			}
-			if ( ! empty( $om['rank_math_focus_keyword'] ) ) {
-				$fields['focusKeyword'] = (string) $om['rank_math_focus_keyword'];
+			if ( ! empty( $om['neo_pulse_seo_focus_keyword'] ) ) {
+				$fields['focusKeyword'] = (string) $om['neo_pulse_seo_focus_keyword'];
 			}
 			if ( ! empty( $fields ) ) {
 				Neo_Pulse_Wp_Ai_Apply::save_meta( $post_id, $fields );

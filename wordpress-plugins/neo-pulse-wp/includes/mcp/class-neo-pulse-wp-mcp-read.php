@@ -43,7 +43,7 @@ final class Neo_Pulse_Wp_Mcp_Read {
 					'arguments'   => array(),
 				),
 				'get-page-schema'      => array(
-					'description' => 'Read a page or post SEO meta, saved rank_math_schema_* entries (including FAQs), inherited content-type schema rules, and version.',
+					'description' => 'Read a page or post SEO meta, saved neo_pulse_seo_schema_* entries (including FAQs), inherited content-type schema rules, and version.',
 					'arguments'   => array(
 						'post_id' => 'integer (required unless url is given)',
 						'url'     => 'string (optional front-end URL or path to resolve to post_id)',
@@ -306,7 +306,7 @@ final class Neo_Pulse_Wp_Mcp_Read {
 		if ( is_array( $all ) ) {
 			ksort( $all );
 			foreach ( $all as $k => $v ) {
-				if ( 0 === strpos( (string) $k, 'rank_math_' ) || in_array( (string) $k, array( 'faq', 'seo_faq', 'date_modifier', 'seo_date_modifier' ), true ) ) {
+				if ( 0 === strpos( (string) $k, 'neo_pulse_seo_' ) || in_array( (string) $k, array( 'faq', 'seo_faq', 'date_modifier', 'seo_date_modifier' ), true ) ) {
 					$seo[ (string) $k ] = $v;
 				}
 			}
@@ -341,7 +341,7 @@ final class Neo_Pulse_Wp_Mcp_Read {
 	}
 
 	/**
-	 * `get-page-schema`: SEO meta, saved `rank_math_schema_*` entries, FAQs, and version.
+	 * `get-page-schema`: SEO meta, saved `neo_pulse_seo_schema_*` entries, FAQs, and version.
 	 *
 	 * @param array<string,mixed> $args Arguments.
 	 * @return array<string,mixed>|WP_Error
@@ -361,7 +361,7 @@ final class Neo_Pulse_Wp_Mcp_Read {
 		$saved  = array();
 		if ( is_array( $all ) ) {
 			foreach ( $all as $key => $values ) {
-				if ( 0 !== strpos( (string) $key, 'rank_math_schema_' ) || ! is_array( $values ) ) {
+				if ( 0 !== strpos( (string) $key, 'neo_pulse_seo_schema_' ) || ! is_array( $values ) ) {
 					continue;
 				}
 				foreach ( $values as $val ) {
@@ -370,10 +370,10 @@ final class Neo_Pulse_Wp_Mcp_Read {
 			}
 		}
 
-		$post_snippet = (string) get_post_meta( $post->ID, 'rank_math_rich_snippet', true );
+		$post_snippet = (string) get_post_meta( $post->ID, 'neo_pulse_seo_rich_snippet', true );
 		$pt_snippet   = (string) $S::get( 'pt_' . $pt . '_default_rich_snippet', 'off' );
 		$pt_article   = (string) $S::get( 'pt_' . $pt . '_default_article_type', 'Article' );
-		$robots       = $S::robots_list( get_post_meta( $post->ID, 'rank_math_robots', true ) );
+		$robots       = $S::robots_list( get_post_meta( $post->ID, 'neo_pulse_seo_robots', true ) );
 
 		return array(
 			'post_id'            => (int) $post->ID,
@@ -383,13 +383,13 @@ final class Neo_Pulse_Wp_Mcp_Read {
 			'output_active'      => $S::output_active(),
 			'other_seo_plugin'   => $S::other_seo_plugin(),
 			'meta'               => array(
-				'rank_math_title'         => (string) get_post_meta( $post->ID, 'rank_math_title', true ),
-				'rank_math_description'   => (string) get_post_meta( $post->ID, 'rank_math_description', true ),
-				'rank_math_focus_keyword' => (string) get_post_meta( $post->ID, 'rank_math_focus_keyword', true ),
-				'rank_math_canonical_url' => (string) get_post_meta( $post->ID, 'rank_math_canonical_url', true ),
-				'rank_math_robots'        => $robots,
+				'neo_pulse_seo_title'         => (string) get_post_meta( $post->ID, 'neo_pulse_seo_title', true ),
+				'neo_pulse_seo_description'   => (string) get_post_meta( $post->ID, 'neo_pulse_seo_description', true ),
+				'neo_pulse_seo_focus_keyword' => (string) get_post_meta( $post->ID, 'neo_pulse_seo_focus_keyword', true ),
+				'neo_pulse_seo_canonical_url' => (string) get_post_meta( $post->ID, 'neo_pulse_seo_canonical_url', true ),
+				'neo_pulse_seo_robots'        => $robots,
 				'effective_robots'        => Neo_Pulse_Wp_Seo_Head::effective_post_robots( $robots, $pt ),
-				'rank_math_rich_snippet'  => $post_snippet,
+				'neo_pulse_seo_rich_snippet'  => $post_snippet,
 			),
 			'type_default_rules' => array(
 				'default_rich_snippet' => $pt_snippet,

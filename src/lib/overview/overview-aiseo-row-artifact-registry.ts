@@ -84,7 +84,7 @@ export const AISEO_ROW_ARTIFACT_REGISTRY: Record<AiseoFileSlotRunKind, AiseoRowA
     category: "meta",
     agentKind: "none",
     label: "URLs",
-    reason: "Computes a short keyword-aligned URL slug and Rank Math 301 redirect CSV entry when the current slug drifts from the focus keyword.",
+    reason: "Computes a short keyword-aligned URL slug and NEO Pulse redirect 301 redirect CSV entry when the current slug drifts from the focus keyword.",
     elementSlotTitle: "AI URL paths",
     elementFileName: "ai-url.json",
     pipelineTitles: ["AI URL paths", AISEO_POST_CONTENT_SLOT_TITLE, AISEO_WP_UPLOAD_SLOT_TITLE],
