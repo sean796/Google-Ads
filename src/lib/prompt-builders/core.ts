@@ -289,7 +289,7 @@ ${FORBIDDEN_WORDS_USER_PROMPT_REMINDER}`;
         : "";
     const prInternalLinkRule =
       contentKind === "press_release"
-        ? "\n**INTERNAL LINKS**: Include [[LINK:query|anchor]] placeholders where a relevant internal page supports the text, woven into complete sentences. Query is PAGES or BLOG POSTS title words, never a raw URL. Forbidden: markdown [text](https://...) to third-party or competitor URLs; raw https:// internal URLs."
+        ? "\n**INTERNAL LINKS**: Include 2-4 [[LINK:query|anchor]] placeholders per body section, woven into complete sentences. Query is PAGES or BLOG POSTS title words, never a raw URL. Forbidden: markdown [text](https://...) to third-party or competitor URLs; raw https:// internal URLs."
         : "";
     const harnessBodyContract =
       contentKind !== "press_release" &&
@@ -343,6 +343,7 @@ ${illustrativeHarnessContract}
           ? `\n**NON-NEGOTIABLE OUTPUT CONTRACT**:
 - Exactly ONE <h2>: inner text MUST be exactly "${illustrativeH2}" — no paraphrase, no <a> tags, no place names, no keyword slug.
 - Flat structure: never nest <h2> inside <h2>. Never output a second <h2>.
+- MANDATORY 5-PART ILLUSTRATIVE STRUCTURE: (1) <h2>${illustrativeH2}</h2>, (2) <p>general intro (situationHook, no persona name)</p>, (3) <blockquote><p>named persona scenario</p></blockquote>, (4) <h3>Recommendation: {short pick title}</h3> (MUST start with "Recommendation: " with a colon), (5) <p>site-first recommendation paragraph opening with the connected business name</p>. Missing <blockquote> or missing <h3>Recommendation: ...</h3> fails validation.
 ${illustrativeHarnessContract}
 - Write ONLY this H2 block. No Overview scroll-link <ul>.
 - STOP: after the recommendation </p>, output nothing else.`

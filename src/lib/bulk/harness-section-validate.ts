@@ -311,11 +311,41 @@ export function normalizeIllustrativeHarnessHtml(html: string, forcedH2?: string
     "$1<p>",
   );
   s = s.replace(/<p>\s*scenario\s*:\s*/gi, "<p>");
+  s = s.replace(/<h4\b([^>]*)>\s*recommendation\s*:/gi, "<h3$1>Recommendation:");
+  s = s.replace(/<h3\b([^>]*)>\s*(?:<strong>|<b>)\s*recommendation\s*(?:<\/strong>|<\/b>)\s*[:.-]?\s*/gi, "<h3$1>Recommendation: ");
+  s = s.replace(/<h3\b([^>]*)>\s*recommendation\s*[.-]\s+/gi, "<h3$1>Recommendation: ");
+  s = s.replace(/<h3\b([^>]*)>\s*recommendation\s*<\/h3>/gi, "<h3$1>Recommendation: Local Strategy</h3>");
+  if (!/<h3\b[^>]*>\s*recommendation\s*:/i.test(s)) {
+    s = s.replace(
+      /<p[^>]*>\s*(?:<strong>|<b>)\s*recommendation\s*:\s*([^<]*?)(?:<\/strong>|<\/b>)\s*<\/p>/i,
+      (_m, titleText: string) => `<h3>Recommendation: ${titleText.trim() || "Local Strategy"}</h3>`,
+    );
+    s = s.replace(
+      /<p[^>]*>\s*(?:<strong>|<b>)\s*recommendation\s*:\s*([^<]*?)(?:<\/strong>|<\/b>)\s+([\s\S]*?)<\/p>/i,
+      (_m, titleText: string, rest: string) =>
+        `<h3>Recommendation: ${titleText.trim() || "Local Strategy"}</h3>\n<p>${rest.trim()}</p>`,
+    );
+  }
+  if (!/<h3\b[^>]*>\s*recommendation\s*:/i.test(s) && /<h3\b/i.test(s)) {
+    s = s.replace(/<h3\b([^>]*)>\s*(?!recommendation\s*:)([\s\S]*?)<\/h3>/i, (_m, attrs: string, inner: string) => {
+      const plain = inner.replace(/<[^>]+>/g, "").trim().replace(/^recommendation\s*[:.-]?\s*/i, "");
+      return `<h3${attrs}>Recommendation: ${plain || "Local Strategy"}</h3>`;
+    });
+  }
   if (!/<blockquote\b/i.test(s)) {
     const afterH2 = s.replace(/^[\s\S]*?<\/h2>\s*/i, "");
     const firstP = afterH2.match(/^<p>([\s\S]*?)<\/p>/i);
     if (firstP?.[1] && firstP[1].length > 80) {
       s = s.replace(firstP[0], `<blockquote><p>${firstP[1]}</p></blockquote>`);
+    }
+  }
+  if (/<blockquote\b/i.test(s) && !/<h3\b[^>]*>\s*recommendation\s*:/i.test(s)) {
+    const bqCloseIdx = s.toLowerCase().indexOf("</blockquote>");
+    if (bqCloseIdx >= 0) {
+      const afterBq = s.slice(bqCloseIdx + "</blockquote>".length).trim();
+      if (/^<p\b/i.test(afterBq)) {
+        s = `${s.slice(0, bqCloseIdx + "</blockquote>".length)}\n<h3>Recommendation: Recommended Approach</h3>\n${afterBq}`;
+      }
     }
   }
   return s.trim();
@@ -348,6 +378,9 @@ export function finalizeHarnessSectionHtml(
     s = enforceHarnessSectionHeadingTitle(s, "Overview");
     s = injectHarnessSectionH2AnchorId(s, HARNESS_OVERVIEW_ANCHOR_ID);
   } else {
+    if (opts.isIllustrative) {
+      s = normalizeIllustrativeHarnessHtml(s, opts.title);
+    }
     s = normalizeBodySectionProseHtml(s);
     s = trimHarnessSectionToCompleteSentences(s);
     s = enforceHarnessSectionHeadingTitle(s, opts.title);

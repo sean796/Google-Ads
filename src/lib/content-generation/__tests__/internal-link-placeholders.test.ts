@@ -70,9 +70,9 @@ describe("INTERNAL_LINK_PLACEHOLDER_PROMPT_BLOCK", () => {
     expect(INTERNAL_LINK_PLACEHOLDER_PROMPT_BLOCK).toContain("Informational keywords");
     expect(INTERNAL_LINK_PLACEHOLDER_PROMPT_BLOCK).toContain("If the same brand or product name appears in both");
     expect(INTERNAL_LINK_PLACEHOLDER_PROMPT_BLOCK).toContain("INTERNAL LINKS PER SECTION");
-    expect(INTERNAL_LINK_PLACEHOLDER_PROMPT_BLOCK).toContain("up to about **5**");
-    expect(INTERNAL_LINK_PLACEHOLDER_PROMPT_BLOCK).not.toContain("at least 2 [[LINK:");
-    expect(INTERNAL_LINK_PLACEHOLDER_FEATURE_SUFFIX).toContain("where a relevant internal target exists");
+    expect(INTERNAL_LINK_PLACEHOLDER_PROMPT_BLOCK).toContain("2 to 4");
+    expect(INTERNAL_LINK_PLACEHOLDER_PROMPT_BLOCK).toContain("2-4 [[LINK:");
+    expect(INTERNAL_LINK_PLACEHOLDER_FEATURE_SUFFIX).toContain("2-4 [[LINK:query|anchor]] per body H2");
     expect(INTERNAL_LINK_PLACEHOLDER_PROMPT_BLOCK).toContain("table cells");
     expect(INTERNAL_LINK_PLACEHOLDER_PROMPT_BLOCK).toContain("[text](https://...)");
     expect(INTERNAL_LINK_PLACEHOLDER_PROMPT_BLOCK).toContain(". durable window coverings");

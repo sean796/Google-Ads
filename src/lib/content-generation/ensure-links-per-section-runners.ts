@@ -3,7 +3,10 @@ import { aiWeaveInternalLinkInSectionHtml } from "@/lib/content-generation/ai-we
 import { getProductionModel } from "@/lib/optimization-settings-storage";
 import type { LinkTargetsPlan } from "@/lib/bulk/bulk-generation-wp-inventory";
 import { normalizeInternalLinkUrl } from "@/lib/content-generation/internal-link-intent-match";
-import { TARGET_INTERNAL_LINKS_PER_BODY_H2 } from "@/lib/content-generation/link-anchor-text-case";
+import {
+  MIN_INTERNAL_LINKS_PER_BODY_H2,
+  TARGET_INTERNAL_LINKS_PER_BODY_H2,
+} from "@/lib/content-generation/link-anchor-text-case";
 import {
   blogPlayLinkPool,
   buildValidInternalUrlSet,
@@ -222,6 +225,7 @@ export function applyLinkTargetsPlanToHtmlDeterministic(
 
   let currentHtml = htmlContent;
   const headingSections = splitHtmlByHeadingSections(currentHtml);
+  let catalogCursor = 0;
 
   for (let i = 0; i < headingSections.length; i++) {
     let section = headingSections[i]!;
@@ -241,6 +245,26 @@ export function applyLinkTargetsPlanToHtmlDeterministic(
 
     for (const pick of planned) {
       tryInsert(pick);
+    }
+
+    while (
+      countInternalLinksInHtml(section, siteHost, validUrls) < MIN_INTERNAL_LINKS_PER_BODY_H2 &&
+      catalogCursor < allowedForLinking.length
+    ) {
+      const post = allowedForLinking[catalogCursor]!;
+      catalogCursor += 1;
+      if (!post.link?.trim()) continue;
+      tryInsert({ title: post.title, link: post.link });
+    }
+
+    while (
+      countInternalLinksInHtml(section, siteHost, validUrls) < TARGET_INTERNAL_LINKS_PER_BODY_H2 &&
+      catalogCursor < allowedForLinking.length
+    ) {
+      const post = allowedForLinking[catalogCursor]!;
+      catalogCursor += 1;
+      if (!post.link?.trim()) continue;
+      tryInsert({ title: post.title, link: post.link });
     }
 
     headingSections[i] = section;
@@ -305,6 +329,8 @@ export async function applyLinkTargetsPlanToHtml(
   };
 
   let currentHtml = htmlContent;
+  const siteHost = getSiteHost(siteUrl);
+  const validUrls = buildValidInternalUrlSet(allowedForLinking, siteHost);
   const usedUrls = new Set(extractInternalLinksFromContent(currentHtml, siteUrl));
   const headingSections = splitHtmlByHeadingSections(currentHtml);
 
@@ -315,9 +341,12 @@ export async function applyLinkTargetsPlanToHtml(
     const sectionTitle = sectionHeadingPlainTitle(section);
     if (!sectionTitle.trim()) continue;
 
+    const existingSectionCount = countInternalLinksInHtml(section, siteHost, validUrls);
+    if (existingSectionCount >= TARGET_INTERNAL_LINKS_PER_BODY_H2) continue;
+
     const planned = plannedLinksForSection(sectionTitle, linkTargetsPlan, usedUrls).slice(
       0,
-      TARGET_INTERNAL_LINKS_PER_BODY_H2,
+      TARGET_INTERNAL_LINKS_PER_BODY_H2 - existingSectionCount,
     );
 
     for (const pick of planned) {
@@ -333,6 +362,27 @@ export async function applyLinkTargetsPlanToHtml(
         signal,
       });
       usedUrls.add(normPostLink(pick.link));
+    }
+
+    let sectionLinksNow = countInternalLinksInHtml(section, siteHost, validUrls);
+    if (planned.length > 0 && sectionLinksNow < MIN_INTERNAL_LINKS_PER_BODY_H2) {
+      const remainingPool = allowedForLinking.filter(
+        (p) => p.link?.trim() && !usedUrls.has(normPostLink(p.link)),
+      );
+      while (sectionLinksNow < MIN_INTERNAL_LINKS_PER_BODY_H2 && remainingPool.length > 0) {
+        const before = section;
+        section = await aiWeaveInternalLinkInSectionHtml(section, remainingPool, {
+          apiKey,
+          model: model?.trim() || getProductionModel(),
+          signal,
+        });
+        const nextCount = countInternalLinksInHtml(section, siteHost, validUrls);
+        if (nextCount <= sectionLinksNow || section === before) break;
+        sectionLinksNow = nextCount;
+        for (const u of extractInternalLinksFromContent(section, siteUrl)) {
+          usedUrls.add(u);
+        }
+      }
     }
 
     headingSections[i] = section;

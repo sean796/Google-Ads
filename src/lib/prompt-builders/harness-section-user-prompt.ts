@@ -1,4 +1,8 @@
 import { ARTICLE_MAX_WORDS, buildHarnessArticleBudgetBlock } from "@/lib/content-generation/article-length-policy";
+import {
+  MIN_INTERNAL_LINKS_PER_BODY_H2,
+  TARGET_INTERNAL_LINKS_PER_BODY_H2,
+} from "@/lib/content-generation/link-anchor-text-case";
 import { buildBlacklistRagBlock, FORBIDDEN_WORDS_USER_PROMPT_REMINDER } from "../content-word-blocklist";
 import { buildKeywordPunctuationPromptBlock, resolveWritingKeyword } from "./keyword-canonical-punctuation";
 import { formatDfsArticleAuditHarnessPromptBlockFromText } from "@/lib/dfs-article-audit/format-dfs-article-audit-harness";
@@ -381,8 +385,8 @@ No entity. General post; no locations or placeholders. ${ENTITY_FORBIDDEN}`;
       : connectedSite && !hasWordPressPosts
       ? "CRITICAL: Do NOT add internal links—no linkable URLs from API—for this section unless the system prompt lists URLs."
       : sectionLinkTargetsBlock?.trim()
-        ? `Include [[LINK:query|anchor]] placeholders where a relevant internal page genuinely supports this section's text. Follow THIS SECTION LINK ASSIGNMENTS above for the queries to use. Format is exactly [[LINK:query|anchor]] — never {{LINK:...}}, {LINK:...}, or raw https:// internal URLs in body sections.`
-        : `Include [[LINK:query|anchor]] placeholders where a relevant internal page genuinely supports this section's text, woven into prose and table cells. Use distinct plan queries when LINK TARGETS PLAN is present. Format is exactly [[LINK:query|anchor]] — never {{LINK:...}}, {LINK:...}, or raw https:// internal URLs in body sections.`,
+        ? `MANDATORY: Ship ${MIN_INTERNAL_LINKS_PER_BODY_H2}-${TARGET_INTERNAL_LINKS_PER_BODY_H2} distinct [[LINK:query|anchor]] placeholders in this body H2 (target ${TARGET_INTERNAL_LINKS_PER_BODY_H2}). Follow THIS SECTION LINK ASSIGNMENTS above first, then add PAGES/BLOG POSTS queries from the system prompt until you reach at least ${MIN_INTERNAL_LINKS_PER_BODY_H2}. Count [[LINK:...]] tokens before you stop. Format is exactly [[LINK:query|anchor]] — never {{LINK:...}}, {LINK:...}, or raw https:// internal URLs in body sections.`
+        : `MANDATORY: Include ${MIN_INTERNAL_LINKS_PER_BODY_H2}-${TARGET_INTERNAL_LINKS_PER_BODY_H2} [[LINK:query|anchor]] placeholders in this body H2 section (target ${TARGET_INTERNAL_LINKS_PER_BODY_H2} when this section has a table or 3+ paragraphs). Weave into prose and table cells. Use distinct plan queries when LINK TARGETS PLAN is present. Format is exactly [[LINK:query|anchor]] — never {{LINK:...}}, {LINK:...}, or raw https:// internal URLs in body sections.`,
     `Follow the section block for lists or quotes. ${MARKDOWN_QUOTE_OUTPUT_RULE} Use Markdown pipe tables only. NEVER HTML. ` + TABLE_NO_LINK_ONLY_COLUMN_RULE,
     hasApprovedExternals
       ? "User-specified externals only: weave [[EXTERNAL:exact-url|exact-anchor]] mid-sentence in a paragraph (same rules as [[LINK:...]]). Copy exact URL and anchor from APPROVED EXTERNAL URLs — never bare domain, never 'for more'/'here', never after the final period."

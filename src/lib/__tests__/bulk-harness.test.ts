@@ -252,8 +252,7 @@ describe('buildBulkHarnessSectionUserPrompt', () => {
       'topic keyword',
       ['Overview', 'Alpha Topic', 'Beta Topic'],
     );
-    expect(prompt).toContain('where a relevant internal page');
-    expect(prompt).not.toContain('at least 2 [[LINK:');
+    expect(prompt).toContain('2-4 [[LINK:');
     expect(prompt).toContain('never {{LINK:');
   });
 
@@ -494,7 +493,7 @@ describe('press release harness linking (same as blogs)', () => {
       'press_release',
       'blinds',
     );
-    expect(prompt).toContain('where a relevant internal page');
+    expect(prompt).toContain('2-4 [[LINK:');
     expect(prompt).toContain('No third-party external links');
     expect(prompt).toContain('NEVER link to competitors');
     expect(prompt).not.toContain('[anchor](exact-url)');

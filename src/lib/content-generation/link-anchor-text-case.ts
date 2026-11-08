@@ -94,13 +94,14 @@ export const INTERNAL_LINK_ANCHOR_CASE_RULE = `**INTERNAL LINK ANCHOR CASE (NON-
 export const MIN_INTERNAL_LINKS_PER_BODY_H2 = 2;
 
 /** Target [[LINK]] count per body H2 (tables and longer sections). */
-export const TARGET_INTERNAL_LINKS_PER_BODY_H2 = 5;
+export const TARGET_INTERNAL_LINKS_PER_BODY_H2 = 4;
 
-export const INTERNAL_LINKS_PER_SECTION_RULE = `**INTERNAL LINKS PER SECTION**:
-- Include [[LINK:query|anchor]] placeholders where a relevant internal page genuinely supports the text, up to about **${TARGET_INTERNAL_LINKS_PER_BODY_H2}** in a long section. A section with no relevant target has no internal link. Do not add links to reach a count.
+export const INTERNAL_LINKS_PER_SECTION_RULE = `**INTERNAL LINKS PER SECTION (NON-NEGOTIABLE)**:
+- Every body H2 section (not Overview, not FAQ, not Answer) MUST include **${MIN_INTERNAL_LINKS_PER_BODY_H2} to ${TARGET_INTERNAL_LINKS_PER_BODY_H2}** distinct [[LINK:query|anchor]] placeholders. Aim for **${TARGET_INTERNAL_LINKS_PER_BODY_H2}** when the section has a table or 3+ paragraphs.
 - Spread links across prose paragraphs and table cells. Weave each [[LINK]] mid-sentence with words before and after the token.
-- When THIS SECTION LINK ASSIGNMENTS or LINK TARGETS PLAN lists entries for this H2, use those assigned queries (exact query string) for the links you do include.
-- Forbidden: a leftover keyword, page title, or [[LINK]] after the last period (". durable window coverings"). Never write "Related reading:" or "See [link]." tails at the end of a paragraph. All internal links must be woven in context mid-sentence. If you cannot weave a remaining link inside a sentence you are already writing, STOP. Do not append it.`;
+- When THIS SECTION LINK ASSIGNMENTS or LINK TARGETS PLAN lists entries for this H2, emit one [[LINK]] for each assigned query (exact query string) before using any other inventory title.
+- Forbidden: a leftover keyword, page title, or [[LINK]] after the last period (". durable window coverings"). Never write "Related reading:" or "See [link]." tails at the end of a paragraph. All internal links must be woven in context mid-sentence. If you cannot weave a remaining link inside a sentence you are already writing, STOP. Do not append it.
+- Forbidden: shipping a body H2 with fewer than ${MIN_INTERNAL_LINKS_PER_BODY_H2} internal links when PAGES or BLOG POSTS inventory exists.`;
 
 function isMixedCaseBrand(word: string): boolean {
   if (word.length < 3 || !/^[A-Z]/.test(word)) return false;

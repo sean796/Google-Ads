@@ -333,4 +333,4 @@ FORBIDDEN in body sections: pasted https:// internal URLs (Overview uses # ancho
 === END INTERNAL LINK PLACEHOLDERS ===`;
 
 export const INTERNAL_LINK_PLACEHOLDER_FEATURE_SUFFIX =
-  `[[LINK:query|anchor]] where a relevant internal target exists (prose + table cells; no raw https:// internal URLs)`;
+  `${MIN_INTERNAL_LINKS_PER_BODY_H2}-${TARGET_INTERNAL_LINKS_PER_BODY_H2} [[LINK:query|anchor]] per body H2 (prose + table cells; no raw https:// internal URLs)`;

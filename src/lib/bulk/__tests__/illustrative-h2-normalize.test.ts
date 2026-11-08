@@ -92,6 +92,35 @@ describe("normalizeIllustrativeHarnessHtml (legacy helper)", () => {
     expect(out.toLowerCase()).not.toContain("scenario:");
     expect(out).not.toMatch(/realistic local situation/i);
   });
+
+  it("normalizes an h3 Pick Title or bold Recommendation line into <h3>Recommendation: ...</h3>", () => {
+    const raw = `<h2>How a Local Crew Doubled Bookings Before Spring</h2>
+<p>Seasonal slowdowns challenge residential window cleaning crews across the region.</p>
+<blockquote><p>Morgan runs a two-truck crew in Edmonton and needs bookings before spring thaw.</p></blockquote>
+<h3>Local SEO And Paid Search</h3>
+<p>Neo Digital would recommend pairing local SEO with targeted Google Ads before spring thaw.</p>`;
+    const out = finalizeHarnessSectionHtml(raw, {
+      isOverview: false,
+      isIllustrative: true,
+      title: "How a Local Crew Doubled Bookings Before Spring",
+    });
+    expect(out).toContain("<h3>Recommendation: Local SEO And Paid Search</h3>");
+    expect(out).toContain("<blockquote>");
+  });
+
+  it("inserts Recommendation h3 before trailing site-first paragraph when model omitted h3 tag", () => {
+    const raw = `<h2>How a Local Crew Doubled Bookings Before Spring</h2>
+<p>Seasonal slowdowns challenge residential window cleaning crews across the region.</p>
+<blockquote><p>Morgan runs a two-truck crew in Edmonton and needs bookings before spring thaw.</p></blockquote>
+<p>Neo Digital would recommend pairing local SEO with targeted Google Ads before spring thaw.</p>`;
+    const out = finalizeHarnessSectionHtml(raw, {
+      isOverview: false,
+      isIllustrative: true,
+      title: "How a Local Crew Doubled Bookings Before Spring",
+    });
+    expect(out).toContain("<h3>Recommendation: Recommended Approach</h3>");
+    expect(out).toContain("<blockquote>");
+  });
 });
 
 describe("finalizeHarnessSectionHtml illustrative", () => {

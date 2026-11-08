@@ -429,7 +429,7 @@ Example structure:
       "step": 1,
       "title": "[Primary Topic]: Key Rules",
       "description": "Provides an engaging overview of the topic with SEO-friendly context",
-      "features": ["[LIST]: Key points overview", "[LINK]: [[LINK:query|anchor]] placeholders where a relevant internal target exists (no raw https:// internal URLs)"],
+      "features": ["[LIST]: Key points overview", "[LINK]: 2-4 [[LINK:query|anchor]] placeholders per section (no raw https:// internal URLs)"],
       "h2Count": 1,
       "h3Count": 0,
       "h3Enabled": false,

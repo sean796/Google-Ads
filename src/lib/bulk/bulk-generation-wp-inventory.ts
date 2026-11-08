@@ -1,5 +1,9 @@
 import type { WordPressSite } from "@/components/integrations/types";
 import { INTERNAL_LINK_INTENT_ROUTING_RULE } from "@/lib/content-generation/internal-link-routing-rules";
+import {
+  MIN_INTERNAL_LINKS_PER_BODY_H2,
+  TARGET_INTERNAL_LINKS_PER_BODY_H2,
+} from "@/lib/content-generation/link-anchor-text-case";
 import { overviewSitemapSourcesForSite, pageSitemapXmlUrlForPlay } from "@/lib/overview/overview-sitemap-source";
 import { parseSitemap } from "@/lib/wordpress-api/connection";
 import type { SiteInventoryBulkRow } from "@/lib/wordpress-api/types";
@@ -308,7 +312,9 @@ export function formatLinkTargetsPlanForSection(
 
   return `
 === THIS SECTION LINK ASSIGNMENTS (H2: ${sectionTitle.trim()}) ===
-For each numbered assignment below that genuinely fits this section's text, emit a [[LINK:query|anchor]] placeholder (copy each query string exactly). Skip assignments that do not fit. Do not add other links to reach a count.
+You MUST emit ${MIN_INTERNAL_LINKS_PER_BODY_H2} to ${TARGET_INTERNAL_LINKS_PER_BODY_H2} distinct [[LINK:query|anchor]] placeholders in THIS section only (non-negotiable).
+First: emit one placeholder for EACH numbered assignment below (copy each query string exactly).
+Then: if you still have fewer than ${MIN_INTERNAL_LINKS_PER_BODY_H2} placeholders, add more [[LINK:query|anchor]] from PAGES or BLOG POSTS in the system prompt until you reach at least ${MIN_INTERNAL_LINKS_PER_BODY_H2}.
 ${lines.join("\n")}
 Weave every [[LINK]] mid-sentence in prose and/or table cells. Spread across the section; never dump links after the final period.
 === END THIS SECTION LINK ASSIGNMENTS ===`;
@@ -326,10 +332,10 @@ function formatLinkTargetsPlanPerSectionSummary(plan: LinkTargetsPlan): string {
     }
   }
   if (!bySection.size) return "";
-  const blocks: string[] = ["## Per-section assigned link queries"];
+  const blocks: string[] = ["## Per-section link counts (mandatory minimum per body H2)"];
   for (const [title, entries] of bySection) {
     blocks.push(
-      `- **${title}**: ${entries.length} assigned queries available for [[LINK]] placeholders where they fit.`,
+      `- **${title}**: ${entries.length} assigned queries → emit at least ${Math.min(MIN_INTERNAL_LINKS_PER_BODY_H2, entries.length)} [[LINK]] placeholders (target ${Math.min(TARGET_INTERNAL_LINKS_PER_BODY_H2, entries.length)}).`,
     );
   }
   return blocks.join("\n");
@@ -358,7 +364,7 @@ export function formatLinkTargetsPlanPrompt(plan: LinkTargetsPlan): string {
 === LINK TARGETS PLAN (predetermined — use these queries in [[LINK:query|anchor]]) ===
 ${perSectionSummary ? `${perSectionSummary}\n\n` : ""}${[pageBlock, blogBlock].filter(Boolean).join("\n\n")}
 ${INTERNAL_LINK_INTENT_ROUTING_RULE}
-Use assigned queries for a section where they genuinely fit that section's text. Do not force every assigned query into the article.
+Every body H2 section (not Overview, not FAQ, not Answer) MUST include ${MIN_INTERNAL_LINKS_PER_BODY_H2}-${TARGET_INTERNAL_LINKS_PER_BODY_H2} distinct [[LINK:query|anchor]] placeholders. Use every assigned query for that H2 from the per-section summary before reusing queries.
 Copy each query string EXACTLY from this plan. Anchor must match suggested anchor casing or share words from the destination title in sentence case (brands capitalized only).
 Product, service, and brand terms: use ASSIGNED PAGE LINKS queries only. Informational terms: use ASSIGNED BLOG LINKS queries only.
 === END LINK TARGETS PLAN ===`;

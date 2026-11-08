@@ -158,7 +158,7 @@ ${semrushAnchorList.map((a, i) => `${i + 1}. ${a}`).join("\n") || "(none)"}
 - Do NOT link to any other external domain. Do NOT invent or hallucinate URLs.
 - NEVER create "External Resources" sections for random sites.
 - **ABSOLUTELY FORBIDDEN: example.com** - NEVER use example.com, example.org, or any placeholder domain.
-- Internal links to ${siteRef} are REQUIRED (2-5 per body H2 section) via [[LINK:query|anchor]] from PAGES and BLOG POSTS titles. ${INTERNAL_LINK_INTENT_ROUTING_RULE}
+- Internal links to ${siteRef} are REQUIRED (2-4 per body H2 section) via [[LINK:query|anchor]] from PAGES and BLOG POSTS titles. ${INTERNAL_LINK_INTENT_ROUTING_RULE}
 - **CHECKLIST (CRITICAL)**: Every numbered checklist item MUST require BOTH internal links AND at least one Semrush external citation - never output items that only say "internal links" or "WordPress URLs only". Use the tags **[LINK]** (internal) and **[EXTERNAL_SEMRUSH]** (outbound) in each item.
 - **NEVER hallucinate external URLs in the checklist**: Any third-party URL shown in a checklist item must be copied verbatim from **SEMRUSH - APPROVED EXTERNAL URLs** above, or omit the URL string and only reference "URL #N from Semrush list".
 - **Tone**: In blueprint/checklist instructions, describe Semrush links as **neutral reference / knowledge-base** citations only - not as retail recommendations, "where to buy", or "where not to buy".`
@@ -168,7 +168,7 @@ ${semrushAnchorList.map((a, i) => `${i + 1}. ${a}`).join("\n") || "(none)"}
 - NEVER create "External Resources" sections.
 - NEVER link to competitors, manufacturers, or any other external domain.
 - **ABSOLUTELY FORBIDDEN: example.com** - NEVER use example.com, example.org, or any placeholder domain.
-- Internal links to ${siteRef} are REQUIRED (2-3 per body H2 section).`;
+- Internal links to ${siteRef} are REQUIRED (2-4 per body H2 section).`;
 
   const linksBulletExternal = hasSemrushExactMode
     ? `- Every section MUST specify BOTH:

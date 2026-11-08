@@ -53,8 +53,8 @@ export function buildBlogTemplateChecklistPromptAssembly(args: {
    - **[ARTICLE LENGTH]**: Entire published article MUST NOT exceed ${ARTICLE_MAX_WORDS} words.
    - Mix content types: Include [TABLE] or [LIST] where appropriate for variety. For lists, suggest both bulleted lists (unordered) and numbered lists (ordered) depending on the content type - use numbered lists for step-by-step processes, rankings, or sequences, and bulleted lists for features, benefits, or general items. Block quotes: MAXIMUM 1-2 per entire blueprint — use [BLOCKQUOTE] for the one [ILLUSTRATIVE] hypothetical worked example (priority) or entity facts when no illustrative section. Put [DECISION] on exactly one item, [TRADEOFF] on exactly one item, [ILLUSTRATIVE] on exactly one item (must include [BLOCKQUOTE] for the hypothetical), and [RECOMMENDATION] on exactly one item. Prefer a decision-criteria table over a second catalog table.
    - ${semrushParts.hasSemrushExactMode
-      ? `**[LINK] + [EXTERNAL_SEMRUSH]**: Include **${LINK_FEATURE_PLACEHOLDER}** where a relevant internal page exists. **[EXTERNAL_SEMRUSH]**: cite an outbound source only where a claim needs one - exact href from SEMRUSH APPROVED EXTERNAL URLs and exact anchor from SEMRUSH APPROVED ANCHOR PHRASES in the system prompt. Rotate different Semrush URLs across sections.`
-      : `**[LINK]**: Include **${LINK_FEATURE_PLACEHOLDER}** where a relevant internal page exists. ${INTERNAL_LINK_INTENT_ROUTING_RULE} Never end a sentence with a keyword or <a>. Never service-area URLs.`}
+      ? `**[LINK] + [EXTERNAL_SEMRUSH]**: MANDATORY for EVERY section. **${LINK_FEATURE_PLACEHOLDER}**. **[EXTERNAL_SEMRUSH]**: at least 1 outbound citation per section - exact href from SEMRUSH APPROVED EXTERNAL URLs and exact anchor from SEMRUSH APPROVED ANCHOR PHRASES in the system prompt. Spread citations across many sections (majority of H2 items); rotate different Semrush URLs.`
+      : `**[LINK]**: MANDATORY for EVERY section. **${LINK_FEATURE_PLACEHOLDER}**. ${INTERNAL_LINK_INTENT_ROUTING_RULE} Never end a sentence with a keyword or <a>. Never service-area URLs.`}
    - ${keywordDensityChecklistItemLine}
    - CRITICAL: PREVENT UNNECESSARY SUBLISTS: Explicitly state in each checklist item: "Note: Do NOT create sublists, bullet lists, or 'Key Features' lists unless the [LIST] feature is explicitly specified in this checklist item. Write content in flowing paragraphs only. Only include lists when [LIST] is explicitly mentioned as a feature requirement."
 ${checklistKeywordSpreadRules}
@@ -103,7 +103,7 @@ ${checklistExactPrimaryStructureLine}
 **Links**:
 ${semrushParts.linksBulletExternal}
 - Distribute selected keywords across sections as anchor text
-- If no keywords: "[LINK]: [[LINK:query|anchor]] placeholders where a relevant internal target exists (no raw https:// internal URLs)"
+- If no keywords: "[LINK]: 2-4 [[LINK:query|anchor]] placeholders per section (no raw https:// internal URLs)"
 - Weave keywords elegantly into anchor text - integrate them naturally within sentence structure using semantic variations and natural syntax
 ${checklistLinksKeywordBlock}
 - **CRITICAL: Keep anchor text SHORT (2-5 words maximum)** - only link the key phrase, NOT entire sentences. Extract only the essential keyword phrase for linking
@@ -217,19 +217,21 @@ ${checklistStructureRequirements}`;
   
   // Always add link requirements (Semrush mode: internal + outbound; otherwise internal-only unless keywords branch adds detail)
   if (semrushParts.hasSemrushExactMode) {
-    userPrompt += `\n\n--- INTERNAL + SEMRUSH OUTBOUND LINKS ---
-- Include "${LINK_FEATURE_PLACEHOLDER}" in a checklist item where a relevant internal page exists, and "[EXTERNAL_SEMRUSH]" only where a claim needs an outbound citation, drawn **only** from the numbered SEMRUSH APPROVED EXTERNAL URLs / ANCHOR PHRASES blocks in the system prompt.
+    userPrompt += `\n\n--- MANDATORY: INTERNAL + SEMRUSH OUTBOUND IN EVERY CHECKLIST ITEM (NON-NEGOTIABLE) ---
+- **EVERY numbered checklist item** must explicitly include BOTH: (1) "${LINK_FEATURE_PLACEHOLDER}", AND (2) "[EXTERNAL_SEMRUSH]" requiring at least one outbound citation drawn **only** from the numbered SEMRUSH APPROVED EXTERNAL URLs / ANCHOR PHRASES blocks in the system prompt.
 - **ZERO HALLUCINATED EXTERNAL URLS**: Do NOT type any third-party https:// URL in the checklist unless it is a **verbatim copy** from the SEMRUSH APPROVED EXTERNAL URLs list. **FORBIDDEN**: invented URLs, "e.g." external links, competitor domains, or plausible-looking URLs not in the list. **ALLOWED**: paste URL(s) exactly from the list, OR write "use SEMRUSH approved URL #N with anchor phrase #N" with no URL string.
 - Use **different Semrush list indices** across sections where possible.${selectedKeywords.length > 0 ? `\n- Selected keywords for internal anchor text variety: ${selectedKeywords.join(", ")}` : ""}`;
   } else if (selectedKeywords.length > 0) {
-    userPrompt += `\n\n--- INTERNAL LINKS ---
-- Include "${LINK_FEATURE_PLACEHOLDER}" where a relevant internal page exists
+    userPrompt += `\n\n--- MANDATORY: INTERNAL LINK REQUIREMENTS FOR ALL SECTIONS (NON-NEGOTIABLE) ---
+- Every H2 and H3 MUST include "${LINK_FEATURE_PLACEHOLDER}"
 - ${INTERNAL_LINK_INTENT_ROUTING_RULE} Never end a sentence with a keyword or <a>. Never service-area URLs.
-- Selected keywords for anchor text: ${selectedKeywords.join(", ")}`;
+- Selected keywords for anchor text: ${selectedKeywords.join(", ")}
+- **VALIDATION**: every section states [LINK] with [[LINK:query|anchor]]`;
   } else {
-    userPrompt += `\n\n--- INTERNAL LINKS ---
-- Include "${LINK_FEATURE_PLACEHOLDER}" where a relevant internal page exists
-- ${INTERNAL_LINK_INTENT_ROUTING_RULE} Never end a sentence with a keyword or <a>. Never service-area URLs.`;
+    userPrompt += `\n\n--- MANDATORY: INTERNAL LINK REQUIREMENTS FOR ALL SECTIONS (NON-NEGOTIABLE) ---
+- Every H2 and H3 MUST include "${LINK_FEATURE_PLACEHOLDER}"
+- ${INTERNAL_LINK_INTENT_ROUTING_RULE} Never end a sentence with a keyword or <a>. Never service-area URLs.
+- **VALIDATION**: every section states [LINK] with [[LINK:query|anchor]]`;
   }
   
   if (options.wordPressPagesForOfferTable?.length) {

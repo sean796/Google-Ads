@@ -35,7 +35,10 @@ import {
 } from "@/lib/content-generation/external-link-placeholders";
 import { repairHarnessHtmlForUpload } from "@/lib/content-generation/repair-harness-html";
 import { labelMapFromAnchorTargets } from "@/lib/content-generation/harness-link-leak-repair";
-import { applyLinkTargetsPlanToHtmlDeterministic } from "@/lib/content-generation/ensure-links-per-section";
+import {
+  applyLinkTargetsPlanToHtml,
+  applyLinkTargetsPlanToHtmlDeterministic,
+} from "@/lib/content-generation/ensure-links-per-section";
 
 export type HarnessUploadPrepWordPressPost = {
   id: number;
@@ -147,6 +150,19 @@ export async function prepareHarnessContentForUpload(
       currentPageUrl,
       siteUrl,
     });
+    if (apiKey?.trim()) {
+      htmlContent = await applyLinkTargetsPlanToHtml({
+        htmlContent,
+        linkTargetsPlan,
+        wordPressPosts: linkCatalog,
+        currentPageUrl,
+        siteUrl,
+        apiKey,
+        siteId,
+        model,
+        signal,
+      });
+    }
   }
 
   htmlContent = repairHarnessHtmlForUpload(htmlContent, linkLeakOpts);
