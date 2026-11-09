@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import pLimit from "p-limit";
 import type { MetaBulkMicroSnapshot } from "@/components/overview/overview-bulk-micro-progress-helpers";
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import type { BulkOptimizationState } from "@/hooks/content-optimization/use-optimization-state";
@@ -7,9 +6,11 @@ import type { OverviewTabController } from "@/hooks/overview/use-overview-tab-co
 import type { BulkDetailsDownloadable } from "@/components/shared/bulk-details-tile-sections-helpers";
 import type { BulkGeneratorDetailsPanelProps } from "@/components/keyword-research/bulk/BulkGeneratorDetailsPanel";
 import type { StudioEditorModeId } from "@/components/keyword-research/bulk/studio-editor-modes";
+import { stitchHarnessSections } from "@/lib/bulk/bulk-harness-outline";
 import { pathSlugToFocusHint } from "@/lib/overview/focus-keyword-path-hint";
 import { normalizeFocusKeywordPhrase } from "@/lib/seo-redirect-csv";
 import { runAutoSeoMetaAndFaqFinale } from "@/lib/overview/overview-auto-seo-meta-faq-finale";
+import { stripTrailingFaqSection } from "@/lib/overview/overview-blog-faq-append";
 import { recordOverviewStudioRevision } from "@/lib/overview/record-overview-studio-revision";
 import { clearOverviewStudioRevisions } from "@/lib/overview/studio-doc-revisions-store";
 import { elementorSectionHeadersFromCachedRow } from "@/lib/elementor-page-content/elementor-section-headers-from-cache";
@@ -134,31 +135,29 @@ export function useOverviewStudioAutoSeo({
           }
         }
 
-        // 2. Content sections (Answer, Overview, passages, Elementor)
+        // 2. Content sections (Answer, Overview, passages, Elementor) + SEO Title, Meta & FAQs in parallel
         idx = resolveTargetIndex();
         if (idx < 0) return;
         latestRow = c.rowsRef.current[idx] ?? latestRow;
 
-        // Content Sections (Passage-by-Passage or Elementor Sections)
         const isPages =
           c.sitemapSource === "pages" ||
           latestRow.contentFormat === "elementor" ||
           Boolean(latestRow.elementorDataJson?.trim());
 
-        if (isPages) {
-          const headers = elementorSectionHeadersFromCachedRow(latestRow).filter(
-            (sec) => {
-              const key = (sec.title ?? "").trim().toLowerCase();
-              return key !== "faq" && key !== "frequently asked questions";
-            },
-          );
-          const siblingTitles = headers.map((s) => s.title);
-          const workingHeaders = [...headers];
-          const elLimit = pLimit(6);
+        const runBodyRewriteTask = async () => {
+          if (isPages) {
+            const headers = elementorSectionHeadersFromCachedRow(latestRow).filter(
+              (sec) => {
+                const key = (sec.title ?? "").trim().toLowerCase();
+                return key !== "faq" && key !== "frequently asked questions";
+              },
+            );
+            const siblingTitles = headers.map((s) => s.title);
+            const workingHeaders = [...headers];
 
-          const sectionResults = await Promise.all(
-            workingHeaders.map((sec, i) =>
-              elLimit(async () => {
+            const sectionResults = await Promise.all(
+              workingHeaders.map(async (sec, i) => {
                 const secBody = (sec.bodyHtml || sec.bodyText || "").trim();
                 if (!secBody) return null;
                 setPassageStatus({
@@ -177,7 +176,7 @@ export function useOverviewStudioAutoSeo({
                       title: sec.title,
                       bodyHtml: secBody,
                     },
-                    siblingTitles: siblingTitles.filter((_, idx) => idx !== i),
+                    siblingTitles: siblingTitles.filter((_, sIdx) => sIdx !== i),
                     articleTitle: latestRow.aiTitle?.trim() || latestRow.title || "",
                     focusKeyword: latestRow.focusKeyword?.trim() || "",
                     seoResearchBrief: latestRow.seoResearch,
@@ -193,38 +192,38 @@ export function useOverviewStudioAutoSeo({
                   return null;
                 }
               }),
-            ),
-          );
+            );
 
-          for (const res of sectionResults) {
-            if (!res) continue;
-            const { i, sec, elBefore, normalizedHtml } = res;
-            recordOverviewStudioRevision({
-              pageUrl: targetUrl,
-              stepLabel: sec.title?.trim() || `Section ${i + 1}`,
-              sectionTitle: sec.title?.trim() || undefined,
-              beforeHtml: elBefore,
-              afterHtml: normalizedHtml,
-            });
-            workingHeaders[i] = {
-              ...sec,
-              bodyHtml: normalizedHtml,
-              bodyText: prosePlainText(normalizedHtml),
-            };
+            for (const res of sectionResults) {
+              if (!res) continue;
+              const { i, sec, elBefore, normalizedHtml } = res;
+              recordOverviewStudioRevision({
+                pageUrl: targetUrl,
+                stepLabel: sec.title?.trim() || `Section ${i + 1}`,
+                sectionTitle: sec.title?.trim() || undefined,
+                beforeHtml: elBefore,
+                afterHtml: normalizedHtml,
+              });
+              workingHeaders[i] = {
+                ...sec,
+                bodyHtml: normalizedHtml,
+                bodyText: prosePlainText(normalizedHtml),
+              };
+            }
+            const curIdx = resolveTargetIndex();
+            if (curIdx >= 0) {
+              c.updateRow(curIdx, {
+                elementorSectionHeaders: [...workingHeaders],
+              });
+            }
+            return null;
           }
-          idx = resolveTargetIndex();
-          if (idx >= 0) {
-            c.updateRow(idx, {
-              elementorSectionHeaders: [...workingHeaders],
-            });
-          }
-          setPassageStatus(null);
-        } else {
+
           const currentBody =
             latestRow.postContentOptimized?.trim() ||
             latestRow.postContent?.trim() ||
             bodyHtml;
-          await runAutoSeoBlogBodyRewrite({
+          return runAutoSeoBlogBodyRewrite({
             sourceHtml: currentBody,
             articleTitle: latestRow.aiTitle?.trim() || latestRow.title || "",
             focusKeyword: latestRow.focusKeyword?.trim() || "",
@@ -240,22 +239,22 @@ export function useOverviewStudioAutoSeo({
               });
             },
             onCommitHtml: (html, h2Titles) => {
-              idx = resolveTargetIndex();
-              if (idx < 0) return;
-              c.updateRow(idx, {
+              const curIdx = resolveTargetIndex();
+              if (curIdx < 0) return;
+              c.updateRow(curIdx, {
                 postContentOptimized: html,
                 postContent: html,
                 ...(h2Titles.length > 0 ? { blogH2List: h2Titles } : {}),
               });
             },
           });
-          setPassageStatus(null);
-        }
+        };
 
-        idx = resolveTargetIndex();
-        if (idx >= 0) {
+        const runMetaAndFaqTask = async () => {
+          const curIdx = resolveTargetIndex();
+          if (curIdx < 0) return;
           await runAutoSeoMetaAndFaqFinale({
-            rowIndex: idx,
+            rowIndex: curIdx,
             pageUrl: targetUrl,
             getRow: () => {
               const i = resolveTargetIndex();
@@ -272,6 +271,32 @@ export function useOverviewStudioAutoSeo({
                 total: 2,
               });
             },
+          });
+        };
+
+        const [bodyResult] = await Promise.all([
+          runBodyRewriteTask(),
+          runMetaAndFaqTask(),
+        ]);
+
+        // Reconcile rewritten body HTML with the parallel FAQ section
+        idx = resolveTargetIndex();
+        if (idx >= 0 && bodyResult && !isPages) {
+          const rowAfter = c.rowsRef.current[idx];
+          const currentHtml = (rowAfter?.postContentOptimized || rowAfter?.postContent || "").trim();
+          const currentWithoutFaq = stripTrailingFaqSection(currentHtml);
+          const latestFaqBlock =
+            currentHtml.length > currentWithoutFaq.length
+              ? currentHtml.slice(currentWithoutFaq.length).trim()
+              : bodyResult.trailingFaq;
+          const bodyCore = stripTrailingFaqSection(bodyResult.html);
+          const mergedHtml = stitchHarnessSections(
+            [bodyCore, latestFaqBlock].filter((part) => Boolean(part?.trim())),
+          );
+          c.updateRow(idx, {
+            postContentOptimized: mergedHtml,
+            postContent: mergedHtml,
+            ...(bodyResult.h2Titles.length > 0 ? { blogH2List: bodyResult.h2Titles } : {}),
           });
         }
       } finally {

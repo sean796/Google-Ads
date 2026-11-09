@@ -350,24 +350,23 @@ export async function generateMarkdownContentHarnessed(
   if (overviewMaxTokens == null) {
     throw new Error('Harness: missing token budget for Overview');
   }
-  const answerMd = await runBlogHarnessSection(answerAgent, 0, 'Answer', {
-    maxTokens: answerMaxTokens,
-    isOverviewSection: false,
-    isAnswerSection: true,
-    publishedPlanIndex: 0,
-    otherSectionTitles: ['Overview', ...bodyOutline.map((x) => x.displayTitle)],
-  });
 
-  await ensureIllustrativePersonaCached(answerMd);
+  await ensureIllustrativePersonaCached();
 
-  const [overviewMd, ...bodyPieces] = await Promise.all([
+  const [answerMd, overviewMd, ...bodyPieces] = await Promise.all([
+    runBlogHarnessSection(answerAgent, 0, 'Answer', {
+      maxTokens: answerMaxTokens,
+      isOverviewSection: false,
+      isAnswerSection: true,
+      publishedPlanIndex: 0,
+      otherSectionTitles: ['Overview', ...bodyOutline.map((x) => x.displayTitle)],
+    }),
     runBlogHarnessSection(overviewAgent, 1, 'Overview', {
       maxTokens: overviewMaxTokens,
       isOverviewSection: true,
       inPageAnchorBlock: overviewInPageAnchorBlock,
       publishedPlanIndex: 1,
       otherSectionTitles: bodyOutline.map((x) => x.displayTitle),
-      answerSectionHtml: answerMd,
     }),
     ...bodyAgents.map((agent, bi) => {
       const titleForCb = bodyOutline[bi]!.displayTitle;
@@ -381,7 +380,6 @@ export async function generateMarkdownContentHarnessed(
         isOverviewSection: false,
         publishedPlanIndex: bi + 2,
         otherSectionTitles,
-        answerSectionHtml: answerMd,
       });
     }),
   ]);

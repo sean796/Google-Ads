@@ -29,7 +29,7 @@ type FaqHandler = (
   },
 ) => Promise<unknown>;
 
-/** After body content: run SEO Title, then Meta Description, then FAQs strictly one by one (never in parallel). */
+/** Run SEO Title, Meta Description, and FAQs concurrently in one parallel wave. */
 export async function runAutoSeoMetaAndFaqFinale(args: {
   rowIndex: number;
   pageUrl: string;
@@ -53,61 +53,57 @@ export async function runAutoSeoMetaAndFaqFinale(args: {
     onStepStart,
   } = args;
 
-  // 1. SEO Title & Meta Description (in parallel)
-  onStepStart?.("SEO Title & Meta Description");
   const initialRow = getRow();
-  if (initialRow) {
-    const titleBefore = (initialRow.aiTitle || initialRow.title || "").trim();
-    const metaBefore = (initialRow.aiMeta || initialRow.metaDescription || "").trim();
+  if (!initialRow) return;
 
-    const runTitleTask = async () => {
-      if (overviewTitleOptimizationExcluded(initialRow)) return;
-      try {
-        await handleAiTitleRow(rowIndex, initialRow, { skipOptimizeTitleLoading: true });
-        const updatedRow = getRow() ?? initialRow;
-        const titleAfter = (updatedRow.aiTitle || updatedRow.title || "").trim();
-        recordOverviewStudioTextRevision({
-          pageUrl,
-          stepLabel: "SEO Title",
-          runId: revisionRunId,
-          beforeText: titleBefore,
-          afterText: titleAfter,
-        });
-      } catch (err) {
-        logger.warn("[Auto SEO] Title step warning for", pageUrl, err);
-      }
-    };
+  const titleBefore = (initialRow.aiTitle || initialRow.title || "").trim();
+  const metaBefore = (initialRow.aiMeta || initialRow.metaDescription || "").trim();
+  const faqBefore =
+    initialRow.faq?.trim() ||
+    extractFaqFromPostHtml(initialRow.postContentOptimized || initialRow.postContent || "") ||
+    "";
 
-    const runMetaTask = async () => {
-      try {
-        await handleAiMetaRow(rowIndex, initialRow, { skipOptimizeMetaLoading: true });
-        const updatedRow = getRow() ?? initialRow;
-        const metaAfter = (updatedRow.aiMeta || updatedRow.metaDescription || "").trim();
-        recordOverviewStudioTextRevision({
-          pageUrl,
-          stepLabel: "Meta Description",
-          runId: revisionRunId,
-          beforeText: metaBefore,
-          afterText: metaAfter,
-        });
-      } catch (err) {
-        logger.warn("[Auto SEO] Meta step warning for", pageUrl, err);
-      }
-    };
-
-    await Promise.all([runTitleTask(), runMetaTask()]);
-  }
-
-  // 2. FAQs (runs after Title & Meta finish)
+  onStepStart?.("SEO Title & Meta Description");
   onStepStart?.("FAQs");
-  const row = getRow() ?? initialRow;
-  if (row) {
-    const faqBefore =
-      row.faq?.trim() ||
-      extractFaqFromPostHtml(row.postContentOptimized || row.postContent || "") ||
-      "";
+
+  const runTitleTask = async () => {
+    if (overviewTitleOptimizationExcluded(initialRow)) return;
     try {
-      await handleAiFaqRowAll(rowIndex, row, {
+      await handleAiTitleRow(rowIndex, initialRow, { skipOptimizeTitleLoading: true });
+      const updatedRow = getRow() ?? initialRow;
+      const titleAfter = (updatedRow.aiTitle || updatedRow.title || "").trim();
+      recordOverviewStudioTextRevision({
+        pageUrl,
+        stepLabel: "SEO Title",
+        runId: revisionRunId,
+        beforeText: titleBefore,
+        afterText: titleAfter,
+      });
+    } catch (err) {
+      logger.warn("[Auto SEO] Title step warning for", pageUrl, err);
+    }
+  };
+
+  const runMetaTask = async () => {
+    try {
+      await handleAiMetaRow(rowIndex, initialRow, { skipOptimizeMetaLoading: true });
+      const updatedRow = getRow() ?? initialRow;
+      const metaAfter = (updatedRow.aiMeta || updatedRow.metaDescription || "").trim();
+      recordOverviewStudioTextRevision({
+        pageUrl,
+        stepLabel: "Meta Description",
+        runId: revisionRunId,
+        beforeText: metaBefore,
+        afterText: metaAfter,
+      });
+    } catch (err) {
+      logger.warn("[Auto SEO] Meta step warning for", pageUrl, err);
+    }
+  };
+
+  const runFaqTask = async () => {
+    try {
+      await handleAiFaqRowAll(rowIndex, initialRow, {
         silentToast: true,
         skipFaqLoading: true,
         skipUploadAfterRowWrite: true,
@@ -129,5 +125,7 @@ export async function runAutoSeoMetaAndFaqFinale(args: {
     } catch (err) {
       logger.warn("[Auto SEO] FAQ step warning for", pageUrl, err);
     }
-  }
+  };
+
+  await Promise.all([runTitleTask(), runMetaTask(), runFaqTask()]);
 }

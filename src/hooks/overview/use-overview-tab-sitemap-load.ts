@@ -28,11 +28,20 @@ import {
   NEO_PULSE_SITE_DATA_REFRESHED_EVENT,
 } from "@/lib/local-analysis/entity-site-warm-cache";
 import { applyOverviewStudioInventoryFromCache } from "@/lib/overview/overview-studio-inventory-init";
+import { isTruncatedAiseoSourceBody } from "@/lib/overview/overview-aiseo-source-html";
 import { syncOverviewRowsFromWarmCache } from "@/lib/overview/overview-sitemap-warm-rows-sync";
 import { fetchOverviewStudioSnapshotFromServer } from "@/lib/overview/overview-studio-snapshot-api";
 import type { WordPressSite } from "@/components/integrations/types";
 import type { OverviewBinding } from "@/hooks/overview/use-overview-wordpress-binding";
 import type { OverviewTabBase } from "@/hooks/overview/use-overview-tab-base";
+
+function rowHasFullCachedBody(row: OverviewRow, source: OverviewSitemapSource): boolean {
+  if (row.elementorDataJson?.trim()) return true;
+  const html = (row.postContentOptimized?.trim() || row.postContent?.trim() || "").trim();
+  if (!html) return false;
+  if (source === "pages") return true;
+  return !isTruncatedAiseoSourceBody(html);
+}
 
 type Args = Pick<
   OverviewTabBase,
@@ -368,8 +377,8 @@ export function useOverviewTabSitemapLoad({
     }
     const needsBodies =
       !initialRows.length ||
-      !initialRows.some(
-        (r) => Boolean(r.postContent?.trim() || r.elementorDataJson?.trim()),
+      initialRows.some(
+        (r) => Boolean(r.url?.trim()) && !rowHasFullCachedBody(r, activeSource),
       );
 
     const generation = loadGenerationRef.current;
@@ -384,16 +393,19 @@ export function useOverviewTabSitemapLoad({
           skipServerSync: true,
         });
         setRows(serverSnap.rows);
-        return;
+        const snapNeedsBodies = serverSnap.rows.some(
+          (r) => Boolean(r.url?.trim()) && !rowHasFullCachedBody(r, activeSource),
+        );
+        if (!snapNeedsBodies) {
+          return;
+        }
       }
-      if (!initialRows.length) {
-        void loadOverviewSourceRef.current(site, activeSource, {
-          force: false,
-          silent: true,
-          applyToUi: true,
-          generation,
-        });
-      }
+      void loadOverviewSourceRef.current(site, activeSource, {
+        force: true,
+        silent: true,
+        applyToUi: true,
+        generation,
+      });
     });
   }, [
     site,

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   FIRST_PARAGRAPH_AUTHORITY_RULE,
   FIRST_PARTY_AUTHORITY_WRITING_RULE,
+  BUSINESS_CONTACT_CAP_RULE,
   A_PLUS_HOMEOWNER_ARTICLE_RULE,
   AISO_DEPTH_RULE,
   INSTALLER_EXPERTISE_GATE_RULE,
@@ -202,6 +203,16 @@ describe("first-party authority prompt blocks", () => {
         seoResearch: "ChatGPT SWOT: years of experience, no install count listed.",
       }),
     ).toContain("years of experience");
+  });
+});
+
+describe("business contact cap", () => {
+  it("limits contact details to Answer, one middle anchor, and the final paragraph", () => {
+    expect(BUSINESS_CONTACT_CAP_RULE).toContain("at most 3 times");
+    expect(BUSINESS_CONTACT_CAP_RULE).toContain("Answer paragraph");
+    expect(BUSINESS_CONTACT_CAP_RULE).toContain("[ILLUSTRATIVE] recommendation paragraph");
+    expect(BUSINESS_CONTACT_CAP_RULE).toContain("final paragraph of the last body section");
+    expect(FIRST_PARTY_AUTHORITY_WRITING_RULE).toContain("BUSINESS CONTACT CAP slots");
   });
 });
 

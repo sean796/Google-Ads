@@ -1,5 +1,6 @@
 import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 import { reclaimBloatedLocalStorageQuota } from "@/lib/local-analysis/site-prefetch-persist";
+import { pickBestAiseoSourceHtml } from "@/lib/overview/overview-aiseo-source-html";
 import type { OverviewSitemapSource } from "@/lib/overview/overview-sitemap-source";
 import { clearOverviewSitemapLoadFingerprints } from "@/lib/overview/overview-sitemap-load-cache";
 import { saveOverviewStudioSnapshotToServer } from "@/lib/overview/overview-studio-snapshot-api";
@@ -130,10 +131,14 @@ export function setOverviewRowsSessionCache(
       pageHeading: norm.pageHeading?.trim() ? norm.pageHeading : prev.pageHeading,
       metaDescription: norm.metaDescription?.trim() ? norm.metaDescription : prev.metaDescription,
       focusKeyword: norm.focusKeyword?.trim() ? norm.focusKeyword : prev.focusKeyword,
-      postContent: norm.postContent?.trim() ? norm.postContent : prev.postContent,
-      postContentOptimized: norm.postContentOptimized?.trim()
-        ? norm.postContentOptimized
-        : prev.postContentOptimized,
+      postContent:
+        pickBestAiseoSourceHtml(norm.postContent, prev.postContent) ||
+        norm.postContent?.trim() ||
+        prev.postContent,
+      postContentOptimized:
+        pickBestAiseoSourceHtml(norm.postContentOptimized, prev.postContentOptimized) ||
+        norm.postContentOptimized?.trim() ||
+        prev.postContentOptimized,
       elementorDataJson: norm.elementorDataJson?.trim()
         ? norm.elementorDataJson
         : prev.elementorDataJson,

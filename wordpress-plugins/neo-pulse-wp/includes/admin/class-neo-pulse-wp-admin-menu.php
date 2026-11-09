@@ -51,7 +51,7 @@ class Neo_Pulse_Wp_Admin_Menu {
 			'neo-pulse-wp-search'         => array( 'title' => __( 'Search', 'neo-pulse-wp' ), 'capability' => 'manage_options', 'callback' => array( $a, 'render_search_page' ) ),
 			'neo-pulse-wp-search-logs'    => array( 'title' => __( 'Search log', 'neo-pulse-wp' ), 'capability' => 'manage_options', 'callback' => array( $a, 'render_search_logs_page' ) ),
 			'neo-pulse-wp-backend-assist' => array( 'title' => __( 'Backend Assist', 'neo-pulse-wp' ), 'capability' => 'manage_options', 'callback' => array( $a, 'render_backend_assist_page' ) ),
-			'REMOVED_NEO_PULSE_WP_TOOL-library'   => array( 'title' => __( 'Tool library', 'neo-pulse-wp' ), 'capability' => 'edit_posts', 'callback' => array( $a, 'render_tool_library_page' ) ),
+			'neo-pulse-wp-tool-library'   => array( 'title' => __( 'Tool library', 'neo-pulse-wp' ), 'capability' => 'edit_posts', 'callback' => array( $a, 'render_tool_library_page' ) ),
 			'neo-pulse-wp-analytics'      => array( 'title' => __( 'Search Console', 'neo-pulse-wp' ), 'capability' => $cap, 'callback' => array( $a, 'render_analytics_page' ) ),
 			'neo-pulse-wp-overseer'       => array( 'title' => __( 'Visitors', 'neo-pulse-wp' ), 'capability' => 'manage_options', 'callback' => array( $a, 'render_overseer_page' ) ),
 			'neo-pulse-wp-script-manager' => array( 'title' => __( 'Script Manager', 'neo-pulse-wp' ), 'capability' => 'manage_options', 'callback' => array( $a, 'render_script_manager_page' ) ),
@@ -124,7 +124,7 @@ class Neo_Pulse_Wp_Admin_Menu {
 				'group' => $ai,
 				'tabs'  => array(
 					array( 'label' => __( 'Assistant', 'neo-pulse-wp' ), 'page' => 'neo-pulse-wp-backend-assist' ),
-					array( 'label' => __( 'Tool library', 'neo-pulse-wp' ), 'page' => 'REMOVED_NEO_PULSE_WP_TOOL-library' ),
+					array( 'label' => __( 'Tool library', 'neo-pulse-wp' ), 'page' => 'neo-pulse-wp-tool-library' ),
 				),
 			),
 			'insights'       => array(

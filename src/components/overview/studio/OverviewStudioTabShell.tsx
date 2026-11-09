@@ -6,6 +6,7 @@ import {
   CONTENT_OPTIMIZER_SQUARE_CONTROLS_CLASS,
   OVERVIEW_TAB_TYPO_CLASS,
 } from "@/components/overview/overview-tab/overview-tab-content-constants";
+import type { BulkSplashVisualKind } from "@/lib/bulk/bulk-splash-status-agent";
 import { cn } from "@/lib/utils";
 
 export type OverviewStudioTabShellProps = {
@@ -13,12 +14,16 @@ export type OverviewStudioTabShellProps = {
   /** Right column: canvas or revisions (direct flex-1 child, OPT parity). */
   main: ReactNode;
   splashVisible?: boolean;
+  splashStatusText?: string;
+  splashStatusVisual?: BulkSplashVisualKind;
 };
 
 export function OverviewStudioTabShell({
   dock,
   main,
   splashVisible = false,
+  splashStatusText,
+  splashStatusVisual,
 }: OverviewStudioTabShellProps) {
   return (
     <div
@@ -29,7 +34,11 @@ export function OverviewStudioTabShell({
       )}
     >
       <div className="relative flex h-full min-h-0 w-full flex-1 flex-row overflow-hidden bg-black">
-        <ContentOptimizerSplashOverlay visible={splashVisible} />
+        <ContentOptimizerSplashOverlay
+          visible={splashVisible}
+          statusText={splashStatusText}
+          statusVisual={splashStatusVisual}
+        />
         <div
           className={cn(
             "flex h-full min-h-0 w-full flex-1 flex-row overflow-hidden",

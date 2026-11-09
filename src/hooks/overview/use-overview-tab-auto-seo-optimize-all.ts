@@ -1,7 +1,6 @@
 import { useCallback } from "react";
 import type { MutableRefObject } from "react";
 import { flushSync } from "react-dom";
-import pLimit from "p-limit";
 import { notify } from "@/lib/app-notifications";
 import { logger } from "@/lib/logger";
 import { NOTIFY_CONNECT_A_WORDPRESS_SITE_FIRST_IN_THE_IN } from "@/lib/notify-messages";
@@ -10,7 +9,9 @@ import type { OverviewRow } from "@/components/overview/overview-meta-row-types"
 import type { WordPressSite } from "@/components/integrations/types";
 import type { OverviewTabBase } from "@/hooks/overview/use-overview-tab-base";
 import type { AiseoAfterRowWriteFn } from "@/lib/overview/overview-aiseo-after-upload";
+import { stitchHarnessSections } from "@/lib/bulk/bulk-harness-outline";
 import { resolveAiseoHarnessSourceHtml } from "@/lib/overview/overview-aiseo-source-html";
+import { stripTrailingFaqSection } from "@/lib/overview/overview-blog-faq-append";
 import { elementorSectionHeadersFromCachedRow } from "@/lib/elementor-page-content/elementor-section-headers-from-cache";
 import { normalizeSectionProseHtml, prosePlainText } from "@/lib/elementor-page-content/extract-text-editor-prose";
 import { countAutoSeoBlogBodySteps, runAutoSeoBlogBodyRewrite } from "@/lib/overview/overview-auto-seo-blog-rewrite";
@@ -271,14 +272,13 @@ export function useOverviewTabAutoSeoOptimizeAll({
             }
           }
 
-          // Content sections (parallel with bounded concurrency, committed in document order)
-          if (isPages) {
-            const siblingTitles = pageHeaders.map((s) => s.title);
-            const workingHeaders = [...pageHeaders];
-            const elLimit = pLimit(6);
-            const sectionResults = await Promise.all(
-              workingHeaders.map((sec, sIdx) =>
-                elLimit(async () => {
+          // Launch all content sections + SEO Title, Meta Description & FAQs in parallel
+          const runBodySectionsTask = async () => {
+            if (isPages) {
+              const siblingTitles = pageHeaders.map((s) => s.title);
+              const workingHeaders = [...pageHeaders];
+              const sectionResults = await Promise.all(
+                workingHeaders.map(async (sec, sIdx) => {
                   if (!isOptimizeAllRunCurrent(runId)) return null;
                   const secBody = (sec.bodyHtml || sec.bodyText || "").trim();
                   const stepNum = 2 + sIdx;
@@ -322,29 +322,30 @@ export function useOverviewTabAutoSeoOptimizeAll({
                     return null;
                   }
                 }),
-              ),
-            );
-            if (!isOptimizeAllRunCurrent(runId)) return;
-            for (const res of sectionResults) {
-              if (!res) continue;
-              const { sIdx, sec, elBodyBefore, normalizedHtml } = res;
-              recordOverviewStudioRevision({
-                pageUrl: url,
-                stepLabel: sec.title?.trim() || `Section ${sIdx + 1}`,
-                sectionTitle: sec.title?.trim() || undefined,
-                runId: revisionRunId,
-                beforeHtml: elBodyBefore,
-                afterHtml: normalizedHtml,
-              });
-              workingHeaders[sIdx] = {
-                ...sec,
-                bodyHtml: normalizedHtml,
-                bodyText: prosePlainText(normalizedHtml),
-              };
+              );
+              if (!isOptimizeAllRunCurrent(runId)) return null;
+              for (const res of sectionResults) {
+                if (!res) continue;
+                const { sIdx, sec, elBodyBefore, normalizedHtml } = res;
+                recordOverviewStudioRevision({
+                  pageUrl: url,
+                  stepLabel: sec.title?.trim() || `Section ${sIdx + 1}`,
+                  sectionTitle: sec.title?.trim() || undefined,
+                  runId: revisionRunId,
+                  beforeHtml: elBodyBefore,
+                  afterHtml: normalizedHtml,
+                });
+                workingHeaders[sIdx] = {
+                  ...sec,
+                  bodyHtml: normalizedHtml,
+                  bodyText: prosePlainText(normalizedHtml),
+                };
+              }
+              updateRow(idx, { elementorSectionHeaders: [...workingHeaders] });
+              return null;
             }
-            updateRow(idx, { elementorSectionHeaders: [...workingHeaders] });
-          } else {
-            await runAutoSeoBlogBodyRewrite({
+
+            return runAutoSeoBlogBodyRewrite({
               sourceHtml: resolvedHtml,
               articleTitle: latestRow.aiTitle?.trim() || latestRow.title || "",
               focusKeyword: latestRow.focusKeyword?.trim() || "",
@@ -365,30 +366,58 @@ export function useOverviewTabAutoSeoOptimizeAll({
                 });
               },
             });
+          };
+
+          const runMetaAndFaqTask = async () => {
+            if (!isOptimizeAllRunCurrent(runId)) return;
+            try {
+              await runAutoSeoMetaAndFaqFinale({
+                rowIndex: idx,
+                pageUrl: url,
+                revisionRunId,
+                getRow: () => rowsRef.current[idx],
+                handleAiTitleRow,
+                handleAiMetaRow,
+                handleAiFaqRowAll,
+                onStepStart: (stepLabel) => {
+                  const stepNum =
+                    stepLabel === "SEO Title & Meta Description"
+                      ? totalSteps - 1
+                      : totalSteps;
+                  setStepTelemetry(url, pos, stepNum, totalSteps, stepLabel);
+                },
+              });
+            } finally {
+              updateRow(idx, { status: "idle" });
+            }
+          };
+
+          const [bodyResult] = await Promise.all([
+            runBodySectionsTask(),
+            runMetaAndFaqTask(),
+          ]);
+
+          if (!isOptimizeAllRunCurrent(runId)) return;
+
+          if (bodyResult && !isPages) {
+            const rowAfter = rowsRef.current[idx];
+            const currentHtml = (rowAfter?.postContentOptimized || rowAfter?.postContent || "").trim();
+            const currentWithoutFaq = stripTrailingFaqSection(currentHtml);
+            const latestFaqBlock =
+              currentHtml.length > currentWithoutFaq.length
+                ? currentHtml.slice(currentWithoutFaq.length).trim()
+                : bodyResult.trailingFaq;
+            const bodyCore = stripTrailingFaqSection(bodyResult.html);
+            const mergedHtml = stitchHarnessSections(
+              [bodyCore, latestFaqBlock].filter((part) => Boolean(part?.trim())),
+            );
+            updateRow(idx, {
+              postContentOptimized: mergedHtml,
+              postContent: mergedHtml,
+              ...(bodyResult.h2Titles.length > 0 ? { blogH2List: bodyResult.h2Titles } : {}),
+            });
           }
 
-          // Final steps: SEO Title & Meta Description, then FAQs (strictly one by one)
-          if (!isOptimizeAllRunCurrent(runId)) return;
-          try {
-            await runAutoSeoMetaAndFaqFinale({
-              rowIndex: idx,
-              pageUrl: url,
-              revisionRunId,
-              getRow: () => rowsRef.current[idx],
-              handleAiTitleRow,
-              handleAiMetaRow,
-              handleAiFaqRowAll,
-              onStepStart: (stepLabel) => {
-                const stepNum =
-                  stepLabel === "SEO Title & Meta Description"
-                    ? totalSteps - 1
-                    : totalSteps;
-                setStepTelemetry(url, pos, stepNum, totalSteps, stepLabel);
-              },
-            });
-          } finally {
-            updateRow(idx, { status: "idle" });
-          }
           latestRow = rowsRef.current[idx] ?? latestRow;
 
           if (!isOptimizeAllRunCurrent(runId)) return;

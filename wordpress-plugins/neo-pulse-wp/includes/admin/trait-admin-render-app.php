@@ -277,7 +277,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Render_App {
 							'on'      => $s['ai_ready'],
 							'buttons' => array(
 								array( __( 'Open assistant', 'neo-pulse-wp' ), 'neo-pulse-wp-backend-assist', array() ),
-								array( __( 'Tool library', 'neo-pulse-wp' ), 'REMOVED_NEO_PULSE_WP_TOOL-library', array() ),
+								array( __( 'Tool library', 'neo-pulse-wp' ), 'neo-pulse-wp-tool-library', array() ),
 							),
 						)
 					);

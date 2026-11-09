@@ -9,6 +9,7 @@ import { OverviewVisualDocCanvas } from "@/components/overview/studio/OverviewVi
 import type { OverviewTabContentProps } from "@/components/overview/overview-tab/overview-tab-content-types";
 import { useOverviewTabController } from "@/hooks/overview/use-overview-tab-controller";
 import { useOverviewTabShellDerived } from "@/hooks/overview/use-overview-tab-shell-derived";
+import { useBulkSplashAiStatus } from "@/hooks/bulk/use-bulk-splash-ai-status";
 import { usePulseAssistOverviewBridge } from "@/hooks/use-pulse-assist-overview-bridge";
 import { consumeOverviewOptimizedUpload } from "@/lib/overview/overview-content-opt-html-store";
 import { resolveStudioDrawerElementorHeaders } from "@/lib/overview/overview-studio-drawer-section-headers";
@@ -220,6 +221,17 @@ export function OverviewTabContent(props: OverviewTabContentProps) {
     Boolean(ctrl.site?.id) &&
     (splashDismissedForSiteId !== ctrl.site?.id || activeRow?.status === "scraping");
 
+  const shellSplashStatus = useBulkSplashAiStatus({
+    active: splashVisible,
+    latestStep:
+      activeRow?.status === "scraping"
+        ? "Syncing live WordPress content and SEO fields"
+        : "Loading site sitemap inventory and cached articles",
+    articleTitle: expandedPageTitle ?? undefined,
+    keyword: activeRow?.focusKeyword || undefined,
+    siteName: ctrl.site?.name || undefined,
+  });
+
   const selectDocUrl = (url: string) => {
     if (normalizePageUrlKey(ctrl.expandedPageUrl ?? "") === normalizePageUrlKey(url)) {
       return;
@@ -230,6 +242,8 @@ export function OverviewTabContent(props: OverviewTabContentProps) {
   return (
     <OverviewStudioTabShell
       splashVisible={splashVisible}
+      splashStatusText={shellSplashStatus.status}
+      splashStatusVisual={shellSplashStatus.visual}
       dock={{
         ctrl,
         activeUrl: activeRow?.url ?? ctrl.expandedPageUrl,

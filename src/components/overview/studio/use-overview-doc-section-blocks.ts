@@ -91,7 +91,10 @@ export function useOverviewDocSectionBlocks({
 
   const elementorSections = useMemo(
     () =>
-      elementorSectionHeadersFromCachedRow(row).filter((sec) => {
+      elementorSectionHeadersFromCachedRow({
+        ...row,
+        postContent: row.postContent?.trim() || bodyHtml || row.postContent,
+      }).filter((sec) => {
         const key = (sec.title ?? "").trim().toLowerCase();
         return (
           key !== "faq" &&
@@ -102,7 +105,7 @@ export function useOverviewDocSectionBlocks({
           key !== "ai overview"
         );
       }),
-    [row],
+    [row, bodyHtml],
   );
   const extractedLinks = useMemo(
     () => extractAllSectionLinkRowsFromHtml(bodyHtml),

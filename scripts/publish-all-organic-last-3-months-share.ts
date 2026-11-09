@@ -152,7 +152,11 @@ async function main() {
   for (const site of sites) {
     try {
       setPostCreatorWorkerApiBase(LOCAL);
-      const gridScans = await fetchAllLocalGridScansForSite(site.id);
+      let gridScans = await fetchAllLocalGridScansForSite(site.id).catch(() => []);
+      if (gridScans.length === 0) {
+        setPostCreatorWorkerApiBase(HUB);
+        gridScans = await fetchAllLocalGridScansForSite(site.id);
+      }
       const withPins = gridScans.filter(
         (g) =>
           g.points.length >= 49 &&
@@ -160,9 +164,21 @@ async function main() {
           g.points.filter((p) => p.items.length > 0).length >= 49,
       ).length;
       if (gridScans.length === 0 || withPins !== gridScans.length) {
-        throw new Error(
-          `Local Grid incomplete: ${withPins}/${gridScans.length} locations have full 49-pin scan results.`,
-        );
+        setPostCreatorWorkerApiBase(HUB);
+        const hubScans = await fetchAllLocalGridScansForSite(site.id).catch(() => []);
+        const hubWithPins = hubScans.filter(
+          (g) =>
+            g.points.length >= 49 &&
+            g.points.some((p) => p.items.length > 0) &&
+            g.points.filter((p) => p.items.length > 0).length >= 49,
+        ).length;
+        if (hubScans.length > 0 && hubWithPins === hubScans.length) {
+          gridScans = hubScans;
+        } else {
+          throw new Error(
+            `Local Grid incomplete: ${withPins}/${gridScans.length} locations have full 49-pin scan results.`,
+          );
+        }
       }
       let shareUrl = "";
       for (let attempt = 1; ; attempt++) {

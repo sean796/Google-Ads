@@ -131,7 +131,7 @@ trait Neo_Pulse_Wp_Admin_Trait_Wp_Shell {
 			'neo-pulse-wp-admin-redirects'    => array( 'neo-pulse-wp-redirects' ),
 			'neo-pulse-wp-admin-chat-logs'    => array( 'neo-pulse-wp-chat-logs' ),
 			'neo-pulse-wp-admin-overseer'     => array( 'neo-pulse-wp-overseer' ),
-			'neo-pulse-wp-admin-tool-library' => array( 'REMOVED_NEO_PULSE_WP_TOOL-library' ),
+			'neo-pulse-wp-admin-tool-library' => array( 'neo-pulse-wp-tool-library' ),
 			'neo-pulse-wp-admin-seo'          => array( 'neo-pulse-wp-seo', 'neo-pulse-wp-redirects' ),
 		);
 		$current_page = Neo_Pulse_Wp_Admin_Menu::current_page();

@@ -197,7 +197,8 @@ export function BulkGeneratorOverviewTabBody({
             composeSplashVisible={
               showModeComposeScreen &&
               studioEditorMode === "prompt" &&
-              bindings.isGeneratingChecklist
+              (bindings.isGeneratingChecklist ||
+                (bindings.hasGeneratedChecklist && bindings.filesByRow.size === 0))
             }
             composeSplashStatusText={ideasSplashStatusText}
             composeSplashStatusVisual={ideasSplashStatusVisual}

@@ -24,7 +24,7 @@ import {
 import type { EntitySiteWarmBundle } from "@/lib/local-analysis/entity-site-warm-types";
 
 /**
- * After URL inventory commits, seed title/keyword/date via metadata-only REST (no bodies).
+ * After URL inventory commits, seed title/keyword/date + full post HTML bodies via REST.
  */
 export async function seedWarmBulkInventoryMetadata(site: WordPressSite): Promise<void> {
   if (!canWarmEntitySite(site)) return;
@@ -34,7 +34,10 @@ export async function seedWarmBulkInventoryMetadata(site: WordPressSite): Promis
   const hasMetadata = existing.some(
     (r) => r.id && ((r.fields?.title ?? "").trim() || (r.fields?.keyword ?? "").trim()),
   );
-  if (hasMetadata && existing.length > 0) return;
+  const hasContent = existing.some(
+    (r) => r.id && String(r.fields?.content ?? "").trim().length > 0,
+  );
+  if (hasMetadata && hasContent && existing.length > 0) return;
 
   metadataSeedInflightBySiteId.add(site.id);
   try {
@@ -42,7 +45,7 @@ export async function seedWarmBulkInventoryMetadata(site: WordPressSite): Promis
       "@/lib/overview/overview-unified-sitemap-inventory"
     );
     const unified = await fetchUnifiedOverviewSitemapInventory(site, {
-      includeContent: false,
+      includeContent: true,
       includePageHeading: true,
     });
     const rows = [
@@ -51,6 +54,7 @@ export async function seedWarmBulkInventoryMetadata(site: WordPressSite): Promis
       ...(unified.bySource.sap ?? []),
     ] as SiteInventoryBulkRow[];
     if (!rows.length) return;
+    mergeSitePrefetchBulkInventoryRows(site, rows);
     mergeSitePrefetchBulkMetadataRows(site, rows);
     setBulkGenerationWpInventoryEntry({ siteId: site.id, rows, fetchedAt: Date.now() });
     seedOverviewSessionCachesFromWarm(site);

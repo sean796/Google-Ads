@@ -1,4 +1,3 @@
-import pLimit from "p-limit";
 import type { WordPressSite } from "@/components/integrations/types";
 import { logger } from "@/lib/logger";
 import { headingTitleToHarnessAnchorId } from "@/lib/bulk/harness-section-anchor-ids";
@@ -93,7 +92,7 @@ export async function runAutoSeoBlogBodyRewrite(
   let ansHtml = ansBefore;
   let ovHtml = ovBefore;
   let leadingHtml = parsedBlog.leadingHtml;
-  let workingSections = [...parsedBlog.sections];
+  const workingSections = [...parsedBlog.sections];
 
   const totalBodySteps = countAutoSeoBlogBodySteps(sourceHtml);
   let stepCursor = 0;
@@ -137,122 +136,24 @@ export async function runAutoSeoBlogBodyRewrite(
 
   const hasAnswer = workingSections.length > 0 || Boolean(ansBefore.trim());
   const hasOverview = workingSections.length > 0 || Boolean(ovBefore.trim());
+  const hasIntroStep = Boolean(leadingHtml.trim());
 
-  // 1. Answer (top of blog first)
-  if (hasAnswer && shouldContinue()) {
-    stepCursor += 1;
-    onStepProgress?.(stepCursor, totalBodySteps, "Answer");
-    const answerMoneyPages = rankFuzzyMoneyPageLinksForAnswer({
-      pool: sitemapLinkPool,
-      articleTitle,
-      focusKeyword,
-      bodyH2Titles: workingSections.map((s) => s.title),
-      pageUrl,
-      limit: 6,
-    });
-    try {
-      if (workingSections.length > 0) {
-        const apiKey = await resolveOpenRouterApiKeyForHarness();
-        const model = getBlogModel(site?.id);
-        const coreHtml = stitchHtmlBodyFromH2PassageSections({
-          leadingHtml,
-          sections: workingSections,
-        });
-        const ansRes = await generateAndPrependAnswerHtml({
-          sourceHtml: coreHtml,
-          articleTitle,
-          focusKeyword,
-          pageUrl,
-          connectedSite: site ? { name: site.name, siteUrl: site.siteUrl } : undefined,
-          site: site ?? undefined,
-          pageKind: sitemapSource === "sap" ? "entity" : "post",
-          seoResearchBrief,
-          previousAnswerHtml: ansBefore,
-          moneyPageCandidates: answerMoneyPages,
-          apiKey,
-          model,
-        });
-        ansHtml = ansRes.answerHtml;
-      } else {
-        ansHtml = await rewriteBlogLeadSectionBlock(ansBefore, {
-          ...passageRewriteCtx,
-          siblingTitles: [],
-          sitemapLinkCandidates: answerMoneyPages,
-        });
-      }
-      recordUsedLinksFromHtml(ansHtml);
-      if (shouldContinue()) {
-        recordOverviewStudioRevision({
-          pageUrl,
-          stepLabel: "Answer",
-          runId: revisionRunId,
-          beforeHtml: ansBefore,
-          afterHtml: ansHtml,
-        });
-        commitCurrent();
-      }
-    } catch (err) {
-      logger.warn("[Auto SEO] Answer section warning for", pageUrl, err);
-    }
+  const answerMoneyPages = hasAnswer
+    ? rankFuzzyMoneyPageLinksForAnswer({
+        pool: sitemapLinkPool,
+        articleTitle,
+        focusKeyword,
+        bodyH2Titles: workingSections.map((s) => s.title),
+        pageUrl,
+        limit: 6,
+      })
+    : [];
+  const topAnswerMoneyHref = answerMoneyPages[0]?.url;
+  if (topAnswerMoneyHref && !topAnswerMoneyHref.startsWith("#")) {
+    const k = normalizePageUrlKey(topAnswerMoneyHref);
+    if (k) usedLinkUrlKeys.add(k);
   }
 
-  // 2. Overview (second block from top of blog)
-  if (hasOverview && shouldContinue()) {
-    stepCursor += 1;
-    onStepProgress?.(stepCursor, totalBodySteps, "Overview");
-    try {
-      if (workingSections.length > 0) {
-        const apiKey = await resolveOpenRouterApiKeyForHarness();
-        const model = getBlogModel(site?.id);
-        const coreHtml = stitchHtmlBodyFromH2PassageSections({
-          leadingHtml,
-          sections: workingSections,
-        });
-        const ovRes = await generateAndPrependOverviewHtml({
-          sourceHtml: coreHtml,
-          articleTitle,
-          focusKeyword,
-          pageUrl,
-          connectedSite: site ? { name: site.name, siteUrl: site.siteUrl } : undefined,
-          site: site ?? undefined,
-          pageKind: sitemapSource === "sap" ? "entity" : "post",
-          seoResearchBrief,
-          pregeneratedAnswerHtml: ansHtml,
-          apiKey,
-          model,
-        });
-        if (ovRes) {
-          ovHtml = extractOverviewSectionHtml(ovRes.html);
-          const coreWithIds = stripLeadingOverviewSection(
-            stripLeadingAnswerSection(ovRes.html),
-          );
-          const reparsed = splitHtmlBodyIntoH2PassageSections(coreWithIds);
-          leadingHtml = reparsed.leadingHtml;
-          workingSections = reparsed.sections;
-        }
-      } else {
-        ovHtml = await rewriteBlogLeadSectionBlock(ovBefore, {
-          ...passageRewriteCtx,
-          siblingTitles: [],
-        });
-      }
-      if (shouldContinue()) {
-        recordOverviewStudioRevision({
-          pageUrl,
-          stepLabel: "Overview",
-          runId: revisionRunId,
-          beforeHtml: ovBefore,
-          afterHtml: ovHtml,
-        });
-        commitCurrent();
-      }
-    } catch (err) {
-      logger.warn("[Auto SEO] Overview section warning for", pageUrl, err);
-    }
-  }
-
-  // 3. Introduction lead + 4. Every H2 section in parallel (bounded concurrency, deterministic stitch)
-  const passageLimit = pLimit(6);
   const preassignedSectionCandidates = workingSections.map((sec) => {
     if (!sec.bodyHtml.trim()) return [];
     const candidates = rankFuzzySitemapLinksForSection({
@@ -273,10 +174,87 @@ export async function runAutoSeoBlogBodyRewrite(
     return candidates;
   });
 
+  const initialCoreHtml = stitchHtmlBodyFromH2PassageSections({
+    leadingHtml,
+    sections: workingSections,
+  });
   const introBefore = leadingHtml;
-  const hasIntroStep = Boolean(leadingHtml.trim());
+
+  // Launch Answer, Overview, Introduction, and every H2 section in parallel
+  const answerTask = hasAnswer
+    ? (async () => {
+        if (!shouldContinue()) return null;
+        stepCursor += 1;
+        onStepProgress?.(stepCursor, totalBodySteps, "Answer");
+        try {
+          if (workingSections.length > 0) {
+            const apiKey = await resolveOpenRouterApiKeyForHarness();
+            const model = getBlogModel(site?.id);
+            const ansRes = await generateAndPrependAnswerHtml({
+              sourceHtml: initialCoreHtml,
+              articleTitle,
+              focusKeyword,
+              pageUrl,
+              connectedSite: site ? { name: site.name, siteUrl: site.siteUrl } : undefined,
+              site: site ?? undefined,
+              pageKind: sitemapSource === "sap" ? "entity" : "post",
+              seoResearchBrief,
+              previousAnswerHtml: ansBefore,
+              moneyPageCandidates: answerMoneyPages,
+              apiKey,
+              model,
+            });
+            return ansRes.answerHtml;
+          }
+          return await rewriteBlogLeadSectionBlock(ansBefore, {
+            ...passageRewriteCtx,
+            siblingTitles: [],
+            sitemapLinkCandidates: answerMoneyPages,
+          });
+        } catch (err) {
+          logger.warn("[Auto SEO] Answer section warning for", pageUrl, err);
+          return null;
+        }
+      })()
+    : Promise.resolve(null);
+
+  const overviewTask = hasOverview
+    ? (async () => {
+        if (!shouldContinue()) return null;
+        stepCursor += 1;
+        onStepProgress?.(stepCursor, totalBodySteps, "Overview");
+        try {
+          if (workingSections.length > 0) {
+            const apiKey = await resolveOpenRouterApiKeyForHarness();
+            const model = getBlogModel(site?.id);
+            const ovRes = await generateAndPrependOverviewHtml({
+              sourceHtml: initialCoreHtml,
+              articleTitle,
+              focusKeyword,
+              pageUrl,
+              connectedSite: site ? { name: site.name, siteUrl: site.siteUrl } : undefined,
+              site: site ?? undefined,
+              pageKind: sitemapSource === "sap" ? "entity" : "post",
+              seoResearchBrief,
+              pregeneratedAnswerHtml: ansBefore.trim() || `<h2 id="answer">Answer</h2><p>${focusKeyword || articleTitle}</p>`,
+              apiKey,
+              model,
+            });
+            return ovRes ? extractOverviewSectionHtml(ovRes.html) : null;
+          }
+          return await rewriteBlogLeadSectionBlock(ovBefore, {
+            ...passageRewriteCtx,
+            siblingTitles: [],
+          });
+        } catch (err) {
+          logger.warn("[Auto SEO] Overview section warning for", pageUrl, err);
+          return null;
+        }
+      })()
+    : Promise.resolve(null);
+
   const introTask = hasIntroStep
-    ? passageLimit(async () => {
+    ? (async () => {
         if (!shouldContinue()) return null;
         stepCursor += 1;
         onStepProgress?.(stepCursor, totalBodySteps, "Introduction");
@@ -289,11 +267,11 @@ export async function runAutoSeoBlogBodyRewrite(
           logger.warn("[Auto SEO] Intro lead warning for", pageUrl, err);
           return null;
         }
-      })
+      })()
     : Promise.resolve(null);
 
   const sectionTasks = workingSections.map((sec, sIdx) =>
-    passageLimit(async () => {
+    (async () => {
       if (!shouldContinue()) return null;
       stepCursor += 1;
       onStepProgress?.(
@@ -320,16 +298,35 @@ export async function runAutoSeoBlogBodyRewrite(
         );
         return null;
       }
-    }),
+    })(),
   );
 
-  const [rewrittenIntro, ...rewrittenSectionResults] = await Promise.all([
-    introTask,
-    ...sectionTasks,
-  ]);
+  const [rewrittenAnswer, rewrittenOverview, rewrittenIntro, ...rewrittenSectionResults] =
+    await Promise.all([
+      answerTask,
+      overviewTask,
+      introTask,
+      ...sectionTasks,
+    ]);
 
   if (!shouldContinue()) {
     return { ...commitCurrent(), trailingFaq };
+  }
+
+  if (rewrittenAnswer != null && rewrittenAnswer.trim()) {
+    ansHtml = rewrittenAnswer;
+    recordUsedLinksFromHtml(ansHtml);
+    recordOverviewStudioRevision({
+      pageUrl,
+      stepLabel: "Answer",
+      runId: revisionRunId,
+      beforeHtml: ansBefore,
+      afterHtml: ansHtml,
+    });
+  }
+
+  if (rewrittenOverview != null && rewrittenOverview.trim()) {
+    ovHtml = rewrittenOverview;
   }
 
   if (rewrittenIntro != null) {
@@ -346,7 +343,9 @@ export async function runAutoSeoBlogBodyRewrite(
   for (const res of rewrittenSectionResults) {
     if (!res) continue;
     const { sIdx, sec, rewritten } = res;
-    const oldAnchorId = sec.id || headingTitleToHarnessAnchorId(sec.title);
+    const oldAnchorIds = new Set(
+      [sec.id, headingTitleToHarnessAnchorId(sec.title)].filter(Boolean),
+    );
     const beforeSectionHtml = `${sec.h2OpenTag.trim() || "<h2>"}${sec.title.trim()}</h2>\n${sec.bodyHtml.trim()}`;
     const nextTitle = (rewritten.title || sec.title).trim();
     const nextBody = normalizeSectionProseHtml(rewritten.bodyHtml);
@@ -355,12 +354,16 @@ export async function runAutoSeoBlogBodyRewrite(
     const nextId = headingTitleToHarnessAnchorId(nextTitle);
     const afterSectionHtml = `${nextH2OpenTag}${nextTitle}</h2>\n${nextBody}`;
 
-    if (ovHtml && oldAnchorId && nextId && oldAnchorId !== nextId) {
-      ovHtml = ovHtml
-        .split(`href="#${oldAnchorId}"`)
-        .join(`href="#${nextId}"`)
-        .split(`href='#${oldAnchorId}'`)
-        .join(`href='#${nextId}'`);
+    if (ovHtml && nextId) {
+      for (const oldAnchorId of oldAnchorIds) {
+        if (oldAnchorId && oldAnchorId !== nextId) {
+          ovHtml = ovHtml
+            .split(`href="#${oldAnchorId}"`)
+            .join(`href="#${nextId}"`)
+            .split(`href='#${oldAnchorId}'`)
+            .join(`href='#${nextId}'`);
+        }
+      }
     }
 
     recordOverviewStudioRevision({
@@ -378,6 +381,16 @@ export async function runAutoSeoBlogBodyRewrite(
       title: nextTitle,
       bodyHtml: nextBody,
     };
+  }
+
+  if (rewrittenOverview != null && ovHtml.trim()) {
+    recordOverviewStudioRevision({
+      pageUrl,
+      stepLabel: "Overview",
+      runId: revisionRunId,
+      beforeHtml: ovBefore,
+      afterHtml: ovHtml,
+    });
   }
 
   return { ...commitCurrent(), trailingFaq };

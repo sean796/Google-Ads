@@ -707,7 +707,7 @@ class Neo_Pulse_Wp_Backend_Assist_Tools_Wp {
 		}
 
 		if ( ! class_exists( 'Neo_Pulse_Wp_Tools_Handlers' ) ) {
-			require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-REMOVED_NEO_PULSE_WP_TOOLs-handlers.php';
+			require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-neo-pulse-wp-tools-handlers.php';
 		}
 
 		$rs = Neo_Pulse_Wp_Tools_Handlers::wp_revision_restore( array( 'post_id' => $post_id ) );

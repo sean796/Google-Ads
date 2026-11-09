@@ -1,11 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   assertAiseoBodyRewriteChanged,
   assertAiseoHeadingRewriteChanged,
   computeFourGramOverlapRatio,
 } from "@/lib/content-optimization/aiseo-full-rewrite-contract";
 import { countAutoSeoBlogBodySteps } from "@/lib/overview/overview-auto-seo-blog-rewrite";
+import { runAutoSeoMetaAndFaqFinale } from "@/lib/overview/overview-auto-seo-meta-faq-finale";
 import { buildH2OpenTagForTitle } from "@/lib/overview/overview-blog-passage-sections";
+import type { OverviewRow } from "@/components/overview/overview-meta-row-types";
 
 describe("aiseo full rewrite contract", () => {
   it("rejects identical body html", () => {
@@ -49,5 +51,46 @@ describe("aiseo full rewrite contract", () => {
       '<h2 id="sec-2">Second Section</h2><p>Body two.</p>',
     ].join("\n\n");
     expect(countAutoSeoBlogBodySteps(sampleBlog)).toBe(4);
+  });
+
+  it("runs SEO Title, Meta Description, and FAQs concurrently in one parallel wave", async () => {
+    const startOrder: string[] = [];
+    let activeCount = 0;
+    let peakConcurrent = 0;
+
+    const makeBarrierTask = (name: string) =>
+      vi.fn(async () => {
+        startOrder.push(name);
+        activeCount += 1;
+        peakConcurrent = Math.max(peakConcurrent, activeCount);
+        await new Promise((resolve) => setTimeout(resolve, 15));
+        activeCount -= 1;
+      });
+
+    const handleAiTitleRow = makeBarrierTask("title");
+    const handleAiMetaRow = makeBarrierTask("meta");
+    const handleAiFaqRowAll = makeBarrierTask("faq");
+
+    const row: OverviewRow = {
+      url: "https://example.com/blog/window-blinds/",
+      title: "Old Title",
+      aiTitle: "",
+      metaDescription: "Old Meta",
+      aiMeta: "",
+      focusKeyword: "window blinds",
+      status: "idle",
+    };
+
+    await runAutoSeoMetaAndFaqFinale({
+      rowIndex: 0,
+      pageUrl: row.url,
+      getRow: () => row,
+      handleAiTitleRow,
+      handleAiMetaRow,
+      handleAiFaqRowAll,
+    });
+
+    expect(startOrder).toEqual(["title", "meta", "faq"]);
+    expect(peakConcurrent).toBe(3);
   });
 });

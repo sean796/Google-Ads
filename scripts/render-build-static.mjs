@@ -49,9 +49,10 @@ const result = spawnSync("node", [path.join(repoRoot, "scripts", "build-neo-puls
 if ((result.status ?? 1) === 0) {
   const redirectsPath = path.join(repoRoot, "dist", "_redirects");
   fs.mkdirSync(path.dirname(redirectsPath), { recursive: true });
+  const hubOrigin = (process.env.NEO_PULSE_HUB_ORIGIN || "https://pulse-host-wp-hub.onrender.com").replace(/\/+$/, "");
   fs.writeFileSync(
     redirectsPath,
-    "/terms-of-service    /terms-of-service.html    200\n/privacy-policy      /privacy-policy.html      200\n/*                   /index.html               200\n",
+    `/api/*               ${hubOrigin}/api/:splat    200\n/terms-of-service    /terms-of-service.html    200\n/privacy-policy      /privacy-policy.html      200\n/*                   /index.html               200\n`,
     "utf8",
   );
   console.log("[render-build-static] wrote dist/_redirects");

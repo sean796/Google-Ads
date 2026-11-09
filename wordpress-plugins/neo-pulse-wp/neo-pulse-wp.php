@@ -180,11 +180,11 @@ require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-neo-pulse-wp-overseer-ana
 require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-neo-pulse-wp-chat.php';
 require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-neo-pulse-wp-chekkit.php';
 require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-neo-pulse-wp-chekkit-rest.php';
-require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-REMOVED_NEO_PULSE_WP_TOOLs-audit.php';
-require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-REMOVED_NEO_PULSE_WP_TOOLs-handlers.php';
-require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-REMOVED_NEO_PULSE_WP_TOOLs.php';
-require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-REMOVED_NEO_PULSE_WP_TOOLs-library.php';
-require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-REMOVED_NEO_PULSE_WP_TOOLs-rest.php';
+require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-neo-pulse-wp-tools-audit.php';
+require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-neo-pulse-wp-tools-handlers.php';
+require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-neo-pulse-wp-tools.php';
+require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-neo-pulse-wp-tools-library.php';
+require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-neo-pulse-wp-tools-rest.php';
 require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-neo-pulse-wp-redirects-rest.php';
 require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/class-neo-pulse-wp-backend-assist.php';
 require_once NEO_PULSE_WP_PLUGIN_DIR . 'includes/faq/class-neo-pulse-wp-faq.php';

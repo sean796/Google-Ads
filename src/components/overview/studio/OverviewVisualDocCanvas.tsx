@@ -1,14 +1,20 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { FileText, Play, RefreshCw, Sparkles, Upload } from "lucide-react";
 import { useAgentRunsContext } from "@/contexts/use-agent-runs-context";
 import { OverviewDocSectionBlocks } from "@/components/overview/studio/OverviewDocSectionBlock";
 import { buildElementorPageHtml } from "@/lib/elementor-page-content/elementor-page-html";
-import { resolveAiseoHarnessSourceHtmlFromCache } from "@/lib/overview/overview-aiseo-source-html";
+import {
+  isTruncatedAiseoSourceBody,
+  resolveAiseoHarnessSourceHtml,
+  resolveAiseoHarnessSourceHtmlFromCache,
+  scoreAiseoSourceBody,
+} from "@/lib/overview/overview-aiseo-source-html";
 import { overviewStudioRowFromWarmInventory } from "@/lib/overview/overview-studio-row-inventory-merge";
 import { isOverviewRowOptimizationActive } from "@/components/overview/overview-tab/overview-bulk-run-helpers";
 import { metaDisplayTitle, bulkStudioRowPathLabel, bulkStudioRowPublicUrl, overviewRowUrlPathLabel, overviewTitlePrimarySegment } from "@/lib/overview/overview-tab-display";
 import { setStudioDocMetaInspectorBridge } from "@/lib/overview/studio-doc-meta-bridge";
 import { writeSidebarOpen, writeSidebarPanel } from "@/lib/pulse-assist/storage";
+import { useBulkSplashAiStatus } from "@/hooks/bulk/use-bulk-splash-ai-status";
 import { useOverviewSiteWarmDetails } from "@/hooks/overview/use-overview-site-warm-details";
 import { ContentOptimizerSplashOverlay } from "@/components/overview/studio/ContentOptimizerSplashOverlay";
 import { OverviewStudioGeneratedFilesBand } from "@/components/overview/studio/OverviewStudioGeneratedFilesBand";
@@ -77,6 +83,16 @@ export function OverviewVisualDocCanvas({
       if (studioRow.elementorDataJson?.trim()) {
         return buildElementorPageHtml(studioRow.elementorDataJson);
       }
+      if (c.site) {
+        return (
+          resolveAiseoHarnessSourceHtmlFromCache({
+            row: studioRow,
+            site: c.site,
+            sitemapSource: c.sitemapSource,
+            getInventoryMatchForUrl: c.getInventoryMatchForUrl,
+          }) || liveHtml
+        );
+      }
       return liveHtml;
     }
 
@@ -113,6 +129,56 @@ export function OverviewVisualDocCanvas({
     row && isOverviewRowOptimizationActive(row.url, optimizingRowUrl),
   );
   const busy = isViewedRowOptimizing;
+
+  const autoHydratedUrlSetRef = useRef(new Set<string>());
+  useEffect(() => {
+    if (isBulkGeneratorStudio || busy) return;
+    if (!c.site || !studioRow?.url?.trim() || rowIndex < 0) return;
+    const urlKey = studioRow.url.trim().toLowerCase();
+    const hasElementorData = Boolean(
+      studioRow.elementorDataJson?.trim() ||
+        (studioRow.elementorSectionHeaders && studioRow.elementorSectionHeaders.length > 0),
+    );
+    if (isElementorRow ? (hasElementorData || Boolean(bodyHtml.trim())) : (bodyHtml.trim() && !isTruncatedAiseoSourceBody(bodyHtml))) {
+      return;
+    }
+    if (autoHydratedUrlSetRef.current.has(urlKey)) return;
+    autoHydratedUrlSetRef.current.add(urlKey);
+
+    let cancelled = false;
+    void resolveAiseoHarnessSourceHtml({
+      row: studioRow,
+      site: c.site,
+      sitemapSource: c.sitemapSource,
+      getInventoryMatchForUrl: c.getInventoryMatchForUrl,
+    }).then((res) => {
+      if (cancelled) return;
+      const resolved = res.html?.trim() ?? "";
+      if (resolved && scoreAiseoSourceBody(resolved) > scoreAiseoSourceBody(bodyHtml)) {
+        c.updateRow(rowIndex, {
+          postContent: resolved,
+          postContentOptimized: studioRow.postContentOptimized?.trim()
+            ? studioRow.postContentOptimized
+            : resolved,
+        });
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isBulkGeneratorStudio,
+    isElementorRow,
+    busy,
+    c.site,
+    c.sitemapSource,
+    c.getInventoryMatchForUrl,
+    c.updateRow,
+    studioRow,
+    rowIndex,
+    bodyHtml,
+  ]);
 
   const { handleAutoSeo, fullAutoRunning, passageStatus, setPassageStatus } =
     useOverviewStudioAutoSeo({
@@ -151,12 +217,46 @@ export function OverviewVisualDocCanvas({
       row.status !== "uploading",
   );
 
-  const bulkContentSplashVisible =
-    isBulkGeneratorStudio &&
+  const optimizerSplashActive =
+    !isBulkGeneratorStudio &&
     !studioBody &&
     hasRow &&
     row?.status !== "error" &&
-    (bulkWorkspaceBusy || busy || rowPipelineActive);
+    (busy || fullAutoRunning || rowPipelineActive);
+
+  const rawTitleForSplash = hasRow && row ? metaDisplayTitle(row, c.wpTitlesByUrl) : "";
+  const optimizerLatestStep =
+    passageStatus?.label?.trim() ||
+    effectiveSnapshot?.statusMessage?.trim() ||
+    effectiveSnapshot?.label?.trim() ||
+    activeBatchState?.currentStepProgress?.message?.trim() ||
+    activeBatchState?.currentStep?.trim() ||
+    (row?.status === "scraping" ? "Syncing live WordPress post and fields" : "") ||
+    (fullAutoRunning ? "Optimizing all article sections, title, meta, and FAQs" : "") ||
+    "Optimizing article sections";
+
+  const optimizerSplashStatus = useBulkSplashAiStatus({
+    active: optimizerSplashActive,
+    latestStep: optimizerLatestStep,
+    articleTitle: rawTitleForSplash || row?.title || undefined,
+    keyword: row?.focusKeyword || undefined,
+    siteName: c.site?.name || undefined,
+  });
+
+  const bulkContentSplashVisible =
+    !studioBody &&
+    hasRow &&
+    row?.status !== "error" &&
+    (isBulkGeneratorStudio
+      ? bulkWorkspaceBusy || busy || rowPipelineActive
+      : optimizerSplashActive);
+
+  const effectiveSplashStatusText = isBulkGeneratorStudio
+    ? bulkSplashStatusText
+    : optimizerSplashStatus.status;
+  const effectiveSplashStatusVisual = isBulkGeneratorStudio
+    ? bulkSplashStatusVisual
+    : optimizerSplashStatus.visual;
 
   // Sync the active row's SERP & Meta inspector into the existing right-hand Pulse Engine sidebar
   useEffect(() => {
@@ -371,8 +471,8 @@ export function OverviewVisualDocCanvas({
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-black">
         <ContentOptimizerSplashOverlay
           visible={bulkContentSplashVisible}
-          statusText={bulkSplashStatusText}
-          statusVisual={bulkSplashStatusVisual}
+          statusText={effectiveSplashStatusText}
+          statusVisual={effectiveSplashStatusVisual}
         />
         <div
           className={cn(
@@ -382,7 +482,7 @@ export function OverviewVisualDocCanvas({
         >
           <div className="mx-auto flex w-full max-w-4xl flex-col bg-black px-6 py-7 sm:px-10 sm:py-9">
             <OverviewDocSectionBlocks
-              row={row}
+              row={studioRow ?? row}
               rowIndex={rowIndex}
               sitemapSource={c.sitemapSource}
               siteId={c.site?.id}
