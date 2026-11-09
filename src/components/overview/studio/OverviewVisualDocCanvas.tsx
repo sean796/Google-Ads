@@ -130,10 +130,11 @@ export function OverviewVisualDocCanvas({
   );
   const busy = isViewedRowOptimizing;
 
+  const { site, sitemapSource, getInventoryMatchForUrl, updateRow } = c;
   const autoHydratedUrlSetRef = useRef(new Set<string>());
   useEffect(() => {
     if (isBulkGeneratorStudio || busy) return;
-    if (!c.site || !studioRow?.url?.trim() || rowIndex < 0) return;
+    if (!site || !studioRow?.url?.trim() || rowIndex < 0) return;
     const urlKey = studioRow.url.trim().toLowerCase();
     const hasElementorData = Boolean(
       studioRow.elementorDataJson?.trim() ||
@@ -148,14 +149,14 @@ export function OverviewVisualDocCanvas({
     let cancelled = false;
     void resolveAiseoHarnessSourceHtml({
       row: studioRow,
-      site: c.site,
-      sitemapSource: c.sitemapSource,
-      getInventoryMatchForUrl: c.getInventoryMatchForUrl,
+      site,
+      sitemapSource,
+      getInventoryMatchForUrl,
     }).then((res) => {
       if (cancelled) return;
       const resolved = res.html?.trim() ?? "";
       if (resolved && scoreAiseoSourceBody(resolved) > scoreAiseoSourceBody(bodyHtml)) {
-        c.updateRow(rowIndex, {
+        updateRow(rowIndex, {
           postContent: resolved,
           postContentOptimized: studioRow.postContentOptimized?.trim()
             ? studioRow.postContentOptimized
@@ -171,10 +172,10 @@ export function OverviewVisualDocCanvas({
     isBulkGeneratorStudio,
     isElementorRow,
     busy,
-    c.site,
-    c.sitemapSource,
-    c.getInventoryMatchForUrl,
-    c.updateRow,
+    site,
+    sitemapSource,
+    getInventoryMatchForUrl,
+    updateRow,
     studioRow,
     rowIndex,
     bodyHtml,
