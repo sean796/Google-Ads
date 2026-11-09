@@ -81,12 +81,18 @@ install_wordpress() {
   wp rewrite flush --hard --allow-root
 }
 
-# The persistent disk mounts root-owned; PHP (www-data) must be able to write the uploads dir and the private neo-pulse-data root above the web root (sites mirror, agent runs, team data).
+# The persistent disk mounts at /var/www/html/wp-content; link /var/www/neo-pulse-data onto the persistent disk so data survives container redeploys.
 ensure_uploads_writable() {
   mkdir -p /var/www/html/wp-content/uploads
-  mkdir -p /var/www/neo-pulse-data
+  mkdir -p /var/www/html/wp-content/neo-pulse-data
+  if [[ -d /var/www/neo-pulse-data && ! -L /var/www/neo-pulse-data ]]; then
+    cp -a /var/www/neo-pulse-data/. /var/www/html/wp-content/neo-pulse-data/ 2>/dev/null || true
+    rm -rf /var/www/neo-pulse-data
+  fi
+  ln -sfn /var/www/html/wp-content/neo-pulse-data /var/www/neo-pulse-data
   chown -R www-data:www-data /var/www/html/wp-content/uploads
-  chown -R www-data:www-data /var/www/neo-pulse-data
+  chown -R www-data:www-data /var/www/html/wp-content/neo-pulse-data
+  chown -h www-data:www-data /var/www/neo-pulse-data
 }
 
 copy_plugins
