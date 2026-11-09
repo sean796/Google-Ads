@@ -59,10 +59,12 @@ function loadLocalApiBase() {
 }
 
 async function apiJson(base, route, init) {
+  const token = (process.env.PULSE_HOST_API_TOKEN || "").trim();
   const res = await fetch(`${base}/api/${route.replace(/^\//, "")}`, {
     ...init,
     headers: {
       Accept: "application/json",
+      ...(token ? { "X-Pulse-Host-Api-Token": token } : {}),
       ...(init?.body ? { "Content-Type": "application/json" } : {}),
       ...init?.headers,
     },
@@ -196,13 +198,15 @@ function normalizePropertyClientLogoUrlsForHub(sites) {
 }
 
 async function syncClientLogosToHub(localBase, hubBase, sites) {
+  const token = (process.env.PULSE_HOST_API_TOKEN || "").trim();
+  const authHeader = token ? { "X-Pulse-Host-Api-Token": token } : {};
   let copied = 0;
   for (const site of sites) {
     const siteId = site?.id;
     if (typeof siteId !== "string" || siteId.trim() === "") continue;
     const logoRes = await fetch(
       `${localBase}/api/manager-wordpress-properties/client-logo/${encodeURIComponent(siteId)}`,
-      { headers: { Accept: "*/*" } },
+      { headers: { Accept: "*/*", ...authHeader } },
     );
     if (!logoRes.ok) continue;
     const mime = logoRes.headers.get("content-type") || "image/png";
@@ -211,7 +215,7 @@ async function syncClientLogosToHub(localBase, hubBase, sites) {
     const dataUrl = `data:${mime};base64,${buf.toString("base64")}`;
     const upload = await fetch(`${hubBase}/api/manager-wordpress-properties/client-logo/upload`, {
       method: "POST",
-      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      headers: { Accept: "application/json", "Content-Type": "application/json", ...authHeader },
       body: JSON.stringify({ siteId, dataUrl }),
     });
     const body = await upload.json().catch(() => ({}));
@@ -226,9 +230,11 @@ async function syncClientLogosToHub(localBase, hubBase, sites) {
 }
 
 async function syncLocalGridWorkspace(localBase, hubBase, siteId) {
+  const token = (process.env.PULSE_HOST_API_TOKEN || "").trim();
+  const authHeader = token ? { "X-Pulse-Host-Api-Token": token } : {};
   const wsRes = await fetch(
     `${localBase}/api/organic-dashboard/local-grid/workspace?siteId=${encodeURIComponent(siteId)}`,
-    { headers: { Accept: "application/json" } },
+    { headers: { Accept: "application/json", ...authHeader } },
   );
   const wsPayload = await wsRes.json();
   const workspace = wsPayload?.workspace;
@@ -241,9 +247,11 @@ async function syncLocalGridWorkspace(localBase, hubBase, siteId) {
 }
 
 async function syncLocalGridScans(localBase, hubBase, siteId) {
+  const token = (process.env.PULSE_HOST_API_TOKEN || "").trim();
+  const authHeader = token ? { "X-Pulse-Host-Api-Token": token } : {};
   const historyRes = await fetch(
     `${localBase}/api/organic-dashboard/local-grid/history?siteId=${encodeURIComponent(siteId)}`,
-    { headers: { Accept: "application/json" } },
+    { headers: { Accept: "application/json", ...authHeader } },
   );
   const history = await historyRes.json();
   const scans = Array.isArray(history?.scans) ? history.scans : [];
@@ -253,7 +261,7 @@ async function syncLocalGridScans(localBase, hubBase, siteId) {
     if (!scanId) continue;
     const scanRes = await fetch(
       `${localBase}/api/organic-dashboard/local-grid/scan?siteId=${encodeURIComponent(siteId)}&scanId=${encodeURIComponent(scanId)}`,
-      { headers: { Accept: "application/json" } },
+      { headers: { Accept: "application/json", ...authHeader } },
     );
     const scanPayload = await scanRes.json();
     const scan = scanPayload?.scan;
@@ -269,6 +277,8 @@ async function syncLocalGridScans(localBase, hubBase, siteId) {
 async function main() {
   const wpRoot = loadLocalWpRoot();
   if (!wpRoot) throw new Error("scripts/local-wp-staging.config.json wpRoot missing");
+  const hubToken = await loadHubSyncToken();
+  if (hubToken) process.env.PULSE_HOST_API_TOKEN = hubToken;
 
   const [props, mgr] = await Promise.all([
     apiJson(LOCAL_API, "manager-wordpress-properties/load"),

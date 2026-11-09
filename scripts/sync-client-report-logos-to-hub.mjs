@@ -17,6 +17,30 @@ const STATIC = "https://neo-pulse-static.onrender.com";
 const LOCAL_LOGO_DIR = path.join(REPO_ROOT, ".local-neo-pulse-data", "client-logos");
 const DRY_RUN = process.argv.includes("--dry-run");
 
+function loadDotEnv(filePath) {
+  const out = {};
+  if (!fs.existsSync(filePath)) return out;
+  for (const line of fs.readFileSync(filePath, "utf8").split(/\r?\n/)) {
+    const t = line.trim();
+    if (!t || t.startsWith("#")) continue;
+    const eq = t.indexOf("=");
+    if (eq < 1) continue;
+    const k = t.slice(0, eq).trim();
+    let v = t.slice(eq + 1).trim();
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+      v = v.slice(1, -1);
+    }
+    out[k] = v;
+  }
+  return out;
+}
+
+const HUB_TOKEN =
+  (process.env.PULSE_HOST_API_TOKEN || "").trim() ||
+  (loadDotEnv(path.join(REPO_ROOT, ".env.local")).PULSE_HOST_API_TOKEN ||
+    loadDotEnv(path.join(REPO_ROOT, ".env")).PULSE_HOST_API_TOKEN ||
+    "").trim();
+
 /** Box color decided per client from the logo foreground (light foreground -> black box). */
 export const CLIENT_LOGO_PLAN = [
   { id: "wp-1791924906059-0", name: "Advance Blinds", box: "black", url: "https://advanceblindsanddrapery.com/wp-content/uploads/2025/09/Advance-Blinds-Drapery-Logo.png" },
@@ -50,8 +74,12 @@ function mimeFor(url, headerType) {
 }
 
 async function hubFetch(url, init, attempts = 3) {
+  const headers = {
+    ...(HUB_TOKEN ? { "X-Pulse-Host-Api-Token": HUB_TOKEN } : {}),
+    ...(init?.headers || {}),
+  };
   for (let i = 1; ; i++) {
-    const res = await fetch(url, init);
+    const res = await fetch(url, { ...init, headers });
     if (res.status !== 502 && res.status !== 503 && res.status !== 504) return res;
     if (i >= attempts) return res;
     console.log(`  hub ${res.status}, retry ${i}/${attempts - 1} after ${2 * i}s`);

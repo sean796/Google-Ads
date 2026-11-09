@@ -60,6 +60,16 @@ function loadHubApiToken(): string {
 }
 
 const HUB_API_TOKEN = loadHubApiToken();
+if (HUB_API_TOKEN) {
+  process.env.PULSE_HOST_API_TOKEN = HUB_API_TOKEN;
+}
+
+function hubHeaders(extra?: Record<string, string>): Record<string, string> {
+  return {
+    ...(HUB_API_TOKEN ? { "X-Pulse-Host-Api-Token": HUB_API_TOKEN } : {}),
+    ...extra,
+  };
+}
 
 const dateHarness: Ga4ReportingDateHarness = {
   primaryPreset: "last_3_months",
@@ -76,7 +86,9 @@ const dateHarness: Ga4ReportingDateHarness = {
 
 async function loadSites(): Promise<WordPressSite[]> {
   // Wave 0: server mirror only. No bundled seed. Empty mirror fails visibly.
-  const res = (await fetch(`${HUB}/api/manager-wordpress-properties/load?_=${Date.now()}`).then((r) =>
+  const res = (await fetch(`${HUB}/api/manager-wordpress-properties/load?_=${Date.now()}`, {
+    headers: hubHeaders(),
+  }).then((r) =>
     r.json(),
   )) as { sites?: WordPressSite[] };
   const sites = res.sites ?? [];
@@ -105,7 +117,7 @@ async function publishOne(site: WordPressSite, gridScans: LocalGridScanDocument[
   const snapshot = buildOrganicReportingHighlightsSnapshot(viewModel, site.name, site.siteUrl, false, null);
   const hlRes = await fetch(`${HUB}/api/organic-dashboard/reporting-highlights`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: hubHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ siteId: site.id, snapshot: { ...snapshot, periods: undefined } }),
   });
   const hlData = (await hlRes.json().catch(() => ({}))) as {

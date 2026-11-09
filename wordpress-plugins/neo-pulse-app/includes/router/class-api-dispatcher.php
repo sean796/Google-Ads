@@ -161,9 +161,7 @@ class Neo_Pulse_App_Api_Dispatcher {
 		if ( self::route_matches( $method, $route, self::public_routes() ) ) {
 			return true;
 		}
-		if ( self::route_matches( $method, $route, self::machine_routes() )
-			&& ( Neo_Pulse_App_Hub_Data_Sync::request_has_valid_sync_token()
-				|| Neo_Pulse_App_Auth_Session::require_user() !== null ) ) {
+		if ( Neo_Pulse_App_Hub_Data_Sync::request_has_valid_sync_token() ) {
 			return true;
 		}
 		if ( Neo_Pulse_App_Auth_Session::require_user() !== null ) {
