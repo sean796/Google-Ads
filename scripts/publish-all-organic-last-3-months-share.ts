@@ -64,6 +64,26 @@ if (HUB_API_TOKEN) {
   process.env.PULSE_HOST_API_TOKEN = HUB_API_TOKEN;
 }
 
+function loadExistingDeckIdsBySiteId(): Map<string, string> {
+  const map = new Map<string, string>();
+  if (!fs.existsSync(OUT_PATH)) return map;
+  for (const line of fs.readFileSync(OUT_PATH, "utf8").split(/\r?\n/)) {
+    const m = line.match(/^"[^"]+","([^"]+)"/);
+    if (!m) continue;
+    try {
+      const u = new URL(m[1]);
+      const deck = u.searchParams.get("deck")?.trim();
+      const siteId = u.searchParams.get("siteId")?.trim();
+      if (deck && siteId) map.set(siteId, deck);
+    } catch {
+      /* ignore invalid URL */
+    }
+  }
+  return map;
+}
+
+const EXISTING_DECK_IDS = loadExistingDeckIdsBySiteId();
+
 function hubHeaders(extra?: Record<string, string>): Record<string, string> {
   return {
     ...(HUB_API_TOKEN ? { "X-Pulse-Host-Api-Token": HUB_API_TOKEN } : {}),
@@ -144,6 +164,7 @@ async function publishOne(site: WordPressSite, gridScans: LocalGridScanDocument[
     clientLogoBoxTheme: normalizeClientLogoBoxTheme(site.clientLogoBoxTheme),
     origin: STATIC,
     hubApiToken: HUB_API_TOKEN,
+    deckId: EXISTING_DECK_IDS.get(site.id),
   });
   if (!shareUrl.startsWith(`${STATIC}/`)) throw new Error(`Share link is not on ${STATIC}: ${shareUrl}`);
   return shareUrl;
