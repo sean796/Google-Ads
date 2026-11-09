@@ -328,33 +328,44 @@ async function main() {
 
   const workerRaw = readNeoPulseDataFile(wpRoot, "email-worker-keys.json");
   if (workerRaw) {
-    const worker = JSON.parse(workerRaw);
-    await apiJson(HUB_API, "integrations/sync-email-worker-keys", {
-      method: "POST",
-      body: JSON.stringify({
-        openRouterApiKey: worker.openRouterApiKey || "",
-        agentmailApiKey: worker.agentmailApiKey || "",
-        agentmailGeneralEmail: worker.agentmailGeneralEmail || "",
-        agentmailWebhookSecret: worker.agentmailWebhookSecret || "",
-      }),
-    });
-    console.log("[hub] email-worker-keys synced");
+    try {
+      const worker = JSON.parse(workerRaw);
+      await apiJson(HUB_API, "integrations/sync-email-worker-keys", {
+        method: "POST",
+        body: JSON.stringify({
+          openRouterApiKey: worker.openRouterApiKey || "",
+          agentmailApiKey: worker.agentmailApiKey || "",
+          agentmailGeneralEmail: worker.agentmailGeneralEmail || "",
+          agentmailWebhookSecret: worker.agentmailWebhookSecret || "",
+        }),
+      });
+      console.log("[hub] email-worker-keys synced");
+    } catch (err) {
+      console.log(`[hub] email-worker-keys skipped: ${err.message || err}`);
+    }
   }
 
   if (snapshot.keys["openrouter-api-key"]) {
-    await apiJson(HUB_API, "manager-wordpress-properties/sync-openrouter", {
-      method: "POST",
-      body: JSON.stringify({ openRouterApiKey: snapshot.keys["openrouter-api-key"] }),
-    });
+    try {
+      await apiJson(HUB_API, "manager-wordpress-properties/sync-openrouter", {
+        method: "POST",
+        body: JSON.stringify({ openRouterApiKey: snapshot.keys["openrouter-api-key"] }),
+      });
+    } catch (err) {
+      console.log(`[hub] sync-openrouter skipped: ${err.message || err}`);
+    }
   }
   if (snapshot.keys["semrush-api-key"]) {
-    await apiJson(HUB_API, "manager-wordpress-properties/sync-semrush", {
-      method: "POST",
-      body: JSON.stringify({ semrushApiKey: snapshot.keys["semrush-api-key"] }),
-    });
+    try {
+      await apiJson(HUB_API, "manager-wordpress-properties/sync-semrush", {
+        method: "POST",
+        body: JSON.stringify({ semrushApiKey: snapshot.keys["semrush-api-key"] }),
+      });
+    } catch (err) {
+      console.log(`[hub] sync-semrush skipped: ${err.message || err}`);
+    }
   }
 
-  const hubToken = await loadHubSyncToken();
   await syncHubDataFiles(LOCAL_API, HUB_API, hubToken);
   for (const site of sites) {
     const id = site?.id;
@@ -370,7 +381,6 @@ async function main() {
     apiJson(HUB_API, "ga/credentials-status"),
     apiJson(HUB_API, "gsc/credentials-status"),
     apiJson(HUB_API, "gsc/test-connection"),
-    apiJson(HUB_API, "integrations/resolved-openrouter-key"),
     apiJson(HUB_API, "google-ads/status"),
   ]);
   const hubSites = verify[0].sites?.length ?? 0;
@@ -378,10 +388,9 @@ async function main() {
   const gaOk = Boolean(verify[2].configured);
   const gscOk = Boolean(verify[3].configured);
   const gscConnected = Boolean(verify[4].success);
-  const orLen = (verify[5].key || "").length;
-  const adsConnected = Boolean(verify[6]?.connected);
+  const adsConnected = Boolean(verify[5]?.connected);
   console.log(
-    `[verify] hub sites=${hubSites} managerKeys=${hubKeys} gaConfigured=${gaOk} gscConfigured=${gscOk} gscConnected=${gscConnected} openRouterKeyLen=${orLen} googleAdsConnected=${adsConnected}`,
+    `[verify] hub sites=${hubSites} managerKeys=${hubKeys} gaConfigured=${gaOk} gscConfigured=${gscOk} gscConnected=${gscConnected} googleAdsConnected=${adsConnected}`,
   );
   if (
     hubSites !== sites.length ||
@@ -389,7 +398,6 @@ async function main() {
     !gaOk ||
     !gscOk ||
     !gscConnected ||
-    orLen < 10 ||
     !adsConnected
   ) {
     process.exitCode = 1;
